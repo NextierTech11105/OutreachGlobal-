@@ -1,0 +1,1 @@
+ALTER TABLE "team_settings" ALTER COLUMN "type" SET DEFAULT 'string';

@@ -1,0 +1,2 @@
+ALTER TABLE "call_histories" ADD COLUMN "power_dialer_id" varchar(36) NOT NULL;--> statement-breakpoint
+ALTER TABLE "call_histories" ADD CONSTRAINT "call_histories_power_dialer_id_power_dialers_id_fk" FOREIGN KEY ("power_dialer_id") REFERENCES "public"."power_dialers"("id") ON DELETE cascade ON UPDATE no action;

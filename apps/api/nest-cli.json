@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json.schemastore.org/nest-cli",
+  "collection": "@nestjs/schematics",
+  "sourceRoot": "src",
+  "compilerOptions": {
+    "deleteOutDir": true,
+    "typeCheck": true,
+    "assets": ["assets/**/*.json", "app/**/*.json"],
+    "watchAssets": true,
+    "builder": {
+      "type": "swc",
+      "options": {
+        "extensions": [".js", ".ts", ".jsx", ".tsx", "*.css"]
+      }
+    }
+  }
+}

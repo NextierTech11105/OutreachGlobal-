@@ -1,0 +1,57 @@
+{
+  "campaigns": [
+    {
+      "id": "camp-001",
+      "name": "High Equity Outreach",
+      "description": "Target homeowners with high equity for investment opportunities",
+      "type": "ai",
+      "tags": ["high-equity", "investment", "homeowner"],
+      "script": "Hello {{firstName}}, this is {{agentName}} from OutreachGlobal. I noticed your property at {{address}} has significant equity built up. I'd like to discuss some investment opportunities that could benefit you. Do you have a few minutes to chat?",
+      "dispositions": ["Interested", "Not Interested", "Call Back", "Wrong Number", "Do Not Call"]
+    },
+    {
+      "id": "camp-002",
+      "name": "Pre-Foreclosure Assistance",
+      "description": "Reach out to homeowners in pre-foreclosure to offer assistance",
+      "type": "ai",
+      "tags": ["pre-foreclosure", "assistance", "urgent"],
+      "script": "Hello {{firstName}}, I'm {{agentName}} with OutreachGlobal. I understand you might be facing some challenges with your property at {{address}}. We specialize in helping homeowners in pre-foreclosure situations find solutions. I'd like to share some options that might help you avoid foreclosure. Is this a good time to talk?",
+      "dispositions": ["Interested", "Not Interested", "Call Back", "Wrong Number", "Already Resolved", "Do Not Call"]
+    },
+    {
+      "id": "camp-003",
+      "name": "Commercial Property Investment",
+      "description": "Target commercial property owners for investment partnerships",
+      "type": "human",
+      "tags": ["commercial", "investment", "partnership"],
+      "script": "Hello {{firstName}}, my name is {{agentName}} from OutreachGlobal. I'm reaching out regarding your commercial property at {{address}}. We're looking for investment partnerships in your area, and I believe your property has excellent potential. Would you be open to discussing some mutually beneficial opportunities?",
+      "dispositions": ["Interested", "Not Interested", "Call Back", "Wrong Number", "Not Owner", "Do Not Call"]
+    },
+    {
+      "id": "camp-004",
+      "name": "Vacant Property Acquisition",
+      "description": "Contact owners of vacant properties for potential acquisition",
+      "type": "ai",
+      "tags": ["vacant", "acquisition", "cash-offer"],
+      "script": "Hi {{firstName}}, this is {{agentName}} with OutreachGlobal. I'm calling about your vacant property at {{address}}. We're actively acquiring properties in your area and can offer a straightforward cash purchase. Would you be interested in hearing more about our acquisition process?",
+      "dispositions": [
+        "Interested",
+        "Not Interested",
+        "Call Back",
+        "Wrong Number",
+        "Not Vacant",
+        "Already Sold",
+        "Do Not Call"
+      ]
+    },
+    {
+      "id": "camp-005",
+      "name": "Senior Homeowner Assistance",
+      "description": "Reach out to senior homeowners to offer specialized services",
+      "type": "human",
+      "tags": ["senior", "assistance", "retirement"],
+      "script": "Hello {{firstName}}, I'm {{agentName}} calling from OutreachGlobal. We specialize in helping senior homeowners like yourself with property-related decisions. Whether you're considering downsizing, need help with property maintenance, or want to explore options for your home at {{address}}, we have services designed specifically for your needs. Do you have a moment to discuss how we might be able to assist you?",
+      "dispositions": ["Interested", "Not Interested", "Call Back", "Wrong Number", "Not Senior Owner", "Do Not Call"]
+    }
+  ]
+}

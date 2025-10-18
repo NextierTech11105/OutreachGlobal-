@@ -1,0 +1,16 @@
+export const LEAD_FIELDS = [
+  "firstName",
+  "lastName",
+  "email",
+  "phone",
+  "title",
+  "company",
+  "zipCode",
+  "country",
+  "state",
+  "city",
+  "address",
+  "source",
+  "notes",
+  "status",
+];

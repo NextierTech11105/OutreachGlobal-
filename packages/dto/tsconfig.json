@@ -1,0 +1,9 @@
+{
+  "extends": "@nextier/tsconfig/base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "module": "ESNext"
+  },
+  "include": ["./src/**/*"],
+  "exclude": ["node_modules", "dist", "tsup.config.ts"]
+}
