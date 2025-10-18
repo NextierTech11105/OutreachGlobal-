@@ -1,7 +1,7 @@
 {
   "tasksRunnerOptions": {
     "default": {
-      "runner": "nx-cloud",
+      "runner": "default",
       "options": {
         "cacheableOperations": ["build"]
       }
