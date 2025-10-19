@@ -1,4 +1,4 @@
-import { JwtService } from "@/lib/jwt/jwt.service";
+import { JwtService } from "../../../lib/jwt/jwt.service";
 import {
   CanActivate,
   ExecutionContext,
