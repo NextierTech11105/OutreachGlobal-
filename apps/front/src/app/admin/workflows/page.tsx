@@ -125,7 +125,7 @@ export default function WorkflowsPage() {
   };
 
   const handleToggleStatus = (workflow: Workflow) => {
-    const newStatus = workflow.status === "active" ? "draft" : "active";
+    const newStatus: "active" | "draft" | "archived" = workflow.status === "active" ? "draft" : "active";
     const updatedWorkflows = workflows.map((w) =>
       w.id === workflow.id ? { ...w, status: newStatus } : w,
     );
