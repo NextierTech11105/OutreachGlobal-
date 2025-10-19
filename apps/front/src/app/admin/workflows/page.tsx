@@ -140,7 +140,7 @@ export default function WorkflowsPage() {
 
   const handleArchiveWorkflow = (workflow: Workflow) => {
     const updatedWorkflows = workflows.map((w) =>
-      w.id === workflow.id ? { ...w, status: "archived" } : w,
+      w.id === workflow.id ? { ...w, status: "archived" as const } : w,
     );
     setWorkflows(updatedWorkflows);
 
