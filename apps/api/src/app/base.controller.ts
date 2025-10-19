@@ -4,7 +4,7 @@ import { Throttle } from "@nestjs/throttler";
 import { ThrottlerGuard } from "./auth/guards";
 import { Inject, UseGuards } from "@nestjs/common";
 import { z } from "@nextier/dto";
-import { parseSchema } from "@/lib/zod/validate-input";
+import { parseSchema } from "../lib/zod/validate-input";
 
 @UseGuards(ThrottlerGuard)
 @Throttle({
