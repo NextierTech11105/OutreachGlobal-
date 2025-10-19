@@ -27,10 +27,11 @@ import Link from "next/link";
 export default function AdminDashboard() {
   return (
     <div className="bg-zinc-950 text-zinc-100 min-h-screen">
-      <AdminHeader
-        title="Admin Dashboard"
-        description="Overview of system performance and key metrics"
-      />
+      <div className="border-b border-zinc-800 p-8">
+        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+        <p className="text-zinc-400 mt-2">Overview of system performance and key metrics</p>
+      </div>
+
 
       <div className="p-8">
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
