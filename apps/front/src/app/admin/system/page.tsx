@@ -197,10 +197,10 @@ export default function SystemSettingsPage() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <AdminHeader
-        title="System Settings"
-        description="Configure global system settings and monitor system health"
-      />
+      <div className="border-b p-6">
+        <h1 className="text-3xl font-bold">System Settings</h1>
+        <p className="text-muted-foreground mt-2">Configure global system settings and monitor system health</p>
+      </div>
       <div className="flex-1 space-y-6 p-6">
         <Tabs defaultValue="general" className="space-y-4">
           <TabsList className="grid w-full grid-cols-5">
