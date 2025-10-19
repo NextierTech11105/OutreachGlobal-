@@ -15,7 +15,7 @@ import { CheckCircle, AlertCircle, RefreshCw } from "lucide-react";
 
 export function SchemaValidator() {
   const [jsonInput, setJsonInput] = useState("");
-  const [validationResult, setValidationResult] = useState(null);
+  const [validationResult, setValidationResult] = useState<{ valid: boolean; errors: string[] } | null>(null);
   const [isValidating, setIsValidating] = useState(false);
 
   const validateSchema = () => {

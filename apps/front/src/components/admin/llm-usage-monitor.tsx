@@ -169,7 +169,7 @@ export function LlmUsageMonitor() {
                     <XAxis dataKey="name" />
                     <YAxis />
                     <Tooltip
-                      formatter={(value) => [`$${value.toFixed(2)}`, "Cost"]}
+                      formatter={(value) => [`$${Number(value).toFixed(2)}`, "Cost"]}
                     />
                     <Bar dataKey="cost" fill="#00C49F" />
                   </BarChart>
