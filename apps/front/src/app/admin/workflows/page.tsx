@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { AdminHeader } from "@/components/admin/admin-header";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -283,7 +282,7 @@ export default function WorkflowsPage() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <AdminHeader />
+      
       <div className="flex-1 space-y-6 p-6">
         <div className="flex items-center justify-between">
           <div>

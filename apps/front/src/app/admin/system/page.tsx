@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { AdminHeader } from "@/components/admin/admin-header";
 import {
   Card,
   CardContent,
