@@ -1,6 +1,6 @@
-import { TimestampModel } from "@/app/apollo/base-model";
-import { DateField, StringField } from "@/app/apollo/decorators";
-import { usersTable } from "@/database/schema-alias";
+import { TimestampModel } from "../../apollo/base-model";
+import { DateField, StringField } from "../../apollo/decorators";
+import { usersTable } from "../../../../database/schema-alias";
 import { Field, ObjectType } from "@nestjs/graphql";
 
 export type UserSelect = typeof usersTable.$inferSelect;
