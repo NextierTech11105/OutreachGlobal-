@@ -6,9 +6,8 @@ import {
 import { type FastifyReply, type FastifyRequest } from "fastify";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { ApolloServerPluginLandingPageLocalDefault } from "@apollo/server/plugin/landingPage/default";
-import { AuthService } from "../auth/services/auth.service";
-import { JwtService } from "@/lib/jwt/jwt.service";
-import { CacheService } from "@/lib/cache/cache.service";
+import { JwtService } from "../lib/jwt/jwt.service";
+import { CacheService } from "../lib/cache/cache.service";
 import { CacheModule } from "../lib/cache/cache.module";
 import { JSONScalar } from "./scalars/json.scalar";
 import { ApolloModule } from "./apollo.module";
