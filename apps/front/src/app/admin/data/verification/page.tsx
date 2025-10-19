@@ -1,4 +1,3 @@
-import { AdminHeader } from "@/components/admin/admin-header";
 import { AddressVerificationModule } from "@/components/address-verification-module";
 import {
   Card,
@@ -17,7 +16,7 @@ import Link from "next/link";
 export default function DataVerificationPage() {
   return (
     <div className="flex min-h-screen flex-col">
-      <AdminHeader />
+      
       <div className="flex-1 space-y-6 p-8 pt-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
