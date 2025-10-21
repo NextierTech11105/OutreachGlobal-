@@ -1,6 +1,8 @@
 import {
   index,
+  integer,
   pgTable,
+  serial,
   text,
   timestamp,
   uniqueIndex,
@@ -17,31 +19,31 @@ export const TEAM_MEMBER_PK = "tm";
 export const teams = pgTable(
   "teams",
   {
-    id: primaryUlid(TEAM_PK),
-    ownerId: ulidColumn()
+    id: serial("id").primaryKey(),
+    ownerId: integer("owner_id")
       .references(() => users.id, { onDelete: "cascade" })
       .notNull(),
     name: varchar().notNull(),
     slug: varchar().notNull().unique(),
     description: text(),
-    createdAt,
+    createdAt: createdAt.notNull(),
     updatedAt,
   },
   (t) => [index().on(t.ownerId)],
 );
 
 export const teamsRef = (config?: ReferenceConfig["actions"]) =>
-  ulidColumn().references(() => teams.id, config);
+  integer().references(() => teams.id, config);
 
 export const teamMembers = pgTable(
   "team_members",
   {
-    id: primaryUlid(TEAM_MEMBER_PK),
-    teamId: teamsRef({ onDelete: "cascade" }).notNull(),
-    userId: ulidColumn().references(() => users.id, { onDelete: "cascade" }),
+    id: serial("id").primaryKey(),
+    teamId: integer("team_id").references(() => teams.id, { onDelete: "cascade" }).notNull(),
+    userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }),
     role: varchar().notNull().default("MEMBER"),
     status: varchar().notNull().default("PENDING"),
-    createdAt,
+    createdAt: createdAt.notNull(),
     updatedAt,
   },
   (t) => [index().on(t.teamId), index().on(t.userId)],
