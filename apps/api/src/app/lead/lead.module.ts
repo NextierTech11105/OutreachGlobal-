@@ -11,7 +11,7 @@ import { ConfigModule } from "@nestjs/config";
 import { ImportLeadPresetResolver } from "./resolvers/import-lead-preset.resolver";
 import { LeadRepository } from "./repositories/lead.repository";
 import { LeadFilterService } from "./services/lead-filter.service";
-import { CacheModule } from "../lib/cache/cache.module";
+import { CacheModule } from "../../lib/cache/cache.module";
 import { BullModule } from "@nestjs/bullmq";
 import { LeadConsumer } from "./consumers/lead.consumer";
 
