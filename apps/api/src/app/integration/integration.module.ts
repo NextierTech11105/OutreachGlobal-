@@ -7,7 +7,7 @@ import { IntegrationResolver } from "./resolvers/integration.resolver";
 import { IntegrationSchedule } from "./schedules/integration.schedule";
 import { ZohoService } from "./services/zoho.service";
 import { ModuleMetadataResolver } from "./resolvers/module-metadata.resolver";
-import { CacheModule } from "../lib/cache/cache.module";
+import { CacheModule } from "../../lib/cache/cache.module";
 import { IntegrationFieldService } from "./services/integration-field.service";
 import { IntegrationFieldResolver } from "./resolvers/integration-field.resolver";
 import { BullModule } from "@nestjs/bullmq";
