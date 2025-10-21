@@ -8,7 +8,7 @@ const PORT = parseInt(process.env.PORT || "3001", 10);
 
 const ONE_HUNDRED_MB = 100 * 1024 * 1024;
 
-export async function bootstrap() {
+export async function bootstrap(): Promise<NestFastifyApplication> {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
     new FastifyAdapter({
