@@ -1,0 +1,5 @@
+{
+  "installCommand": "echo 'Skipping install - will be done in build'",
+  "buildCommand": "chmod +x ../../build-frontend.sh && ../../build-frontend.sh",
+  "framework": null
+}
