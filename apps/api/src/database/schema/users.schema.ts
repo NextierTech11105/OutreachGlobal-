@@ -1,7 +1,9 @@
 import {
   index,
+  integer,
   jsonb,
   pgTable,
+  serial,
   text,
   timestamp,
   varchar,
@@ -12,13 +14,13 @@ import { createdAt, updatedAt } from "../columns/timestamps";
 export const USER_PK = "user";
 export const PERSONAL_ACCESS_TOKEN_PK = "pat";
 export const users = pgTable("users", {
-  id: primaryUlid(USER_PK),
+  id: serial("id").primaryKey(),
   role: varchar().notNull().default("USER"),
   name: varchar().notNull(),
   email: varchar().notNull().unique(),
   password: text().notNull(),
-  emailVerifiedAt: timestamp(),
-  createdAt,
+  emailVerifiedAt: timestamp("email_verified_at"),
+  createdAt: createdAt.notNull(),
   updatedAt,
 });
 
