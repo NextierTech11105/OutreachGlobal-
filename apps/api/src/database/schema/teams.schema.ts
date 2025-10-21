@@ -10,7 +10,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { primaryUlid, ulidColumn } from "../columns/ulid";
 import { createdAt, updatedAt } from "../columns/timestamps";
-import { ReferenceConfig } from "drizzle-orm/gel-core";
+import { ReferenceConfig } from "drizzle-orm/pg-core";
 import { users } from "./users.schema";
 
 export const TEAM_PK = "team";
@@ -19,31 +19,31 @@ export const TEAM_MEMBER_PK = "tm";
 export const teams = pgTable(
   "teams",
   {
-    id: serial("id").primaryKey(),
-    ownerId: integer("owner_id")
+    id: primaryUlid(TEAM_PK),
+    ownerId: ulidColumn()
       .references(() => users.id, { onDelete: "cascade" })
       .notNull(),
     name: varchar().notNull(),
     slug: varchar().notNull().unique(),
     description: text(),
-    createdAt: createdAt.notNull(),
+    createdAt,
     updatedAt,
   },
   (t) => [index().on(t.ownerId)],
 );
 
 export const teamsRef = (config?: ReferenceConfig["actions"]) =>
-  integer().references(() => teams.id, config);
+  ulidColumn().references(() => teams.id, config);
 
 export const teamMembers = pgTable(
   "team_members",
   {
-    id: serial("id").primaryKey(),
-    teamId: integer("team_id").references(() => teams.id, { onDelete: "cascade" }).notNull(),
-    userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }),
+    id: primaryUlid(TEAM_MEMBER_PK),
+    teamId: ulidColumn().references(() => teams.id, { onDelete: "cascade" }).notNull(),
+    userId: ulidColumn().references(() => users.id, { onDelete: "cascade" }),
     role: varchar().notNull().default("MEMBER"),
     status: varchar().notNull().default("PENDING"),
-    createdAt: createdAt.notNull(),
+    createdAt,
     updatedAt,
   },
   (t) => [index().on(t.teamId), index().on(t.userId)],
