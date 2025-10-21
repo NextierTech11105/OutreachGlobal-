@@ -2,7 +2,7 @@ import { CustomModule } from "@/common/decorators";
 import { TeamService } from "./services/team.service";
 import { TeamPolicy } from "./policies/team.policy";
 import { TeamResolver } from "./resolvers/team.resolver";
-import { CacheModule } from "../lib/cache/cache.module";
+import { CacheModule } from "../../lib/cache/cache.module";
 import { ConfigModule } from "@nestjs/config";
 import { MailModule } from "@/lib/mail/mail.module";
 import { TeamInvitationResolver } from "./resolvers/team-invitation.resolver";
