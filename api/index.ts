@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
-import { AppModule } from '../src/app/app.module';
+import { AppModule } from '../apps/api/src/app/app.module';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 let app: NestFastifyApplication;
