@@ -15,6 +15,9 @@ import { DatabaseService } from "./services/database.service";
       useFactory: (configService: ConfigService) => {
         const pool = new Pool({
           connectionString: configService.get("DATABASE_URL"),
+          max: 1, // Serverless: 1 connection per function instance
+          connectionTimeoutMillis: 10000,
+          idleTimeoutMillis: 30000,
         });
 
         return {
