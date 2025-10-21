@@ -14,13 +14,13 @@ import { createdAt, updatedAt } from "../columns/timestamps";
 export const USER_PK = "user";
 export const PERSONAL_ACCESS_TOKEN_PK = "pat";
 export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
+  id: primaryUlid(USER_PK),
   role: varchar().notNull().default("USER"),
   name: varchar().notNull(),
   email: varchar().notNull().unique(),
   password: text().notNull(),
   emailVerifiedAt: timestamp("email_verified_at"),
-  createdAt: createdAt.notNull(),
+  createdAt,
   updatedAt,
 });
 
