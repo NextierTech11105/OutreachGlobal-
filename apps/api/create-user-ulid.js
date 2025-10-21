@@ -1,4 +1,3 @@
-// Create user with ULID - bypasses Redis
 const { Client } = require('pg');
 const argon2 = require('argon2');
 const { ulid } = require('ulid');
@@ -31,37 +30,31 @@ async function createUser() {
     const email = await question('Enter your email: ');
     const password = await question('Enter your password: ');
 
-    // Hash password
     const hashedPassword = await argon2.hash(password);
-
-    // Generate ULIDs
     const userId = ulid();
     const teamId = ulid();
     const teamMemberId = ulid();
 
-    // Create user
     await client.query(
       'INSERT INTO users (id, name, email, password, role, email_verified_at, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, NOW(), NOW(), NOW())',
       [userId, name, email, hashedPassword, 'OWNER']
     );
-    console.log('✅ User created with ID:', userId);
+    console.log('User created with ID:', userId);
 
-    // Create team
     const slug = name.toLowerCase().replace(/\s+/g, '-') + '-team';
     await client.query(
       'INSERT INTO teams (id, owner_id, name, slug, created_at, updated_at) VALUES ($1, $2, $3, $4, NOW(), NOW())',
       [teamId, userId, name + "'s Team", slug]
     );
-    console.log('✅ Team created with ID:', teamId);
+    console.log('Team created with ID:', teamId);
 
-    // Add user to team
     await client.query(
       'INSERT INTO team_members (id, team_id, user_id, role, status, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, NOW(), NOW())',
       [teamMemberId, teamId, userId, 'OWNER', 'ACTIVE']
     );
-    console.log('✅ Team membership created');
+    console.log('Team membership created');
 
-    console.log('\n🎉 User setup complete!');
+    console.log('\nUser setup complete!');
     console.log('Email:', email);
     console.log('\nYou can now log in at www.nextierglobal.ai');
 
