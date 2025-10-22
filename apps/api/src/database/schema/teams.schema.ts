@@ -10,7 +10,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { primaryUlid, ulidColumn } from "../columns/ulid";
 import { createdAt, updatedAt } from "../columns/timestamps";
-import { ReferenceConfig } from "drizzle-orm/gel-core";
+import { ReferenceConfig } from "drizzle-orm/pg-core";
 import { users } from "./users.schema";
 
 export const TEAM_PK = "team";
