@@ -19,14 +19,7 @@ async function bootstrap() {
     { rawBody: true },
   );
 
-  // Enable CORS - using wildcard origin for Vercel serverless
-  app.enableCors({
-    origin: "*",
-    credentials: false,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "apollographql-client-name", "apollographql-client-version"],
-  });
-
+  // CORS is handled by CorsMiddleware in AppModule
   app.enableShutdownHooks();
 
   await app.listen(PORT, "0.0.0.0");
