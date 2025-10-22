@@ -19,8 +19,11 @@ async function bootstrap() {
     { rawBody: true },
   );
 
-  // Simple CORS configuration
-  app.enableCors();
+  app.enableCors({
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  });
 
   app.enableShutdownHooks();
 
