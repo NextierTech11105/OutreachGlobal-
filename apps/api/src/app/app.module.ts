@@ -1,5 +1,5 @@
 import { CacheModule } from "../lib/cache/cache.module";
-import { MiddlewareConsumer, Module, NestModule } from "@nestjs/common";
+import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { UserModule } from "./user/user.module";
 import { TeamModule } from "./team/team.module";
@@ -29,7 +29,6 @@ import { PromptModule } from "./prompt/prompt.module";
 import { AppController } from "./app.controller";
 import { PowerDialerModule } from "./power-dialer/power-dialer.module";
 import { MessageModule } from "./message/message.module";
-import { CorsMiddleware } from "../middleware/cors.middleware";
 
 @Module({
   imports: [
@@ -74,8 +73,4 @@ import { CorsMiddleware } from "../middleware/cors.middleware";
   providers: [AppRunner],
   controllers: [AppController],
 })
-export class AppModule implements NestModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer.apply(CorsMiddleware).forRoutes("*");
-  }
-}
+export class AppModule {}
