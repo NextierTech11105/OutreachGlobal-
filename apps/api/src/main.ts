@@ -4,30 +4,27 @@ import {
   NestFastifyApplication,
 } from "@nestjs/platform-fastify";
 import { AppModule } from "./app/app.module";
-import cors from "@fastify/cors";
 
 const PORT = parseInt(process.env.PORT || "3001", 10);
 
 const ONE_HUNDRED_MB = 100 * 1024 * 1024;
 
 async function bootstrap() {
-  const fastifyAdapter = new FastifyAdapter({
-    disableRequestLogging: process.env.APP_ENV === "production",
-    bodyLimit: ONE_HUNDRED_MB,
-  });
-
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
-    fastifyAdapter,
+    new FastifyAdapter({
+      disableRequestLogging: process.env.APP_ENV === "production",
+      bodyLimit: ONE_HUNDRED_MB,
+    }),
     { rawBody: true },
   );
 
-  // Register CORS plugin
-  await app.register(cors, {
-    origin: true,
-    credentials: true,
+  // Enable CORS - using wildcard origin for Vercel serverless
+  app.enableCors({
+    origin: "*",
+    credentials: false,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "apollographql-client-name", "apollographql-client-version"],
   });
 
   app.enableShutdownHooks();
