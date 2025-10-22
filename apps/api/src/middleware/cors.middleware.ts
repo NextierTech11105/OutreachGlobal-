@@ -3,24 +3,23 @@ import { FastifyRequest, FastifyReply } from "fastify";
 
 @Injectable()
 export class CorsMiddleware implements NestMiddleware {
-  use(req: FastifyRequest, res: FastifyReply["raw"], next: () => void) {
+  use(req: FastifyRequest, res: FastifyReply, next: () => void) {
     const origin = req.headers.origin || "*";
 
-    res.setHeader("Access-Control-Allow-Origin", origin);
-    res.setHeader("Access-Control-Allow-Credentials", "true");
-    res.setHeader(
+    res.header("Access-Control-Allow-Origin", origin);
+    res.header("Access-Control-Allow-Credentials", "true");
+    res.header(
       "Access-Control-Allow-Methods",
       "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS"
     );
-    res.setHeader(
+    res.header(
       "Access-Control-Allow-Headers",
       "Origin, X-Requested-With, Content-Type, Accept, Authorization, apollographql-client-name, apollographql-client-version"
     );
 
     // Handle preflight
     if (req.method === "OPTIONS") {
-      res.statusCode = 204;
-      res.end();
+      res.status(204).send();
       return;
     }
 
