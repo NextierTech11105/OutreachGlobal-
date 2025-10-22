@@ -1,5 +1,10 @@
 {
   "buildCommand": "pnpm nx build api",
-  "outputDirectory": "apps/api/dist",
-  "installCommand": "pnpm install"
+  "installCommand": "pnpm install",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api"
+    }
+  ]
 }
