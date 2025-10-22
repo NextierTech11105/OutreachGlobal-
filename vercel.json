@@ -1,9 +1,10 @@
 {
-  "buildCommand": "pnpm nx build api",
+  "buildCommand": "pnpm build",
   "installCommand": "pnpm install",
+  "outputDirectory": "apps/front/.next",
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/api/:path*",
       "destination": "/api"
     }
   ]
