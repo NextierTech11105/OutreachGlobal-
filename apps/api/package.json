@@ -21,6 +21,7 @@
     "@ai-sdk/anthropic": "^1.2.12",
     "@apollo/server": "^4.12.2",
     "@as-integrations/fastify": "^2.1.1",
+    "@fastify/cors": "^10.0.1",
     "@eslint/eslintrc": "^3.3.1",
     "@eslint/js": "^9.28.0",
     "@faker-js/faker": "^9.8.0",

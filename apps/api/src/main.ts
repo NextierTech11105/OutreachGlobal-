@@ -4,27 +4,31 @@ import {
   NestFastifyApplication,
 } from "@nestjs/platform-fastify";
 import { AppModule } from "./app/app.module";
+import fastifyCors from "@fastify/cors";
+
 const PORT = parseInt(process.env.PORT || "3001", 10);
 
 const ONE_HUNDRED_MB = 100 * 1024 * 1024;
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestFastifyApplication>(
-    AppModule,
-    new FastifyAdapter({
-      disableRequestLogging: process.env.APP_ENV === "production",
-      bodyLimit: ONE_HUNDRED_MB,
-    }),
-    { rawBody: true },
-  );
+  const fastifyAdapter = new FastifyAdapter({
+    disableRequestLogging: process.env.APP_ENV === "production",
+    bodyLimit: ONE_HUNDRED_MB,
+  });
 
-  app.enableCors({
+  // Register CORS at Fastify level BEFORE NestJS
+  await fastifyAdapter.register(fastifyCors, {
     origin: true,
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
-    exposedHeaders: ["Content-Type", "Authorization"],
   });
+
+  const app = await NestFactory.create<NestFastifyApplication>(
+    AppModule,
+    fastifyAdapter,
+    { rawBody: true },
+  );
 
   app.enableShutdownHooks();
 
