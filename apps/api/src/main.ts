@@ -4,7 +4,7 @@ import {
   NestFastifyApplication,
 } from "@nestjs/platform-fastify";
 import { AppModule } from "./app/app.module";
-import fastifyCors from "@fastify/cors";
+import cors from "@fastify/cors";
 
 const PORT = parseInt(process.env.PORT || "3001", 10);
 
@@ -16,19 +16,19 @@ async function bootstrap() {
     bodyLimit: ONE_HUNDRED_MB,
   });
 
-  // Register CORS at Fastify level BEFORE NestJS
-  await fastifyAdapter.register(fastifyCors, {
-    origin: true,
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
-  });
-
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
     fastifyAdapter,
     { rawBody: true },
   );
+
+  // Register CORS plugin
+  await app.register(cors, {
+    origin: true,
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+  });
 
   app.enableShutdownHooks();
 
