@@ -32,6 +32,10 @@ export const apolloAsyncConfig: GqlModuleAsyncOptions<
     return {
       autoSchemaFile: true,
       resolvers: { JSON: JSONScalar },
+      cors: {
+        origin: true,
+        credentials: true,
+      },
       persistedQueries: {
         cache: {
           set: async (key, value, options) => {
