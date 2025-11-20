@@ -1,15 +1,15 @@
 import { Controller, Get } from "@nestjs/common";
-import { InjectDrizzle } from "@haorama/drizzle-postgres-nestjs";
 import { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import * as argon2 from "argon2";
 import { ulid } from "ulidx";
 import * as schema from "../database/schema";
 import { eq } from "drizzle-orm";
+import { InjectDB } from "../database/decorators";
 
 @Controller()
 export class AppController {
   constructor(
-    @InjectDrizzle() private db: PostgresJsDatabase<typeof schema>,
+    @InjectDB() private db: PostgresJsDatabase<typeof schema>,
   ) {}
 
   @Get()
@@ -66,7 +66,7 @@ export class AppController {
 
       return { success: true, message: "Admin created! Login: admin@nextierglobal.ai / Admin123!" };
     } catch (error) {
-      return { success: false, error: error.message };
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }
 }
