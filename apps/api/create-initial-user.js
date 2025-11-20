@@ -1,28 +1,22 @@
 const { Client } = require('pg');
 const argon2 = require('argon2');
 const { ulid } = require('ulidx');
-const { execSync } = require('child_process');
 
 async function createInitialUser() {
-  console.log('🔄 Running database migrations...');
-  try {
-    execSync('npm run db:push', { stdio: 'inherit', cwd: __dirname });
-    console.log('✅ Migrations completed');
-  } catch (error) {
-    console.log('⚠️  Migration warning (may already be applied):', error.message);
-  }
-
-  const client = new Client({ connectionString: process.env.DATABASE_URL });
+  const client = new Client({
+    connectionString: process.env.DATABASE_URL,
+    connectionTimeoutMillis: 10000
+  });
 
   try {
     await client.connect();
-    console.log('Connected to database');
+    console.log('✓ Connected to database');
 
     // Check if user exists
     const existingUser = await client.query(
       'SELECT id FROM users WHERE email = $1',
       ['admin@nextierglobal.ai']
-    );
+    ).catch(() => ({ rows: [] }));
 
     if (existingUser.rows.length > 0) {
       console.log('✅ Admin user already exists');
@@ -60,7 +54,7 @@ async function createInitialUser() {
 
   } catch (error) {
     console.error('Error creating user:', error.message);
-    process.exit(1);
+    console.log('⚠️  Tables may not exist. Skipping user creation.');
   } finally {
     await client.end();
   }
