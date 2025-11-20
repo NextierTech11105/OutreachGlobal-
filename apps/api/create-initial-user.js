@@ -1,8 +1,17 @@
 const { Client } = require('pg');
 const argon2 = require('argon2');
 const { ulid } = require('ulidx');
+const { execSync } = require('child_process');
 
 async function createInitialUser() {
+  console.log('🔄 Running database migrations...');
+  try {
+    execSync('npm run db:push', { stdio: 'inherit', cwd: __dirname });
+    console.log('✅ Migrations completed');
+  } catch (error) {
+    console.log('⚠️  Migration warning (may already be applied):', error.message);
+  }
+
   const client = new Client({ connectionString: process.env.DATABASE_URL });
 
   try {
