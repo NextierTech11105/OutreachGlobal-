@@ -8,7 +8,7 @@ import { setContext } from "@apollo/client/link/context";
 import { onError } from "@apollo/client/link/error";
 
 const httpLink = createHttpLink({
-  uri: process.env.NEXT_PUBLIC_GRAPHQL_URL || "http://localhost:3001/graphql",
+  uri: "https://monkfish-app-mb7h3.ondigitalocean.app/graphql",
 });
 
 const authLink = setContext((_, { headers }) => {
