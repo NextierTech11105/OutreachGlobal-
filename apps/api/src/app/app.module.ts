@@ -29,7 +29,6 @@ import { PromptModule } from "./prompt/prompt.module";
 import { AppController } from "./app.controller";
 import { PowerDialerModule } from "./power-dialer/power-dialer.module";
 import { MessageModule } from "./message/message.module";
-import { SetupController } from "../setup-endpoint";
 
 @Module({
   imports: [
@@ -72,6 +71,6 @@ import { SetupController } from "../setup-endpoint";
     MessageModule,
   ],
   providers: [AppRunner],
-  controllers: [AppController, SetupController],
+  controllers: [AppController],
 })
 export class AppModule {}
