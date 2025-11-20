@@ -1,19 +1,22 @@
-const { drizzle } = require('drizzle-orm/node-postgres');
 const { Client } = require('pg');
 const argon2 = require('argon2');
 const { ulid } = require('ulidx');
-const { users, teams, teamMembers } = require('./src/database/schema');
 
 async function createInitialUser() {
   const client = new Client({ connectionString: process.env.DATABASE_URL });
-  await client.connect();
-  const db = drizzle(client);
 
   try {
-    // Check if user already exists
-    const existing = await db.select().from(users).where(users.email.eq('admin@nextierglobal.ai'));
-    if (existing.length > 0) {
-      console.log('Admin user already exists');
+    await client.connect();
+    console.log('Connected to database');
+
+    // Check if user exists
+    const existingUser = await client.query(
+      'SELECT id FROM users WHERE email = $1',
+      ['admin@nextierglobal.ai']
+    );
+
+    if (existingUser.rows.length > 0) {
+      console.log('✅ Admin user already exists');
       await client.end();
       return;
     }
@@ -23,38 +26,32 @@ async function createInitialUser() {
     const teamId = ulid();
     const teamMemberId = ulid();
 
-    await db.insert(users).values({
-      id: userId,
-      name: 'Admin',
-      email: 'admin@nextierglobal.ai',
-      password: hashedPassword,
-      emailVerifiedAt: new Date(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+    // Create user
+    await client.query(
+      'INSERT INTO users (id, name, email, password, email_verified_at, created_at, updated_at) VALUES ($1, $2, $3, $4, NOW(), NOW(), NOW())',
+      [userId, 'Admin', 'admin@nextierglobal.ai', hashedPassword]
+    );
+    console.log('✓ User created');
 
-    await db.insert(teams).values({
-      id: teamId,
-      ownerId: userId,
-      name: 'Admin Team',
-      slug: 'admin-team',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+    // Create team
+    await client.query(
+      'INSERT INTO teams (id, owner_id, name, slug, created_at, updated_at) VALUES ($1, $2, $3, $4, NOW(), NOW())',
+      [teamId, userId, 'Admin Team', 'admin-team']
+    );
+    console.log('✓ Team created');
 
-    await db.insert(teamMembers).values({
-      id: teamMemberId,
-      userId: userId,
-      teamId: teamId,
-      role: 'owner',
-      status: 'approved',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+    // Create team member
+    await client.query(
+      'INSERT INTO team_members (id, user_id, team_id, role, status, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, NOW(), NOW())',
+      [teamMemberId, userId, teamId, 'owner', 'approved']
+    );
+    console.log('✓ Team membership created');
 
-    console.log('✅ Initial admin user created: admin@nextierglobal.ai / Admin123!');
+    console.log('\n✅ Initial admin user created: admin@nextierglobal.ai / Admin123!');
+
   } catch (error) {
     console.error('Error creating user:', error.message);
+    process.exit(1);
   } finally {
     await client.end();
   }
