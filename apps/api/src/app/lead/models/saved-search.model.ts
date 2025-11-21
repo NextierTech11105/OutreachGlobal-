@@ -48,7 +48,4 @@ export class SavedSearch extends TimestampModel implements SavedSearchSelect {
 export class SavedSearchEdge extends WithEdge(SavedSearch) {}
 
 @ObjectType()
-export class SavedSearchConnection extends WithConnection(
-  SavedSearch,
-  SavedSearchEdge,
-) {}
+export class SavedSearchConnection extends WithConnection(SavedSearchEdge) {}
