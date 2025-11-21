@@ -16,6 +16,7 @@ import { IntegrationTaskConsumer } from "./consumers/integration-task.consumer";
 import { IntegrationTaskService } from "./services/integration-task.service";
 import { IntegrationTaskResolver } from "./resolvers/integration-task.resolver";
 import { SignalHouseService } from "./services/signalhouse.service";
+// import { ApolloService } from "./services/apollo.service"; // TODO: Add back after committing apollo.service.ts
 
 @CustomModule({
   imports: [
@@ -34,6 +35,7 @@ import { SignalHouseService } from "./services/signalhouse.service";
     IntegrationService,
     ZohoService,
     SignalHouseService,
+    // ApolloService, // TODO: Add back after committing apollo.service.ts
     IntegrationFieldService,
     IntegrationTaskService,
   ],

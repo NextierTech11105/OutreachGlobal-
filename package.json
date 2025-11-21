@@ -2,6 +2,11 @@
   "name": "outreach-monorepo",
   "version": "1.0.0",
   "private": true,
+  "packageManager": "pnpm@10.18.3",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=10.0.0"
+  },
   "scripts": {
     "build": "nx run-many -t build --outputStyle stream",
     "dev": "nx run-many -t dev --outputStyle stream",
@@ -29,5 +34,9 @@
   },
   "pnpm": {
     "neverBuiltDependencies": []
+  },
+  "dependencies": {
+    "argon2": "^0.43.0",
+    "pg": "^8.16.2"
   }
 }
