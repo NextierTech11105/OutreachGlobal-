@@ -7,6 +7,13 @@ settings:
 importers:
 
   .:
+    dependencies:
+      argon2:
+        specifier: ^0.43.0
+        version: 0.43.0
+      pg:
+        specifier: ^8.16.2
+        version: 8.16.2
     devDependencies:
       nx:
         specifier: ^21.1.2
