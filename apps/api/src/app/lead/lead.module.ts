@@ -5,6 +5,7 @@ import { LeadService } from "./services/lead.service";
 import { LeadSchedule } from "./schedules/lead.schedule";
 import { PropertyModule } from "../property/property.module";
 import { BusinessListService } from "./services/business-list.service";
+import { LeadIntelligenceService } from "./services/lead-intelligence.service";
 import { FacetResolver } from "./resolvers/facet.resolver";
 import { BusinessListController } from "./controllers/business-list.controller";
 import { ConfigModule } from "@nestjs/config";
@@ -26,7 +27,12 @@ import { LeadConsumer } from "./consumers/lead.consumer";
     }),
   ],
   resolvers: [LeadResolver, FacetResolver, ImportLeadPresetResolver],
-  providers: [LeadService, BusinessListService, LeadFilterService],
+  providers: [
+    LeadService,
+    BusinessListService,
+    LeadIntelligenceService,
+    LeadFilterService,
+  ],
   consumers: [LeadConsumer],
   repositories: [LeadRepository],
   schedules: [LeadSchedule],
