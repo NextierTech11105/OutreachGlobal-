@@ -124,14 +124,20 @@ export class BusinessListService {
 
   private mapPropertyTypeToIndustry(propertyUseCode?: string): string {
     const codeMap: Record<string, string> = {
-      "136": "Commercial Real Estate",
-      "140": "Commercial Real Estate",
-      "169": "Office Buildings",
-      "170": "Office Buildings",
-      "171": "Office Buildings",
-      "184": "Mixed-Use Development",
-      "1000": "Multi-Family Development",
-      "1001": "Multi-Family Development",
+      "136": "Commercial Office",
+      "140": "Mixed Use (Store/Office)",
+      "169": "Office Building",
+      "170": "Office Building (Multi-Story)",
+      "171": "Mixed Use (Office/Residential)",
+      "184": "High-Rise Commercial",
+      "357": "Multi-Family (5+ Units)",
+      "358": "High-Rise Apartments",
+      "359": "Large Apartments (100+ Units)",
+      "360": "Apartments",
+      "361": "Apartment Complex (5+ Units)",
+      "167": "Shopping Center/Strip Mall",
+      "179": "Regional Mall",
+      "183": "Community Shopping Center",
     };
 
     return codeMap[propertyUseCode || ""] || "Commercial Real Estate";
@@ -147,15 +153,6 @@ export class BusinessListService {
       query.state = options.state[0]; // RealEstateAPI takes single state
     }
 
-    // Target commercial property types
-    // Office buildings, multi-family 5+, commercial land, mixed-use
-    const commercialCodes = [
-      "136", "140", "169", "170", "171", "184", // Office/Commercial
-      "1000", "1001", // Multi-family 5+
-    ];
-
-    query.property_use_code = commercialCodes.join(",");
-
     // Add industry-specific filters
     if (options.industry && options.industry.length > 0) {
       const industry = options.industry[0].toLowerCase();
@@ -165,12 +162,26 @@ export class BusinessListService {
           industry.includes("plumbing") ||
           industry.includes("electrical") ||
           industry.includes("roofing")) {
-        // Target commercial/industrial properties for blue collar businesses
-        query.property_use_code = "136,140,169,170,171";
-      } else if (industry.includes("development")) {
-        // Target land and multi-family for development
-        query.property_use_code = "1000,1001,184";
+        // Target commercial office buildings for blue collar service businesses
+        query.property_use_code = [136, 140, 169, 170, 171];
+      } else if (industry.includes("development") || industry.includes("multi-family")) {
+        // Use multi-family flag for development opportunities
+        query.mfh_5plus = true; // Properties with 5+ units
+        query.units_min = 5;
+      } else {
+        // Default: broad commercial search - office buildings + multi-family + shopping
+        query.property_use_code = [
+          136, 140, 169, 170, 171, 184, // Office/Commercial
+          357, 358, 359, 360, 361, // Multi-family 5+
+          167, 179, 183, // Shopping centers
+        ];
       }
+    } else {
+      // Default: target commercial properties
+      query.property_use_code = [
+        136, 140, 169, 170, 171, 184, // Offices
+        357, 358, 359, 360, 361, // Multi-family
+      ];
     }
 
     // Add assessed value filter for quality leads (properties worth $500k+)
