@@ -16,6 +16,10 @@ import {
   leadPhoneNumbers,
   leads,
 } from "./schema/leads.schema";
+import {
+  savedSearches,
+  savedSearchResults,
+} from "./schema/saved-searches.schema";
 import { messageTemplates } from "./schema/message-templates.schema";
 import {
   messageLabelLinks,
@@ -62,6 +66,9 @@ export const integrationTasksTable = integrationTasks;
 export const leadsTable = leads;
 export const leadPhoneNumbersTable = leadPhoneNumbers;
 export const importLeadPresetsTable = importLeadPresets;
+
+export const savedSearchesTable = savedSearches;
+export const savedSearchResultsTable = savedSearchResults;
 
 export const aiSdrAvatarsTable = aiSdrAvatars;
 

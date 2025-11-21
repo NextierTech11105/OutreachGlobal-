@@ -84,6 +84,130 @@ export class BusinessListService {
     };
   }
 
+  /**
+   * ===== SAVED SEARCH FUNCTIONALITY =====
+   * Track property searches and get daily updates on changes
+   */
+
+  /**
+   * Create a Saved Search in RealEstateAPI
+   */
+  async createSavedSearch(params: {
+    searchName: string;
+    searchQuery: Record<string, any>;
+    listSize?: number;
+    metadata?: Record<string, any>;
+  }): Promise<any> {
+    try {
+      const { data } = await this.realEstateHttp.post(
+        "/v1/PropertyPortfolio/SavedSearch/Create",
+        {
+          search_name: params.searchName,
+          search_query: params.searchQuery,
+          list_size: params.listSize || 10000,
+          meta_data: params.metadata,
+        },
+      );
+
+      return {
+        searchId: data.data.searchId,
+        searchName: data.data.searchName,
+        lastReportDate: data.data.search?.lastReportDate,
+        nextReportDate: data.data.search?.nextReportDate,
+        summary: data.data.summary,
+        results: data.data.results || [],
+      };
+    } catch (error: any) {
+      if (error instanceof AxiosError) {
+        throw new InternalServerErrorException(
+          error.response?.data?.message || "Failed to create saved search",
+        );
+      }
+      throw new InternalServerErrorException(error.message || "Failed to create saved search");
+    }
+  }
+
+  /**
+   * Retrieve updates from a Saved Search
+   * Returns added, deleted, and updated properties
+   */
+  async retrieveSavedSearch(searchId: string): Promise<any> {
+    try {
+      const { data } = await this.realEstateHttp.post(
+        "/v1/PropertyPortfolio/SavedSearch",
+        {
+          search_id: searchId,
+        },
+      );
+
+      return {
+        search: data.data.search,
+        results: data.data.results || [],
+        summary: data.data.summary,
+      };
+    } catch (error: any) {
+      if (error instanceof AxiosError) {
+        throw new InternalServerErrorException(
+          error.response?.data?.message || "Failed to retrieve saved search",
+        );
+      }
+      throw new InternalServerErrorException(error.message || "Failed to retrieve saved search");
+    }
+  }
+
+  /**
+   * Get all saved searches for a team
+   */
+  async getAllSavedSearches(filter?: {
+    searchId?: string;
+    xUserId?: string;
+    metadata?: Record<string, any>;
+  }): Promise<any> {
+    try {
+      const { data } = await this.realEstateHttp.post(
+        "/v1/PropertyPortfolio/SavedSearch/List",
+        {
+          filter: filter || {},
+        },
+      );
+
+      return data.data || [];
+    } catch (error: any) {
+      if (error instanceof AxiosError) {
+        throw new InternalServerErrorException(
+          error.response?.data?.message || "Failed to list saved searches",
+        );
+      }
+      throw new InternalServerErrorException(error.message || "Failed to list saved searches");
+    }
+  }
+
+  /**
+   * Delete a saved search
+   */
+  async deleteSavedSearch(searchId: string): Promise<any> {
+    try {
+      const { data } = await this.realEstateHttp.post(
+        "/v1/PropertyPortfolio/SavedSearch/Delete",
+        {
+          search_id: searchId,
+        },
+      );
+
+      return {
+        searchId: data.data.searchId,
+        deleted: data.data.deleted,
+      };
+    } catch (error: any) {
+      if (error instanceof AxiosError) {
+        throw new InternalServerErrorException(
+          error.response?.data?.message || "Failed to delete saved search",
+        );
+      }
+      throw new InternalServerErrorException(error.message || "Failed to delete saved search");
+    }
+  }
+
   private mapPropertyToLead(property: any): BusinessLead {
     // Extract property info
     const address = property.address || {};
