@@ -576,13 +576,8 @@ export class BusinessListService {
         .map((prop, index) => {
           const skipTraceResult = skipTraceResults.find((sr: any) => sr.input?.key === String(index));
 
-          // Only include leads with verified contact data
-          if (skipTraceResult?.match &&
-              (skipTraceResult.output?.identity?.emails?.length > 0 ||
-               skipTraceResult.output?.identity?.phones?.length > 0)) {
-            return this.mapPropertyWithSkipTrace(prop, skipTraceResult);
-          }
-          return null;
+          // Include all properties - with or without skip trace results
+          return this.mapPropertyWithSkipTrace(prop, skipTraceResult);
         })
         .filter(Boolean) as BusinessLead[];
 
