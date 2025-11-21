@@ -25,18 +25,10 @@ export class BusinessListController extends BaseController {
   async search(@Auth() user: User, @Param("teamId") teamId: string) {
     const team = await this.teamService.findById(teamId);
     await this.teamPolicy.can().read(user, team);
-    const settings = await this.settingService.getMapped<BusinessListSettings>(
-      teamId,
-      "business-list",
-    );
-
-    if (!settings.businessListApiToken) {
-      throw new BadRequestException("Business list api token is not set");
-    }
 
     const input = this.validate(
       z.object({
-        searchQuery: z.string(),
+        searchQuery: z.string().default(""),
         state: z.optional(z.array(z.string())),
         title: z.optional(z.array(z.string())),
         company_name: z.optional(z.array(z.string())),
@@ -46,7 +38,7 @@ export class BusinessListController extends BaseController {
     );
 
     return await this.service.search({
-      token: settings.businessListApiToken,
+      token: "", // Token not needed for RealEstateAPI (uses env var)
       ...input,
       q: input.searchQuery,
       limit: 10,

@@ -17,6 +17,12 @@ export interface BusinessLead {
   email?: string;
   phone?: string;
   title?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  revenue?: number;
+  employees?: number;
+  industry?: string;
 }
 
 export interface SearchBusinessListResult {

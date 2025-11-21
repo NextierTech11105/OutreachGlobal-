@@ -38,14 +38,6 @@ export class LeadConsumer extends WorkerHost {
   async importBusinessList(data: ImportBusinessListData) {
     const MAX_LEADS = 1000;
 
-    const settings = await this.settingService.getMapped<BusinessListSettings>(
-      data.teamId,
-      "business-list",
-    );
-    if (!settings.businessListApiToken) {
-      throw new Error("Business list api token is not set");
-    }
-
     const preset = await this.db.query.importLeadPresets.findFirst({
       where: (t, { eq }) =>
         and(eq(t.teamId, data.teamId), eq(t.id, data.presetId || "NO_PRESET")),
@@ -54,7 +46,7 @@ export class LeadConsumer extends WorkerHost {
     const result = await this.businessListService.search({
       ...data.input,
       q: data.input.searchQuery,
-      token: settings.businessListApiToken,
+      token: "", // Token not needed for RealEstateAPI (uses env var)
       limit: MAX_LEADS,
     });
 
@@ -65,7 +57,7 @@ export class LeadConsumer extends WorkerHost {
           teamId: data.teamId,
           id: generateUlid("lead"),
           company: curr.company_name || undefined,
-          source: "BUSINESS_LIST",
+          source: "REALESTATE_API",
         });
       }
 
