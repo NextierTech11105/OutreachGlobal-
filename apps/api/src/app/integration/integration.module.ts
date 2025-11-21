@@ -15,6 +15,7 @@ import { INTEGRATION_TASK_QUEUE } from "./constants/integration-task.constants";
 import { IntegrationTaskConsumer } from "./consumers/integration-task.consumer";
 import { IntegrationTaskService } from "./services/integration-task.service";
 import { IntegrationTaskResolver } from "./resolvers/integration-task.resolver";
+import { SignalHouseService } from "./services/signalhouse.service";
 
 @CustomModule({
   imports: [
@@ -32,6 +33,7 @@ import { IntegrationTaskResolver } from "./resolvers/integration-task.resolver";
   providers: [
     IntegrationService,
     ZohoService,
+    SignalHouseService,
     IntegrationFieldService,
     IntegrationTaskService,
   ],
