@@ -26,16 +26,10 @@ export class FacetResolver extends BaseResolver(Facet) {
   async searchFacets(@Auth() user: User, @Args() args: SearchFacetsArgs) {
     const team = await this.teamService.findById(args.teamId);
     await this.teamPolicy.can().read(user, team);
-    const settings = await this.settingService.getMapped<BusinessListSettings>(
-      team.id,
-      "business-list",
-    );
-    if (!settings.businessListApiToken) {
-      throw new Error("Business list api token is not set");
-    }
+    // Token not needed for RealEstateAPI (uses env var)
     return this.businessListService.searchFacets({
       ...args,
-      token: settings.businessListApiToken,
+      token: "",
     });
   }
 }
