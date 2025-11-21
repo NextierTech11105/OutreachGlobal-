@@ -135,6 +135,11 @@ export function AdminSidebar() {
           active: pathname === "/admin/integrations/twilio",
         },
         {
+          href: "/admin/integrations/signalhouse",
+          label: "SignalHouse SMS",
+          active: pathname === "/admin/integrations/signalhouse",
+        },
+        {
           href: "/admin/integrations/sendgrid",
           label: "SendGrid Email",
           active: pathname === "/admin/integrations/sendgrid",
