@@ -138,7 +138,7 @@ export function BusinessListImport() {
     const firstFetch = async () => {
       setLoading(true);
       try {
-        const { data } = await $http.post(`/${team.id}/business-list`, {
+        const { data } = await $http.post(`/rest/${team.id}/business-list`, {
           ...searchParams,
         });
         setEstimatedCount(data.estimatedTotalHits || 0);
