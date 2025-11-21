@@ -17,6 +17,11 @@ import {
   leads,
 } from "./schema/leads.schema";
 import {
+  leadFlags,
+  leadLabelLinks,
+  leadLabels,
+} from "./schema/lead-labels.schema";
+import {
   savedSearches,
   savedSearchResults,
 } from "./schema/saved-searches.schema";
@@ -66,6 +71,10 @@ export const integrationTasksTable = integrationTasks;
 export const leadsTable = leads;
 export const leadPhoneNumbersTable = leadPhoneNumbers;
 export const importLeadPresetsTable = importLeadPresets;
+
+export const leadLabelsTable = leadLabels;
+export const leadLabelLinksTable = leadLabelLinks;
+export const leadFlagsTable = leadFlags;
 
 export const savedSearchesTable = savedSearches;
 export const savedSearchResultsTable = savedSearchResults;

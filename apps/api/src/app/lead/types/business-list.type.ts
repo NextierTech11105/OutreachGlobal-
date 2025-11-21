@@ -90,6 +90,13 @@ export interface BusinessLead {
   revenue?: number;
   employees?: number;
   industry?: string;
+
+  // Intelligence fields
+  tags?: string[];
+  score?: number;
+  status?: string;
+  flags?: Record<string, boolean>;
+  metadata?: Record<string, any>;
 }
 
 export interface SearchBusinessListResult {

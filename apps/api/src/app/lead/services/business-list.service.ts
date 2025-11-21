@@ -7,13 +7,17 @@ import {
   BusinessLead,
 } from "../types/business-list.type";
 import { SearchFacetsArgs } from "../args/facet.args";
+import { LeadIntelligenceService } from "./lead-intelligence.service";
 
 @Injectable()
 export class BusinessListService {
   private http: AxiosInstance;
   private realEstateHttp: AxiosInstance;
 
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    private intelligenceService: LeadIntelligenceService,
+  ) {
     const API_URL = this.configService.get("BUSINESS_LIST_API_URL");
     this.http = axios.create({
       baseURL: API_URL,
@@ -458,7 +462,7 @@ export class BusinessListService {
   }
 
   /**
-   * Map property + skip trace data to BusinessLead
+   * Map property + skip trace data to BusinessLead with AUTO-INTELLIGENCE
    */
   private mapPropertyWithSkipTrace(property: any, skipTraceResult: any): BusinessLead {
     const address = property.propertyInfo?.address || property.address || {};
@@ -489,6 +493,21 @@ export class BusinessListService {
     // Get job title from demographics or default
     const jobTitle = demographics.jobs?.[0]?.title || "Property Owner";
 
+    // ===== AUTO-INTELLIGENCE =====
+    const contactData = {
+      verifiedEmail: !!bestEmail,
+      verifiedPhone: !!bestPhone,
+      hasMultiplePhones: phones.length > 1,
+    };
+
+    const propertyData = property; // Full property detail from RealEstateAPI
+
+    // Auto-generate tags, score, status, and flags
+    const tags = this.intelligenceService.autoTag(propertyData, contactData);
+    const score = this.intelligenceService.autoScore(propertyData, contactData);
+    const status = this.intelligenceService.autoStatus(propertyData, contactData);
+    const flags = this.intelligenceService.autoFlag(propertyData, contactData);
+
     return {
       id: property.id || `prop-${Date.now()}-${Math.random()}`,
       name: name,
@@ -503,6 +522,24 @@ export class BusinessListService {
       employees: property.propertyInfo?.buildingSquareFeet ?
                  Math.floor(property.propertyInfo.buildingSquareFeet / 200) : undefined,
       industry: this.mapPropertyTypeToIndustry(property.propertyInfo?.propertyUseCode || property.property_use_code),
+
+      // ===== AUTO-GENERATED INTELLIGENCE =====
+      tags,
+      score,
+      status,
+      flags,
+      metadata: {
+        propertyId: property.id,
+        skipTraceRequestId: skipTraceResult?.requestId,
+        skipTraceMatch: skipTraceResult?.match,
+        propertyData: {
+          equityPercent: propertyData.equityPercent,
+          estimatedEquity: propertyData.estimatedEquity,
+          estimatedValue: propertyData.estimatedValue,
+          propertiesOwned: propertyData.linkedProperties?.totalOwned,
+          portfolioValue: propertyData.linkedProperties?.totalValue,
+        },
+      },
     };
   }
 
