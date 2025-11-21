@@ -22,7 +22,7 @@ export class PropertyController extends BaseController {
   async search(
     @Auth() user: User,
     @Param("teamId") teamId: string,
-    @Body() body: unknown,
+    @Body() body: Record<string, any>,
   ) {
     const team = await this.teamService.findById(teamId);
     await this.teamPolicy.can().read(user, team);
