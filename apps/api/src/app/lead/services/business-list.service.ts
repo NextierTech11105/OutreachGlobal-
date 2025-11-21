@@ -148,12 +148,87 @@ export class BusinessListService {
       limit: options.limit || 50,
     };
 
-    // Add state filter if provided
+    // ===== GEO FILTERS =====
     if (options.state && options.state.length > 0) {
       query.state = options.state[0]; // RealEstateAPI takes single state
     }
 
-    // Add industry-specific filters
+    // ===== PORTFOLIO FILTERS (Find Investors!) =====
+    if (options.properties_owned_min) query.properties_owned_min = options.properties_owned_min;
+    if (options.properties_owned_max) query.properties_owned_max = options.properties_owned_max;
+    if (options.portfolio_value_min) query.portfolio_value_min = options.portfolio_value_min;
+    if (options.portfolio_value_max) query.portfolio_value_max = options.portfolio_value_max;
+    if (options.portfolio_equity_min) query.portfolio_equity_min = options.portfolio_equity_min;
+    if (options.portfolio_equity_max) query.portfolio_equity_max = options.portfolio_equity_max;
+    if (options.portfolio_mortgage_balance_min) {
+      query.portfolio_mortgage_balance_min = options.portfolio_mortgage_balance_min;
+    }
+    if (options.portfolio_mortgage_balance_max) {
+      query.portfolio_mortgage_balance_max = options.portfolio_mortgage_balance_max;
+    }
+
+    // ===== ACTIVE BUYER DISCOVERY =====
+    if (options.portfolio_purchased_last12_min) {
+      query.portfolio_purchased_last12_min = options.portfolio_purchased_last12_min;
+    }
+    if (options.portfolio_purchased_last12_max) {
+      query.portfolio_purchased_last12_max = options.portfolio_purchased_last12_max;
+    }
+
+    // ===== EQUITY FILTERS (Find Motivated Sellers!) =====
+    if (options.estimated_equity_min) query.estimated_equity_min = options.estimated_equity_min;
+    if (options.estimated_equity_max) query.estimated_equity_max = options.estimated_equity_max;
+    if (options.equity_percent_min) query.equity_percent_min = options.equity_percent_min;
+    if (options.equity_percent_max) query.equity_percent_max = options.equity_percent_max;
+    if (options.high_equity) query.high_equity = true;
+    if (options.free_clear) query.free_clear = true;
+
+    // ===== PROPERTY VALUE FILTERS =====
+    if (options.assessed_value_min) query.assessed_value_min = options.assessed_value_min;
+    if (options.assessed_value_max) query.assessed_value_max = options.assessed_value_max;
+    if (options.value_min) query.value_min = options.value_min;
+    if (options.value_max) query.value_max = options.value_max;
+    if (options.last_sale_price_min) query.last_sale_price_min = options.last_sale_price_min;
+    if (options.last_sale_price_max) query.last_sale_price_max = options.last_sale_price_max;
+
+    // ===== PROPERTY CHARACTERISTICS =====
+    if (options.building_size_min) query.building_size_min = options.building_size_min;
+    if (options.building_size_max) query.building_size_max = options.building_size_max;
+    if (options.lot_size_min) query.lot_size_min = options.lot_size_min;
+    if (options.lot_size_max) query.lot_size_max = options.lot_size_max;
+    if (options.beds_min) query.beds_min = options.beds_min;
+    if (options.beds_max) query.beds_max = options.beds_max;
+    if (options.baths_min) query.baths_min = options.baths_min;
+    if (options.baths_max) query.baths_max = options.baths_max;
+    if (options.units_min) query.units_min = options.units_min;
+    if (options.units_max) query.units_max = options.units_max;
+    if (options.year_built_min) query.year_built_min = options.year_built_min;
+    if (options.year_built_max) query.year_built_max = options.year_built_max;
+
+    // ===== OWNER FILTERS =====
+    if (options.absentee_owner) query.absentee_owner = true;
+    if (options.out_of_state_owner) query.out_of_state_owner = true;
+    if (options.in_state_owner) query.in_state_owner = true;
+    if (options.corporate_owned) query.corporate_owned = true;
+    if (options.individual_owned) query.individual_owned = true;
+    if (options.years_owned_min) query.years_owned_min = options.years_owned_min;
+    if (options.years_owned_max) query.years_owned_max = options.years_owned_max;
+
+    // ===== PROPERTY TYPE FLAGS =====
+    if (options.mfh_2to4) query.mfh_2to4 = true;
+    if (options.mfh_5plus) query.mfh_5plus = true;
+    if (options.vacant) query.vacant = true;
+    if (options.pre_foreclosure) query.pre_foreclosure = true;
+    if (options.foreclosure) query.foreclosure = true;
+    if (options.cash_buyer) query.cash_buyer = true;
+    if (options.investor_buyer) query.investor_buyer = true;
+
+    // ===== MORTGAGE FILTERS =====
+    if (options.mortgage_min) query.mortgage_min = options.mortgage_min;
+    if (options.mortgage_max) query.mortgage_max = options.mortgage_max;
+    if (options.assumable) query.assumable = true;
+
+    // ===== INDUSTRY-SPECIFIC DEFAULTS =====
     if (options.industry && options.industry.length > 0) {
       const industry = options.industry[0].toLowerCase();
 
@@ -163,12 +238,16 @@ export class BusinessListService {
           industry.includes("electrical") ||
           industry.includes("roofing")) {
         // Target commercial office buildings for blue collar service businesses
-        query.property_use_code = [136, 140, 169, 170, 171];
+        if (!query.property_use_code) {
+          query.property_use_code = [136, 140, 169, 170, 171];
+        }
       } else if (industry.includes("development") || industry.includes("multi-family")) {
         // Use multi-family flag for development opportunities
-        query.mfh_5plus = true; // Properties with 5+ units
-        query.units_min = 5;
-      } else {
+        if (!query.mfh_5plus && !query.mfh_2to4) {
+          query.mfh_5plus = true; // Properties with 5+ units
+          if (!query.units_min) query.units_min = 5;
+        }
+      } else if (!query.property_use_code) {
         // Default: broad commercial search - office buildings + multi-family + shopping
         query.property_use_code = [
           136, 140, 169, 170, 171, 184, // Office/Commercial
@@ -176,16 +255,19 @@ export class BusinessListService {
           167, 179, 183, // Shopping centers
         ];
       }
-    } else {
-      // Default: target commercial properties
+    } else if (!query.property_use_code && !query.mfh_5plus && !query.mfh_2to4) {
+      // Default: target commercial properties (only if no specific filters set)
       query.property_use_code = [
         136, 140, 169, 170, 171, 184, // Offices
         357, 358, 359, 360, 361, // Multi-family
       ];
     }
 
-    // Add assessed value filter for quality leads (properties worth $500k+)
-    query.assessed_value_min = 500000;
+    // ===== DEFAULT QUALITY FILTER =====
+    // Only add if no other value filters are set
+    if (!query.assessed_value_min && !query.value_min && !query.portfolio_value_min) {
+      query.assessed_value_min = 500000; // Default: properties worth $500k+
+    }
 
     return query;
   }
