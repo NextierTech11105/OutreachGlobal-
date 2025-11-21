@@ -51,4 +51,53 @@ export class RealEstateService {
 
     return data.data as any[];
   }
+
+  async propertyCount(params: {
+    state?: string;
+    city?: string;
+    county?: string;
+    neighborhood?: string;
+    zipCode?: string;
+    propertyType?: string;
+    propertyCode?: string;
+  }): Promise<{ count: number; estimatedResults: number }> {
+    const {
+      state,
+      city,
+      county,
+      neighborhood,
+      zipCode,
+      propertyType,
+      propertyCode,
+    } = params;
+
+    const requestBody: any = {
+      limit: 1, // Only get 1 result to check count
+      size: 1,
+    };
+
+    // Add location parameters
+    if (state) requestBody.state = state;
+    if (city) requestBody.city = city;
+    if (county) requestBody.county = county;
+    if (neighborhood) requestBody.neighborhood = neighborhood;
+    if (zipCode) requestBody.zipCode = zipCode;
+    if (propertyType) requestBody.propertyType = propertyType;
+    if (propertyCode) requestBody.propertyCode = propertyCode;
+
+    try {
+      const { data } = await this.http.post(
+        "https://api.realestateapi.com/v2/PropertySearch",
+        requestBody,
+      );
+
+      // RealEstateAPI returns total count in metadata
+      return {
+        count: data.total || data.data?.length || 0,
+        estimatedResults: data.total || 0,
+      };
+    } catch (error) {
+      throw new Error(`Failed to get property count: ${error.message}`);
+    }
+  }
 }

@@ -48,4 +48,37 @@ export class PropertyController extends BaseController {
       limit: input.limit,
     });
   }
+
+  @Post("count")
+  async count(
+    @Auth() user: User,
+    @Param("teamId") teamId: string,
+    @Body() body: Record<string, any>,
+  ) {
+    const team = await this.teamService.findById(teamId);
+    await this.teamPolicy.can().read(user, team);
+
+    const input = this.validate(
+      z.object({
+        state: z.string().optional(),
+        city: z.string().optional(),
+        county: z.string().optional(),
+        neighborhood: z.string().optional(),
+        zipCode: z.string().optional(),
+        propertyType: z.string().optional(),
+        propertyCode: z.string().optional(),
+      }),
+      body,
+    );
+
+    return await this.realEstateService.propertyCount({
+      state: input.state,
+      city: input.city,
+      county: input.county,
+      neighborhood: input.neighborhood,
+      zipCode: input.zipCode,
+      propertyType: input.propertyType,
+      propertyCode: input.propertyCode,
+    });
+  }
 }

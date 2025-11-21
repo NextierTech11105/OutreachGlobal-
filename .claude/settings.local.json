@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git filter-branch:*)",
+      "Bash(pnpm run db:generate:*)",
+      "Bash(pnpm run db:push:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

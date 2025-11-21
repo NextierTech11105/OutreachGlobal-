@@ -16,7 +16,24 @@ export const savedSearches = pgTable(
     teamId: teamsRef({ onDelete: "cascade" }).notNull(),
     searchName: varchar("search_name").notNull(),
     searchQuery: jsonb("search_query")
-      .$type<Record<string, any>>()
+      .$type<{
+        state?: string;
+        city?: string;
+        county?: string;
+        neighborhood?: string;
+        zipCode?: string;
+        propertyType?: string;  // residential, commercial, land, etc.
+        propertyCode?: string;  // specific MLS/property codes
+        filters?: {
+          absenteeOwner?: boolean;
+          vacant?: boolean;
+          preForeclosure?: boolean;
+          lisPendens?: boolean;
+          minValue?: number;
+          maxValue?: number;
+        };
+        limit?: number;
+      }>()
       .notNull(),
 
     // RealEstateAPI saved search ID
@@ -32,6 +49,11 @@ export const savedSearches = pgTable(
     deletedCount: varchar("deleted_count"),
     updatedCount: varchar("updated_count"),
 
+    // Batch Job Control
+    batchJobEnabled: varchar("batch_job_enabled").default("false"),
+    lastBatchJobAt: timestamp("last_batch_job_at"),
+    batchJobStatus: varchar("batch_job_status"), // pending, running, completed, failed
+
     // Optional metadata
     metadata: jsonb().$type<Record<string, any>>(),
 
@@ -41,6 +63,7 @@ export const savedSearches = pgTable(
   (t) => [
     index().on(t.teamId),
     index().on(t.realEstateSearchId),
+    index().on(t.batchJobEnabled),
   ],
 );
 
@@ -56,11 +79,39 @@ export const savedSearchResults = pgTable(
 
     // Property tracking
     propertyId: varchar("property_id").notNull(), // RealEstateAPI property ID
+    externalId: varchar("external_id"), // External API ID
     changeType: varchar("change_type"), // 'added', 'updated', 'deleted', null
     lastUpdateDate: timestamp("last_update_date"),
 
+    // Tracking Stats
+    firstSeenAt: timestamp("first_seen_at"),
+    lastSeenAt: timestamp("last_seen_at"),
+    timesFound: varchar("times_found").default("1"), // How many times found in searches
+
+    // Signal Tracking (compounds over time)
+    signals: jsonb("signals").$type<{
+      absenteeOwner?: boolean;
+      vacant?: boolean;
+      preForeclosure?: boolean;
+      lisPendens?: boolean;
+      distressScore?: number;
+      equityPercent?: number;
+      marketValue?: number;
+      lastSaleDate?: string;
+      daysOnMarket?: number;
+      priceChanges?: Array<{ date: string; price: number }>;
+    }>(),
+
+    // Signal History (track changes over time)
+    signalHistory: jsonb("signal_history").$type<Array<{
+      date: string;
+      signals: Record<string, any>;
+      changeType?: string;
+    }>>(),
+
     // Lead reference (if we created a lead from this property)
     leadId: ulidColumn(),
+    leadCreatedAt: timestamp("lead_created_at"),
 
     // Full property data snapshot
     propertyData: jsonb("property_data").$type<Record<string, any>>(),
@@ -72,5 +123,6 @@ export const savedSearchResults = pgTable(
     index().on(t.savedSearchId),
     index().on(t.propertyId),
     index().on(t.changeType),
+    index().on(t.leadId),
   ],
 );
