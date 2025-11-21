@@ -1,11 +1,11 @@
 import { Controller, Post, Body, UseGuards } from "@nestjs/common";
-import { JwtAuthGuard } from "@/app/auth/guards/jwt-auth.guard";
+import { JwtGuard } from "@/app/auth/guards/jwt.guard";
 import { Auth } from "@/app/auth/decorators";
 import { User } from "@/app/user/models/user.model";
 import { RealEstateAdvancedService } from "../services/real-estate-advanced.service";
 import { InjectDB } from "@/database/decorators";
 import { DrizzleClient } from "@/database/types";
-import { leadsTable } from "@/database/schema";
+import { leads } from "@/database/schema";
 
 interface ImportPropertiesDto {
   teamId: string;
@@ -14,7 +14,7 @@ interface ImportPropertiesDto {
 }
 
 @Controller("api/properties")
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtGuard)
 export class PropertyImportController {
   constructor(
     private realEstateService: RealEstateAdvancedService,
@@ -31,7 +31,7 @@ export class PropertyImportController {
     @Body() dto: ImportPropertiesDto
   ) {
     try {
-      let properties = [];
+      let properties: any[] = [];
 
       // If property IDs provided, fetch those specific properties
       if (dto.propertyIds && dto.propertyIds.length > 0) {
@@ -74,7 +74,7 @@ export class PropertyImportController {
 
       // Insert leads into database
       const insertedLeads = await this.db
-        .insert(leadsTable)
+        .insert(leads)
         .values(leadsToInsert)
         .returning();
 
