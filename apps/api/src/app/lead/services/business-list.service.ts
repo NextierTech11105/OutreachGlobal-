@@ -190,24 +190,161 @@ export class BusinessListService {
     return query;
   }
 
+  /**
+   * SkipTrace a batch of property owners to get real contact data
+   * Uses SkipTraceBatchAwait for synchronous bulk skip tracing
+   */
+  private async skipTraceBatch(properties: any[]): Promise<any[]> {
+    try {
+      // Build skip trace requests from property data
+      const skips = properties.map((prop, index) => {
+        const ownerInfo = prop.ownerInfo || {};
+        const mailAddress = ownerInfo.mailAddress || {};
+
+        const skipRequest: any = {
+          key: String(index), // Use index as key for matching
+          address: mailAddress.streetAddress || mailAddress.address,
+          city: mailAddress.city,
+          state: mailAddress.state,
+          zip: mailAddress.zip,
+        };
+
+        // Add owner names if individual owner (not company)
+        if (ownerInfo.owner1Type === "Individual") {
+          skipRequest.first_name = ownerInfo.owner1FirstName;
+          skipRequest.last_name = ownerInfo.owner1LastName;
+        }
+
+        return skipRequest;
+      }).filter(skip => skip.address && skip.city && skip.state); // Only skip trace if we have address
+
+      if (skips.length === 0) {
+        return [];
+      }
+
+      // Call SkipTraceBatchAwait API
+      const { data } = await this.realEstateHttp.post(
+        "/v1/SkipTraceBatchAwait",
+        { skips },
+      );
+
+      return data.results || [];
+    } catch (error: any) {
+      console.error("SkipTrace batch failed:", error.message);
+      return []; // Return empty array if skip trace fails
+    }
+  }
+
+  /**
+   * Get PropertyDetail for a property to get full owner info
+   */
+  private async getPropertyDetail(propertyId: string): Promise<any> {
+    try {
+      const { data } = await this.realEstateHttp.post(
+        "/v2/PropertyDetail",
+        { id: propertyId },
+      );
+      return data;
+    } catch (error: any) {
+      console.error(`PropertyDetail failed for ${propertyId}:`, error.message);
+      return null;
+    }
+  }
+
+  /**
+   * Map property + skip trace data to BusinessLead
+   */
+  private mapPropertyWithSkipTrace(property: any, skipTraceResult: any): BusinessLead {
+    const address = property.propertyInfo?.address || property.address || {};
+    const ownerInfo = property.ownerInfo || property.owner || {};
+
+    // Get skip trace contact data
+    const identity = skipTraceResult?.output?.identity || {};
+    const demographics = skipTraceResult?.output?.demographics || {};
+    const phones = identity.phones || [];
+    const emails = identity.emails || [];
+
+    // Use skip trace name or fall back to property owner name
+    const skipTraceName = identity.names?.[0]?.fullName;
+    const name = skipTraceName ||
+                 ownerInfo.owner1FullName ||
+                 ownerInfo.owner1_full_name ||
+                 `Property Owner - ${address.streetAddress || address.street_address || "Unknown"}`;
+
+    // Get best email (prefer personal over work)
+    const bestEmail = emails.find((e: any) => e.emailType === "personal")?.email ||
+                     emails[0]?.email;
+
+    // Get best phone (prefer connected mobile)
+    const bestPhone = phones.find((p: any) => p.isConnected && p.phoneType === "mobile")?.phone ||
+                     phones.find((p: any) => p.isConnected)?.phone ||
+                     phones[0]?.phone;
+
+    // Get job title from demographics or default
+    const jobTitle = demographics.jobs?.[0]?.title || "Property Owner";
+
+    return {
+      id: property.id || `prop-${Date.now()}-${Math.random()}`,
+      name: name,
+      company_name: ownerInfo.companyName || ownerInfo.company_name || name,
+      email: bestEmail,
+      phone: bestPhone,
+      title: jobTitle,
+      address: address.streetAddress || address.street_address,
+      city: address.city,
+      state: address.state,
+      revenue: property.taxInfo?.assessedValue || property.estimatedValue || property.assessed_value,
+      employees: property.propertyInfo?.buildingSquareFeet ?
+                 Math.floor(property.propertyInfo.buildingSquareFeet / 200) : undefined,
+      industry: this.mapPropertyTypeToIndustry(property.propertyInfo?.propertyUseCode || property.property_use_code),
+    };
+  }
+
   async search(options: SearchBusinessListOptions): Promise<SearchBusinessListResult> {
     try {
-      // Use RealEstateAPI for commercial property search
+      // Step 1: Search for properties
       const searchQuery = this.buildCommercialSearchQuery(options);
-
-      const { data } = await this.realEstateHttp.post(
+      const { data: searchData } = await this.realEstateHttp.post(
         "/v2/PropertySearch",
         searchQuery,
       );
 
-      // Map RealEstateAPI results to BusinessLead format
-      const properties = data.data || [];
-      const leads: BusinessLead[] = properties.map((prop: any) =>
-        this.mapPropertyToLead(prop)
+      const propertyIds = searchData.data?.map((p: any) => p.id) || [];
+      if (propertyIds.length === 0) {
+        return {
+          estimatedTotalHits: 0,
+          limit: options.limit || 50,
+          offset: options.offset || 0,
+          hits: [],
+        };
+      }
+
+      // Step 2: Get PropertyDetail for owner info (batch first 10 for preview)
+      const detailPromises = propertyIds.slice(0, 10).map((id: string) =>
+        this.getPropertyDetail(id)
       );
+      const propertyDetails = (await Promise.all(detailPromises)).filter(Boolean);
+
+      // Step 3: SkipTrace batch to get real contact data
+      const skipTraceResults = await this.skipTraceBatch(propertyDetails);
+
+      // Step 4: Map properties with skip trace data
+      const leads: BusinessLead[] = propertyDetails
+        .map((prop, index) => {
+          const skipTraceResult = skipTraceResults.find((sr: any) => sr.input?.key === String(index));
+
+          // Only include leads with verified contact data
+          if (skipTraceResult?.match &&
+              (skipTraceResult.output?.identity?.emails?.length > 0 ||
+               skipTraceResult.output?.identity?.phones?.length > 0)) {
+            return this.mapPropertyWithSkipTrace(prop, skipTraceResult);
+          }
+          return null;
+        })
+        .filter(Boolean) as BusinessLead[];
 
       return {
-        estimatedTotalHits: data.total || leads.length,
+        estimatedTotalHits: searchData.total || leads.length,
         limit: options.limit || 50,
         offset: options.offset || 0,
         hits: leads,
