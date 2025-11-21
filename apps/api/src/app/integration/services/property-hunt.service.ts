@@ -113,7 +113,7 @@ export class PropertyHuntService {
     try {
       const { data } = await this.http.get("/health");
       return { healthy: true, ...data };
-    } catch (error) {
+    } catch (error: any) {
       return { healthy: false, error: error.message };
     }
   }
