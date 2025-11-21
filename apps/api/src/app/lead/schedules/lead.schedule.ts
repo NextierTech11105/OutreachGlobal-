@@ -114,7 +114,10 @@ export class LeadSchedule {
   async handle() {
     try {
       this.logger.log("Starting property search and lead matching");
-      const properties = await this.reiService.propertySearch();
+      const properties = await this.reiService.propertySearch({
+        state: "NY",
+        limit: 100,
+      });
       await this.matchLeadsWithProperties(properties);
       const propertyValues: PropertyInsert[] = [];
       properties.forEach((prop) => {
