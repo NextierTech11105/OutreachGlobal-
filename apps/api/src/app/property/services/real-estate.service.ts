@@ -97,7 +97,8 @@ export class RealEstateService {
         estimatedResults: data.total || 0,
       };
     } catch (error) {
-      throw new Error(`Failed to get property count: ${error.message}`);
+      const message = error instanceof Error ? error.message : "Unknown error";
+      throw new Error(`Failed to get property count: ${message}`);
     }
   }
 }

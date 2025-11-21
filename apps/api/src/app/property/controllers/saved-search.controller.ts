@@ -7,7 +7,7 @@ import { User } from "@/app/user/models/user.model";
 import { z } from "@nextier/dto";
 import { InjectDB } from "@/database/decorators";
 import { DrizzleClient } from "@/database/types";
-import { savedSearches, savedSearchResults } from "@/database/schema-alias";
+import { savedSearchesTable, savedSearchResultsTable } from "@/database/schema-alias";
 import { eq, and, desc } from "drizzle-orm";
 import { RealEstateService } from "../services/real-estate.service";
 
@@ -30,9 +30,9 @@ export class SavedSearchController extends BaseController {
 
     return await this.db
       .select()
-      .from(savedSearches)
-      .where(eq(savedSearches.teamId, teamId))
-      .orderBy(desc(savedSearches.createdAt));
+      .from(savedSearchesTable)
+      .where(eq(savedSearchesTable.teamId, teamId))
+      .orderBy(desc(savedSearchesTable.createdAt));
   }
 
   @Post()
@@ -42,7 +42,7 @@ export class SavedSearchController extends BaseController {
     @Body() body: Record<string, any>,
   ) {
     const team = await this.teamService.findById(teamId);
-    await this.teamPolicy.can().update(user, team);
+    await this.teamPolicy.can().manage(user, team);
 
     const input = this.validate(
       z.object({
@@ -84,7 +84,7 @@ export class SavedSearchController extends BaseController {
     });
 
     const [savedSearch] = await this.db
-      .insert(savedSearches)
+      .insert(savedSearchesTable)
       .values({
         teamId,
         searchName: input.searchName,
@@ -109,8 +109,8 @@ export class SavedSearchController extends BaseController {
 
     const [savedSearch] = await this.db
       .select()
-      .from(savedSearches)
-      .where(and(eq(savedSearches.id, id), eq(savedSearches.teamId, teamId)));
+      .from(savedSearchesTable)
+      .where(and(eq(savedSearchesTable.id, id), eq(savedSearchesTable.teamId, teamId)));
 
     return savedSearch;
   }
@@ -123,7 +123,7 @@ export class SavedSearchController extends BaseController {
     @Body() body: Record<string, any>,
   ) {
     const team = await this.teamService.findById(teamId);
-    await this.teamPolicy.can().update(user, team);
+    await this.teamPolicy.can().manage(user, team);
 
     const input = this.validate(
       z.object({
@@ -133,12 +133,12 @@ export class SavedSearchController extends BaseController {
     );
 
     const [updated] = await this.db
-      .update(savedSearches)
+      .update(savedSearchesTable)
       .set({
         batchJobEnabled: input.enabled,
         updatedAt: new Date(),
       })
-      .where(and(eq(savedSearches.id, id), eq(savedSearches.teamId, teamId)))
+      .where(and(eq(savedSearchesTable.id, id), eq(savedSearchesTable.teamId, teamId)))
       .returning();
 
     return updated;
@@ -151,11 +151,11 @@ export class SavedSearchController extends BaseController {
     @Param("id") id: string,
   ) {
     const team = await this.teamService.findById(teamId);
-    await this.teamPolicy.can().update(user, team);
+    await this.teamPolicy.can().manage(user, team);
 
     await this.db
-      .delete(savedSearches)
-      .where(and(eq(savedSearches.id, id), eq(savedSearches.teamId, teamId)));
+      .delete(savedSearchesTable)
+      .where(and(eq(savedSearchesTable.id, id), eq(savedSearchesTable.teamId, teamId)));
 
     return { success: true };
   }
@@ -171,8 +171,8 @@ export class SavedSearchController extends BaseController {
 
     return await this.db
       .select()
-      .from(savedSearchResults)
-      .where(eq(savedSearchResults.savedSearchId, id))
-      .orderBy(desc(savedSearchResults.timesFound));
+      .from(savedSearchResultsTable)
+      .where(eq(savedSearchResultsTable.savedSearchId, id))
+      .orderBy(desc(savedSearchResultsTable.timesFound));
   }
 }
