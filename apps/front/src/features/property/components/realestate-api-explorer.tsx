@@ -721,52 +721,135 @@ export function RealEstateAPIExplorer() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Address</TableHead>
-                      <TableHead>City</TableHead>
-                      <TableHead>State</TableHead>
-                      <TableHead>Value</TableHead>
-                      <TableHead>Equity %</TableHead>
-                      <TableHead>Owner</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {results.map((property, index) => (
-                      <TableRow key={index}>
-                        <TableCell className="font-medium">
-                          {property.address || "N/A"}
-                        </TableCell>
-                        <TableCell>{property.city || "N/A"}</TableCell>
-                        <TableCell>{property.state || "N/A"}</TableCell>
-                        <TableCell>
-                          ${property.value?.toLocaleString() || "N/A"}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              property.equityPercent >= 50 ? "default" : "outline"
-                            }
-                          >
-                            {property.equityPercent || 0}%
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{property.ownerName || "N/A"}</TableCell>
-                        <TableCell>{property.propertyType || "N/A"}</TableCell>
-                        <TableCell>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => executeSkipTrace(property.id)}
-                          >
-                            Skip Trace
-                          </Button>
-                        </TableCell>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Address</TableHead>
+                        <TableHead>Owner</TableHead>
+                        <TableHead>Value</TableHead>
+                        <TableHead>Equity</TableHead>
+                        <TableHead>Last Sale</TableHead>
+                        <TableHead>Loan Amount</TableHead>
+                        <TableHead>MLS Status</TableHead>
+                        <TableHead>Tags & Flags</TableHead>
+                        <TableHead>Actions</TableHead>
                       </TableRow>
-                    ))}
+                    </TableHeader>
+                    <TableBody>
+                      {results.map((property, index) => (
+                        <TableRow key={index}>
+                          <TableCell className="font-medium">
+                            <div>
+                              <div>{property.address || "N/A"}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {property.city}, {property.state}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <div>{property.ownerName || "N/A"}</div>
+                              {property.propertiesOwned > 1 && (
+                                <div className="text-xs text-muted-foreground">
+                                  {property.propertiesOwned} properties
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            ${property.value?.toLocaleString() || "N/A"}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                property.equityPercent >= 50 ? "default" : "outline"
+                              }
+                            >
+                              {property.equityPercent || 0}%
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {property.lastSaleDate ? (
+                              <div>
+                                <div>{new Date(property.lastSaleDate).toLocaleDateString()}</div>
+                                {property.lastSalePrice && (
+                                  <div className="text-xs text-muted-foreground">
+                                    ${property.lastSalePrice.toLocaleString()}
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              "N/A"
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {property.loanAmount ? (
+                              `$${property.loanAmount.toLocaleString()}`
+                            ) : (
+                              "N/A"
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {property.mlsListed ? (
+                              <Badge variant="default">Listed</Badge>
+                            ) : (
+                              <Badge variant="outline">Off Market</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1 max-w-[200px]">
+                              {property.equityPercent >= 80 && (
+                                <Badge variant="default" className="text-xs">
+                                  High Equity
+                                </Badge>
+                              )}
+                              {property.preForeclosure && (
+                                <Badge variant="destructive" className="text-xs">
+                                  Pre-Foreclosure
+                                </Badge>
+                              )}
+                              {property.vacant && (
+                                <Badge variant="destructive" className="text-xs">
+                                  Vacant
+                                </Badge>
+                              )}
+                              {property.propertiesOwned >= 5 && (
+                                <Badge variant="default" className="text-xs">
+                                  Investor
+                                </Badge>
+                              )}
+                              {property.absenteeOwner && (
+                                <Badge variant="outline" className="text-xs">
+                                  Absentee
+                                </Badge>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-1">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => executeSkipTrace(property.id)}
+                                title="Get verified contacts"
+                              >
+                                Skip Trace
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  toast.success("Loading full property details...");
+                                }}
+                                title="View full property details"
+                              >
+                                Details
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
                   </TableBody>
                 </Table>
               </CardContent>
