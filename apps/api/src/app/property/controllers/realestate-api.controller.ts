@@ -129,7 +129,7 @@ export class RealEstateAPIController extends BaseController {
     const input = this.validate(
       z.object({
         searchName: z.string(),
-        searchQuery: z.record(z.any()),
+        searchQuery: z.record(z.string(), z.any()),
       }),
     );
 
