@@ -285,11 +285,15 @@ export function RealEstateAPIExplorer() {
                         <SelectValue placeholder="Select state" />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="NY">New York</SelectItem>
+                        <SelectItem value="CT">Connecticut</SelectItem>
+                        <SelectItem value="NJ">New Jersey</SelectItem>
                         <SelectItem value="FL">Florida</SelectItem>
                         <SelectItem value="TX">Texas</SelectItem>
                         <SelectItem value="CA">California</SelectItem>
-                        <SelectItem value="NY">New York</SelectItem>
                         <SelectItem value="AZ">Arizona</SelectItem>
+                        <SelectItem value="PA">Pennsylvania</SelectItem>
+                        <SelectItem value="MA">Massachusetts</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
