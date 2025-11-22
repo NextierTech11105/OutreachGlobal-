@@ -42,7 +42,10 @@
       "Bash(for:*)",
       "Bash(do echo \"\")",
       "Bash(echo:*)",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(if not exist migrations mkdir migrations)",
+      "Bash(pnpm run tsc:*)",
+      "Bash(nul)"
     ],
     "deny": [],
     "ask": []
