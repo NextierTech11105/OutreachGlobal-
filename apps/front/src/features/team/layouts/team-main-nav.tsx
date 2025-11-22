@@ -47,6 +47,11 @@ const items = [
     path: "/properties",
     icon: BuildingIcon,
   },
+  {
+    title: "RealEstate API",
+    path: "/realestate-api",
+    icon: SearchIcon,
+  },
   // {
   //   title: "Search",
   //   path: "/search",

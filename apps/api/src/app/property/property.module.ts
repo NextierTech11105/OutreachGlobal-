@@ -5,10 +5,11 @@ import { TeamModule } from "../team/team.module";
 import { PropertyResolver } from "./resolvers/property.resolver";
 import { PropertyController } from "./controllers/property.controller";
 import { SavedSearchController } from "./controllers/saved-search.controller";
+import { RealEstateAPIController } from "./controllers/realestate-api.controller";
 
 @CustomModule({
   imports: [ConfigModule, TeamModule],
-  controllers: [PropertyController, SavedSearchController],
+  controllers: [PropertyController, SavedSearchController, RealEstateAPIController],
   providers: [RealEstateService],
   resolvers: [PropertyResolver],
   exports: [RealEstateService],
