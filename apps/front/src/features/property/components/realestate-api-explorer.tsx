@@ -42,6 +42,8 @@ import {
   LayoutListIcon,
   LayoutGridIcon,
   FileTextIcon,
+  MapIcon,
+  SparklesIcon,
 } from "lucide-react";
 import { LoadingOverlay } from "@/components/ui/loading/loading-overlay";
 import {
@@ -122,7 +124,9 @@ export function RealEstateAPIExplorer() {
   const [selectedProperty, setSelectedProperty] = useState<any>(null);
   const [propertyDetailOpen, setPropertyDetailOpen] = useState(false);
   const [propertyDetailLoading, setPropertyDetailLoading] = useState(false);
-  const [viewMode, setViewMode] = useState<"list" | "card" | "detail">("list");
+  const [viewMode, setViewMode] = useState<"list" | "card" | "detail" | "map">("list");
+  const [naturalLanguageQuery, setNaturalLanguageQuery] = useState("");
+  const [mapPins, setMapPins] = useState<any[]>([]);
 
   const executePropertySearch = async () => {
     setLoading(true);
@@ -340,6 +344,61 @@ export function RealEstateAPIExplorer() {
             </CardHeader>
             <CardContent className="space-y-6">
               {loading && <LoadingOverlay />}
+
+              {/* PropGPT AI Search */}
+              <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950 dark:to-blue-950 rounded-lg p-6 border-2 border-purple-200 dark:border-purple-800">
+                <div className="flex items-start gap-3 mb-4">
+                  <SparklesIcon className="h-6 w-6 text-purple-600 dark:text-purple-400 flex-shrink-0" />
+                  <div>
+                    <h3 className="text-lg font-semibold mb-1">PropGPT AI Search</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Search using natural language - just describe what you're looking for!
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="relative">
+                    <Input
+                      placeholder='Try: "Find distressed properties in NYC with 80%+ equity owned by absentee owners"'
+                      value={naturalLanguageQuery}
+                      onChange={(e) => setNaturalLanguageQuery(e.target.value)}
+                      className="pr-24 bg-white dark:bg-slate-900"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && naturalLanguageQuery.trim()) {
+                          toast.info("PropGPT AI Search coming soon! For now, use the filters below.");
+                        }
+                      }}
+                    />
+                    <Button
+                      size="sm"
+                      className="absolute right-1 top-1"
+                      onClick={() => {
+                        if (naturalLanguageQuery.trim()) {
+                          toast.info("PropGPT AI Search coming soon! For now, use the filters below.");
+                        }
+                      }}
+                      disabled={!naturalLanguageQuery.trim()}
+                    >
+                      <SparklesIcon className="h-4 w-4 mr-1" />
+                      Search
+                    </Button>
+                  </div>
+
+                  <div className="text-xs text-muted-foreground">
+                    <strong>Examples:</strong> "High equity properties in Florida" • "Pre-foreclosure homes in Connecticut" • "Absentee owners with 5+ properties in NY"
+                  </div>
+
+                  <div className="flex items-start gap-2 p-3 bg-blue-50 dark:bg-blue-950 rounded border border-blue-200 dark:border-blue-800">
+                    <SparklesIcon className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-blue-700 dark:text-blue-300">
+                      <strong>Coming Soon:</strong> Full GPT-4 powered natural language search using OpenAI. Converts your plain English queries into structured RealEstateAPI filters automatically.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
 
               {/* Geographic Filters */}
               <div className="space-y-4">
@@ -818,6 +877,14 @@ export function RealEstateAPIExplorer() {
                     >
                       <FileTextIcon className="h-4 w-4 mr-2" />
                       Detail
+                    </Button>
+                    <Button
+                      variant={viewMode === "map" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setViewMode("map")}
+                    >
+                      <MapIcon className="h-4 w-4 mr-2" />
+                      Map
                     </Button>
                   </div>
                 </div>
@@ -1364,6 +1431,123 @@ export function RealEstateAPIExplorer() {
                       </Card>
                     );
                   })}
+                </div>
+              )}
+
+              {/* MAP VIEW */}
+              {viewMode === "map" && (
+                <div className="space-y-4">
+                  <div className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 rounded-lg p-6 border-2 border-dashed">
+                    <div className="text-center space-y-4">
+                      <MapIcon className="h-16 w-16 mx-auto text-muted-foreground" />
+                      <div>
+                        <h3 className="text-xl font-bold mb-2">Interactive Property Map</h3>
+                        <p className="text-muted-foreground mb-4">
+                          Visualize {results.length} properties on an interactive map with deal score color coding
+                        </p>
+                      </div>
+
+                      {/* Property Location Grid */}
+                      <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-4 mt-6">
+                        {results.slice(0, 20).map((property, index) => {
+                          const dealScore = calculateDealScore(property);
+                          const scoreBadge = getDealScoreBadge(dealScore);
+
+                          // Determine pin color based on deal score
+                          let pinColor = "bg-blue-500"; // Cold
+                          if (dealScore >= 90) pinColor = "bg-red-500"; // Hot
+                          else if (dealScore >= 70) pinColor = "bg-green-500"; // Good
+                          else if (dealScore >= 50) pinColor = "bg-yellow-500"; // Warm
+
+                          return (
+                            <Card
+                              key={index}
+                              className="hover:shadow-lg transition-shadow cursor-pointer"
+                              onClick={() => viewPropertyDetail(property.id)}
+                            >
+                              <CardContent className="p-4">
+                                <div className="flex items-start gap-3">
+                                  {/* Pin Marker */}
+                                  <div className="relative flex-shrink-0">
+                                    <div className={`w-8 h-8 rounded-full ${pinColor} flex items-center justify-center text-white font-bold text-sm shadow-lg`}>
+                                      {dealScore}
+                                    </div>
+                                    <div className={`w-0 h-0 border-l-[8px] border-r-[8px] border-t-[12px] ${pinColor} border-l-transparent border-r-transparent absolute left-1/2 -translate-x-1/2`} />
+                                  </div>
+
+                                  {/* Property Info */}
+                                  <div className="flex-1 min-w-0">
+                                    <div className="font-medium text-sm truncate">
+                                      {property.address || "N/A"}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground">
+                                      {property.city}, {property.state}
+                                    </div>
+                                    <div className="text-xs font-semibold text-green-600 mt-1">
+                                      ${property.value?.toLocaleString() || "N/A"}
+                                    </div>
+                                    <Badge variant={scoreBadge.variant} className="text-xs mt-1">
+                                      {scoreBadge.label}
+                                    </Badge>
+                                  </div>
+                                </div>
+
+                                {/* Location Coordinates (hidden but available) */}
+                                {property.latitude && property.longitude && (
+                                  <div className="text-xs text-muted-foreground mt-2 pt-2 border-t">
+                                    📍 {property.latitude.toFixed(4)}, {property.longitude.toFixed(4)}
+                                  </div>
+                                )}
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                      </div>
+
+                      {results.length > 20 && (
+                        <div className="mt-4 text-sm text-muted-foreground">
+                          Showing first 20 of {results.length} properties • Click any property to view details
+                        </div>
+                      )}
+
+                      {/* Legend */}
+                      <div className="mt-8 pt-6 border-t">
+                        <h4 className="text-sm font-semibold mb-3">Deal Score Legend</h4>
+                        <div className="flex flex-wrap gap-4 justify-center">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full bg-red-500 shadow-lg" />
+                            <span className="text-sm">🔥 Hot Deal (90-100)</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full bg-green-500 shadow-lg" />
+                            <span className="text-sm">✅ Good Deal (70-89)</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full bg-yellow-500 shadow-lg" />
+                            <span className="text-sm">⚠️ Warm Lead (50-69)</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full bg-blue-500 shadow-lg" />
+                            <span className="text-sm">❄️ Cold Lead (0-49)</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <div className="flex items-start gap-3">
+                          <SparklesIcon className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                          <div className="text-left">
+                            <div className="font-semibold text-sm text-blue-900 dark:text-blue-100 mb-1">
+                              Coming Soon: Full Interactive Map
+                            </div>
+                            <p className="text-xs text-blue-700 dark:text-blue-300">
+                              Full Mapbox/Google Maps integration with clustering, heat maps, and advanced filtering. Properties will be plotted with real-time latitude/longitude coordinates from the RealEstateAPI Mapping (Pins) endpoint.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
             </CardContent>
