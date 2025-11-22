@@ -668,7 +668,7 @@ export function RealEstateAPIExplorer() {
                       <div className="space-y-2">
                         <Label className="text-xs text-gray-500">City</Label>
                         <Input
-                          placeholder="Miami, Tampa, Orlando..."
+                          placeholder=""
                           value={queryParams.city || ""}
                           onChange={(e) =>
                             setQueryParams({ ...queryParams, city: e.target.value })
@@ -679,7 +679,7 @@ export function RealEstateAPIExplorer() {
                       <div className="space-y-2">
                         <Label className="text-xs text-gray-500">County</Label>
                         <Input
-                          placeholder="Miami-Dade, Broward..."
+                          placeholder=""
                           value={queryParams.county || ""}
                           onChange={(e) =>
                             setQueryParams({ ...queryParams, county: e.target.value })
@@ -691,7 +691,7 @@ export function RealEstateAPIExplorer() {
                         <Label className="text-xs text-gray-500">Zip Codes (Macro Targeting)</Label>
                         <div className="flex gap-2">
                           <Input
-                            placeholder="Add zip code..."
+                            placeholder=""
                             value={zipCodeInput}
                             onChange={(e) => setZipCodeInput(e.target.value)}
                             onKeyDown={(e) => {
@@ -754,7 +754,7 @@ export function RealEstateAPIExplorer() {
                         <Label className="text-xs text-gray-500">Min Value</Label>
                         <Input
                           type="number"
-                          placeholder="100000"
+                          placeholder=""
                           value={queryParams.valueMin || ""}
                           onChange={(e) =>
                             setQueryParams({
@@ -769,7 +769,7 @@ export function RealEstateAPIExplorer() {
                         <Label className="text-xs text-gray-500">Max Value</Label>
                         <Input
                           type="number"
-                          placeholder="1000000"
+                          placeholder=""
                           value={queryParams.valueMax || ""}
                           onChange={(e) =>
                             setQueryParams({
@@ -854,7 +854,7 @@ export function RealEstateAPIExplorer() {
                             <Label className="text-xs text-gray-500">Min Beds</Label>
                             <Input
                               type="number"
-                              placeholder="3"
+                              placeholder=""
                               value={queryParams.bedsMin || ""}
                               onChange={(e) =>
                                 setQueryParams({
@@ -869,7 +869,7 @@ export function RealEstateAPIExplorer() {
                             <Label className="text-xs text-gray-500">Min Baths</Label>
                             <Input
                               type="number"
-                              placeholder="2"
+                              placeholder=""
                               value={queryParams.bathsMin || ""}
                               onChange={(e) =>
                                 setQueryParams({
@@ -884,7 +884,7 @@ export function RealEstateAPIExplorer() {
                             <Label className="text-xs text-gray-500">Building Sqft (Min)</Label>
                             <Input
                               type="number"
-                              placeholder="1500"
+                              placeholder=""
                               value={queryParams.buildingSizeMin || ""}
                               onChange={(e) =>
                                 setQueryParams({
@@ -899,7 +899,7 @@ export function RealEstateAPIExplorer() {
                             <Label className="text-xs text-gray-500">Lot Sqft (Min)</Label>
                             <Input
                               type="number"
-                              placeholder="5000"
+                              placeholder=""
                               value={queryParams.lotSizeMin || ""}
                               onChange={(e) =>
                                 setQueryParams({
@@ -931,7 +931,7 @@ export function RealEstateAPIExplorer() {
                             <Label>Min Properties Owned</Label>
                             <Input
                               type="number"
-                              placeholder="5"
+                              placeholder=""
                               value={queryParams.propertiesOwnedMin || ""}
                               onChange={(e) =>
                                 setQueryParams({
@@ -946,7 +946,7 @@ export function RealEstateAPIExplorer() {
                             <Label>Min Portfolio Value</Label>
                             <Input
                               type="number"
-                              placeholder="$1,000,000"
+                              placeholder=""
                               value={queryParams.portfolioValueMin || ""}
                               onChange={(e) =>
                                 setQueryParams({
@@ -961,7 +961,7 @@ export function RealEstateAPIExplorer() {
                             <Label>Purchased Last 12 Months</Label>
                             <Input
                               type="number"
-                              placeholder="3"
+                              placeholder=""
                               value={queryParams.portfolioPurchasedLast12Min || ""}
                               onChange={(e) =>
                                 setQueryParams({
@@ -990,6 +990,57 @@ export function RealEstateAPIExplorer() {
               {/* STEP 3: EVENT SIGNALS (MOTIVATION/DISTRESS) */}
               {wizardStep === 3 && (
                 <div className="space-y-6">
+                  {/* QUICK ACTION PRESETS */}
+                  <div className="p-6 rounded-lg border-2 border-gray-300 dark:border-gray-700 bg-gradient-to-br from-white to-gray-50 dark:from-slate-900 dark:to-slate-800">
+                    <h3 className="text-sm font-semibold mb-4 text-gray-900 dark:text-gray-100">Quick Action Presets</h3>
+                    <div className="grid gap-3 md:grid-cols-3">
+                      <Button
+                        size="lg"
+                        className="h-16 text-lg font-bold"
+                        onClick={() => {
+                          setQueryParams({
+                            state: "FL",
+                            equityPercentMin: 70,
+                            highEquity: true,
+                            size: 100,
+                          });
+                          toast.success("High Equity Florida preset loaded!");
+                        }}
+                      >
+                        High Equity FL
+                      </Button>
+                      <Button
+                        size="lg"
+                        className="h-16 text-lg font-bold"
+                        onClick={() => {
+                          setQueryParams({
+                            state: "NY",
+                            preForeclosure: true,
+                            vacant: true,
+                            size: 100,
+                          });
+                          toast.success("Distressed NY properties preset loaded!");
+                        }}
+                      >
+                        Distressed NY
+                      </Button>
+                      <Button
+                        size="lg"
+                        className="h-16 text-lg font-bold"
+                        onClick={() => {
+                          setQueryParams({
+                            propertiesOwnedMin: 5,
+                            portfolioPurchasedLast12Min: 1,
+                            size: 100,
+                          });
+                          toast.success("Active Investors preset loaded!");
+                        }}
+                      >
+                        Active Investors
+                      </Button>
+                    </div>
+                  </div>
+
                   <div className="text-center mb-8">
                     <h2 className="text-xl font-semibold mb-1">Event Signals</h2>
                     <p className="text-sm text-gray-500">Motivation & distress indicators</p>
@@ -1003,7 +1054,7 @@ export function RealEstateAPIExplorer() {
                         <Label className="text-xs text-gray-500">Min Equity %</Label>
                         <Input
                           type="number"
-                          placeholder="50"
+                          placeholder=""
                           value={queryParams.equityPercentMin || ""}
                           onChange={(e) =>
                             setQueryParams({
@@ -1018,7 +1069,7 @@ export function RealEstateAPIExplorer() {
                         <Label className="text-xs text-gray-500">Max Equity %</Label>
                         <Input
                           type="number"
-                          placeholder="100"
+                          placeholder=""
                           value={queryParams.equityPercentMax || ""}
                           onChange={(e) =>
                             setQueryParams({
@@ -1143,7 +1194,7 @@ export function RealEstateAPIExplorer() {
                       <Label>Results Limit</Label>
                       <Input
                         type="number"
-                        placeholder="50"
+                        placeholder=""
                         value={queryParams.size || ""}
                         onChange={(e) =>
                           setQueryParams({
@@ -1160,9 +1211,14 @@ export function RealEstateAPIExplorer() {
                       ← Back
                     </Button>
                     <div className="flex gap-2">
-                      <Button onClick={executePropertySearch} disabled={loading} size="lg">
-                        <PlayIcon className="mr-2 h-4 w-4" />
-                        Execute Search
+                      <Button
+                        onClick={executePropertySearch}
+                        disabled={loading}
+                        size="lg"
+                        className="h-14 px-8 text-xl font-bold bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        <PlayIcon className="mr-2 h-6 w-6" />
+                        EXECUTE
                       </Button>
                       <Button variant="outline" onClick={createSavedSearch} disabled={loading} size="lg">
                         <SaveIcon className="mr-2 h-4 w-4" />
@@ -1225,18 +1281,12 @@ export function RealEstateAPIExplorer() {
 
                   {/* ACTION BAR */}
                   {selectedPropertyIds.size > 0 && (
-                    <div className="p-4 rounded border border-gray-200 dark:border-gray-800 space-y-3">
+                    <div className="p-6 rounded-lg border-2 border-blue-300 dark:border-blue-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 space-y-4">
                       <div className="flex items-center gap-3">
-                        <span className="text-sm font-medium">
-                          {selectedPropertyIds.size} selected
+                        <span className="text-lg font-bold text-blue-900 dark:text-blue-100">
+                          {selectedPropertyIds.size} SELECTED
                         </span>
                         <div className="flex-1" />
-
-                        {/* Skip Trace */}
-                        <Button onClick={enrichSelected} disabled={loading} variant="outline" size="sm">
-                          <UserSearchIcon className="mr-2 h-4 w-4" />
-                          Skip Trace
-                        </Button>
 
                         {/* Export */}
                         <Button variant="outline" onClick={exportResults} size="sm">
@@ -1245,12 +1295,35 @@ export function RealEstateAPIExplorer() {
                         </Button>
                       </div>
 
+                      {/* PROMINENT SKIP TRACE BUTTONS */}
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <Button
+                          onClick={enrichSelected}
+                          disabled={loading}
+                          size="lg"
+                          className="h-16 text-xl font-bold bg-purple-600 hover:bg-purple-700 text-white"
+                        >
+                          <UserSearchIcon className="mr-2 h-6 w-6" />
+                          SKIP TRACE ALL ({selectedPropertyIds.size})
+                        </Button>
+                        <Button
+                          onClick={exportResults}
+                          disabled={loading}
+                          size="lg"
+                          variant="outline"
+                          className="h-16 text-xl font-bold border-2"
+                        >
+                          <DownloadIcon className="mr-2 h-6 w-6" />
+                          EXPORT SELECTED
+                        </Button>
+                      </div>
+
                       {/* Campaign Selection + Push */}
                       <div className="flex items-center gap-3 pt-2 border-t border-gray-200 dark:border-gray-800">
                         <div className="flex items-center gap-2">
                           <Label className="text-xs text-gray-500 whitespace-nowrap">Campaign:</Label>
                           <Input
-                            placeholder="Enter campaign name or ID..."
+                            placeholder=""
                             value={selectedCampaignId}
                             onChange={(e) => setSelectedCampaignId(e.target.value)}
                             className="w-64"
@@ -1425,21 +1498,22 @@ export function RealEstateAPIExplorer() {
                             <div className="flex gap-1">
                               <Button
                                 size="sm"
-                                onClick={() => getFullReport(propertyId)}
-                                title="Full report: Property details + Skip trace + Owner info"
+                                onClick={() => executeSkipTrace(propertyId)}
+                                title="Skip trace this property"
                                 disabled={loading}
+                                className="bg-purple-600 hover:bg-purple-700 text-white font-bold"
                               >
-                                <SearchIcon className="mr-1 h-3 w-3" />
-                                Full Report
+                                <UserSearchIcon className="mr-1 h-3 w-3" />
+                                SKIP TRACE
                               </Button>
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => executeSkipTrace(propertyId)}
-                                title="Skip trace only"
+                                onClick={() => getFullReport(propertyId)}
+                                title="Full report: Property details + Skip trace + Owner info"
                                 disabled={loading}
                               >
-                                <UserSearchIcon className="h-3 w-3" />
+                                <SearchIcon className="h-3 w-3" />
                               </Button>
                               <Button
                                 size="sm"
@@ -1567,15 +1641,15 @@ export function RealEstateAPIExplorer() {
                           <div className="flex gap-2 pt-2">
                             <Button
                               size="sm"
-                              variant="outline"
                               onClick={() => executeSkipTrace(property.id)}
-                              className="flex-1"
+                              className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold"
                             >
+                              <UserSearchIcon className="mr-1 h-3 w-3" />
                               Skip Trace
                             </Button>
                             <Button
                               size="sm"
-                              variant="default"
+                              variant="outline"
                               onClick={() => viewPropertyDetail(property.id)}
                               className="flex-1"
                             >
@@ -1833,20 +1907,21 @@ export function RealEstateAPIExplorer() {
                           <Separator className="my-4" />
                           <div className="flex gap-2">
                             <Button
-                              size="sm"
-                              variant="outline"
+                              size="lg"
                               onClick={() => executeSkipTrace(property.id)}
-                              className="flex-1"
+                              className="flex-1 h-14 text-lg font-bold bg-purple-600 hover:bg-purple-700 text-white"
                             >
-                              Skip Trace Owner
+                              <UserSearchIcon className="mr-2 h-5 w-5" />
+                              SKIP TRACE
                             </Button>
                             <Button
-                              size="sm"
-                              variant="default"
+                              size="lg"
+                              variant="outline"
                               onClick={() => viewPropertyDetail(property.id)}
-                              className="flex-1"
+                              className="flex-1 h-14 text-lg font-bold"
                             >
-                              View Full Details
+                              <FileTextIcon className="mr-2 h-5 w-5" />
+                              VIEW DETAILS
                             </Button>
                           </div>
                         </CardContent>
@@ -2299,20 +2374,22 @@ export function RealEstateAPIExplorer() {
               </Card>
 
               {/* Action Buttons */}
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-3">
                 <Button
-                  variant="default"
+                  size="lg"
                   onClick={() => executeSkipTrace(selectedProperty.id)}
-                  className="flex-1"
+                  className="w-full h-16 text-xl font-bold bg-purple-600 hover:bg-purple-700 text-white"
                 >
-                  Skip Trace Owner
+                  <UserSearchIcon className="mr-2 h-6 w-6" />
+                  SKIP TRACE THIS PROPERTY
                 </Button>
                 <Button
+                  size="lg"
                   variant="outline"
                   onClick={() => {
                     setPropertyDetailOpen(false);
                   }}
-                  className="flex-1"
+                  className="w-full h-12"
                 >
                   Close
                 </Button>
