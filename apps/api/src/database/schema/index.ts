@@ -5,6 +5,7 @@ export * from "./workflows.schema";
 export * from "./integrations.schema";
 export * from "./leads.schema";
 export * from "./properties.schema";
+export * from "./saved-searches.schema";
 export * from "./ai-sdr-avatars.schema";
 export * from "./campaigns.schema";
 export * from "./prompts.schema";
