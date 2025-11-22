@@ -41,6 +41,14 @@ import {
   HistoryIcon,
 } from "lucide-react";
 import { LoadingOverlay } from "@/components/ui/loading/loading-overlay";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { Separator } from "@/components/ui/separator";
 
 interface QueryParams {
   // Geo Filters
@@ -108,6 +116,9 @@ export function RealEstateAPIExplorer() {
   });
 
   const [savedSearches, setSavedSearches] = useState<any[]>([]);
+  const [selectedProperty, setSelectedProperty] = useState<any>(null);
+  const [propertyDetailOpen, setPropertyDetailOpen] = useState(false);
+  const [propertyDetailLoading, setPropertyDetailLoading] = useState(false);
 
   const executePropertySearch = async () => {
     setLoading(true);
@@ -139,6 +150,25 @@ export function RealEstateAPIExplorer() {
       toast.error(error.response?.data?.message || "Skip trace failed");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const viewPropertyDetail = async (propertyId: string) => {
+    setPropertyDetailLoading(true);
+    setPropertyDetailOpen(true);
+    try {
+      const { data } = await $http.post(
+        `/${team.id}/realestate-api/property-detail/${propertyId}`,
+        {}
+      );
+
+      setSelectedProperty(data);
+      toast.success("Property details loaded!");
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Failed to load property details");
+      setPropertyDetailOpen(false);
+    } finally {
+      setPropertyDetailLoading(false);
     }
   };
 
@@ -839,9 +869,7 @@ export function RealEstateAPIExplorer() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => {
-                                  toast.success("Loading full property details...");
-                                }}
+                                onClick={() => viewPropertyDetail(property.id)}
                                 title="View full property details"
                               >
                                 Details
@@ -925,6 +953,286 @@ export function RealEstateAPIExplorer() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Property Detail Sheet */}
+      <Sheet open={propertyDetailOpen} onOpenChange={setPropertyDetailOpen}>
+        <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Property Details</SheetTitle>
+            <SheetDescription>
+              Comprehensive property information and owner data
+            </SheetDescription>
+          </SheetHeader>
+
+          {propertyDetailLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <LoadingOverlay />
+            </div>
+          ) : selectedProperty ? (
+            <div className="space-y-6 mt-6">
+              {/* Property Address */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Property Address</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="font-medium">Street Address:</div>
+                    <div>{selectedProperty.address || "N/A"}</div>
+                    <div className="font-medium">City:</div>
+                    <div>{selectedProperty.city || "N/A"}</div>
+                    <div className="font-medium">State:</div>
+                    <div>{selectedProperty.state || "N/A"}</div>
+                    <div className="font-medium">Zip Code:</div>
+                    <div>{selectedProperty.zipCode || "N/A"}</div>
+                    <div className="font-medium">County:</div>
+                    <div>{selectedProperty.county || "N/A"}</div>
+                    <div className="font-medium">APN:</div>
+                    <div>{selectedProperty.apn || "N/A"}</div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Property Valuation */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Valuation & Financials</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="font-medium">Market Value:</div>
+                    <div className="font-semibold text-green-600">
+                      ${selectedProperty.value?.toLocaleString() || "N/A"}
+                    </div>
+                    <div className="font-medium">Assessed Value:</div>
+                    <div>${selectedProperty.assessedValue?.toLocaleString() || "N/A"}</div>
+                    <div className="font-medium">Tax Amount:</div>
+                    <div>${selectedProperty.taxAmount?.toLocaleString() || "N/A"}</div>
+                    <div className="font-medium">Equity Percent:</div>
+                    <div>
+                      <Badge variant={selectedProperty.equityPercent >= 50 ? "default" : "outline"}>
+                        {selectedProperty.equityPercent || 0}%
+                      </Badge>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Last Sale Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Sale History</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="font-medium">Last Sale Date:</div>
+                    <div>
+                      {selectedProperty.lastSaleDate
+                        ? new Date(selectedProperty.lastSaleDate).toLocaleDateString()
+                        : "N/A"}
+                    </div>
+                    <div className="font-medium">Last Sale Price:</div>
+                    <div className="font-semibold">
+                      ${selectedProperty.lastSalePrice?.toLocaleString() || "N/A"}
+                    </div>
+                    <div className="font-medium">Recording Date:</div>
+                    <div>
+                      {selectedProperty.recordingDate
+                        ? new Date(selectedProperty.recordingDate).toLocaleDateString()
+                        : "N/A"}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Mortgage Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Mortgage & Liens</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="font-medium">Loan Amount:</div>
+                    <div className="font-semibold">
+                      ${selectedProperty.loanAmount?.toLocaleString() || "N/A"}
+                    </div>
+                    <div className="font-medium">Lender Name:</div>
+                    <div>{selectedProperty.lenderName || "N/A"}</div>
+                    <div className="font-medium">Loan Type:</div>
+                    <div>{selectedProperty.loanType || "N/A"}</div>
+                    <div className="font-medium">Loan Date:</div>
+                    <div>
+                      {selectedProperty.loanDate
+                        ? new Date(selectedProperty.loanDate).toLocaleDateString()
+                        : "N/A"}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Property Characteristics */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Property Details</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="font-medium">Property Type:</div>
+                    <div>{selectedProperty.propertyType || "N/A"}</div>
+                    <div className="font-medium">Bedrooms:</div>
+                    <div>{selectedProperty.beds || "N/A"}</div>
+                    <div className="font-medium">Bathrooms:</div>
+                    <div>{selectedProperty.baths || "N/A"}</div>
+                    <div className="font-medium">Building Size:</div>
+                    <div>{selectedProperty.buildingSize?.toLocaleString() || "N/A"} sqft</div>
+                    <div className="font-medium">Lot Size:</div>
+                    <div>{selectedProperty.lotSize?.toLocaleString() || "N/A"} sqft</div>
+                    <div className="font-medium">Year Built:</div>
+                    <div>{selectedProperty.yearBuilt || "N/A"}</div>
+                    <div className="font-medium">Units:</div>
+                    <div>{selectedProperty.units || "N/A"}</div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Owner Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Owner Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="font-medium">Owner Name:</div>
+                    <div>{selectedProperty.ownerName || "N/A"}</div>
+                    <div className="font-medium">Owner Type:</div>
+                    <div>{selectedProperty.ownerType || "N/A"}</div>
+                    <div className="font-medium">Mailing Address:</div>
+                    <div>{selectedProperty.mailingAddress || "N/A"}</div>
+                    <div className="font-medium">Mailing City/State:</div>
+                    <div>
+                      {selectedProperty.mailingCity && selectedProperty.mailingState
+                        ? `${selectedProperty.mailingCity}, ${selectedProperty.mailingState}`
+                        : "N/A"}
+                    </div>
+                  </div>
+
+                  <Separator className="my-4" />
+
+                  <div className="flex flex-wrap gap-2">
+                    {selectedProperty.absenteeOwner && (
+                      <Badge variant="outline">Absentee Owner</Badge>
+                    )}
+                    {selectedProperty.corporateOwned && (
+                      <Badge variant="outline">Corporate Owned</Badge>
+                    )}
+                    {selectedProperty.outOfStateOwner && (
+                      <Badge variant="outline">Out-of-State Owner</Badge>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Portfolio Information */}
+              {selectedProperty.propertiesOwned > 1 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Portfolio Information</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div className="font-medium">Properties Owned:</div>
+                      <div className="font-semibold">{selectedProperty.propertiesOwned}</div>
+                      <div className="font-medium">Portfolio Value:</div>
+                      <div>${selectedProperty.portfolioValue?.toLocaleString() || "N/A"}</div>
+                      <div className="font-medium">Purchased Last 12 Months:</div>
+                      <div>{selectedProperty.portfolioPurchasedLast12 || 0}</div>
+                    </div>
+                    {selectedProperty.propertiesOwned >= 5 && (
+                      <Badge variant="default" className="mt-2">Active Investor</Badge>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Distress Signals */}
+              {(selectedProperty.preForeclosure || selectedProperty.foreclosure || selectedProperty.vacant || selectedProperty.lisPendens) && (
+                <Card className="border-destructive">
+                  <CardHeader>
+                    <CardTitle className="text-lg text-destructive">Distress Signals</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedProperty.preForeclosure && (
+                        <Badge variant="destructive">Pre-Foreclosure</Badge>
+                      )}
+                      {selectedProperty.foreclosure && (
+                        <Badge variant="destructive">Foreclosure</Badge>
+                      )}
+                      {selectedProperty.vacant && (
+                        <Badge variant="destructive">Vacant</Badge>
+                      )}
+                      {selectedProperty.lisPendens && (
+                        <Badge variant="destructive">Lis Pendens</Badge>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* MLS Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">MLS Status</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="font-medium">MLS Listed:</div>
+                    <div>
+                      {selectedProperty.mlsListed ? (
+                        <Badge variant="default">Listed</Badge>
+                      ) : (
+                        <Badge variant="outline">Off Market</Badge>
+                      )}
+                    </div>
+                    {selectedProperty.mlsListingDate && (
+                      <>
+                        <div className="font-medium">Listing Date:</div>
+                        <div>
+                          {new Date(selectedProperty.mlsListingDate).toLocaleDateString()}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Action Buttons */}
+              <div className="flex gap-2">
+                <Button
+                  variant="default"
+                  onClick={() => executeSkipTrace(selectedProperty.id)}
+                  className="flex-1"
+                >
+                  Skip Trace Owner
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setPropertyDetailOpen(false);
+                  }}
+                  className="flex-1"
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="py-12 text-center text-muted-foreground">
+              No property data available
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
