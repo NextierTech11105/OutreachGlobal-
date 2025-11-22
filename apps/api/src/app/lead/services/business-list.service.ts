@@ -274,6 +274,7 @@ export class BusinessListService {
   private buildCommercialSearchQuery(options: SearchBusinessListOptions): any {
     const query: any = {
       limit: options.limit || 50,
+      size: options.limit || 50, // RealEstateAPI requires 'size' parameter
     };
 
     // ===== GEO FILTERS =====

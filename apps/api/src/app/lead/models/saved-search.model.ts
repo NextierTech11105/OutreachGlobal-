@@ -40,6 +40,15 @@ export class SavedSearch extends TimestampModel implements SavedSearchSelect {
   @StringField({ nullable: true })
   updatedCount: MaybeString;
 
+  @StringField({ nullable: true })
+  batchJobEnabled: MaybeString;
+
+  @Field(() => Date, { nullable: true })
+  lastBatchJobAt: Date | null;
+
+  @StringField({ nullable: true })
+  batchJobStatus: MaybeString;
+
   @Field(() => GraphQLJSON, { nullable: true })
   metadata: Record<string, any> | null;
 }
