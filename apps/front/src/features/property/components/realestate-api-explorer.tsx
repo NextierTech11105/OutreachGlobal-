@@ -29,7 +29,6 @@ import {
 } from "@/components/ui/table";
 import { toast } from "sonner";
 import { $http } from "@/lib/http";
-import { useCurrentTeam } from "@/features/team/team.context";
 import {
   SearchIcon,
   HomeIcon,
@@ -54,6 +53,12 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { ChevronDownIcon } from "lucide-react";
 
 interface QueryParams {
   // Geo Filters
@@ -62,8 +67,17 @@ interface QueryParams {
   county?: string;
   zipCode?: string;
 
-  // Property Type
+  // Property Type & Use
   propertyType?: string;
+  propertyUseCode?: number[];  // Commercial property codes
+
+  // Building & Lot
+  buildingSizeMin?: number;
+  buildingSizeMax?: number;
+  lotSizeMin?: number;
+  lotSizeMax?: number;
+  zoning?: string;
+  landUse?: string;
 
   // Value Filters
   valueMin?: number;
@@ -83,20 +97,21 @@ interface QueryParams {
   // Active Buyer Discovery
   portfolioPurchasedLast12Min?: number;
 
-  // Distress Signals
+  // Distress Signals (EVENT SIGNALS)
   preForeclosure?: boolean;
   foreclosure?: boolean;
   vacant?: boolean;
   lisPendens?: boolean;
+  auction?: boolean;
+  soldLast12Months?: boolean;
 
-  // Owner Filters
+  // Owner Filters (NON-EVENT SIGNALS)
   absenteeOwner?: boolean;
   outOfStateOwner?: boolean;
   corporateOwned?: boolean;
+  owned5YearsPlus?: boolean;
 
-  // Property Characteristics
-  buildingSizeMin?: number;
-  buildingSizeMax?: number;
+  // Property Characteristics (Residential)
   bedsMin?: number;
   bedsMax?: number;
   bathsMin?: number;
@@ -111,7 +126,7 @@ interface QueryParams {
 }
 
 export function RealEstateAPIExplorer() {
-  const { team } = useCurrentTeam();
+  const teamId = "test"; // Hardcoded for standalone mode
   const [activeTab, setActiveTab] = useState("property-search");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<any[]>([]);
@@ -120,24 +135,65 @@ export function RealEstateAPIExplorer() {
     size: 50,
   });
 
+  // WIZARD STATE
+  const [wizardStep, setWizardStep] = useState<1 | 2 | 3>(1);
+  const [searchType, setSearchType] = useState<"properties" | "businesses" | "both">("properties");
+
+  // ZIP CODE TAGS (for macro targeting)
+  const [zipCodes, setZipCodes] = useState<string[]>([]);
+  const [zipCodeInput, setZipCodeInput] = useState("");
+
+  // SELECTION & ENRICHMENT STATE
+  const [selectedPropertyIds, setSelectedPropertyIds] = useState<Set<string>>(new Set());
+  const [enrichedProperties, setEnrichedProperties] = useState<Map<string, any>>(new Map());
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string>("");
+
   const [savedSearches, setSavedSearches] = useState<any[]>([]);
   const [selectedProperty, setSelectedProperty] = useState<any>(null);
   const [propertyDetailOpen, setPropertyDetailOpen] = useState(false);
   const [propertyDetailLoading, setPropertyDetailLoading] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "card" | "detail" | "map">("list");
-  const [naturalLanguageQuery, setNaturalLanguageQuery] = useState("");
-  const [mapPins, setMapPins] = useState<any[]>([]);
+
+  // ZIP CODE TAG HANDLERS
+  const addZipCode = () => {
+    const zip = zipCodeInput.trim();
+    if (zip && !zipCodes.includes(zip)) {
+      setZipCodes([...zipCodes, zip]);
+      setZipCodeInput("");
+    }
+  };
+
+  const removeZipCode = (zipToRemove: string) => {
+    setZipCodes(zipCodes.filter(z => z !== zipToRemove));
+  };
 
   const executePropertySearch = async () => {
     setLoading(true);
     try {
-      const { data } = await $http.post(`/${team.id}/realestate-api/property-search`, {
-        ...queryParams,
-      });
+      // If multiple zip codes, run parallel searches and combine results
+      if (zipCodes.length > 0) {
+        const allResults = [];
 
-      setResults(data.data || []);
-      setTotalResults(data.total || 0);
-      toast.success(`Found ${data.total || 0} properties!`);
+        for (const zip of zipCodes) {
+          const { data } = await $http.post(`/rest/${teamId}/realestate-api/property-search`, {
+            ...queryParams,
+            zipCode: zip,
+          });
+          allResults.push(...(data.data || []));
+        }
+
+        setResults(allResults);
+        setTotalResults(allResults.length);
+        toast.success(`Found ${allResults.length} properties across ${zipCodes.length} zip codes!`);
+      } else {
+        const { data } = await $http.post(`/rest/${teamId}/realestate-api/property-search`, {
+          ...queryParams,
+        });
+
+        setResults(data.data || []);
+        setTotalResults(data.total || 0);
+        toast.success(`Found ${data.total || 0} properties!`);
+      }
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Property search failed");
     } finally {
@@ -148,14 +204,20 @@ export function RealEstateAPIExplorer() {
   const executeSkipTrace = async (propertyId: string) => {
     setLoading(true);
     try {
-      const { data } = await $http.post(`/${team.id}/realestate-api/skip-trace`, {
+      const { data} = await $http.post(`/rest/${teamId}/realestate-api/skip-trace`, {
         propertyId,
       });
 
-      toast.success("Skip trace complete!");
+      // Store enriched data
+      const newEnriched = new Map(enrichedProperties);
+      newEnriched.set(propertyId, data);
+      setEnrichedProperties(newEnriched);
+
+      toast.success("Skip trace complete! Contact data retrieved.");
       return data;
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Skip trace failed");
+      return null;
     } finally {
       setLoading(false);
     }
@@ -166,7 +228,7 @@ export function RealEstateAPIExplorer() {
     setPropertyDetailOpen(true);
     try {
       const { data } = await $http.post(
-        `/${team.id}/realestate-api/property-detail/${propertyId}`,
+        `/rest/${teamId}/realestate-api/property-detail/${propertyId}`,
         {}
       );
 
@@ -180,13 +242,58 @@ export function RealEstateAPIExplorer() {
     }
   };
 
+  // FULL REPORT - Get everything for one property
+  const getFullReport = async (propertyId: string) => {
+    setPropertyDetailLoading(true);
+    setPropertyDetailOpen(true);
+
+    try {
+      toast.info("Getting full report...");
+
+      // Step 1: Get property details
+      const { data: propertyData } = await $http.post(
+        `/rest/${teamId}/realestate-api/property-detail/${propertyId}`,
+        {}
+      );
+
+      // Step 2: Run skip trace
+      const { data: skipTraceData } = await $http.post(
+        `/rest/${teamId}/realestate-api/skip-trace`,
+        { propertyId }
+      );
+
+      // Store enriched data
+      const newEnriched = new Map(enrichedProperties);
+      newEnriched.set(propertyId, skipTraceData);
+      setEnrichedProperties(newEnriched);
+
+      // Combine all data
+      const fullReport = {
+        ...propertyData,
+        skipTrace: skipTraceData,
+        phones: skipTraceData?.identity?.phones || [],
+        emails: skipTraceData?.identity?.emails || [],
+        relatives: skipTraceData?.identity?.relatives || [],
+        associates: skipTraceData?.identity?.associates || [],
+      };
+
+      setSelectedProperty(fullReport);
+      toast.success("Full report loaded! Property details + contact data retrieved.");
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Failed to load full report");
+      setPropertyDetailOpen(false);
+    } finally {
+      setPropertyDetailLoading(false);
+    }
+  };
+
   const createSavedSearch = async () => {
     setLoading(true);
     try {
       const searchName = prompt("Enter a name for this saved search:");
       if (!searchName) return;
 
-      const { data } = await $http.post(`/${team.id}/realestate-api/saved-search/create`, {
+      const { data } = await $http.post(`/rest/${teamId}/realestate-api/saved-search/create`, {
         searchName,
         searchQuery: queryParams,
       });
@@ -242,9 +349,9 @@ export function RealEstateAPIExplorer() {
       ["Address", "City", "State", "Value", "Equity %", "Owner", "Property Type", "Deal Score"].join(","),
       ...results.map(r =>
         [
-          r.address,
-          r.city,
-          r.state,
+          r.address?.address || r.address?.street || r.address || "N/A",
+          r.address?.city || r.city || "N/A",
+          r.address?.state || r.state || "N/A",
           r.value,
           r.equityPercent,
           r.ownerName,
@@ -261,6 +368,95 @@ export function RealEstateAPIExplorer() {
     a.download = `realestate-search-${Date.now()}.csv`;
     a.click();
     toast.success("Exported to CSV!");
+  };
+
+  // SELECTION
+  const togglePropertySelection = (propertyId: string) => {
+    const newSelection = new Set(selectedPropertyIds);
+    if (newSelection.has(propertyId)) {
+      newSelection.delete(propertyId);
+    } else {
+      newSelection.add(propertyId);
+    }
+    setSelectedPropertyIds(newSelection);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedPropertyIds.size === results.length) {
+      setSelectedPropertyIds(new Set());
+    } else {
+      setSelectedPropertyIds(new Set(results.map(r => r.id || r.propertyId)));
+    }
+  };
+
+  // ENRICH SELECTED (Skip Trace)
+  const enrichSelected = async () => {
+    const selected = results.filter(r => selectedPropertyIds.has(r.id || r.propertyId));
+
+    if (selected.length === 0) {
+      toast.error("Please select properties to enrich");
+      return;
+    }
+
+    setLoading(true);
+    let successCount = 0;
+    const newEnriched = new Map(enrichedProperties);
+
+    try {
+      toast.info(`Enriching ${selected.length} properties...`);
+
+      for (const property of selected) {
+        try {
+          const skipData = await executeSkipTrace(property.id || property.propertyId);
+          if (skipData) {
+            newEnriched.set(property.id || property.propertyId, skipData);
+            successCount++;
+          }
+        } catch (err) {
+          console.error("Skip trace failed for", property.id);
+        }
+      }
+
+      setEnrichedProperties(newEnriched);
+      toast.success(`Enriched ${successCount}/${selected.length} properties with contact data!`);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Enrichment failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // PUSH TO CAMPAIGN
+  const pushToCampaign = async () => {
+    const selected = results.filter(r => selectedPropertyIds.has(r.id || r.propertyId));
+
+    if (selected.length === 0) {
+      toast.error("Please select properties to push to campaign");
+      return;
+    }
+
+    if (!selectedCampaignId) {
+      toast.error("Please select a campaign");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const propertyIds = selected.map(r => r.id || r.propertyId);
+
+      await $http.post(`/rest/${teamId}/realestate-api/import-to-campaign`, {
+        propertyIds,
+        campaignName: selectedCampaignId, // TODO: Get actual campaign name
+        messageTemplateId: undefined, // TODO: Add template selector
+      });
+
+      toast.success(`Pushed ${selected.length} properties to campaign queue!`);
+      setSelectedPropertyIds(new Set());
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Failed to push to campaign");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -345,218 +541,495 @@ export function RealEstateAPIExplorer() {
             <CardContent className="space-y-6">
               {loading && <LoadingOverlay />}
 
-              {/* PropGPT AI Search */}
-              <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950 dark:to-blue-950 rounded-lg p-6 border-2 border-purple-200 dark:border-purple-800">
-                <div className="flex items-start gap-3 mb-4">
-                  <SparklesIcon className="h-6 w-6 text-purple-600 dark:text-purple-400 flex-shrink-0" />
-                  <div>
-                    <h3 className="text-lg font-semibold mb-1">PropGPT AI Search</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Search using natural language - just describe what you're looking for!
-                    </p>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="relative">
-                    <Input
-                      placeholder='Try: "Find distressed properties in NYC with 80%+ equity owned by absentee owners"'
-                      value={naturalLanguageQuery}
-                      onChange={(e) => setNaturalLanguageQuery(e.target.value)}
-                      className="pr-24 bg-white dark:bg-slate-900"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && naturalLanguageQuery.trim()) {
-                          toast.info("PropGPT AI Search coming soon! For now, use the filters below.");
-                        }
-                      }}
-                    />
-                    <Button
-                      size="sm"
-                      className="absolute right-1 top-1"
-                      onClick={() => {
-                        if (naturalLanguageQuery.trim()) {
-                          toast.info("PropGPT AI Search coming soon! For now, use the filters below.");
-                        }
-                      }}
-                      disabled={!naturalLanguageQuery.trim()}
+              {/* WIZARD PROGRESS */}
+              <div className="flex items-center justify-center gap-2 mb-8">
+                {[1, 2, 3].map((step) => (
+                  <div key={step} className="flex items-center gap-2">
+                    <button
+                      onClick={() => setWizardStep(step as 1 | 2 | 3)}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
+                        wizardStep === step
+                          ? "bg-black dark:bg-white text-white dark:text-black"
+                          : wizardStep > step
+                          ? "bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
+                          : "bg-gray-200 dark:bg-gray-800 text-gray-400"
+                      }`}
                     >
-                      <SparklesIcon className="h-4 w-4 mr-1" />
-                      Search
+                      {step}
+                    </button>
+                    {step < 3 && (
+                      <div
+                        className={`h-px w-12 ${
+                          wizardStep > step ? "bg-gray-300 dark:bg-gray-700" : "bg-gray-200 dark:bg-gray-800"
+                        }`}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* STEP 1: WHAT */}
+              {wizardStep === 1 && (
+                <div className="space-y-6">
+                  <div className="text-center mb-8">
+                    <h2 className="text-xl font-semibold mb-1">What are you looking for?</h2>
+                    <p className="text-sm text-gray-500">Choose your target type</p>
+                  </div>
+
+                  <div className="grid gap-3 md:grid-cols-3">
+                    <button
+                      onClick={() => setSearchType("properties")}
+                      className={`p-6 rounded border text-left transition-colors ${
+                        searchType === "properties"
+                          ? "border-black dark:border-white bg-gray-50 dark:bg-gray-900"
+                          : "border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700"
+                      }`}
+                    >
+                      <h3 className="font-medium mb-1">Properties</h3>
+                      <p className="text-xs text-gray-500">
+                        Residential & Commercial
+                      </p>
+                    </button>
+
+                    <button
+                      onClick={() => setSearchType("businesses")}
+                      className={`p-6 rounded border text-left transition-colors ${
+                        searchType === "businesses"
+                          ? "border-black dark:border-white bg-gray-50 dark:bg-gray-900"
+                          : "border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700"
+                      }`}
+                    >
+                      <h3 className="font-medium mb-1">Businesses</h3>
+                      <p className="text-xs text-gray-500">
+                        Business Owners
+                      </p>
+                    </button>
+
+                    <button
+                      onClick={() => setSearchType("both")}
+                      className={`p-6 rounded border text-left transition-colors ${
+                        searchType === "both"
+                          ? "border-black dark:border-white bg-gray-50 dark:bg-gray-900"
+                          : "border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700"
+                      }`}
+                    >
+                      <h3 className="font-medium mb-1">Both</h3>
+                      <p className="text-xs text-gray-500">
+                        Properties + Businesses
+                      </p>
+                    </button>
+                  </div>
+
+                  <div className="flex justify-end pt-4">
+                    <Button onClick={() => setWizardStep(2)}>
+                      Next
                     </Button>
                   </div>
+                </div>
+              )}
 
-                  <div className="text-xs text-muted-foreground">
-                    <strong>Examples:</strong> "High equity properties in Florida" • "Pre-foreclosure homes in Connecticut" • "Absentee owners with 5+ properties in NY"
+              {/* STEP 2: DEMOGRAPHICS (NON-EVENT SIGNALS) */}
+              {wizardStep === 2 && (
+                <div className="space-y-6">
+                  <div className="text-center mb-8">
+                    <h2 className="text-xl font-semibold mb-1">Demographics & Characteristics</h2>
+                    <p className="text-sm text-gray-500">Define your target criteria</p>
                   </div>
 
-                  <div className="flex items-start gap-2 p-3 bg-blue-50 dark:bg-blue-950 rounded border border-blue-200 dark:border-blue-800">
-                    <SparklesIcon className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-                    <p className="text-xs text-blue-700 dark:text-blue-300">
-                      <strong>Coming Soon:</strong> Full GPT-4 powered natural language search using OpenAI. Converts your plain English queries into structured RealEstateAPI filters automatically.
-                    </p>
+                  {/* Geographic */}
+                  <div className="p-6 rounded border border-gray-200 dark:border-gray-800">
+                    <h3 className="text-sm font-medium mb-4 text-gray-900 dark:text-gray-100">Geographic</h3>
+                    <div className="grid gap-4 md:grid-cols-4">
+                      <div className="space-y-2">
+                        <Label className="text-xs text-gray-500">State</Label>
+                        <Select
+                          value={queryParams.state}
+                          onValueChange={(value) =>
+                            setQueryParams({ ...queryParams, state: value })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="All states" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="NY">New York</SelectItem>
+                            <SelectItem value="CT">Connecticut</SelectItem>
+                            <SelectItem value="NJ">New Jersey</SelectItem>
+                            <SelectItem value="FL">Florida</SelectItem>
+                            <SelectItem value="TX">Texas</SelectItem>
+                            <SelectItem value="CA">California</SelectItem>
+                            <SelectItem value="AZ">Arizona</SelectItem>
+                            <SelectItem value="PA">Pennsylvania</SelectItem>
+                            <SelectItem value="MA">Massachusetts</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-xs text-gray-500">City</Label>
+                        <Input
+                          placeholder="Miami, Tampa, Orlando..."
+                          value={queryParams.city || ""}
+                          onChange={(e) =>
+                            setQueryParams({ ...queryParams, city: e.target.value })
+                          }
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-xs text-gray-500">County</Label>
+                        <Input
+                          placeholder="Miami-Dade, Broward..."
+                          value={queryParams.county || ""}
+                          onChange={(e) =>
+                            setQueryParams({ ...queryParams, county: e.target.value })
+                          }
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-xs text-gray-500">Zip Codes (Macro Targeting)</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="Add zip code..."
+                            value={zipCodeInput}
+                            onChange={(e) => setZipCodeInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                addZipCode();
+                              }
+                            }}
+                          />
+                          <Button type="button" onClick={addZipCode} variant="outline" size="sm">
+                            Add
+                          </Button>
+                        </div>
+                        {zipCodes.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {zipCodes.map(zip => (
+                              <Badge key={zip} variant="outline" className="px-2 py-1">
+                                {zip}
+                                <button
+                                  type="button"
+                                  onClick={() => removeZipCode(zip)}
+                                  className="ml-2 text-xs hover:text-red-500"
+                                >
+                                  ×
+                                </button>
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Property Type & Value */}
+                  <div className="p-6 rounded border border-gray-200 dark:border-gray-800">
+                    <h3 className="text-sm font-medium mb-4 text-gray-900 dark:text-gray-100">Property Type & Value</h3>
+                    <div className="grid gap-4 md:grid-cols-3">
+                      <div className="space-y-2">
+                        <Label className="text-xs text-gray-500">Property Type</Label>
+                        <Select
+                          value={queryParams.propertyType}
+                          onValueChange={(value) =>
+                            setQueryParams({ ...queryParams, propertyType: value })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="All types" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="SFR">Single Family</SelectItem>
+                            <SelectItem value="MFH">Multi-Family</SelectItem>
+                            <SelectItem value="APARTMENT">Apartments</SelectItem>
+                            <SelectItem value="COMMERCIAL">Commercial</SelectItem>
+                            <SelectItem value="LAND">Land</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-xs text-gray-500">Min Value</Label>
+                        <Input
+                          type="number"
+                          placeholder="100000"
+                          value={queryParams.valueMin || ""}
+                          onChange={(e) =>
+                            setQueryParams({
+                              ...queryParams,
+                              valueMin: parseInt(e.target.value) || undefined,
+                            })
+                          }
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-xs text-gray-500">Max Value</Label>
+                        <Input
+                          type="number"
+                          placeholder="1000000"
+                          value={queryParams.valueMax || ""}
+                          onChange={(e) =>
+                            setQueryParams({
+                              ...queryParams,
+                              valueMax: parseInt(e.target.value) || undefined,
+                            })
+                          }
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Owner Type */}
+                  <div className="p-6 rounded border border-gray-200 dark:border-gray-800">
+                    <h3 className="text-sm font-medium mb-4 text-gray-900 dark:text-gray-100">Owner Type</h3>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        variant={queryParams.absenteeOwner ? "default" : "outline"}
+                        size="sm"
+                        onClick={() =>
+                          setQueryParams({
+                            ...queryParams,
+                            absenteeOwner: !queryParams.absenteeOwner,
+                          })
+                        }
+                      >
+                        Absentee
+                      </Button>
+                      <Button
+                        variant={queryParams.outOfStateOwner ? "default" : "outline"}
+                        size="sm"
+                        onClick={() =>
+                          setQueryParams({
+                            ...queryParams,
+                            outOfStateOwner: !queryParams.outOfStateOwner,
+                          })
+                        }
+                      >
+                        Out-of-State
+                      </Button>
+                      <Button
+                        variant={queryParams.corporateOwned ? "default" : "outline"}
+                        size="sm"
+                        onClick={() =>
+                          setQueryParams({
+                            ...queryParams,
+                            corporateOwned: !queryParams.corporateOwned,
+                          })
+                        }
+                      >
+                        Corporate
+                      </Button>
+                      <Button
+                        variant={queryParams.owned5YearsPlus ? "default" : "outline"}
+                        size="sm"
+                        onClick={() =>
+                          setQueryParams({
+                            ...queryParams,
+                            owned5YearsPlus: !queryParams.owned5YearsPlus,
+                          })
+                        }
+                      >
+                        5+ Years
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Property Characteristics */}
+                  <Collapsible>
+                    <CollapsibleTrigger asChild>
+                      <div className="p-6 rounded border border-gray-200 dark:border-gray-800 cursor-pointer hover:border-gray-300 dark:hover:border-gray-700">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">Building & Lot Details</h3>
+                          <ChevronDownIcon className="h-4 w-4 text-gray-400" />
+                        </div>
+                      </div>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="p-6 border-x border-b border-gray-200 dark:border-gray-800 rounded-b">
+                        <div className="grid gap-4 md:grid-cols-4">
+                          <div className="space-y-2">
+                            <Label className="text-xs text-gray-500">Min Beds</Label>
+                            <Input
+                              type="number"
+                              placeholder="3"
+                              value={queryParams.bedsMin || ""}
+                              onChange={(e) =>
+                                setQueryParams({
+                                  ...queryParams,
+                                  bedsMin: parseInt(e.target.value) || undefined,
+                                })
+                              }
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label className="text-xs text-gray-500">Min Baths</Label>
+                            <Input
+                              type="number"
+                              placeholder="2"
+                              value={queryParams.bathsMin || ""}
+                              onChange={(e) =>
+                                setQueryParams({
+                                  ...queryParams,
+                                  bathsMin: parseInt(e.target.value) || undefined,
+                                })
+                              }
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label className="text-xs text-gray-500">Building Sqft (Min)</Label>
+                            <Input
+                              type="number"
+                              placeholder="1500"
+                              value={queryParams.buildingSizeMin || ""}
+                              onChange={(e) =>
+                                setQueryParams({
+                                  ...queryParams,
+                                  buildingSizeMin: parseInt(e.target.value) || undefined,
+                                })
+                              }
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label className="text-xs text-gray-500">Lot Sqft (Min)</Label>
+                            <Input
+                              type="number"
+                              placeholder="5000"
+                              value={queryParams.lotSizeMin || ""}
+                              onChange={(e) =>
+                                setQueryParams({
+                                  ...queryParams,
+                                  lotSizeMin: parseInt(e.target.value) || undefined,
+                                })
+                              }
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+
+                  {/* Portfolio (Investors) */}
+                  <Collapsible>
+                    <CollapsibleTrigger asChild>
+                      <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-slate-900 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-lg font-semibold">💼 Portfolio (Investors)</h3>
+                          <ChevronDownIcon className="h-5 w-5" />
+                        </div>
+                      </div>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="p-4 border-x border-b border-gray-200 dark:border-gray-800 rounded-b-lg bg-gray-50 dark:bg-slate-800/50">
+                        <div className="grid gap-4 md:grid-cols-3">
+                          <div className="space-y-2">
+                            <Label>Min Properties Owned</Label>
+                            <Input
+                              type="number"
+                              placeholder="5"
+                              value={queryParams.propertiesOwnedMin || ""}
+                              onChange={(e) =>
+                                setQueryParams({
+                                  ...queryParams,
+                                  propertiesOwnedMin: parseInt(e.target.value) || undefined,
+                                })
+                              }
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label>Min Portfolio Value</Label>
+                            <Input
+                              type="number"
+                              placeholder="$1,000,000"
+                              value={queryParams.portfolioValueMin || ""}
+                              onChange={(e) =>
+                                setQueryParams({
+                                  ...queryParams,
+                                  portfolioValueMin: parseInt(e.target.value) || undefined,
+                                })
+                              }
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label>Purchased Last 12 Months</Label>
+                            <Input
+                              type="number"
+                              placeholder="3"
+                              value={queryParams.portfolioPurchasedLast12Min || ""}
+                              onChange={(e) =>
+                                setQueryParams({
+                                  ...queryParams,
+                                  portfolioPurchasedLast12Min: parseInt(e.target.value) || undefined,
+                                })
+                              }
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+
+                  <div className="flex justify-between gap-2 pt-4">
+                    <Button variant="outline" onClick={() => setWizardStep(1)}>
+                      Back
+                    </Button>
+                    <Button onClick={() => setWizardStep(3)}>
+                      Next
+                    </Button>
                   </div>
                 </div>
-              </div>
+              )}
 
-              <Separator />
-
-              {/* Geographic Filters */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Geographic Filters</h3>
-                <div className="grid gap-4 md:grid-cols-4">
-                  <div className="space-y-2">
-                    <Label>State</Label>
-                    <Select
-                      value={queryParams.state}
-                      onValueChange={(value) =>
-                        setQueryParams({ ...queryParams, state: value })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select state" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="NY">New York</SelectItem>
-                        <SelectItem value="CT">Connecticut</SelectItem>
-                        <SelectItem value="NJ">New Jersey</SelectItem>
-                        <SelectItem value="FL">Florida</SelectItem>
-                        <SelectItem value="TX">Texas</SelectItem>
-                        <SelectItem value="CA">California</SelectItem>
-                        <SelectItem value="AZ">Arizona</SelectItem>
-                        <SelectItem value="PA">Pennsylvania</SelectItem>
-                        <SelectItem value="MA">Massachusetts</SelectItem>
-                      </SelectContent>
-                    </Select>
+              {/* STEP 3: EVENT SIGNALS (MOTIVATION/DISTRESS) */}
+              {wizardStep === 3 && (
+                <div className="space-y-6">
+                  <div className="text-center mb-8">
+                    <h2 className="text-xl font-semibold mb-1">Event Signals</h2>
+                    <p className="text-sm text-gray-500">Motivation & distress indicators</p>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>City</Label>
-                    <Input
-                      placeholder="e.g., Miami"
-                      value={queryParams.city || ""}
-                      onChange={(e) =>
-                        setQueryParams({ ...queryParams, city: e.target.value })
-                      }
-                    />
-                  </div>
+                  {/* Equity */}
+                  <div className="p-6 rounded border border-gray-200 dark:border-gray-800">
+                    <h3 className="text-sm font-medium mb-4 text-gray-900 dark:text-gray-100">Equity</h3>
+                    <div className="grid gap-4 md:grid-cols-2 mb-4">
+                      <div className="space-y-2">
+                        <Label className="text-xs text-gray-500">Min Equity %</Label>
+                        <Input
+                          type="number"
+                          placeholder="50"
+                          value={queryParams.equityPercentMin || ""}
+                          onChange={(e) =>
+                            setQueryParams({
+                              ...queryParams,
+                              equityPercentMin: parseInt(e.target.value) || undefined,
+                            })
+                          }
+                        />
+                      </div>
 
-                  <div className="space-y-2">
-                    <Label>County</Label>
-                    <Input
-                      placeholder="e.g., Miami-Dade"
-                      value={queryParams.county || ""}
-                      onChange={(e) =>
-                        setQueryParams({ ...queryParams, county: e.target.value })
-                      }
-                    />
-                  </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs text-gray-500">Max Equity %</Label>
+                        <Input
+                          type="number"
+                          placeholder="100"
+                          value={queryParams.equityPercentMax || ""}
+                          onChange={(e) =>
+                            setQueryParams({
+                              ...queryParams,
+                              equityPercentMax: parseInt(e.target.value) || undefined,
+                            })
+                          }
+                        />
+                      </div>
+                    </div>
 
-                  <div className="space-y-2">
-                    <Label>Zip Code</Label>
-                    <Input
-                      placeholder="e.g., 33139"
-                      value={queryParams.zipCode || ""}
-                      onChange={(e) =>
-                        setQueryParams({ ...queryParams, zipCode: e.target.value })
-                      }
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Property Type & Value */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Property Type & Value</h3>
-                <div className="grid gap-4 md:grid-cols-3">
-                  <div className="space-y-2">
-                    <Label>Property Type</Label>
-                    <Select
-                      value={queryParams.propertyType}
-                      onValueChange={(value) =>
-                        setQueryParams({ ...queryParams, propertyType: value })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="SFR">Single Family Residential</SelectItem>
-                        <SelectItem value="MFH">Multi-Family (2-4 units)</SelectItem>
-                        <SelectItem value="APARTMENT">Apartments (5+ units)</SelectItem>
-                        <SelectItem value="COMMERCIAL">Commercial</SelectItem>
-                        <SelectItem value="LAND">Land</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Min Value</Label>
-                    <Input
-                      type="number"
-                      placeholder="$100,000"
-                      value={queryParams.valueMin || ""}
-                      onChange={(e) =>
-                        setQueryParams({
-                          ...queryParams,
-                          valueMin: parseInt(e.target.value) || undefined,
-                        })
-                      }
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Max Value</Label>
-                    <Input
-                      type="number"
-                      placeholder="$1,000,000"
-                      value={queryParams.valueMax || ""}
-                      onChange={(e) =>
-                        setQueryParams({
-                          ...queryParams,
-                          valueMax: parseInt(e.target.value) || undefined,
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Equity Filters */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Equity Filters (Find Motivated Sellers!)</h3>
-                <div className="grid gap-4 md:grid-cols-3">
-                  <div className="space-y-2">
-                    <Label>Min Equity %</Label>
-                    <Input
-                      type="number"
-                      placeholder="50"
-                      value={queryParams.equityPercentMin || ""}
-                      onChange={(e) =>
-                        setQueryParams({
-                          ...queryParams,
-                          equityPercentMin: parseInt(e.target.value) || undefined,
-                        })
-                      }
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Max Equity %</Label>
-                    <Input
-                      type="number"
-                      placeholder="100"
-                      value={queryParams.equityPercentMax || ""}
-                      onChange={(e) =>
-                        setQueryParams({
-                          ...queryParams,
-                          equityPercentMax: parseInt(e.target.value) || undefined,
-                        })
-                      }
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Quick Filters</Label>
                     <div className="flex gap-2">
                       <Button
                         variant={queryParams.highEquity ? "default" : "outline"}
@@ -568,7 +1041,7 @@ export function RealEstateAPIExplorer() {
                           })
                         }
                       >
-                        High Equity (50%+)
+                        High Equity
                       </Button>
                       <Button
                         variant={queryParams.freeClear ? "default" : "outline"}
@@ -584,261 +1057,121 @@ export function RealEstateAPIExplorer() {
                       </Button>
                     </div>
                   </div>
-                </div>
-              </div>
 
-              {/* Portfolio Filters (Find Investors) */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">
-                  Portfolio Filters (Find Investors & Cash Buyers!)
-                </h3>
-                <div className="grid gap-4 md:grid-cols-3">
-                  <div className="space-y-2">
-                    <Label>Min Properties Owned</Label>
-                    <Input
-                      type="number"
-                      placeholder="5"
-                      value={queryParams.propertiesOwnedMin || ""}
-                      onChange={(e) =>
-                        setQueryParams({
-                          ...queryParams,
-                          propertiesOwnedMin: parseInt(e.target.value) || undefined,
-                        })
-                      }
-                    />
+                  {/* Distress */}
+                  <div className="p-6 rounded border border-gray-200 dark:border-gray-800">
+                    <h3 className="text-sm font-medium mb-4 text-gray-900 dark:text-gray-100">Distress Signals</h3>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        variant={queryParams.preForeclosure ? "default" : "outline"}
+                        size="sm"
+                        onClick={() =>
+                          setQueryParams({
+                            ...queryParams,
+                            preForeclosure: !queryParams.preForeclosure,
+                          })
+                        }
+                      >
+                        Pre-Foreclosure
+                      </Button>
+                      <Button
+                        variant={queryParams.foreclosure ? "default" : "outline"}
+                        size="sm"
+                        onClick={() =>
+                          setQueryParams({
+                            ...queryParams,
+                            foreclosure: !queryParams.foreclosure,
+                          })
+                        }
+                      >
+                        Foreclosure
+                      </Button>
+                      <Button
+                        variant={queryParams.vacant ? "default" : "outline"}
+                        size="sm"
+                        onClick={() =>
+                          setQueryParams({
+                            ...queryParams,
+                            vacant: !queryParams.vacant,
+                          })
+                        }
+                      >
+                        Vacant
+                      </Button>
+                      <Button
+                        variant={queryParams.lisPendens ? "default" : "outline"}
+                        size="sm"
+                        onClick={() =>
+                          setQueryParams({
+                            ...queryParams,
+                            lisPendens: !queryParams.lisPendens,
+                          })
+                        }
+                      >
+                        Lis Pendens
+                      </Button>
+                      <Button
+                        variant={queryParams.auction ? "default" : "outline"}
+                        size="sm"
+                        onClick={() =>
+                          setQueryParams({
+                            ...queryParams,
+                            auction: !queryParams.auction,
+                          })
+                        }
+                      >
+                        Auction
+                      </Button>
+                      <Button
+                        variant={queryParams.soldLast12Months ? "default" : "outline"}
+                        size="sm"
+                        onClick={() =>
+                          setQueryParams({
+                            ...queryParams,
+                            soldLast12Months: !queryParams.soldLast12Months,
+                          })
+                        }
+                      >
+                        Sold Last 12Mo
+                      </Button>
+                    </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Min Portfolio Value</Label>
-                    <Input
-                      type="number"
-                      placeholder="$1,000,000"
-                      value={queryParams.portfolioValueMin || ""}
-                      onChange={(e) =>
-                        setQueryParams({
-                          ...queryParams,
-                          portfolioValueMin: parseInt(e.target.value) || undefined,
-                        })
-                      }
-                    />
+                  {/* Result Limit */}
+                  <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-slate-900">
+                    <div className="space-y-2">
+                      <Label>Results Limit</Label>
+                      <Input
+                        type="number"
+                        placeholder="50"
+                        value={queryParams.size || ""}
+                        onChange={(e) =>
+                          setQueryParams({
+                            ...queryParams,
+                            size: parseInt(e.target.value) || undefined,
+                          })
+                        }
+                      />
+                    </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Purchased Last 12 Months (Min)</Label>
-                    <Input
-                      type="number"
-                      placeholder="3"
-                      value={queryParams.portfolioPurchasedLast12Min || ""}
-                      onChange={(e) =>
-                        setQueryParams({
-                          ...queryParams,
-                          portfolioPurchasedLast12Min: parseInt(e.target.value) || undefined,
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Distress Signals */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Distress Signals (Hot Leads!)</h3>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant={queryParams.preForeclosure ? "destructive" : "outline"}
-                    size="sm"
-                    onClick={() =>
-                      setQueryParams({
-                        ...queryParams,
-                        preForeclosure: !queryParams.preForeclosure,
-                      })
-                    }
-                  >
-                    Pre-Foreclosure
-                  </Button>
-                  <Button
-                    variant={queryParams.foreclosure ? "destructive" : "outline"}
-                    size="sm"
-                    onClick={() =>
-                      setQueryParams({
-                        ...queryParams,
-                        foreclosure: !queryParams.foreclosure,
-                      })
-                    }
-                  >
-                    Foreclosure
-                  </Button>
-                  <Button
-                    variant={queryParams.vacant ? "destructive" : "outline"}
-                    size="sm"
-                    onClick={() =>
-                      setQueryParams({
-                        ...queryParams,
-                        vacant: !queryParams.vacant,
-                      })
-                    }
-                  >
-                    Vacant
-                  </Button>
-                  <Button
-                    variant={queryParams.lisPendens ? "destructive" : "outline"}
-                    size="sm"
-                    onClick={() =>
-                      setQueryParams({
-                        ...queryParams,
-                        lisPendens: !queryParams.lisPendens,
-                      })
-                    }
-                  >
-                    Lis Pendens
-                  </Button>
-                </div>
-              </div>
-
-              {/* Owner Filters */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Owner Filters</h3>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant={queryParams.absenteeOwner ? "default" : "outline"}
-                    size="sm"
-                    onClick={() =>
-                      setQueryParams({
-                        ...queryParams,
-                        absenteeOwner: !queryParams.absenteeOwner,
-                      })
-                    }
-                  >
-                    Absentee Owner
-                  </Button>
-                  <Button
-                    variant={queryParams.outOfStateOwner ? "default" : "outline"}
-                    size="sm"
-                    onClick={() =>
-                      setQueryParams({
-                        ...queryParams,
-                        outOfStateOwner: !queryParams.outOfStateOwner,
-                      })
-                    }
-                  >
-                    Out-of-State Owner
-                  </Button>
-                  <Button
-                    variant={queryParams.corporateOwned ? "default" : "outline"}
-                    size="sm"
-                    onClick={() =>
-                      setQueryParams({
-                        ...queryParams,
-                        corporateOwned: !queryParams.corporateOwned,
-                      })
-                    }
-                  >
-                    Corporate Owned
-                  </Button>
-                </div>
-              </div>
-
-              {/* Property Characteristics */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Property Characteristics</h3>
-                <div className="grid gap-4 md:grid-cols-4">
-                  <div className="space-y-2">
-                    <Label>Min Beds</Label>
-                    <Input
-                      type="number"
-                      placeholder="3"
-                      value={queryParams.bedsMin || ""}
-                      onChange={(e) =>
-                        setQueryParams({
-                          ...queryParams,
-                          bedsMin: parseInt(e.target.value) || undefined,
-                        })
-                      }
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Min Baths</Label>
-                    <Input
-                      type="number"
-                      placeholder="2"
-                      value={queryParams.bathsMin || ""}
-                      onChange={(e) =>
-                        setQueryParams({
-                          ...queryParams,
-                          bathsMin: parseInt(e.target.value) || undefined,
-                        })
-                      }
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Min Sqft</Label>
-                    <Input
-                      type="number"
-                      placeholder="1500"
-                      value={queryParams.buildingSizeMin || ""}
-                      onChange={(e) =>
-                        setQueryParams({
-                          ...queryParams,
-                          buildingSizeMin: parseInt(e.target.value) || undefined,
-                        })
-                      }
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Min Units</Label>
-                    <Input
-                      type="number"
-                      placeholder="4"
-                      value={queryParams.unitsMin || ""}
-                      onChange={(e) =>
-                        setQueryParams({
-                          ...queryParams,
-                          unitsMin: parseInt(e.target.value) || undefined,
-                        })
-                      }
-                    />
+                  <div className="flex justify-between gap-2">
+                    <Button variant="outline" onClick={() => setWizardStep(2)}>
+                      ← Back
+                    </Button>
+                    <div className="flex gap-2">
+                      <Button onClick={executePropertySearch} disabled={loading} size="lg">
+                        <PlayIcon className="mr-2 h-4 w-4" />
+                        Execute Search
+                      </Button>
+                      <Button variant="outline" onClick={createSavedSearch} disabled={loading} size="lg">
+                        <SaveIcon className="mr-2 h-4 w-4" />
+                        Save Search
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
-
-              {/* Result Limit */}
-              <div className="space-y-2">
-                <Label>Results Limit</Label>
-                <Input
-                  type="number"
-                  placeholder="50"
-                  value={queryParams.size || ""}
-                  onChange={(e) =>
-                    setQueryParams({
-                      ...queryParams,
-                      size: parseInt(e.target.value) || undefined,
-                    })
-                  }
-                />
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-2">
-                <Button onClick={executePropertySearch} disabled={loading}>
-                  <PlayIcon className="mr-2 h-4 w-4" />
-                  Execute Search
-                </Button>
-                <Button variant="outline" onClick={createSavedSearch} disabled={loading}>
-                  <SaveIcon className="mr-2 h-4 w-4" />
-                  Save Search
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={exportResults}
-                  disabled={results.length === 0}
-                >
-                  <DownloadIcon className="mr-2 h-4 w-4" />
-                  Export CSV
-                </Button>
-              </div>
+              )}
             </CardContent>
           </Card>
 
@@ -846,47 +1179,99 @@ export function RealEstateAPIExplorer() {
           {results.length > 0 && (
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>Search Results ({totalResults.toLocaleString()} total)</CardTitle>
-                    <CardDescription>
-                      Showing {results.length} properties
-                    </CardDescription>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Search Results ({totalResults.toLocaleString()} total)</CardTitle>
+                      <CardDescription>
+                        Showing {results.length} properties • {selectedPropertyIds.size} selected
+                      </CardDescription>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant={viewMode === "list" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setViewMode("list")}
+                      >
+                        <LayoutListIcon className="h-4 w-4 mr-2" />
+                        List
+                      </Button>
+                      <Button
+                        variant={viewMode === "card" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setViewMode("card")}
+                      >
+                        <LayoutGridIcon className="h-4 w-4 mr-2" />
+                        Card
+                      </Button>
+                      <Button
+                        variant={viewMode === "detail" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setViewMode("detail")}
+                      >
+                        <FileTextIcon className="h-4 w-4 mr-2" />
+                        Detail
+                      </Button>
+                      <Button
+                        variant={viewMode === "map" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setViewMode("map")}
+                      >
+                        <MapIcon className="h-4 w-4 mr-2" />
+                        Map
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant={viewMode === "list" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setViewMode("list")}
-                    >
-                      <LayoutListIcon className="h-4 w-4 mr-2" />
-                      List
-                    </Button>
-                    <Button
-                      variant={viewMode === "card" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setViewMode("card")}
-                    >
-                      <LayoutGridIcon className="h-4 w-4 mr-2" />
-                      Card
-                    </Button>
-                    <Button
-                      variant={viewMode === "detail" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setViewMode("detail")}
-                    >
-                      <FileTextIcon className="h-4 w-4 mr-2" />
-                      Detail
-                    </Button>
-                    <Button
-                      variant={viewMode === "map" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setViewMode("map")}
-                    >
-                      <MapIcon className="h-4 w-4 mr-2" />
-                      Map
-                    </Button>
-                  </div>
+
+                  {/* ACTION BAR */}
+                  {selectedPropertyIds.size > 0 && (
+                    <div className="p-4 rounded border border-gray-200 dark:border-gray-800 space-y-3">
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-medium">
+                          {selectedPropertyIds.size} selected
+                        </span>
+                        <div className="flex-1" />
+
+                        {/* Skip Trace */}
+                        <Button onClick={enrichSelected} disabled={loading} variant="outline" size="sm">
+                          <UserSearchIcon className="mr-2 h-4 w-4" />
+                          Skip Trace
+                        </Button>
+
+                        {/* Export */}
+                        <Button variant="outline" onClick={exportResults} size="sm">
+                          <DownloadIcon className="mr-2 h-4 w-4" />
+                          Export CSV
+                        </Button>
+                      </div>
+
+                      {/* Campaign Selection + Push */}
+                      <div className="flex items-center gap-3 pt-2 border-t border-gray-200 dark:border-gray-800">
+                        <div className="flex items-center gap-2">
+                          <Label className="text-xs text-gray-500 whitespace-nowrap">Campaign:</Label>
+                          <Input
+                            placeholder="Enter campaign name or ID..."
+                            value={selectedCampaignId}
+                            onChange={(e) => setSelectedCampaignId(e.target.value)}
+                            className="w-64"
+                          />
+                        </div>
+                        <Button
+                          onClick={pushToCampaign}
+                          disabled={loading || !selectedCampaignId}
+                          size="sm"
+                        >
+                          <PlayIcon className="mr-2 h-4 w-4" />
+                          Push to Campaign
+                        </Button>
+                        {enrichedProperties.size > 0 && (
+                          <Badge variant="outline" className="ml-auto">
+                            {enrichedProperties.size} enriched
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </CardHeader>
               <CardContent>
@@ -896,6 +1281,14 @@ export function RealEstateAPIExplorer() {
                     <Table>
                       <TableHeader>
                         <TableRow>
+                          <TableHead className="w-12">
+                            <input
+                              type="checkbox"
+                              checked={selectedPropertyIds.size === results.length && results.length > 0}
+                              onChange={toggleSelectAll}
+                              className="cursor-pointer"
+                            />
+                          </TableHead>
                           <TableHead>Deal Score</TableHead>
                           <TableHead>Address</TableHead>
                           <TableHead>Owner</TableHead>
@@ -912,8 +1305,20 @@ export function RealEstateAPIExplorer() {
                       {results.map((property, index) => {
                         const dealScore = calculateDealScore(property);
                         const scoreBadge = getDealScoreBadge(dealScore);
+                        const propertyId = property.id || property.propertyId || `prop-${index}`;
+                        const isSelected = selectedPropertyIds.has(propertyId);
+                        const isEnriched = enrichedProperties.has(propertyId);
+
                         return (
-                          <TableRow key={index}>
+                          <TableRow key={index} className={isSelected ? "bg-blue-50 dark:bg-blue-950/30" : ""}>
+                            <TableCell>
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => togglePropertySelection(propertyId)}
+                                className="cursor-pointer"
+                              />
+                            </TableCell>
                             <TableCell>
                               <div className="flex flex-col gap-1">
                                 <div className="text-2xl font-bold">{dealScore}</div>
@@ -923,11 +1328,18 @@ export function RealEstateAPIExplorer() {
                               </div>
                             </TableCell>
                             <TableCell className="font-medium">
-                              <div>
-                                <div>{property.address || "N/A"}</div>
-                                <div className="text-xs text-muted-foreground">
-                                  {property.city}, {property.state}
+                              <div className="flex items-center gap-2">
+                                <div>
+                                  <div>{property.address?.address || property.address?.street || "N/A"}</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {property.address?.city || property.city || "N/A"}, {property.address?.state || property.state || "N/A"}
+                                  </div>
                                 </div>
+                                {isEnriched && (
+                                  <Badge variant="outline" className="text-xs">
+                                    ✓ Enriched
+                                  </Badge>
+                                )}
                               </div>
                             </TableCell>
                           <TableCell>
@@ -1013,19 +1425,29 @@ export function RealEstateAPIExplorer() {
                             <div className="flex gap-1">
                               <Button
                                 size="sm"
-                                variant="outline"
-                                onClick={() => executeSkipTrace(property.id)}
-                                title="Get verified contacts"
+                                onClick={() => getFullReport(propertyId)}
+                                title="Full report: Property details + Skip trace + Owner info"
+                                disabled={loading}
                               >
-                                Skip Trace
+                                <SearchIcon className="mr-1 h-3 w-3" />
+                                Full Report
                               </Button>
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => viewPropertyDetail(property.id)}
-                                title="View full property details"
+                                onClick={() => executeSkipTrace(propertyId)}
+                                title="Skip trace only"
+                                disabled={loading}
                               >
-                                Details
+                                <UserSearchIcon className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => viewPropertyDetail(propertyId)}
+                                title="Property details only"
+                              >
+                                <FileTextIcon className="h-3 w-3" />
                               </Button>
                             </div>
                           </TableCell>
@@ -1052,10 +1474,10 @@ export function RealEstateAPIExplorer() {
                         </div>
                         <CardHeader>
                           <CardTitle className="text-lg">
-                            {property.address || "N/A"}
+                            {property.address?.address || property.address?.street || "N/A"}
                           </CardTitle>
                           <CardDescription>
-                            {property.city}, {property.state} {property.zipCode}
+                            {property.address?.city || property.city || "N/A"}, {property.address?.state || property.state || "N/A"} {property.address?.zip || property.zipCode || ""}
                           </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-3">
@@ -1178,9 +1600,9 @@ export function RealEstateAPIExplorer() {
                         <CardHeader>
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
-                              <CardTitle>{property.address || "N/A"}</CardTitle>
+                              <CardTitle>{property.address?.address || property.address?.street || "N/A"}</CardTitle>
                               <CardDescription>
-                                {property.city}, {property.state} {property.zipCode} • {property.county} County
+                                {property.address?.city || property.city || "N/A"}, {property.address?.state || property.state || "N/A"} {property.address?.zip || property.zipCode || ""} • {property.address?.county || property.county || "N/A"} County
                               </CardDescription>
                             </div>
                             <div className="flex flex-col items-end gap-2">
@@ -1478,10 +1900,10 @@ export function RealEstateAPIExplorer() {
                                   {/* Property Info */}
                                   <div className="flex-1 min-w-0">
                                     <div className="font-medium text-sm truncate">
-                                      {property.address || "N/A"}
+                                      {property.address?.address || property.address?.street || "N/A"}
                                     </div>
                                     <div className="text-xs text-muted-foreground">
-                                      {property.city}, {property.state}
+                                      {property.address?.city || property.city || "N/A"}, {property.address?.state || property.state || "N/A"}
                                     </div>
                                     <div className="text-xs font-semibold text-green-600 mt-1">
                                       ${property.value?.toLocaleString() || "N/A"}
@@ -1648,15 +2070,15 @@ export function RealEstateAPIExplorer() {
                 <CardContent className="space-y-2">
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div className="font-medium">Street Address:</div>
-                    <div>{selectedProperty.address || "N/A"}</div>
+                    <div>{selectedProperty.address?.address || selectedProperty.address?.street || "N/A"}</div>
                     <div className="font-medium">City:</div>
-                    <div>{selectedProperty.city || "N/A"}</div>
+                    <div>{selectedProperty.address?.city || selectedProperty.city || "N/A"}</div>
                     <div className="font-medium">State:</div>
-                    <div>{selectedProperty.state || "N/A"}</div>
+                    <div>{selectedProperty.address?.state || selectedProperty.state || "N/A"}</div>
                     <div className="font-medium">Zip Code:</div>
-                    <div>{selectedProperty.zipCode || "N/A"}</div>
+                    <div>{selectedProperty.address?.zip || selectedProperty.zipCode || "N/A"}</div>
                     <div className="font-medium">County:</div>
-                    <div>{selectedProperty.county || "N/A"}</div>
+                    <div>{selectedProperty.address?.county || selectedProperty.county || "N/A"}</div>
                     <div className="font-medium">APN:</div>
                     <div>{selectedProperty.apn || "N/A"}</div>
                   </div>

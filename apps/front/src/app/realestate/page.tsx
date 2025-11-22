@@ -2,7 +2,7 @@
 
 import { RealEstateAPIExplorer } from "@/features/property/components/realestate-api-explorer";
 
-export default function RealEstateAPIPage() {
+export default function RealEstatePage() {
   return (
     <div className="min-h-screen bg-background">
       <div className="border-b">

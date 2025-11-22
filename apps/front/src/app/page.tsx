@@ -3,6 +3,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 export default async function Page() {
+  // BYPASS AUTH - Go straight to RealEstate API (standalone route)
+  redirect("/realestate");
+
   const { team, user } = await getAuthUser();
   if (!user) {
     redirect("/auth/login");

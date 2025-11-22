@@ -5,6 +5,7 @@ import axios, { AxiosInstance } from "axios";
 @Injectable()
 export class RealEstateService {
   private http: AxiosInstance;
+  private skipTraceKey: string;
 
   constructor(private configService: ConfigService) {
     this.http = axios.create({
@@ -13,6 +14,7 @@ export class RealEstateService {
         "x-api-key": this.configService.get("REALESTATE_API_KEY"),
       },
     });
+    this.skipTraceKey = this.configService.get("REALESTATE_SKIPTRACE_KEY") || "";
   }
 
   async propertySearch(params: Record<string, any>) {
@@ -21,10 +23,14 @@ export class RealEstateService {
       size: params.size || 50,
     };
 
-    // Add ALL filter parameters
+    // Convert camelCase to snake_case for RealEstateAPI
+    const camelToSnake = (str: string) => str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+
+    // Add ALL filter parameters with snake_case conversion
     Object.keys(params).forEach((key) => {
       if (params[key] !== undefined && params[key] !== null && key !== "size") {
-        requestBody[key] = params[key];
+        const snakeKey = camelToSnake(key);
+        requestBody[snakeKey] = params[key];
       }
     });
 
@@ -53,17 +59,26 @@ export class RealEstateService {
     const ownerInfo = property.ownerInfo || {};
     const mailAddress = ownerInfo.mailAddress || {};
 
-    // Skip trace the owner
-    const { data } = await this.http.post("/v1/SkipTrace", {
-      address: mailAddress.streetAddress,
-      city: mailAddress.city,
-      state: mailAddress.state,
-      zip: mailAddress.zip,
-      first_name: ownerInfo.owner1FirstName,
-      last_name: ownerInfo.owner1LastName,
-    });
+    // Skip trace the owner (uses different API key)
+    const { data } = await axios.post(
+      "https://api.realestateapi.com/v1/SkipTrace",
+      {
+        mail_address: mailAddress.streetAddress || mailAddress.address,
+        mail_city: mailAddress.city,
+        mail_state: mailAddress.state,
+        mail_zip: mailAddress.zip,
+        first_name: ownerInfo.owner1FirstName,
+        last_name: ownerInfo.owner1LastName,
+      },
+      {
+        headers: {
+          "x-api-key": this.skipTraceKey,
+          "Content-Type": "application/json",
+        },
+      }
+    );
 
-    return data.data;
+    return data;
   }
 
   async createSavedSearch(
@@ -228,5 +243,48 @@ export class RealEstateService {
       const message = error instanceof Error ? error.message : "Unknown error";
       throw new Error(`Failed to get property count: ${message}`);
     }
+  }
+
+  async runDailyAutomation(teamId: string, savedSearchIds: string[]) {
+    const results: any[] = [];
+
+    for (const searchId of savedSearchIds) {
+      const updates = await this.getSavedSearchUpdates(searchId);
+      const limited = updates.slice(0, 2000);
+
+      for (const property of limited) {
+        try {
+          const enriched = await this.skipTrace(property.id || property.propertyId);
+          results.push(enriched);
+        } catch (error) {
+          console.error(`Skip trace failed for ${property.id}`);
+        }
+      }
+    }
+
+    return { processed: results.length, savedSearches: savedSearchIds.length, timestamp: new Date() };
+  }
+
+  private async getSavedSearchUpdates(searchId: string) {
+    const { data } = await this.http.post('/v1/PropertyPortfolio/SavedSearch', { search_id: searchId });
+    return data.data || [];
+  }
+
+  async monitorPropertyEvents(propertyIds: string[]) {
+    const events: Array<{ type: string; propertyId: string; date: Date }> = [];
+
+    for (const propertyId of propertyIds) {
+      try {
+        const propertyData = await this.propertyDetail(propertyId);
+
+        if (propertyData.mlsListed) events.push({ type: 'LISTED', propertyId, date: new Date() });
+        if (propertyData.sold) events.push({ type: 'SOLD', propertyId, date: new Date() });
+        if (propertyData.vacant) events.push({ type: 'VACANT', propertyId, date: new Date() });
+      } catch (error) {
+        console.error(`Event monitoring failed for ${propertyId}`);
+      }
+    }
+
+    return { events, monitored: propertyIds.length };
   }
 }
