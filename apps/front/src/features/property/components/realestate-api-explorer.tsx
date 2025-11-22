@@ -190,9 +190,12 @@ export function RealEstateAPIExplorer() {
           ...queryParams,
         });
 
-        setResults(data.data || []);
-        setTotalResults(data.total || 0);
-        toast.success(`Found ${data.total || 0} properties!`);
+        const properties = data.data || [];
+        setResults(properties);
+        // Use array length if API doesn't return total
+        const total = data.total || properties.length;
+        setTotalResults(total);
+        toast.success(`Found ${total} properties!`);
       }
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Property search failed");
