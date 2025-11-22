@@ -39,6 +39,9 @@ import {
   DownloadIcon,
   SaveIcon,
   HistoryIcon,
+  LayoutListIcon,
+  LayoutGridIcon,
+  FileTextIcon,
 } from "lucide-react";
 import { LoadingOverlay } from "@/components/ui/loading/loading-overlay";
 import {
@@ -119,6 +122,7 @@ export function RealEstateAPIExplorer() {
   const [selectedProperty, setSelectedProperty] = useState<any>(null);
   const [propertyDetailOpen, setPropertyDetailOpen] = useState(false);
   const [propertyDetailLoading, setPropertyDetailLoading] = useState(false);
+  const [viewMode, setViewMode] = useState<"list" | "card" | "detail">("list");
 
   const executePropertySearch = async () => {
     setLoading(true);
@@ -192,9 +196,46 @@ export function RealEstateAPIExplorer() {
     }
   };
 
+  const calculateDealScore = (property: any): number => {
+    let score = 0;
+
+    // Equity scoring (0-30 points)
+    if (property.equityPercent >= 80) score += 30;
+    else if (property.equityPercent >= 60) score += 20;
+    else if (property.equityPercent >= 40) score += 10;
+
+    // Distress signals (0-25 points)
+    if (property.preForeclosure) score += 15;
+    if (property.foreclosure) score += 15;
+    if (property.vacant) score += 10;
+    if (property.lisPendens) score += 10;
+
+    // Owner type (0-20 points)
+    if (property.absenteeOwner) score += 10;
+    if (property.outOfStateOwner) score += 5;
+    if (property.corporateOwned) score += 5;
+
+    // Portfolio/Investor (0-15 points)
+    if (property.propertiesOwned >= 10) score += 15;
+    else if (property.propertiesOwned >= 5) score += 10;
+    else if (property.propertiesOwned >= 2) score += 5;
+
+    // MLS Status (0-10 points)
+    if (!property.mlsListed) score += 10; // Off-market = more valuable
+
+    return Math.min(score, 100); // Cap at 100
+  };
+
+  const getDealScoreBadge = (score: number) => {
+    if (score >= 90) return { label: "🔥 Hot Deal", variant: "default" as const };
+    if (score >= 70) return { label: "✅ Good Deal", variant: "default" as const };
+    if (score >= 50) return { label: "⚠️ Warm Lead", variant: "outline" as const };
+    return { label: "❄️ Cold Lead", variant: "outline" as const };
+  };
+
   const exportResults = () => {
     const csv = [
-      ["Address", "City", "State", "Value", "Equity %", "Owner", "Property Type"].join(","),
+      ["Address", "City", "State", "Value", "Equity %", "Owner", "Property Type", "Deal Score"].join(","),
       ...results.map(r =>
         [
           r.address,
@@ -204,6 +245,7 @@ export function RealEstateAPIExplorer() {
           r.equityPercent,
           r.ownerName,
           r.propertyType,
+          calculateDealScore(r),
         ].join(",")
       ),
     ].join("\n");
@@ -741,42 +783,86 @@ export function RealEstateAPIExplorer() {
             </CardContent>
           </Card>
 
-          {/* Results Table */}
+          {/* Results Section */}
           {results.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle>Search Results ({totalResults.toLocaleString()} total)</CardTitle>
-                <CardDescription>
-                  Showing {results.length} properties
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Search Results ({totalResults.toLocaleString()} total)</CardTitle>
+                    <CardDescription>
+                      Showing {results.length} properties
+                    </CardDescription>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant={viewMode === "list" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setViewMode("list")}
+                    >
+                      <LayoutListIcon className="h-4 w-4 mr-2" />
+                      List
+                    </Button>
+                    <Button
+                      variant={viewMode === "card" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setViewMode("card")}
+                    >
+                      <LayoutGridIcon className="h-4 w-4 mr-2" />
+                      Card
+                    </Button>
+                    <Button
+                      variant={viewMode === "detail" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setViewMode("detail")}
+                    >
+                      <FileTextIcon className="h-4 w-4 mr-2" />
+                      Detail
+                    </Button>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Address</TableHead>
-                        <TableHead>Owner</TableHead>
-                        <TableHead>Value</TableHead>
-                        <TableHead>Equity</TableHead>
-                        <TableHead>Last Sale</TableHead>
-                        <TableHead>Loan Amount</TableHead>
-                        <TableHead>MLS Status</TableHead>
-                        <TableHead>Tags & Flags</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
+                {/* LIST VIEW */}
+                {viewMode === "list" && (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Deal Score</TableHead>
+                          <TableHead>Address</TableHead>
+                          <TableHead>Owner</TableHead>
+                          <TableHead>Value</TableHead>
+                          <TableHead>Equity</TableHead>
+                          <TableHead>Last Sale</TableHead>
+                          <TableHead>Loan Amount</TableHead>
+                          <TableHead>MLS Status</TableHead>
+                          <TableHead>Tags & Flags</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
                     <TableBody>
-                      {results.map((property, index) => (
-                        <TableRow key={index}>
-                          <TableCell className="font-medium">
-                            <div>
-                              <div>{property.address || "N/A"}</div>
-                              <div className="text-xs text-muted-foreground">
-                                {property.city}, {property.state}
+                      {results.map((property, index) => {
+                        const dealScore = calculateDealScore(property);
+                        const scoreBadge = getDealScoreBadge(dealScore);
+                        return (
+                          <TableRow key={index}>
+                            <TableCell>
+                              <div className="flex flex-col gap-1">
+                                <div className="text-2xl font-bold">{dealScore}</div>
+                                <Badge variant={scoreBadge.variant} className="text-xs">
+                                  {scoreBadge.label}
+                                </Badge>
                               </div>
-                            </div>
-                          </TableCell>
+                            </TableCell>
+                            <TableCell className="font-medium">
+                              <div>
+                                <div>{property.address || "N/A"}</div>
+                                <div className="text-xs text-muted-foreground">
+                                  {property.city}, {property.state}
+                                </div>
+                              </div>
+                            </TableCell>
                           <TableCell>
                             <div>
                               <div>{property.ownerName || "N/A"}</div>
@@ -877,12 +963,412 @@ export function RealEstateAPIExplorer() {
                             </div>
                           </TableCell>
                         </TableRow>
-                      ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          )}
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+
+              {/* CARD VIEW */}
+              {viewMode === "card" && (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {results.map((property, index) => {
+                    const dealScore = calculateDealScore(property);
+                    const scoreBadge = getDealScoreBadge(dealScore);
+                    return (
+                      <Card key={index} className="relative">
+                        <div className="absolute top-3 right-3">
+                          <Badge variant={scoreBadge.variant}>
+                            Score: {dealScore}
+                          </Badge>
+                        </div>
+                        <CardHeader>
+                          <CardTitle className="text-lg">
+                            {property.address || "N/A"}
+                          </CardTitle>
+                          <CardDescription>
+                            {property.city}, {property.state} {property.zipCode}
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          {/* Key Metrics */}
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div>
+                              <div className="text-muted-foreground">Value</div>
+                              <div className="font-semibold text-green-600">
+                                ${property.value?.toLocaleString() || "N/A"}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-muted-foreground">Equity</div>
+                              <div>
+                                <Badge variant={property.equityPercent >= 50 ? "default" : "outline"}>
+                                  {property.equityPercent || 0}%
+                                </Badge>
+                              </div>
+                            </div>
+                          </div>
+
+                          <Separator />
+
+                          {/* Owner Info */}
+                          <div>
+                            <div className="text-xs text-muted-foreground">Owner</div>
+                            <div className="font-medium">{property.ownerName || "N/A"}</div>
+                            {property.propertiesOwned > 1 && (
+                              <div className="text-xs text-muted-foreground">
+                                {property.propertiesOwned} properties owned
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Property Details */}
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div>
+                              <span className="text-muted-foreground">Type:</span>{" "}
+                              {property.propertyType || "N/A"}
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">MLS:</span>{" "}
+                              {property.mlsListed ? (
+                                <Badge variant="default" className="text-xs">Listed</Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-xs">Off Market</Badge>
+                              )}
+                            </div>
+                            {property.beds && (
+                              <div>
+                                <span className="text-muted-foreground">Beds:</span> {property.beds}
+                              </div>
+                            )}
+                            {property.baths && (
+                              <div>
+                                <span className="text-muted-foreground">Baths:</span> {property.baths}
+                              </div>
+                            )}
+                            {property.buildingSize && (
+                              <div className="col-span-2">
+                                <span className="text-muted-foreground">Size:</span>{" "}
+                                {property.buildingSize.toLocaleString()} sqft
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Tags */}
+                          <div className="flex flex-wrap gap-1">
+                            {property.equityPercent >= 80 && (
+                              <Badge variant="default" className="text-xs">High Equity</Badge>
+                            )}
+                            {property.preForeclosure && (
+                              <Badge variant="destructive" className="text-xs">Pre-Foreclosure</Badge>
+                            )}
+                            {property.vacant && (
+                              <Badge variant="destructive" className="text-xs">Vacant</Badge>
+                            )}
+                            {property.propertiesOwned >= 5 && (
+                              <Badge variant="default" className="text-xs">Investor</Badge>
+                            )}
+                            {property.absenteeOwner && (
+                              <Badge variant="outline" className="text-xs">Absentee</Badge>
+                            )}
+                          </div>
+
+                          {/* Actions */}
+                          <div className="flex gap-2 pt-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => executeSkipTrace(property.id)}
+                              className="flex-1"
+                            >
+                              Skip Trace
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="default"
+                              onClick={() => viewPropertyDetail(property.id)}
+                              className="flex-1"
+                            >
+                              Details
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* DETAIL VIEW */}
+              {viewMode === "detail" && (
+                <div className="space-y-4">
+                  {results.map((property, index) => {
+                    const dealScore = calculateDealScore(property);
+                    const scoreBadge = getDealScoreBadge(dealScore);
+                    return (
+                      <Card key={index}>
+                        <CardHeader>
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <CardTitle>{property.address || "N/A"}</CardTitle>
+                              <CardDescription>
+                                {property.city}, {property.state} {property.zipCode} • {property.county} County
+                              </CardDescription>
+                            </div>
+                            <div className="flex flex-col items-end gap-2">
+                              <div className="text-3xl font-bold">{dealScore}</div>
+                              <Badge variant={scoreBadge.variant}>
+                                {scoreBadge.label}
+                              </Badge>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="grid gap-6 md:grid-cols-3">
+                            {/* Column 1: Property & Valuation */}
+                            <div className="space-y-4">
+                              <div>
+                                <h4 className="text-sm font-semibold mb-2">Property Details</h4>
+                                <div className="space-y-1 text-sm">
+                                  <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Type:</span>
+                                    <span className="font-medium">{property.propertyType || "N/A"}</span>
+                                  </div>
+                                  {property.beds && (
+                                    <div className="flex justify-between">
+                                      <span className="text-muted-foreground">Beds/Baths:</span>
+                                      <span className="font-medium">{property.beds}/{property.baths || 0}</span>
+                                    </div>
+                                  )}
+                                  {property.buildingSize && (
+                                    <div className="flex justify-between">
+                                      <span className="text-muted-foreground">Building Size:</span>
+                                      <span className="font-medium">{property.buildingSize.toLocaleString()} sqft</span>
+                                    </div>
+                                  )}
+                                  {property.lotSize && (
+                                    <div className="flex justify-between">
+                                      <span className="text-muted-foreground">Lot Size:</span>
+                                      <span className="font-medium">{property.lotSize.toLocaleString()} sqft</span>
+                                    </div>
+                                  )}
+                                  {property.yearBuilt && (
+                                    <div className="flex justify-between">
+                                      <span className="text-muted-foreground">Year Built:</span>
+                                      <span className="font-medium">{property.yearBuilt}</span>
+                                    </div>
+                                  )}
+                                  {property.units && (
+                                    <div className="flex justify-between">
+                                      <span className="text-muted-foreground">Units:</span>
+                                      <span className="font-medium">{property.units}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              <Separator />
+
+                              <div>
+                                <h4 className="text-sm font-semibold mb-2">Valuation</h4>
+                                <div className="space-y-1 text-sm">
+                                  <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Market Value:</span>
+                                    <span className="font-semibold text-green-600">
+                                      ${property.value?.toLocaleString() || "N/A"}
+                                    </span>
+                                  </div>
+                                  {property.assessedValue && (
+                                    <div className="flex justify-between">
+                                      <span className="text-muted-foreground">Assessed Value:</span>
+                                      <span className="font-medium">${property.assessedValue.toLocaleString()}</span>
+                                    </div>
+                                  )}
+                                  {property.taxAmount && (
+                                    <div className="flex justify-between">
+                                      <span className="text-muted-foreground">Tax Amount:</span>
+                                      <span className="font-medium">${property.taxAmount.toLocaleString()}</span>
+                                    </div>
+                                  )}
+                                  <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Equity %:</span>
+                                    <Badge variant={property.equityPercent >= 50 ? "default" : "outline"}>
+                                      {property.equityPercent || 0}%
+                                    </Badge>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Column 2: Owner & Financials */}
+                            <div className="space-y-4">
+                              <div>
+                                <h4 className="text-sm font-semibold mb-2">Owner Information</h4>
+                                <div className="space-y-1 text-sm">
+                                  <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Name:</span>
+                                    <span className="font-medium">{property.ownerName || "N/A"}</span>
+                                  </div>
+                                  {property.ownerType && (
+                                    <div className="flex justify-between">
+                                      <span className="text-muted-foreground">Type:</span>
+                                      <span className="font-medium">{property.ownerType}</span>
+                                    </div>
+                                  )}
+                                  {property.propertiesOwned > 1 && (
+                                    <div className="flex justify-between">
+                                      <span className="text-muted-foreground">Portfolio:</span>
+                                      <span className="font-medium">{property.propertiesOwned} properties</span>
+                                    </div>
+                                  )}
+                                  {property.portfolioValue && (
+                                    <div className="flex justify-between">
+                                      <span className="text-muted-foreground">Portfolio Value:</span>
+                                      <span className="font-medium">${property.portfolioValue.toLocaleString()}</span>
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex flex-wrap gap-1 mt-2">
+                                  {property.absenteeOwner && <Badge variant="outline" className="text-xs">Absentee</Badge>}
+                                  {property.corporateOwned && <Badge variant="outline" className="text-xs">Corporate</Badge>}
+                                  {property.outOfStateOwner && <Badge variant="outline" className="text-xs">Out-of-State</Badge>}
+                                </div>
+                              </div>
+
+                              <Separator />
+
+                              <div>
+                                <h4 className="text-sm font-semibold mb-2">Mortgage & Liens</h4>
+                                <div className="space-y-1 text-sm">
+                                  {property.loanAmount ? (
+                                    <div className="flex justify-between">
+                                      <span className="text-muted-foreground">Loan Amount:</span>
+                                      <span className="font-semibold">${property.loanAmount.toLocaleString()}</span>
+                                    </div>
+                                  ) : (
+                                    <div className="text-muted-foreground">No mortgage data available</div>
+                                  )}
+                                  {property.lenderName && (
+                                    <div className="flex justify-between">
+                                      <span className="text-muted-foreground">Lender:</span>
+                                      <span className="font-medium">{property.lenderName}</span>
+                                    </div>
+                                  )}
+                                  {property.loanType && (
+                                    <div className="flex justify-between">
+                                      <span className="text-muted-foreground">Loan Type:</span>
+                                      <span className="font-medium">{property.loanType}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Column 3: Sale History & Status */}
+                            <div className="space-y-4">
+                              <div>
+                                <h4 className="text-sm font-semibold mb-2">Sale History</h4>
+                                <div className="space-y-1 text-sm">
+                                  {property.lastSaleDate ? (
+                                    <>
+                                      <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Last Sale:</span>
+                                        <span className="font-medium">
+                                          {new Date(property.lastSaleDate).toLocaleDateString()}
+                                        </span>
+                                      </div>
+                                      {property.lastSalePrice && (
+                                        <div className="flex justify-between">
+                                          <span className="text-muted-foreground">Sale Price:</span>
+                                          <span className="font-semibold">${property.lastSalePrice.toLocaleString()}</span>
+                                        </div>
+                                      )}
+                                    </>
+                                  ) : (
+                                    <div className="text-muted-foreground">No sale history available</div>
+                                  )}
+                                </div>
+                              </div>
+
+                              <Separator />
+
+                              <div>
+                                <h4 className="text-sm font-semibold mb-2">MLS Status</h4>
+                                <div className="text-sm">
+                                  {property.mlsListed ? (
+                                    <Badge variant="default">Listed on MLS</Badge>
+                                  ) : (
+                                    <Badge variant="outline">Off Market</Badge>
+                                  )}
+                                </div>
+                              </div>
+
+                              <Separator />
+
+                              <div>
+                                <h4 className="text-sm font-semibold mb-2">Distress Signals</h4>
+                                <div className="flex flex-wrap gap-1">
+                                  {property.preForeclosure && (
+                                    <Badge variant="destructive" className="text-xs">Pre-Foreclosure</Badge>
+                                  )}
+                                  {property.foreclosure && (
+                                    <Badge variant="destructive" className="text-xs">Foreclosure</Badge>
+                                  )}
+                                  {property.vacant && (
+                                    <Badge variant="destructive" className="text-xs">Vacant</Badge>
+                                  )}
+                                  {property.lisPendens && (
+                                    <Badge variant="destructive" className="text-xs">Lis Pendens</Badge>
+                                  )}
+                                  {!property.preForeclosure && !property.foreclosure && !property.vacant && !property.lisPendens && (
+                                    <span className="text-xs text-muted-foreground">None detected</span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {property.propertiesOwned >= 5 && (
+                                <>
+                                  <Separator />
+                                  <div>
+                                    <Badge variant="default" className="w-full justify-center">
+                                      Active Investor ({property.propertiesOwned} properties)
+                                    </Badge>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Action Buttons */}
+                          <Separator className="my-4" />
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => executeSkipTrace(property.id)}
+                              className="flex-1"
+                            >
+                              Skip Trace Owner
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="default"
+                              onClick={() => viewPropertyDetail(property.id)}
+                              className="flex-1"
+                            >
+                              View Full Details
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
         </TabsContent>
 
         {/* SKIP TRACE TAB */}
