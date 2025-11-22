@@ -4,15 +4,11 @@ import { RealEstateAPIExplorer } from "@/features/property/components/realestate
 
 export default function RealEstateAPIPage() {
   return (
-    <div className="min-h-screen bg-background">
-      <div className="border-b">
-        <div className="container max-w-7xl py-4">
-          <h1 className="text-2xl font-bold">RealEstate API Explorer</h1>
-        </div>
+    <div className="flex flex-1 flex-col gap-4 p-4">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">RealEstate API Explorer</h1>
       </div>
-      <div className="container max-w-7xl py-6">
-        <RealEstateAPIExplorer />
-      </div>
+      <RealEstateAPIExplorer />
     </div>
   );
 }
