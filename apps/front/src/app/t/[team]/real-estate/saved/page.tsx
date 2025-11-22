@@ -34,7 +34,7 @@ interface SavedSearch {
 }
 
 export default function SavedSearchesPage() {
-  const [team] = useCurrentTeam();
+  const { team } = useCurrentTeam();
   const router = useRouter();
   const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
   const [loading, setLoading] = useState(true);

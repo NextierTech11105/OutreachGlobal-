@@ -38,7 +38,7 @@ interface PropertyResult {
 }
 
 export default function RealEstateSearchPage() {
-  const [team] = useCurrentTeam();
+  const { team } = useCurrentTeam();
   const searchParams = useSearchParams();
   const [searchResults, setSearchResults] = useState<PropertyResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);

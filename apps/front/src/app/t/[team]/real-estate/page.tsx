@@ -20,7 +20,7 @@ import {
 
 export default function RealEstateHomePage() {
   const router = useRouter();
-  const [team] = useCurrentTeam();
+  const { team } = useCurrentTeam();
 
   const quickSearchStates = [
     { code: "NY", name: "New York", color: "bg-blue-500" },
