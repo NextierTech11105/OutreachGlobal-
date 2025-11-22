@@ -58,7 +58,7 @@ export function RealEstateControlPanel() {
   const loadSavedSearches = async () => {
     setLoading(true);
     try {
-      const { data } = await $http.post(`/rest/${teamId}/realestate-api/saved-search/list`, {});
+      const { data } = await $http.post(`/${teamId}/realestate-api/saved-search/list`, {});
       setSavedSearches(data || []);
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Failed to load saved searches");
@@ -72,7 +72,7 @@ export function RealEstateControlPanel() {
 
     setLoading(true);
     try {
-      await $http.post(`/rest/${teamId}/realestate-api/saved-search/delete`, {
+      await $http.post(`/${teamId}/realestate-api/saved-search/delete`, {
         searchId,
       });
       toast.success("Saved search deleted!");
@@ -93,7 +93,7 @@ export function RealEstateControlPanel() {
     setLoading(true);
     try {
       const savedSearchIds = savedSearches.map(s => s.id || s.searchId);
-      const { data } = await $http.post(`/rest/${teamId}/realestate-api/automation/run-daily`, {
+      const { data } = await $http.post(`/${teamId}/realestate-api/automation/run-daily`, {
         savedSearchIds,
       });
 

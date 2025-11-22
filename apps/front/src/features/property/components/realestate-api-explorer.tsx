@@ -175,7 +175,7 @@ export function RealEstateAPIExplorer() {
         const allResults = [];
 
         for (const zip of zipCodes) {
-          const { data } = await $http.post(`/rest/${teamId}/realestate-api/property-search`, {
+          const { data } = await $http.post(`/${teamId}/realestate-api/property-search`, {
             ...queryParams,
             zipCode: zip,
           });
@@ -186,7 +186,7 @@ export function RealEstateAPIExplorer() {
         setTotalResults(allResults.length);
         toast.success(`Found ${allResults.length} properties across ${zipCodes.length} zip codes!`);
       } else {
-        const { data } = await $http.post(`/rest/${teamId}/realestate-api/property-search`, {
+        const { data } = await $http.post(`/${teamId}/realestate-api/property-search`, {
           ...queryParams,
         });
 
@@ -204,7 +204,7 @@ export function RealEstateAPIExplorer() {
   const executeSkipTrace = async (propertyId: string) => {
     setLoading(true);
     try {
-      const { data} = await $http.post(`/rest/${teamId}/realestate-api/skip-trace`, {
+      const { data} = await $http.post(`/${teamId}/realestate-api/skip-trace`, {
         propertyId,
       });
 
@@ -228,7 +228,7 @@ export function RealEstateAPIExplorer() {
     setPropertyDetailOpen(true);
     try {
       const { data } = await $http.post(
-        `/rest/${teamId}/realestate-api/property-detail/${propertyId}`,
+        `/${teamId}/realestate-api/property-detail/${propertyId}`,
         {}
       );
 
@@ -252,13 +252,13 @@ export function RealEstateAPIExplorer() {
 
       // Step 1: Get property details
       const { data: propertyData } = await $http.post(
-        `/rest/${teamId}/realestate-api/property-detail/${propertyId}`,
+        `/${teamId}/realestate-api/property-detail/${propertyId}`,
         {}
       );
 
       // Step 2: Run skip trace
       const { data: skipTraceData } = await $http.post(
-        `/rest/${teamId}/realestate-api/skip-trace`,
+        `/${teamId}/realestate-api/skip-trace`,
         { propertyId }
       );
 
@@ -293,7 +293,7 @@ export function RealEstateAPIExplorer() {
       const searchName = prompt("Enter a name for this saved search:");
       if (!searchName) return;
 
-      const { data } = await $http.post(`/rest/${teamId}/realestate-api/saved-search/create`, {
+      const { data } = await $http.post(`/${teamId}/realestate-api/saved-search/create`, {
         searchName,
         searchQuery: queryParams,
       });
@@ -444,7 +444,7 @@ export function RealEstateAPIExplorer() {
     try {
       const propertyIds = selected.map(r => r.id || r.propertyId);
 
-      await $http.post(`/rest/${teamId}/realestate-api/import-to-campaign`, {
+      await $http.post(`/${teamId}/realestate-api/import-to-campaign`, {
         propertyIds,
         campaignName: selectedCampaignId, // TODO: Get actual campaign name
         messageTemplateId: undefined, // TODO: Add template selector
