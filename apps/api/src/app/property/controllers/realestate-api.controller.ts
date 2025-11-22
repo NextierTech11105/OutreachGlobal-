@@ -1,6 +1,8 @@
 import { Auth, UseAuthGuard } from "@/app/auth/decorators";
 import { BadRequestException, Body, Controller, Param, Post } from "@nestjs/common";
 import { RealEstateService } from "../services/real-estate.service";
+import { BatchEnrichmentService } from "../services/batch-enrichment.service";
+import { PropertyTrackingService } from "../services/property-tracking.service";
 import { BaseController } from "@/app/base.controller";
 import { TeamService } from "@/app/team/services/team.service";
 import { TeamPolicy } from "@/app/team/policies/team.policy";
@@ -12,6 +14,8 @@ import { z } from "@nextier/dto";
 export class RealEstateAPIController extends BaseController {
   constructor(
     private realEstateService: RealEstateService,
+    private batchEnrichmentService: BatchEnrichmentService,
+    private propertyTrackingService: PropertyTrackingService,
     private teamService: TeamService,
     private teamPolicy: TeamPolicy,
   ) {
@@ -276,5 +280,60 @@ export class RealEstateAPIController extends BaseController {
     );
 
     return await this.realEstateService.monitorPropertyEvents(input.propertyIds);
+  }
+
+  /**
+   * BATCH ENRICHMENT - Enrich saved property IDs with full detail payload
+   * Processes in batches of 250 to avoid rate limits
+   */
+  @Post("enrich-saved-search")
+  async enrichSavedSearch(@Param("teamId") teamId: string) {
+    const input = this.validate(
+      z.object({
+        searchName: z.string(),
+        includeSkipTrace: z.optional(z.boolean()).default(false),
+        maxProperties: z.optional(z.number()),
+      }),
+    );
+
+    return await this.batchEnrichmentService.enrichSavedSearch(
+      teamId,
+      input.searchName,
+      {
+        includeSkipTrace: input.includeSkipTrace,
+        maxProperties: input.maxProperties,
+      },
+    );
+  }
+
+  /**
+   * ENRICHMENT STATUS - Get enrichment progress for a saved search
+   */
+  @Post("enrichment-status")
+  async getEnrichmentStatus(@Param("teamId") teamId: string) {
+    const input = this.validate(
+      z.object({
+        searchName: z.string(),
+      }),
+    );
+
+    return await this.batchEnrichmentService.getEnrichmentStatus(
+      teamId,
+      input.searchName,
+    );
+  }
+
+  /**
+   * MANUAL TRACKING - Manually trigger tracking for a saved search
+   */
+  @Post("track-saved-search")
+  async trackSavedSearch(@Param("teamId") teamId: string) {
+    const input = this.validate(
+      z.object({
+        searchId: z.string(),
+      }),
+    );
+
+    return await this.propertyTrackingService.trackSearchManually(input.searchId);
   }
 }

@@ -37,7 +37,12 @@
       "Bash(choco --version:*)",
       "Bash(timeout 120 bash:*)",
       "Bash(\"C:\\Program Files\\Rust\\bin\\cargo.exe\" --version)",
-      "Bash(cmd.exe /c 'where rustc')"
+      "Bash(cmd.exe /c 'where rustc')",
+      "Bash(cat:*)",
+      "Bash(for:*)",
+      "Bash(do echo \"\")",
+      "Bash(echo:*)",
+      "Bash(done)"
     ],
     "deny": [],
     "ask": []
