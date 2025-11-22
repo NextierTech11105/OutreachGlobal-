@@ -1,6 +1,8 @@
 import { Auth, UseAuthGuard } from "@/app/auth/decorators";
 import { BadRequestException, Body, Controller, Param, Post } from "@nestjs/common";
 import { RealEstateService } from "../services/real-estate.service";
+import { SpacesStorageService } from "../services/spaces-storage.service";
+import { ApolloEnrichmentService } from "../services/apollo-enrichment.service";
 import { BaseController } from "@/app/base.controller";
 import { TeamService } from "@/app/team/services/team.service";
 import { TeamPolicy } from "@/app/team/policies/team.policy";
@@ -12,6 +14,8 @@ import { z } from "@nextier/dto";
 export class RealEstateAPIController extends BaseController {
   constructor(
     private realEstateService: RealEstateService,
+    private spacesStorageService: SpacesStorageService,
+    private apolloEnrichmentService: ApolloEnrichmentService,
     private teamService: TeamService,
     private teamPolicy: TeamPolicy,
   ) {
@@ -276,6 +280,137 @@ export class RealEstateAPIController extends BaseController {
     );
 
     return await this.realEstateService.monitorPropertyEvents(input.propertyIds);
+  }
+
+  /**
+   * UPLOAD TO SPACES - Export property data to CSV in DigitalOcean Spaces
+   */
+  @Post("export/csv-to-spaces")
+  async exportToSpaces(@Auth() user: User, @Param("teamId") teamId: string) {
+    const team = await this.teamService.findById(teamId);
+    await this.teamPolicy.can().manage(user, team);
+
+    const input = this.validate(
+      z.object({
+        savedSearchId: z.string(),
+        searchName: z.string(),
+        properties: z.array(z.any()),
+      }),
+    );
+
+    const result = await this.spacesStorageService.uploadPropertyCSV(
+      input.savedSearchId,
+      input.properties,
+      input.searchName,
+    );
+
+    return {
+      success: true,
+      fileUrl: result.fileUrl,
+      fileName: result.fileName,
+      recordCount: result.recordCount,
+    };
+  }
+
+  /**
+   * APOLLO BUSINESS ENRICHMENT - Cross-enrich business properties
+   */
+  @Post("enrich/apollo-business")
+  async enrichBusinessProperty(@Auth() user: User, @Param("teamId") teamId: string) {
+    const team = await this.teamService.findById(teamId);
+    await this.teamPolicy.can().manage(user, team);
+
+    const input = this.validate(
+      z.object({
+        propertyData: z.any(),
+      }),
+    );
+
+    const enriched = await this.apolloEnrichmentService.enrichBusinessProperty(
+      input.propertyData,
+    );
+
+    return enriched;
+  }
+
+  /**
+   * APOLLO BATCH ENRICHMENT - Enrich multiple business properties
+   */
+  @Post("enrich/apollo-business-batch")
+  async enrichBusinessBatch(@Auth() user: User, @Param("teamId") teamId: string) {
+    const team = await this.teamService.findById(teamId);
+    await this.teamPolicy.can().manage(user, team);
+
+    const input = this.validate(
+      z.object({
+        properties: z.array(z.any()),
+      }),
+    );
+
+    const enrichedBatch = await this.apolloEnrichmentService.enrichBusinessBatch(
+      input.properties,
+    );
+
+    return {
+      total: enrichedBatch.length,
+      successful: enrichedBatch.filter((p) => p.enrichmentStatus === "success").length,
+      partial: enrichedBatch.filter((p) => p.enrichmentStatus === "partial").length,
+      failed: enrichedBatch.filter((p) => p.enrichmentStatus === "failed").length,
+      results: enrichedBatch,
+    };
+  }
+
+  /**
+   * FILTER BLUE COLLAR BUSINESSES
+   */
+  @Post("enrich/filter-blue-collar")
+  async filterBlueCollar(@Auth() user: User, @Param("teamId") teamId: string) {
+    const team = await this.teamService.findById(teamId);
+    await this.teamPolicy.can().manage(user, team);
+
+    const input = this.validate(
+      z.object({
+        enrichedProperties: z.array(z.any()),
+      }),
+    );
+
+    const blueCollarProperties =
+      await this.apolloEnrichmentService.filterBlueCollarBusinesses(
+        input.enrichedProperties,
+      );
+
+    return {
+      total: input.enrichedProperties.length,
+      blueCollarCount: blueCollarProperties.length,
+      results: blueCollarProperties,
+    };
+  }
+
+  /**
+   * GET BUSINESS CONTACTS - Get decision makers from Apollo
+   */
+  @Post("enrich/get-business-contacts")
+  async getBusinessContacts(@Auth() user: User, @Param("teamId") teamId: string) {
+    const team = await this.teamService.findById(teamId);
+    await this.teamPolicy.can().manage(user, team);
+
+    const input = this.validate(
+      z.object({
+        organizationId: z.string(),
+        jobTitles: z.optional(z.array(z.string())),
+      }),
+    );
+
+    const contacts = await this.apolloEnrichmentService.getBusinessContacts(
+      input.organizationId,
+      input.jobTitles,
+    );
+
+    return {
+      organizationId: input.organizationId,
+      contactsFound: contacts.length,
+      contacts,
+    };
   }
 
 }
