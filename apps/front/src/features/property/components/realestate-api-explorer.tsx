@@ -673,6 +673,60 @@ export function RealEstateAPIExplorer() {
                     <p className="text-sm text-gray-500">Define your target criteria</p>
                   </div>
 
+                  {/* QUICK STATE FILTERS - NY, NJ, FL, CT */}
+                  <div className="p-4 rounded-lg border-2 border-blue-200 dark:border-blue-900 bg-blue-50 dark:bg-blue-950/20">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100">Quick State Filters</h3>
+                        <p className="text-xs text-blue-700 dark:text-blue-300">Target markets: NY, NJ, FL, CT</p>
+                      </div>
+                      {queryParams.state && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setQueryParams({ ...queryParams, state: undefined })}
+                          className="text-xs"
+                        >
+                          Clear
+                        </Button>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-4 gap-2">
+                      <Button
+                        variant={queryParams.state === "NY" ? "default" : "outline"}
+                        size="lg"
+                        onClick={() => setQueryParams({ ...queryParams, state: "NY" })}
+                        className={queryParams.state === "NY" ? "bg-blue-600 hover:bg-blue-700" : ""}
+                      >
+                        🗽 NY
+                      </Button>
+                      <Button
+                        variant={queryParams.state === "NJ" ? "default" : "outline"}
+                        size="lg"
+                        onClick={() => setQueryParams({ ...queryParams, state: "NJ" })}
+                        className={queryParams.state === "NJ" ? "bg-blue-600 hover:bg-blue-700" : ""}
+                      >
+                        🏖️ NJ
+                      </Button>
+                      <Button
+                        variant={queryParams.state === "FL" ? "default" : "outline"}
+                        size="lg"
+                        onClick={() => setQueryParams({ ...queryParams, state: "FL" })}
+                        className={queryParams.state === "FL" ? "bg-blue-600 hover:bg-blue-700" : ""}
+                      >
+                        🌴 FL
+                      </Button>
+                      <Button
+                        variant={queryParams.state === "CT" ? "default" : "outline"}
+                        size="lg"
+                        onClick={() => setQueryParams({ ...queryParams, state: "CT" })}
+                        className={queryParams.state === "CT" ? "bg-blue-600 hover:bg-blue-700" : ""}
+                      >
+                        🌲 CT
+                      </Button>
+                    </div>
+                  </div>
+
                   {/* Geographic */}
                   <div className="p-6 rounded border border-gray-200 dark:border-gray-800">
                     <h3 className="text-sm font-medium mb-4 text-gray-900 dark:text-gray-100">Geographic</h3>
