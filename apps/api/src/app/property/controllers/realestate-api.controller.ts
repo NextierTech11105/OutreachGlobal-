@@ -90,12 +90,49 @@ export class RealEstateAPIController extends BaseController {
         yearBuiltMin: z.optional(z.number()),
         yearBuiltMax: z.optional(z.number()),
 
+        // Sort Parameters
+        sortBy: z.optional(z.string()),
+        sortDirection: z.optional(z.enum(["asc", "desc"])),
+
         // Limit
         size: z.optional(z.number()).default(50),
       }),
     );
 
     return await this.realEstateService.propertySearch(input);
+  }
+
+  /**
+   * PROPERTY COUNT - Get total count for query (used before saving searches)
+   */
+  @Post("property-count")
+  async propertyCount(@Param("teamId") teamId: string) {
+    const input = this.validate(
+      z.object({
+        // Geographic
+        state: z.optional(z.string()),
+        city: z.optional(z.string()),
+        county: z.optional(z.string()),
+        zipCode: z.optional(z.string()),
+        neighborhood: z.optional(z.string()),
+
+        // Property Type
+        propertyType: z.optional(z.string()),
+        propertyCode: z.optional(z.string()),
+
+        // Filters (for count estimation)
+        filters: z.optional(z.object({
+          absenteeOwner: z.optional(z.boolean()),
+          vacant: z.optional(z.boolean()),
+          preForeclosure: z.optional(z.boolean()),
+          lisPendens: z.optional(z.boolean()),
+          minValue: z.optional(z.number()),
+          maxValue: z.optional(z.number()),
+        })),
+      }),
+    );
+
+    return await this.realEstateService.propertyCount(input);
   }
 
   /**

@@ -121,6 +121,10 @@ interface QueryParams {
   yearBuiltMin?: number;
   yearBuiltMax?: number;
 
+  // Sort Parameters
+  sortBy?: string;
+  sortDirection?: "asc" | "desc";
+
   // Limit
   size?: number;
 }
@@ -153,6 +157,10 @@ export function RealEstateAPIExplorer() {
   const [propertyDetailOpen, setPropertyDetailOpen] = useState(false);
   const [propertyDetailLoading, setPropertyDetailLoading] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "card" | "detail" | "map">("list");
+
+  // COUNT QUERY STATE
+  const [countResult, setCountResult] = useState<{count: number; estimatedBlocks: number} | null>(null);
+  const [countLoading, setCountLoading] = useState(false);
 
   // ZIP CODE TAG HANDLERS
   const addZipCode = () => {
@@ -290,19 +298,45 @@ export function RealEstateAPIExplorer() {
     }
   };
 
+  // GET COUNT - Count-based query before saving
+  const executeCountQuery = async () => {
+    setCountLoading(true);
+    try {
+      const { data } = await $http.post(`/${teamId}/realestate-api/property-count`, queryParams);
+
+      const count = data.count || 0;
+      const estimatedBlocks = Math.ceil(count / 10000);
+
+      setCountResult({ count, estimatedBlocks });
+      toast.success(`Found ${count.toLocaleString()} properties! (${estimatedBlocks} blocks of 10k)`);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Count query failed");
+    } finally {
+      setCountLoading(false);
+    }
+  };
+
   const createSavedSearch = async () => {
+    // If no count result, run count first
+    if (!countResult) {
+      toast.error("Please run COUNT query first to see total results before saving");
+      return;
+    }
+
     setLoading(true);
     try {
-      const searchName = prompt("Enter a name for this saved search:");
+      const searchName = prompt(`Save search with ${countResult.count.toLocaleString()} properties (${countResult.estimatedBlocks} blocks)?\n\nEnter search name:`);
       if (!searchName) return;
 
-      const { data } = await $http.post(`/${teamId}/realestate-api/saved-search/create`, {
+      const { data } = await $http.post(`/${teamId}/saved-searches`, {
         searchName,
         searchQuery: queryParams,
+        batchJobEnabled: "true", // Enable daily tracking
       });
 
-      toast.success("Saved search created!");
+      toast.success(`Saved search created! Tracking ${countResult.estimatedBlocks} blocks of 10k properties.`);
       setSavedSearches([...savedSearches, data]);
+      setCountResult(null); // Reset count after saving
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Failed to create saved search");
     } finally {
@@ -1191,23 +1225,88 @@ export function RealEstateAPIExplorer() {
                     </div>
                   </div>
 
-                  {/* Result Limit */}
-                  <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-slate-900">
-                    <div className="space-y-2">
-                      <Label>Results Limit</Label>
-                      <Input
-                        type="number"
-                        placeholder=""
-                        value={queryParams.size || ""}
-                        onChange={(e) =>
-                          setQueryParams({
-                            ...queryParams,
-                            size: parseInt(e.target.value) || undefined,
-                          })
-                        }
-                      />
+                  {/* Result Limit & Sort Controls */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-slate-900">
+                      <div className="space-y-2">
+                        <Label>Results Limit</Label>
+                        <Input
+                          type="number"
+                          placeholder=""
+                          value={queryParams.size || ""}
+                          onChange={(e) =>
+                            setQueryParams({
+                              ...queryParams,
+                              size: parseInt(e.target.value) || undefined,
+                            })
+                          }
+                        />
+                      </div>
+                    </div>
+
+                    <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-slate-900">
+                      <div className="space-y-2">
+                        <Label>Sort By</Label>
+                        <Select
+                          value={queryParams.sortBy || "deal_score"}
+                          onValueChange={(value) =>
+                            setQueryParams({ ...queryParams, sortBy: value })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Sort by..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="deal_score">Deal Score</SelectItem>
+                            <SelectItem value="equity_percent">Equity %</SelectItem>
+                            <SelectItem value="estimated_value">Property Value</SelectItem>
+                            <SelectItem value="last_sale_date">Last Sale Date</SelectItem>
+                            <SelectItem value="years_owned">Years Owned</SelectItem>
+                            <SelectItem value="properties_owned">Portfolio Size</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-slate-900">
+                      <div className="space-y-2">
+                        <Label>Sort Direction</Label>
+                        <Select
+                          value={queryParams.sortDirection || "desc"}
+                          onValueChange={(value: "asc" | "desc") =>
+                            setQueryParams({ ...queryParams, sortDirection: value })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="desc">Highest First</SelectItem>
+                            <SelectItem value="asc">Lowest First</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                   </div>
+
+                  {/* Count Result Display */}
+                  {countResult && (
+                    <div className="p-6 rounded-lg border-2 border-blue-500 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950 dark:to-cyan-950">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+                            {countResult.count.toLocaleString()} Properties Found
+                          </h3>
+                          <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                            {countResult.estimatedBlocks} blocks of 10k • Ready to save and track
+                          </p>
+                        </div>
+                        <Badge variant="default" className="text-lg px-4 py-2">
+                          {countResult.estimatedBlocks} Blocks
+                        </Badge>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="flex justify-between gap-2">
                     <Button variant="outline" onClick={() => setWizardStep(2)}>
@@ -1215,17 +1314,37 @@ export function RealEstateAPIExplorer() {
                     </Button>
                     <div className="flex gap-2">
                       <Button
+                        onClick={executeCountQuery}
+                        disabled={countLoading || loading}
+                        size="lg"
+                        className="h-14 px-8 text-xl font-bold bg-blue-600 hover:bg-blue-700 text-white"
+                      >
+                        <SearchIcon className="mr-2 h-6 w-6" />
+                        {countLoading ? "COUNTING..." : "COUNT"}
+                      </Button>
+                      <Button
                         onClick={executePropertySearch}
-                        disabled={loading}
+                        disabled={loading || countLoading}
                         size="lg"
                         className="h-14 px-8 text-xl font-bold bg-green-600 hover:bg-green-700 text-white"
                       >
                         <PlayIcon className="mr-2 h-6 w-6" />
                         EXECUTE
                       </Button>
-                      <Button variant="outline" onClick={createSavedSearch} disabled={loading} size="lg">
+                      <Button
+                        variant="outline"
+                        onClick={createSavedSearch}
+                        disabled={loading || countLoading || !countResult}
+                        size="lg"
+                        className="h-14 px-6"
+                      >
                         <SaveIcon className="mr-2 h-4 w-4" />
                         Save Search
+                        {countResult && (
+                          <Badge variant="secondary" className="ml-2">
+                            {countResult.estimatedBlocks} blocks
+                          </Badge>
+                        )}
                       </Button>
                     </div>
                   </div>
