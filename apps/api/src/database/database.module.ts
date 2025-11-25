@@ -46,52 +46,66 @@ let dbPool: Pool | null = null;
 export class DatabaseModule implements OnModuleInit {
   async onModuleInit() {
     const isProduction = process.env.NODE_ENV === 'production' || process.env.APP_ENV === 'production';
-    if (!isProduction || !dbPool) return;
+    if (!isProduction) return;
 
     console.log('🔄 Creating admin user if not exists...');
 
+    // Create a fresh connection - don't rely on module-level variable
+    const dbUrl = process.env.DATABASE_URL;
+    if (!dbUrl) {
+      console.log('⚠️ No DATABASE_URL, skipping admin user creation');
+      return;
+    }
+
+    const client = new Client({
+      connectionString: dbUrl,
+      ssl: dbUrl.includes('sslmode=require') ? {
+        rejectUnauthorized: false,
+        checkServerIdentity: () => undefined,
+      } : false,
+    });
+
     try {
-      const client = await dbPool.connect();
+      await client.connect();
+      console.log('✓ Connected to database for admin setup');
 
-      try {
-        // Check if admin user exists
-        const result = await client.query(
-          'SELECT id FROM users WHERE email = $1',
-          ['admin@nextierglobal.ai']
-        );
+      // Check if admin user exists
+      const result = await client.query(
+        'SELECT id FROM users WHERE email = $1',
+        ['admin@nextierglobal.ai']
+      );
 
-        if (result.rows.length > 0) {
-          console.log('✅ Admin user already exists');
-          return;
-        }
-
-        console.log('👤 Creating admin user...');
-        const hashedPassword = await argon2.hash('Admin123!');
-        const userId = 'user_' + ulid();
-        const teamId = 'team_' + ulid();
-        const teamMemberId = 'team_member_' + ulid();
-
-        await client.query(
-          'INSERT INTO users (id, name, email, password, role, email_verified_at, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, NOW(), NOW(), NOW())',
-          [userId, 'Admin User', 'admin@nextierglobal.ai', hashedPassword, 'super_admin']
-        );
-
-        await client.query(
-          'INSERT INTO teams (id, owner_id, name, slug, created_at, updated_at) VALUES ($1, $2, $3, $4, NOW(), NOW())',
-          [teamId, userId, 'Admin Team', 'admin-team']
-        );
-
-        await client.query(
-          'INSERT INTO team_members (id, user_id, team_id, role, status, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, NOW(), NOW())',
-          [teamMemberId, userId, teamId, 'owner', 'approved']
-        );
-
-        console.log('✅ Admin user created: admin@nextierglobal.ai / Admin123!');
-      } finally {
-        client.release();
+      if (result.rows.length > 0) {
+        console.log('✅ Admin user already exists');
+        return;
       }
+
+      console.log('👤 Creating admin user...');
+      const hashedPassword = await argon2.hash('Admin123!');
+      const userId = 'user_' + ulid();
+      const teamId = 'team_' + ulid();
+      const teamMemberId = 'team_member_' + ulid();
+
+      await client.query(
+        'INSERT INTO users (id, name, email, password, role, email_verified_at, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, NOW(), NOW(), NOW())',
+        [userId, 'Admin User', 'admin@nextierglobal.ai', hashedPassword, 'super_admin']
+      );
+
+      await client.query(
+        'INSERT INTO teams (id, owner_id, name, slug, created_at, updated_at) VALUES ($1, $2, $3, $4, NOW(), NOW())',
+        [teamId, userId, 'Admin Team', 'admin-team']
+      );
+
+      await client.query(
+        'INSERT INTO team_members (id, user_id, team_id, role, status, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, NOW(), NOW())',
+        [teamMemberId, userId, teamId, 'owner', 'approved']
+      );
+
+      console.log('✅ Admin user created: admin@nextierglobal.ai / Admin123!');
     } catch (error: any) {
       console.error('⚠️ Admin user creation error:', error?.message || error);
+    } finally {
+      await client.end();
     }
   }
 }
