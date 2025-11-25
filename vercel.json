@@ -1,5 +1,5 @@
 {
-  "buildCommand": "cd apps/front && pnpm run build",
+  "buildCommand": "pnpm nx build front",
   "outputDirectory": "apps/front/.next",
   "installCommand": "pnpm install",
   "framework": "nextjs"
