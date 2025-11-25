@@ -10,6 +10,24 @@ import { ulid } from "ulidx";
 
 let dbPool: Pool | null = null;
 
+// Get SSL config - use CA_CERT if available, otherwise fallback
+function getSslConfig(): any {
+  let caCert = process.env.CA_CERT;
+  if (caCert) {
+    // Handle escaped newlines from environment variables
+    caCert = caCert.replace(/\\n/g, '\n');
+    console.log('📜 Using CA certificate from CA_CERT env var');
+    return {
+      ca: caCert,
+      rejectUnauthorized: true,
+    };
+  }
+  console.log('⚠️ No CA_CERT found, using rejectUnauthorized: false');
+  return {
+    rejectUnauthorized: false,
+  };
+}
+
 @Global()
 @Module({
   imports: [
@@ -19,13 +37,12 @@ let dbPool: Pool | null = null;
       useFactory: (configService: ConfigService) => {
         const dbUrl = configService.get("DATABASE_URL");
 
-        // ALWAYS use SSL with self-signed certificate acceptance
-        // Don't conditionally set SSL - DigitalOcean always needs it
+        const sslConfig = getSslConfig();
+        console.log('🔌 Database Pool SSL config:', { hasCaCert: !!sslConfig.ca });
+
         dbPool = new Pool({
           connectionString: dbUrl,
-          ssl: {
-            rejectUnauthorized: false,
-          },
+          ssl: sslConfig,
         });
 
         return {
@@ -54,11 +71,10 @@ export class DatabaseModule implements OnModuleInit {
       return;
     }
 
+    const sslConfig = getSslConfig();
     const client = new Client({
       connectionString: dbUrl,
-      ssl: {
-        rejectUnauthorized: false,
-      },
+      ssl: sslConfig,
     });
 
     try {
