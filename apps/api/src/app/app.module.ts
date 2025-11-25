@@ -88,8 +88,8 @@ export class AppModule implements OnModuleInit {
         console.log('👤 Creating initial admin user...');
         await execAsync('cd /workspace/apps/api && node create-initial-user.js');
         console.log('✅ Admin user setup complete');
-      } catch (error) {
-        console.error('⚠️ Migration/setup error:', error.message);
+      } catch (error: any) {
+        console.error('⚠️ Migration/setup error:', error?.message || error);
       }
     }
   }
