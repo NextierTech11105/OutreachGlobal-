@@ -13,8 +13,17 @@ import { DatabaseService } from "./services/database.service";
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
+        const dbUrl = configService.get("DATABASE_URL");
+        const isProduction = configService.get("NODE_ENV") === "production" || configService.get("APP_ENV") === "production";
+
+        // Always use SSL with self-signed certificate acceptance for DigitalOcean
         const pool = new Pool({
-          connectionString: configService.get("DATABASE_URL"),
+          connectionString: dbUrl,
+          ssl: dbUrl?.includes('sslmode=require') || isProduction ? {
+            rejectUnauthorized: false,
+            // Accept any certificate
+            checkServerIdentity: () => undefined,
+          } : false,
         });
 
         return {

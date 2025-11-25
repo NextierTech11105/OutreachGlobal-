@@ -1,6 +1,10 @@
 import { CacheModule } from "../lib/cache/cache.module";
-import { Module } from "@nestjs/common";
+import { Module, OnModuleInit } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
+import { exec } from "child_process";
+import { promisify } from "util";
+
+const execAsync = promisify(exec);
 import { UserModule } from "./user/user.module";
 import { TeamModule } from "./team/team.module";
 import { AuthModule } from "./auth/auth.module";
@@ -73,4 +77,20 @@ import { MessageModule } from "./message/message.module";
   providers: [AppRunner],
   controllers: [AppController],
 })
-export class AppModule {}
+export class AppModule implements OnModuleInit {
+  async onModuleInit() {
+    if (process.env.NODE_ENV === 'production' || process.env.APP_ENV === 'production') {
+      console.log('🔄 Running database migrations...');
+      try {
+        await execAsync('cd /workspace/apps/api && npx drizzle-kit push --force');
+        console.log('✅ Migrations completed');
+
+        console.log('👤 Creating initial admin user...');
+        await execAsync('cd /workspace/apps/api && node create-initial-user.js');
+        console.log('✅ Admin user setup complete');
+      } catch (error) {
+        console.error('⚠️ Migration/setup error:', error.message);
+      }
+    }
+  }
+}

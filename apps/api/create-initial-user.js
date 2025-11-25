@@ -5,6 +5,10 @@ const { ulid } = require('ulidx');
 async function createInitialUser() {
   const client = new Client({
     connectionString: process.env.DATABASE_URL,
+    ssl: process.env.DATABASE_URL?.includes('sslmode=require') ? {
+      rejectUnauthorized: false,
+      checkServerIdentity: () => undefined
+    } : false,
     connectionTimeoutMillis: 10000
   });
 
@@ -15,7 +19,7 @@ async function createInitialUser() {
     // Check if user exists
     const existingUser = await client.query(
       'SELECT id FROM users WHERE email = $1',
-      ['admin@nextierglobal.ai']
+      ['admin@nextier.com']
     ).catch(() => ({ rows: [] }));
 
     if (existingUser.rows.length > 0) {
@@ -25,14 +29,14 @@ async function createInitialUser() {
     }
 
     const hashedPassword = await argon2.hash('Admin123!');
-    const userId = ulid();
-    const teamId = ulid();
-    const teamMemberId = ulid();
+    const userId = 'user_' + ulid();
+    const teamId = 'team_' + ulid();
+    const teamMemberId = 'team_member_' + ulid();
 
     // Create user
     await client.query(
-      'INSERT INTO users (id, name, email, password, email_verified_at, created_at, updated_at) VALUES ($1, $2, $3, $4, NOW(), NOW(), NOW())',
-      [userId, 'Admin', 'admin@nextierglobal.ai', hashedPassword]
+      'INSERT INTO users (id, name, email, password, role, email_verified_at, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, NOW(), NOW(), NOW())',
+      [userId, 'Admin User', 'admin@nextier.com', hashedPassword, 'super_admin']
     );
     console.log('✓ User created');
 
@@ -50,7 +54,7 @@ async function createInitialUser() {
     );
     console.log('✓ Team membership created');
 
-    console.log('\n✅ Initial admin user created: admin@nextierglobal.ai / Admin123!');
+    console.log('\n✅ Initial admin user created: admin@nextier.com / Admin123!');
 
   } catch (error) {
     console.error('Error creating user:', error.message);
