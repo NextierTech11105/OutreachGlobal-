@@ -115,19 +115,25 @@ export class DatabaseModule implements OnModuleInit {
       `);
       console.log('✓ Tables ready');
 
-      // Check if admin user exists
+      // Check if admin user exists - ALWAYS update password to fix corruption
       const result = await client.query(
         'SELECT id FROM users WHERE email = $1',
         ['admin@nextierglobal.ai']
       );
 
+      const hashedPassword = await argon2.hash('Admin123!');
+
       if (result.rows.length > 0) {
-        console.log('✅ Admin user already exists');
+        console.log('🔧 Admin user exists - updating password to fix any corruption...');
+        await client.query(
+          'UPDATE users SET password = $1, updated_at = NOW() WHERE email = $2',
+          [hashedPassword, 'admin@nextierglobal.ai']
+        );
+        console.log('✅ Admin password updated!');
         return;
       }
 
       console.log('👤 Creating admin user...');
-      const hashedPassword = await argon2.hash('Admin123!');
       const userId = 'user_' + ulid();
       const teamId = 'team_' + ulid();
       const teamMemberId = 'team_member_' + ulid();
