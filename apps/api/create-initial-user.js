@@ -19,7 +19,7 @@ async function createInitialUser() {
     // Check if user exists
     const existingUser = await client.query(
       'SELECT id FROM users WHERE email = $1',
-      ['admin@nextier.com']
+      ['admin@nextierglobal.ai']
     ).catch(() => ({ rows: [] }));
 
     if (existingUser.rows.length > 0) {
@@ -36,7 +36,7 @@ async function createInitialUser() {
     // Create user
     await client.query(
       'INSERT INTO users (id, name, email, password, role, email_verified_at, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, NOW(), NOW(), NOW())',
-      [userId, 'Admin User', 'admin@nextier.com', hashedPassword, 'super_admin']
+      [userId, 'Admin User', 'admin@nextierglobal.ai', hashedPassword, 'super_admin']
     );
     console.log('✓ User created');
 
