@@ -80,16 +80,12 @@ import { MessageModule } from "./message/message.module";
 export class AppModule implements OnModuleInit {
   async onModuleInit() {
     if (process.env.NODE_ENV === 'production' || process.env.APP_ENV === 'production') {
-      console.log('🔄 Running database migrations...');
+      console.log('🔄 Running database setup...');
       try {
-        await execAsync('cd /workspace/apps/api && npx drizzle-kit push --force');
-        console.log('✅ Migrations completed');
-
-        console.log('👤 Creating initial admin user...');
-        await execAsync('cd /workspace/apps/api && node create-initial-user.js');
-        console.log('✅ Admin user setup complete');
+        await execAsync('cd /workspace/apps/api && node setup-database.js');
+        console.log('✅ Database setup complete');
       } catch (error: any) {
-        console.error('⚠️ Migration/setup error:', error?.message || error);
+        console.error('⚠️ Database setup error:', error?.message || error);
       }
     }
   }
