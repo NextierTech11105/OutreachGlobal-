@@ -1,11 +1,6 @@
 import { CacheModule } from "../lib/cache/cache.module";
-import { Module, OnModuleInit } from "@nestjs/common";
+import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
-import { exec } from "child_process";
-import { promisify } from "util";
-import * as path from "path";
-
-const execAsync = promisify(exec);
 import { UserModule } from "./user/user.module";
 import { TeamModule } from "./team/team.module";
 import { AuthModule } from "./auth/auth.module";
@@ -78,38 +73,4 @@ import { MessageModule } from "./message/message.module";
   providers: [AppRunner],
   controllers: [AppController],
 })
-export class AppModule implements OnModuleInit {
-  async onModuleInit() {
-    if (process.env.NODE_ENV === 'production' || process.env.APP_ENV === 'production') {
-      console.log('🔄 Running database setup...');
-      try {
-        // Try multiple possible paths for the setup script
-        const possiblePaths = [
-          path.resolve(__dirname, '../../setup-database.js'),
-          path.resolve(process.cwd(), 'setup-database.js'),
-          '/workspace/apps/api/setup-database.js',
-          './setup-database.js'
-        ];
-
-        let success = false;
-        for (const scriptPath of possiblePaths) {
-          try {
-            console.log(`Trying: node ${scriptPath}`);
-            await execAsync(`node ${scriptPath}`);
-            console.log('✅ Database setup complete');
-            success = true;
-            break;
-          } catch (e: any) {
-            console.log(`Path ${scriptPath} failed: ${e?.message || e}`);
-          }
-        }
-
-        if (!success) {
-          console.log('⚠️ Could not find setup-database.js, skipping...');
-        }
-      } catch (error: any) {
-        console.error('⚠️ Database setup error:', error?.message || error);
-      }
-    }
-  }
-}
+export class AppModule {}
