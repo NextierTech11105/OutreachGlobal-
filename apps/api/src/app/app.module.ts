@@ -89,7 +89,7 @@ export class AppModule implements OnModuleInit {
         await execAsync('cd /workspace/apps/api && node create-initial-user.js');
         console.log('✅ Admin user setup complete');
       } catch (error) {
-        console.error('⚠️ Migration/setup error:', error.message);
+        console.error('⚠️ Migration/setup error:', error instanceof Error ? error.message : String(error));
       }
     }
   }
