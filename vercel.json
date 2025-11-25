@@ -1,10 +1,6 @@
 {
-  "buildCommand": "pnpm nx build api",
+  "buildCommand": "cd apps/front && pnpm run build",
+  "outputDirectory": "apps/front/.next",
   "installCommand": "pnpm install",
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/api"
-    }
-  ]
+  "framework": "nextjs"
 }
