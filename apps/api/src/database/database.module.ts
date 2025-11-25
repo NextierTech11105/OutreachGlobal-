@@ -56,10 +56,9 @@ export class DatabaseModule implements OnModuleInit {
 
     const client = new Client({
       connectionString: dbUrl,
-      ssl: dbUrl.includes('sslmode=require') ? {
+      ssl: {
         rejectUnauthorized: false,
-        checkServerIdentity: () => undefined,
-      } : false,
+      },
     });
 
     try {
