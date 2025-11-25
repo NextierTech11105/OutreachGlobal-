@@ -45,10 +45,9 @@ let dbPool: Pool | null = null;
 })
 export class DatabaseModule implements OnModuleInit {
   async onModuleInit() {
-    const isProduction = process.env.NODE_ENV === 'production' || process.env.APP_ENV === 'production';
-    if (!isProduction) return;
-
-    console.log('🔄 Creating admin user if not exists...');
+    // ALWAYS run - no production check
+    console.log('🔄 DatabaseModule.onModuleInit - Creating admin user if not exists...');
+    console.log('ENV:', { NODE_ENV: process.env.NODE_ENV, APP_ENV: process.env.APP_ENV, HAS_DB_URL: !!process.env.DATABASE_URL });
 
     // Create a fresh connection - don't rely on module-level variable
     const dbUrl = process.env.DATABASE_URL;
