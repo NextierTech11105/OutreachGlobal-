@@ -18,16 +18,14 @@ let dbPool: Pool | null = null;
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
         const dbUrl = configService.get("DATABASE_URL");
-        const isProduction = configService.get("NODE_ENV") === "production" || configService.get("APP_ENV") === "production";
 
-        // Always use SSL with self-signed certificate acceptance for DigitalOcean
+        // ALWAYS use SSL with self-signed certificate acceptance
+        // Don't conditionally set SSL - DigitalOcean always needs it
         dbPool = new Pool({
           connectionString: dbUrl,
-          ssl: dbUrl?.includes('sslmode=require') || isProduction ? {
+          ssl: {
             rejectUnauthorized: false,
-            // Accept any certificate
-            checkServerIdentity: () => undefined,
-          } : false,
+          },
         });
 
         return {
