@@ -65,6 +65,40 @@ export class DatabaseModule implements OnModuleInit {
       await client.connect();
       console.log('✓ Connected to database for admin setup');
 
+      // First, create tables if they don't exist
+      console.log('📦 Creating tables if not exist...');
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS users (
+          id VARCHAR(255) PRIMARY KEY,
+          name VARCHAR(255) NOT NULL,
+          email VARCHAR(255) UNIQUE NOT NULL,
+          password VARCHAR(255) NOT NULL,
+          role VARCHAR(50) DEFAULT 'user',
+          email_verified_at TIMESTAMP,
+          created_at TIMESTAMP DEFAULT NOW(),
+          updated_at TIMESTAMP DEFAULT NOW()
+        );
+        CREATE TABLE IF NOT EXISTS teams (
+          id VARCHAR(255) PRIMARY KEY,
+          owner_id VARCHAR(255) REFERENCES users(id),
+          name VARCHAR(255) NOT NULL,
+          slug VARCHAR(255) UNIQUE NOT NULL,
+          description TEXT,
+          created_at TIMESTAMP DEFAULT NOW(),
+          updated_at TIMESTAMP DEFAULT NOW()
+        );
+        CREATE TABLE IF NOT EXISTS team_members (
+          id VARCHAR(255) PRIMARY KEY,
+          user_id VARCHAR(255) REFERENCES users(id),
+          team_id VARCHAR(255) REFERENCES teams(id),
+          role VARCHAR(50) DEFAULT 'member',
+          status VARCHAR(50) DEFAULT 'pending',
+          created_at TIMESTAMP DEFAULT NOW(),
+          updated_at TIMESTAMP DEFAULT NOW()
+        );
+      `);
+      console.log('✓ Tables ready');
+
       // Check if admin user exists
       const result = await client.query(
         'SELECT id FROM users WHERE email = $1',
