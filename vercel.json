@@ -1,1 +1,10 @@
-{}
+{
+  "buildCommand": "pnpm nx build api",
+  "installCommand": "pnpm install",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api"
+    }
+  ]
+}

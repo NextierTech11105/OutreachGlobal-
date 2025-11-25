@@ -1,7 +1,3 @@
-// IMPORTANT: Disable SSL certificate verification globally
-// This must be at the very top before any other imports
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-
 import { NestFactory } from "@nestjs/core";
 import {
   FastifyAdapter,

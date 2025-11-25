@@ -6,7 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "nest build && cp setup-database.js dist/",
+    "build": "nest build",
     "start": "nest start",
     "dev": "nest start --watch",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\"",
@@ -71,8 +71,7 @@
     "rxjs": "^7.8.2",
     "twilio": "^5.7.1",
     "ulidx": "^2.4.1",
-    "zod": "^3.25.55",
-    "drizzle-kit": "^0.31.1"
+    "zod": "^3.25.55"
   },
   "devDependencies": {
     "@nestjs/cli": "^11.0.7",
@@ -89,6 +88,7 @@
     "@types/supertest": "^6.0.3",
     "@typescript-eslint/eslint-plugin": "^8.33.1",
     "@typescript-eslint/parser": "^8.33.1",
+    "drizzle-kit": "^0.31.1",
     "eslint": "^9.28.0",
     "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-drizzle": "^0.2.3",
