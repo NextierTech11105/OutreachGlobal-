@@ -36,6 +36,39 @@ export class AppController {
           await this.db.update(schema.users)
             .set({ password: hash })
             .where(eq(schema.users.email, email));
+
+          // Check if user has a team (required for dashboard access)
+          const existingTeam = await this.db.query.teams.findFirst({
+            where: eq(schema.teams.ownerId, existing.id),
+          });
+
+          if (!existingTeam) {
+            // Create team for existing user
+            const tid = ulid();
+            const mid = ulid();
+
+            await this.db.insert(schema.teams).values({
+              id: tid,
+              ownerId: existing.id,
+              name: "Admin Team",
+              slug: "admin-team-" + Date.now(),
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            });
+
+            await this.db.insert(schema.teamMembers).values({
+              id: mid,
+              userId: existing.id,
+              teamId: tid,
+              role: "owner",
+              status: "approved",
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            });
+
+            return { success: true, message: "Password reset & team created! Login: " + email + " / Admin123!" };
+          }
+
           return { success: true, message: "Password reset! Login: " + email + " / Admin123!" };
         }
       }
