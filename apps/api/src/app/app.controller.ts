@@ -15,7 +15,7 @@ export class AppController {
   @Get()
   async getHello() {
     return {
-      version: "0.1.3",
+      version: "0.1.4",
     };
   }
 
@@ -60,8 +60,8 @@ export class AppController {
               id: mid,
               userId: existing.id,
               teamId: tid,
-              role: "owner",
-              status: "approved",
+              role: "OWNER",
+              status: "APPROVED",
               createdAt: new Date(),
               updatedAt: new Date(),
             });
@@ -69,7 +69,12 @@ export class AppController {
             return { success: true, message: "Password reset & team created! Login: " + email + " / Admin123!" };
           }
 
-          return { success: true, message: "Password reset! Login: " + email + " / Admin123!" };
+          // Fix existing team member status if needed
+          await this.db.update(schema.teamMembers)
+            .set({ status: "APPROVED", role: "OWNER" })
+            .where(eq(schema.teamMembers.userId, existing.id));
+
+          return { success: true, message: "Password reset & membership fixed! Login: " + email + " / Admin123!" };
         }
       }
 
@@ -109,8 +114,8 @@ export class AppController {
         id: mid,
         userId: uid,
         teamId: tid,
-        role: "owner",
-        status: "approved",
+        role: "OWNER",
+        status: "APPROVED",
         createdAt: new Date(),
         updatedAt: new Date(),
       });
