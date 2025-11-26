@@ -15,7 +15,7 @@ export class AppController {
   @Get()
   async getHello() {
     return {
-      version: "0.1.0",
+      version: "0.1.3",
     };
   }
 
