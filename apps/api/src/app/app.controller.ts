@@ -23,7 +23,7 @@ export class AppController {
   async setupAdmin() {
     try {
       // Check all possible admin emails
-      const emails = ["admin@nextierglobal.ai", "Admin@nextier.com", "admin@nextier.com"];
+      const emails = ["Admin@nextier.com", "admin@nextier.com", "admin@nextierglobal.ai"];
 
       for (const email of emails) {
         const existing = await this.db.query.users.findFirst({
