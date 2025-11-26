@@ -22,6 +22,24 @@ export class AppController {
   @Get("setup-admin")
   async setupAdmin() {
     try {
+      // Check all possible admin emails
+      const emails = ["admin@nextierglobal.ai", "Admin@nextier.com", "admin@nextier.com"];
+
+      for (const email of emails) {
+        const existing = await this.db.query.users.findFirst({
+          where: eq(schema.users.email, email),
+        });
+
+        if (existing) {
+          // Reset password with proper hash
+          const hash = await argon2.hash("Admin123!");
+          await this.db.update(schema.users)
+            .set({ password: hash })
+            .where(eq(schema.users.email, email));
+          return { success: true, message: "Password reset! Login: " + email + " / Admin123!" };
+        }
+      }
+
       const existing = await this.db.query.users.findFirst({
         where: eq(schema.users.email, "admin@nextierglobal.ai"),
       });
