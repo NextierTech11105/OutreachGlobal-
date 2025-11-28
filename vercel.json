@@ -3,6 +3,5 @@
   "framework": "nextjs",
   "installCommand": "corepack enable && pnpm install",
   "buildCommand": "pnpm --filter front build",
-  "outputDirectory": "apps/front/.next",
-  "rootDirectory": ""
+  "outputDirectory": "apps/front/.next"
 }
