@@ -1,0 +1,1 @@
+ALTER TABLE "leads" ALTER COLUMN "score" SET NOT NULL;

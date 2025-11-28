@@ -1,0 +1,2 @@
+ALTER TABLE "property_distress_scores" ADD COLUMN "provider" varchar;--> statement-breakpoint
+CREATE UNIQUE INDEX "property_distress_scores_provider_external_id_index" ON "property_distress_scores" USING btree ("provider","external_id");

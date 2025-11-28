@@ -1,0 +1,1 @@
+ALTER TABLE "campaign_executions" ADD COLUMN "starts_at" timestamp NOT NULL;

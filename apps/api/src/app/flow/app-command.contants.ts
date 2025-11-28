@@ -1,0 +1,9 @@
+export const LEAD_SEND_EMAIL = "lead_send_email";
+export const LEAD_SEND_SMS = "lead_send_sms";
+export const LEAD_SEND_VOICE = "lead_send_voice";
+export const LEAD_ADD_NOTES = "lead_add_notes";
+export const ADD_TAG = "add_tag";
+export const REMOVE_TAG = "remove_tag";
+export const ADD_TO_SEQUENCE = "add_to_sequence";
+export const REMOVE_FROM_SEQUENCE = "remove_from_sequence";
+export const LEAD_UPDATE_STATUS = "lead_update_status";

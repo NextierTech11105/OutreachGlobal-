@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "dialer_contacts_power_dialer_id_lead_id_index" ON "dialer_contacts" USING btree ("power_dialer_id","lead_id");

@@ -1,0 +1,1 @@
+ALTER TABLE "dialer_contacts" ADD COLUMN "status" varchar DEFAULT 'PENDING' NOT NULL;

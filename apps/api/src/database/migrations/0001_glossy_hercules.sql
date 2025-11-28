@@ -1,0 +1,1 @@
+CREATE INDEX "leads_score_index" ON "leads" USING btree ("score");
