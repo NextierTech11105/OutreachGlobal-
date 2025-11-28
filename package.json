@@ -1,0 +1,33 @@
+{
+  "name": "outreach-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "nx run-many -t build --outputStyle stream",
+    "dev": "nx run-many -t dev --outputStyle stream",
+    "api": "pnpm --filter api",
+    "api:build": "nx run-many --target=build --exclude=front",
+    "lint": "nx run-many -t lint",
+    "codegen": "pnpm --filter front codegen",
+    "artisan": "pnpm --filter api artisan",
+    "artisan:dev": "pnpm --filter api artisan:dev",
+    "common:build": "pnpm --filter @nextier/common build",
+    "dto:build": "pnpm --filter @nextier/dto build",
+    "db:push": "pnpm --filter api db:generate && pnpm --filter api db:migrate"
+  },
+  "description": "Outreach Global monorepo with NestJS API and Next.js frontend",
+  "keywords": [
+    "monorepo",
+    "nestjs",
+    "nextjs",
+    "drizzle",
+    "neon"
+  ],
+  "devDependencies": {
+    "nx": "^21.1.2",
+    "nx-cloud": "^19.1.0"
+  },
+  "pnpm": {
+    "neverBuiltDependencies": []
+  }
+}

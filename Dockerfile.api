@@ -1,0 +1,33 @@
+# syntax=docker/dockerfile:1
+# Build NestJS API with pnpm and run compiled output
+FROM node:20-alpine AS deps
+WORKDIR /app
+RUN apk add --no-cache python3 make g++ \
+  && corepack enable \
+  && corepack prepare pnpm@9.14.4 --activate
+
+# Install workspace deps (needs package manifests for all workspaces)
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml nx.json ./
+COPY apps/api/package.json apps/api/package.json
+COPY apps/front/package.json apps/front/package.json
+COPY packages packages
+RUN pnpm install --frozen-lockfile
+
+FROM deps AS builder
+COPY . .
+RUN pnpm --filter api build
+
+FROM node:20-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+ENV PORT=3001
+RUN corepack enable \
+  && corepack prepare pnpm@9.14.4 --activate
+
+# Copy only what the runtime needs
+COPY --from=builder /app/apps/api/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+COPY apps/api/package.json .
+
+EXPOSE 3001
+CMD ["node", "dist/main.js"]

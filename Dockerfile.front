@@ -1,0 +1,42 @@
+# syntax=docker/dockerfile:1
+# Build Next.js frontend with pnpm and serve via `next start`
+FROM node:20-alpine AS deps
+WORKDIR /app
+RUN apk add --no-cache python3 make g++ \
+  && corepack enable \
+  && corepack prepare pnpm@9.14.4 --activate
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml nx.json ./
+COPY apps/front/package.json apps/front/package.json
+COPY apps/api/package.json apps/api/package.json
+COPY packages packages
+RUN pnpm install --frozen-lockfile
+
+FROM deps AS builder
+COPY . .
+RUN pnpm --filter front build
+
+FROM node:20-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+ENV PORT=3000
+RUN corepack enable \
+  && corepack prepare pnpm@9.14.4 --activate
+
+# Workspace metadata for pnpm
+COPY --from=builder /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
+COPY --from=builder /app/pnpm-lock.yaml ./pnpm-lock.yaml
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/nx.json ./nx.json
+
+# Runtime deps and built assets
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/apps/front/.next ./apps/front/.next
+COPY --from=builder /app/apps/front/public ./apps/front/public
+COPY --from=builder /app/apps/front/package.json ./apps/front/package.json
+COPY --from=builder /app/apps/front/next.config.js ./apps/front/next.config.js
+COPY --from=builder /app/apps/front/next.config.mjs ./apps/front/next.config.mjs
+COPY --from=builder /app/apps/front/postcss.config.mjs ./apps/front/postcss.config.mjs
+
+EXPOSE 3000
+CMD ["pnpm", "--dir", "apps/front", "start", "--", "-H", "0.0.0.0", "-p", "3000"]

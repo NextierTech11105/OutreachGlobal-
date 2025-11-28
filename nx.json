@@ -1,0 +1,17 @@
+{
+  "tasksRunnerOptions": {
+    "default": {
+      "runner": "default",
+      "options": {
+        "cacheableOperations": ["build"]
+      }
+    }
+  },
+  "defaultBase": "main",
+  "targetDefaults": {
+    "build": {
+      "dependsOn": ["^build"]
+    }
+  },
+  "neverConnectToCloud": true
+}
