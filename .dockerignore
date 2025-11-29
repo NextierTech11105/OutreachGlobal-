@@ -1,0 +1,17 @@
+# Docker ignore file
+.git
+.gitignore
+.vercel
+.windsurf
+.nx
+.claude
+node_modules
+pnpm-lock.yaml.dirty
+tmp
+dist
+.next
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
