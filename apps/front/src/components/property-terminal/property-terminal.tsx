@@ -58,10 +58,40 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCurrentTeam } from "@/features/team/team.context";
-import { useMutation } from "@apollo/client";
-import { CREATE_LEAD_MUTATION } from "@/features/lead/mutations/lead.mutations";
 import { performSkipTrace, type SkipTraceInput } from "@/lib/services/data-enrichment-service";
 import { toast } from "sonner";
+
+// REST API helper to create lead (avoids Apollo bundling issues)
+async function createLeadViaAPI(teamId: string, input: {
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  source?: string;
+  tags?: string[];
+}) {
+  const response = await fetch('/api/graphql', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      query: `
+        mutation CreateLead($teamId: ID!, $input: CreateLeadInput!) {
+          createLead(teamId: $teamId, input: $input) {
+            lead { id }
+          }
+        }
+      `,
+      variables: { teamId, input }
+    })
+  });
+  const data = await response.json();
+  if (data.errors) throw new Error(data.errors[0]?.message || 'Failed to create lead');
+  return data.data;
+}
 
 interface PropertyResult {
   id: string;
@@ -102,7 +132,6 @@ const defaultFilters: PropertyFilters = {
 export function PropertyTerminal() {
   const router = useRouter();
   const { team } = useCurrentTeam();
-  const [createLead] = useMutation(CREATE_LEAD_MUTATION);
 
   const [filters, setFilters] = useState<PropertyFilters>(defaultFilters);
   const [results, setResults] = useState<PropertyResult[]>([]);
@@ -398,22 +427,17 @@ export function PropertyTerminal() {
         const nameParts = property.ownerName?.split(" ") || [];
         const skipTraceData = skipTraceResults.get(property.id);
 
-        await createLead({
-          variables: {
-            teamId: team.id,
-            input: {
-              firstName: nameParts[0] || undefined,
-              lastName: nameParts.slice(1).join(" ") || undefined,
-              phone: skipTraceData?.phone || property.ownerPhone || undefined,
-              email: skipTraceData?.email || property.ownerEmail || undefined,
-              address: property.address,
-              city: property.city,
-              state: property.state,
-              zipCode: property.zip,
-              source: "Property Search",
-              tags: ["Property Search", property.propertyType].filter(Boolean),
-            },
-          },
+        await createLeadViaAPI(team.id, {
+          firstName: nameParts[0] || undefined,
+          lastName: nameParts.slice(1).join(" ") || undefined,
+          phone: skipTraceData?.phone || property.ownerPhone || undefined,
+          email: skipTraceData?.email || property.ownerEmail || undefined,
+          address: property.address,
+          city: property.city,
+          state: property.state,
+          zipCode: property.zip,
+          source: "Property Search",
+          tags: ["Property Search", property.propertyType].filter(Boolean),
         });
 
         successCount++;
@@ -427,7 +451,7 @@ export function PropertyTerminal() {
     } finally {
       setCreateLeadsLoading(false);
     }
-  }, [team?.id, results, selectedIds, skipTraceResults, createLead]);
+  }, [team?.id, results, selectedIds, skipTraceResults]);
 
   // Launch Campaign handler - navigates to campaign creation with selected leads
   const handleLaunchCampaign = useCallback(() => {
