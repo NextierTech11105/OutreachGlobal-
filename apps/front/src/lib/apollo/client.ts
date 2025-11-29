@@ -1,15 +1,13 @@
 import {
   ApolloClient,
+  ApolloLink,
   HttpLink,
   InMemoryCache,
   InMemoryCacheConfig,
   NormalizedCacheObject,
   from,
 } from "@apollo/client";
-import { setContext } from "@apollo/client/link/context";
-import { onError } from "@apollo/client/link/error";
-import { createPersistedQueryLink } from "@apollo/client/link/persisted-queries";
-import { createHash } from "crypto";
+
 export interface CreateApolloOptions {
   uri: string;
   cacheConfig?: InMemoryCacheConfig;
@@ -18,34 +16,46 @@ export interface CreateApolloOptions {
 
 export const APOLLO_STATE_PROP_NAME = "__APOLLO_STATE__";
 
-function sha256(data: any) {
-  const hash = createHash("sha256");
-  hash.update(data);
-
-  const result = hash.digest("hex");
-
-  return result;
-}
-
 const createCache = (config?: InMemoryCacheConfig) => {
   return new InMemoryCache(config);
 };
 
-const persistQueryLink = createPersistedQueryLink({ sha256 });
-
-const errorLink = onError(({ graphQLErrors, networkError }) => {
-  if (graphQLErrors) {
-    graphQLErrors.map(({ message, locations, path }) => {
-      console.log(
-        `[GraphQL client error]: Message: ${message}, Location: ${locations}, Path: ${path}`,
-      );
-    });
-  }
-
-  if (networkError) {
-    console.log(`[client Network error]: ${networkError}`);
-  }
+// Simple error logging link (replaces onError from deep import)
+const errorLink = new ApolloLink((operation, forward) => {
+  return forward(operation).map((response) => {
+    if (response.errors) {
+      response.errors.forEach((error) => {
+        console.log(
+          `[GraphQL client error]: Message: ${error.message}, Path: ${error.path}`,
+        );
+      });
+    }
+    return response;
+  });
 });
+
+// Auth link (replaces setContext from deep import)
+const createAuthLink = (options: CreateApolloOptions) => {
+  return new ApolloLink((operation, forward) => {
+    const operationName = operation.operationName;
+    let uri = options.uri;
+    const mergedHeaders = options?.authLinkContext?.() ?? {};
+
+    if (operationName) {
+      uri = `${uri}?operation=${operationName}`;
+    }
+
+    operation.setContext(({ headers = {} }) => ({
+      headers: {
+        ...headers,
+        ...mergedHeaders,
+      },
+      uri,
+    }));
+
+    return forward(operation);
+  });
+};
 
 export class ApolloClientInstance {
   static client: ApolloClient<NormalizedCacheObject>;
@@ -60,26 +70,11 @@ export class ApolloClientInstance {
       credentials: "same-origin",
     });
 
-    const authLink = setContext((operation, { headers }) => {
-      const operationName = operation.operationName;
-      let uri = options.uri;
-      const mergedHeaders = options?.authLinkContext?.() ?? {};
-
-      if (operationName) {
-        uri = `${uri}?operation=${operationName}`;
-      }
-      return {
-        headers: {
-          ...headers,
-          ...mergedHeaders,
-        },
-        uri,
-      };
-    });
+    const authLink = createAuthLink(options);
 
     this.client = new ApolloClient({
       ssrMode: typeof window === "undefined",
-      link: from([authLink, errorLink, persistQueryLink.concat(httpLink)]),
+      link: from([authLink, errorLink, httpLink]),
       cache: createCache(options?.cacheConfig),
     });
 
