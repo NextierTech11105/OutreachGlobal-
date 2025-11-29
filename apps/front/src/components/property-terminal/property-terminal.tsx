@@ -28,6 +28,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Download,
   Users,
+  User,
   Rocket,
   ChevronLeft,
   ChevronRight,
@@ -138,41 +139,51 @@ export function PropertyTerminal() {
         return;
       }
 
-      // Transform API response to our format
-      const properties: PropertyResult[] = (data.properties || data.results || []).map(
-        (p: Record<string, unknown>) => ({
-          id: p.id || p.property_id || crypto.randomUUID(),
-          address: p.address || p.street_address || "",
-          city: p.city || "",
-          state: p.state || "",
-          zip: p.zip || p.zipcode || "",
-          propertyType: p.property_type || p.propertyType || "Unknown",
-          beds: p.beds || p.bedrooms,
-          baths: p.baths || p.bathrooms,
-          sqft: p.sqft || p.square_feet || p.living_area,
-          yearBuilt: p.year_built || p.yearBuilt,
-          lotSize: p.lot_size || p.lotSize,
-          estimatedValue: p.estimated_value || p.estimatedValue || p.avm,
-          equity: p.equity || p.estimated_equity,
-          equityPercent: p.equity_percent,
-          mortgageBalance: p.mortgage_balance,
-          ownerName: p.owner_name || p.ownerName,
-          ownerPhone: p.owner_phone || p.phone,
-          ownerEmail: p.owner_email || p.email,
-          mailingAddress: p.mailing_address,
-          latitude: p.latitude || p.lat,
-          longitude: p.longitude || p.lng || p.lon,
-          preForeclosure: p.pre_foreclosure,
-          foreclosure: p.foreclosure,
-          vacant: p.vacant,
-          absenteeOwner: p.absentee_owner,
-          mlsStatus: p.mls_status,
-          daysOnMarket: p.days_on_market,
-        })
+      // Transform API response to our format - handles both direct API and wrapped responses
+      const rawData = data.data || data.properties || data.results || [];
+      const properties: PropertyResult[] = rawData.map(
+        (p: Record<string, unknown>) => {
+          // Handle nested address object from RealEstateAPI
+          const addr = p.address as Record<string, string> | string;
+          const addressStr = typeof addr === 'object' ? addr?.address || addr?.street : addr || "";
+          const cityStr = typeof addr === 'object' ? addr?.city : p.city as string || "";
+          const stateStr = typeof addr === 'object' ? addr?.state : p.state as string || "";
+          const zipStr = typeof addr === 'object' ? addr?.zip : p.zip as string || p.zipcode as string || "";
+
+          return {
+            id: String(p.id || p.propertyId || p.property_id || crypto.randomUUID()),
+            address: addressStr,
+            city: cityStr,
+            state: stateStr,
+            zip: zipStr,
+            propertyType: String(p.propertyType || p.property_type || "Unknown"),
+            beds: Number(p.bedrooms || p.beds) || undefined,
+            baths: Number(p.bathrooms || p.baths) || undefined,
+            sqft: Number(p.squareFeet || p.sqft || p.building_size) || undefined,
+            yearBuilt: Number(p.yearBuilt || p.year_built) || undefined,
+            lotSize: Number(p.lotSquareFeet || p.lot_size) || undefined,
+            estimatedValue: Number(p.estimatedValue || p.estimated_value) || undefined,
+            equity: Number(p.estimatedEquity || p.estimated_equity) || undefined,
+            equityPercent: Number(p.equityPercent || p.equity_percent) || undefined,
+            mortgageBalance: Number(p.openMortgageBalance || p.mortgage_balance) || undefined,
+            ownerName: [p.owner1FirstName, p.owner1LastName].filter(Boolean).join(' ') || p.ownerName as string || undefined,
+            ownerPhone: p.owner_phone as string || undefined,
+            ownerEmail: p.owner_email as string || undefined,
+            mailingAddress: typeof p.mailAddress === 'object' ? (p.mailAddress as Record<string, string>)?.address : undefined,
+            latitude: Number(p.latitude) || undefined,
+            longitude: Number(p.longitude) || undefined,
+            preForeclosure: Boolean(p.preForeclosure || p.pre_foreclosure),
+            foreclosure: Boolean(p.foreclosure),
+            vacant: Boolean(p.vacant),
+            absenteeOwner: Boolean(p.absenteeOwner || p.absentee_owner),
+            mlsStatus: p.mlsStatus as string || undefined,
+            daysOnMarket: Number(p.mlsDaysOnMarket || p.days_on_market) || undefined,
+          };
+        }
       );
 
       setResults(properties);
-      setTotalCount(data.total || data.count || properties.length);
+      setTotalCount(data.resultCount || data.recordCount || data.total || data.count || properties.length);
     } catch (error) {
       console.error("Search failed:", error);
     } finally {
