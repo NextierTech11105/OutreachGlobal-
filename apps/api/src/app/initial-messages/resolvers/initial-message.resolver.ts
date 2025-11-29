@@ -61,6 +61,7 @@ export class InitialMessageResolver extends BaseResolver(InitialMessage) {
     await this.teamPolicy.can().read(user, team);
     return this.service.paginate({
       ...args,
+      searchQuery: args.searchQuery ?? undefined,
       teamId: team.id,
     });
   }
@@ -112,7 +113,11 @@ export class InitialMessageResolver extends BaseResolver(InitialMessage) {
   ): Promise<CreateInitialMessagePayload> {
     const team = await this.teamService.findById(args.teamId);
     await this.teamPolicy.can().read(user, team);
-    return this.service.create(team.id, args.input);
+    return this.service.create(team.id, {
+      ...args.input,
+      description: args.input.description ?? undefined,
+      defaultSdrId: args.input.defaultSdrId ?? undefined,
+    });
   }
 
   @Mutation(() => UpdateInitialMessagePayload)

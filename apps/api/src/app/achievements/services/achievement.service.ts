@@ -1,7 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { InjectDB } from "@/database/decorators";
 import { DrizzleClient } from "@/database/types";
-import { eq, and, desc, count } from "drizzle-orm";
+import { eq, and, desc, count, SQL } from "drizzle-orm";
 import {
   achievementDefinitionsTable,
   userAchievementsTable,
@@ -27,7 +27,7 @@ export class AchievementService {
    * Get all achievement definitions
    */
   async getDefinitions(category?: string, tier?: BadgeTier) {
-    const conditions = [];
+    const conditions: SQL[] = [];
     if (category) conditions.push(eq(achievementDefinitionsTable.category, category));
     if (tier) conditions.push(eq(achievementDefinitionsTable.tier, tier));
 
@@ -207,7 +207,12 @@ export class AchievementService {
       ),
     });
 
-    const result = [];
+    const result: Array<{
+      id: string;
+      achievement: any;
+      earnedAt: Date;
+      pointsEarned: number;
+    }> = [];
     for (const notif of notifications) {
       const achievement = await this.db.query.achievementDefinitions.findFirst({
         where: eq(achievementDefinitionsTable.id, notif.achievementId),
@@ -422,7 +427,7 @@ export class AchievementService {
 
   // Helper methods
   private getCounterFieldForType(type: AchievementType): string {
-    const mapping: Record<AchievementType, string> = {
+    const mapping: Partial<Record<AchievementType, string>> = {
       [AchievementType.NUMBER_CONFIRMED]: "numbersConfirmed",
       [AchievementType.POSITIVE_RESPONSE]: "positiveResponses",
       [AchievementType.LEAD_CONVERTED]: "leadsConverted",
@@ -430,8 +435,18 @@ export class AchievementService {
       [AchievementType.MESSAGES_PROCESSED]: "messagesProcessed",
       [AchievementType.BLACKLIST_REVIEWED]: "blacklistReviewed",
       [AchievementType.STREAK_MILESTONE]: "currentStreak",
+      [AchievementType.STREAK_3_DAY]: "currentStreak",
+      [AchievementType.STREAK_7_DAY]: "currentStreak",
+      [AchievementType.STREAK_30_DAY]: "currentStreak",
       [AchievementType.LEVEL_UP]: "currentLevel",
-      [AchievementType.DAILY_GOAL]: "dailyGoalProgress",
+      [AchievementType.DAILY_GOAL]: "messagesProcessed",
+      [AchievementType.FIRST_CONTACT]: "messagesProcessed",
+      [AchievementType.SPEED_DEMON]: "messagesProcessed",
+      [AchievementType.INBOX_ZERO]: "messagesProcessed",
+      [AchievementType.TOP_PERFORMER]: "totalPoints",
+      [AchievementType.AI_ASSIST_MASTER]: "messagesProcessed",
+      [AchievementType.BLACKLIST_GUARDIAN]: "blacklistReviewed",
+      [AchievementType.QUALITY_CHECKER]: "messagesProcessed",
     };
     return mapping[type] || "messagesProcessed";
   }

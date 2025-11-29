@@ -30,6 +30,10 @@ import {
 } from "./schema/power-dialers.schema";
 import { prompts } from "./schema/prompts.schema";
 import { properties, propertyDistressScores } from "./schema/properties.schema";
+import {
+  propertySearchBlocks,
+  propertySearches,
+} from "./schema/property-searches.schema";
 import { teamInvitations, teamMembers, teams } from "./schema/teams.schema";
 import { personalAccessTokens, users } from "./schema/users.schema";
 import {
@@ -75,6 +79,8 @@ export const promptsTable = prompts;
 
 export const propertyDistressScoresTable = propertyDistressScores;
 export const propertiesTable = properties;
+export const propertySearchesTable = propertySearches;
+export const propertySearchBlocksTable = propertySearchBlocks;
 
 export const powerDialersTable = powerDialers;
 export const dialerContactsTable = dialerContacts;

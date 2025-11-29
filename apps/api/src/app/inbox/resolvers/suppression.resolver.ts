@@ -31,7 +31,7 @@ export class SuppressionResolver extends BaseResolver(SuppressionEntry) {
   async suppressionList(@Auth() user: User, @Args() args: SuppressionConnectionArgs) {
     const team = await this.teamService.findById(args.teamId);
     await this.teamPolicy.can().read(user, team);
-    return this.service.getSuppressionList(team.id, args.type, args.searchQuery);
+    return this.service.getSuppressionList(team.id, args.type, args.searchQuery ?? undefined);
   }
 
   @Mutation(() => CreateSuppressionPayload)
@@ -45,8 +45,8 @@ export class SuppressionResolver extends BaseResolver(SuppressionEntry) {
       team.id,
       args.input.phoneNumber,
       args.input.type,
-      args.input.reason,
-      args.input.sourceInboxItemId
+      args.input.reason ?? undefined,
+      args.input.sourceInboxItemId ?? undefined
     );
   }
 

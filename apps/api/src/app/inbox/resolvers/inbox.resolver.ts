@@ -53,6 +53,7 @@ export class InboxResolver extends BaseResolver(InboxItem) {
     await this.teamPolicy.can().read(user, team);
     return this.service.paginate({
       ...args,
+      searchQuery: args.searchQuery ?? undefined,
       teamId: team.id,
     });
   }
@@ -85,7 +86,10 @@ export class InboxResolver extends BaseResolver(InboxItem) {
   ): Promise<ProcessInboxItemPayload> {
     const team = await this.teamService.findById(args.teamId);
     await this.teamPolicy.can().read(user, team);
-    return this.service.processItem(team.id, args.id, user.id, args.input);
+    return this.service.processItem(team.id, args.id, user.id, {
+      ...args.input,
+      notes: args.input.notes ?? undefined,
+    });
   }
 
   @Mutation(() => MoveInboxItemPayload)
@@ -100,7 +104,7 @@ export class InboxResolver extends BaseResolver(InboxItem) {
       args.id,
       args.input.targetBucket,
       user.id,
-      args.input.reason
+      args.input.reason ?? undefined
     );
   }
 
@@ -126,7 +130,7 @@ export class InboxResolver extends BaseResolver(InboxItem) {
       args.itemIds,
       args.input.targetBucket,
       user.id,
-      args.input.reason
+      args.input.reason ?? undefined
     );
   }
 

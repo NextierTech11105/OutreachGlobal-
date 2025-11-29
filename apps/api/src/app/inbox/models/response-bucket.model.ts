@@ -9,7 +9,7 @@ export type ResponseBucketSelect = typeof responseBucketsTable.$inferSelect;
 export type ResponseBucketInsert = typeof responseBucketsTable.$inferInsert;
 
 @ObjectType()
-export class ResponseBucket extends TimestampModel implements ResponseBucketSelect {
+export class ResponseBucket extends TimestampModel {
   teamId: string;
 
   @StringField()

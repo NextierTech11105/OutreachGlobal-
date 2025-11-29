@@ -14,3 +14,4 @@ export * from "./messages.schema";
 export * from "./inbox.schema";
 export * from "./achievements.schema";
 export * from "./initial-messages.schema";
+export * from "./property-searches.schema";
