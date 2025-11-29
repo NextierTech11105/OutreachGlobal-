@@ -6,11 +6,10 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  // Fix Apollo Client bundling issues with Next.js 15
-  serverExternalPackages: ['@apollo/client'],
+  // Fix bundling issues with Next.js 15 for Apollo and Twilio
+  serverExternalPackages: ['@apollo/client', '@twilio/voice-sdk'],
   transpilePackages: ['@apollo/client'],
   experimental: {
-    // Optimize package imports to prevent incorrect tree-shaking
     optimizePackageImports: ['@apollo/client'],
   },
   webpack: (config, { isServer }) => {
@@ -22,10 +21,11 @@ const nextConfig = {
         tls: false,
       };
     }
-    // Force Apollo Client to use CJS on server to avoid ESM issues
+    // Exclude problematic packages from server bundling
     if (isServer) {
       config.externals = config.externals || [];
       config.externals.push('@apollo/client');
+      config.externals.push('@twilio/voice-sdk');
     }
     return config;
   },
