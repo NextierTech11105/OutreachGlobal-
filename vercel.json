@@ -1,7 +1,9 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
-  "framework": "nextjs",
+  "buildCommand": "pnpm --filter @nextier/common build && pnpm --filter @nextier/dto build && cd apps/front && pnpm build",
+  "devCommand": "cd apps/front && pnpm dev",
   "installCommand": "corepack enable && pnpm install",
-  "buildCommand": "pnpm --filter @nextier/common build && pnpm --filter @nextier/dto build && pnpm --filter front build",
+  "framework": "nextjs",
   "outputDirectory": "apps/front/.next"
 }
