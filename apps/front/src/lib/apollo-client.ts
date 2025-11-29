@@ -1,11 +1,10 @@
 import {
   ApolloClient,
+  ApolloLink,
   InMemoryCache,
   createHttpLink,
   from,
 } from "@apollo/client";
-import { setContext } from "@apollo/client/link/context";
-import { onError } from "@apollo/client/link/error";
 
 const graphqlUrl =
   process.env.NEXT_PUBLIC_GRAPHQL_URL ||
@@ -17,43 +16,34 @@ const httpLink = createHttpLink({
   uri: graphqlUrl,
 });
 
-const authLink = setContext((_, { headers }) => {
-  // Get the authentication token from local storage if it exists
+// Auth link using ApolloLink (avoids deep import from @apollo/client/link/context)
+const authLink = new ApolloLink((operation, forward) => {
   const token =
     typeof window !== "undefined" ? localStorage.getItem("auth-token") : null;
 
-  // Return the headers to the context so httpLink can read them
-  return {
+  operation.setContext(({ headers = {} }) => ({
     headers: {
       ...headers,
       authorization: token ? `Bearer ${token}` : "",
     },
-  };
+  }));
+
+  return forward(operation);
 });
 
-const errorLink = onError(
-  ({ graphQLErrors, networkError, operation, forward }) => {
-    if (graphQLErrors) {
-      graphQLErrors.forEach(({ message, locations, path }) => {
+// Error link using ApolloLink (avoids deep import from @apollo/client/link/error)
+const errorLink = new ApolloLink((operation, forward) => {
+  return forward(operation).map((response) => {
+    if (response.errors) {
+      response.errors.forEach((error) => {
         console.error(
-          `[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}`,
+          `[GraphQL error]: Message: ${error.message}, Path: ${error.path}`,
         );
       });
     }
-
-    if (networkError) {
-      console.error(`[Network error]: ${networkError}`);
-
-      // Handle 401 errors by clearing auth token
-      if ("statusCode" in networkError && networkError.statusCode === 401) {
-        if (typeof window !== "undefined") {
-          localStorage.removeItem("auth-token");
-          window.location.href = "/login";
-        }
-      }
-    }
-  },
-);
+    return response;
+  });
+});
 
 const client = new ApolloClient({
   link: from([errorLink, authLink, httpLink]),
