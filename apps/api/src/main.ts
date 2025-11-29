@@ -24,6 +24,11 @@ async function bootstrap() {
     allowedHeaders: ["Content-Type", "Authorization"],
   });
 
+  // Set global API prefix for all routes
+  app.setGlobalPrefix("api", {
+    exclude: ["/", "/graphql", "/version", "/setupdb", "/migrate"],
+  });
+
   app.enableShutdownHooks();
 
   await app.listen(PORT, "0.0.0.0");
