@@ -163,8 +163,8 @@ export function PropertySearch() {
                   value={radius}
                   onValueChange={setRadius}
                   min={1}
-                  max={50}
-                  step={1}
+                  max={500}
+                  step={5}
                 />
               </div>
 
