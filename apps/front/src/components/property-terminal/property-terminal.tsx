@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { PropertyMap, type PropertyMarker } from "@/components/property-map";
 import {
   PropertyFiltersPanel,
@@ -23,6 +24,14 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -43,8 +52,16 @@ import {
   Grid3X3,
   List,
   Map,
+  Search,
+  UserSearch,
+  CheckCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useCurrentTeam } from "@/features/team/team.context";
+import { useMutation } from "@apollo/client";
+import { CREATE_LEAD_MUTATION } from "@/features/lead/mutations/lead.mutations";
+import { performSkipTrace, type SkipTraceInput } from "@/lib/services/data-enrichment-service";
+import { toast } from "sonner";
 
 interface PropertyResult {
   id: string;
@@ -83,6 +100,10 @@ const defaultFilters: PropertyFilters = {
 };
 
 export function PropertyTerminal() {
+  const router = useRouter();
+  const { team } = useCurrentTeam();
+  const [createLead] = useMutation(CREATE_LEAD_MUTATION);
+
   const [filters, setFilters] = useState<PropertyFilters>(defaultFilters);
   const [results, setResults] = useState<PropertyResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -93,6 +114,14 @@ export function PropertyTerminal() {
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(1);
   const pageSize = 100;
+
+  // Skip Trace & Lead Creation state
+  const [skipTraceDialogOpen, setSkipTraceDialogOpen] = useState(false);
+  const [skipTraceLoading, setSkipTraceLoading] = useState(false);
+  const [skipTraceResults, setSkipTraceResults] = useState<Map<string, { phone?: string; email?: string }>>(new Map());
+  const [createLeadsDialogOpen, setCreateLeadsDialogOpen] = useState(false);
+  const [createLeadsLoading, setCreateLeadsLoading] = useState(false);
+  const [createdLeadsCount, setCreatedLeadsCount] = useState(0);
 
   // Convert results to map markers
   const markers: PropertyMarker[] = useMemo(() => {
@@ -291,6 +320,153 @@ export function PropertyTerminal() {
     }
   }, [results]);
 
+  // Skip Trace handler - finds contact info for selected properties
+  const handleSkipTrace = useCallback(async () => {
+    const selectedProperties = results.filter((r) => selectedIds.has(r.id));
+    if (selectedProperties.length === 0) return;
+
+    setSkipTraceLoading(true);
+    setSkipTraceDialogOpen(true);
+
+    try {
+      // Prepare inputs for skip trace
+      const inputs: SkipTraceInput[] = selectedProperties.map((p) => {
+        const nameParts = p.ownerName?.split(" ") || [];
+        return {
+          firstName: nameParts[0],
+          lastName: nameParts.slice(1).join(" "),
+          address: p.address,
+          city: p.city,
+          state: p.state,
+          zip: p.zip,
+        };
+      });
+
+      // Perform skip trace
+      const results = await performSkipTrace(inputs, {
+        provider: "tlo",
+        fields: { name: true, phone: true, email: true, address: true },
+      });
+
+      // Map results back to property IDs
+      const newSkipTraceResults = new Map<string, { phone?: string; email?: string }>();
+      selectedProperties.forEach((p, index) => {
+        const result = results[index];
+        if (result) {
+          newSkipTraceResults.set(p.id, {
+            phone: result.phones?.[0]?.number,
+            email: result.emails?.[0]?.email,
+          });
+        }
+      });
+
+      setSkipTraceResults(newSkipTraceResults);
+      toast.success(`Skip traced ${results.length} properties`);
+    } catch (error) {
+      console.error("Skip trace failed:", error);
+      toast.error("Skip trace failed. Please try again.");
+    } finally {
+      setSkipTraceLoading(false);
+    }
+  }, [results, selectedIds]);
+
+  // Create Leads handler - converts selected properties to leads
+  const handleCreateLeads = useCallback(async () => {
+    if (!team?.id) {
+      toast.error("No team selected");
+      return;
+    }
+
+    const selectedProperties = results.filter((r) => selectedIds.has(r.id));
+    if (selectedProperties.length === 0) return;
+
+    // Check 5k max limit
+    if (selectedProperties.length > 5000) {
+      toast.error("Maximum 5,000 leads per batch. Please select fewer properties.");
+      return;
+    }
+
+    setCreateLeadsLoading(true);
+    setCreateLeadsDialogOpen(true);
+    setCreatedLeadsCount(0);
+
+    try {
+      let successCount = 0;
+
+      // Create leads in batches of 10 for better UX
+      for (const property of selectedProperties) {
+        const nameParts = property.ownerName?.split(" ") || [];
+        const skipTraceData = skipTraceResults.get(property.id);
+
+        await createLead({
+          variables: {
+            teamId: team.id,
+            input: {
+              firstName: nameParts[0] || undefined,
+              lastName: nameParts.slice(1).join(" ") || undefined,
+              phone: skipTraceData?.phone || property.ownerPhone || undefined,
+              email: skipTraceData?.email || property.ownerEmail || undefined,
+              address: property.address,
+              city: property.city,
+              state: property.state,
+              zipCode: property.zip,
+              source: "Property Search",
+              tags: ["Property Search", property.propertyType].filter(Boolean),
+            },
+          },
+        });
+
+        successCount++;
+        setCreatedLeadsCount(successCount);
+      }
+
+      toast.success(`Created ${successCount} leads successfully!`);
+    } catch (error) {
+      console.error("Create leads failed:", error);
+      toast.error("Failed to create some leads. Please try again.");
+    } finally {
+      setCreateLeadsLoading(false);
+    }
+  }, [team?.id, results, selectedIds, skipTraceResults, createLead]);
+
+  // Launch Campaign handler - navigates to campaign creation with selected leads
+  const handleLaunchCampaign = useCallback(() => {
+    if (!team?.id) {
+      toast.error("No team selected");
+      return;
+    }
+
+    const selectedProperties = results.filter((r) => selectedIds.has(r.id));
+    if (selectedProperties.length === 0) {
+      toast.error("No properties selected");
+      return;
+    }
+
+    // Store selected properties in session storage for campaign creation
+    const campaignData = selectedProperties.map((p) => {
+      const skipTraceData = skipTraceResults.get(p.id);
+      const nameParts = p.ownerName?.split(" ") || [];
+      return {
+        firstName: nameParts[0],
+        lastName: nameParts.slice(1).join(" "),
+        phone: skipTraceData?.phone || p.ownerPhone,
+        email: skipTraceData?.email || p.ownerEmail,
+        address: p.address,
+        city: p.city,
+        state: p.state,
+        zip: p.zip,
+        propertyType: p.propertyType,
+        estimatedValue: p.estimatedValue,
+        equity: p.equity,
+      };
+    });
+
+    sessionStorage.setItem("campaignLeads", JSON.stringify(campaignData));
+
+    // Navigate to campaign creation
+    router.push(`/t/${team.slug}/campaigns/new?source=property-search&count=${selectedProperties.length}`);
+  }, [team?.id, team?.slug, results, selectedIds, skipTraceResults, router]);
+
   const formatCurrency = (value?: number) => {
     if (!value) return "-";
     return new Intl.NumberFormat("en-US", {
@@ -355,11 +531,34 @@ export function PropertyTerminal() {
             <Download className="h-4 w-4 mr-1" />
             Export CSV
           </Button>
-          <Button variant="outline" size="sm" disabled={selectedIds.size === 0}>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={selectedIds.size === 0}
+            onClick={handleSkipTrace}
+          >
+            <UserSearch className="h-4 w-4 mr-1" />
+            Skip Trace
+            {skipTraceResults.size > 0 && (
+              <Badge variant="secondary" className="ml-1 h-5 px-1">
+                {skipTraceResults.size}
+              </Badge>
+            )}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={selectedIds.size === 0}
+            onClick={handleCreateLeads}
+          >
             <Users className="h-4 w-4 mr-1" />
             Create Leads
           </Button>
-          <Button size="sm" disabled={selectedIds.size === 0}>
+          <Button
+            size="sm"
+            disabled={selectedIds.size === 0}
+            onClick={handleLaunchCampaign}
+          >
             <Rocket className="h-4 w-4 mr-1" />
             Launch Campaign
           </Button>
@@ -493,6 +692,127 @@ export function PropertyTerminal() {
           )}
         </SheetContent>
       </Sheet>
+
+      {/* Skip Trace Dialog */}
+      <Dialog open={skipTraceDialogOpen} onOpenChange={setSkipTraceDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserSearch className="h-5 w-5" />
+              Skip Trace Properties
+            </DialogTitle>
+            <DialogDescription>
+              Finding contact information for {selectedIds.size} selected properties
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-6">
+            {skipTraceLoading ? (
+              <div className="flex flex-col items-center gap-4">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">
+                  Searching TLO database for contact information...
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-4">
+                <CheckCircle className="h-12 w-12 text-green-500" />
+                <div className="text-center">
+                  <p className="font-medium">Skip trace complete!</p>
+                  <p className="text-sm text-muted-foreground">
+                    Found contact info for {skipTraceResults.size} properties
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setSkipTraceDialogOpen(false)}
+              disabled={skipTraceLoading}
+            >
+              Close
+            </Button>
+            <Button
+              onClick={() => {
+                setSkipTraceDialogOpen(false);
+                handleCreateLeads();
+              }}
+              disabled={skipTraceLoading || skipTraceResults.size === 0}
+            >
+              <Users className="h-4 w-4 mr-1" />
+              Create Leads
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Leads Dialog */}
+      <Dialog open={createLeadsDialogOpen} onOpenChange={setCreateLeadsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Creating Leads
+            </DialogTitle>
+            <DialogDescription>
+              Converting {selectedIds.size} properties to leads
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-6">
+            {createLeadsLoading ? (
+              <div className="flex flex-col items-center gap-4">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <div className="text-center">
+                  <p className="text-2xl font-bold">{createdLeadsCount} / {selectedIds.size}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Creating leads...
+                  </p>
+                </div>
+                <div className="w-full bg-muted rounded-full h-2">
+                  <div
+                    className="bg-primary h-2 rounded-full transition-all"
+                    style={{ width: `${(createdLeadsCount / selectedIds.size) * 100}%` }}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-4">
+                <CheckCircle className="h-12 w-12 text-green-500" />
+                <div className="text-center">
+                  <p className="font-medium">Leads created successfully!</p>
+                  <p className="text-sm text-muted-foreground">
+                    {createdLeadsCount} leads added to your team
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setCreateLeadsDialogOpen(false)}
+              disabled={createLeadsLoading}
+            >
+              Close
+            </Button>
+            <Button
+              onClick={() => {
+                setCreateLeadsDialogOpen(false);
+                handleLaunchCampaign();
+              }}
+              disabled={createLeadsLoading}
+            >
+              <Rocket className="h-4 w-4 mr-1" />
+              Launch Campaign
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
