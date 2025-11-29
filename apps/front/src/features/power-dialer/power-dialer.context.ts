@@ -5,7 +5,7 @@ import type {
   PowerDialerDetailsQuery,
 } from "@/graphql/types";
 import { DialerMode } from "@nextier/common";
-import { Call, Device } from "@twilio/voice-sdk";
+import type { Call, Device } from "@twilio/voice-sdk";
 import { createContext, Dispatch, Reducer, useContext } from "react";
 
 type Contact = ExtractNode<DialerContactsQuery["dialerContacts"]>;

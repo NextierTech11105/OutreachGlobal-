@@ -52,7 +52,7 @@ import { CREATE_CALL_HISTORY_MUTATION } from "../mutations/call-history.mutation
 import { useApiError } from "@/hooks/use-api-error";
 import { $http } from "@/lib/http";
 import { toast } from "sonner";
-import { Call, Device } from "@twilio/voice-sdk";
+import type { Call, Device } from "@twilio/voice-sdk";
 
 interface Props {
   powerDialer: PowerDialerDetailsQuery["powerDialer"];
@@ -147,8 +147,11 @@ export function PowerDialer({ powerDialer }: Props) {
         const {
           data: { token },
         } = await $http.post(`/voice/${team.id}/token`, {});
-        const newDevice = new Device(token, {
-          codecPreferences: [Call.Codec.Opus, Call.Codec.PCMU],
+
+        // Dynamic import to avoid SSR issues with Twilio Voice SDK
+        const { Device: TwilioDevice, Call: TwilioCall } = await import("@twilio/voice-sdk");
+        const newDevice = new TwilioDevice(token, {
+          codecPreferences: [TwilioCall.Codec.Opus, TwilioCall.Codec.PCMU],
         });
 
         await newDevice.register();
