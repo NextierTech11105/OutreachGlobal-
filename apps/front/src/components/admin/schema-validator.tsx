@@ -34,7 +34,7 @@ export function SchemaValidator() {
           errors.push("Schema must be a JSON object");
         } else {
           // Check each entity
-          Object.entries(parsed).forEach(([entityKey, entity]) => {
+          Object.entries(parsed).forEach(([entityKey, entity]: [string, { name?: string; fields?: { name?: string; type?: string }[] }]) => {
             if (!entity.name) {
               errors.push(`Entity "${entityKey}" is missing a name property`);
             }
@@ -43,7 +43,7 @@ export function SchemaValidator() {
               errors.push(`Entity "${entityKey}" must have a fields array`);
             } else {
               // Check each field
-              entity.fields.forEach((field, index) => {
+              entity.fields.forEach((field: { name?: string; type?: string }, index: number) => {
                 if (!field.name) {
                   errors.push(
                     `Field at index ${index} in "${entityKey}" is missing a name property`,
@@ -66,7 +66,7 @@ export function SchemaValidator() {
       } catch (error) {
         setValidationResult({
           valid: false,
-          errors: ["Invalid JSON format: " + error.message],
+          errors: ["Invalid JSON format: " + (error instanceof Error ? error.message : String(error))],
         });
       }
 

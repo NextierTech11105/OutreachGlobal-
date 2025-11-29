@@ -117,10 +117,30 @@ const localEntities = [
   },
 ];
 
+interface ZohoField {
+  id: string;
+  name: string;
+  label: string;
+  type: string;
+}
+
+interface LocalField {
+  id: string;
+  name: string;
+  label: string;
+  type: string;
+}
+
+interface FieldMapping {
+  zohoField: ZohoField;
+  localField: LocalField;
+  enabled: boolean;
+}
+
 export function ZohoSchemaMapper() {
   const [selectedZohoModule, setSelectedZohoModule] = useState("");
   const [selectedLocalEntity, setSelectedLocalEntity] = useState("");
-  const [mappings, setMappings] = useState([]);
+  const [mappings, setMappings] = useState<FieldMapping[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(true);
   const [syncDirection, setSyncDirection] = useState("bidirectional");
@@ -170,10 +190,10 @@ export function ZohoSchemaMapper() {
   };
 
   // Add a new mapping
-  const addMapping = (zohoField, localField) => {
+  const addMapping = (zohoField: ZohoField, localField: LocalField) => {
     // Check if mapping already exists
     const existingMapping = mappings.find(
-      (m) =>
+      (m: FieldMapping) =>
         m.zohoField.id === zohoField.id && m.localField.id === localField.id,
     );
 
@@ -190,7 +210,7 @@ export function ZohoSchemaMapper() {
   };
 
   // Remove a mapping
-  const removeMapping = (index) => {
+  const removeMapping = (index: number) => {
     const newMappings = [...mappings];
     newMappings.splice(index, 1);
     setMappings(newMappings);

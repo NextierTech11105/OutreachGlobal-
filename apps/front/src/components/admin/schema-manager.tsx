@@ -60,8 +60,29 @@ const fieldTypes = [
   { value: "json", label: "JSON" },
 ];
 
+// Type definitions
+interface SchemaField {
+  id: string;
+  name: string;
+  label: string;
+  type: string;
+  required: boolean;
+  searchable: boolean;
+  defaultValue: string;
+  options: string[];
+  reference?: string;
+}
+
+interface SchemaEntity {
+  name: string;
+  description: string;
+  fields: SchemaField[];
+}
+
+type SchemaData = Record<string, SchemaEntity>;
+
 // Sample initial schema data
-const initialSchemaData = {
+const initialSchemaData: SchemaData = {
   leads: {
     name: "Leads",
     description: "Lead information schema",
@@ -778,7 +799,7 @@ export function SchemaManager() {
   const [activeTab, setActiveTab] = useState("leads");
   const [schemaData, setSchemaData] = useState(initialSchemaData);
   const [isAddFieldDialogOpen, setIsAddFieldDialogOpen] = useState(false);
-  const [newField, setNewField] = useState({
+  const [newField, setNewField] = useState<SchemaField>({
     id: "",
     name: "",
     label: "",
@@ -786,17 +807,17 @@ export function SchemaManager() {
     required: false,
     searchable: true,
     defaultValue: "",
-    options: [],
+    options: [] as string[],
     reference: "",
   });
   const [isEditMode, setIsEditMode] = useState(false);
-  const [editingFieldId, setEditingFieldId] = useState(null);
+  const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
   const [optionInput, setOptionInput] = useState("");
   const [showJsonEditor, setShowJsonEditor] = useState(false);
   const [jsonEditorContent, setJsonEditorContent] = useState("");
 
   // Handle tab change
-  const handleTabChange = (value) => {
+  const handleTabChange = (value: string) => {
     setActiveTab(value);
   };
 
@@ -819,7 +840,7 @@ export function SchemaManager() {
   };
 
   // Edit an existing field
-  const handleEditField = (field) => {
+  const handleEditField = (field: SchemaField) => {
     setIsEditMode(true);
     setEditingFieldId(field.id);
     setNewField({ ...field });
@@ -828,9 +849,9 @@ export function SchemaManager() {
   };
 
   // Delete a field
-  const handleDeleteField = (fieldId) => {
+  const handleDeleteField = (fieldId: string) => {
     const updatedFields = schemaData[activeTab].fields.filter(
-      (field) => field.id !== fieldId,
+      (field: SchemaField) => field.id !== fieldId,
     );
     setSchemaData({
       ...schemaData,
@@ -845,7 +866,7 @@ export function SchemaManager() {
   const handleSaveField = () => {
     if (isEditMode) {
       // Update existing field
-      const updatedFields = schemaData[activeTab].fields.map((field) =>
+      const updatedFields = schemaData[activeTab].fields.map((field: SchemaField) =>
         field.id === editingFieldId ? newField : field,
       );
       setSchemaData({
@@ -880,15 +901,15 @@ export function SchemaManager() {
   };
 
   // Remove option from enum type
-  const handleRemoveOption = (option) => {
+  const handleRemoveOption = (option: string) => {
     setNewField({
       ...newField,
-      options: newField.options.filter((opt) => opt !== option),
+      options: newField.options.filter((opt: string) => opt !== option),
     });
   };
 
   // Handle field type change
-  const handleFieldTypeChange = (type) => {
+  const handleFieldTypeChange = (type: string) => {
     setNewField({
       ...newField,
       type,
