@@ -1,5 +1,7 @@
 {
   "version": 2,
+  "framework": "nextjs",
   "installCommand": "corepack enable && pnpm install",
-  "buildCommand": "pnpm --filter @nextier/common build && pnpm --filter @nextier/dto build && pnpm --filter front build"
+  "buildCommand": "pnpm --filter @nextier/common build && pnpm --filter @nextier/dto build && pnpm --filter front build",
+  "outputDirectory": "apps/front/.next"
 }
