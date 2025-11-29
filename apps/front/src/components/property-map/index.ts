@@ -1,3 +1,5 @@
+"use client";
+
 import dynamic from "next/dynamic";
 
 // Dynamic import with SSR disabled to prevent google.maps errors during server-side rendering
