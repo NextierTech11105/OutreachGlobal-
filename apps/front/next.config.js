@@ -6,10 +6,8 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  // Only keep Twilio in serverExternalPackages (Apollo removed to avoid conflict)
+  // External packages that shouldn't be bundled by Next.js
   serverExternalPackages: ['@twilio/voice-sdk'],
-  // Transpile Apollo to fix R.A constructor error
-  transpilePackages: ['@apollo/client'],
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {
