@@ -9,8 +9,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { useEffect, useState } from "react";
-import { Device, Call } from "@twilio/voice-sdk";
+import { useEffect, useState, useRef } from "react";
+import type { Device, Call } from "@twilio/voice-sdk";
 import { useCurrentTeam } from "@/features/team/team.context";
 import { $http } from "@/lib/http";
 import { toast } from "sonner";
@@ -39,14 +39,16 @@ export const TwilioTestVoice = () => {
     }
   };
 
-  const initDevice = () => {
+  const initDevice = async () => {
     if (!token) {
       return toast.error("token is required");
     }
 
     if (!device) {
-      const newDevice = new Device(token, {
-        codecPreferences: [Call.Codec.Opus, Call.Codec.PCMU],
+      // Dynamic import to avoid SSR issues with Twilio Voice SDK
+      const { Device: TwilioDevice, Call: TwilioCall } = await import("@twilio/voice-sdk");
+      const newDevice = new TwilioDevice(token, {
+        codecPreferences: [TwilioCall.Codec.Opus, TwilioCall.Codec.PCMU],
       });
 
       setDevice(newDevice);
