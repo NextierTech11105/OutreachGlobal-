@@ -6,6 +6,8 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  // Transpile Apollo Client to fix bundling issues with Next.js 15
+  transpilePackages: ['@apollo/client'],
   // External packages that shouldn't be bundled by Next.js
   serverExternalPackages: ['@twilio/voice-sdk'],
   webpack: (config, { isServer }) => {

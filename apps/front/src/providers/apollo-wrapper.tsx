@@ -1,16 +1,11 @@
 "use client";
 
-import { ApolloLink, HttpLink, from } from "@apollo/client";
-import {
-  ApolloNextAppProvider,
-  InMemoryCache,
-  ApolloClient,
-} from "@apollo/experimental-nextjs-app-support";
+import { ApolloClient, ApolloProvider, InMemoryCache, ApolloLink, HttpLink, from } from "@apollo/client";
 import { $cookie } from "@/lib/cookie/client-cookie";
-import { ReactNode } from "react";
+import { ReactNode, useMemo } from "react";
 
-// Make client factory for SSR-safe Apollo
-function makeClient() {
+// Create Apollo Client instance
+function createApolloClient() {
   const uri = process.env.NEXT_PUBLIC_API_URL + "/graphql";
 
   // Error logging link
@@ -63,7 +58,25 @@ function makeClient() {
   return new ApolloClient({
     cache: new InMemoryCache(),
     link: from([authLink, errorLink, httpLink]),
+    ssrMode: typeof window === "undefined",
   });
+}
+
+// Singleton client for client-side
+let apolloClient: ApolloClient<unknown> | null = null;
+
+function getApolloClient() {
+  // Create new client for SSR
+  if (typeof window === "undefined") {
+    return createApolloClient();
+  }
+
+  // Reuse client on client-side
+  if (!apolloClient) {
+    apolloClient = createApolloClient();
+  }
+
+  return apolloClient;
 }
 
 interface ApolloWrapperProps {
@@ -71,9 +84,11 @@ interface ApolloWrapperProps {
 }
 
 export function ApolloWrapper({ children }: ApolloWrapperProps) {
+  const client = useMemo(() => getApolloClient(), []);
+
   return (
-    <ApolloNextAppProvider makeClient={makeClient}>
+    <ApolloProvider client={client}>
       {children}
-    </ApolloNextAppProvider>
+    </ApolloProvider>
   );
 }
