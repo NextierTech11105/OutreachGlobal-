@@ -12,6 +12,7 @@ import {
   CreateLeadInput,
   CreateLeadPhoneNumberInput,
   UpdateLeadInput,
+  BulkCreateLeadsInput,
 } from "../inputs/lead.input";
 import { ImportBusinessListInput } from "../inputs/import-business-list.input";
 

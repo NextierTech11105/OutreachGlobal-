@@ -17,7 +17,7 @@ import { TeamMainNav } from "./team-main-nav";
 import { TeamUserNav } from "./team-user-nav";
 import { useParams, usePathname } from "next/navigation";
 import { useEffect } from "react";
-const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "PushButtonCode";
+const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "Nextier";
 
 export function TeamSidebar({
   ...props

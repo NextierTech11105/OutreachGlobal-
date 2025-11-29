@@ -108,7 +108,7 @@ const ZONING_TYPES = [
 ];
 
 const OWNERSHIP_DURATION = [
-  { value: "", label: "Any" },
+  { value: "__any__", label: "Any" },
   { value: "1", label: "1+ years" },
   { value: "3", label: "3+ years" },
   { value: "5", label: "5+ years" },
@@ -779,9 +779,9 @@ export function PropertyFiltersPanel({
               <div>
                 <Label className="text-xs text-muted-foreground">Ownership Duration</Label>
                 <Select
-                  value={String(filters.ownership_years_min || "")}
+                  value={filters.ownership_years_min ? String(filters.ownership_years_min) : "__any__"}
                   onValueChange={(v) =>
-                    updateFilter("ownership_years_min", v ? parseInt(v) : undefined)
+                    updateFilter("ownership_years_min", v && v !== "__any__" ? parseInt(v) : undefined)
                   }
                 >
                   <SelectTrigger className="h-9">

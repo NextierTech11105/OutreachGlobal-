@@ -65,3 +65,15 @@ export class CreateLeadPhoneNumberInput implements CreateLeadPhoneNumberDto {
   @StringField()
   label: string;
 }
+
+@InputType()
+export class BulkCreateLeadsInput {
+  @Field(() => [CreateLeadInput])
+  leads: CreateLeadInput[];
+
+  @StringField({ nullable: true })
+  source?: string;
+
+  @Field(() => [String], { nullable: true })
+  tags?: string[];
+}
