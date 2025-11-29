@@ -33,7 +33,7 @@ export const initialMessages = pgTable(
 
     // Categorization
     category: varchar().notNull().$type<InitialMessageCategory>(),
-    tone: varchar().notNull().$type<MessageTone>().default("PROFESSIONAL"),
+    tone: varchar().notNull().$type<MessageTone>().default(MessageTone.PROFESSIONAL),
     tags: text().array().default([]),
 
     // SDR Assignment

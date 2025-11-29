@@ -49,17 +49,17 @@ export const inboxItems = pgTable(
     classification: varchar()
       .notNull()
       .$type<ResponseClassification>()
-      .default("UNCLASSIFIED"),
+      .default(ResponseClassification.UNCLASSIFIED),
     classificationConfidence: integer().default(0),
     classifiedAt: timestamp(),
     classifiedBy: varchar(),
 
     // Priority scoring
-    priority: varchar().$type<InboxPriority>().default("WARM"),
+    priority: varchar().$type<InboxPriority>().default(InboxPriority.WARM),
     priorityScore: integer().notNull().default(50),
 
     // Current bucket
-    currentBucket: varchar().$type<BucketType>().default("UNIVERSAL_INBOX"),
+    currentBucket: varchar().$type<BucketType>().default(BucketType.UNIVERSAL_INBOX),
 
     // Content
     responseText: text(),
