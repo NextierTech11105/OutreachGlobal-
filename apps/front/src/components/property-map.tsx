@@ -34,9 +34,18 @@ export function PropertyMap({
   const [mapImageUrl, setMapImageUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const fullAddress = `${address}, ${city}, ${state} ${zipCode}`;
+  const hasValidAddress = address && city && state;
+  const fullAddress = hasValidAddress
+    ? `${address}, ${city}, ${state} ${zipCode || ""}`
+    : "";
 
   useEffect(() => {
+    if (!hasValidAddress) {
+      setIsLoading(false);
+      setError("Address information is incomplete");
+      return;
+    }
+
     const fetchMapImage = async () => {
       try {
         setIsLoading(true);
@@ -61,7 +70,7 @@ export function PropertyMap({
     };
 
     fetchMapImage();
-  }, [fullAddress, propertyType]);
+  }, [fullAddress, propertyType, hasValidAddress]);
 
   if (fullscreen) {
     return (

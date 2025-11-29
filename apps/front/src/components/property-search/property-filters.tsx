@@ -281,14 +281,14 @@ export function PropertyFiltersPanel({
               <div>
                 <Label className="text-xs text-muted-foreground">State</Label>
                 <Select
-                  value={filters.state || ""}
-                  onValueChange={(v) => updateFilter("state", v || undefined)}
+                  value={filters.state || "__all__"}
+                  onValueChange={(v) => updateFilter("state", v === "__all__" ? undefined : v)}
                 >
                   <SelectTrigger className="h-9">
                     <SelectValue placeholder="Select state" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Any State</SelectItem>
+                    <SelectItem value="__all__">Any State</SelectItem>
                     {US_STATES.map((state) => (
                       <SelectItem key={state.value} value={state.value}>
                         {state.label}
@@ -368,14 +368,14 @@ export function PropertyFiltersPanel({
               <div>
                 <Label className="text-xs text-muted-foreground">Property Type</Label>
                 <Select
-                  value={filters.property_type || ""}
-                  onValueChange={(v) => updateFilter("property_type", v || undefined)}
+                  value={filters.property_type || "__all__"}
+                  onValueChange={(v) => updateFilter("property_type", v === "__all__" ? undefined : v)}
                 >
                   <SelectTrigger className="h-9">
                     <SelectValue placeholder="Any type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Any Type</SelectItem>
+                    <SelectItem value="__all__">Any Type</SelectItem>
                     {PROPERTY_TYPES.map((type) => (
                       <SelectItem key={type.value} value={type.value}>
                         {type.label}
@@ -388,14 +388,14 @@ export function PropertyFiltersPanel({
               <div>
                 <Label className="text-xs text-muted-foreground">Zoning</Label>
                 <Select
-                  value={filters.zoning || ""}
-                  onValueChange={(v) => updateFilter("zoning", v || undefined)}
+                  value={filters.zoning || "__all__"}
+                  onValueChange={(v) => updateFilter("zoning", v === "__all__" ? undefined : v)}
                 >
                   <SelectTrigger className="h-9">
                     <SelectValue placeholder="Any zoning" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Any Zoning</SelectItem>
+                    <SelectItem value="__all__">Any Zoning</SelectItem>
                     {ZONING_TYPES.map((type) => (
                       <SelectItem key={type.value} value={type.value}>
                         {type.label}
