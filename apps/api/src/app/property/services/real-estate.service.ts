@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import axios, { AxiosInstance } from "axios";
+import axios, { AxiosInstance, AxiosRequestConfig } from "axios";
 import { RealEstatePropertySearchOptions } from "../types/real-estate.type";
 
 @Injectable()
@@ -8,12 +8,27 @@ export class RealEstateService {
   private http: AxiosInstance;
 
   constructor(private configService: ConfigService) {
+    const baseURL =
+      this.configService.get("REALESTATE_API_URL") ||
+      "https://api.realestateapi.com/v2";
     this.http = axios.create({
-      baseURL: "https://api.realestateapi.com",
+      baseURL,
       headers: {
         "x-api-key": this.configService.get("REALESTATE_API_KEY"),
       },
     });
+  }
+
+  /**
+   * Expose the configured Axios instance for advanced scenarios
+   */
+  get client() {
+    return this.http;
+  }
+
+  async request<T = any>(config: AxiosRequestConfig) {
+    const { data } = await this.http.request<T>(config);
+    return data;
   }
 
   async propertySearch(options: RealEstatePropertySearchOptions = {}) {
