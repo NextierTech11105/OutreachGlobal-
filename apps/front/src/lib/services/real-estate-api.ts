@@ -3,7 +3,7 @@
 import type { PhoneNumber } from "@/types/lead";
 
 const API_BASE_URL = "https://api.realestateapi.com/v2";
-const API_KEY = process.env.REAL_ESTATE_API_KEY || process.env.NEXT_PUBLIC_REAL_ESTATE_API_KEY || "";
+const API_KEY = process.env.REALESTATE_API_KEY || process.env.REAL_ESTATE_API_KEY || process.env.NEXT_PUBLIC_REAL_ESTATE_API_KEY || "";
 
 // ============ API Response Types ============
 
