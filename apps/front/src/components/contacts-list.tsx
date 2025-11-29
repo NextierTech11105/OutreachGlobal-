@@ -107,15 +107,15 @@ export function ContactsList({
     setFilteredContacts(filtered);
   }, [contacts, searchQuery, statusFilter, sourceFilter]);
 
-  // Get unique statuses for filter
+  // Get unique statuses for filter (filter out empty strings to avoid Radix Select error)
   const uniqueStatuses = Array.from(
     new Set(contacts.map((contact) => contact.status)),
-  );
+  ).filter((status) => status && status.trim() !== "");
 
-  // Get unique sources for filter
+  // Get unique sources for filter (filter out empty strings to avoid Radix Select error)
   const uniqueSources = Array.from(
     new Set(contacts.map((contact) => contact.source)),
-  );
+  ).filter((source) => source && source.trim() !== "");
 
   const toggleContactSelection = (contact: Contact) => {
     if (selectedContacts.some((c) => c.id === contact.id)) {
