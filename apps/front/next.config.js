@@ -7,10 +7,13 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   // Fix Apollo Client bundling issues with Next.js 15
-  // The "R.A is not a constructor" error is caused by improper tree-shaking
+  serverExternalPackages: ['@apollo/client'],
   transpilePackages: ['@apollo/client'],
+  experimental: {
+    // Optimize package imports to prevent incorrect tree-shaking
+    optimizePackageImports: ['@apollo/client'],
+  },
   webpack: (config, { isServer }) => {
-    // Prevent Apollo Client from being bundled on the server incorrectly
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,
@@ -18,6 +21,11 @@ const nextConfig = {
         net: false,
         tls: false,
       };
+    }
+    // Force Apollo Client to use CJS on server to avoid ESM issues
+    if (isServer) {
+      config.externals = config.externals || [];
+      config.externals.push('@apollo/client');
     }
     return config;
   },
