@@ -1,7 +1,7 @@
 // Apollo.io API Service - B2B Data Enrichment & Contact Discovery
 // API Docs: https://apolloio.github.io/apollo-api-docs/
 
-const APOLLO_API_BASE_URL = "https://api.apollo.io/v1";
+const APOLLO_API_BASE_URL = "https://api.apollo.io/api/v1";
 const APOLLO_API_KEY = process.env.APOLLO_IO_API_KEY || process.env.NEXT_PUBLIC_APOLLO_IO_API_KEY || "";
 
 // ============ Response Types ============
@@ -180,6 +180,50 @@ export interface ApolloEnrichQuery {
   reveal_phone_number?: boolean;
 }
 
+// ============ Contact Types (for saving enriched people) ============
+
+export interface ApolloContactInput {
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  organization_name?: string;
+  website_url?: string;
+  direct_phone?: string;
+  mobile_phone?: string;
+  title?: string;
+  linkedin_url?: string;
+  // Additional optional fields
+  present_raw_address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  label_names?: string[];
+  contact_stage_id?: string;
+  typed_custom_fields?: Record<string, unknown>;
+}
+
+export interface ApolloContact {
+  id: string;
+  first_name: string;
+  last_name: string;
+  name: string;
+  email: string | null;
+  linkedin_url: string | null;
+  title: string | null;
+  contact_stage_id: string;
+  owner_id: string;
+  creator_id: string;
+  person_id: string | null;
+  organization_name: string | null;
+  organization_id: string | null;
+  source: string;
+  original_source: string;
+  photo_url: string | null;
+  phone_numbers: ApolloPhone[];
+  created_at: string;
+  updated_at: string;
+}
+
 // ============ API Client ============
 
 class ApolloIoApiService {
@@ -290,6 +334,60 @@ class ApolloIoApiService {
 
   async enrichOrganization(domain: string): Promise<{ organization: ApolloOrganization | null }> {
     return this.request("/organizations/enrich", "POST", { domain });
+  }
+
+  // ============ Contacts API ============
+
+  /**
+   * Create a contact in Apollo from enriched person data.
+   * This saves the contact to your Apollo account so you don't consume credits
+   * when enriching the same person again.
+   */
+  async createContact(input: ApolloContactInput): Promise<{ contact: ApolloContact }> {
+    return this.request<{ contact: ApolloContact }>("/contacts", "POST", input as Record<string, unknown>);
+  }
+
+  /**
+   * Convert an enriched person to a contact to save credits on future lookups.
+   */
+  async createContactFromEnrichedPerson(person: ApolloPerson): Promise<{ contact: ApolloContact }> {
+    const mobilePhone = person.phone_numbers?.find(p => p.type === "mobile")?.raw_number;
+    const directPhone = person.phone_numbers?.find(p => p.type === "work_direct")?.raw_number;
+
+    return this.createContact({
+      first_name: person.first_name,
+      last_name: person.last_name,
+      email: person.email,
+      organization_name: person.organization?.name,
+      website_url: person.organization?.website_url,
+      title: person.title,
+      linkedin_url: person.linkedin_url,
+      mobile_phone: mobilePhone,
+      direct_phone: directPhone,
+      city: person.city,
+      state: person.state,
+      country: person.country,
+    });
+  }
+
+  /**
+   * Bulk create contacts from enriched people
+   */
+  async createContactsBulk(people: ApolloPerson[], concurrency = 5): Promise<{ contact: ApolloContact }[]> {
+    const results: { contact: ApolloContact }[] = [];
+
+    for (let i = 0; i < people.length; i += concurrency) {
+      const batch = people.slice(i, i + concurrency);
+      const batchResults = await Promise.all(
+        batch.map(p => this.createContactFromEnrichedPerson(p).catch(err => {
+          console.error("Create contact failed:", err);
+          return { contact: null as unknown as ApolloContact };
+        }))
+      );
+      results.push(...batchResults.filter(r => r.contact));
+    }
+
+    return results;
   }
 
   // ============ Bulk Operations ============
