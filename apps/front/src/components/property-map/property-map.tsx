@@ -233,24 +233,26 @@ export function PropertyMap({
         }}
       >
         {/* Drawing Manager for Circle */}
-        <DrawingManager
-          onCircleComplete={handleCircleComplete}
-          options={{
-            drawingControl: true,
-            drawingControlOptions: {
-              position: google.maps.ControlPosition.TOP_CENTER,
-              drawingModes: [google.maps.drawing.OverlayType.CIRCLE],
-            },
-            circleOptions: {
-              fillColor: "#22c55e",
-              fillOpacity: 0.2,
-              strokeColor: "#22c55e",
-              strokeWeight: 2,
-              editable: true,
-              draggable: true,
-            },
-          }}
-        />
+        {typeof google !== "undefined" && (
+          <DrawingManager
+            onCircleComplete={handleCircleComplete}
+            options={{
+              drawingControl: true,
+              drawingControlOptions: {
+                position: google.maps.ControlPosition.TOP_CENTER,
+                drawingModes: [google.maps.drawing.OverlayType.CIRCLE],
+              },
+              circleOptions: {
+                fillColor: "#22c55e",
+                fillOpacity: 0.2,
+                strokeColor: "#22c55e",
+                strokeWeight: 2,
+                editable: true,
+                draggable: true,
+              },
+            }}
+          />
+        )}
 
         {/* Search Circle */}
         {searchCircle && (
@@ -282,14 +284,14 @@ export function PropertyMap({
                   position={{ lat: property.lat, lng: property.lng }}
                   clusterer={clusterer}
                   onClick={() => handleMarkerClick(property)}
-                  icon={{
+                  icon={typeof google !== "undefined" ? {
                     path: google.maps.SymbolPath.CIRCLE,
                     scale: 8,
                     fillColor: property.equity && property.equity > 100000 ? "#22c55e" : "#3b82f6",
                     fillOpacity: 1,
                     strokeColor: "#fff",
                     strokeWeight: 2,
-                  }}
+                  } : undefined}
                 />
               ))}
             </>
