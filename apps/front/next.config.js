@@ -6,12 +6,10 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  // Fix bundling issues with Next.js 15 for Apollo and Twilio
-  serverExternalPackages: ['@apollo/client', '@twilio/voice-sdk'],
+  // Only keep Twilio in serverExternalPackages (Apollo removed to avoid conflict)
+  serverExternalPackages: ['@twilio/voice-sdk'],
+  // Transpile Apollo to fix R.A constructor error
   transpilePackages: ['@apollo/client'],
-  experimental: {
-    optimizePackageImports: ['@apollo/client'],
-  },
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {
@@ -21,10 +19,9 @@ const nextConfig = {
         tls: false,
       };
     }
-    // Exclude problematic packages from server bundling
+    // Only externalize Twilio on server (not Apollo - it needs to be transpiled)
     if (isServer) {
       config.externals = config.externals || [];
-      config.externals.push('@apollo/client');
       config.externals.push('@twilio/voice-sdk');
     }
     return config;
