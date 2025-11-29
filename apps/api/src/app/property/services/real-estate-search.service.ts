@@ -58,20 +58,24 @@ export class RealEstateSearchService {
     const filters = request.filters || {};
     const filterHash = this.hashFilters(filters);
 
-    const existing = await this.db.query.propertySearches.findFirst({
-      where: (t) =>
+    const existingResults = await this.db
+      .select()
+      .from(propertySearchesTable)
+      .where(
         and(
-          eq(t.endpoint, endpoint),
-          eq(t.filterHash, filterHash),
-          eq(t.source, "RealEstateAPI"),
+          eq(propertySearchesTable.endpoint, endpoint),
+          eq(propertySearchesTable.filterHash, filterHash),
+          eq(propertySearchesTable.source, "RealEstateAPI"),
         ),
-    });
+      )
+      .limit(1);
+    const existing = existingResults[0];
 
     if (existing) {
-      const blocks =
-        (await this.db.query.propertySearchBlocks.findMany({
-          where: (t) => eq(t.searchId, existing.id),
-        })) || [];
+      const blocks = await this.db
+        .select()
+        .from(propertySearchBlocksTable)
+        .where(eq(propertySearchBlocksTable.searchId, existing.id));
 
       return {
         searchId: existing.id,
