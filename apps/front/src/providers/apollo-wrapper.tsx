@@ -1,11 +1,16 @@
 "use client";
 
-import { ApolloClient, ApolloProvider, InMemoryCache, ApolloLink, HttpLink, from } from "@apollo/client";
+import { HttpLink, ApolloLink, from } from "@apollo/client";
+import {
+  ApolloClient,
+  ApolloProvider,
+  InMemoryCache,
+} from "@apollo/client-integration-nextjs";
 import { $cookie } from "@/lib/cookie/client-cookie";
-import { ReactNode, useMemo } from "react";
+import { ReactNode } from "react";
 
-// Create Apollo Client instance
-function createApolloClient() {
+// Client factory function for browser-side hydration
+function makeClient() {
   const uri = process.env.NEXT_PUBLIC_API_URL + "/graphql";
 
   // Error logging link
@@ -22,7 +27,7 @@ function createApolloClient() {
     });
   });
 
-  // Auth link
+  // Auth link with cookie-based token
   const authLink = new ApolloLink((operation, forward) => {
     const operationName = operation.operationName;
     let operationUri = uri;
@@ -56,27 +61,34 @@ function createApolloClient() {
   });
 
   return new ApolloClient({
-    cache: new InMemoryCache(),
+    cache: new InMemoryCache({
+      typePolicies: {
+        Query: {
+          fields: {
+            leads: {
+              keyArgs: ["organizationId", "filters"],
+              merge(existing = { items: [], total: 0 }, incoming) {
+                return {
+                  ...incoming,
+                  items: [...(existing.items || []), ...(incoming.items || [])],
+                };
+              },
+            },
+            campaigns: {
+              keyArgs: ["organizationId", "filters"],
+              merge(existing = { items: [], total: 0 }, incoming) {
+                return {
+                  ...incoming,
+                  items: [...(existing.items || []), ...(incoming.items || [])],
+                };
+              },
+            },
+          },
+        },
+      },
+    }),
     link: from([authLink, errorLink, httpLink]),
-    ssrMode: typeof window === "undefined",
   });
-}
-
-// Singleton client for client-side
-let apolloClient: ApolloClient<unknown> | null = null;
-
-function getApolloClient() {
-  // Create new client for SSR
-  if (typeof window === "undefined") {
-    return createApolloClient();
-  }
-
-  // Reuse client on client-side
-  if (!apolloClient) {
-    apolloClient = createApolloClient();
-  }
-
-  return apolloClient;
 }
 
 interface ApolloWrapperProps {
@@ -84,10 +96,8 @@ interface ApolloWrapperProps {
 }
 
 export function ApolloWrapper({ children }: ApolloWrapperProps) {
-  const client = useMemo(() => getApolloClient(), []);
-
   return (
-    <ApolloProvider client={client}>
+    <ApolloProvider makeClient={makeClient}>
       {children}
     </ApolloProvider>
   );
