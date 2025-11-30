@@ -1,10 +1,6 @@
-import {
-  ApolloClient,
-  ApolloLink,
-  InMemoryCache,
-  HttpLink,
-  from,
-} from "@apollo/client";
+import { ApolloClient, InMemoryCache, createHttpLink } from "@apollo/client";
+import { setContext } from "@apollo/client/link/context";
+import { onError } from "@apollo/client/link/error";
 
 const graphqlUrl =
   process.env.NEXT_PUBLIC_GRAPHQL_URL ||
@@ -12,41 +8,36 @@ const graphqlUrl =
     ? `${process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, "")}/graphql`
     : "https://monkfish-app-mb7h3.ondigitalocean.app/graphql");
 
-const httpLink = new HttpLink({
+const httpLink = createHttpLink({
   uri: graphqlUrl,
 });
 
-// Auth link using ApolloLink
-const authLink = new ApolloLink((operation, forward) => {
+// Auth link using setContext helper
+const authLink = setContext((_, { headers }) => {
   const token =
     typeof window !== "undefined" ? localStorage.getItem("auth-token") : null;
-
-  operation.setContext(({ headers = {} }) => ({
+  return {
     headers: {
       ...headers,
       authorization: token ? `Bearer ${token}` : "",
     },
-  }));
-
-  return forward(operation);
+  };
 });
 
-// Error link
-const errorLink = new ApolloLink((operation, forward) => {
-  return forward(operation).map((response) => {
-    if (response.errors) {
-      response.errors.forEach((error) => {
-        console.error(
-          `[GraphQL error]: Message: ${error.message}, Path: ${error.path}`,
-        );
-      });
-    }
-    return response;
-  });
+// Error link using onError helper
+const errorLink = onError(({ graphQLErrors, networkError }) => {
+  if (graphQLErrors) {
+    graphQLErrors.forEach(({ message, path }) => {
+      console.error(`[GraphQL error]: Message: ${message}, Path: ${path}`);
+    });
+  }
+  if (networkError) {
+    console.error(`[Network error]: ${networkError}`);
+  }
 });
 
 const client = new ApolloClient({
-  link: from([errorLink, authLink, httpLink]),
+  link: errorLink.concat(authLink.concat(httpLink)),
   cache: new InMemoryCache({
     typePolicies: {
       Query: {
