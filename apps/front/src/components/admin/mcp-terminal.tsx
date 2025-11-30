@@ -25,6 +25,7 @@ import {
   Filter,
   MapPin,
   RotateCcw,
+  Download,
 } from "lucide-react";
 
 interface Message {
@@ -224,11 +225,66 @@ export function MCPTerminal() {
     setIsProcessing(false);
   };
 
+  const exportToCSV = (properties: any[], filename: string) => {
+    if (!properties || properties.length === 0) return;
+
+    const headers = [
+      "Address",
+      "City",
+      "State",
+      "ZIP",
+      "Owner Name",
+      "Owner Phone",
+      "Owner Email",
+      "Equity %",
+      "Estimated Value",
+      "Property Type",
+      "Bedrooms",
+      "Bathrooms",
+      "Sqft",
+      "Year Built",
+      "Last Sale Date",
+      "Last Sale Price"
+    ];
+
+    const rows = properties.map((prop: any) => {
+      return [
+        prop.address?.deliveryLine || prop.propertyAddress || prop.address || "",
+        prop.address?.city || prop.city || "",
+        prop.address?.state || prop.state || "",
+        prop.address?.zip || prop.zip || "",
+        prop.owner?.names?.[0] || prop.ownerName || prop.owner || "",
+        prop.owner?.phones?.[0] || prop.ownerPhone || "",
+        prop.owner?.emails?.[0] || prop.ownerEmail || "",
+        prop.equity?.equityPercent || prop.equityPercent || "",
+        prop.valuation?.estimatedValue || prop.estimatedValue || prop.value || "",
+        prop.propertyType || prop.type || "",
+        prop.bedrooms || prop.beds || "",
+        prop.bathrooms || prop.baths || "",
+        prop.squareFeet || prop.sqft || "",
+        prop.yearBuilt || "",
+        prop.lastSaleDate || "",
+        prop.lastSalePrice || ""
+      ].map(val => `"${String(val).replace(/"/g, '""')}"`).join(",");
+    });
+
+    const csv = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `${filename}_${new Date().toISOString().split("T")[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const renderResultData = (message: Message) => {
     if (!message.data) return null;
 
     if (message.data.type === "property_search") {
       const properties = message.data.properties || [];
+      const allProperties = message.data.raw?.data || message.data.raw?.properties || properties;
 
       if (properties.length === 0) {
         return (
@@ -240,6 +296,16 @@ export function MCPTerminal() {
 
       return (
         <div className="mt-3 space-y-2">
+          <div className="flex justify-end mb-2">
+            <Button
+              size="sm"
+              onClick={() => exportToCSV(allProperties, "property_search")}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export to CSV ({allProperties.length})
+            </Button>
+          </div>
           {properties.map((prop: any, i: number) => {
             const address = prop.address?.deliveryLine || prop.propertyAddress || prop.address || "Unknown Address";
             const city = prop.address?.city || prop.city || "";

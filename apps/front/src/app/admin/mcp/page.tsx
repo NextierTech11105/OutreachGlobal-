@@ -1,8 +1,9 @@
 import { MCPDashboard } from "@/components/admin/mcp-dashboard";
 import { MCPTerminal } from "@/components/admin/mcp-terminal";
 import { MCPSavedSearches } from "@/components/admin/mcp-saved-searches";
+import { LeadTracker } from "@/components/admin/lead-tracker";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Cable, Terminal, FolderOpen, LayoutDashboard } from "lucide-react";
+import { Cable, Terminal, FolderOpen, LayoutDashboard, Target } from "lucide-react";
 
 export default function MCPPage() {
   return (
@@ -15,21 +16,21 @@ export default function MCPPage() {
           <div>
             <h1 className="text-3xl font-bold">MCP Command Center</h1>
             <p className="text-zinc-400 mt-1">
-              Search properties, query database, and export to CSV buckets
+              Search properties, track leads, push to campaigns
             </p>
           </div>
         </div>
       </div>
       <div className="p-8">
-        <Tabs defaultValue="terminal" className="space-y-6">
+        <Tabs defaultValue="leads" className="space-y-6">
           <TabsList className="bg-zinc-900 border border-zinc-800">
+            <TabsTrigger value="leads" className="data-[state=active]:bg-purple-600">
+              <Target className="h-4 w-4 mr-2" />
+              Lead Tracker
+            </TabsTrigger>
             <TabsTrigger value="terminal" className="data-[state=active]:bg-purple-600">
               <Terminal className="h-4 w-4 mr-2" />
-              Terminal
-            </TabsTrigger>
-            <TabsTrigger value="searches" className="data-[state=active]:bg-purple-600">
-              <FolderOpen className="h-4 w-4 mr-2" />
-              Saved Searches
+              Quick Search
             </TabsTrigger>
             <TabsTrigger value="connections" className="data-[state=active]:bg-purple-600">
               <LayoutDashboard className="h-4 w-4 mr-2" />
@@ -37,12 +38,12 @@ export default function MCPPage() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="terminal" className="mt-0">
-            <MCPTerminal />
+          <TabsContent value="leads" className="mt-0">
+            <LeadTracker />
           </TabsContent>
 
-          <TabsContent value="searches" className="mt-0">
-            <MCPSavedSearches />
+          <TabsContent value="terminal" className="mt-0">
+            <MCPTerminal />
           </TabsContent>
 
           <TabsContent value="connections" className="mt-0">
