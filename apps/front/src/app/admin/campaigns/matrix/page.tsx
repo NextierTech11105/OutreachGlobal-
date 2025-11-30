@@ -24,12 +24,8 @@ interface MatrixCell {
 const propertyTypes = ["Single Family", "Multi-Family", "Condo", "Land", "Commercial"];
 const leadSources = ["Skip Trace", "Direct Mail", "Cold Call", "Referral", "Website"];
 
-const initialMatrix: MatrixCell[] = [
-  { propertyType: "Single Family", leadSource: "Skip Trace", campaignId: "c1", campaignName: "SF Skip Trace Outreach" },
-  { propertyType: "Single Family", leadSource: "Direct Mail", campaignId: "c2", campaignName: "SF Mail Follow-up" },
-  { propertyType: "Multi-Family", leadSource: "Skip Trace", campaignId: "c3", campaignName: "MF Investor Outreach" },
-  { propertyType: "Single Family", leadSource: "Website", campaignId: "c4", campaignName: "Inbound Lead Nurture" },
-];
+// NO MOCK DATA - User creates their own mappings
+const initialMatrix: MatrixCell[] = [];
 
 export default function CampaignMatrixPage() {
   const [matrix, setMatrix] = useState<MatrixCell[]>(initialMatrix);
@@ -168,21 +164,9 @@ export default function CampaignMatrixPage() {
                 Cancel
               </Button>
             </div>
-            <div className="mt-4">
-              <p className="text-sm text-muted-foreground mb-2">Or select existing campaign:</p>
-              <div className="flex flex-wrap gap-2">
-                {["High Equity Outreach", "Foreclosure Rescue", "Investor Opportunity", "First-Time Buyer"].map(name => (
-                  <Button
-                    key={name}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => assignCampaign(selectedCell.row, selectedCell.col, name)}
-                  >
-                    {name}
-                  </Button>
-                ))}
-              </div>
-            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Press Enter to assign campaign name
+            </p>
           </CardContent>
         </Card>
       )}
