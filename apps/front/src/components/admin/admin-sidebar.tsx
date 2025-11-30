@@ -17,6 +17,8 @@ import {
   LayoutGrid,
   Megaphone,
   ChevronRight,
+  Cable,
+  Target,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -55,6 +57,12 @@ export function AdminSidebar() {
       label: "Dashboard",
       icon: <BarChart3 className="h-4 w-4" />,
       active: pathname === "/admin",
+    },
+    {
+      href: "/admin/mcp",
+      label: "MCP Lead Tracker",
+      icon: <Target className="h-4 w-4 text-purple-400" />,
+      active: pathname === "/admin/mcp",
     },
     {
       href: "/admin/users",

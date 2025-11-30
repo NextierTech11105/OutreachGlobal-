@@ -42,6 +42,12 @@ import {
   Database,
   FileSearch,
   Hash,
+  Info,
+  Send,
+  CloudUpload,
+  Eye,
+  Upload,
+  FileUp,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -55,23 +61,71 @@ interface ActivityLogEntry {
   details?: string;
 }
 
-// Property types from RealEstateAPI
+// Property types from RealEstateAPI (exact API values)
 const PROPERTY_TYPES = [
   { value: "SFR", label: "Single Family", icon: Home },
-  { value: "MFR", label: "Multi-Family", icon: Building },
+  { value: "MFR", label: "Multi-Family (2-4)", icon: Building },
+  { value: "mfh_5plus", label: "Multi-Family (5+)", icon: Building },
   { value: "LAND", label: "Land", icon: TreePine },
   { value: "CONDO", label: "Condo", icon: Building2 },
+  { value: "TOWNHOUSE", label: "Townhouse", icon: Building2 },
   { value: "MOBILE", label: "Mobile", icon: Home },
-  { value: "OTHER", label: "Commercial/Other", icon: Factory },
+  { value: "COMMERCIAL", label: "Commercial", icon: Factory },
+  { value: "INDUSTRIAL", label: "Industrial", icon: Factory },
+  { value: "RETAIL", label: "Retail", icon: Store },
 ];
 
 const STATES = [
-  { value: "NY", label: "New York" },
-  { value: "NJ", label: "New Jersey" },
-  { value: "CT", label: "Connecticut" },
-  { value: "FL", label: "Florida" },
-  { value: "TX", label: "Texas" },
+  { value: "AL", label: "Alabama" },
+  { value: "AK", label: "Alaska" },
+  { value: "AZ", label: "Arizona" },
+  { value: "AR", label: "Arkansas" },
   { value: "CA", label: "California" },
+  { value: "CO", label: "Colorado" },
+  { value: "CT", label: "Connecticut" },
+  { value: "DE", label: "Delaware" },
+  { value: "FL", label: "Florida" },
+  { value: "GA", label: "Georgia" },
+  { value: "HI", label: "Hawaii" },
+  { value: "ID", label: "Idaho" },
+  { value: "IL", label: "Illinois" },
+  { value: "IN", label: "Indiana" },
+  { value: "IA", label: "Iowa" },
+  { value: "KS", label: "Kansas" },
+  { value: "KY", label: "Kentucky" },
+  { value: "LA", label: "Louisiana" },
+  { value: "ME", label: "Maine" },
+  { value: "MD", label: "Maryland" },
+  { value: "MA", label: "Massachusetts" },
+  { value: "MI", label: "Michigan" },
+  { value: "MN", label: "Minnesota" },
+  { value: "MS", label: "Mississippi" },
+  { value: "MO", label: "Missouri" },
+  { value: "MT", label: "Montana" },
+  { value: "NE", label: "Nebraska" },
+  { value: "NV", label: "Nevada" },
+  { value: "NH", label: "New Hampshire" },
+  { value: "NJ", label: "New Jersey" },
+  { value: "NM", label: "New Mexico" },
+  { value: "NY", label: "New York" },
+  { value: "NC", label: "North Carolina" },
+  { value: "ND", label: "North Dakota" },
+  { value: "OH", label: "Ohio" },
+  { value: "OK", label: "Oklahoma" },
+  { value: "OR", label: "Oregon" },
+  { value: "PA", label: "Pennsylvania" },
+  { value: "RI", label: "Rhode Island" },
+  { value: "SC", label: "South Carolina" },
+  { value: "SD", label: "South Dakota" },
+  { value: "TN", label: "Tennessee" },
+  { value: "TX", label: "Texas" },
+  { value: "UT", label: "Utah" },
+  { value: "VT", label: "Vermont" },
+  { value: "VA", label: "Virginia" },
+  { value: "WA", label: "Washington" },
+  { value: "WV", label: "West Virginia" },
+  { value: "WI", label: "Wisconsin" },
+  { value: "WY", label: "Wyoming" },
 ];
 
 interface SavedSearch {
@@ -110,6 +164,12 @@ interface PrioritizedLead {
   isPreForeclosure: boolean;
   isTaxLien: boolean;
   isVacant: boolean;
+  // MLS & Change Tracking
+  isMlsActive: boolean;       // Currently listed - DO NOT PURSUE
+  isMlsExpired: boolean;      // Listing expired - HOT LEAD!
+  hasDeedChange: boolean;     // Recent deed change - FLAG for review
+  hasStatusChange: boolean;   // Any recent status change
+  changeType?: "added" | "updated" | "deleted" | "unchanged";
   raw: any;
 }
 
@@ -124,6 +184,9 @@ const SCORE_WEIGHTS = {
   sfr: 5,              // Single family baseline
   mfr: 15,             // Multi-family = investor target
   commercial: 20,      // Commercial = higher value
+  mlsExpired: 35,      // Listing expired = HOT! Failed to sell
+  deedChange: -50,     // Recent sale = probably not motivated (negative)
+  mlsActive: -100,     // Currently listed = DO NOT PURSUE
 };
 
 export function LeadTracker() {
@@ -131,7 +194,16 @@ export function LeadTracker() {
   const [prioritizedLeads, setPrioritizedLeads] = useState<PrioritizedLead[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isRunningAll, setIsRunningAll] = useState(false);
+  const [isFetchingDetails, setIsFetchingDetails] = useState(false);
+  const [isSavingToDb, setIsSavingToDb] = useState(false);
+  const [isUploadingCsv, setIsUploadingCsv] = useState(false);
   const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>([]);
+  const csvInputRef = useRef<HTMLInputElement>(null);
+
+  // Lead filtering
+  const [hideMlsActive, setHideMlsActive] = useState(true); // Default: hide MLS listed
+  const [showOnlyHot, setShowOnlyHot] = useState(false);    // Show only score >= 70
+  const [showOnlyExpired, setShowOnlyExpired] = useState(false); // Show only expired listings
   const [currentStep, setCurrentStep] = useState<{ search: string; step: number; total: number } | null>(null);
   const activityLogRef = useRef<HTMLDivElement>(null);
 
@@ -213,7 +285,7 @@ export function LeadTracker() {
         state: selectedState,
         property_type: type,
         absentee_owner: true,
-        size: 100,
+        size: 250, // Max allowed by API
       },
       propertyIds: [],
       lastRun: null,
@@ -228,6 +300,7 @@ export function LeadTracker() {
 
   // Calculate lead score using API response fields
   // API fields: absenteeOwner, equityPercent, preForeclosure, taxLien, vacant, lotSize, propertyType
+  // MLS fields: mlsActive, mlsCancelled (expired), mlsDaysOnMarket
   const calculateScore = (prop: any): { score: number; breakdown: PrioritizedLead["scoreBreakdown"] } => {
     const breakdown = {
       absentee: 0,
@@ -236,6 +309,27 @@ export function LeadTracker() {
       propertyType: 0,
       distressed: 0,
     };
+
+    // === MLS STATUS - Critical for deciding whether to pursue ===
+    // Currently listed = DO NOT PURSUE (will be filtered out)
+    if (prop.mlsActive) {
+      // Return -100 score - these will be filtered/hidden
+      return { score: SCORE_WEIGHTS.mlsActive, breakdown };
+    }
+
+    // MLS Expired/Cancelled = HOT LEAD! Failed to sell, motivated seller
+    if (prop.mlsCancelled) {
+      breakdown.distressed += SCORE_WEIGHTS.mlsExpired;
+    }
+
+    // Recent deed change (last 90 days) = Recently sold, not motivated
+    if (prop.lastSaleDate) {
+      const lastSale = new Date(prop.lastSaleDate);
+      const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+      if (lastSale > ninetyDaysAgo) {
+        breakdown.distressed += SCORE_WEIGHTS.deedChange; // Negative score
+      }
+    }
 
     // Absentee owner (API field: absenteeOwner)
     if (prop.absenteeOwner) {
@@ -267,11 +361,11 @@ export function LeadTracker() {
       breakdown.lotSize = SCORE_WEIGHTS.bigLot;
     }
 
-    // Property type scoring (API field: propertyType - SFR, MFR, CONDO, etc.)
-    const propType = prop.propertyType || "";
-    if (propType === "MFR" || propType.includes("Multi")) {
+    // Property type scoring (API field: propertyType - SFR, MFR, CONDO, COMMERCIAL, etc.)
+    const propType = (prop.propertyType || "").toUpperCase();
+    if (propType === "MFR" || propType === "MFH_5PLUS" || propType.includes("MULTI")) {
       breakdown.propertyType = SCORE_WEIGHTS.mfr;
-    } else if (propType === "OTHER" || propType.includes("Commercial")) {
+    } else if (propType === "COMMERCIAL" || propType === "INDUSTRIAL" || propType === "RETAIL" || propType.includes("COMMERCIAL")) {
       breakdown.propertyType = SCORE_WEIGHTS.commercial;
     } else {
       breakdown.propertyType = SCORE_WEIGHTS.sfr;
@@ -404,6 +498,12 @@ export function LeadTracker() {
           .filter(Boolean)
           .join(" ") || prop.ownerName || "Unknown";
 
+        // Check MLS status from API response
+        const isMlsActive = prop.mlsActive || false;
+        const isMlsExpired = prop.mlsCancelled || false;
+        const hasDeedChange = prop.lastSale?.documentTypeCode === "DTWD" &&
+          prop.lastSaleDate && new Date(prop.lastSaleDate) > new Date(Date.now() - 90 * 24 * 60 * 60 * 1000); // Last 90 days
+
         return {
           id: prop.id || prop.propertyId || `${prop.address?.street}-${prop.address?.zip}`,
           address: prop.address?.street || prop.address?.address || "",
@@ -421,6 +521,12 @@ export function LeadTracker() {
           isPreForeclosure: prop.preForeclosure || false,
           isTaxLien: prop.taxLien || false,
           isVacant: prop.vacant || false,
+          // MLS & Change Tracking
+          isMlsActive,           // Currently listed - DO NOT PURSUE
+          isMlsExpired,          // Listing expired - HOT LEAD!
+          hasDeedChange,         // Recent deed change - FLAG
+          hasStatusChange: false, // Will be set from Portfolio API
+          changeType: undefined,
           raw: prop,
         };
       });
@@ -487,6 +593,259 @@ export function LeadTracker() {
   const deleteSearch = (searchId: string) => {
     setSavedSearches((prev) => prev.filter((s) => s.id !== searchId));
     toast.success("Search deleted");
+  };
+
+  // Save all searches to RealEstateAPI Portfolio (official tracking with daily change reports)
+  const saveAllToDatabase = async () => {
+    if (savedSearches.length === 0) {
+      toast.error("No searches to save");
+      return;
+    }
+
+    setIsSavingToDb(true);
+    addLog("info", "Saving to RealEstateAPI Portfolio...", "Creating tracked saved searches with daily change reports");
+
+    let saved = 0;
+    let failed = 0;
+
+    for (const search of savedSearches) {
+      if (search.status !== "complete" || search.propertyIds.length === 0) continue;
+
+      try {
+        // Use RealEstateAPI's official Saved Search API for tracking changes
+        const response = await fetch("/api/portfolio/saved-search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            search_name: search.name,
+            list_size: Math.min(search.propertyIds.length, 10000),
+            search_query: {
+              ids: search.propertyIds.slice(0, 10000), // Track by IDs (max 10K)
+            },
+            meta_data: {
+              county: search.county,
+              state: search.state,
+              property_type: search.propertyType,
+              source: "lead_tracker",
+            },
+          }),
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          saved++;
+          addLog("success", `✓ Saved: ${search.name}`, `searchId: ${result.searchId}`);
+        } else {
+          failed++;
+          const err = await response.json();
+          addLog("error", `✗ Failed: ${search.name}`, err.error || err.message);
+        }
+      } catch (err: any) {
+        failed++;
+        addLog("error", `✗ Failed: ${search.name}`, err.message);
+      }
+
+      await new Promise((r) => setTimeout(r, 300));
+    }
+
+    setIsSavingToDb(false);
+    if (saved > 0) {
+      toast.success(`${saved} searches saved to RealEstateAPI Portfolio!`);
+      addLog("success", `Daily tracking enabled for ${saved} searches`, "Check changes via Retrieve API");
+    }
+  };
+
+  // Fetch batch details for leads (250 at a time)
+  const fetchBatchDetails = async () => {
+    const leadsNeedingDetails = prioritizedLeads.filter((l) => !l.raw?.saleHistory);
+
+    if (leadsNeedingDetails.length === 0) {
+      toast.info("All leads already have details");
+      return;
+    }
+
+    setIsFetchingDetails(true);
+    const batchSize = 250;
+    const ids = leadsNeedingDetails.slice(0, batchSize).map((l) => l.id);
+
+    addLog("step", `Fetching details for ${ids.length} properties...`, "Getting personalization variables");
+
+    try {
+      const response = await fetch("/api/property/detail", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch details");
+      }
+
+      const result = await response.json();
+      const details = result.data || [];
+
+      addLog("success", `✓ Got ${details.length} property details`, "Owner info, sale history, equity data");
+
+      // Merge details with existing leads
+      setPrioritizedLeads((prev) => {
+        return prev.map((lead) => {
+          const detail = details.find((d: any) => String(d.id) === String(lead.id) || String(d.propertyId) === String(lead.id));
+          if (detail) {
+            return {
+              ...lead,
+              raw: { ...lead.raw, ...detail },
+              // Update with more accurate data
+              equity: detail.equityPercent || lead.equity,
+              value: detail.estimatedValue || lead.value,
+              owner: detail.owner1FirstName && detail.owner1LastName
+                ? `${detail.owner1FirstName} ${detail.owner1LastName}`
+                : lead.owner,
+            };
+          }
+          return lead;
+        });
+      });
+
+      toast.success(`Updated ${details.length} leads with details`);
+    } catch (err: any) {
+      addLog("error", "Failed to fetch details", err.message);
+      toast.error(err.message);
+    }
+
+    setIsFetchingDetails(false);
+  };
+
+  // Handle CSV Upload - Import addresses from PropWire, Zoho, etc.
+  const handleCsvUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingCsv(true);
+    addLog("info", `Uploading CSV: ${file.name}`, "Parsing addresses...");
+
+    try {
+      const text = await file.text();
+      const lines = text.split("\n").map((line) => line.trim()).filter(Boolean);
+
+      // Get headers from first line
+      const headers = lines[0].toLowerCase().split(",").map((h) => h.trim().replace(/"/g, ""));
+      const addressIdx = headers.findIndex((h) =>
+        h.includes("address") || h.includes("street") || h.includes("property")
+      );
+      const cityIdx = headers.findIndex((h) => h.includes("city"));
+      const stateIdx = headers.findIndex((h) => h.includes("state"));
+      const zipIdx = headers.findIndex((h) => h.includes("zip") || h.includes("postal"));
+
+      if (addressIdx === -1) {
+        throw new Error("CSV must have an address column (address, street, or property_address)");
+      }
+
+      const addresses: Array<{ address: string; city?: string; state?: string; zip?: string }> = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(",").map((c) => c.trim().replace(/"/g, ""));
+        const addr = cols[addressIdx];
+        if (addr && addr.length > 5) {
+          addresses.push({
+            address: addr,
+            city: cityIdx >= 0 ? cols[cityIdx] : undefined,
+            state: stateIdx >= 0 ? cols[stateIdx] : undefined,
+            zip: zipIdx >= 0 ? cols[zipIdx] : undefined,
+          });
+        }
+      }
+
+      addLog("success", `✓ Parsed ${addresses.length} addresses from CSV`);
+
+      if (addresses.length === 0) {
+        throw new Error("No valid addresses found in CSV");
+      }
+
+      // Create a saved search for this imported list
+      const sourceName = file.name.replace(/\.[^/.]+$/, ""); // Remove extension
+      const newSearch: SavedSearch = {
+        id: `import-${sourceName}-${Date.now()}`,
+        name: `📁 Imported: ${sourceName} (${addresses.length} properties)`,
+        county: addresses[0].city || "Imported",
+        state: addresses[0].state || "XX",
+        propertyType: "MIXED",
+        filters: {
+          source: "csv_import",
+          filename: file.name,
+          addresses: addresses,
+        },
+        propertyIds: [],
+        lastRun: null,
+        resultCount: addresses.length,
+        status: "pending",
+      };
+
+      setSavedSearches((prev) => [...prev, newSearch]);
+      addLog("info", `Created search: ${newSearch.name}`, "Click Run to lookup property IDs");
+
+      // Now lookup each address to get property IDs
+      addLog("step", "Looking up property IDs...", `Processing ${addresses.length} addresses`);
+
+      const propertyIds: string[] = [];
+      const batchSize = 10; // Lookup 10 at a time
+
+      for (let i = 0; i < Math.min(addresses.length, 250); i += batchSize) {
+        const batch = addresses.slice(i, i + batchSize);
+
+        await Promise.all(
+          batch.map(async (addr) => {
+            try {
+              // Build search query
+              const query: any = { size: 1 };
+              if (addr.zip) query.zip = addr.zip;
+              if (addr.state) query.state = addr.state;
+              if (addr.city) query.city = addr.city;
+
+              // Use AutoComplete endpoint to find property by address
+              const response = await fetch("/api/property/search", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  ...query,
+                  address: addr.address,
+                  size: 1,
+                }),
+              });
+
+              if (response.ok) {
+                const data = await response.json();
+                if (data.data?.[0]?.id) {
+                  propertyIds.push(String(data.data[0].id));
+                }
+              }
+            } catch (e) {
+              // Skip failed lookups
+            }
+          })
+        );
+
+        addLog("step", `Looked up ${Math.min(i + batchSize, addresses.length)}/${addresses.length}`, `Found ${propertyIds.length} IDs so far`);
+        await new Promise((r) => setTimeout(r, 200)); // Rate limit
+      }
+
+      // Update the search with found IDs
+      setSavedSearches((prev) =>
+        prev.map((s) =>
+          s.id === newSearch.id
+            ? { ...s, propertyIds, status: "complete", lastRun: new Date() }
+            : s
+        )
+      );
+
+      addLog("success", `✓ Found ${propertyIds.length} property IDs`, "Ready to save to Portfolio");
+      toast.success(`Imported ${addresses.length} addresses, found ${propertyIds.length} property IDs`);
+    } catch (err: any) {
+      addLog("error", "CSV Upload Failed", err.message);
+      toast.error(err.message);
+    } finally {
+      setIsUploadingCsv(false);
+      if (csvInputRef.current) csvInputRef.current.value = "";
+    }
   };
 
   // Push to SMS Campaign (5K batch)
@@ -885,18 +1244,69 @@ export function LeadTracker() {
                   Run searches to populate leads with property IDs
                 </CardDescription>
               </div>
-              <Button
-                onClick={runAllSearches}
-                disabled={isRunningAll}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                {isRunningAll ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Play className="h-4 w-4 mr-2" />
-                )}
-                Run All
-              </Button>
+              <div className="flex gap-2">
+                {/* Hidden CSV input */}
+                <input
+                  type="file"
+                  ref={csvInputRef}
+                  accept=".csv"
+                  onChange={handleCsvUpload}
+                  className="hidden"
+                />
+                <Button
+                  variant="outline"
+                  onClick={() => csvInputRef.current?.click()}
+                  disabled={isUploadingCsv}
+                  className="border-zinc-700"
+                  title="Import addresses from PropWire, Zoho CSV"
+                >
+                  {isUploadingCsv ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4 mr-2" />
+                  )}
+                  Upload CSV
+                </Button>
+                <Button
+                  onClick={runAllSearches}
+                  disabled={isRunningAll}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  {isRunningAll ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Play className="h-4 w-4 mr-2" />
+                  )}
+                  Run All
+                </Button>
+                <Button
+                  onClick={saveAllToDatabase}
+                  disabled={isSavingToDb || savedSearches.filter(s => s.status === "complete").length === 0}
+                  className="bg-blue-600 hover:bg-blue-700"
+                  title="Save to RealEstateAPI Portfolio for daily change tracking"
+                >
+                  {isSavingToDb ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <CloudUpload className="h-4 w-4 mr-2" />
+                  )}
+                  Save Portfolio
+                </Button>
+                <Button
+                  onClick={fetchBatchDetails}
+                  disabled={isFetchingDetails || prioritizedLeads.length === 0}
+                  variant="outline"
+                  className="border-purple-700 text-purple-400 hover:bg-purple-900/20"
+                  title="Fetch full details for 250 leads (personalization variables)"
+                >
+                  {isFetchingDetails ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Eye className="h-4 w-4 mr-2" />
+                  )}
+                  Get Details
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -979,11 +1389,11 @@ export function LeadTracker() {
             {prioritizedLeads.length > 0 && (
               <div className="flex gap-2">
                 <Button
-                  onClick={() => pushToCampaign(prioritizedLeads.filter(l => l.score >= 40), "Hot_Leads")}
+                  onClick={() => pushToCampaign(prioritizedLeads.filter(l => l.score >= 40 && !l.isMlsActive), "Hot_Leads")}
                   className="bg-orange-600 hover:bg-orange-700"
                 >
                   <Target className="h-4 w-4 mr-2" />
-                  Push to SMS ({prioritizedLeads.filter(l => l.score >= 40).length})
+                  Push to SMS ({prioritizedLeads.filter(l => l.score >= 40 && !l.isMlsActive).length})
                 </Button>
                 <Button onClick={exportLeadsToCSV} className="bg-green-600 hover:bg-green-700">
                   <Download className="h-4 w-4 mr-2" />
@@ -992,6 +1402,42 @@ export function LeadTracker() {
               </div>
             )}
           </div>
+          {/* Filter Toggles */}
+          {prioritizedLeads.length > 0 && (
+            <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-zinc-800">
+              <label className="flex items-center gap-2 text-sm text-zinc-400 cursor-pointer">
+                <Checkbox
+                  checked={hideMlsActive}
+                  onCheckedChange={(checked) => setHideMlsActive(!!checked)}
+                  className="border-zinc-600"
+                />
+                <span>Hide MLS Listed ({prioritizedLeads.filter(l => l.isMlsActive).length})</span>
+              </label>
+              <label className="flex items-center gap-2 text-sm text-zinc-400 cursor-pointer">
+                <Checkbox
+                  checked={showOnlyHot}
+                  onCheckedChange={(checked) => setShowOnlyHot(!!checked)}
+                  className="border-zinc-600"
+                />
+                <span>Hot Leads Only (70+)</span>
+              </label>
+              <label className="flex items-center gap-2 text-sm text-zinc-400 cursor-pointer">
+                <Checkbox
+                  checked={showOnlyExpired}
+                  onCheckedChange={(checked) => setShowOnlyExpired(!!checked)}
+                  className="border-zinc-600"
+                />
+                <span>Expired Listings Only ({prioritizedLeads.filter(l => l.isMlsExpired).length})</span>
+              </label>
+              {/* Stats */}
+              <div className="ml-auto flex gap-4 text-xs text-zinc-500">
+                <span className="text-green-400">🔥 Hot: {prioritizedLeads.filter(l => l.score >= 70).length}</span>
+                <span className="text-orange-400">⚠️ Warm: {prioritizedLeads.filter(l => l.score >= 40 && l.score < 70).length}</span>
+                <span className="text-blue-400">📋 MLS Listed: {prioritizedLeads.filter(l => l.isMlsActive).length}</span>
+                <span className="text-purple-400">⏰ Expired: {prioritizedLeads.filter(l => l.isMlsExpired).length}</span>
+              </div>
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           {prioritizedLeads.length === 0 ? (
@@ -1001,22 +1447,53 @@ export function LeadTracker() {
             </div>
           ) : (
             <div className="space-y-2 max-h-[600px] overflow-y-auto">
-              {prioritizedLeads.slice(0, 50).map((lead, i) => (
+              {prioritizedLeads
+                .filter(lead => {
+                  // Apply filters
+                  if (hideMlsActive && lead.isMlsActive) return false;
+                  if (showOnlyHot && lead.score < 70) return false;
+                  if (showOnlyExpired && !lead.isMlsExpired) return false;
+                  return true;
+                })
+                .slice(0, 50)
+                .map((lead, i) => (
                 <div
                   key={lead.id}
-                  className="flex items-center gap-3 p-3 bg-zinc-800/50 rounded-lg border border-zinc-700"
+                  className={`flex items-center gap-3 p-3 bg-zinc-800/50 rounded-lg border ${
+                    lead.isMlsActive
+                      ? "border-blue-700/50 opacity-60"
+                      : lead.isMlsExpired
+                      ? "border-purple-500 border-2"
+                      : "border-zinc-700"
+                  }`}
                 >
                   <div className={`flex items-center justify-center w-12 h-12 rounded-lg font-bold ${getScoreColor(lead.score)}`}>
                     {lead.score}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-medium text-zinc-200 truncate">{lead.address}</p>
+                      {/* MLS Status Badges - Most Important */}
+                      {lead.isMlsActive && (
+                        <Badge className="bg-blue-900/50 text-blue-300 text-xs border border-blue-500">📋 MLS Listed</Badge>
+                      )}
+                      {lead.isMlsExpired && (
+                        <Badge className="bg-purple-900/50 text-purple-300 text-xs border border-purple-500">⏰ EXPIRED</Badge>
+                      )}
+                      {lead.hasDeedChange && (
+                        <Badge className="bg-yellow-900/50 text-yellow-300 text-xs">📝 Recent Deed</Badge>
+                      )}
                       {lead.isAbsentee && (
                         <Badge className="bg-purple-900/50 text-purple-300 text-xs">Absentee</Badge>
                       )}
                       {lead.isPreForeclosure && (
                         <Badge className="bg-red-900/50 text-red-300 text-xs">Pre-Foreclosure</Badge>
+                      )}
+                      {lead.isTaxLien && (
+                        <Badge className="bg-orange-900/50 text-orange-300 text-xs">Tax Lien</Badge>
+                      )}
+                      {lead.isVacant && (
+                        <Badge className="bg-gray-700/50 text-gray-300 text-xs">Vacant</Badge>
                       )}
                     </div>
                     <p className="text-xs text-zinc-500">

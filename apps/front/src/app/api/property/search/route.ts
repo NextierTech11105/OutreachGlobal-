@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const REALESTATE_API_KEY = process.env.REALESTATE_API_KEY || "NEXTIER-2906-74a1-8684-d2f63f473b7b";
+const REALESTATE_API_KEY = process.env.REAL_ESTATE_API_KEY || process.env.REALESTATE_API_KEY || "NEXTIER-2906-74a1-8684-d2f63f473b7b";
 const REALESTATE_API_URL = "https://api.realestateapi.com/v2/PropertySearch";
 
 export async function POST(request: NextRequest) {
