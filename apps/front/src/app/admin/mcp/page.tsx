@@ -1,3 +1,5 @@
+"use client";
+
 import { MCPDashboard } from "@/components/admin/mcp-dashboard";
 import { MCPTerminal } from "@/components/admin/mcp-terminal";
 import { MCPSavedSearches } from "@/components/admin/mcp-saved-searches";
