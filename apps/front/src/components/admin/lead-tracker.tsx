@@ -48,6 +48,12 @@ import {
   Eye,
   Upload,
   FileUp,
+  Phone,
+  Mail,
+  Bot,
+  Rocket,
+  PhoneCall,
+  MessageSquare,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -63,10 +69,10 @@ interface ActivityLogEntry {
 
 // Property types from RealEstateAPI - ONLY these 6 values are valid!
 // API error: "PropertySearchPropertyTypeEnums" must be one of [SFR, MFR, LAND, CONDO, OTHER, MOBILE]
+// NOTE: NO CONDOS/COOPS - They have HOA issues and are harder to work with
 const PROPERTY_TYPES = [
   { value: "SFR", label: "Single Family", icon: Home },
   { value: "MFR", label: "Multi-Family", icon: Building },
-  { value: "CONDO", label: "Condo", icon: Building2 },
   { value: "LAND", label: "Land", icon: TreePine },
   { value: "MOBILE", label: "Mobile Home", icon: Home },
   { value: "OTHER", label: "Commercial/Other", icon: Factory },
@@ -125,6 +131,30 @@ const STATES = [
   { value: "WY", label: "Wyoming" },
 ];
 
+// Counties by state - major markets
+const COUNTIES_BY_STATE: Record<string, string[]> = {
+  NY: ["New York", "Kings", "Queens", "Bronx", "Richmond", "Nassau", "Suffolk", "Westchester", "Erie", "Monroe", "Onondaga", "Albany", "Orange", "Rockland", "Dutchess"],
+  NJ: ["Bergen", "Essex", "Hudson", "Middlesex", "Monmouth", "Morris", "Passaic", "Union", "Camden", "Burlington", "Ocean", "Mercer", "Somerset", "Atlantic", "Gloucester"],
+  CA: ["Los Angeles", "San Diego", "Orange", "Riverside", "San Bernardino", "Santa Clara", "Alameda", "Sacramento", "Contra Costa", "Fresno", "San Francisco", "Ventura", "San Mateo", "Kern", "San Joaquin"],
+  TX: ["Harris", "Dallas", "Tarrant", "Bexar", "Travis", "Collin", "Denton", "Fort Bend", "Hidalgo", "El Paso", "Williamson", "Montgomery", "Cameron", "Nueces", "Brazoria"],
+  FL: ["Miami-Dade", "Broward", "Palm Beach", "Hillsborough", "Orange", "Pinellas", "Duval", "Lee", "Polk", "Brevard", "Volusia", "Seminole", "Sarasota", "Manatee", "Collier"],
+  PA: ["Philadelphia", "Allegheny", "Montgomery", "Bucks", "Delaware", "Chester", "Lancaster", "Berks", "Lehigh", "York", "Northampton", "Dauphin", "Erie", "Westmoreland", "Cumberland"],
+  IL: ["Cook", "DuPage", "Lake", "Will", "Kane", "McHenry", "Winnebago", "Madison", "St. Clair", "Champaign", "Sangamon", "Peoria", "Kendall", "Rock Island", "Tazewell"],
+  OH: ["Cuyahoga", "Franklin", "Hamilton", "Summit", "Montgomery", "Lucas", "Butler", "Stark", "Lorain", "Warren", "Lake", "Medina", "Clermont", "Mahoning", "Delaware"],
+  GA: ["Fulton", "Gwinnett", "Cobb", "DeKalb", "Chatham", "Cherokee", "Clayton", "Forsyth", "Henry", "Hall", "Richmond", "Muscogee", "Bibb", "Douglas", "Paulding"],
+  NC: ["Mecklenburg", "Wake", "Guilford", "Forsyth", "Cumberland", "Durham", "Buncombe", "Union", "Gaston", "New Hanover", "Cabarrus", "Iredell", "Johnston", "Pitt", "Catawba"],
+  AZ: ["Maricopa", "Pima", "Pinal", "Yavapai", "Mohave", "Yuma", "Coconino", "Cochise", "Navajo", "Apache"],
+  CO: ["Denver", "El Paso", "Arapahoe", "Jefferson", "Adams", "Larimer", "Douglas", "Boulder", "Weld", "Pueblo"],
+  MI: ["Wayne", "Oakland", "Macomb", "Kent", "Genesee", "Washtenaw", "Ingham", "Ottawa", "Kalamazoo", "Livingston"],
+  WA: ["King", "Pierce", "Snohomish", "Spokane", "Clark", "Thurston", "Kitsap", "Whatcom", "Benton", "Yakima"],
+  MA: ["Middlesex", "Worcester", "Suffolk", "Essex", "Norfolk", "Bristol", "Plymouth", "Hampden", "Barnstable", "Hampshire"],
+  VA: ["Fairfax", "Virginia Beach", "Prince William", "Loudoun", "Chesterfield", "Henrico", "Arlington", "Richmond", "Norfolk", "Chesapeake"],
+  MD: ["Montgomery", "Prince George's", "Baltimore", "Anne Arundel", "Howard", "Baltimore City", "Harford", "Frederick", "Charles", "Carroll"],
+  TN: ["Shelby", "Davidson", "Knox", "Hamilton", "Rutherford", "Williamson", "Sumner", "Montgomery", "Wilson", "Blount"],
+  NV: ["Clark", "Washoe", "Carson City", "Douglas", "Elko", "Lyon", "Nye", "Churchill", "Humboldt", "White Pine"],
+  CT: ["Fairfield", "Hartford", "New Haven", "Litchfield", "Middlesex", "New London", "Tolland", "Windham"],
+};
+
 interface SavedSearch {
   id: string;
   name: string;
@@ -162,12 +192,22 @@ interface PrioritizedLead {
   isPreForeclosure: boolean;
   isTaxLien: boolean;
   isVacant: boolean;
+  // Loan/Mortgage Flags
+  isReverseMortgage: boolean; // REVERSE MORTGAGE - Special handling needed!
   // MLS & Change Tracking
   isMlsActive: boolean;       // Currently listed - DO NOT PURSUE
   isMlsExpired: boolean;      // Listing expired - HOT LEAD!
   hasDeedChange: boolean;     // Recent deed change - FLAG for review
   hasStatusChange: boolean;   // Any recent status change
   changeType?: "added" | "updated" | "deleted" | "unchanged";
+  // Skip Trace Contact Info
+  phones: string[];           // Owner phone numbers from skip trace
+  emails: string[];           // Owner emails from skip trace
+  skipTraced: boolean;        // Whether skip trace has been run
+  skipTracedAt?: Date;        // When skip trace was run
+  // Campaign Status
+  campaignId?: string;        // If pushed to a campaign
+  campaignStatus?: "pending" | "sent" | "delivered" | "responded";
   raw: any;
 }
 
@@ -183,6 +223,7 @@ const SCORE_WEIGHTS = {
   mfr: 15,             // Multi-family = investor target
   commercial: 20,      // Commercial = higher value
   mlsExpired: 35,      // Listing expired = HOT! Failed to sell
+  reverseMortgage: 40, // REVERSE MORTGAGE = elderly/estate, complex but motivated!
   deedChange: -50,     // Recent sale = probably not motivated (negative)
   mlsActive: -100,     // Currently listed = DO NOT PURSUE
 };
@@ -198,10 +239,28 @@ export function LeadTracker() {
   const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>([]);
   const csvInputRef = useRef<HTMLInputElement>(null);
 
+  // Skip Trace Workflow State
+  const [isSkipTracing, setIsSkipTracing] = useState(false);
+  const [skipTraceUsage, setSkipTraceUsage] = useState<{ used: number; limit: number; remaining: number }>({ used: 0, limit: 5000, remaining: 5000 });
+  const [skipTraceProgress, setSkipTraceProgress] = useState<{ current: number; total: number } | null>(null);
+
+  // Campaign Workflow State
+  const [isPushingToCampaign, setIsPushingToCampaign] = useState(false);
+  const [isAssigningNumber, setIsAssigningNumber] = useState(false);
+  const [isAssigningAiSdr, setIsAssigningAiSdr] = useState(false);
+  const [activeCampaign, setActiveCampaign] = useState<{ id: string; name: string; phone?: string; sdr?: string } | null>(null);
+
+  // Selected leads for workflow actions
+  const [selectedLeadIds, setSelectedLeadIds] = useState<Set<string>>(new Set());
+
+  // Expanded lead detail view
+  const [expandedLeadId, setExpandedLeadId] = useState<string | null>(null);
+
   // Lead filtering
   const [hideMlsActive, setHideMlsActive] = useState(true); // Default: hide MLS listed
   const [showOnlyHot, setShowOnlyHot] = useState(false);    // Show only score >= 70
   const [showOnlyExpired, setShowOnlyExpired] = useState(false); // Show only expired listings
+  const [sortLeadsBy, setSortLeadsBy] = useState<"score" | "years_owned" | "equity" | "value">("years_owned"); // Default to years_owned!
   const [currentStep, setCurrentStep] = useState<{ search: string; step: number; total: number } | null>(null);
   const activityLogRef = useRef<HTMLDivElement>(null);
 
@@ -358,6 +417,12 @@ export function LeadTracker() {
       breakdown.distressed += SCORE_WEIGHTS.vacant;
     }
 
+    // REVERSE MORTGAGE - elderly/estate, motivated! Check mtg fields for "Reverse" or "HECM"
+    const loanType = String(prop.mtg1Type || prop.mortgageType || prop.openLoanType || "").toLowerCase();
+    if (prop.reverseMortgage || loanType.includes("reverse") || loanType.includes("hecm")) {
+      breakdown.distressed += SCORE_WEIGHTS.reverseMortgage;
+    }
+
     // Big lot (development potential) - over 1 acre (API field: lotSize or lotSquareFeet)
     const lotSize = prop.lotSize || prop.lotSquareFeet || 0;
     if (lotSize >= 43560) { // 1 acre in sqft
@@ -403,17 +468,9 @@ export function LeadTracker() {
         absentee_owner: true,
       };
 
-      // Add years owned filter if enabled (5+ years = more equity, more motivated)
-      if (filterByYearsOwned && minYearsOwned > 0) {
-        searchParams.min_years_owned = minYearsOwned;
-        searchParams.sort_by = "years_owned"; // Sort by longest ownership first
-        searchParams.sort_direction = "desc";
-      }
-
-      // Include MLS data to flag listed properties
-      if (includeMlsData) {
-        searchParams.include_mls = true;
-      }
+      // NOTE: RealEstateAPI doesn't support min_years_owned, sort_by, or include_mls params
+      // Years owned filtering will be done client-side after fetching results
+      // MLS data comes automatically if available in the property records
 
       // ====== STEP 1: Get count first (FREE - 0 credits) ======
       setCurrentStep({ search: searchName, step: 1, total: 3 });
@@ -543,6 +600,15 @@ export function LeadTracker() {
           yearsOwned = prop.yearsOwned;
         }
 
+        // Check for REVERSE MORTGAGE - elderly/estate, complex but motivated!
+        // RealEstateAPI fields: loanType, mortgageType, or mtg fields
+        const isReverseMortgage = prop.reverseMortgage ||
+          prop.loanType?.toLowerCase()?.includes("reverse") ||
+          prop.mortgageType?.toLowerCase()?.includes("reverse") ||
+          prop.mtg1Type?.toLowerCase()?.includes("reverse") ||
+          prop.mortgage1Type?.toLowerCase()?.includes("reverse") ||
+          false;
+
         return {
           id: prop.id || prop.propertyId || `${prop.address?.street}-${prop.address?.zip}`,
           address: prop.address?.street || prop.address?.address || "",
@@ -561,28 +627,43 @@ export function LeadTracker() {
           isPreForeclosure: prop.preForeclosure || false,
           isTaxLien: prop.taxLien || false,
           isVacant: prop.vacant || false,
+          // Loan/Mortgage
+          isReverseMortgage,     // REVERSE MORTGAGE - elderly/estate, motivated!
           // MLS & Change Tracking
           isMlsActive,           // Currently listed - DO NOT PURSUE
           isMlsExpired,          // Listing expired - HOT LEAD!
           hasDeedChange,         // Recent deed change - FLAG
           hasStatusChange: false, // Will be set from Portfolio API
           changeType: undefined,
+          // Skip Trace - not yet run
+          phones: [],
+          emails: [],
+          skipTraced: false,
           raw: prop,
         };
       });
 
+      // Client-side filter: Years owned (API doesn't support this param)
+      const filteredLeads = filterByYearsOwned && minYearsOwned > 0
+        ? newLeads.filter((l) => l.yearsOwned !== null && l.yearsOwned >= minYearsOwned)
+        : newLeads;
+
+      if (filterByYearsOwned && minYearsOwned > 0) {
+        addLog("info", `Filtered to ${filteredLeads.length} leads with ${minYearsOwned}+ years owned`, `${newLeads.length - filteredLeads.length} leads removed`);
+      }
+
       // Merge with existing leads (avoid duplicates)
       setPrioritizedLeads((prev) => {
         const existingIds = new Set(prev.map((l) => l.id));
-        const uniqueNew = newLeads.filter((l) => !existingIds.has(l.id));
+        const uniqueNew = filteredLeads.filter((l) => !existingIds.has(l.id));
         const merged = [...prev, ...uniqueNew];
-        // Sort by score descending
-        return merged.sort((a, b) => b.score - a.score);
+        // Sort by years_owned desc by default (longest ownership = most equity/motivation)
+        return merged.sort((a, b) => (b.yearsOwned || 0) - (a.yearsOwned || 0));
       });
 
       // Search complete
       setCurrentStep(null);
-      addLog("success", `✓ COMPLETE: ${searchName}`, `${totalCount.toLocaleString()} total | ${storedIds.length.toLocaleString()} tracked | ${newLeads.length} scored`);
+      addLog("success", `✓ COMPLETE: ${searchName}`, `${totalCount.toLocaleString()} total | ${storedIds.length.toLocaleString()} tracked | ${filteredLeads.length} scored`);
       toast.success(`${search.name} complete!`);
     } catch (error: any) {
       console.error("Search error:", error);
@@ -753,6 +834,198 @@ export function LeadTracker() {
     }
 
     setIsFetchingDetails(false);
+  };
+
+  // ======== SKIP TRACE WORKFLOW ========
+  // Run skip trace on leads to get phone/email contact info
+  // Uses RealEstateAPI in 250 batches, 5K/day limit
+  const runSkipTrace = async (leadIds?: string[]) => {
+    // Get leads to skip trace (either selected or all non-traced)
+    const leadsToTrace = leadIds
+      ? prioritizedLeads.filter((l) => leadIds.includes(l.id) && !l.skipTraced)
+      : prioritizedLeads.filter((l) => !l.skipTraced && !l.isMlsActive && l.score >= 40);
+
+    if (leadsToTrace.length === 0) {
+      toast.info("No leads to skip trace (all already traced or filtered out)");
+      return;
+    }
+
+    // Check daily limit
+    const usageResponse = await fetch("/api/skip-trace");
+    const usageData = await usageResponse.json();
+    setSkipTraceUsage({ used: usageData.used, limit: usageData.limit, remaining: usageData.remaining });
+
+    if (usageData.remaining < 1) {
+      toast.error(`Daily skip trace limit reached (${usageData.limit}/day). Resets at midnight.`);
+      addLog("error", "Skip trace limit reached", `${usageData.used}/${usageData.limit} used today`);
+      return;
+    }
+
+    setIsSkipTracing(true);
+    const batchSize = 250;
+    const maxToProcess = Math.min(leadsToTrace.length, usageData.remaining);
+    const batches = Math.ceil(maxToProcess / batchSize);
+
+    addLog("info", `Starting Skip Trace: ${maxToProcess} leads in ${batches} batches`, `Daily usage: ${usageData.used}/${usageData.limit}`);
+    setSkipTraceProgress({ current: 0, total: maxToProcess });
+
+    let totalWithPhones = 0;
+    let totalWithEmails = 0;
+    let totalProcessed = 0;
+
+    try {
+      for (let batch = 0; batch < batches; batch++) {
+        const startIdx = batch * batchSize;
+        const batchLeads = leadsToTrace.slice(startIdx, startIdx + batchSize);
+        const ids = batchLeads.map((l) => l.id);
+
+        addLog("step", `Batch ${batch + 1}/${batches}: Processing ${ids.length} leads`, "Calling RealEstateAPI Skip Trace...");
+
+        const response = await fetch("/api/skip-trace", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ids }),
+        });
+
+        if (!response.ok) {
+          const err = await response.json();
+          if (response.status === 429) {
+            addLog("error", "Daily limit reached mid-batch", err.error);
+            toast.error("Daily skip trace limit reached");
+            break;
+          }
+          throw new Error(err.error || "Skip trace failed");
+        }
+
+        const result = await response.json();
+
+        // Update leads with contact info
+        setPrioritizedLeads((prev) =>
+          prev.map((lead) => {
+            const traced = result.results?.find((r: any) => String(r.id) === String(lead.id));
+            if (traced && traced.success) {
+              return {
+                ...lead,
+                phones: traced.phones || [],
+                emails: traced.emails || [],
+                skipTraced: true,
+                skipTracedAt: new Date(),
+                owner: traced.ownerName || lead.owner,
+              };
+            }
+            return lead;
+          })
+        );
+
+        totalWithPhones += result.stats?.withPhones || 0;
+        totalWithEmails += result.stats?.withEmails || 0;
+        totalProcessed += result.stats?.successful || 0;
+
+        setSkipTraceProgress({ current: totalProcessed, total: maxToProcess });
+        setSkipTraceUsage({ used: result.usage?.today || 0, limit: result.usage?.limit || 5000, remaining: result.usage?.remaining || 0 });
+
+        addLog("success", `Batch ${batch + 1} complete: ${result.stats?.withPhones || 0} phones, ${result.stats?.withEmails || 0} emails`);
+
+        // Delay between batches
+        if (batch < batches - 1) {
+          await new Promise((r) => setTimeout(r, 500));
+        }
+      }
+
+      setSkipTraceProgress(null);
+      addLog("success", `Skip Trace Complete: ${totalProcessed} leads processed`, `${totalWithPhones} phones, ${totalWithEmails} emails found`);
+      toast.success(`Skip trace complete! Found ${totalWithPhones} phones, ${totalWithEmails} emails`);
+    } catch (err: any) {
+      addLog("error", "Skip trace failed", err.message);
+      toast.error(`Skip trace error: ${err.message}`);
+    }
+
+    setIsSkipTracing(false);
+  };
+
+  // ======== CAMPAIGN WORKFLOW ========
+  // Push leads with contact info to Nextier Campaign
+  const pushLeadsToCampaign = async (campaignName?: string) => {
+    // Get leads that have been skip traced and have phone numbers
+    const leadsWithContact = prioritizedLeads.filter(
+      (l) => l.skipTraced && l.phones.length > 0 && !l.isMlsActive && !l.campaignId
+    );
+
+    if (leadsWithContact.length === 0) {
+      toast.error("No leads with phone numbers ready. Run Skip Trace first!");
+      return;
+    }
+
+    const name = campaignName || `Campaign_${new Date().toISOString().split("T")[0]}_${leadsWithContact.length}`;
+
+    setIsPushingToCampaign(true);
+    addLog("info", `Creating campaign: ${name}`, `${leadsWithContact.length} leads with contact info`);
+
+    try {
+      const response = await fetch("/api/campaign/push", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          campaignName: name,
+          campaignType: "sms",
+          leads: leadsWithContact.map((l) => ({
+            id: l.id,
+            propertyId: l.id,
+            address: l.address,
+            city: l.city,
+            state: l.state,
+            county: l.county,
+            propertyType: l.propertyType,
+            ownerName: l.owner,
+            phones: l.phones,
+            emails: l.emails,
+            score: l.score,
+            tags: getLeadTags(l),
+            equity: l.equity,
+            value: l.value,
+            yearsOwned: l.yearsOwned,
+          })),
+          assignNumber: true,
+          assignAiSdr: true,
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Failed to push to campaign");
+      }
+
+      const result = await response.json();
+
+      // Update leads with campaign ID
+      setPrioritizedLeads((prev) =>
+        prev.map((lead) => {
+          if (leadsWithContact.find((l) => l.id === lead.id)) {
+            return {
+              ...lead,
+              campaignId: result.campaign?.campaignId,
+              campaignStatus: "pending",
+            };
+          }
+          return lead;
+        })
+      );
+
+      setActiveCampaign({
+        id: result.campaign?.campaignId,
+        name: result.campaign?.campaignName,
+        phone: result.campaign?.phoneAssigned,
+        sdr: result.campaign?.aiSdrAssigned,
+      });
+
+      addLog("success", `Campaign created: ${name}`, `${result.campaign?.leadsAdded} leads | Phone: ${result.campaign?.phoneAssigned} | SDR: ${result.campaign?.aiSdrAssigned}`);
+      toast.success(`Campaign "${name}" created with ${result.campaign?.leadsAdded} leads!`);
+    } catch (err: any) {
+      addLog("error", "Campaign push failed", err.message);
+      toast.error(`Campaign error: ${err.message}`);
+    }
+
+    setIsPushingToCampaign(false);
   };
 
   // Handle CSV Upload - Import addresses from PropWire, Zoho, etc.
@@ -1214,7 +1487,10 @@ export function LeadTracker() {
               <select
                 value={selectedState}
                 aria-label="Select state"
-                onChange={(e) => setSelectedState(e.target.value)}
+                onChange={(e) => {
+                  setSelectedState(e.target.value);
+                  setCounty(""); // Reset county when state changes
+                }}
                 className="w-full h-10 px-3 rounded-md bg-zinc-800 border border-zinc-700 text-zinc-200"
               >
                 <option value="">Select State</option>
@@ -1225,12 +1501,26 @@ export function LeadTracker() {
             </div>
             <div className="space-y-2">
               <Label className="text-zinc-300">County</Label>
-              <Input
-                value={county}
-                onChange={(e) => setCounty(e.target.value)}
-                placeholder="e.g., Bergen, Harris, Miami-Dade"
-                className="bg-zinc-800 border-zinc-700 text-zinc-200"
-              />
+              {selectedState && COUNTIES_BY_STATE[selectedState] ? (
+                <select
+                  value={county}
+                  onChange={(e) => setCounty(e.target.value)}
+                  className="w-full h-10 px-3 rounded-md bg-zinc-800 border border-zinc-700 text-zinc-200"
+                >
+                  <option value="">Select County</option>
+                  {COUNTIES_BY_STATE[selectedState].map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              ) : (
+                <Input
+                  value={county}
+                  onChange={(e) => setCounty(e.target.value)}
+                  placeholder={selectedState ? "Enter county name" : "Select state first"}
+                  className="bg-zinc-800 border-zinc-700 text-zinc-200"
+                  disabled={!selectedState}
+                />
+              )}
             </div>
             <div className="space-y-2">
               <Label className="text-zinc-300">Property Types</Label>
@@ -1384,6 +1674,136 @@ export function LeadTracker() {
               </div>
             </div>
           </CardHeader>
+          {/* ===== WORKFLOW ACTION BAR ===== */}
+          {prioritizedLeads.length > 0 && (
+            <div className="mx-6 mb-4 p-4 bg-gradient-to-r from-purple-900/30 to-cyan-900/30 rounded-lg border border-purple-700/50">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Rocket className="h-5 w-5 text-purple-400" />
+                  <h3 className="font-semibold text-zinc-100">Lead Workflow Pipeline</h3>
+                </div>
+                <div className="flex items-center gap-4 text-xs text-zinc-400">
+                  <span>Skip Trace: {skipTraceUsage.used}/{skipTraceUsage.limit}/day ({skipTraceUsage.remaining} left)</span>
+                  {skipTraceProgress && (
+                    <span className="text-cyan-400 animate-pulse">
+                      Processing: {skipTraceProgress.current}/{skipTraceProgress.total}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Workflow Steps */}
+              <div className="flex items-center gap-2">
+                {/* Step 1: Skip Trace */}
+                <div className="flex-1">
+                  <Button
+                    onClick={() => runSkipTrace()}
+                    disabled={isSkipTracing || prioritizedLeads.filter((l) => !l.skipTraced && !l.isMlsActive).length === 0}
+                    className="w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800"
+                  >
+                    {isSkipTracing ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Phone className="h-4 w-4 mr-2" />
+                    )}
+                    1. Skip Trace ({prioritizedLeads.filter((l) => !l.skipTraced && !l.isMlsActive && l.score >= 40).length})
+                  </Button>
+                  <p className="text-xs text-zinc-500 mt-1 text-center">Get owner phone/email</p>
+                </div>
+
+                <div className="text-zinc-600">→</div>
+
+                {/* Step 2: Push to Campaign */}
+                <div className="flex-1">
+                  <Button
+                    onClick={() => pushLeadsToCampaign()}
+                    disabled={isPushingToCampaign || prioritizedLeads.filter((l) => l.skipTraced && l.phones.length > 0 && !l.campaignId).length === 0}
+                    className="w-full bg-gradient-to-r from-cyan-600 to-cyan-700 hover:from-cyan-700 hover:to-cyan-800"
+                  >
+                    {isPushingToCampaign ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <MessageSquare className="h-4 w-4 mr-2" />
+                    )}
+                    2. Push to Campaign ({prioritizedLeads.filter((l) => l.skipTraced && l.phones.length > 0 && !l.campaignId).length})
+                  </Button>
+                  <p className="text-xs text-zinc-500 mt-1 text-center">Create SMS campaign</p>
+                </div>
+
+                <div className="text-zinc-600">→</div>
+
+                {/* Step 3: Assign Number */}
+                <div className="flex-1">
+                  <Button
+                    disabled={!activeCampaign || isAssigningNumber}
+                    className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800"
+                  >
+                    {isAssigningNumber ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <PhoneCall className="h-4 w-4 mr-2" />
+                    )}
+                    3. Assign Number
+                  </Button>
+                  <p className="text-xs text-zinc-500 mt-1 text-center">
+                    {activeCampaign?.phone || "SignalHouse #"}
+                  </p>
+                </div>
+
+                <div className="text-zinc-600">→</div>
+
+                {/* Step 4: Assign AI SDR */}
+                <div className="flex-1">
+                  <Button
+                    disabled={!activeCampaign || isAssigningAiSdr}
+                    className="w-full bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800"
+                  >
+                    {isAssigningAiSdr ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Bot className="h-4 w-4 mr-2" />
+                    )}
+                    4. Assign AI SDR
+                  </Button>
+                  <p className="text-xs text-zinc-500 mt-1 text-center">
+                    {activeCampaign?.sdr || "Sabrina"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Active Campaign Status */}
+              {activeCampaign && (
+                <div className="mt-3 p-2 bg-green-900/30 rounded border border-green-700/50 text-sm">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-400" />
+                    <span className="text-green-300">Active Campaign: {activeCampaign.name}</span>
+                    {activeCampaign.phone && (
+                      <Badge className="bg-green-900/50 text-green-300">{activeCampaign.phone}</Badge>
+                    )}
+                    {activeCampaign.sdr && (
+                      <Badge className="bg-orange-900/50 text-orange-300">SDR: {activeCampaign.sdr}</Badge>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Lead Stats for Workflow */}
+              <div className="mt-3 flex gap-4 text-xs">
+                <span className="text-zinc-400">
+                  📊 Total: {prioritizedLeads.length}
+                </span>
+                <span className="text-purple-400">
+                  📞 Skip Traced: {prioritizedLeads.filter((l) => l.skipTraced).length}
+                </span>
+                <span className="text-cyan-400">
+                  ☎️ With Phone: {prioritizedLeads.filter((l) => l.phones.length > 0).length}
+                </span>
+                <span className="text-green-400">
+                  📤 In Campaign: {prioritizedLeads.filter((l) => l.campaignId).length}
+                </span>
+              </div>
+            </div>
+          )}
           <CardContent>
             <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
               {savedSearches.map((search) => {
@@ -1480,6 +1900,21 @@ export function LeadTracker() {
           {/* Filter Toggles */}
           {prioritizedLeads.length > 0 && (
             <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-zinc-800">
+              {/* SORT BY DROPDOWN - Most Important! */}
+              <div className="flex items-center gap-2">
+                <Label className="text-sm text-zinc-400">Sort By:</Label>
+                <select
+                  value={sortLeadsBy}
+                  onChange={(e) => setSortLeadsBy(e.target.value as any)}
+                  className="h-8 px-2 rounded bg-zinc-800 border border-zinc-700 text-zinc-200 text-sm"
+                >
+                  <option value="years_owned">Years Owned (longest first)</option>
+                  <option value="score">Lead Score (highest first)</option>
+                  <option value="equity">Equity % (highest first)</option>
+                  <option value="value">Property Value (highest first)</option>
+                </select>
+              </div>
+              <div className="border-l border-zinc-700 h-6 mx-2" />
               <label className="flex items-center gap-2 text-sm text-zinc-400 cursor-pointer">
                 <Checkbox
                   checked={hideMlsActive}
@@ -1530,72 +1965,230 @@ export function LeadTracker() {
                   if (showOnlyExpired && !lead.isMlsExpired) return false;
                   return true;
                 })
+                // SORT BY - actually apply the sort!
+                .sort((a, b) => {
+                  switch (sortLeadsBy) {
+                    case "years_owned":
+                      return (b.yearsOwned || 0) - (a.yearsOwned || 0);
+                    case "score":
+                      return b.score - a.score;
+                    case "equity":
+                      return (b.equity || 0) - (a.equity || 0);
+                    case "value":
+                      return (b.value || 0) - (a.value || 0);
+                    default:
+                      return (b.yearsOwned || 0) - (a.yearsOwned || 0);
+                  }
+                })
                 .slice(0, 50)
                 .map((lead, i) => (
-                <div
-                  key={lead.id}
-                  className={`flex items-center gap-3 p-3 bg-zinc-800/50 rounded-lg border ${
-                    lead.isMlsActive
-                      ? "border-blue-700/50 opacity-60"
-                      : lead.isMlsExpired
-                      ? "border-purple-500 border-2"
-                      : "border-zinc-700"
-                  }`}
-                >
-                  <div className={`flex items-center justify-center w-12 h-12 rounded-lg font-bold ${getScoreColor(lead.score)}`}>
-                    {lead.score}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-sm font-medium text-zinc-200 truncate">{lead.address}</p>
-                      {/* MLS Status Badges - Most Important */}
-                      {lead.isMlsActive && (
-                        <Badge className="bg-blue-900/50 text-blue-300 text-xs border border-blue-500">📋 MLS Listed</Badge>
+                <div key={lead.id} className="space-y-0">
+                  {/* Lead Row - Clickable */}
+                  <div
+                    onClick={() => setExpandedLeadId(expandedLeadId === lead.id ? null : lead.id)}
+                    className={`flex items-center gap-3 p-3 bg-zinc-800/50 rounded-lg border cursor-pointer hover:bg-zinc-800 transition-colors ${
+                      lead.isMlsActive
+                        ? "border-blue-700/50 opacity-60"
+                        : lead.isMlsExpired
+                        ? "border-purple-500 border-2"
+                        : expandedLeadId === lead.id
+                        ? "border-cyan-500 bg-zinc-800"
+                        : "border-zinc-700"
+                    }`}
+                  >
+                    <div className={`flex items-center justify-center w-12 h-12 rounded-lg font-bold ${getScoreColor(lead.score)}`}>
+                      {lead.score}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-medium text-zinc-200 truncate">{lead.address}</p>
+                        {lead.isMlsActive && (
+                          <Badge className="bg-blue-900/50 text-blue-300 text-xs border border-blue-500">📋 MLS Listed</Badge>
+                        )}
+                        {lead.isMlsExpired && (
+                          <Badge className="bg-purple-900/50 text-purple-300 text-xs border border-purple-500">⏰ EXPIRED</Badge>
+                        )}
+                        {lead.hasDeedChange && (
+                          <Badge className="bg-yellow-900/50 text-yellow-300 text-xs">📝 Recent Deed</Badge>
+                        )}
+                        {lead.isAbsentee && (
+                          <Badge className="bg-purple-900/50 text-purple-300 text-xs">Absentee</Badge>
+                        )}
+                        {lead.isPreForeclosure && (
+                          <Badge className="bg-red-900/50 text-red-300 text-xs">Pre-Foreclosure</Badge>
+                        )}
+                        {lead.isTaxLien && (
+                          <Badge className="bg-orange-900/50 text-orange-300 text-xs">Tax Lien</Badge>
+                        )}
+                        {lead.isVacant && (
+                          <Badge className="bg-gray-700/50 text-gray-300 text-xs">Vacant</Badge>
+                        )}
+                        {lead.isReverseMortgage && (
+                          <Badge className="bg-pink-900/50 text-pink-300 text-xs border border-pink-500 font-bold">🏦 REVERSE MTG</Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-zinc-500">
+                        {lead.city}, {lead.state} | {lead.county} County | {lead.propertyType}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {lead.yearsOwned !== null && lead.yearsOwned > 0 && (
+                        <Badge className={`border ${
+                          lead.yearsOwned >= 10
+                            ? "bg-gradient-to-r from-cyan-900 to-cyan-700 text-white border-cyan-500 font-bold"
+                            : lead.yearsOwned >= 5
+                            ? "bg-cyan-900/50 text-cyan-300 border-cyan-700"
+                            : "bg-zinc-800 text-zinc-400 border-zinc-600"
+                        }`}>
+                          {lead.yearsOwned} yrs
+                        </Badge>
                       )}
-                      {lead.isMlsExpired && (
-                        <Badge className="bg-purple-900/50 text-purple-300 text-xs border border-purple-500">⏰ EXPIRED</Badge>
+                      {lead.equity && (
+                        <Badge className="bg-green-900/50 text-green-300 border-green-700">
+                          {lead.equity}% equity
+                        </Badge>
                       )}
-                      {lead.hasDeedChange && (
-                        <Badge className="bg-yellow-900/50 text-yellow-300 text-xs">📝 Recent Deed</Badge>
-                      )}
-                      {lead.isAbsentee && (
-                        <Badge className="bg-purple-900/50 text-purple-300 text-xs">Absentee</Badge>
-                      )}
-                      {lead.isPreForeclosure && (
-                        <Badge className="bg-red-900/50 text-red-300 text-xs">Pre-Foreclosure</Badge>
-                      )}
-                      {lead.isTaxLien && (
-                        <Badge className="bg-orange-900/50 text-orange-300 text-xs">Tax Lien</Badge>
-                      )}
-                      {lead.isVacant && (
-                        <Badge className="bg-gray-700/50 text-gray-300 text-xs">Vacant</Badge>
+                      {lead.value && (
+                        <Badge className="bg-blue-900/50 text-blue-300 border-blue-700">
+                          ${(lead.value / 1000).toFixed(0)}K
+                        </Badge>
                       )}
                     </div>
-                    <p className="text-xs text-zinc-500">
-                      {lead.city}, {lead.state} | {lead.county} County | {lead.propertyType}
-                    </p>
+                    <div className="text-xs text-zinc-500 shrink-0 flex items-center gap-2">
+                      <span>
+                        <Users className="h-3 w-3 inline mr-1" />
+                        {lead.owner}
+                      </span>
+                      {lead.skipTraced && (
+                        <span className="flex items-center gap-1">
+                          {lead.phones.length > 0 && (
+                            <Badge className="bg-green-900/50 text-green-300 text-xs py-0">
+                              <Phone className="h-2.5 w-2.5 mr-0.5" />
+                              {lead.phones.length}
+                            </Badge>
+                          )}
+                          {lead.emails.length > 0 && (
+                            <Badge className="bg-blue-900/50 text-blue-300 text-xs py-0">
+                              <Mail className="h-2.5 w-2.5 mr-0.5" />
+                              {lead.emails.length}
+                            </Badge>
+                          )}
+                          {lead.campaignId && (
+                            <Badge className="bg-orange-900/50 text-orange-300 text-xs py-0">
+                              📤 Campaign
+                            </Badge>
+                          )}
+                        </span>
+                      )}
+                    </div>
+                    {/* Expand indicator */}
+                    <div className="text-zinc-500">
+                      {expandedLeadId === lead.id ? "▼" : "▶"}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {lead.yearsOwned !== null && lead.yearsOwned >= 5 && (
-                      <Badge className="bg-cyan-900/50 text-cyan-300 border-cyan-700">
-                        {lead.yearsOwned}+ yrs
-                      </Badge>
-                    )}
-                    {lead.equity && (
-                      <Badge className="bg-green-900/50 text-green-300 border-green-700">
-                        {lead.equity}% equity
-                      </Badge>
-                    )}
-                    {lead.value && (
-                      <Badge className="bg-blue-900/50 text-blue-300 border-blue-700">
-                        ${(lead.value / 1000).toFixed(0)}K
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="text-xs text-zinc-500 shrink-0">
-                    <Users className="h-3 w-3 inline mr-1" />
-                    {lead.owner}
-                  </div>
+
+                  {/* Expanded Detail Panel */}
+                  {expandedLeadId === lead.id && (
+                    <div className="ml-4 p-4 bg-zinc-900 border border-zinc-700 rounded-lg mt-1 space-y-4">
+                      {/* Contact Info - Most Important */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-semibold text-zinc-300 flex items-center gap-2">
+                            <Phone className="h-4 w-4 text-green-400" />
+                            Phone Numbers
+                          </h4>
+                          {lead.phones.length > 0 ? (
+                            <div className="space-y-1">
+                              {lead.phones.map((phone, idx) => (
+                                <div key={idx} className="flex items-center gap-2">
+                                  <code className="text-green-400 bg-green-900/30 px-2 py-1 rounded text-sm">{phone}</code>
+                                  <Button size="sm" variant="ghost" className="h-6 text-xs" onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(phone); toast.success("Copied!"); }}>
+                                    Copy
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-zinc-500 italic">No phones - run Skip Trace</p>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-semibold text-zinc-300 flex items-center gap-2">
+                            <Mail className="h-4 w-4 text-blue-400" />
+                            Email Addresses
+                          </h4>
+                          {lead.emails.length > 0 ? (
+                            <div className="space-y-1">
+                              {lead.emails.map((email, idx) => (
+                                <div key={idx} className="flex items-center gap-2">
+                                  <code className="text-blue-400 bg-blue-900/30 px-2 py-1 rounded text-sm">{email}</code>
+                                  <Button size="sm" variant="ghost" className="h-6 text-xs" onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(email); toast.success("Copied!"); }}>
+                                    Copy
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-zinc-500 italic">No emails - run Skip Trace</p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Property Details */}
+                      <div className="grid grid-cols-4 gap-3 pt-3 border-t border-zinc-800">
+                        <div className="bg-zinc-800/50 p-2 rounded">
+                          <p className="text-xs text-zinc-500">Owner</p>
+                          <p className="text-sm text-zinc-200 font-medium">{lead.owner}</p>
+                        </div>
+                        <div className="bg-zinc-800/50 p-2 rounded">
+                          <p className="text-xs text-zinc-500">Property Type</p>
+                          <p className="text-sm text-zinc-200">{lead.propertyType}</p>
+                        </div>
+                        <div className="bg-zinc-800/50 p-2 rounded">
+                          <p className="text-xs text-zinc-500">Years Owned</p>
+                          <p className="text-sm text-zinc-200">{lead.yearsOwned || "Unknown"}</p>
+                        </div>
+                        <div className="bg-zinc-800/50 p-2 rounded">
+                          <p className="text-xs text-zinc-500">Equity</p>
+                          <p className="text-sm text-zinc-200">{lead.equity ? `${lead.equity}%` : "Unknown"}</p>
+                        </div>
+                        <div className="bg-zinc-800/50 p-2 rounded">
+                          <p className="text-xs text-zinc-500">Est. Value</p>
+                          <p className="text-sm text-zinc-200">{lead.value ? `$${lead.value.toLocaleString()}` : "Unknown"}</p>
+                        </div>
+                        <div className="bg-zinc-800/50 p-2 rounded">
+                          <p className="text-xs text-zinc-500">Lot Size</p>
+                          <p className="text-sm text-zinc-200">{lead.lotSize ? `${(lead.lotSize / 43560).toFixed(2)} acres` : "Unknown"}</p>
+                        </div>
+                        <div className="bg-zinc-800/50 p-2 rounded">
+                          <p className="text-xs text-zinc-500">Score Breakdown</p>
+                          <p className="text-xs text-zinc-400">
+                            A:{lead.scoreBreakdown.absentee} E:{lead.scoreBreakdown.equity} D:{lead.scoreBreakdown.distressed}
+                          </p>
+                        </div>
+                        <div className="bg-zinc-800/50 p-2 rounded">
+                          <p className="text-xs text-zinc-500">Skip Traced</p>
+                          <p className="text-sm text-zinc-200">{lead.skipTraced ? "Yes" : "No"}</p>
+                        </div>
+                      </div>
+
+                      {/* Full Address */}
+                      <div className="pt-3 border-t border-zinc-800">
+                        <p className="text-xs text-zinc-500">Full Address</p>
+                        <p className="text-sm text-zinc-200">{lead.address}, {lead.city}, {lead.state} - {lead.county} County</p>
+                      </div>
+
+                      {/* Raw Data (if exists) */}
+                      {lead.raw && (
+                        <details className="pt-3 border-t border-zinc-800">
+                          <summary className="text-xs text-zinc-500 cursor-pointer hover:text-zinc-300">View Raw API Data</summary>
+                          <pre className="mt-2 p-2 bg-black/50 rounded text-xs text-zinc-400 overflow-x-auto max-h-48">
+                            {JSON.stringify(lead.raw, null, 2)}
+                          </pre>
+                        </details>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
               {prioritizedLeads.length > 50 && (

@@ -307,11 +307,33 @@ export function MCPTerminal() {
             </Button>
           </div>
           {properties.map((prop: any, i: number) => {
-            const address = prop.address?.deliveryLine || prop.propertyAddress || prop.address || "Unknown Address";
+            // Handle address - can be object or string
+            let address = "Unknown Address";
+            if (typeof prop.address === "string") {
+              address = prop.address;
+            } else if (prop.address?.street) {
+              address = prop.address.street;
+            } else if (prop.address?.address) {
+              address = prop.address.address;
+            } else if (prop.address?.deliveryLine) {
+              address = prop.address.deliveryLine;
+            } else if (prop.propertyAddress) {
+              address = prop.propertyAddress;
+            }
             const city = prop.address?.city || prop.city || "";
             const stateVal = prop.address?.state || prop.state || "";
-            const owner = prop.owner?.names?.[0] || prop.ownerName || prop.owner || "Unknown";
-            const equity = prop.equity?.equityPercent || prop.equityPercent || prop.equity || null;
+            // Handle owner - can be object or string
+            let owner = "Unknown";
+            if (typeof prop.owner === "string") {
+              owner = prop.owner;
+            } else if (prop.owner?.names?.[0]) {
+              owner = prop.owner.names[0];
+            } else if (prop.owner1FirstName || prop.owner1LastName) {
+              owner = [prop.owner1FirstName, prop.owner1LastName].filter(Boolean).join(" ");
+            } else if (prop.ownerName) {
+              owner = prop.ownerName;
+            }
+            const equity = prop.equity?.equityPercent || prop.equityPercent || null;
             const value = prop.valuation?.estimatedValue || prop.estimatedValue || prop.value || null;
 
             return (

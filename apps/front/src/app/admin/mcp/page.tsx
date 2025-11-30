@@ -1,7 +1,7 @@
 import { MCPDashboard } from "@/components/admin/mcp-dashboard";
 import { MCPTerminal } from "@/components/admin/mcp-terminal";
 import { MCPSavedSearches } from "@/components/admin/mcp-saved-searches";
-import { LeadTracker } from "@/components/admin/lead-tracker";
+import { LeadTrackerSimple } from "@/components/admin/lead-tracker-simple";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Cable, Terminal, FolderOpen, LayoutDashboard, Target } from "lucide-react";
 
@@ -39,7 +39,7 @@ export default function MCPPage() {
           </TabsList>
 
           <TabsContent value="leads" className="mt-0">
-            <LeadTracker />
+            <LeadTrackerSimple />
           </TabsContent>
 
           <TabsContent value="terminal" className="mt-0">
