@@ -23,9 +23,13 @@ export function ApolloWrapper({ children }: ApolloWrapperProps) {
     });
   }, []);
 
-  // Show children without Apollo during SSR and initial load
+  // Show loading spinner while Apollo loads - don't render children without provider
   if (!mounted || !ApolloProvider || !client) {
-    return <>{children}</>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
   }
 
   return <ApolloProvider client={client}>{children}</ApolloProvider>;
