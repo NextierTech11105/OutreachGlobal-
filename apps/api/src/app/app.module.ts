@@ -32,6 +32,7 @@ import { MessageModule } from "./message/message.module";
 import { InboxModule } from "./inbox/inbox.module";
 import { AchievementsModule } from "./achievements/achievements.module";
 import { InitialMessagesModule } from "./initial-messages/initial-messages.module";
+import { VoiceModule } from "./voice/voice.module";
 
 @Module({
   imports: [
@@ -75,6 +76,7 @@ import { InitialMessagesModule } from "./initial-messages/initial-messages.modul
     InboxModule,
     AchievementsModule,
     InitialMessagesModule,
+    VoiceModule,
   ],
   providers: [AppRunner],
   controllers: [AppController],

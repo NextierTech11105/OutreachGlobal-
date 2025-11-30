@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { ExtractNode, LeadKanbanQuery } from "@/graphql/types";
 import { TeamLink } from "@/features/team/components/team-link";
+import { LeadActions } from "./lead-actions";
 
 interface LeadCardProps {
   lead: ExtractNode<LeadKanbanQuery["leads"]>;
@@ -44,12 +45,14 @@ export function LeadCard({ lead }: LeadCardProps) {
       <CardContent className="p-3">
         <div className="flex justify-between items-start mb-2">
           <h3 className="font-medium text-sm truncate">{lead.name}</h3>
-          <Dialog open={showDetails} onOpenChange={setShowDetails}>
-            <DialogTrigger asChild>
-              <Button variant="ghost" size="icon" className="size-7 z-10">
-                <MoreHorizontal />
-              </Button>
-            </DialogTrigger>
+          <div className="flex items-center gap-1 z-10">
+            <LeadActions lead={lead} />
+            <Dialog open={showDetails} onOpenChange={setShowDetails}>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="icon" className="size-7">
+                  <MoreHorizontal />
+                </Button>
+              </DialogTrigger>
             <DialogContent className="sm:max-w-[600px]">
               <DialogHeader>
                 <DialogTitle>Lead Details</DialogTitle>
@@ -167,7 +170,8 @@ export function LeadCard({ lead }: LeadCardProps) {
                 </Button>
               </div>
             </DialogContent>
-          </Dialog>
+            </Dialog>
+          </div>
         </div>
 
         {!!lead.property && (

@@ -47,6 +47,7 @@ import { LeadMessageHistory } from "./lead-message-history";
 import { useModalAlert } from "@/components/ui/modal";
 import { LEADS_EVICT } from "../queries/lead.queries";
 import { LeadPhoneNumbers } from "./lead-phone-numbers";
+import { LeadActions } from "./lead-actions";
 
 interface Props {
   lead: LeadDetailsQuery["lead"];
@@ -242,6 +243,11 @@ export function LeadDetails({ lead }: Props) {
               <span className="hidden sm:inline">SMS</span>
             </Button>
           )}
+          <LeadActions
+            lead={lead}
+            variant="button"
+            onStatusChange={(newStatus) => setCurrentStatus(newStatus)}
+          />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm">
