@@ -21,6 +21,7 @@ import {
   Mail,
   MessageSquare,
   AlertCircle,
+  Cable,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -239,6 +240,13 @@ export default function AdminDashboard() {
                   <Button variant="outline" className="w-full justify-start">
                     <Bot className="mr-2 h-4 w-4" />
                     AI SDR Avatars
+                  </Button>
+                </Link>
+
+                <Link href="/admin/mcp">
+                  <Button variant="outline" className="w-full justify-start bg-purple-900/20 border-purple-700 hover:bg-purple-900/40">
+                    <Cable className="mr-2 h-4 w-4 text-purple-400" />
+                    MCP Connections
                   </Button>
                 </Link>
 

@@ -200,3 +200,8 @@ ios/Pods/Flipper-RSocket
 
 # Turbo
 .turbo
+
+.vercel
+
+# MCP Config (contains secrets)
+.mcp.json
