@@ -61,18 +61,15 @@ interface ActivityLogEntry {
   details?: string;
 }
 
-// Property types from RealEstateAPI (exact API values)
+// Property types from RealEstateAPI - ONLY these 6 values are valid!
+// API error: "PropertySearchPropertyTypeEnums" must be one of [SFR, MFR, LAND, CONDO, OTHER, MOBILE]
 const PROPERTY_TYPES = [
   { value: "SFR", label: "Single Family", icon: Home },
-  { value: "MFR", label: "Multi-Family (2-4)", icon: Building },
-  { value: "mfh_5plus", label: "Multi-Family (5+)", icon: Building },
-  { value: "LAND", label: "Land", icon: TreePine },
+  { value: "MFR", label: "Multi-Family", icon: Building },
   { value: "CONDO", label: "Condo", icon: Building2 },
-  { value: "TOWNHOUSE", label: "Townhouse", icon: Building2 },
-  { value: "MOBILE", label: "Mobile", icon: Home },
-  { value: "COMMERCIAL", label: "Commercial", icon: Factory },
-  { value: "INDUSTRIAL", label: "Industrial", icon: Factory },
-  { value: "RETAIL", label: "Retail", icon: Store },
+  { value: "LAND", label: "Land", icon: TreePine },
+  { value: "MOBILE", label: "Mobile Home", icon: Home },
+  { value: "OTHER", label: "Commercial/Other", icon: Factory },
 ];
 
 const STATES = [
@@ -361,12 +358,12 @@ export function LeadTracker() {
       breakdown.lotSize = SCORE_WEIGHTS.bigLot;
     }
 
-    // Property type scoring (API field: propertyType - SFR, MFR, CONDO, COMMERCIAL, etc.)
+    // Property type scoring (API values: SFR, MFR, CONDO, LAND, MOBILE, OTHER)
     const propType = (prop.propertyType || "").toUpperCase();
-    if (propType === "MFR" || propType === "MFH_5PLUS" || propType.includes("MULTI")) {
+    if (propType === "MFR") {
       breakdown.propertyType = SCORE_WEIGHTS.mfr;
-    } else if (propType === "COMMERCIAL" || propType === "INDUSTRIAL" || propType === "RETAIL" || propType.includes("COMMERCIAL")) {
-      breakdown.propertyType = SCORE_WEIGHTS.commercial;
+    } else if (propType === "OTHER") {
+      breakdown.propertyType = SCORE_WEIGHTS.commercial; // OTHER = commercial/industrial
     } else {
       breakdown.propertyType = SCORE_WEIGHTS.sfr;
     }
