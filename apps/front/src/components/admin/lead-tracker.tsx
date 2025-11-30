@@ -157,6 +157,7 @@ interface PrioritizedLead {
   equity: number | null;
   value: number | null;
   lotSize: number | null;
+  yearsOwned: number | null;  // Years current owner has owned
   isAbsentee: boolean;
   isPreForeclosure: boolean;
   isTaxLien: boolean;
@@ -208,6 +209,11 @@ export function LeadTracker() {
   const [selectedState, setSelectedState] = useState<string>("");
   const [county, setCounty] = useState("");
   const [selectedTypes, setSelectedTypes] = useState<string[]>(["SFR", "MFR"]);
+
+  // Search filters
+  const [minYearsOwned, setMinYearsOwned] = useState<number>(5); // Default 5+ years
+  const [filterByYearsOwned, setFilterByYearsOwned] = useState<boolean>(true); // Enable by default
+  const [includeMlsData, setIncludeMlsData] = useState<boolean>(true); // Include MLS status
 
   // Add entry to activity log
   const addLog = (type: ActivityLogEntry["type"], message: string, details?: string, step?: number) => {
@@ -390,12 +396,24 @@ export function LeadTracker() {
 
     try {
       // Build the search params - ensure all fields are present
-      const searchParams = {
+      const searchParams: Record<string, any> = {
         county: search.county,
         state: search.state,
         property_type: search.propertyType || "SFR",
         absentee_owner: true,
       };
+
+      // Add years owned filter if enabled (5+ years = more equity, more motivated)
+      if (filterByYearsOwned && minYearsOwned > 0) {
+        searchParams.min_years_owned = minYearsOwned;
+        searchParams.sort_by = "years_owned"; // Sort by longest ownership first
+        searchParams.sort_direction = "desc";
+      }
+
+      // Include MLS data to flag listed properties
+      if (includeMlsData) {
+        searchParams.include_mls = true;
+      }
 
       // ====== STEP 1: Get count first (FREE - 0 credits) ======
       setCurrentStep({ search: searchName, step: 1, total: 3 });
@@ -448,24 +466,38 @@ export function LeadTracker() {
 
       addLog("success", `✓ Retrieved ${propertyIds.length.toLocaleString()} property IDs`, "IDs stored for monitoring changes");
 
-      // ====== STEP 3: Get first batch of full details (250 max per call) for scoring ======
+      // ====== STEP 3: Get property details with pagination (250 per page, 3 pages = 750 max) ======
       setCurrentStep({ search: searchName, step: 3, total: 3 });
-      addLog("step", "STEP 3/3: Get Property Details", `Fetching 250 properties for lead scoring`, 3);
-
-      const detailResponse = await fetch("/api/property/search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...searchParams, size: 250 }),
-      });
+      addLog("step", "STEP 3/3: Get Property Details", `Fetching up to 750 properties (3 pages) for lead scoring`, 3);
 
       let properties: any[] = [];
-      if (detailResponse.ok) {
-        const detailData = await detailResponse.json();
-        properties = detailData.data || [];
-        addLog("success", `✓ Got ${properties.length} properties with full details`, "Ready for lead scoring");
-      } else {
-        addLog("error", "Step 3 FAILED: Could not fetch property details");
+      const maxPages = 3; // Get 3 pages of 250 = 750 properties max
+
+      for (let page = 1; page <= maxPages; page++) {
+        const detailResponse = await fetch("/api/property/search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...searchParams, size: 250, page }),
+        });
+
+        if (detailResponse.ok) {
+          const detailData = await detailResponse.json();
+          const pageData = detailData.data || [];
+          properties = [...properties, ...pageData];
+          addLog("success", `✓ Page ${page}: Got ${pageData.length} properties`, `Total so far: ${properties.length}`);
+
+          // Stop if we got less than 250 (no more pages)
+          if (pageData.length < 250) break;
+        } else {
+          addLog("error", `Page ${page} FAILED: Could not fetch property details`);
+          break;
+        }
+
+        // Small delay between pages
+        if (page < maxPages) await new Promise((r) => setTimeout(r, 200));
       }
+
+      addLog("success", `✓ Got ${properties.length} total properties with full details`, "Ready for lead scoring");
 
       // Store property IDs (convert numbers to strings)
       const storedIds = propertyIds.map((p: any) => String(p));
@@ -501,6 +533,16 @@ export function LeadTracker() {
         const hasDeedChange = prop.lastSale?.documentTypeCode === "DTWD" &&
           prop.lastSaleDate && new Date(prop.lastSaleDate) > new Date(Date.now() - 90 * 24 * 60 * 60 * 1000); // Last 90 days
 
+        // Calculate years owned from lastSaleDate
+        let yearsOwned: number | null = null;
+        if (prop.lastSaleDate) {
+          const saleDate = new Date(prop.lastSaleDate);
+          const now = new Date();
+          yearsOwned = Math.floor((now.getTime() - saleDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+        } else if (prop.yearsOwned) {
+          yearsOwned = prop.yearsOwned;
+        }
+
         return {
           id: prop.id || prop.propertyId || `${prop.address?.street}-${prop.address?.zip}`,
           address: prop.address?.street || prop.address?.address || "",
@@ -514,6 +556,7 @@ export function LeadTracker() {
           equity: prop.equityPercent || null,
           value: prop.estimatedValue || null,
           lotSize: prop.lotSize || prop.lotSquareFeet || null,
+          yearsOwned,  // Years current owner has owned
           isAbsentee: prop.absenteeOwner || false,
           isPreForeclosure: prop.preForeclosure || false,
           isTaxLien: prop.taxLien || false,
@@ -1220,6 +1263,41 @@ export function LeadTracker() {
               </div>
             </div>
           </div>
+
+          {/* Advanced Filters */}
+          <div className="border-t border-zinc-800 pt-4 mt-4">
+            <Label className="text-zinc-300 mb-3 block">Search Filters</Label>
+            <div className="flex flex-wrap gap-4">
+              <label className="flex items-center gap-2 text-sm text-zinc-400 cursor-pointer">
+                <Checkbox
+                  checked={filterByYearsOwned}
+                  onCheckedChange={(checked) => setFilterByYearsOwned(!!checked)}
+                  className="border-zinc-600"
+                />
+                <span>Min {minYearsOwned}+ Years Owned</span>
+                <Input
+                  type="number"
+                  value={minYearsOwned}
+                  onChange={(e) => setMinYearsOwned(Number(e.target.value))}
+                  className="w-16 h-7 bg-zinc-800 border-zinc-700 text-zinc-200 text-sm px-2"
+                  min={0}
+                  max={50}
+                />
+              </label>
+              <label className="flex items-center gap-2 text-sm text-zinc-400 cursor-pointer">
+                <Checkbox
+                  checked={includeMlsData}
+                  onCheckedChange={(checked) => setIncludeMlsData(!!checked)}
+                  className="border-zinc-600"
+                />
+                <span>Include MLS Status (flag listed properties)</span>
+              </label>
+            </div>
+            <p className="text-xs text-zinc-500 mt-2">
+              5+ years = more equity | MLS data flags actively listed properties
+            </p>
+          </div>
+
           <Button onClick={generateSearches} className="bg-purple-600 hover:bg-purple-700">
             <Plus className="h-4 w-4 mr-2" />
             Generate Searches
@@ -1498,6 +1576,11 @@ export function LeadTracker() {
                     </p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
+                    {lead.yearsOwned !== null && lead.yearsOwned >= 5 && (
+                      <Badge className="bg-cyan-900/50 text-cyan-300 border-cyan-700">
+                        {lead.yearsOwned}+ yrs
+                      </Badge>
+                    )}
                     {lead.equity && (
                       <Badge className="bg-green-900/50 text-green-300 border-green-700">
                         {lead.equity}% equity
