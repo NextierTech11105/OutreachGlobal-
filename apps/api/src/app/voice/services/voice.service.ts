@@ -74,9 +74,10 @@ export class VoiceService {
     }
 
     // 3. Look up the SDR who contacted this lead (from their campaign)
-    if (lead?.campaignId) {
+    const leadCampaignId = (lead as any)?.campaignId;
+    if (leadCampaignId) {
       const campaign = await this.db.query.campaigns.findFirst({
-        where: eq(campaignsTable.id, lead.campaignId),
+        where: eq(campaignsTable.id, leadCampaignId),
       });
 
       if (campaign?.sdrId) {
@@ -101,7 +102,7 @@ export class VoiceService {
 
     return {
       leadId: lead?.id,
-      leadName: lead?.name,
+      leadName: lead?.firstName ? `${lead.firstName} ${lead.lastName || ''}`.trim() : undefined,
       teamId,
       calendarUrl,
       voicemailPlayed: true,
