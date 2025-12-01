@@ -32,13 +32,19 @@ export function LeafletMap({
 
     // Dynamic import of Leaflet
     import("leaflet").then((L) => {
-      // Fix for default marker icons
-      delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
-      L.Icon.Default.mergeOptions({
-        iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-        iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-        shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-      });
+      // Fix for default marker icons - with safety check
+      try {
+        if (L.Icon && L.Icon.Default && L.Icon.Default.prototype) {
+          delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
+          L.Icon.Default.mergeOptions({
+            iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+            iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+            shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+          });
+        }
+      } catch (e) {
+        console.warn("Leaflet icon fix failed:", e);
+      }
 
       const map = L.map(mapRef.current!, {
         center: [39.8283, -98.5795], // Center of US
