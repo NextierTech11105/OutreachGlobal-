@@ -32,10 +32,23 @@ export function LeafletMap({
 
     // Dynamic import of Leaflet
     import("leaflet").then((L) => {
-      // Fix for default marker icons - with safety check
+      // Fix for default marker icons - comprehensive safety
       try {
-        if (L.Icon && L.Icon.Default && L.Icon.Default.prototype) {
-          delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
+        // Only run in browser
+        if (typeof window === "undefined") return;
+
+        // Check if Leaflet loaded properly
+        if (!L || !L.map) {
+          console.error("Leaflet not loaded properly");
+          return;
+        }
+
+        // Fix marker icons
+        if (L.Icon?.Default?.prototype) {
+          const proto = L.Icon.Default.prototype as Record<string, unknown>;
+          if (proto._getIconUrl) {
+            delete proto._getIconUrl;
+          }
           L.Icon.Default.mergeOptions({
             iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
             iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
@@ -46,43 +59,51 @@ export function LeafletMap({
         console.warn("Leaflet icon fix failed:", e);
       }
 
-      const map = L.map(mapRef.current!, {
-        center: [39.8283, -98.5795], // Center of US
-        zoom: 4,
-        zoomControl: true,
-      });
+      if (!mapRef.current) return;
 
-      // Add tile layer (OpenStreetMap)
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        maxZoom: 19,
-      }).addTo(map);
+      try {
+        const map = L.map(mapRef.current, {
+          center: [39.8283, -98.5795], // Center of US
+          zoom: 4,
+          zoomControl: true,
+        });
 
-      leafletMapRef.current = map;
-      setIsMapReady(true);
-
-      // Add click handler for drawing circles
-      map.on("click", (e: L.LeafletMouseEvent) => {
-        if (circleRef.current) {
-          map.removeLayer(circleRef.current);
-        }
-
-        const circle = L.circle(e.latlng, {
-          radius: 16093, // ~10 miles in meters
-          color: "#22c55e",
-          fillColor: "#22c55e",
-          fillOpacity: 0.15,
-          weight: 2,
+        // Add tile layer (OpenStreetMap)
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+          maxZoom: 19,
         }).addTo(map);
 
-        circleRef.current = circle;
+        leafletMapRef.current = map;
+        setIsMapReady(true);
 
-        onSearchArea?.({
-          lat: e.latlng.lat,
-          lng: e.latlng.lng,
-          radius: 10, // miles
+        // Add click handler for drawing circles
+        map.on("click", (e: L.LeafletMouseEvent) => {
+          if (circleRef.current) {
+            map.removeLayer(circleRef.current);
+          }
+
+          const circle = L.circle(e.latlng, {
+            radius: 16093, // ~10 miles in meters
+            color: "#22c55e",
+            fillColor: "#22c55e",
+            fillOpacity: 0.15,
+            weight: 2,
+          }).addTo(map);
+
+          circleRef.current = circle;
+
+          onSearchArea?.({
+            lat: e.latlng.lat,
+            lng: e.latlng.lng,
+            radius: 10, // miles
+          });
         });
-      });
+      } catch (mapError) {
+        console.error("Failed to initialize Leaflet map:", mapError);
+      }
+    }).catch((importError) => {
+      console.error("Failed to import Leaflet:", importError);
     });
 
     return () => {
