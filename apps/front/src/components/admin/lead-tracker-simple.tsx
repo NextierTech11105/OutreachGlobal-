@@ -625,8 +625,8 @@ export function LeadTrackerSimple() {
       toast.error("Select a state");
       return;
     }
-    if (!filters.county && !filters.city && !filters.zip) {
-      toast.error("Enter county, city, or ZIP");
+    if (!filters.county) {
+      toast.error("Select a county");
       return;
     }
 
@@ -1069,40 +1069,23 @@ export function LeadTrackerSimple() {
                 ))}
               </select>
             </div>
-            <div ref={countyRef} className="relative">
-              <Label className="text-zinc-400 text-xs">County</Label>
-              <div className="relative">
-                <Input
-                  value={countySearch}
-                  onChange={e => {
-                    setCountySearch(e.target.value);
-                    setShowCountyDropdown(true);
-                    if (!e.target.value) updateFilter("county", "");
-                  }}
-                  onFocus={() => filters.state && setShowCountyDropdown(true)}
-                  placeholder={filters.state ? (loadingCounties ? "Loading..." : "Type to search") : "Select state first"}
-                  disabled={!filters.state}
-                  className="h-9 bg-zinc-800 border-zinc-700 text-white pr-8"
-                />
-                <ChevronDown className="absolute right-2 top-2.5 h-4 w-4 text-zinc-500" />
-              </div>
-              {showCountyDropdown && filteredCounties.length > 0 && (
-                <div className="absolute z-50 w-full mt-1 max-h-48 overflow-auto bg-zinc-800 border border-zinc-700 rounded-md shadow-lg">
-                  {filteredCounties.slice(0, 50).map(county => (
-                    <button
-                      key={county}
-                      type="button"
-                      onClick={() => selectCounty(county)}
-                      className="w-full px-3 py-2 text-left text-sm text-white hover:bg-zinc-700 focus:bg-zinc-700"
-                    >
-                      {county}
-                    </button>
-                  ))}
-                </div>
-              )}
+            <div>
+              <Label className="text-zinc-400 text-xs">County *</Label>
+              <select
+                value={filters.county}
+                onChange={e => updateFilter("county", e.target.value)}
+                className="w-full h-9 px-2 rounded bg-zinc-800 border border-zinc-700 text-white text-sm"
+                aria-label="Select county"
+                disabled={!filters.state || loadingCounties}
+              >
+                <option value="">{loadingCounties ? "Loading..." : (filters.state ? "Select County" : "Select state first")}</option>
+                {counties.map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
             </div>
             <div>
-              <Label className="text-zinc-400 text-xs">City</Label>
+              <Label className="text-zinc-400 text-xs">City (optional)</Label>
               <Input
                 value={filters.city}
                 onChange={e => updateFilter("city", e.target.value)}
@@ -1111,7 +1094,7 @@ export function LeadTrackerSimple() {
               />
             </div>
             <div>
-              <Label className="text-zinc-400 text-xs">ZIP</Label>
+              <Label className="text-zinc-400 text-xs">ZIP (optional)</Label>
               <Input
                 value={filters.zip}
                 onChange={e => updateFilter("zip", e.target.value)}
