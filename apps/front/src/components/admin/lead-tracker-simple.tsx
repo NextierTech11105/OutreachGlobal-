@@ -686,7 +686,7 @@ export function LeadTrackerSimple() {
         vacant: filters.vacant || undefined,
         free_and_clear: filters.freeAndClear || undefined,
         size: size,
-        start: offset,
+        resultIndex: offset,
       }),
     });
 

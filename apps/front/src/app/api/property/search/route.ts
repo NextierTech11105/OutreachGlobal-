@@ -13,7 +13,9 @@ const INVALID_PARAMS = [
   "zoning",
   "distressed",
   "distress_type",
-  "ids_only", // Custom param, not supported by API
+  "ids_only",
+  "start", // Use 'resultIndex' instead
+  "from",  // Use 'resultIndex' instead
 ];
 
 function sanitizeSearchBody(body: Record<string, unknown>): Record<string, unknown> {
