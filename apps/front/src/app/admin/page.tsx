@@ -1,3 +1,6 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -22,17 +25,114 @@ import {
   MessageSquare,
   AlertCircle,
   Cable,
+  XCircle,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
 
+interface SystemStatus {
+  database: "operational" | "degraded" | "down" | "unknown";
+  twilio: "operational" | "not_configured" | "error" | "unknown";
+  zoho: "operational" | "not_configured" | "error" | "unknown";
+  email: "operational" | "not_configured" | "error" | "unknown";
+  sms: "operational" | "not_configured" | "error" | "unknown";
+  ai: "operational" | "not_configured" | "error" | "unknown";
+  batchProcessor: "operational" | "degraded" | "down" | "unknown";
+}
+
+function StatusBadge({ status }: { status: string }) {
+  if (status === "operational") {
+    return (
+      <div className="flex items-center text-green-500">
+        <CheckCircle className="mr-1 h-4 w-4" />
+        <span>Operational</span>
+      </div>
+    );
+  }
+  if (status === "not_configured") {
+    return (
+      <div className="flex items-center text-yellow-500">
+        <AlertTriangle className="mr-1 h-4 w-4" />
+        <span>Not Configured</span>
+      </div>
+    );
+  }
+  if (status === "degraded") {
+    return (
+      <div className="flex items-center text-yellow-500">
+        <AlertTriangle className="mr-1 h-4 w-4" />
+        <span>Degraded</span>
+      </div>
+    );
+  }
+  if (status === "error" || status === "down") {
+    return (
+      <div className="flex items-center text-red-500">
+        <XCircle className="mr-1 h-4 w-4" />
+        <span>Error</span>
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-center text-zinc-500">
+      <AlertCircle className="mr-1 h-4 w-4" />
+      <span>Unknown</span>
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
+  const [isLoading, setIsLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    apiRequests: 0,
+    activeJobs: 0,
+    systemAlerts: 0,
+  });
+  const [systemStatus, setSystemStatus] = useState<SystemStatus>({
+    database: "unknown",
+    twilio: "unknown",
+    zoho: "unknown",
+    email: "unknown",
+    sms: "unknown",
+    ai: "unknown",
+    batchProcessor: "unknown",
+  });
+  const [recentActivity, setRecentActivity] = useState<Array<{
+    id: string;
+    type: string;
+    description: string;
+    time: string;
+  }>>([]);
+
+  useEffect(() => {
+    // In a real implementation, this would fetch from the API
+    // For now, show realistic defaults indicating services need configuration
+    setIsLoading(false);
+    setStats({
+      totalUsers: 0,
+      apiRequests: 0,
+      activeJobs: 0,
+      systemAlerts: 0,
+    });
+    setSystemStatus({
+      database: "operational",
+      twilio: "not_configured",
+      zoho: "not_configured",
+      email: "not_configured",
+      sms: "not_configured",
+      ai: "operational",
+      batchProcessor: "operational",
+    });
+    setRecentActivity([]);
+  }, []);
+
   return (
     <div className="bg-zinc-950 text-zinc-100 min-h-screen">
       <div className="border-b border-zinc-800 p-8">
         <h1 className="text-3xl font-bold">Admin Dashboard</h1>
         <p className="text-zinc-400 mt-2">Overview of system performance and key metrics</p>
       </div>
-
 
       <div className="p-8">
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -44,10 +144,16 @@ export default function AdminDashboard() {
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
-                <div className="text-2xl font-bold">2,853</div>
+                {isLoading ? (
+                  <Loader2 className="h-6 w-6 animate-spin text-zinc-500" />
+                ) : (
+                  <div className="text-2xl font-bold">{stats.totalUsers}</div>
+                )}
                 <Users className="h-4 w-4 text-zinc-500" />
               </div>
-              <p className="text-xs text-zinc-500 mt-2">+12% from last month</p>
+              <p className="text-xs text-zinc-500 mt-2">
+                {stats.totalUsers === 0 ? "No users yet" : "Active accounts"}
+              </p>
             </CardContent>
           </Card>
 
@@ -59,10 +165,16 @@ export default function AdminDashboard() {
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
-                <div className="text-2xl font-bold">1.2M</div>
+                {isLoading ? (
+                  <Loader2 className="h-6 w-6 animate-spin text-zinc-500" />
+                ) : (
+                  <div className="text-2xl font-bold">{stats.apiRequests}</div>
+                )}
                 <Zap className="h-4 w-4 text-zinc-500" />
               </div>
-              <p className="text-xs text-zinc-500 mt-2">+18% from last week</p>
+              <p className="text-xs text-zinc-500 mt-2">
+                {stats.apiRequests === 0 ? "No requests yet" : "This month"}
+              </p>
             </CardContent>
           </Card>
 
@@ -74,10 +186,16 @@ export default function AdminDashboard() {
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
-                <div className="text-2xl font-bold">28</div>
+                {isLoading ? (
+                  <Loader2 className="h-6 w-6 animate-spin text-zinc-500" />
+                ) : (
+                  <div className="text-2xl font-bold">{stats.activeJobs}</div>
+                )}
                 <Clock className="h-4 w-4 text-zinc-500" />
               </div>
-              <p className="text-xs text-zinc-500 mt-2">3 require attention</p>
+              <p className="text-xs text-zinc-500 mt-2">
+                {stats.activeJobs === 0 ? "No active jobs" : "Running now"}
+              </p>
             </CardContent>
           </Card>
 
@@ -89,10 +207,16 @@ export default function AdminDashboard() {
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
-                <div className="text-2xl font-bold">2</div>
-                <AlertCircle className="h-4 w-4 text-amber-500" />
+                {isLoading ? (
+                  <Loader2 className="h-6 w-6 animate-spin text-zinc-500" />
+                ) : (
+                  <div className="text-2xl font-bold">{stats.systemAlerts}</div>
+                )}
+                <AlertCircle className={`h-4 w-4 ${stats.systemAlerts > 0 ? "text-amber-500" : "text-zinc-500"}`} />
               </div>
-              <p className="text-xs text-zinc-500 mt-2">View system alerts</p>
+              <p className="text-xs text-zinc-500 mt-2">
+                {stats.systemAlerts === 0 ? "No alerts" : "View alerts"}
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -112,10 +236,7 @@ export default function AdminDashboard() {
                     <Database className="mr-2 h-4 w-4 text-muted-foreground" />
                     <span>Database</span>
                   </div>
-                  <div className="flex items-center text-green-500">
-                    <CheckCircle className="mr-1 h-4 w-4" />
-                    <span>Operational</span>
-                  </div>
+                  <StatusBadge status={systemStatus.database} />
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -123,10 +244,7 @@ export default function AdminDashboard() {
                     <PhoneCall className="mr-2 h-4 w-4 text-muted-foreground" />
                     <span>Twilio Integration</span>
                   </div>
-                  <div className="flex items-center text-green-500">
-                    <CheckCircle className="mr-1 h-4 w-4" />
-                    <span>Operational</span>
-                  </div>
+                  <StatusBadge status={systemStatus.twilio} />
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -134,10 +252,7 @@ export default function AdminDashboard() {
                     <Zap className="mr-2 h-4 w-4 text-muted-foreground" />
                     <span>Zoho CRM Integration</span>
                   </div>
-                  <div className="flex items-center text-green-500">
-                    <CheckCircle className="mr-1 h-4 w-4" />
-                    <span>Operational</span>
-                  </div>
+                  <StatusBadge status={systemStatus.zoho} />
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -145,10 +260,7 @@ export default function AdminDashboard() {
                     <Mail className="mr-2 h-4 w-4 text-muted-foreground" />
                     <span>Email Service</span>
                   </div>
-                  <div className="flex items-center text-green-500">
-                    <CheckCircle className="mr-1 h-4 w-4" />
-                    <span>Operational</span>
-                  </div>
+                  <StatusBadge status={systemStatus.email} />
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -156,10 +268,7 @@ export default function AdminDashboard() {
                     <MessageSquare className="mr-2 h-4 w-4 text-muted-foreground" />
                     <span>SMS Service</span>
                   </div>
-                  <div className="flex items-center text-green-500">
-                    <CheckCircle className="mr-1 h-4 w-4" />
-                    <span>Operational</span>
-                  </div>
+                  <StatusBadge status={systemStatus.sms} />
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -167,10 +276,7 @@ export default function AdminDashboard() {
                     <Bot className="mr-2 h-4 w-4 text-muted-foreground" />
                     <span>AI Services</span>
                   </div>
-                  <div className="flex items-center text-green-500">
-                    <CheckCircle className="mr-1 h-4 w-4" />
-                    <span>Operational</span>
-                  </div>
+                  <StatusBadge status={systemStatus.ai} />
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -178,10 +284,7 @@ export default function AdminDashboard() {
                     <Clock className="mr-2 h-4 w-4 text-muted-foreground" />
                     <span>Batch Job Processor</span>
                   </div>
-                  <div className="flex items-center text-green-500">
-                    <CheckCircle className="mr-1 h-4 w-4" />
-                    <span>Operational</span>
-                  </div>
+                  <StatusBadge status={systemStatus.batchProcessor} />
                 </div>
               </div>
             </CardContent>
@@ -261,126 +364,114 @@ export default function AdminDashboard() {
           </Card>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2 mt-6">
           <Card>
             <CardHeader>
               <CardTitle>Recent Activity</CardTitle>
               <CardDescription>Recent administrative actions</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="text-sm font-medium">User Created</p>
-                    <p className="text-xs text-muted-foreground">
-                      john.smith@example.com
-                    </p>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    10 minutes ago
+              {recentActivity.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="font-medium">No Recent Activity</p>
+                  <p className="text-sm">
+                    Activity will appear here as you use the system.
                   </p>
                 </div>
-
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="text-sm font-medium">Campaign Updated</p>
-                    <p className="text-xs text-muted-foreground">
-                      High Equity Outreach
-                    </p>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    25 minutes ago
-                  </p>
+              ) : (
+                <div className="space-y-4">
+                  {recentActivity.map((activity) => (
+                    <div key={activity.id} className="flex justify-between items-center">
+                      <div>
+                        <p className="text-sm font-medium">{activity.type}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {activity.description}
+                        </p>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {activity.time}
+                      </p>
+                    </div>
+                  ))}
                 </div>
-
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="text-sm font-medium">
-                      System Settings Changed
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Email configuration updated
-                    </p>
-                  </div>
-                  <p className="text-xs text-muted-foreground">1 hour ago</p>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="text-sm font-medium">Batch Job Completed</p>
-                    <p className="text-xs text-muted-foreground">
-                      Lead data import
-                    </p>
-                  </div>
-                  <p className="text-xs text-muted-foreground">2 hours ago</p>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="text-sm font-medium">AI SDR Avatar Created</p>
-                    <p className="text-xs text-muted-foreground">
-                      Foreclosure Specialist
-                    </p>
-                  </div>
-                  <p className="text-xs text-muted-foreground">3 hours ago</p>
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>System Alerts</CardTitle>
-              <CardDescription>Important system notifications</CardDescription>
+              <CardTitle>Getting Started</CardTitle>
+              <CardDescription>Set up your integrations</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div className="flex items-start">
-                  <AlertTriangle className="mr-2 h-5 w-5 text-yellow-500 shrink-0 mt-0.5" />
+                  {systemStatus.twilio === "not_configured" ? (
+                    <AlertTriangle className="mr-2 h-5 w-5 text-yellow-500 shrink-0 mt-0.5" />
+                  ) : (
+                    <CheckCircle className="mr-2 h-5 w-5 text-green-500 shrink-0 mt-0.5" />
+                  )}
                   <div>
                     <p className="text-sm font-medium">
-                      Database Backup Needed
+                      Configure Twilio
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Last backup was 7 days ago
+                      Set up voice and SMS capabilities
                     </p>
-                    <Button variant="outline" size="sm" className="mt-2">
-                      Run Backup
-                    </Button>
+                    <Link href="/admin/integrations/twilio">
+                      <Button variant="outline" size="sm" className="mt-2">
+                        Configure
+                      </Button>
+                    </Link>
                   </div>
                 </div>
 
                 <div className="flex items-start">
-                  <AlertTriangle className="mr-2 h-5 w-5 text-yellow-500 shrink-0 mt-0.5" />
+                  {systemStatus.sms === "not_configured" ? (
+                    <AlertTriangle className="mr-2 h-5 w-5 text-yellow-500 shrink-0 mt-0.5" />
+                  ) : (
+                    <CheckCircle className="mr-2 h-5 w-5 text-green-500 shrink-0 mt-0.5" />
+                  )}
                   <div>
                     <p className="text-sm font-medium">
-                      System Update Available
+                      Configure SignalHouse SMS
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Version 2.5.1 is available
+                      Set up SMS messaging and phone verification
                     </p>
-                    <Button variant="outline" size="sm" className="mt-2">
-                      View Details
-                    </Button>
+                    <Link href="/admin/integrations/signalhouse">
+                      <Button variant="outline" size="sm" className="mt-2">
+                        Configure
+                      </Button>
+                    </Link>
                   </div>
                 </div>
 
                 <div className="flex items-start">
-                  <CheckCircle className="mr-2 h-5 w-5 text-green-500 shrink-0 mt-0.5" />
+                  {systemStatus.email === "not_configured" ? (
+                    <AlertTriangle className="mr-2 h-5 w-5 text-yellow-500 shrink-0 mt-0.5" />
+                  ) : (
+                    <CheckCircle className="mr-2 h-5 w-5 text-green-500 shrink-0 mt-0.5" />
+                  )}
                   <div>
                     <p className="text-sm font-medium">
-                      All Services Operational
+                      Configure SendGrid Email
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      No issues detected
+                      Set up email sending capabilities
                     </p>
+                    <Link href="/admin/integrations/sendgrid">
+                      <Button variant="outline" size="sm" className="mt-2">
+                        Configure
+                      </Button>
+                    </Link>
                   </div>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
-        {/* Additional dashboard content would go here */}
       </div>
     </div>
   );
