@@ -24,6 +24,10 @@ import {
   Upload,
   FileSpreadsheet,
   CheckCircle,
+  Database,
+  Pause,
+  Play,
+  AlertCircle,
 } from "lucide-react";
 
 // All 50 US States
@@ -148,6 +152,28 @@ interface BatchInfo {
   status: "pending" | "fetching" | "complete" | "error";
 }
 
+interface EnrichmentJob {
+  id: string;
+  bucketId: string;
+  bucketLabel: string;
+  status: "pending" | "processing" | "completed" | "failed" | "paused";
+  progress: {
+    total: number;
+    processed: number;
+    successful: number;
+    failed: number;
+    currentBatch: number;
+    totalBatches: number;
+  };
+}
+
+interface EnrichmentUsage {
+  date: string;
+  count: number;
+  remaining: number;
+  limit: number;
+}
+
 interface SavedSearch {
   id: string;
   label: string;
@@ -160,6 +186,8 @@ interface SavedSearch {
   notes: string;
   queueStatus?: "pending" | "queued" | "skip_traced" | "validated" | "in_campaign";
   campaignId?: string;
+  enrichmentJobId?: string;
+  enrichmentStatus?: "pending" | "processing" | "completed" | "failed" | "paused";
 }
 
 export function LeadTrackerSimple() {
@@ -189,6 +217,12 @@ export function LeadTrackerSimple() {
   const [importLabel, setImportLabel] = useState("");
   const [showImportModal, setShowImportModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Enrichment Queue
+  const [enrichmentJobs, setEnrichmentJobs] = useState<Record<string, EnrichmentJob>>({});
+  const [enrichmentUsage, setEnrichmentUsage] = useState<EnrichmentUsage | null>(null);
+  const [isEnriching, setIsEnriching] = useState<string | null>(null);
+  const enrichmentPollRef = useRef<NodeJS.Timeout | null>(null);
 
   // Load from localStorage
   useEffect(() => {
@@ -253,6 +287,200 @@ export function LeadTrackerSimple() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Fetch enrichment usage on mount
+  useEffect(() => {
+    fetchEnrichmentUsage();
+    return () => {
+      if (enrichmentPollRef.current) clearInterval(enrichmentPollRef.current);
+    };
+  }, []);
+
+  const fetchEnrichmentUsage = async () => {
+    try {
+      const res = await fetch("/api/enrichment/usage");
+      if (res.ok) {
+        const data = await res.json();
+        setEnrichmentUsage(data);
+      }
+    } catch {
+      // Silently fail - usage display is optional
+    }
+  };
+
+  // Poll for job status when enriching
+  useEffect(() => {
+    if (!isEnriching) {
+      if (enrichmentPollRef.current) {
+        clearInterval(enrichmentPollRef.current);
+        enrichmentPollRef.current = null;
+      }
+      return;
+    }
+
+    const pollJob = async () => {
+      try {
+        const res = await fetch(`/api/enrichment/job/${isEnriching}`);
+        if (res.ok) {
+          const { job } = await res.json();
+          setEnrichmentJobs(prev => ({ ...prev, [job.bucketId]: job }));
+
+          // Update bucket enrichment status
+          setSavedSearches(prev =>
+            prev.map(s =>
+              s.id === job.bucketId
+                ? { ...s, enrichmentJobId: job.id, enrichmentStatus: job.status }
+                : s
+            )
+          );
+
+          // If completed or failed, stop polling
+          if (job.status === "completed" || job.status === "failed") {
+            setIsEnriching(null);
+            fetchEnrichmentUsage();
+            if (job.status === "completed") {
+              toast.success(`Enrichment complete: ${job.progress.successful} properties enriched`);
+            } else {
+              toast.error(`Enrichment failed: ${job.error || "Unknown error"}`);
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Poll error:", err);
+      }
+    };
+
+    pollJob();
+    enrichmentPollRef.current = setInterval(pollJob, 3000);
+
+    return () => {
+      if (enrichmentPollRef.current) clearInterval(enrichmentPollRef.current);
+    };
+  }, [isEnriching]);
+
+  // Start enrichment for a bucket
+  const startEnrichment = async (search: SavedSearch) => {
+    if (isEnriching) {
+      toast.error("Another enrichment is in progress");
+      return;
+    }
+
+    if (!enrichmentUsage || enrichmentUsage.remaining === 0) {
+      toast.error("Daily enrichment limit reached. Try again tomorrow.");
+      return;
+    }
+
+    toast.info(`Queueing ${search.propertyIds.length.toLocaleString()} IDs for enrichment...`);
+
+    try {
+      const res = await fetch("/api/enrichment/queue", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bucketId: search.id,
+          bucketLabel: search.label,
+          propertyIds: search.propertyIds,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast.error(data.error || "Failed to queue enrichment");
+        return;
+      }
+
+      if (data.warning) {
+        toast.warning(data.warning);
+      }
+
+      setEnrichmentJobs(prev => ({ ...prev, [search.id]: data.job }));
+      setSavedSearches(prev =>
+        prev.map(s =>
+          s.id === search.id
+            ? { ...s, enrichmentJobId: data.job.id, enrichmentStatus: data.job.status }
+            : s
+        )
+      );
+      setEnrichmentUsage(data.usage);
+
+      toast.success(`Queued ${data.job.progress.total.toLocaleString()} IDs in ${data.job.progress.totalBatches} batches`);
+
+      // Start processing
+      await processEnrichmentBatch(data.job.id, search.id);
+    } catch (error) {
+      toast.error("Failed to start enrichment");
+    }
+  };
+
+  // Process next batch
+  const processEnrichmentBatch = async (jobId: string, bucketId: string) => {
+    setIsEnriching(jobId);
+
+    try {
+      const res = await fetch("/api/enrichment/process", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok && res.status !== 429) {
+        toast.error(data.error || "Processing failed");
+        setIsEnriching(null);
+        return;
+      }
+
+      setEnrichmentJobs(prev => ({ ...prev, [bucketId]: data.job }));
+
+      if (data.nextBatchReady) {
+        // Continue processing after a short delay
+        setTimeout(() => processEnrichmentBatch(jobId, bucketId), 1000);
+      } else {
+        // Polling will handle status updates
+      }
+    } catch (error) {
+      toast.error("Processing error");
+      setIsEnriching(null);
+    }
+  };
+
+  // Pause/Resume enrichment
+  const toggleEnrichmentPause = async (search: SavedSearch) => {
+    if (!search.enrichmentJobId) return;
+
+    const job = enrichmentJobs[search.id];
+    const action = job?.status === "paused" ? "resume" : "pause";
+
+    try {
+      const res = await fetch(`/api/enrichment/job/${search.enrichmentJobId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setEnrichmentJobs(prev => ({ ...prev, [search.id]: data.job }));
+        setSavedSearches(prev =>
+          prev.map(s =>
+            s.id === search.id ? { ...s, enrichmentStatus: data.job.status } : s
+          )
+        );
+
+        if (action === "resume") {
+          processEnrichmentBatch(search.enrichmentJobId, search.id);
+        } else {
+          setIsEnriching(null);
+        }
+
+        toast.success(action === "pause" ? "Enrichment paused" : "Enrichment resumed");
+      }
+    } catch {
+      toast.error(`Failed to ${action} enrichment`);
+    }
+  };
 
   const filteredCounties = counties.filter(c =>
     c.toLowerCase().includes(countySearch.toLowerCase())
@@ -632,6 +860,20 @@ export function LeadTrackerSimple() {
     }
   };
 
+  const getEnrichmentStatusColor = (status?: string) => {
+    switch (status) {
+      case "processing": return "bg-blue-600";
+      case "completed": return "bg-green-600";
+      case "failed": return "bg-red-600";
+      case "paused": return "bg-yellow-600";
+      default: return "bg-zinc-600";
+    }
+  };
+
+  const getEnrichmentJob = (bucketId: string): EnrichmentJob | undefined => {
+    return enrichmentJobs[bucketId];
+  };
+
   return (
     <div className="space-y-6 p-6">
       {/* Hidden file input */}
@@ -739,28 +981,68 @@ export function LeadTrackerSimple() {
         </div>
       )}
 
-      {/* IMPORT CSV */}
-      <Card className="bg-zinc-900 border-zinc-800">
-        <CardContent className="py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Upload className="h-5 w-5 text-purple-400" />
-              <div>
-                <p className="text-white font-medium">Import CSV</p>
-                <p className="text-zinc-500 text-xs">Upload property IDs with auto-tagging</p>
+      {/* IMPORT CSV + ENRICHMENT USAGE */}
+      <div className="grid grid-cols-2 gap-4">
+        <Card className="bg-zinc-900 border-zinc-800">
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Upload className="h-5 w-5 text-purple-400" />
+                <div>
+                  <p className="text-white font-medium">Import CSV</p>
+                  <p className="text-zinc-500 text-xs">Upload property IDs with auto-tagging</p>
+                </div>
+              </div>
+              <Button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isImporting}
+                className="bg-purple-600 hover:bg-purple-700"
+              >
+                {isImporting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
+                {isImporting ? "Processing..." : "Upload CSV"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-zinc-900 border-zinc-800">
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Database className="h-5 w-5 text-cyan-400" />
+                <div>
+                  <p className="text-white font-medium">Enrichment Quota</p>
+                  <p className="text-zinc-500 text-xs">Property Detail API (250/batch, 5K/day)</p>
+                </div>
+              </div>
+              <div className="text-right">
+                {enrichmentUsage ? (
+                  <>
+                    <p className="text-2xl font-bold text-cyan-400">
+                      {enrichmentUsage.remaining.toLocaleString()}
+                    </p>
+                    <p className="text-xs text-zinc-500">
+                      of {enrichmentUsage.limit.toLocaleString()} remaining today
+                    </p>
+                  </>
+                ) : (
+                  <Loader2 className="h-5 w-5 animate-spin text-zinc-500" />
+                )}
               </div>
             </div>
-            <Button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isImporting}
-              className="bg-purple-600 hover:bg-purple-700"
-            >
-              {isImporting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
-              {isImporting ? "Processing..." : "Upload CSV"}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+            {enrichmentUsage && (
+              <div className="mt-3">
+                <div className="w-full bg-zinc-700 rounded-full h-2">
+                  <div
+                    className="bg-cyan-500 h-2 rounded-full transition-all"
+                    style={{ width: `${Math.round((enrichmentUsage.count / enrichmentUsage.limit) * 100)}%` }}
+                  />
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       {/* SEARCH */}
       <Card className="bg-zinc-900 border-zinc-800">
@@ -1126,8 +1408,65 @@ export function LeadTrackerSimple() {
                       </div>
                     </div>
                     <div className="flex flex-col gap-2">
+                      {/* Enrichment Progress */}
+                      {getEnrichmentJob(search.id) && (
+                        <div className="p-2 bg-zinc-700 rounded-lg mb-1">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs text-zinc-400">
+                              Enriching: {getEnrichmentJob(search.id)?.progress.processed}/{getEnrichmentJob(search.id)?.progress.total}
+                            </span>
+                            <Badge className={`${getEnrichmentStatusColor(getEnrichmentJob(search.id)?.status)} text-white text-xs`}>
+                              {getEnrichmentJob(search.id)?.status}
+                            </Badge>
+                          </div>
+                          <div className="w-full bg-zinc-600 rounded-full h-1.5">
+                            <div
+                              className="bg-cyan-500 h-1.5 rounded-full transition-all"
+                              style={{
+                                width: `${Math.round(((getEnrichmentJob(search.id)?.progress.processed || 0) / (getEnrichmentJob(search.id)?.progress.total || 1)) * 100)}%`
+                              }}
+                            />
+                          </div>
+                          {getEnrichmentJob(search.id)?.status === "processing" && (
+                            <p className="text-xs text-zinc-500 mt-1">
+                              Batch {getEnrichmentJob(search.id)?.progress.currentBatch}/{getEnrichmentJob(search.id)?.progress.totalBatches}
+                            </p>
+                          )}
+                        </div>
+                      )}
+
                       {/* Action Buttons */}
                       <div className="flex gap-2">
+                        {/* Enrich Button */}
+                        {!search.enrichmentStatus || search.enrichmentStatus === "failed" ? (
+                          <Button
+                            onClick={() => startEnrichment(search)}
+                            size="sm"
+                            className="bg-cyan-600 hover:bg-cyan-700"
+                            disabled={isEnriching !== null || !enrichmentUsage || enrichmentUsage.remaining === 0}
+                            title="Enrich with Property Details (250/batch, 5K/day)"
+                          >
+                            <Database className="h-4 w-4 mr-1" /> Enrich
+                          </Button>
+                        ) : search.enrichmentStatus === "processing" || search.enrichmentStatus === "paused" ? (
+                          <Button
+                            onClick={() => toggleEnrichmentPause(search)}
+                            size="sm"
+                            className={search.enrichmentStatus === "paused" ? "bg-green-600 hover:bg-green-700" : "bg-orange-600 hover:bg-orange-700"}
+                            title={search.enrichmentStatus === "paused" ? "Resume Enrichment" : "Pause Enrichment"}
+                          >
+                            {search.enrichmentStatus === "paused" ? (
+                              <><Play className="h-4 w-4 mr-1" /> Resume</>
+                            ) : (
+                              <><Pause className="h-4 w-4 mr-1" /> Pause</>
+                            )}
+                          </Button>
+                        ) : search.enrichmentStatus === "completed" ? (
+                          <Badge className="bg-green-600 text-white px-3 py-1">
+                            <CheckCircle className="h-3 w-3 mr-1" /> Enriched
+                          </Badge>
+                        ) : null}
+
                         <Button
                           onClick={() => pushToQueue(search)}
                           size="sm"
