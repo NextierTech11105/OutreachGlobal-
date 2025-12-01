@@ -720,14 +720,14 @@ export function LeadTrackerSimple() {
       return;
     }
 
-    // Limit to 5000 IDs max to avoid excessive API calls
-    const maxIds = Math.min(count, 5000);
-    if (count > 5000) {
-      toast.warning(`Limiting to first 5,000 IDs (API constraint). Full count: ${count.toLocaleString()}`);
+    // Limit to 10000 IDs per API request
+    const maxIds = Math.min(count, 10000);
+    if (count > 10000) {
+      toast.warning(`Limiting to first 10,000 IDs per request. Full count: ${count.toLocaleString()}`);
     }
 
     setIsSaving(true);
-    const BATCH_SIZE = 500; // RealEstateAPI max page size
+    const BATCH_SIZE = 10000; // RealEstateAPI max per request
     const totalBatches = Math.ceil(maxIds / BATCH_SIZE);
     const allIds: string[] = [];
     const batches: BatchInfo[] = [];
