@@ -1,38 +1,37 @@
 "use client";
 
 import { MCPDashboard } from "@/components/admin/mcp-dashboard";
-import { MCPTerminal } from "@/components/admin/mcp-terminal";
-import { MCPSavedSearches } from "@/components/admin/mcp-saved-searches";
 import { LeadTrackerSimple } from "@/components/admin/lead-tracker-simple";
+import { DetailEnrichment } from "@/components/admin/detail-enrichment";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Cable, Terminal, FolderOpen, LayoutDashboard, Target } from "lucide-react";
+import { Cable, Database, LayoutDashboard, Target } from "lucide-react";
 
 export default function MCPPage() {
   return (
     <div className="bg-zinc-950 text-zinc-100 min-h-screen">
-      <div className="border-b border-zinc-800 p-8">
+      <div className="border-b border-zinc-800 p-6">
         <div className="flex items-center gap-3">
-          <div className="p-3 bg-purple-600 rounded-lg">
-            <Cable className="h-6 w-6 text-white" />
+          <div className="p-2.5 bg-purple-600 rounded-lg">
+            <Cable className="h-5 w-5 text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold">MCP Command Center</h1>
-            <p className="text-zinc-400 mt-1">
-              Search properties, track leads, push to campaigns
+            <h1 className="text-2xl font-bold">MCP Command Center</h1>
+            <p className="text-zinc-400 text-sm">
+              Search • Enrich • Track • Campaign
             </p>
           </div>
         </div>
       </div>
-      <div className="p-8">
-        <Tabs defaultValue="leads" className="space-y-6">
+      <div className="p-6">
+        <Tabs defaultValue="leads" className="space-y-4">
           <TabsList className="bg-zinc-900 border border-zinc-800">
             <TabsTrigger value="leads" className="data-[state=active]:bg-purple-600">
               <Target className="h-4 w-4 mr-2" />
               Lead Tracker
             </TabsTrigger>
-            <TabsTrigger value="terminal" className="data-[state=active]:bg-purple-600">
-              <Terminal className="h-4 w-4 mr-2" />
-              Quick Search
+            <TabsTrigger value="enrich" className="data-[state=active]:bg-cyan-600">
+              <Database className="h-4 w-4 mr-2" />
+              Detail Enrichment
             </TabsTrigger>
             <TabsTrigger value="connections" className="data-[state=active]:bg-purple-600">
               <LayoutDashboard className="h-4 w-4 mr-2" />
@@ -44,8 +43,8 @@ export default function MCPPage() {
             <LeadTrackerSimple />
           </TabsContent>
 
-          <TabsContent value="terminal" className="mt-0">
-            <MCPTerminal />
+          <TabsContent value="enrich" className="mt-0">
+            <DetailEnrichment />
           </TabsContent>
 
           <TabsContent value="connections" className="mt-0">
