@@ -148,6 +148,11 @@ export function AdminSidebar() {
           active: pathname === "/admin/integrations/sendgrid",
         },
         {
+          href: "/admin/integrations/signalhouse",
+          label: "SignalHouse SMS",
+          active: pathname === "/admin/integrations/signalhouse",
+        },
+        {
           href: "/admin/integrations/llm-settings",
           label: "LLM Settings",
           active: pathname === "/admin/integrations/llm-settings",

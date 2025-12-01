@@ -4,22 +4,38 @@ import { MCPDashboard } from "@/components/admin/mcp-dashboard";
 import { LeadTrackerSimple } from "@/components/admin/lead-tracker-simple";
 import { DetailEnrichment } from "@/components/admin/detail-enrichment";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Cable, Database, LayoutDashboard, Target } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Cable,
+  Database,
+  LayoutDashboard,
+  Target,
+  ExternalLink
+} from "lucide-react";
+import Link from "next/link";
 
 export default function MCPPage() {
   return (
     <div className="bg-zinc-950 text-zinc-100 min-h-screen">
       <div className="border-b border-zinc-800 p-6">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-purple-600 rounded-lg">
-            <Cable className="h-5 w-5 text-white" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-purple-600 rounded-lg">
+              <Cable className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold">Nextier Command Center</h1>
+              <p className="text-zinc-400 text-sm">
+                Search • Enrich • Track
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold">MCP Command Center</h1>
-            <p className="text-zinc-400 text-sm">
-              Search • Enrich • Track • Campaign
-            </p>
-          </div>
+          <Link href="/t/test/properties">
+            <Button variant="outline" className="bg-green-600 hover:bg-green-700 border-green-600">
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Property Search
+            </Button>
+          </Link>
         </div>
       </div>
       <div className="p-6">
@@ -31,11 +47,11 @@ export default function MCPPage() {
             </TabsTrigger>
             <TabsTrigger value="enrich" className="data-[state=active]:bg-cyan-600">
               <Database className="h-4 w-4 mr-2" />
-              Detail Enrichment
+              Enrichment
             </TabsTrigger>
             <TabsTrigger value="connections" className="data-[state=active]:bg-purple-600">
               <LayoutDashboard className="h-4 w-4 mr-2" />
-              Connections
+              MCP Connections
             </TabsTrigger>
           </TabsList>
 
