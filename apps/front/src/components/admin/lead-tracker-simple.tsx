@@ -691,17 +691,26 @@ export function LeadTrackerSimple() {
     });
 
     const data = await res.json();
-    console.log(`[fetchBatch] Response status=${res.status}, resultCount=${data.resultCount}, dataLength=${data.data?.length || 0}`);
+
+    // Find the records array - API may return in different locations
+    const records = data.data || data.results || data.items || [];
+    console.log(`[fetchBatch] Response status=${res.status}, resultCount=${data.resultCount}, records=${records.length}`);
+    console.log(`[fetchBatch] Full response keys:`, Object.keys(data));
+    if (records.length > 0) {
+      console.log(`[fetchBatch] Sample record keys:`, Object.keys(records[0]));
+    }
 
     if (!res.ok) {
       console.error("[fetchBatch] Error:", data);
       throw new Error(data.message || data.error || "Batch fetch failed");
     }
 
-    // Extract IDs from property data
-    const ids = (data.data || []).map((p: { id?: string; propertyId?: string }) => {
-      const id = p.id || p.propertyId;
-      if (!id) console.warn("[fetchBatch] Property missing ID:", p);
+    // Extract IDs - check multiple possible field names
+    const ids = records.map((p: Record<string, unknown>) => {
+      const id = p.id || p.propertyId || p.property_id || p.apn;
+      if (!id) {
+        console.warn("[fetchBatch] Property missing ID, keys:", Object.keys(p));
+      }
       return String(id || "");
     }).filter((id: string) => id !== "");
 
