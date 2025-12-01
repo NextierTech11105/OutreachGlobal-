@@ -1,11 +1,110 @@
 import { Redis } from "@upstash/redis";
 
-// Redis client for enrichment queue
-// Uses Upstash REST API (works in serverless environments)
-export const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL || process.env.REDIS_URL || "",
-  token: process.env.UPSTASH_REDIS_REST_TOKEN || "",
-});
+// Lazy-loaded Redis client for enrichment queue
+// Only initializes at runtime (not during build)
+// Supports both formats:
+//   1. UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN (preferred)
+//   2. REDIS_URL in ioredis format: rediss://default:TOKEN@HOST:PORT (auto-converted)
+let _redis: Redis | null = null;
+let _redisError: string | null = null;
+
+// Parse ioredis URL format to extract REST credentials
+// rediss://default:PASSWORD@improved-donkey-20354.upstash.io:6379
+// -> { url: "https://improved-donkey-20354.upstash.io", token: "PASSWORD" }
+function parseIoredisUrl(redisUrl: string): { url: string; token: string } | null {
+  try {
+    // Handle rediss:// or redis:// format
+    const match = redisUrl.match(/rediss?:\/\/([^:]+):([^@]+)@([^:]+)(?::\d+)?/);
+    if (match) {
+      const [, , password, host] = match;
+      return {
+        url: `https://${host}`,
+        token: password,
+      };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function getRedis(): Redis | null {
+  if (_redisError) return null;
+  if (_redis) return _redis;
+
+  let url = process.env.UPSTASH_REDIS_REST_URL;
+  let token = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+  // If REST credentials not provided, try to parse from REDIS_URL (ioredis format)
+  if (!url || !token) {
+    const redisUrl = process.env.REDIS_URL;
+    if (redisUrl) {
+      const parsed = parseIoredisUrl(redisUrl);
+      if (parsed) {
+        url = parsed.url;
+        token = parsed.token;
+        console.log("[Redis] Converted ioredis URL to REST format:", url);
+      }
+    }
+  }
+
+  if (!url || !token) {
+    _redisError = "Redis not configured. Set UPSTASH_REDIS_REST_URL + TOKEN, or REDIS_URL";
+    console.warn("[Redis]", _redisError);
+    return null;
+  }
+
+  try {
+    _redis = new Redis({ url, token });
+    return _redis;
+  } catch (err) {
+    _redisError = err instanceof Error ? err.message : "Failed to connect to Redis";
+    console.error("[Redis]", _redisError);
+    return null;
+  }
+}
+
+// Check if Redis is available
+export function isRedisAvailable(): boolean {
+  return getRedis() !== null;
+}
+
+// Safe wrapper that returns null instead of throwing when Redis unavailable
+export const redis = {
+  get: async <T>(key: string): Promise<T | null> => {
+    const r = getRedis();
+    return r ? r.get<T>(key) : null;
+  },
+  set: async (key: string, value: string, options?: { ex?: number }): Promise<"OK" | null> => {
+    const r = getRedis();
+    if (!r) return null;
+    return options?.ex ? r.set(key, value, { ex: options.ex }) : r.set(key, value);
+  },
+  incrby: async (key: string, amount: number): Promise<number | null> => {
+    const r = getRedis();
+    return r ? r.incrby(key, amount) : null;
+  },
+  expire: async (key: string, seconds: number): Promise<number | null> => {
+    const r = getRedis();
+    return r ? (r.expire(key, seconds) as Promise<number>) : null;
+  },
+  rpush: async (key: string, ...values: string[]): Promise<number | null> => {
+    const r = getRedis();
+    return r ? r.rpush(key, ...values) : null;
+  },
+  lpop: async <T>(key: string): Promise<T | null> => {
+    const r = getRedis();
+    return r ? r.lpop<T>(key) : null;
+  },
+  zadd: async (key: string, ...args: { score: number; member: string }[]): Promise<number | null> => {
+    const r = getRedis();
+    return r ? r.zadd(key, ...args) : null;
+  },
+  zrange: async (key: string, start: number, stop: number, options?: { rev?: boolean }): Promise<string[]> => {
+    const r = getRedis();
+    return r ? (r.zrange(key, start, stop, options) as Promise<string[]>) : [];
+  },
+};
 
 // Keys
 export const ENRICHMENT_QUEUE_KEY = "enrichment:queue";
