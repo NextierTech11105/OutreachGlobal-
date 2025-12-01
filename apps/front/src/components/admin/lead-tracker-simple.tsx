@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,7 @@ import {
   Zap,
   Phone,
   RefreshCw,
+  ChevronDown,
 } from "lucide-react";
 
 // All 50 US States
@@ -133,6 +134,13 @@ export function LeadTrackerSimple() {
   const [newTagName, setNewTagName] = useState("");
   const [batchProgress, setBatchProgress] = useState<{ current: number; total: number; ids: string[] } | null>(null);
 
+  // County autocomplete
+  const [counties, setCounties] = useState<string[]>([]);
+  const [countySearch, setCountySearch] = useState("");
+  const [showCountyDropdown, setShowCountyDropdown] = useState(false);
+  const [loadingCounties, setLoadingCounties] = useState(false);
+  const countyRef = useRef<HTMLDivElement>(null);
+
   // Load from localStorage
   useEffect(() => {
     const saved = localStorage.getItem("leadBuckets");
@@ -153,6 +161,59 @@ export function LeadTrackerSimple() {
   useEffect(() => {
     localStorage.setItem("customTags", JSON.stringify(customTags));
   }, [customTags]);
+
+  // Fetch counties when state changes
+  useEffect(() => {
+    if (!filters.state) {
+      setCounties([]);
+      return;
+    }
+
+    const fetchCounties = async () => {
+      setLoadingCounties(true);
+      try {
+        const res = await fetch("/api/property/autocomplete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ state: filters.state, type: "county" }),
+        });
+        const data = await res.json();
+        if (data.counties) {
+          setCounties(data.counties);
+        } else if (data.data) {
+          setCounties(data.data.map((c: { county?: string; name?: string }) => c.county || c.name || c));
+        }
+      } catch {
+        // Fallback: just allow text input
+        setCounties([]);
+      } finally {
+        setLoadingCounties(false);
+      }
+    };
+
+    fetchCounties();
+  }, [filters.state]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (countyRef.current && !countyRef.current.contains(e.target as Node)) {
+        setShowCountyDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredCounties = counties.filter(c =>
+    c.toLowerCase().includes(countySearch.toLowerCase())
+  );
+
+  const selectCounty = (county: string) => {
+    updateFilter("county", county);
+    setCountySearch(county);
+    setShowCountyDropdown(false);
+  };
 
   const allTags = [...DEFAULT_TAGS, ...customTags];
 
@@ -429,21 +490,44 @@ export function LeadTrackerSimple() {
                 ))}
               </select>
             </div>
-            <div>
+            <div ref={countyRef} className="relative">
               <Label className="text-zinc-400 text-xs">County</Label>
-              <Input
-                value={filters.county}
-                onChange={e => updateFilter("county", e.target.value)}
-                placeholder="County"
-                className="h-9 bg-zinc-800 border-zinc-700 text-white"
-              />
+              <div className="relative">
+                <Input
+                  value={countySearch}
+                  onChange={e => {
+                    setCountySearch(e.target.value);
+                    setShowCountyDropdown(true);
+                    if (!e.target.value) updateFilter("county", "");
+                  }}
+                  onFocus={() => filters.state && setShowCountyDropdown(true)}
+                  placeholder={filters.state ? (loadingCounties ? "Loading..." : "Type to search") : "Select state first"}
+                  disabled={!filters.state}
+                  className="h-9 bg-zinc-800 border-zinc-700 text-white pr-8"
+                />
+                <ChevronDown className="absolute right-2 top-2.5 h-4 w-4 text-zinc-500" />
+              </div>
+              {showCountyDropdown && filteredCounties.length > 0 && (
+                <div className="absolute z-50 w-full mt-1 max-h-48 overflow-auto bg-zinc-800 border border-zinc-700 rounded-md shadow-lg">
+                  {filteredCounties.slice(0, 50).map(county => (
+                    <button
+                      key={county}
+                      type="button"
+                      onClick={() => selectCounty(county)}
+                      className="w-full px-3 py-2 text-left text-sm text-white hover:bg-zinc-700 focus:bg-zinc-700"
+                    >
+                      {county}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <div>
               <Label className="text-zinc-400 text-xs">City</Label>
               <Input
                 value={filters.city}
                 onChange={e => updateFilter("city", e.target.value)}
-                placeholder="e.g., Miami"
+                placeholder="City"
                 className="h-9 bg-zinc-800 border-zinc-700 text-white"
               />
             </div>
@@ -452,7 +536,7 @@ export function LeadTrackerSimple() {
               <Input
                 value={filters.zip}
                 onChange={e => updateFilter("zip", e.target.value)}
-                placeholder="e.g., 33101"
+                placeholder="ZIP"
                 maxLength={5}
                 className="h-9 bg-zinc-800 border-zinc-700 text-white"
               />
@@ -480,7 +564,7 @@ export function LeadTrackerSimple() {
                 type="number"
                 value={filters.minEquity}
                 onChange={e => updateFilter("minEquity", e.target.value)}
-                placeholder="e.g., 40"
+                placeholder="40"
                 min="0"
                 max="100"
                 className="h-9 bg-zinc-800 border-zinc-700 text-white"
@@ -492,7 +576,7 @@ export function LeadTrackerSimple() {
                 type="number"
                 value={filters.minOwnership}
                 onChange={e => updateFilter("minOwnership", e.target.value)}
-                placeholder="e.g., 5"
+                placeholder="5"
                 min="0"
                 className="h-9 bg-zinc-800 border-zinc-700 text-white"
               />
@@ -561,7 +645,7 @@ export function LeadTrackerSimple() {
                   <Input
                     value={label}
                     onChange={e => setLabel(e.target.value)}
-                    placeholder="e.g., Miami High Equity SFR"
+                    placeholder="Label this bucket"
                     className="bg-zinc-700 border-zinc-600 text-white"
                   />
                 </div>
