@@ -70,6 +70,7 @@ import {
   Shield,
   ArrowUpDown,
   ExternalLink,
+  AlertCircle,
 } from "lucide-react";
 
 export function TwilioIntegration() {
@@ -81,13 +82,15 @@ export function TwilioIntegration() {
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
   const [isWebhookDialogOpen, setIsWebhookDialogOpen] = useState(false);
   const [isNumberDialogOpen, setIsNumberDialogOpen] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
+  const [connectionTested, setConnectionTested] = useState(false);
 
   const [credentials, setCredentials] = useState({
-    accountSid: process.env.TWILIO_ACCOUNT_SID || "",
-    authToken: process.env.TWILIO_AUTH_TOKEN || "",
-    phoneNumber: process.env.NEXT_PUBLIC_TWILIO_PHONE_NUMBER || "",
-    appSid: process.env.TWILIO_APP_SID || "",
-    apiKey: process.env.TWILIO_API_KEY || "",
+    accountSid: "",
+    authToken: "",
+    phoneNumber: "",
+    appSid: "",
+    apiKey: "",
     apiSecret: "",
   });
 
@@ -120,57 +123,15 @@ export function TwilioIntegration() {
     signatureValidation: true,
   });
 
-  const [templates, setTemplates] = useState([
-    {
-      id: "template-1",
-      name: "Initial Contact",
-      description: "First outreach to a new lead",
-      content:
-        "Hi {{ name }}, this is {{ agent }} from Nextier. I'd like to discuss...",
-      tags: ["outreach", "initial"],
-      channel: "sms",
-      isActive: true,
-    },
-    {
-      id: "template-2",
-      name: "Follow Up",
-      description: "Follow up after initial contact",
-      content: "Hi {{ name }}, just following up on our conversation about...",
-      tags: ["follow-up"],
-      channel: "sms",
-      isActive: true,
-    },
-    {
-      id: "template-3",
-      name: "Appointment Reminder",
-      description: "Reminder for scheduled appointments",
-      content:
-        "Reminder: You have an appointment with {{ agent }} on {{ date }} at {{ time }}...",
-      tags: ["appointment", "reminder"],
-      channel: "sms",
-      isActive: true,
-    },
-    {
-      id: "template-4",
-      name: "Property Update",
-      description: "Updates about property status",
-      content:
-        "Hi {{ name }}, there's an update about the property at {{ address }}...",
-      tags: ["property", "update"],
-      channel: "sms",
-      isActive: false,
-    },
-    {
-      id: "template-5",
-      name: "Standard Voicemail",
-      description: "Default voicemail message",
-      content:
-        "Hello, you've reached {{ agent }} at Nextier. I'm not available right now, but please leave a message and I'll get back to you as soon as possible.",
-      tags: ["voicemail"],
-      channel: "voice",
-      isActive: true,
-    },
-  ]);
+  const [templates, setTemplates] = useState<{
+    id: string;
+    name: string;
+    description: string;
+    content: string;
+    tags: string[];
+    channel: string;
+    isActive: boolean;
+  }[]>([]);
 
   const [newTemplate, setNewTemplate] = useState({
     name: "",
@@ -180,65 +141,25 @@ export function TwilioIntegration() {
     channel: "sms",
   });
 
-  const [phoneNumbers, setPhoneNumbers] = useState([
-    {
-      id: "PN123456789",
-      phoneNumber: "+1 (555) 123-4567",
-      friendlyName: "Sales Team",
-      capabilities: { voice: true, sms: true, mms: true },
-      status: "active",
-      usage: { voice: 245, sms: 1250 },
-      monthlyPrice: 1.0,
-      dateAdded: "2023-01-15",
-    },
-    {
-      id: "PN234567890",
-      phoneNumber: "+1 (555) 234-5678",
-      friendlyName: "Support Team",
-      capabilities: { voice: true, sms: true, mms: true },
-      status: "active",
-      usage: { voice: 120, sms: 850 },
-      monthlyPrice: 1.0,
-      dateAdded: "2023-02-20",
-    },
-    {
-      id: "PN345678901",
-      phoneNumber: "+1 (555) 345-6789",
-      friendlyName: "Marketing",
-      capabilities: { voice: false, sms: true, mms: true },
-      status: "active",
-      usage: { voice: 0, sms: 3200 },
-      monthlyPrice: 1.0,
-      dateAdded: "2023-03-10",
-    },
-  ]);
+  const [phoneNumbers, setPhoneNumbers] = useState<{
+    id: string;
+    phoneNumber: string;
+    friendlyName: string;
+    capabilities: { voice: boolean; sms: boolean; mms: boolean };
+    status: string;
+    usage: { voice: number; sms: number };
+    monthlyPrice: number;
+    dateAdded: string;
+  }[]>([]);
 
-  const [webhooks, setWebhooks] = useState([
-    {
-      id: "wh-1",
-      name: "Incoming SMS",
-      url: "https://example.com/api/twilio/sms/incoming",
-      method: "POST",
-      eventType: "incoming_message",
-      isActive: true,
-    },
-    {
-      id: "wh-2",
-      name: "Message Status",
-      url: "https://example.com/api/twilio/sms/status",
-      method: "POST",
-      eventType: "message_status",
-      isActive: true,
-    },
-    {
-      id: "wh-3",
-      name: "Incoming Call",
-      url: "https://example.com/api/twilio/voice/incoming",
-      method: "POST",
-      eventType: "incoming_call",
-      isActive: true,
-    },
-  ]);
+  const [webhooks, setWebhooks] = useState<{
+    id: string;
+    name: string;
+    url: string;
+    method: string;
+    eventType: string;
+    isActive: boolean;
+  }[]>([]);
 
   const [newWebhook, setNewWebhook] = useState({
     name: "",
@@ -272,23 +193,23 @@ export function TwilioIntegration() {
 
   const [usageData, setUsageData] = useState({
     voice: {
-      current: 450,
+      current: 0,
       limit: 1000,
-      lastMonth: 380,
+      lastMonth: 0,
     },
     sms: {
-      current: 5300,
+      current: 0,
       limit: 10000,
-      lastMonth: 4800,
+      lastMonth: 0,
     },
     phoneNumbers: {
-      current: 3,
+      current: 0,
       limit: 10,
     },
     spending: {
-      current: 350,
+      current: 0,
       budget: 1000,
-      lastMonth: 320,
+      lastMonth: 0,
     },
   });
 
@@ -366,17 +287,35 @@ export function TwilioIntegration() {
   };
 
   const handleTestConnection = async () => {
+    if (!credentials.accountSid || !credentials.authToken) {
+      setError("Please enter your Account SID and Auth Token first");
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
     setSuccess(false);
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const response = await fetch("/api/twilio/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          accountSid: credentials.accountSid,
+          authToken: credentials.authToken,
+        }),
+      });
 
-      // Success
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Connection test failed");
+      }
+
+      setIsConnected(true);
+      setConnectionTested(true);
       setSuccess(true);
     } catch (err) {
+      setIsConnected(false);
       setError(
         err instanceof Error ? err.message : "Failed to connect to Twilio",
       );
@@ -555,12 +494,23 @@ export function TwilioIntegration() {
               Configure Twilio for voice and SMS capabilities
             </CardDescription>
           </div>
-          <Badge
-            variant="outline"
-            className="bg-green-500/10 text-green-500 border-green-500/20"
-          >
-            Connected
-          </Badge>
+          {isConnected ? (
+            <Badge
+              variant="outline"
+              className="bg-green-500/10 text-green-500 border-green-500/20"
+            >
+              <CheckCircle className="mr-1 h-3 w-3" />
+              Connected
+            </Badge>
+          ) : (
+            <Badge
+              variant="outline"
+              className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
+            >
+              <AlertTriangle className="mr-1 h-3 w-3" />
+              Not Configured
+            </Badge>
+          )}
         </div>
       </CardHeader>
       <CardContent>
@@ -2141,7 +2091,7 @@ export function TwilioIntegration() {
       <CardFooter className="flex justify-between border-t px-6 py-4">
         <div className="flex items-center text-sm text-muted-foreground">
           <Phone className="mr-2 h-4 w-4" />
-          Last connected: 10 minutes ago
+          {isConnected ? "Connection verified" : "Not connected - enter credentials above"}
         </div>
         <Button
           variant="outline"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MoreHorizontal, UserPlus } from "lucide-react";
+import { MoreHorizontal, UserPlus, Users, Loader2 } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -64,66 +64,39 @@ const inviteFormSchema = z.object({
 
 type InviteFormValues = z.infer<typeof inviteFormSchema>;
 
-const teamMembers = [
-  {
-    id: "user_1",
-    name: "John Doe",
-    email: "john.doe@example.com",
-    role: "Owner",
-    status: "active",
-    lastActive: "2025-04-16T14:30:00",
-    avatar: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: "user_2",
-    name: "Sarah Johnson",
-    email: "sarah.johnson@example.com",
-    role: "Admin",
-    status: "active",
-    lastActive: "2025-04-16T10:15:00",
-    avatar: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: "user_3",
-    name: "Michael Brown",
-    email: "michael.brown@example.com",
-    role: "Member",
-    status: "active",
-    lastActive: "2025-04-15T16:45:00",
-    avatar: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: "user_4",
-    name: "Emily Davis",
-    email: "emily.davis@example.com",
-    role: "Member",
-    status: "invited",
-    lastActive: null,
-    avatar: "/placeholder.svg?height=40&width=40",
-  },
-];
+interface TeamMember {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  status: string;
+  lastActive: string | null;
+  avatar: string;
+}
 
-const pendingInvites = [
-  {
-    id: "invite_1",
-    email: "david.wilson@example.com",
-    role: "Member",
-    invitedBy: "John Doe",
-    invitedAt: "2025-04-15T09:30:00",
-  },
-  {
-    id: "invite_2",
-    email: "jennifer.lee@example.com",
-    role: "Admin",
-    invitedBy: "John Doe",
-    invitedAt: "2025-04-14T14:20:00",
-  },
-];
+interface PendingInvite {
+  id: string;
+  email: string;
+  role: string;
+  invitedBy: string;
+  invitedAt: string;
+}
 
 export function TeamSettings() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMembers, setIsLoadingMembers] = useState(true);
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
+
+  useEffect(() => {
+    // In a real implementation, this would fetch from the database
+    // For now, show empty state to indicate no fake data
+    setIsLoadingMembers(false);
+    setTeamMembers([]);
+    setPendingInvites([]);
+  }, []);
 
   const form = useForm<InviteFormValues>({
     resolver: zodResolver(inviteFormSchema),
@@ -270,107 +243,127 @@ export function TeamSettings() {
           </Dialog>
         </div>
 
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Last Active</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {teamMembers.map((member) => (
-                <TableRow key={member.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage
-                          src={member.avatar || "/placeholder.svg"}
-                          alt={member.name}
-                        />
-                        <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <div className="font-medium">{member.name}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {member.email}
+        {isLoadingMembers ? (
+          <div className="flex h-[200px] items-center justify-center rounded-md border">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : teamMembers.length === 0 ? (
+          <div className="flex h-[200px] items-center justify-center rounded-md border border-dashed">
+            <div className="text-center">
+              <Users className="h-12 w-12 mx-auto text-muted-foreground opacity-50" />
+              <h3 className="mt-4 text-lg font-medium">No Team Members</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Get started by inviting your first team member.
+              </p>
+              <Button className="mt-4" onClick={() => setIsInviteDialogOpen(true)}>
+                <UserPlus className="mr-2 h-4 w-4" />
+                Invite Team Member
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>User</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Last Active</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {teamMembers.map((member) => (
+                  <TableRow key={member.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage
+                            src={member.avatar || "/placeholder.svg"}
+                            alt={member.name}
+                          />
+                          <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <div className="font-medium">{member.name}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {member.email}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>{member.role}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        member.status === "active" ? "default" : "outline-solid"
-                      }
-                    >
-                      {member.status === "active" ? "Active" : "Invited"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {member.lastActive
-                      ? new Date(member.lastActive).toLocaleDateString()
-                      : "Never"}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Actions</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem
-                          onClick={() => handleChangeRole(member.id, "Admin")}
-                          disabled={member.role === "Owner"}
-                        >
-                          Change to Admin
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handleChangeRole(member.id, "Member")}
-                          disabled={
-                            member.role === "Owner" || member.role === "Member"
-                          }
-                        >
-                          Change to Member
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() =>
-                            handleChangeRole(member.id, "Read-only")
-                          }
-                          disabled={member.role === "Owner"}
-                        >
-                          Change to Read-only
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        {member.status === "invited" ? (
+                    </TableCell>
+                    <TableCell>{member.role}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          member.status === "active" ? "default" : "outline"
+                        }
+                      >
+                        {member.status === "active" ? "Active" : "Invited"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {member.lastActive
+                        ? new Date(member.lastActive).toLocaleDateString()
+                        : "Never"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Actions</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
                           <DropdownMenuItem
-                            onClick={() => handleResendInvite(member.email)}
+                            onClick={() => handleChangeRole(member.id, "Admin")}
+                            disabled={member.role === "Owner"}
                           >
-                            Resend Invitation
+                            Change to Admin
                           </DropdownMenuItem>
-                        ) : null}
-                        <DropdownMenuItem
-                          onClick={() => handleRemoveMember(member.id)}
-                          disabled={member.role === "Owner"}
-                          className="text-destructive focus:text-destructive"
-                        >
-                          Remove Member
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+                          <DropdownMenuItem
+                            onClick={() => handleChangeRole(member.id, "Member")}
+                            disabled={
+                              member.role === "Owner" || member.role === "Member"
+                            }
+                          >
+                            Change to Member
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() =>
+                              handleChangeRole(member.id, "Read-only")
+                            }
+                            disabled={member.role === "Owner"}
+                          >
+                            Change to Read-only
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          {member.status === "invited" ? (
+                            <DropdownMenuItem
+                              onClick={() => handleResendInvite(member.email)}
+                            >
+                              Resend Invitation
+                            </DropdownMenuItem>
+                          ) : null}
+                          <DropdownMenuItem
+                            onClick={() => handleRemoveMember(member.id)}
+                            disabled={member.role === "Owner"}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            Remove Member
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </div>
 
       <Separator />
