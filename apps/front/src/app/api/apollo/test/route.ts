@@ -1,0 +1,73 @@
+import { NextRequest, NextResponse } from "next/server";
+
+const APOLLO_API_BASE = "https://api.apollo.io/v1";
+
+export async function POST(request: NextRequest) {
+  try {
+    const { apiKey } = await request.json();
+
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: "API key is required" },
+        { status: 400 }
+      );
+    }
+
+    // Test connection by getting account info
+    const response = await fetch(`${APOLLO_API_BASE}/auth/health`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "Cache-Control": "no-cache",
+        "X-Api-Key": apiKey,
+      },
+    });
+
+    if (!response.ok) {
+      // Try alternative endpoint for testing
+      const meResponse = await fetch(`${APOLLO_API_BASE}/users/me`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Api-Key": apiKey,
+        },
+      });
+
+      if (!meResponse.ok) {
+        const errorData = await meResponse.json().catch(() => ({}));
+        return NextResponse.json(
+          { error: errorData.message || "Invalid API key or connection failed" },
+          { status: meResponse.status }
+        );
+      }
+
+      const userData = await meResponse.json();
+      return NextResponse.json({
+        success: true,
+        message: "Connection successful",
+        user: {
+          id: userData.id,
+          email: userData.email,
+          name: userData.name,
+          team: userData.team?.name,
+        },
+        usage: {
+          credits_used: userData.credits_used || 0,
+          credits_remaining: userData.credits_remaining || userData.team?.credits_remaining || 0,
+        },
+      });
+    }
+
+    const data = await response.json();
+
+    return NextResponse.json({
+      success: true,
+      message: "Connection successful",
+      data,
+    });
+  } catch (error: unknown) {
+    console.error("Apollo test connection error:", error);
+    const message = error instanceof Error ? error.message : "Connection test failed";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}

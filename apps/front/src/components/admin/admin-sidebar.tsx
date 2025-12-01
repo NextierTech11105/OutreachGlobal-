@@ -153,6 +153,11 @@ export function AdminSidebar() {
           active: pathname === "/admin/integrations/signalhouse",
         },
         {
+          href: "/admin/integrations/apollo",
+          label: "Apollo.io",
+          active: pathname === "/admin/integrations/apollo",
+        },
+        {
           href: "/admin/integrations/llm-settings",
           label: "LLM Settings",
           active: pathname === "/admin/integrations/llm-settings",
