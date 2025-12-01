@@ -203,14 +203,6 @@ export default function SignalHousePage() {
 
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label>Auto-DNC Check</Label>
-                <p className="text-xs text-muted-foreground">Check DNC list before sending</p>
-              </div>
-              <Switch defaultChecked />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
                 <Label>Delivery Receipts</Label>
                 <p className="text-xs text-muted-foreground">Track message delivery status</p>
               </div>

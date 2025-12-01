@@ -6,7 +6,7 @@ const graphqlUrl =
   process.env.NEXT_PUBLIC_GRAPHQL_URL ||
   (process.env.NEXT_PUBLIC_API_URL
     ? `${process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, "")}/graphql`
-    : "https://nextier-app-crsm6.ondigitalocean.app/graphql");
+    : "https://monkfish-app-mb7h3.ondigitalocean.app/graphql");
 
 const httpLink = createHttpLink({
   uri: graphqlUrl,
