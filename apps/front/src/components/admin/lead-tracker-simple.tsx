@@ -17,9 +17,7 @@ import {
   Loader2,
   Plus,
   X,
-  Upload,
   Zap,
-  Users,
   Phone,
   RefreshCw,
 } from "lucide-react";
@@ -436,7 +434,7 @@ export function LeadTrackerSimple() {
               <Input
                 value={filters.county}
                 onChange={e => updateFilter("county", e.target.value)}
-                placeholder="e.g., Miami-Dade"
+                placeholder="County"
                 className="h-9 bg-zinc-800 border-zinc-700 text-white"
               />
             </div>
