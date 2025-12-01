@@ -68,6 +68,7 @@ const sections: PageSection[] = [
       { name: "All Leads", href: "/t/default/leads", icon: Users, description: "Manage all leads" },
       { name: "Create Lead", href: "/t/default/leads/create", icon: UserPlus, description: "Add new lead" },
       { name: "Import Business List", href: "/t/default/leads/import-business-list", icon: Database, description: "Import B2B data" },
+      { name: "B2B Enrichment", href: "/admin/b2b", icon: Building2, description: "B2B lead enrichment with property data" },
     ],
   },
   {
