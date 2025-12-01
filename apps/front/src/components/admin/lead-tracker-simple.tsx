@@ -667,8 +667,10 @@ export function LeadTrackerSimple() {
     }
   };
 
-  // Fetch IDs in batches of 10K
+  // Fetch IDs in batches (max 500 per RealEstateAPI)
   const fetchBatch = async (offset: number, size: number): Promise<string[]> => {
+    console.log(`[fetchBatch] Fetching offset=${offset}, size=${size}`);
+
     const res = await fetch("/api/property/search", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -679,26 +681,35 @@ export function LeadTrackerSimple() {
         zip: filters.zip || undefined,
         property_type: filters.propertyType,
         equity_percent_min: filters.minEquity ? parseInt(filters.minEquity) : undefined,
-        // Note: years_owned filter applied client-side (not supported by RealEstateAPI)
         absentee_owner: filters.absenteeOwner || undefined,
         pre_foreclosure: filters.preForeclosure || undefined,
         vacant: filters.vacant || undefined,
         free_and_clear: filters.freeAndClear || undefined,
-        ids_only: true,
         size: size,
         start: offset,
       }),
     });
 
     const data = await res.json();
-    if (!res.ok) throw new Error(data.message || "Batch fetch failed");
+    console.log(`[fetchBatch] Response status=${res.status}, resultCount=${data.resultCount}, dataLength=${data.data?.length || 0}`);
 
-    return (data.data || []).map((p: { id?: string; propertyId?: string }) =>
-      String(p.id || p.propertyId || p)
-    );
+    if (!res.ok) {
+      console.error("[fetchBatch] Error:", data);
+      throw new Error(data.message || data.error || "Batch fetch failed");
+    }
+
+    // Extract IDs from property data
+    const ids = (data.data || []).map((p: { id?: string; propertyId?: string }) => {
+      const id = p.id || p.propertyId;
+      if (!id) console.warn("[fetchBatch] Property missing ID:", p);
+      return String(id || "");
+    }).filter((id: string) => id !== "");
+
+    console.log(`[fetchBatch] Extracted ${ids.length} IDs`);
+    return ids;
   };
 
-  // SAVE with IDs - supports batching for >10K
+  // SAVE with IDs - supports batching (RealEstateAPI max is 500 per request)
   const saveSearch = async () => {
     if (count === null || count === 0) {
       toast.error("Run count first");
@@ -709,16 +720,22 @@ export function LeadTrackerSimple() {
       return;
     }
 
+    // Limit to 5000 IDs max to avoid excessive API calls
+    const maxIds = Math.min(count, 5000);
+    if (count > 5000) {
+      toast.warning(`Limiting to first 5,000 IDs (API constraint). Full count: ${count.toLocaleString()}`);
+    }
+
     setIsSaving(true);
-    const BATCH_SIZE = 10000;
-    const totalBatches = Math.ceil(count / BATCH_SIZE);
+    const BATCH_SIZE = 500; // RealEstateAPI max page size
+    const totalBatches = Math.ceil(maxIds / BATCH_SIZE);
     const allIds: string[] = [];
     const batches: BatchInfo[] = [];
 
     try {
       for (let i = 0; i < totalBatches; i++) {
         const offset = i * BATCH_SIZE;
-        const size = Math.min(BATCH_SIZE, count - offset);
+        const size = Math.min(BATCH_SIZE, maxIds - offset);
 
         setBatchProgress({ current: i + 1, total: totalBatches, ids: allIds });
         toast.info(`Fetching batch ${i + 1} of ${totalBatches}...`);
