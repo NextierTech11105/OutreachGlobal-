@@ -808,21 +808,43 @@ export function LeadTrackerSimple() {
     toast.success(`Queued ${search.propertyIds.length.toLocaleString()} IDs for skip tracing`);
   };
 
-  // Push to Campaign
+  // Push to Campaign - creates real leads in database
   const pushToCampaign = async (search: SavedSearch, campaignId: string) => {
-    toast.info(`Pushing ${search.propertyIds.length.toLocaleString()} leads to campaign...`);
+    toast.info(`Creating ${search.propertyIds.length.toLocaleString()} leads in database...`);
 
-    // Update status
-    setSavedSearches(prev =>
-      prev.map(s =>
-        s.id === search.id
-          ? { ...s, queueStatus: "in_campaign" as const, campaignId, tags: [...new Set([...s.tags, "In Campaign"])] }
-          : s
-      )
-    );
+    try {
+      const res = await fetch("/api/leads/bulk-create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          teamId: campaignId, // Using campaignId as teamId for now
+          propertyIds: search.propertyIds,
+          source: "Property Search",
+          tags: search.tags,
+          filters: search.filters,
+        }),
+      });
 
-    // TODO: Call GraphQL mutation to create leads and assign to campaign
-    toast.success(`Pushed ${search.propertyIds.length.toLocaleString()} leads to campaign`);
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to create leads");
+      }
+
+      // Update status
+      setSavedSearches(prev =>
+        prev.map(s =>
+          s.id === search.id
+            ? { ...s, queueStatus: "in_campaign" as const, campaignId, tags: [...new Set([...s.tags, "In Campaign"])] }
+            : s
+        )
+      );
+
+      toast.success(`Created ${data.created} leads in database!`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to create leads";
+      toast.error(message);
+    }
   };
 
   const toggleSearchTag = (searchId: string, tag: string) => {
