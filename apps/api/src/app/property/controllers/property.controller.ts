@@ -1,5 +1,93 @@
-import { Body, Controller, Get, Post, Query } from "@nestjs/common";
+import { Body, Controller, Get, Post, Query, Req } from "@nestjs/common";
+import { Request } from "express";
 import { RealEstateService } from "../services/real-estate.service";
+
+// Separate controller for /property-search route
+@Controller("property-search")
+export class PropertySearchController {
+  constructor(private readonly realEstateService: RealEstateService) {}
+
+  @Get()
+  async searchPropertiesGet(@Query() query: Record<string, string>) {
+    try {
+      // Convert query params to RealEstateAPI format
+      const body: Record<string, unknown> = {};
+
+      // Location
+      if (query.zip) body.zip = query.zip;
+      if (query.city) body.city = query.city;
+      if (query.state) body.state = query.state;
+      if (query.county) body.county = query.county;
+      if (query.latitude) body.latitude = parseFloat(query.latitude);
+      if (query.longitude) body.longitude = parseFloat(query.longitude);
+      if (query.radius) body.radius = parseFloat(query.radius);
+
+      // Property filters
+      if (query.property_type) body.property_type = query.property_type;
+      if (query.beds_min) body.beds_min = parseInt(query.beds_min);
+      if (query.beds_max) body.beds_max = parseInt(query.beds_max);
+      if (query.baths_min) body.baths_min = parseInt(query.baths_min);
+      if (query.baths_max) body.baths_max = parseInt(query.baths_max);
+      if (query.year_built_min) body.year_built_min = parseInt(query.year_built_min);
+      if (query.year_built_max) body.year_built_max = parseInt(query.year_built_max);
+      if (query.sqft_min) body.sqft_min = parseInt(query.sqft_min);
+      if (query.sqft_max) body.sqft_max = parseInt(query.sqft_max);
+
+      // Value filters
+      if (query.estimated_value_min) body.estimated_value_min = parseInt(query.estimated_value_min);
+      if (query.estimated_value_max) body.estimated_value_max = parseInt(query.estimated_value_max);
+      if (query.estimated_equity_min) body.estimated_equity_min = parseInt(query.estimated_equity_min);
+      if (query.estimated_equity_max) body.estimated_equity_max = parseInt(query.estimated_equity_max);
+
+      // Boolean filters
+      if (query.absentee_owner === "true") body.absentee_owner = true;
+      if (query.owner_occupied === "true") body.owner_occupied = true;
+      if (query.high_equity === "true") body.high_equity = true;
+      if (query.pre_foreclosure === "true") body.pre_foreclosure = true;
+      if (query.foreclosure === "true") body.foreclosure = true;
+      if (query.vacant === "true") body.vacant = true;
+      if (query.tax_lien === "true") body.tax_lien = true;
+      if (query.inherited === "true") body.inherited = true;
+      if (query.corporate_owned === "true") body.corporate_owned = true;
+
+      // MLS filters
+      if (query.mls_active === "true") body.mls_active = true;
+      if (query.mls_pending === "true") body.mls_pending = true;
+      if (query.mls_sold === "true") body.mls_sold = true;
+
+      // Pagination
+      if (query.size) body.size = parseInt(query.size);
+      if (query.from) body.from = parseInt(query.from);
+
+      // Response mode
+      if (query.count === "true") body.count = true;
+      if (query.ids_only === "true") body.ids_only = true;
+
+      const response = await this.realEstateService.client.post("/PropertySearch", body);
+      return response.data;
+    } catch (error: any) {
+      return {
+        error: true,
+        message: error.response?.data?.message || error.message,
+        statusCode: error.response?.status || 500,
+      };
+    }
+  }
+
+  @Post()
+  async searchPropertiesPost(@Body() body: any) {
+    try {
+      const response = await this.realEstateService.client.post("/PropertySearch", body);
+      return response.data;
+    } catch (error: any) {
+      return {
+        error: true,
+        message: error.response?.data?.message || error.message,
+        statusCode: error.response?.status || 500,
+      };
+    }
+  }
+}
 
 @Controller("property")
 export class PropertyController {
