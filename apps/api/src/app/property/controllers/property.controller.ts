@@ -1,6 +1,46 @@
 import { Body, Controller, Get, Post, Query } from "@nestjs/common";
 import { RealEstateService } from "../services/real-estate.service";
 
+// Valid RealEstateAPI PropertyType enums
+const VALID_PROPERTY_TYPES = ["SFR", "MFR", "LAND", "CONDO", "OTHER", "MOBILE"];
+
+// Parameters NOT allowed by RealEstateAPI (filter these out)
+const INVALID_PARAMS = [
+  "ownership_years_min",
+  "ownership_years_max",
+  "years_owned_min",
+  "years_owned_max",
+  "zoning",
+];
+
+// Validate and sanitize property search body
+function sanitizeSearchBody(body: Record<string, unknown>): Record<string, unknown> {
+  const sanitized: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(body)) {
+    // Skip invalid parameters
+    if (INVALID_PARAMS.includes(key)) {
+      continue;
+    }
+
+    // Validate property_type
+    if (key === "property_type" && typeof value === "string") {
+      if (VALID_PROPERTY_TYPES.includes(value.toUpperCase())) {
+        sanitized[key] = value.toUpperCase();
+      }
+      // Skip invalid property types
+      continue;
+    }
+
+    // Pass through valid parameters
+    if (value !== undefined && value !== null && value !== "") {
+      sanitized[key] = value;
+    }
+  }
+
+  return sanitized;
+}
+
 // Separate controller for /property-search route
 @Controller("property-search")
 export class PropertySearchController {
@@ -21,8 +61,13 @@ export class PropertySearchController {
       if (query.longitude) body.longitude = parseFloat(query.longitude);
       if (query.radius) body.radius = parseFloat(query.radius);
 
-      // Property filters
-      if (query.property_type) body.property_type = query.property_type;
+      // Property filters - validate property_type
+      if (query.property_type) {
+        const pt = query.property_type.toUpperCase();
+        if (VALID_PROPERTY_TYPES.includes(pt)) {
+          body.property_type = pt;
+        }
+      }
       if (query.beds_min) body.beds_min = parseInt(query.beds_min);
       if (query.beds_max) body.beds_max = parseInt(query.beds_max);
       if (query.baths_min) body.baths_min = parseInt(query.baths_min);
@@ -37,6 +82,7 @@ export class PropertySearchController {
       if (query.estimated_value_max) body.estimated_value_max = parseInt(query.estimated_value_max);
       if (query.estimated_equity_min) body.estimated_equity_min = parseInt(query.estimated_equity_min);
       if (query.estimated_equity_max) body.estimated_equity_max = parseInt(query.estimated_equity_max);
+      if (query.equity_percent_min) body.equity_percent_min = parseInt(query.equity_percent_min);
 
       // Boolean filters
       if (query.absentee_owner === "true") body.absentee_owner = true;
@@ -48,6 +94,7 @@ export class PropertySearchController {
       if (query.tax_lien === "true") body.tax_lien = true;
       if (query.inherited === "true") body.inherited = true;
       if (query.corporate_owned === "true") body.corporate_owned = true;
+      if (query.free_and_clear === "true") body.free_clear = true;
 
       // MLS filters
       if (query.mls_active === "true") body.mls_active = true;
@@ -57,6 +104,7 @@ export class PropertySearchController {
       // Pagination
       if (query.size) body.size = parseInt(query.size);
       if (query.from) body.from = parseInt(query.from);
+      if (query.start) body.from = parseInt(query.start);
 
       // Response mode
       if (query.count === "true") body.count = true;
@@ -76,7 +124,9 @@ export class PropertySearchController {
   @Post()
   async searchPropertiesPost(@Body() body: any) {
     try {
-      const response = await this.realEstateService.client.post("/PropertySearch", body);
+      // Sanitize body to remove invalid parameters
+      const sanitizedBody = sanitizeSearchBody(body);
+      const response = await this.realEstateService.client.post("/PropertySearch", sanitizedBody);
       return response.data;
     } catch (error: any) {
       return {
@@ -146,10 +196,11 @@ export class PropertyController {
   @Post("search")
   async searchProperties(@Body() body: any) {
     try {
-      // Pass through to RealEstateAPI
+      // Sanitize body to remove invalid parameters
+      const sanitizedBody = sanitizeSearchBody(body);
       const response = await this.realEstateService.client.post(
         "/PropertySearch",
-        body,
+        sanitizedBody,
       );
       return response.data;
     } catch (error: any) {
@@ -164,9 +215,11 @@ export class PropertyController {
   @Get("search")
   async searchPropertiesGet(@Query() query: any) {
     try {
+      // Sanitize query to remove invalid parameters
+      const sanitizedQuery = sanitizeSearchBody(query);
       const response = await this.realEstateService.client.post(
         "/PropertySearch",
-        query,
+        sanitizedQuery,
       );
       return response.data;
     } catch (error: any) {

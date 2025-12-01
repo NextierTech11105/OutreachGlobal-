@@ -51,17 +51,14 @@ const US_STATES = [
   { code: "WI", name: "Wisconsin" }, { code: "WY", name: "Wyoming" }
 ];
 
-// Property Types (NO condos/co-ops)
+// Property Types - Valid RealEstateAPI PropertyTypeEnums: SFR, MFR, LAND, CONDO, OTHER, MOBILE
 const PROPERTY_TYPES = [
   { code: "SFR", name: "Single Family" },
-  { code: "MFR_SMALL", name: "Multi-Family (2-4 Units)" },
-  { code: "MFR_LARGE", name: "Multi-Family (5+ Units)" },
-  { code: "COMMERCIAL", name: "Commercial" },
-  { code: "INDUSTRIAL", name: "Industrial" },
-  { code: "RETAIL", name: "Retail" },
-  { code: "OFFICE", name: "Office" },
+  { code: "MFR", name: "Multi-Family" },
+  { code: "CONDO", name: "Condo/Townhouse" },
   { code: "LAND", name: "Land/Vacant Lot" },
   { code: "MOBILE", name: "Mobile Home" },
+  { code: "OTHER", name: "Other (Commercial, etc.)" },
 ];
 
 // Default tags
@@ -644,7 +641,7 @@ export function LeadTrackerSimple() {
           zip: filters.zip || undefined,
           property_type: filters.propertyType,
           equity_percent_min: filters.minEquity ? parseInt(filters.minEquity) : undefined,
-          ownership_years_min: filters.minOwnership ? parseInt(filters.minOwnership) : undefined,
+          // Note: years_owned filter applied client-side (not supported by RealEstateAPI)
           absentee_owner: filters.absenteeOwner || undefined,
           pre_foreclosure: filters.preForeclosure || undefined,
           vacant: filters.vacant || undefined,
@@ -682,7 +679,7 @@ export function LeadTrackerSimple() {
         zip: filters.zip || undefined,
         property_type: filters.propertyType,
         equity_percent_min: filters.minEquity ? parseInt(filters.minEquity) : undefined,
-        ownership_years_min: filters.minOwnership ? parseInt(filters.minOwnership) : undefined,
+        // Note: years_owned filter applied client-side (not supported by RealEstateAPI)
         absentee_owner: filters.absenteeOwner || undefined,
         pre_foreclosure: filters.preForeclosure || undefined,
         vacant: filters.vacant || undefined,
