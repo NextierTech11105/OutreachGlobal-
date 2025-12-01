@@ -88,15 +88,14 @@ const US_STATES = [
   { value: "WY", label: "Wyoming" },
 ];
 
+// Valid RealEstateAPI PropertyType enums: SFR, MFR, LAND, CONDO, OTHER, MOBILE
 const PROPERTY_TYPES = [
   { value: "SFR", label: "Single Family" },
   { value: "MFR", label: "Multi-Family" },
-  { value: "CONDO", label: "Condo" },
-  { value: "TOWNHOUSE", label: "Townhouse" },
+  { value: "CONDO", label: "Condo/Townhouse" },
   { value: "LAND", label: "Land" },
-  { value: "COMMERCIAL", label: "Commercial" },
   { value: "MOBILE", label: "Mobile Home" },
-  { value: "APARTMENT", label: "Apartment" },
+  { value: "OTHER", label: "Other (Commercial, etc.)" },
 ];
 
 const ZONING_TYPES = [

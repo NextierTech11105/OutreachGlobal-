@@ -1,5 +1,4 @@
-import { Body, Controller, Get, Post, Query, Req } from "@nestjs/common";
-import { Request } from "express";
+import { Body, Controller, Get, Post, Query } from "@nestjs/common";
 import { RealEstateService } from "../services/real-estate.service";
 
 // Separate controller for /property-search route
