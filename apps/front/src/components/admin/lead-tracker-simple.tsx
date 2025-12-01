@@ -21,6 +21,9 @@ import {
   Phone,
   RefreshCw,
   ChevronDown,
+  Upload,
+  FileSpreadsheet,
+  CheckCircle,
 } from "lucide-react";
 
 // All 50 US States
@@ -70,6 +73,45 @@ const DEFAULT_TAGS = [
   { name: "Validated", color: "bg-emerald-600" },
   { name: "In Campaign", color: "bg-indigo-600" },
 ];
+
+// Auto-tagging rules based on property data
+const AUTO_TAG_RULES = [
+  { field: "equityPercent", condition: (v: number) => v >= 50, tag: "High Equity" },
+  { field: "yearsOwned", condition: (v: number) => v >= 10, tag: "Long Ownership" },
+  { field: "preForeclosure", condition: (v: boolean) => v === true, tag: "Pre-Foreclosure" },
+  { field: "freeClear", condition: (v: boolean) => v === true, tag: "Free & Clear" },
+  { field: "absenteeOwner", condition: (v: boolean) => v === true, tag: "Absentee" },
+  { field: "vacant", condition: (v: boolean) => v === true, tag: "Vacant" },
+];
+
+// Fields to flag for full detail enrichment
+const ENRICHMENT_FIELDS = [
+  "owner1FirstName", "owner1LastName", "owner2FirstName", "owner2LastName",
+  "mailAddress", "phone", "email", "estimatedValue", "estimatedEquity",
+  "lastSaleDate", "lastSaleAmount", "lenderName", "openMortgageBalance"
+];
+
+interface CSVRow {
+  [key: string]: string | number | boolean;
+}
+
+interface ImportedProperty {
+  id: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  county?: string;
+  zip?: string;
+  propertyType?: string;
+  equityPercent?: number;
+  yearsOwned?: number;
+  absenteeOwner?: boolean;
+  preForeclosure?: boolean;
+  vacant?: boolean;
+  freeClear?: boolean;
+  autoTags: string[];
+  needsEnrichment: string[];
+}
 
 interface SearchFilters {
   state: string;
@@ -140,6 +182,13 @@ export function LeadTrackerSimple() {
   const [showCountyDropdown, setShowCountyDropdown] = useState(false);
   const [loadingCounties, setLoadingCounties] = useState(false);
   const countyRef = useRef<HTMLDivElement>(null);
+
+  // CSV Import
+  const [importedData, setImportedData] = useState<ImportedProperty[]>([]);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importLabel, setImportLabel] = useState("");
+  const [showImportModal, setShowImportModal] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load from localStorage
   useEffect(() => {
@@ -213,6 +262,126 @@ export function LeadTrackerSimple() {
     updateFilter("county", county);
     setCountySearch(county);
     setShowCountyDropdown(false);
+  };
+
+  // Auto-tag a property based on its data
+  const autoTagProperty = (row: CSVRow): string[] => {
+    const tags: string[] = [];
+    for (const rule of AUTO_TAG_RULES) {
+      const value = row[rule.field];
+      if (value !== undefined && rule.condition(value as never)) {
+        tags.push(rule.tag);
+      }
+    }
+    return tags;
+  };
+
+  // Check which fields need enrichment
+  const checkEnrichmentNeeds = (row: CSVRow): string[] => {
+    return ENRICHMENT_FIELDS.filter(field => !row[field] || row[field] === "");
+  };
+
+  // Parse CSV file
+  const parseCSV = (text: string): CSVRow[] => {
+    const lines = text.trim().split("\n");
+    if (lines.length < 2) return [];
+
+    const headers = lines[0].split(",").map(h => h.trim().replace(/^"|"$/g, ""));
+    const rows: CSVRow[] = [];
+
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i].split(",").map(v => v.trim().replace(/^"|"$/g, ""));
+      const row: CSVRow = {};
+      headers.forEach((header, idx) => {
+        const val = values[idx] || "";
+        // Try to parse as number or boolean
+        if (val === "true") row[header] = true;
+        else if (val === "false") row[header] = false;
+        else if (!isNaN(Number(val)) && val !== "") row[header] = Number(val);
+        else row[header] = val;
+      });
+      rows.push(row);
+    }
+    return rows;
+  };
+
+  // Handle CSV file upload
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    try {
+      const text = await file.text();
+      const rows = parseCSV(text);
+
+      if (rows.length === 0) {
+        toast.error("No data found in CSV");
+        return;
+      }
+
+      // Map rows to ImportedProperty with auto-tags
+      const properties: ImportedProperty[] = rows.map((row, idx) => ({
+        id: String(row.id || row.propertyId || row.property_id || `import-${idx}`),
+        address: String(row.address || row.street || ""),
+        city: String(row.city || ""),
+        state: String(row.state || ""),
+        county: String(row.county || ""),
+        zip: String(row.zip || row.zipCode || ""),
+        propertyType: String(row.propertyType || row.property_type || ""),
+        equityPercent: Number(row.equityPercent || row.equity_percent || 0),
+        yearsOwned: Number(row.yearsOwned || row.years_owned || 0),
+        absenteeOwner: row.absenteeOwner === true || row.absentee_owner === true,
+        preForeclosure: row.preForeclosure === true || row.pre_foreclosure === true,
+        vacant: row.vacant === true,
+        freeClear: row.freeClear === true || row.free_clear === true,
+        autoTags: autoTagProperty(row),
+        needsEnrichment: checkEnrichmentNeeds(row),
+      }));
+
+      setImportedData(properties);
+      setImportLabel(file.name.replace(/\.csv$/i, ""));
+      setShowImportModal(true);
+      toast.success(`Loaded ${properties.length} properties from CSV`);
+    } catch (error) {
+      toast.error("Failed to parse CSV file");
+    } finally {
+      setIsImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  // Save imported data as bucket
+  const saveImportedBucket = () => {
+    if (importedData.length === 0) return;
+    if (!importLabel.trim()) {
+      toast.error("Enter a label");
+      return;
+    }
+
+    // Collect all unique auto-tags
+    const allAutoTags = [...new Set(importedData.flatMap(p => p.autoTags))];
+
+    const newSearch: SavedSearch = {
+      id: `${Date.now()}`,
+      label: importLabel.trim(),
+      tags: [...selectedTags, ...allAutoTags],
+      filters: defaultFilters,
+      totalCount: importedData.length,
+      propertyIds: importedData.map(p => p.id),
+      batches: [{ batchNumber: 1, totalBatches: 1, idsInBatch: importedData.length, status: "complete" }],
+      createdAt: new Date(),
+      notes: `Imported from CSV. ${importedData.filter(p => p.needsEnrichment.length > 0).length} need enrichment.`,
+      queueStatus: "pending",
+    };
+
+    setSavedSearches(prev => [newSearch, ...prev]);
+    toast.success(`Saved "${importLabel}" with ${importedData.length} IDs`);
+
+    setImportedData([]);
+    setImportLabel("");
+    setShowImportModal(false);
+    setSelectedTags([]);
   };
 
   const allTags = [...DEFAULT_TAGS, ...customTags];
@@ -465,6 +634,134 @@ export function LeadTrackerSimple() {
 
   return (
     <div className="space-y-6 p-6">
+      {/* Hidden file input */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileUpload}
+        accept=".csv"
+        className="hidden"
+      />
+
+      {/* CSV Import Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+          <Card className="bg-zinc-900 border-zinc-700 w-full max-w-2xl max-h-[80vh] overflow-auto">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-white flex items-center gap-2">
+                <FileSpreadsheet className="h-5 w-5" />
+                Import Preview
+              </CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => { setShowImportModal(false); setImportedData([]); }}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="p-4 bg-zinc-800 rounded-lg">
+                <p className="text-2xl font-bold text-green-400">{importedData.length.toLocaleString()}</p>
+                <p className="text-zinc-400 text-sm">Properties loaded</p>
+              </div>
+
+              {/* Auto-detected tags */}
+              <div>
+                <Label className="text-zinc-400 text-xs">Auto-detected Tags</Label>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {[...new Set(importedData.flatMap(p => p.autoTags))].map(tag => {
+                    const tagDef = DEFAULT_TAGS.find(t => t.name === tag);
+                    return (
+                      <Badge key={tag} className={`${tagDef?.color || "bg-zinc-600"} text-white`}>
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        {tag} ({importedData.filter(p => p.autoTags.includes(tag)).length})
+                      </Badge>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Enrichment needs */}
+              <div className="p-3 bg-yellow-900/30 border border-yellow-700 rounded-lg">
+                <p className="text-yellow-400 text-sm font-medium">
+                  {importedData.filter(p => p.needsEnrichment.length > 0).length} properties need enrichment
+                </p>
+                <p className="text-zinc-400 text-xs">Missing: owner info, contact details, valuations</p>
+              </div>
+
+              {/* Label input */}
+              <div>
+                <Label className="text-zinc-400 text-xs">Bucket Label *</Label>
+                <Input
+                  value={importLabel}
+                  onChange={e => setImportLabel(e.target.value)}
+                  placeholder="Name this bucket"
+                  className="bg-zinc-800 border-zinc-700 text-white"
+                />
+              </div>
+
+              {/* Additional tags */}
+              <div>
+                <Label className="text-zinc-400 text-xs">Add Tags</Label>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {allTags.map(tag => (
+                    <button
+                      key={tag.name}
+                      type="button"
+                      onClick={() =>
+                        setSelectedTags(prev =>
+                          prev.includes(tag.name) ? prev.filter(t => t !== tag.name) : [...prev, tag.name]
+                        )
+                      }
+                      className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                        selectedTags.includes(tag.name)
+                          ? `${tag.color} text-white ring-2 ring-white`
+                          : "bg-zinc-700 text-zinc-300 hover:bg-zinc-600"
+                      }`}
+                    >
+                      {tag.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <Button
+                onClick={saveImportedBucket}
+                disabled={!importLabel.trim()}
+                className="w-full bg-green-600 hover:bg-green-700"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                Save Bucket ({importedData.length.toLocaleString()} IDs)
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* IMPORT CSV */}
+      <Card className="bg-zinc-900 border-zinc-800">
+        <CardContent className="py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Upload className="h-5 w-5 text-purple-400" />
+              <div>
+                <p className="text-white font-medium">Import CSV</p>
+                <p className="text-zinc-500 text-xs">Upload property IDs with auto-tagging</p>
+              </div>
+            </div>
+            <Button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isImporting}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              {isImporting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
+              {isImporting ? "Processing..." : "Upload CSV"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* SEARCH */}
       <Card className="bg-zinc-900 border-zinc-800">
         <CardHeader>
