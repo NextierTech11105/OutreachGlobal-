@@ -3,8 +3,6 @@
 import dynamic from "next/dynamic";
 import { MapPin, AlertCircle } from "lucide-react";
 
-const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
-
 // Fallback component when map fails to load
 function MapFallback({ properties = [] }: { properties?: { id: string }[] }) {
   return (
@@ -20,31 +18,14 @@ function MapFallback({ properties = [] }: { properties?: { id: string }[] }) {
   );
 }
 
-// Use Leaflet by default if no Google Maps API key, or if Google blocks
-// Dynamic import with SSR disabled to prevent errors during server-side rendering
 export const PropertyMap = dynamic(
-  async () => {
-    try {
-      // If no Google Maps API key, use Leaflet directly
-      if (!GOOGLE_MAPS_API_KEY) {
-        const { LeafletMap } = await import("./leaflet-map");
-        return LeafletMap;
-      }
-
-      // Try Google Maps first
-      try {
-        const { PropertyMap: GooglePropertyMap } = await import("./property-map");
-        return GooglePropertyMap;
-      } catch {
-        // Fallback to Leaflet if Google fails
-        const { LeafletMap } = await import("./leaflet-map");
-        return LeafletMap;
-      }
-    } catch (error) {
-      console.error("Failed to load map component:", error);
-      return MapFallback;
-    }
-  },
+  () =>
+    import("./property-map")
+      .then((mod) => mod.PropertyMap)
+      .catch((error) => {
+        console.error("Failed to load PropertyMap:", error);
+        return MapFallback;
+      }),
   {
     ssr: false,
     loading: () => (
@@ -53,12 +34,6 @@ export const PropertyMap = dynamic(
       </div>
     ),
   }
-);
-
-// Also export Leaflet directly for explicit use
-export const LeafletPropertyMap = dynamic(
-  () => import("./leaflet-map").then((mod) => mod.LeafletMap).catch(() => MapFallback),
-  { ssr: false }
 );
 
 export type { PropertyMarker } from "./property-map";
