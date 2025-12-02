@@ -126,6 +126,15 @@ export const FacetFilterItem: React.FC<Props> = ({
                 placeholder={placeholder ?? label}
                 onChange={(e) => setFacetQuery(e.target.value)}
                 value={facetQuery}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && facetQuery.trim()) {
+                    e.preventDefault();
+                    if (!checkedValues.includes(facetQuery.trim())) {
+                      onValueChange?.(name, [...checkedValues, facetQuery.trim()]);
+                    }
+                    setFacetQuery("");
+                  }
+                }}
               />
 
               <div className="absolute inset-y-0 right-0 flex items-center text-muted-foreground pr-2">
@@ -135,6 +144,27 @@ export const FacetFilterItem: React.FC<Props> = ({
             </div>
           </div>
 
+          {/* Show manually added values */}
+          {checkedValues.length > 0 && (
+            <ul className="divide-y border-b">
+              {checkedValues.map((value) => (
+                <li
+                  key={value}
+                  className="px-4 py-2 flex items-center justify-between text-sm bg-muted/50"
+                >
+                  <div className="flex items-center">
+                    <Checkbox
+                      checked={true}
+                      className="mr-2"
+                      onCheckedChange={handleCheckedChange(value)}
+                    />
+                    <span title={value}>{value.slice(0, 28)}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+
           {loading && (
             <div className="mt-2 flex items-center justify-center">
               <Loading />
@@ -142,7 +172,7 @@ export const FacetFilterItem: React.FC<Props> = ({
           )}
 
           <ul className="divide-y max-h-[300px] overflow-y-auto">
-            {facets?.hits?.map((facet) => (
+            {facets?.hits?.filter(f => !checkedValues.includes(f.value)).map((facet) => (
               <li
                 key={facet.value}
                 className="px-4 py-2 flex items-center justify-between text-sm"
