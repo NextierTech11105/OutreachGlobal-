@@ -138,14 +138,18 @@ export function BusinessListImport() {
     const firstFetch = async () => {
       setLoading(true);
       try {
-        const { data } = await $http.post(`/${team.id}/business-list`, {
-          ...searchParams,
+        // Use Apollo.io powered search API
+        const response = await fetch("/api/business-list/search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(searchParams),
         });
+        const data = await response.json();
         setEstimatedCount(data.estimatedTotalHits || 0);
-        setHits(data.hits);
+        setHits(data.hits || []);
       } catch (error) {
         toast.error(
-          "Failed to load business list, please check your api token or report this issue",
+          "Failed to load business list, please check your Apollo.io API key",
         );
       } finally {
         setLoading(false);
@@ -153,7 +157,7 @@ export function BusinessListImport() {
     };
 
     firstFetch();
-  }, [searchParams, team.id]);
+  }, [searchParams]);
 
   return (
     <>
