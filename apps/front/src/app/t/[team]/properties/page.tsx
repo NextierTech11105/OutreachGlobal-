@@ -21,7 +21,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Download, Loader2, MapPin, Home, DollarSign } from "lucide-react";
+import { Search, Download, Loader2, MapPin, Home } from "lucide-react";
 
 const US_STATES = [
   "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
@@ -61,10 +61,10 @@ export default function PropertiesPage() {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      if (state) params.set("state", state);
+      if (state && state !== "__all__") params.set("state", state);
       if (city) params.set("city", city);
       if (zip) params.set("zip", zip);
-      if (propertyType) params.set("property_type", propertyType);
+      if (propertyType && propertyType !== "__all__") params.set("property_type", propertyType);
       params.set("size", "50");
 
       const response = await fetch(`/api/property-search?${params.toString()}`);
@@ -160,7 +160,7 @@ export default function PropertiesPage() {
                   <SelectValue placeholder="Select state" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Any State</SelectItem>
+                  <SelectItem value="__all__">Any State</SelectItem>
                   {US_STATES.map((s) => (
                     <SelectItem key={s} value={s}>{s}</SelectItem>
                   ))}
@@ -182,7 +182,7 @@ export default function PropertiesPage() {
                   <SelectValue placeholder="Any type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Any Type</SelectItem>
+                  <SelectItem value="__all__">Any Type</SelectItem>
                   <SelectItem value="SFR">Single Family</SelectItem>
                   <SelectItem value="MFR">Multi-Family</SelectItem>
                   <SelectItem value="CONDO">Condo</SelectItem>
