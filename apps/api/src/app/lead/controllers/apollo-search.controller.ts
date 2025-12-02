@@ -91,9 +91,8 @@ export class ApolloSearchController {
       }
 
       if (industry?.length) {
-        // Use q_organization_keyword for text-based industry search
-        // Apollo's industry tag IDs are numeric, so we search by keyword instead
-        searchParams.q_organization_keyword = industry.join(" ");
+        // Use organization_industry_keywords for text-based industry filtering
+        searchParams.q_organization_industry_keywords = industry;
       }
 
       if (state?.length) {
