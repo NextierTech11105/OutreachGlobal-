@@ -11,6 +11,7 @@ import {
   PhoneIcon,
   SearchIcon,
   SettingsIcon,
+  ShieldIcon,
   SparkleIcon,
   UsersIcon,
   ZapIcon,
@@ -26,9 +27,10 @@ import {
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
 import { useActivePath } from "@/hooks/use-active-path";
-import { useParams } from "next/navigation";
+import { useParams, usePathname } from "next/navigation";
 import { TeamLink } from "../components/team-link";
 import { Fragment } from "react";
+import Link from "next/link";
 import {
   Collapsible,
   CollapsibleContent,
@@ -127,6 +129,35 @@ const items = [
     icon: BotIcon,
   },
   {
+    title: "Admin",
+    path: "/admin",
+    icon: ShieldIcon,
+    isAbsolute: true,
+    items: [
+      {
+        title: "Dashboard",
+        path: "/admin",
+        exact: true,
+        isAbsolute: true,
+      },
+      {
+        title: "MCP Configuration",
+        path: "/admin/mcp",
+        isAbsolute: true,
+      },
+      {
+        title: "Apollo Settings",
+        path: "/admin/integrations/apollo",
+        isAbsolute: true,
+      },
+      {
+        title: "Users",
+        path: "/admin/users",
+        isAbsolute: true,
+      },
+    ],
+  },
+  {
     title: "Settings",
     path: "/settings",
     icon: SettingsIcon,
@@ -135,8 +166,16 @@ const items = [
 
 export function TeamMainNav() {
   const params = useParams<{ team: string }>();
+  const pathname = usePathname();
   const [isActive] = useActivePath({ baseUri: `/${params.team}` });
-  const isPathActive = (item: Omit<(typeof items)[number], "icon">) => {
+  const isPathActive = (item: Omit<(typeof items)[number], "icon"> & { isAbsolute?: boolean }) => {
+    if (item.isAbsolute) {
+      // For absolute paths, check if current pathname starts with or matches the item path
+      if (item.exact) {
+        return pathname === item.path;
+      }
+      return pathname.startsWith(item.path);
+    }
     return isActive({
       href:
         item.path === "/"
@@ -150,7 +189,9 @@ export function TeamMainNav() {
     <SidebarGroup>
       <SidebarGroupContent className="flex flex-col gap-2">
         <SidebarMenu>
-          {items.map((item, index) => (
+          {items.map((item, index) => {
+            const ItemLink = item.isAbsolute ? Link : TeamLink;
+            return (
             <Fragment key={index}>
               {!item.items?.length ? (
                 <SidebarMenuItem>
@@ -159,10 +200,10 @@ export function TeamMainNav() {
                     asChild
                     isActive={isPathActive(item)}
                   >
-                    <TeamLink href={item.path}>
+                    <ItemLink href={item.path}>
                       {item.icon && <item.icon />}
                       <span>{item.title}</span>
-                    </TeamLink>
+                    </ItemLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ) : (
@@ -184,25 +225,27 @@ export function TeamMainNav() {
 
                     <CollapsibleContent>
                       <SidebarMenuSub>
-                        {item.items?.map((subItem) => (
+                        {item.items?.map((subItem) => {
+                          const SubItemLink = (subItem as { isAbsolute?: boolean }).isAbsolute ? Link : TeamLink;
+                          return (
                           <SidebarMenuSubItem key={subItem.title}>
                             <SidebarMenuSubButton
                               asChild
                               isActive={isPathActive(subItem)}
                             >
-                              <TeamLink href={subItem.path}>
+                              <SubItemLink href={subItem.path}>
                                 <span>{subItem.title}</span>
-                              </TeamLink>
+                              </SubItemLink>
                             </SidebarMenuSubButton>
                           </SidebarMenuSubItem>
-                        ))}
+                        )})}
                       </SidebarMenuSub>
                     </CollapsibleContent>
                   </SidebarMenuItem>
                 </Collapsible>
               )}
             </Fragment>
-          ))}
+          )})}
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>
