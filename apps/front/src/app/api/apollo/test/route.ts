@@ -13,49 +13,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Test connection by getting account info
-    const response = await fetch(`${APOLLO_API_BASE}/auth/health`, {
-      method: "GET",
+    // Test connection by doing a minimal search
+    const response = await fetch(`${APOLLO_API_BASE}/mixed_people/search`, {
+      method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Cache-Control": "no-cache",
         "X-Api-Key": apiKey,
       },
+      body: JSON.stringify({ page: 1, per_page: 1 }),
     });
 
     if (!response.ok) {
-      // Try alternative endpoint for testing
-      const meResponse = await fetch(`${APOLLO_API_BASE}/users/me`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Api-Key": apiKey,
-        },
-      });
-
-      if (!meResponse.ok) {
-        const errorData = await meResponse.json().catch(() => ({}));
-        return NextResponse.json(
-          { error: errorData.message || "Invalid API key or connection failed" },
-          { status: meResponse.status }
-        );
-      }
-
-      const userData = await meResponse.json();
-      return NextResponse.json({
-        success: true,
-        message: "Connection successful",
-        user: {
-          id: userData.id,
-          email: userData.email,
-          name: userData.name,
-          team: userData.team?.name,
-        },
-        usage: {
-          credits_used: userData.credits_used || 0,
-          credits_remaining: userData.credits_remaining || userData.team?.credits_remaining || 0,
-        },
-      });
+      const errorData = await response.json().catch(() => ({}));
+      return NextResponse.json(
+        { error: errorData.message || "Invalid API key" },
+        { status: response.status }
+      );
     }
 
     const data = await response.json();
@@ -63,7 +36,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: "Connection successful",
-      data,
+      usage: {
+        credits_used: 0,
+        credits_remaining: data.pagination?.total_entries || 0,
+      },
     });
   } catch (error: unknown) {
     console.error("Apollo test connection error:", error);
