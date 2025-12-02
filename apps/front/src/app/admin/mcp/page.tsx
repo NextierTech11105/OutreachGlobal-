@@ -3,6 +3,7 @@
 import { MCPDashboard } from "@/components/admin/mcp-dashboard";
 import { LeadTrackerSimple } from "@/components/admin/lead-tracker-simple";
 import { DetailEnrichment } from "@/components/admin/detail-enrichment";
+import { OpportunityPulse } from "@/components/admin/opportunity-pulse";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,7 +11,8 @@ import {
   Database,
   LayoutDashboard,
   Target,
-  ExternalLink
+  ExternalLink,
+  Zap,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -53,6 +55,10 @@ export default function MCPPage() {
               <LayoutDashboard className="h-4 w-4 mr-2" />
               MCP Connections
             </TabsTrigger>
+            <TabsTrigger value="b2b" className="data-[state=active]:bg-orange-600">
+              <Zap className="h-4 w-4 mr-2" />
+              B2B Advisor
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="leads" className="mt-0">
@@ -65,6 +71,10 @@ export default function MCPPage() {
 
           <TabsContent value="connections" className="mt-0">
             <MCPDashboard />
+          </TabsContent>
+
+          <TabsContent value="b2b" className="mt-0">
+            <OpportunityPulse />
           </TabsContent>
         </Tabs>
       </div>
