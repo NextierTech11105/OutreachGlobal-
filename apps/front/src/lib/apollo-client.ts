@@ -28,6 +28,8 @@ const authLink = setContext((_, { headers }) => {
 const errorLink = onError(({ graphQLErrors, networkError }) => {
   if (graphQLErrors) {
     graphQLErrors.forEach(({ message, path }) => {
+      // Don't spam console with auth errors - these are expected when not logged in
+      if (message === "Unauthorized") return;
       console.error(`[GraphQL error]: Message: ${message}, Path: ${path}`);
     });
   }
