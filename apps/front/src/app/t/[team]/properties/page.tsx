@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -53,17 +54,94 @@ interface Property {
 }
 
 export default function PropertiesPage() {
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [skipTracing, setSkipTracing] = useState(false);
   const [results, setResults] = useState<Property[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [mcpLabel, setMcpLabel] = useState<string | null>(null);
 
   // Filters
   const [state, setState] = useState("");
   const [city, setCity] = useState("");
   const [zip, setZip] = useState("");
   const [propertyType, setPropertyType] = useState("");
+
+  // Load from MCP Command Center if coming from there
+  useEffect(() => {
+    const fromMcp = searchParams.get("from") === "mcp";
+    if (!fromMcp) return;
+
+    const stored = localStorage.getItem("mcpPropertyIds");
+    if (!stored) return;
+
+    try {
+      const data = JSON.parse(stored);
+      if (data.ids && data.ids.length > 0) {
+        setMcpLabel(data.label);
+        setTotalCount(data.totalCount || data.ids.length);
+        toast.info(`Loading ${data.ids.length} properties from "${data.label}"...`);
+
+        // Fetch property details for the IDs
+        loadPropertiesFromIds(data.ids);
+
+        // Clear the stored data
+        localStorage.removeItem("mcpPropertyIds");
+      }
+    } catch (err) {
+      console.error("Failed to load MCP data:", err);
+    }
+  }, [searchParams]);
+
+  // Load properties by IDs (uses skip-trace endpoint which fetches details)
+  const loadPropertiesFromIds = async (ids: string[]) => {
+    setLoading(true);
+    try {
+      const response = await fetch("/api/skip-trace", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      // Map skip trace results to Property format
+      const properties: Property[] = (data.results || []).map((r: {
+        id: string;
+        propertyId?: string;
+        address?: string;
+        ownerName?: string;
+        phones?: string[];
+        emails?: string[];
+        success?: boolean;
+      }) => ({
+        id: r.id || r.propertyId || "",
+        address: r.address || "",
+        city: "",
+        state: "",
+        zip: "",
+        propertyType: "Unknown",
+        ownerName: r.ownerName,
+        phones: r.phones || [],
+        emails: r.emails || [],
+        skipTraced: r.success,
+      }));
+
+      setResults(properties);
+      toast.success(`Loaded ${properties.length} properties with contact info`);
+    } catch (error) {
+      console.error("Failed to load properties:", error);
+      toast.error("Failed to load properties");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Selection handlers
   const toggleSelectAll = () => {
@@ -206,9 +284,11 @@ export default function PropertiesPage() {
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Home className="h-6 w-6" />
-            Property Search
+            {mcpLabel ? `Properties: ${mcpLabel}` : "Property Search"}
           </h1>
-          <p className="text-muted-foreground">Search for properties and build lists</p>
+          <p className="text-muted-foreground">
+            {mcpLabel ? "From MCP Command Center - Select & Skip Trace" : "Search for properties and build lists"}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="text-lg px-3 py-1">

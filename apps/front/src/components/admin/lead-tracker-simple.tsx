@@ -28,7 +28,10 @@ import {
   Pause,
   Play,
   AlertCircle,
+  Home,
+  ExternalLink,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 // All 50 US States
 const US_STATES = [
@@ -188,6 +191,7 @@ interface SavedSearch {
 }
 
 export function LeadTrackerSimple() {
+  const router = useRouter();
   const [filters, setFilters] = useState<SearchFilters>(defaultFilters);
   const [label, setLabel] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -875,6 +879,22 @@ export function LeadTrackerSimple() {
     toast.success(`Exported ${search.propertyIds.length.toLocaleString()} IDs`);
   };
 
+  // Push to Properties Page - stores IDs and navigates
+  const pushToProperties = (search: SavedSearch) => {
+    // Store the bucket data in localStorage for the Properties page to read
+    localStorage.setItem("mcpPropertyIds", JSON.stringify({
+      ids: search.propertyIds.slice(0, 250), // Limit to 250 for initial load
+      label: search.label,
+      filters: search.filters,
+      totalCount: search.propertyIds.length,
+    }));
+
+    toast.success(`Pushing ${Math.min(search.propertyIds.length, 250)} properties to view...`);
+
+    // Navigate to Properties page
+    router.push("/t/default/properties?from=mcp");
+  };
+
   const addCustomTag = () => {
     if (!newTagName.trim()) return;
     if (allTags.some(t => t.name.toLowerCase() === newTagName.trim().toLowerCase())) {
@@ -1515,6 +1535,14 @@ export function LeadTrackerSimple() {
                         </Button>
                       </div>
                       <div className="flex gap-2">
+                        <Button
+                          onClick={() => pushToProperties(search)}
+                          size="sm"
+                          className="bg-green-600 hover:bg-green-700"
+                          title="View & Skip Trace in Properties"
+                        >
+                          <Home className="h-4 w-4 mr-1" /> Properties
+                        </Button>
                         <Button onClick={() => exportToCsv(search)} size="sm" className="bg-purple-600 hover:bg-purple-700">
                           <Download className="h-4 w-4 mr-1" /> CSV
                         </Button>
