@@ -64,8 +64,22 @@ export class ApolloSearchController {
         searchParams.q_keywords = searchQuery;
       }
 
+      // Default to decision makers if no title specified
       if (title?.length) {
         searchParams.person_titles = title;
+      } else {
+        // Default: search for owners, CEOs, presidents, founders
+        searchParams.person_titles = [
+          "Owner",
+          "CEO",
+          "Chief Executive Officer",
+          "President",
+          "Founder",
+          "Co-Founder",
+          "Managing Director",
+          "Principal",
+          "Partner",
+        ];
       }
 
       if (company_name?.length) {
@@ -77,7 +91,7 @@ export class ApolloSearchController {
       }
 
       if (industry?.length) {
-        searchParams.q_organization_industry_tag_ids = industry;
+        searchParams.organization_industry_tag_ids = industry;
       }
 
       if (state?.length) {
