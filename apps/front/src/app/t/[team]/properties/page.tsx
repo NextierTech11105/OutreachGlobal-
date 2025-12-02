@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -21,7 +22,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Download, Loader2, MapPin, Home } from "lucide-react";
+import { Search, Download, Loader2, MapPin, Home, Phone, Mail, UserSearch } from "lucide-react";
+import { toast } from "sonner";
 
 const US_STATES = [
   "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
@@ -44,18 +46,91 @@ interface Property {
   estimatedValue?: number;
   equity?: number;
   ownerName?: string;
+  // Skip trace fields
+  phones?: string[];
+  emails?: string[];
+  skipTraced?: boolean;
 }
 
 export default function PropertiesPage() {
   const [loading, setLoading] = useState(false);
+  const [skipTracing, setSkipTracing] = useState(false);
   const [results, setResults] = useState<Property[]>([]);
   const [totalCount, setTotalCount] = useState(0);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // Filters
   const [state, setState] = useState("");
   const [city, setCity] = useState("");
   const [zip, setZip] = useState("");
   const [propertyType, setPropertyType] = useState("");
+
+  // Selection handlers
+  const toggleSelectAll = () => {
+    if (selectedIds.size === results.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(results.map(p => p.id)));
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  // Skip trace handler
+  const handleSkipTrace = useCallback(async () => {
+    if (selectedIds.size === 0) {
+      toast.error("Select properties to skip trace");
+      return;
+    }
+
+    setSkipTracing(true);
+    try {
+      const ids = Array.from(selectedIds);
+      const response = await fetch("/api/skip-trace", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      // Update results with skip trace data
+      setResults(prev => prev.map(property => {
+        const skipData = data.results?.find((r: { id: string }) => r.id === property.id);
+        if (skipData && skipData.success) {
+          return {
+            ...property,
+            phones: skipData.phones || [],
+            emails: skipData.emails || [],
+            ownerName: skipData.ownerName || property.ownerName,
+            skipTraced: true,
+          };
+        }
+        return property;
+      }));
+
+      toast.success(`Skip traced ${data.stats?.successful || 0} properties - ${data.stats?.withPhones || 0} phones, ${data.stats?.withEmails || 0} emails`);
+      setSelectedIds(new Set());
+    } catch (error) {
+      console.error("Skip trace failed:", error);
+      toast.error("Skip trace failed");
+    } finally {
+      setSkipTracing(false);
+    }
+  }, [selectedIds]);
 
   const handleSearch = useCallback(async () => {
     setLoading(true);
@@ -104,10 +179,11 @@ export default function PropertiesPage() {
   }, [state, city, zip, propertyType]);
 
   const handleExportCSV = () => {
-    const headers = ["Address", "City", "State", "ZIP", "Type", "Beds", "Baths", "SqFt", "Value", "Equity", "Owner"];
+    const headers = ["Address", "City", "State", "ZIP", "Type", "Beds", "Baths", "SqFt", "Value", "Equity", "Owner", "Phones", "Emails"];
     const rows = results.map((p) => [
       p.address, p.city, p.state, p.zip, p.propertyType,
-      p.beds || "", p.baths || "", p.sqft || "", p.estimatedValue || "", p.equity || "", p.ownerName || ""
+      p.beds || "", p.baths || "", p.sqft || "", p.estimatedValue || "", p.equity || "", p.ownerName || "",
+      p.phones?.join("; ") || "", p.emails?.join("; ") || ""
     ]);
     const csv = [headers.join(","), ...rows.map((r) => r.map((c) => `"${c}"`).join(","))].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -139,6 +215,20 @@ export default function PropertiesPage() {
             <MapPin className="h-4 w-4 mr-1" />
             {totalCount.toLocaleString()} properties
           </Badge>
+          {selectedIds.size > 0 && (
+            <Badge variant="secondary" className="text-sm">
+              {selectedIds.size} selected
+            </Badge>
+          )}
+          <Button
+            variant="default"
+            onClick={handleSkipTrace}
+            disabled={selectedIds.size === 0 || skipTracing}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            {skipTracing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <UserSearch className="h-4 w-4 mr-2" />}
+            Skip Trace ({selectedIds.size})
+          </Button>
           <Button variant="outline" onClick={handleExportCSV} disabled={results.length === 0}>
             <Download className="h-4 w-4 mr-2" />
             Export CSV
@@ -206,38 +296,77 @@ export default function PropertiesPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10">
+                  <Checkbox
+                    checked={results.length > 0 && selectedIds.size === results.length}
+                    onCheckedChange={toggleSelectAll}
+                  />
+                </TableHead>
                 <TableHead>Address</TableHead>
                 <TableHead>City</TableHead>
                 <TableHead>State</TableHead>
-                <TableHead>ZIP</TableHead>
                 <TableHead>Type</TableHead>
-                <TableHead className="text-right">Beds</TableHead>
-                <TableHead className="text-right">Baths</TableHead>
-                <TableHead className="text-right">SqFt</TableHead>
                 <TableHead className="text-right">Value</TableHead>
                 <TableHead className="text-right">Equity</TableHead>
                 <TableHead>Owner</TableHead>
+                <TableHead>Phone</TableHead>
+                <TableHead>Email</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {results.map((property) => (
-                <TableRow key={property.id}>
-                  <TableCell className="font-medium">{property.address}</TableCell>
+                <TableRow key={property.id} className={property.skipTraced ? "bg-green-50 dark:bg-green-950/20" : ""}>
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedIds.has(property.id)}
+                      onCheckedChange={() => toggleSelect(property.id)}
+                    />
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    <div>{property.address}</div>
+                    <div className="text-xs text-muted-foreground">{property.zip}</div>
+                  </TableCell>
                   <TableCell>{property.city}</TableCell>
                   <TableCell>{property.state}</TableCell>
-                  <TableCell>{property.zip}</TableCell>
                   <TableCell><Badge variant="outline">{property.propertyType}</Badge></TableCell>
-                  <TableCell className="text-right">{property.beds || "-"}</TableCell>
-                  <TableCell className="text-right">{property.baths || "-"}</TableCell>
-                  <TableCell className="text-right">{property.sqft?.toLocaleString() || "-"}</TableCell>
                   <TableCell className="text-right">{formatCurrency(property.estimatedValue)}</TableCell>
-                  <TableCell className="text-right text-green-600">{formatCurrency(property.equity)}</TableCell>
+                  <TableCell className="text-right text-green-600 font-medium">{formatCurrency(property.equity)}</TableCell>
                   <TableCell>{property.ownerName || "-"}</TableCell>
+                  <TableCell>
+                    {property.phones && property.phones.length > 0 ? (
+                      <div className="flex items-center gap-1">
+                        <Phone className="h-3 w-3 text-green-600" />
+                        <span className="text-sm">{property.phones[0]}</span>
+                        {property.phones.length > 1 && (
+                          <Badge variant="secondary" className="text-xs">+{property.phones.length - 1}</Badge>
+                        )}
+                      </div>
+                    ) : property.skipTraced ? (
+                      <span className="text-muted-foreground text-sm">None</span>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {property.emails && property.emails.length > 0 ? (
+                      <div className="flex items-center gap-1">
+                        <Mail className="h-3 w-3 text-blue-600" />
+                        <span className="text-sm truncate max-w-[150px]">{property.emails[0]}</span>
+                        {property.emails.length > 1 && (
+                          <Badge variant="secondary" className="text-xs">+{property.emails.length - 1}</Badge>
+                        )}
+                      </div>
+                    ) : property.skipTraced ? (
+                      <span className="text-muted-foreground text-sm">None</span>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">-</span>
+                    )}
+                  </TableCell>
                 </TableRow>
               ))}
               {results.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                     No properties found. Enter search criteria and click Search.
                   </TableCell>
                 </TableRow>
