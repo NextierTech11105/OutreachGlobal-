@@ -32,7 +32,7 @@ interface ApolloPerson {
   linkedin_url?: string;
 }
 
-@Controller("api/business-list")
+@Controller("business-list")
 export class ApolloSearchController {
   private readonly apolloApiKey: string;
   private readonly apolloApiBase = "https://api.apollo.io/v1";
@@ -77,7 +77,7 @@ export class ApolloSearchController {
       }
 
       if (industry?.length) {
-        searchParams.organization_industry_tag_ids = industry;
+        searchParams.q_organization_industry_tag_ids = industry;
       }
 
       if (state?.length) {
