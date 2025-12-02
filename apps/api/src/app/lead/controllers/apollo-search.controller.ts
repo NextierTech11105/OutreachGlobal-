@@ -145,4 +145,118 @@ export class ApolloSearchController {
       throw new HttpException("Search failed", HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
+
+  @Post("companies")
+  async searchCompanies(@Body() body: {
+    name?: string;
+    industry?: string[];
+    state?: string[];
+    city?: string[];
+    employees_min?: number;
+    employees_max?: number;
+    revenue_min?: number;
+    revenue_max?: number;
+  }) {
+    if (!this.apolloApiKey) {
+      return {
+        hits: [],
+        estimatedTotalHits: 0,
+        error: "Apollo API key not configured",
+      };
+    }
+
+    try {
+      const { name, industry, state, city, employees_min, employees_max, revenue_min, revenue_max } = body;
+
+      // Build Apollo organization search parameters
+      const searchParams: Record<string, unknown> = {
+        page: 1,
+        per_page: 25,
+      };
+
+      if (name) {
+        searchParams.q_organization_name = name;
+      }
+
+      if (industry?.length) {
+        searchParams.q_organization_keyword_tags = industry;
+      }
+
+      if (state?.length) {
+        searchParams.organization_locations = state.map((s: string) => `United States, ${s}`);
+      }
+
+      if (city?.length) {
+        searchParams.organization_locations = city;
+      }
+
+      if (employees_min || employees_max) {
+        searchParams.organization_num_employees_ranges = [];
+        if (employees_min && employees_max) {
+          (searchParams.organization_num_employees_ranges as string[]).push(`${employees_min},${employees_max}`);
+        } else if (employees_min) {
+          (searchParams.organization_num_employees_ranges as string[]).push(`${employees_min},`);
+        } else if (employees_max) {
+          (searchParams.organization_num_employees_ranges as string[]).push(`,${employees_max}`);
+        }
+      }
+
+      const response = await axios.post(
+        `${this.apolloApiBase}/mixed_companies/search`,
+        searchParams,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "X-Api-Key": this.apolloApiKey,
+          },
+        }
+      );
+
+      const data = response.data;
+
+      // Transform Apollo organization results
+      const hits = (data.organizations || data.accounts || []).map((org: {
+        id: string;
+        name?: string;
+        website_url?: string;
+        industry?: string;
+        estimated_num_employees?: number;
+        annual_revenue?: number;
+        city?: string;
+        state?: string;
+        country?: string;
+        phone?: string;
+        linkedin_url?: string;
+        founded_year?: number;
+      }) => ({
+        id: org.id,
+        name: org.name || null,
+        domain: org.website_url?.replace(/^https?:\/\//, "").replace(/\/$/, "") || null,
+        website: org.website_url || null,
+        industry: org.industry || null,
+        employees: org.estimated_num_employees || null,
+        revenue: org.annual_revenue || null,
+        city: org.city || null,
+        state: org.state || null,
+        country: org.country || null,
+        phone: org.phone || null,
+        linkedin_url: org.linkedin_url || null,
+        founded_year: org.founded_year || null,
+      }));
+
+      return {
+        hits,
+        estimatedTotalHits: data.pagination?.total_entries || hits.length,
+      };
+    } catch (error) {
+      console.error("Apollo company search error:", error);
+      if (axios.isAxiosError(error)) {
+        throw new HttpException(
+          error.response?.data?.message || "Company search failed",
+          error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR
+        );
+      }
+      throw new HttpException("Company search failed", HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
 }

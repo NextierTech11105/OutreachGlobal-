@@ -28,7 +28,13 @@ export default function LeadsPage() {
 
             <Button asChild variant="outline">
               <TeamLink href="/leads/import-business-list">
-                Import From Business List
+                Import Contacts
+              </TeamLink>
+            </Button>
+
+            <Button asChild variant="outline">
+              <TeamLink href="/leads/import-companies">
+                Search Companies
               </TeamLink>
             </Button>
           </div>
