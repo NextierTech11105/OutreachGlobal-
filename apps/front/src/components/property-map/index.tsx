@@ -80,7 +80,13 @@ export function PropertyMap({
     if (!mapLoaded || !mapRef.current || googleMapRef.current) return;
 
     try {
-      googleMapRef.current = new google.maps.Map(mapRef.current, {
+      // Make sure google.maps.Map exists
+      if (!window.google?.maps?.Map) {
+        setError("Google Maps not available");
+        return;
+      }
+
+      googleMapRef.current = new window.google.maps.Map(mapRef.current, {
         center,
         zoom,
         mapTypeControl: true,
@@ -95,13 +101,14 @@ export function PropertyMap({
         ],
       });
     } catch (err) {
+      console.error("Map init error:", err);
       setError("Failed to initialize map");
     }
   }, [mapLoaded, center, zoom]);
 
   // Update markers when properties change
   useEffect(() => {
-    if (!googleMapRef.current) return;
+    if (!googleMapRef.current || !window.google?.maps?.Marker) return;
 
     // Clear existing markers
     markersRef.current.forEach((marker) => marker.setMap(null));
@@ -111,7 +118,7 @@ export function PropertyMap({
     properties.forEach((property) => {
       if (!property.lat || !property.lng) return;
 
-      const marker = new google.maps.Marker({
+      const marker = new window.google.maps.Marker({
         position: { lat: property.lat, lng: property.lng },
         map: googleMapRef.current,
         title: property.address,
