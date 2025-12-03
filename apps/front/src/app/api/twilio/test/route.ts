@@ -1,5 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 
+// Check if Twilio is configured via env vars
+export async function GET() {
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  const phoneNumber = process.env.TWILIO_PHONE_NUMBER;
+
+  const configured = !!(accountSid && authToken);
+
+  return NextResponse.json({
+    configured,
+    hasPhoneNumber: !!phoneNumber,
+    phoneNumber: phoneNumber ? phoneNumber.slice(-4).padStart(phoneNumber.length, "*") : null,
+  });
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { accountSid, authToken } = await request.json();
