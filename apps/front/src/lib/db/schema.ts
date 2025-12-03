@@ -51,15 +51,38 @@ export const leads = pgTable("leads", {
   phone: text("phone"),
   secondaryPhone: text("secondary_phone"),
 
-  // === RealEstateAPI Property Data ===
+  // === RealEstateAPI Property Identifiers ===
   propertyId: text("property_id"), // RealEstateAPI ID
+  apn: text("apn"), // Assessor Parcel Number
+  fips: text("fips"), // FIPS code
+  legalDescription: text("legal_description"),
+  subdivision: text("subdivision"),
+  tract: text("tract"),
+  block: text("block"),
+  lot: text("lot"),
+  // === Address ===
   propertyAddress: text("property_address"),
+  propertyAddress2: text("property_address_2"),
   propertyCity: text("property_city"),
   propertyState: text("property_state"),
   propertyZip: text("property_zip"),
+  propertyZip4: text("property_zip_4"),
   propertyCounty: text("property_county"),
-  propertyType: text("property_type"), // 'SFR' | 'Multi-Family' | 'Commercial' etc
-  propertySubtype: text("property_subtype"),
+  latitude: decimal("latitude", { precision: 10, scale: 7 }),
+  longitude: decimal("longitude", { precision: 10, scale: 7 }),
+  censusTract: text("census_tract"),
+  congressionalDistrict: text("congressional_district"),
+  // === Property Classification ===
+  propertyType: text("property_type"), // 'SFR' | 'Condo' | 'Townhouse' | 'Multi-Family' | 'Commercial' | 'Land' | 'Mobile'
+  propertySubtype: text("property_subtype"), // 'Duplex' | 'Triplex' | 'Fourplex' | 'Apartment' | 'Retail' | 'Office' | 'Industrial' | 'Mixed Use'
+  propertyClass: text("property_class"), // 'Residential' | 'Commercial' | 'Industrial' | 'Agricultural' | 'Vacant Land'
+  propertyUse: text("property_use"), // 'Single Family' | 'Investment' | 'Vacation' | 'Agricultural'
+  zoning: text("zoning"), // 'R1' | 'R2' | 'C1' | 'M1' etc
+  zoningDescription: text("zoning_description"),
+  landUseCode: text("land_use_code"),
+  // === Units (for multi-family) ===
+  units: integer("units"),
+  buildingCount: integer("building_count"),
   // Physical characteristics
   bedrooms: integer("bedrooms"),
   bathrooms: decimal("bathrooms", { precision: 3, scale: 1 }),
@@ -77,17 +100,45 @@ export const leads = pgTable("leads", {
   taxAmount: integer("tax_amount"),
   estimatedEquity: integer("estimated_equity"),
   equityPercent: decimal("equity_percent", { precision: 5, scale: 2 }),
-  // Mortgage/Lien
-  mortgageBalance: integer("mortgage_balance"),
-  mortgageRate: decimal("mortgage_rate", { precision: 5, scale: 3 }),
-  mortgageLender: text("mortgage_lender"),
-  mortgageDate: date("mortgage_date"),
+  // === Primary Mortgage (1st Position) ===
+  mtg1Amount: integer("mtg1_amount"),
+  mtg1Date: date("mtg1_date"),
+  mtg1LoanType: text("mtg1_loan_type"), // 'Conventional' | 'FHA' | 'VA' | 'USDA' | 'ARM' | 'Balloon'
+  mtg1InterestRate: decimal("mtg1_interest_rate", { precision: 5, scale: 3 }),
+  mtg1Term: integer("mtg1_term"), // months
+  mtg1Lender: text("mtg1_lender"),
+  mtg1DueDate: date("mtg1_due_date"),
+  // === Secondary Mortgage (2nd Position) ===
+  mtg2Amount: integer("mtg2_amount"),
+  mtg2Date: date("mtg2_date"),
+  mtg2LoanType: text("mtg2_loan_type"),
+  mtg2InterestRate: decimal("mtg2_interest_rate", { precision: 5, scale: 3 }),
+  mtg2Term: integer("mtg2_term"),
+  mtg2Lender: text("mtg2_lender"),
+  // === Combined Mortgage Info ===
+  totalMortgageBalance: integer("total_mortgage_balance"),
+  combinedLtv: decimal("combined_ltv", { precision: 5, scale: 2 }), // Loan-to-Value ratio
+  // === Liens & Encumbrances ===
   lienAmount: integer("lien_amount"),
-  // Sale history
+  lienType: text("lien_type"), // 'tax' | 'mechanic' | 'judgment' | 'hoa'
+  lienDate: date("lien_date"),
+  lienHolder: text("lien_holder"),
+  // === Last Sale ===
   lastSaleDate: date("last_sale_date"),
   lastSaleAmount: integer("last_sale_amount"),
+  lastSaleType: text("last_sale_type"), // 'arms_length' | 'foreclosure' | 'reo' | 'short_sale' | 'auction'
+  lastSaleSeller: text("last_sale_seller"),
+  lastSaleBuyer: text("last_sale_buyer"),
+  lastSaleDocNumber: text("last_sale_doc_number"),
+  // === Prior Sale ===
   priorSaleDate: date("prior_sale_date"),
   priorSaleAmount: integer("prior_sale_amount"),
+  priorSaleType: text("prior_sale_type"),
+  // === Calculated Fields ===
+  appreciationSinceLastSale: integer("appreciation_since_last_sale"),
+  appreciationPercent: decimal("appreciation_percent", { precision: 5, scale: 2 }),
+  daysOnMarket: integer("days_on_market"),
+  yearsOwned: decimal("years_owned", { precision: 4, scale: 1 }),
   // Owner info from RealEstateAPI
   owner1FirstName: text("owner1_first_name"),
   owner1LastName: text("owner1_last_name"),
@@ -101,15 +152,52 @@ export const leads = pgTable("leads", {
   mailingCity: text("mailing_city"),
   mailingState: text("mailing_state"),
   mailingZip: text("mailing_zip"),
-  // Flags from RealEstateAPI
+  // === Distress Flags ===
   preForeclosure: boolean("pre_foreclosure").default(false),
+  preForeclosureDate: date("pre_foreclosure_date"),
   foreclosure: boolean("foreclosure").default(false),
+  foreclosureDate: date("foreclosure_date"),
+  foreclosureAuctionDate: date("foreclosure_auction_date"),
+  reo: boolean("reo").default(false), // Bank-owned
+  reoDate: date("reo_date"),
   bankruptcy: boolean("bankruptcy").default(false),
+  bankruptcyDate: date("bankruptcy_date"),
+  bankruptcyChapter: text("bankruptcy_chapter"), // '7' | '11' | '13'
   taxLien: boolean("tax_lien").default(false),
+  taxLienAmount: integer("tax_lien_amount"),
+  taxLienDate: date("tax_lien_date"),
+  taxDelinquent: boolean("tax_delinquent").default(false),
+  taxDelinquentYear: integer("tax_delinquent_year"),
+  // === Opportunity Flags ===
   inherited: boolean("inherited").default(false),
+  inheritedDate: date("inherited_date"),
+  probate: boolean("probate").default(false),
+  probateDate: date("probate_date"),
+  divorce: boolean("divorce").default(false),
   vacant: boolean("vacant").default(false),
-  highEquity: boolean("high_equity").default(false),
-  freeClear: boolean("free_clear").default(false),
+  vacantIndicator: text("vacant_indicator"), // Source of vacancy data
+  tired: boolean("tired").default(false), // Landlord with old property
+  cashBuyer: boolean("cash_buyer").default(false), // Previous cash buyer
+  investor: boolean("investor").default(false), // Known investor
+  outOfState: boolean("out_of_state").default(false), // Owner lives out of state
+  outOfCounty: boolean("out_of_county").default(false),
+  seniorOwner: boolean("senior_owner").default(false), // Owner 65+
+  // === Equity Flags ===
+  highEquity: boolean("high_equity").default(false), // 50%+ equity
+  lowEquity: boolean("low_equity").default(false), // <20% equity
+  negativeEquity: boolean("negative_equity").default(false), // Underwater
+  freeClear: boolean("free_clear").default(false), // No mortgage
+  // === Market Flags ===
+  listedForSale: boolean("listed_for_sale").default(false),
+  listedDate: date("listed_date"),
+  listingPrice: integer("listing_price"),
+  mlsNumber: text("mls_number"),
+  daysOnMarket: integer("dom"),
+  priceReduced: boolean("price_reduced").default(false),
+  // === Quality Flags ===
+  needsRepair: boolean("needs_repair").default(false),
+  codeViolation: boolean("code_violation").default(false),
+  permitPulled: boolean("permit_pulled").default(false),
 
   // === Apollo.io Data ===
   apolloPersonId: text("apollo_person_id"),
