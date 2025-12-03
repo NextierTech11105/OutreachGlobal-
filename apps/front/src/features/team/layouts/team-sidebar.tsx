@@ -39,7 +39,7 @@ export function TeamSidebar({
               asChild
               className="data-[slot=sidebar-menu-button]:!p-1.5"
             >
-              <Link href={`/${params.team}`}>
+              <Link href={`/t/${params.team}`}>
                 <ArrowUpCircleIcon className="h-5 w-5" />
                 <span className="text-base font-semibold">{APP_NAME}</span>
               </Link>
