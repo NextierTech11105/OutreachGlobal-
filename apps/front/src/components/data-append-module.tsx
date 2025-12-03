@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileUploader } from "@/components/file-uploader";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -15,18 +16,50 @@ import {
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { InfoIcon as InfoCircle, PlusCircle } from "lucide-react";
+import { InfoIcon as InfoCircle, PlusCircle, Download, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Progress } from "@/components/ui/progress";
+import { toast } from "sonner";
+
+interface EnrichmentResult {
+  propertyId: string;
+  address: string;
+  success: boolean;
+  data?: {
+    propertyType?: string;
+    bedrooms?: number;
+    bathrooms?: number;
+    sqft?: number;
+    yearBuilt?: number;
+    estimatedValue?: number;
+    estimatedEquity?: number;
+    ownerName?: string;
+    mortgageAmount?: number;
+    mortgageLender?: string;
+    lastSaleDate?: string;
+    lastSaleAmount?: number;
+    preForeclosure?: boolean;
+    absenteeOwner?: boolean;
+  };
+  error?: string;
+}
+
+interface UsageInfo {
+  used: number;
+  limit: number;
+  remaining: number;
+}
 
 export function DataAppendModule() {
-  const [provider, setProvider] = useState("attom");
+  const [provider, setProvider] = useState("realestateapi");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [usage, setUsage] = useState<UsageInfo | null>(null);
+  const [results, setResults] = useState<EnrichmentResult[]>([]);
+  const [propertyIds, setPropertyIds] = useState("");
   const [dataFields, setDataFields] = useState({
     propertyCharacteristics: true,
     ownerInfo: true,
@@ -34,13 +67,24 @@ export function DataAppendModule() {
     mortgageInfo: true,
     foreclosureStatus: true,
     marketValue: true,
-    demographicData: false,
-    schoolInfo: false,
-    floodZone: false,
-    crimeData: false,
     salesHistory: true,
-    permitHistory: false,
   });
+
+  // Fetch usage on mount
+  useEffect(() => {
+    fetch("/api/enrichment/usage")
+      .then((r) => r.json())
+      .then((data) => {
+        setUsage({
+          used: data.daily?.used || 0,
+          limit: data.daily?.limit || 5000,
+          remaining: data.daily?.remaining || 5000,
+        });
+      })
+      .catch(() => {
+        setUsage({ used: 0, limit: 5000, remaining: 5000 });
+      });
+  }, []);
 
   const handleToggleField = (field: string) => {
     setDataFields((prev) => ({
@@ -49,12 +93,102 @@ export function DataAppendModule() {
     }));
   };
 
-  const handleAppendData = () => {
+  const handleAppendData = async () => {
+    const ids = propertyIds
+      .split("\n")
+      .map((id) => id.trim())
+      .filter((id) => id.length > 0);
+
+    if (ids.length === 0) {
+      toast.error("Please enter property IDs (one per line)");
+      return;
+    }
+
+    if (ids.length > 250) {
+      toast.error("Maximum 250 properties at a time");
+      return;
+    }
+
     setIsProcessing(true);
-    // Simulate API call
-    setTimeout(() => {
+    setResults([]);
+
+    try {
+      // Use batch property detail API
+      const response = await fetch("/api/property-detail", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast.error(data.error || "Enrichment failed");
+        return;
+      }
+
+      const enrichmentResults: EnrichmentResult[] = (data.results || []).map((r: any) => ({
+        propertyId: r.id || r.propertyId,
+        address: r.address?.address || r.address?.street || "",
+        success: r.success !== false,
+        data: r.success !== false ? {
+          propertyType: r.propertyType,
+          bedrooms: r.bedrooms,
+          bathrooms: r.bathrooms,
+          sqft: r.squareFeet || r.sqft,
+          yearBuilt: r.yearBuilt,
+          estimatedValue: r.estimatedValue || r.avm,
+          estimatedEquity: r.estimatedEquity,
+          ownerName: [r.owner1FirstName, r.owner1LastName].filter(Boolean).join(" ") || r.ownerName,
+          mortgageAmount: r.mortgage1Amount || r.openLoanAmount,
+          mortgageLender: r.mortgage1Lender,
+          lastSaleDate: r.lastSaleDate,
+          lastSaleAmount: r.lastSaleAmount,
+          preForeclosure: r.preForeclosure,
+          absenteeOwner: r.absenteeOwner,
+        } : undefined,
+        error: r.error,
+      }));
+
+      setResults(enrichmentResults);
+      const successful = enrichmentResults.filter((r) => r.success).length;
+      toast.success(`Enriched ${successful}/${ids.length} properties`);
+    } catch (error: any) {
+      toast.error(error.message || "Enrichment failed");
+    } finally {
       setIsProcessing(false);
-    }, 3000);
+    }
+  };
+
+  const downloadResults = () => {
+    if (results.length === 0) return;
+    const csv = [
+      ["Property ID", "Address", "Type", "Beds", "Baths", "SqFt", "Year", "Value", "Equity", "Owner", "Mortgage", "Last Sale", "Success"].join(","),
+      ...results.map((r) =>
+        [
+          r.propertyId,
+          `"${r.address}"`,
+          r.data?.propertyType || "",
+          r.data?.bedrooms || "",
+          r.data?.bathrooms || "",
+          r.data?.sqft || "",
+          r.data?.yearBuilt || "",
+          r.data?.estimatedValue || "",
+          r.data?.estimatedEquity || "",
+          `"${r.data?.ownerName || ""}"`,
+          r.data?.mortgageAmount || "",
+          r.data?.lastSaleDate || "",
+          r.success ? "Yes" : "No",
+        ].join(",")
+      ),
+    ].join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `property-enrichment-${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
   };
 
   return (
@@ -65,96 +199,53 @@ export function DataAppendModule() {
             <div>
               <h3 className="text-lg font-medium">Append Property Data</h3>
               <p className="text-sm text-muted-foreground">
-                Enrich your property records with additional data from premium
-                sources
+                Enrich property records with RealEstateAPI data
               </p>
             </div>
             <Badge
               variant="outline"
               className="bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300"
             >
-              API Credits: 5,000 remaining
+              {usage ? `${usage.remaining.toLocaleString()} / ${usage.limit.toLocaleString()} remaining` : "Loading..."}
             </Badge>
           </div>
 
-          <Tabs defaultValue="file">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="file">Upload File</TabsTrigger>
-              <TabsTrigger value="existing">Existing Lists</TabsTrigger>
-              <TabsTrigger value="verified">Recently Verified</TabsTrigger>
+          <Tabs defaultValue="ids">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="ids">Property IDs</TabsTrigger>
+              <TabsTrigger value="single">Single Property</TabsTrigger>
             </TabsList>
-            <TabsContent value="file" className="mt-6 space-y-4">
-              <FileUploader />
-              <div className="text-sm text-muted-foreground">
-                <p>Supported file formats: CSV, Excel (.xlsx, .xls)</p>
-                <p>
-                  Required fields: Property Address or APN (Assessor's Parcel
-                  Number)
-                </p>
+
+            <TabsContent value="ids" className="mt-6 space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="propertyIds">Enter Property IDs (one per line, max 250)</Label>
+                <Textarea
+                  id="propertyIds"
+                  placeholder="12345678&#10;23456789&#10;34567890"
+                  rows={6}
+                  value={propertyIds}
+                  onChange={(e) => setPropertyIds(e.target.value)}
+                />
               </div>
+              <p className="text-sm text-muted-foreground">
+                Get property IDs from search results or skip trace
+              </p>
             </TabsContent>
-            <TabsContent value="existing" className="mt-6">
-              <div className="space-y-4">
-                <Select defaultValue="recent">
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a list" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="recent">
-                      Recent Imports (125 records)
-                    </SelectItem>
-                    <SelectItem value="bronx">
-                      Bronx Properties (342 records)
-                    </SelectItem>
-                    <SelectItem value="queens">
-                      Queens Absentee Owners (208 records)
-                    </SelectItem>
-                    <SelectItem value="brooklyn">
-                      Brooklyn Pre-Foreclosures (156 records)
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-                <div className="rounded-md border p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-medium">Recent Imports</h4>
-                      <p className="text-sm text-muted-foreground">
-                        125 records, imported on May 10, 2025
-                      </p>
-                    </div>
-                    <Button variant="outline" size="sm">
-                      Preview
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </TabsContent>
-            <TabsContent value="verified" className="mt-6">
-              <div className="space-y-4">
-                <div className="rounded-md border p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-medium">
-                        Recently Verified Addresses
-                      </h4>
-                      <p className="text-sm text-muted-foreground">
-                        98 records verified on May 11, 2025
-                      </p>
-                    </div>
-                    <Badge
-                      variant="outline"
-                      className="bg-green-50 text-green-700"
-                    >
-                      Ready for Enrichment
-                    </Badge>
-                  </div>
-                  <div className="mt-4">
-                    <Progress value={100} className="h-2" />
-                  </div>
-                </div>
-                <Button className="w-full" variant="outline">
-                  Use Recently Verified Data
-                </Button>
+
+            <TabsContent value="single" className="mt-6 space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="singleId">Property ID</Label>
+                <Input
+                  id="singleId"
+                  placeholder="Enter property ID"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      const input = e.target as HTMLInputElement;
+                      setPropertyIds(input.value);
+                      handleAppendData();
+                    }
+                  }}
+                />
               </div>
             </TabsContent>
           </Tabs>
@@ -170,9 +261,7 @@ export function DataAppendModule() {
                     </TooltipTrigger>
                     <TooltipContent>
                       <p className="max-w-xs">
-                        Different providers specialize in different types of
-                        property data. ATTOM Data and CoreLogic offer the most
-                        comprehensive property datasets.
+                        RealEstateAPI provides comprehensive property data including owner info, valuations, and mortgage details.
                       </p>
                     </TooltipContent>
                   </Tooltip>
@@ -183,12 +272,9 @@ export function DataAppendModule() {
                   <SelectValue placeholder="Select a provider" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="attom">ATTOM Data (Premium)</SelectItem>
-                  <SelectItem value="corelogic">CoreLogic</SelectItem>
-                  <SelectItem value="blackknight">Black Knight</SelectItem>
-                  <SelectItem value="firstam">First American</SelectItem>
-                  <SelectItem value="zillow">Zillow API</SelectItem>
-                  <SelectItem value="redfin">Redfin API</SelectItem>
+                  <SelectItem value="realestateapi">RealEstateAPI (Configured)</SelectItem>
+                  <SelectItem value="attom" disabled>ATTOM Data (Not configured)</SelectItem>
+                  <SelectItem value="corelogic" disabled>CoreLogic (Not configured)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -196,157 +282,87 @@ export function DataAppendModule() {
             <div className="space-y-2">
               <Label>Data Fields to Append</Label>
               <div className="grid grid-cols-2 gap-2 rounded-md border p-4">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="propertyCharacteristics"
-                    checked={dataFields.propertyCharacteristics}
-                    onCheckedChange={() =>
-                      handleToggleField("propertyCharacteristics")
-                    }
-                  />
-                  <Label htmlFor="propertyCharacteristics" className="text-sm">
-                    Property Characteristics
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="ownerInfo"
-                    checked={dataFields.ownerInfo}
-                    onCheckedChange={() => handleToggleField("ownerInfo")}
-                  />
-                  <Label htmlFor="ownerInfo" className="text-sm">
-                    Owner Information
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="taxAssessment"
-                    checked={dataFields.taxAssessment}
-                    onCheckedChange={() => handleToggleField("taxAssessment")}
-                  />
-                  <Label htmlFor="taxAssessment" className="text-sm">
-                    Tax Assessment
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="mortgageInfo"
-                    checked={dataFields.mortgageInfo}
-                    onCheckedChange={() => handleToggleField("mortgageInfo")}
-                  />
-                  <Label htmlFor="mortgageInfo" className="text-sm">
-                    Mortgage Information
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="foreclosureStatus"
-                    checked={dataFields.foreclosureStatus}
-                    onCheckedChange={() =>
-                      handleToggleField("foreclosureStatus")
-                    }
-                  />
-                  <Label htmlFor="foreclosureStatus" className="text-sm">
-                    Foreclosure Status
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="marketValue"
-                    checked={dataFields.marketValue}
-                    onCheckedChange={() => handleToggleField("marketValue")}
-                  />
-                  <Label htmlFor="marketValue" className="text-sm">
-                    Market Value
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="demographicData"
-                    checked={dataFields.demographicData}
-                    onCheckedChange={() => handleToggleField("demographicData")}
-                  />
-                  <Label htmlFor="demographicData" className="text-sm">
-                    Demographic Data
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="schoolInfo"
-                    checked={dataFields.schoolInfo}
-                    onCheckedChange={() => handleToggleField("schoolInfo")}
-                  />
-                  <Label htmlFor="schoolInfo" className="text-sm">
-                    School Information
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="floodZone"
-                    checked={dataFields.floodZone}
-                    onCheckedChange={() => handleToggleField("floodZone")}
-                  />
-                  <Label htmlFor="floodZone" className="text-sm">
-                    Flood Zone
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="crimeData"
-                    checked={dataFields.crimeData}
-                    onCheckedChange={() => handleToggleField("crimeData")}
-                  />
-                  <Label htmlFor="crimeData" className="text-sm">
-                    Crime Data
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="salesHistory"
-                    checked={dataFields.salesHistory}
-                    onCheckedChange={() => handleToggleField("salesHistory")}
-                  />
-                  <Label htmlFor="salesHistory" className="text-sm">
-                    Sales History
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="permitHistory"
-                    checked={dataFields.permitHistory}
-                    onCheckedChange={() => handleToggleField("permitHistory")}
-                  />
-                  <Label htmlFor="permitHistory" className="text-sm">
-                    Permit History
-                  </Label>
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-md bg-muted p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Estimated Cost</p>
-                  <p className="text-sm text-muted-foreground">
-                    Based on selected provider and data fields
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="font-medium">$0.08 - $0.25 per record</p>
-                  <p className="text-sm text-muted-foreground">
-                    ~$10.00 - $31.25 total for 125 records
-                  </p>
-                </div>
+                {Object.entries(dataFields).map(([field, checked]) => (
+                  <div key={field} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={field}
+                      checked={checked}
+                      onCheckedChange={() => handleToggleField(field)}
+                    />
+                    <Label htmlFor={field} className="text-sm capitalize">
+                      {field.replace(/([A-Z])/g, " $1").trim()}
+                    </Label>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
+
+          {results.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium">
+                  Results ({results.filter((r) => r.success).length}/{results.length} enriched)
+                </h3>
+                <Button variant="outline" size="sm" onClick={downloadResults}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Download CSV
+                </Button>
+              </div>
+              <div className="max-h-64 overflow-auto rounded-md border">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted sticky top-0">
+                    <tr>
+                      <th className="p-2 text-left">Address</th>
+                      <th className="p-2 text-left">Owner</th>
+                      <th className="p-2 text-right">Value</th>
+                      <th className="p-2 text-right">Equity</th>
+                      <th className="p-2 text-center">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {results.slice(0, 50).map((r) => (
+                      <tr key={r.propertyId} className="border-t">
+                        <td className="p-2">{r.address || "-"}</td>
+                        <td className="p-2">{r.data?.ownerName || "-"}</td>
+                        <td className="p-2 text-right">
+                          {r.data?.estimatedValue ? `$${r.data.estimatedValue.toLocaleString()}` : "-"}
+                        </td>
+                        <td className="p-2 text-right">
+                          {r.data?.estimatedEquity ? `$${r.data.estimatedEquity.toLocaleString()}` : "-"}
+                        </td>
+                        <td className="p-2 text-center">
+                          {r.success ? (
+                            <CheckCircle className="h-4 w-4 text-green-500 inline" />
+                          ) : (
+                            <XCircle className="h-4 w-4 text-red-500 inline" />
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       </CardContent>
       <CardFooter className="flex justify-between">
-        <Button variant="outline">Cancel</Button>
+        <Button variant="outline" onClick={() => { setResults([]); setPropertyIds(""); }}>
+          {results.length > 0 ? "Clear Results" : "Cancel"}
+        </Button>
         <Button onClick={handleAppendData} disabled={isProcessing}>
-          {isProcessing ? "Processing..." : "Append Data"}
-          {!isProcessing && <PlusCircle className="ml-2 h-4 w-4" />}
+          {isProcessing ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Processing...
+            </>
+          ) : (
+            <>
+              Append Data
+              <PlusCircle className="ml-2 h-4 w-4" />
+            </>
+          )}
         </Button>
       </CardFooter>
     </Card>
