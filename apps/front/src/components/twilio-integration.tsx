@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -212,6 +212,24 @@ export function TwilioIntegration() {
       lastMonth: 0,
     },
   });
+
+  // Load real data on mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        // Check if Twilio is configured
+        const res = await fetch("/api/twilio/test");
+        if (res.ok) {
+          const data = await res.json();
+          setIsConnected(data.configured === true);
+          setConnectionTested(true);
+        }
+      } catch (err) {
+        console.error("Failed to load Twilio data:", err);
+      }
+    };
+    loadData();
+  }, []);
 
   const handleCredentialChange = (field: string, value: string) => {
     setCredentials((prev) => ({ ...prev, [field]: value }));
