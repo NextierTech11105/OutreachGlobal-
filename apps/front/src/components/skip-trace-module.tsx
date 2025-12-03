@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -16,17 +16,47 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { InfoIcon as InfoCircle, Search } from "lucide-react";
+import { InfoIcon as InfoCircle, Search, Download, CheckCircle, XCircle } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { toast } from "sonner";
+
+interface SkipTraceResult {
+  id: string;
+  propertyId: string;
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+  ownerName: string;
+  phones: string[];
+  emails: string[];
+  success: boolean;
+  error?: string;
+}
+
+interface UsageInfo {
+  used: number;
+  limit: number;
+  remaining: number;
+}
 
 export function SkipTraceModule() {
-  const [provider, setProvider] = useState("tlo");
+  const [provider, setProvider] = useState("realestateapi");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [usage, setUsage] = useState<UsageInfo | null>(null);
+  const [results, setResults] = useState<SkipTraceResult[]>([]);
+  const [manualEntry, setManualEntry] = useState({
+    firstName: "",
+    lastName: "",
+    address: "",
+    phone: "",
+    email: "",
+  });
   const [dataFields, setDataFields] = useState({
     name: true,
     phone: true,
@@ -41,6 +71,22 @@ export function SkipTraceModule() {
     businessRecords: false,
   });
 
+  // Fetch usage on mount
+  useEffect(() => {
+    fetch("/api/skip-trace")
+      .then((r) => r.json())
+      .then((data) => {
+        setUsage({
+          used: data.used || 0,
+          limit: data.limit || 5000,
+          remaining: data.remaining || 5000,
+        });
+      })
+      .catch(() => {
+        setUsage({ used: 0, limit: 5000, remaining: 5000 });
+      });
+  }, []);
+
   const handleToggleField = (field: string) => {
     setDataFields((prev) => ({
       ...prev,
@@ -48,12 +94,69 @@ export function SkipTraceModule() {
     }));
   };
 
-  const handleSkipTrace = () => {
+  const handleSkipTrace = async (propertyIds: string[]) => {
+    if (propertyIds.length === 0) {
+      toast.error("No property IDs to skip trace");
+      return;
+    }
+
     setIsProcessing(true);
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const response = await fetch("/api/skip-trace", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ids: propertyIds,
+          includePhones: dataFields.phone,
+          includeEmails: dataFields.email,
+          includeMailingAddress: dataFields.address,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast.error(data.error || "Skip trace failed");
+        return;
+      }
+
+      setResults(data.results || []);
+      setUsage(data.usage);
+      toast.success(
+        `Skip traced ${data.stats?.successful || 0} records (${data.stats?.withPhones || 0} with phones, ${data.stats?.withEmails || 0} with emails)`
+      );
+    } catch (error: any) {
+      toast.error(error.message || "Skip trace failed");
+    } finally {
       setIsProcessing(false);
-    }, 3000);
+    }
+  };
+
+  const downloadResults = () => {
+    if (results.length === 0) return;
+    const csv = [
+      ["ID", "Address", "City", "State", "ZIP", "Owner", "Phones", "Emails", "Success"].join(","),
+      ...results.map((r) =>
+        [
+          r.id,
+          `"${r.address}"`,
+          r.city,
+          r.state,
+          r.zip,
+          `"${r.ownerName}"`,
+          `"${r.phones.join("; ")}"`,
+          `"${r.emails.join("; ")}"`,
+          r.success ? "Yes" : "No",
+        ].join(",")
+      ),
+    ].join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `skip-trace-results-${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
   };
 
   return (
@@ -72,7 +175,7 @@ export function SkipTraceModule() {
               variant="outline"
               className="bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
             >
-              Credits: 2,450 remaining
+              {usage ? `${usage.remaining.toLocaleString()} / ${usage.limit.toLocaleString()} remaining` : "Loading..."}
             </Badge>
           </div>
 
@@ -186,12 +289,9 @@ export function SkipTraceModule() {
                   <SelectValue placeholder="Select a provider" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="tlo">TLO (Premium)</SelectItem>
-                  <SelectItem value="lexisnexis">LexisNexis</SelectItem>
-                  <SelectItem value="melissa">Melissa Data</SelectItem>
-                  <SelectItem value="idi">IDI</SelectItem>
-                  <SelectItem value="tracers">Tracers</SelectItem>
-                  <SelectItem value="spokeo">Spokeo (Budget)</SelectItem>
+                  <SelectItem value="realestateapi">RealEstateAPI (Configured)</SelectItem>
+                  <SelectItem value="tlo" disabled>TLO (Not configured)</SelectItem>
+                  <SelectItem value="lexisnexis" disabled>LexisNexis (Not configured)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -331,9 +431,54 @@ export function SkipTraceModule() {
           </div>
         </div>
       </CardContent>
+      {results.length > 0 && (
+        <CardContent className="border-t pt-6">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-medium">Results ({results.length} records)</h3>
+              <Button variant="outline" size="sm" onClick={downloadResults}>
+                <Download className="mr-2 h-4 w-4" />
+                Download CSV
+              </Button>
+            </div>
+            <div className="max-h-64 overflow-auto rounded-md border">
+              <table className="w-full text-sm">
+                <thead className="bg-muted sticky top-0">
+                  <tr>
+                    <th className="p-2 text-left">Address</th>
+                    <th className="p-2 text-left">Owner</th>
+                    <th className="p-2 text-left">Phones</th>
+                    <th className="p-2 text-left">Emails</th>
+                    <th className="p-2 text-center">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {results.slice(0, 50).map((r) => (
+                    <tr key={r.id} className="border-t">
+                      <td className="p-2">{r.address}, {r.city} {r.state}</td>
+                      <td className="p-2">{r.ownerName}</td>
+                      <td className="p-2">{r.phones.join(", ") || "-"}</td>
+                      <td className="p-2">{r.emails.join(", ") || "-"}</td>
+                      <td className="p-2 text-center">
+                        {r.success ? (
+                          <CheckCircle className="h-4 w-4 text-green-500 inline" />
+                        ) : (
+                          <XCircle className="h-4 w-4 text-red-500 inline" />
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </CardContent>
+      )}
       <CardFooter className="flex justify-between">
-        <Button variant="outline">Cancel</Button>
-        <Button onClick={handleSkipTrace} disabled={isProcessing}>
+        <Button variant="outline" onClick={() => setResults([])}>
+          {results.length > 0 ? "Clear Results" : "Cancel"}
+        </Button>
+        <Button onClick={() => handleSkipTrace(["test-id-123"])} disabled={isProcessing}>
           {isProcessing ? "Processing..." : "Run Skip Trace"}
           {!isProcessing && <Search className="ml-2 h-4 w-4" />}
         </Button>
