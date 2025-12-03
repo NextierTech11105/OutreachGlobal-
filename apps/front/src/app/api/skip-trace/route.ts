@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+// import { db } from "@/lib/db"; // Uncomment when DB is connected
+// import { leads } from "@/lib/db/schema";
+// import { eq } from "drizzle-orm";
 
 const REALESTATE_API_KEY = process.env.REAL_ESTATE_API_KEY || process.env.REALESTATE_API_KEY || "NEXTIER-2906-74a1-8684-d2f63f473b7b";
 const REALESTATE_API_URL = "https://api.realestateapi.com/v2/PropertyDetail";
@@ -39,7 +42,14 @@ export interface SkipTraceResult {
   id: string;
   propertyId: string;
   address: string;
+  city: string;
+  state: string;
+  zip: string;
   ownerName: string;
+  owner1FirstName?: string;
+  owner1LastName?: string;
+  owner2FirstName?: string;
+  owner2LastName?: string;
   phones: string[];
   emails: string[];
   mailingAddress?: {
@@ -48,11 +58,28 @@ export interface SkipTraceResult {
     state: string;
     zip: string;
   };
-  demographics?: {
-    age?: number;
-    income?: string;
-    homeowner?: boolean;
-  };
+  // Property details
+  propertyType?: string;
+  bedrooms?: number;
+  bathrooms?: number;
+  sqft?: number;
+  yearBuilt?: number;
+  estimatedValue?: number;
+  estimatedEquity?: number;
+  // Mortgage
+  mtg1Amount?: number;
+  mtg1Date?: string;
+  mtg1Lender?: string;
+  // Last sale
+  lastSaleDate?: string;
+  lastSaleAmount?: number;
+  // Flags
+  absenteeOwner?: boolean;
+  ownerOccupied?: boolean;
+  vacant?: boolean;
+  preForeclosure?: boolean;
+  // Full raw data for DB storage
+  rawData?: Record<string, unknown>;
   success: boolean;
   error?: string;
 }
@@ -163,7 +190,14 @@ export async function POST(request: NextRequest) {
               id: String(id),
               propertyId: prop.id || prop.propertyId || String(id),
               address,
+              city: prop.address?.city || prop.city || "",
+              state: prop.address?.state || prop.state || "",
+              zip: prop.address?.zip || prop.zip || "",
               ownerName,
+              owner1FirstName: prop.owner1FirstName || prop.ownerFirstName,
+              owner1LastName: prop.owner1LastName || prop.ownerLastName,
+              owner2FirstName: prop.owner2FirstName,
+              owner2LastName: prop.owner2LastName,
               phones: [...new Set(phones.filter(Boolean))], // Dedupe
               emails: [...new Set(emails.filter(Boolean))], // Dedupe
               mailingAddress: prop.mailingAddress ? {
@@ -172,7 +206,28 @@ export async function POST(request: NextRequest) {
                 state: prop.mailingAddress.state || "",
                 zip: prop.mailingAddress.zip || "",
               } : undefined,
-              demographics: prop.demographics || undefined,
+              // Property details
+              propertyType: prop.propertyType || prop.propertyUseStandardized,
+              bedrooms: prop.bedrooms,
+              bathrooms: prop.bathrooms,
+              sqft: prop.squareFeet || prop.sqft || prop.livingArea,
+              yearBuilt: prop.yearBuilt,
+              estimatedValue: prop.estimatedValue || prop.avm || prop.value,
+              estimatedEquity: prop.estimatedEquity || prop.equity,
+              // Mortgage
+              mtg1Amount: prop.mortgage1Amount || prop.mortgageAmount || prop.openLoanAmount,
+              mtg1Date: prop.mortgage1Date || prop.mortgageDate || prop.openLoanDate,
+              mtg1Lender: prop.mortgage1Lender || prop.mortgageLender || prop.openLoanLender,
+              // Last sale
+              lastSaleDate: prop.lastSaleDate || prop.saleDate,
+              lastSaleAmount: prop.lastSaleAmount || prop.saleAmount,
+              // Flags
+              absenteeOwner: prop.absenteeOwner || prop.absenteeIndicator === "Y",
+              ownerOccupied: prop.ownerOccupied || prop.ownerOccupiedIndicator === "Y",
+              vacant: prop.vacant || prop.vacantIndicator === "Y",
+              preForeclosure: prop.preForeclosure || prop.preForeclosureIndicator === "Y",
+              // Raw data for DB
+              rawData: prop,
               success: true,
             };
           } catch (err: any) {
