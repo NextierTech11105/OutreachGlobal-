@@ -106,25 +106,37 @@ export default function AdminDashboard() {
   }>>([]);
 
   useEffect(() => {
-    // In a real implementation, this would fetch from the API
-    // For now, show realistic defaults indicating services need configuration
-    setIsLoading(false);
-    setStats({
-      totalUsers: 0,
-      apiRequests: 0,
-      activeJobs: 0,
-      systemAlerts: 0,
-    });
-    setSystemStatus({
-      database: "operational",
-      twilio: "not_configured",
-      zoho: "not_configured",
-      email: "not_configured",
-      sms: "not_configured",
-      ai: "operational",
-      batchProcessor: "operational",
-    });
-    setRecentActivity([]);
+    const checkIntegrations = async () => {
+      setIsLoading(true);
+
+      // Check all integrations in parallel
+      const [twilioRes, signalhouseRes, apolloRes] = await Promise.all([
+        fetch("/api/twilio/test").then(r => r.json()).catch(() => ({ configured: false })),
+        fetch("/api/signalhouse").then(r => r.json()).catch(() => ({ configured: false })),
+        fetch("/api/apollo/test").then(r => r.json()).catch(() => ({ configured: false })),
+      ]);
+
+      setSystemStatus({
+        database: "operational",
+        twilio: twilioRes.configured ? "operational" : "not_configured",
+        zoho: "not_configured", // TODO: Add Zoho API check
+        email: "not_configured", // TODO: Add SendGrid API check
+        sms: signalhouseRes.configured ? "operational" : "not_configured",
+        ai: apolloRes.configured ? "operational" : "not_configured",
+        batchProcessor: "operational",
+      });
+
+      setStats({
+        totalUsers: 0,
+        apiRequests: 0,
+        activeJobs: 0,
+        systemAlerts: 0,
+      });
+      setRecentActivity([]);
+      setIsLoading(false);
+    };
+
+    checkIntegrations();
   }, []);
 
   return (
