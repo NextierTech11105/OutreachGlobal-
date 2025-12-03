@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -37,6 +37,9 @@ import {
   Globe,
   Database,
   Sparkles,
+  Upload,
+  FileSpreadsheet,
+  Download,
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
@@ -83,6 +86,11 @@ export default function ApolloIntegrationPage() {
   const [isEnriching, setIsEnriching] = useState(false);
   const [enrichmentResults, setEnrichmentResults] = useState<EnrichmentResult[]>([]);
 
+  // CSV upload state
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [isUploadingCsv, setIsUploadingCsv] = useState(false);
+  const [csvResults, setCsvResults] = useState<any[]>([]);
+
   // Usage stats
   const [stats, setStats] = useState<{
     creditsUsed: number;
@@ -90,6 +98,31 @@ export default function ApolloIntegrationPage() {
     searchesThisMonth: number;
     enrichmentsThisMonth: number;
   } | null>(null);
+
+  // Load real data on mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const res = await fetch("/api/apollo/test");
+        if (res.ok) {
+          const data = await res.json();
+          setIsConnected(data.configured === true);
+          if (data.usage) {
+            setStats({
+              creditsUsed: data.usage.credits_used || 0,
+              creditsRemaining: data.usage.credits_remaining || 0,
+              searchesThisMonth: data.usage.searches_this_month || 0,
+              enrichmentsThisMonth: data.usage.enrichments_this_month || 0,
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load Apollo data:", err);
+      }
+    };
+
+    loadData();
+  }, []);
 
   const testConnection = async () => {
     if (!apiKey.trim()) {
@@ -241,6 +274,72 @@ export default function ApolloIntegrationPage() {
     } finally {
       setIsEnriching(false);
     }
+  };
+
+  const handleCsvUpload = async () => {
+    if (!csvFile || !isConnected) return;
+
+    setIsUploadingCsv(true);
+    setError(null);
+
+    try {
+      const text = await csvFile.text();
+      const lines = text.split("\n").filter((l) => l.trim());
+      const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
+
+      const contacts = lines.slice(1).map((line) => {
+        const values = line.split(",").map((v) => v.trim());
+        const contact: Record<string, string> = {};
+        headers.forEach((h, i) => {
+          if (h.includes("email")) contact.email = values[i];
+          else if (h.includes("first") && h.includes("name")) contact.first_name = values[i];
+          else if (h.includes("last") && h.includes("name")) contact.last_name = values[i];
+          else if (h.includes("company") || h.includes("organization")) contact.organization_name = values[i];
+          else if (h.includes("domain")) contact.domain = values[i];
+        });
+        return contact;
+      }).filter((c) => c.email || c.domain);
+
+      const response = await fetch("/api/apollo/bulk-enrich", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contacts }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Bulk enrichment failed");
+      }
+
+      setCsvResults(data.results || []);
+      setSuccessMessage(`Enriched ${data.matched}/${data.total} contacts`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "CSV upload failed");
+    } finally {
+      setIsUploadingCsv(false);
+    }
+  };
+
+  const downloadCsvResults = () => {
+    if (csvResults.length === 0) return;
+    const headers = ["Name", "Email", "Title", "Company", "Phone", "LinkedIn", "Status"];
+    const rows = csvResults.map((r) => [
+      r.enriched?.name || "",
+      r.enriched?.email || r.original?.email || "",
+      r.enriched?.title || "",
+      r.enriched?.company || "",
+      r.enriched?.phone || "",
+      r.enriched?.linkedin || "",
+      r.status,
+    ]);
+    const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "enriched-contacts.csv";
+    a.click();
   };
 
   return (
@@ -410,6 +509,10 @@ export default function ApolloIntegrationPage() {
           <TabsTrigger value="enrich" className="flex items-center gap-2">
             <Sparkles className="h-4 w-4" />
             Contact Enrichment
+          </TabsTrigger>
+          <TabsTrigger value="bulk" className="flex items-center gap-2">
+            <Upload className="h-4 w-4" />
+            CSV Upload
           </TabsTrigger>
           <TabsTrigger value="settings" className="flex items-center gap-2">
             <Database className="h-4 w-4" />
@@ -591,6 +694,116 @@ export default function ApolloIntegrationPage() {
                     Enter an email or domain above to enrich contact data
                   </p>
                 </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="bulk" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Bulk CSV Enrichment</CardTitle>
+              <CardDescription>
+                Upload a CSV file to enrich contacts in bulk (from DatabaseUSA, PropWire, etc.)
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="border-2 border-dashed rounded-lg p-8 text-center">
+                <FileSpreadsheet className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <div className="space-y-2">
+                  <Label htmlFor="csv-upload" className="cursor-pointer">
+                    <span className="text-primary hover:underline">Click to upload</span>
+                    {" "}or drag and drop
+                  </Label>
+                  <input
+                    id="csv-upload"
+                    type="file"
+                    accept=".csv"
+                    title="Upload CSV file for bulk enrichment"
+                    className="hidden"
+                    onChange={(e) => setCsvFile(e.target.files?.[0] || null)}
+                    disabled={!isConnected}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    CSV with columns: email, first_name, last_name, company, domain
+                  </p>
+                </div>
+              </div>
+
+              {csvFile && (
+                <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <FileSpreadsheet className="h-5 w-5" />
+                    <span className="font-medium">{csvFile.name}</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="ghost" size="sm" onClick={() => setCsvFile(null)}>
+                      Remove
+                    </Button>
+                    <Button onClick={handleCsvUpload} disabled={isUploadingCsv}>
+                      {isUploadingCsv ? (
+                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Sparkles className="mr-2 h-4 w-4" />
+                      )}
+                      Enrich All
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {csvResults.length > 0 && (
+                <>
+                  <div className="flex justify-between items-center">
+                    <p className="text-sm text-muted-foreground">
+                      {csvResults.filter((r) => r.status === "found").length} of {csvResults.length} contacts enriched
+                    </p>
+                    <Button variant="outline" size="sm" onClick={downloadCsvResults}>
+                      <Download className="mr-2 h-4 w-4" />
+                      Download Results
+                    </Button>
+                  </div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Title</TableHead>
+                        <TableHead>Company</TableHead>
+                        <TableHead>Phone</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {csvResults.slice(0, 50).map((result, idx) => (
+                        <TableRow key={idx}>
+                          <TableCell className="font-medium">{result.enriched?.name || "—"}</TableCell>
+                          <TableCell className="font-mono text-sm">{result.enriched?.email || result.original?.email || "—"}</TableCell>
+                          <TableCell>{result.enriched?.title || "—"}</TableCell>
+                          <TableCell>{result.enriched?.company || "—"}</TableCell>
+                          <TableCell className="font-mono text-sm">{result.enriched?.phone || "—"}</TableCell>
+                          <TableCell>
+                            <Badge
+                              variant="secondary"
+                              className={
+                                result.status === "found"
+                                  ? "bg-green-500/10 text-green-500"
+                                  : "bg-red-500/10 text-red-500"
+                              }
+                            >
+                              {result.status}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  {csvResults.length > 50 && (
+                    <p className="text-xs text-muted-foreground text-center">
+                      Showing first 50 of {csvResults.length} results. Download CSV for full results.
+                    </p>
+                  )}
+                </>
               )}
             </CardContent>
           </Card>

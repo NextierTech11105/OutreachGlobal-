@@ -28,6 +28,7 @@ import {
   Bot,
   Cable,
   Activity,
+  Cloud,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -72,6 +73,16 @@ const MCP_SERVERS: MCPServer[] = [
     type: "remote",
     capabilities: ["API Docs", "Field Reference", "Examples"],
     endpoint: "https://developer.mcp.realestateapi.com/sse",
+  },
+  {
+    id: "digitalocean",
+    name: "DigitalOcean API",
+    description: "Deployments, queues, and runtime controls",
+    icon: Cloud,
+    status: "checking",
+    type: "remote",
+    capabilities: ["Deploy apps", "Inspect job queues", "Read cluster status"],
+    endpoint: "https://api.digitalocean.com",
   },
 ];
 

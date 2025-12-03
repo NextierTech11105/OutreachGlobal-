@@ -2,6 +2,44 @@ import { NextRequest, NextResponse } from "next/server";
 
 const APOLLO_API_BASE = "https://api.apollo.io/v1";
 
+// Check if Apollo is configured via env vars
+export async function GET() {
+  const apiKey = process.env.APOLLO_API_KEY;
+  const configured = !!apiKey;
+
+  if (!configured) {
+    return NextResponse.json({ configured: false });
+  }
+
+  // Fetch usage stats from Apollo
+  try {
+    const response = await fetch(`${APOLLO_API_BASE}/users/me`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Api-Key": apiKey,
+      },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return NextResponse.json({
+        configured: true,
+        usage: {
+          credits_used: data.credits_used || 0,
+          credits_remaining: data.credits_remaining || data.organization?.available_credits || 0,
+          searches_this_month: 0,
+          enrichments_this_month: 0,
+        },
+      });
+    }
+  } catch (error) {
+    console.error("Apollo status check error:", error);
+  }
+
+  return NextResponse.json({ configured: true });
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { apiKey } = await request.json();
