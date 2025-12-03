@@ -106,10 +106,13 @@ const categories = [
 const tokens = [
   { token: "{{firstName}}", desc: "Lead's first name" },
   { token: "{{lastName}}", desc: "Lead's last name" },
+  { token: "{{company}}", desc: "Company name" },
   { token: "{{propertyAddress}}", desc: "Property address" },
   { token: "{{city}}", desc: "Property city" },
   { token: "{{state}}", desc: "Property state" },
   { token: "{{equity}}", desc: "Estimated equity" },
+  { token: "{{phone}}", desc: "Lead's phone" },
+  { token: "{{email}}", desc: "Lead's email" },
 ];
 
 export default function MessageTemplatesPage() {
