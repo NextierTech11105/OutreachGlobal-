@@ -37,35 +37,32 @@ export function AddressVerificationModule() {
 
   const verifyAddress = async (address: string): Promise<VerificationResult> => {
     try {
-      // Use autocomplete API for address verification
-      const response = await fetch("/api/address/autocomplete", {
+      // Use PropertyDetail API with address parameter for verification
+      const response = await fetch("/api/address/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          search: address.trim(),
-          type: "address",
-        }),
+        body: JSON.stringify({ address: address.trim() }),
       });
 
       const data = await response.json();
 
-      if (data.data && data.data.length > 0) {
-        const match = data.data[0];
+      if (data.data && !data.error) {
+        const prop = data.data;
         return {
           original: address,
           verified: true,
-          standardized: match.address || match.full_address || match.street || address,
-          city: match.city,
-          state: match.state,
-          zip: match.zip || match.zipcode,
-          county: match.county,
-          propertyId: match.id || match.property_id || match.propertyId,
+          standardized: prop.address?.address || prop.address?.street || address,
+          city: prop.address?.city,
+          state: prop.address?.state,
+          zip: prop.address?.zip,
+          county: prop.address?.county,
+          propertyId: prop.id || prop.propertyId,
         };
       } else {
         return {
           original: address,
           verified: false,
-          error: "Address not found in property database",
+          error: data.error || "Address not found in property database",
         };
       }
     } catch (error: any) {

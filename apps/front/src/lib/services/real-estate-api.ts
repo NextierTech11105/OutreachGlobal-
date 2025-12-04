@@ -391,18 +391,51 @@ class RealEstateApiService {
     return this.request<PropertyDetailResponse>("/PropertyDetail", "POST", { id: propertyId });
   }
 
-  async getPropertyDetailsBatch(propertyIds: string[], concurrency = 10): Promise<PropertyDetailResponse[]> {
+  async getPropertyDetailByAddress(address: string): Promise<PropertyDetailResponse> {
+    return this.request<PropertyDetailResponse>("/PropertyDetail", "POST", { address });
+  }
+
+  async getPropertyDetailByAddressParts(parts: {
+    house?: string;
+    street?: string;
+    city?: string;
+    state?: string;
+    zip?: string;
+  }): Promise<PropertyDetailResponse> {
+    return this.request<PropertyDetailResponse>("/PropertyDetail", "POST", parts);
+  }
+
+  async getPropertyDetailsBulk(propertyIds: string[]): Promise<PropertyDetailResponse[]> {
+    // Use PropertyDetailBulk endpoint for efficient batch lookups (max 250)
+    const response = await this.request<{ data: PropertyDetailResponse[] }>(
+      "/PropertyDetailBulk",
+      "POST",
+      propertyIds as unknown as Record<string, unknown>
+    );
+    return response.data || [];
+  }
+
+  async getPropertyDetailsBatch(propertyIds: string[], batchSize = 250): Promise<PropertyDetailResponse[]> {
     const results: PropertyDetailResponse[] = [];
 
-    for (let i = 0; i < propertyIds.length; i += concurrency) {
-      const batch = propertyIds.slice(i, i + concurrency);
-      const batchResults = await Promise.all(
-        batch.map(id => this.getPropertyDetail(id).catch(err => {
-          console.error(`Failed to get detail for ${id}:`, err);
-          return null;
-        }))
-      );
-      results.push(...batchResults.filter((r): r is PropertyDetailResponse => r !== null));
+    // Process in batches of 250 (API limit)
+    for (let i = 0; i < propertyIds.length; i += batchSize) {
+      const batch = propertyIds.slice(i, i + batchSize);
+      try {
+        const batchResults = await this.getPropertyDetailsBulk(batch);
+        results.push(...batchResults);
+      } catch (err) {
+        console.error(`Failed batch ${i / batchSize + 1}:`, err);
+        // Fall back to individual calls for failed batch
+        for (const id of batch) {
+          try {
+            const result = await this.getPropertyDetail(id);
+            results.push(result);
+          } catch (e) {
+            console.error(`Failed to get detail for ${id}:`, e);
+          }
+        }
+      }
     }
 
     return results;
