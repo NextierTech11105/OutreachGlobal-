@@ -37,28 +37,29 @@ export function AddressVerificationModule() {
 
   const verifyAddress = async (address: string): Promise<VerificationResult> => {
     try {
-      const response = await fetch("/api/property/search", {
+      // Use autocomplete API for address verification
+      const response = await fetch("/api/address/autocomplete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          address: address.trim(),
-          size: 1,
+          search: address.trim(),
+          type: "address",
         }),
       });
 
       const data = await response.json();
 
       if (data.data && data.data.length > 0) {
-        const prop = data.data[0];
+        const match = data.data[0];
         return {
           original: address,
           verified: true,
-          standardized: prop.address?.address || prop.address?.street || address,
-          city: prop.address?.city,
-          state: prop.address?.state,
-          zip: prop.address?.zip,
-          county: prop.address?.county,
-          propertyId: prop.id || prop.propertyId,
+          standardized: match.address || match.full_address || match.street || address,
+          city: match.city,
+          state: match.state,
+          zip: match.zip || match.zipcode,
+          county: match.county,
+          propertyId: match.id || match.property_id || match.propertyId,
         };
       } else {
         return {
