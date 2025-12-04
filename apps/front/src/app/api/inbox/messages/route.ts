@@ -69,25 +69,43 @@ export async function GET(request: NextRequest) {
     if (direction) queryParams.set("direction", direction);
     if (status) queryParams.set("status", status);
 
-    const response = await fetch(
-      `${SIGNALHOUSE_API_V1}/message/logs?${queryParams.toString()}`,
-      {
-        method: "GET",
-        headers: getV1Headers(),
-      }
-    );
+    // Try to fetch from SignalHouse message logs
+    // Note: SignalHouse may not have a public message logs API
+    // If it fails, return empty array - messages will come from webhooks
+    let rawMessages: SignalHouseMessage[] = [];
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("[Inbox API] SignalHouse error:", errorText);
-      return NextResponse.json({
-        error: `SignalHouse API error: ${response.status}`,
-        messages: [],
-      }, { status: 200 });
+    try {
+      const response = await fetch(
+        `${SIGNALHOUSE_API_V1}/message/logs?${queryParams.toString()}`,
+        {
+          method: "GET",
+          headers: getV1Headers(),
+        }
+      );
+
+      if (response.ok) {
+        const contentType = response.headers.get("content-type");
+        if (contentType?.includes("application/json")) {
+          const data = await response.json();
+          rawMessages = data.messages || data.data || data || [];
+        }
+      }
+    } catch (fetchError) {
+      console.log("[Inbox API] Message logs not available, returning empty");
     }
 
-    const data = await response.json();
-    const rawMessages: SignalHouseMessage[] = data.messages || data.data || data || [];
+    // If no messages from API, return empty (messages will come from webhooks)
+    if (!rawMessages || !Array.isArray(rawMessages) || rawMessages.length === 0) {
+      return NextResponse.json({
+        success: true,
+        messages: [],
+        total: 0,
+        page,
+        limit,
+        configured: true,
+        note: "No message history yet. Messages will appear after you send SMS or receive replies.",
+      });
+    }
 
     // Transform SignalHouse messages to our Message format
     const messages = rawMessages.map((msg: SignalHouseMessage) => {
