@@ -142,7 +142,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       messages: filteredMessages,
-      total: data.total || filteredMessages.length,
+      total: filteredMessages.length,
       page,
       limit,
       configured: true,
