@@ -20,6 +20,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
   Mail,
   MessageSquare,
   Phone,
@@ -28,8 +35,11 @@ import {
   Sparkles,
   Save,
   FileText,
+  Calendar,
+  PhoneCall,
 } from "lucide-react";
 import type { Message, MessageType } from "@/types/message";
+import { toast } from "sonner";
 
 interface MessageReplyProps {
   message: Message;
@@ -46,11 +56,89 @@ export function MessageReply({ message, onSend, onCancel }: MessageReplyProps) {
   const [useAI, setUseAI] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [showScheduleDialog, setShowScheduleDialog] = useState(false);
+  const [scheduleType, setScheduleType] = useState<"sms" | "call">("sms");
+  const [scheduleDate, setScheduleDate] = useState("");
+  const [scheduleTime, setScheduleTime] = useState("");
+  const [schedulingCall, setSchedulingCall] = useState(false);
 
   const handleSend = () => {
     if (replyText.trim()) {
       onSend(replyText);
     }
+  };
+
+  const handleSchedule = async () => {
+    if (!scheduleDate || !scheduleTime) {
+      toast.error("Please select date and time");
+      return;
+    }
+
+    const scheduledAt = new Date(`${scheduleDate}T${scheduleTime}`).toISOString();
+    const phoneNumber = message.phone;
+
+    if (!phoneNumber && scheduleType === "sms") {
+      toast.error("No phone number available for SMS");
+      return;
+    }
+
+    setSchedulingCall(true);
+
+    try {
+      if (scheduleType === "sms") {
+        // Schedule SMS via SignalHouse
+        const response = await fetch("/api/inbox/messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            to: phoneNumber,
+            message: replyText,
+            scheduleAt: scheduledAt,
+          }),
+        });
+
+        const data = await response.json();
+        if (data.error) {
+          toast.error(data.error);
+        } else {
+          toast.success(`SMS scheduled for ${scheduleDate} at ${scheduleTime}`);
+          setShowScheduleDialog(false);
+          onSend(replyText); // Close the reply dialog
+        }
+      } else {
+        // Schedule a call reminder (store locally or in database)
+        const callReminder = {
+          id: `call-${Date.now()}`,
+          phone: phoneNumber,
+          scheduledAt,
+          note: replyText,
+          contact: message.from,
+        };
+
+        // Store in localStorage for now
+        const existingReminders = JSON.parse(localStorage.getItem("call-reminders") || "[]");
+        existingReminders.push(callReminder);
+        localStorage.setItem("call-reminders", JSON.stringify(existingReminders));
+
+        toast.success(`Call reminder set for ${scheduleDate} at ${scheduleTime}`);
+        setShowScheduleDialog(false);
+      }
+    } catch (error) {
+      console.error("Schedule error:", error);
+      toast.error("Failed to schedule");
+    } finally {
+      setSchedulingCall(false);
+    }
+  };
+
+  const openScheduleDialog = (type: "sms" | "call") => {
+    setScheduleType(type);
+    // Set default to tomorrow at 10am
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    setScheduleDate(tomorrow.toISOString().split("T")[0]);
+    setScheduleTime("10:00");
+    setShowScheduleDialog(true);
   };
 
   const handleGenerateAIResponse = async () => {
@@ -278,14 +366,29 @@ Your Name`,
                 <Save className="h-4 w-4" />
                 <span>Save Draft</span>
               </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="flex items-center gap-1"
-              >
-                <Clock className="h-4 w-4" />
-                <span>Schedule</span>
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="flex items-center gap-1"
+                  >
+                    <Clock className="h-4 w-4" />
+                    <span>Schedule</span>
+                    <ChevronDown className="h-3 w-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={() => openScheduleDialog("sms")}>
+                    <MessageSquare className="mr-2 h-4 w-4" />
+                    Schedule SMS
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => openScheduleDialog("call")}>
+                    <PhoneCall className="mr-2 h-4 w-4" />
+                    Schedule Call
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
@@ -298,6 +401,92 @@ Your Name`,
           Send Reply
         </Button>
       </CardFooter>
+
+      {/* Schedule Dialog */}
+      <Dialog open={showScheduleDialog} onOpenChange={setShowScheduleDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {scheduleType === "sms" ? (
+                <>
+                  <MessageSquare className="h-5 w-5" />
+                  Schedule SMS
+                </>
+              ) : (
+                <>
+                  <PhoneCall className="h-5 w-5" />
+                  Schedule Call
+                </>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="text-sm text-muted-foreground">
+              {scheduleType === "sms"
+                ? `Schedule an SMS to ${message.phone || "recipient"}`
+                : `Set a reminder to call ${message.from}`}
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="schedule-date">Date</Label>
+                <Input
+                  id="schedule-date"
+                  type="date"
+                  value={scheduleDate}
+                  onChange={(e) => setScheduleDate(e.target.value)}
+                  min={new Date().toISOString().split("T")[0]}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="schedule-time">Time</Label>
+                <Input
+                  id="schedule-time"
+                  type="time"
+                  value={scheduleTime}
+                  onChange={(e) => setScheduleTime(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {scheduleType === "sms" && (
+              <div className="space-y-2">
+                <Label>Message Preview</Label>
+                <div className="p-3 bg-muted rounded-md text-sm">
+                  {replyText || <span className="text-muted-foreground italic">Enter your message above</span>}
+                </div>
+              </div>
+            )}
+
+            {scheduleType === "call" && (
+              <div className="space-y-2">
+                <Label htmlFor="call-note">Call Notes (optional)</Label>
+                <Textarea
+                  id="call-note"
+                  placeholder="Notes for the call..."
+                  value={replyText}
+                  onChange={(e) => setReplyText(e.target.value)}
+                  className="min-h-[80px]"
+                />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowScheduleDialog(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSchedule}
+              disabled={schedulingCall || !scheduleDate || !scheduleTime}
+            >
+              {schedulingCall ? "Scheduling..." : scheduleType === "sms" ? "Schedule SMS" : "Set Reminder"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
