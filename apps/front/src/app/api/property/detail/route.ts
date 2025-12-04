@@ -38,18 +38,49 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST batch property details (up to 250 at a time)
+// POST property details - single id or batch (up to 250)
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { ids } = body;
+    const { id, ids } = body;
 
-    if (!ids || !Array.isArray(ids) || ids.length === 0) {
-      return NextResponse.json({ error: "ids array required" }, { status: 400 });
+    // Support single id or array of ids
+    let idList: string[] = [];
+    if (id) {
+      idList = [String(id)];
+    } else if (ids && Array.isArray(ids)) {
+      idList = ids.map(String);
+    }
+
+    if (idList.length === 0) {
+      return NextResponse.json({ error: "id or ids required" }, { status: 400 });
+    }
+
+    // If single ID, return single result
+    if (idList.length === 1) {
+      const response = await fetch(REALESTATE_API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": REALESTATE_API_KEY,
+        },
+        body: JSON.stringify({ id: idList[0] }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        return NextResponse.json(
+          { error: data.message || "Failed to get property detail" },
+          { status: response.status }
+        );
+      }
+
+      return NextResponse.json(data.data || data);
     }
 
     // Limit to 250 to avoid rate limits
-    const batchIds = ids.slice(0, 250);
+    const batchIds = idList.slice(0, 250);
     const results: any[] = [];
     const errors: string[] = [];
 

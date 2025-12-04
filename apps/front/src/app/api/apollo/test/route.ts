@@ -11,9 +11,10 @@ export async function GET() {
     return NextResponse.json({ configured: false });
   }
 
-  // Fetch usage stats from Apollo
+  // Fetch usage stats from Apollo using their credit info endpoint
   try {
-    const response = await fetch(`${APOLLO_API_BASE}/users/me`, {
+    // First try /users/me for basic info
+    const meResponse = await fetch(`${APOLLO_API_BASE}/users/me`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -21,23 +22,58 @@ export async function GET() {
       },
     });
 
-    if (response.ok) {
-      const data = await response.json();
+    if (meResponse.ok) {
+      const meData = await meResponse.json();
+
+      // Apollo returns credits info in different places depending on plan
+      const creditsUsed = meData.credits_used || meData.organization?.credits_used || 0;
+      const creditsRemaining = meData.credits_remaining ||
+                               meData.organization?.credits_remaining ||
+                               meData.organization?.available_credits ||
+                               meData.team?.credits_remaining || 0;
+
+      // Try to get more detailed usage stats
+      let searchCount = 0;
+      let enrichCount = 0;
+
+      // Some Apollo plans expose usage stats
+      if (meData.usage) {
+        searchCount = meData.usage.searches || meData.usage.search_count || 0;
+        enrichCount = meData.usage.enrichments || meData.usage.enrich_count || 0;
+      }
+
       return NextResponse.json({
         configured: true,
         usage: {
-          credits_used: data.credits_used || 0,
-          credits_remaining: data.credits_remaining || data.organization?.available_credits || 0,
-          searches_this_month: 0,
-          enrichments_this_month: 0,
+          credits_used: creditsUsed,
+          credits_remaining: creditsRemaining,
+          searches_this_month: searchCount,
+          enrichments_this_month: enrichCount,
+        },
+        user: {
+          email: meData.email,
+          name: meData.name || `${meData.first_name || ""} ${meData.last_name || ""}`.trim(),
+          organization: meData.organization?.name || meData.team?.name,
         },
       });
+    } else {
+      const errorText = await meResponse.text();
+      console.error("Apollo /users/me failed:", meResponse.status, errorText);
     }
   } catch (error) {
     console.error("Apollo status check error:", error);
   }
 
-  return NextResponse.json({ configured: true });
+  // Return configured but no usage data if we couldn't fetch it
+  return NextResponse.json({
+    configured: true,
+    usage: {
+      credits_used: 0,
+      credits_remaining: 0,
+      searches_this_month: 0,
+      enrichments_this_month: 0,
+    },
+  });
 }
 
 export async function POST(request: NextRequest) {

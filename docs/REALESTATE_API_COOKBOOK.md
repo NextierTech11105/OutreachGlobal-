@@ -375,7 +375,7 @@ All RealEstateAPI calls go through our Next.js API routes:
 | `POST /api/property-search` | `/v2/PropertySearch` | Build search results for geos, zoning, MLS, ownership filters, etc. |
 | `GET /api/property-detail?id=<id>` | `/v2/PropertyDetail` | Retrieve a single property's valuation, ownership, and skip-trace data. |
 | `POST /api/property-detail` | `/v2/PropertyDetail` | Batch detail loads for enrichment or skip-trace payloads. |
-| `POST /api/skip-trace` | `/v2/PropertyDetail` (skip-trace fields) | Bulk skip-trace (up to 250 IDs per call) to collect phones/emails/mail addresses. |
+| `POST /api/skip-trace` | `/v1/SkipTrace` | Skip-trace owner info (up to 250 per call) to get phones/emails. Uses PropertyDetail first to get owner name/address. |
 | `GET /api/skip-trace` | Internal tracker | View the daily limit (5,000 traces) and remaining quota before triggering more batches. |
 
 ---
