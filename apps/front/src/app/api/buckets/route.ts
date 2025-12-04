@@ -6,65 +6,112 @@ import {
   BucketListResponse,
   EnrichmentStatus,
 } from "@/lib/types/bucket";
+import { S3Client, ListObjectsV2Command, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 
-// In-memory storage (replace with database in production)
-const bucketsStore = new Map<string, Bucket>();
+// DO Spaces configuration
+const SPACES_ENDPOINT = "https://nyc3.digitaloceanspaces.com";
+const SPACES_BUCKET = "nextier";
+const SPACES_KEY = process.env.DO_SPACES_KEY || "";
+const SPACES_SECRET = process.env.DO_SPACES_SECRET || "";
 
-// Seed with example data
-const seedBuckets: Bucket[] = [
-  {
-    id: "bucket-1",
-    name: "NY High Equity Properties",
-    description: "Properties in NY with 50%+ equity",
-    source: "real-estate",
-    filters: { state: "NY", minEquity: 50 },
-    tags: ["high-equity", "priority"],
-    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date().toISOString(),
-    totalLeads: 156,
-    enrichedLeads: 120,
-    queuedLeads: 45,
-    contactedLeads: 32,
-    enrichmentStatus: "completed",
-    lastEnrichedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "bucket-2",
-    name: "Blue Collar HVAC Owners",
-    description: "HVAC company owners $1-10M revenue",
-    source: "apollo",
-    filters: { industry: "HVAC", minRevenue: 1000000, maxRevenue: 10000000 },
-    tags: ["blue-collar", "b2b"],
-    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date().toISOString(),
-    totalLeads: 89,
-    enrichedLeads: 89,
-    queuedLeads: 0,
-    contactedLeads: 15,
-    enrichmentStatus: "completed",
-    lastEnrichedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "bucket-3",
-    name: "TX Absentee Owners",
-    description: "Absentee owners in Texas",
-    source: "real-estate",
-    filters: { state: "TX", absenteeOwner: true },
-    tags: ["absentee", "motivated"],
-    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date().toISOString(),
-    totalLeads: 234,
-    enrichedLeads: 50,
-    queuedLeads: 184,
-    contactedLeads: 0,
-    enrichmentStatus: "processing",
-    enrichmentProgress: { total: 234, processed: 50, successful: 48, failed: 2 },
-    queuedAt: new Date().toISOString(),
-  },
-];
+function getS3Client(): S3Client | null {
+  if (!SPACES_KEY || !SPACES_SECRET) {
+    console.warn("[Buckets API] DO Spaces not configured");
+    return null;
+  }
+  return new S3Client({
+    endpoint: SPACES_ENDPOINT,
+    region: "nyc3",
+    credentials: { accessKeyId: SPACES_KEY, secretAccessKey: SPACES_SECRET },
+  });
+}
 
-// Initialize store
-seedBuckets.forEach((b) => bucketsStore.set(b.id, b));
+// List all buckets from DO Spaces
+async function listBuckets(): Promise<Bucket[]> {
+  const client = getS3Client();
+  if (!client) return [];
+
+  try {
+    const response = await client.send(
+      new ListObjectsV2Command({
+        Bucket: SPACES_BUCKET,
+        Prefix: "buckets/",
+      })
+    );
+
+    const buckets: Bucket[] = [];
+
+    for (const obj of response.Contents || []) {
+      if (!obj.Key?.endsWith(".json")) continue;
+
+      try {
+        const getResponse = await client.send(
+          new GetObjectCommand({
+            Bucket: SPACES_BUCKET,
+            Key: obj.Key,
+          })
+        );
+
+        const bodyContents = await getResponse.Body?.transformToString();
+        if (!bodyContents) continue;
+
+        const data = JSON.parse(bodyContents);
+
+        // Convert saved search format to Bucket format if needed
+        if (data.metadata) {
+          const bucket: Bucket = {
+            id: data.metadata.id || obj.Key.replace("buckets/", "").replace(".json", ""),
+            name: data.metadata.name || "Unnamed Bucket",
+            description: data.metadata.description || "",
+            source: "real-estate",
+            filters: data.metadata.searchParams || {},
+            tags: data.metadata.tags || [],
+            createdAt: data.metadata.createdAt || new Date().toISOString(),
+            updatedAt: data.metadata.updatedAt || new Date().toISOString(),
+            totalLeads: data.properties?.length || data.metadata.savedCount || 0,
+            enrichedLeads: data.properties?.filter((p: Record<string, unknown>) => p.phone || p.email).length || 0,
+            queuedLeads: 0,
+            contactedLeads: 0,
+            enrichmentStatus: "pending",
+          };
+          buckets.push(bucket);
+        } else if (data.id) {
+          // Already in bucket format
+          buckets.push(data as Bucket);
+        }
+      } catch {
+        // Skip invalid files
+        continue;
+      }
+    }
+
+    return buckets;
+  } catch (error) {
+    console.error("[Buckets API] List error:", error);
+    return [];
+  }
+}
+
+// Save bucket to DO Spaces
+async function saveBucket(bucket: Bucket): Promise<boolean> {
+  const client = getS3Client();
+  if (!client) return false;
+
+  try {
+    await client.send(
+      new PutObjectCommand({
+        Bucket: SPACES_BUCKET,
+        Key: `buckets/${bucket.id}.json`,
+        Body: JSON.stringify(bucket, null, 2),
+        ContentType: "application/json",
+      })
+    );
+    return true;
+  } catch (error) {
+    console.error("[Buckets API] Save error:", error);
+    return false;
+  }
+}
 
 // GET /api/buckets - List all buckets
 export async function GET(request: NextRequest) {
@@ -76,7 +123,8 @@ export async function GET(request: NextRequest) {
     const tag = searchParams.get("tag");
     const status = searchParams.get("status") as EnrichmentStatus | null;
 
-    let buckets = Array.from(bucketsStore.values());
+    // Load real buckets from DO Spaces
+    let buckets = await listBuckets();
 
     // Filter by source
     if (source) {
@@ -147,7 +195,11 @@ export async function POST(request: NextRequest) {
       enrichmentStatus: "pending",
     };
 
-    bucketsStore.set(id, bucket);
+    // Save to DO Spaces
+    const saved = await saveBucket(bucket);
+    if (!saved) {
+      console.warn("[Buckets API] Could not save to DO Spaces, bucket created in-memory only");
+    }
 
     return NextResponse.json({ success: true, bucket }, { status: 201 });
   } catch (error) {

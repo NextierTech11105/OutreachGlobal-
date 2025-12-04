@@ -62,35 +62,8 @@ interface SavedSearch {
   status: "ready" | "running" | "exporting";
 }
 
-const INITIAL_SEARCHES: SavedSearch[] = [
-  {
-    id: "1",
-    name: "Pre-Foreclosure FL",
-    filters: { states: ["FL"], status: ["pre_foreclosure"], equityMin: 40 },
-    resultCount: 2847,
-    lastRun: new Date(Date.now() - 3600000),
-    bucketPath: "/exports/fl-preforeclosure.csv",
-    status: "ready",
-  },
-  {
-    id: "2",
-    name: "Absentee Owners NY/NJ",
-    filters: { states: ["NY", "NJ"], status: ["absentee_owner"], equityMin: 50 },
-    resultCount: 5231,
-    lastRun: new Date(Date.now() - 86400000),
-    bucketPath: "/exports/ny-nj-absentee.csv",
-    status: "ready",
-  },
-  {
-    id: "3",
-    name: "High Equity CT",
-    filters: { states: ["CT"], status: ["high_equity"], equityMin: 70 },
-    resultCount: 1456,
-    lastRun: new Date(Date.now() - 172800000),
-    bucketPath: "/exports/ct-high-equity.csv",
-    status: "ready",
-  },
-];
+// No mock data - load from real DO Spaces bucket
+const INITIAL_SEARCHES: SavedSearch[] = [];
 
 const STATES = [
   { value: "NY", label: "New York" },

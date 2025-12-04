@@ -1,64 +1,89 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Bucket, UpdateBucketRequest } from "@/lib/types/bucket";
+import { S3Client, GetObjectCommand, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 
-// Shared store reference (in production, use database)
-// For now, we'll use a simple fetch from the main buckets endpoint
+// DO Spaces configuration
+const SPACES_ENDPOINT = "https://nyc3.digitaloceanspaces.com";
+const SPACES_BUCKET = "nextier";
+const SPACES_KEY = process.env.DO_SPACES_KEY || "";
+const SPACES_SECRET = process.env.DO_SPACES_SECRET || "";
+
+function getS3Client(): S3Client | null {
+  if (!SPACES_KEY || !SPACES_SECRET) {
+    console.warn("[Bucket API] DO Spaces not configured");
+    return null;
+  }
+  return new S3Client({
+    endpoint: SPACES_ENDPOINT,
+    region: "nyc3",
+    credentials: { accessKeyId: SPACES_KEY, secretAccessKey: SPACES_SECRET },
+  });
+}
+
+// Load bucket from DO Spaces
 async function getBucket(id: string): Promise<Bucket | null> {
-  // In production, fetch from database
-  // For demo, return mock data based on ID
-  const mockBuckets: Record<string, Bucket> = {
-    "bucket-1": {
-      id: "bucket-1",
-      name: "NY High Equity Properties",
-      description: "Properties in NY with 50%+ equity",
-      source: "real-estate",
-      filters: { state: "NY", minEquity: 50 },
-      tags: ["high-equity", "priority"],
-      createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-      updatedAt: new Date().toISOString(),
-      totalLeads: 156,
-      enrichedLeads: 120,
-      queuedLeads: 45,
-      contactedLeads: 32,
-      enrichmentStatus: "completed",
-      lastEnrichedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    },
-    "bucket-2": {
-      id: "bucket-2",
-      name: "Blue Collar HVAC Owners",
-      description: "HVAC company owners $1-10M revenue",
-      source: "apollo",
-      filters: { industry: "HVAC", minRevenue: 1000000, maxRevenue: 10000000 },
-      tags: ["blue-collar", "b2b"],
-      createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-      updatedAt: new Date().toISOString(),
-      totalLeads: 89,
-      enrichedLeads: 89,
-      queuedLeads: 0,
-      contactedLeads: 15,
-      enrichmentStatus: "completed",
-      lastEnrichedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-    },
-    "bucket-3": {
-      id: "bucket-3",
-      name: "TX Absentee Owners",
-      description: "Absentee owners in Texas",
-      source: "real-estate",
-      filters: { state: "TX", absenteeOwner: true },
-      tags: ["absentee", "motivated"],
-      createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-      updatedAt: new Date().toISOString(),
-      totalLeads: 234,
-      enrichedLeads: 50,
-      queuedLeads: 184,
-      contactedLeads: 0,
-      enrichmentStatus: "processing",
-      enrichmentProgress: { total: 234, processed: 50, successful: 48, failed: 2 },
-      queuedAt: new Date().toISOString(),
-    },
-  };
+  const client = getS3Client();
+  if (!client) return null;
 
-  return mockBuckets[id] || null;
+  try {
+    const response = await client.send(
+      new GetObjectCommand({
+        Bucket: SPACES_BUCKET,
+        Key: `buckets/${id}.json`,
+      })
+    );
+
+    const bodyContents = await response.Body?.transformToString();
+    if (!bodyContents) return null;
+
+    return JSON.parse(bodyContents);
+  } catch (error: unknown) {
+    // If file doesn't exist, return null
+    const err = error as { name?: string };
+    if (err.name === "NoSuchKey") return null;
+    console.error("[Bucket API] Get error:", error);
+    return null;
+  }
+}
+
+// Save bucket to DO Spaces
+async function saveBucket(bucket: Bucket): Promise<boolean> {
+  const client = getS3Client();
+  if (!client) return false;
+
+  try {
+    await client.send(
+      new PutObjectCommand({
+        Bucket: SPACES_BUCKET,
+        Key: `buckets/${bucket.id}.json`,
+        Body: JSON.stringify(bucket, null, 2),
+        ContentType: "application/json",
+      })
+    );
+    return true;
+  } catch (error) {
+    console.error("[Bucket API] Save error:", error);
+    return false;
+  }
+}
+
+// Delete bucket from DO Spaces
+async function deleteBucketFile(id: string): Promise<boolean> {
+  const client = getS3Client();
+  if (!client) return false;
+
+  try {
+    await client.send(
+      new DeleteObjectCommand({
+        Bucket: SPACES_BUCKET,
+        Key: `buckets/${id}.json`,
+      })
+    );
+    return true;
+  } catch (error) {
+    console.error("[Bucket API] Delete error:", error);
+    return false;
+  }
 }
 
 // GET /api/buckets/:id - Get bucket details
@@ -105,7 +130,8 @@ export async function PUT(
       updatedAt: new Date().toISOString(),
     };
 
-    // In production, save to database
+    // Save to DO Spaces
+    await saveBucket(updated);
     return NextResponse.json({ success: true, bucket: updated });
   } catch (error) {
     console.error("[Bucket API] PUT error:", error);
@@ -126,7 +152,12 @@ export async function DELETE(
       return NextResponse.json({ error: "Bucket not found" }, { status: 404 });
     }
 
-    // In production, delete from database
+    // Delete from DO Spaces
+    const deleted = await deleteBucketFile(id);
+    if (!deleted) {
+      return NextResponse.json({ error: "Failed to delete bucket from storage" }, { status: 500 });
+    }
+
     return NextResponse.json({ success: true, message: "Bucket deleted" });
   } catch (error) {
     console.error("[Bucket API] DELETE error:", error);

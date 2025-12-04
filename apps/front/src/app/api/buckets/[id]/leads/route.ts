@@ -1,104 +1,137 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Lead, BucketLeadsResponse, applyAutoTags } from "@/lib/types/bucket";
+import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 
-// Generate mock leads for a bucket
-function generateMockLeads(bucketId: string, source: "real-estate" | "apollo" | "mixed", count: number): Lead[] {
-  const leads: Lead[] = [];
+// DO Spaces configuration
+const SPACES_ENDPOINT = "https://nyc3.digitaloceanspaces.com";
+const SPACES_BUCKET = "nextier";
+const SPACES_KEY = process.env.DO_SPACES_KEY || "";
+const SPACES_SECRET = process.env.DO_SPACES_SECRET || "";
 
-  const firstNames = ["John", "Mike", "David", "Chris", "James", "Robert", "William", "Richard", "Joseph", "Thomas"];
-  const lastNames = ["Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "Rodriguez", "Martinez"];
-  const companies = ["ABC Plumbing", "XYZ HVAC", "Premier Roofing", "Elite Electric", "Pro Landscaping", "Quality Construction", "Master Carpentry", "Top Tier Painting"];
-  const industries = ["Plumbing", "HVAC", "Roofing", "Electrical", "Landscaping", "Construction", "Carpentry", "Painting"];
-  const cities = ["New York", "Los Angeles", "Houston", "Dallas", "Austin", "Miami", "Chicago", "Phoenix"];
-  const states = ["NY", "CA", "TX", "TX", "TX", "FL", "IL", "AZ"];
-  const propertyTypes = ["SFR", "Multi-Family", "Commercial", "Industrial"];
-  const signals = ["hiring surge", "funding round", "expansion", "new location", "technology adoption"];
-  const statuses: Lead["status"][] = ["new", "contacted", "qualified", "nurturing"];
+function getS3Client(): S3Client | null {
+  if (!SPACES_KEY || !SPACES_SECRET) {
+    console.warn("[Bucket Leads API] DO Spaces not configured");
+    return null;
+  }
+  return new S3Client({
+    endpoint: SPACES_ENDPOINT,
+    region: "nyc3",
+    credentials: { accessKeyId: SPACES_KEY, secretAccessKey: SPACES_SECRET },
+  });
+}
 
-  for (let i = 0; i < count; i++) {
-    const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
-    const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
-    const cityIndex = Math.floor(Math.random() * cities.length);
-    const isRealEstate = source === "real-estate" || (source === "mixed" && Math.random() > 0.5);
+interface BucketData {
+  metadata?: {
+    id: string;
+    name: string;
+    totalCount?: number;
+    savedCount?: number;
+  };
+  properties?: Array<{
+    id?: string;
+    address?: { address?: string; city?: string; state?: string; zip?: string };
+    propertyType?: string;
+    owner1FirstName?: string;
+    owner1LastName?: string;
+    estimatedValue?: number;
+    estimatedEquity?: number;
+    equityPercent?: number;
+    preForeclosure?: boolean;
+    foreclosure?: boolean;
+    taxLien?: boolean;
+    absenteeOwner?: boolean;
+    vacant?: boolean;
+    inherited?: boolean;
+    bedrooms?: number;
+    bathrooms?: number;
+    squareFeet?: number;
+    yearBuilt?: number;
+    lastSaleDate?: string;
+    lastSaleAmount?: number;
+    ownerOccupied?: boolean;
+    _raw?: Record<string, unknown>;
+    // Skip trace enriched fields
+    phone?: string;
+    email?: string;
+    enrichmentStatus?: string;
+    enrichedAt?: string;
+  }>;
+  leads?: Lead[];
+}
 
-    const lead: Lead = {
-      id: `lead-${bucketId}-${i}`,
-      bucketId,
-      source: isRealEstate ? "real-estate" : "apollo",
-      status: statuses[Math.floor(Math.random() * statuses.length)],
-      tags: [],
-      autoTags: [],
-      createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
-      updatedAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
-      firstName,
-      lastName,
-      email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}@${companies[i % companies.length].toLowerCase().replace(/\s+/g, "")}.com`,
-      phone: `(${Math.floor(Math.random() * 900) + 100}) ${Math.floor(Math.random() * 900) + 100}-${Math.floor(Math.random() * 9000) + 1000}`,
-      enrichmentStatus: Math.random() > 0.3 ? "completed" : "pending",
-      activityCount: Math.floor(Math.random() * 10),
-    };
+// Load bucket data from DO Spaces
+async function getBucketData(id: string): Promise<BucketData | null> {
+  const client = getS3Client();
+  if (!client) return null;
 
-    // Add property data for real estate leads
-    if (isRealEstate || source === "mixed") {
-      const estimatedValue = Math.floor(Math.random() * 900000) + 100000;
-      const equityPercent = Math.floor(Math.random() * 80) + 20;
-      lead.propertyData = {
-        propertyId: `prop-${i}`,
-        address: `${Math.floor(Math.random() * 9000) + 1000} ${lastName} St`,
-        city: cities[cityIndex],
-        state: states[cityIndex],
-        zipCode: `${Math.floor(Math.random() * 90000) + 10000}`,
-        propertyType: propertyTypes[Math.floor(Math.random() * propertyTypes.length)],
-        bedrooms: Math.floor(Math.random() * 4) + 2,
-        bathrooms: Math.floor(Math.random() * 3) + 1,
-        sqft: Math.floor(Math.random() * 2000) + 1000,
-        yearBuilt: Math.floor(Math.random() * 50) + 1970,
-        estimatedValue,
-        estimatedEquity: Math.floor(estimatedValue * (equityPercent / 100)),
-        equityPercent,
-        lastSaleDate: new Date(Date.now() - Math.random() * 5 * 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-        lastSaleAmount: Math.floor(estimatedValue * 0.7),
-        ownerOccupied: Math.random() > 0.4,
-        absenteeOwner: Math.random() > 0.6,
-      };
-    }
+  try {
+    const response = await client.send(
+      new GetObjectCommand({
+        Bucket: SPACES_BUCKET,
+        Key: `buckets/${id}.json`,
+      })
+    );
 
-    // Add Apollo data for B2B leads
-    if (!isRealEstate || source === "mixed") {
-      const revenue = Math.floor(Math.random() * 9000000) + 1000000;
-      lead.apolloData = {
-        personId: `apollo-person-${i}`,
-        organizationId: `apollo-org-${i}`,
-        title: "Owner",
-        company: companies[i % companies.length],
-        companyDomain: `${companies[i % companies.length].toLowerCase().replace(/\s+/g, "")}.com`,
-        industry: industries[i % industries.length],
-        revenue,
-        revenueRange: revenue >= 5000000 ? "$5M-$10M" : "$1M-$5M",
-        employeeCount: Math.floor(Math.random() * 50) + 5,
-        employeeRange: "11-50",
-        linkedinUrl: `https://linkedin.com/in/${firstName.toLowerCase()}${lastName.toLowerCase()}`,
-        intentScore: Math.floor(Math.random() * 100),
-        signals: [signals[Math.floor(Math.random() * signals.length)]],
-        foundedYear: Math.floor(Math.random() * 20) + 2000,
-      };
-    }
+    const bodyContents = await response.Body?.transformToString();
+    if (!bodyContents) return null;
 
-    // Apply auto-tags
-    lead.autoTags = applyAutoTags(lead);
+    return JSON.parse(bodyContents);
+  } catch (error: unknown) {
+    const err = error as { name?: string };
+    if (err.name === "NoSuchKey") return null;
+    console.error("[Bucket Leads API] Get error:", error);
+    return null;
+  }
+}
 
-    // Add some manual tags
-    if (Math.random() > 0.7) {
-      lead.tags.push("priority");
-    }
-    if (lead.enrichmentStatus === "completed" && Math.random() > 0.5) {
-      lead.enrichedAt = new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString();
-    }
+// Convert property data to Lead format
+function propertyToLead(prop: BucketData["properties"][0], bucketId: string, index: number): Lead {
+  const addr = prop.address || {};
 
-    leads.push(lead);
+  const lead: Lead = {
+    id: prop.id || `lead-${bucketId}-${index}`,
+    bucketId,
+    source: "real-estate",
+    status: "new",
+    tags: [],
+    autoTags: [],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    firstName: prop.owner1FirstName || "",
+    lastName: prop.owner1LastName || "",
+    email: prop.email || "",
+    phone: prop.phone || "",
+    enrichmentStatus: prop.enrichmentStatus || "pending",
+    activityCount: 0,
+    propertyData: {
+      propertyId: prop.id || `prop-${index}`,
+      address: addr.address || "",
+      city: addr.city || "",
+      state: addr.state || "",
+      zipCode: addr.zip || "",
+      propertyType: prop.propertyType || "",
+      bedrooms: prop.bedrooms || 0,
+      bathrooms: prop.bathrooms || 0,
+      sqft: prop.squareFeet || 0,
+      yearBuilt: prop.yearBuilt || 0,
+      estimatedValue: prop.estimatedValue || 0,
+      estimatedEquity: prop.estimatedEquity || 0,
+      equityPercent: prop.equityPercent || 0,
+      lastSaleDate: prop.lastSaleDate || "",
+      lastSaleAmount: prop.lastSaleAmount || 0,
+      ownerOccupied: prop.ownerOccupied || false,
+      absenteeOwner: prop.absenteeOwner || false,
+    },
+  };
+
+  if (prop.enrichedAt) {
+    lead.enrichedAt = prop.enrichedAt;
   }
 
-  return leads;
+  // Apply auto-tags based on property data
+  lead.autoTags = applyAutoTags(lead);
+
+  return lead;
 }
 
 // GET /api/buckets/:id/leads - Get leads for a bucket
@@ -115,23 +148,30 @@ export async function GET(
     const tag = searchParams.get("tag");
     const enriched = searchParams.get("enriched");
 
-    // Determine source and count based on bucket ID
-    let source: "real-estate" | "apollo" | "mixed" = "mixed";
-    let totalCount = 50;
+    // Load real bucket data from DO Spaces
+    const bucketData = await getBucketData(id);
 
-    if (id === "bucket-1") {
-      source = "real-estate";
-      totalCount = 156;
-    } else if (id === "bucket-2") {
-      source = "apollo";
-      totalCount = 89;
-    } else if (id === "bucket-3") {
-      source = "real-estate";
-      totalCount = 234;
+    if (!bucketData) {
+      return NextResponse.json({
+        leads: [],
+        total: 0,
+        page,
+        perPage,
+        enrichmentStatus: "pending",
+        error: "Bucket not found or DO Spaces not configured",
+      });
     }
 
-    // Generate leads
-    let leads = generateMockLeads(id, source, totalCount);
+    // Convert properties to leads
+    let leads: Lead[] = [];
+
+    if (bucketData.leads && bucketData.leads.length > 0) {
+      // Bucket already has leads format
+      leads = bucketData.leads;
+    } else if (bucketData.properties && bucketData.properties.length > 0) {
+      // Convert properties to leads
+      leads = bucketData.properties.map((prop, index) => propertyToLead(prop, id, index));
+    }
 
     // Apply filters
     if (status) {
@@ -151,12 +191,21 @@ export async function GET(
     const start = (page - 1) * perPage;
     const paginatedLeads = leads.slice(start, start + perPage);
 
+    // Determine enrichment status
+    const enrichedCount = leads.filter((l) => l.enrichmentStatus === "completed").length;
+    let enrichmentStatus: BucketLeadsResponse["enrichmentStatus"] = "pending";
+    if (enrichedCount === total && total > 0) {
+      enrichmentStatus = "completed";
+    } else if (enrichedCount > 0) {
+      enrichmentStatus = "processing";
+    }
+
     const response: BucketLeadsResponse = {
       leads: paginatedLeads,
       total,
       page,
       perPage,
-      enrichmentStatus: id === "bucket-3" ? "processing" : "completed",
+      enrichmentStatus,
     };
 
     return NextResponse.json(response);
