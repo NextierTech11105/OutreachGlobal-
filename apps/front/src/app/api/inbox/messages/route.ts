@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
 // SignalHouse API for message logs
+// Uses /api/v1 base with x-api-key auth (like stats endpoint)
+const SIGNALHOUSE_API_V1 = "https://api.signalhouse.io/api/v1";
+// Uses bare base with apiKey/authToken headers (like bulk-send endpoint)
 const SIGNALHOUSE_API_BASE = "https://api.signalhouse.io";
 const SIGNALHOUSE_API_KEY = process.env.SIGNALHOUSE_API_KEY || "";
 const SIGNALHOUSE_AUTH_TOKEN = process.env.SIGNALHOUSE_AUTH_TOKEN || "";
@@ -23,7 +26,16 @@ interface SignalHouseMessage {
   error_message?: string;
 }
 
-function getHeaders(): Record<string, string> {
+// For v1 API endpoints (analytics, message logs)
+function getV1Headers(): Record<string, string> {
+  return {
+    "x-api-key": SIGNALHOUSE_API_KEY,
+    "Content-Type": "application/json",
+  };
+}
+
+// For message sending endpoints
+function getSendHeaders(): Record<string, string> {
   return {
     "accept": "application/json",
     "apiKey": SIGNALHOUSE_API_KEY,
@@ -35,7 +47,7 @@ function getHeaders(): Record<string, string> {
 // GET - Fetch message logs from SignalHouse
 export async function GET(request: NextRequest) {
   try {
-    if (!SIGNALHOUSE_API_KEY || !SIGNALHOUSE_AUTH_TOKEN) {
+    if (!SIGNALHOUSE_API_KEY) {
       return NextResponse.json({
         error: "SignalHouse not configured",
         configured: false,
@@ -50,7 +62,7 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "50");
 
-    // Fetch message logs from SignalHouse
+    // Fetch message logs from SignalHouse using v1 API
     const queryParams = new URLSearchParams();
     queryParams.set("page", page.toString());
     queryParams.set("limit", limit.toString());
@@ -58,10 +70,10 @@ export async function GET(request: NextRequest) {
     if (status) queryParams.set("status", status);
 
     const response = await fetch(
-      `${SIGNALHOUSE_API_BASE}/message/logs?${queryParams.toString()}`,
+      `${SIGNALHOUSE_API_V1}/message/logs?${queryParams.toString()}`,
       {
         method: "GET",
-        headers: getHeaders(),
+        headers: getV1Headers(),
       }
     );
 
@@ -130,7 +142,7 @@ export async function GET(request: NextRequest) {
 // POST - Send a reply via SignalHouse
 export async function POST(request: NextRequest) {
   try {
-    if (!SIGNALHOUSE_API_KEY || !SIGNALHOUSE_AUTH_TOKEN) {
+    if (!SIGNALHOUSE_API_KEY) {
       return NextResponse.json({
         error: "SignalHouse not configured",
       }, { status: 503 });
@@ -175,7 +187,7 @@ export async function POST(request: NextRequest) {
 
     const response = await fetch(endpoint, {
       method: "POST",
-      headers: getHeaders(),
+      headers: getSendHeaders(),
       body: JSON.stringify(payload),
     });
 
