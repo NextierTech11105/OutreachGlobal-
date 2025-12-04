@@ -13,12 +13,12 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, state, industry, city } = body;
+    const { name, state, industry, city, page = 1, per_page = 25 } = body;
 
     // Build Apollo organization search parameters
     const searchParams: Record<string, unknown> = {
-      page: 1,
-      per_page: 25,
+      page: Math.max(1, page),
+      per_page: Math.min(per_page, 100),
     };
 
     if (name) {
@@ -102,6 +102,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       hits,
       estimatedTotalHits: data.pagination?.total_entries || hits.length,
+      page: data.pagination?.page || page,
+      per_page: data.pagination?.per_page || per_page,
+      total_pages: data.pagination?.total_pages || Math.ceil((data.pagination?.total_entries || hits.length) / per_page),
     });
   } catch (error: unknown) {
     console.error("Business list companies search error:", error);

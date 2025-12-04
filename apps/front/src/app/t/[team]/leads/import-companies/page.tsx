@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/table";
 import { currencyFormat } from "@/lib/currency-format";
 import { useDebounceValue } from "usehooks-ts";
-import { SearchIcon } from "lucide-react";
+import { SearchIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatNumber } from "@/lib/formatter";
 import { LoadingOverlay } from "@/components/ui/loading/loading-overlay";
@@ -76,6 +76,8 @@ export default function ImportCompaniesPage() {
   const [query, setQuery] = useState("");
   const [debouncedQuery] = useDebounceValue(query, 500);
   const [selectedCompanies, setSelectedCompanies] = useState<Set<string>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   const searchParams = useMemo(() => {
     return {
@@ -126,13 +128,13 @@ export default function ImportCompaniesPage() {
     }
   };
 
-  const searchCompanies = async () => {
+  const searchCompanies = async (page = 1) => {
     setLoading(true);
     try {
       const response = await fetch("/api/business-list/companies", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(searchParams),
+        body: JSON.stringify({ ...searchParams, page, per_page: 25 }),
       });
       const data = await response.json();
       if (data.error) {
@@ -141,6 +143,8 @@ export default function ImportCompaniesPage() {
       }
       setEstimatedCount(data.estimatedTotalHits || 0);
       setHits(data.hits || []);
+      setCurrentPage(data.page || page);
+      setTotalPages(data.total_pages || 1);
     } catch (error) {
       toast.error("Failed to search companies");
     } finally {
@@ -148,10 +152,17 @@ export default function ImportCompaniesPage() {
     }
   };
 
-  // Search when filters change
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      searchCompanies(page);
+    }
+  };
+
+  // Search when filters change (reset to page 1)
   useEffect(() => {
     if (debouncedQuery || totalFilters > 0) {
-      searchCompanies();
+      setCurrentPage(1);
+      searchCompanies(1);
     }
   }, [debouncedQuery, filters]);
 
@@ -300,8 +311,34 @@ export default function ImportCompaniesPage() {
               </Table>
 
               {!loading && (
-                <CardFooter className="border-t text-sm flex justify-between">
+                <CardFooter className="border-t text-sm flex justify-between items-center">
                   <p>Found: {formatNumber(estimatedCount)} companies</p>
+
+                  {/* Pagination Controls */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => goToPage(currentPage - 1)}
+                        disabled={currentPage <= 1}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <span className="text-sm">
+                        Page {currentPage} of {totalPages}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => goToPage(currentPage + 1)}
+                        disabled={currentPage >= totalPages}
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+
                   {selectedCompanies.size > 0 && (
                     <p>{selectedCompanies.size} selected</p>
                   )}
