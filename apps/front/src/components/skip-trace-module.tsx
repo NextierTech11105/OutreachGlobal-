@@ -54,8 +54,9 @@ export function SkipTraceModule() {
     firstName: "",
     lastName: "",
     address: "",
-    phone: "",
-    email: "",
+    city: "",
+    state: "",
+    zip: "",
   });
   const [dataFields, setDataFields] = useState({
     name: true,
@@ -92,44 +93,6 @@ export function SkipTraceModule() {
       ...prev,
       [field]: !prev[field as keyof typeof dataFields],
     }));
-  };
-
-  const handleSkipTrace = async (propertyIds: string[]) => {
-    if (propertyIds.length === 0) {
-      toast.error("No property IDs to skip trace");
-      return;
-    }
-
-    setIsProcessing(true);
-    try {
-      const response = await fetch("/api/skip-trace", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ids: propertyIds,
-          includePhones: dataFields.phone,
-          includeEmails: dataFields.email,
-          includeMailingAddress: dataFields.address,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        toast.error(data.error || "Skip trace failed");
-        return;
-      }
-
-      setResults(data.results || []);
-      setUsage(data.usage);
-      toast.success(
-        `Skip traced ${data.stats?.successful || 0} records (${data.stats?.withPhones || 0} with phones, ${data.stats?.withEmails || 0} with emails)`
-      );
-    } catch (error: any) {
-      toast.error(error.message || "Skip trace failed");
-    } finally {
-      setIsProcessing(false);
-    }
   };
 
   const downloadResults = () => {
@@ -197,37 +160,10 @@ export function SkipTraceModule() {
             </TabsContent>
             <TabsContent value="existing" className="mt-6">
               <div className="space-y-4">
-                <Select defaultValue="recent">
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a list" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="recent">
-                      Recent Imports (125 records)
-                    </SelectItem>
-                    <SelectItem value="bronx">
-                      Bronx Properties (342 records)
-                    </SelectItem>
-                    <SelectItem value="queens">
-                      Queens Absentee Owners (208 records)
-                    </SelectItem>
-                    <SelectItem value="brooklyn">
-                      Brooklyn Pre-Foreclosures (156 records)
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-                <div className="rounded-md border p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-medium">Recent Imports</h4>
-                      <p className="text-sm text-muted-foreground">
-                        125 records, imported on May 10, 2025
-                      </p>
-                    </div>
-                    <Button variant="outline" size="sm">
-                      Preview
-                    </Button>
-                  </div>
+                <div className="text-sm text-muted-foreground bg-muted/50 p-4 rounded-md">
+                  <p className="font-medium mb-2">Connect to Sectors</p>
+                  <p>Go to <a href="/t/thomas-borrusos-team-f43716/sectors" className="text-blue-500 underline">Sectors</a> to select records for skip tracing.</p>
+                  <p className="mt-2">Each sector shows a "Skip Trace" button to enrich selected records with owner contact info.</p>
                 </div>
               </div>
             </TabsContent>
@@ -235,32 +171,62 @@ export function SkipTraceModule() {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="firstName">First Name</Label>
-                    <Input id="firstName" placeholder="John" />
+                    <Label htmlFor="firstName">First Name *</Label>
+                    <Input
+                      id="firstName"
+                      placeholder="John"
+                      value={manualEntry.firstName}
+                      onChange={(e) => setManualEntry({ ...manualEntry, firstName: e.target.value })}
+                    />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="lastName">Last Name</Label>
-                    <Input id="lastName" placeholder="Doe" />
+                    <Label htmlFor="lastName">Last Name *</Label>
+                    <Input
+                      id="lastName"
+                      placeholder="Smith"
+                      value={manualEntry.lastName}
+                      onChange={(e) => setManualEntry({ ...manualEntry, lastName: e.target.value })}
+                    />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="address">Address</Label>
+                  <Label htmlFor="address">Street Address</Label>
                   <Input
                     id="address"
-                    placeholder="123 Main St, New York, NY 10001"
+                    placeholder="123 Main St"
+                    value={manualEntry.address}
+                    onChange={(e) => setManualEntry({ ...manualEntry, address: e.target.value })}
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="phone">Phone</Label>
-                    <Input id="phone" placeholder="(555) 123-4567" />
+                    <Label htmlFor="city">City</Label>
+                    <Input
+                      id="city"
+                      placeholder="New York"
+                      value={manualEntry.city}
+                      onChange={(e) => setManualEntry({ ...manualEntry, city: e.target.value })}
+                    />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input id="email" placeholder="john.doe@example.com" />
+                    <Label htmlFor="state">State</Label>
+                    <Input
+                      id="state"
+                      placeholder="NY"
+                      value={manualEntry.state}
+                      onChange={(e) => setManualEntry({ ...manualEntry, state: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="zip">ZIP</Label>
+                    <Input
+                      id="zip"
+                      placeholder="10001"
+                      value={manualEntry.zip}
+                      onChange={(e) => setManualEntry({ ...manualEntry, zip: e.target.value })}
+                    />
                   </div>
                 </div>
-                <Button className="w-full">Add Record</Button>
               </div>
             </TabsContent>
           </Tabs>
@@ -478,7 +444,57 @@ export function SkipTraceModule() {
         <Button variant="outline" onClick={() => setResults([])}>
           {results.length > 0 ? "Clear Results" : "Cancel"}
         </Button>
-        <Button onClick={() => handleSkipTrace(["test-id-123"])} disabled={isProcessing}>
+        <Button
+          onClick={async () => {
+            if (!manualEntry.firstName && !manualEntry.lastName && !manualEntry.address) {
+              toast.error("Enter at least name or address to skip trace");
+              return;
+            }
+            setIsProcessing(true);
+            try {
+              const response = await fetch("/api/skip-trace", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  firstName: manualEntry.firstName,
+                  lastName: manualEntry.lastName,
+                  address: manualEntry.address,
+                  city: manualEntry.city,
+                  state: manualEntry.state,
+                  zip: manualEntry.zip,
+                }),
+              });
+              const data = await response.json();
+              if (!response.ok) {
+                toast.error(data.error || "Skip trace failed");
+                return;
+              }
+              if (data.success) {
+                setResults([{
+                  id: "manual-1",
+                  propertyId: "",
+                  address: manualEntry.address,
+                  city: manualEntry.city,
+                  state: manualEntry.state,
+                  zip: manualEntry.zip,
+                  ownerName: data.ownerName || `${manualEntry.firstName} ${manualEntry.lastName}`,
+                  phones: data.phones?.map((p: { number: string }) => p.number) || [],
+                  emails: data.emails?.map((e: { email: string }) => e.email) || [],
+                  success: true,
+                }]);
+                setUsage(data.usage);
+                toast.success(`Found ${data.phones?.length || 0} phones, ${data.emails?.length || 0} emails`);
+              } else {
+                toast.error(data.error || "No results found");
+              }
+            } catch (error: unknown) {
+              toast.error(error instanceof Error ? error.message : "Skip trace failed");
+            } finally {
+              setIsProcessing(false);
+            }
+          }}
+          disabled={isProcessing}
+        >
           {isProcessing ? "Processing..." : "Run Skip Trace"}
           {!isProcessing && <Search className="ml-2 h-4 w-4" />}
         </Button>
