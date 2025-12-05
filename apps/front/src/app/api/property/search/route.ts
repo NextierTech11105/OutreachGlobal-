@@ -26,6 +26,11 @@ function sanitizeSearchBody(body: Record<string, unknown>): Record<string, unkno
     delete sanitized[param];
   }
 
+  // Handle special mortgage/lender flags (not passed to API, handled in response)
+  // lender_name_match and flag_compulink are for client-side post-processing
+  delete sanitized.lender_name_match;
+  delete sanitized.flag_compulink;
+
   // Validate property_type
   if (sanitized.property_type) {
     const types = Array.isArray(sanitized.property_type)

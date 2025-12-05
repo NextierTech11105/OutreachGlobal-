@@ -395,3 +395,460 @@ export type LeadTag = typeof leadTags.$inferSelect;
 export type BucketTag = typeof bucketTags.$inferSelect;
 export type AutoTagRule = typeof autoTagRules.$inferSelect;
 export type NewAutoTagRule = typeof autoTagRules.$inferInsert;
+
+// ============================================================
+// DATA LAKE - Raw data ingestion and organization
+// ============================================================
+
+/**
+ * DATA SOURCES - Track imported files and API feeds
+ * Examples: USBizData CSVs, RealEstateAPI feeds, Apollo exports
+ */
+export const dataSources = pgTable("data_sources", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").notNull(),
+
+  // Source identification
+  name: text("name").notNull(), // "NY Business Database 2024"
+  slug: text("slug").notNull(), // "ny-business-db-2024"
+  sourceType: text("source_type").notNull(), // 'csv' | 'api' | 'manual' | 'scrape'
+  sourceProvider: text("source_provider"), // 'usbizdata' | 'realestateapi' | 'apollo' | 'custom'
+
+  // File metadata (for CSV imports)
+  fileName: text("file_name"),
+  fileSize: integer("file_size"), // bytes
+  fileHash: text("file_hash"), // MD5 for dedup
+
+  // Schema mapping
+  columnMapping: jsonb("column_mapping").default({}), // { csvColumn: schemaField }
+  originalHeaders: jsonb("original_headers").default([]), // string[]
+
+  // Processing status
+  status: text("status").notNull().default("pending"), // 'pending' | 'processing' | 'completed' | 'failed'
+  totalRows: integer("total_rows").default(0),
+  processedRows: integer("processed_rows").default(0),
+  errorRows: integer("error_rows").default(0),
+  errorLog: jsonb("error_log").default([]), // Array of { row, error }
+
+  // Sector association
+  primarySectorId: text("primary_sector_id"), // e.g., "healthcare", "restaurants_food"
+  sectorCategory: text("sector_category"), // 'real_estate' | 'business' | 'financial' | 'geographic'
+
+  // Timestamps
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  processedAt: timestamp("processed_at"),
+}, (table) => ({
+  userIdIdx: index("data_sources_user_id_idx").on(table.userId),
+  slugIdx: index("data_sources_slug_idx").on(table.slug),
+  statusIdx: index("data_sources_status_idx").on(table.status),
+  sectorIdx: index("data_sources_sector_idx").on(table.primarySectorId),
+}));
+
+/**
+ * BUSINESSES - B2B entities from USBizData and other sources
+ * Core business data lake table for company information
+ */
+export const businesses = pgTable("businesses", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  dataSourceId: uuid("data_source_id").references(() => dataSources.id, { onDelete: "set null" }),
+  userId: text("user_id").notNull(),
+
+  // === Business Identifiers ===
+  externalId: text("external_id"), // Original ID from source
+  ein: text("ein"), // Employer ID Number
+  duns: text("duns"), // D&B DUNS Number
+
+  // === Company Info ===
+  companyName: text("company_name").notNull(),
+  dba: text("dba"), // Doing Business As
+  legalName: text("legal_name"),
+  entityType: text("entity_type"), // 'llc' | 'corp' | 'sole_prop' | 'partnership' | 'nonprofit'
+
+  // === Address ===
+  address: text("address"),
+  address2: text("address_2"),
+  city: text("city"),
+  state: text("state"),
+  zip: text("zip"),
+  zip4: text("zip_4"),
+  county: text("county"),
+  country: text("country").default("US"),
+  latitude: decimal("latitude", { precision: 10, scale: 7 }),
+  longitude: decimal("longitude", { precision: 10, scale: 7 }),
+
+  // === Contact Info ===
+  phone: text("phone"),
+  phoneAlt: text("phone_alt"),
+  fax: text("fax"),
+  email: text("email"),
+  website: text("website"),
+
+  // === Classification ===
+  sicCode: text("sic_code"), // Primary SIC
+  sicCode2: text("sic_code_2"),
+  sicCode3: text("sic_code_3"),
+  sicDescription: text("sic_description"),
+  naicsCode: text("naics_code"),
+  naicsDescription: text("naics_description"),
+
+  // === Size & Revenue ===
+  employeeCount: integer("employee_count"),
+  employeeRange: text("employee_range"), // '1-10' | '11-50' | '51-200' | '201-500' | '500+'
+  annualRevenue: integer("annual_revenue"),
+  revenueRange: text("revenue_range"), // 'Under 500K' | '500K-1M' | '1M-5M' | '5M-10M' | '10M+'
+  salesVolume: text("sales_volume"),
+
+  // === Business Details ===
+  yearEstablished: integer("year_established"),
+  yearsInBusiness: integer("years_in_business"),
+  isHeadquarters: boolean("is_headquarters").default(true),
+  parentCompany: text("parent_company"),
+  franchiseFlag: boolean("franchise_flag").default(false),
+
+  // === Owner/Executive Info ===
+  ownerName: text("owner_name"),
+  ownerFirstName: text("owner_first_name"),
+  ownerLastName: text("owner_last_name"),
+  ownerTitle: text("owner_title"),
+  ownerGender: text("owner_gender"),
+  ownerPhone: text("owner_phone"),
+  ownerEmail: text("owner_email"),
+
+  // === Additional Contacts ===
+  executiveName: text("executive_name"),
+  executiveTitle: text("executive_title"),
+  executivePhone: text("executive_phone"),
+  executiveEmail: text("executive_email"),
+
+  // === Sector Assignment ===
+  primarySectorId: text("primary_sector_id"), // From sectors.ts
+  secondarySectorIds: jsonb("secondary_sector_ids").default([]), // string[]
+  sectorCategory: text("sector_category"), // 'business' | 'real_estate' etc
+
+  // === Enrichment Status ===
+  enrichmentStatus: text("enrichment_status").default("pending"),
+  apolloMatched: boolean("apollo_matched").default(false),
+  apolloOrgId: text("apollo_org_id"),
+  skipTraced: boolean("skip_traced").default(false),
+  skipTracedAt: timestamp("skip_traced_at"),
+
+  // === Engagement ===
+  status: text("status").default("new"), // 'new' | 'contacted' | 'qualified' | 'customer' | 'churned'
+  score: integer("score").default(0), // Lead score 0-100
+  lastContactedAt: timestamp("last_contacted_at"),
+  notes: text("notes"),
+
+  // === Raw Data ===
+  rawData: jsonb("raw_data"), // Original row from CSV
+
+  // === Timestamps ===
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  userIdIdx: index("businesses_user_id_idx").on(table.userId),
+  dataSourceIdx: index("businesses_data_source_idx").on(table.dataSourceId),
+  companyNameIdx: index("businesses_company_name_idx").on(table.companyName),
+  sicCodeIdx: index("businesses_sic_code_idx").on(table.sicCode),
+  stateIdx: index("businesses_state_idx").on(table.state),
+  cityIdx: index("businesses_city_idx").on(table.city),
+  sectorIdx: index("businesses_sector_idx").on(table.primarySectorId),
+  statusIdx: index("businesses_status_idx").on(table.status),
+}));
+
+/**
+ * PROPERTIES - Enhanced property table for data lake
+ * Extends RealEstateAPI data with sector organization
+ */
+export const properties = pgTable("properties", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  dataSourceId: uuid("data_source_id").references(() => dataSources.id, { onDelete: "set null" }),
+  userId: text("user_id").notNull(),
+
+  // === External IDs ===
+  realEstateApiId: text("realestate_api_id"), // RealEstateAPI property ID
+  apn: text("apn"), // Assessor Parcel Number
+  fips: text("fips"),
+
+  // === Address ===
+  address: text("address"),
+  address2: text("address_2"),
+  city: text("city"),
+  state: text("state"),
+  zip: text("zip"),
+  zip4: text("zip_4"),
+  county: text("county"),
+  latitude: decimal("latitude", { precision: 10, scale: 7 }),
+  longitude: decimal("longitude", { precision: 10, scale: 7 }),
+
+  // === Property Type ===
+  propertyType: text("property_type"), // 'SFR' | 'MFR' | 'CONDO' | 'LAND' | 'MOBILE' | 'OTHER'
+  propertySubtype: text("property_subtype"),
+  propertyClass: text("property_class"), // 'residential' | 'commercial' | 'industrial' | 'land'
+  zoning: text("zoning"),
+
+  // === Physical ===
+  bedrooms: integer("bedrooms"),
+  bathrooms: decimal("bathrooms", { precision: 3, scale: 1 }),
+  sqft: integer("sqft"),
+  lotSizeSqft: integer("lot_size_sqft"),
+  lotSizeAcres: decimal("lot_size_acres", { precision: 10, scale: 4 }),
+  yearBuilt: integer("year_built"),
+  stories: integer("stories"),
+  units: integer("units"),
+
+  // === Owner Info ===
+  ownerName: text("owner_name"),
+  owner1FirstName: text("owner1_first_name"),
+  owner1LastName: text("owner1_last_name"),
+  owner2FirstName: text("owner2_first_name"),
+  owner2LastName: text("owner2_last_name"),
+  ownerType: text("owner_type"), // 'individual' | 'trust' | 'corp' | 'llc'
+  ownerOccupied: boolean("owner_occupied"),
+  absenteeOwner: boolean("absentee_owner"),
+
+  // === Mailing Address ===
+  mailingAddress: text("mailing_address"),
+  mailingCity: text("mailing_city"),
+  mailingState: text("mailing_state"),
+  mailingZip: text("mailing_zip"),
+
+  // === Valuation ===
+  estimatedValue: integer("estimated_value"),
+  assessedValue: integer("assessed_value"),
+  taxAmount: integer("tax_amount"),
+  estimatedEquity: integer("estimated_equity"),
+  equityPercent: decimal("equity_percent", { precision: 5, scale: 2 }),
+
+  // === Mortgage ===
+  mtg1Amount: integer("mtg1_amount"),
+  mtg1LoanType: text("mtg1_loan_type"), // 'conventional' | 'fha' | 'va' | 'rev' (reverse)
+  mtg1Lender: text("mtg1_lender"),
+  mtg1Date: date("mtg1_date"),
+  freeClear: boolean("free_clear").default(false),
+
+  // === Distress Flags ===
+  preForeclosure: boolean("pre_foreclosure").default(false),
+  foreclosure: boolean("foreclosure").default(false),
+  taxLien: boolean("tax_lien").default(false),
+  taxDelinquent: boolean("tax_delinquent").default(false),
+  bankruptcy: boolean("bankruptcy").default(false),
+
+  // === Opportunity Flags ===
+  inherited: boolean("inherited").default(false),
+  probate: boolean("probate").default(false),
+  vacant: boolean("vacant").default(false),
+  highEquity: boolean("high_equity").default(false),
+  reverseMortgage: boolean("reverse_mortgage").default(false),
+  compulinkLender: boolean("compulink_lender").default(false),
+
+  // === Skip Trace Data ===
+  phones: jsonb("phones").default([]), // string[]
+  emails: jsonb("emails").default([]), // string[]
+  skipTraced: boolean("skip_traced").default(false),
+  skipTracedAt: timestamp("skip_traced_at"),
+
+  // === Sector Assignment ===
+  primarySectorId: text("primary_sector_id"),
+  secondarySectorIds: jsonb("secondary_sector_ids").default([]),
+  sectorCategory: text("sector_category"), // 'real_estate' | 'financial' | 'geographic'
+  leadTypes: jsonb("lead_types").default([]), // ['pre_foreclosure', 'high_equity', etc]
+
+  // === Status & Engagement ===
+  status: text("status").default("new"),
+  score: integer("score").default(0),
+  lastContactedAt: timestamp("last_contacted_at"),
+  notes: text("notes"),
+
+  // === Raw Data ===
+  rawData: jsonb("raw_data"),
+
+  // === Timestamps ===
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  userIdIdx: index("properties_user_id_idx").on(table.userId),
+  dataSourceIdx: index("properties_data_source_idx").on(table.dataSourceId),
+  realEstateApiIdIdx: index("properties_realestate_api_id_idx").on(table.realEstateApiId),
+  apnIdx: index("properties_apn_idx").on(table.apn),
+  stateIdx: index("properties_state_idx").on(table.state),
+  countyIdx: index("properties_county_idx").on(table.county),
+  cityIdx: index("properties_city_idx").on(table.city),
+  propertyTypeIdx: index("properties_property_type_idx").on(table.propertyType),
+  sectorIdx: index("properties_sector_idx").on(table.primarySectorId),
+  statusIdx: index("properties_status_idx").on(table.status),
+}));
+
+/**
+ * CONTACTS - Unified contact records from all sources
+ * Links to businesses and properties
+ */
+export const contacts = pgTable("contacts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").notNull(),
+  dataSourceId: uuid("data_source_id").references(() => dataSources.id, { onDelete: "set null" }),
+
+  // === Links ===
+  businessId: uuid("business_id").references(() => businesses.id, { onDelete: "set null" }),
+  propertyId: uuid("property_id").references(() => properties.id, { onDelete: "set null" }),
+  leadId: uuid("lead_id").references(() => leads.id, { onDelete: "set null" }),
+
+  // === Contact Info ===
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  fullName: text("full_name"),
+  title: text("title"),
+  email: text("email"),
+  emailVerified: boolean("email_verified").default(false),
+  phone: text("phone"),
+  phoneType: text("phone_type"), // 'mobile' | 'home' | 'work' | 'fax'
+  phoneVerified: boolean("phone_verified").default(false),
+  phoneAlt: text("phone_alt"),
+
+  // === Address ===
+  address: text("address"),
+  city: text("city"),
+  state: text("state"),
+  zip: text("zip"),
+
+  // === Social ===
+  linkedinUrl: text("linkedin_url"),
+  facebookUrl: text("facebook_url"),
+  twitterUrl: text("twitter_url"),
+
+  // === Source & Quality ===
+  sourceType: text("source_type"), // 'skip_trace' | 'apollo' | 'csv' | 'manual'
+  confidenceScore: integer("confidence_score"), // 0-100
+
+  // === Status ===
+  status: text("status").default("active"), // 'active' | 'dnc' | 'invalid' | 'bounced'
+  optedOut: boolean("opted_out").default(false),
+  lastContactedAt: timestamp("last_contacted_at"),
+
+  // === Timestamps ===
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  userIdIdx: index("contacts_user_id_idx").on(table.userId),
+  businessIdIdx: index("contacts_business_id_idx").on(table.businessId),
+  propertyIdIdx: index("contacts_property_id_idx").on(table.propertyId),
+  emailIdx: index("contacts_email_idx").on(table.email),
+  phoneIdx: index("contacts_phone_idx").on(table.phone),
+  statusIdx: index("contacts_status_idx").on(table.status),
+}));
+
+/**
+ * SECTOR ASSIGNMENTS - Link entities to multiple sectors
+ * Enables cross-sector analysis and targeting
+ */
+export const sectorAssignments = pgTable("sector_assignments", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").notNull(),
+
+  // === Entity Reference (polymorphic) ===
+  entityType: text("entity_type").notNull(), // 'business' | 'property' | 'lead' | 'contact'
+  entityId: uuid("entity_id").notNull(),
+
+  // === Sector ===
+  sectorId: text("sector_id").notNull(), // e.g., "healthcare", "pre_foreclosure"
+  sectorCategory: text("sector_category").notNull(), // 'real_estate' | 'business' | 'financial' | 'geographic'
+
+  // === Assignment Metadata ===
+  isPrimary: boolean("is_primary").default(false),
+  confidence: integer("confidence").default(100), // 0-100, how confident the assignment is
+  assignedBy: text("assigned_by"), // 'system' | 'user' | 'rule:{rule_id}'
+
+  // === Timestamps ===
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  userIdIdx: index("sector_assignments_user_id_idx").on(table.userId),
+  entityIdx: index("sector_assignments_entity_idx").on(table.entityType, table.entityId),
+  sectorIdx: index("sector_assignments_sector_idx").on(table.sectorId),
+  categoryIdx: index("sector_assignments_category_idx").on(table.sectorCategory),
+}));
+
+/**
+ * IMPORT JOBS - Track CSV/data import progress
+ */
+export const importJobs = pgTable("import_jobs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").notNull(),
+  dataSourceId: uuid("data_source_id").references(() => dataSources.id, { onDelete: "cascade" }),
+
+  // === Job Info ===
+  jobType: text("job_type").notNull(), // 'csv_import' | 'api_sync' | 'enrichment'
+  status: text("status").notNull().default("pending"), // 'pending' | 'running' | 'completed' | 'failed' | 'cancelled'
+
+  // === Progress ===
+  totalItems: integer("total_items").default(0),
+  processedItems: integer("processed_items").default(0),
+  successItems: integer("success_items").default(0),
+  errorItems: integer("error_items").default(0),
+
+  // === Configuration ===
+  config: jsonb("config").default({}), // Job-specific settings
+
+  // === Results ===
+  result: jsonb("result"), // Final summary
+  errorLog: jsonb("error_log").default([]),
+
+  // === Timestamps ===
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  userIdIdx: index("import_jobs_user_id_idx").on(table.userId),
+  dataSourceIdx: index("import_jobs_data_source_idx").on(table.dataSourceId),
+  statusIdx: index("import_jobs_status_idx").on(table.status),
+}));
+
+// ============================================================
+// DATA LAKE RELATIONS
+// ============================================================
+
+export const dataSourcesRelations = relations(dataSources, ({ many }) => ({
+  businesses: many(businesses),
+  properties: many(properties),
+  contacts: many(contacts),
+  importJobs: many(importJobs),
+}));
+
+export const businessesRelations = relations(businesses, ({ one, many }) => ({
+  dataSource: one(dataSources, { fields: [businesses.dataSourceId], references: [dataSources.id] }),
+  contacts: many(contacts),
+  sectorAssignments: many(sectorAssignments),
+}));
+
+export const propertiesRelations = relations(properties, ({ one, many }) => ({
+  dataSource: one(dataSources, { fields: [properties.dataSourceId], references: [dataSources.id] }),
+  contacts: many(contacts),
+  sectorAssignments: many(sectorAssignments),
+}));
+
+export const contactsRelations = relations(contacts, ({ one }) => ({
+  dataSource: one(dataSources, { fields: [contacts.dataSourceId], references: [dataSources.id] }),
+  business: one(businesses, { fields: [contacts.businessId], references: [businesses.id] }),
+  property: one(properties, { fields: [contacts.propertyId], references: [properties.id] }),
+  lead: one(leads, { fields: [contacts.leadId], references: [leads.id] }),
+}));
+
+export const importJobsRelations = relations(importJobs, ({ one }) => ({
+  dataSource: one(dataSources, { fields: [importJobs.dataSourceId], references: [dataSources.id] }),
+}));
+
+// ============================================================
+// DATA LAKE TYPE EXPORTS
+// ============================================================
+
+export type DataSource = typeof dataSources.$inferSelect;
+export type NewDataSource = typeof dataSources.$inferInsert;
+export type Business = typeof businesses.$inferSelect;
+export type NewBusiness = typeof businesses.$inferInsert;
+export type Property = typeof properties.$inferSelect;
+export type NewProperty = typeof properties.$inferInsert;
+export type Contact = typeof contacts.$inferSelect;
+export type NewContact = typeof contacts.$inferInsert;
+export type SectorAssignment = typeof sectorAssignments.$inferSelect;
+export type NewSectorAssignment = typeof sectorAssignments.$inferInsert;
+export type ImportJob = typeof importJobs.$inferSelect;
+export type NewImportJob = typeof importJobs.$inferInsert;

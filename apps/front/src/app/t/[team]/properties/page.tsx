@@ -38,8 +38,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import {
   Search, Download, Loader2, MapPin, Home, Phone, Mail, UserSearch,
   Filter, Save, FolderOpen, Layers, AlertTriangle, Building2, Users,
-  DollarSign, Calendar, TrendingUp, Ban, Bell, ChevronRight, X,
-  Plus, ArrowRight, MessageSquare, Zap, Target
+  DollarSign, TrendingUp, Ban, X, ChevronLeft, ChevronRight,
+  Plus, MessageSquare, Zap, Target, Landmark, RotateCcw
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -62,6 +62,8 @@ const LEAD_TYPES = [
   { id: "investor_buyer", label: "Investor", icon: Target, color: "text-teal-500", description: "Known investor" },
   { id: "code_violation", label: "Code Violation", icon: Ban, color: "text-rose-500", description: "City violations" },
   { id: "out_of_state", label: "Out of State", icon: MapPin, color: "text-violet-500", description: "Owner in different state" },
+  { id: "reverse_mortgage", label: "Reverse Mortgage", icon: RotateCcw, color: "text-orange-600", description: "Loan type: REV" },
+  { id: "compulink_lender", label: "Compulink PHH", icon: Landmark, color: "text-sky-600", description: "Lender: Compulink PHH Reverse" },
 ];
 
 const US_STATES = [
@@ -178,6 +180,8 @@ export default function PropertiesPage() {
   const [skipTraceProgress, setSkipTraceProgress] = useState(0);
   const [results, setResults] = useState<Property[]>([]);
   const [totalCount, setTotalCount] = useState(0);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [pageSize] = useState(100);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [mcpLabel, setMcpLabel] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"table" | "cards">("table");
@@ -265,6 +269,13 @@ export default function PropertiesPage() {
   // Clear all filters
   const clearFilters = () => {
     setFilters(DEFAULT_FILTERS);
+    setCurrentPage(0);
+  };
+
+  // Reset page when filters change
+  const updateFilterAndResetPage = <K extends keyof SearchFilters>(key: K, value: SearchFilters[K]) => {
+    setFilters((prev) => ({ ...prev, [key]: value }));
+    setCurrentPage(0);
   };
 
   // Save current search
@@ -396,7 +407,10 @@ export default function PropertiesPage() {
     setSelectedIds(newSelected);
   };
 
-  // Skip trace handler
+  // Skip trace handler - batches 250 at a time until 5,000 daily limit
+  const BATCH_SIZE = 250;
+  const DAILY_LIMIT = 5000;
+
   const handleSkipTrace = useCallback(async () => {
     if (selectedIds.size === 0) {
       toast.error("Select properties to skip trace");
@@ -404,47 +418,112 @@ export default function PropertiesPage() {
     }
 
     setSkipTracing(true);
+    setSkipTraceProgress(0);
+
     try {
-      const ids = Array.from(selectedIds);
-      const response = await fetch("/api/skip-trace", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids }),
-      });
+      const allIds = Array.from(selectedIds);
+      const totalToProcess = Math.min(allIds.length, DAILY_LIMIT);
+      let processedCount = 0;
+      let totalWithPhones = 0;
+      let totalWithEmails = 0;
+      let allSkipResults: Array<{ id: string; phones?: string[]; emails?: string[]; ownerName?: string; success: boolean }> = [];
 
-      const data = await response.json();
+      // Process in batches of 250
+      const numBatches = Math.ceil(totalToProcess / BATCH_SIZE);
+      toast.info(`Skip tracing ${totalToProcess} properties in ${numBatches} batches...`);
 
-      if (data.error) {
-        toast.error(data.error);
-        return;
+      for (let batchIndex = 0; batchIndex < numBatches; batchIndex++) {
+        const startIdx = batchIndex * BATCH_SIZE;
+        const endIdx = Math.min(startIdx + BATCH_SIZE, totalToProcess);
+        const batchIds = allIds.slice(startIdx, endIdx);
+
+        // Update progress
+        const progressPercent = Math.round(((batchIndex + 1) / numBatches) * 100);
+        setSkipTraceProgress(progressPercent);
+
+        console.log(`[Skip Trace] Batch ${batchIndex + 1}/${numBatches}: ${batchIds.length} IDs`);
+
+        const response = await fetch("/api/skip-trace", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ids: batchIds }),
+        });
+
+        const data = await response.json();
+
+        if (data.error === "Daily skip trace limit reached") {
+          toast.error(`Daily limit reached! Processed ${processedCount} of ${totalToProcess}`);
+          break;
+        }
+
+        if (data.error) {
+          console.error(`Batch ${batchIndex + 1} error:`, data.error);
+          continue;
+        }
+
+        // Collect results
+        if (data.results) {
+          allSkipResults.push(...data.results);
+        }
+
+        processedCount += data.stats?.successful || 0;
+        totalWithPhones += data.stats?.withPhones || 0;
+        totalWithEmails += data.stats?.withEmails || 0;
+
+        // Update skip trace usage display
+        if (data.usage) {
+          setSkipTraceUsage({
+            used: data.usage.today,
+            limit: data.usage.limit,
+            remaining: data.usage.remaining,
+          });
+        }
+
+        // Show batch progress
+        toast.info(`Batch ${batchIndex + 1}/${numBatches}: ${data.stats?.withPhones || 0} phones found`);
+
+        // Small delay between batches to avoid overwhelming the API
+        if (batchIndex < numBatches - 1) {
+          await new Promise((r) => setTimeout(r, 500));
+        }
       }
 
-      // Update results with skip trace data
-      setResults(prev => prev.map(property => {
-        const skipData = data.results?.find((r: { id: string }) => r.id === property.id);
-        if (skipData && skipData.success) {
-          return {
-            ...property,
-            phones: skipData.phones || [],
-            emails: skipData.emails || [],
-            ownerName: skipData.ownerName || property.ownerName,
-            skipTraced: true,
-          };
-        }
-        return property;
-      }));
+      // Update all results with skip trace data
+      setResults((prev) =>
+        prev.map((property) => {
+          // Match by input.propertyId, input.id, or direct id
+          const skipData = allSkipResults.find((r: { id?: string; input?: { propertyId?: string; id?: string }; phones?: { number: string }[]; emails?: { email: string }[]; ownerName?: string; success: boolean }) => {
+            const skipId = r.id || r.input?.propertyId || r.input?.id;
+            return skipId === property.id;
+          });
+          if (skipData && skipData.success) {
+            return {
+              ...property,
+              phones: (skipData.phones || []).map((p: { number: string }) => p.number),
+              emails: (skipData.emails || []).map((e: { email: string }) => e.email),
+              ownerName: skipData.ownerName || property.ownerName,
+              skipTraced: true,
+            };
+          }
+          return property;
+        })
+      );
 
-      toast.success(`Skip traced ${data.stats?.successful || 0} properties - ${data.stats?.withPhones || 0} phones, ${data.stats?.withEmails || 0} emails`);
+      toast.success(
+        `Skip traced ${processedCount} properties - ${totalWithPhones} phones, ${totalWithEmails} emails`
+      );
       setSelectedIds(new Set());
     } catch (error) {
       console.error("Skip trace failed:", error);
       toast.error("Skip trace failed");
     } finally {
       setSkipTracing(false);
+      setSkipTraceProgress(0);
     }
   }, [selectedIds]);
 
-  const handleSearch = useCallback(async () => {
+  const handleSearch = useCallback(async (page?: number) => {
+    const searchPage = page ?? currentPage;
     setLoading(true);
     try {
       // Build request body with all filters
@@ -479,10 +558,21 @@ export default function PropertiesPage() {
 
       // Lead type filters (motivated seller tags)
       filters.leadTypes.forEach((type) => {
-        body[type] = true;
+        // Special handling for mortgage/lender flags
+        if (type === "reverse_mortgage") {
+          body.loan_type_code_first = "REV";
+        } else if (type === "compulink_lender") {
+          body.lender_name_match = "Compulink PHH Reverse";
+          body.flag_compulink = true; // For post-processing
+        } else {
+          body[type] = true;
+        }
       });
 
-      body.size = 100;
+      body.size = pageSize;
+      if (searchPage > 0) {
+        body.resultIndex = searchPage * pageSize;
+      }
 
       const response = await fetch("/api/property/search", {
         method: "POST",
@@ -514,6 +604,19 @@ export default function PropertiesPage() {
         }
         if (p.freeClear || p.free_clear) detectedLeadTypes.push("free_clear");
         if (p.corporateOwned || p.corporate_owned) detectedLeadTypes.push("corporate_owned");
+
+        // Mortgage/Lender flags from RealEstateAPI
+        const mortgages = (p.currentMortgages || p.mortgages || []) as Array<{ loan_type_code?: string; lender_name?: string; loanType?: string; lenderName?: string }>;
+        const hasReverseMortgage = mortgages.some((m) =>
+          m.loan_type_code === "REV" || m.loanType === "REV" ||
+          (p.loanTypeCode1 === "REV" || p.loan_type_code_first === "REV")
+        );
+        if (hasReverseMortgage) detectedLeadTypes.push("reverse_mortgage");
+
+        const hasCompulinkLender = mortgages.some((m) =>
+          (m.lender_name || m.lenderName || "").toLowerCase().includes("compulink phh reverse")
+        ) || (String(p.lenderName1 || p.lender_name_first || "").toLowerCase().includes("compulink phh reverse"));
+        if (hasCompulinkLender) detectedLeadTypes.push("compulink_lender");
 
         return {
           id: String(p.id || p.propertyId || crypto.randomUUID()),
@@ -557,7 +660,7 @@ export default function PropertiesPage() {
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [filters, currentPage, pageSize]);
 
   const handleExportCSV = () => {
     const headers = ["Address", "City", "State", "ZIP", "Type", "Beds", "Baths", "SqFt", "Value", "Equity", "Owner", "Phones", "Emails"];
@@ -993,7 +1096,7 @@ export default function PropertiesPage() {
 
                 {/* Search Button */}
                 <div className="space-y-2">
-                  <Button className="w-full" size="lg" onClick={handleSearch} disabled={loading}>
+                  <Button className="w-full" size="lg" onClick={() => { setCurrentPage(0); handleSearch(0); }} disabled={loading}>
                     {loading ? (
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     ) : (
@@ -1147,6 +1250,47 @@ export default function PropertiesPage() {
               </TableBody>
             </Table>
           </div>
+
+          {/* Pagination Controls */}
+          {totalCount > pageSize && (
+            <div className="border-t bg-muted/30 px-4 py-2 flex items-center justify-between">
+              <div className="text-sm text-muted-foreground">
+                Showing {currentPage * pageSize + 1} - {Math.min((currentPage + 1) * pageSize, totalCount)} of {totalCount.toLocaleString()} properties
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const newPage = Math.max(0, currentPage - 1);
+                    setCurrentPage(newPage);
+                    handleSearch(newPage);
+                  }}
+                  disabled={currentPage === 0 || loading}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Previous
+                </Button>
+                <div className="flex items-center gap-1 px-2">
+                  <span className="text-sm font-medium">Page {currentPage + 1}</span>
+                  <span className="text-sm text-muted-foreground">of {Math.ceil(totalCount / pageSize)}</span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const newPage = currentPage + 1;
+                    setCurrentPage(newPage);
+                    handleSearch(newPage);
+                  }}
+                  disabled={(currentPage + 1) * pageSize >= totalCount || loading}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            </div>
+          )}
 
           {/* Bottom Action Bar (PropWire-style tray) */}
           {(selectedIds.size > 0 || results.length > 0) && (

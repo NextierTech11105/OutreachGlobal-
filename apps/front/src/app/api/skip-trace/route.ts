@@ -334,9 +334,15 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Add the property ID to each result for client-side matching
+    const resultsWithIds = results.map((r, idx) => ({
+      ...r,
+      id: batchInputs[idx]?.propertyId || batchInputs[idx]?.id || r.input?.propertyId || r.input?.id,
+    }));
+
     return NextResponse.json({
       success: true,
-      results,
+      results: resultsWithIds,
       stats: {
         requested: batchInputs.length,
         successful: successful.length,

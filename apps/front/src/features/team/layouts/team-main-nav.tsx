@@ -6,6 +6,7 @@ import {
   BuildingIcon,
   ChevronRightIcon,
   HomeIcon,
+  LayersIcon,
   MailIcon,
   MegaphoneIcon,
   PhoneIcon,
@@ -48,6 +49,11 @@ const items = [
     title: "Properties",
     path: "/properties",
     icon: BuildingIcon,
+  },
+  {
+    title: "Sectors",
+    path: "/sectors",
+    icon: LayersIcon,
   },
   // {
   //   title: "Search",
