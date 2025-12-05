@@ -67,6 +67,14 @@ interface AutoReplySettings {
   tone: "friendly" | "professional" | "urgent" | "casual";
 }
 
+// Remix sliders for magic generation
+interface RemixSliders {
+  conversational: number; // 0-100: Formal ↔ Casual
+  humor: number; // 0-100: None ↔ Playful
+  urgency: number; // 0-100: Relaxed ↔ Urgent
+  directness: number; // 0-100: Soft ↔ Direct
+}
+
 export function AiCopilotReply({
   incomingMessage,
   leadName,

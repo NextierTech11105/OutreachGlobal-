@@ -30,8 +30,14 @@ import {
   Tag,
   MoreHorizontal,
   Download,
+  Bot,
+  PhoneCall,
+  Ban,
+  Snowflake,
 } from "lucide-react";
+import { toast } from "sonner";
 import type { Message } from "@/types/message";
+import { AiCopilotReply } from "@/components/ai-copilot-reply";
 
 interface MessageDetailProps {
   message: Message;
@@ -44,9 +50,66 @@ export function MessageDetail({
   onReply,
   onClose,
 }: MessageDetailProps) {
-  const [activeTab, setActiveTab] = useState<"message" | "history" | "details">(
+  const [activeTab, setActiveTab] = useState<"message" | "ai" | "history" | "details">(
     "message",
   );
+
+  // AI Co-Pilot handlers
+  const handleSendAiReply = async (replyMessage: string) => {
+    // Send via SignalHouse
+    const response = await fetch("/api/signalhouse/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        to: message.phone,
+        message: replyMessage,
+      }),
+    });
+
+    const data = await response.json();
+    if (data.error) {
+      throw new Error(data.error);
+    }
+
+    toast.success("Reply sent!");
+  };
+
+  const handlePushToCallCenter = () => {
+    // Store lead info for call center
+    const callLead = {
+      name: message.from,
+      phone: message.phone,
+      email: message.email,
+      notes: `Interested response: "${message.content}"`,
+      source: "inbox_escalation",
+      priority: "hot",
+    };
+
+    // Add to call queue in localStorage (or API call)
+    const existing = JSON.parse(localStorage.getItem("call_queue") || "[]");
+    existing.unshift(callLead);
+    localStorage.setItem("call_queue", JSON.stringify(existing));
+
+    toast.success(`${message.from} added to Call Center queue!`);
+  };
+
+  const handleAddToDnc = () => {
+    // Add to DNC list
+    fetch("/api/dnc", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone: message.phone }),
+    }).then(() => {
+      toast.success(`${message.phone} added to Do Not Contact list`);
+    }).catch(() => {
+      toast.error("Failed to add to DNC");
+    });
+  };
+
+  const handleMarkCold = () => {
+    toast.info(`${message.from} marked as cold lead`);
+    // In real app, update lead status via API
+  };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -153,6 +216,10 @@ export function MessageDetail({
             <TabsTrigger value="message" className="text-xs">
               Message
             </TabsTrigger>
+            <TabsTrigger value="ai" className="text-xs flex items-center gap-1">
+              <Bot className="h-3 w-3" />
+              AI Reply
+            </TabsTrigger>
             <TabsTrigger value="history" className="text-xs">
               History
             </TabsTrigger>
@@ -216,6 +283,27 @@ export function MessageDetail({
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+          </TabsContent>
+
+          {/* AI CO-PILOT TAB */}
+          <TabsContent value="ai" className="space-y-4">
+            {message.type === "sms" && message.content ? (
+              <AiCopilotReply
+                incomingMessage={message.content}
+                leadName={message.from}
+                leadPhone={message.phone || ""}
+                campaignType="real_estate"
+                onSendReply={handleSendAiReply}
+                onPushToCallCenter={handlePushToCallCenter}
+                onAddToDnc={handleAddToDnc}
+                onMarkCold={handleMarkCold}
+              />
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Bot className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>AI Co-Pilot is available for SMS messages</p>
               </div>
             )}
           </TabsContent>
