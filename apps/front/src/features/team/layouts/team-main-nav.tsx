@@ -3,6 +3,7 @@
 import {
   BarChartIcon,
   BotIcon,
+  BrainIcon,
   BuildingIcon,
   ChevronRightIcon,
   HomeIcon,
@@ -106,23 +107,9 @@ const items = [
     icon: MailIcon,
   },
   {
-    title: "Integrations",
-    path: "#",
-    icon: ZapIcon,
-    items: [
-      {
-        title: "CRM",
-        path: "/integrations/crm",
-      },
-      {
-        title: "Twilio Settings",
-        path: "/integrations/twilio",
-      },
-      {
-        title: "SendGrid Settings",
-        path: "/integrations/sendgrid",
-      },
-    ],
+    title: "Gianna AI",
+    path: "/ai-training",
+    icon: BrainIcon,
   },
   {
     title: "Prompt Library",
