@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/table";
 import { currencyFormat } from "@/lib/currency-format";
 import { useDebounceValue } from "usehooks-ts";
-import { SearchIcon, ChevronLeft, ChevronRight, Sparkles, Phone, Mail, Building, MapPin, ExternalLink, Loader2 } from "lucide-react";
+import { SearchIcon, ChevronLeft, ChevronRight, Sparkles, Phone, Mail, Building, MapPin, ExternalLink, Loader2, DollarSign, PhoneCall, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatNumber } from "@/lib/formatter";
 import { LoadingOverlay } from "@/components/ui/loading/loading-overlay";
@@ -59,6 +59,15 @@ const defaultFilters: Filters = {
   industry: { value: [] },
   city: { value: [] },
 };
+
+// Revenue range presets (in dollars)
+const revenuePresets = [
+  { label: "$1M - $10M", min: 1000000, max: 10000000 },
+  { label: "$1M - $50M", min: 1000000, max: 50000000 },
+  { label: "$10M - $50M", min: 10000000, max: 50000000 },
+  { label: "$50M - $100M", min: 50000000, max: 100000000 },
+  { label: "$100M+", min: 100000000, max: 10000000000 },
+];
 
 interface Company {
   id: string;
@@ -105,6 +114,11 @@ export default function ImportCompaniesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
+  // Revenue filter state
+  const [revenueMin, setRevenueMin] = useState<number | undefined>(undefined);
+  const [revenueMax, setRevenueMax] = useState<number | undefined>(undefined);
+  const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
+
   // Enrichment state
   const [enriching, setEnriching] = useState(false);
   const [enrichProgress, setEnrichProgress] = useState<EnrichmentProgress | null>(null);
@@ -115,14 +129,22 @@ export default function ImportCompaniesPage() {
     withEmails: number;
   } | null>(null);
 
+  // SMS state
+  const [showSmsDialog, setShowSmsDialog] = useState(false);
+  const [smsMessage, setSmsMessage] = useState("");
+  const [sendingSms, setSendingSms] = useState(false);
+  const [smsProgress, setSmsProgress] = useState<{ sent: number; failed: number; total: number } | null>(null);
+
   const searchParams = useMemo(() => {
     return {
       name: debouncedQuery || undefined,
       state: getFilterValue(filters.state),
       industry: getFilterValue(filters.industry),
       city: getFilterValue(filters.city),
+      revenueMin,
+      revenueMax,
     };
-  }, [debouncedQuery, filters]);
+  }, [debouncedQuery, filters, revenueMin, revenueMax]);
 
   const totalFilters = useMemo(() => {
     return Object.values(filters).reduce((acc, curr) => {
@@ -135,6 +157,21 @@ export default function ImportCompaniesPage() {
 
   const clearFilters = () => {
     setFilters(defaultFilters);
+    setRevenueMin(undefined);
+    setRevenueMax(undefined);
+    setSelectedPreset(null);
+  };
+
+  const selectRevenuePreset = (preset: typeof revenuePresets[0]) => {
+    setRevenueMin(preset.min);
+    setRevenueMax(preset.max);
+    setSelectedPreset(preset.label);
+  };
+
+  const clearRevenue = () => {
+    setRevenueMin(undefined);
+    setRevenueMax(undefined);
+    setSelectedPreset(null);
   };
 
   const handleFilterChange = (name: string, value: string[]) => {
@@ -301,13 +338,88 @@ export default function ImportCompaniesPage() {
     toast.success(`Enriched ${successful} companies - ${withPhones} with phones, ${withEmails} with emails`);
   };
 
+  // Send SMS via SignalHouse
+  const sendSmsToSelected = async () => {
+    // Get phones from selected companies (both Apollo phone and enriched phones)
+    const phonesToSms: string[] = [];
+    hits.filter(c => selectedCompanies.has(c.id)).forEach(company => {
+      if (company.phone) phonesToSms.push(company.phone);
+      if (company.enrichedPhones) phonesToSms.push(...company.enrichedPhones);
+    });
+
+    const uniquePhones = [...new Set(phonesToSms)].filter(p => p && p.length > 5);
+
+    if (uniquePhones.length === 0) {
+      toast.error("No phone numbers found in selected companies");
+      return;
+    }
+
+    if (!smsMessage.trim()) {
+      toast.error("Enter a message to send");
+      return;
+    }
+
+    setSendingSms(true);
+    setSmsProgress({ sent: 0, failed: 0, total: uniquePhones.length });
+
+    try {
+      const response = await fetch("/api/signalhouse/bulk-send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: uniquePhones,
+          message: smsMessage,
+          campaignId: `company-sms-${Date.now()}`,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        toast.error(data.error);
+        setSmsProgress(null);
+        return;
+      }
+
+      setSmsProgress({
+        sent: data.sent || 0,
+        failed: data.failed || 0,
+        total: uniquePhones.length,
+      });
+
+      toast.success(`SMS sent! ${data.sent} delivered, ${data.failed} failed`);
+
+      setTimeout(() => {
+        setShowSmsDialog(false);
+        setSmsMessage("");
+        setSmsProgress(null);
+      }, 2000);
+    } catch (error) {
+      console.error("SMS send failed:", error);
+      toast.error("Failed to send SMS");
+      setSmsProgress(null);
+    } finally {
+      setSendingSms(false);
+    }
+  };
+
+  // Get phone count for selected companies
+  const getSelectedPhoneCount = () => {
+    const phones: string[] = [];
+    hits.filter(c => selectedCompanies.has(c.id)).forEach(company => {
+      if (company.phone) phones.push(company.phone);
+      if (company.enrichedPhones) phones.push(...company.enrichedPhones);
+    });
+    return new Set(phones.filter(p => p && p.length > 5)).size;
+  };
+
   // Search when filters change (reset to page 1)
   useEffect(() => {
-    if (debouncedQuery || totalFilters > 0) {
+    if (debouncedQuery || totalFilters > 0 || revenueMin || revenueMax) {
       setCurrentPage(1);
       searchCompanies(1);
     }
-  }, [debouncedQuery, filters]);
+  }, [debouncedQuery, filters, revenueMin, revenueMax]);
 
   return (
     <TeamSection>
@@ -361,6 +473,43 @@ export default function ImportCompaniesPage() {
                   placeholder="e.g. New York"
                 />
               </Accordion>
+
+              {/* Revenue Filter */}
+              <div className="px-4 py-3 border-t">
+                <div className="flex justify-between items-center mb-2">
+                  <h4 className="font-medium text-sm">Revenue</h4>
+                  {(revenueMin || revenueMax) && (
+                    <button
+                      type="button"
+                      className="text-xs text-muted-foreground hover:text-foreground"
+                      onClick={clearRevenue}
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  {revenuePresets.map((preset) => (
+                    <button
+                      key={preset.label}
+                      type="button"
+                      className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors ${
+                        selectedPreset === preset.label
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted hover:bg-muted/80"
+                      }`}
+                      onClick={() => selectRevenuePreset(preset)}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+                {selectedPreset && (
+                  <p className="mt-2 text-xs text-green-600 font-medium">
+                    Filtering: {selectedPreset}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 
@@ -388,6 +537,22 @@ export default function ImportCompaniesPage() {
                   <Sparkles size={18} className="mr-2" />
                 )}
                 Enrich ({selectedCompanies.size})
+              </Button>
+              <Button
+                onClick={() => {
+                  const phoneCount = getSelectedPhoneCount();
+                  if (phoneCount === 0) {
+                    toast.error("No phone numbers in selected companies");
+                    return;
+                  }
+                  setShowSmsDialog(true);
+                }}
+                disabled={selectedCompanies.size === 0}
+                variant="default"
+                className="bg-green-600 hover:bg-green-700"
+              >
+                <Send size={18} className="mr-2" />
+                SMS ({getSelectedPhoneCount()})
               </Button>
             </div>
 
@@ -641,6 +806,118 @@ export default function ImportCompaniesPage() {
               disabled={enriching}
             >
               {enriching ? "Processing..." : "Close"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* SMS Dialog - SignalHouse Bulk SMS */}
+      <Dialog open={showSmsDialog} onOpenChange={setShowSmsDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Send className="h-5 w-5 text-green-600" />
+              Send SMS via SignalHouse
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="text-sm text-muted-foreground">
+              Sending to <span className="font-bold text-foreground">{getSelectedPhoneCount()}</span> phone numbers from {selectedCompanies.size} companies
+            </div>
+
+            {/* Quick B2B Templates */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Quick Templates</label>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSmsMessage("Hi! I help businesses like yours save on [service]. Quick 5-min call to see if we're a fit? Reply YES or best time to chat.")}
+                >
+                  Intro Pitch
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSmsMessage("Hey! Saw your company online. We work with similar businesses in your area. Open to a quick chat this week? Reply with a good time.")}
+                >
+                  Casual Outreach
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSmsMessage("Hi, this is [Your Name]. We specialize in helping [industry] companies grow. Would you be open to a brief call? Reply YES for details.")}
+                >
+                  Professional
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSmsMessage("Quick question - are you looking for [solution] for your business? We've helped companies like yours get results. Interested?")}
+                >
+                  Direct Ask
+                </Button>
+              </div>
+            </div>
+
+            {/* Message Input */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Your Message</label>
+              <textarea
+                value={smsMessage}
+                onChange={(e) => setSmsMessage(e.target.value)}
+                placeholder="Type your SMS message here..."
+                className="w-full min-h-[100px] p-3 rounded-md border bg-background"
+                maxLength={160}
+              />
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>{smsMessage.length}/160 characters</span>
+                <span className="text-amber-600">Reply STOP added automatically</span>
+              </div>
+            </div>
+
+            {/* Progress */}
+            {smsProgress && (
+              <div className="rounded-lg border bg-muted/50 p-4">
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div>
+                    <div className="text-2xl font-bold text-green-600">{smsProgress.sent}</div>
+                    <div className="text-xs text-muted-foreground">Sent</div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-red-600">{smsProgress.failed}</div>
+                    <div className="text-xs text-muted-foreground">Failed</div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold">{smsProgress.total}</div>
+                    <div className="text-xs text-muted-foreground">Total</div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSmsDialog(false)} disabled={sendingSms}>
+              Cancel
+            </Button>
+            <Button
+              onClick={sendSmsToSelected}
+              disabled={sendingSms || !smsMessage.trim()}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {sendingSms ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4 mr-2" />
+                  Send SMS Now
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
