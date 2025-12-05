@@ -86,23 +86,40 @@ async function deleteBucketFile(id: string): Promise<boolean> {
   }
 }
 
-// GET /api/buckets/:id - Get bucket details
+// GET /api/buckets/:id - Get bucket details with all properties
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
-    const bucket = await getBucket(id);
+    const client = getS3Client();
 
-    if (!bucket) {
+    if (!client) {
+      return NextResponse.json({ error: "Storage not configured" }, { status: 500 });
+    }
+
+    // Get full bucket data including properties
+    const response = await client.send(
+      new GetObjectCommand({
+        Bucket: SPACES_BUCKET,
+        Key: `buckets/${id}.json`,
+      })
+    );
+
+    const bodyContents = await response.Body?.transformToString();
+    if (!bodyContents) {
       return NextResponse.json({ error: "Bucket not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ bucket });
+    const data = JSON.parse(bodyContents);
+
+    // Return the full bucket data directly (not wrapped)
+    // This includes: id, name, description, source, properties[], metadata, etc.
+    return NextResponse.json(data);
   } catch (error) {
     console.error("[Bucket API] GET error:", error);
-    return NextResponse.json({ error: "Failed to fetch bucket" }, { status: 500 });
+    return NextResponse.json({ error: "Bucket not found" }, { status: 404 });
   }
 }
 
