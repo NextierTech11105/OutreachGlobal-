@@ -1766,7 +1766,7 @@ export function LeadTracker() {
                     4. Assign AI SDR
                   </Button>
                   <p className="text-xs text-zinc-500 mt-1 text-center">
-                    {activeCampaign?.sdr || "Sabrina"}
+                    {activeCampaign?.sdr || "Gianna"}
                   </p>
                 </div>
               </div>

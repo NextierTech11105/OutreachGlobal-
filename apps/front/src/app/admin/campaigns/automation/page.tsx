@@ -170,7 +170,7 @@ export default function CampaignAutomationPage() {
                     <SelectValue placeholder="Select action..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="assign_sdr">Assign to Sabrina SDR</SelectItem>
+                    <SelectItem value="assign_sdr">Assign to Gianna SDR</SelectItem>
                     <SelectItem value="add_suppression">Add to Suppression List</SelectItem>
                     <SelectItem value="move_priority">Move to Priority Queue</SelectItem>
                     <SelectItem value="send_followup">Send Follow-up Message</SelectItem>

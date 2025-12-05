@@ -145,7 +145,7 @@ export function AiSdrForm({ avatar }: Props) {
                     <Input
                       {...register("name")}
                       id="name"
-                      placeholder="e.g., Sabrina for Elite Homeowner Advisors"
+                      placeholder="e.g., Gianna for Nextier Business Broker"
                     />
                     <FieldErrors {...registerError("name")} />
                   </div>

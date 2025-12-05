@@ -29,9 +29,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 const aiSdrs = [
   {
     id: "1",
-    name: "Sabrina",
-    model: "Elite Homeowner Advisors",
-    description: "AI-Powered Foreclosure Strategist & Homeowner Advocate",
+    name: "Gianna",
+    model: "Nextier Business Broker",
+    description: "AI-Powered Deal Sourcing & Business Valuation Specialist",
     industry: "real-estate",
     tags: ["foreclosure", "homeowner", "advocate"],
     avatar: "/stylized-letters-sj.png",
@@ -64,10 +64,10 @@ const aiSdrs = [
   },
   {
     id: "2",
-    name: "Sabrina",
-    model: "High-Level Real Estate Consulting",
+    name: "Gianna",
+    model: "Nextier M&A Advisory",
     description:
-      "AI-Powered Consultant for Development, Buyouts & Complex Real Estate Strategies",
+      "AI-Powered M&A Advisory for Business Owners & Exit Planning",
     industry: "real-estate",
     tags: ["development", "buyouts", "consulting"],
     avatar: "/stylized-letters-sj.png",

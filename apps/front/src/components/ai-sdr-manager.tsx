@@ -48,8 +48,8 @@ export function AiSdrManager() {
   const [sdrs, setSdrs] = useState<AiSdr[]>([
     {
       id: 1,
-      name: "Sabrina for Elite Homeowner Advisors",
-      description: "AI-Powered Foreclosure Strategist & Homeowner Advocate",
+      name: "Gianna for Nextier Business Broker",
+      description: "AI-Powered Deal Sourcing & Business Valuation Specialist",
       personality: "Empathetic, knowledgeable, and solution-oriented",
       voiceType: "Professional Female",
       avatarUrl: "/stylized-letters-sj.png",
@@ -103,7 +103,7 @@ export function AiSdrManager() {
     },
     {
       id: 2,
-      name: "Sabrina for High-Level Real Estate Consulting",
+      name: "Gianna for Nextier M&A Advisory",
       description:
         "AI-Powered Consultant for Development, Buyouts & Complex Real Estate Strategies",
       personality: "Strategic, analytical, and business-focused",

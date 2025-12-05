@@ -161,7 +161,7 @@ export function AiSdrForm({ initialData, onSave, onCancel }: AiSdrFormProps) {
                 name="name"
                 value={formData.name}
                 onChange={handleInputChange}
-                placeholder="e.g., Sabrina for Elite Homeowner Advisors"
+                placeholder="e.g., Gianna for Nextier Business Broker"
                 required
               />
             </div>
