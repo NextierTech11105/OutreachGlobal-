@@ -1,0 +1,105 @@
+{
+  "name": "Gianna Perpetual Escalation Loop",
+  "description": "10-step Leslie Nielsen style escalation sequence for persistent follow-up",
+  "category": "escalation_loop",
+  "created_by": "Gianna AI",
+  "style": "Leslie Nielsen - deadpan humor with increasing absurdity",
+  "loop_config": {
+    "max_steps": 10,
+    "pause_after_step": 10,
+    "delay_between_steps_hours": 24,
+    "auto_resume_on_campaign_restart": true
+  },
+  "templates": [
+    {
+      "id": "loop-1",
+      "step": 1,
+      "name": "Professional Follow-up",
+      "message": "{{first_name}}, Gianna here again. Just circling back on my last message. Still curious if you've thought about what {{company_name}} could sell for. Worth a chat? STOP to opt out.",
+      "category": "escalation_loop",
+      "tone": "professional",
+      "character_count": 195
+    },
+    {
+      "id": "loop-2",
+      "step": 2,
+      "name": "Casual Check-in",
+      "message": "Hey {{first_name}}, me again. Not trying to be a pest — just genuinely think you might be sitting on more value than you realize. 15 mins with Tommy could be eye-opening. STOP to opt out.",
+      "category": "escalation_loop",
+      "tone": "casual",
+      "character_count": 210
+    },
+    {
+      "id": "loop-3",
+      "step": 3,
+      "name": "Persistence Acknowledgment",
+      "message": "{{first_name}}, I know I'm persistent. It's because I've seen what owners leave on the table by not knowing their number. One quick call. That's all I'm asking. Gianna here. STOP to opt out.",
+      "category": "escalation_loop",
+      "tone": "honest",
+      "character_count": 215
+    },
+    {
+      "id": "loop-4",
+      "step": 4,
+      "name": "Light Humor Entry",
+      "message": "{{first_name}}, at this point you probably recognize my number. I respect that you're busy. But seriously — 15 mins could change your retirement plan. Gianna with Nextier. STOP to opt out.",
+      "category": "escalation_loop",
+      "tone": "light-humor",
+      "character_count": 215
+    },
+    {
+      "id": "loop-5",
+      "step": 5,
+      "name": "Self-Aware Persistence",
+      "message": "{{first_name}}, I'm like that friend who keeps inviting you to brunch. You know it'll be good, but you keep saying 'next time.' This IS next time. Quick call? STOP to opt out.",
+      "category": "escalation_loop",
+      "tone": "self-aware-humor",
+      "character_count": 200
+    },
+    {
+      "id": "loop-6",
+      "step": 6,
+      "name": "Leslie Nielsen Absurd",
+      "message": "{{first_name}}, I've messaged you more than my family. And I don't call that a problem. I call that dedication. 15 mins. One valuation. No strings. Gianna here. STOP to opt out.",
+      "category": "escalation_loop",
+      "tone": "absurd-deadpan",
+      "character_count": 200
+    },
+    {
+      "id": "loop-7",
+      "step": 7,
+      "name": "Dramatic Commitment",
+      "message": "{{first_name}}, at this point I'm emotionally invested in finding out what {{company_name}} is worth. Don't leave me hanging. One call. That's all I ask. STOP to opt out.",
+      "category": "escalation_loop",
+      "tone": "dramatic",
+      "character_count": 195
+    },
+    {
+      "id": "loop-8",
+      "step": 8,
+      "name": "Peak Absurdity",
+      "message": "{{first_name}}, I've literally thought about {{company_name}} while making breakfast. That's how committed I am. Let's just do the call so I can sleep again. Gianna. STOP to opt out.",
+      "category": "escalation_loop",
+      "tone": "peak-absurd",
+      "character_count": 210
+    },
+    {
+      "id": "loop-9",
+      "step": 9,
+      "name": "Final Honest Appeal",
+      "message": "{{first_name}}, real talk. I've reached out several times because I genuinely believe you're sitting on value. If the answer is no, just say no. If it's maybe — let's talk. STOP to opt out.",
+      "category": "escalation_loop",
+      "tone": "honest-final",
+      "character_count": 215
+    },
+    {
+      "id": "loop-10",
+      "step": 10,
+      "name": "Loop Pause - Last Attempt",
+      "message": "{{first_name}}, this is my last message for now. If you ever want to know what {{company_name}} could sell for, you have my number. Wishing you continued success. — Gianna. STOP to opt out.",
+      "category": "escalation_loop",
+      "tone": "graceful-exit",
+      "character_count": 210
+    }
+  ]
+}

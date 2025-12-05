@@ -1,0 +1,168 @@
+{
+  "name": "Nextier Initial Outreach",
+  "description": "20 Initial SMS messages for Nextier business broker deal sourcing",
+  "category": "initial_outreach",
+  "created_by": "Tommy Borruso",
+  "templates": [
+    {
+      "id": "initial-1",
+      "name": "Direct Valuation Offer",
+      "message": "{{first_name}}, Tommy here with Nextier. I've been researching {{company_name}} — curious if you've ever considered what your business could sell for? Free valuation takes 15 mins. STOP to opt out.",
+      "category": "initial_outreach",
+      "tags": ["valuation", "direct"],
+      "character_count": 215
+    },
+    {
+      "id": "initial-2",
+      "name": "Buyer Interest",
+      "message": "Hey {{first_name}}, I have PE firms and buyers actively looking in your space. Ever wondered what {{company_name}} might be worth? Tommy with Nextier. STOP to opt out.",
+      "category": "initial_outreach",
+      "tags": ["buyers", "pe-firms"],
+      "character_count": 175
+    },
+    {
+      "id": "initial-3",
+      "name": "Industry Research",
+      "message": "{{first_name}}, been researching growing businesses in your industry — {{company_name}} caught my eye. I help owners understand their exit value. Worth a quick chat? STOP to opt out.",
+      "category": "initial_outreach",
+      "tags": ["research", "industry"],
+      "character_count": 190
+    },
+    {
+      "id": "initial-4",
+      "name": "No Pressure Intro",
+      "message": "Hi {{first_name}}, Tommy with Nextier. I help business owners figure out what they're sitting on — no pressure, just clarity. Ever thought about an exit? STOP to opt out.",
+      "category": "initial_outreach",
+      "tags": ["soft-intro", "no-pressure"],
+      "character_count": 175
+    },
+    {
+      "id": "initial-5",
+      "name": "Market Timing",
+      "message": "{{first_name}}, market's strong for businesses like {{company_name}} right now. I help owners understand their options. Worth 10 mins to see your number? Tommy here. STOP to opt out.",
+      "category": "initial_outreach",
+      "tags": ["market", "timing"],
+      "character_count": 195
+    },
+    {
+      "id": "initial-6",
+      "name": "Free Valuation",
+      "message": "Hey {{first_name}}, quick question — have you ever had {{company_name}} valued? I can get you a number in 15 mins, completely free. Tommy with Nextier. STOP to opt out.",
+      "category": "initial_outreach",
+      "tags": ["valuation", "free"],
+      "character_count": 180
+    },
+    {
+      "id": "initial-7",
+      "name": "Exit Planning",
+      "message": "{{first_name}}, most owners don't plan their exit until it's too late. I help business owners understand their options 2-3 years ahead. Worth a chat? Tommy here. STOP to opt out.",
+      "category": "initial_outreach",
+      "tags": ["planning", "exit"],
+      "character_count": 190
+    },
+    {
+      "id": "initial-8",
+      "name": "Confidential Process",
+      "message": "Hi {{first_name}}, Tommy with Nextier. I work with owners who want to quietly understand their options — 100% confidential. Ever thought about it? STOP to opt out.",
+      "category": "initial_outreach",
+      "tags": ["confidential", "quiet"],
+      "character_count": 175
+    },
+    {
+      "id": "initial-9",
+      "name": "Success Based",
+      "message": "{{first_name}}, I only get paid when you do — no upfront cost. I help owners understand what buyers would actually pay for their business. Tommy with Nextier. STOP to opt out.",
+      "category": "initial_outreach",
+      "tags": ["success-fee", "no-upfront"],
+      "character_count": 190
+    },
+    {
+      "id": "initial-10",
+      "name": "Quick Call",
+      "message": "Hey {{first_name}}, Tommy here. I'm researching {{company_name}} — have 10 mins for a quick call? I can show you what buyers are paying in your space. STOP to opt out.",
+      "category": "initial_outreach",
+      "tags": ["call", "quick"],
+      "character_count": 180
+    },
+    {
+      "id": "initial-11",
+      "name": "Industry Multiples",
+      "message": "{{first_name}}, businesses in your industry are selling at 4-6x EBITDA right now. Curious where {{company_name}} would fall? Free analysis. Tommy with Nextier. STOP to opt out.",
+      "category": "initial_outreach",
+      "tags": ["multiples", "analysis"],
+      "character_count": 190
+    },
+    {
+      "id": "initial-12",
+      "name": "Serious Buyers",
+      "message": "Hi {{first_name}}, I have serious buyers looking for businesses exactly like {{company_name}}. Worth a 10 min conversation? Tommy here with Nextier. STOP to opt out.",
+      "category": "initial_outreach",
+      "tags": ["buyers", "serious"],
+      "character_count": 175
+    },
+    {
+      "id": "initial-13",
+      "name": "Owner Insight",
+      "message": "{{first_name}}, most owners undervalue their business by 20-30%. I help you understand what you're really sitting on. Quick call? Tommy with Nextier. STOP to opt out.",
+      "category": "initial_outreach",
+      "tags": ["insight", "value"],
+      "character_count": 180
+    },
+    {
+      "id": "initial-14",
+      "name": "Strategic Options",
+      "message": "Hey {{first_name}}, whether you sell now or in 5 years, knowing your number gives you leverage. I can help with that — Tommy with Nextier. STOP to opt out.",
+      "category": "initial_outreach",
+      "tags": ["strategy", "leverage"],
+      "character_count": 175
+    },
+    {
+      "id": "initial-15",
+      "name": "Growth Recognition",
+      "message": "{{first_name}}, I've been tracking {{company_name}}'s growth — impressive. Curious if you've thought about what that growth means in terms of exit value? Tommy here. STOP to opt out.",
+      "category": "initial_outreach",
+      "tags": ["growth", "recognition"],
+      "character_count": 200
+    },
+    {
+      "id": "initial-16",
+      "name": "Discrete Inquiry",
+      "message": "Hi {{first_name}}, Tommy with Nextier. I work discreetly with owners who want to explore their options. No one knows until you decide to move. Worth a chat? STOP to opt out.",
+      "category": "initial_outreach",
+      "tags": ["discrete", "confidential"],
+      "character_count": 185
+    },
+    {
+      "id": "initial-17",
+      "name": "Market Data",
+      "message": "{{first_name}}, I have data on what businesses like {{company_name}} are actually selling for right now. 15 min call and I can share the insights. Tommy with Nextier. STOP to opt out.",
+      "category": "initial_outreach",
+      "tags": ["data", "market"],
+      "character_count": 195
+    },
+    {
+      "id": "initial-18",
+      "name": "No Obligation",
+      "message": "Hey {{first_name}}, no strings attached — I can run a quick valuation on {{company_name}} so you know your real number. Interested? Tommy here. STOP to opt out.",
+      "category": "initial_outreach",
+      "tags": ["no-obligation", "valuation"],
+      "character_count": 175
+    },
+    {
+      "id": "initial-19",
+      "name": "Retirement Planning",
+      "message": "{{first_name}}, thinking about retirement or your next chapter? Your business might be worth more than you think. Quick chat? Tommy with Nextier. STOP to opt out.",
+      "category": "initial_outreach",
+      "tags": ["retirement", "planning"],
+      "character_count": 175
+    },
+    {
+      "id": "initial-20",
+      "name": "Opportunity Intro",
+      "message": "Hi {{first_name}}, I came across {{company_name}} while researching acquisition opportunities in your space. Have a few minutes to chat? Tommy with Nextier. STOP to opt out.",
+      "category": "initial_outreach",
+      "tags": ["acquisition", "opportunity"],
+      "character_count": 190
+    }
+  ]
+}

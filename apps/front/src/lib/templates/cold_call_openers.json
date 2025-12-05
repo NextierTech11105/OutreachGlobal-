@@ -1,0 +1,168 @@
+{
+  "name": "B2B & Commercial Real Estate Cold Call Openers",
+  "description": "20 ultra-strong cold call opener scripts for B2B and Commercial Real Estate",
+  "category": "cold_call",
+  "created_by": "Tommy Borruso",
+  "templates": [
+    {
+      "id": "cold-1",
+      "name": "Pattern Interrupt - Time Check",
+      "script": "{{first_name}}? Hey, did I catch you at a bad time? [Wait for response] Perfect, I'll be brief. This is Tommy with Nextier — I've been researching {{company_name}} and I have buyers actively looking in your space. Have you ever had your business valued?",
+      "category": "cold_call",
+      "industry": "b2b",
+      "tags": ["pattern-interrupt", "permission-based"]
+    },
+    {
+      "id": "cold-2",
+      "name": "Direct Value Proposition",
+      "script": "{{first_name}}, Tommy Borruso with Nextier. I'll cut right to it — I help business owners understand what they're sitting on. I have buyers paying 4-6x EBITDA right now. Ever wondered what {{company_name}} might fetch?",
+      "category": "cold_call",
+      "industry": "b2b",
+      "tags": ["direct", "value-prop"]
+    },
+    {
+      "id": "cold-3",
+      "name": "Referral Pivot",
+      "script": "{{first_name}}? Hey, this is Tommy with Nextier. I was actually referred to you by someone in your industry — they thought you might be interested in understanding your exit options. Got 2 minutes?",
+      "category": "cold_call",
+      "industry": "b2b",
+      "tags": ["referral", "credibility"]
+    },
+    {
+      "id": "cold-4",
+      "name": "Curiosity Hook",
+      "script": "{{first_name}}, quick question — if I could show you what buyers would actually pay for {{company_name}} in the next 15 minutes, would that be worth your time? This is Tommy with Nextier.",
+      "category": "cold_call",
+      "industry": "b2b",
+      "tags": ["curiosity", "hook"]
+    },
+    {
+      "id": "cold-5",
+      "name": "Authority Position",
+      "script": "{{first_name}}, Tommy Borruso with Nextier. I work exclusively with business owners who want to understand their real market value — not some online calculator number. I'm calling because {{company_name}} fits our buyer profile.",
+      "category": "cold_call",
+      "industry": "b2b",
+      "tags": ["authority", "exclusivity"]
+    },
+    {
+      "id": "cold-6",
+      "name": "CRE - Property Opportunity",
+      "script": "{{first_name}}? Tommy with Nextier. I'm reaching out because I have investors actively looking for properties like {{property_address}}. Have you considered what your equity position looks like in today's market?",
+      "category": "cold_call",
+      "industry": "commercial_real_estate",
+      "tags": ["cre", "investor-interest"]
+    },
+    {
+      "id": "cold-7",
+      "name": "CRE - Cap Rate Discussion",
+      "script": "{{first_name}}, quick question on {{property_address}} — cap rates in your area are compressing, which means your property might be worth 15-20% more than last year. Ever run the numbers recently? Tommy with Nextier.",
+      "category": "cold_call",
+      "industry": "commercial_real_estate",
+      "tags": ["cre", "cap-rates", "value"]
+    },
+    {
+      "id": "cold-8",
+      "name": "CRE - 1031 Exchange",
+      "script": "{{first_name}}? Tommy Borruso with Nextier. I work with investors doing 1031 exchanges and I have several looking for properties exactly like {{property_address}}. Any interest in exploring your options?",
+      "category": "cold_call",
+      "industry": "commercial_real_estate",
+      "tags": ["cre", "1031", "exchange"]
+    },
+    {
+      "id": "cold-9",
+      "name": "Timing Play",
+      "script": "{{first_name}}, timing is everything in M&A. Right now, buyers are paying premiums for businesses like {{company_name}}. I can show you what that looks like in 15 minutes. Tommy with Nextier.",
+      "category": "cold_call",
+      "industry": "b2b",
+      "tags": ["timing", "urgency"]
+    },
+    {
+      "id": "cold-10",
+      "name": "Competitor Mention",
+      "script": "{{first_name}}, I recently helped a business similar to {{company_name}} understand their exit options — they were shocked at the number. Thought you might be curious about yours. Tommy with Nextier.",
+      "category": "cold_call",
+      "industry": "b2b",
+      "tags": ["social-proof", "competitor"]
+    },
+    {
+      "id": "cold-11",
+      "name": "CEO Direct Approach",
+      "script": "Is this {{first_name}}? Perfect. Look, I'm not going to waste your time. I work with PE firms looking for acquisitions in your exact space. They asked me to reach out. 2 minutes?",
+      "category": "cold_call",
+      "industry": "b2b",
+      "tags": ["direct", "pe-firms"]
+    },
+    {
+      "id": "cold-12",
+      "name": "Exit Planning Angle",
+      "script": "{{first_name}}, most business owners I talk to have no exit plan — they just figure they'll sell someday. I help them get clarity years before they need it. Worth a quick conversation? Tommy with Nextier.",
+      "category": "cold_call",
+      "industry": "b2b",
+      "tags": ["planning", "long-term"]
+    },
+    {
+      "id": "cold-13",
+      "name": "CRE - Development Potential",
+      "script": "{{first_name}}? Tommy with Nextier. I've been looking at {{property_address}} — there's some interesting development potential there that most owners overlook. Have you had a highest-and-best-use analysis done?",
+      "category": "cold_call",
+      "industry": "commercial_real_estate",
+      "tags": ["cre", "development", "potential"]
+    },
+    {
+      "id": "cold-14",
+      "name": "Market Intelligence",
+      "script": "{{first_name}}, I have real-time data on what businesses like {{company_name}} are actually selling for — not asking prices, actual closed deals. Interested in seeing where you'd fall?",
+      "category": "cold_call",
+      "industry": "b2b",
+      "tags": ["data", "intelligence"]
+    },
+    {
+      "id": "cold-15",
+      "name": "CRE - Rent Comp",
+      "script": "{{first_name}}? Quick question — are you aware that similar properties to {{property_address}} are commanding 10-15% higher rents right now? That impacts your valuation significantly. Tommy with Nextier.",
+      "category": "cold_call",
+      "industry": "commercial_real_estate",
+      "tags": ["cre", "rents", "value"]
+    },
+    {
+      "id": "cold-16",
+      "name": "Retirement Angle",
+      "script": "{{first_name}}, let me ask you something — when you think about retirement or your next chapter, do you have a clear picture of what {{company_name}} would contribute to that? I can help clarify it.",
+      "category": "cold_call",
+      "industry": "b2b",
+      "tags": ["retirement", "personal"]
+    },
+    {
+      "id": "cold-17",
+      "name": "Stress Test",
+      "script": "{{first_name}}, if someone walked in tomorrow with a serious offer for {{company_name}}, would you know if it was fair? I help owners stress test their business value before that moment comes.",
+      "category": "cold_call",
+      "industry": "b2b",
+      "tags": ["preparation", "stress-test"]
+    },
+    {
+      "id": "cold-18",
+      "name": "CRE - Cash Flow Analysis",
+      "script": "{{first_name}}, I've been analyzing cash flows in your area — {{property_address}} has some interesting upside potential. Have you optimized your NOI recently? Tommy with Nextier.",
+      "category": "cold_call",
+      "industry": "commercial_real_estate",
+      "tags": ["cre", "cash-flow", "noi"]
+    },
+    {
+      "id": "cold-19",
+      "name": "Strategic Buyer Interest",
+      "script": "{{first_name}}, I have a strategic buyer specifically looking for businesses like {{company_name}} — not a financial buyer, someone who would pay a premium because of synergies. Interested?",
+      "category": "cold_call",
+      "industry": "b2b",
+      "tags": ["strategic", "premium"]
+    },
+    {
+      "id": "cold-20",
+      "name": "No Pressure Close",
+      "script": "{{first_name}}, here's the deal — I can give you a real number on what {{company_name}} is worth in 15 minutes. No pressure, no commitment. If the number isn't interesting, we shake hands and move on. Fair?",
+      "category": "cold_call",
+      "industry": "b2b",
+      "tags": ["no-pressure", "fair-exchange"]
+    }
+  ]
+}
