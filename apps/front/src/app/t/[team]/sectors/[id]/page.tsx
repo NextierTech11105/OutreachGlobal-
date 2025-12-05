@@ -109,7 +109,11 @@ export default function SectorDetailPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 50;
+  const pageSize = 100; // 100 per page
+
+  // Daily skip trace limit (2000/day)
+  const DAILY_SKIP_TRACE_LIMIT = 2000;
+  const [dailySkipTraceCount, setDailySkipTraceCount] = useState(0);
 
   // Enrichment state
   const [enriching, setEnriching] = useState(false);
@@ -122,6 +126,46 @@ export default function SectorDetailPage() {
   const [smsMessage, setSmsMessage] = useState("");
   const [sendingSms, setSendingSms] = useState(false);
   const [smsProgress, setSmsProgress] = useState<{ sent: number; failed: number; total: number } | null>(null);
+
+  // Load daily skip trace count from localStorage
+  useEffect(() => {
+    const today = new Date().toISOString().split("T")[0];
+    const storedData = localStorage.getItem("skipTraceDaily");
+    if (storedData) {
+      const { date, count } = JSON.parse(storedData);
+      if (date === today) {
+        setDailySkipTraceCount(count);
+      } else {
+        // Reset for new day
+        localStorage.setItem("skipTraceDaily", JSON.stringify({ date: today, count: 0 }));
+        setDailySkipTraceCount(0);
+      }
+    }
+  }, []);
+
+  // Update daily count in localStorage
+  const updateDailyCount = (newCount: number) => {
+    const today = new Date().toISOString().split("T")[0];
+    localStorage.setItem("skipTraceDaily", JSON.stringify({ date: today, count: newCount }));
+    setDailySkipTraceCount(newCount);
+  };
+
+  // Get enrichable records (have address but not yet enriched)
+  const getEnrichableRecords = () => {
+    return leads.filter((l) => l.address && l.city && l.state && !l.enriched);
+  };
+
+  // Select all enrichable on current page
+  const selectAllEnrichable = () => {
+    const enrichable = paginatedLeads.filter((l) => l.address && l.city && l.state && !l.enriched);
+    setSelectedIds(new Set(enrichable.map((l) => l.id)));
+  };
+
+  // Select first N enrichable across all records
+  const selectBulkEnrichable = (count: number) => {
+    const enrichable = getEnrichableRecords().slice(0, count);
+    setSelectedIds(new Set(enrichable.map((l) => l.id)));
+  };
 
   // Fetch data lake
   useEffect(() => {
@@ -195,22 +239,35 @@ export default function SectorDetailPage() {
 
   // Skip Trace Enrichment (RealEstateAPI)
   const handleSkipTrace = async () => {
-    const selected = leads.filter((l) => selectedIds.has(l.id) && l.address && l.city && l.state);
+    const selected = leads.filter((l) => selectedIds.has(l.id) && l.address && l.city && l.state && !l.enriched);
     if (selected.length === 0) {
       toast.error("No selected records have addresses for skip tracing");
       return;
     }
 
+    // Check daily limit
+    const remaining = DAILY_SKIP_TRACE_LIMIT - dailySkipTraceCount;
+    if (remaining <= 0) {
+      toast.error(`Daily limit reached (${DAILY_SKIP_TRACE_LIMIT}/day). Try again tomorrow.`);
+      return;
+    }
+
+    // Limit to remaining daily quota
+    const toProcess = selected.slice(0, remaining);
+    if (toProcess.length < selected.length) {
+      toast.warning(`Processing ${toProcess.length} of ${selected.length} (daily limit: ${remaining} remaining)`);
+    }
+
     setEnriching(true);
     setEnrichType("skip_trace");
-    setEnrichProgress({ processed: 0, total: selected.length, success: 0, failed: 0 });
+    setEnrichProgress({ processed: 0, total: toProcess.length, success: 0, failed: 0 });
     setShowEnrichDialog(true);
 
     let success = 0;
     let failed = 0;
 
-    for (let i = 0; i < selected.length; i += 5) {
-      const batch = selected.slice(i, i + 5);
+    for (let i = 0; i < toProcess.length; i += 10) {
+      const batch = toProcess.slice(i, i + 10); // Process 10 at a time for speed
 
       const results = await Promise.all(
         batch.map(async (lead) => {
@@ -264,19 +321,22 @@ export default function SectorDetailPage() {
       );
 
       setEnrichProgress({
-        processed: Math.min(i + 5, selected.length),
-        total: selected.length,
+        processed: Math.min(i + 10, toProcess.length),
+        total: toProcess.length,
         success,
         failed,
       });
 
-      if (i + 5 < selected.length) {
-        await new Promise((r) => setTimeout(r, 500));
+      if (i + 10 < toProcess.length) {
+        await new Promise((r) => setTimeout(r, 300)); // Faster processing
       }
     }
 
+    // Update daily count
+    updateDailyCount(dailySkipTraceCount + success);
+
     setEnriching(false);
-    toast.success(`Skip trace complete: ${success} enriched, ${failed} failed`);
+    toast.success(`Skip trace complete: ${success} enriched, ${failed} failed. Daily: ${dailySkipTraceCount + success}/${DAILY_SKIP_TRACE_LIMIT}`);
   };
 
   // Apollo Enrichment
@@ -541,10 +601,53 @@ export default function SectorDetailPage() {
             />
           </div>
 
-          {/* ENRICHMENT BUTTONS */}
+          {/* BULK SELECTION */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={selectAllEnrichable}
+              disabled={enriching}
+            >
+              Select Page ({paginatedLeads.filter((l) => l.address && l.city && l.state && !l.enriched).length})
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => selectBulkEnrichable(100)}
+              disabled={enriching}
+            >
+              Select 100
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => selectBulkEnrichable(500)}
+              disabled={enriching}
+            >
+              Select 500
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => selectBulkEnrichable(1000)}
+              disabled={enriching}
+            >
+              Select 1K
+            </Button>
+          </div>
+
+          {/* Daily Limit Badge */}
+          <Badge variant={dailySkipTraceCount >= DAILY_SKIP_TRACE_LIMIT ? "destructive" : "secondary"} className="px-3 py-1">
+            {dailySkipTraceCount.toLocaleString()}/{DAILY_SKIP_TRACE_LIMIT.toLocaleString()} today
+          </Badge>
+        </div>
+
+        {/* ENRICHMENT BUTTONS */}
+        <div className="flex items-center gap-4 flex-wrap">
           <Button
             onClick={handleSkipTrace}
-            disabled={enriching || selectedIds.size === 0}
+            disabled={enriching || selectedIds.size === 0 || dailySkipTraceCount >= DAILY_SKIP_TRACE_LIMIT}
             variant="outline"
             className="border-purple-500 text-purple-600 hover:bg-purple-50"
           >
