@@ -80,6 +80,18 @@ Take a moment to look around. No need to click anything yet.
 
 ## 3. Finding Your Data
 
+### Data Sources Overview
+
+Your pipeline has two primary data sources:
+
+| Source | What It Provides | Records |
+|--------|------------------|---------|
+| **USBizData** | Raw data lakes - Business, Residential, Cell Phone, Opt-in Email | 33.7M+ |
+| **RealEstateAPI.com** | Property data, skip tracing, owner lookup | Unlimited searches |
+
+**USBizData** gives you the starting point — names, addresses, companies.
+**RealEstateAPI.com** fills in the gaps — current phone numbers and emails.
+
 ### Option A: Property Search
 
 For real estate deals, start with property data.
@@ -164,6 +176,23 @@ The system handles rate limits automatically. Relax — it will complete.
 ## 5. Skip Tracing
 
 Skip tracing finds current phone numbers and emails for property owners.
+
+### The Skip Trace Provider: RealEstateAPI.com
+
+All skip tracing in this platform is powered by **[RealEstateAPI.com](https://www.realestateapi.com)**.
+
+**What RealEstateAPI.com provides:**
+- Current phone numbers (landline + cell)
+- Current email addresses
+- Property ownership verification
+- Mailing address confirmation
+- Associated persons at address
+
+**API Endpoints:**
+- Single skip trace: `/api/realestate/skip-trace`
+- Bulk skip trace: `/api/realestate/skip-trace-bulk` (up to 250 per batch)
+
+This is NOT the same as USBizData. USBizData gives you the raw list. RealEstateAPI.com finds the current contact info for those people.
 
 ### Understanding Hit Rates
 
