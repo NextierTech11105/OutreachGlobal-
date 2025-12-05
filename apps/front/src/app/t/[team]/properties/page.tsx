@@ -34,12 +34,21 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Search, Download, Loader2, MapPin, Home, Phone, Mail, UserSearch,
   Filter, Save, FolderOpen, Layers, AlertTriangle, Building2, Users,
   DollarSign, TrendingUp, Ban, X, ChevronLeft, ChevronRight,
-  Plus, MessageSquare, Zap, Target, Landmark, RotateCcw
+  Plus, MessageSquare, Zap, Target, Landmark, RotateCcw, Send, CheckCircle2
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -206,6 +215,16 @@ export default function PropertiesPage() {
 
   // Stacked list (selected property tray like PropWire)
   const [showTray, setShowTray] = useState(false);
+
+  // SMS Dialog - Push Button Mode!
+  const [showSmsDialog, setShowSmsDialog] = useState(false);
+  const [smsMessage, setSmsMessage] = useState("");
+  const [sendingSms, setSendingSms] = useState(false);
+  const [smsProgress, setSmsProgress] = useState<{
+    sent: number;
+    failed: number;
+    total: number;
+  } | null>(null);
 
   // Legacy state aliases for backward compatibility
   const state = filters.state;
@@ -426,7 +445,8 @@ export default function PropertiesPage() {
       let processedCount = 0;
       let totalWithPhones = 0;
       let totalWithEmails = 0;
-      let allSkipResults: Array<{ id: string; phones?: string[]; emails?: string[]; ownerName?: string; success: boolean }> = [];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let allSkipResults: any[] = [];
 
       // Process in batches of 250
       const numBatches = Math.ceil(totalToProcess / BATCH_SIZE);
@@ -492,15 +512,22 @@ export default function PropertiesPage() {
       setResults((prev) =>
         prev.map((property) => {
           // Match by input.propertyId, input.id, or direct id
-          const skipData = allSkipResults.find((r: { id?: string; input?: { propertyId?: string; id?: string }; phones?: { number: string }[]; emails?: { email: string }[]; ownerName?: string; success: boolean }) => {
+          const skipData = allSkipResults.find((r) => {
             const skipId = r.id || r.input?.propertyId || r.input?.id;
             return skipId === property.id;
           });
           if (skipData && skipData.success) {
+            // Handle both string[] and {number: string}[] formats from API
+            const phones = (skipData.phones || []).map((p: string | { number: string }) =>
+              typeof p === 'string' ? p : p.number
+            );
+            const emails = (skipData.emails || []).map((e: string | { email: string }) =>
+              typeof e === 'string' ? e : e.email
+            );
             return {
               ...property,
-              phones: (skipData.phones || []).map((p: { number: string }) => p.number),
-              emails: (skipData.emails || []).map((e: { email: string }) => e.email),
+              phones,
+              emails,
               ownerName: skipData.ownerName || property.ownerName,
               skipTraced: true,
             };
@@ -661,6 +688,76 @@ export default function PropertiesPage() {
       setLoading(false);
     }
   }, [filters, currentPage, pageSize]);
+
+  // PUSH BUTTON SMS - Send via SignalHouse
+  const handleSendSms = useCallback(async () => {
+    // Get properties with phone numbers
+    const propertiesWithPhones = results.filter(
+      (p) => selectedIds.has(p.id) && p.phones && p.phones.length > 0
+    );
+
+    if (propertiesWithPhones.length === 0) {
+      toast.error("No selected properties have phone numbers. Skip trace first!");
+      return;
+    }
+
+    if (!smsMessage.trim()) {
+      toast.error("Enter a message to send");
+      return;
+    }
+
+    setSendingSms(true);
+    setSmsProgress({ sent: 0, failed: 0, total: propertiesWithPhones.length });
+
+    try {
+      // Collect all phone numbers
+      const phoneNumbers = propertiesWithPhones.flatMap((p) => p.phones || []);
+
+      console.log(`[SMS] Sending to ${phoneNumbers.length} phone numbers via SignalHouse...`);
+
+      const response = await fetch("/api/signalhouse/bulk-send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: phoneNumbers,
+          message: smsMessage,
+          campaignId: `property-blitz-${Date.now()}`,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        toast.error(data.error);
+        setSmsProgress(null);
+        return;
+      }
+
+      setSmsProgress({
+        sent: data.sent || 0,
+        failed: data.failed || 0,
+        total: phoneNumbers.length,
+      });
+
+      toast.success(
+        `SMS Blast Complete! ${data.sent} sent, ${data.failed} failed. Daily remaining: ${data.dailyRemaining}`
+      );
+
+      // Clear selection and close dialog after success
+      setTimeout(() => {
+        setShowSmsDialog(false);
+        setSmsMessage("");
+        setSmsProgress(null);
+        setSelectedIds(new Set());
+      }, 2000);
+    } catch (error) {
+      console.error("SMS send failed:", error);
+      toast.error("Failed to send SMS");
+      setSmsProgress(null);
+    } finally {
+      setSendingSms(false);
+    }
+  }, [results, selectedIds, smsMessage]);
 
   const handleExportCSV = () => {
     const headers = ["Address", "City", "State", "ZIP", "Type", "Beds", "Baths", "SqFt", "Value", "Equity", "Owner", "Phones", "Emails"];
@@ -1330,6 +1427,27 @@ export default function PropertiesPage() {
                     )}
                   </Button>
 
+                  {/* 🚀 SEND SMS NOW - Push Button Mode! */}
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={() => {
+                      const withPhones = results.filter(
+                        (p) => selectedIds.has(p.id) && p.phones && p.phones.length > 0
+                      );
+                      if (withPhones.length === 0) {
+                        toast.error("No selected properties have phone numbers. Skip trace first!");
+                        return;
+                      }
+                      setShowSmsDialog(true);
+                    }}
+                    disabled={selectedIds.size === 0}
+                    className="bg-green-600 hover:bg-green-700 animate-pulse"
+                  >
+                    <Send className="h-4 w-4 mr-2" />
+                    📲 SEND SMS NOW
+                  </Button>
+
                   {/* Push to Campaign */}
                   <Button
                     variant="default"
@@ -1414,6 +1532,123 @@ export default function PropertiesPage() {
           )}
         </div>
       </div>
+
+      {/* 📲 SMS DIALOG - Push Button Mode! */}
+      <Dialog open={showSmsDialog} onOpenChange={setShowSmsDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Send className="h-5 w-5 text-green-600" />
+              Send SMS Now
+            </DialogTitle>
+            <DialogDescription>
+              Send SMS to {results.filter(p => selectedIds.has(p.id) && p.phones?.length).length} properties with phone numbers
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* Quick Templates */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Quick Templates</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSmsMessage("Hi! I noticed your property and wanted to reach out. Are you considering selling? I can make a fair cash offer with a quick close. Let me know if you'd like to chat!")}
+                >
+                  Cash Offer
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSmsMessage("Hello! I'm a local investor and saw your property might be available. I buy houses as-is, no repairs needed. Would you be open to a quick conversation?")}
+                >
+                  As-Is Buyer
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSmsMessage("Hi there! I help homeowners explore their options. Whether selling, refinancing, or just curious about your property's value - I'm here to help. Free, no obligation chat?")}
+                >
+                  Soft Approach
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSmsMessage("Quick question - would you consider an offer on your property? I buy directly, pay cash, and can close on your timeline. Just reply YES if interested!")}
+                >
+                  Direct Ask
+                </Button>
+              </div>
+            </div>
+
+            {/* Message Input */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Your Message</Label>
+              <Textarea
+                value={smsMessage}
+                onChange={(e) => setSmsMessage(e.target.value)}
+                placeholder="Type your SMS message here..."
+                className="min-h-[120px]"
+                maxLength={160}
+              />
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>{smsMessage.length}/160 characters</span>
+                <span className="text-amber-600">Reply STOP will be added automatically</span>
+              </div>
+            </div>
+
+            {/* Progress Display */}
+            {smsProgress && (
+              <div className="rounded-lg border bg-muted/50 p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-medium">Sending Progress</span>
+                  {smsProgress.sent === smsProgress.total && (
+                    <CheckCircle2 className="h-5 w-5 text-green-600" />
+                  )}
+                </div>
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div>
+                    <div className="text-2xl font-bold text-green-600">{smsProgress.sent}</div>
+                    <div className="text-xs text-muted-foreground">Sent</div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-red-600">{smsProgress.failed}</div>
+                    <div className="text-xs text-muted-foreground">Failed</div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold">{smsProgress.total}</div>
+                    <div className="text-xs text-muted-foreground">Total</div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSmsDialog(false)} disabled={sendingSms}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSendSms}
+              disabled={sendingSms || !smsMessage.trim()}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {sendingSms ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4 mr-2" />
+                  Send SMS Now
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
