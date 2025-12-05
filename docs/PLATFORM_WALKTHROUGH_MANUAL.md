@@ -80,17 +80,42 @@ Take a moment to look around. No need to click anything yet.
 
 ## 3. Finding Your Data
 
-### Data Sources Overview
+### Your Data Architecture
 
-Your pipeline has two primary data sources:
+Your platform runs on a powerful data lake stored in DigitalOcean:
 
-| Source | What It Provides | Records |
-|--------|------------------|---------|
-| **USBizData** | Raw data lakes - Business, Residential, Cell Phone, Opt-in Email | 33.7M+ |
-| **RealEstateAPI.com** | Property data, skip tracing, owner lookup | Unlimited searches |
+```
+┌─────────────────────────────────────────────────┐
+│         DO DROPLET - 34 MILLION RECORDS          │
+│              YOUR MASTER DATA LAKE               │
+└─────────────────────────┬───────────────────────┘
+                          │
+         ┌────────────────┼────────────────┐
+         │                │                │
+         ▼                ▼                ▼
+   ┌──────────┐     ┌──────────┐     ┌──────────┐
+   │ USBizData│     │ Property │     │ Business │
+   │ Buckets  │     │   Data   │     │ Sectors  │
+   └──────────┘     └──────────┘     └──────────┘
+```
 
-**USBizData** gives you the starting point — names, addresses, companies.
-**RealEstateAPI.com** fills in the gaps — current phone numbers and emails.
+### Data Sources
+
+| Source | Location | Purpose |
+|--------|----------|---------|
+| **DO Droplet** | Your data lake | 34M master records |
+| **USBizData** | Buckets (uploading) | Business, Residential, Cell, Email lists |
+| **RealEstateAPI.com** | API | Skip tracing (current phone/email) |
+| **Apollo** | Admin section | Business enrichment (LinkedIn, title) |
+
+### The Flow
+
+1. **Data Lake** — Your 34M records in DO Droplet
+2. **USBizData Upload** — Adds business buckets to the lake
+3. **Cross-Enrich** — Match with tracked IDs, dedupe, create unified records
+4. **Skip Trace** — RealEstateAPI.com finds current contact info
+5. **Apollo Enrich** — Add LinkedIn, title, company context
+6. **Leads Panel** — Search and work your enriched data
 
 ### Option A: Property Search
 
