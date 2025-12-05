@@ -18,8 +18,19 @@ import {
   Building2, Home, DollarSign, MapPin, Briefcase,
   Search, Database, Upload, TrendingUp, Users,
   FileSpreadsheet, RefreshCcw, Plus, ArrowRight,
-  BarChart3, Layers, HardDrive, Eye, Send, Loader2
+  BarChart3, Layers, HardDrive, Eye, Send, Loader2, X, CheckCircle2
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import {
   SECTOR_WORKSPACES,
@@ -78,6 +89,19 @@ export default function SectorsPage() {
   const [dataSources, setDataSources] = useState<DataSourceSummary[]>([]);
   const [dataLakes, setDataLakes] = useState<DataLake[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // CSV Upload state
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadName, setUploadName] = useState("");
+  const [uploadDescription, setUploadDescription] = useState("");
+  const [uploadTags, setUploadTags] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadResult, setUploadResult] = useState<{
+    success: boolean;
+    message: string;
+    stats?: { total: number; withPhone: number; withEmail: number; withAddress: number };
+  } | null>(null);
 
   // Fetch REAL data from buckets API (DO Spaces data lakes)
   useEffect(() => {
@@ -139,6 +163,68 @@ export default function SectorsPage() {
 
     fetchRealData();
   }, []);
+
+  // Handle CSV upload
+  const handleUpload = async () => {
+    if (!uploadFile || !uploadName) {
+      toast.error("Please select a file and enter a name");
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadResult(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", uploadFile);
+      formData.append("name", uploadName);
+      formData.append("description", uploadDescription);
+      formData.append("tags", uploadTags);
+
+      const response = await fetch("/api/buckets/upload-csv", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        setUploadResult({ success: false, message: data.error });
+        toast.error(data.error);
+        return;
+      }
+
+      setUploadResult({
+        success: true,
+        message: data.message,
+        stats: data.bucket.stats,
+      });
+      toast.success("CSV uploaded successfully!");
+
+      // Refresh data lakes
+      const refreshResponse = await fetch("/api/buckets?perPage=100");
+      const refreshData = await refreshResponse.json();
+      if (refreshData.buckets) {
+        setDataLakes(refreshData.buckets);
+      }
+
+      // Reset form after success
+      setTimeout(() => {
+        setShowUploadDialog(false);
+        setUploadFile(null);
+        setUploadName("");
+        setUploadDescription("");
+        setUploadTags("");
+        setUploadResult(null);
+      }, 2000);
+    } catch (error) {
+      console.error("Upload failed:", error);
+      setUploadResult({ success: false, message: "Upload failed" });
+      toast.error("Upload failed");
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   // Navigate to bucket/data lake detail page
   const viewDataLakeRecords = (lake: DataLake) => {
@@ -409,13 +495,9 @@ export default function SectorsPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => setShowUploadDialog(true)}>
               <Upload className="h-4 w-4 mr-2" />
-              Import Data
-            </Button>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              New Sector
+              Upload CSV
             </Button>
           </div>
         </div>
@@ -561,7 +643,7 @@ export default function SectorsPage() {
                       <p className="text-muted-foreground text-center max-w-md mb-4">
                         Upload CSV databases from USBizData, save property searches, or import leads to create data lakes.
                       </p>
-                      <Button>
+                      <Button onClick={() => setShowUploadDialog(true)}>
                         <Upload className="h-4 w-4 mr-2" />
                         Upload CSV Database
                       </Button>
@@ -683,6 +765,147 @@ export default function SectorsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* CSV Upload Dialog */}
+      <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Upload className="h-5 w-5 text-blue-600" />
+              Upload CSV Database
+            </DialogTitle>
+            <DialogDescription>
+              Upload a CSV file from USBizData or any other source. We'll auto-detect columns.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* File Input */}
+            <div className="space-y-2">
+              <Label htmlFor="csv-file">CSV File</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="csv-file"
+                  type="file"
+                  accept=".csv"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setUploadFile(file);
+                      if (!uploadName) {
+                        setUploadName(file.name.replace(".csv", "").replace(/_/g, " "));
+                      }
+                    }
+                  }}
+                  className="flex-1"
+                />
+              </div>
+              {uploadFile && (
+                <p className="text-xs text-muted-foreground">
+                  Selected: {uploadFile.name} ({(uploadFile.size / 1024 / 1024).toFixed(2)} MB)
+                </p>
+              )}
+            </div>
+
+            {/* Name */}
+            <div className="space-y-2">
+              <Label htmlFor="name">Data Lake Name</Label>
+              <Input
+                id="name"
+                value={uploadName}
+                onChange={(e) => setUploadName(e.target.value)}
+                placeholder="e.g., US Pizza Businesses"
+              />
+            </div>
+
+            {/* Description */}
+            <div className="space-y-2">
+              <Label htmlFor="description">Description (optional)</Label>
+              <Textarea
+                id="description"
+                value={uploadDescription}
+                onChange={(e) => setUploadDescription(e.target.value)}
+                placeholder="e.g., 1.2M pizza businesses from USBizData SIC 5812"
+                rows={2}
+              />
+            </div>
+
+            {/* Tags */}
+            <div className="space-y-2">
+              <Label htmlFor="tags">Tags (comma-separated)</Label>
+              <Input
+                id="tags"
+                value={uploadTags}
+                onChange={(e) => setUploadTags(e.target.value)}
+                placeholder="e.g., food, restaurants, b2b"
+              />
+            </div>
+
+            {/* Upload Result */}
+            {uploadResult && (
+              <div className={cn(
+                "rounded-lg p-4",
+                uploadResult.success ? "bg-green-50 dark:bg-green-900/20" : "bg-red-50 dark:bg-red-900/20"
+              )}>
+                <div className="flex items-center gap-2 mb-2">
+                  {uploadResult.success ? (
+                    <CheckCircle2 className="h-5 w-5 text-green-600" />
+                  ) : (
+                    <X className="h-5 w-5 text-red-600" />
+                  )}
+                  <span className={cn("font-medium", uploadResult.success ? "text-green-700" : "text-red-700")}>
+                    {uploadResult.success ? "Upload Successful" : "Upload Failed"}
+                  </span>
+                </div>
+                <p className="text-sm text-muted-foreground">{uploadResult.message}</p>
+                {uploadResult.stats && (
+                  <div className="grid grid-cols-4 gap-2 mt-3">
+                    <div className="text-center">
+                      <div className="text-lg font-bold">{uploadResult.stats.total.toLocaleString()}</div>
+                      <div className="text-xs text-muted-foreground">Total</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-green-600">{uploadResult.stats.withPhone.toLocaleString()}</div>
+                      <div className="text-xs text-muted-foreground">Phones</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-blue-600">{uploadResult.stats.withEmail.toLocaleString()}</div>
+                      <div className="text-xs text-muted-foreground">Emails</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-purple-600">{uploadResult.stats.withAddress.toLocaleString()}</div>
+                      <div className="text-xs text-muted-foreground">Enrichable</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowUploadDialog(false)} disabled={isUploading}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleUpload}
+              disabled={isUploading || !uploadFile || !uploadName}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {isUploading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload & Process
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
