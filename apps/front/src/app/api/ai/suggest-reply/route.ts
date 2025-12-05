@@ -22,6 +22,7 @@ interface SuggestReplyRequest {
     urgency: number;
     directness: number;
   };
+  trainingData?: Array<{ incomingMessage: string; idealResponse: string }>;
 }
 
 // System prompts for different campaign types
@@ -79,6 +80,7 @@ export async function POST(request: NextRequest) {
       provider = "openai",
       tone = "friendly",
       remixContext,
+      trainingData = [],
     } = body;
 
     if (!incomingMessage) {
@@ -99,8 +101,17 @@ export async function POST(request: NextRequest) {
       .filter(Boolean)
       .join("\n");
 
+    // Build training examples section
+    let trainingSection = "";
+    if (trainingData.length > 0) {
+      const examples = trainingData.slice(0, 10).map((ex, i) =>
+        `Example ${i + 1}:\n  Lead says: "${ex.incomingMessage}"\n  You reply: "${ex.idealResponse}"`
+      ).join("\n\n");
+      trainingSection = `\n\nHere are some example responses to learn from:\n${examples}\n\nUse these as guidance for tone and style.`;
+    }
+
     const remixInstructions = remixContext ? `\n\nIMPORTANT STYLE INSTRUCTIONS: ${remixContext}` : "";
-    const fullSystemPrompt = `${systemPrompt}\n\n${toneModifier}\n\n${contextInfo ? `Context:\n${contextInfo}` : ""}${remixInstructions}`;
+    const fullSystemPrompt = `${systemPrompt}\n\n${toneModifier}\n\n${contextInfo ? `Context:\n${contextInfo}` : ""}${trainingSection}${remixInstructions}`;
 
     // Build messages array
     const messages = [

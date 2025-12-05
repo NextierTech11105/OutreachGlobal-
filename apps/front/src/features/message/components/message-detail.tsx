@@ -37,7 +37,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import type { Message } from "@/types/message";
-import { AiCopilotReply } from "@/components/ai-copilot-reply";
+import { GiannaResponseHandler } from "@/components/gianna-response-handler";
 
 interface MessageDetailProps {
   message: Message;
@@ -218,7 +218,7 @@ export function MessageDetail({
             </TabsTrigger>
             <TabsTrigger value="ai" className="text-xs flex items-center gap-1">
               <Bot className="h-3 w-3" />
-              AI Reply
+              Gianna
             </TabsTrigger>
             <TabsTrigger value="history" className="text-xs">
               History
@@ -287,10 +287,10 @@ export function MessageDetail({
             )}
           </TabsContent>
 
-          {/* AI CO-PILOT TAB */}
+          {/* GIANNA AI TAB */}
           <TabsContent value="ai" className="space-y-4">
             {message.type === "sms" && message.content ? (
-              <AiCopilotReply
+              <GiannaResponseHandler
                 incomingMessage={message.content}
                 leadName={message.from}
                 leadPhone={message.phone || ""}
@@ -303,7 +303,7 @@ export function MessageDetail({
             ) : (
               <div className="text-center py-8 text-muted-foreground">
                 <Bot className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>AI Co-Pilot is available for SMS messages</p>
+                <p>Gianna is available for SMS messages</p>
               </div>
             )}
           </TabsContent>
