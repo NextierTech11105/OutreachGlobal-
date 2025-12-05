@@ -18,8 +18,9 @@ import {
   Building2, Home, DollarSign, MapPin, Briefcase,
   Search, Database, Upload, TrendingUp, Users,
   FileSpreadsheet, RefreshCcw, Plus, ArrowRight,
-  BarChart3, Layers
+  BarChart3, Layers, HardDrive, Eye, Send, Loader2
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import {
   SECTOR_WORKSPACES,
   Sector,
@@ -51,35 +52,164 @@ interface DataSourceSummary {
   createdAt: Date;
 }
 
+// Real bucket/data lake from DO Spaces
+interface DataLake {
+  id: string;
+  name: string;
+  description?: string;
+  source: string;
+  totalLeads: number;
+  enrichedLeads: number;
+  contactedLeads: number;
+  queuedLeads: number;
+  createdAt: string;
+  updatedAt: string;
+  tags?: string[];
+  filters?: Record<string, unknown>;
+}
+
 export default function SectorsPage() {
-  const [activeWorkspace, setActiveWorkspace] = useState<string>("real_estate");
+  const router = useRouter();
+  const [activeWorkspace, setActiveWorkspace] = useState<string>("data_lakes");
   const [selectedSector, setSelectedSector] = useState<Sector | null>(null);
+  const [selectedDataLake, setSelectedDataLake] = useState<DataLake | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [sectorStats, setSectorStats] = useState<Record<string, SectorStats>>({});
   const [dataSources, setDataSources] = useState<DataSourceSummary[]>([]);
+  const [dataLakes, setDataLakes] = useState<DataLake[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Mock data for demonstration
+  // Fetch REAL data from buckets API (DO Spaces data lakes)
   useEffect(() => {
-    // In production, fetch from API
-    const mockStats: Record<string, SectorStats> = {
-      residential_sfr: { sectorId: "residential_sfr", totalRecords: 45000, enrichedRecords: 12000, contactedRecords: 3500 },
-      residential_mfr: { sectorId: "residential_mfr", totalRecords: 8500, enrichedRecords: 2100, contactedRecords: 890 },
-      pre_foreclosure: { sectorId: "pre_foreclosure", totalRecords: 2300, enrichedRecords: 1800, contactedRecords: 650 },
-      high_equity: { sectorId: "high_equity", totalRecords: 15000, enrichedRecords: 5000, contactedRecords: 1200 },
-      healthcare: { sectorId: "healthcare", totalRecords: 3200, enrichedRecords: 1500, contactedRecords: 450 },
-      restaurants_food: { sectorId: "restaurants_food", totalRecords: 5600, enrichedRecords: 2800, contactedRecords: 920 },
-      bronx: { sectorId: "bronx", totalRecords: 65733, enrichedRecords: 0, contactedRecords: 0 },
-    };
-    setSectorStats(mockStats);
+    async function fetchRealData() {
+      setIsLoading(true);
+      try {
+        // Fetch real buckets from DO Spaces
+        const response = await fetch("/api/buckets?perPage=100");
+        const data = await response.json();
 
-    const mockDataSources: DataSourceSummary[] = [
-      { id: "1", name: "RealEstateAPI - Bronx Properties", sourceType: "api", sourceProvider: "realestateapi", totalRows: 65733, status: "completed", sectorId: "bronx", createdAt: new Date() },
-      { id: "2", name: "NY Healthcare Businesses", sourceType: "csv", sourceProvider: "usbizdata", totalRows: 3200, status: "completed", sectorId: "healthcare", createdAt: new Date() },
-    ];
-    setDataSources(mockDataSources);
-    setIsLoading(false);
+        if (data.buckets && data.buckets.length > 0) {
+          // Convert buckets to sector stats
+          const stats: Record<string, SectorStats> = {};
+          const sources: DataSourceSummary[] = [];
+
+          data.buckets.forEach((bucket: {
+            id: string;
+            name: string;
+            source: string;
+            totalLeads: number;
+            enrichedLeads: number;
+            contactedLeads: number;
+            queuedLeads: number;
+            createdAt: string;
+            tags?: string[];
+          }) => {
+            // Create stat entry for each bucket
+            stats[bucket.id] = {
+              sectorId: bucket.id,
+              totalRecords: bucket.totalLeads || 0,
+              enrichedRecords: bucket.enrichedLeads || 0,
+              contactedRecords: bucket.contactedLeads || 0,
+              lastUpdated: new Date(bucket.createdAt),
+            };
+
+            // Add as data source
+            sources.push({
+              id: bucket.id,
+              name: bucket.name,
+              sourceType: bucket.source === "real-estate" ? "api" : "csv",
+              sourceProvider: bucket.source || "import",
+              totalRows: bucket.totalLeads || 0,
+              status: "completed",
+              sectorId: bucket.id,
+              createdAt: new Date(bucket.createdAt),
+            });
+          });
+
+          setSectorStats(stats);
+          setDataSources(sources);
+          setDataLakes(data.buckets);
+        }
+      } catch (error) {
+        console.error("Failed to fetch buckets:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchRealData();
   }, []);
+
+  // Navigate to bucket/data lake detail page
+  const viewDataLakeRecords = (lake: DataLake) => {
+    router.push(`/t/${window.location.pathname.split("/")[2]}/sectors/${lake.id}`);
+  };
+
+  // Data Lake Card component
+  const DataLakeCard = ({ lake }: { lake: DataLake }) => {
+    const isSelected = selectedDataLake?.id === lake.id;
+
+    return (
+      <Card
+        className={cn(
+          "cursor-pointer transition-all hover:shadow-md hover:border-primary/50",
+          isSelected && "ring-2 ring-primary border-primary"
+        )}
+        onClick={() => setSelectedDataLake(lake)}
+      >
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+              <HardDrive className="h-5 w-5 text-blue-600" />
+            </div>
+            <Badge variant="outline" className="text-xs">
+              {formatNumber(lake.totalLeads)} records
+            </Badge>
+          </div>
+          <CardTitle className="text-sm mt-2">{lake.name}</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <p className="text-xs text-muted-foreground line-clamp-2">
+            {lake.description || `Source: ${lake.source}`}
+          </p>
+          <div className="flex gap-2 mt-2">
+            <Badge variant="secondary" className="text-xs">
+              {formatNumber(lake.enrichedLeads)} enriched
+            </Badge>
+            <Badge variant="secondary" className="text-xs">
+              {formatNumber(lake.contactedLeads)} contacted
+            </Badge>
+          </div>
+          <div className="flex gap-2 mt-3">
+            <Button
+              size="sm"
+              variant="outline"
+              className="flex-1"
+              onClick={(e) => {
+                e.stopPropagation();
+                viewDataLakeRecords(lake);
+              }}
+            >
+              <Eye className="h-3 w-3 mr-1" />
+              View
+            </Button>
+            <Button
+              size="sm"
+              className="flex-1 bg-green-600 hover:bg-green-700"
+              onClick={(e) => {
+                e.stopPropagation();
+                // Navigate to SMS campaign
+                router.push(`/t/${window.location.pathname.split("/")[2]}/sectors/${lake.id}?action=sms`);
+              }}
+            >
+              <Send className="h-3 w-3 mr-1" />
+              SMS
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
 
   const activeWorkspaceData = SECTOR_WORKSPACES.find(w => w.id === activeWorkspace);
 
@@ -363,7 +493,17 @@ export default function SectorsPage() {
 
         {/* Workspace Tabs */}
         <Tabs value={activeWorkspace} onValueChange={setActiveWorkspace} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
+            {/* DATA LAKES TAB - Shows real uploaded buckets */}
+            <TabsTrigger value="data_lakes" className="flex items-center gap-2">
+              <HardDrive className="h-4 w-4" />
+              <span className="hidden sm:inline">Data Lakes</span>
+              {dataLakes.length > 0 && (
+                <Badge variant="default" className="ml-1 text-xs bg-blue-600">
+                  {dataLakes.length}
+                </Badge>
+              )}
+            </TabsTrigger>
             {SECTOR_WORKSPACES.map((ws) => {
               const Icon = ws.icon;
               const recordCount = ws.sectors.reduce((acc, s) => acc + getSectorRecordCount(s.id), 0);
@@ -386,6 +526,57 @@ export default function SectorsPage() {
           </TabsList>
 
           <ScrollArea className="h-[600px] mt-4">
+            {/* DATA LAKES CONTENT - Real uploaded buckets */}
+            <TabsContent value="data_lakes" className="mt-0">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                      <HardDrive className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-lg">Your Data Lakes</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Uploaded CSV databases and saved searches
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-bold">
+                      {formatNumber(dataLakes.reduce((acc, l) => acc + l.totalLeads, 0))}
+                    </p>
+                    <p className="text-sm text-muted-foreground">total records</p>
+                  </div>
+                </div>
+
+                {isLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                ) : dataLakes.length === 0 ? (
+                  <Card className="border-dashed">
+                    <CardContent className="flex flex-col items-center justify-center py-12">
+                      <Upload className="h-12 w-12 text-muted-foreground mb-4" />
+                      <h3 className="font-semibold text-lg mb-2">No Data Lakes Yet</h3>
+                      <p className="text-muted-foreground text-center max-w-md mb-4">
+                        Upload CSV databases from USBizData, save property searches, or import leads to create data lakes.
+                      </p>
+                      <Button>
+                        <Upload className="h-4 w-4 mr-2" />
+                        Upload CSV Database
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {dataLakes.map((lake) => (
+                      <DataLakeCard key={lake.id} lake={lake} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+
             {SECTOR_WORKSPACES.map((ws) => (
               <TabsContent key={ws.id} value={ws.id} className="mt-0">
                 {searchQuery ? (
