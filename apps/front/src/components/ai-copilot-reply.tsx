@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Bot,
   Send,
-  Edit3,
   RefreshCw,
   Phone,
   CheckCircle2,
@@ -17,7 +16,14 @@ import {
   ThumbsDown,
   Settings,
   Zap,
+  Wand2,
+  MessageCircle,
+  Smile,
+  Flame,
+  Target,
+  Calendar,
 } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -90,10 +96,18 @@ export function AiCopilotReply({
   const [suggestion, setSuggestion] = useState<AiSuggestion | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedMessage, setEditedMessage] = useState("");
   const [showSettings, setShowSettings] = useState(false);
+  const [showRemix, setShowRemix] = useState(false);
   const [autoReplyCountdown, setAutoReplyCountdown] = useState<number | null>(null);
+  const [remixCount, setRemixCount] = useState(0);
+
+  // Magic Remix sliders
+  const [remixSliders, setRemixSliders] = useState<RemixSliders>({
+    conversational: 60, // Slightly casual
+    humor: 20, // Light humor
+    urgency: 40, // Relaxed but purposeful
+    directness: 50, // Balanced
+  });
 
   // Auto-reply settings (persisted in localStorage)
   const [settings, setSettings] = useState<AutoReplySettings>(() => {
@@ -115,10 +129,32 @@ export function AiCopilotReply({
     localStorage.setItem("ai_copilot_settings", JSON.stringify(settings));
   }, [settings]);
 
+  // Convert slider values to tone description
+  const getSliderToneDescription = () => {
+    const parts = [];
+
+    if (remixSliders.conversational > 70) parts.push("very casual and conversational");
+    else if (remixSliders.conversational > 40) parts.push("friendly and personable");
+    else parts.push("professional and formal");
+
+    if (remixSliders.humor > 60) parts.push("with playful humor");
+    else if (remixSliders.humor > 30) parts.push("with light wit");
+
+    if (remixSliders.urgency > 70) parts.push("conveying urgency");
+    else if (remixSliders.urgency > 40) parts.push("with purposeful energy");
+
+    if (remixSliders.directness > 70) parts.push("being very direct and to the point");
+    else if (remixSliders.directness < 30) parts.push("using a soft, gentle approach");
+
+    return parts.join(", ");
+  };
+
   // Generate AI suggestion
   const generateSuggestion = useCallback(async () => {
     setIsLoading(true);
     try {
+      const toneDescription = getSliderToneDescription();
+
       const response = await fetch("/api/ai/suggest-reply", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -130,6 +166,9 @@ export function AiCopilotReply({
           previousMessages,
           provider: settings.provider,
           tone: settings.tone,
+          // Include remix slider context
+          remixContext: `Style: ${toneDescription}. Goal: Book an appointment or get them on a call.`,
+          sliders: remixSliders,
         }),
       });
 
@@ -141,7 +180,7 @@ export function AiCopilotReply({
       }
 
       setSuggestion(data);
-      setEditedMessage(data.suggestedReply);
+      setRemixCount((prev) => prev + 1);
 
       // Start auto-reply countdown if enabled and confidence is high enough
       if (settings.enabled && data.confidence >= settings.minConfidence) {
@@ -153,7 +192,7 @@ export function AiCopilotReply({
     } finally {
       setIsLoading(false);
     }
-  }, [incomingMessage, leadName, propertyAddress, campaignType, previousMessages, settings]);
+  }, [incomingMessage, leadName, propertyAddress, campaignType, previousMessages, settings, remixSliders]);
 
   // Auto-generate on mount
   useEffect(() => {
@@ -187,20 +226,24 @@ export function AiCopilotReply({
 
   // Send the reply
   const handleSendReply = async () => {
-    const messageToSend = isEditing ? editedMessage : suggestion?.suggestedReply;
-    if (!messageToSend) return;
+    if (!suggestion?.suggestedReply) return;
 
     setIsSending(true);
     try {
-      await onSendReply(messageToSend);
+      await onSendReply(suggestion.suggestedReply);
       toast.success("Reply sent!");
-      setIsEditing(false);
     } catch (error) {
       console.error("Failed to send reply:", error);
       toast.error("Failed to send reply");
     } finally {
       setIsSending(false);
     }
+  };
+
+  // Magic Remix - regenerate with current slider values
+  const handleRemix = () => {
+    generateSuggestion();
+    toast.info("Remixing with new style...");
   };
 
   // Get action button based on classification
@@ -458,18 +501,116 @@ export function AiCopilotReply({
             </div>
 
             {/* Message content */}
-            {isEditing ? (
-              <Textarea
-                value={editedMessage}
-                onChange={(e) => setEditedMessage(e.target.value)}
-                className="min-h-[100px] bg-zinc-800 border-zinc-700"
-                maxLength={160}
-              />
-            ) : (
-              <div className="p-3 bg-zinc-800/50 rounded-lg border border-zinc-700">
-                <p className="text-zinc-100">{suggestion.suggestedReply}</p>
-              </div>
-            )}
+            <motion.div
+              key={remixCount}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-4 bg-zinc-800/50 rounded-lg border border-zinc-700"
+            >
+              <p className="text-zinc-100 text-lg">{suggestion.suggestedReply}</p>
+            </motion.div>
+
+            {/* Magic Remix Panel */}
+            <AnimatePresence>
+              {showRemix && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="space-y-4 p-4 bg-gradient-to-br from-purple-900/20 to-indigo-900/20 rounded-lg border border-purple-500/30"
+                >
+                  <div className="flex items-center gap-2 text-purple-400">
+                    <Wand2 className="w-4 h-4" />
+                    <span className="font-medium">Magic Remix</span>
+                  </div>
+
+                  {/* Conversational Slider */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2">
+                        <MessageCircle className="w-4 h-4 text-zinc-400" />
+                        <span className="text-zinc-400">Formal</span>
+                      </div>
+                      <span className="text-zinc-400">Casual</span>
+                    </div>
+                    <Slider
+                      value={[remixSliders.conversational]}
+                      onValueChange={([v]) => setRemixSliders({ ...remixSliders, conversational: v })}
+                      max={100}
+                      step={10}
+                      className="[&_[role=slider]]:bg-purple-500"
+                    />
+                  </div>
+
+                  {/* Humor Slider */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2">
+                        <Smile className="w-4 h-4 text-zinc-400" />
+                        <span className="text-zinc-400">Serious</span>
+                      </div>
+                      <span className="text-zinc-400">Playful</span>
+                    </div>
+                    <Slider
+                      value={[remixSliders.humor]}
+                      onValueChange={([v]) => setRemixSliders({ ...remixSliders, humor: v })}
+                      max={100}
+                      step={10}
+                      className="[&_[role=slider]]:bg-yellow-500"
+                    />
+                  </div>
+
+                  {/* Urgency Slider */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2">
+                        <Flame className="w-4 h-4 text-zinc-400" />
+                        <span className="text-zinc-400">Relaxed</span>
+                      </div>
+                      <span className="text-zinc-400">Urgent</span>
+                    </div>
+                    <Slider
+                      value={[remixSliders.urgency]}
+                      onValueChange={([v]) => setRemixSliders({ ...remixSliders, urgency: v })}
+                      max={100}
+                      step={10}
+                      className="[&_[role=slider]]:bg-orange-500"
+                    />
+                  </div>
+
+                  {/* Directness Slider */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2">
+                        <Target className="w-4 h-4 text-zinc-400" />
+                        <span className="text-zinc-400">Soft</span>
+                      </div>
+                      <span className="text-zinc-400">Direct</span>
+                    </div>
+                    <Slider
+                      value={[remixSliders.directness]}
+                      onValueChange={([v]) => setRemixSliders({ ...remixSliders, directness: v })}
+                      max={100}
+                      step={10}
+                      className="[&_[role=slider]]:bg-green-500"
+                    />
+                  </div>
+
+                  <Button
+                    onClick={handleRemix}
+                    disabled={isLoading}
+                    className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+                  >
+                    {isLoading ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Wand2 className="w-4 h-4 mr-2" />
+                    )}
+                    Remix with These Settings
+                  </Button>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Auto-reply countdown */}
             <AnimatePresence>
@@ -515,19 +656,20 @@ export function AiCopilotReply({
 
               <Button
                 variant="outline"
-                onClick={() => setIsEditing(!isEditing)}
+                onClick={() => setShowRemix(!showRemix)}
+                className={cn(showRemix && "bg-purple-500/20 border-purple-500")}
               >
-                <Edit3 className="w-4 h-4 mr-2" />
-                {isEditing ? "Preview" : "Edit"}
+                <Wand2 className="w-4 h-4 mr-2" />
+                {showRemix ? "Hide Remix" : "Magic Remix"}
               </Button>
 
               <Button
                 variant="outline"
-                onClick={generateSuggestion}
+                onClick={handleRemix}
                 disabled={isLoading}
               >
                 <RefreshCw className={cn("w-4 h-4 mr-2", isLoading && "animate-spin")} />
-                Regenerate
+                Quick Remix
               </Button>
 
               {/* Dynamic action button based on classification */}

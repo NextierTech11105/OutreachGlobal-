@@ -15,6 +15,13 @@ interface SuggestReplyRequest {
   previousMessages?: Array<{ role: "user" | "assistant"; content: string }>;
   provider?: "openai" | "anthropic"; // Which AI to use
   tone?: "friendly" | "professional" | "urgent" | "casual";
+  remixContext?: string; // Additional style/tone context from sliders
+  sliders?: {
+    conversational: number;
+    humor: number;
+    urgency: number;
+    directness: number;
+  };
 }
 
 // System prompts for different campaign types
@@ -71,6 +78,7 @@ export async function POST(request: NextRequest) {
       previousMessages = [],
       provider = "openai",
       tone = "friendly",
+      remixContext,
     } = body;
 
     if (!incomingMessage) {
@@ -91,7 +99,8 @@ export async function POST(request: NextRequest) {
       .filter(Boolean)
       .join("\n");
 
-    const fullSystemPrompt = `${systemPrompt}\n\n${toneModifier}\n\n${contextInfo ? `Context:\n${contextInfo}` : ""}`;
+    const remixInstructions = remixContext ? `\n\nIMPORTANT STYLE INSTRUCTIONS: ${remixContext}` : "";
+    const fullSystemPrompt = `${systemPrompt}\n\n${toneModifier}\n\n${contextInfo ? `Context:\n${contextInfo}` : ""}${remixInstructions}`;
 
     // Build messages array
     const messages = [
