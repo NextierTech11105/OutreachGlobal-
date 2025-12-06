@@ -3,6 +3,24 @@ import { NextRequest, NextResponse } from "next/server";
 const REALESTATE_API_KEY = process.env.REALESTATE_API_KEY || process.env.REAL_ESTATE_API_KEY || "";
 const MAPBOX_ACCESS_TOKEN = process.env.MAPBOX_ACCESS_TOKEN || process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "pk.eyJ1IjoibmV4dGllcjExMTA1IiwiYSI6ImNtaXVrbmRodTFrY3YzanEwamFoZG44dWQifQ.EGNVQPofUwZm60KP6iID_g";
 
+// Normalize NYC hyphenated addresses like "2158 36th" -> "21-58 36th"
+// or "1234 Main" -> "12-34 Main" (Queens/Bronx style)
+function normalizeNYCAddress(search: string): string {
+  // Pattern: 4-digit number followed by street name (e.g., "2158 36th st")
+  // This is common in Queens/Bronx where addresses are hyphenated
+  const nycPattern = /^(\d{2})(\d{2})\s+(\d+)(th|st|nd|rd)?\s*(st|street|ave|avenue|blvd|boulevard|rd|road|pl|place|ct|court|ln|lane|dr|drive)?/i;
+  const match = search.match(nycPattern);
+
+  if (match) {
+    const [, first, second, streetNum, ordinal, streetType] = match;
+    const rest = search.replace(nycPattern, '').trim();
+    const normalizedStreet = streetNum + (ordinal || '') + (streetType ? ' ' + streetType : '');
+    return `${first}-${second} ${normalizedStreet} ${rest}`.trim();
+  }
+
+  return search;
+}
+
 interface MapboxFeature {
   id: string;
   place_name: string;
@@ -61,72 +79,97 @@ function parseMapboxFeature(feature: MapboxFeature) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { search, type = "address", state, city } = body;
+    const { search } = body;
 
     if (!search || search.length < 3) {
       return NextResponse.json({ data: [], message: "Search term must be at least 3 characters" });
     }
 
-    // USE REALESTATE API FIRST - This gives us property IDs!
-    console.log("[Autocomplete] Searching RealEstateAPI for:", search);
-    const autocompleteBody: Record<string, string> = {
-      search: search.trim(),
-      type,
-    };
+    // Normalize NYC addresses (e.g., "2158 36th st" -> "21-58 36th st")
+    const normalizedSearch = normalizeNYCAddress(search.trim());
+    console.log("[Autocomplete] Original:", search, "-> Normalized:", normalizedSearch);
 
-    if (state) autocompleteBody.state = state;
-    if (city) autocompleteBody.city = city;
+    // USE REALESTATE API FIRST - Returns property IDs for direct PropertyDetail lookup!
+    if (REALESTATE_API_KEY) {
+      try {
+        console.log("[Autocomplete] Calling RealEstateAPI v2/AutoComplete with:", normalizedSearch);
+        const response = await fetch("https://api.realestateapi.com/v2/AutoComplete", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": REALESTATE_API_KEY,
+          },
+          body: JSON.stringify({ search: normalizedSearch, search_types: ["A"] }), // A = full addresses only
+        });
 
-    const response = await fetch("https://api.realestateapi.com/v1/AutoComplete", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": REALESTATE_API_KEY,
-      },
-      body: JSON.stringify(autocompleteBody),
-    });
+        if (response.ok) {
+          const data = await response.json();
+          console.log("[Autocomplete] RealEstateAPI response:", JSON.stringify(data).substring(0, 1000));
 
-    if (response.ok) {
-      const data = await response.json();
-      console.log("[Autocomplete] RealEstateAPI response:", JSON.stringify(data).substring(0, 500));
+          // RealEstateAPI returns { data: [...] } with objects containing id, searchType, title, etc.
+          if (data.data && Array.isArray(data.data) && data.data.length > 0) {
+            const suggestions = data.data
+              .filter((item: Record<string, unknown>) => item.searchType === 'A') // Only full addresses
+              .map((item: Record<string, unknown>) => ({
+                id: item.id, // Property ID for PropertyDetail!
+                searchType: item.searchType,
+                address: item.title, // e.g., "21-58 36th Street, Astoria, NY, 11105"
+                street: String(item.title).split(',')[0], // Extract street
+                city: String(item.title).split(',')[1]?.trim() || '',
+                state: String(item.title).split(',')[2]?.trim() || '',
+                zip: String(item.title).split(',')[3]?.trim() || '',
+                fullAddress: item.title,
+                apn: item.apn,
+                fips: item.fips,
+                stateId: item.stateId,
+                countyId: item.countyId,
+              }));
 
-      // RealEstateAPI returns { data: [...] } with property objects containing id
-      if (data.data && Array.isArray(data.data) && data.data.length > 0) {
-        // Transform to include property ID for direct PropertyDetail lookup
-        const suggestions = data.data.map((item: Record<string, unknown>) => ({
-          id: item.id, // Property ID for PropertyDetail!
-          address: item.address || item.street,
-          street: item.street || item.address,
-          city: item.city,
-          state: item.state,
-          zip: item.zip || item.zipCode,
-          fullAddress: `${item.address || item.street}, ${item.city}, ${item.state} ${item.zip || item.zipCode}`.trim(),
-          latitude: item.latitude,
-          longitude: item.longitude,
-          propertyType: item.propertyType,
-        }));
-        console.log("[Autocomplete] Returning", suggestions.length, "suggestions from RealEstateAPI");
-        return NextResponse.json({ data: suggestions, source: "realestate" });
+            if (suggestions.length > 0) {
+              console.log("[Autocomplete] Returning", suggestions.length, "suggestions from RealEstateAPI");
+              return NextResponse.json({ data: suggestions, source: "realestate" });
+            }
+          }
+        } else {
+          const error = await response.text();
+          console.error("[Autocomplete] RealEstateAPI error:", response.status, error);
+        }
+      } catch (reError) {
+        console.error("[Autocomplete] RealEstateAPI exception:", reError);
       }
     }
 
     // Fallback to Mapbox if RealEstateAPI fails
-    console.log("[Autocomplete] RealEstateAPI failed, falling back to Mapbox");
-    if (MAPBOX_ACCESS_TOKEN && type === "address") {
+    console.log("[Autocomplete] Falling back to Mapbox");
+    if (MAPBOX_ACCESS_TOKEN) {
       try {
-        const mapboxUrl = new URL("https://api.mapbox.com/geocoding/v5/mapbox.places/" + encodeURIComponent(search) + ".json");
+        let mapboxUrl = new URL("https://api.mapbox.com/geocoding/v5/mapbox.places/" + encodeURIComponent(normalizedSearch) + ".json");
         mapboxUrl.searchParams.set("access_token", MAPBOX_ACCESS_TOKEN);
         mapboxUrl.searchParams.set("autocomplete", "true");
         mapboxUrl.searchParams.set("country", "US");
         mapboxUrl.searchParams.set("types", "address");
         mapboxUrl.searchParams.set("limit", "8");
-        mapboxUrl.searchParams.set("proximity", "-73.935242,40.730610");
+        mapboxUrl.searchParams.set("proximity", "-73.935242,40.730610"); // NYC bias
 
-        const mapboxResponse = await fetch(mapboxUrl.toString());
-        const mapboxData = await mapboxResponse.json();
+        let mapboxResponse = await fetch(mapboxUrl.toString());
+        let mapboxData = await mapboxResponse.json();
+
+        // If normalized search fails, try original search
+        if (!mapboxData.features?.length && normalizedSearch !== search.trim()) {
+          mapboxUrl = new URL("https://api.mapbox.com/geocoding/v5/mapbox.places/" + encodeURIComponent(search.trim()) + ".json");
+          mapboxUrl.searchParams.set("access_token", MAPBOX_ACCESS_TOKEN);
+          mapboxUrl.searchParams.set("autocomplete", "true");
+          mapboxUrl.searchParams.set("country", "US");
+          mapboxUrl.searchParams.set("types", "address");
+          mapboxUrl.searchParams.set("limit", "8");
+          mapboxUrl.searchParams.set("proximity", "-73.935242,40.730610");
+          mapboxResponse = await fetch(mapboxUrl.toString());
+          mapboxData = await mapboxResponse.json();
+        }
 
         if (mapboxResponse.ok && mapboxData.features?.length > 0) {
           const suggestions = mapboxData.features.map(parseMapboxFeature);
+          console.log("[Autocomplete] Returning", suggestions.length, "suggestions from Mapbox");
           return NextResponse.json({ data: suggestions, source: "mapbox" });
         }
       } catch (mapboxError) {
@@ -147,86 +190,84 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const search = searchParams.get("q") || searchParams.get("search") || "";
-  const type = searchParams.get("type") || "address";
-  const state = searchParams.get("state");
-  const city = searchParams.get("city");
 
   if (!search || search.length < 3) {
     return NextResponse.json({ data: [], message: "Search term must be at least 3 characters" });
   }
 
-  try {
-    // USE REALESTATE API FIRST - This gives us property IDs!
-    console.log("[Autocomplete GET] Searching RealEstateAPI for:", search);
-    const autocompleteBody: Record<string, string> = {
-      search: search.trim(),
-      type,
-    };
+  // Normalize NYC addresses
+  const normalizedSearch = normalizeNYCAddress(search.trim());
+  console.log("[Autocomplete GET] Original:", search, "-> Normalized:", normalizedSearch);
 
-    if (state) autocompleteBody.state = state;
-    if (city) autocompleteBody.city = city;
+  // USE REALESTATE API FIRST - Returns property IDs for direct PropertyDetail lookup!
+  if (REALESTATE_API_KEY) {
+    try {
+      console.log("[Autocomplete GET] Calling RealEstateAPI v2/AutoComplete");
+      const response = await fetch("https://api.realestateapi.com/v2/AutoComplete", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": REALESTATE_API_KEY,
+        },
+        body: JSON.stringify({ search: normalizedSearch, search_types: ["A"] }),
+      });
 
-    const response = await fetch("https://api.realestateapi.com/v1/AutoComplete", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": REALESTATE_API_KEY,
-      },
-      body: JSON.stringify(autocompleteBody),
-    });
+      if (response.ok) {
+        const data = await response.json();
+        console.log("[Autocomplete GET] RealEstateAPI response:", JSON.stringify(data).substring(0, 1000));
 
-    if (response.ok) {
-      const data = await response.json();
-      console.log("[Autocomplete GET] RealEstateAPI response:", JSON.stringify(data).substring(0, 500));
+        if (data.data && Array.isArray(data.data) && data.data.length > 0) {
+          const suggestions = data.data
+            .filter((item: Record<string, unknown>) => item.searchType === 'A')
+            .map((item: Record<string, unknown>) => ({
+              id: item.id,
+              searchType: item.searchType,
+              address: item.title,
+              street: String(item.title).split(',')[0],
+              city: String(item.title).split(',')[1]?.trim() || '',
+              state: String(item.title).split(',')[2]?.trim() || '',
+              zip: String(item.title).split(',')[3]?.trim() || '',
+              fullAddress: item.title,
+              apn: item.apn,
+              fips: item.fips,
+            }));
 
-      if (data.data && Array.isArray(data.data) && data.data.length > 0) {
-        const suggestions = data.data.map((item: Record<string, unknown>) => ({
-          id: item.id,
-          address: item.address || item.street,
-          street: item.street || item.address,
-          city: item.city,
-          state: item.state,
-          zip: item.zip || item.zipCode,
-          fullAddress: `${item.address || item.street}, ${item.city}, ${item.state} ${item.zip || item.zipCode}`.trim(),
-          latitude: item.latitude,
-          longitude: item.longitude,
-          propertyType: item.propertyType,
-        }));
-        console.log("[Autocomplete GET] Returning", suggestions.length, "suggestions from RealEstateAPI");
-        return NextResponse.json({ data: suggestions, source: "realestate" });
-      }
-    }
-
-    // Fallback to Mapbox if RealEstateAPI fails
-    console.log("[Autocomplete GET] RealEstateAPI failed, falling back to Mapbox");
-    if (MAPBOX_ACCESS_TOKEN && type === "address") {
-      try {
-        const mapboxUrl = new URL("https://api.mapbox.com/geocoding/v5/mapbox.places/" + encodeURIComponent(search) + ".json");
-        mapboxUrl.searchParams.set("access_token", MAPBOX_ACCESS_TOKEN);
-        mapboxUrl.searchParams.set("autocomplete", "true");
-        mapboxUrl.searchParams.set("country", "US");
-        mapboxUrl.searchParams.set("types", "address");
-        mapboxUrl.searchParams.set("limit", "8");
-        mapboxUrl.searchParams.set("proximity", "-73.935242,40.730610");
-
-        const mapboxResponse = await fetch(mapboxUrl.toString());
-        const mapboxData = await mapboxResponse.json();
-
-        if (mapboxResponse.ok && mapboxData.features?.length > 0) {
-          const suggestions = mapboxData.features.map(parseMapboxFeature);
-          return NextResponse.json({ data: suggestions, source: "mapbox" });
+          if (suggestions.length > 0) {
+            console.log("[Autocomplete GET] Returning", suggestions.length, "suggestions from RealEstateAPI");
+            return NextResponse.json({ data: suggestions, source: "realestate" });
+          }
         }
-      } catch (mapboxError) {
-        console.error("Mapbox autocomplete error:", mapboxError);
+      } else {
+        console.error("[Autocomplete GET] RealEstateAPI error:", response.status);
       }
+    } catch (reError) {
+      console.error("[Autocomplete GET] RealEstateAPI exception:", reError);
     }
-
-    return NextResponse.json({ data: [], message: "No results found" });
-  } catch (error: any) {
-    console.error("Address autocomplete error:", error);
-    return NextResponse.json(
-      { error: "Autocomplete failed", details: error.message },
-      { status: 500 }
-    );
   }
+
+  // Fallback to Mapbox
+  console.log("[Autocomplete GET] Falling back to Mapbox");
+  if (MAPBOX_ACCESS_TOKEN) {
+    try {
+      const mapboxUrl = new URL("https://api.mapbox.com/geocoding/v5/mapbox.places/" + encodeURIComponent(normalizedSearch) + ".json");
+      mapboxUrl.searchParams.set("access_token", MAPBOX_ACCESS_TOKEN);
+      mapboxUrl.searchParams.set("autocomplete", "true");
+      mapboxUrl.searchParams.set("country", "US");
+      mapboxUrl.searchParams.set("types", "address");
+      mapboxUrl.searchParams.set("limit", "8");
+      mapboxUrl.searchParams.set("proximity", "-73.935242,40.730610");
+
+      const mapboxResponse = await fetch(mapboxUrl.toString());
+      const mapboxData = await mapboxResponse.json();
+
+      if (mapboxResponse.ok && mapboxData.features?.length > 0) {
+        const suggestions = mapboxData.features.map(parseMapboxFeature);
+        return NextResponse.json({ data: suggestions, source: "mapbox" });
+      }
+    } catch (mapboxError) {
+      console.error("Mapbox autocomplete error:", mapboxError);
+    }
+  }
+
+  return NextResponse.json({ data: [], message: "No results found" });
 }
