@@ -3,11 +3,41 @@ import { NextRequest, NextResponse } from "next/server";
 const REALESTATE_API_KEY = process.env.REAL_ESTATE_API_KEY || process.env.REALESTATE_API_KEY || "";
 const PROPERTY_DETAIL_URL = "https://api.realestateapi.com/v2/PropertyDetail";
 const PROPERTY_SEARCH_URL = "https://api.realestateapi.com/v2/PropertySearch";
+const PROPERTY_COMPS_URL = "https://api.realestateapi.com/v3/PropertyComps";
 const MAPBOX_ACCESS_TOKEN = process.env.MAPBOX_ACCESS_TOKEN || process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "pk.eyJ1IjoibmV4dGllcjExMTA1IiwiYSI6ImNtaXVrbmRodTFrY3YzanEwamFoZG44dWQifQ.EGNVQPofUwZm60KP6iID_g";
 
+interface NormalizedProperty {
+  id: string | number;
+  address: {
+    address?: string;
+    street?: string;
+    city?: string;
+    state?: string;
+    zip?: string;
+    latitude?: number;
+    longitude?: number;
+  };
+  propertyType?: string;
+  bedrooms?: number;
+  bathrooms?: number;
+  squareFeet?: number;
+  yearBuilt?: number;
+  estimatedValue?: number;
+  lastSaleAmount?: number;
+  lastSaleDate?: string;
+  openMortgageBalance?: number;
+  estimatedEquity?: number;
+  lotSquareFeet?: number;
+  ownerOccupied?: boolean;
+  owner1FirstName?: string;
+  owner1LastName?: string;
+  latitude?: number;
+  longitude?: number;
+}
+
 interface ValuationData {
-  property: Record<string, unknown>;
-  comparables: Record<string, unknown>[];
+  property: NormalizedProperty;
+  comparables: NormalizedProperty[];
   valuation: {
     estimatedValue: number;
     pricePerSqft: number;
@@ -28,6 +58,79 @@ interface ValuationData {
   mapUrl: string | null;
 }
 
+// Normalize RealEstateAPI PropertyDetail response to flat structure
+function normalizePropertyDetail(rawProperty: Record<string, unknown>, inputData?: { address?: string; city?: string; state?: string; zip?: string; latitude?: number; longitude?: number }): NormalizedProperty {
+  // PropertyDetail has nested propertyInfo structure
+  const propertyInfo = (rawProperty.propertyInfo as Record<string, unknown>) || {};
+  const addressObj = (propertyInfo.address as Record<string, unknown>) || {};
+  const ownerInfo = (rawProperty.ownerInfo as Record<string, unknown>) || {};
+  const lotInfo = (rawProperty.lotInfo as Record<string, unknown>) || {};
+  const lastSale = (rawProperty.lastSale as Record<string, unknown>) || {};
+
+  return {
+    id: rawProperty.id as string || "unknown",
+    address: {
+      address: (addressObj.address || addressObj.label || inputData?.address) as string,
+      street: (addressObj.street || addressObj.address || inputData?.address) as string,
+      city: (addressObj.city || inputData?.city) as string,
+      state: (addressObj.state || inputData?.state) as string,
+      zip: (addressObj.zip || inputData?.zip) as string,
+      latitude: (inputData?.latitude || propertyInfo.latitude) as number,
+      longitude: (inputData?.longitude || propertyInfo.longitude) as number,
+    },
+    propertyType: rawProperty.propertyType as string || "Unknown",
+    bedrooms: (propertyInfo.bedrooms || propertyInfo.beds) as number,
+    bathrooms: (propertyInfo.bathrooms || propertyInfo.baths) as number,
+    squareFeet: (propertyInfo.livingSquareFeet || propertyInfo.buildingSquareFeet || propertyInfo.squareFeet) as number,
+    yearBuilt: Number(propertyInfo.yearBuilt) || undefined,
+    estimatedValue: Number(rawProperty.estimatedValue) || undefined,
+    lastSaleAmount: Number(rawProperty.lastSalePrice || lastSale.saleAmount) || undefined,
+    lastSaleDate: (rawProperty.lastSaleDate || lastSale.saleDate) as string,
+    openMortgageBalance: Number(rawProperty.openMortgageBalance) || 0,
+    estimatedEquity: Number(rawProperty.estimatedEquity) || undefined,
+    lotSquareFeet: Number(lotInfo.lotSquareFeet || propertyInfo.lotSquareFeet) || undefined,
+    ownerOccupied: rawProperty.ownerOccupied as boolean,
+    owner1FirstName: ownerInfo.owner1FirstName as string,
+    owner1LastName: ownerInfo.owner1LastName as string,
+    latitude: (inputData?.latitude || propertyInfo.latitude) as number,
+    longitude: (inputData?.longitude || propertyInfo.longitude) as number,
+  };
+}
+
+// Normalize comp from v3/PropertyComps response (flatter structure)
+function normalizeComp(comp: Record<string, unknown>): NormalizedProperty {
+  const addressObj = (comp.address as Record<string, unknown>) || {};
+
+  return {
+    id: comp.id as string,
+    address: {
+      address: addressObj.address as string || addressObj.street as string,
+      street: addressObj.street as string,
+      city: addressObj.city as string,
+      state: addressObj.state as string,
+      zip: addressObj.zip as string,
+      latitude: comp.latitude as number,
+      longitude: comp.longitude as number,
+    },
+    propertyType: comp.propertyType as string,
+    bedrooms: comp.bedrooms as number,
+    bathrooms: comp.bathrooms as number,
+    squareFeet: Number(comp.squareFeet) || undefined,
+    yearBuilt: Number(comp.yearBuilt) || undefined,
+    estimatedValue: Number(comp.estimatedValue) || undefined,
+    lastSaleAmount: Number(comp.lastSaleAmount) || undefined,
+    lastSaleDate: comp.lastSaleDate as string,
+    openMortgageBalance: Number(comp.openMortgageBalance) || 0,
+    estimatedEquity: Number(comp.estimatedEquity) || undefined,
+    lotSquareFeet: Number(comp.lotSquareFeet) || undefined,
+    ownerOccupied: comp.ownerOccupied as boolean,
+    owner1FirstName: comp.owner1FirstName as string,
+    owner1LastName: comp.owner1LastName as string,
+    latitude: comp.latitude as number,
+    longitude: comp.longitude as number,
+  };
+}
+
 // GET valuation by property ID
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -38,7 +141,6 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Get property detail
     const propertyResponse = await fetch(PROPERTY_DETAIL_URL, {
       method: "POST",
       headers: {
@@ -57,10 +159,10 @@ export async function GET(request: NextRequest) {
     }
 
     const propertyData = await propertyResponse.json();
-    const property = propertyData.data || propertyData;
+    const rawProperty = propertyData.data || propertyData;
+    const property = normalizePropertyDetail(rawProperty);
 
-    // Build valuation report
-    const valuation = await buildValuationReport(property);
+    const valuation = await buildValuationReport(property, rawProperty.id);
 
     return NextResponse.json({
       success: true,
@@ -77,12 +179,15 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { address, city, state, zip, id, latitude: inputLat, longitude: inputLng, fullAddress } = body;
+    const { address, city, state, zip, id, latitude: inputLat, longitude: inputLng } = body;
 
-    let property: Record<string, unknown> | null = null;
+    const inputData = { address, city, state, zip, latitude: inputLat, longitude: inputLng };
+    let property: NormalizedProperty | null = null;
+    let propertyId: string | null = null;
 
-    // If ID provided, fetch directly
+    // If ID provided, fetch directly with PropertyDetail
     if (id) {
+      console.log("[Valuation] Fetching by ID:", id);
       const propertyResponse = await fetch(PROPERTY_DETAIL_URL, {
         method: "POST",
         headers: {
@@ -94,12 +199,16 @@ export async function POST(request: NextRequest) {
 
       if (propertyResponse.ok) {
         const data = await propertyResponse.json();
-        property = data.data || data;
+        const rawProperty = data.data || data;
+        property = normalizePropertyDetail(rawProperty, inputData);
+        propertyId = String(rawProperty.id);
+        console.log("[Valuation] Found property by ID:", propertyId);
       }
     }
 
     // Otherwise search by address
     if (!property && address) {
+      console.log("[Valuation] Searching by address:", address, city, state, zip);
       const searchBody: Record<string, unknown> = {
         size: 1,
       };
@@ -121,30 +230,37 @@ export async function POST(request: NextRequest) {
       if (searchResponse.ok) {
         const searchData = await searchResponse.json();
         const results = searchData.data || searchData.properties || [];
+        console.log("[Valuation] Search results:", results.length);
 
         if (results.length > 0) {
-          // Get full details
+          const foundId = results[0].id;
+          console.log("[Valuation] Getting detail for ID:", foundId);
+
+          // Get full details with PropertyDetail
           const detailResponse = await fetch(PROPERTY_DETAIL_URL, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
               "x-api-key": REALESTATE_API_KEY,
             },
-            body: JSON.stringify({ id: results[0].id }),
+            body: JSON.stringify({ id: foundId }),
           });
 
           if (detailResponse.ok) {
             const detailData = await detailResponse.json();
-            property = detailData.data || detailData;
+            const rawProperty = detailData.data || detailData;
+            property = normalizePropertyDetail(rawProperty, inputData);
+            propertyId = String(rawProperty.id);
+            console.log("[Valuation] Got property detail:", propertyId);
           }
         }
       }
     }
 
-    // If no property found, create a minimal property object with the input data
+    // If no property found, create a minimal property with Mapbox coords
     if (!property) {
-      // Still show the map using coordinates from Mapbox
       if (inputLat && inputLng) {
+        console.log("[Valuation] Creating minimal property from Mapbox coords");
         property = {
           id: "mapbox-geocode",
           address: {
@@ -156,9 +272,9 @@ export async function POST(request: NextRequest) {
             latitude: inputLat,
             longitude: inputLng,
           },
+          propertyType: "Unknown",
           latitude: inputLat,
           longitude: inputLng,
-          propertyType: "Unknown",
         };
       } else {
         return NextResponse.json(
@@ -168,37 +284,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Normalize property data structure - RealEstateAPI returns address fields at root level
-    if (property) {
-      // Build address object from various possible field locations
-      const existingAddr = (property.address as Record<string, unknown>) || {};
-      const normalizedAddress: Record<string, unknown> = {
-        // Use existing address fields if present, otherwise use root-level fields
-        address: existingAddr.address || property.propertyAddress || property.streetAddress || address,
-        street: existingAddr.street || property.propertyAddress || property.streetAddress || address,
-        city: existingAddr.city || property.city || city,
-        state: existingAddr.state || property.state || state,
-        zip: existingAddr.zip || property.zip || property.zipCode || zip,
-        // Coordinates - prioritize Mapbox input, then existing data
-        latitude: inputLat || existingAddr.latitude || property.latitude || property.lat,
-        longitude: inputLng || existingAddr.longitude || property.longitude || property.lng || property.lon,
-      };
-
-      property.address = normalizedAddress;
-      property.latitude = normalizedAddress.latitude;
-      property.longitude = normalizedAddress.longitude;
-
-      // Also normalize other common field variations
-      if (!property.bedrooms && property.beds) property.bedrooms = property.beds;
-      if (!property.bathrooms && property.baths) property.bathrooms = property.baths;
-      if (!property.squareFeet && property.buildingSize) property.squareFeet = property.buildingSize;
-      if (!property.squareFeet && property.livingArea) property.squareFeet = property.livingArea;
-      if (!property.squareFeet && property.livingAreaSqFt) property.squareFeet = property.livingAreaSqFt;
-      if (!property.lastSaleAmount && property.lastSalePrice) property.lastSaleAmount = Number(property.lastSalePrice);
-    }
-
     // Build valuation report
-    const valuation = await buildValuationReport(property);
+    const valuation = await buildValuationReport(property, propertyId);
 
     return NextResponse.json({
       success: true,
@@ -211,23 +298,20 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function buildValuationReport(property: Record<string, unknown>): Promise<ValuationData> {
-  // Extract property details
-  const address = property.address as Record<string, unknown> || {};
-  const propertyType = property.propertyType as string || "SFR";
-  const bedrooms = (property.bedrooms || property.beds) as number || 0;
-  const bathrooms = (property.bathrooms || property.baths) as number || 0;
-  const sqft = (property.squareFeet || property.buildingSize || property.livingArea) as number || 0;
-  const yearBuilt = property.yearBuilt as number || 0;
-  const estimatedValue = (property.estimatedValue || property.avm) as number || 0;
-  const lastSaleAmount = property.lastSaleAmount as number || 0;
-  const lastSaleDate = property.lastSaleDate as string || "";
-  const mortgageBalance = (property.openMortgageBalance || property.mortgageBalance) as number || 0;
-  const latitude = (address.latitude || property.latitude) as number;
-  const longitude = (address.longitude || property.longitude) as number;
+async function buildValuationReport(property: NormalizedProperty, propertyId: string | null): Promise<ValuationData> {
+  const bedrooms = property.bedrooms || 0;
+  const bathrooms = property.bathrooms || 0;
+  const sqft = property.squareFeet || 0;
+  const yearBuilt = property.yearBuilt || 0;
+  const estimatedValue = property.estimatedValue || 0;
+  const lastSaleAmount = property.lastSaleAmount || 0;
+  const lastSaleDate = property.lastSaleDate || "";
+  const mortgageBalance = property.openMortgageBalance || 0;
+  const latitude = property.address?.latitude || property.latitude;
+  const longitude = property.address?.longitude || property.longitude;
 
-  // Get comparable properties
-  const comparables = await getComparables(property);
+  // Get comparables using v3/PropertyComps
+  const comparables = await getComparables(property, propertyId);
 
   // Calculate valuation metrics
   const pricePerSqft = sqft > 0 ? estimatedValue / sqft : 0;
@@ -236,15 +320,17 @@ async function buildValuationReport(property: Record<string, unknown>): Promise<
   let compAvgValue = 0;
   let compAvgPricePerSqft = 0;
   if (comparables.length > 0) {
-    const compValues = comparables.map((c) =>
-      (c.estimatedValue || c.avm || c.lastSaleAmount) as number || 0
-    ).filter((v) => v > 0);
+    const compValues = comparables
+      .map((c) => c.estimatedValue || c.lastSaleAmount || 0)
+      .filter((v) => v > 0);
 
-    const compSqftPrices = comparables.map((c) => {
-      const compSqft = (c.squareFeet || c.buildingSize) as number || 0;
-      const compValue = (c.estimatedValue || c.avm || c.lastSaleAmount) as number || 0;
-      return compSqft > 0 ? compValue / compSqft : 0;
-    }).filter((v) => v > 0);
+    const compSqftPrices = comparables
+      .map((c) => {
+        const compSqft = c.squareFeet || 0;
+        const compValue = c.estimatedValue || c.lastSaleAmount || 0;
+        return compSqft > 0 ? compValue / compSqft : 0;
+      })
+      .filter((v) => v > 0);
 
     if (compValues.length > 0) {
       compAvgValue = compValues.reduce((a, b) => a + b, 0) / compValues.length;
@@ -257,7 +343,7 @@ async function buildValuationReport(property: Record<string, unknown>): Promise<
   // Calculate equity estimate
   const equityEstimate = estimatedValue - mortgageBalance;
 
-  // Confidence level based on data quality
+  // Confidence level
   let confidence: "high" | "medium" | "low" = "medium";
   if (comparables.length >= 5 && sqft > 0 && yearBuilt > 0) {
     confidence = "high";
@@ -267,17 +353,16 @@ async function buildValuationReport(property: Record<string, unknown>): Promise<
 
   // Value adjustments
   const adjustments: Array<{ factor: string; impact: number; description: string }> = [];
-
-  // Age adjustment
   const currentYear = new Date().getFullYear();
   const age = yearBuilt > 0 ? currentYear - yearBuilt : 0;
+
   if (age > 50) {
     adjustments.push({
       factor: "Age",
       impact: -5,
       description: `Property is ${age} years old - older homes may need updates`,
     });
-  } else if (age < 5) {
+  } else if (age > 0 && age < 5) {
     adjustments.push({
       factor: "Age",
       impact: 5,
@@ -285,7 +370,6 @@ async function buildValuationReport(property: Record<string, unknown>): Promise<
     });
   }
 
-  // Size vs comparables
   if (compAvgPricePerSqft > 0 && pricePerSqft > 0) {
     const pricePerSqftDiff = ((pricePerSqft - compAvgPricePerSqft) / compAvgPricePerSqft) * 100;
     if (pricePerSqftDiff > 20) {
@@ -303,7 +387,6 @@ async function buildValuationReport(property: Record<string, unknown>): Promise<
     }
   }
 
-  // Recent sale appreciation
   if (lastSaleAmount > 0 && estimatedValue > 0 && lastSaleDate) {
     const saleYear = new Date(lastSaleDate).getFullYear();
     const yearsSinceSale = currentYear - saleYear;
@@ -323,45 +406,13 @@ async function buildValuationReport(property: Record<string, unknown>): Promise<
   // Get neighborhood stats
   const neighborhood = await getNeighborhoodStats(property);
 
-  // Build Mapbox Static Map URLs
+  // Build Mapbox map URLs
   let streetViewUrl: string | null = null;
   let mapUrl: string | null = null;
 
   if (latitude && longitude && MAPBOX_ACCESS_TOKEN) {
-    // Mapbox Static Images API - satellite view for "street view" style
-    // Format: https://api.mapbox.com/styles/v1/{username}/{style_id}/static/{lon},{lat},{zoom},{bearing},{pitch}|{overlay}/{width}x{height}
-
-    // Satellite view (closest to street view)
     streetViewUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/${longitude},${latitude},18,0/600x400?access_token=${MAPBOX_ACCESS_TOKEN}`;
-
-    // Standard street map with marker
-    // pin-l = large pin, +ff0000 = red color
     mapUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-l+ff0000(${longitude},${latitude})/${longitude},${latitude},16,0/600x300?access_token=${MAPBOX_ACCESS_TOKEN}`;
-  } else if (MAPBOX_ACCESS_TOKEN) {
-    // Try geocoding the address to get coordinates
-    const fullAddress = [
-      address.address || address.street,
-      address.city,
-      address.state,
-      address.zip,
-    ].filter(Boolean).join(", ");
-
-    if (fullAddress) {
-      try {
-        // Geocode the address first
-        const geocodeUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(fullAddress)}.json?access_token=${MAPBOX_ACCESS_TOKEN}&limit=1`;
-        const geocodeResponse = await fetch(geocodeUrl);
-        const geocodeData = await geocodeResponse.json();
-
-        if (geocodeData.features && geocodeData.features.length > 0) {
-          const [lng, lat] = geocodeData.features[0].center;
-          streetViewUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/${lng},${lat},18,0/600x400?access_token=${MAPBOX_ACCESS_TOKEN}`;
-          mapUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-l+ff0000(${lng},${lat})/${lng},${lat},16,0/600x300?access_token=${MAPBOX_ACCESS_TOKEN}`;
-        }
-      } catch (geocodeError) {
-        console.error("[Valuation] Mapbox geocode error:", geocodeError);
-      }
-    }
   }
 
   return {
@@ -382,81 +433,61 @@ async function buildValuationReport(property: Record<string, unknown>): Promise<
   };
 }
 
-async function getComparables(property: Record<string, unknown>): Promise<Record<string, unknown>[]> {
-  const address = property.address as Record<string, unknown> || {};
-  const propertyType = property.propertyType as string || "SFR";
-  const bedrooms = (property.bedrooms || property.beds) as number || 0;
-  const sqft = (property.squareFeet || property.buildingSize) as number || 0;
-  const zip = address.zip as string || "";
-  const city = address.city as string || "";
-  const state = address.state as string || "";
+async function getComparables(property: NormalizedProperty, propertyId: string | null): Promise<NormalizedProperty[]> {
+  // Use v3/PropertyComps API for comparables
+  const address = property.address;
+  const fullAddress = [address?.address, address?.city, address?.state, address?.zip].filter(Boolean).join(", ");
 
-  if (!zip && !city) {
+  if (!propertyId && !fullAddress) {
     return [];
   }
 
   try {
-    // Search for comparable properties
-    const searchBody: Record<string, unknown> = {
-      size: 10,
-      property_type: propertyType,
+    const compsBody: Record<string, unknown> = {
+      max_radius_miles: 5,
+      max_days_back: 365,
+      max_results: 10,
     };
 
-    if (zip) {
-      searchBody.zip = zip;
-    } else if (city && state) {
-      searchBody.city = city;
-      searchBody.state = state;
+    // Use property ID if available, otherwise use address
+    if (propertyId && propertyId !== "mapbox-geocode") {
+      compsBody.id = propertyId;
+    } else if (fullAddress) {
+      compsBody.address = fullAddress;
     }
 
-    // Similar bedrooms (+/- 1)
-    if (bedrooms > 0) {
-      searchBody.beds_min = Math.max(1, bedrooms - 1);
-      searchBody.beds_max = bedrooms + 1;
-    }
+    console.log("[Valuation] Fetching comps with:", JSON.stringify(compsBody));
 
-    // Similar square footage (+/- 25%)
-    if (sqft > 0) {
-      searchBody.building_size_min = Math.round(sqft * 0.75);
-      searchBody.building_size_max = Math.round(sqft * 1.25);
-    }
-
-    // Recent sales only (last 12 months)
-    const oneYearAgo = new Date();
-    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-    searchBody.last_sale_date_min = oneYearAgo.toISOString().split("T")[0];
-
-    const response = await fetch(PROPERTY_SEARCH_URL, {
+    const response = await fetch(PROPERTY_COMPS_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "x-api-key": REALESTATE_API_KEY,
       },
-      body: JSON.stringify(searchBody),
+      body: JSON.stringify(compsBody),
     });
 
     if (!response.ok) {
-      console.error("[Valuation] Comparable search failed:", response.status);
+      console.error("[Valuation] Comps request failed:", response.status);
       return [];
     }
 
     const data = await response.json();
-    const results = data.data || data.properties || [];
+    const comps = data.comps || data.data || [];
+    console.log("[Valuation] Found comps:", comps.length);
 
-    // Exclude the subject property
-    const propertyId = property.id as string;
-    return results.filter((comp: Record<string, unknown>) => comp.id !== propertyId);
+    return comps.map((c: Record<string, unknown>) => normalizeComp(c));
   } catch (error) {
-    console.error("[Valuation] Error fetching comparables:", error);
+    console.error("[Valuation] Error fetching comps:", error);
     return [];
   }
 }
 
-async function getNeighborhoodStats(property: Record<string, unknown>): Promise<ValuationData["neighborhood"]> {
-  const address = property.address as Record<string, unknown> || {};
-  const zip = address.zip as string || "";
-  const city = address.city as string || "";
-  const state = address.state as string || "";
+async function getNeighborhoodStats(property: NormalizedProperty): Promise<ValuationData["neighborhood"]> {
+  const address = property.address;
+  const zip = address?.zip || "";
+  const city = address?.city || "";
+  const state = address?.state || "";
 
   const defaultStats = {
     medianValue: 0,
@@ -471,10 +502,8 @@ async function getNeighborhoodStats(property: Record<string, unknown>): Promise<
   }
 
   try {
-    // Get neighborhood summary
     const searchBody: Record<string, unknown> = {
-      size: 50, // Sample size for stats
-      summary: true,
+      size: 50,
     };
 
     if (zip) {
@@ -505,37 +534,31 @@ async function getNeighborhoodStats(property: Record<string, unknown>): Promise<
       return defaultStats;
     }
 
-    // Calculate stats from results
     const values = results
-      .map((p: Record<string, unknown>) => (p.estimatedValue || p.avm) as number || 0)
+      .map((p: Record<string, unknown>) => Number(p.estimatedValue || p.avm) || 0)
       .filter((v: number) => v > 0)
       .sort((a: number, b: number) => a - b);
 
     const sqftPrices = results
       .map((p: Record<string, unknown>) => {
-        const val = (p.estimatedValue || p.avm) as number || 0;
-        const sf = (p.squareFeet || p.buildingSize) as number || 0;
+        const val = Number(p.estimatedValue || p.avm) || 0;
+        const sf = Number(p.squareFeet || p.buildingSize) || 0;
         return sf > 0 ? val / sf : 0;
       })
       .filter((v: number) => v > 0);
 
     const yearBuilts = results
-      .map((p: Record<string, unknown>) => p.yearBuilt as number || 0)
+      .map((p: Record<string, unknown>) => Number(p.yearBuilt) || 0)
       .filter((y: number) => y > 1800);
 
-    const medianValue = values.length > 0
-      ? values[Math.floor(values.length / 2)]
-      : 0;
-
+    const medianValue = values.length > 0 ? values[Math.floor(values.length / 2)] : 0;
     const avgPricePerSqft = sqftPrices.length > 0
       ? Math.round(sqftPrices.reduce((a: number, b: number) => a + b, 0) / sqftPrices.length)
       : 0;
-
     const avgYearBuilt = yearBuilts.length > 0
       ? Math.round(yearBuilts.reduce((a: number, b: number) => a + b, 0) / yearBuilts.length)
       : 0;
 
-    // Build simple price history (would need actual historical data for accuracy)
     const currentAvg = values.length > 0
       ? values.reduce((a: number, b: number) => a + b, 0) / values.length
       : 0;
@@ -543,7 +566,6 @@ async function getNeighborhoodStats(property: Record<string, unknown>): Promise<
     const priceHistory = [];
     const currentYear = new Date().getFullYear();
     for (let i = 4; i >= 0; i--) {
-      // Estimate 5% annual appreciation for history
       const yearValue = currentAvg / Math.pow(1.05, i);
       priceHistory.push({
         year: currentYear - i,
