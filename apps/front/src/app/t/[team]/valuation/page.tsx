@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,6 +30,17 @@ import {
   CheckCircle2, AlertCircle, Info, FileText
 } from "lucide-react";
 import { toast } from "sonner";
+
+interface AddressSuggestion {
+  id?: string;
+  address?: string;
+  street?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  zipCode?: string;
+  fullAddress?: string;
+}
 
 const US_STATES = [
   { value: "AL", label: "Alabama" }, { value: "AK", label: "Alaska" }, { value: "AZ", label: "Arizona" },
@@ -126,6 +137,108 @@ export default function ValuationPage() {
   const [report, setReport] = useState<ValuationReport | null>(null);
   const reportRef = useRef<HTMLDivElement>(null);
 
+  // Autocomplete state
+  const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
+  const [autocompleteLoading, setAutocompleteLoading] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Debounced address autocomplete
+  const fetchSuggestions = useCallback(async (searchTerm: string) => {
+    if (searchTerm.length < 3) {
+      setSuggestions([]);
+      return;
+    }
+
+    setAutocompleteLoading(true);
+    try {
+      const response = await fetch(`/api/address/autocomplete?q=${encodeURIComponent(searchTerm)}&type=address`);
+      const data = await response.json();
+
+      if (data.data && Array.isArray(data.data)) {
+        setSuggestions(data.data.slice(0, 8));
+      } else if (Array.isArray(data)) {
+        setSuggestions(data.slice(0, 8));
+      } else {
+        setSuggestions([]);
+      }
+    } catch (error) {
+      console.error("Autocomplete error:", error);
+      setSuggestions([]);
+    } finally {
+      setAutocompleteLoading(false);
+    }
+  }, []);
+
+  const handleAddressChange = (value: string) => {
+    setAddress(value);
+    setShowSuggestions(true);
+
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+
+    debounceRef.current = setTimeout(() => {
+      fetchSuggestions(value);
+    }, 300);
+  };
+
+  const handleSelectAddress = async (suggestion: AddressSuggestion) => {
+    // Fill in address fields from suggestion
+    const streetAddress = suggestion.street || suggestion.address || "";
+    const suggestionCity = suggestion.city || "";
+    const suggestionState = suggestion.state || "";
+    const suggestionZip = suggestion.zip || suggestion.zipCode || "";
+
+    setAddress(streetAddress);
+    setCity(suggestionCity);
+    setState(suggestionState);
+    setZip(suggestionZip);
+    setSuggestions([]);
+    setShowSuggestions(false);
+
+    // Auto-run property detail/valuation
+    toast.info("Fetching property details...");
+    setLoading(true);
+
+    try {
+      const response = await fetch("/api/property/valuation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          address: streetAddress,
+          city: suggestionCity,
+          state: suggestionState,
+          zip: suggestionZip,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast.error(data.error || "Failed to generate valuation report");
+        return;
+      }
+
+      setReport(data);
+      toast.success("Valuation report generated!");
+    } catch (error) {
+      console.error("Valuation error:", error);
+      toast.error("Failed to generate valuation report");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Clean up debounce on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, []);
+
   const handleSearch = async () => {
     if (!address && !zip) {
       toast.error("Please enter an address or zip code");
@@ -217,14 +330,43 @@ export default function ValuationPage() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-2 relative">
               <Label htmlFor="address">Street Address</Label>
-              <Input
-                id="address"
-                placeholder="123 Main Street"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-              />
+              <div className="relative">
+                <Input
+                  id="address"
+                  placeholder="Start typing an address..."
+                  value={address}
+                  onChange={(e) => handleAddressChange(e.target.value)}
+                  onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                  className="pr-8"
+                />
+                {autocompleteLoading && (
+                  <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+                )}
+              </div>
+              {/* Autocomplete dropdown */}
+              {showSuggestions && suggestions.length > 0 && (
+                <div className="absolute z-50 w-full mt-1 bg-background border rounded-md shadow-lg max-h-64 overflow-auto">
+                  {suggestions.map((suggestion, idx) => {
+                    const displayAddress = suggestion.fullAddress ||
+                      `${suggestion.street || suggestion.address || ""}, ${suggestion.city || ""}, ${suggestion.state || ""} ${suggestion.zip || suggestion.zipCode || ""}`.trim();
+                    return (
+                      <button
+                        key={suggestion.id || idx}
+                        type="button"
+                        className="w-full px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground flex items-center gap-2 transition-colors"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => handleSelectAddress(suggestion)}
+                      >
+                        <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <span className="truncate">{displayAddress}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
             <div>
               <Label htmlFor="city">City</Label>
@@ -308,7 +450,7 @@ export default function ValuationPage() {
                   <div className="space-y-4">
                     <img
                       src={report.streetViewUrl}
-                      alt="Street View"
+                      alt="Satellite View"
                       className="w-full h-64 object-cover rounded-lg border"
                       onError={(e) => {
                         (e.target as HTMLImageElement).src = "/placeholder-property.jpg";
@@ -329,7 +471,7 @@ export default function ValuationPage() {
                   <div className="w-full h-64 bg-muted rounded-lg flex items-center justify-center">
                     <div className="text-center text-muted-foreground">
                       <Map className="h-12 w-12 mx-auto mb-2" />
-                      <p>Street View not available</p>
+                      <p>Property view not available</p>
                     </div>
                   </div>
                 )}

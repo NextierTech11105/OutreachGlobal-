@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 const REALESTATE_API_KEY = process.env.REAL_ESTATE_API_KEY || process.env.REALESTATE_API_KEY || "";
 const PROPERTY_DETAIL_URL = "https://api.realestateapi.com/v2/PropertyDetail";
 const PROPERTY_SEARCH_URL = "https://api.realestateapi.com/v2/PropertySearch";
-const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY || "";
+const MAPBOX_ACCESS_TOKEN = process.env.MAPBOX_ACCESS_TOKEN || process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "pk.eyJ1IjoibmV4dGllcjExMTA1IiwiYSI6ImNtaXVrbmRodTFrY3YzanEwamFoZG44dWQifQ.EGNVQPofUwZm60KP6iID_g";
 
 interface ValuationData {
   property: Record<string, unknown>;
@@ -274,16 +274,22 @@ async function buildValuationReport(property: Record<string, unknown>): Promise<
   // Get neighborhood stats
   const neighborhood = await getNeighborhoodStats(property);
 
-  // Build Google Maps URLs
+  // Build Mapbox Static Map URLs
   let streetViewUrl: string | null = null;
   let mapUrl: string | null = null;
 
-  if (latitude && longitude) {
-    mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${latitude},${longitude}&zoom=17&size=600x300&maptype=roadmap&markers=color:red%7C${latitude},${longitude}&key=${GOOGLE_MAPS_API_KEY}`;
+  if (latitude && longitude && MAPBOX_ACCESS_TOKEN) {
+    // Mapbox Static Images API - satellite view for "street view" style
+    // Format: https://api.mapbox.com/styles/v1/{username}/{style_id}/static/{lon},{lat},{zoom},{bearing},{pitch}|{overlay}/{width}x{height}
 
-    streetViewUrl = `https://maps.googleapis.com/maps/api/streetview?size=600x400&location=${latitude},${longitude}&fov=80&heading=0&pitch=0&key=${GOOGLE_MAPS_API_KEY}`;
-  } else {
-    // Try using address
+    // Satellite view (closest to street view)
+    streetViewUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/${longitude},${latitude},18,0/600x400?access_token=${MAPBOX_ACCESS_TOKEN}`;
+
+    // Standard street map with marker
+    // pin-l = large pin, +ff0000 = red color
+    mapUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-l+ff0000(${longitude},${latitude})/${longitude},${latitude},16,0/600x300?access_token=${MAPBOX_ACCESS_TOKEN}`;
+  } else if (MAPBOX_ACCESS_TOKEN) {
+    // Try geocoding the address to get coordinates
     const fullAddress = [
       address.address || address.street,
       address.city,
@@ -291,10 +297,21 @@ async function buildValuationReport(property: Record<string, unknown>): Promise<
       address.zip,
     ].filter(Boolean).join(", ");
 
-    if (fullAddress && GOOGLE_MAPS_API_KEY) {
-      const encodedAddress = encodeURIComponent(fullAddress);
-      mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${encodedAddress}&zoom=17&size=600x300&maptype=roadmap&markers=color:red%7C${encodedAddress}&key=${GOOGLE_MAPS_API_KEY}`;
-      streetViewUrl = `https://maps.googleapis.com/maps/api/streetview?size=600x400&location=${encodedAddress}&fov=80&heading=0&pitch=0&key=${GOOGLE_MAPS_API_KEY}`;
+    if (fullAddress) {
+      try {
+        // Geocode the address first
+        const geocodeUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(fullAddress)}.json?access_token=${MAPBOX_ACCESS_TOKEN}&limit=1`;
+        const geocodeResponse = await fetch(geocodeUrl);
+        const geocodeData = await geocodeResponse.json();
+
+        if (geocodeData.features && geocodeData.features.length > 0) {
+          const [lng, lat] = geocodeData.features[0].center;
+          streetViewUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/${lng},${lat},18,0/600x400?access_token=${MAPBOX_ACCESS_TOKEN}`;
+          mapUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-l+ff0000(${lng},${lat})/${lng},${lat},16,0/600x300?access_token=${MAPBOX_ACCESS_TOKEN}`;
+        }
+      } catch (geocodeError) {
+        console.error("[Valuation] Mapbox geocode error:", geocodeError);
+      }
     }
   }
 
