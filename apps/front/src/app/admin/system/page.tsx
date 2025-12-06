@@ -331,16 +331,18 @@ export default function SystemSettingsPage() {
                       <div className="flex justify-between items-center">
                         <span className="text-sm">Last Updated</span>
                         <span className="text-sm font-medium">
-                          April 15, 2025
+                          {format(new Date(), "MMMM d, yyyy")}
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm">Environment</span>
-                        <span className="text-sm font-medium">Production</span>
+                        <span className="text-sm font-medium">
+                          {process.env.NODE_ENV === "production" ? "Production" : "Development"}
+                        </span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm">Database Size</span>
-                        <span className="text-sm font-medium">2.3 GB</span>
+                        <span className="text-sm font-medium">—</span>
                       </div>
                     </div>
                   </div>

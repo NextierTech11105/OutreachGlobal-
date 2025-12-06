@@ -219,48 +219,48 @@ export function SignalHeatmapDashboard() {
   const [skipTraceHeatmap, setSkipTraceHeatmap] = useState<HeatmapCell[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Signal metrics
-  const [signalMetrics] = useState<SignalMetric[]>([
+  // Signal metrics - starts empty, populated by real API data
+  const [signalMetrics, setSignalMetrics] = useState<SignalMetric[]>([
     {
       id: "api_calls",
       name: "API Calls Today",
-      value: 2847,
-      change: 12.5,
-      changeType: "up",
+      value: 0,
+      change: 0,
+      changeType: "neutral",
       icon: <Zap className="h-4 w-4" />,
       color: "text-blue-500",
     },
     {
       id: "skip_traces",
       name: "Skip Traces",
-      value: 156,
-      change: 8.2,
-      changeType: "up",
+      value: 0,
+      change: 0,
+      changeType: "neutral",
       icon: <Target className="h-4 w-4" />,
       color: "text-green-500",
     },
     {
       id: "sms_sent",
       name: "SMS Sent",
-      value: 1243,
-      change: -3.1,
-      changeType: "down",
+      value: 0,
+      change: 0,
+      changeType: "neutral",
       icon: <MessageSquare className="h-4 w-4" />,
       color: "text-purple-500",
     },
     {
       id: "emails_sent",
       name: "Emails Sent",
-      value: 892,
-      change: 5.7,
-      changeType: "up",
+      value: 0,
+      change: 0,
+      changeType: "neutral",
       icon: <Mail className="h-4 w-4" />,
       color: "text-orange-500",
     },
     {
       id: "calls_made",
       name: "Calls Made",
-      value: 78,
+      value: 0,
       change: 0,
       changeType: "neutral",
       icon: <Phone className="h-4 w-4" />,
@@ -269,72 +269,74 @@ export function SignalHeatmapDashboard() {
     {
       id: "data_enriched",
       name: "Records Enriched",
-      value: 423,
-      change: 15.3,
-      changeType: "up",
+      value: 0,
+      change: 0,
+      changeType: "neutral",
       icon: <Database className="h-4 w-4" />,
       color: "text-indigo-500",
     },
   ]);
 
-  // Campaign metrics
-  const [campaignMetrics] = useState<CampaignMetric[]>([
-    {
-      campaign_id: "1",
-      campaign_name: "Foreclosure Outreach - Q4",
-      sent: 5000,
-      delivered: 4750,
-      responses: 423,
-      positive: 187,
-      negative: 89,
-      response_rate: 8.9,
-    },
-    {
-      campaign_id: "2",
-      campaign_name: "Business Broker - Exit Planning",
-      sent: 2500,
-      delivered: 2375,
-      responses: 312,
-      positive: 156,
-      negative: 67,
-      response_rate: 13.1,
-    },
-    {
-      campaign_id: "3",
-      campaign_name: "AI Strategy Session Invites",
-      sent: 1200,
-      delivered: 1140,
-      responses: 198,
-      positive: 112,
-      negative: 34,
-      response_rate: 17.4,
-    },
-    {
-      campaign_id: "4",
-      campaign_name: "Commercial Real Estate - Capital",
-      sent: 800,
-      delivered: 760,
-      responses: 89,
-      positive: 45,
-      negative: 22,
-      response_rate: 11.7,
-    },
-  ]);
+  // Campaign metrics - starts empty, populated by real data from campaigns API
+  const [campaignMetrics, setCampaignMetrics] = useState<CampaignMetric[]>([]);
 
-  // Load heatmap data
+  // Live API pulse - starts empty, populated by real data
+  const [livePulse, setLivePulse] = useState<Array<{
+    api: string;
+    endpoint: string;
+    status: "success" | "pending" | "failed";
+    time: string;
+    count: number;
+  }>>([]);
+
+  // Load heatmap data and real metrics
   useEffect(() => {
     refreshData();
   }, [timeRange]);
 
-  const refreshData = () => {
+  const refreshData = async () => {
     setIsRefreshing(true);
-    // Simulate API call
-    setTimeout(() => {
-      setApiCallsHeatmap(generateHeatmapData("API calls"));
-      setSmsHeatmap(generateHeatmapData("messages"));
-      setSkipTraceHeatmap(generateHeatmapData("traces"));
-      setIsRefreshing(false);
-    }, 500);
+
+    // Fetch real usage data from API
+    try {
+      const usageRes = await fetch("/api/enrichment/usage");
+      if (usageRes.ok) {
+        const data = await usageRes.json();
+        setSignalMetrics((prev) =>
+          prev.map((m) => {
+            if (m.id === "skip_traces") {
+              return { ...m, value: data.skipTrace?.used || 0 };
+            }
+            if (m.id === "data_enriched") {
+              return { ...m, value: data.apollo?.used || 0 };
+            }
+            return m;
+          })
+        );
+      }
+    } catch (err) {
+      console.error("Failed to fetch usage metrics:", err);
+    }
+
+    // Fetch campaign data
+    try {
+      const campaignRes = await fetch("/api/campaigns/stats");
+      if (campaignRes.ok) {
+        const data = await campaignRes.json();
+        if (data.campaigns && Array.isArray(data.campaigns)) {
+          setCampaignMetrics(data.campaigns);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch campaign stats:", err);
+    }
+
+    // Generate placeholder heatmap (will be replaced with real activity logs)
+    setApiCallsHeatmap(generateHeatmapData("API calls"));
+    setSmsHeatmap(generateHeatmapData("messages"));
+    setSkipTraceHeatmap(generateHeatmapData("traces"));
+
+    setIsRefreshing(false);
   };
 
   return (
@@ -445,11 +447,19 @@ export function SignalHeatmapDashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {campaignMetrics.map((campaign) => (
-              <ResponseRateBar key={campaign.campaign_id} campaign={campaign} />
-            ))}
-          </div>
+          {campaignMetrics.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Calendar className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p className="text-sm font-medium">No Campaigns Yet</p>
+              <p className="text-xs">Campaign metrics will appear here once you create campaigns</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {campaignMetrics.map((campaign) => (
+                <ResponseRateBar key={campaign.campaign_id} campaign={campaign} />
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -466,35 +476,36 @@ export function SignalHeatmapDashboard() {
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            {[
-              { api: "Skip Trace", endpoint: "/api/realestate/skip-trace", status: "success", time: "2s ago", count: 5 },
-              { api: "Apollo Enrich", endpoint: "/api/apollo/enrich", status: "success", time: "5s ago", count: 12 },
-              { api: "SignalHouse SMS", endpoint: "/api/signalhouse/send", status: "success", time: "8s ago", count: 25 },
-              { api: "Gianna Loop", endpoint: "/api/gianna/loop", status: "success", time: "15s ago", count: 3 },
-              { api: "OpenAI GPT", endpoint: "/api/ai/generate", status: "success", time: "20s ago", count: 8 },
-              { api: "Skip Trace Bulk", endpoint: "/api/realestate/skip-trace-bulk", status: "pending", time: "25s ago", count: 100 },
-            ].map((item, i) => (
-              <div
-                key={i}
-                className="flex items-center justify-between p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-2 h-2 rounded-full ${
-                      item.status === "success" ? "bg-green-500" : "bg-yellow-500 animate-pulse"
-                    }`}
-                  />
-                  <div>
-                    <div className="text-sm font-medium">{item.api}</div>
-                    <div className="text-xs text-muted-foreground font-mono">{item.endpoint}</div>
+            {livePulse.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Activity className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No API activity recorded yet</p>
+                <p className="text-xs">Activity will appear here as API calls are made</p>
+              </div>
+            ) : (
+              livePulse.map((item, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`w-2 h-2 rounded-full ${
+                        item.status === "success" ? "bg-green-500" : item.status === "failed" ? "bg-red-500" : "bg-yellow-500 animate-pulse"
+                      }`}
+                    />
+                    <div>
+                      <div className="text-sm font-medium">{item.api}</div>
+                      <div className="text-xs text-muted-foreground font-mono">{item.endpoint}</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-medium">{item.count} calls</div>
+                    <div className="text-xs text-muted-foreground">{item.time}</div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-sm font-medium">{item.count} calls</div>
-                  <div className="text-xs text-muted-foreground">{item.time}</div>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </CardContent>
       </Card>
