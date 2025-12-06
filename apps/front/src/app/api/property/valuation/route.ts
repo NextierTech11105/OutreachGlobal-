@@ -206,10 +206,59 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Try PropertyDetail with full formatted address first (most accurate)
+    // BEST APPROACH: Use coordinate-based search (most accurate per RealEstateAPI support)
+    if (!property && inputLat && inputLng) {
+      console.log("[Valuation] Coordinate search with lat:", inputLat, "lng:", inputLng);
+
+      const searchBody = {
+        latitude: inputLat,
+        longitude: inputLng,
+        radius: 0.01, // Small radius for precision (about 50 feet)
+        size: 1,
+      };
+
+      const searchResponse = await fetch(PROPERTY_SEARCH_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": REALESTATE_API_KEY,
+        },
+        body: JSON.stringify(searchBody),
+      });
+
+      if (searchResponse.ok) {
+        const searchData = await searchResponse.json();
+        const results = searchData.data || searchData.properties || [];
+        console.log("[Valuation] Coordinate search found:", results.length, "properties");
+
+        if (results.length > 0) {
+          const foundId = results[0].id;
+          console.log("[Valuation] Getting PropertyDetail for ID:", foundId);
+
+          const detailResponse = await fetch(PROPERTY_DETAIL_URL, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-api-key": REALESTATE_API_KEY,
+            },
+            body: JSON.stringify({ id: foundId }),
+          });
+
+          if (detailResponse.ok) {
+            const detailData = await detailResponse.json();
+            const rawProperty = detailData.data || detailData;
+            property = normalizePropertyDetail(rawProperty, inputData);
+            propertyId = String(rawProperty.id);
+            console.log("[Valuation] Got property via coordinate search:", propertyId);
+          }
+        }
+      }
+    }
+
+    // Fallback: Try PropertyDetail with full address if coordinate search failed
     if (!property && (fullAddress || (address && city && state))) {
       const searchAddress = fullAddress || `${address}, ${city}, ${state} ${zip}`.trim();
-      console.log("[Valuation] Trying PropertyDetail with address:", searchAddress);
+      console.log("[Valuation] Fallback: PropertyDetail with address:", searchAddress);
 
       const detailResponse = await fetch(PROPERTY_DETAIL_URL, {
         method: "POST",
@@ -226,60 +275,7 @@ export async function POST(request: NextRequest) {
         if (rawProperty && rawProperty.id) {
           property = normalizePropertyDetail(rawProperty, inputData);
           propertyId = String(rawProperty.id);
-          console.log("[Valuation] Found via PropertyDetail address search:", propertyId);
-        }
-      } else {
-        console.log("[Valuation] PropertyDetail address search failed:", detailResponse.status);
-      }
-    }
-
-    // Fallback to PropertySearch if PropertyDetail didn't find it
-    if (!property && address) {
-      console.log("[Valuation] Fallback: PropertySearch with:", address, city, state, zip);
-      const searchBody: Record<string, unknown> = {
-        size: 1,
-        exact_match: true, // Enforce strict address matching
-      };
-
-      if (address) searchBody.address = address;
-      if (city) searchBody.city = city;
-      if (state) searchBody.state = state;
-      if (zip) searchBody.zip = zip;
-
-      const searchResponse = await fetch(PROPERTY_SEARCH_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": REALESTATE_API_KEY,
-        },
-        body: JSON.stringify(searchBody),
-      });
-
-      if (searchResponse.ok) {
-        const searchData = await searchResponse.json();
-        const results = searchData.data || searchData.properties || [];
-        console.log("[Valuation] PropertySearch results:", results.length);
-
-        if (results.length > 0) {
-          const foundId = results[0].id;
-          console.log("[Valuation] Getting detail for ID:", foundId);
-
-          const detailResponse = await fetch(PROPERTY_DETAIL_URL, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "x-api-key": REALESTATE_API_KEY,
-            },
-            body: JSON.stringify({ id: foundId }),
-          });
-
-          if (detailResponse.ok) {
-            const detailData = await detailResponse.json();
-            const rawProperty = detailData.data || detailData;
-            property = normalizePropertyDetail(rawProperty, inputData);
-            propertyId = String(rawProperty.id);
-            console.log("[Valuation] Got property detail:", propertyId);
-          }
+          console.log("[Valuation] Found via address fallback:", propertyId);
         }
       }
     }
