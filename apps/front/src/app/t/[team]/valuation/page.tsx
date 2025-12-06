@@ -185,6 +185,10 @@ export default function ValuationPage() {
   const [aiLoading, setAiLoading] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
 
+  // Store coordinates from Mapbox autocomplete
+  const [selectedLat, setSelectedLat] = useState<number | null>(null);
+  const [selectedLng, setSelectedLng] = useState<number | null>(null);
+
   // Debounced address autocomplete
   const fetchSuggestions = useCallback(async (searchTerm: string) => {
     if (searchTerm.length < 3) {
@@ -238,6 +242,10 @@ export default function ValuationPage() {
     setZip(suggestionZip);
     setSuggestions([]);
     setShowSuggestions(false);
+
+    // Store coordinates for later use (e.g., if user clicks "Generate" button)
+    setSelectedLat(suggestion.latitude || null);
+    setSelectedLng(suggestion.longitude || null);
 
     // Auto-run property detail/valuation
     toast.info("Fetching property details...");
@@ -296,7 +304,15 @@ export default function ValuationPage() {
       const response = await fetch("/api/property/valuation", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address, city, state, zip }),
+        body: JSON.stringify({
+          address,
+          city,
+          state,
+          zip,
+          latitude: selectedLat,
+          longitude: selectedLng,
+          fullAddress: `${address}, ${city}, ${state} ${zip}`.trim(),
+        }),
       });
 
       const data = await response.json();

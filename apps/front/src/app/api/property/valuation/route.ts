@@ -181,7 +181,33 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { address, city, state, zip, id, latitude: inputLat, longitude: inputLng, fullAddress } = body;
 
-    const inputData = { address, city, state, zip, latitude: inputLat, longitude: inputLng };
+    let lat = inputLat;
+    let lng = inputLng;
+
+    // If no coordinates provided, geocode the address using Mapbox
+    if (!lat || !lng) {
+      const searchAddress = fullAddress || `${address}, ${city}, ${state} ${zip}`.trim();
+      console.log("[Valuation] Geocoding address:", searchAddress);
+
+      try {
+        const geocodeUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchAddress)}.json?access_token=${MAPBOX_ACCESS_TOKEN}&types=address&country=US&limit=1`;
+        const geoResponse = await fetch(geocodeUrl);
+
+        if (geoResponse.ok) {
+          const geoData = await geoResponse.json();
+          if (geoData.features && geoData.features.length > 0) {
+            const feature = geoData.features[0];
+            lng = feature.center[0];
+            lat = feature.center[1];
+            console.log("[Valuation] Geocoded to:", lat, lng);
+          }
+        }
+      } catch (geoError) {
+        console.error("[Valuation] Geocoding error:", geoError);
+      }
+    }
+
+    const inputData = { address, city, state, zip, latitude: lat, longitude: lng };
     let property: NormalizedProperty | null = null;
     let propertyId: string | null = null;
 
@@ -207,12 +233,12 @@ export async function POST(request: NextRequest) {
     }
 
     // BEST APPROACH: Use coordinate-based search (most accurate per RealEstateAPI support)
-    if (!property && inputLat && inputLng) {
-      console.log("[Valuation] Coordinate search with lat:", inputLat, "lng:", inputLng);
+    if (!property && lat && lng) {
+      console.log("[Valuation] Coordinate search with lat:", lat, "lng:", lng);
 
       const searchBody = {
-        latitude: inputLat,
-        longitude: inputLng,
+        latitude: lat,
+        longitude: lng,
         radius: 0.01, // Small radius for precision (about 50 feet)
         size: 1,
       };
@@ -280,10 +306,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // If no property found, create a minimal property with Mapbox coords
+    // If no property found, create a minimal property with geocoded coords
     if (!property) {
-      if (inputLat && inputLng) {
-        console.log("[Valuation] Creating minimal property from Mapbox coords");
+      if (lat && lng) {
+        console.log("[Valuation] Creating minimal property from geocoded coords");
         property = {
           id: "mapbox-geocode",
           address: {
@@ -292,12 +318,12 @@ export async function POST(request: NextRequest) {
             city: city,
             state: state,
             zip: zip,
-            latitude: inputLat,
-            longitude: inputLng,
+            latitude: lat,
+            longitude: lng,
           },
           propertyType: "Unknown",
-          latitude: inputLat,
-          longitude: inputLng,
+          latitude: lat,
+          longitude: lng,
         };
       } else {
         return NextResponse.json(
