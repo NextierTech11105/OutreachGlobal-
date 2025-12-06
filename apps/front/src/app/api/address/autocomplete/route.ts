@@ -67,31 +67,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ data: [], message: "Search term must be at least 3 characters" });
     }
 
-    // Try Mapbox first for better autocomplete
-    if (MAPBOX_ACCESS_TOKEN && type === "address") {
-      try {
-        const mapboxUrl = new URL("https://api.mapbox.com/geocoding/v5/mapbox.places/" + encodeURIComponent(search) + ".json");
-        mapboxUrl.searchParams.set("access_token", MAPBOX_ACCESS_TOKEN);
-        mapboxUrl.searchParams.set("autocomplete", "true");
-        mapboxUrl.searchParams.set("country", "US");
-        mapboxUrl.searchParams.set("types", "address");
-        mapboxUrl.searchParams.set("limit", "8");
-        // Add proximity bias to prefer East Coast / NYC area addresses
-        mapboxUrl.searchParams.set("proximity", "-73.935242,40.730610");
-
-        const mapboxResponse = await fetch(mapboxUrl.toString());
-        const mapboxData = await mapboxResponse.json();
-
-        if (mapboxResponse.ok && mapboxData.features?.length > 0) {
-          const suggestions = mapboxData.features.map(parseMapboxFeature);
-          return NextResponse.json({ data: suggestions, source: "mapbox" });
-        }
-      } catch (mapboxError) {
-        console.error("Mapbox autocomplete error, falling back to RealEstateAPI:", mapboxError);
-      }
-    }
-
-    // Fallback to RealEstateAPI
+    // USE REALESTATE API FIRST - This gives us property IDs!
+    console.log("[Autocomplete] Searching RealEstateAPI for:", search);
     const autocompleteBody: Record<string, string> = {
       search: search.trim(),
       type,
@@ -109,16 +86,55 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(autocompleteBody),
     });
 
-    const data = await response.json();
+    if (response.ok) {
+      const data = await response.json();
+      console.log("[Autocomplete] RealEstateAPI response:", JSON.stringify(data).substring(0, 500));
 
-    if (!response.ok) {
-      return NextResponse.json(
-        { error: data.message || "Autocomplete failed", details: data },
-        { status: response.status }
-      );
+      // RealEstateAPI returns { data: [...] } with property objects containing id
+      if (data.data && Array.isArray(data.data) && data.data.length > 0) {
+        // Transform to include property ID for direct PropertyDetail lookup
+        const suggestions = data.data.map((item: Record<string, unknown>) => ({
+          id: item.id, // Property ID for PropertyDetail!
+          address: item.address || item.street,
+          street: item.street || item.address,
+          city: item.city,
+          state: item.state,
+          zip: item.zip || item.zipCode,
+          fullAddress: `${item.address || item.street}, ${item.city}, ${item.state} ${item.zip || item.zipCode}`.trim(),
+          latitude: item.latitude,
+          longitude: item.longitude,
+          propertyType: item.propertyType,
+        }));
+        console.log("[Autocomplete] Returning", suggestions.length, "suggestions from RealEstateAPI");
+        return NextResponse.json({ data: suggestions, source: "realestate" });
+      }
     }
 
-    return NextResponse.json({ ...data, source: "realestate" });
+    // Fallback to Mapbox if RealEstateAPI fails
+    console.log("[Autocomplete] RealEstateAPI failed, falling back to Mapbox");
+    if (MAPBOX_ACCESS_TOKEN && type === "address") {
+      try {
+        const mapboxUrl = new URL("https://api.mapbox.com/geocoding/v5/mapbox.places/" + encodeURIComponent(search) + ".json");
+        mapboxUrl.searchParams.set("access_token", MAPBOX_ACCESS_TOKEN);
+        mapboxUrl.searchParams.set("autocomplete", "true");
+        mapboxUrl.searchParams.set("country", "US");
+        mapboxUrl.searchParams.set("types", "address");
+        mapboxUrl.searchParams.set("limit", "8");
+        mapboxUrl.searchParams.set("proximity", "-73.935242,40.730610");
+
+        const mapboxResponse = await fetch(mapboxUrl.toString());
+        const mapboxData = await mapboxResponse.json();
+
+        if (mapboxResponse.ok && mapboxData.features?.length > 0) {
+          const suggestions = mapboxData.features.map(parseMapboxFeature);
+          return NextResponse.json({ data: suggestions, source: "mapbox" });
+        }
+      } catch (mapboxError) {
+        console.error("Mapbox autocomplete error:", mapboxError);
+      }
+    }
+
+    return NextResponse.json({ data: [], message: "No results found" });
   } catch (error: any) {
     console.error("Address autocomplete error:", error);
     return NextResponse.json(
@@ -140,31 +156,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Try Mapbox first for better autocomplete
-    if (MAPBOX_ACCESS_TOKEN && type === "address") {
-      try {
-        const mapboxUrl = new URL("https://api.mapbox.com/geocoding/v5/mapbox.places/" + encodeURIComponent(search) + ".json");
-        mapboxUrl.searchParams.set("access_token", MAPBOX_ACCESS_TOKEN);
-        mapboxUrl.searchParams.set("autocomplete", "true");
-        mapboxUrl.searchParams.set("country", "US");
-        mapboxUrl.searchParams.set("types", "address");
-        mapboxUrl.searchParams.set("limit", "8");
-        // Add proximity bias to prefer East Coast / NYC area addresses
-        mapboxUrl.searchParams.set("proximity", "-73.935242,40.730610");
-
-        const mapboxResponse = await fetch(mapboxUrl.toString());
-        const mapboxData = await mapboxResponse.json();
-
-        if (mapboxResponse.ok && mapboxData.features?.length > 0) {
-          const suggestions = mapboxData.features.map(parseMapboxFeature);
-          return NextResponse.json({ data: suggestions, source: "mapbox" });
-        }
-      } catch (mapboxError) {
-        console.error("Mapbox autocomplete error, falling back to RealEstateAPI:", mapboxError);
-      }
-    }
-
-    // Fallback to RealEstateAPI
+    // USE REALESTATE API FIRST - This gives us property IDs!
+    console.log("[Autocomplete GET] Searching RealEstateAPI for:", search);
     const autocompleteBody: Record<string, string> = {
       search: search.trim(),
       type,
@@ -182,16 +175,53 @@ export async function GET(request: NextRequest) {
       body: JSON.stringify(autocompleteBody),
     });
 
-    const data = await response.json();
+    if (response.ok) {
+      const data = await response.json();
+      console.log("[Autocomplete GET] RealEstateAPI response:", JSON.stringify(data).substring(0, 500));
 
-    if (!response.ok) {
-      return NextResponse.json(
-        { error: data.message || "Autocomplete failed" },
-        { status: response.status }
-      );
+      if (data.data && Array.isArray(data.data) && data.data.length > 0) {
+        const suggestions = data.data.map((item: Record<string, unknown>) => ({
+          id: item.id,
+          address: item.address || item.street,
+          street: item.street || item.address,
+          city: item.city,
+          state: item.state,
+          zip: item.zip || item.zipCode,
+          fullAddress: `${item.address || item.street}, ${item.city}, ${item.state} ${item.zip || item.zipCode}`.trim(),
+          latitude: item.latitude,
+          longitude: item.longitude,
+          propertyType: item.propertyType,
+        }));
+        console.log("[Autocomplete GET] Returning", suggestions.length, "suggestions from RealEstateAPI");
+        return NextResponse.json({ data: suggestions, source: "realestate" });
+      }
     }
 
-    return NextResponse.json({ ...data, source: "realestate" });
+    // Fallback to Mapbox if RealEstateAPI fails
+    console.log("[Autocomplete GET] RealEstateAPI failed, falling back to Mapbox");
+    if (MAPBOX_ACCESS_TOKEN && type === "address") {
+      try {
+        const mapboxUrl = new URL("https://api.mapbox.com/geocoding/v5/mapbox.places/" + encodeURIComponent(search) + ".json");
+        mapboxUrl.searchParams.set("access_token", MAPBOX_ACCESS_TOKEN);
+        mapboxUrl.searchParams.set("autocomplete", "true");
+        mapboxUrl.searchParams.set("country", "US");
+        mapboxUrl.searchParams.set("types", "address");
+        mapboxUrl.searchParams.set("limit", "8");
+        mapboxUrl.searchParams.set("proximity", "-73.935242,40.730610");
+
+        const mapboxResponse = await fetch(mapboxUrl.toString());
+        const mapboxData = await mapboxResponse.json();
+
+        if (mapboxResponse.ok && mapboxData.features?.length > 0) {
+          const suggestions = mapboxData.features.map(parseMapboxFeature);
+          return NextResponse.json({ data: suggestions, source: "mapbox" });
+        }
+      } catch (mapboxError) {
+        console.error("Mapbox autocomplete error:", mapboxError);
+      }
+    }
+
+    return NextResponse.json({ data: [], message: "No results found" });
   } catch (error: any) {
     console.error("Address autocomplete error:", error);
     return NextResponse.json(

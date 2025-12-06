@@ -60,6 +60,8 @@ interface ValuationData {
 
 // Normalize RealEstateAPI PropertyDetail response to flat structure
 function normalizePropertyDetail(rawProperty: Record<string, unknown>, inputData?: { address?: string; city?: string; state?: string; zip?: string; latitude?: number; longitude?: number }): NormalizedProperty {
+  console.log("[Valuation] Raw PropertyDetail response:", JSON.stringify(rawProperty, null, 2).substring(0, 2000));
+
   // PropertyDetail has nested propertyInfo structure
   const propertyInfo = (rawProperty.propertyInfo as Record<string, unknown>) || {};
   const addressObj = (propertyInfo.address as Record<string, unknown>) || {};
@@ -67,34 +69,54 @@ function normalizePropertyDetail(rawProperty: Record<string, unknown>, inputData
   const lotInfo = (rawProperty.lotInfo as Record<string, unknown>) || {};
   const lastSale = (rawProperty.lastSale as Record<string, unknown>) || {};
 
-  return {
+  // Also check for flat structure (v2 API sometimes returns flat)
+  const flatAddress = (rawProperty.address as Record<string, unknown>) || {};
+
+  // Get address - check nested first, then flat, then input
+  const resolvedAddress = (addressObj.address || addressObj.label || flatAddress.address || flatAddress.label || inputData?.address) as string;
+  const resolvedCity = (addressObj.city || flatAddress.city || inputData?.city) as string;
+  const resolvedState = (addressObj.state || flatAddress.state || inputData?.state) as string;
+  const resolvedZip = (addressObj.zip || flatAddress.zip || inputData?.zip) as string;
+
+  console.log("[Valuation] Resolved address:", resolvedAddress, resolvedCity, resolvedState, resolvedZip);
+
+  // Get property values - check nested then flat
+  const bedrooms = (propertyInfo.bedrooms || propertyInfo.beds || rawProperty.bedrooms || rawProperty.beds) as number;
+  const bathrooms = (propertyInfo.bathrooms || propertyInfo.baths || rawProperty.bathrooms || rawProperty.baths) as number;
+  const squareFeet = Number(propertyInfo.livingSquareFeet || propertyInfo.buildingSquareFeet || propertyInfo.squareFeet || rawProperty.squareFeet || rawProperty.buildingSize) || undefined;
+  const yearBuilt = Number(propertyInfo.yearBuilt || rawProperty.yearBuilt) || undefined;
+
+  const result = {
     id: rawProperty.id as string || "unknown",
     address: {
-      address: (addressObj.address || addressObj.label || inputData?.address) as string,
-      street: (addressObj.street || addressObj.address || inputData?.address) as string,
-      city: (addressObj.city || inputData?.city) as string,
-      state: (addressObj.state || inputData?.state) as string,
-      zip: (addressObj.zip || inputData?.zip) as string,
-      latitude: (inputData?.latitude || propertyInfo.latitude) as number,
-      longitude: (inputData?.longitude || propertyInfo.longitude) as number,
+      address: resolvedAddress,
+      street: resolvedAddress,
+      city: resolvedCity,
+      state: resolvedState,
+      zip: resolvedZip,
+      latitude: (inputData?.latitude || propertyInfo.latitude || rawProperty.latitude) as number,
+      longitude: (inputData?.longitude || propertyInfo.longitude || rawProperty.longitude) as number,
     },
-    propertyType: rawProperty.propertyType as string || "Unknown",
-    bedrooms: (propertyInfo.bedrooms || propertyInfo.beds) as number,
-    bathrooms: (propertyInfo.bathrooms || propertyInfo.baths) as number,
-    squareFeet: (propertyInfo.livingSquareFeet || propertyInfo.buildingSquareFeet || propertyInfo.squareFeet) as number,
-    yearBuilt: Number(propertyInfo.yearBuilt) || undefined,
-    estimatedValue: Number(rawProperty.estimatedValue) || undefined,
-    lastSaleAmount: Number(rawProperty.lastSalePrice || lastSale.saleAmount) || undefined,
+    propertyType: (rawProperty.propertyType || propertyInfo.propertyType) as string || "Unknown",
+    bedrooms,
+    bathrooms,
+    squareFeet,
+    yearBuilt,
+    estimatedValue: Number(rawProperty.estimatedValue || rawProperty.avm) || undefined,
+    lastSaleAmount: Number(rawProperty.lastSalePrice || rawProperty.lastSaleAmount || lastSale.saleAmount) || undefined,
     lastSaleDate: (rawProperty.lastSaleDate || lastSale.saleDate) as string,
     openMortgageBalance: Number(rawProperty.openMortgageBalance) || 0,
     estimatedEquity: Number(rawProperty.estimatedEquity) || undefined,
-    lotSquareFeet: Number(lotInfo.lotSquareFeet || propertyInfo.lotSquareFeet) || undefined,
-    ownerOccupied: rawProperty.ownerOccupied as boolean,
-    owner1FirstName: ownerInfo.owner1FirstName as string,
-    owner1LastName: ownerInfo.owner1LastName as string,
-    latitude: (inputData?.latitude || propertyInfo.latitude) as number,
-    longitude: (inputData?.longitude || propertyInfo.longitude) as number,
+    lotSquareFeet: Number(lotInfo.lotSquareFeet || propertyInfo.lotSquareFeet || rawProperty.lotSquareFeet) || undefined,
+    ownerOccupied: (rawProperty.ownerOccupied || propertyInfo.ownerOccupied) as boolean,
+    owner1FirstName: (ownerInfo.owner1FirstName || rawProperty.owner1FirstName) as string,
+    owner1LastName: (ownerInfo.owner1LastName || rawProperty.owner1LastName) as string,
+    latitude: (inputData?.latitude || propertyInfo.latitude || rawProperty.latitude) as number,
+    longitude: (inputData?.longitude || propertyInfo.longitude || rawProperty.longitude) as number,
   };
+
+  console.log("[Valuation] Normalized property:", JSON.stringify(result, null, 2));
+  return result;
 }
 
 // Normalize comp from v3/PropertyComps response (flatter structure)

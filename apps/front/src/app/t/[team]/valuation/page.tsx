@@ -41,7 +41,7 @@ const DualMapView = dynamic(
 );
 
 interface AddressSuggestion {
-  id?: string;
+  id?: string | number; // Property ID from RealEstateAPI
   address?: string;
   street?: string;
   city?: string;
@@ -51,6 +51,7 @@ interface AddressSuggestion {
   fullAddress?: string;
   latitude?: number;
   longitude?: number;
+  propertyType?: string;
 }
 
 const US_STATES = [
@@ -345,16 +346,19 @@ export default function ValuationPage() {
     toast.info("Fetching property details...");
     setLoading(true);
 
+    console.log("[Valuation Page] Selected suggestion:", suggestion);
+    console.log("[Valuation Page] Property ID from autocomplete:", suggestion.id);
+
     try {
       const response = await fetch("/api/property/valuation", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          id: suggestion.id, // PASS THE PROPERTY ID FROM REALESTATE API AUTOCOMPLETE!
           address: streetAddress,
           city: suggestionCity,
           state: suggestionState,
           zip: suggestionZip,
-          // Pass lat/long from Mapbox for maps even if property lookup fails
           latitude: suggestion.latitude,
           longitude: suggestion.longitude,
           fullAddress: suggestion.fullAddress,

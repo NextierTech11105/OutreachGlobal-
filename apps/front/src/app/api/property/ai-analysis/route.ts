@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || "",
-});
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 
 interface PropertyData {
   property: Record<string, unknown>;
@@ -268,20 +265,36 @@ CRITICAL:
 4. Provide actionable insights that an investor could immediately use
 5. Make the neighborhood history compelling and educational`;
 
-    // Call Claude API with higher token limit for comprehensive analysis
-    const message = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 8000,
-      messages: [
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
+    // Call OpenAI API for comprehensive analysis
+    if (!OPENAI_API_KEY) {
+      return NextResponse.json({ error: "OpenAI API key not configured" }, { status: 503 });
+    }
+
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "gpt-4o",
+        messages: [
+          { role: "system", content: "You are an expert real estate analyst. Always respond with valid JSON only, no markdown or code blocks." },
+          { role: "user", content: prompt },
+        ],
+        max_tokens: 8000,
+        temperature: 0.7,
+      }),
     });
 
-    // Extract text response
-    const responseText = message.content[0].type === "text" ? message.content[0].text : "";
+    if (!response.ok) {
+      const error = await response.text();
+      console.error("[AI Analysis] OpenAI error:", error);
+      return NextResponse.json({ error: `OpenAI API error: ${response.status}` }, { status: 500 });
+    }
+
+    const data = await response.json();
+    const responseText = data.choices?.[0]?.message?.content?.trim() || "";
 
     // Parse JSON response
     let analysis;
