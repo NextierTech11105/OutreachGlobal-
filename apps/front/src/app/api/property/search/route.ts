@@ -6,10 +6,22 @@ const REALESTATE_API_URL = "https://api.realestateapi.com/v2/PropertySearch";
 // Valid property types per RealEstateAPI
 const VALID_PROPERTY_TYPES = ["SFR", "MFR", "LAND", "CONDO", "OTHER", "MOBILE"];
 
+// Valid sort fields per RealEstateAPI
+const VALID_SORT_FIELDS = [
+  "years_owned",
+  "equity_percent",
+  "year_built",
+  "building_size",
+  "lot_size",
+  "assessed_value",
+  "last_sale_date",
+  "estimated_equity",
+  "estimated_value",
+  "assessed_land_value",
+];
+
 // Invalid parameters that RealEstateAPI doesn't accept
 const INVALID_PARAMS = [
-  "ownership_years_min",
-  "ownership_years_max",
   "zoning",
   "distressed",
   "distress_type",
@@ -41,6 +53,24 @@ function sanitizeSearchBody(body: Record<string, unknown>): Record<string, unkno
       sanitized.property_type = validTypes.length === 1 ? validTypes[0] : validTypes;
     } else {
       delete sanitized.property_type;
+    }
+  }
+
+  // Validate and sanitize sort field
+  if (sanitized.sort && typeof sanitized.sort === "object") {
+    const sortObj = sanitized.sort as Record<string, string>;
+    const validSortObj: Record<string, string> = {};
+
+    for (const [field, direction] of Object.entries(sortObj)) {
+      if (VALID_SORT_FIELDS.includes(field) && ["asc", "desc"].includes(direction)) {
+        validSortObj[field] = direction;
+      }
+    }
+
+    if (Object.keys(validSortObj).length > 0) {
+      sanitized.sort = validSortObj;
+    } else {
+      delete sanitized.sort;
     }
   }
 
