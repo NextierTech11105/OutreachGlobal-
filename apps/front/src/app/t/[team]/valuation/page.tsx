@@ -102,6 +102,8 @@ interface ValuationReport {
     owner1FirstName?: string;
     owner1LastName?: string;
     ownerOccupied?: boolean;
+    latitude?: number;
+    longitude?: number;
   };
   comparables: Array<{
     id: string;
