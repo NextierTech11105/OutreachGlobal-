@@ -109,6 +109,20 @@ interface ValuationReport {
     ownerOccupied?: boolean;
     latitude?: number;
     longitude?: number;
+    // Rental estimates
+    rentEstimate?: number;
+    rentRangeLow?: number;
+    rentRangeHigh?: number;
+    grossYield?: number;
+    units?: number;
+    rentPerUnit?: number;
+    // Motivated seller flags
+    preForeclosure?: boolean;
+    inForeclosure?: boolean;
+    isVacant?: boolean;
+    taxDelinquent?: boolean;
+    freeClear?: boolean;
+    highEquity?: boolean;
   };
   comparables: Array<{
     id: string;
@@ -1118,32 +1132,32 @@ export default function ValuationPage() {
                     {formatCurrency(prop?.estimatedValue || val?.estimatedValue || 0)}
                   </Badge>
                   {/* Motivated Seller Tags - show when applicable */}
-                  {(prop as Record<string, unknown>)?.preForeclosure && (
+                  {prop?.preForeclosure && (
                     <Badge className="bg-red-600 text-white">Pre-Foreclosure</Badge>
                   )}
-                  {(prop as Record<string, unknown>)?.inForeclosure && (
+                  {prop?.inForeclosure && (
                     <Badge className="bg-red-700 text-white">In Foreclosure</Badge>
                   )}
                   {prop?.ownerOccupied === false && (
                     <Badge className="bg-purple-600 text-white">Absentee Owner</Badge>
                   )}
-                  {(prop as Record<string, unknown>)?.isEstate && (
-                    <Badge className="bg-amber-600 text-white">Estate/Probate</Badge>
-                  )}
-                  {(prop as Record<string, unknown>)?.highEquity && (
+                  {prop?.highEquity && (
                     <Badge className="bg-green-600 text-white">High Equity</Badge>
                   )}
                   {val?.equityEstimate && val.equityEstimate < 50000 && (
                     <Badge className="bg-orange-600 text-white">Low Equity</Badge>
                   )}
-                  {(prop as Record<string, unknown>)?.vacant && (
+                  {prop?.isVacant && (
                     <Badge className="bg-slate-600 text-white">Vacant</Badge>
                   )}
-                  {(prop as Record<string, unknown>)?.taxDelinquent && (
+                  {prop?.taxDelinquent && (
                     <Badge className="bg-red-500 text-white">Tax Delinquent</Badge>
                   )}
-                  {(prop as Record<string, unknown>)?.freeClear && (
+                  {prop?.freeClear && (
                     <Badge className="bg-emerald-600 text-white">Free & Clear</Badge>
+                  )}
+                  {prop?.rentEstimate && (
+                    <Badge className="bg-blue-600 text-white">Rental: ${prop.rentEstimate?.toLocaleString()}/mo</Badge>
                   )}
                 </div>
               </div>
@@ -1186,7 +1200,7 @@ export default function ValuationPage() {
 
           {/* Tabbed Property Details */}
           <Tabs defaultValue="property" className="w-full">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="property" className="flex items-center gap-1">
                 <Home className="h-4 w-4" />
                 <span className="hidden sm:inline">Property</span>
@@ -1198,6 +1212,10 @@ export default function ValuationPage() {
               <TabsTrigger value="financial" className="flex items-center gap-1">
                 <DollarSign className="h-4 w-4" />
                 <span className="hidden sm:inline">Financial</span>
+              </TabsTrigger>
+              <TabsTrigger value="rental" className="flex items-center gap-1">
+                <Building2 className="h-4 w-4" />
+                <span className="hidden sm:inline">Rental</span>
               </TabsTrigger>
               <TabsTrigger value="location" className="flex items-center gap-1">
                 <MapPin className="h-4 w-4" />
@@ -1424,6 +1442,162 @@ export default function ValuationPage() {
                         ) : (
                           <p className="text-muted-foreground">Sale history not available</p>
                         )}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Rental Tab */}
+            <TabsContent value="rental">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Building2 className="h-5 w-5" />
+                    Rental Analysis
+                  </CardTitle>
+                  <CardDescription>Estimated rental income and investment metrics</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    {/* Rent Estimate Card */}
+                    <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-900">
+                      <div className="flex items-center gap-2 mb-3">
+                        <DollarSign className="h-5 w-5 text-blue-600" />
+                        <h4 className="font-semibold text-blue-800 dark:text-blue-400">Estimated Rent</h4>
+                      </div>
+                      <p className="text-3xl font-bold text-blue-600">
+                        {prop?.rentEstimate ? `$${prop.rentEstimate.toLocaleString()}/mo` : "N/A"}
+                      </p>
+                      {prop?.rentRangeLow && prop?.rentRangeHigh && (
+                        <p className="text-sm text-blue-700 dark:text-blue-500 mt-1">
+                          Range: ${prop.rentRangeLow.toLocaleString()} - ${prop.rentRangeHigh.toLocaleString()}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Gross Yield Card */}
+                    <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-900">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Percent className="h-5 w-5 text-green-600" />
+                        <h4 className="font-semibold text-green-800 dark:text-green-400">Gross Yield</h4>
+                      </div>
+                      <p className="text-3xl font-bold text-green-600">
+                        {prop?.grossYield ? `${prop.grossYield.toFixed(1)}%` :
+                          (prop?.rentEstimate && prop?.estimatedValue)
+                            ? `${((prop.rentEstimate * 12 / prop.estimatedValue) * 100).toFixed(1)}%`
+                            : "N/A"}
+                      </p>
+                      <p className="text-sm text-green-700 dark:text-green-500 mt-1">Annual rental income / Property value</p>
+                    </div>
+
+                    {/* Annual Income Card */}
+                    <div className="p-4 bg-purple-50 dark:bg-purple-950/20 rounded-lg border border-purple-200 dark:border-purple-900">
+                      <div className="flex items-center gap-2 mb-3">
+                        <TrendingUp className="h-5 w-5 text-purple-600" />
+                        <h4 className="font-semibold text-purple-800 dark:text-purple-400">Annual Income</h4>
+                      </div>
+                      <p className="text-3xl font-bold text-purple-600">
+                        {prop?.rentEstimate ? `$${(prop.rentEstimate * 12).toLocaleString()}` : "N/A"}
+                      </p>
+                      <p className="text-sm text-purple-700 dark:text-purple-500 mt-1">Before expenses</p>
+                    </div>
+                  </div>
+
+                  {/* Multi-Family / Units Section */}
+                  {(prop?.units && prop.units > 1) && (
+                    <>
+                      <Separator className="my-6" />
+                      <div className="p-4 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-900">
+                        <div className="flex items-center gap-2 mb-4">
+                          <Building2 className="h-5 w-5 text-amber-600" />
+                          <h4 className="font-semibold text-amber-800 dark:text-amber-400">Multi-Family Details</h4>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <div className="text-center p-3 bg-background rounded-lg">
+                            <p className="text-2xl font-bold text-amber-600">{prop.units}</p>
+                            <p className="text-xs text-muted-foreground">Total Units</p>
+                          </div>
+                          <div className="text-center p-3 bg-background rounded-lg">
+                            <p className="text-2xl font-bold text-amber-600">
+                              ${prop.rentPerUnit?.toLocaleString() || Math.round((prop.rentEstimate || 0) / prop.units).toLocaleString()}
+                            </p>
+                            <p className="text-xs text-muted-foreground">Rent Per Unit</p>
+                          </div>
+                          <div className="text-center p-3 bg-background rounded-lg">
+                            <p className="text-2xl font-bold text-amber-600">
+                              ${((prop.rentEstimate || 0) * 12).toLocaleString()}
+                            </p>
+                            <p className="text-xs text-muted-foreground">Annual Gross</p>
+                          </div>
+                          <div className="text-center p-3 bg-background rounded-lg">
+                            <p className="text-2xl font-bold text-amber-600">
+                              ${prop.estimatedValue ? Math.round(prop.estimatedValue / prop.units).toLocaleString() : "N/A"}
+                            </p>
+                            <p className="text-xs text-muted-foreground">Value Per Unit</p>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  <Separator className="my-6" />
+
+                  {/* Investment Metrics */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Investment Metrics</h4>
+                      <div className="space-y-3">
+                        <div className="flex justify-between p-2 hover:bg-muted rounded">
+                          <span className="text-muted-foreground">Monthly Rent Estimate</span>
+                          <span className="font-semibold">${(prop?.rentEstimate || 0).toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between p-2 hover:bg-muted rounded">
+                          <span className="text-muted-foreground">Annual Rent Income</span>
+                          <span className="font-semibold">${((prop?.rentEstimate || 0) * 12).toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between p-2 hover:bg-muted rounded">
+                          <span className="text-muted-foreground">Price Per Sq Ft (Rent)</span>
+                          <span className="font-semibold">
+                            ${prop?.rentEstimate && prop?.squareFeet
+                              ? (prop.rentEstimate / prop.squareFeet).toFixed(2)
+                              : "N/A"}/sqft
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Cap Rate Analysis</h4>
+                      <div className="space-y-3">
+                        <div className="flex justify-between p-2 hover:bg-muted rounded">
+                          <span className="text-muted-foreground">Gross Rent Multiplier</span>
+                          <span className="font-semibold">
+                            {prop?.rentEstimate && prop?.estimatedValue
+                              ? (prop.estimatedValue / (prop.rentEstimate * 12)).toFixed(1) + "x"
+                              : "N/A"}
+                          </span>
+                        </div>
+                        <div className="flex justify-between p-2 hover:bg-muted rounded">
+                          <span className="text-muted-foreground">Est. Cap Rate (50% expense)</span>
+                          <span className="font-semibold">
+                            {prop?.rentEstimate && prop?.estimatedValue
+                              ? (((prop.rentEstimate * 12 * 0.5) / prop.estimatedValue) * 100).toFixed(1) + "%"
+                              : "N/A"}
+                          </span>
+                        </div>
+                        <div className="flex justify-between p-2 bg-blue-50 dark:bg-blue-950/20 rounded">
+                          <span className="font-medium">1% Rule Check</span>
+                          <Badge variant={
+                            prop?.rentEstimate && prop?.estimatedValue && (prop.rentEstimate / prop.estimatedValue) >= 0.01
+                              ? "default"
+                              : "outline"
+                          }>
+                            {prop?.rentEstimate && prop?.estimatedValue
+                              ? ((prop.rentEstimate / prop.estimatedValue) * 100).toFixed(2) + "%"
+                              : "N/A"}
+                          </Badge>
+                        </div>
                       </div>
                     </div>
                   </div>

@@ -33,6 +33,21 @@ interface NormalizedProperty {
   owner1LastName?: string;
   latitude?: number;
   longitude?: number;
+  // Rental estimates
+  rentEstimate?: number;
+  rentRangeLow?: number;
+  rentRangeHigh?: number;
+  grossYield?: number;
+  // Motivated seller flags
+  preForeclosure?: boolean;
+  inForeclosure?: boolean;
+  isVacant?: boolean;
+  taxDelinquent?: boolean;
+  freeClear?: boolean;
+  highEquity?: boolean;
+  // Multi-family
+  units?: number;
+  rentPerUnit?: number;
 }
 
 interface ValuationData {
@@ -86,6 +101,31 @@ function normalizePropertyDetail(rawProperty: Record<string, unknown>, inputData
   const squareFeet = Number(propertyInfo.livingSquareFeet || propertyInfo.buildingSquareFeet || propertyInfo.squareFeet || rawProperty.squareFeet || rawProperty.buildingSize) || undefined;
   const yearBuilt = Number(propertyInfo.yearBuilt || rawProperty.yearBuilt) || undefined;
 
+  // Extract rental estimate data
+  const rentalInfo = (rawProperty.rentalEstimate as Record<string, unknown>) || (rawProperty.rental as Record<string, unknown>) || {};
+  const rentEstimate = Number(rentalInfo.rent || rentalInfo.rentEstimate || rawProperty.rentEstimate || rawProperty.estimatedRent) || undefined;
+  const rentRangeLow = Number(rentalInfo.rentRangeLow || rentalInfo.low || rawProperty.rentRangeLow) || undefined;
+  const rentRangeHigh = Number(rentalInfo.rentRangeHigh || rentalInfo.high || rawProperty.rentRangeHigh) || undefined;
+
+  // Calculate gross yield if we have rent and value
+  const estimatedValue = Number(rawProperty.estimatedValue || rawProperty.avm) || 0;
+  const grossYield = rentEstimate && estimatedValue > 0 ? ((rentEstimate * 12) / estimatedValue) * 100 : undefined;
+
+  // Multi-family units
+  const units = Number(propertyInfo.units || propertyInfo.numberOfUnits || rawProperty.units || rawProperty.numberOfUnits) || undefined;
+  const rentPerUnit = units && rentEstimate ? Math.round(rentEstimate / units) : undefined;
+
+  // Motivated seller flags from RealEstateAPI
+  const preForeclosure = Boolean(rawProperty.preForeclosure || rawProperty.isPreForeclosure);
+  const inForeclosure = Boolean(rawProperty.inForeclosure || rawProperty.isForeclosure || rawProperty.foreclosure);
+  const isVacant = Boolean(rawProperty.vacant || rawProperty.isVacant);
+  const taxDelinquent = Boolean(rawProperty.taxDelinquent || rawProperty.isTaxDelinquent);
+  const freeClear = Boolean(rawProperty.freeClear || rawProperty.isFreeClear);
+
+  // High equity = equity > 50% of value
+  const equity = Number(rawProperty.estimatedEquity) || (estimatedValue - Number(rawProperty.openMortgageBalance || 0));
+  const highEquity = estimatedValue > 0 && equity > (estimatedValue * 0.5);
+
   const result = {
     id: rawProperty.id as string || "unknown",
     address: {
@@ -102,17 +142,31 @@ function normalizePropertyDetail(rawProperty: Record<string, unknown>, inputData
     bathrooms,
     squareFeet,
     yearBuilt,
-    estimatedValue: Number(rawProperty.estimatedValue || rawProperty.avm) || undefined,
+    estimatedValue: estimatedValue || undefined,
     lastSaleAmount: Number(rawProperty.lastSalePrice || rawProperty.lastSaleAmount || lastSale.saleAmount) || undefined,
     lastSaleDate: (rawProperty.lastSaleDate || lastSale.saleDate) as string,
     openMortgageBalance: Number(rawProperty.openMortgageBalance) || 0,
-    estimatedEquity: Number(rawProperty.estimatedEquity) || undefined,
+    estimatedEquity: Number(rawProperty.estimatedEquity) || equity || undefined,
     lotSquareFeet: Number(lotInfo.lotSquareFeet || propertyInfo.lotSquareFeet || rawProperty.lotSquareFeet) || undefined,
     ownerOccupied: (rawProperty.ownerOccupied || propertyInfo.ownerOccupied) as boolean,
     owner1FirstName: (ownerInfo.owner1FirstName || rawProperty.owner1FirstName) as string,
     owner1LastName: (ownerInfo.owner1LastName || rawProperty.owner1LastName) as string,
     latitude: (inputData?.latitude || propertyInfo.latitude || rawProperty.latitude) as number,
     longitude: (inputData?.longitude || propertyInfo.longitude || rawProperty.longitude) as number,
+    // Rental data
+    rentEstimate,
+    rentRangeLow,
+    rentRangeHigh,
+    grossYield,
+    units,
+    rentPerUnit,
+    // Motivated seller flags
+    preForeclosure,
+    inForeclosure,
+    isVacant,
+    taxDelinquent,
+    freeClear,
+    highEquity,
   };
 
   console.log("[Valuation] Normalized property:", JSON.stringify(result, null, 2));
