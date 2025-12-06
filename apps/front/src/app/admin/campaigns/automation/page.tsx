@@ -46,43 +46,9 @@ interface AutomationRule {
   executionCount: number;
 }
 
-const defaultRules: AutomationRule[] = [
-  {
-    id: "1",
-    name: "Positive Response → Assign SDR",
-    trigger: "response_positive",
-    action: "assign_sdr",
-    isActive: true,
-    executionCount: 234,
-  },
-  {
-    id: "2",
-    name: "Wrong Number → Suppress",
-    trigger: "response_wrong_number",
-    action: "add_suppression",
-    isActive: true,
-    executionCount: 89,
-  },
-  {
-    id: "3",
-    name: "No Response 3 Days → Follow Up",
-    trigger: "no_response_3d",
-    action: "send_followup",
-    isActive: false,
-    executionCount: 567,
-  },
-  {
-    id: "4",
-    name: "Lead Score > 80 → Priority Queue",
-    trigger: "lead_score_high",
-    action: "move_priority",
-    isActive: true,
-    executionCount: 123,
-  },
-];
-
 export default function CampaignAutomationPage() {
-  const [rules, setRules] = useState<AutomationRule[]>(defaultRules);
+  // Rules state - starts empty, populated by user creation
+  const [rules, setRules] = useState<AutomationRule[]>([]);
   const [showNewRule, setShowNewRule] = useState(false);
 
   const toggleRule = (id: string) => {
@@ -216,6 +182,15 @@ export default function CampaignAutomationPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
+              {rules.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                    <Zap className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p className="font-medium">No Automation Rules</p>
+                    <p className="text-sm">Create your first automation rule to get started</p>
+                  </TableCell>
+                </TableRow>
+              ) : null}
               {rules.map((rule) => (
                 <TableRow key={rule.id}>
                   <TableCell className="font-medium">{rule.name}</TableCell>

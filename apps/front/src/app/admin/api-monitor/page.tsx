@@ -92,200 +92,18 @@ interface UsageMetric {
   reset_at: string;
 }
 
-// Mock data
-const mockEndpoints: APIEndpoint[] = [
-  {
-    id: "1",
-    name: "Skip Trace - Individual",
-    endpoint: "/api/realestate/skip-trace",
-    method: "POST",
-    category: "skip_trace",
-    status: "healthy",
-    avg_latency_ms: 245,
-    calls_today: 1847,
-    calls_last_hour: 156,
-    success_rate: 94.2,
-    last_called: "2024-01-15T14:32:15Z",
-  },
-  {
-    id: "2",
-    name: "Skip Trace - Bulk",
-    endpoint: "/api/realestate/skip-trace-bulk",
-    method: "POST",
-    category: "skip_trace",
-    status: "healthy",
-    avg_latency_ms: 3200,
-    calls_today: 23,
-    calls_last_hour: 3,
-    success_rate: 98.5,
-    last_called: "2024-01-15T14:28:00Z",
-  },
-  {
-    id: "3",
-    name: "SignalHouse - Send SMS",
-    endpoint: "/api/signalhouse/send",
-    method: "POST",
-    category: "sms",
-    status: "healthy",
-    avg_latency_ms: 180,
-    calls_today: 8920,
-    calls_last_hour: 423,
-    success_rate: 97.8,
-    last_called: "2024-01-15T14:32:45Z",
-  },
-  {
-    id: "4",
-    name: "Apollo - Enrich Person",
-    endpoint: "/api/apollo/enrich",
-    method: "POST",
-    category: "enrichment",
-    status: "degraded",
-    avg_latency_ms: 890,
-    calls_today: 567,
-    calls_last_hour: 34,
-    success_rate: 89.3,
-    last_error: "Rate limit warning - 80% of hourly quota used",
-    last_called: "2024-01-15T14:31:00Z",
-  },
-  {
-    id: "5",
-    name: "OpenAI - Generate Response",
-    endpoint: "/api/ai/generate",
-    method: "POST",
-    category: "ai",
-    status: "healthy",
-    avg_latency_ms: 1200,
-    calls_today: 423,
-    calls_last_hour: 28,
-    success_rate: 99.1,
-    last_called: "2024-01-15T14:30:30Z",
-  },
-  {
-    id: "6",
-    name: "SendGrid - Send Email",
-    endpoint: "/api/sendgrid/send",
-    method: "POST",
-    category: "email",
-    status: "healthy",
-    avg_latency_ms: 320,
-    calls_today: 2150,
-    calls_last_hour: 89,
-    success_rate: 96.5,
-    last_called: "2024-01-15T14:29:15Z",
-  },
-  {
-    id: "7",
-    name: "Twilio - Make Call",
-    endpoint: "/api/twilio/call",
-    method: "POST",
-    category: "sms",
-    status: "healthy",
-    avg_latency_ms: 450,
-    calls_today: 78,
-    calls_last_hour: 5,
-    success_rate: 92.3,
-    last_called: "2024-01-15T14:25:00Z",
-  },
-  {
-    id: "8",
-    name: "Gianna Loop - Process",
-    endpoint: "/api/gianna/loop",
-    method: "POST",
-    category: "ai",
-    status: "healthy",
-    avg_latency_ms: 350,
-    calls_today: 234,
-    calls_last_hour: 12,
-    success_rate: 98.7,
-    last_called: "2024-01-15T14:20:00Z",
-  },
-];
-
-const mockWebhooks: WebhookEvent[] = [
-  {
-    id: "wh-001",
-    event_type: "sms.delivered",
-    source: "SignalHouse",
-    status: "success",
-    payload_size: "1.2 KB",
-    received_at: "2024-01-15T14:32:45Z",
-    processed_at: "2024-01-15T14:32:46Z",
-  },
-  {
-    id: "wh-002",
-    event_type: "sms.reply",
-    source: "SignalHouse",
-    status: "success",
-    payload_size: "2.1 KB",
-    received_at: "2024-01-15T14:31:20Z",
-    processed_at: "2024-01-15T14:31:21Z",
-  },
-  {
-    id: "wh-003",
-    event_type: "email.opened",
-    source: "SendGrid",
-    status: "success",
-    payload_size: "0.8 KB",
-    received_at: "2024-01-15T14:30:15Z",
-    processed_at: "2024-01-15T14:30:16Z",
-  },
-  {
-    id: "wh-004",
-    event_type: "call.completed",
-    source: "Twilio",
-    status: "success",
-    payload_size: "3.5 KB",
-    received_at: "2024-01-15T14:28:00Z",
-    processed_at: "2024-01-15T14:28:02Z",
-  },
-  {
-    id: "wh-005",
-    event_type: "lead.enriched",
-    source: "Apollo",
-    status: "success",
-    payload_size: "5.2 KB",
-    received_at: "2024-01-15T14:25:30Z",
-    processed_at: "2024-01-15T14:25:32Z",
-  },
-];
-
-const mockUsage: UsageMetric[] = [
-  {
-    api: "RealEstateAPI Skip Trace",
-    daily_limit: 5000,
-    used_today: 1870,
-    remaining: 3130,
-    reset_at: "2024-01-16T00:00:00Z",
-  },
-  {
-    api: "SignalHouse SMS",
-    daily_limit: 50000,
-    used_today: 8920,
-    remaining: 41080,
-    reset_at: "2024-01-16T00:00:00Z",
-  },
-  {
-    api: "Apollo Enrichment",
-    daily_limit: 1000,
-    used_today: 567,
-    remaining: 433,
-    reset_at: "2024-01-16T00:00:00Z",
-  },
-  {
-    api: "OpenAI GPT-4",
-    daily_limit: 10000,
-    used_today: 423,
-    remaining: 9577,
-    reset_at: "2024-01-16T00:00:00Z",
-  },
-  {
-    api: "SendGrid Email",
-    daily_limit: 100000,
-    used_today: 2150,
-    remaining: 97850,
-    reset_at: "2024-01-16T00:00:00Z",
-  },
-];
+// Helper function to check API health
+async function checkAPIHealth(endpoint: string): Promise<{ status: "healthy" | "degraded" | "down"; latency: number }> {
+  const start = Date.now();
+  try {
+    const res = await fetch(endpoint, { method: "HEAD" });
+    const latency = Date.now() - start;
+    if (res.ok) return { status: "healthy", latency };
+    return { status: "degraded", latency };
+  } catch {
+    return { status: "down", latency: 0 };
+  }
+}
 
 const categoryIcons: Record<string, React.ReactNode> = {
   skip_trace: <Target className="h-4 w-4 text-green-500" />,
@@ -303,26 +121,103 @@ const statusColors: Record<string, string> = {
 };
 
 export default function APIMonitorPage() {
-  const [endpoints, setEndpoints] = useState<APIEndpoint[]>(mockEndpoints);
-  const [webhooks, setWebhooks] = useState<WebhookEvent[]>(mockWebhooks);
-  const [usage, setUsage] = useState<UsageMetric[]>(mockUsage);
+  // State - starts empty, populated by real API health checks
+  const [endpoints, setEndpoints] = useState<APIEndpoint[]>([]);
+  const [webhooks, setWebhooks] = useState<WebhookEvent[]>([]);
+  const [usage, setUsage] = useState<UsageMetric[]>([]);
   const [activeTab, setActiveTab] = useState("overview");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Simulate real-time updates
+  // Fetch real API health status on load
   useEffect(() => {
-    const interval = setInterval(() => {
-      setEndpoints((prev) =>
-        prev.map((ep) => ({
-          ...ep,
-          calls_last_hour: Math.max(0, ep.calls_last_hour + Math.floor(Math.random() * 5) - 2),
-          avg_latency_ms: Math.max(50, ep.avg_latency_ms + Math.floor(Math.random() * 50) - 25),
-          last_called: new Date().toISOString(),
-        }))
+    const fetchAPIHealth = async () => {
+      setIsLoading(true);
+
+      // Define endpoints to check
+      const endpointConfigs = [
+        { id: "1", name: "Skip Trace - Individual", endpoint: "/api/realestate/skip-trace", method: "POST" as const, category: "skip_trace" as const },
+        { id: "2", name: "SignalHouse - Send SMS", endpoint: "/api/signalhouse", method: "POST" as const, category: "sms" as const },
+        { id: "3", name: "Apollo - Enrich", endpoint: "/api/apollo/test", method: "GET" as const, category: "enrichment" as const },
+        { id: "4", name: "SendGrid - Email", endpoint: "/api/sendgrid/test", method: "GET" as const, category: "email" as const },
+        { id: "5", name: "AI - Generate", endpoint: "/api/ai/suggest-reply", method: "POST" as const, category: "ai" as const },
+        { id: "6", name: "Twilio - Voice", endpoint: "/api/twilio/token", method: "GET" as const, category: "sms" as const },
+      ];
+
+      // Check health of each endpoint
+      const healthChecks = await Promise.all(
+        endpointConfigs.map(async (config) => {
+          const health = await checkAPIHealth(config.endpoint);
+          return {
+            ...config,
+            status: health.status,
+            avg_latency_ms: health.latency,
+            calls_today: 0,
+            calls_last_hour: 0,
+            success_rate: health.status === "healthy" ? 100 : health.status === "degraded" ? 80 : 0,
+            last_called: new Date().toISOString(),
+          };
+        })
       );
-    }, 5000);
-    return () => clearInterval(interval);
+
+      setEndpoints(healthChecks);
+
+      // Fetch real webhook events
+      try {
+        const webhookRes = await fetch("/api/webhook/signalhouse?limit=10");
+        if (webhookRes.ok) {
+          const data = await webhookRes.json();
+          if (data.messages && data.messages.length > 0) {
+            setWebhooks(data.messages.map((msg: any, idx: number) => ({
+              id: `wh-${idx}`,
+              event_type: msg.isLead ? "sms.reply" : "sms.received",
+              source: "SignalHouse",
+              status: "success" as const,
+              payload_size: "1.2 KB",
+              received_at: msg.receivedAt || new Date().toISOString(),
+              processed_at: msg.receivedAt || new Date().toISOString(),
+            })));
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch webhooks:", err);
+      }
+
+      // Fetch real usage data
+      try {
+        const usageRes = await fetch("/api/enrichment/usage");
+        if (usageRes.ok) {
+          const data = await usageRes.json();
+          const tomorrow = new Date();
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          tomorrow.setHours(0, 0, 0, 0);
+
+          setUsage([
+            {
+              api: "RealEstateAPI Skip Trace",
+              daily_limit: data.skipTrace?.limit || 5000,
+              used_today: data.skipTrace?.used || 0,
+              remaining: data.skipTrace?.remaining || 5000,
+              reset_at: tomorrow.toISOString(),
+            },
+            {
+              api: "Apollo Enrichment",
+              daily_limit: data.apollo?.limit || 1000,
+              used_today: data.apollo?.used || 0,
+              remaining: data.apollo?.remaining || 1000,
+              reset_at: tomorrow.toISOString(),
+            },
+          ]);
+        }
+      } catch (err) {
+        console.error("Failed to fetch usage:", err);
+      }
+
+      setIsLoading(false);
+    };
+
+    fetchAPIHealth();
   }, []);
 
   const handleRefresh = () => {
@@ -335,7 +230,9 @@ export default function APIMonitorPage() {
     : endpoints.filter((ep) => ep.category === categoryFilter);
 
   const totalCallsToday = endpoints.reduce((sum, ep) => sum + ep.calls_today, 0);
-  const avgSuccessRate = endpoints.reduce((sum, ep) => sum + ep.success_rate, 0) / endpoints.length;
+  const avgSuccessRate = endpoints.length > 0
+    ? endpoints.reduce((sum, ep) => sum + ep.success_rate, 0) / endpoints.length
+    : 0;
   const healthyEndpoints = endpoints.filter((ep) => ep.status === "healthy").length;
 
   return (
@@ -461,6 +358,17 @@ export default function APIMonitorPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
+                    {isLoading ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <RefreshCw className="h-8 w-8 mx-auto mb-2 animate-spin" />
+                        <p className="text-sm">Checking API health...</p>
+                      </div>
+                    ) : endpoints.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Server className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">No API endpoints configured</p>
+                      </div>
+                    ) : null}
                     {endpoints.slice(0, 6).map((ep) => (
                       <div
                         key={ep.id}
@@ -494,6 +402,12 @@ export default function APIMonitorPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
+                    {webhooks.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Webhook className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">No webhook events yet</p>
+                      </div>
+                    ) : null}
                     {webhooks.map((wh) => (
                       <div
                         key={wh.id}

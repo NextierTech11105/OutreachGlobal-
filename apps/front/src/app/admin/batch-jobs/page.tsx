@@ -122,94 +122,21 @@ const typeIcons: Record<string, React.ReactNode> = {
   gianna_loop: <Zap className="h-4 w-4 text-yellow-500" />,
 };
 
-// Mock data
-const mockJobs: BatchJob[] = [
-  {
-    id: "batch-001",
-    name: "Foreclosure Properties - Dallas Metro",
-    type: "skip_trace",
-    status: "running",
-    total_records: 2500,
-    processed_records: 1847,
-    success_count: 1623,
-    fail_count: 224,
-    created_at: "2024-01-15T10:30:00Z",
-    started_at: "2024-01-15T10:31:00Z",
-    completed_at: null,
-    estimated_completion: "2024-01-15T12:30:00Z",
-  },
-  {
-    id: "batch-002",
-    name: "Q4 Exit Planning Outreach",
-    type: "sms_campaign",
-    status: "completed",
-    total_records: 5000,
-    processed_records: 5000,
-    success_count: 4750,
-    fail_count: 250,
-    created_at: "2024-01-14T09:00:00Z",
-    started_at: "2024-01-14T09:05:00Z",
-    completed_at: "2024-01-14T14:30:00Z",
-    estimated_completion: null,
-  },
-  {
-    id: "batch-003",
-    name: "Apollo Business Enrichment - SaaS",
-    type: "enrichment",
-    status: "pending",
-    total_records: 1200,
-    processed_records: 0,
-    success_count: 0,
-    fail_count: 0,
-    created_at: "2024-01-15T11:00:00Z",
-    started_at: null,
-    completed_at: null,
-    estimated_completion: null,
-  },
-  {
-    id: "batch-004",
-    name: "Gianna Loop - Unresponsive Leads",
-    type: "gianna_loop",
-    status: "running",
-    total_records: 350,
-    processed_records: 128,
-    success_count: 125,
-    fail_count: 3,
-    created_at: "2024-01-15T08:00:00Z",
-    started_at: "2024-01-15T08:01:00Z",
-    completed_at: null,
-    estimated_completion: "2024-01-15T16:00:00Z",
-  },
-  {
-    id: "batch-005",
-    name: "Email Campaign - AI Strategy",
-    type: "email_campaign",
-    status: "failed",
-    total_records: 800,
-    processed_records: 234,
-    success_count: 210,
-    fail_count: 24,
-    created_at: "2024-01-14T15:00:00Z",
-    started_at: "2024-01-14T15:01:00Z",
-    completed_at: "2024-01-14T15:45:00Z",
-    estimated_completion: null,
-    error_message: "Rate limit exceeded. Retry after cooldown.",
-  },
-];
-
-const mockStats: BatchStats = {
-  total_jobs_today: 12,
-  successful_jobs: 9,
-  failed_jobs: 1,
-  records_processed_today: 15847,
-  skip_traces_today: 3250,
-  sms_sent_today: 8920,
-  emails_sent_today: 2150,
+// Default empty stats
+const emptyStats: BatchStats = {
+  total_jobs_today: 0,
+  successful_jobs: 0,
+  failed_jobs: 0,
+  records_processed_today: 0,
+  skip_traces_today: 0,
+  sms_sent_today: 0,
+  emails_sent_today: 0,
 };
 
 export default function BatchJobsPage() {
-  const [jobs, setJobs] = useState<BatchJob[]>(mockJobs);
-  const [stats, setStats] = useState<BatchStats>(mockStats);
+  // Jobs state - starts empty, populated by user creation
+  const [jobs, setJobs] = useState<BatchJob[]>([]);
+  const [stats, setStats] = useState<BatchStats>(emptyStats);
   const [activeTab, setActiveTab] = useState("jobs");
   const [isCreatingJob, setIsCreatingJob] = useState(false);
   const [newJobType, setNewJobType] = useState<string>("");
@@ -498,6 +425,15 @@ export default function BatchJobsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
+                    {jobs.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
+                          <FileSpreadsheet className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                          <p className="font-medium">No Batch Jobs</p>
+                          <p className="text-sm">Create a new batch job to get started</p>
+                        </TableCell>
+                      </TableRow>
+                    ) : null}
                     {jobs.map((job) => {
                       const progress = job.total_records > 0
                         ? (job.processed_records / job.total_records) * 100

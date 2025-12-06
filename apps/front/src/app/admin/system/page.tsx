@@ -48,16 +48,23 @@ import { BackupHistoryModal } from "@/components/admin/backup-history-modal";
 import { format } from "date-fns";
 
 export default function SystemSettingsPage() {
-  // State for maintenance tab
+  // State for maintenance tab - starts with no data until loaded from API
   const [isBackingUp, setIsBackingUp] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
-  const [lastBackup, setLastBackup] = useState("May 10, 2025 02:30 AM");
-  const [lastCleared, setLastCleared] = useState("May 11, 2025 08:15 AM");
+  const [lastBackup, setLastBackup] = useState<string | null>(null);
+  const [lastCleared, setLastCleared] = useState<string | null>(null);
   const [cacheStats, setCacheStats] = useState({
-    size: "42.7 MB",
-    items: 1842,
+    size: "0 MB",
+    items: 0,
   });
+  const [auditLogs, setAuditLogs] = useState<Array<{
+    timestamp: string;
+    user: string;
+    action: string;
+    entityType: string;
+    entityId: string;
+  }>>([]);
 
   // State for modals
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
@@ -522,66 +529,30 @@ export default function SystemSettingsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    <TableRow>
-                      <TableCell>2025-05-11 14:15:22</TableCell>
-                      <TableCell>admin@example.com</TableCell>
-                      <TableCell>UPDATE</TableCell>
-                      <TableCell>User</TableCell>
-                      <TableCell>user_123</TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="sm">
-                          View
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell>2025-05-11 14:10:05</TableCell>
-                      <TableCell>admin@example.com</TableCell>
-                      <TableCell>CREATE</TableCell>
-                      <TableCell>Campaign</TableCell>
-                      <TableCell>camp_456</TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="sm">
-                          View
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell>2025-05-11 13:55:30</TableCell>
-                      <TableCell>john.doe@example.com</TableCell>
-                      <TableCell>DELETE</TableCell>
-                      <TableCell>Lead</TableCell>
-                      <TableCell>lead_789</TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="sm">
-                          View
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell>2025-05-11 13:42:18</TableCell>
-                      <TableCell>sarah.johnson@example.com</TableCell>
-                      <TableCell>LOGIN</TableCell>
-                      <TableCell>User</TableCell>
-                      <TableCell>user_456</TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="sm">
-                          View
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell>2025-05-11 13:30:45</TableCell>
-                      <TableCell>admin@example.com</TableCell>
-                      <TableCell>UPDATE</TableCell>
-                      <TableCell>System</TableCell>
-                      <TableCell>settings</TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="sm">
-                          View
-                        </Button>
-                      </TableCell>
-                    </TableRow>
+                    {auditLogs.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                          <History className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                          <p className="font-medium">No Audit Logs</p>
+                          <p className="text-sm">Activity logs will appear here as actions are performed</p>
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      auditLogs.map((log, idx) => (
+                        <TableRow key={idx}>
+                          <TableCell>{log.timestamp}</TableCell>
+                          <TableCell>{log.user}</TableCell>
+                          <TableCell>{log.action}</TableCell>
+                          <TableCell>{log.entityType}</TableCell>
+                          <TableCell>{log.entityId}</TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="ghost" size="sm">
+                              View
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
                   </TableBody>
                 </Table>
               </CardContent>
@@ -609,7 +580,7 @@ export default function SystemSettingsPage() {
                       <div className="flex justify-between items-center">
                         <div className="flex items-center space-x-2">
                           <span className="text-sm">
-                            Last Backup: {lastBackup}
+                            Last Backup: {lastBackup || "Never"}
                           </span>
                           <Button
                             variant="ghost"
@@ -653,7 +624,7 @@ export default function SystemSettingsPage() {
                       <div className="flex justify-between items-center">
                         <div>
                           <div className="text-sm">
-                            Last Cleared: {lastCleared}
+                            Last Cleared: {lastCleared || "Never"}
                           </div>
                           <div className="text-xs text-muted-foreground mt-1">
                             Current Size: {cacheStats.size} ({cacheStats.items}{" "}

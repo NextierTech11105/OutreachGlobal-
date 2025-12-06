@@ -55,45 +55,6 @@ interface MessageTemplate {
   isActive: boolean;
 }
 
-const defaultTemplates: MessageTemplate[] = [
-  {
-    id: "1",
-    name: "Initial Property Inquiry",
-    category: "INTRODUCTION",
-    content: "Hi {{firstName}}, I noticed your property at {{propertyAddress}}. Are you considering selling? I have buyers looking in {{city}}.",
-    timesUsed: 1234,
-    responseRate: 12.5,
-    isActive: true,
-  },
-  {
-    id: "2",
-    name: "Follow-up - No Response",
-    category: "FOLLOW_UP",
-    content: "Hi {{firstName}}, just following up on my previous message about {{propertyAddress}}. Would you have a few minutes to chat?",
-    timesUsed: 856,
-    responseRate: 8.2,
-    isActive: true,
-  },
-  {
-    id: "3",
-    name: "Equity Offer",
-    category: "PROPERTY_SPECIFIC",
-    content: "{{firstName}}, based on current market data, your property at {{propertyAddress}} may have significant equity. Interested in a no-obligation estimate?",
-    timesUsed: 567,
-    responseRate: 15.7,
-    isActive: true,
-  },
-  {
-    id: "4",
-    name: "Market Update",
-    category: "MARKET_UPDATE",
-    content: "Hi {{firstName}}, properties in {{city}} are moving fast! Homes similar to yours at {{propertyAddress}} are selling above asking. Curious what yours is worth?",
-    timesUsed: 432,
-    responseRate: 11.3,
-    isActive: false,
-  },
-];
-
 const categories = [
   "INTRODUCTION",
   "FOLLOW_UP",
@@ -116,7 +77,8 @@ const tokens = [
 ];
 
 export default function MessageTemplatesPage() {
-  const [templates, setTemplates] = useState<MessageTemplate[]>(defaultTemplates);
+  // Templates state - starts empty, populated by user creation
+  const [templates, setTemplates] = useState<MessageTemplate[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<MessageTemplate | null>(null);
   const [newTemplate, setNewTemplate] = useState({ name: "", category: "", content: "" });
@@ -283,7 +245,9 @@ export default function MessageTemplatesPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {(templates.reduce((sum, t) => sum + t.responseRate, 0) / templates.length).toFixed(1)}%
+              {templates.length > 0
+                ? (templates.reduce((sum, t) => sum + t.responseRate, 0) / templates.length).toFixed(1)
+                : "0"}%
             </div>
           </CardContent>
         </Card>
@@ -309,6 +273,15 @@ export default function MessageTemplatesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
+              {templates.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                    <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p className="font-medium">No Templates Yet</p>
+                    <p className="text-sm">Create your first message template to get started</p>
+                  </TableCell>
+                </TableRow>
+              ) : null}
               {templates.map((template) => (
                 <TableRow key={template.id} className={!template.isActive ? "opacity-50" : ""}>
                   <TableCell className="font-medium">{template.name}</TableCell>

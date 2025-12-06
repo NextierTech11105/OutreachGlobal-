@@ -23,63 +23,8 @@ export default function WorkflowsPage() {
     undefined,
   );
 
-  // Mock data for workflows
-  const [workflows, setWorkflows] = useState<Workflow[]>([
-    {
-      id: "1",
-      name: "Lead Response Follow-up",
-      description: "Automatically follow up when a lead responds to an email",
-      trigger: "email_received",
-      actions: [
-        {
-          type: "create_task",
-          config: {
-            taskType: "follow_up",
-            assignTo: "lead_owner",
-            dueIn: 24,
-          },
-        },
-      ],
-      status: "active",
-      createdAt: "2025-04-10T12:00:00Z",
-      lastRunAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: "2",
-      name: "New Lead Assignment",
-      description: "Assign new leads to team members based on territory",
-      trigger: "lead_created",
-      actions: [
-        {
-          type: "assign_lead",
-          config: {
-            assignmentRule: "territory_based",
-          },
-        },
-      ],
-      status: "active",
-      createdAt: "2025-03-22T12:00:00Z",
-      lastRunAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-    },
-    {
-      id: "3",
-      name: "Campaign Completion Notification",
-      description: "Send notifications when campaigns are completed",
-      trigger: "campaign_completed",
-      actions: [
-        {
-          type: "send_notification",
-          config: {
-            notificationType: "email",
-            recipients: ["campaign_owner", "marketing_team"],
-          },
-        },
-      ],
-      status: "active",
-      createdAt: "2025-02-15T12:00:00Z",
-      lastRunAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-    },
-  ]);
+  // Workflows state - starts empty, populated by user creation
+  const [workflows, setWorkflows] = useState<Workflow[]>([]);
 
   // Filter workflows by status
   const activeWorkflows = workflows.filter((w) => w.status === "active");
