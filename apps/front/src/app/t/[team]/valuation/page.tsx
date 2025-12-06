@@ -30,6 +30,13 @@ import {
   CheckCircle2, AlertCircle, Info, FileText
 } from "lucide-react";
 import { toast } from "sonner";
+import dynamic from "next/dynamic";
+
+// Dynamic import to avoid SSR issues with mapbox-gl
+const DualMapView = dynamic(
+  () => import("@/components/mapbox-property-view").then((mod) => mod.DualMapView),
+  { ssr: false, loading: () => <div className="w-full h-64 bg-muted animate-pulse rounded-lg" /> }
+);
 
 interface AddressSuggestion {
   id?: string;
@@ -452,27 +459,12 @@ export default function ValuationPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {report.streetViewUrl ? (
-                  <div className="space-y-4">
-                    <img
-                      src={report.streetViewUrl}
-                      alt="Satellite View"
-                      className="w-full h-64 object-cover rounded-lg border"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = "/placeholder-property.jpg";
-                      }}
-                    />
-                    {report.mapUrl && (
-                      <img
-                        src={report.mapUrl}
-                        alt="Map View"
-                        className="w-full h-40 object-cover rounded-lg border"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = "none";
-                        }}
-                      />
-                    )}
-                  </div>
+                {(prop?.address?.latitude && prop?.address?.longitude) || (prop?.latitude && prop?.longitude) ? (
+                  <DualMapView
+                    latitude={Number(prop?.address?.latitude || prop?.latitude)}
+                    longitude={Number(prop?.address?.longitude || prop?.longitude)}
+                    address={`${prop?.address?.address || prop?.address?.street || ""}, ${prop?.address?.city || ""}, ${prop?.address?.state || ""}`}
+                  />
                 ) : (
                   <div className="w-full h-64 bg-muted rounded-lg flex items-center justify-center">
                     <div className="text-center text-muted-foreground">
