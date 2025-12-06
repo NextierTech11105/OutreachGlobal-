@@ -65,8 +65,13 @@ export async function POST(request: NextRequest) {
       features: property.features || property.amenities || [],
     };
 
-    // Build prompt for AI analysis
-    const prompt = `You are a professional real estate analyst. Analyze the following property and provide a comprehensive valuation report with actionable insights.
+    // Determine the city/area for context
+    const cityState = [address.city, address.state].filter(Boolean).join(", ");
+    const currentYear = new Date().getFullYear();
+    const propertyAge = propertyDetails.yearBuilt ? currentYear - Number(propertyDetails.yearBuilt) : 0;
+
+    // Build prompt for AI analysis with neighborhood history
+    const prompt = `You are an expert real estate analyst with deep knowledge of ${cityState || "this area"}'s real estate market history. Analyze the following property and provide a COMPREHENSIVE valuation report with neighborhood history, decade-by-decade market evolution, and actionable insights.
 
 PROPERTY DATA:
 Address: ${propertyDetails.address}
@@ -74,7 +79,7 @@ Property Type: ${propertyDetails.propertyType}
 Bedrooms: ${propertyDetails.bedrooms}
 Bathrooms: ${propertyDetails.bathrooms}
 Square Feet: ${propertyDetails.sqft.toLocaleString()}
-Year Built: ${propertyDetails.yearBuilt}
+Year Built: ${propertyDetails.yearBuilt} (${propertyAge} years old)
 Lot Size: ${propertyDetails.lotSize.toLocaleString()} sq ft
 Estimated Value: $${propertyDetails.estimatedValue.toLocaleString()}
 Last Sale: $${propertyDetails.lastSaleAmount.toLocaleString()} on ${propertyDetails.lastSaleDate || "N/A"}
@@ -96,41 +101,177 @@ NEIGHBORHOOD STATS:
 - Avg Price/SqFt: $${neighborhood?.avgPricePerSqft || 0}
 - Total Properties: ${neighborhood?.totalProperties || 0}
 - Average Year Built: ${neighborhood?.avgYearBuilt || "Unknown"}
+${neighborhood?.priceHistory ? `- Price History: ${JSON.stringify(neighborhood.priceHistory)}` : ""}
 
 COMPARABLE PROPERTIES: ${comparables?.length || 0} found
 
-Provide your analysis in the following JSON format:
+Provide your COMPREHENSIVE analysis in the following JSON format. Be specific with numbers and provide realistic data based on the ${cityState || "area"} market:
+
 {
-  "executiveSummary": "A 2-3 sentence overview of the property and its market position",
+  "executiveSummary": "A detailed 3-4 sentence overview of the property, its unique position in the market, and key investment thesis",
   "valuationAnalysis": {
-    "marketPosition": "How the property compares to market (above/at/below market value)",
-    "valueDrivers": ["List of 3-5 factors positively affecting value"],
-    "valueDetractors": ["List of 1-3 factors negatively affecting value"],
-    "appreciationPotential": "Short-term and long-term appreciation outlook"
+    "marketPosition": "Detailed explanation of how this property compares to market (include specific percentage above/below market)",
+    "valueDrivers": ["List of 4-6 specific factors positively affecting value with explanations"],
+    "valueDetractors": ["List of 2-4 factors that could negatively affect value"],
+    "appreciationPotential": "Detailed short-term (1-2 year) and long-term (5-10 year) appreciation forecast with percentages",
+    "fairMarketValueRange": {
+      "low": "Conservative estimate",
+      "mid": "Most likely value",
+      "high": "Optimistic estimate"
+    }
+  },
+  "neighborhoodHistory": {
+    "overview": "Comprehensive 3-4 sentence history of ${cityState || "the neighborhood"} and its development",
+    "decadeByDecade": [
+      {
+        "decade": "1980s",
+        "description": "What was happening in this area during the 1980s",
+        "avgHomePrice": "Average home price in this decade (estimate)",
+        "keyEvents": ["Major events or changes that shaped the area"]
+      },
+      {
+        "decade": "1990s",
+        "description": "Development and changes in the 1990s",
+        "avgHomePrice": "Average home price estimate",
+        "keyEvents": ["Key developments"]
+      },
+      {
+        "decade": "2000s",
+        "description": "The 2000s including the housing bubble impact",
+        "avgHomePrice": "Average home price estimate",
+        "keyEvents": ["Key developments including 2008 crisis impact"]
+      },
+      {
+        "decade": "2010s",
+        "description": "Recovery and growth in the 2010s",
+        "avgHomePrice": "Average home price estimate",
+        "keyEvents": ["Post-recession recovery, new developments"]
+      },
+      {
+        "decade": "2020s",
+        "description": "Current decade including COVID impact and recent trends",
+        "avgHomePrice": "Current average home price",
+        "keyEvents": ["COVID impact, remote work migration, current developments"]
+      }
+    ],
+    "futureOutlook": "5-10 year prediction for the neighborhood",
+    "gentrificationStatus": "Current gentrification stage (early/mid/mature/declining) and trajectory"
+  },
+  "priceEvolution": {
+    "chartData": [
+      {"year": 1990, "avgPrice": 100000, "thisProperty": null},
+      {"year": 1995, "avgPrice": 120000, "thisProperty": null},
+      {"year": 2000, "avgPrice": 180000, "thisProperty": ${propertyDetails.lastSaleDate?.includes("2000") ? propertyDetails.lastSaleAmount : "null"}},
+      {"year": 2005, "avgPrice": 350000, "thisProperty": null},
+      {"year": 2008, "avgPrice": 400000, "thisProperty": null},
+      {"year": 2010, "avgPrice": 280000, "thisProperty": null},
+      {"year": 2015, "avgPrice": 380000, "thisProperty": ${propertyDetails.lastSaleDate?.includes("2015") ? propertyDetails.lastSaleAmount : "null"}},
+      {"year": 2020, "avgPrice": 550000, "thisProperty": null},
+      {"year": 2023, "avgPrice": 750000, "thisProperty": null},
+      {"year": 2024, "avgPrice": ${neighborhood?.medianValue || 800000}, "thisProperty": ${propertyDetails.estimatedValue}},
+      {"year": 2025, "avgPrice": "Projected value", "thisProperty": "Projected value"}
+    ],
+    "totalAppreciation": "Percentage appreciation from earliest data point to now",
+    "annualizedReturn": "Average annual appreciation rate"
   },
   "investmentInsights": {
-    "investorProfile": "What type of investor this property suits",
-    "rentalPotential": "Estimated monthly rent range and yield",
-    "flipPotential": "Rehab opportunity assessment",
-    "holdStrategy": "Long-term hold recommendations"
+    "investorProfile": "Detailed description of ideal investor type with specific use cases",
+    "rentalPotential": {
+      "estimatedMonthlyRent": "Realistic monthly rent estimate",
+      "grossYield": "Annual gross rental yield percentage",
+      "netYield": "Net yield after expenses",
+      "rentToValueRatio": "Rent as percentage of property value"
+    },
+    "flipPotential": {
+      "rehabCostEstimate": "Estimated renovation cost range",
+      "afterRepairValue": "Projected ARV after renovations",
+      "potentialProfit": "Expected profit after flip",
+      "recommendation": "Whether to flip or not and why"
+    },
+    "holdStrategy": "Detailed long-term hold recommendations with exit strategy options",
+    "cashFlowAnalysis": {
+      "monthlyMortgage": "Estimated mortgage payment",
+      "monthlyCashFlow": "Net monthly cash flow if rented",
+      "breakEvenPoint": "Years to break even on investment"
+    }
   },
   "marketTrends": {
-    "neighborhoodOutlook": "Area growth/decline indicators",
-    "supplyDemand": "Current market conditions",
-    "bestTimeToSell": "Optimal selling timing advice"
+    "neighborhoodOutlook": "Detailed area growth indicators with specific data points",
+    "supplyDemand": {
+      "inventoryLevel": "Current inventory status (low/balanced/high)",
+      "daysOnMarket": "Average days on market in area",
+      "buyerDemand": "Current buyer demand level",
+      "priceDirection": "Whether prices are rising/stable/falling"
+    },
+    "bestTimeToSell": "Specific timing advice with seasonal considerations",
+    "economicFactors": ["List of 3-4 economic factors affecting this market"],
+    "competingListings": "Analysis of current competition in the area"
   },
-  "recommendations": ["List of 3-5 actionable recommendations"],
-  "riskFactors": ["List of 2-3 key risks to consider"],
+  "comparableAnalysis": {
+    "summary": "How this property stacks up against the ${comparables?.length || 0} comparables",
+    "strengths": ["What makes this property better than comps"],
+    "weaknesses": ["Where this property falls short of comps"],
+    "pricePositioning": "Whether priced correctly relative to comps"
+  },
+  "recommendations": [
+    "5-7 specific, actionable recommendations with timelines and expected outcomes"
+  ],
+  "riskFactors": [
+    "3-5 detailed risk factors with mitigation strategies"
+  ],
+  "actionPlan": {
+    "immediate": ["Actions to take in the next 30 days"],
+    "shortTerm": ["Actions for the next 3-6 months"],
+    "longTerm": ["Strategic moves for 1-5 years"]
+  },
+  "equityUnlockingStrategies": {
+    "zoningOpportunities": {
+      "currentZoning": "Current zoning classification and what it allows",
+      "potentialUpzoning": "Possibility of rezoning and what it could unlock",
+      "additionalUnits": "Can an ADU, duplex conversion, or additional units be added?",
+      "commercialPotential": "Any mixed-use or commercial potential?"
+    },
+    "lotDevelopment": {
+      "lotUtilization": "How well is the current lot being used?",
+      "subdivisionPotential": "Can the lot be subdivided?",
+      "buildableArea": "Additional buildable square footage potential",
+      "landscapingValue": "Outdoor improvements that add value"
+    },
+    "structuralOpportunities": {
+      "additionPotential": "Can the structure be expanded?",
+      "conversionOptions": "Basement, attic, or garage conversion possibilities",
+      "modernizationROI": "Which upgrades offer best ROI?"
+    },
+    "financialStrategies": {
+      "cashOutRefi": "Cash-out refinance potential and recommended amount",
+      "heloc": "HELOC availability and optimal usage",
+      "rentalIncome": "Adding rental income through conversion",
+      "shortTermRental": "Airbnb/VRBO potential based on local regulations"
+    },
+    "neighborhoodLeverage": {
+      "developmentTrends": "How nearby development affects this property's potential",
+      "infrastructureChanges": "Upcoming transit, schools, or amenities that add value",
+      "comparableProjects": "What neighbors have done to unlock equity"
+    },
+    "estimatedEquityUnlock": "Total potential equity that could be unlocked with improvements",
+    "recommendedStrategy": "The single best strategy for this specific property"
+  },
   "confidenceScore": 85,
-  "analysisDate": "${new Date().toISOString().split('T')[0]}"
+  "analysisDate": "${new Date().toISOString().split('T')[0]}",
+  "disclaimer": "This analysis is for informational purposes only and should not be considered financial advice. Values are estimates based on available data."
 }
 
-IMPORTANT: Return ONLY valid JSON, no markdown or additional text.`;
+CRITICAL:
+1. Return ONLY valid JSON, no markdown, no code blocks, no additional text
+2. Be SPECIFIC with numbers - use realistic values for ${cityState || "the area"} market
+3. Include actual decade-by-decade history with realistic price evolution
+4. Provide actionable insights that an investor could immediately use
+5. Make the neighborhood history compelling and educational`;
 
-    // Call Claude API
+    // Call Claude API with higher token limit for comprehensive analysis
     const message = await anthropic.messages.create({
       model: "claude-sonnet-4-20250514",
-      max_tokens: 2000,
+      max_tokens: 8000,
       messages: [
         {
           role: "user",

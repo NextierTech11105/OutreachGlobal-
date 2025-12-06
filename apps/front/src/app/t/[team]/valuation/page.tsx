@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -28,7 +29,7 @@ import {
   Building2, Calendar, Ruler, Bath, BedDouble, Download, Printer,
   Camera, Map, BarChart3, ArrowUpRight, ArrowDownRight, Minus,
   CheckCircle2, AlertCircle, Info, FileText, Sparkles, Mail, MessageSquare,
-  Share2, Link2, Copy, ExternalLink, Brain
+  Share2, Link2, Copy, ExternalLink, Brain, User, Landmark, Percent, CreditCard
 } from "lucide-react";
 import { toast } from "sonner";
 import dynamic from "next/dynamic";
@@ -74,7 +75,7 @@ const US_STATES = [
 
 interface ValuationReport {
   property: {
-    id: string;
+    id: string | number;
     address: {
       address?: string;
       street?: string;
@@ -92,6 +93,7 @@ interface ValuationReport {
     squareFeet?: number;
     buildingSize?: number;
     lotSize?: number;
+    lotSquareFeet?: number;
     yearBuilt?: number;
     estimatedValue?: number;
     avm?: number;
@@ -99,6 +101,7 @@ interface ValuationReport {
     lastSaleDate?: string;
     openMortgageBalance?: number;
     mortgageBalance?: number;
+    estimatedEquity?: number;
     owner1FirstName?: string;
     owner1LastName?: string;
     ownerOccupied?: boolean;
@@ -147,22 +150,113 @@ interface AIAnalysis {
     valueDrivers: string[];
     valueDetractors: string[];
     appreciationPotential: string;
+    fairMarketValueRange?: {
+      low: string;
+      mid: string;
+      high: string;
+    };
+  };
+  neighborhoodHistory?: {
+    overview: string;
+    decadeByDecade: Array<{
+      decade: string;
+      description: string;
+      avgHomePrice: string;
+      keyEvents: string[];
+    }>;
+    futureOutlook: string;
+    gentrificationStatus: string;
+  };
+  priceEvolution?: {
+    chartData: Array<{
+      year: number;
+      avgPrice: number | string;
+      thisProperty: number | string | null;
+    }>;
+    totalAppreciation: string;
+    annualizedReturn: string;
   };
   investmentInsights: {
     investorProfile: string;
-    rentalPotential: string;
-    flipPotential: string;
+    rentalPotential: string | {
+      estimatedMonthlyRent: string;
+      grossYield: string;
+      netYield: string;
+      rentToValueRatio: string;
+    };
+    flipPotential: string | {
+      rehabCostEstimate: string;
+      afterRepairValue: string;
+      potentialProfit: string;
+      recommendation: string;
+    };
     holdStrategy: string;
+    cashFlowAnalysis?: {
+      monthlyMortgage: string;
+      monthlyCashFlow: string;
+      breakEvenPoint: string;
+    };
   };
   marketTrends: {
     neighborhoodOutlook: string;
-    supplyDemand: string;
+    supplyDemand: string | {
+      inventoryLevel: string;
+      daysOnMarket: string;
+      buyerDemand: string;
+      priceDirection: string;
+    };
     bestTimeToSell: string;
+    economicFactors?: string[];
+    competingListings?: string;
+  };
+  comparableAnalysis?: {
+    summary: string;
+    strengths: string[];
+    weaknesses: string[];
+    pricePositioning: string;
   };
   recommendations: string[];
   riskFactors: string[];
+  actionPlan?: {
+    immediate: string[];
+    shortTerm: string[];
+    longTerm: string[];
+  };
+  equityUnlockingStrategies?: {
+    zoningOpportunities: {
+      currentZoning: string;
+      potentialUpzoning: string;
+      additionalUnits: string;
+      commercialPotential: string;
+    };
+    lotDevelopment: {
+      lotUtilization: string;
+      subdivisionPotential: string;
+      buildableArea: string;
+      landscapingValue: string;
+    };
+    structuralOpportunities: {
+      additionPotential: string;
+      conversionOptions: string;
+      modernizationROI: string;
+    };
+    financialStrategies: {
+      cashOutRefi: string;
+      heloc: string;
+      rentalIncome: string;
+      shortTermRental: string;
+    };
+    neighborhoodLeverage: {
+      developmentTrends: string;
+      infrastructureChanges: string;
+      comparableProjects: string;
+    };
+    estimatedEquityUnlock: string;
+    recommendedStrategy: string;
+  };
   confidenceScore: number;
   analysisDate: string;
+  disclaimer?: string;
 }
 
 export default function ValuationPage() {
@@ -292,6 +386,17 @@ export default function ValuationPage() {
       }
     };
   }, []);
+
+  // Auto-trigger AI analysis when report loads
+  useEffect(() => {
+    if (report && !aiAnalysis && !aiLoading) {
+      // Delay slightly to let UI render first
+      const timer = setTimeout(() => {
+        handleAIAnalysis();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [report]);
 
   const handleSearch = async () => {
     if (!address && !zip) {
@@ -792,115 +897,378 @@ export default function ValuationPage() {
             </div>
           </div>
 
-          {/* Property Overview with Street View */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Street View */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Camera className="h-5 w-5" />
-                  Property View
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {(prop?.address?.latitude && prop?.address?.longitude) || (prop?.latitude && prop?.longitude) ? (
-                  <DualMapView
-                    latitude={Number(prop?.address?.latitude || prop?.latitude)}
-                    longitude={Number(prop?.address?.longitude || prop?.longitude)}
-                    address={`${prop?.address?.address || prop?.address?.street || ""}, ${prop?.address?.city || ""}, ${prop?.address?.state || ""}`}
-                  />
-                ) : (
-                  <div className="w-full h-64 bg-muted rounded-lg flex items-center justify-center">
-                    <div className="text-center text-muted-foreground">
-                      <Map className="h-12 w-12 mx-auto mb-2" />
-                      <p>Property view not available</p>
+          {/* Property Header with Key Stats */}
+          <Card className="border-2 border-primary/50 bg-gradient-to-r from-primary/5 to-primary/10">
+            <CardHeader>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                  <CardTitle className="text-2xl flex items-center gap-2">
+                    <Home className="h-6 w-6" />
+                    {prop?.address?.address || prop?.address?.street || "Property"}
+                  </CardTitle>
+                  <CardDescription className="text-lg mt-1">
+                    <MapPin className="h-4 w-4 inline mr-1" />
+                    {prop?.address?.city}, {prop?.address?.state} {prop?.address?.zip}
+                  </CardDescription>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Badge className="text-lg px-3 py-1" variant="outline">
+                    {prop?.propertyType || "Residential"}
+                  </Badge>
+                  <Badge className="text-lg px-3 py-1 bg-green-600">
+                    {formatCurrency(prop?.estimatedValue || val?.estimatedValue || 0)}
+                  </Badge>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                <div className="text-center p-3 bg-background rounded-lg">
+                  <BedDouble className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
+                  <p className="text-xl font-bold">{prop?.bedrooms || prop?.beds || "N/A"}</p>
+                  <p className="text-xs text-muted-foreground">Beds</p>
+                </div>
+                <div className="text-center p-3 bg-background rounded-lg">
+                  <Bath className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
+                  <p className="text-xl font-bold">{prop?.bathrooms || prop?.baths || "N/A"}</p>
+                  <p className="text-xs text-muted-foreground">Baths</p>
+                </div>
+                <div className="text-center p-3 bg-background rounded-lg">
+                  <Ruler className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
+                  <p className="text-xl font-bold">{formatNumber(prop?.squareFeet || prop?.buildingSize || 0)}</p>
+                  <p className="text-xs text-muted-foreground">Sq Ft</p>
+                </div>
+                <div className="text-center p-3 bg-background rounded-lg">
+                  <Calendar className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
+                  <p className="text-xl font-bold">{prop?.yearBuilt || "N/A"}</p>
+                  <p className="text-xs text-muted-foreground">Year Built</p>
+                </div>
+                <div className="text-center p-3 bg-background rounded-lg">
+                  <Map className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
+                  <p className="text-xl font-bold">{formatNumber(prop?.lotSquareFeet || prop?.lotSize || 0)}</p>
+                  <p className="text-xs text-muted-foreground">Lot Sq Ft</p>
+                </div>
+                <div className="text-center p-3 bg-background rounded-lg">
+                  <DollarSign className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
+                  <p className="text-xl font-bold">${val?.pricePerSqft || 0}</p>
+                  <p className="text-xs text-muted-foreground">Per Sq Ft</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Tabbed Property Details */}
+          <Tabs defaultValue="property" className="w-full">
+            <TabsList className="grid w-full grid-cols-5">
+              <TabsTrigger value="property" className="flex items-center gap-1">
+                <Home className="h-4 w-4" />
+                <span className="hidden sm:inline">Property</span>
+              </TabsTrigger>
+              <TabsTrigger value="owner" className="flex items-center gap-1">
+                <User className="h-4 w-4" />
+                <span className="hidden sm:inline">Owner</span>
+              </TabsTrigger>
+              <TabsTrigger value="financial" className="flex items-center gap-1">
+                <DollarSign className="h-4 w-4" />
+                <span className="hidden sm:inline">Financial</span>
+              </TabsTrigger>
+              <TabsTrigger value="location" className="flex items-center gap-1">
+                <MapPin className="h-4 w-4" />
+                <span className="hidden sm:inline">Location</span>
+              </TabsTrigger>
+              <TabsTrigger value="map" className="flex items-center gap-1">
+                <Map className="h-4 w-4" />
+                <span className="hidden sm:inline">Map</span>
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Property Tab */}
+            <TabsContent value="property">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Building2 className="h-5 w-5" />
+                    Property Details
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="space-y-4">
+                      <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Basic Info</h4>
+                      <div className="space-y-3">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Property ID</span>
+                          <span className="font-mono font-medium">{prop?.id || "N/A"}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Property Type</span>
+                          <span className="font-medium">{prop?.propertyType || "Unknown"}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Year Built</span>
+                          <span className="font-medium">{prop?.yearBuilt || "N/A"}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Property Age</span>
+                          <span className="font-medium">{prop?.yearBuilt ? `${new Date().getFullYear() - prop.yearBuilt} years` : "N/A"}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Size & Layout</h4>
+                      <div className="space-y-3">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Bedrooms</span>
+                          <span className="font-medium">{prop?.bedrooms || prop?.beds || "N/A"}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Bathrooms</span>
+                          <span className="font-medium">{prop?.bathrooms || prop?.baths || "N/A"}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Living Area</span>
+                          <span className="font-medium">{formatNumber(prop?.squareFeet || prop?.buildingSize || 0)} sq ft</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Lot Size</span>
+                          <span className="font-medium">{formatNumber(prop?.lotSquareFeet || prop?.lotSize || 0)} sq ft</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Valuation</h4>
+                      <div className="space-y-3">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Estimated Value</span>
+                          <span className="font-medium text-green-600">{formatCurrency(prop?.estimatedValue || val?.estimatedValue || 0)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Price/Sq Ft</span>
+                          <span className="font-medium">{formatCurrency(val?.pricePerSqft || 0)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Comp Average</span>
+                          <span className="font-medium">{formatCurrency(val?.comparableAvg || 0)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Confidence</span>
+                          {val && getConfidenceBadge(val.confidence)}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-            {/* Property Details */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Home className="h-5 w-5" />
-                  Property Details
-                </CardTitle>
-                <CardDescription>
-                  <MapPin className="h-4 w-4 inline mr-1" />
-                  {prop?.address?.address || prop?.address?.street}, {prop?.address?.city}, {prop?.address?.state} {prop?.address?.zip}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex items-center gap-2">
-                    <Building2 className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">
-                      <strong>Type:</strong> {prop?.propertyType || "Residential"}
-                    </span>
+            {/* Owner Tab */}
+            <TabsContent value="owner">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <User className="h-5 w-5" />
+                    Owner Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Owner Details</h4>
+                      <div className="p-4 bg-muted rounded-lg">
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="h-12 w-12 rounded-full bg-primary/20 flex items-center justify-center">
+                            <User className="h-6 w-6 text-primary" />
+                          </div>
+                          <div>
+                            <p className="text-lg font-semibold">
+                              {[prop?.owner1FirstName, prop?.owner1LastName].filter(Boolean).join(" ") || "Owner Name Not Available"}
+                            </p>
+                            <Badge variant={prop?.ownerOccupied ? "default" : "secondary"}>
+                              {prop?.ownerOccupied ? "Owner Occupied" : "Non-Owner Occupied"}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Ownership Status</h4>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                          <span className="text-muted-foreground">Occupancy</span>
+                          <Badge variant={prop?.ownerOccupied ? "default" : "outline"}>
+                            {prop?.ownerOccupied ? "Owner Occupied" : "Tenant/Vacant"}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <BedDouble className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">
-                      <strong>Beds:</strong> {prop?.bedrooms || prop?.beds || "N/A"}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Bath className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">
-                      <strong>Baths:</strong> {prop?.bathrooms || prop?.baths || "N/A"}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Ruler className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">
-                      <strong>Sq Ft:</strong> {formatNumber(prop?.squareFeet || prop?.buildingSize || 0)}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">
-                      <strong>Year Built:</strong> {prop?.yearBuilt || "N/A"}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Map className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">
-                      <strong>Lot Size:</strong> {formatNumber(prop?.lotSize || 0)} sq ft
-                    </span>
-                  </div>
-                </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-                <Separator className="my-4" />
+            {/* Financial Tab */}
+            <TabsContent value="financial">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Landmark className="h-5 w-5" />
+                    Financial Details
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Equity Card */}
+                    <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-900">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Percent className="h-5 w-5 text-green-600" />
+                        <h4 className="font-semibold text-green-800 dark:text-green-400">Equity Position</h4>
+                      </div>
+                      <p className="text-3xl font-bold text-green-600">{formatCurrency(val?.equityEstimate || prop?.estimatedEquity || 0)}</p>
+                      <p className="text-sm text-green-700 dark:text-green-500 mt-1">
+                        {((val?.equityEstimate || 0) / (prop?.estimatedValue || 1) * 100).toFixed(0)}% of property value
+                      </p>
+                    </div>
 
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Owner</span>
-                    <span className="font-medium">
-                      {[prop?.owner1FirstName, prop?.owner1LastName].filter(Boolean).join(" ") || "N/A"}
-                    </span>
+                    {/* Mortgage Card */}
+                    <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-900">
+                      <div className="flex items-center gap-2 mb-3">
+                        <CreditCard className="h-5 w-5 text-blue-600" />
+                        <h4 className="font-semibold text-blue-800 dark:text-blue-400">Mortgage Balance</h4>
+                      </div>
+                      <p className="text-3xl font-bold text-blue-600">{formatCurrency(prop?.openMortgageBalance || prop?.mortgageBalance || 0)}</p>
+                      <p className="text-sm text-blue-700 dark:text-blue-500 mt-1">Outstanding balance</p>
+                    </div>
+
+                    {/* Last Sale Card */}
+                    <div className="p-4 bg-purple-50 dark:bg-purple-950/20 rounded-lg border border-purple-200 dark:border-purple-900">
+                      <div className="flex items-center gap-2 mb-3">
+                        <TrendingUp className="h-5 w-5 text-purple-600" />
+                        <h4 className="font-semibold text-purple-800 dark:text-purple-400">Last Sale</h4>
+                      </div>
+                      <p className="text-3xl font-bold text-purple-600">{formatCurrency(prop?.lastSaleAmount || 0)}</p>
+                      <p className="text-sm text-purple-700 dark:text-purple-500 mt-1">
+                        {prop?.lastSaleDate ? new Date(prop.lastSaleDate).toLocaleDateString() : "Date not available"}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Owner Occupied</span>
-                    <Badge variant={prop?.ownerOccupied ? "default" : "secondary"}>
-                      {prop?.ownerOccupied ? "Yes" : "No"}
-                    </Badge>
+
+                  <Separator className="my-6" />
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Value Breakdown</h4>
+                      <div className="space-y-3">
+                        <div className="flex justify-between p-2 hover:bg-muted rounded">
+                          <span className="text-muted-foreground">Estimated Value</span>
+                          <span className="font-semibold">{formatCurrency(prop?.estimatedValue || val?.estimatedValue || 0)}</span>
+                        </div>
+                        <div className="flex justify-between p-2 hover:bg-muted rounded">
+                          <span className="text-muted-foreground">Mortgage Balance</span>
+                          <span className="font-semibold text-red-600">-{formatCurrency(prop?.openMortgageBalance || 0)}</span>
+                        </div>
+                        <Separator />
+                        <div className="flex justify-between p-2 bg-green-50 dark:bg-green-950/20 rounded">
+                          <span className="font-medium">Estimated Equity</span>
+                          <span className="font-bold text-green-600">{formatCurrency(val?.equityEstimate || 0)}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Appreciation</h4>
+                      <div className="space-y-3">
+                        {prop?.lastSaleAmount && prop?.estimatedValue ? (
+                          <>
+                            <div className="flex justify-between p-2 hover:bg-muted rounded">
+                              <span className="text-muted-foreground">Purchase Price</span>
+                              <span className="font-semibold">{formatCurrency(prop.lastSaleAmount)}</span>
+                            </div>
+                            <div className="flex justify-between p-2 hover:bg-muted rounded">
+                              <span className="text-muted-foreground">Current Value</span>
+                              <span className="font-semibold">{formatCurrency(prop.estimatedValue)}</span>
+                            </div>
+                            <div className="flex justify-between p-2 bg-green-50 dark:bg-green-950/20 rounded">
+                              <span className="font-medium">Total Appreciation</span>
+                              <span className="font-bold text-green-600">
+                                +{formatCurrency(prop.estimatedValue - prop.lastSaleAmount)}
+                                ({(((prop.estimatedValue - prop.lastSaleAmount) / prop.lastSaleAmount) * 100).toFixed(1)}%)
+                              </span>
+                            </div>
+                          </>
+                        ) : (
+                          <p className="text-muted-foreground">Sale history not available</p>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Last Sale</span>
-                    <span className="font-medium">
-                      {prop?.lastSaleDate ? (
-                        <>
-                          {formatCurrency(prop?.lastSaleAmount || 0)} ({new Date(prop.lastSaleDate).toLocaleDateString()})
-                        </>
-                      ) : "N/A"}
-                    </span>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Location Tab */}
+            <TabsContent value="location">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MapPin className="h-5 w-5" />
+                    Location Details
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Address</h4>
+                      <div className="p-4 bg-muted rounded-lg space-y-2">
+                        <p className="font-semibold text-lg">{prop?.address?.address || prop?.address?.street}</p>
+                        <p>{prop?.address?.city}, {prop?.address?.state} {prop?.address?.zip}</p>
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Coordinates</h4>
+                      <div className="space-y-3">
+                        <div className="flex justify-between p-2 bg-muted rounded">
+                          <span className="text-muted-foreground">Latitude</span>
+                          <span className="font-mono font-medium">{prop?.address?.latitude || prop?.latitude || "N/A"}</span>
+                        </div>
+                        <div className="flex justify-between p-2 bg-muted rounded">
+                          <span className="text-muted-foreground">Longitude</span>
+                          <span className="font-mono font-medium">{prop?.address?.longitude || prop?.longitude || "N/A"}</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Map Tab */}
+            <TabsContent value="map">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Camera className="h-5 w-5" />
+                    Property Map & Street View
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {(prop?.address?.latitude && prop?.address?.longitude) || (prop?.latitude && prop?.longitude) ? (
+                    <DualMapView
+                      latitude={Number(prop?.address?.latitude || prop?.latitude)}
+                      longitude={Number(prop?.address?.longitude || prop?.longitude)}
+                      address={`${prop?.address?.address || prop?.address?.street || ""}, ${prop?.address?.city || ""}, ${prop?.address?.state || ""}`}
+                    />
+                  ) : (
+                    <div className="w-full h-64 bg-muted rounded-lg flex items-center justify-center">
+                      <div className="text-center text-muted-foreground">
+                        <Map className="h-12 w-12 mx-auto mb-2" />
+                        <p>Property view not available</p>
+                        <p className="text-sm">Coordinates not found for this property</p>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
 
           {/* Valuation Summary */}
           <Card className="border-2 border-primary">
@@ -1012,6 +1380,113 @@ export default function ValuationPage() {
                   <p className="text-muted-foreground">{aiAnalysis.executiveSummary}</p>
                 </div>
 
+                {/* Neighborhood History Section */}
+                {aiAnalysis.neighborhoodHistory && (
+                  <div className="p-4 bg-background rounded-lg border">
+                    <h4 className="font-semibold mb-4 flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-indigo-600" />
+                      Neighborhood History & Evolution
+                    </h4>
+                    <p className="text-muted-foreground mb-4">{aiAnalysis.neighborhoodHistory.overview}</p>
+
+                    {/* Decade by Decade Timeline */}
+                    <div className="space-y-4">
+                      <h5 className="font-medium text-sm uppercase tracking-wide text-muted-foreground">Decade by Decade</h5>
+                      <div className="relative">
+                        <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gradient-to-b from-indigo-500 via-purple-500 to-pink-500"></div>
+                        {aiAnalysis.neighborhoodHistory.decadeByDecade?.map((decade, idx) => (
+                          <div key={idx} className="relative pl-10 pb-6 last:pb-0">
+                            <div className="absolute left-2.5 w-3 h-3 rounded-full bg-indigo-500 border-2 border-background"></div>
+                            <div className="bg-muted/50 rounded-lg p-3">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="font-bold text-lg">{decade.decade}</span>
+                                <Badge variant="outline">{decade.avgHomePrice}</Badge>
+                              </div>
+                              <p className="text-sm text-muted-foreground mb-2">{decade.description}</p>
+                              {decade.keyEvents?.length > 0 && (
+                                <div className="flex flex-wrap gap-1">
+                                  {decade.keyEvents.map((event, eventIdx) => (
+                                    <Badge key={eventIdx} variant="secondary" className="text-xs">{event}</Badge>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <Separator className="my-4" />
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Future Outlook (5-10 years)</p>
+                        <p className="font-medium">{aiAnalysis.neighborhoodHistory.futureOutlook}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Gentrification Status</p>
+                        <Badge variant="outline">{aiAnalysis.neighborhoodHistory.gentrificationStatus}</Badge>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Price Evolution Chart */}
+                {aiAnalysis.priceEvolution?.chartData && (
+                  <div className="p-4 bg-background rounded-lg border">
+                    <h4 className="font-semibold mb-4 flex items-center gap-2">
+                      <BarChart3 className="h-4 w-4 text-green-600" />
+                      Price Evolution Over Time
+                    </h4>
+                    <div className="h-48 flex items-end gap-2">
+                      {aiAnalysis.priceEvolution.chartData.filter(d => typeof d.avgPrice === 'number').map((point, idx) => {
+                        const maxPrice = Math.max(...aiAnalysis.priceEvolution!.chartData.filter(d => typeof d.avgPrice === 'number').map(d => d.avgPrice as number));
+                        const height = maxPrice > 0 ? ((point.avgPrice as number) / maxPrice) * 100 : 0;
+                        return (
+                          <div key={idx} className="flex-1 flex flex-col items-center">
+                            <div className="relative w-full">
+                              <div
+                                className="w-full bg-gradient-to-t from-green-600 to-green-400 rounded-t transition-all"
+                                style={{ height: `${height * 1.5}px` }}
+                              />
+                              {point.thisProperty && typeof point.thisProperty === 'number' && (
+                                <div
+                                  className="absolute w-3 h-3 rounded-full bg-purple-600 border-2 border-white left-1/2 -translate-x-1/2"
+                                  style={{ bottom: `${(point.thisProperty / maxPrice) * 100 * 1.5}px` }}
+                                />
+                              )}
+                            </div>
+                            <p className="text-xs mt-1 font-medium">{point.year}</p>
+                            <p className="text-xs text-muted-foreground">
+                              ${typeof point.avgPrice === 'number' ? (point.avgPrice / 1000).toFixed(0) + 'K' : '-'}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="flex justify-center gap-6 mt-4 text-sm">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 bg-green-500 rounded"></div>
+                        <span>Area Avg</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 bg-purple-600 rounded-full"></div>
+                        <span>This Property</span>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t">
+                      <div className="text-center">
+                        <p className="text-2xl font-bold text-green-600">{aiAnalysis.priceEvolution.totalAppreciation}</p>
+                        <p className="text-xs text-muted-foreground">Total Appreciation</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-2xl font-bold text-green-600">{aiAnalysis.priceEvolution.annualizedReturn}</p>
+                        <p className="text-xs text-muted-foreground">Annualized Return</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Analysis Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Valuation Analysis */}
@@ -1029,6 +1504,16 @@ export default function ValuationPage() {
                         <p className="text-sm text-muted-foreground">Appreciation Potential</p>
                         <p className="font-medium">{aiAnalysis.valuationAnalysis?.appreciationPotential}</p>
                       </div>
+                      {aiAnalysis.valuationAnalysis?.fairMarketValueRange && (
+                        <div>
+                          <p className="text-sm text-muted-foreground mb-2">Fair Market Value Range</p>
+                          <div className="flex gap-2">
+                            <Badge variant="outline" className="text-red-600">{aiAnalysis.valuationAnalysis.fairMarketValueRange.low}</Badge>
+                            <Badge className="bg-green-600">{aiAnalysis.valuationAnalysis.fairMarketValueRange.mid}</Badge>
+                            <Badge variant="outline" className="text-green-600">{aiAnalysis.valuationAnalysis.fairMarketValueRange.high}</Badge>
+                          </div>
+                        </div>
+                      )}
                       {aiAnalysis.valuationAnalysis?.valueDrivers?.length > 0 && (
                         <div>
                           <p className="text-sm text-muted-foreground mb-1">Value Drivers</p>
@@ -1058,11 +1543,23 @@ export default function ValuationPage() {
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Rental Potential</p>
-                        <p className="font-medium">{aiAnalysis.investmentInsights?.rentalPotential}</p>
+                        <p className="font-medium">
+                          {typeof aiAnalysis.investmentInsights?.rentalPotential === 'string'
+                            ? aiAnalysis.investmentInsights.rentalPotential
+                            : aiAnalysis.investmentInsights?.rentalPotential?.estimatedMonthlyRent}
+                        </p>
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Flip Potential</p>
-                        <p className="font-medium">{aiAnalysis.investmentInsights?.flipPotential}</p>
+                        <p className="font-medium">
+                          {typeof aiAnalysis.investmentInsights?.flipPotential === 'string'
+                            ? aiAnalysis.investmentInsights.flipPotential
+                            : aiAnalysis.investmentInsights?.flipPotential?.recommendation}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Hold Strategy</p>
+                        <p className="font-medium">{aiAnalysis.investmentInsights?.holdStrategy}</p>
                       </div>
                     </div>
                   </div>
@@ -1080,12 +1577,26 @@ export default function ValuationPage() {
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Supply & Demand</p>
-                        <p className="font-medium">{aiAnalysis.marketTrends?.supplyDemand}</p>
+                        <p className="font-medium">
+                          {typeof aiAnalysis.marketTrends?.supplyDemand === 'string'
+                            ? aiAnalysis.marketTrends.supplyDemand
+                            : `${aiAnalysis.marketTrends?.supplyDemand?.inventoryLevel} inventory, ${aiAnalysis.marketTrends?.supplyDemand?.priceDirection}`}
+                        </p>
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Best Time to Sell</p>
                         <p className="font-medium">{aiAnalysis.marketTrends?.bestTimeToSell}</p>
                       </div>
+                      {aiAnalysis.marketTrends?.economicFactors && (
+                        <div>
+                          <p className="text-sm text-muted-foreground mb-1">Economic Factors</p>
+                          <div className="flex flex-wrap gap-1">
+                            {aiAnalysis.marketTrends.economicFactors.map((factor, idx) => (
+                              <Badge key={idx} variant="secondary" className="text-xs">{factor}</Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -1099,7 +1610,7 @@ export default function ValuationPage() {
                       <div className="mb-4">
                         <p className="text-sm text-muted-foreground mb-2">Recommendations</p>
                         <ul className="text-sm space-y-1">
-                          {aiAnalysis.recommendations.map((rec, idx) => (
+                          {aiAnalysis.recommendations.slice(0, 5).map((rec, idx) => (
                             <li key={idx} className="flex items-start gap-2">
                               <ArrowUpRight className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
                               {rec}
@@ -1112,7 +1623,7 @@ export default function ValuationPage() {
                       <div>
                         <p className="text-sm text-muted-foreground mb-2">Risk Factors</p>
                         <ul className="text-sm space-y-1">
-                          {aiAnalysis.riskFactors.map((risk, idx) => (
+                          {aiAnalysis.riskFactors.slice(0, 4).map((risk, idx) => (
                             <li key={idx} className="flex items-start gap-2">
                               <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
                               {risk}
@@ -1123,6 +1634,135 @@ export default function ValuationPage() {
                     )}
                   </div>
                 </div>
+
+                {/* Equity Unlocking Strategies */}
+                {aiAnalysis.equityUnlockingStrategies && (
+                  <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 rounded-lg border border-green-200 dark:border-green-900">
+                    <h4 className="font-semibold mb-4 flex items-center gap-2 text-green-800 dark:text-green-400">
+                      <Landmark className="h-5 w-5" />
+                      Equity Unlocking Strategies
+                    </h4>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {/* Zoning Opportunities */}
+                      <div className="p-3 bg-background rounded-lg">
+                        <h5 className="font-medium mb-2 flex items-center gap-1 text-sm">
+                          <Building2 className="h-4 w-4" />
+                          Zoning Opportunities
+                        </h5>
+                        <div className="space-y-2 text-sm">
+                          <div>
+                            <span className="text-muted-foreground">Current:</span>
+                            <p className="font-medium">{aiAnalysis.equityUnlockingStrategies.zoningOpportunities.currentZoning}</p>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">ADU/Additional Units:</span>
+                            <p className="font-medium">{aiAnalysis.equityUnlockingStrategies.zoningOpportunities.additionalUnits}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Lot Development */}
+                      <div className="p-3 bg-background rounded-lg">
+                        <h5 className="font-medium mb-2 flex items-center gap-1 text-sm">
+                          <Map className="h-4 w-4" />
+                          Lot Development
+                        </h5>
+                        <div className="space-y-2 text-sm">
+                          <div>
+                            <span className="text-muted-foreground">Subdivision:</span>
+                            <p className="font-medium">{aiAnalysis.equityUnlockingStrategies.lotDevelopment.subdivisionPotential}</p>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Buildable Area:</span>
+                            <p className="font-medium">{aiAnalysis.equityUnlockingStrategies.lotDevelopment.buildableArea}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Financial Strategies */}
+                      <div className="p-3 bg-background rounded-lg">
+                        <h5 className="font-medium mb-2 flex items-center gap-1 text-sm">
+                          <CreditCard className="h-4 w-4" />
+                          Financial Strategies
+                        </h5>
+                        <div className="space-y-2 text-sm">
+                          <div>
+                            <span className="text-muted-foreground">Cash-Out Refi:</span>
+                            <p className="font-medium">{aiAnalysis.equityUnlockingStrategies.financialStrategies.cashOutRefi}</p>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">HELOC:</span>
+                            <p className="font-medium">{aiAnalysis.equityUnlockingStrategies.financialStrategies.heloc}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Separator className="my-4" />
+
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Estimated Equity Unlock Potential</p>
+                        <p className="text-2xl font-bold text-green-600">{aiAnalysis.equityUnlockingStrategies.estimatedEquityUnlock}</p>
+                      </div>
+                      <div className="flex-1 max-w-md">
+                        <p className="text-sm text-muted-foreground">Recommended Strategy</p>
+                        <p className="font-medium">{aiAnalysis.equityUnlockingStrategies.recommendedStrategy}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Action Plan */}
+                {aiAnalysis.actionPlan && (
+                  <div className="p-4 bg-background rounded-lg border">
+                    <h4 className="font-semibold mb-4 flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-blue-600" />
+                      Action Plan
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <p className="text-sm font-medium text-orange-600 mb-2">Immediate (30 days)</p>
+                        <ul className="text-sm space-y-1">
+                          {aiAnalysis.actionPlan.immediate?.map((action, idx) => (
+                            <li key={idx} className="flex items-start gap-2">
+                              <span className="text-orange-500">•</span>
+                              {action}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-blue-600 mb-2">Short-Term (3-6 months)</p>
+                        <ul className="text-sm space-y-1">
+                          {aiAnalysis.actionPlan.shortTerm?.map((action, idx) => (
+                            <li key={idx} className="flex items-start gap-2">
+                              <span className="text-blue-500">•</span>
+                              {action}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-green-600 mb-2">Long-Term (1-5 years)</p>
+                        <ul className="text-sm space-y-1">
+                          {aiAnalysis.actionPlan.longTerm?.map((action, idx) => (
+                            <li key={idx} className="flex items-start gap-2">
+                              <span className="text-green-500">•</span>
+                              {action}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Disclaimer */}
+                {aiAnalysis.disclaimer && (
+                  <p className="text-xs text-muted-foreground text-center italic">{aiAnalysis.disclaimer}</p>
+                )}
               </CardContent>
             </Card>
           )}
