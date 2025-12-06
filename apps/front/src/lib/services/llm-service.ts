@@ -1,7 +1,7 @@
 import { generateText } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { anthropic } from "@ai-sdk/anthropic";
-import { googleGenerativeAi } from "@ai-sdk/google";
+import { google } from "@ai-sdk/google";
 
 type LlmProvider = "openai" | "anthropic" | "google" | "grok" | "langchain";
 
@@ -70,7 +70,7 @@ export class LlmService {
           break;
         case "google":
           result = await generateText({
-            model: googleGenerativeAi(model),
+            model: google(model),
             prompt,
             temperature,
             maxTokens,

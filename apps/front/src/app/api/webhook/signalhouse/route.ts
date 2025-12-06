@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { smsQueueService } from "@/lib/services/sms-queue-service";
 
 // SignalHouse Webhook Handler
 // Based on https://devapi.signalhouse.io/apiDocs
 // Receives inbound SMS, delivery status updates, and other events
+// Integrates with SMS Queue Service for opt-out handling
 
 interface SignalHouseWebhookPayload {
   // Event identification (SignalHouse format)
@@ -104,6 +106,8 @@ export async function POST(request: NextRequest) {
 
         if (isOptOut) {
           console.log(`[SignalHouse] OPT-OUT from ${inboundMessage.from}`);
+          // Mark as opted-out in SMS queue service (cancels pending messages)
+          smsQueueService.handleStopMessage(inboundMessage.from);
           // TODO: Mark lead as opted-out in database
         } else if (isPositiveLead) {
           console.log(`[SignalHouse] 🎯 LEAD RESPONSE from ${inboundMessage.from}: ${messageBody}`);

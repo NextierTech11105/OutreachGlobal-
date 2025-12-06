@@ -27,6 +27,10 @@ const triggerEvents = [
   { label: "Lead Created", value: "lead_created" },
   { label: "Lead Updated", value: "lead_updated" },
   { label: "Campaign Started", value: "campaign_started" },
+  { label: "Skip Trace Complete (Has Mobile)", value: "skip_trace_complete" },
+  { label: "Lead Has Mobile", value: "lead_has_mobile" },
+  { label: "Response Received", value: "response_received" },
+  { label: "Hot Lead Detected", value: "hot_lead_detected" },
 ];
 
 // Define action types
@@ -35,6 +39,28 @@ const actionTypes = [
   { label: "Add Notes", value: "lead_add_notes" },
   { label: "Add Tag", value: "add_tag" },
   { label: "Remove Tag", value: "remove_tag" },
+  { label: "Send SMS (Initial Library)", value: "send_sms_initial" },
+  { label: "Add to SMS Queue (Batch 250)", value: "add_to_sms_queue" },
+  { label: "Schedule Call", value: "schedule_call" },
+  { label: "Assign AI SDR (Gianna)", value: "assign_ai_sdr" },
+  { label: "Move to Bucket", value: "move_to_bucket" },
+];
+
+// SMS Template categories
+const smsTemplateCategories = [
+  { label: "Medium Article Invite", value: "sms_initial_medium_article" },
+  { label: "Strategy Session", value: "strategy_session_sms" },
+  { label: "Gianna Nielsen Loop", value: "gianna_nielsen_loop" },
+  { label: "Initial Outreach", value: "sms_initial" },
+];
+
+// Response buckets
+const responseBuckets = [
+  { label: "Hot Leads", value: "hot" },
+  { label: "Warm Leads", value: "warm" },
+  { label: "Cold Leads", value: "cold" },
+  { label: "Not Interested", value: "not_interested" },
+  { label: "Bad Data", value: "bad_data" },
 ];
 
 interface Props {
@@ -271,6 +297,150 @@ export function WorkflowForm({ onSubmit, onCancel, loading = false }: Props) {
                       required
                     />
                     <FieldErrors {...registerError(`actions.${index}.value`)} />
+                  </FormItem>
+                )}
+
+                {action.name === "send_sms_initial" && (
+                  <FormItem>
+                    <Label>SMS Template Category</Label>
+                    <Controller
+                      control={control}
+                      name={`actions.${index}.value`}
+                      render={({ field }) => (
+                        <Select
+                          value={field.value || ""}
+                          onValueChange={field.onChange}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select template category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {smsTemplateCategories.map((cat) => (
+                              <SelectItem key={cat.value} value={cat.value}>
+                                {cat.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                    <FormDescription>
+                      Templates from this category will be used for initial outreach
+                    </FormDescription>
+                  </FormItem>
+                )}
+
+                {action.name === "add_to_sms_queue" && (
+                  <div className="space-y-4">
+                    <FormItem>
+                      <Label>Batch Size</Label>
+                      <Input
+                        type="number"
+                        placeholder="250"
+                        defaultValue={250}
+                        {...register(`actions.${index}.value`)}
+                      />
+                      <FormDescription>
+                        Number of SMS to send per batch (max 250 recommended)
+                      </FormDescription>
+                    </FormItem>
+                    <FormItem>
+                      <Label>Max SMS Per Day</Label>
+                      <Input
+                        type="number"
+                        placeholder="2000"
+                        defaultValue={2000}
+                        {...register(`actions.${index}.extra`)}
+                      />
+                      <FormDescription>
+                        Daily limit for SMS sends (compliance: 2000 max)
+                      </FormDescription>
+                    </FormItem>
+                  </div>
+                )}
+
+                {action.name === "move_to_bucket" && (
+                  <FormItem>
+                    <Label>Destination Bucket</Label>
+                    <Controller
+                      control={control}
+                      name={`actions.${index}.value`}
+                      render={({ field }) => (
+                        <Select
+                          value={field.value || ""}
+                          onValueChange={field.onChange}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select bucket" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {responseBuckets.map((bucket) => (
+                              <SelectItem key={bucket.value} value={bucket.value}>
+                                {bucket.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                  </FormItem>
+                )}
+
+                {action.name === "remove_tag" && (
+                  <FormItem>
+                    <Label>Tag to Remove</Label>
+                    <Input
+                      placeholder="Enter tag name"
+                      {...register(`actions.${index}.value`)}
+                    />
+                  </FormItem>
+                )}
+
+                {action.name === "schedule_call" && (
+                  <FormItem>
+                    <Label>Call Delay (minutes)</Label>
+                    <Input
+                      type="number"
+                      placeholder="30"
+                      defaultValue={30}
+                      {...register(`actions.${index}.value`)}
+                    />
+                    <FormDescription>
+                      Schedule call after this many minutes
+                    </FormDescription>
+                  </FormItem>
+                )}
+
+                {action.name === "assign_ai_sdr" && (
+                  <FormItem>
+                    <Label>AI SDR Personality</Label>
+                    <Controller
+                      control={control}
+                      name={`actions.${index}.value`}
+                      render={({ field }) => (
+                        <Select
+                          value={field.value || "brooklyn_bestie"}
+                          onValueChange={field.onChange}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Gianna personality" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="brooklyn_bestie">Brooklyn Bestie 🗽</SelectItem>
+                            <SelectItem value="sharp_professional">Sharp Professional 💼</SelectItem>
+                            <SelectItem value="hustler_heart">Hustler Heart 🔥</SelectItem>
+                            <SelectItem value="wise_mentor">Wise Mentor 🦉</SelectItem>
+                            <SelectItem value="playful_closer">Playful Closer 😄</SelectItem>
+                            <SelectItem value="empathetic_advisor">Empathetic Advisor 💚</SelectItem>
+                            <SelectItem value="straight_shooter">Straight Shooter 🎯</SelectItem>
+                            <SelectItem value="charming_connector">Charming Connector 🤝</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                    <FormDescription>
+                      Gianna&apos;s personality for handling this lead
+                    </FormDescription>
                   </FormItem>
                 )}
               </CardContent>

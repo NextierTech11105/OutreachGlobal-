@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { smsQueueService } from "@/lib/services/sms-queue-service";
 
 const REALESTATE_API_KEY = process.env.REAL_ESTATE_API_KEY || process.env.REALESTATE_API_KEY || "";
 const SKIP_TRACE_URL = "https://api.realestateapi.com/v1/SkipTrace";
@@ -317,20 +318,68 @@ export async function POST(request: NextRequest) {
     // Stats
     const successful = results.filter(r => r.success);
     const withPhones = successful.filter(r => r.phones.length > 0);
+    const withMobiles = successful.filter(r =>
+      r.phones.some(p => p.type?.toLowerCase() === "mobile" || p.type?.toLowerCase() === "cell")
+    );
     const withEmails = successful.filter(r => r.emails.length > 0);
 
-    console.log(`[Skip Trace] Complete: ${successful.length}/${batchInputs.length} success, ${withPhones.length} with phones, ${withEmails.length} with emails`);
+    console.log(`[Skip Trace] Complete: ${successful.length}/${batchInputs.length} success, ${withPhones.length} with phones (${withMobiles.length} mobile), ${withEmails.length} with emails`);
+
+    // Auto-add to SMS queue if requested
+    let smsQueueResult = null;
+    if (body.addToSmsQueue && body.smsTemplate) {
+      const leadsWithMobile = successful
+        .filter(r => r.phones.some(p =>
+          p.type?.toLowerCase() === "mobile" || p.type?.toLowerCase() === "cell"
+        ))
+        .map((r, idx) => {
+          const mobilePhone = r.phones.find(p =>
+            p.type?.toLowerCase() === "mobile" || p.type?.toLowerCase() === "cell"
+          ) || r.phones[0];
+
+          return {
+            leadId: batchInputs[idx]?.propertyId || batchInputs[idx]?.id || `lead_${idx}`,
+            phone: mobilePhone?.number || "",
+            firstName: r.firstName || r.ownerName?.split(" ")[0] || "",
+            lastName: r.lastName || r.ownerName?.split(" ").slice(1).join(" ") || "",
+            companyName: body.companyName || "",
+            industry: body.industry || "",
+          };
+        })
+        .filter(lead => lead.phone);
+
+      if (leadsWithMobile.length > 0) {
+        smsQueueResult = smsQueueService.addBatchToQueue(leadsWithMobile, {
+          templateCategory: body.templateCategory || "sms_initial",
+          templateMessage: body.smsTemplate,
+          personality: body.personality || "brooklyn_bestie",
+          campaignId: body.campaignId,
+          priority: body.priority || 5,
+          scheduledAt: body.scheduledAt ? new Date(body.scheduledAt) : undefined,
+        });
+
+        console.log(`[Skip Trace] Added ${smsQueueResult.added} leads to SMS queue (${smsQueueResult.skipped} skipped/opted-out)`);
+      }
+    }
 
     // Return single result if single input
     if (inputs.length === 1) {
+      const result = results[0];
       return NextResponse.json({
-        success: results[0]?.success || false,
-        ...results[0],
+        ...result,
+        success: result?.success || false,
         usage: {
           today: dailyUsage.count,
           limit: DAILY_LIMIT,
           remaining: DAILY_LIMIT - dailyUsage.count,
         },
+        ...(smsQueueResult && {
+          smsQueue: {
+            added: smsQueueResult.added,
+            skipped: smsQueueResult.skipped,
+            queueIds: smsQueueResult.queueIds,
+          },
+        }),
       });
     }
 
@@ -347,6 +396,7 @@ export async function POST(request: NextRequest) {
         requested: batchInputs.length,
         successful: successful.length,
         withPhones: withPhones.length,
+        withMobiles: withMobiles.length,
         withEmails: withEmails.length,
         failed: batchInputs.length - successful.length,
       },
@@ -355,6 +405,13 @@ export async function POST(request: NextRequest) {
         limit: DAILY_LIMIT,
         remaining: DAILY_LIMIT - dailyUsage.count,
       },
+      ...(smsQueueResult && {
+        smsQueue: {
+          added: smsQueueResult.added,
+          skipped: smsQueueResult.skipped,
+          queueIds: smsQueueResult.queueIds,
+        },
+      }),
     });
   } catch (error: unknown) {
     console.error("[Skip Trace] Error:", error);
