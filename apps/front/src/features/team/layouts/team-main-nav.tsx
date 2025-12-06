@@ -6,13 +6,13 @@ import {
   BrainIcon,
   BuildingIcon,
   ChevronRightIcon,
+  FileTextIcon,
   HomeIcon,
   LayersIcon,
   MailIcon,
   MegaphoneIcon,
   PhoneIcon,
   SearchIcon,
-  SettingsIcon,
   ShieldIcon,
   SparkleIcon,
   UsersIcon,
@@ -151,9 +151,9 @@ const items = [
     ],
   },
   {
-    title: "Settings",
-    path: "/settings",
-    icon: SettingsIcon,
+    title: "Valuation Report",
+    path: "/valuation",
+    icon: FileTextIcon,
   },
 ];
 
