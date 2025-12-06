@@ -40,6 +40,8 @@ interface AddressSuggestion {
   zip?: string;
   zipCode?: string;
   fullAddress?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 const US_STATES = [
@@ -210,6 +212,10 @@ export default function ValuationPage() {
           city: suggestionCity,
           state: suggestionState,
           zip: suggestionZip,
+          // Pass lat/long from Mapbox for maps even if property lookup fails
+          latitude: suggestion.latitude,
+          longitude: suggestion.longitude,
+          fullAddress: suggestion.fullAddress,
         }),
       });
 

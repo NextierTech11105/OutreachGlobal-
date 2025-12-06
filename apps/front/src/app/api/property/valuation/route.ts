@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { address, city, state, zip, id } = body;
+    const { address, city, state, zip, id, latitude: inputLat, longitude: inputLng, fullAddress } = body;
 
     let property: Record<string, unknown> | null = null;
 
@@ -141,11 +141,41 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // If no property found, create a minimal property object with the input data
     if (!property) {
-      return NextResponse.json(
-        { error: "Property not found. Please check the address and try again." },
-        { status: 404 }
-      );
+      // Still show the map using coordinates from Mapbox
+      if (inputLat && inputLng) {
+        property = {
+          id: "mapbox-geocode",
+          address: {
+            address: address,
+            street: address,
+            city: city,
+            state: state,
+            zip: zip,
+            latitude: inputLat,
+            longitude: inputLng,
+          },
+          latitude: inputLat,
+          longitude: inputLng,
+          propertyType: "Unknown",
+        };
+      } else {
+        return NextResponse.json(
+          { error: "Property not found. Please check the address and try again." },
+          { status: 404 }
+        );
+      }
+    }
+
+    // If we have input coordinates but property doesn't have them, add them
+    if (inputLat && inputLng && property) {
+      const addr = (property.address as Record<string, unknown>) || {};
+      if (!addr.latitude) addr.latitude = inputLat;
+      if (!addr.longitude) addr.longitude = inputLng;
+      property.address = addr;
+      if (!property.latitude) property.latitude = inputLat;
+      if (!property.longitude) property.longitude = inputLng;
     }
 
     // Build valuation report
