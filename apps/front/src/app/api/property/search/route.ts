@@ -55,6 +55,29 @@ export async function POST(request: NextRequest) {
     // Log the request for debugging
     console.log("PropertySearch request (sanitized):", JSON.stringify(body, null, 2));
 
+    // Check for required location parameter
+    const hasLocation = body.state || body.county || body.city || body.zip || body.address;
+    if (!hasLocation) {
+      console.error("PropertySearch: No location parameter provided");
+      return NextResponse.json(
+        {
+          error: true,
+          message: "Please select a location (state, county, city, or zip code)",
+          code: "MISSING_LOCATION"
+        },
+        { status: 400 }
+      );
+    }
+
+    // Check API key
+    if (!REALESTATE_API_KEY) {
+      console.error("PropertySearch: Missing API key");
+      return NextResponse.json(
+        { error: true, message: "Real Estate API key not configured", code: "MISSING_API_KEY" },
+        { status: 500 }
+      );
+    }
+
     const response = await fetch(REALESTATE_API_URL, {
       method: "POST",
       headers: {
