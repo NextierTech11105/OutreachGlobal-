@@ -76,6 +76,8 @@ export async function POST(request: NextRequest) {
         mapboxUrl.searchParams.set("country", "US");
         mapboxUrl.searchParams.set("types", "address");
         mapboxUrl.searchParams.set("limit", "8");
+        // Add proximity bias to prefer East Coast / NYC area addresses
+        mapboxUrl.searchParams.set("proximity", "-73.935242,40.730610");
 
         const mapboxResponse = await fetch(mapboxUrl.toString());
         const mapboxData = await mapboxResponse.json();
@@ -147,6 +149,8 @@ export async function GET(request: NextRequest) {
         mapboxUrl.searchParams.set("country", "US");
         mapboxUrl.searchParams.set("types", "address");
         mapboxUrl.searchParams.set("limit", "8");
+        // Add proximity bias to prefer East Coast / NYC area addresses
+        mapboxUrl.searchParams.set("proximity", "-73.935242,40.730610");
 
         const mapboxResponse = await fetch(mapboxUrl.toString());
         const mapboxData = await mapboxResponse.json();
