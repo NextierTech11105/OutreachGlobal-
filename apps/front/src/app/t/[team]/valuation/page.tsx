@@ -29,7 +29,8 @@ import {
   Building2, Calendar, Ruler, Bath, BedDouble, Download, Printer,
   Camera, Map, BarChart3, ArrowUpRight, ArrowDownRight, Minus,
   CheckCircle2, AlertCircle, Info, FileText, Sparkles, Mail, MessageSquare,
-  Share2, Link2, Copy, ExternalLink, Brain, User, Landmark, Percent, CreditCard
+  Share2, Link2, Copy, ExternalLink, Brain, User, Landmark, Percent, CreditCard,
+  Phone, UserSearch, Users
 } from "lucide-react";
 import { toast } from "sonner";
 import dynamic from "next/dynamic";
@@ -260,6 +261,32 @@ interface AIAnalysis {
   disclaimer?: string;
 }
 
+interface SkipTraceResult {
+  ownerName: string;
+  firstName?: string;
+  lastName?: string;
+  phones: Array<{
+    number: string;
+    type?: string;
+    score?: number;
+  }>;
+  emails: Array<{
+    email: string;
+    type?: string;
+  }>;
+  addresses: Array<{
+    street: string;
+    city: string;
+    state: string;
+    zip: string;
+    type?: string;
+  }>;
+  relatives?: string[];
+  associates?: string[];
+  success: boolean;
+  error?: string;
+}
+
 export default function ValuationPage() {
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
@@ -279,6 +306,10 @@ export default function ValuationPage() {
   const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
+
+  // Skip Trace state
+  const [skipTraceResult, setSkipTraceResult] = useState<SkipTraceResult | null>(null);
+  const [skipTraceLoading, setSkipTraceLoading] = useState(false);
 
   // Store coordinates from Mapbox autocomplete
   const [selectedLat, setSelectedLat] = useState<number | null>(null);
@@ -479,6 +510,38 @@ export default function ValuationPage() {
       toast.error("Failed to generate AI analysis");
     } finally {
       setAiLoading(false);
+    }
+  };
+
+  // Skip Trace - Get owner contact info
+  const handleSkipTrace = async () => {
+    if (!report?.property?.id) {
+      toast.error("Property ID required for skip trace");
+      return;
+    }
+
+    setSkipTraceLoading(true);
+    try {
+      const response = await fetch("/api/skip-trace", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: report.property.id }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast.error(data.error || "Skip trace failed");
+        return;
+      }
+
+      setSkipTraceResult(data);
+      toast.success(`Skip trace complete! Found ${data.phones?.length || 0} phone(s), ${data.emails?.length || 0} email(s)`);
+    } catch (error) {
+      console.error("Skip trace error:", error);
+      toast.error("Failed to run skip trace");
+    } finally {
+      setSkipTraceLoading(false);
     }
   };
 
@@ -835,11 +898,30 @@ export default function ValuationPage() {
         <div ref={reportRef} className="space-y-6 print:space-y-4">
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-2 justify-end print:hidden">
+            {/* Skip Trace Button */}
+            <Button
+              onClick={handleSkipTrace}
+              disabled={skipTraceLoading}
+              className="bg-blue-600 hover:bg-blue-700 text-white border border-white"
+            >
+              {skipTraceLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Tracing...
+                </>
+              ) : (
+                <>
+                  <UserSearch className="mr-2 h-4 w-4" />
+                  Skip Trace
+                </>
+              )}
+            </Button>
+
             {/* AI Analysis Button */}
             <Button
               onClick={handleAIAnalysis}
               disabled={aiLoading}
-              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+              className="bg-blue-600 hover:bg-blue-700 text-white border border-white"
             >
               {aiLoading ? (
                 <>
@@ -854,12 +936,12 @@ export default function ValuationPage() {
               )}
             </Button>
 
-            <Button variant="outline" onClick={handlePrint}>
+            <Button onClick={handlePrint} className="bg-blue-600 hover:bg-blue-700 text-white border border-white">
               <Printer className="mr-2 h-4 w-4" />
               Print
             </Button>
 
-            <Button variant="outline" onClick={handleDownloadPDF}>
+            <Button onClick={handleDownloadPDF} className="bg-blue-600 hover:bg-blue-700 text-white border border-white">
               <Download className="mr-2 h-4 w-4" />
               Download PDF
             </Button>
@@ -867,8 +949,8 @@ export default function ValuationPage() {
             {/* Share Dropdown */}
             <div className="relative">
               <Button
-                variant="outline"
                 onClick={() => setShowShareMenu(!showShareMenu)}
+                className="bg-blue-600 hover:bg-blue-700 text-white border border-white"
               >
                 <Share2 className="mr-2 h-4 w-4" />
                 Share
@@ -901,6 +983,119 @@ export default function ValuationPage() {
             </div>
           </div>
 
+          {/* Skip Trace Results */}
+          {skipTraceResult && skipTraceResult.success && (
+            <Card className="border-2 border-blue-500/50 bg-gradient-to-r from-blue-50/50 to-cyan-50/50 dark:from-blue-950/20 dark:to-cyan-950/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <UserSearch className="h-5 w-5 text-blue-600" />
+                  Skip Trace Results
+                </CardTitle>
+                <CardDescription>Owner contact information from RealEstateAPI</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Owner Info */}
+                  <div className="space-y-3">
+                    <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      Owner Information
+                    </h4>
+                    <div className="p-3 bg-background rounded-lg">
+                      <p className="font-semibold text-lg">{skipTraceResult.ownerName || "Name Not Available"}</p>
+                      {skipTraceResult.firstName && (
+                        <p className="text-sm text-muted-foreground">
+                          First: {skipTraceResult.firstName} | Last: {skipTraceResult.lastName}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Phone Numbers */}
+                  <div className="space-y-3">
+                    <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+                      <Phone className="h-4 w-4" />
+                      Phone Numbers ({skipTraceResult.phones?.length || 0})
+                    </h4>
+                    <div className="space-y-2">
+                      {skipTraceResult.phones?.length > 0 ? (
+                        skipTraceResult.phones.map((phone, idx) => (
+                          <div key={idx} className="flex items-center justify-between p-2 bg-background rounded-lg">
+                            <div className="flex items-center gap-2">
+                              <Phone className="h-4 w-4 text-green-600" />
+                              <span className="font-mono">{phone.number}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {phone.type && <Badge variant="outline" className="text-xs">{phone.type}</Badge>}
+                              {phone.score && <Badge className="text-xs bg-blue-600">{phone.score}%</Badge>}
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground p-2">No phone numbers found</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Emails */}
+                  <div className="space-y-3">
+                    <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+                      <Mail className="h-4 w-4" />
+                      Email Addresses ({skipTraceResult.emails?.length || 0})
+                    </h4>
+                    <div className="space-y-2">
+                      {skipTraceResult.emails?.length > 0 ? (
+                        skipTraceResult.emails.map((email, idx) => (
+                          <div key={idx} className="flex items-center justify-between p-2 bg-background rounded-lg">
+                            <span className="text-sm truncate">{email.email}</span>
+                            {email.type && <Badge variant="outline" className="text-xs">{email.type}</Badge>}
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground p-2">No email addresses found</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Additional Addresses & Relatives */}
+                {(skipTraceResult.addresses?.length > 0 || skipTraceResult.relatives?.length > 0) && (
+                  <>
+                    <Separator className="my-4" />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {skipTraceResult.addresses?.length > 0 && (
+                        <div>
+                          <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-2">Other Addresses</h4>
+                          <div className="space-y-1">
+                            {skipTraceResult.addresses.slice(0, 3).map((addr, idx) => (
+                              <p key={idx} className="text-sm">
+                                {addr.street}, {addr.city}, {addr.state} {addr.zip}
+                                {addr.type && <Badge variant="outline" className="ml-2 text-xs">{addr.type}</Badge>}
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {skipTraceResult.relatives?.length > 0 && (
+                        <div>
+                          <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-2">
+                            <Users className="h-4 w-4" />
+                            Relatives
+                          </h4>
+                          <div className="flex flex-wrap gap-1">
+                            {skipTraceResult.relatives.slice(0, 5).map((rel, idx) => (
+                              <Badge key={idx} variant="secondary" className="text-xs">{rel}</Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {/* Property Header with Key Stats */}
           <Card className="border-2 border-primary/50 bg-gradient-to-r from-primary/5 to-primary/10">
             <CardHeader>
@@ -922,6 +1117,34 @@ export default function ValuationPage() {
                   <Badge className="text-lg px-3 py-1 bg-green-600">
                     {formatCurrency(prop?.estimatedValue || val?.estimatedValue || 0)}
                   </Badge>
+                  {/* Motivated Seller Tags - show when applicable */}
+                  {(prop as Record<string, unknown>)?.preForeclosure && (
+                    <Badge className="bg-red-600 text-white">Pre-Foreclosure</Badge>
+                  )}
+                  {(prop as Record<string, unknown>)?.inForeclosure && (
+                    <Badge className="bg-red-700 text-white">In Foreclosure</Badge>
+                  )}
+                  {prop?.ownerOccupied === false && (
+                    <Badge className="bg-purple-600 text-white">Absentee Owner</Badge>
+                  )}
+                  {(prop as Record<string, unknown>)?.isEstate && (
+                    <Badge className="bg-amber-600 text-white">Estate/Probate</Badge>
+                  )}
+                  {(prop as Record<string, unknown>)?.highEquity && (
+                    <Badge className="bg-green-600 text-white">High Equity</Badge>
+                  )}
+                  {val?.equityEstimate && val.equityEstimate < 50000 && (
+                    <Badge className="bg-orange-600 text-white">Low Equity</Badge>
+                  )}
+                  {(prop as Record<string, unknown>)?.vacant && (
+                    <Badge className="bg-slate-600 text-white">Vacant</Badge>
+                  )}
+                  {(prop as Record<string, unknown>)?.taxDelinquent && (
+                    <Badge className="bg-red-500 text-white">Tax Delinquent</Badge>
+                  )}
+                  {(prop as Record<string, unknown>)?.freeClear && (
+                    <Badge className="bg-emerald-600 text-white">Free & Clear</Badge>
+                  )}
                 </div>
               </div>
             </CardHeader>
