@@ -12,6 +12,13 @@ type LlmSettings = {
   maxTokens?: number;
 };
 
+// LangChain Configuration
+const LANGCHAIN_CONFIG = {
+  baseUrl: process.env.LANGCHAIN_URL || "https://ai.ownyourcrm.io",
+  token: process.env.LANGCHAIN_TOKEN || "6f05931d-7a4a-4f9f-ab3e-8b87cef6a7de",
+  defaultChain: "gianna-sdr", // Default chain for Gianna AI SDR
+};
+
 export class LlmService {
   private static instance: LlmService;
   private defaultProvider: LlmProvider = "openai";
@@ -20,7 +27,7 @@ export class LlmService {
     anthropic: "claude-3-opus",
     google: "gemini-1.5-pro",
     grok: "grok-2",
-    langchain: "langchain-orchestration",
+    langchain: "gianna-sdr",
   };
 
   private constructor() {}
@@ -69,10 +76,13 @@ export class LlmService {
             maxTokens,
           });
           break;
-        case "grok":
         case "langchain":
+          // Use LangChain/LangServe endpoint
+          result = await this.callLangChain(prompt, model, temperature);
+          break;
+        case "grok":
         default:
-          // Fallback to OpenAI for now
+          // Fallback to OpenAI
           result = await generateText({
             model: openai(this.defaultModels.openai),
             prompt,
@@ -93,6 +103,128 @@ export class LlmService {
     }
   }
 
+  /**
+   * Call LangChain/LangServe endpoint
+   * Supports custom chains for Gianna AI SDR
+   */
+  private async callLangChain(
+    prompt: string,
+    chain: string = LANGCHAIN_CONFIG.defaultChain,
+    temperature: number = 0.7
+  ): Promise<{ text: string }> {
+    try {
+      const response = await fetch(`${LANGCHAIN_CONFIG.baseUrl}/invoke`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${LANGCHAIN_CONFIG.token}`,
+          "X-API-Key": LANGCHAIN_CONFIG.token,
+        },
+        body: JSON.stringify({
+          input: {
+            prompt,
+            chain,
+            temperature,
+          },
+          config: {
+            configurable: {
+              chain_type: chain,
+            },
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        console.warn(`LangChain returned ${response.status}, falling back to OpenAI`);
+        // Fallback to OpenAI if LangChain fails
+        const fallback = await generateText({
+          model: openai(this.defaultModels.openai),
+          prompt,
+          temperature,
+        });
+        return { text: fallback.text };
+      }
+
+      const data = await response.json();
+      return { text: data.output || data.response || data.text || "" };
+    } catch (error) {
+      console.error("LangChain error, falling back to OpenAI:", error);
+      // Fallback to OpenAI
+      const fallback = await generateText({
+        model: openai(this.defaultModels.openai),
+        prompt,
+        temperature,
+      });
+      return { text: fallback.text };
+    }
+  }
+
+  /**
+   * Call a specific LangChain chain by name
+   */
+  public async callChain(
+    chainName: string,
+    input: Record<string, unknown>,
+    config?: Record<string, unknown>
+  ): Promise<unknown> {
+    try {
+      const response = await fetch(`${LANGCHAIN_CONFIG.baseUrl}/${chainName}/invoke`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${LANGCHAIN_CONFIG.token}`,
+          "X-API-Key": LANGCHAIN_CONFIG.token,
+        },
+        body: JSON.stringify({
+          input,
+          config: config || {},
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`LangChain chain ${chainName} failed: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error(`Error calling LangChain chain ${chainName}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Stream from LangChain endpoint
+   */
+  public async streamChain(
+    chainName: string,
+    input: Record<string, unknown>,
+    onChunk: (chunk: string) => void
+  ): Promise<void> {
+    const response = await fetch(`${LANGCHAIN_CONFIG.baseUrl}/${chainName}/stream`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${LANGCHAIN_CONFIG.token}`,
+        "X-API-Key": LANGCHAIN_CONFIG.token,
+      },
+      body: JSON.stringify({ input }),
+    });
+
+    if (!response.ok || !response.body) {
+      throw new Error(`LangChain stream failed: ${response.status}`);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value);
+      onChunk(chunk);
+    }
+  }
+
   public setDefaultProvider(provider: LlmProvider): void {
     this.defaultProvider = provider;
   }
@@ -100,6 +232,17 @@ export class LlmService {
   public setDefaultModel(provider: LlmProvider, model: string): void {
     this.defaultModels[provider] = model;
   }
+
+  public getLangChainConfig() {
+    return {
+      baseUrl: LANGCHAIN_CONFIG.baseUrl,
+      hasToken: !!LANGCHAIN_CONFIG.token,
+      defaultChain: LANGCHAIN_CONFIG.defaultChain,
+    };
+  }
 }
 
 export const llmService = LlmService.getInstance();
+
+// Export LangChain config for use in other services
+export { LANGCHAIN_CONFIG };

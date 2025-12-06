@@ -1,0 +1,39 @@
+spec:
+  name: outreach-global-front
+  region: nyc
+  services:
+    - name: front
+      github:
+        branch: main
+        deploy_on_push: true
+        repo: NextierTech11105/front
+      source_dir: /
+      build_command: |
+        corepack enable && \
+        pnpm install && \
+        pnpm --filter @nextier/common build && \
+        pnpm --filter @nextier/dto build && \
+        pnpm --filter front build
+      run_command: cd apps/front && pnpm start
+      http_port: 3000
+      instance_count: 1
+      instance_size_slug: basic-xxs
+      envs:
+        - key: NODE_ENV
+          value: production
+        - key: REAL_ESTATE_API_KEY
+          value: NEXTIER-2906-74a1-8684-d2f63f473b7b
+          type: SECRET
+        - key: DATABASE_URL
+          value: "${db.DATABASE_URL}"
+          type: SECRET
+        - key: LANGCHAIN_URL
+          value: "https://ai.ownyourcrm.io"
+        - key: LANGCHAIN_TOKEN
+          value: "6f05931d-7a4a-4f9f-ab3e-8b87cef6a7de"
+          type: SECRET
+  databases:
+    - name: db
+      engine: PG
+      production: true
+      cluster_name: app-98cd0402-e1d4-48ef-9adf-173580806a89

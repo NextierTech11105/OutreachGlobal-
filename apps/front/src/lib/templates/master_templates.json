@@ -1,0 +1,303 @@
+{
+  "version": "1.0.0",
+  "description": "Master template library for Gianna AI - all message templates indexed by category",
+  "created_by": "Gianna AI",
+  "templates": {
+    "sms_initial_medium_article": [
+      {
+        "id": "med_1",
+        "text": "{{first_name}}, Gianna with NEXTIER. Mind if I email you the Medium article we wrote on how AI is reshaping {{industry}}? Curious your take. STOP to opt out."
+      },
+      {
+        "id": "med_2",
+        "text": "Hey {{first_name}}, Gianna here — quick q: would you be upset if I sent you our AI transformation article for {{industry}}? STOP to opt out."
+      },
+      {
+        "id": "med_3",
+        "text": "Gianna from NEXTIER 👋 We wrote a strong Medium piece on AI + {{industry}}. Want me to send it? STOP to opt out."
+      },
+      {
+        "id": "med_4",
+        "text": "{{first_name}}, may I email you our AI strategy article for {{industry}}? It's short and sharp. STOP to opt out."
+      },
+      {
+        "id": "med_5",
+        "text": "Gianna here. We published a Medium article on how AI will change {{industry}} in the next 18 months. Want the link? STOP to opt out."
+      },
+      {
+        "id": "med_6",
+        "text": "{{first_name}}, mind if I send you our Medium breakdown on AI's impact on {{industry}}? Would love your take. STOP to opt out."
+      },
+      {
+        "id": "med_7",
+        "text": "I can email you the AI reshaping-{{industry}} article we wrote. Should I send it, {{first_name}}? Gianna here. STOP to opt out."
+      },
+      {
+        "id": "med_8",
+        "text": "Quick q {{first_name}} — want our Medium article on AI's effect on {{industry}}? Gianna w/ NEXTIER. STOP to opt out."
+      },
+      {
+        "id": "med_9",
+        "text": "Gianna here — can I send you our AI transformation overview for {{industry}}? It's a clean 2-min read. STOP to opt out."
+      },
+      {
+        "id": "med_10",
+        "text": "{{first_name}}, we wrote a helpful AI modernization article for {{industry}}. Want it? STOP to opt out."
+      },
+      {
+        "id": "med_11",
+        "text": "Gianna checking in — would it be OK if I emailed you our Medium write-up on AI + {{industry}} trends? STOP to opt out."
+      },
+      {
+        "id": "med_12",
+        "text": "{{first_name}}, quick one: want our Medium article on how AI is shifting {{industry}} workflows? STOP to opt out."
+      },
+      {
+        "id": "med_13",
+        "text": "Gianna here. We mapped out how AI will reshape {{industry}}. Mind if I send the Medium article? STOP to opt out."
+      },
+      {
+        "id": "med_14",
+        "text": "I have a clean Medium piece showing where AI will create leverage in {{industry}}. Mind if I send? STOP to opt out."
+      },
+      {
+        "id": "med_15",
+        "text": "{{first_name}}, want a quick AI breakdown for {{industry}}? We wrote a solid Medium article. Can I email it? STOP to opt out."
+      },
+      {
+        "id": "med_16",
+        "text": "Gianna from NEXTIER — would you be upset if I emailed you our AI/industry strategy article? It's genuinely useful. STOP to opt out."
+      },
+      {
+        "id": "med_17",
+        "text": "Mind if I drop you our AI insights article for {{industry}}? It's a quick read. Gianna here. STOP to opt out."
+      },
+      {
+        "id": "med_18",
+        "text": "{{first_name}}, can I send you our latest Medium piece on AI + {{industry}}? Curious what you think. STOP to opt out."
+      },
+      {
+        "id": "med_19",
+        "text": "Gianna here — I'd love your thoughts on a Medium article we wrote about AI reshaping {{industry}}. Can I email it? STOP to opt out."
+      },
+      {
+        "id": "med_20",
+        "text": "{{first_name}}, quick heads up: we wrote a strong Medium breakdown on AI's effect on {{industry}}. Mind if I send it? STOP to opt out."
+      }
+    ],
+
+    "cold_call_medium_article": [
+      {
+        "id": "cc_med_1",
+        "text": "Hey {{first_name}}, Gianna with NEXTIER Technologies. Real quick — would you be upset if I emailed you the Medium article we wrote on how AI is reshaping {{industry}}?"
+      },
+      {
+        "id": "cc_med_2",
+        "text": "{{first_name}}, Gianna here — we published a sharp Medium piece on AI + {{industry}}. Want me to send it over?"
+      },
+      {
+        "id": "cc_med_3",
+        "text": "Calling quick — we wrote a breakdown on how AI is shifting {{industry}} workflows. Should I send it?"
+      },
+      {
+        "id": "cc_med_4",
+        "text": "{{first_name}}, Gianna from NEXTIER — I can email you a short Medium article we wrote on AI in {{industry}}. Worth sending?"
+      },
+      {
+        "id": "cc_med_5",
+        "text": "Not selling anything — just seeing if you want our AI modernization article for {{industry}}. Can I send it?"
+      },
+      {
+        "id": "cc_med_6",
+        "text": "Gianna here. We put out a strong Medium post on AI + {{industry}}. Want the link?"
+      },
+      {
+        "id": "cc_med_7",
+        "text": "{{first_name}}, quick one — would you be open to a short AI strategy article we published for {{industry}} leaders?"
+      },
+      {
+        "id": "cc_med_8",
+        "text": "We wrote a simple Medium breakdown on how AI will impact {{industry}} over 18 months. Want it?"
+      },
+      {
+        "id": "cc_med_9",
+        "text": "Gianna calling — mind if I email you our AI reshaping-{{industry}} write-up?"
+      },
+      {
+        "id": "cc_med_10",
+        "text": "{{first_name}}, we wrote a value-packed Medium article for {{industry}} owners. Should I send it your way?"
+      },
+      {
+        "id": "cc_med_11",
+        "text": "Real quick {{first_name}}, I promise this call's shorter than a Medium article. Want me to send the AI one we wrote?"
+      },
+      {
+        "id": "cc_med_12",
+        "text": "Gianna here — we published a founder-friendly AI article for {{industry}}. Want me to drop it in your inbox?"
+      },
+      {
+        "id": "cc_med_13",
+        "text": "If I send you our Medium article on AI + {{industry}}, would you read it? Just checking."
+      },
+      {
+        "id": "cc_med_14",
+        "text": "We broke down where AI will create leverage in {{industry}}. Want me to send the Medium link?"
+      },
+      {
+        "id": "cc_med_15",
+        "text": "{{first_name}}, quick AI question — want our Medium article about the shifts happening in {{industry}}?"
+      },
+      {
+        "id": "cc_med_16",
+        "text": "Gianna here. Should I send our AI strategy piece for {{industry}} operators?"
+      },
+      {
+        "id": "cc_med_17",
+        "text": "{{first_name}}, we wrote a clean AI blueprint for {{industry}}. Want it?"
+      },
+      {
+        "id": "cc_med_18",
+        "text": "Can I get your best email to send our AI industry-shift article? It's quick and actually helpful."
+      },
+      {
+        "id": "cc_med_19",
+        "text": "We outlined what AI is about to change in {{industry}}. Want the Medium piece?"
+      },
+      {
+        "id": "cc_med_20",
+        "text": "Gianna here — you might like our AI/industry transformation write-up. Should I send it?"
+      }
+    ],
+
+    "gianna_nielsen_loop": [
+      {
+        "id": "loop_1",
+        "text": "{{first_name}}, Gianna here. Quick q — should I send the {{company_name}} valuation? Promise it's shorter than a Naked Gun plot. Email? STOP to opt out."
+      },
+      {
+        "id": "loop_2",
+        "text": "Just circling back, {{first_name}}. I still have your valuation ready. It's more accurate than Frank Drebin's aim. Best email? STOP to opt out."
+      },
+      {
+        "id": "loop_3",
+        "text": "Doing my follow-up rounds, {{first_name}}. Yours is labeled 'Important'. (I labeled it.) Email for the {{company_name}} report? STOP to opt out."
+      },
+      {
+        "id": "loop_4",
+        "text": "{{first_name}}, I tried sending your valuation telepathically. Didn't work. Need your email instead. Want the {{company_name}} snapshot? STOP to opt out."
+      },
+      {
+        "id": "loop_5",
+        "text": "Checking again — if I don't send this soon, I'll have to file an emotional complaint with myself. Email for {{company_name}}? STOP to opt out."
+      },
+      {
+        "id": "loop_6",
+        "text": "I have your valuation ready, {{first_name}}. And I need permission before I fire the 'Send' button. Best email? STOP to opt out."
+      },
+      {
+        "id": "loop_7",
+        "text": "{{first_name}}, I promised Tommy I'd get this to you. He thinks I already did. Help me avoid an awkward conversation. Best email? STOP to opt out."
+      },
+      {
+        "id": "loop_8",
+        "text": "Just checking — should I send the {{company_name}} valuation? If yes, great. If no, I'll pretend this message was a dream sequence. Best email? STOP to opt out."
+      },
+      {
+        "id": "loop_9",
+        "text": "{{first_name}}, the report is ready. It's staring at me. I'm staring back. Only you can end this standoff. Best email to send it? STOP to opt out."
+      },
+      {
+        "id": "loop_10",
+        "text": "Last touch for now, {{first_name}}. Want the {{company_name}} valuation? If now's bad, say 'later' and I'll vanish like a Naked Gun extra. STOP to opt out."
+      }
+    ],
+
+    "strategy_session_sms": [
+      {
+        "id": "ss_1",
+        "text": "{{first_name}}, Gianna here. Quick q — would you be upset if I invited you to a 15-min AI System Design Strategy Session with Tommy? Zero fluff. Best email? STOP to opt out."
+      },
+      {
+        "id": "ss_2",
+        "text": "Hey {{first_name}}, we're hosting short 15-min AI System Design strategy calls for founders. Want an invite? Gianna here. Best email? STOP to opt out."
+      },
+      {
+        "id": "ss_3",
+        "text": "Gianna here 👋 I can book you into a 15-min AI Strategy Session with Tommy to map growth, systems, and expansion options. Should I send the link? STOP to opt out."
+      },
+      {
+        "id": "ss_4",
+        "text": "{{first_name}}, I reviewed {{company_name}} — a 15-min AI System audit could show major leverage. Want the invite? Gianna here. STOP to opt out."
+      },
+      {
+        "id": "ss_5",
+        "text": "Quick one — Gianna here. We're offering founders a 15-min AI Infrastructure Strategy Session. Want me to send your spot? STOP to opt out."
+      }
+    ]
+  },
+
+  "categories": {
+    "sms_initial_medium_article": {
+      "name": "Medium Article Outreach (SMS)",
+      "description": "Initial SMS outreach offering AI industry article",
+      "goal": "email_capture",
+      "channel": "sms",
+      "compliance": {
+        "includes_opt_out": true,
+        "tcpa_compliant": true
+      }
+    },
+    "cold_call_medium_article": {
+      "name": "Medium Article Outreach (Cold Call)",
+      "description": "Cold call scripts offering AI industry article",
+      "goal": "email_capture",
+      "channel": "voice"
+    },
+    "gianna_nielsen_loop": {
+      "name": "Gianna Nielsen Loop",
+      "description": "Leslie Nielsen style escalation sequence with deadpan humor",
+      "goal": "email_capture_valuation",
+      "channel": "sms",
+      "style": "absurdist_humor",
+      "compliance": {
+        "includes_opt_out": true,
+        "tcpa_compliant": true
+      }
+    },
+    "strategy_session_sms": {
+      "name": "AI Strategy Session Invites",
+      "description": "15-minute AI System Design Strategy Session invitations",
+      "goal": "meeting_booking",
+      "channel": "sms",
+      "compliance": {
+        "includes_opt_out": true,
+        "tcpa_compliant": true
+      }
+    }
+  },
+
+  "variables": {
+    "first_name": {
+      "description": "Lead's first name",
+      "fallback": "there",
+      "required": true
+    },
+    "company_name": {
+      "description": "Lead's company name",
+      "fallback": "your business",
+      "required": false
+    },
+    "industry": {
+      "description": "Lead's industry/sector",
+      "fallback": "your industry",
+      "required": false
+    }
+  },
+
+  "performance_index": {
+    "highest_response_rate": ["med_2", "ss_1", "loop_5"],
+    "best_for_cold": ["med_1", "med_3", "ss_2"],
+    "best_for_follow_up": ["loop_3", "loop_5", "loop_7"],
+    "best_for_personalized": ["med_6", "ss_4", "loop_9"]
+  }
+}
