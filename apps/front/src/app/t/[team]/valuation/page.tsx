@@ -30,7 +30,7 @@ import {
   Camera, Map, BarChart3, ArrowUpRight, ArrowDownRight, Minus,
   CheckCircle2, AlertCircle, Info, FileText, Sparkles, Mail, MessageSquare,
   Share2, Link2, Copy, ExternalLink, Brain, User, Landmark, Percent, CreditCard,
-  Phone, UserSearch, Users
+  Phone, UserSearch, Users, FolderPlus, Save
 } from "lucide-react";
 import { toast } from "sonner";
 import dynamic from "next/dynamic";
@@ -325,6 +325,9 @@ export default function ValuationPage() {
   const [skipTraceResult, setSkipTraceResult] = useState<SkipTraceResult | null>(null);
   const [skipTraceLoading, setSkipTraceLoading] = useState(false);
 
+  // Save to Library state
+  const [saveLoading, setSaveLoading] = useState(false);
+
   // Store coordinates from Mapbox autocomplete
   const [selectedLat, setSelectedLat] = useState<number | null>(null);
   const [selectedLng, setSelectedLng] = useState<number | null>(null);
@@ -556,6 +559,56 @@ export default function ValuationPage() {
       toast.error("Failed to run skip trace");
     } finally {
       setSkipTraceLoading(false);
+    }
+  };
+
+  // Save to Research Library
+  const handleSaveToLibrary = async () => {
+    if (!report) {
+      toast.error("Generate a valuation report first");
+      return;
+    }
+
+    setSaveLoading(true);
+    try {
+      const response = await fetch("/api/research-library", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "saveReport",
+          path: "/Research",
+          name: report.property?.address?.address || report.property?.address?.street || "Valuation Report",
+          report: {
+            property: report.property,
+            valuation: report.valuation,
+            comparables: report.comparables,
+            neighborhood: report.neighborhood,
+            aiAnalysis: aiAnalysis,
+            skipTrace: skipTraceResult,
+          },
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast.error(data.error || "Failed to save report");
+        return;
+      }
+
+      toast.success("Report saved to Research Library!");
+
+      // Copy shareable link to clipboard
+      if (data.shareableUrl) {
+        const fullUrl = `${window.location.origin}${data.shareableUrl}`;
+        await navigator.clipboard.writeText(fullUrl);
+        toast.info("Shareable link copied to clipboard!");
+      }
+    } catch (error) {
+      console.error("Save to library error:", error);
+      toast.error("Failed to save report");
+    } finally {
+      setSaveLoading(false);
     }
   };
 
@@ -958,6 +1011,25 @@ export default function ValuationPage() {
             <Button onClick={handleDownloadPDF} className="bg-blue-600 hover:bg-blue-700 text-white border border-white">
               <Download className="mr-2 h-4 w-4" />
               Download PDF
+            </Button>
+
+            {/* Save to Library Button */}
+            <Button
+              onClick={handleSaveToLibrary}
+              disabled={saveLoading}
+              className="bg-green-600 hover:bg-green-700 text-white border border-white"
+            >
+              {saveLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <FolderPlus className="mr-2 h-4 w-4" />
+                  Save to Library
+                </>
+              )}
             </Button>
 
             {/* Share Dropdown */}
