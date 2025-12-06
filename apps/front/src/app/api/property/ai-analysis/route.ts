@@ -277,12 +277,12 @@ CRITICAL:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-4o",
+        model: "gpt-4o-mini", // Using mini for higher rate limits
         messages: [
           { role: "system", content: "You are an expert real estate analyst. Always respond with valid JSON only, no markdown or code blocks." },
           { role: "user", content: prompt },
         ],
-        max_tokens: 8000,
+        max_tokens: 4000,
         temperature: 0.7,
       }),
     });
