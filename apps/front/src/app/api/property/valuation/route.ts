@@ -168,14 +168,33 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // If we have input coordinates but property doesn't have them, add them
-    if (inputLat && inputLng && property) {
-      const addr = (property.address as Record<string, unknown>) || {};
-      if (!addr.latitude) addr.latitude = inputLat;
-      if (!addr.longitude) addr.longitude = inputLng;
-      property.address = addr;
-      if (!property.latitude) property.latitude = inputLat;
-      if (!property.longitude) property.longitude = inputLng;
+    // Normalize property data structure - RealEstateAPI returns address fields at root level
+    if (property) {
+      // Build address object from various possible field locations
+      const existingAddr = (property.address as Record<string, unknown>) || {};
+      const normalizedAddress: Record<string, unknown> = {
+        // Use existing address fields if present, otherwise use root-level fields
+        address: existingAddr.address || property.propertyAddress || property.streetAddress || address,
+        street: existingAddr.street || property.propertyAddress || property.streetAddress || address,
+        city: existingAddr.city || property.city || city,
+        state: existingAddr.state || property.state || state,
+        zip: existingAddr.zip || property.zip || property.zipCode || zip,
+        // Coordinates - prioritize Mapbox input, then existing data
+        latitude: inputLat || existingAddr.latitude || property.latitude || property.lat,
+        longitude: inputLng || existingAddr.longitude || property.longitude || property.lng || property.lon,
+      };
+
+      property.address = normalizedAddress;
+      property.latitude = normalizedAddress.latitude;
+      property.longitude = normalizedAddress.longitude;
+
+      // Also normalize other common field variations
+      if (!property.bedrooms && property.beds) property.bedrooms = property.beds;
+      if (!property.bathrooms && property.baths) property.bathrooms = property.baths;
+      if (!property.squareFeet && property.buildingSize) property.squareFeet = property.buildingSize;
+      if (!property.squareFeet && property.livingArea) property.squareFeet = property.livingArea;
+      if (!property.squareFeet && property.livingAreaSqFt) property.squareFeet = property.livingAreaSqFt;
+      if (!property.lastSaleAmount && property.lastSalePrice) property.lastSaleAmount = Number(property.lastSalePrice);
     }
 
     // Build valuation report
