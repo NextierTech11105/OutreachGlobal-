@@ -5,6 +5,34 @@ const REALESTATE_API_KEY = process.env.REAL_ESTATE_API_KEY || process.env.REALES
 const REALESTATE_API_URL = "https://api.realestateapi.com/v2/PropertySearch";
 const MAX_SAVE_SIZE = 10000; // Max 10K properties per save
 
+// Event signals - things that trigger campaigns
+export const EVENT_SIGNALS = [
+  // Distress signals
+  "preForeclosure",
+  "foreclosure",
+  "auction",
+  "taxLien",
+  "judgment",
+  "bankruptcy",
+  "divorce",
+  // Estate signals
+  "estate",
+  "probate",
+  "inherited",
+  // Property status signals
+  "vacant",
+  // MLS signals
+  "mlsExpired",
+  "mlsCancelled",
+  "mlsWithdrawn",
+] as const;
+
+export type EventSignal = typeof EVENT_SIGNALS[number];
+
+// Property CRITERIA - static characteristics for filtering/scoring (not signals)
+// Examples: equity%, absentee, outOfState, yearsOwned, propertyType, lotSize, yearBuilt
+// Development criteria: lotDimensions, zoning, buildableSqFt, unusedFAR, allowedUnits
+
 export interface SavedSearchResult {
   id: string;
   name: string;
@@ -14,17 +42,35 @@ export interface SavedSearchResult {
   bucketPath: string;
   cdnUrl: string;
   createdAt: string;
-  // Tracking fields for cron job
-  trackedFields: string[];
+  // Event signal tracking
+  monitoredSignals: EventSignal[];
   lastChecked?: string;
-  changesDetected?: number;
+  signalsDetected?: Record<EventSignal, number>;
+  // Auto-trigger settings
+  autoTriggerSMS: boolean;
+  autoTriggerEmail: boolean;
+  smsTemplateOverride?: string;
+  // Stats
+  triggered?: number;
+  queued?: number;
+  sent?: number;
+  responded?: number;
 }
 
 // POST - Execute search and save up to 10K results to DO Spaces bucket
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, filters, saveSize = 1000, trackedFields = [] } = body;
+    const {
+      name,
+      filters,
+      saveSize = 1000,
+      // Event signal configuration
+      monitoredSignals = ["preForeclosure", "foreclosure", "taxLien", "inherited"],
+      autoTriggerSMS = true,
+      autoTriggerEmail = false,
+      smsTemplateOverride,
+    } = body;
 
     if (!name) {
       return NextResponse.json({ error: "Search name is required" }, { status: 400 });
@@ -103,7 +149,18 @@ export async function POST(request: NextRequest) {
     // Create the saved search record
     const timestamp = Date.now();
     const safeName = name.toLowerCase().replace(/[^a-z0-9]/g, "-");
-    const bucketPath = `searches/${safeName}-${timestamp}.json`;
+    // Save to datalake structure for campaign tracking
+    const bucketPath = `datalake/realestate/searches/active/${safeName}-${timestamp}.json`;
+
+    // Count initial signals in the data
+    const signalCounts: Record<string, number> = {};
+    for (const signal of monitoredSignals) {
+      signalCounts[signal] = allProperties.filter((p: Record<string, unknown>) => {
+        if (signal === "highEquity") return (p.equityPercent as number) >= 70;
+        if (signal === "longOwnership") return (p.yearsOwned as number) >= 10;
+        return p[signal] === true;
+      }).length;
+    }
 
     const searchRecord: SavedSearchResult = {
       id: timestamp.toString(),
@@ -114,34 +171,86 @@ export async function POST(request: NextRequest) {
       bucketPath,
       cdnUrl: "",
       createdAt: new Date().toISOString(),
-      trackedFields: trackedFields.length > 0 ? trackedFields : [
-        "estimatedValue",
-        "estimatedEquity",
-        "preForeclosure",
-        "foreclosure",
-        "ownerName",
-      ],
+      // Event signal tracking
+      monitoredSignals: monitoredSignals as EventSignal[],
+      signalsDetected: signalCounts as Record<EventSignal, number>,
+      // Auto-trigger settings
+      autoTriggerSMS,
+      autoTriggerEmail,
+      smsTemplateOverride,
+      // Initial stats
+      triggered: 0,
+      queued: 0,
+      sent: 0,
+      responded: 0,
     };
 
-    // Prepare data for bucket
+    // Prepare data for bucket - raw signals for your scoring system
     const bucketData = {
       metadata: searchRecord,
       properties: allProperties.map((p: Record<string, unknown>) => ({
+        // Core identifiers
         id: p.id || p.propertyId,
         address: p.address,
         propertyType: p.propertyType,
+        // Owner info
         owner1FirstName: p.owner1FirstName,
         owner1LastName: p.owner1LastName,
+        ownerType: p.ownerType, // individual, corporate, trust, etc.
+        absenteeOwner: p.absenteeOwner,
+        outOfState: p.outOfState,
+        yearsOwned: p.yearsOwned,
+        // Property details
+        yearBuilt: p.yearBuilt,
+        squareFeet: p.squareFeet,
+        buildingSqFt: p.buildingSqFt,
+        bedrooms: p.bedrooms,
+        bathrooms: p.bathrooms,
+        // Lot & Development criteria
+        lotSize: p.lotSize,
+        lotSqFt: p.lotSqFt,
+        lotAcres: p.lotAcres,
+        lotWidth: p.lotWidth,
+        lotDepth: p.lotDepth,
+        lotDimensions: p.lotDimensions,
+        zoning: p.zoning,
+        zoningCode: p.zoningCode,
+        zoningDescription: p.zoningDescription,
+        allowedFAR: p.allowedFAR,
+        currentFAR: p.currentFAR,
+        unusedFAR: p.unusedFAR,
+        buildableSqFt: p.buildableSqFt,
+        allowedUnits: p.allowedUnits,
+        currentUnits: p.currentUnits,
+        // Financial
         estimatedValue: p.estimatedValue,
         estimatedEquity: p.estimatedEquity,
         equityPercent: p.equityPercent,
+        loanAmount: p.loanAmount,
+        loanType: p.loanType,
+        // Distress signals (raw - your system scores these)
         preForeclosure: p.preForeclosure,
         foreclosure: p.foreclosure,
         taxLien: p.taxLien,
-        absenteeOwner: p.absenteeOwner,
         vacant: p.vacant,
         inherited: p.inherited,
-        // Include raw data for skip tracing later
+        divorce: p.divorce,
+        probate: p.probate,
+        bankruptcy: p.bankruptcy,
+        // Loan signals
+        adjustableRate: p.adjustableRate,
+        balloonPayment: p.balloonPayment,
+        loanMaturityDate: p.loanMaturityDate,
+        freeClear: p.freeClear,
+        // Listing signals
+        listed: p.listed,
+        listingPrice: p.listingPrice,
+        daysOnMarket: p.daysOnMarket,
+        priceReduction: p.priceReduction,
+        listingExpired: p.listingExpired,
+        // Campaign tracking (updated by your system)
+        campaignStatus: "pending",
+        // Full raw data for enrichment
         _raw: p,
       })),
     };

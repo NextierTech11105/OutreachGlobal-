@@ -49,26 +49,182 @@ const BUCKET_STRUCTURE = {
   "datalake/business/ny/processed/": "Processed/indexed data",
   "datalake/business/ny/partnerships/": "Partnership candidate data",
 
-  // Business Sectors by SIC Code
+  // ===== Business Sectors by SIC Code =====
   "datalake/business/ny/sectors/": "Business data organized by industry sector",
-  "datalake/business/ny/sectors/professional-services/": "Law firms, accounting, consulting (SIC 81xx, 87xx)",
-  "datalake/business/ny/sectors/healthcare-medical/": "Doctors, clinics, medical services (SIC 80xx)",
-  "datalake/business/ny/sectors/restaurants-food/": "Restaurants, cafes, catering (SIC 58xx)",
-  "datalake/business/ny/sectors/retail-stores/": "Retail shops and stores (SIC 52xx-59xx)",
-  "datalake/business/ny/sectors/manufacturing/": "Factories and production (SIC 20xx-39xx)",
-  "datalake/business/ny/sectors/transportation-logistics/": "Trucking, shipping, logistics (SIC 40xx-47xx)",
-  "datalake/business/ny/sectors/hotels-hospitality/": "Hotels, motels, lodging (SIC 70xx)",
-  "datalake/business/ny/sectors/education-training/": "Schools, training centers (SIC 82xx)",
-  "datalake/business/ny/sectors/automotive/": "Car dealers, repair shops, parts (SIC 55xx, 75xx)",
-  "datalake/business/ny/sectors/financial-services/": "Banks, insurance, investments (SIC 60xx-67xx)",
-  "datalake/business/ny/sectors/real-estate/": "Brokers, agents, property management (SIC 65xx)",
-  "datalake/business/ny/sectors/construction-contractors/": "Builders, contractors, trades (SIC 15xx-17xx)",
 
-  // Real Estate API Saved Searches
-  "datalake/realestate/": "RealEstateAPI.com saved searches",
-  "datalake/realestate/searches/": "Saved search results",
+  // Professional Services (SIC 81xx, 87xx)
+  "datalake/business/ny/sectors/professional-services/": "Law firms, accounting, consulting",
+  "datalake/business/ny/sectors/professional-services/raw/": "Raw CSV uploads",
+  "datalake/business/ny/sectors/professional-services/legal-services/": "Attorneys & law firms (SIC 8111)",
+  "datalake/business/ny/sectors/professional-services/accounting/": "CPAs, bookkeeping (SIC 8721)",
+  "datalake/business/ny/sectors/professional-services/consulting/": "Management consultants (SIC 8742)",
+  "datalake/business/ny/sectors/professional-services/engineering/": "Engineering services (SIC 8711)",
+  "datalake/business/ny/sectors/professional-services/architects/": "Architectural firms (SIC 8712)",
+
+  // Healthcare & Medical (SIC 80xx)
+  "datalake/business/ny/sectors/healthcare-medical/": "Doctors, clinics, medical services",
+  "datalake/business/ny/sectors/healthcare-medical/raw/": "Raw CSV uploads",
+  "datalake/business/ny/sectors/healthcare-medical/physicians/": "Doctors offices (SIC 8011)",
+  "datalake/business/ny/sectors/healthcare-medical/dentists/": "Dental offices (SIC 8021)",
+  "datalake/business/ny/sectors/healthcare-medical/chiropractors/": "Chiropractic offices (SIC 8041)",
+  "datalake/business/ny/sectors/healthcare-medical/nursing-homes/": "Skilled nursing facilities (SIC 8051)",
+  "datalake/business/ny/sectors/healthcare-medical/home-health/": "Home health agencies (SIC 8082)",
+  "datalake/business/ny/sectors/healthcare-medical/medical-labs/": "Labs and diagnostics (SIC 8071)",
+
+  // Restaurants & Food Service (SIC 58xx)
+  "datalake/business/ny/sectors/restaurants-food/": "Restaurants, cafes, catering",
+  "datalake/business/ny/sectors/restaurants-food/raw/": "Raw CSV uploads",
+  "datalake/business/ny/sectors/restaurants-food/restaurants/": "Full-service restaurants (SIC 5812)",
+  "datalake/business/ny/sectors/restaurants-food/pizzerias/": "Pizza shops (SIC 5812)",
+  "datalake/business/ny/sectors/restaurants-food/fast-food/": "Fast food chains (SIC 5812)",
+  "datalake/business/ny/sectors/restaurants-food/bars-taverns/": "Bars and drinking places (SIC 5813)",
+  "datalake/business/ny/sectors/restaurants-food/catering/": "Caterers (SIC 5812)",
+  "datalake/business/ny/sectors/restaurants-food/bakeries/": "Bakeries (SIC 5461)",
+  "datalake/business/ny/sectors/restaurants-food/delis/": "Delis and sandwich shops (SIC 5812)",
+
+  // Retail Stores (SIC 52xx-59xx)
+  "datalake/business/ny/sectors/retail-stores/": "Retail shops and stores",
+  "datalake/business/ny/sectors/retail-stores/raw/": "Raw CSV uploads",
+  "datalake/business/ny/sectors/retail-stores/grocery/": "Grocery stores (SIC 5411)",
+  "datalake/business/ny/sectors/retail-stores/convenience/": "Convenience stores (SIC 5411)",
+  "datalake/business/ny/sectors/retail-stores/clothing/": "Clothing stores (SIC 56xx)",
+  "datalake/business/ny/sectors/retail-stores/hardware/": "Hardware stores (SIC 5251)",
+  "datalake/business/ny/sectors/retail-stores/furniture/": "Furniture stores (SIC 5712)",
+  "datalake/business/ny/sectors/retail-stores/electronics/": "Electronics stores (SIC 5731)",
+  "datalake/business/ny/sectors/retail-stores/pharmacies/": "Drug stores & pharmacies (SIC 5912)",
+
+  // Manufacturing (SIC 20xx-39xx)
+  "datalake/business/ny/sectors/manufacturing/": "Factories and production",
+  "datalake/business/ny/sectors/manufacturing/raw/": "Raw CSV uploads",
+  "datalake/business/ny/sectors/manufacturing/food-processing/": "Food manufacturing (SIC 20xx)",
+  "datalake/business/ny/sectors/manufacturing/textiles/": "Textile mills (SIC 22xx)",
+  "datalake/business/ny/sectors/manufacturing/printing/": "Printing & publishing (SIC 27xx)",
+  "datalake/business/ny/sectors/manufacturing/chemicals/": "Chemical products (SIC 28xx)",
+  "datalake/business/ny/sectors/manufacturing/plastics/": "Plastics & rubber (SIC 30xx)",
+  "datalake/business/ny/sectors/manufacturing/metals/": "Metal fabrication (SIC 33xx-34xx)",
+  "datalake/business/ny/sectors/manufacturing/machinery/": "Industrial machinery (SIC 35xx)",
+  "datalake/business/ny/sectors/manufacturing/electronics/": "Electronic equipment (SIC 36xx)",
+  "datalake/business/ny/sectors/manufacturing/cement-concrete/": "Cement & concrete (SIC 3241, 3272)",
+
+  // Transportation & Logistics (SIC 40xx-47xx)
+  "datalake/business/ny/sectors/transportation-logistics/": "Trucking, shipping, logistics",
+  "datalake/business/ny/sectors/transportation-logistics/raw/": "Raw CSV uploads",
+  "datalake/business/ny/sectors/transportation-logistics/trucking/": "Trucking companies (SIC 4212-4214)",
+  "datalake/business/ny/sectors/transportation-logistics/moving/": "Moving companies (SIC 4212-4214)",
+  "datalake/business/ny/sectors/transportation-logistics/warehousing/": "Warehouses & storage (SIC 4225)",
+  "datalake/business/ny/sectors/transportation-logistics/freight/": "Freight forwarding (SIC 4731)",
+  "datalake/business/ny/sectors/transportation-logistics/courier/": "Courier services (SIC 4215)",
+  "datalake/business/ny/sectors/transportation-logistics/taxis-limo/": "Taxi & limo services (SIC 4121)",
+
+  // Hotels & Hospitality (SIC 70xx)
+  "datalake/business/ny/sectors/hotels-hospitality/": "Hotels, motels, lodging",
+  "datalake/business/ny/sectors/hotels-hospitality/raw/": "Raw CSV uploads",
+  "datalake/business/ny/sectors/hotels-hospitality/hotels/": "Hotels (SIC 7011)",
+  "datalake/business/ny/sectors/hotels-hospitality/motels/": "Motels (SIC 7011)",
+  "datalake/business/ny/sectors/hotels-hospitality/bed-breakfast/": "B&Bs (SIC 7011)",
+  "datalake/business/ny/sectors/hotels-hospitality/event-venues/": "Event halls & venues (SIC 7941)",
+
+  // Education & Training (SIC 82xx)
+  "datalake/business/ny/sectors/education-training/": "Schools, training centers",
+  "datalake/business/ny/sectors/education-training/raw/": "Raw CSV uploads",
+  "datalake/business/ny/sectors/education-training/private-schools/": "Private K-12 schools (SIC 8211)",
+  "datalake/business/ny/sectors/education-training/colleges/": "Colleges & universities (SIC 8221)",
+  "datalake/business/ny/sectors/education-training/vocational/": "Vocational schools (SIC 8249)",
+  "datalake/business/ny/sectors/education-training/tutoring/": "Tutoring services (SIC 8299)",
+  "datalake/business/ny/sectors/education-training/daycare/": "Child daycare (SIC 8351)",
+
+  // Automotive (SIC 55xx, 75xx)
+  "datalake/business/ny/sectors/automotive/": "Car dealers, repair shops, parts",
+  "datalake/business/ny/sectors/automotive/raw/": "Raw CSV uploads",
+  "datalake/business/ny/sectors/automotive/dealers-new/": "New car dealers (SIC 5511)",
+  "datalake/business/ny/sectors/automotive/dealers-used/": "Used car dealers (SIC 5521)",
+  "datalake/business/ny/sectors/automotive/repair-shops/": "Auto repair (SIC 7538)",
+  "datalake/business/ny/sectors/automotive/body-shops/": "Body shops (SIC 7532)",
+  "datalake/business/ny/sectors/automotive/parts-stores/": "Auto parts stores (SIC 5531)",
+  "datalake/business/ny/sectors/automotive/tire-shops/": "Tire dealers (SIC 5531)",
+  "datalake/business/ny/sectors/automotive/car-wash/": "Car washes (SIC 7542)",
+
+  // Financial Services (SIC 60xx-67xx)
+  "datalake/business/ny/sectors/financial-services/": "Banks, insurance, investments",
+  "datalake/business/ny/sectors/financial-services/raw/": "Raw CSV uploads",
+  "datalake/business/ny/sectors/financial-services/banks/": "Banks (SIC 6021-6022)",
+  "datalake/business/ny/sectors/financial-services/credit-unions/": "Credit unions (SIC 6061)",
+  "datalake/business/ny/sectors/financial-services/mortgage-brokers/": "Mortgage companies (SIC 6162)",
+  "datalake/business/ny/sectors/financial-services/insurance-agents/": "Insurance agents (SIC 6411)",
+  "datalake/business/ny/sectors/financial-services/investment-advisors/": "Investment advisors (SIC 6282)",
+  "datalake/business/ny/sectors/financial-services/tax-preparers/": "Tax prep services (SIC 7291)",
+
+  // Real Estate (SIC 65xx)
+  "datalake/business/ny/sectors/real-estate/": "Brokers, agents, property management",
+  "datalake/business/ny/sectors/real-estate/raw/": "Raw CSV uploads",
+  "datalake/business/ny/sectors/real-estate/agents-brokers/": "RE agents & brokers (SIC 6531)",
+  "datalake/business/ny/sectors/real-estate/property-mgmt/": "Property managers (SIC 6531)",
+  "datalake/business/ny/sectors/real-estate/developers/": "Land developers (SIC 6552)",
+  "datalake/business/ny/sectors/real-estate/appraisers/": "Appraisers (SIC 6531)",
+  "datalake/business/ny/sectors/real-estate/title-companies/": "Title & escrow (SIC 6361)",
+
+  // Construction & Contractors (SIC 15xx-17xx)
+  "datalake/business/ny/sectors/construction-contractors/": "Builders, contractors, trades",
+  "datalake/business/ny/sectors/construction-contractors/raw/": "Raw CSV uploads",
+  "datalake/business/ny/sectors/construction-contractors/general-contractors/": "GCs residential (SIC 1521)",
+  "datalake/business/ny/sectors/construction-contractors/commercial-builders/": "Commercial construction (SIC 1541)",
+  "datalake/business/ny/sectors/construction-contractors/plumbers/": "Plumbing contractors (SIC 1711)",
+  "datalake/business/ny/sectors/construction-contractors/electricians/": "Electrical contractors (SIC 1731)",
+  "datalake/business/ny/sectors/construction-contractors/hvac/": "HVAC contractors (SIC 1711)",
+  "datalake/business/ny/sectors/construction-contractors/roofers/": "Roofing contractors (SIC 1761)",
+  "datalake/business/ny/sectors/construction-contractors/painters/": "Painting contractors (SIC 1721)",
+  "datalake/business/ny/sectors/construction-contractors/carpenters/": "Carpentry contractors (SIC 1751)",
+  "datalake/business/ny/sectors/construction-contractors/masonry/": "Masonry & concrete (SIC 1741)",
+  "datalake/business/ny/sectors/construction-contractors/landscaping/": "Landscaping services (SIC 0782)",
+
+  // Personal Services (SIC 72xx)
+  "datalake/business/ny/sectors/personal-services/": "Personal care and services",
+  "datalake/business/ny/sectors/personal-services/raw/": "Raw CSV uploads",
+  "datalake/business/ny/sectors/personal-services/salons/": "Hair salons (SIC 7231)",
+  "datalake/business/ny/sectors/personal-services/barbershops/": "Barber shops (SIC 7241)",
+  "datalake/business/ny/sectors/personal-services/spas/": "Day spas (SIC 7299)",
+  "datalake/business/ny/sectors/personal-services/dry-cleaners/": "Dry cleaners (SIC 7216)",
+  "datalake/business/ny/sectors/personal-services/laundromats/": "Laundromats (SIC 7215)",
+  "datalake/business/ny/sectors/personal-services/funeral-homes/": "Funeral services (SIC 7261)",
+
+  // Business Services (SIC 73xx)
+  "datalake/business/ny/sectors/business-services/": "B2B service providers",
+  "datalake/business/ny/sectors/business-services/raw/": "Raw CSV uploads",
+  "datalake/business/ny/sectors/business-services/advertising/": "Ad agencies (SIC 7311)",
+  "datalake/business/ny/sectors/business-services/staffing/": "Staffing agencies (SIC 7361)",
+  "datalake/business/ny/sectors/business-services/janitorial/": "Cleaning services (SIC 7349)",
+  "datalake/business/ny/sectors/business-services/security/": "Security services (SIC 7381-7382)",
+  "datalake/business/ny/sectors/business-services/it-services/": "Computer services (SIC 7371-7379)",
+  "datalake/business/ny/sectors/business-services/printing/": "Commercial printing (SIC 2752)",
+
+  // Recreation & Entertainment (SIC 79xx)
+  "datalake/business/ny/sectors/recreation-entertainment/": "Entertainment venues and services",
+  "datalake/business/ny/sectors/recreation-entertainment/raw/": "Raw CSV uploads",
+  "datalake/business/ny/sectors/recreation-entertainment/gyms/": "Fitness centers (SIC 7991)",
+  "datalake/business/ny/sectors/recreation-entertainment/golf-courses/": "Golf courses (SIC 7992)",
+  "datalake/business/ny/sectors/recreation-entertainment/bowling/": "Bowling alleys (SIC 7933)",
+  "datalake/business/ny/sectors/recreation-entertainment/theaters/": "Movie theaters (SIC 7832)",
+  "datalake/business/ny/sectors/recreation-entertainment/amusement/": "Amusement parks (SIC 7996)",
+
+  // ===== Real Estate API Saved Searches =====
+  "datalake/realestate/": "RealEstateAPI.com saved searches and property data",
+  "datalake/realestate/searches/": "Saved search results with property IDs",
+  "datalake/realestate/searches/active/": "Active saved searches for campaigns",
+  "datalake/realestate/searches/archived/": "Archived/completed search campaigns",
   "datalake/realestate/properties/": "Property detail cache",
+  "datalake/realestate/properties/pending-outreach/": "Properties pending outreach campaign",
+  "datalake/realestate/properties/in-campaign/": "Properties currently in SMS/Email campaign",
+  "datalake/realestate/properties/contacted/": "Properties already contacted",
+  "datalake/realestate/properties/responded/": "Properties that responded (leads)",
   "datalake/realestate/comps/": "Comparable sales data",
+  "datalake/realestate/valuations/": "Property valuations generated",
+  "datalake/realestate/reports/": "Shareable valuation reports",
+
+  // Property Campaign Tracking
+  "datalake/realestate/campaigns/": "Property outreach campaigns",
+  "datalake/realestate/campaigns/sms/": "SMS campaign batches",
+  "datalake/realestate/campaigns/email/": "Email campaign batches",
+  "datalake/realestate/campaigns/completed/": "Completed campaign results",
 
   // ===== BUCKETS - Lead Collections =====
   "buckets/": "Lead bucket collections (campaigns, filters)",
