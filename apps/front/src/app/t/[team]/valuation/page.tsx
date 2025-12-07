@@ -328,6 +328,10 @@ export default function ValuationPage() {
   // Save to Library state
   const [saveLoading, setSaveLoading] = useState(false);
 
+  // Shareable link state - shows after save
+  const [shareableLink, setShareableLink] = useState<string | null>(null);
+  const [showShareModal, setShowShareModal] = useState(false);
+
   // Store coordinates from Mapbox autocomplete
   const [selectedLat, setSelectedLat] = useState<number | null>(null);
   const [selectedLng, setSelectedLng] = useState<number | null>(null);
@@ -394,6 +398,8 @@ export default function ValuationPage() {
     setReport(null);
     setAiAnalysis(null);
     setSkipTraceResult(null);
+    setShareableLink(null);
+    setShowShareModal(false);
 
     // Auto-run property detail/valuation
     toast.info("Fetching property details...");
@@ -465,6 +471,8 @@ export default function ValuationPage() {
     setReport(null);
     setAiAnalysis(null);
     setSkipTraceResult(null);
+    setShareableLink(null);
+    setShowShareModal(false);
 
     setLoading(true);
     try {
@@ -611,6 +619,8 @@ export default function ValuationPage() {
       // Copy shareable link to clipboard - prefer public CDN URL
       const shareLink = data.htmlUrl || (data.shareableUrl ? `${window.location.origin}${data.shareableUrl}` : null);
       if (shareLink) {
+        setShareableLink(shareLink);
+        setShowShareModal(true);
         await navigator.clipboard.writeText(shareLink);
         toast.info("Shareable link copied to clipboard!");
 
@@ -1017,6 +1027,90 @@ export default function ValuationPage() {
         </CardContent>
       </Card>
 
+      {/* SHARE LINK MODAL - Prominent display for shareable reports */}
+      {showShareModal && shareableLink && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+          <div className="bg-background border-2 border-green-500 rounded-xl shadow-2xl max-w-lg w-full p-6 animate-in fade-in zoom-in duration-200">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle2 className="h-8 w-8 text-green-500" />
+              </div>
+              <h2 className="text-2xl font-bold mb-2">Report Ready to Share!</h2>
+              <p className="text-muted-foreground mb-6">
+                Send this link to your client. They can view the full report and download it - no login required.
+              </p>
+
+              {/* Link Display */}
+              <div className="bg-muted rounded-lg p-3 mb-4">
+                <p className="text-xs text-muted-foreground mb-2">SHAREABLE LINK (copied to clipboard)</p>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={shareableLink}
+                    readOnly
+                    className="flex-1 bg-background px-3 py-2 rounded text-sm font-mono truncate border"
+                  />
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      navigator.clipboard.writeText(shareableLink);
+                      toast.success("Link copied!");
+                    }}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col gap-3">
+                <Button
+                  className="w-full bg-green-600 hover:bg-green-700 text-white text-lg py-6"
+                  onClick={() => window.open(shareableLink, '_blank')}
+                >
+                  <ExternalLink className="mr-2 h-5 w-5" />
+                  Preview Report
+                </Button>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    variant="outline"
+                    className="py-5"
+                    onClick={() => {
+                      const subject = encodeURIComponent(`Your Property Valuation Report`);
+                      const body = encodeURIComponent(`Hi,\n\nHere is your property valuation report:\n${shareableLink}\n\nClick the link to view and download your full report.\n\nBest regards`);
+                      window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
+                    }}
+                  >
+                    <Mail className="mr-2 h-4 w-4" />
+                    Email Link
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="py-5"
+                    onClick={() => {
+                      const message = encodeURIComponent(`Your property valuation report is ready! View it here: ${shareableLink}`);
+                      window.open(`sms:?body=${message}`, '_blank');
+                    }}
+                  >
+                    <MessageSquare className="mr-2 h-4 w-4" />
+                    SMS Link
+                  </Button>
+                </div>
+
+                <Button
+                  variant="ghost"
+                  className="mt-2"
+                  onClick={() => setShowShareModal(false)}
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Report */}
       {report && (
         <div ref={reportRef} className="space-y-6 print:space-y-4">
@@ -1070,33 +1164,39 @@ export default function ValuationPage() {
               Download PDF
             </Button>
 
-            {/* Save to Library Button */}
+            {/* Save & Get Share Link Button - THE MAIN ACTION */}
             <Button
-              onClick={handleSaveToLibrary}
+              onClick={() => handleSaveToLibrary(true)}
               disabled={saveLoading}
-              className="bg-green-600 hover:bg-green-700 text-white border border-white"
+              className="bg-green-600 hover:bg-green-700 text-white border-2 border-green-400 shadow-lg shadow-green-500/30"
             >
               {saveLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
+                  Generating Link...
+                </>
+              ) : shareableLink ? (
+                <>
+                  <Link2 className="mr-2 h-4 w-4" />
+                  Get Share Link
                 </>
               ) : (
                 <>
-                  <FolderPlus className="mr-2 h-4 w-4" />
-                  Save to Library
+                  <Share2 className="mr-2 h-4 w-4" />
+                  Save & Get Share Link
                 </>
               )}
             </Button>
 
-            {/* Share Dropdown */}
+            {/* Share Dropdown - legacy share options */}
             <div className="relative">
               <Button
                 onClick={() => setShowShareMenu(!showShareMenu)}
-                className="bg-blue-600 hover:bg-blue-700 text-white border border-white"
+                variant="outline"
+                className="border border-muted-foreground/30"
               >
                 <Share2 className="mr-2 h-4 w-4" />
-                Share
+                More
               </Button>
               {showShareMenu && (
                 <div className="absolute right-0 mt-2 w-48 bg-background border rounded-md shadow-lg z-50">
@@ -1125,6 +1225,47 @@ export default function ValuationPage() {
               )}
             </div>
           </div>
+
+          {/* PERSISTENT SHARE LINK BANNER - Shows when link exists */}
+          {shareableLink && !showShareModal && (
+            <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/30 rounded-lg p-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <CheckCircle2 className="h-5 w-5 text-green-500" />
+                  <span className="font-semibold text-green-600 dark:text-green-400">Report Link Ready</span>
+                </div>
+                <div className="flex-1 flex items-center gap-2 w-full sm:w-auto">
+                  <input
+                    type="text"
+                    value={shareableLink}
+                    readOnly
+                    className="flex-1 bg-background px-3 py-2 rounded text-sm font-mono truncate border"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      navigator.clipboard.writeText(shareableLink);
+                      toast.success("Link copied!");
+                    }}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="bg-green-600 hover:bg-green-700"
+                    onClick={() => window.open(shareableLink, '_blank')}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-1" />
+                    Open
+                  </Button>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                Share this link with your client - they can view and download the report without logging in.
+              </p>
+            </div>
+          )}
 
           {/* Skip Trace Results */}
           {skipTraceResult && skipTraceResult.success && (

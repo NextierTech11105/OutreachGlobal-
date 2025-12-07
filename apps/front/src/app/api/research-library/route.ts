@@ -785,6 +785,12 @@ function generateShareableHTML(data: {
     </div>
 
     <div class="footer">
+      <div class="download-section" style="margin-bottom: 25px;">
+        <button onclick="window.print()" class="download-btn">
+          📥 Download / Print Report
+        </button>
+        <p style="color: #8a8f9e; font-size: 0.8em; margin-top: 10px;">Click to save as PDF or print this report</p>
+      </div>
       <div class="disclaimer">
         <strong>Disclaimer:</strong> This report is for informational purposes only. Values are estimates based on market data and should not be considered professional appraisal or investment advice. Consult licensed professionals before making decisions.
       </div>
@@ -794,6 +800,44 @@ function generateShareableHTML(data: {
       </div>
       <a href="${process.env.NEXT_PUBLIC_APP_URL || "https://monkfish-app-mb7h3.ondigitalocean.app"}" class="cta">View Full Report on NexTier</a>
     </div>
+    <style>
+      .download-btn {
+        background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+        color: #0f1424;
+        border: none;
+        padding: 16px 40px;
+        font-size: 1.1em;
+        font-weight: 700;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+        box-shadow: 0 4px 15px rgba(74, 222, 128, 0.3);
+      }
+      .download-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(74, 222, 128, 0.4);
+      }
+      @media print {
+        .download-section { display: none !important; }
+        .cta { display: none !important; }
+        .disclaimer { background: #fff3cd !important; color: #856404 !important; border-left-color: #ffc107 !important; }
+        body { background: white !important; color: #333 !important; }
+        .container { box-shadow: none !important; background: white !important; }
+        .header { background: #1a2659 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .section { background: #f8f9fa !important; border-color: #dee2e6 !important; }
+        .section-title { color: #1a2659 !important; }
+        .property-card { background: #f8f9fa !important; border-left-color: #1a2659 !important; }
+        .property-card .label, .metric-title { color: #666 !important; }
+        .property-card .value, .metric-value { color: #1a2659 !important; }
+        .metric-card { background: #f8f9fa !important; border-color: #dee2e6 !important; }
+        .ai-summary { background: #f8f9fa !important; color: #333 !important; border-left-color: #1a2659 !important; }
+        .strengths-list li, .risks-list li { background: #f8f9fa !important; color: #333 !important; }
+        .comp-table th { background: #e9ecef !important; color: #1a2659 !important; }
+        .comp-table td { color: #333 !important; border-color: #dee2e6 !important; }
+        .footer { background: #f8f9fa !important; border-color: #dee2e6 !important; }
+        .footer-text { color: #666 !important; }
+      }
+    </style>
   </div>
 </body>
 </html>`;
