@@ -49,6 +49,21 @@ const BUCKET_STRUCTURE = {
   "datalake/business/ny/processed/": "Processed/indexed data",
   "datalake/business/ny/partnerships/": "Partnership candidate data",
 
+  // Business Sectors by SIC Code
+  "datalake/business/ny/sectors/": "Business data organized by industry sector",
+  "datalake/business/ny/sectors/professional-services/": "Law firms, accounting, consulting (SIC 81xx, 87xx)",
+  "datalake/business/ny/sectors/healthcare-medical/": "Doctors, clinics, medical services (SIC 80xx)",
+  "datalake/business/ny/sectors/restaurants-food/": "Restaurants, cafes, catering (SIC 58xx)",
+  "datalake/business/ny/sectors/retail-stores/": "Retail shops and stores (SIC 52xx-59xx)",
+  "datalake/business/ny/sectors/manufacturing/": "Factories and production (SIC 20xx-39xx)",
+  "datalake/business/ny/sectors/transportation-logistics/": "Trucking, shipping, logistics (SIC 40xx-47xx)",
+  "datalake/business/ny/sectors/hotels-hospitality/": "Hotels, motels, lodging (SIC 70xx)",
+  "datalake/business/ny/sectors/education-training/": "Schools, training centers (SIC 82xx)",
+  "datalake/business/ny/sectors/automotive/": "Car dealers, repair shops, parts (SIC 55xx, 75xx)",
+  "datalake/business/ny/sectors/financial-services/": "Banks, insurance, investments (SIC 60xx-67xx)",
+  "datalake/business/ny/sectors/real-estate/": "Brokers, agents, property management (SIC 65xx)",
+  "datalake/business/ny/sectors/construction-contractors/": "Builders, contractors, trades (SIC 15xx-17xx)",
+
   // Real Estate API Saved Searches
   "datalake/realestate/": "RealEstateAPI.com saved searches",
   "datalake/realestate/searches/": "Saved search results",
