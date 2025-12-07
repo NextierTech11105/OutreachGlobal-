@@ -33,8 +33,11 @@ import {
   Calendar,
   Loader2,
   Sparkles,
+  Send,
+  PhoneOutgoing,
 } from "lucide-react";
 import { useCurrentTeam } from "@/features/team/team.context";
+import { useGlobalActionsSafe } from "@/lib/providers/global-actions-provider";
 import { toast } from "sonner";
 import {
   LeadKanbanQuery,
@@ -114,6 +117,7 @@ export function LeadActions({
   onEnrichComplete,
 }: LeadActionsProps) {
   const { team } = useCurrentTeam();
+  const globalActions = useGlobalActionsSafe();
   const [scheduleCallOpen, setScheduleCallOpen] = useState(false);
   const [scheduleSmsOpen, setScheduleSmsOpen] = useState(false);
   const [blacklistOpen, setBlacklistOpen] = useState(false);
@@ -390,6 +394,42 @@ export function LeadActions({
             Schedule SMS
           </DropdownMenuItem>
           <DropdownMenuSeparator />
+          {/* Global Quick Actions */}
+          {globalActions && (
+            <>
+              <DropdownMenuItem
+                onClick={() => {
+                  globalActions.pushToSMSCampaign({
+                    id: lead.id,
+                    name: lead.name || undefined,
+                    phone: lead.phone || undefined,
+                    email: lead.email || undefined,
+                  });
+                }}
+                disabled={!lead.phone}
+                className="cursor-pointer text-blue-600 focus:text-blue-600"
+              >
+                <Send className="mr-2 size-4" />
+                Push to SMS Campaign Queue
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  globalActions.pushToPhoneCenter({
+                    id: lead.id,
+                    name: lead.name || undefined,
+                    phone: lead.phone || undefined,
+                    email: lead.email || undefined,
+                  });
+                }}
+                disabled={!lead.phone}
+                className="cursor-pointer text-green-600 focus:text-green-600"
+              >
+                <PhoneOutgoing className="mr-2 size-4" />
+                Push to Phone Center
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+            </>
+          )}
           <DropdownMenuItem
             onClick={handleEnrich}
             disabled={enriching}

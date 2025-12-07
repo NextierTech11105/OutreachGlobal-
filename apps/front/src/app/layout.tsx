@@ -5,8 +5,10 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as ToasterProvider } from "@/components/ui/sonner";
 import { Geist, Geist_Mono } from "next/font/google";
 import { CallStateProvider } from "@/lib/providers/call-state-provider";
+import { GlobalActionsProvider } from "@/lib/providers/global-actions-provider";
 import { CallStateBridge } from "@/components/call-state-bridge";
 import { CallModal } from "@/components/call-modal";
+import { GlobalQuickActions } from "@/components/global-quick-actions";
 import { getTitle } from "@/config/title";
 import { AppProviders } from "@/providers/app-providers";
 import { getAuthUser } from "@/features/auth/auth.data";
@@ -44,11 +46,14 @@ export default async function RootLayout({
             disableTransitionOnChange
             storageKey="nextier-theme"
           >
-            <CallStateProvider>
-              <CallStateBridge />
-              {children}
-              <CallModal />
-            </CallStateProvider>
+            <GlobalActionsProvider>
+              <CallStateProvider>
+                <CallStateBridge />
+                {children}
+                <CallModal />
+                <GlobalQuickActions />
+              </CallStateProvider>
+            </GlobalActionsProvider>
             {/* @deprecated */}
             <Toaster />
             <ToasterProvider />

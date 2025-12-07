@@ -5,14 +5,19 @@ import {
   BotIcon,
   BrainIcon,
   BuildingIcon,
+  CalendarIcon,
   ChevronRightIcon,
   FileTextIcon,
+  FolderOpenIcon,
+  GiftIcon,
   HomeIcon,
   LayersIcon,
+  ListTodoIcon,
   MailIcon,
   MegaphoneIcon,
   PhoneIcon,
   SearchIcon,
+  SendIcon,
   ShieldIcon,
   SparkleIcon,
   UsersIcon,
@@ -107,6 +112,16 @@ const items = [
     icon: MailIcon,
   },
   {
+    title: "Calendar",
+    path: "/calendar",
+    icon: CalendarIcon,
+  },
+  {
+    title: "SMS Queue",
+    path: "/sms-queue",
+    icon: SendIcon,
+  },
+  {
     title: "Gianna AI",
     path: "/ai-training",
     icon: BrainIcon,
@@ -151,9 +166,30 @@ const items = [
     ],
   },
   {
-    title: "Valuation Report",
+    title: "Valuation",
     path: "/valuation",
     icon: FileTextIcon,
+    items: [
+      {
+        title: "New Valuation",
+        path: "/valuation",
+        exact: true,
+      },
+      {
+        title: "Valuation Queue",
+        path: "/valuation-queue",
+      },
+    ],
+  },
+  {
+    title: "Research Library",
+    path: "/research-library",
+    icon: FolderOpenIcon,
+  },
+  {
+    title: "Partnerships",
+    path: "/partnerships",
+    icon: GiftIcon,
   },
 ];
 
