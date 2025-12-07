@@ -317,7 +317,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Generate shareable HTML for report
+// Generate shareable HTML for report - Professional dark-mode design
 function generateShareableHTML(data: {
   id: string;
   name: string;
@@ -329,26 +329,46 @@ function generateShareableHTML(data: {
       squareFeet?: number;
       bedrooms?: number;
       bathrooms?: number;
+      propertyType?: string;
+      lotSize?: number;
     };
     valuation?: {
       estimatedValue?: number;
       confidence?: number;
       pricePerSqFt?: number;
+      equity?: number;
+      equityPercent?: number;
     };
     neighborhood?: {
       appreciation?: number;
+      medianIncome?: number;
+      population?: number;
     };
     aiAnalysis?: {
       summary?: string;
       strengths?: string[];
+      risks?: string[];
+      recommendations?: string[];
     };
+    comparables?: Array<{
+      address?: string;
+      price?: number;
+      sqft?: number;
+      beds?: number;
+      baths?: number;
+    }>;
   };
 }) {
   const { report } = data;
   const property = report?.property || {};
   const valuation = report?.valuation || {};
   const address = property.address || {};
+  const neighborhood = report?.neighborhood || {};
+  const aiAnalysis = report?.aiAnalysis || {};
+  const comparables = report?.comparables || [];
   const estimatedValue = valuation.estimatedValue || 0;
+  const pricePerSqFt = valuation.pricePerSqFt || (property.squareFeet ? Math.round(estimatedValue / property.squareFeet) : 0);
+  const confidence = valuation.confidence || 94;
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -358,139 +378,421 @@ function generateShareableHTML(data: {
     }).format(value);
   };
 
+  const fullAddress = address.address || data.name;
+  const location = [address.city, address.state, address.zipCode].filter(Boolean).join(", ");
+
   return `<!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Property Valuation - ${address.address || data.name}</title>
-  <meta property="og:title" content="Property Valuation: ${address.address || data.name}">
-  <meta property="og:description" content="Estimated Value: ${formatCurrency(estimatedValue)}">
+  <title>Property Valuation Report - ${fullAddress}</title>
+  <meta property="og:title" content="Property Valuation: ${fullAddress}">
+  <meta property="og:description" content="Estimated Value: ${formatCurrency(estimatedValue)} | ${location}">
   <meta property="og:type" content="website">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-      color: #e2e8f0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+      color: #e0e0e0;
+      line-height: 1.6;
       min-height: 100vh;
-      padding: 40px 20px;
     }
-    .container { max-width: 600px; margin: 0 auto; }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: #141829;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Header */
     .header {
+      background: linear-gradient(135deg, #1a2659 0%, #2d3f7f 100%);
+      color: white;
+      padding: 50px 40px;
       text-align: center;
-      margin-bottom: 32px;
-      padding: 32px;
-      background: linear-gradient(135deg, #1e3a8a 0%, #3730a3 100%);
-      border-radius: 20px;
+      position: relative;
+      overflow: hidden;
     }
-    .logo { font-size: 20px; font-weight: bold; margin-bottom: 16px; }
-    h1 { font-size: 24px; margin-bottom: 8px; }
-    .location { color: #94a3b8; font-size: 16px; margin-bottom: 20px; }
-    .value-box {
-      background: rgba(16, 185, 129, 0.2);
-      padding: 20px;
-      border-radius: 12px;
-      display: inline-block;
+    .header::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -10%;
+      width: 400px;
+      height: 400px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 50%;
     }
-    .value { font-size: 36px; font-weight: bold; color: #4ade80; }
-    .value-label { color: #94a3b8; font-size: 12px; }
-    .section {
-      background: rgba(30, 41, 59, 0.8);
-      padding: 24px;
-      border-radius: 16px;
+    .logo {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      opacity: 0.8;
       margin-bottom: 20px;
-      border: 1px solid rgba(148, 163, 184, 0.1);
     }
-    .section h2 { font-size: 18px; margin-bottom: 16px; color: #60a5fa; }
-    .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-    .stat {
-      text-align: center;
-      padding: 16px;
-      background: rgba(15, 23, 42, 0.6);
+    .header h1 {
+      font-size: 1.8em;
+      font-weight: 700;
+      margin-bottom: 8px;
+      position: relative;
+      z-index: 1;
+    }
+    .header .location {
+      font-size: 1.1em;
+      opacity: 0.9;
+      margin-bottom: 30px;
+    }
+    .valuation-banner {
+      display: flex;
+      justify-content: center;
+      gap: 50px;
+      flex-wrap: wrap;
+      position: relative;
+      z-index: 1;
+    }
+    .valuation-item { text-align: center; }
+    .valuation-item .amount {
+      font-size: 2.4em;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .valuation-item .amount.green { color: #4ade80; }
+    .valuation-item .label {
+      font-size: 0.85em;
+      opacity: 0.8;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* Content */
+    .content { padding: 40px; }
+    .section {
+      background: linear-gradient(135deg, #1a1f3a 0%, #151b2f 100%);
+      padding: 30px;
+      border-radius: 12px;
+      margin-bottom: 25px;
+      border: 1px solid #2a2f4a;
+    }
+    .section-title {
+      font-size: 1.3em;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: #7ab3ff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Property Grid */
+    .property-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 15px;
+    }
+    .property-card {
+      background: #0f1424;
+      padding: 20px;
       border-radius: 10px;
-    }
-    .stat-value { font-size: 24px; font-weight: bold; }
-    .stat-label { font-size: 11px; color: #64748b; margin-top: 4px; }
-    .footer {
       text-align: center;
-      margin-top: 32px;
-      color: #64748b;
-      font-size: 11px;
+      border-left: 3px solid #2d3f7f;
+    }
+    .property-card .label {
+      font-size: 0.75em;
+      color: #8a8f9e;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+    .property-card .value {
+      font-size: 1.5em;
+      font-weight: 700;
+      color: #7ab3ff;
+    }
+
+    /* Metrics */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+    }
+    .metric-card {
+      background: #0f1424;
+      padding: 20px;
+      border-radius: 10px;
+      border: 1px solid #2a2f4a;
+    }
+    .metric-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .metric-title {
+      font-size: 0.8em;
+      color: #8a8f9e;
+      text-transform: uppercase;
+    }
+    .metric-badge {
+      background: #1f2a4a;
+      color: #7ab3ff;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 0.7em;
+      font-weight: 600;
+    }
+    .metric-badge.green { background: rgba(74, 222, 128, 0.2); color: #4ade80; }
+    .metric-value {
+      font-size: 1.8em;
+      font-weight: 700;
+      color: #7ab3ff;
+    }
+    .metric-value.green { color: #4ade80; }
+
+    /* AI Analysis */
+    .ai-summary {
+      background: #0f1424;
+      padding: 20px;
+      border-radius: 10px;
+      border-left: 3px solid #7ab3ff;
+      font-size: 0.95em;
+      line-height: 1.8;
+      color: #c0c5d8;
+    }
+    .strengths-list, .risks-list {
+      list-style: none;
+      margin-top: 15px;
+    }
+    .strengths-list li, .risks-list li {
+      padding: 10px 15px;
+      background: #0f1424;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      font-size: 0.9em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .strengths-list li::before { content: '✓'; color: #4ade80; font-weight: bold; }
+    .risks-list li::before { content: '⚠'; color: #fbbf24; }
+
+    /* Comparables */
+    .comp-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9em;
+    }
+    .comp-table th {
+      background: #0f1424;
+      padding: 12px;
+      text-align: left;
+      font-weight: 600;
+      color: #7ab3ff;
+      font-size: 0.8em;
+      text-transform: uppercase;
+    }
+    .comp-table td {
+      padding: 12px;
+      border-bottom: 1px solid #2a2f4a;
+      color: #c0c5d8;
+    }
+    .comp-table tr:hover { background: rgba(42, 47, 74, 0.3); }
+    .price-highlight { color: #7ab3ff; font-weight: 600; }
+
+    /* Footer */
+    .footer {
+      background: #0f1424;
+      padding: 30px 40px;
+      text-align: center;
+      border-top: 1px solid #2a2f4a;
+    }
+    .disclaimer {
+      background: rgba(251, 191, 36, 0.1);
+      color: #fbbf24;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 0.8em;
+      border-left: 3px solid #fbbf24;
+      text-align: left;
+    }
+    .footer-text {
+      color: #8a8f9e;
+      font-size: 0.85em;
+      line-height: 1.8;
     }
     .cta {
-      display: block;
-      text-align: center;
-      background: #3b82f6;
+      display: inline-block;
+      background: linear-gradient(135deg, #2d3f7f 0%, #1a2659 100%);
       color: white;
-      padding: 16px 24px;
-      border-radius: 12px;
+      padding: 14px 30px;
+      border-radius: 8px;
       text-decoration: none;
       font-weight: 600;
-      margin-top: 24px;
+      margin-top: 20px;
+      transition: transform 0.2s;
+    }
+    .cta:hover { transform: translateY(-2px); }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      .header { padding: 30px 20px; }
+      .header h1 { font-size: 1.4em; }
+      .valuation-banner { gap: 25px; }
+      .valuation-item .amount { font-size: 1.8em; }
+      .content { padding: 20px; }
+      .section { padding: 20px; }
+      .property-grid { grid-template-columns: repeat(2, 1fr); }
     }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <div class="logo">NexTier</div>
-      <h1>${address.address || data.name}</h1>
-      <div class="location">${[address.city, address.state, address.zipCode].filter(Boolean).join(", ")}</div>
-      <div class="value-box">
-        <div class="value">${formatCurrency(estimatedValue)}</div>
-        <div class="value-label">Estimated Value</div>
-      </div>
-    </div>
-
-    <div class="section">
-      <h2>Property Details</h2>
-      <div class="stats-grid">
-        <div class="stat">
-          <div class="stat-value">${property.bedrooms || "—"}</div>
-          <div class="stat-label">Bedrooms</div>
+      <div class="logo">NexTier Property Intelligence</div>
+      <h1>${fullAddress}</h1>
+      <div class="location">${location}</div>
+      <div class="valuation-banner">
+        <div class="valuation-item">
+          <div class="amount green">${formatCurrency(estimatedValue)}</div>
+          <div class="label">Estimated Value</div>
         </div>
-        <div class="stat">
-          <div class="stat-value">${property.bathrooms || "—"}</div>
-          <div class="stat-label">Bathrooms</div>
+        <div class="valuation-item">
+          <div class="amount">${confidence}%</div>
+          <div class="label">Confidence</div>
         </div>
-        <div class="stat">
-          <div class="stat-value">${property.squareFeet?.toLocaleString() || "—"}</div>
-          <div class="stat-label">Sq Ft</div>
-        </div>
-        <div class="stat">
-          <div class="stat-value">${property.yearBuilt || "—"}</div>
-          <div class="stat-label">Year Built</div>
+        <div class="valuation-item">
+          <div class="amount">$${pricePerSqFt}</div>
+          <div class="label">Per Sq Ft</div>
         </div>
       </div>
     </div>
 
-    <div class="section">
-      <h2>Valuation</h2>
-      <div class="stats-grid">
-        <div class="stat">
-          <div class="stat-value">${valuation.confidence || 94}%</div>
-          <div class="stat-label">Confidence</div>
-        </div>
-        <div class="stat">
-          <div class="stat-value">$${valuation.pricePerSqFt || (property.squareFeet ? Math.round(estimatedValue / property.squareFeet) : "—")}</div>
-          <div class="stat-label">Per Sq Ft</div>
+    <div class="content">
+      <div class="section">
+        <div class="section-title">🏠 Property Details</div>
+        <div class="property-grid">
+          <div class="property-card">
+            <div class="label">Type</div>
+            <div class="value">${property.propertyType || 'Single Family'}</div>
+          </div>
+          <div class="property-card">
+            <div class="label">Bedrooms</div>
+            <div class="value">${property.bedrooms || '—'}</div>
+          </div>
+          <div class="property-card">
+            <div class="label">Bathrooms</div>
+            <div class="value">${property.bathrooms || '—'}</div>
+          </div>
+          <div class="property-card">
+            <div class="label">Sq Ft</div>
+            <div class="value">${property.squareFeet?.toLocaleString() || '—'}</div>
+          </div>
+          <div class="property-card">
+            <div class="label">Year Built</div>
+            <div class="value">${property.yearBuilt || '—'}</div>
+          </div>
+          <div class="property-card">
+            <div class="label">Lot Size</div>
+            <div class="value">${property.lotSize ? property.lotSize.toLocaleString() + ' sf' : '—'}</div>
+          </div>
         </div>
       </div>
-    </div>
 
-    ${report.aiAnalysis?.summary ? `
-    <div class="section">
-      <h2>AI Analysis</h2>
-      <p style="color: #cbd5e1; line-height: 1.5; font-size: 14px;">${report.aiAnalysis.summary}</p>
-    </div>
-    ` : ""}
+      <div class="section">
+        <div class="section-title">💰 Valuation Analysis</div>
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-header">
+              <div class="metric-title">Estimated Value</div>
+              <div class="metric-badge green">PRIMARY</div>
+            </div>
+            <div class="metric-value green">${formatCurrency(estimatedValue)}</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-header">
+              <div class="metric-title">Price Per Sq Ft</div>
+              <div class="metric-badge">MARKET</div>
+            </div>
+            <div class="metric-value">$${pricePerSqFt}</div>
+          </div>
+          ${valuation.equity ? `
+          <div class="metric-card">
+            <div class="metric-header">
+              <div class="metric-title">Estimated Equity</div>
+              <div class="metric-badge">${valuation.equityPercent || 0}%</div>
+            </div>
+            <div class="metric-value">${formatCurrency(valuation.equity)}</div>
+          </div>
+          ` : ''}
+          <div class="metric-card">
+            <div class="metric-header">
+              <div class="metric-title">Confidence Score</div>
+              <div class="metric-badge green">HIGH</div>
+            </div>
+            <div class="metric-value">${confidence}%</div>
+          </div>
+        </div>
+      </div>
 
-    <a href="${process.env.NEXT_PUBLIC_APP_URL || "https://monkfish-app-mb7h3.ondigitalocean.app"}/report/${data.id}" class="cta">View Full Report</a>
+      ${aiAnalysis.summary ? `
+      <div class="section">
+        <div class="section-title">🤖 AI Analysis</div>
+        <div class="ai-summary">${aiAnalysis.summary}</div>
+        ${aiAnalysis.strengths && aiAnalysis.strengths.length > 0 ? `
+        <ul class="strengths-list">
+          ${aiAnalysis.strengths.slice(0, 4).map(s => `<li>${s}</li>`).join('')}
+        </ul>
+        ` : ''}
+        ${aiAnalysis.risks && aiAnalysis.risks.length > 0 ? `
+        <ul class="risks-list">
+          ${aiAnalysis.risks.slice(0, 3).map(r => `<li>${r}</li>`).join('')}
+        </ul>
+        ` : ''}
+      </div>
+      ` : ''}
+
+      ${comparables.length > 0 ? `
+      <div class="section">
+        <div class="section-title">📊 Comparable Sales</div>
+        <table class="comp-table">
+          <thead>
+            <tr>
+              <th>Address</th>
+              <th>Beds/Baths</th>
+              <th>Sq Ft</th>
+              <th>Price</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${comparables.slice(0, 5).map(comp => `
+            <tr>
+              <td>${comp.address || '—'}</td>
+              <td>${comp.beds || '—'}/${comp.baths || '—'}</td>
+              <td>${comp.sqft?.toLocaleString() || '—'}</td>
+              <td class="price-highlight">${comp.price ? formatCurrency(comp.price) : '—'}</td>
+            </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+      ` : ''}
+    </div>
 
     <div class="footer">
-      <p>Report generated ${new Date(data.savedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</p>
-      <p style="margin-top: 8px;">Powered by NexTier Property Intelligence</p>
+      <div class="disclaimer">
+        <strong>Disclaimer:</strong> This report is for informational purposes only. Values are estimates based on market data and should not be considered professional appraisal or investment advice. Consult licensed professionals before making decisions.
+      </div>
+      <div class="footer-text">
+        <strong>Report Generated:</strong> ${new Date(data.savedAt).toLocaleDateString("en-US", { weekday: 'long', month: "long", day: "numeric", year: "numeric" })}<br>
+        <strong>Report ID:</strong> ${data.id}
+      </div>
+      <a href="${process.env.NEXT_PUBLIC_APP_URL || "https://monkfish-app-mb7h3.ondigitalocean.app"}" class="cta">View Full Report on NexTier</a>
     </div>
   </div>
 </body>
