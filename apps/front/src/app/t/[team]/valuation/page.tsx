@@ -390,6 +390,11 @@ export default function ValuationPage() {
     setSelectedLat(suggestion.latitude || null);
     setSelectedLng(suggestion.longitude || null);
 
+    // IMPORTANT: Clear previous report data before fetching new
+    setReport(null);
+    setAiAnalysis(null);
+    setSkipTraceResult(null);
+
     // Auto-run property detail/valuation
     toast.info("Fetching property details...");
     setLoading(true);
@@ -455,6 +460,11 @@ export default function ValuationPage() {
       toast.error("Please enter an address or zip code");
       return;
     }
+
+    // IMPORTANT: Clear previous report data before fetching new
+    setReport(null);
+    setAiAnalysis(null);
+    setSkipTraceResult(null);
 
     setLoading(true);
     try {
@@ -562,8 +572,8 @@ export default function ValuationPage() {
     }
   };
 
-  // Save to Research Library
-  const handleSaveToLibrary = async () => {
+  // Save to Research Library and auto-share via SMS/Email
+  const handleSaveToLibrary = async (autoShare: boolean = true) => {
     if (!report) {
       toast.error("Generate a valuation report first");
       return;
@@ -598,11 +608,58 @@ export default function ValuationPage() {
 
       toast.success("Report saved to Research Library!");
 
-      // Copy shareable link to clipboard
-      if (data.shareableUrl) {
-        const fullUrl = `${window.location.origin}${data.shareableUrl}`;
-        await navigator.clipboard.writeText(fullUrl);
+      // Copy shareable link to clipboard - prefer public CDN URL
+      const shareLink = data.htmlUrl || (data.shareableUrl ? `${window.location.origin}${data.shareableUrl}` : null);
+      if (shareLink) {
+        await navigator.clipboard.writeText(shareLink);
         toast.info("Shareable link copied to clipboard!");
+
+        // AUTO-SHARE: Send SMS and Email via Gianna if we have contact info
+        if (autoShare && (data.reportId || data.htmlUrl) && skipTraceResult) {
+          const recipientPhone = skipTraceResult.phones?.[0];
+          const recipientEmail = skipTraceResult.emails?.[0];
+
+          if (recipientPhone || recipientEmail) {
+            try {
+              toast.info("Sending report to property owner...");
+
+              const shareResponse = await fetch("/api/report/share", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  reportId: data.reportId,
+                  reportUrl: shareLink, // Use the public CDN URL directly
+                  reportName: report.property?.address?.address || "Property Valuation",
+                  recipientPhone,
+                  recipientEmail,
+                  recipientName: skipTraceResult.ownerName || report.property?.ownerName,
+                  propertyAddress: `${report.property?.address?.address || ""}, ${report.property?.address?.city || ""}, ${report.property?.address?.state || ""} ${report.property?.address?.zip || ""}`.trim(),
+                  estimatedValue: report.valuation?.estimatedValue,
+                  // Agent/Company info would come from user settings in production
+                  agentName: undefined,
+                  agentPhone: undefined,
+                  companyName: undefined,
+                  sendSms: !!recipientPhone,
+                  sendEmail: !!recipientEmail,
+                }),
+              });
+
+              const shareData = await shareResponse.json();
+
+              if (shareData.success) {
+                const methods: string[] = [];
+                if (shareData.results?.sms?.success) methods.push("SMS");
+                if (shareData.results?.email?.success) methods.push("Email");
+                toast.success(`Report shared via ${methods.join(" & ")}!`);
+              } else {
+                console.log("[Valuation] Share result:", shareData);
+              }
+            } catch (shareError) {
+              console.error("[Valuation] Auto-share error:", shareError);
+              // Don't show error to user - the report was still saved successfully
+            }
+          }
+        }
       }
     } catch (error) {
       console.error("Save to library error:", error);
