@@ -128,12 +128,13 @@ export class LeadCardService {
         })) ?? null
       : null;
 
-    // Calculate score - extract only needed property fields
+    // Calculate score - extract property fields from metadata if available
+    const propertyMetadata = property?.metadata as Record<string, unknown> | null;
     const propertyForScore = property ? {
-      equityPercent: property.equityPercent,
-      preForeclosure: property.preForeclosure,
-      taxLien: property.taxLien,
-      vacant: property.vacant,
+      equityPercent: propertyMetadata?.equityPercent as number | null ?? null,
+      preForeclosure: propertyMetadata?.preForeclosure as boolean | null ?? null,
+      taxLien: propertyMetadata?.taxLien as boolean | null ?? null,
+      vacant: propertyMetadata?.vacant as boolean | null ?? null,
     } : null;
     const score = this.calculateScore(phones, emails, addresses, businessLink, propertyForScore);
 
