@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   DragDropContext,
   Droppable,
@@ -13,7 +13,7 @@ import { LeadsTable } from "@/components/leads-table";
 import { LeadsFilter } from "@/components/leads-filter";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { KanbanSquare, List } from "lucide-react";
-import { mockLeads } from "@/lib/mock-data";
+import { toast } from "sonner";
 
 export function LeadsKanban() {
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -33,15 +33,39 @@ export function LeadsKanban() {
     "Closed Lost",
   ];
 
-  // Load mock data
-  useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      setLeads(mockLeads);
-      setFilteredLeads(mockLeads);
+  // Fetch leads from REAL database API
+  const fetchLeads = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("/api/leads?limit=200");
+      const data = await response.json();
+
+      if (data.error) {
+        console.error("[Leads] API error:", data.error);
+        // Don't show toast for auth errors on initial load
+        if (!data.error.includes("Unauthorized")) {
+          toast.error(data.error);
+        }
+        setLeads([]);
+        setFilteredLeads([]);
+        return;
+      }
+
+      setLeads(data.leads || []);
+      setFilteredLeads(data.leads || []);
+    } catch (error) {
+      console.error("[Leads] Fetch error:", error);
+      setLeads([]);
+      setFilteredLeads([]);
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   }, []);
+
+  // Load leads from database on mount
+  useEffect(() => {
+    fetchLeads();
+  }, [fetchLeads]);
 
   // Apply filters
   useEffect(() => {
@@ -99,8 +123,8 @@ export function LeadsKanban() {
     setFilteredLeads(filtered);
   }, [leads, filters]);
 
-  // Handle drag and drop
-  const onDragEnd = (result: DropResult) => {
+  // Handle drag and drop - Update status via REAL API
+  const onDragEnd = async (result: DropResult) => {
     const { destination, source, draggableId } = result;
 
     // If there's no destination or the item was dropped back in the same place
@@ -116,23 +140,42 @@ export function LeadsKanban() {
     const lead = leads.find((lead) => lead.id === draggableId);
     if (!lead) return;
 
-    // Create a new array with the updated lead status
+    const newStatus = destination.droppableId as LeadStatus;
+
+    // Optimistically update state
     const updatedLeads = leads.map((l) => {
       if (l.id === draggableId) {
         return {
           ...l,
-          status: destination.droppableId as LeadStatus,
+          status: newStatus,
           updatedAt: new Date().toISOString(),
         };
       }
       return l;
     });
-
-    // Update state
     setLeads(updatedLeads);
 
-    // In a real app, you would also update the backend
-    // updateLeadStatus(draggableId, destination.droppableId)
+    // Update the backend via REAL API
+    try {
+      const response = await fetch("/api/leads", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          leadId: draggableId,
+          status: newStatus,
+        }),
+      });
+
+      if (!response.ok) {
+        // Revert on failure
+        setLeads(leads);
+        toast.error("Failed to update lead status");
+      }
+    } catch (error) {
+      console.error("[Leads] Status update error:", error);
+      setLeads(leads);
+      toast.error("Failed to update lead status");
+    }
   };
 
   if (loading) {

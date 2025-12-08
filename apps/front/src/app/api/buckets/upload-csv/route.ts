@@ -19,6 +19,46 @@ function getS3Client(): S3Client | null {
   });
 }
 
+// USBizData source type detection based on columns
+type DataLakeType = "business" | "residential" | "cell_phone" | "opt_in_email" | "property" | "unknown";
+
+function detectSourceType(headers: string[]): DataLakeType {
+  const headerSet = new Set(headers.map(h => h.toLowerCase().trim()));
+
+  // Business DB: has Company Name, SIC Code, Revenue
+  if (headerSet.has("company name") || headerSet.has("sic code") || headerSet.has("annual revenue")) {
+    return "business";
+  }
+  // Cell Phone DB: has Cell Phone but no Company
+  if ((headerSet.has("cell phone") || headerSet.has("cell") || headerSet.has("mobile")) &&
+      !headerSet.has("company name")) {
+    return "cell_phone";
+  }
+  // Opt-in Email DB: has Opt-in Date or IP Address
+  if (headerSet.has("opt-in date") || headerSet.has("opt_in_date") || headerSet.has("ip address")) {
+    return "opt_in_email";
+  }
+  // Residential DB: has Home Value, Income, Age
+  if (headerSet.has("home value") || headerSet.has("income") || headerSet.has("age") ||
+      headerSet.has("home owner") || headerSet.has("length of residence")) {
+    return "residential";
+  }
+  // Property DB: has APN, property type
+  if (headerSet.has("apn") || headerSet.has("property type") || headerSet.has("parcel")) {
+    return "property";
+  }
+  return "unknown";
+}
+
+const SOURCE_TYPE_LABELS: Record<DataLakeType, string> = {
+  business: "USBizData Business",
+  residential: "USBizData Residential",
+  cell_phone: "USBizData Cell Phone",
+  opt_in_email: "USBizData Opt-in Email",
+  property: "Property Records",
+  unknown: "CSV Import",
+};
+
 // Standard field mappings for USBizData and similar CSV formats
 const FIELD_MAPPINGS: Record<string, string[]> = {
   companyName: ["Company Name", "company_name", "Business Name", "business_name", "Name", "name", "COMPANY NAME"],
@@ -27,6 +67,7 @@ const FIELD_MAPPINGS: Record<string, string[]> = {
   lastName: ["Last Name", "last_name", "LastName", "LAST NAME"],
   email: ["Email", "email", "Email Address", "email_address", "EMAIL", "E-mail"],
   phone: ["Phone", "phone", "Phone Number", "phone_number", "PHONE", "Telephone", "Tel"],
+  cellPhone: ["Cell Phone", "cell_phone", "Cell", "cell", "Mobile", "mobile", "Mobile Phone", "CELL PHONE"],
   address: ["Street Address", "street_address", "Address", "address", "ADDRESS", "Street"],
   city: ["City", "city", "CITY"],
   state: ["State", "state", "STATE", "ST"],
@@ -39,6 +80,16 @@ const FIELD_MAPPINGS: Record<string, string[]> = {
   revenue: ["Revenue", "revenue", "Annual Revenue", "annual_revenue", "REVENUE"],
   county: ["County", "county", "COUNTY"],
   areaCode: ["Area Code", "area_code", "AREA CODE"],
+  // Residential-specific
+  homeValue: ["Home Value", "home_value", "Property Value", "property_value", "HOME VALUE"],
+  income: ["Income", "income", "Estimated Income", "INCOME"],
+  age: ["Age", "age", "AGE"],
+  homeOwner: ["Home Owner", "home_owner", "Homeowner", "homeowner", "Owner", "HOME OWNER"],
+  lengthOfResidence: ["Length of Residence", "length_of_residence", "Years at Address", "years_owned"],
+  // Opt-in specific
+  optInDate: ["Opt-in Date", "opt_in_date", "Optin Date", "signup_date", "OPT-IN DATE"],
+  optInSource: ["Opt-in Source", "opt_in_source", "Source", "signup_source"],
+  ipAddress: ["IP Address", "ip_address", "IP", "ip"],
 };
 
 // Find the actual column name from possible variations
@@ -110,6 +161,11 @@ export async function POST(request: NextRequest) {
     // Get headers from first record
     const headers = Object.keys(records[0]);
 
+    // Auto-detect USBizData source type
+    const sourceType = detectSourceType(headers);
+    const sourceLabel = SOURCE_TYPE_LABELS[sourceType];
+    console.log(`[CSV Upload] Detected source type: ${sourceType} (${sourceLabel})`);
+
     // Normalize all records
     const normalizedRecords = records.map(row => normalizeRow(row, headers));
 
@@ -122,11 +178,15 @@ export async function POST(request: NextRequest) {
     const bucketId = `csv-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const now = new Date().toISOString();
 
+    // Count cell phones specifically
+    const withCellPhone = normalizedRecords.filter(r => r.cellPhone).length;
+
     const bucket = {
       id: bucketId,
       name: name,
       description: description || `Uploaded CSV: ${file.name}`,
-      source: "csv-upload",
+      source: sourceLabel, // Auto-detected: "USBizData Business", "USBizData Residential", etc.
+      sourceType: sourceType, // "business", "residential", "cell_phone", "opt_in_email"
       filters: {
         originalFileName: file.name,
         uploadedAt: now,
@@ -166,9 +226,11 @@ export async function POST(request: NextRequest) {
         stats: {
           total: records.length,
           withPhone,
+          withCellPhone,
           withEmail,
           withAddress,
           enrichable: withAddress, // Records that can be skip-traced
+          needsSkipTrace: withAddress - withCellPhone, // Have address but no cell
         },
       },
     };

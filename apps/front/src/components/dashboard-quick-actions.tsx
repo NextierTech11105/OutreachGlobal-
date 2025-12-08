@@ -8,17 +8,33 @@ import {
   PhoneOutgoing,
   ExternalLink,
   Zap,
-  Clock,
   Users,
   ArrowRight,
+  Upload,
+  UserPlus,
+  Building2,
+  Search,
+  FileSpreadsheet,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useGlobalActions } from "@/lib/providers/global-actions-provider";
 import { TeamLink } from "@/features/team/components/team-link";
+import { gql, useQuery } from "@apollo/client";
+import { useCurrentTeam } from "@/features/team/team.context";
+
+// Query to check if we have leads
+const LEAD_COUNT_QUERY = gql`
+  query LeadCount($teamId: ID!) {
+    leads(teamId: $teamId, first: 1) {
+      totalCount
+    }
+  }
+`;
 
 export function DashboardQuickActions() {
+  const { team } = useCurrentTeam();
   const {
     openSMSDialog,
     openScheduleCallDialog,
@@ -28,6 +44,13 @@ export function DashboardQuickActions() {
     calendarEvents,
   } = useGlobalActions();
 
+  // Check if we have leads
+  const { data: leadData } = useQuery(LEAD_COUNT_QUERY, {
+    variables: { teamId: team.id },
+    fetchPolicy: "cache-first",
+  });
+
+  const hasLeads = (leadData?.leads?.totalCount || 0) > 0;
   const pendingSMS = smsCampaignQueue.filter((s) => s.status === "queued").length;
   const pendingCalls = scheduledCalls.filter((c) => c.status === "pending").length;
   const todayEvents = calendarEvents.filter((e) => {
@@ -40,6 +63,113 @@ export function DashboardQuickActions() {
     );
   }).length;
 
+  // Show different actions based on whether we have leads
+  if (!hasLeads) {
+    return (
+      <div className="space-y-4">
+        {/* Get Started Header */}
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold flex items-center gap-2">
+            <Zap className="h-5 w-5 text-yellow-500" />
+            Get Started
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            Import leads to unlock all features
+          </p>
+        </div>
+
+        {/* Getting Started Cards */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {/* Import Leads */}
+          <TeamLink href="/leads/import-companies">
+            <Card className="cursor-pointer hover:border-blue-500/50 hover:shadow-md transition-all group h-full">
+              <CardContent className="pt-6">
+                <div className="p-3 bg-blue-500/10 rounded-lg group-hover:bg-blue-500/20 transition-colors w-fit">
+                  <Upload className="h-6 w-6 text-blue-500" />
+                </div>
+                <h4 className="mt-4 font-semibold">Import Leads</h4>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Upload CSV or import from Apollo
+                </p>
+              </CardContent>
+            </Card>
+          </TeamLink>
+
+          {/* Search Properties */}
+          <TeamLink href="/properties">
+            <Card className="cursor-pointer hover:border-green-500/50 hover:shadow-md transition-all group h-full">
+              <CardContent className="pt-6">
+                <div className="p-3 bg-green-500/10 rounded-lg group-hover:bg-green-500/20 transition-colors w-fit">
+                  <Building2 className="h-6 w-6 text-green-500" />
+                </div>
+                <h4 className="mt-4 font-semibold">Search Properties</h4>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Find property owners to contact
+                </p>
+              </CardContent>
+            </Card>
+          </TeamLink>
+
+          {/* Skip Trace */}
+          <TeamLink href="/valuation">
+            <Card className="cursor-pointer hover:border-purple-500/50 hover:shadow-md transition-all group h-full">
+              <CardContent className="pt-6">
+                <div className="p-3 bg-purple-500/10 rounded-lg group-hover:bg-purple-500/20 transition-colors w-fit">
+                  <Search className="h-6 w-6 text-purple-500" />
+                </div>
+                <h4 className="mt-4 font-semibold">Property Valuation</h4>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Get property data and owner info
+                </p>
+              </CardContent>
+            </Card>
+          </TeamLink>
+
+          {/* Add Lead Manually */}
+          <TeamLink href="/leads">
+            <Card className="cursor-pointer hover:border-orange-500/50 hover:shadow-md transition-all group h-full">
+              <CardContent className="pt-6">
+                <div className="p-3 bg-orange-500/10 rounded-lg group-hover:bg-orange-500/20 transition-colors w-fit">
+                  <UserPlus className="h-6 w-6 text-orange-500" />
+                </div>
+                <h4 className="mt-4 font-semibold">Add Lead</h4>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Manually create a new lead
+                </p>
+              </CardContent>
+            </Card>
+          </TeamLink>
+        </div>
+
+        {/* Quick Navigation */}
+        <div className="flex flex-wrap gap-2 pt-2">
+          <TeamLink href="/leads/import-companies">
+            <Button variant="default" size="sm" className="gap-2">
+              <FileSpreadsheet className="h-4 w-4" />
+              Import CSV
+              <ArrowRight className="h-3 w-3" />
+            </Button>
+          </TeamLink>
+          <TeamLink href="/properties">
+            <Button variant="outline" size="sm" className="gap-2">
+              <Building2 className="h-4 w-4" />
+              Properties
+              <ArrowRight className="h-3 w-3" />
+            </Button>
+          </TeamLink>
+          <TeamLink href="/campaigns">
+            <Button variant="outline" size="sm" className="gap-2">
+              <MessageSquare className="h-4 w-4" />
+              Campaigns
+              <ArrowRight className="h-3 w-3" />
+            </Button>
+          </TeamLink>
+        </div>
+      </div>
+    );
+  }
+
+  // Has leads - show campaign actions
   return (
     <div className="space-y-4">
       {/* Quick Actions Header */}
@@ -146,6 +276,13 @@ export function DashboardQuickActions() {
 
       {/* Quick Navigation */}
       <div className="flex flex-wrap gap-2 pt-2">
+        <TeamLink href="/leads">
+          <Button variant="outline" size="sm" className="gap-2">
+            <Users className="h-4 w-4" />
+            Leads
+            <ArrowRight className="h-3 w-3" />
+          </Button>
+        </TeamLink>
         <TeamLink href="/sms-queue">
           <Button variant="outline" size="sm" className="gap-2">
             <MessageSquare className="h-4 w-4" />
@@ -158,13 +295,6 @@ export function DashboardQuickActions() {
             <ArrowRight className="h-3 w-3" />
           </Button>
         </TeamLink>
-        <TeamLink href="/calendar">
-          <Button variant="outline" size="sm" className="gap-2">
-            <Calendar className="h-4 w-4" />
-            Calendar
-            <ArrowRight className="h-3 w-3" />
-          </Button>
-        </TeamLink>
         <TeamLink href="/call-center">
           <Button variant="outline" size="sm" className="gap-2">
             <Phone className="h-4 w-4" />
@@ -172,10 +302,10 @@ export function DashboardQuickActions() {
             <ArrowRight className="h-3 w-3" />
           </Button>
         </TeamLink>
-        <TeamLink href="/leads">
+        <TeamLink href="/calendar">
           <Button variant="outline" size="sm" className="gap-2">
-            <Users className="h-4 w-4" />
-            Leads
+            <Calendar className="h-4 w-4" />
+            Calendar
             <ArrowRight className="h-3 w-3" />
           </Button>
         </TeamLink>

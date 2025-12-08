@@ -763,7 +763,7 @@ export default function ValuationPage() {
           </div>
           <div class="stat">
             <div class="stat-label">Estimated Equity</div>
-            <div class="stat-value">$${(val?.equityEstimate || 0).toLocaleString()}</div>
+            <div class="stat-value">${(val?.equityEstimate ?? 0) >= 0 ? '$' + (val?.equityEstimate || 0).toLocaleString() : 'Verify Data'}</div>
           </div>
           <div class="stat">
             <div class="stat-label">Comparable Avg</div>
@@ -1267,15 +1267,63 @@ export default function ValuationPage() {
             </div>
           )}
 
-          {/* Skip Trace Results */}
+          {/* Skip Trace Results - CONTACT INFO AT THE TOP */}
           {skipTraceResult && skipTraceResult.success && (
-            <Card className="border-2 border-blue-500/50 bg-gradient-to-r from-blue-50/50 to-cyan-50/50 dark:from-blue-950/20 dark:to-cyan-950/20">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <UserSearch className="h-5 w-5 text-blue-600" />
-                  Skip Trace Results
-                </CardTitle>
-                <CardDescription>Owner contact information from RealEstateAPI</CardDescription>
+            <Card className="border-2 border-green-500/50 bg-gradient-to-r from-green-50/50 to-emerald-50/50 dark:from-green-950/20 dark:to-emerald-950/20 shadow-lg shadow-green-500/10">
+              <CardHeader className="pb-2">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <div>
+                    <CardTitle className="flex items-center gap-2 text-xl">
+                      <UserSearch className="h-6 w-6 text-green-600" />
+                      {skipTraceResult.ownerName || "Property Owner"}
+                    </CardTitle>
+                    <CardDescription className="text-base">Ready to contact - click to dial or send message</CardDescription>
+                  </div>
+                  {/* QUICK ACTION BUTTONS - TOP RIGHT */}
+                  <div className="flex flex-wrap gap-2">
+                    {skipTraceResult.phones?.[0] && (
+                      <>
+                        <Button
+                          size="lg"
+                          className="bg-green-600 hover:bg-green-700 text-white shadow-lg"
+                          onClick={() => window.location.href = `tel:${skipTraceResult.phones[0].number}`}
+                        >
+                          <Phone className="mr-2 h-5 w-5" />
+                          Call Now
+                        </Button>
+                        <Button
+                          size="lg"
+                          variant="outline"
+                          className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                          onClick={() => window.open(`sms:${skipTraceResult.phones[0].number}`, '_blank')}
+                        >
+                          <MessageSquare className="mr-2 h-5 w-5" />
+                          SMS
+                        </Button>
+                      </>
+                    )}
+                    {skipTraceResult.emails?.[0] && (
+                      <Button
+                        size="lg"
+                        variant="outline"
+                        className="border-purple-500 text-purple-600 hover:bg-purple-50"
+                        onClick={() => window.location.href = `mailto:${skipTraceResult.emails[0].email}`}
+                      >
+                        <Mail className="mr-2 h-5 w-5" />
+                        Email
+                      </Button>
+                    )}
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="border-orange-500 text-orange-600 hover:bg-orange-50"
+                      onClick={() => window.open(process.env.NEXT_PUBLIC_CALENDAR_LINK || 'https://calendly.com/nextier/15min-strategy', '_blank')}
+                    >
+                      <Calendar className="mr-2 h-5 w-5" />
+                      Book Call
+                    </Button>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -1295,7 +1343,7 @@ export default function ValuationPage() {
                     </div>
                   </div>
 
-                  {/* Phone Numbers */}
+                  {/* Phone Numbers - CLICK TO DIAL */}
                   <div className="space-y-3">
                     <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide flex items-center gap-2">
                       <Phone className="h-4 w-4" />
@@ -1304,14 +1352,25 @@ export default function ValuationPage() {
                     <div className="space-y-2">
                       {skipTraceResult.phones?.length > 0 ? (
                         skipTraceResult.phones.map((phone, idx) => (
-                          <div key={idx} className="flex items-center justify-between p-2 bg-background rounded-lg">
-                            <div className="flex items-center gap-2">
-                              <Phone className="h-4 w-4 text-green-600" />
-                              <span className="font-mono">{phone.number}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
+                          <div key={idx} className="flex items-center justify-between p-2 bg-background rounded-lg border border-green-500/30 hover:border-green-500 transition-colors">
+                            <a
+                              href={`tel:${phone.number}`}
+                              className="flex items-center gap-2 text-green-600 hover:text-green-700 font-semibold"
+                            >
+                              <Phone className="h-4 w-4" />
+                              <span className="font-mono text-lg">{phone.number}</span>
+                            </a>
+                            <div className="flex items-center gap-1">
                               {phone.type && <Badge variant="outline" className="text-xs">{phone.type}</Badge>}
                               {phone.score && <Badge className="text-xs bg-blue-600">{phone.score}%</Badge>}
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 px-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                onClick={() => window.open(`sms:${phone.number}`, '_blank')}
+                              >
+                                <MessageSquare className="h-3 w-3" />
+                              </Button>
                             </div>
                           </div>
                         ))
@@ -1321,7 +1380,7 @@ export default function ValuationPage() {
                     </div>
                   </div>
 
-                  {/* Emails */}
+                  {/* Emails - CLICK TO EMAIL */}
                   <div className="space-y-3">
                     <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide flex items-center gap-2">
                       <Mail className="h-4 w-4" />
@@ -1330,9 +1389,28 @@ export default function ValuationPage() {
                     <div className="space-y-2">
                       {skipTraceResult.emails?.length > 0 ? (
                         skipTraceResult.emails.map((email, idx) => (
-                          <div key={idx} className="flex items-center justify-between p-2 bg-background rounded-lg">
-                            <span className="text-sm truncate">{email.email}</span>
-                            {email.type && <Badge variant="outline" className="text-xs">{email.type}</Badge>}
+                          <div key={idx} className="flex items-center justify-between p-2 bg-background rounded-lg border border-blue-500/30 hover:border-blue-500 transition-colors">
+                            <a
+                              href={`mailto:${email.email}`}
+                              className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium truncate"
+                            >
+                              <Mail className="h-4 w-4 flex-shrink-0" />
+                              <span className="truncate">{email.email}</span>
+                            </a>
+                            <div className="flex items-center gap-1">
+                              {email.type && <Badge variant="outline" className="text-xs">{email.type}</Badge>}
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 px-2 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(email.email);
+                                  toast.success("Email copied!");
+                                }}
+                              >
+                                <Copy className="h-3 w-3" />
+                              </Button>
+                            </div>
                           </div>
                         ))
                       ) : (
@@ -1682,9 +1760,11 @@ export default function ValuationPage() {
                           <span className="font-semibold text-red-600">-{formatCurrency(prop?.openMortgageBalance || 0)}</span>
                         </div>
                         <Separator />
-                        <div className="flex justify-between p-2 bg-green-50 dark:bg-green-950/20 rounded">
+                        <div className={`flex justify-between p-2 rounded ${(val?.equityEstimate ?? 0) >= 0 ? 'bg-green-50 dark:bg-green-950/20' : 'bg-amber-50 dark:bg-amber-950/20'}`}>
                           <span className="font-medium">Estimated Equity</span>
-                          <span className="font-bold text-green-600">{formatCurrency(val?.equityEstimate || 0)}</span>
+                          <span className={`font-bold ${(val?.equityEstimate ?? 0) >= 0 ? 'text-green-600' : 'text-amber-600'}`}>
+                            {(val?.equityEstimate ?? 0) >= 0 ? formatCurrency(val?.equityEstimate || 0) : "Verify Data"}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -1972,10 +2052,16 @@ export default function ValuationPage() {
                   <p className="text-sm text-muted-foreground mt-1">Price per Sq Ft</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-2xl font-semibold text-green-600">
-                    {formatCurrency(val?.equityEstimate || 0)}
+                  <p className={`text-2xl font-semibold ${(val?.equityEstimate ?? 0) >= 0 ? 'text-green-600' : 'text-amber-600'}`}>
+                    {(val?.equityEstimate ?? 0) >= 0
+                      ? formatCurrency(val?.equityEstimate || 0)
+                      : (val?.equityEstimate === 0 || !val?.equityEstimate)
+                        ? "Free & Clear"
+                        : "Verify Mortgage"}
                   </p>
-                  <p className="text-sm text-muted-foreground mt-1">Estimated Equity</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {(val?.equityEstimate ?? 0) >= 0 ? "Estimated Equity" : "Data Unavailable"}
+                  </p>
                 </div>
                 <div className="text-center">
                   <p className="text-2xl font-semibold">

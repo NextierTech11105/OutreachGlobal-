@@ -15,3 +15,15 @@ export * from "./inbox.schema";
 export * from "./achievements.schema";
 export * from "./initial-messages.schema";
 export * from "./property-searches.schema";
+
+// ===== ENRICHMENT PIPELINE SCHEMAS =====
+export * from "./persona.schema";
+export * from "./phone.schema";
+export * from "./email.schema";
+export * from "./social.schema";
+export * from "./address-history.schema";
+export * from "./demographics.schema";
+export * from "./skiptrace-result.schema";
+export * from "./property-owner.schema";
+export * from "./business-owner.schema";
+export * from "./unified-lead-card.schema";

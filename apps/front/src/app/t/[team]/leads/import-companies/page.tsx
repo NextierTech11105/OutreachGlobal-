@@ -83,11 +83,23 @@ interface Company {
   phone: string;
   linkedin_url: string;
   founded_year: number;
+  // Business address (for cross-referencing with property data)
+  address?: string;
   // Enrichment data
   enriched?: boolean;
   enrichedPhones?: string[];
   enrichedEmails?: string[];
   ownerName?: string;
+  ownerTitle?: string;
+  // Property data from USBiz/RealEstateAPI cross-reference
+  propertyAddresses?: Array<{
+    street: string;
+    city: string;
+    state: string;
+    zip: string;
+    type?: string;
+  }>;
+  propertyCount?: number;
   propertyData?: {
     estimatedValue?: number;
     lastSaleDate?: string;
@@ -127,6 +139,8 @@ export default function ImportCompaniesPage() {
     successful: number;
     withPhones: number;
     withEmails: number;
+    withProperties: number;
+    totalProperties: number;
   } | null>(null);
 
   // SMS state
@@ -231,7 +245,9 @@ export default function ImportCompaniesPage() {
     }
   };
 
-  // Enrich selected companies - skip trace and property data
+  // Enrich selected companies - TWO-STEP PROCESS:
+  // 1. Apollo People Search → Find decision maker name (Owner/CEO/Founder)
+  // 2. RealEstateAPI Skip Trace → Get cell phone + property portfolio ($0.05/record)
   const enrichSelectedCompanies = async () => {
     if (selectedCompanies.size === 0) {
       toast.error("Select companies to enrich");
@@ -247,6 +263,11 @@ export default function ImportCompaniesPage() {
     let successful = 0;
     let withPhones = 0;
     let withEmails = 0;
+    let withProperties = 0;
+    let totalProperties = 0;
+
+    // Decision maker title priority (in order)
+    const titlePriority = ["owner", "ceo", "founder", "sales manager", "president", "director", "vp", "general manager"];
 
     // Process in batches of 5
     for (let i = 0; i < companiesToEnrich.length; i += 5) {
@@ -254,30 +275,110 @@ export default function ImportCompaniesPage() {
 
       const batchPromises = batch.map(async (company) => {
         try {
-          // Build skip trace request from company data
-          const skipTraceBody = {
-            // Use company name as last name if no better data
-            lastName: company.name,
-            address: company.city ? `${company.city}, ${company.state}` : undefined,
-            city: company.city,
-            state: company.state,
-          };
+          // STEP 1: Apollo People Search to find decision maker name
+          let ownerFirstName = "";
+          let ownerLastName = "";
+          let ownerTitle = "";
+          let apolloEmail = "";
 
-          const response = await fetch("/api/skip-trace", {
+          const apolloResponse = await fetch("/api/people/search", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(skipTraceBody),
+            body: JSON.stringify({
+              company: company.name,
+              domain: company.domain,
+            }),
           });
 
-          const data = await response.json();
+          const apolloData = await apolloResponse.json();
 
-          if (data.success) {
+          if (apolloData.success && apolloData.data) {
+            const people = Array.isArray(apolloData.data) ? apolloData.data : [apolloData.data];
+
+            // Score by title priority to find decision maker
+            const scoredPeople = people.map((p: { title?: string; firstName?: string; lastName?: string; name?: string; email?: string }) => {
+              const title = (p.title || "").toLowerCase();
+              let score = 100;
+              for (let idx = 0; idx < titlePriority.length; idx++) {
+                if (title.includes(titlePriority[idx])) {
+                  score = idx;
+                  break;
+                }
+              }
+              return { ...p, score };
+            });
+
+            scoredPeople.sort((a: { score: number }, b: { score: number }) => a.score - b.score);
+            const bestPerson = scoredPeople[0];
+
+            if (bestPerson) {
+              ownerFirstName = bestPerson.firstName || "";
+              ownerLastName = bestPerson.lastName || "";
+              ownerTitle = bestPerson.title || "";
+              apolloEmail = bestPerson.email || "";
+
+              // If no first/last name, try to parse from full name
+              if (!ownerFirstName && !ownerLastName && bestPerson.name) {
+                const nameParts = bestPerson.name.split(" ");
+                ownerFirstName = nameParts[0] || "";
+                ownerLastName = nameParts.slice(1).join(" ") || "";
+              }
+            }
+          }
+
+          // STEP 2: RealEstateAPI Skip Trace to get cell phone + property data
+          // This costs $0.05 per record but gives us cell + property portfolio!
+          if (ownerFirstName || ownerLastName) {
+            const skipTraceResponse = await fetch("/api/skip-trace", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                firstName: ownerFirstName,
+                lastName: ownerLastName,
+                city: company.city,
+                state: company.state,
+              }),
+            });
+
+            const skipData = await skipTraceResponse.json();
+
+            if (skipData.success) {
+              // Combine Apollo email with skip trace phones
+              const phones = skipData.phones?.map((p: { number: string }) => p.number) || [];
+              const emails = [apolloEmail, ...(skipData.emails?.map((e: { email: string }) => e.email) || [])].filter(Boolean);
+
+              // Parse property addresses from skip trace
+              const propertyAddresses = skipData.addresses?.map((a: { street?: string; address?: string; city?: string; state?: string; zip?: string; type?: string }) => ({
+                street: a.street || a.address || "",
+                city: a.city || "",
+                state: a.state || "",
+                zip: a.zip || "",
+                type: a.type,
+              })).filter((a: { street: string }) => a.street) || [];
+
+              return {
+                companyId: company.id,
+                success: true,
+                phones: [...new Set(phones)],
+                emails: [...new Set(emails)],
+                ownerName: `${ownerFirstName} ${ownerLastName}`.trim() || skipData.ownerName,
+                ownerTitle,
+                // Property data from USBiz datalake cross-reference!
+                propertyAddresses,
+                propertyCount: propertyAddresses.length,
+              };
+            }
+          }
+
+          // Fallback: Return Apollo email if skip trace failed
+          if (apolloEmail) {
             return {
               companyId: company.id,
               success: true,
-              phones: data.phones?.map((p: { number: string }) => p.number) || [],
-              emails: data.emails?.map((e: { email: string }) => e.email) || [],
-              ownerName: data.ownerName,
+              phones: [],
+              emails: [apolloEmail],
+              ownerName: `${ownerFirstName} ${ownerLastName}`.trim(),
+              ownerTitle,
             };
           }
 
@@ -290,7 +391,7 @@ export default function ImportCompaniesPage() {
 
       const batchResults = await Promise.all(batchPromises);
 
-      // Update hits with enrichment data
+      // Update hits with enrichment data + property addresses
       setHits((prev) =>
         prev.map((company) => {
           const result = batchResults.find((r) => r.companyId === company.id);
@@ -301,6 +402,9 @@ export default function ImportCompaniesPage() {
               enrichedPhones: result.phones,
               enrichedEmails: result.emails,
               ownerName: result.ownerName,
+              ownerTitle: result.ownerTitle,
+              propertyAddresses: result.propertyAddresses,
+              propertyCount: result.propertyCount,
             };
           }
           return company;
@@ -311,10 +415,14 @@ export default function ImportCompaniesPage() {
       const batchSuccessful = batchResults.filter((r) => r.success).length;
       const batchWithPhones = batchResults.filter((r) => r.phones.length > 0).length;
       const batchWithEmails = batchResults.filter((r) => r.emails.length > 0).length;
+      const batchWithProperties = batchResults.filter((r) => (r.propertyCount || 0) > 0).length;
+      const batchTotalProperties = batchResults.reduce((sum, r) => sum + (r.propertyCount || 0), 0);
 
       successful += batchSuccessful;
       withPhones += batchWithPhones;
       withEmails += batchWithEmails;
+      withProperties += batchWithProperties;
+      totalProperties += batchTotalProperties;
 
       setEnrichProgress((prev) =>
         prev
@@ -327,15 +435,15 @@ export default function ImportCompaniesPage() {
           : null
       );
 
-      // Small delay between batches
+      // Small delay between batches to respect API rate limits
       if (i + 5 < companiesToEnrich.length) {
         await new Promise((r) => setTimeout(r, 500));
       }
     }
 
     setEnriching(false);
-    setEnrichResults({ successful, withPhones, withEmails });
-    toast.success(`Enriched ${successful} companies - ${withPhones} with phones, ${withEmails} with emails`);
+    setEnrichResults({ successful, withPhones, withEmails, withProperties, totalProperties });
+    toast.success(`Enriched ${successful} companies - ${withPhones} phones, ${withEmails} emails, ${totalProperties} properties`);
   };
 
   // Send SMS via SignalHouse
@@ -574,6 +682,7 @@ export default function ImportCompaniesPage() {
                     <TableHead>Company Name</TableHead>
                     <TableHead>Industry</TableHead>
                     <TableHead>Location</TableHead>
+                    <TableHead>Property Address</TableHead>
                     <TableHead>Employees</TableHead>
                     <TableHead>Revenue</TableHead>
                     <TableHead>Phones</TableHead>
@@ -585,7 +694,7 @@ export default function ImportCompaniesPage() {
                 <TableBody>
                   {!loading && !hits?.length && (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-center py-8">
+                      <TableCell colSpan={10} className="text-center py-8">
                         {totalFilters > 0 || debouncedQuery
                           ? "No companies found"
                           : "Enter a search term or select filters to find companies"}
@@ -622,6 +731,35 @@ export default function ImportCompaniesPage() {
                           <MapPin className="h-3 w-3 text-muted-foreground" />
                           <span>{company.city && company.state ? `${company.city}, ${company.state}` : company.state || "-"}</span>
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        {company.propertyAddresses && company.propertyAddresses.length > 0 ? (
+                          <div className="space-y-1">
+                            {company.propertyAddresses.slice(0, 2).map((addr, i) => (
+                              <div key={i} className="text-xs">
+                                <div className="flex items-center gap-1">
+                                  <Building className="h-3 w-3 text-purple-600" />
+                                  <span className="font-medium">{addr.street}</span>
+                                </div>
+                                <span className="text-muted-foreground ml-4">
+                                  {addr.city}, {addr.state} {addr.zip}
+                                </span>
+                              </div>
+                            ))}
+                            {company.propertyAddresses.length > 2 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{company.propertyAddresses.length - 2} more properties
+                              </Badge>
+                            )}
+                          </div>
+                        ) : company.address ? (
+                          <div className="flex items-center gap-1 text-xs">
+                            <Building className="h-3 w-3 text-muted-foreground" />
+                            <span>{company.address}</span>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">-</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         {company.employees ? formatNumber(company.employees) : "-"}
@@ -780,7 +918,7 @@ export default function ImportCompaniesPage() {
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-green-600">
                   <Sparkles className="h-4 w-4" />
-                  <span className="font-medium">Enrichment Summary</span>
+                  <span className="font-medium">Enrichment Summary (Cross-Referenced with USBiz Datalake)</span>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-900/20 rounded">
@@ -791,9 +929,15 @@ export default function ImportCompaniesPage() {
                     <Mail className="h-4 w-4 text-blue-600" />
                     <span className="text-sm">{enrichResults.withEmails} with emails</span>
                   </div>
+                  <div className="flex items-center gap-2 p-2 bg-purple-50 dark:bg-purple-900/20 rounded col-span-2">
+                    <Building className="h-4 w-4 text-purple-600" />
+                    <span className="text-sm">
+                      {enrichResults.withProperties} owners with {enrichResults.totalProperties} properties found
+                    </span>
+                  </div>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Enriched data is now shown in the table. You can export the results or continue searching.
+                  Property addresses cross-referenced from USBiz datalake. Ready for outreach via SMS or email.
                 </p>
               </div>
             )}

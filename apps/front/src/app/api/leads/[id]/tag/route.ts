@@ -1,12 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { TagLeadRequest } from "@/lib/types/bucket";
+import { db } from "@/lib/db";
+import { leads, leadTags, tags } from "@/lib/db/schema";
+import { eq, and, inArray } from "drizzle-orm";
+import { auth } from "@clerk/nextjs/server";
 
-// POST /api/leads/:id/tag - Add/remove/replace tags on a lead
+// POST /api/leads/:id/tag - Add/remove/replace tags on a lead (REAL DATABASE)
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { id } = await params;
     const body: TagLeadRequest = await request.json();
 
@@ -18,15 +27,28 @@ export async function POST(
       return NextResponse.json({ error: "Action must be add, remove, or replace" }, { status: 400 });
     }
 
-    // In production:
-    // 1. Fetch lead from database
-    // 2. Apply tag action
-    // 3. Save updated lead
+    // Fetch lead to verify ownership
+    const [lead] = await db
+      .select()
+      .from(leads)
+      .where(and(eq(leads.id, id), eq(leads.userId, userId)))
+      .limit(1);
 
-    // Mock current tags
-    const currentTags = ["priority", "high-equity"];
+    if (!lead) {
+      return NextResponse.json({ error: "Lead not found" }, { status: 404 });
+    }
+
+    // Get current tags from database
+    const currentTagResults = await db
+      .select({ name: tags.name })
+      .from(leadTags)
+      .innerJoin(tags, eq(leadTags.tagId, tags.id))
+      .where(eq(leadTags.leadId, id));
+
+    const currentTags = currentTagResults.map(t => t.name);
+
+    // Calculate new tags based on action
     let newTags: string[];
-
     switch (body.action) {
       case "add":
         newTags = [...new Set([...currentTags, ...body.tags])];
@@ -40,6 +62,52 @@ export async function POST(
       default:
         newTags = currentTags;
     }
+
+    // Remove old tag associations if replacing or removing
+    if (body.action === "replace" || body.action === "remove") {
+      await db.delete(leadTags).where(eq(leadTags.leadId, id));
+    }
+
+    // Add new tag associations
+    const tagsToAdd = body.action === "replace" ? newTags : body.tags.filter(t => !currentTags.includes(t));
+
+    if (tagsToAdd.length > 0) {
+      // Get or create tag IDs
+      const existingTags = await db
+        .select()
+        .from(tags)
+        .where(inArray(tags.name, tagsToAdd));
+
+      const existingTagNames = existingTags.map(t => t.name);
+      const newTagNames = tagsToAdd.filter(t => !existingTagNames.includes(t));
+
+      // Create missing tags
+      const createdTags = newTagNames.length > 0
+        ? await db
+            .insert(tags)
+            .values(newTagNames.map(name => ({
+              name,
+              slug: name.toLowerCase().replace(/\s+/g, "-"),
+              userId,
+            })))
+            .returning()
+        : [];
+
+      // Link all tags to the lead
+      const allTagIds = [...existingTags, ...createdTags].map(t => t.id);
+      if (allTagIds.length > 0) {
+        await db.insert(leadTags).values(
+          allTagIds.map(tagId => ({
+            leadId: id,
+            tagId,
+            appliedBy: userId,
+          }))
+        );
+      }
+    }
+
+    // Update lead's updatedAt
+    await db.update(leads).set({ updatedAt: new Date() }).where(eq(leads.id, id));
 
     return NextResponse.json({
       success: true,

@@ -147,15 +147,27 @@ const mockConferences: ConferenceDetails[] = [];
 
 // Twilio service implementation
 class TwilioService {
-  // Get a token for Twilio Client
-  async getToken(identity: string): Promise<{ token: string }> {
+  // Get a token for Twilio Client - calls real API
+  async getToken(identity: string): Promise<{ token: string; configured?: boolean }> {
     try {
-      // In a real implementation, this would call your backend API
-      // For development, return a mock token
-      return { token: "mock-token-for-development-only" };
+      const response = await fetch("/api/twilio/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identity }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || data.error) {
+        console.error("Twilio token error:", data.error);
+        // Return error info so caller knows Twilio isn't configured
+        return { token: "", configured: false };
+      }
+
+      return { token: data.token, configured: true };
     } catch (error) {
       console.error("Error getting Twilio token:", error);
-      throw error;
+      return { token: "", configured: false };
     }
   }
 

@@ -19,20 +19,28 @@ export interface QueuedMessage {
   leadId: string;
   to: string;
   message: string;
+  originalMessage?: string; // Store original for edit tracking
   templateId?: string;
   templateCategory?: string;
   variables: Record<string, string>;
   personality?: string;
   priority: number;
   scheduledAt?: Date;
-  status: "pending" | "processing" | "sent" | "failed" | "cancelled";
+  // Human-in-loop statuses: draft -> approved -> pending -> processing -> sent
+  status: "draft" | "approved" | "rejected" | "pending" | "processing" | "sent" | "failed" | "cancelled";
   attempts: number;
   maxAttempts: number;
   createdAt: Date;
+  approvedAt?: Date;
+  approvedBy?: string;
+  editedAt?: Date;
+  editedBy?: string;
   sentAt?: Date;
   errorMessage?: string;
   campaignId?: string;
   batchId?: string;
+  // Agent assignment (Gianna for SMS/B2B, Sabrina for Email/Residential)
+  agent?: "gianna" | "sabrina";
 }
 
 export interface QueueConfig {
@@ -49,15 +57,25 @@ export interface QueueConfig {
 }
 
 export interface QueueStats {
+  // Human-in-loop statuses
+  draft: number;
+  approved: number;
+  rejected: number;
+  // Processing statuses
   pending: number;
   processing: number;
   sent: number;
   failed: number;
+  cancelled: number;
+  // Daily tracking
   sentToday: number;
   sentThisHour: number;
   remainingToday: number;
   nextBatchAt?: Date;
   isWithinSchedule: boolean;
+  // Preview ready
+  readyForPreview: number;
+  readyForDeploy: number;
 }
 
 export interface BatchResult {
@@ -266,15 +284,28 @@ export class SMSQueueService {
    */
   public getStats(): QueueStats {
     const now = new Date();
+    const draftCount = this.queue.filter((m) => m.status === "draft").length;
+    const approvedCount = this.queue.filter((m) => m.status === "approved").length;
+
     const stats: QueueStats = {
+      // Human-in-loop statuses
+      draft: draftCount,
+      approved: approvedCount,
+      rejected: this.queue.filter((m) => m.status === "rejected").length,
+      // Processing statuses
       pending: this.queue.filter((m) => m.status === "pending").length,
       processing: this.queue.filter((m) => m.status === "processing").length,
       sent: this.queue.filter((m) => m.status === "sent").length,
       failed: this.queue.filter((m) => m.status === "failed").length,
+      cancelled: this.queue.filter((m) => m.status === "cancelled").length,
+      // Daily tracking
       sentToday: this.sentToday,
       sentThisHour: this.sentThisHour,
       remainingToday: this.config.maxPerDay - this.sentToday,
       isWithinSchedule: this.isWithinSchedule(now),
+      // Preview ready
+      readyForPreview: draftCount,
+      readyForDeploy: approvedCount,
     };
 
     // Calculate next batch time
@@ -432,6 +463,243 @@ export class SMSQueueService {
     processLoop().catch((error) => {
       console.error("Queue processing error:", error);
     });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // HUMAN-IN-LOOP: PREVIEW, APPROVE, DEPLOY
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Get messages awaiting human review (draft status)
+   */
+  public getPreviewQueue(options: {
+    limit?: number;
+    campaignId?: string;
+    agent?: "gianna" | "sabrina";
+  } = {}): QueuedMessage[] {
+    let drafts = this.queue.filter((m) => m.status === "draft");
+
+    if (options.campaignId) {
+      drafts = drafts.filter((m) => m.campaignId === options.campaignId);
+    }
+    if (options.agent) {
+      drafts = drafts.filter((m) => m.agent === options.agent);
+    }
+
+    // Sort by priority (high first) then created date
+    drafts.sort((a, b) => {
+      if (b.priority !== a.priority) return b.priority - a.priority;
+      return a.createdAt.getTime() - b.createdAt.getTime();
+    });
+
+    return options.limit ? drafts.slice(0, options.limit) : drafts;
+  }
+
+  /**
+   * Get approved messages ready for deployment
+   */
+  public getApprovedQueue(options: {
+    limit?: number;
+    campaignId?: string;
+  } = {}): QueuedMessage[] {
+    let approved = this.queue.filter((m) => m.status === "approved");
+
+    if (options.campaignId) {
+      approved = approved.filter((m) => m.campaignId === options.campaignId);
+    }
+
+    return options.limit ? approved.slice(0, options.limit) : approved;
+  }
+
+  /**
+   * Approve messages for sending
+   */
+  public approveMessages(
+    messageIds: string[],
+    approvedBy: string
+  ): { approved: number; notFound: number } {
+    let approved = 0;
+    let notFound = 0;
+
+    for (const id of messageIds) {
+      const message = this.queue.find((m) => m.id === id);
+      if (message && message.status === "draft") {
+        message.status = "approved";
+        message.approvedAt = new Date();
+        message.approvedBy = approvedBy;
+        approved++;
+      } else {
+        notFound++;
+      }
+    }
+
+    return { approved, notFound };
+  }
+
+  /**
+   * Approve all draft messages in a campaign
+   */
+  public approveAllInCampaign(
+    campaignId: string,
+    approvedBy: string
+  ): number {
+    let approved = 0;
+    this.queue.forEach((m) => {
+      if (m.campaignId === campaignId && m.status === "draft") {
+        m.status = "approved";
+        m.approvedAt = new Date();
+        m.approvedBy = approvedBy;
+        approved++;
+      }
+    });
+    return approved;
+  }
+
+  /**
+   * Reject messages (won't be sent)
+   */
+  public rejectMessages(
+    messageIds: string[],
+    reason?: string
+  ): { rejected: number; notFound: number } {
+    let rejected = 0;
+    let notFound = 0;
+
+    for (const id of messageIds) {
+      const message = this.queue.find((m) => m.id === id);
+      if (message && (message.status === "draft" || message.status === "approved")) {
+        message.status = "rejected";
+        if (reason) message.errorMessage = reason;
+        rejected++;
+      } else {
+        notFound++;
+      }
+    }
+
+    return { rejected, notFound };
+  }
+
+  /**
+   * Edit a message before approval
+   */
+  public editMessage(
+    messageId: string,
+    newMessage: string,
+    editedBy: string
+  ): boolean {
+    const message = this.queue.find((m) => m.id === messageId);
+    if (!message || !["draft", "approved"].includes(message.status)) {
+      return false;
+    }
+
+    // Store original if not already stored
+    if (!message.originalMessage) {
+      message.originalMessage = message.message;
+    }
+
+    message.message = newMessage;
+    message.editedAt = new Date();
+    message.editedBy = editedBy;
+
+    return true;
+  }
+
+  /**
+   * Deploy approved messages (move to pending for processing)
+   */
+  public deployApproved(options: {
+    campaignId?: string;
+    limit?: number;
+    scheduledAt?: Date;
+  } = {}): { deployed: number; ids: string[] } {
+    let toDeply = this.queue.filter((m) => m.status === "approved");
+
+    if (options.campaignId) {
+      toDeply = toDeply.filter((m) => m.campaignId === options.campaignId);
+    }
+
+    if (options.limit) {
+      toDeply = toDeply.slice(0, options.limit);
+    }
+
+    const ids: string[] = [];
+    toDeply.forEach((m) => {
+      m.status = "pending";
+      if (options.scheduledAt) {
+        m.scheduledAt = options.scheduledAt;
+      }
+      ids.push(m.id);
+    });
+
+    return { deployed: ids.length, ids };
+  }
+
+  /**
+   * Add messages to queue as drafts (for human review)
+   */
+  public addToDraftQueue(
+    leads: Array<{
+      leadId: string;
+      phone: string;
+      firstName: string;
+      lastName?: string;
+      companyName?: string;
+      industry?: string;
+    }>,
+    options: {
+      templateCategory: string;
+      templateMessage: string;
+      personality?: string;
+      campaignId?: string;
+      priority?: number;
+      agent?: "gianna" | "sabrina";
+    }
+  ): { added: number; skipped: number; queueIds: string[] } {
+    const queueIds: string[] = [];
+    let skipped = 0;
+
+    for (const lead of leads) {
+      // Skip if opted out
+      if (this.optOutList.has(this.normalizePhone(lead.phone))) {
+        skipped++;
+        continue;
+      }
+
+      const variables: Record<string, string> = {
+        firstName: lead.firstName,
+        lastName: lead.lastName || "",
+        companyName: lead.companyName || "",
+        industry: lead.industry || "",
+        fullName: `${lead.firstName} ${lead.lastName || ""}`.trim(),
+      };
+
+      // Render message with variables
+      const renderedMessage = this.renderTemplate(options.templateMessage, variables);
+
+      const id = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      const queuedMessage: QueuedMessage = {
+        id,
+        leadId: lead.leadId,
+        to: lead.phone,
+        message: renderedMessage,
+        templateCategory: options.templateCategory,
+        variables,
+        personality: options.personality,
+        priority: options.priority || 5,
+        status: "draft", // Start as draft for human review
+        attempts: 0,
+        maxAttempts: this.config.maxRetries,
+        createdAt: new Date(),
+        campaignId: options.campaignId,
+        agent: options.agent || "gianna", // Default to Gianna for SMS
+      };
+
+      this.queue.push(queuedMessage);
+      queueIds.push(id);
+    }
+
+    return { added: queueIds.length, skipped, queueIds };
   }
 
   // ─────────────────────────────────────────────────────────────────────────────

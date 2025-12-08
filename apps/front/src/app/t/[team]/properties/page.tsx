@@ -48,10 +48,12 @@ import {
   Search, Download, Loader2, MapPin, Home, Phone, Mail, UserSearch,
   Filter, Save, FolderOpen, Layers, AlertTriangle, Building2, Users,
   DollarSign, TrendingUp, Ban, X, ChevronLeft, ChevronRight,
-  Plus, MessageSquare, Zap, Target, Landmark, RotateCcw, Send, CheckCircle2, Wand2
+  Plus, MessageSquare, Zap, Target, Landmark, RotateCcw, Send, CheckCircle2, Wand2,
+  Map, List, FileText, Calendar, PhoneCall, MailPlus, Clock, Eye, Play
 } from "lucide-react";
 import { toast } from "sonner";
 import { CampaignSmsConfigurator } from "@/components/campaign-sms-configurator";
+import { PropertyMap, PropertyMarker } from "@/components/property-map/property-map";
 
 // ============ MOTIVATED SELLER LEAD TYPES (PropWire-style) ============
 const LEAD_TYPES = [
@@ -132,6 +134,20 @@ interface SearchFilters {
   sqftMax: string;
   yearBuiltMin: string;
   yearBuiltMax: string;
+  // Portfolio/Linked Properties Filters (for whale investors)
+  propertiesOwnedMin: string;
+  propertiesOwnedMax: string;
+  portfolioValueMin: string;
+  portfolioValueMax: string;
+  portfolioEquityMin: string;
+  portfolioEquityMax: string;
+  portfolioMortgageMin: string;
+  portfolioMortgageMax: string;
+  activeBuyerMin: string;
+  activeBuyerMax: string;
+  // Sorting
+  sortField: string;
+  sortDirection: "asc" | "desc" | "";
 }
 
 interface Property {
@@ -161,6 +177,9 @@ interface Property {
   skipTraced?: boolean;
   // Lead type flags
   leadTypes?: string[];
+  // Location coordinates for map
+  lat?: number;
+  lng?: number;
 }
 
 // Default filters
@@ -181,6 +200,20 @@ const DEFAULT_FILTERS: SearchFilters = {
   sqftMax: "",
   yearBuiltMin: "",
   yearBuiltMax: "",
+  // Portfolio/Linked Properties
+  propertiesOwnedMin: "",
+  propertiesOwnedMax: "",
+  portfolioValueMin: "",
+  portfolioValueMax: "",
+  portfolioEquityMin: "",
+  portfolioEquityMax: "",
+  portfolioMortgageMin: "",
+  portfolioMortgageMax: "",
+  activeBuyerMin: "",
+  activeBuyerMax: "",
+  // Sorting
+  sortField: "",
+  sortDirection: "",
 };
 
 export default function PropertiesPage() {
@@ -194,7 +227,7 @@ export default function PropertiesPage() {
   const [pageSize] = useState(100);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [mcpLabel, setMcpLabel] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<"table" | "cards">("table");
+  const [viewMode, setViewMode] = useState<"table" | "cards" | "map">("table");
   const [showFilters, setShowFilters] = useState(true);
 
   // Enhanced filters with lead types
@@ -226,6 +259,20 @@ export default function PropertiesPage() {
     failed: number;
     total: number;
   } | null>(null);
+
+  // Property Detail Panel
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+  const [showPropertyDetail, setShowPropertyDetail] = useState(false);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [propertyDetail, setPropertyDetail] = useState<Record<string, unknown> | null>(null);
+
+  // Schedule Dialog (Kiosk)
+  const [showScheduleDialog, setShowScheduleDialog] = useState(false);
+  const [scheduleType, setScheduleType] = useState<"sms" | "call" | "email">("sms");
+  const [scheduleDate, setScheduleDate] = useState("");
+  const [scheduleTime, setScheduleTime] = useState("");
+  const [scheduleMessage, setScheduleMessage] = useState("");
+  const [schedulingProperty, setSchedulingProperty] = useState<Property | null>(null);
 
   // Legacy state aliases for backward compatibility
   const state = filters.state;
@@ -597,6 +644,23 @@ export default function PropertiesPage() {
         }
       });
 
+      // Portfolio/Linked Properties Filters (find whale investors)
+      if (filters.propertiesOwnedMin) body.properties_owned_min = parseInt(filters.propertiesOwnedMin);
+      if (filters.propertiesOwnedMax) body.properties_owned_max = parseInt(filters.propertiesOwnedMax);
+      if (filters.portfolioValueMin) body.portfolio_value_min = parseInt(filters.portfolioValueMin);
+      if (filters.portfolioValueMax) body.portfolio_value_max = parseInt(filters.portfolioValueMax);
+      if (filters.portfolioEquityMin) body.portfolio_equity_min = parseInt(filters.portfolioEquityMin);
+      if (filters.portfolioEquityMax) body.portfolio_equity_max = parseInt(filters.portfolioEquityMax);
+      if (filters.portfolioMortgageMin) body.portfolio_mortgage_balance_min = parseInt(filters.portfolioMortgageMin);
+      if (filters.portfolioMortgageMax) body.portfolio_mortgage_balance_max = parseInt(filters.portfolioMortgageMax);
+      if (filters.activeBuyerMin) body.portfolio_purchased_last12_min = parseInt(filters.activeBuyerMin);
+      if (filters.activeBuyerMax) body.portfolio_purchased_last12_max = parseInt(filters.activeBuyerMax);
+
+      // Sorting
+      if (filters.sortField && filters.sortDirection) {
+        body.sort = { [filters.sortField]: filters.sortDirection };
+      }
+
       body.size = pageSize;
       if (searchPage > 0) {
         body.resultIndex = searchPage * pageSize;
@@ -670,6 +734,9 @@ export default function PropertiesPage() {
           vacant: Boolean(p.vacant),
           preForeclosure: Boolean(p.preForeclosure || p.pre_foreclosure),
           leadTypes: detectedLeadTypes,
+          // Map coordinates from RealEstateAPI response
+          lat: Number(p.latitude || p.lat || (typeof addr === "object" && addr?.latitude)) || undefined,
+          lng: Number(p.longitude || p.lng || p.lon || (typeof addr === "object" && addr?.longitude)) || undefined,
         };
       });
 
@@ -760,6 +827,127 @@ export default function PropertiesPage() {
       setSendingSms(false);
     }
   }, [results, selectedIds, smsMessage]);
+
+  // Run Detail - Fetches full property data with auto skip trace
+  const handleRunDetail = useCallback(async (property: Property) => {
+    setSelectedProperty(property);
+    setShowPropertyDetail(true);
+    setLoadingDetail(true);
+    setPropertyDetail(null);
+
+    try {
+      const response = await fetch("/api/property/detail", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: property.id, autoSkipTrace: true }),
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      setPropertyDetail(data.property);
+
+      // Update the property in results with skip trace data
+      if (data.property) {
+        setResults((prev) =>
+          prev.map((p) =>
+            p.id === property.id
+              ? {
+                  ...p,
+                  phones: data.property.phones || p.phones,
+                  emails: data.property.emails || p.emails,
+                  ownerName: data.property.ownerName || p.ownerName,
+                  skipTraced: true,
+                }
+              : p
+          )
+        );
+      }
+
+      toast.success("Property detail loaded with skip trace data");
+    } catch (error) {
+      console.error("Failed to load property detail:", error);
+      toast.error("Failed to load property detail");
+    } finally {
+      setLoadingDetail(false);
+    }
+  }, []);
+
+  // Push to valuation page with property data
+  const handlePushToValuation = useCallback((property: Property) => {
+    const address = `${property.address}, ${property.city}, ${property.state} ${property.zip}`;
+    localStorage.setItem("nextier_valuation_property", JSON.stringify({
+      address,
+      propertyId: property.id,
+      ownerName: property.ownerName,
+      phones: property.phones,
+      emails: property.emails,
+      estimatedValue: property.estimatedValue,
+      propertyDetail,
+    }));
+    window.location.href = `/t/default/valuation?address=${encodeURIComponent(address)}`;
+  }, [propertyDetail]);
+
+  // Schedule action for a property (SMS, Call, Email)
+  const handleSchedule = useCallback(async () => {
+    if (!schedulingProperty) return;
+
+    if (!scheduleDate || !scheduleTime) {
+      toast.error("Please select a date and time");
+      return;
+    }
+
+    const scheduledFor = new Date(`${scheduleDate}T${scheduleTime}`).toISOString();
+
+    try {
+      const response = await fetch("/api/schedule", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: scheduleType,
+          scheduledFor,
+          recipient: {
+            name: schedulingProperty.ownerName,
+            phone: schedulingProperty.phones?.[0],
+            email: schedulingProperty.emails?.[0],
+            propertyId: schedulingProperty.id,
+            propertyAddress: `${schedulingProperty.address}, ${schedulingProperty.city}, ${schedulingProperty.state}`,
+          },
+          content: {
+            message: scheduleMessage,
+          },
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      toast.success(`${scheduleType.toUpperCase()} scheduled for ${new Date(scheduledFor).toLocaleString()}`);
+      setShowScheduleDialog(false);
+      setSchedulingProperty(null);
+      setScheduleDate("");
+      setScheduleTime("");
+      setScheduleMessage("");
+    } catch (error) {
+      console.error("Failed to schedule:", error);
+      toast.error("Failed to schedule");
+    }
+  }, [schedulingProperty, scheduleType, scheduleDate, scheduleTime, scheduleMessage]);
+
+  // Open schedule dialog for a property
+  const openScheduleDialog = useCallback((property: Property, type: "sms" | "call" | "email") => {
+    setSchedulingProperty(property);
+    setScheduleType(type);
+    setShowScheduleDialog(true);
+  }, []);
 
   const handleExportCSV = () => {
     const headers = ["Address", "City", "State", "ZIP", "Type", "Beds", "Baths", "SqFt", "Value", "Equity", "Owner", "Phones", "Emails"];
@@ -923,6 +1111,26 @@ export default function PropertiesPage() {
               <Download className="h-4 w-4 mr-2" />
               Export
             </Button>
+
+            {/* Map/List Toggle */}
+            <div className="flex items-center bg-white/10 rounded-md p-0.5">
+              <Button
+                variant={viewMode === "table" ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("table")}
+                className={viewMode === "table" ? "" : "text-white hover:bg-white/20"}
+              >
+                <List className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === "map" ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("map")}
+                className={viewMode === "map" ? "" : "text-white hover:bg-white/20"}
+              >
+                <Map className="h-4 w-4" />
+              </Button>
+            </div>
 
             <Button
               variant="outline"
@@ -1215,7 +1423,50 @@ export default function PropertiesPage() {
 
         {/* Results Area */}
         <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Map View */}
+          {viewMode === "map" && (
+            <div className="flex-1 relative">
+              <PropertyMap
+                properties={results
+                  .filter((p) => p.lat && p.lng)
+                  .map((p) => ({
+                    id: p.id,
+                    lat: p.lat!,
+                    lng: p.lng!,
+                    address: p.address,
+                    city: p.city,
+                    state: p.state,
+                    zip: p.zip,
+                    propertyType: p.propertyType,
+                    estimatedValue: p.estimatedValue,
+                    equity: p.equity,
+                    beds: p.beds,
+                    baths: p.baths,
+                    sqft: p.sqft,
+                    ownerName: p.ownerName,
+                  }))}
+                loading={loading}
+                onPropertyClick={(property) => {
+                  // Toggle selection when clicking property on map
+                  toggleSelect(property.id);
+                }}
+              />
+              {results.length > 0 && results.filter((p) => p.lat && p.lng).length === 0 && (
+                <div className="absolute inset-0 flex items-center justify-center bg-background/80">
+                  <div className="text-center p-6">
+                    <MapPin className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <p className="text-lg font-medium">No coordinates available</p>
+                    <p className="text-sm text-muted-foreground">
+                      Properties in this search don't have GPS coordinates.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Results Table */}
+          {viewMode === "table" && (
           <div className="flex-1 overflow-auto">
             <Table>
               <TableHeader className="sticky top-0 bg-background z-10">
@@ -1234,6 +1485,7 @@ export default function PropertiesPage() {
                   <TableHead>Owner</TableHead>
                   <TableHead>Phone</TableHead>
                   <TableHead>Email</TableHead>
+                  <TableHead className="text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1333,11 +1585,59 @@ export default function PropertiesPage() {
                         <span className="text-muted-foreground text-sm">-</span>
                       )}
                     </TableCell>
+                    {/* ACTION KIOSK - Run Detail + Schedule SMS/Call/Email */}
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        {/* Run Detail - fetches full property data + skip trace */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2 text-xs"
+                          onClick={() => handleRunDetail(property)}
+                        >
+                          <Play className="h-3 w-3 mr-1" />
+                          Detail
+                        </Button>
+                        {/* Schedule SMS */}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0"
+                          onClick={() => openScheduleDialog(property, "sms")}
+                          disabled={!property.phones || property.phones.length === 0}
+                          title="Schedule SMS"
+                        >
+                          <MessageSquare className="h-3 w-3 text-green-600" />
+                        </Button>
+                        {/* Schedule Call */}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0"
+                          onClick={() => openScheduleDialog(property, "call")}
+                          disabled={!property.phones || property.phones.length === 0}
+                          title="Schedule Call"
+                        >
+                          <PhoneCall className="h-3 w-3 text-blue-600" />
+                        </Button>
+                        {/* Schedule Email */}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0"
+                          onClick={() => openScheduleDialog(property, "email")}
+                          disabled={!property.emails || property.emails.length === 0}
+                          title="Schedule Email"
+                        >
+                          <MailPlus className="h-3 w-3 text-purple-600" />
+                        </Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))}
                 {results.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-16">
+                    <TableCell colSpan={10} className="text-center py-16">
                       <div className="flex flex-col items-center gap-2 text-muted-foreground">
                         <Search className="h-12 w-12 opacity-20" />
                         <div className="text-lg font-medium">No properties found</div>
@@ -1349,6 +1649,7 @@ export default function PropertiesPage() {
               </TableBody>
             </Table>
           </div>
+          )}
 
           {/* Pagination Controls */}
           {totalCount > pageSize && (
@@ -1561,6 +1862,249 @@ export default function PropertiesPage() {
           />
         </DialogContent>
       </Dialog>
+
+      {/* PROPERTY DETAIL SHEET - Full property data with skip trace */}
+      <Sheet open={showPropertyDetail} onOpenChange={setShowPropertyDetail}>
+        <SheetContent className="w-[500px] sm:w-[600px] overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-blue-600" />
+              Property Detail
+            </SheetTitle>
+            <SheetDescription>
+              {selectedProperty?.address}, {selectedProperty?.city}, {selectedProperty?.state}
+            </SheetDescription>
+          </SheetHeader>
+
+          {loadingDetail ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <span className="ml-2">Loading detail + skip trace...</span>
+            </div>
+          ) : propertyDetail ? (
+            <div className="mt-6 space-y-6">
+              {/* Quick Stats */}
+              <div className="grid grid-cols-2 gap-4">
+                <Card>
+                  <CardContent className="pt-4">
+                    <div className="text-2xl font-bold text-green-600">
+                      {formatCurrency(Number(propertyDetail.estimatedValue) || selectedProperty?.estimatedValue)}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Estimated Value</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-4">
+                    <div className="text-2xl font-bold text-blue-600">
+                      {formatCurrency(Number(propertyDetail.equity) || selectedProperty?.equity)}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Equity</div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Owner Info (from skip trace) */}
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    Owner Info (Skip Traced)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Name:</span>
+                    <span className="font-medium">{String(propertyDetail.ownerName) || selectedProperty?.ownerName || "Unknown"}</span>
+                  </div>
+                  {(propertyDetail.phones as string[])?.length > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Phones:</span>
+                      <div className="text-right">
+                        {(propertyDetail.phones as string[]).map((p, i) => (
+                          <div key={i} className="flex items-center gap-1">
+                            <Phone className="h-3 w-3 text-green-600" />
+                            <span>{p}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {(propertyDetail.emails as string[])?.length > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Emails:</span>
+                      <div className="text-right">
+                        {(propertyDetail.emails as string[]).map((e, i) => (
+                          <div key={i} className="flex items-center gap-1">
+                            <Mail className="h-3 w-3 text-blue-600" />
+                            <span className="text-sm">{e}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {propertyDetail.mailingAddress && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Mailing:</span>
+                      <span className="text-right text-sm">{String(propertyDetail.mailingAddress)}</span>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Property Details */}
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Home className="h-4 w-4" />
+                    Property Details
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-3 gap-4 text-center">
+                    <div>
+                      <div className="text-xl font-bold">{Number(propertyDetail.beds) || selectedProperty?.beds || "-"}</div>
+                      <div className="text-xs text-muted-foreground">Beds</div>
+                    </div>
+                    <div>
+                      <div className="text-xl font-bold">{Number(propertyDetail.baths) || selectedProperty?.baths || "-"}</div>
+                      <div className="text-xs text-muted-foreground">Baths</div>
+                    </div>
+                    <div>
+                      <div className="text-xl font-bold">{(Number(propertyDetail.sqft) || selectedProperty?.sqft)?.toLocaleString() || "-"}</div>
+                      <div className="text-xs text-muted-foreground">Sq Ft</div>
+                    </div>
+                  </div>
+                  <Separator className="my-4" />
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Type:</span>
+                      <span>{String(propertyDetail.propertyType) || selectedProperty?.propertyType}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Year Built:</span>
+                      <span>{Number(propertyDetail.yearBuilt) || selectedProperty?.yearBuilt || "-"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Lot Size:</span>
+                      <span>{Number(propertyDetail.lotSize)?.toLocaleString() || "-"} sq ft</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Actions */}
+              <div className="flex gap-2">
+                <Button
+                  className="flex-1 bg-purple-600 hover:bg-purple-700"
+                  onClick={() => selectedProperty && handlePushToValuation(selectedProperty)}
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Push to Valuation Report
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => selectedProperty && openScheduleDialog(selectedProperty, "sms")}
+                  disabled={!(propertyDetail.phones as string[])?.length}
+                >
+                  <MessageSquare className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => selectedProperty && openScheduleDialog(selectedProperty, "call")}
+                  disabled={!(propertyDetail.phones as string[])?.length}
+                >
+                  <PhoneCall className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center py-12 text-muted-foreground">
+              No detail loaded
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      {/* SCHEDULE DIALOG - Kiosk for scheduling SMS/Call/Email */}
+      <Dialog open={showScheduleDialog} onOpenChange={setShowScheduleDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-blue-600" />
+              Schedule {scheduleType.toUpperCase()}
+            </DialogTitle>
+            <DialogDescription>
+              {schedulingProperty?.ownerName || "Property Owner"} - {schedulingProperty?.address}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* Date & Time */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Date</Label>
+                <Input
+                  type="date"
+                  value={scheduleDate}
+                  onChange={(e) => setScheduleDate(e.target.value)}
+                  min={new Date().toISOString().split("T")[0]}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Time</Label>
+                <Input
+                  type="time"
+                  value={scheduleTime}
+                  onChange={(e) => setScheduleTime(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Recipient Info */}
+            <div className="rounded-lg bg-muted/50 p-3 text-sm">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                {scheduleType === "email" ? (
+                  <>
+                    <Mail className="h-4 w-4" />
+                    <span>{schedulingProperty?.emails?.[0] || "No email"}</span>
+                  </>
+                ) : (
+                  <>
+                    <Phone className="h-4 w-4" />
+                    <span>{schedulingProperty?.phones?.[0] || "No phone"}</span>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Message (for SMS/Email) */}
+            {scheduleType !== "call" && (
+              <div className="space-y-2">
+                <Label>Message</Label>
+                <Textarea
+                  placeholder={scheduleType === "sms" ? "Enter SMS message..." : "Enter email content..."}
+                  value={scheduleMessage}
+                  onChange={(e) => setScheduleMessage(e.target.value)}
+                  rows={4}
+                />
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowScheduleDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSchedule} className="bg-blue-600 hover:bg-blue-700">
+              <Clock className="h-4 w-4 mr-2" />
+              Schedule {scheduleType.toUpperCase()}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
+
+

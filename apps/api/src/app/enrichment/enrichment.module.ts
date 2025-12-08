@@ -1,0 +1,65 @@
+/**
+ * Enrichment Module
+ * Handles B2B ingestion, SkipTrace, Apollo, Identity Graph, and Lead Card building
+ */
+import { Module } from "@nestjs/common";
+import { ConfigModule } from "@nestjs/config";
+import { BullModule } from "@nestjs/bullmq";
+
+// Services
+import { B2BIngestionService } from "./services/b2b-ingestion.service";
+import { RealEstateApiService } from "./services/realestate-api.service";
+import { SkipTraceService } from "./services/skiptrace.service";
+import { ApolloEnrichmentService } from "./services/apollo-enrichment.service";
+import { IdentityGraphService } from "./services/identity-graph.service";
+import { LeadCardService } from "./services/lead-card.service";
+import { CampaignTriggerService } from "./services/campaign-trigger.service";
+
+// Consumers
+import { B2BIngestionConsumer } from "./consumers/b2b-ingestion.consumer";
+import { SkipTraceConsumer } from "./consumers/skiptrace.consumer";
+import { LeadCardConsumer } from "./consumers/lead-card.consumer";
+
+// Repositories
+import { PersonaRepository } from "./repositories/persona.repository";
+import { BusinessRepository } from "./repositories/business.repository";
+import { LeadCardRepository } from "./repositories/lead-card.repository";
+
+@Module({
+  imports: [
+    ConfigModule,
+    BullModule.registerQueue(
+      { name: "b2b-ingestion" },
+      { name: "skiptrace" },
+      { name: "lead-card" },
+    ),
+  ],
+  providers: [
+    // Services
+    B2BIngestionService,
+    RealEstateApiService,
+    SkipTraceService,
+    ApolloEnrichmentService,
+    IdentityGraphService,
+    LeadCardService,
+    CampaignTriggerService,
+    // Consumers
+    B2BIngestionConsumer,
+    SkipTraceConsumer,
+    LeadCardConsumer,
+    // Repositories
+    PersonaRepository,
+    BusinessRepository,
+    LeadCardRepository,
+  ],
+  exports: [
+    B2BIngestionService,
+    RealEstateApiService,
+    SkipTraceService,
+    ApolloEnrichmentService,
+    IdentityGraphService,
+    LeadCardService,
+    CampaignTriggerService,
+  ],
+})
+export class EnrichmentModule {}

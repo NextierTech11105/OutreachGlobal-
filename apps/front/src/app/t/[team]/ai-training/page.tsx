@@ -25,6 +25,7 @@ import {
   Download,
   Copy,
   Loader2,
+  Phone,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -67,6 +68,7 @@ import {
 import { TeamHeader } from "@/features/team/layouts/team-header";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { GiannaPhonePool } from "@/components/gianna-phone-pool";
 
 // Training data types
 interface TrainingExample {
@@ -682,6 +684,10 @@ export default function AITrainingHubPage() {
               <Settings className="w-4 h-4" />
               Configuration
             </TabsTrigger>
+            <TabsTrigger value="phone-pool" className="flex items-center gap-2">
+              <Phone className="w-4 h-4" />
+              Phone Pool
+            </TabsTrigger>
           </TabsList>
 
           {/* Training Data Tab */}
@@ -1289,6 +1295,11 @@ export default function AITrainingHubPage() {
               <Check className="w-4 h-4 mr-2 text-green-500" />
               Settings auto-saved to your browser
             </div>
+          </TabsContent>
+
+          {/* Phone Pool Tab */}
+          <TabsContent value="phone-pool">
+            <GiannaPhonePool />
           </TabsContent>
         </Tabs>
       </div>

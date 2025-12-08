@@ -41,6 +41,10 @@ interface PowerDialerProps {
   onClose?: () => void;
   inModal?: boolean;
   hideTabsNav?: boolean;
+  // Just-in-time enrichment props
+  leadId?: string; // Property ID or company ID for enrichment
+  leadType?: "property" | "b2b";
+  autoEnrich?: boolean; // Trigger enrichment before call if no phone
 }
 
 export function PowerDialer({
@@ -58,6 +62,9 @@ export function PowerDialer({
   onClose,
   inModal = false,
   hideTabsNav = false,
+  leadId,
+  leadType = "property",
+  autoEnrich = false,
 }: PowerDialerProps) {
   const [phoneNumber, setPhoneNumber] = useState(leadPhone || "");
   const [isCallActive, setIsCallActive] = useState(false);
@@ -68,7 +75,6 @@ export function PowerDialer({
   const [callStartTime, setCallStartTime] = useState<Date | null>(null);
   const [isDeviceReady, setIsDeviceReady] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
-  const [useMockCalls, setUseMockCalls] = useState(false);
   const [notes, setNotes] = useState("");
   const [callDisposition, setCallDisposition] = useState("");
   const [isGeneratingNotes, setIsGeneratingNotes] = useState(false);
@@ -77,6 +83,19 @@ export function PowerDialer({
   const [isTransferring, setIsTransferring] = useState(false);
   const [transcription, setTranscription] = useState<string>("");
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const [isEnriching, setIsEnriching] = useState(false);
+  const [enrichedData, setEnrichedData] = useState<{
+    contact?: {
+      firstName?: string;
+      lastName?: string;
+      fullName?: string;
+      phones: Array<{ number: string; type?: string }>;
+      emails: Array<{ email: string; type?: string }>;
+      propertyAddress?: string;
+      estimatedValue?: number;
+    };
+    recommended?: { phone?: string; phoneType?: string };
+  } | null>(null);
 
   const deviceRef = useRef<any>(null);
   const connectionRef = useRef<any>(null);
@@ -151,11 +170,11 @@ export function PowerDialer({
 
           if (cleanup) return;
 
-          // Check if we got a mock token (for development without Twilio credentials)
-          if (tokenResponse.token === "mock-token-for-development-only") {
-            console.log("Using mock calling mode");
-            setUseMockCalls(true);
-            setIsDeviceReady(true);
+          // Check if Twilio is properly configured
+          if (!tokenResponse.token || tokenResponse.configured === false) {
+            console.warn("Twilio not configured - calls will not work");
+            setError("Twilio calling is not configured. Add TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_TWIML_APP_SID in Admin > Integrations > Twilio.");
+            setIsDeviceReady(false);
             setIsInitializing(false);
             return;
           }
@@ -234,17 +253,14 @@ export function PowerDialer({
 
           if (cleanup) return;
 
-          // Fall back to mock mode for development
-          console.log("Falling back to mock calling mode");
-          setUseMockCalls(true);
-          setIsDeviceReady(true);
+          setError("Failed to initialize calling. Please configure Twilio in Admin > Integrations.");
+          setIsDeviceReady(false);
           setIsInitializing(false);
 
           toast({
-            title: "Using Demo Mode",
-            description:
-              "Twilio integration is not available. Using demo mode for calls.",
-            variant: "default",
+            title: "Calling Not Available",
+            description: "Twilio credentials are required for calling. Configure in Admin > Integrations > Twilio.",
+            variant: "destructive",
           });
         }
       } catch (error: any) {
@@ -252,16 +268,14 @@ export function PowerDialer({
 
         if (cleanup) return;
 
-        setError("Phone system initialization failed. Using demo mode.");
-        setUseMockCalls(true);
-        setIsDeviceReady(true);
+        setError("Phone system initialization failed. Please check Twilio configuration.");
+        setIsDeviceReady(false);
         setIsInitializing(false);
 
         toast({
-          title: "Using Demo Mode",
-          description:
-            "Phone system could not be initialized. Using demo mode for calls.",
-          variant: "default",
+          title: "Calling Not Available",
+          description: "Phone system could not be initialized. Check your Twilio configuration.",
+          variant: "destructive",
         });
       }
     };
@@ -271,7 +285,7 @@ export function PowerDialer({
     // Cleanup
     return () => {
       cleanup = true;
-      if (deviceRef.current && !useMockCalls) {
+      if (deviceRef.current) {
         try {
           deviceRef.current.destroy();
         } catch (e) {
@@ -281,99 +295,90 @@ export function PowerDialer({
     };
   }, [onCallComplete, toast]);
 
-  // Start transcription
+  // Start transcription - connects to real-time transcription service when available
   const startTranscription = () => {
-    if (useMockCalls) {
-      // Simulate transcription for demo mode
-      setIsTranscribing(true);
-      const mockTranscriptionInterval = setInterval(() => {
-        setTranscription((prev) => {
-          const mockPhrases = [
-            "Hello, this is a test transcription.",
-            " I'm calling about your property.",
-            " We have some interesting opportunities to discuss.",
-            " Our data shows your property might be eligible for our program.",
-            " Would you be interested in learning more about our services?",
-            " Great, let me tell you about what we offer.",
-            " We specialize in real estate data and analytics.",
-            " Our platform can help you make better investment decisions.",
-            " Based on our analysis, your property has significant potential.",
-            " I'd be happy to schedule a follow-up meeting to discuss further.",
-          ];
-
-          if (prev.length > 500) {
-            return prev + mockPhrases[Math.floor(Math.random() * 3) + 7];
-          } else {
-            return prev + mockPhrases[Math.floor(Math.random() * 7)];
-          }
-        });
-      }, 5000);
-
-      return () => clearInterval(mockTranscriptionInterval);
-    } else {
-      // In a real implementation, this would connect to a real-time transcription service
-      setIsTranscribing(true);
-      // Implementation would depend on the specific transcription service being used
-    }
+    setIsTranscribing(true);
+    // Real-time transcription will be populated by Twilio's transcription service
+    // or a connected transcription provider
   };
 
   // Stop transcription
   const stopTranscription = () => {
     setIsTranscribing(false);
-    // In a real implementation, this would disconnect from the transcription service
   };
 
-  // Mock call functionality for development
-  const handleMockCall = () => {
-    setCallStatus("connecting");
+  // Just-in-time enrichment - runs before call if no phone number
+  const enrichLead = async (): Promise<string | null> => {
+    if (!leadId) return null;
 
-    // Simulate connecting delay
-    setTimeout(() => {
-      setIsCallActive(true);
-      setCallStatus("in-progress");
-      setCallStartTime(new Date());
-      setCallSid("mock-call-" + Date.now());
-      // Start transcription
-      startTranscription();
-      // Switch to notes tab when call connects
-      setActiveTab("notes");
+    setIsEnriching(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/enrichment/prepare-contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: leadId, type: leadType }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        toast({
+          title: "Enrichment Failed",
+          description: data.error || "Could not enrich lead",
+          variant: "destructive",
+        });
+        return null;
+      }
+
+      setEnrichedData(data);
+
+      // Update phone number with best available
+      if (data.recommended?.phone) {
+        setPhoneNumber(data.recommended.phone);
+        toast({
+          title: "Lead Enriched",
+          description: `Found ${data.stats?.phonesFound || 0} phones, ${data.stats?.emailsFound || 0} emails`,
+        });
+        return data.recommended.phone;
+      }
 
       toast({
-        title: "Demo Call Started",
-        description: `Calling ${phoneNumber} (demo mode)`,
-        variant: "default",
+        title: "No Phone Found",
+        description: "Enrichment completed but no phone numbers found",
+        variant: "destructive",
       });
-    }, 1500);
-  };
-
-  const handleEndMockCall = () => {
-    setIsCallActive(false);
-    setCallStatus("completed");
-    // Stop transcription
-    stopTranscription();
-
-    // Call the onCallComplete callback if provided
-    if (onCallComplete && callStartTime) {
-      const duration = Math.floor(
-        (new Date().getTime() - callStartTime.getTime()) / 1000,
-      );
-      onCallComplete(duration, notes);
+      return null;
+    } catch (err) {
+      console.error("[PowerDialer] Enrichment error:", err);
+      toast({
+        title: "Enrichment Error",
+        description: "Failed to enrich lead data",
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setIsEnriching(false);
     }
-
-    setCallStartTime(null);
-    setCallSid(null);
-
-    toast({
-      title: "Demo Call Ended",
-      description: "Call has ended (demo mode)",
-      variant: "default",
-    });
   };
 
-  // Handle making a call
+  // Handle making a call (with optional just-in-time enrichment)
   const handleMakeCall = async () => {
     try {
-      if (!phoneNumber) {
+      let numberToDial = phoneNumber;
+
+      // If no phone but have leadId, trigger enrichment first
+      if (!numberToDial && leadId && autoEnrich) {
+        const enrichedPhone = await enrichLead();
+        if (!enrichedPhone) {
+          setError("Could not find a phone number for this lead");
+          return;
+        }
+        numberToDial = enrichedPhone;
+      }
+
+      if (!numberToDial) {
         setError("Please enter a phone number");
         return;
       }
@@ -400,12 +405,6 @@ export function PowerDialer({
         });
       }
 
-      // If in mock mode, use mock call functionality
-      if (useMockCalls) {
-        handleMockCall();
-        return;
-      }
-
       // Format phone number
       const formattedNumber = phoneNumber.replace(/\D/g, "");
 
@@ -429,11 +428,6 @@ export function PowerDialer({
 
   // Handle ending a call
   const handleEndCall = () => {
-    if (useMockCalls) {
-      handleEndMockCall();
-      return;
-    }
-
     if (deviceRef.current) {
       deviceRef.current.disconnectAll();
       setCallSid(null);
@@ -447,22 +441,6 @@ export function PowerDialer({
 
   // Handle muting/unmuting
   const handleToggleMute = () => {
-    if (useMockCalls) {
-      setIsMuted(!isMuted);
-
-      // If in modal mode, update the call state
-      if (inModal && callState) {
-        callState.toggleMute();
-      }
-
-      toast({
-        title: isMuted ? "Unmuted" : "Muted",
-        description: `Microphone ${isMuted ? "unmuted" : "muted"} (demo mode)`,
-        variant: "default",
-      });
-      return;
-    }
-
     if (connectionRef.current) {
       if (isMuted) {
         connectionRef.current.mute(false);
@@ -480,15 +458,6 @@ export function PowerDialer({
 
   // Handle dial pad input
   const handleDialPadInput = (digit: string) => {
-    if (useMockCalls && isCallActive) {
-      toast({
-        title: "DTMF Tone",
-        description: `Sent tone: ${digit} (demo mode)`,
-        variant: "default",
-      });
-      return;
-    }
-
     if (connectionRef.current && isCallActive) {
       // Send DTMF tone
       connectionRef.current.sendDigits(digit);
@@ -633,7 +602,7 @@ export function PowerDialer({
       <div className="flex-1 flex flex-col justify-center">
         <DialPad
           onDigitPress={handleDialPadInput}
-          disabled={isCallActive && !connectionRef.current && !useMockCalls}
+          disabled={isCallActive && !connectionRef.current}
           className="mx-auto max-w-xs"
         />
       </div>
@@ -772,8 +741,9 @@ export function PowerDialer({
             className="bg-green-600 hover:bg-green-700 text-white w-full max-w-xs"
             disabled={
               callStatus === "connecting" ||
-              !phoneNumber ||
-              (!isDeviceReady && !useMockCalls) ||
+              isEnriching ||
+              (!phoneNumber && !leadId) ||
+              !isDeviceReady ||
               isInitializing
             }
             size="lg"
@@ -781,9 +751,13 @@ export function PowerDialer({
             <Phone className="mr-2 h-5 w-5" />
             {isInitializing
               ? "Initializing..."
-              : callStatus === "connecting"
-                ? "Connecting..."
-                : "Call"}
+              : isEnriching
+                ? "Enriching Lead..."
+                : callStatus === "connecting"
+                  ? "Connecting..."
+                  : !phoneNumber && leadId
+                    ? "Enrich & Call"
+                    : "Call"}
           </Button>
         ) : (
           <CallControls
@@ -794,13 +768,6 @@ export function PowerDialer({
           />
         )}
       </div>
-
-      {useMockCalls && (
-        <div className="mt-3 text-xs text-center text-muted-foreground">
-          Running in demo mode. Calls are simulated and not connected to a real
-          phone system.
-        </div>
-      )}
     </div>
   );
 
@@ -813,8 +780,7 @@ export function PowerDialer({
             <div className="flex items-center space-x-3">
               <div className="flex flex-col">
                 <h3 className="text-lg font-semibold">
-                  {isCallActive ? "Call in Progress" : "Power Dialer"}{" "}
-                  {useMockCalls && "(Demo)"}
+                  {isCallActive ? "Call in Progress" : "Power Dialer"}
                 </h3>
                 {leadName && (
                   <p className="text-sm text-muted-foreground">

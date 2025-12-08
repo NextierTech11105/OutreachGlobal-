@@ -1,5 +1,16 @@
-import type { SendMailOptions as MailerSendMailOptions } from "@haorama/nestjs-mailer";
+import type { MailDataRequired } from "@sendgrid/mail";
 
-export interface SendMailOptions extends MailerSendMailOptions {
+export interface SendMailOptions {
+  to: string | string[];
+  subject: string;
+  html: string;
+  text?: string;
+  from?: {
+    name: string;
+    email: string;
+  };
+  replyTo?: string;
   now?: boolean;
 }
+
+export type SendGridMailData = MailDataRequired;

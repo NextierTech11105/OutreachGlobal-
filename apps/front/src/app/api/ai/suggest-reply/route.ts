@@ -1,7 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
+import {
+  GIANNA_IDENTITY,
+  GIANNA_PRESETS,
+  RESPONSE_STRATEGIES,
+  OBJECTION_RESPONSES,
+  LEAD_TYPE_APPROACHES,
+  MESSAGE_RULES,
+  personalityToPrompt,
+  detectObjection,
+  type GiannaPersonality,
+} from "@/lib/gianna/knowledge-base";
 
-// AI Reply Suggestion API - Uses OpenAI or Anthropic
-// Co-pilot mode: Suggests replies for incoming SMS responses
+// =============================================================================
+// GIANNA AI RESPONSE ENGINE
+// The Ultimate Digital SDR - Trained by Real Gianna, Scaled by AI
+// =============================================================================
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || "";
@@ -11,11 +24,19 @@ interface SuggestReplyRequest {
   leadName?: string;
   leadPhone?: string;
   propertyAddress?: string;
-  campaignType?: string; // e.g., "real_estate", "b2b", "financial"
+  businessName?: string;
+  campaignType?: string; // e.g., "real_estate", "b2b", "business_valuation"
+  leadType?: string; // e.g., "pre_foreclosure", "absentee_owner", "tired_landlord"
   previousMessages?: Array<{ role: "user" | "assistant"; content: string }>;
-  provider?: "openai" | "anthropic"; // Which AI to use
+  provider?: "openai" | "anthropic";
+
+  // Personality configuration (0-100 for each)
+  personality?: Partial<GiannaPersonality>;
+  preset?: keyof typeof GIANNA_PRESETS; // Use a preset instead of manual sliders
+
+  // Legacy support
   tone?: "friendly" | "professional" | "urgent" | "casual";
-  remixContext?: string; // Additional style/tone context from sliders
+  remixContext?: string;
   sliders?: {
     conversational: number;
     humor: number;
@@ -25,48 +46,185 @@ interface SuggestReplyRequest {
   trainingData?: Array<{ incomingMessage: string; idealResponse: string }>;
 }
 
-// System prompts for different campaign types
-const SYSTEM_PROMPTS: Record<string, string> = {
-  real_estate: `You are an AI assistant helping a real estate investor respond to motivated seller leads.
-Your goal is to:
-1. Build rapport and show genuine interest
-2. Qualify the lead (are they ready to sell?)
-3. Schedule a call or property visit
-4. Be helpful, not pushy
+/**
+ * Build Gianna's full system prompt with personality and knowledge
+ */
+function buildGiannaSystemPrompt(
+  personality: GiannaPersonality,
+  context: {
+    leadName?: string;
+    propertyAddress?: string;
+    businessName?: string;
+    campaignType?: string;
+    leadType?: string;
+    detectedObjection?: string | null;
+    detectedIntent?: string;
+    trainingData?: Array<{ incomingMessage: string; idealResponse: string }>;
+  }
+): string {
+  const sections: string[] = [];
 
-Keep responses SHORT (under 160 characters for SMS) and conversational.
-Always aim to move the conversation forward toward a call or meeting.`,
+  // === IDENTITY ===
+  sections.push(`You are ${GIANNA_IDENTITY.name}, ${GIANNA_IDENTITY.role} for ${GIANNA_IDENTITY.company}.`);
 
-  b2b: `You are an AI assistant helping with B2B outreach responses.
-Your goal is to:
-1. Address the prospect's question or concern
-2. Highlight value proposition
-3. Schedule a demo or call
-4. Be professional but personable
+  // === CORE PRINCIPLES ===
+  sections.push(`
+CORE PRINCIPLES (NEVER VIOLATE):
+${GIANNA_IDENTITY.principles.map((p) => `- ${p}`).join("\n")}
 
-Keep responses concise and action-oriented.`,
+NEVER DO:
+${GIANNA_IDENTITY.neverDo.map((n) => `- ${n}`).join("\n")}
+`);
 
-  financial: `You are an AI assistant helping with financial services outreach.
-Your goal is to:
-1. Address concerns professionally
-2. Build trust and credibility
-3. Schedule a consultation
-4. Comply with financial regulations (no specific promises)
+  // === PERSONALITY INSTRUCTIONS ===
+  const personalityInstructions = personalityToPrompt(personality);
+  if (personalityInstructions) {
+    sections.push(`\nPERSONALITY FOR THIS RESPONSE:\n${personalityInstructions}`);
+  }
 
-Keep responses professional and helpful.`,
+  // === CONTEXT ===
+  const contextParts: string[] = [];
+  if (context.leadName) contextParts.push(`Lead name: ${context.leadName}`);
+  if (context.businessName) contextParts.push(`Business: ${context.businessName}`);
+  if (context.propertyAddress) contextParts.push(`Property: ${context.propertyAddress}`);
 
-  default: `You are an AI assistant helping respond to incoming SMS messages.
-Keep responses SHORT (under 160 characters), friendly, and aim to continue the conversation.
-Be helpful and move toward scheduling a call if appropriate.`,
-};
+  if (contextParts.length > 0) {
+    sections.push(`\nCURRENT CONTEXT:\n${contextParts.join("\n")}`);
+  }
 
-// Tone modifiers
-const TONE_MODIFIERS: Record<string, string> = {
-  friendly: "Use a warm, friendly tone with casual language.",
-  professional: "Use a professional, business-like tone.",
-  urgent: "Convey urgency while remaining respectful.",
-  casual: "Be very casual and conversational, like texting a friend.",
-};
+  // === LEAD TYPE SPECIFIC APPROACH ===
+  if (context.leadType && LEAD_TYPE_APPROACHES[context.leadType as keyof typeof LEAD_TYPE_APPROACHES]) {
+    const approach = LEAD_TYPE_APPROACHES[context.leadType as keyof typeof LEAD_TYPE_APPROACHES];
+    sections.push(`
+LEAD TYPE: ${context.leadType.replace(/_/g, " ").toUpperCase()}
+Tone: ${approach.tone}
+Avoid: ${approach.avoid}
+Approach: ${approach.approach}
+`);
+  }
+
+  // === OBJECTION HANDLING ===
+  if (context.detectedObjection && OBJECTION_RESPONSES[context.detectedObjection as keyof typeof OBJECTION_RESPONSES]) {
+    const objection = OBJECTION_RESPONSES[context.detectedObjection as keyof typeof OBJECTION_RESPONSES];
+    sections.push(`
+OBJECTION DETECTED: ${context.detectedObjection.replace(/_/g, " ").toUpperCase()}
+Example responses you can adapt:
+${objection.responses.map((r) => `- "${r}"`).join("\n")}
+`);
+  }
+
+  // === RESPONSE STRATEGY ===
+  if (context.detectedIntent && RESPONSE_STRATEGIES[context.detectedIntent as keyof typeof RESPONSE_STRATEGIES]) {
+    const strategy = RESPONSE_STRATEGIES[context.detectedIntent as keyof typeof RESPONSE_STRATEGIES];
+    sections.push(`
+INTENT DETECTED: ${context.detectedIntent.toUpperCase()}
+Goal: ${strategy.goal}
+Approach: ${strategy.approach}
+${strategy.examples ? `Examples:\n${strategy.examples.map((e) => `- "${e}"`).join("\n")}` : ""}
+`);
+  }
+
+  // === TRAINING DATA ===
+  if (context.trainingData && context.trainingData.length > 0) {
+    const examples = context.trainingData.slice(0, 5).map(
+      (ex, i) => `${i + 1}. Lead: "${ex.incomingMessage}" → You: "${ex.idealResponse}"`
+    );
+    sections.push(`
+LEARN FROM THESE EXAMPLES (match this style):
+${examples.join("\n")}
+`);
+  }
+
+  // === MESSAGE RULES ===
+  sections.push(`
+RESPONSE RULES:
+- Keep under ${MESSAGE_RULES.sms.idealLength} characters (max ${MESSAGE_RULES.sms.maxLength})
+- Always end with a question or clear next step
+- Use their name when natural
+- Sound like a real person texting, not a bot
+- Use "${GIANNA_IDENTITY.voice.greeting}" to start if appropriate, not "Hello" or "Hi there"
+`);
+
+  return sections.join("\n");
+}
+
+/**
+ * Enhanced message classification with objection detection
+ */
+function classifyMessage(message: string): {
+  intent: string;
+  sentiment: string;
+  action: string;
+  objection: string | null;
+  confidence: number;
+} {
+  const lower = message.toLowerCase();
+
+  // Detect objection first
+  const objection = detectObjection(message);
+
+  // Intent detection (more granular)
+  let intent = "unknown";
+  let confidence = 50;
+
+  // Strong positive signals
+  if (lower.match(/\b(yes|yeah|yep|sure|definitely|absolutely|sounds good|i'm interested|tell me more)\b/)) {
+    intent = "interested";
+    confidence = 90;
+  }
+  // Wants more info
+  else if (lower.match(/\b(how much|what's the|send me|email me|more info|details)\b/)) {
+    intent = "more_info";
+    confidence = 85;
+  }
+  // Wants a call
+  else if (lower.match(/\b(call me|give me a call|let's talk|phone|can we talk)\b/)) {
+    intent = "wants_call";
+    confidence = 95;
+  }
+  // Questions
+  else if (lower.includes("?") || lower.match(/\b(what|when|where|why|how|who)\b/)) {
+    intent = "question";
+    confidence = 75;
+  }
+  // Opt out (highest priority)
+  else if (lower.match(/\b(stop|unsubscribe|remove|opt out|take me off|don't text|don't contact)\b/)) {
+    intent = "opt_out";
+    confidence = 99;
+  }
+  // Soft no
+  else if (lower.match(/\b(not right now|maybe later|bad timing|not interested right now)\b/)) {
+    intent = "soft_no";
+    confidence = 80;
+  }
+  // Hard no
+  else if (lower.match(/\b(no|not interested|don't want|leave me alone|f\*\*k off)\b/) && !lower.includes("?")) {
+    intent = "hard_no";
+    confidence = 85;
+  }
+
+  // Sentiment detection
+  let sentiment = "neutral";
+  if (lower.match(/\b(great|awesome|perfect|thanks|thank you|appreciate|excited|love)\b/)) {
+    sentiment = "positive";
+  } else if (lower.match(/\b(annoying|spam|scam|stop|hate|angry|pissed|wtf)\b/)) {
+    sentiment = "negative";
+  }
+
+  // Suggested action
+  let action = "respond";
+  if (intent === "opt_out") {
+    action = "add_to_dnc";
+  } else if (intent === "interested" || intent === "wants_call") {
+    action = "escalate_to_call";
+  } else if (intent === "hard_no") {
+    action = "mark_cold";
+  } else if (intent === "soft_no") {
+    action = "schedule_follow_up";
+  }
+
+  return { intent, sentiment, action, objection, confidence };
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -75,11 +233,16 @@ export async function POST(request: NextRequest) {
       incomingMessage,
       leadName,
       propertyAddress,
-      campaignType = "default",
+      businessName,
+      campaignType = "business_valuation",
+      leadType,
       previousMessages = [],
       provider = "openai",
-      tone = "friendly",
+      personality: customPersonality,
+      preset,
+      tone,
       remixContext,
+      sliders,
       trainingData = [],
     } = body;
 
@@ -90,28 +253,64 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Build context
-    const systemPrompt = SYSTEM_PROMPTS[campaignType] || SYSTEM_PROMPTS.default;
-    const toneModifier = TONE_MODIFIERS[tone] || TONE_MODIFIERS.friendly;
+    // === CLASSIFY THE INCOMING MESSAGE ===
+    const classification = classifyMessage(incomingMessage);
 
-    const contextInfo = [
-      leadName && `Lead name: ${leadName}`,
-      propertyAddress && `Property: ${propertyAddress}`,
-    ]
-      .filter(Boolean)
-      .join("\n");
+    // === BUILD PERSONALITY ===
+    // Priority: custom personality > preset > derived from sliders > balanced default
+    let personality: GiannaPersonality;
 
-    // Build training examples section
-    let trainingSection = "";
-    if (trainingData.length > 0) {
-      const examples = trainingData.slice(0, 10).map((ex, i) =>
-        `Example ${i + 1}:\n  Lead says: "${ex.incomingMessage}"\n  You reply: "${ex.idealResponse}"`
-      ).join("\n\n");
-      trainingSection = `\n\nHere are some example responses to learn from:\n${examples}\n\nUse these as guidance for tone and style.`;
+    if (customPersonality) {
+      personality = { ...GIANNA_PRESETS.balanced, ...customPersonality };
+    } else if (preset && GIANNA_PRESETS[preset]) {
+      personality = GIANNA_PRESETS[preset];
+    } else if (sliders) {
+      // Map old sliders to new personality system
+      personality = {
+        ...GIANNA_PRESETS.balanced,
+        warmth: sliders.conversational || 70,
+        humor: sliders.humor || 40,
+        urgency: sliders.urgency || 50,
+        directness: sliders.directness || 60,
+      };
+    } else if (tone) {
+      // Map old tone to preset
+      const toneToPreset: Record<string, keyof typeof GIANNA_PRESETS> = {
+        friendly: "balanced",
+        professional: "cold_outreach",
+        urgent: "warm_lead",
+        casual: "balanced",
+      };
+      personality = GIANNA_PRESETS[toneToPreset[tone] || "balanced"];
+    } else {
+      // Auto-select based on classification
+      if (classification.intent === "interested" || classification.intent === "wants_call") {
+        personality = GIANNA_PRESETS.warm_lead;
+      } else if (classification.objection) {
+        personality = GIANNA_PRESETS.objection_handler;
+      } else if (classification.sentiment === "negative") {
+        personality = GIANNA_PRESETS.sensitive;
+      } else {
+        personality = GIANNA_PRESETS.balanced;
+      }
     }
 
-    const remixInstructions = remixContext ? `\n\nIMPORTANT STYLE INSTRUCTIONS: ${remixContext}` : "";
-    const fullSystemPrompt = `${systemPrompt}\n\n${toneModifier}\n\n${contextInfo ? `Context:\n${contextInfo}` : ""}${trainingSection}${remixInstructions}`;
+    // === BUILD SYSTEM PROMPT ===
+    const systemPrompt = buildGiannaSystemPrompt(personality, {
+      leadName,
+      propertyAddress,
+      businessName,
+      campaignType,
+      leadType,
+      detectedObjection: classification.objection,
+      detectedIntent: classification.intent,
+      trainingData,
+    });
+
+    // Add any remix context
+    const fullSystemPrompt = remixContext
+      ? `${systemPrompt}\n\nADDITIONAL STYLE INSTRUCTIONS: ${remixContext}`
+      : systemPrompt;
 
     // Build messages array
     const messages = [
@@ -123,29 +322,27 @@ export async function POST(request: NextRequest) {
     ];
 
     let suggestedReply = "";
-    let confidence = 0;
+    let confidence = classification.confidence;
     let usedProvider = provider;
 
-    // Try preferred provider first, fall back to other
+    // === GENERATE RESPONSE ===
     if (provider === "anthropic" && ANTHROPIC_API_KEY) {
-      const result = await generateWithAnthropic(fullSystemPrompt, messages);
+      const result = await generateWithAnthropic(fullSystemPrompt, messages, personality);
       suggestedReply = result.reply;
-      confidence = result.confidence;
+      confidence = Math.round((confidence + result.confidence) / 2);
     } else if (provider === "openai" && OPENAI_API_KEY) {
-      const result = await generateWithOpenAI(fullSystemPrompt, messages);
+      const result = await generateWithOpenAI(fullSystemPrompt, messages, personality);
       suggestedReply = result.reply;
-      confidence = result.confidence;
+      confidence = Math.round((confidence + result.confidence) / 2);
     } else if (OPENAI_API_KEY) {
-      // Fallback to OpenAI
-      const result = await generateWithOpenAI(fullSystemPrompt, messages);
+      const result = await generateWithOpenAI(fullSystemPrompt, messages, personality);
       suggestedReply = result.reply;
-      confidence = result.confidence;
+      confidence = Math.round((confidence + result.confidence) / 2);
       usedProvider = "openai";
     } else if (ANTHROPIC_API_KEY) {
-      // Fallback to Anthropic
-      const result = await generateWithAnthropic(fullSystemPrompt, messages);
+      const result = await generateWithAnthropic(fullSystemPrompt, messages, personality);
       suggestedReply = result.reply;
-      confidence = result.confidence;
+      confidence = Math.round((confidence + result.confidence) / 2);
       usedProvider = "anthropic";
     } else {
       return NextResponse.json(
@@ -154,31 +351,44 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Analyze the incoming message for classification hints
-    const classification = classifyMessage(incomingMessage);
-
+    // === BUILD RESPONSE ===
     return NextResponse.json({
       suggestedReply,
       confidence,
       provider: usedProvider,
       classification,
       characterCount: suggestedReply.length,
-      isShortEnough: suggestedReply.length <= 160,
+      isShortEnough: suggestedReply.length <= MESSAGE_RULES.sms.maxLength,
+      isSingleSegment: suggestedReply.length <= MESSAGE_RULES.sms.maxLength,
+      personality: preset || "auto",
+      gianna: {
+        name: GIANNA_IDENTITY.name,
+        detected: {
+          intent: classification.intent,
+          objection: classification.objection,
+          sentiment: classification.sentiment,
+        },
+        suggestedAction: classification.action,
+      },
     });
   } catch (error) {
-    console.error("[AI Suggest Reply] Error:", error);
+    console.error("[Gianna AI] Error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to generate reply" },
+      { error: error instanceof Error ? error.message : "Gianna couldn't generate a response" },
       { status: 500 }
     );
   }
 }
 
-// OpenAI generation
+// OpenAI generation with personality-based temperature
 async function generateWithOpenAI(
   systemPrompt: string,
-  messages: Array<{ role: "user" | "assistant"; content: string }>
+  messages: Array<{ role: "user" | "assistant"; content: string }>,
+  personality: GiannaPersonality
 ): Promise<{ reply: string; confidence: number }> {
+  // Map personality to temperature (more humor/warmth = higher temp)
+  const temperature = 0.5 + (personality.warmth + personality.humor) / 400;
+
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -189,28 +399,36 @@ async function generateWithOpenAI(
       model: "gpt-4o-mini",
       messages: [{ role: "system", content: systemPrompt }, ...messages],
       max_tokens: 100,
-      temperature: 0.7,
+      temperature,
     }),
   });
 
   if (!response.ok) {
-    throw new Error(`OpenAI API error: ${response.status}`);
+    const error = await response.text();
+    throw new Error(`OpenAI API error: ${response.status} - ${error}`);
   }
 
   const data = await response.json();
   const reply = data.choices?.[0]?.message?.content?.trim() || "";
 
-  // Estimate confidence based on response quality
-  const confidence = reply.length > 10 && reply.length <= 200 ? 85 : 70;
+  // Confidence based on response quality
+  let confidence = 75;
+  if (reply.length > 10 && reply.length <= 160) confidence = 90;
+  else if (reply.length > 160 && reply.length <= 320) confidence = 80;
+  else if (reply.length > 320) confidence = 60;
 
   return { reply, confidence };
 }
 
-// Anthropic generation
+// Anthropic generation with personality-based temperature
 async function generateWithAnthropic(
   systemPrompt: string,
-  messages: Array<{ role: "user" | "assistant"; content: string }>
+  messages: Array<{ role: "user" | "assistant"; content: string }>,
+  personality: GiannaPersonality
 ): Promise<{ reply: string; confidence: number }> {
+  // Map personality to temperature
+  const temperature = 0.5 + (personality.warmth + personality.humor) / 400;
+
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -221,6 +439,7 @@ async function generateWithAnthropic(
     body: JSON.stringify({
       model: "claude-3-haiku-20240307",
       max_tokens: 100,
+      temperature,
       system: systemPrompt,
       messages: messages.map((m) => ({
         role: m.role,
@@ -230,90 +449,55 @@ async function generateWithAnthropic(
   });
 
   if (!response.ok) {
-    throw new Error(`Anthropic API error: ${response.status}`);
+    const error = await response.text();
+    throw new Error(`Anthropic API error: ${response.status} - ${error}`);
   }
 
   const data = await response.json();
   const reply = data.content?.[0]?.text?.trim() || "";
 
-  // Estimate confidence based on response quality
-  const confidence = reply.length > 10 && reply.length <= 200 ? 90 : 75;
+  // Confidence based on response quality
+  let confidence = 80;
+  if (reply.length > 10 && reply.length <= 160) confidence = 92;
+  else if (reply.length > 160 && reply.length <= 320) confidence = 82;
+  else if (reply.length > 320) confidence = 65;
 
   return { reply, confidence };
 }
 
-// Simple message classification
-function classifyMessage(message: string): {
-  intent: string;
-  sentiment: string;
-  action: string;
-} {
-  const lower = message.toLowerCase();
-
-  // Intent detection
-  let intent = "unknown";
-  if (
-    lower.includes("yes") ||
-    lower.includes("interested") ||
-    lower.includes("tell me more") ||
-    lower.includes("how much")
-  ) {
-    intent = "interested";
-  } else if (lower.includes("?") || lower.includes("what") || lower.includes("when") || lower.includes("how")) {
-    intent = "question";
-  } else if (lower.includes("stop") || lower.includes("unsubscribe") || lower.includes("remove")) {
-    intent = "opt_out";
-  } else if (lower.includes("no") || lower.includes("not interested") || lower.includes("don't")) {
-    intent = "not_interested";
-  } else if (lower.includes("call") || lower.includes("phone") || lower.includes("talk")) {
-    intent = "wants_call";
-  }
-
-  // Sentiment detection
-  let sentiment = "neutral";
-  if (
-    lower.includes("great") ||
-    lower.includes("yes") ||
-    lower.includes("perfect") ||
-    lower.includes("thanks") ||
-    lower.includes("interested")
-  ) {
-    sentiment = "positive";
-  } else if (
-    lower.includes("no") ||
-    lower.includes("stop") ||
-    lower.includes("don't") ||
-    lower.includes("annoying") ||
-    lower.includes("spam")
-  ) {
-    sentiment = "negative";
-  }
-
-  // Suggested action
-  let action = "respond";
-  if (intent === "opt_out") {
-    action = "add_to_dnc";
-  } else if (intent === "interested" || intent === "wants_call") {
-    action = "escalate_to_call";
-  } else if (intent === "not_interested") {
-    action = "mark_cold";
-  }
-
-  return { intent, sentiment, action };
-}
-
-// GET - Check AI provider status
+// GET - Gianna status and capabilities
 export async function GET() {
   return NextResponse.json({
-    openai: {
-      configured: !!OPENAI_API_KEY,
-      model: "gpt-4o-mini",
+    name: GIANNA_IDENTITY.name,
+    role: GIANNA_IDENTITY.role,
+    company: GIANNA_IDENTITY.company,
+    status: "online",
+    providers: {
+      openai: {
+        configured: !!OPENAI_API_KEY,
+        model: "gpt-4o-mini",
+      },
+      anthropic: {
+        configured: !!ANTHROPIC_API_KEY,
+        model: "claude-3-haiku-20240307",
+      },
     },
-    anthropic: {
-      configured: !!ANTHROPIC_API_KEY,
-      model: "claude-3-haiku-20240307",
-    },
-    campaignTypes: Object.keys(SYSTEM_PROMPTS),
-    tones: Object.keys(TONE_MODIFIERS),
+    presets: Object.keys(GIANNA_PRESETS),
+    personalityTraits: [
+      "warmth",
+      "directness",
+      "humor",
+      "formality",
+      "urgency",
+      "nudging",
+      "assertiveness",
+      "empathy",
+      "curiosity",
+      "closingPush",
+    ],
+    detectedIntents: Object.keys(RESPONSE_STRATEGIES),
+    detectedObjections: Object.keys(OBJECTION_RESPONSES),
+    leadTypes: Object.keys(LEAD_TYPE_APPROACHES),
+    messageRules: MESSAGE_RULES.sms,
   });
 }

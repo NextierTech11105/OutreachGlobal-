@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, state, industry, city, page = 1, per_page = 25 } = body;
+    const { name, state, industry, city, revenueMin, revenueMax, page = 1, per_page = 25 } = body;
 
     // Build Apollo organization search parameters
     const searchParams: Record<string, unknown> = {
@@ -30,8 +30,21 @@ export async function POST(request: NextRequest) {
       searchParams.q_organization_keyword_tags = industry;
     }
 
+    // Revenue filtering - Apollo uses revenue ranges
+    // revenueMin and revenueMax are in dollars
+    if (revenueMin !== undefined || revenueMax !== undefined) {
+      const minRevenue = revenueMin || 0;
+      const maxRevenue = revenueMax || 10000000000; // 10B max
+      // Apollo expects revenue in cents for some endpoints, but organization_revenue uses string ranges
+      searchParams.organization_revenue_in = [`${minRevenue},${maxRevenue}`];
+    }
+
+    // Default to United States if no state specified but we have other filters
     if (state?.length) {
       searchParams.organization_locations = state.map((s: string) => `United States, ${s}`);
+    } else if (name || industry?.length || revenueMin || revenueMax) {
+      // Default to United States for all searches
+      searchParams.organization_locations = ["United States"];
     }
 
     if (city?.length) {

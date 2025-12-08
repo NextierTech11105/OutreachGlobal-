@@ -6,6 +6,19 @@ const PROPERTY_SEARCH_URL = "https://api.realestateapi.com/v2/PropertySearch";
 const PROPERTY_COMPS_URL = "https://api.realestateapi.com/v3/PropertyComps";
 const MAPBOX_ACCESS_TOKEN = process.env.MAPBOX_ACCESS_TOKEN || process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "pk.eyJ1IjoibmV4dGllcjExMTA1IiwiYSI6ImNtaXVrbmRodTFrY3YzanEwamFoZG44dWQifQ.EGNVQPofUwZm60KP6iID_g";
 
+// Validate API key on startup
+function validateApiKey(): { valid: boolean; message: string } {
+  if (!REALESTATE_API_KEY) {
+    return { valid: false, message: "REALESTATE_API_KEY not configured" };
+  }
+  if (!REALESTATE_API_KEY.startsWith("NEXTIER-")) {
+    return { valid: false, message: "Invalid API key format - should start with NEXTIER-" };
+  }
+  return { valid: true, message: "API key configured" };
+}
+
+console.log("[Valuation] API Key Status:", validateApiKey());
+
 interface NormalizedProperty {
   id: string | number;
   address: {
@@ -48,6 +61,15 @@ interface NormalizedProperty {
   // Multi-family
   units?: number;
   rentPerUnit?: number;
+  // Additional property info
+  halfBaths?: number;
+  zoning?: string;
+  lastLoanAmount?: number;
+  lastLoanDate?: string;
+  stories?: number;
+  pool?: boolean;
+  garage?: boolean;
+  taxAssessedValue?: number;
 }
 
 interface ValuationData {
@@ -95,11 +117,61 @@ function normalizePropertyDetail(rawProperty: Record<string, unknown>, inputData
 
   console.log("[Valuation] Resolved address:", resolvedAddress, resolvedCity, resolvedState, resolvedZip);
 
-  // Get property values - check nested then flat
-  const bedrooms = (propertyInfo.bedrooms || propertyInfo.beds || rawProperty.bedrooms || rawProperty.beds) as number;
-  const bathrooms = (propertyInfo.bathrooms || propertyInfo.baths || rawProperty.bathrooms || rawProperty.baths) as number;
-  const squareFeet = Number(propertyInfo.livingSquareFeet || propertyInfo.buildingSquareFeet || propertyInfo.squareFeet || rawProperty.squareFeet || rawProperty.buildingSize) || undefined;
-  const yearBuilt = Number(propertyInfo.yearBuilt || rawProperty.yearBuilt) || undefined;
+  // Get property values - check nested then flat (RealEstateAPI uses many field variations)
+  const bedrooms = Number(
+    propertyInfo.bedrooms || propertyInfo.beds || propertyInfo.bedroomsTotal ||
+    rawProperty.bedrooms || rawProperty.beds || rawProperty.bedroomsTotal ||
+    rawProperty.bedroomCount || rawProperty.numBedrooms
+  ) || undefined;
+
+  // Bathrooms - check ALL possible field names from RealEstateAPI
+  const bathrooms = Number(
+    propertyInfo.bathrooms || propertyInfo.baths || propertyInfo.bathroomsTotal ||
+    propertyInfo.bathsFull || propertyInfo.bathsTotal || propertyInfo.fullBaths ||
+    rawProperty.bathrooms || rawProperty.baths || rawProperty.bathroomsTotal ||
+    rawProperty.bathsFull || rawProperty.bathsTotal || rawProperty.fullBaths ||
+    rawProperty.bathroomCount || rawProperty.numBathrooms || rawProperty.totalBaths
+  ) || undefined;
+
+  // Half baths if available
+  const halfBaths = Number(
+    propertyInfo.halfBaths || propertyInfo.bathsHalf || propertyInfo.halfBathrooms ||
+    rawProperty.halfBaths || rawProperty.bathsHalf || rawProperty.halfBathrooms
+  ) || undefined;
+
+  const squareFeet = Number(
+    propertyInfo.livingSquareFeet || propertyInfo.buildingSquareFeet ||
+    propertyInfo.squareFeet || propertyInfo.livingArea || propertyInfo.grossSquareFeet ||
+    rawProperty.squareFeet || rawProperty.buildingSize || rawProperty.livingSquareFeet ||
+    rawProperty.buildingSquareFeet || rawProperty.grossSquareFeet
+  ) || undefined;
+
+  const yearBuilt = Number(propertyInfo.yearBuilt || rawProperty.yearBuilt || rawProperty.effectiveYearBuilt) || undefined;
+
+  // Zoning info (critical for value-add analysis)
+  const zoning = (
+    propertyInfo.zoning || propertyInfo.zoningCode || propertyInfo.zoningDescription ||
+    rawProperty.zoning || rawProperty.zoningCode || rawProperty.zoningDescription ||
+    lotInfo.zoning || lotInfo.zoningCode
+  ) as string || undefined;
+
+  // Last loan/mortgage info (for equity analysis)
+  const lastLoanAmount = Number(
+    rawProperty.lastLoanAmount || rawProperty.loanAmount ||
+    rawProperty.openMortgageAmount || rawProperty.mortgageLoanAmount ||
+    rawProperty.originalLoanAmount
+  ) || undefined;
+
+  const lastLoanDate = (
+    rawProperty.lastLoanDate || rawProperty.loanDate ||
+    rawProperty.mortgageDate || rawProperty.mortgageRecordingDate
+  ) as string || undefined;
+
+  // Additional property features
+  const stories = Number(propertyInfo.stories || propertyInfo.numberOfStories || rawProperty.stories || rawProperty.numberOfStories) || undefined;
+  const pool = Boolean(propertyInfo.pool || rawProperty.pool || rawProperty.hasPool);
+  const garage = Boolean(propertyInfo.garage || rawProperty.garage || rawProperty.hasGarage || rawProperty.garageSpaces);
+  const taxAssessedValue = Number(rawProperty.taxAssessedValue || rawProperty.assessedValue || rawProperty.taxAssessment) || undefined;
 
   // Extract rental estimate data
   const rentalInfo = (rawProperty.rentalEstimate as Record<string, unknown>) || (rawProperty.rental as Record<string, unknown>) || {};
@@ -140,6 +212,7 @@ function normalizePropertyDetail(rawProperty: Record<string, unknown>, inputData
     propertyType: (rawProperty.propertyType || propertyInfo.propertyType) as string || "Unknown",
     bedrooms,
     bathrooms,
+    halfBaths,
     squareFeet,
     yearBuilt,
     estimatedValue: estimatedValue || undefined,
@@ -153,6 +226,14 @@ function normalizePropertyDetail(rawProperty: Record<string, unknown>, inputData
     owner1LastName: (ownerInfo.owner1LastName || rawProperty.owner1LastName) as string,
     latitude: (inputData?.latitude || propertyInfo.latitude || rawProperty.latitude) as number,
     longitude: (inputData?.longitude || propertyInfo.longitude || rawProperty.longitude) as number,
+    // Additional property info (for AI analysis)
+    zoning,
+    lastLoanAmount,
+    lastLoanDate,
+    stories,
+    pool,
+    garage,
+    taxAssessedValue,
     // Rental data
     rentEstimate,
     rentRangeLow,
@@ -312,47 +393,88 @@ export async function POST(request: NextRequest) {
     if (!property && lat && lng) {
       console.log("[Valuation] Coordinate search with lat:", lat, "lng:", lng);
 
-      const searchBody = {
-        latitude: lat,
-        longitude: lng,
-        radius: 0.01, // Small radius for precision (about 50 feet)
-        size: 1,
-      };
+      // Check API key before making request
+      const keyStatus = validateApiKey();
+      if (!keyStatus.valid) {
+        console.error("[Valuation] API Key Error:", keyStatus.message);
+      }
 
-      const searchResponse = await fetch(PROPERTY_SEARCH_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": REALESTATE_API_KEY,
-        },
-        body: JSON.stringify(searchBody),
-      });
+      // Try multiple radius sizes for better matching
+      const radiusSizes = [0.05, 0.1, 0.25]; // ~250ft, ~500ft, ~1300ft
 
-      if (searchResponse.ok) {
-        const searchData = await searchResponse.json();
-        const results = searchData.data || searchData.properties || [];
-        console.log("[Valuation] Coordinate search found:", results.length, "properties");
+      for (const radius of radiusSizes) {
+        if (property) break;
 
-        if (results.length > 0) {
-          const foundId = results[0].id;
-          console.log("[Valuation] Getting PropertyDetail for ID:", foundId);
+        const searchBody = {
+          latitude: lat,
+          longitude: lng,
+          radius,
+          size: 5, // Get top 5 results to find best match
+        };
 
-          const detailResponse = await fetch(PROPERTY_DETAIL_URL, {
+        console.log("[Valuation] Trying radius:", radius, "miles");
+
+        try {
+          const searchResponse = await fetch(PROPERTY_SEARCH_URL, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
               "x-api-key": REALESTATE_API_KEY,
             },
-            body: JSON.stringify({ id: foundId }),
+            body: JSON.stringify(searchBody),
           });
 
-          if (detailResponse.ok) {
-            const detailData = await detailResponse.json();
-            const rawProperty = detailData.data || detailData;
-            property = normalizePropertyDetail(rawProperty, inputData);
-            propertyId = String(rawProperty.id);
-            console.log("[Valuation] Got property via coordinate search:", propertyId);
+          if (!searchResponse.ok) {
+            const errorText = await searchResponse.text();
+            console.error("[Valuation] PropertySearch failed:", searchResponse.status, errorText);
+            continue;
           }
+
+          const searchData = await searchResponse.json();
+          console.log("[Valuation] PropertySearch response:", JSON.stringify(searchData).substring(0, 500));
+
+          const results = searchData.data || searchData.properties || searchData.results || [];
+          console.log("[Valuation] Coordinate search found:", results.length, "properties at radius", radius);
+
+          if (results.length > 0) {
+            // Find best match by comparing address if available
+            let bestMatch = results[0];
+            if (address && results.length > 1) {
+              const inputAddrLower = address.toLowerCase();
+              for (const result of results) {
+                const resultAddr = (result.address?.address || result.address || "").toLowerCase();
+                if (resultAddr.includes(inputAddrLower) || inputAddrLower.includes(resultAddr)) {
+                  bestMatch = result;
+                  break;
+                }
+              }
+            }
+
+            const foundId = bestMatch.id;
+            console.log("[Valuation] Getting PropertyDetail for ID:", foundId);
+
+            const detailResponse = await fetch(PROPERTY_DETAIL_URL, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "x-api-key": REALESTATE_API_KEY,
+              },
+              body: JSON.stringify({ id: foundId }),
+            });
+
+            if (detailResponse.ok) {
+              const detailData = await detailResponse.json();
+              const rawProperty = detailData.data || detailData;
+              property = normalizePropertyDetail(rawProperty, inputData);
+              propertyId = String(rawProperty.id);
+              console.log("[Valuation] Got property via coordinate search:", propertyId);
+            } else {
+              const errorText = await detailResponse.text();
+              console.error("[Valuation] PropertyDetail failed:", detailResponse.status, errorText);
+            }
+          }
+        } catch (searchError) {
+          console.error("[Valuation] Coordinate search error at radius", radius, ":", searchError);
         }
       }
     }
@@ -362,30 +484,42 @@ export async function POST(request: NextRequest) {
       const searchAddress = fullAddress || `${address}, ${city}, ${state} ${zip}`.trim();
       console.log("[Valuation] Fallback: PropertyDetail with address:", searchAddress);
 
-      const detailResponse = await fetch(PROPERTY_DETAIL_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": REALESTATE_API_KEY,
-        },
-        body: JSON.stringify({ address: searchAddress }),
-      });
+      try {
+        const detailResponse = await fetch(PROPERTY_DETAIL_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": REALESTATE_API_KEY,
+          },
+          body: JSON.stringify({ address: searchAddress }),
+        });
 
-      if (detailResponse.ok) {
-        const detailData = await detailResponse.json();
-        const rawProperty = detailData.data || detailData;
-        if (rawProperty && rawProperty.id) {
-          property = normalizePropertyDetail(rawProperty, inputData);
-          propertyId = String(rawProperty.id);
-          console.log("[Valuation] Found via address fallback:", propertyId);
+        if (detailResponse.ok) {
+          const detailData = await detailResponse.json();
+          console.log("[Valuation] Address fallback response:", JSON.stringify(detailData).substring(0, 500));
+          const rawProperty = detailData.data || detailData;
+          if (rawProperty && rawProperty.id) {
+            property = normalizePropertyDetail(rawProperty, inputData);
+            propertyId = String(rawProperty.id);
+            console.log("[Valuation] Found via address fallback:", propertyId);
+          } else {
+            console.error("[Valuation] Address fallback returned no ID:", rawProperty);
+          }
+        } else {
+          const errorText = await detailResponse.text();
+          console.error("[Valuation] Address fallback failed:", detailResponse.status, errorText);
         }
+      } catch (addressError) {
+        console.error("[Valuation] Address fallback error:", addressError);
       }
     }
 
     // If no property found, create a minimal property with geocoded coords
     if (!property) {
       if (lat && lng) {
-        console.log("[Valuation] Creating minimal property from geocoded coords");
+        console.warn("[Valuation] WARNING: Creating minimal mapbox-geocode property - RealEstateAPI lookup failed");
+        console.warn("[Valuation] API Key configured:", !!REALESTATE_API_KEY, "Key prefix:", REALESTATE_API_KEY?.substring(0, 10));
+        console.warn("[Valuation] Input:", { address, city, state, zip, lat, lng, id });
         property = {
           id: "mapbox-geocode",
           address: {

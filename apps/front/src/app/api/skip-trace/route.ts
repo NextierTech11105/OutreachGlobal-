@@ -5,8 +5,8 @@ const REALESTATE_API_KEY = process.env.REAL_ESTATE_API_KEY || process.env.REALES
 const SKIP_TRACE_URL = "https://api.realestateapi.com/v1/SkipTrace";
 const PROPERTY_DETAIL_URL = "https://api.realestateapi.com/v2/PropertyDetail";
 
-// Daily limit: 5,000 skip traces per day
-const DAILY_LIMIT = 5000;
+// Daily limit: 2,000 skip traces per day (matching SMS queue limit)
+const DAILY_LIMIT = 2000;
 const BATCH_SIZE = 250;
 
 // In-memory daily tracker (would be Redis/DB in production)
@@ -91,8 +91,11 @@ async function skipTracePerson(input: SkipTraceInput): Promise<SkipTraceResult> 
       zip: input.zip,
     };
 
-    if ((input.propertyId || input.id) && !input.firstName) {
-      // Get property details to find owner
+    if (input.propertyId || input.id) {
+      // CRITICAL: Get property details to get owner name AND property address
+      // Skip trace works best with BOTH owner name + property address
+      console.log("[Skip Trace] Getting property detail for ID:", input.propertyId || input.id);
+
       const propResponse = await fetch(PROPERTY_DETAIL_URL, {
         method: "POST",
         headers: {
@@ -116,16 +119,29 @@ async function skipTracePerson(input: SkipTraceInput): Promise<SkipTraceResult> 
 
       const propData = await propResponse.json();
       const prop = propData.data || propData;
+      const propInfo = prop.propertyInfo || {};
+      const propAddress = propInfo.address || prop.address || {};
+      const ownerInfo = prop.ownerInfo || {};
 
-      // Extract owner info from property
+      console.log("[Skip Trace] Property owner info:", {
+        owner1FirstName: ownerInfo.owner1FirstName || prop.owner1FirstName,
+        owner1LastName: ownerInfo.owner1LastName || prop.owner1LastName,
+        ownerOccupied: prop.ownerOccupied,
+        address: propAddress,
+      });
+
+      // Use BOTH owner name AND property address for best skip trace results
       personData = {
-        firstName: prop.owner1FirstName || prop.ownerFirstName || "",
-        lastName: prop.owner1LastName || prop.ownerLastName || "",
-        address: prop.mailingAddress?.street || prop.address?.street || "",
-        city: prop.mailingAddress?.city || prop.address?.city || "",
-        state: prop.mailingAddress?.state || prop.address?.state || "",
-        zip: prop.mailingAddress?.zip || prop.address?.zip || "",
+        firstName: input.firstName || ownerInfo.owner1FirstName || prop.owner1FirstName || prop.ownerFirstName || "",
+        lastName: input.lastName || ownerInfo.owner1LastName || prop.owner1LastName || prop.ownerLastName || "",
+        // IMPORTANT: Use property address (not mailing) for skip trace
+        address: input.address || propAddress.address || propAddress.street || propAddress.label || "",
+        city: input.city || propAddress.city || "",
+        state: input.state || propAddress.state || "",
+        zip: input.zip || propAddress.zip || "",
       };
+
+      console.log("[Skip Trace] Will skip trace with:", personData);
     }
 
     if (!personData.firstName && !personData.lastName && !personData.address) {

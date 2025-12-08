@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -22,6 +22,7 @@ import {
   Plus,
   Search,
   X,
+  Loader2,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -38,132 +39,116 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { toast } from "sonner";
 
-// Mock lead data
-const mockLeads = [
-  {
-    id: "LEAD-001",
-    name: "John Smith",
-    email: "john.smith@example.com",
-    phone: "(212) 555-1234",
-    address: "123 Main St, Queens, NY 11101",
-    status: "engaged",
-    score: 35,
-    tags: ["HighEquity", "PreForeclosure"],
-    lastActivity: "May 8, 2025 - 10:23 AM",
-  },
-  {
-    id: "LEAD-002",
-    name: "Sarah Johnson",
-    email: "sarah.j@example.com",
-    phone: "(718) 555-5678",
-    address: "456 Park Ave, Brooklyn, NY 11201",
-    status: "contacted",
-    score: 28,
-    tags: ["SeniorOwner"],
-    lastActivity: "May 8, 2025 - 9:15 AM",
-  },
-  {
-    id: "LEAD-003",
-    name: "Michael Chen",
-    email: "mchen@example.com",
-    phone: "(917) 555-9012",
-    address: "789 Broadway, Manhattan, NY 10001",
-    status: "new",
-    score: 42,
-    tags: ["HighEquity", "VacantProp"],
-    lastActivity: "May 7, 2025 - 4:30 PM",
-  },
-  {
-    id: "LEAD-004",
-    name: "Emily Rodriguez",
-    email: "emily.r@example.com",
-    phone: "(347) 555-3456",
-    address: "321 Ocean Ave, Brooklyn, NY 11235",
-    status: "converted",
-    score: 38,
-    tags: ["PreForeclosure"],
-    lastActivity: "May 7, 2025 - 2:45 PM",
-  },
-  {
-    id: "LEAD-005",
-    name: "David Kim",
-    email: "dkim@example.com",
-    phone: "(646) 555-7890",
-    address: "654 5th Ave, Queens, NY 11106",
-    status: "contacted",
-    score: 31,
-    tags: ["LowEquity"],
-    lastActivity: "May 7, 2025 - 10:00 AM",
-  },
-  {
-    id: "LEAD-006",
-    name: "Jessica Martinez",
-    email: "jmartinez@example.com",
-    phone: "(212) 555-2345",
-    address: "987 West St, Manhattan, NY 10014",
-    status: "new",
-    score: 25,
-    tags: ["NonOccupant"],
-    lastActivity: "May 6, 2025 - 3:15 PM",
-  },
-  {
-    id: "LEAD-007",
-    name: "Robert Wilson",
-    email: "rwilson@example.com",
-    phone: "(718) 555-6789",
-    address: "246 Eastern Pkwy, Brooklyn, NY 11238",
-    status: "engaged",
-    score: 33,
-    tags: ["HighEquity"],
-    lastActivity: "May 6, 2025 - 1:30 PM",
-  },
-  {
-    id: "LEAD-008",
-    name: "Lisa Thompson",
-    email: "lthompson@example.com",
-    phone: "(917) 555-0123",
-    address: "135 Northern Blvd, Queens, NY 11101",
-    status: "unresponsive",
-    score: 22,
-    tags: ["SeniorOwner", "LowEquity"],
-    lastActivity: "May 6, 2025 - 11:45 AM",
-  },
-  {
-    id: "LEAD-009",
-    name: "James Brown",
-    email: "jbrown@example.com",
-    phone: "(347) 555-4567",
-    address: "864 Fulton St, Brooklyn, NY 11217",
-    status: "contacted",
-    score: 29,
-    tags: ["VacantProp"],
-    lastActivity: "May 6, 2025 - 10:00 AM",
-  },
-  {
-    id: "LEAD-010",
-    name: "Amanda Lee",
-    email: "alee@example.com",
-    phone: "(646) 555-8901",
-    address: "753 Queens Blvd, Queens, NY 11103",
-    status: "new",
-    score: 36,
-    tags: ["HighEquity", "BuildableZoning"],
-    lastActivity: "May 5, 2025 - 4:45 PM",
-  },
-];
+interface Lead {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  status: string;
+  score: number;
+  tags: string[];
+  lastActivity: string;
+}
 
 interface CampaignLeadsListProps {
   campaignId: string;
 }
 
 export function CampaignLeadsList({ campaignId }: CampaignLeadsListProps) {
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
 
-  // Filter leads based on search query and status filter
-  const filteredLeads = mockLeads.filter((lead) => {
+  // Fetch leads from REAL database API
+  const fetchLeads = useCallback(async () => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams({ limit: "100" });
+      if (statusFilter) params.append("status", statusFilter);
+      if (searchQuery) params.append("search", searchQuery);
+
+      const response = await fetch(`/api/leads?${params}`);
+      const data = await response.json();
+
+      if (data.error) {
+        console.error("[Campaign Leads] API error:", data.error);
+        setLeads([]);
+        return;
+      }
+
+      // Transform leads to match component interface
+      const transformedLeads: Lead[] = (data.leads || []).map((lead: {
+        id: string;
+        name: string;
+        email?: string;
+        phone?: string;
+        address?: string;
+        city?: string;
+        state?: string;
+        zipCode?: string;
+        status: string;
+        tags?: string[];
+        updatedAt?: string;
+      }) => ({
+        id: lead.id,
+        name: lead.name || "Unknown",
+        email: lead.email || "",
+        phone: lead.phone || "",
+        address: [lead.address, lead.city, lead.state, lead.zipCode]
+          .filter(Boolean)
+          .join(", "),
+        status: mapStatusToDisplay(lead.status),
+        score: 30, // Computed score would come from backend
+        tags: lead.tags || [],
+        lastActivity: lead.updatedAt
+          ? new Date(lead.updatedAt).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+              hour: "numeric",
+              minute: "2-digit",
+            })
+          : "No activity",
+      }));
+
+      setLeads(transformedLeads);
+    } catch (error) {
+      console.error("[Campaign Leads] Fetch error:", error);
+      setLeads([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [statusFilter, searchQuery]);
+
+  // Load leads on mount and when filters change
+  useEffect(() => {
+    const debounce = setTimeout(() => {
+      fetchLeads();
+    }, 300);
+    return () => clearTimeout(debounce);
+  }, [fetchLeads]);
+
+  // Map backend status to display status
+  function mapStatusToDisplay(status: string): string {
+    const map: Record<string, string> = {
+      New: "new",
+      Contacted: "contacted",
+      Qualified: "engaged",
+      Proposal: "engaged",
+      Negotiation: "engaged",
+      "Closed Won": "converted",
+      "Closed Lost": "unresponsive",
+    };
+    return map[status] || "new";
+  }
+
+  // Filter leads based on search query (client-side filtering for quick response)
+  const filteredLeads = leads.filter((lead) => {
     const matchesSearch =
       searchQuery === "" ||
       lead.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -299,6 +284,11 @@ export function CampaignLeadsList({ campaignId }: CampaignLeadsListProps) {
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
+              ) : loading ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading...
+                </div>
               ) : (
                 `${filteredLeads.length} leads`
               )}
@@ -306,106 +296,122 @@ export function CampaignLeadsList({ campaignId }: CampaignLeadsListProps) {
           </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[40px]">
-                  <div className="flex items-center justify-center">
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 rounded border-gray-300"
-                      checked={
-                        selectedLeads.length === filteredLeads.length &&
-                        filteredLeads.length > 0
-                      }
-                      onChange={toggleSelectAll}
-                    />
-                  </div>
-                </TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Contact</TableHead>
-                <TableHead>Address</TableHead>
-                <TableHead>
-                  <div className="flex items-center">
-                    Status
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </div>
-                </TableHead>
-                <TableHead>
-                  <div className="flex items-center">
-                    Score
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </div>
-                </TableHead>
-                <TableHead>Tags</TableHead>
-                <TableHead>Last Activity</TableHead>
-                <TableHead className="w-[70px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredLeads.map((lead) => (
-                <TableRow key={lead.id}>
-                  <TableCell>
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : filteredLeads.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              {searchQuery || statusFilter
+                ? "No leads match your filters"
+                : "No leads found. Add leads to get started."}
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[40px]">
                     <div className="flex items-center justify-center">
                       <input
                         type="checkbox"
                         className="h-4 w-4 rounded border-gray-300"
-                        checked={selectedLeads.includes(lead.id)}
-                        onChange={() => toggleSelectLead(lead.id)}
+                        checked={
+                          selectedLeads.length === filteredLeads.length &&
+                          filteredLeads.length > 0
+                        }
+                        onChange={toggleSelectAll}
                       />
                     </div>
-                  </TableCell>
-                  <TableCell className="font-medium">{lead.name}</TableCell>
-                  <TableCell>
-                    <div className="space-y-1">
-                      <p className="text-sm">{lead.email}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {lead.phone}
-                      </p>
+                  </TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Contact</TableHead>
+                  <TableHead>Address</TableHead>
+                  <TableHead>
+                    <div className="flex items-center">
+                      Status
+                      <ArrowUpDown className="ml-2 h-4 w-4" />
                     </div>
-                  </TableCell>
-                  <TableCell>{lead.address}</TableCell>
-                  <TableCell>{getStatusBadge(lead.status)}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={lead.score >= 30 ? "default" : "outline-solid"}
-                    >
-                      {lead.score}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {lead.tags.map((tag) => (
-                        <Badge key={tag} variant="outline" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
+                  </TableHead>
+                  <TableHead>
+                    <div className="flex items-center">
+                      Score
+                      <ArrowUpDown className="ml-2 h-4 w-4" />
                     </div>
-                  </TableCell>
-                  <TableCell className="text-sm">{lead.lastActivity}</TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem>View Details</DropdownMenuItem>
-                        <DropdownMenuItem>Send Message</DropdownMenuItem>
-                        <DropdownMenuItem>Update Status</DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-red-600">
-                          Remove from Campaign
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+                  </TableHead>
+                  <TableHead>Tags</TableHead>
+                  <TableHead>Last Activity</TableHead>
+                  <TableHead className="w-[70px]"></TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredLeads.map((lead) => (
+                  <TableRow key={lead.id}>
+                    <TableCell>
+                      <div className="flex items-center justify-center">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 rounded border-gray-300"
+                          checked={selectedLeads.includes(lead.id)}
+                          onChange={() => toggleSelectLead(lead.id)}
+                        />
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-medium">{lead.name}</TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        <p className="text-sm">{lead.email || "-"}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {lead.phone || "-"}
+                        </p>
+                      </div>
+                    </TableCell>
+                    <TableCell>{lead.address || "-"}</TableCell>
+                    <TableCell>{getStatusBadge(lead.status)}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={lead.score >= 30 ? "default" : "outline"}
+                      >
+                        {lead.score}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {lead.tags.length > 0 ? (
+                          lead.tags.map((tag) => (
+                            <Badge key={tag} variant="outline" className="text-xs">
+                              {tag}
+                            </Badge>
+                          ))
+                        ) : (
+                          <span className="text-xs text-muted-foreground">-</span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm">{lead.lastActivity}</TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem>View Details</DropdownMenuItem>
+                          <DropdownMenuItem>Send Message</DropdownMenuItem>
+                          <DropdownMenuItem>Update Status</DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem className="text-red-600">
+                            Remove from Campaign
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>

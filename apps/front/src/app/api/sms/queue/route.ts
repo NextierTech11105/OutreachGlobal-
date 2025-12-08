@@ -59,6 +59,53 @@ export async function GET(request: NextRequest) {
         });
       }
 
+      // Human-in-loop GET actions
+      case "preview": {
+        const limit = parseInt(searchParams.get("limit") || "50");
+        const campaignId = searchParams.get("campaignId") || undefined;
+        const agent = searchParams.get("agent") as "gianna" | "sabrina" | undefined;
+        const messages = smsQueueService.getPreviewQueue({ limit, campaignId, agent });
+
+        return NextResponse.json({
+          success: true,
+          count: messages.length,
+          messages: messages.map((m) => ({
+            id: m.id,
+            leadId: m.leadId,
+            to: m.to,
+            message: m.message,
+            originalMessage: m.originalMessage,
+            variables: m.variables,
+            priority: m.priority,
+            agent: m.agent,
+            campaignId: m.campaignId,
+            createdAt: m.createdAt,
+            edited: !!m.editedAt,
+          })),
+        });
+      }
+
+      case "approved": {
+        const limit = parseInt(searchParams.get("limit") || "50");
+        const campaignId = searchParams.get("campaignId") || undefined;
+        const messages = smsQueueService.getApprovedQueue({ limit, campaignId });
+
+        return NextResponse.json({
+          success: true,
+          count: messages.length,
+          messages: messages.map((m) => ({
+            id: m.id,
+            leadId: m.leadId,
+            to: m.to,
+            message: m.message,
+            approvedAt: m.approvedAt,
+            approvedBy: m.approvedBy,
+            agent: m.agent,
+            campaignId: m.campaignId,
+          })),
+        });
+      }
+
       default:
         return NextResponse.json(
           { success: false, error: `Unknown action: ${action}` },
@@ -220,6 +267,206 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
           success: true,
           message: `${phoneNumber} removed from opt-out list`,
+        });
+      }
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // HUMAN-IN-LOOP: PREVIEW, APPROVE, EDIT, DEPLOY
+      // ═══════════════════════════════════════════════════════════════════════
+
+      case "add_draft_batch": {
+        // Add batch as drafts for human review (NOT auto-send)
+        const { leads, templateCategory, templateMessage, personality, campaignId, priority, agent } = body;
+
+        if (!leads || !Array.isArray(leads) || leads.length === 0) {
+          return NextResponse.json(
+            { success: false, error: "leads array required" },
+            { status: 400 }
+          );
+        }
+
+        if (!templateMessage) {
+          return NextResponse.json(
+            { success: false, error: "templateMessage required" },
+            { status: 400 }
+          );
+        }
+
+        const result = smsQueueService.addToDraftQueue(leads, {
+          templateCategory: templateCategory || "sms_initial",
+          templateMessage,
+          personality,
+          campaignId,
+          priority,
+          agent: agent || "gianna", // Default to Gianna for SMS campaigns
+        });
+
+        return NextResponse.json({
+          success: true,
+          status: "draft",
+          added: result.added,
+          skipped: result.skipped,
+          queueIds: result.queueIds,
+          message: `${result.added} messages queued for review`,
+        });
+      }
+
+      case "preview": {
+        // Get messages awaiting review
+        const { limit, campaignId, agent } = body;
+        const messages = smsQueueService.getPreviewQueue({ limit, campaignId, agent });
+
+        return NextResponse.json({
+          success: true,
+          count: messages.length,
+          messages: messages.map((m) => ({
+            id: m.id,
+            leadId: m.leadId,
+            to: m.to,
+            message: m.message,
+            originalMessage: m.originalMessage,
+            variables: m.variables,
+            priority: m.priority,
+            agent: m.agent,
+            campaignId: m.campaignId,
+            createdAt: m.createdAt,
+            edited: !!m.editedAt,
+          })),
+        });
+      }
+
+      case "approve": {
+        // Approve specific messages
+        const { messageIds, approvedBy } = body;
+
+        if (!messageIds || !Array.isArray(messageIds)) {
+          return NextResponse.json(
+            { success: false, error: "messageIds array required" },
+            { status: 400 }
+          );
+        }
+
+        const result = smsQueueService.approveMessages(
+          messageIds,
+          approvedBy || "admin"
+        );
+
+        return NextResponse.json({
+          success: true,
+          approved: result.approved,
+          notFound: result.notFound,
+        });
+      }
+
+      case "approve_all": {
+        // Approve all messages in a campaign
+        const { campaignId, approvedBy } = body;
+
+        if (!campaignId) {
+          return NextResponse.json(
+            { success: false, error: "campaignId required" },
+            { status: 400 }
+          );
+        }
+
+        const approved = smsQueueService.approveAllInCampaign(
+          campaignId,
+          approvedBy || "admin"
+        );
+
+        return NextResponse.json({
+          success: true,
+          approved,
+        });
+      }
+
+      case "reject": {
+        // Reject specific messages
+        const { messageIds, reason } = body;
+
+        if (!messageIds || !Array.isArray(messageIds)) {
+          return NextResponse.json(
+            { success: false, error: "messageIds array required" },
+            { status: 400 }
+          );
+        }
+
+        const result = smsQueueService.rejectMessages(messageIds, reason);
+
+        return NextResponse.json({
+          success: true,
+          rejected: result.rejected,
+          notFound: result.notFound,
+        });
+      }
+
+      case "edit": {
+        // Edit a message before approval
+        const { messageId, newMessage, editedBy } = body;
+
+        if (!messageId || !newMessage) {
+          return NextResponse.json(
+            { success: false, error: "messageId and newMessage required" },
+            { status: 400 }
+          );
+        }
+
+        const success = smsQueueService.editMessage(
+          messageId,
+          newMessage,
+          editedBy || "admin"
+        );
+
+        if (!success) {
+          return NextResponse.json(
+            { success: false, error: "Message not found or cannot be edited" },
+            { status: 404 }
+          );
+        }
+
+        return NextResponse.json({
+          success: true,
+          messageId,
+          message: "Message updated successfully",
+        });
+      }
+
+      case "deploy": {
+        // Deploy approved messages (move to pending for send)
+        const { campaignId, limit, scheduledAt } = body;
+
+        const result = smsQueueService.deployApproved({
+          campaignId,
+          limit,
+          scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined,
+        });
+
+        return NextResponse.json({
+          success: true,
+          deployed: result.deployed,
+          messageIds: result.ids,
+          message: `${result.deployed} messages deployed for sending`,
+        });
+      }
+
+      case "get_approved": {
+        // Get approved messages ready for deployment
+        const { limit, campaignId } = body;
+        const messages = smsQueueService.getApprovedQueue({ limit, campaignId });
+
+        return NextResponse.json({
+          success: true,
+          count: messages.length,
+          messages: messages.map((m) => ({
+            id: m.id,
+            leadId: m.leadId,
+            to: m.to,
+            message: m.message,
+            approvedAt: m.approvedAt,
+            approvedBy: m.approvedBy,
+            agent: m.agent,
+            campaignId: m.campaignId,
+          })),
         });
       }
 

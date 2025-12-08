@@ -24,14 +24,40 @@ import {
   Play,
   Pause,
   Edit3,
+  Sliders,
+  ChevronDown,
+  ChevronUp,
+  Heart,
+  Target,
+  Smile,
+  AlertTriangle,
+  Gauge,
+  MessageCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Slider } from "@/components/ui/slider";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import {
+  GIANNA_PRESETS,
+  type GiannaPersonality,
+} from "@/lib/gianna/knowledge-base";
 
 interface GiannaSettings {
   mode: "human-in-loop" | "full-auto";
@@ -54,9 +80,22 @@ interface AiSuggestion {
     intent: string;
     sentiment: string;
     action: string;
+    objection?: string | null;
+    confidence?: number;
   };
   characterCount: number;
   isShortEnough: boolean;
+  isSingleSegment?: boolean;
+  personality?: string;
+  gianna?: {
+    name: string;
+    detected: {
+      intent: string;
+      objection: string | null;
+      sentiment: string;
+    };
+    suggestedAction: string;
+  };
 }
 
 interface GiannaResponseHandlerProps {
@@ -64,12 +103,15 @@ interface GiannaResponseHandlerProps {
   leadName?: string;
   leadPhone: string;
   propertyAddress?: string;
-  campaignType?: "real_estate" | "b2b" | "financial" | "default";
+  businessName?: string;
+  campaignType?: "real_estate" | "b2b" | "financial" | "business_valuation" | "default";
+  leadType?: string; // e.g., "pre_foreclosure", "absentee_owner", "tired_landlord"
   previousMessages?: Array<{ role: "user" | "assistant"; content: string }>;
   onSendReply: (message: string) => Promise<void>;
   onPushToCallCenter: () => void;
   onAddToDnc: () => void;
   onMarkCold: () => void;
+  onScheduleFollowUp?: () => void;
 }
 
 export function GiannaResponseHandler({
@@ -77,12 +119,15 @@ export function GiannaResponseHandler({
   leadName,
   leadPhone,
   propertyAddress,
-  campaignType = "default",
+  businessName,
+  campaignType = "business_valuation",
+  leadType,
   previousMessages = [],
   onSendReply,
   onPushToCallCenter,
   onAddToDnc,
   onMarkCold,
+  onScheduleFollowUp,
 }: GiannaResponseHandlerProps) {
   const [suggestion, setSuggestion] = useState<AiSuggestion | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -92,6 +137,11 @@ export function GiannaResponseHandler({
   const [autoCountdown, setAutoCountdown] = useState<number | null>(null);
   const [isPaused, setIsPaused] = useState(false);
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Personality controls
+  const [showPersonality, setShowPersonality] = useState(false);
+  const [selectedPreset, setSelectedPreset] = useState<keyof typeof GIANNA_PRESETS>("balanced");
+  const [customPersonality, setCustomPersonality] = useState<Partial<GiannaPersonality>>({});
 
   // Load Gianna settings
   const [settings, setSettings] = useState<GiannaSettings>(() => {
@@ -141,18 +191,29 @@ export function GiannaResponseHandler({
         trainingData = JSON.parse(savedTraining);
       }
 
+      // Build request with personality
+      const requestBody: Record<string, unknown> = {
+        incomingMessage,
+        leadName,
+        propertyAddress,
+        businessName,
+        campaignType,
+        leadType,
+        previousMessages,
+        trainingData,
+      };
+
+      // Add personality configuration
+      if (Object.keys(customPersonality).length > 0) {
+        requestBody.personality = customPersonality;
+      } else {
+        requestBody.preset = selectedPreset;
+      }
+
       const response = await fetch("/api/ai/suggest-reply", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          incomingMessage,
-          leadName,
-          propertyAddress,
-          campaignType,
-          previousMessages,
-          tone: settings.defaultTone,
-          trainingData, // Include training data for better responses
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       const data = await response.json();
@@ -180,7 +241,7 @@ export function GiannaResponseHandler({
     } finally {
       setIsLoading(false);
     }
-  }, [incomingMessage, leadName, propertyAddress, campaignType, previousMessages, settings, isWithinBusinessHours]);
+  }, [incomingMessage, leadName, propertyAddress, businessName, campaignType, leadType, previousMessages, settings, isWithinBusinessHours, selectedPreset, customPersonality]);
 
   // Auto-countdown management
   const startAutoCountdown = useCallback(() => {
@@ -273,18 +334,49 @@ export function GiannaResponseHandler({
 
     const intentColors: Record<string, string> = {
       interested: "bg-green-500/20 text-green-400",
+      more_info: "bg-blue-500/20 text-blue-400",
       question: "bg-blue-500/20 text-blue-400",
-      opt_out: "bg-red-500/20 text-red-400",
-      not_interested: "bg-gray-500/20 text-gray-400",
       wants_call: "bg-purple-500/20 text-purple-400",
+      opt_out: "bg-red-500/20 text-red-400",
+      hard_no: "bg-red-500/20 text-red-400",
+      soft_no: "bg-yellow-500/20 text-yellow-400",
+      not_interested: "bg-gray-500/20 text-gray-400",
       unknown: "bg-zinc-500/20 text-zinc-400",
     };
 
+    const intent = suggestion.gianna?.detected?.intent || suggestion.classification.intent;
+
     return (
-      <Badge className={cn("text-xs", intentColors[suggestion.classification.intent] || intentColors.unknown)}>
-        {suggestion.classification.intent.replace("_", " ")}
+      <Badge className={cn("text-xs", intentColors[intent] || intentColors.unknown)}>
+        {intent.replace(/_/g, " ")}
       </Badge>
     );
+  };
+
+  // Get objection badge
+  const getObjectionBadge = () => {
+    const objection = suggestion?.gianna?.detected?.objection || suggestion?.classification?.objection;
+    if (!objection) return null;
+
+    return (
+      <Badge className="text-xs bg-orange-500/20 text-orange-400">
+        <AlertTriangle className="w-3 h-3 mr-1" />
+        {objection.replace(/_/g, " ")}
+      </Badge>
+    );
+  };
+
+  // Get preset display info
+  const getPresetInfo = (preset: keyof typeof GIANNA_PRESETS) => {
+    const presetInfo: Record<string, { icon: React.ReactNode; label: string; description: string }> = {
+      balanced: { icon: <Gauge className="w-4 h-4" />, label: "Balanced", description: "Friendly and professional" },
+      cold_outreach: { icon: <Target className="w-4 h-4" />, label: "Cold Outreach", description: "Curious and open" },
+      warm_lead: { icon: <Zap className="w-4 h-4" />, label: "Warm Lead", description: "Direct and closing-focused" },
+      objection_handler: { icon: <MessageCircle className="w-4 h-4" />, label: "Objection Handler", description: "Empathetic and understanding" },
+      ghost_revival: { icon: <RefreshCw className="w-4 h-4" />, label: "Ghost Revival", description: "Persistent pattern interrupt" },
+      sensitive: { icon: <Heart className="w-4 h-4" />, label: "Sensitive", description: "Compassionate and patient" },
+    };
+    return presetInfo[preset] || presetInfo.balanced;
   };
 
   // Toggle mode
@@ -324,9 +416,18 @@ export function GiannaResponseHandler({
           </div>
         </div>
 
-        {/* Mode Toggle */}
+        {/* Mode Toggle & Controls */}
         <div className="flex items-center gap-3">
           {getIntentBadge()}
+          {getObjectionBadge()}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowPersonality(!showPersonality)}
+            className="h-8 px-2"
+          >
+            <Sliders className="w-4 h-4" />
+          </Button>
           <div className="flex items-center gap-2">
             <User className="w-4 h-4 text-zinc-400" />
             <Switch
@@ -337,6 +438,178 @@ export function GiannaResponseHandler({
           </div>
         </div>
       </div>
+
+      {/* Personality Controls Panel */}
+      <Collapsible open={showPersonality}>
+        <CollapsibleContent>
+          <div className="p-4 bg-black/30 border-b border-purple-500/20 space-y-4">
+            {/* Preset Selector */}
+            <div className="space-y-2">
+              <Label className="text-xs text-zinc-400 flex items-center gap-2">
+                <Brain className="w-3 h-3" />
+                Personality Preset
+              </Label>
+              <div className="grid grid-cols-3 gap-2">
+                {(Object.keys(GIANNA_PRESETS) as (keyof typeof GIANNA_PRESETS)[]).map((preset) => {
+                  const info = getPresetInfo(preset);
+                  return (
+                    <Button
+                      key={preset}
+                      variant={selectedPreset === preset ? "secondary" : "outline"}
+                      size="sm"
+                      className={cn(
+                        "h-auto py-2 px-3 flex flex-col items-start gap-1",
+                        selectedPreset === preset && "border-purple-500"
+                      )}
+                      onClick={() => {
+                        setSelectedPreset(preset);
+                        setCustomPersonality({});
+                      }}
+                    >
+                      <div className="flex items-center gap-2">
+                        {info.icon}
+                        <span className="text-xs font-medium">{info.label}</span>
+                      </div>
+                      <span className="text-[10px] text-zinc-500">{info.description}</span>
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Fine-tune Sliders */}
+            <div className="space-y-3">
+              <Label className="text-xs text-zinc-400">Fine-tune (overrides preset)</Label>
+              <div className="grid grid-cols-2 gap-4">
+                {/* Warmth */}
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-zinc-400 flex items-center gap-1">
+                      <Heart className="w-3 h-3" /> Warmth
+                    </span>
+                    <span className="text-xs text-zinc-500">
+                      {customPersonality.warmth ?? GIANNA_PRESETS[selectedPreset].warmth}
+                    </span>
+                  </div>
+                  <Slider
+                    value={[customPersonality.warmth ?? GIANNA_PRESETS[selectedPreset].warmth]}
+                    onValueChange={([v]) => setCustomPersonality({ ...customPersonality, warmth: v })}
+                    max={100}
+                    step={5}
+                    className="h-1"
+                  />
+                </div>
+
+                {/* Directness */}
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-zinc-400 flex items-center gap-1">
+                      <Target className="w-3 h-3" /> Directness
+                    </span>
+                    <span className="text-xs text-zinc-500">
+                      {customPersonality.directness ?? GIANNA_PRESETS[selectedPreset].directness}
+                    </span>
+                  </div>
+                  <Slider
+                    value={[customPersonality.directness ?? GIANNA_PRESETS[selectedPreset].directness]}
+                    onValueChange={([v]) => setCustomPersonality({ ...customPersonality, directness: v })}
+                    max={100}
+                    step={5}
+                    className="h-1"
+                  />
+                </div>
+
+                {/* Humor */}
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-zinc-400 flex items-center gap-1">
+                      <Smile className="w-3 h-3" /> Humor
+                    </span>
+                    <span className="text-xs text-zinc-500">
+                      {customPersonality.humor ?? GIANNA_PRESETS[selectedPreset].humor}
+                    </span>
+                  </div>
+                  <Slider
+                    value={[customPersonality.humor ?? GIANNA_PRESETS[selectedPreset].humor]}
+                    onValueChange={([v]) => setCustomPersonality({ ...customPersonality, humor: v })}
+                    max={100}
+                    step={5}
+                    className="h-1"
+                  />
+                </div>
+
+                {/* Urgency */}
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-zinc-400 flex items-center gap-1">
+                      <Clock className="w-3 h-3" /> Urgency
+                    </span>
+                    <span className="text-xs text-zinc-500">
+                      {customPersonality.urgency ?? GIANNA_PRESETS[selectedPreset].urgency}
+                    </span>
+                  </div>
+                  <Slider
+                    value={[customPersonality.urgency ?? GIANNA_PRESETS[selectedPreset].urgency]}
+                    onValueChange={([v]) => setCustomPersonality({ ...customPersonality, urgency: v })}
+                    max={100}
+                    step={5}
+                    className="h-1"
+                  />
+                </div>
+
+                {/* Empathy */}
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-zinc-400 flex items-center gap-1">
+                      <Heart className="w-3 h-3" /> Empathy
+                    </span>
+                    <span className="text-xs text-zinc-500">
+                      {customPersonality.empathy ?? GIANNA_PRESETS[selectedPreset].empathy}
+                    </span>
+                  </div>
+                  <Slider
+                    value={[customPersonality.empathy ?? GIANNA_PRESETS[selectedPreset].empathy]}
+                    onValueChange={([v]) => setCustomPersonality({ ...customPersonality, empathy: v })}
+                    max={100}
+                    step={5}
+                    className="h-1"
+                  />
+                </div>
+
+                {/* Closing Push */}
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-zinc-400 flex items-center gap-1">
+                      <Zap className="w-3 h-3" /> Closing Push
+                    </span>
+                    <span className="text-xs text-zinc-500">
+                      {customPersonality.closingPush ?? GIANNA_PRESETS[selectedPreset].closingPush}
+                    </span>
+                  </div>
+                  <Slider
+                    value={[customPersonality.closingPush ?? GIANNA_PRESETS[selectedPreset].closingPush]}
+                    onValueChange={([v]) => setCustomPersonality({ ...customPersonality, closingPush: v })}
+                    max={100}
+                    step={5}
+                    className="h-1"
+                  />
+                </div>
+              </div>
+
+              {Object.keys(customPersonality).length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setCustomPersonality({})}
+                  className="text-xs text-zinc-500"
+                >
+                  Reset to preset
+                </Button>
+              )}
+            </div>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
 
       {/* Incoming Message */}
       <div className="p-4 border-b border-purple-500/20 bg-black/20">
@@ -557,6 +830,17 @@ export function GiannaResponseHandler({
                 >
                   <ThumbsDown className="w-4 h-4 mr-2" />
                   Mark Cold
+                </Button>
+              )}
+
+              {(suggestion.gianna?.suggestedAction === "schedule_follow_up" || suggestion.classification.action === "schedule_follow_up") && onScheduleFollowUp && (
+                <Button
+                  variant="outline"
+                  onClick={onScheduleFollowUp}
+                  className="border-yellow-500/50 text-yellow-400 hover:bg-yellow-500/20"
+                >
+                  <Clock className="w-4 h-4 mr-2" />
+                  Schedule Follow-up
                 </Button>
               )}
             </div>

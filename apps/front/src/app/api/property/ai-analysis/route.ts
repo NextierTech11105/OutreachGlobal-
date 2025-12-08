@@ -46,6 +46,7 @@ export async function POST(request: NextRequest) {
       propertyType: property.propertyType || "Unknown",
       bedrooms: property.bedrooms || property.beds || 0,
       bathrooms: property.bathrooms || property.baths || 0,
+      halfBaths: property.halfBaths || 0,
       sqft: property.squareFeet || property.buildingSize || property.livingArea || 0,
       yearBuilt: property.yearBuilt || 0,
       lotSize: property.lotSize || property.lotSquareFeet || 0,
@@ -53,11 +54,13 @@ export async function POST(request: NextRequest) {
       lastSaleAmount: property.lastSaleAmount || 0,
       lastSaleDate: property.lastSaleDate || "",
       mortgageBalance: property.openMortgageBalance || property.mortgageBalance || 0,
+      lastLoanAmount: property.lastLoanAmount || 0,
+      lastLoanDate: property.lastLoanDate || "",
       ownerOccupied: property.ownerOccupied,
       pool: property.pool,
       garage: property.garage,
       stories: property.stories || property.numberOfStories,
-      zoning: property.zoning,
+      zoning: property.zoning || "Unknown",
       taxAssessedValue: property.taxAssessedValue || property.assessedValue,
       features: property.features || property.amenities || [],
     };
@@ -73,14 +76,17 @@ export async function POST(request: NextRequest) {
 PROPERTY DATA:
 Address: ${propertyDetails.address}
 Property Type: ${propertyDetails.propertyType}
-Bedrooms: ${propertyDetails.bedrooms}
+Bedrooms: ${propertyDetails.bedrooms}${propertyDetails.halfBaths ? ` + ${propertyDetails.halfBaths} half baths` : ""}
 Bathrooms: ${propertyDetails.bathrooms}
 Square Feet: ${propertyDetails.sqft.toLocaleString()}
 Year Built: ${propertyDetails.yearBuilt} (${propertyAge} years old)
 Lot Size: ${propertyDetails.lotSize.toLocaleString()} sq ft
+Zoning: ${propertyDetails.zoning}
 Estimated Value: $${propertyDetails.estimatedValue.toLocaleString()}
 Last Sale: $${propertyDetails.lastSaleAmount.toLocaleString()} on ${propertyDetails.lastSaleDate || "N/A"}
+Last Loan Amount: $${propertyDetails.lastLoanAmount.toLocaleString()} ${propertyDetails.lastLoanDate ? `(${propertyDetails.lastLoanDate})` : ""}
 Mortgage Balance: $${propertyDetails.mortgageBalance.toLocaleString()}
+Tax Assessed Value: $${(propertyDetails.taxAssessedValue || 0).toLocaleString()}
 Owner Occupied: ${propertyDetails.ownerOccupied ? "Yes" : "No/Unknown"}
 Pool: ${propertyDetails.pool ? "Yes" : "No"}
 Garage: ${propertyDetails.garage ? "Yes" : "No/Unknown"}
@@ -223,19 +229,26 @@ Provide your COMPREHENSIVE analysis in the following JSON format. Be specific wi
   },
   "equityUnlockingStrategies": {
     "zoningOpportunities": {
-      "currentZoning": "Current zoning classification and what it allows",
+      "currentZoning": "Current zoning classification (${propertyDetails.zoning}) and what it allows",
+      "maxFAR": "Maximum Floor Area Ratio allowed",
+      "currentFAR": "Current FAR being used (building sqft / lot sqft)",
+      "unusedFAR": "Unused FAR potential - additional buildable square footage",
       "potentialUpzoning": "Possibility of rezoning and what it could unlock",
       "additionalUnits": "Can an ADU, duplex conversion, or additional units be added?",
-      "commercialPotential": "Any mixed-use or commercial potential?"
+      "commercialPotential": "Any mixed-use or commercial potential?",
+      "bigLotFlag": "Flag if lot size > 5000 sqft with development potential"
     },
     "lotDevelopment": {
-      "lotUtilization": "How well is the current lot being used?",
+      "lotSize": "${propertyDetails.lotSize.toLocaleString()} sq ft",
+      "lotUtilization": "Current lot coverage percentage and efficiency",
       "subdivisionPotential": "Can the lot be subdivided?",
-      "buildableArea": "Additional buildable square footage potential",
+      "buildableArea": "Additional buildable square footage based on unused FAR",
+      "setbackAnalysis": "Front/side/rear setback opportunities",
       "landscapingValue": "Outdoor improvements that add value"
     },
     "structuralOpportunities": {
-      "additionPotential": "Can the structure be expanded?",
+      "currentBuildingSqFt": "${propertyDetails.sqft.toLocaleString()} sq ft",
+      "additionPotential": "Can the structure be expanded vertically or horizontally?",
       "conversionOptions": "Basement, attic, or garage conversion possibilities",
       "modernizationROI": "Which upgrades offer best ROI?"
     },
@@ -252,6 +265,39 @@ Provide your COMPREHENSIVE analysis in the following JSON format. Be specific wi
     },
     "estimatedEquityUnlock": "Total potential equity that could be unlocked with improvements",
     "recommendedStrategy": "The single best strategy for this specific property"
+  },
+  "neighborhoodAmenities": {
+    "dining": ["List 3-5 popular restaurants, cafes, and food spots within walking distance"],
+    "entertainment": ["List 3-5 entertainment venues, bars, nightlife, theaters nearby"],
+    "shopping": ["List notable shopping areas, malls, boutiques"],
+    "transportation": {
+      "subway": "Nearest subway/metro stations and lines",
+      "bus": "Bus routes serving the area",
+      "highways": "Major highways and commute times to downtown",
+      "walkScore": "Estimated walk score (0-100)",
+      "transitScore": "Estimated transit score (0-100)"
+    },
+    "famousResidents": "Any notable past or current residents, celebrities, or historical figures from this neighborhood",
+    "landmarks": ["Notable landmarks, parks, or cultural sites nearby"]
+  },
+  "sisterCityComparison": {
+    "domesticComparisons": [
+      {
+        "city": "Similar US city with comparable trajectory",
+        "similarity": "Why this city is comparable (demographics, growth pattern)",
+        "appreciationThere": "What appreciation looked like there during similar phase",
+        "lessonForHere": "What this suggests for the subject property's area"
+      }
+    ],
+    "internationalComparisons": [
+      {
+        "city": "International city with similar characteristics",
+        "similarity": "Key similarities (waterfront, density, transit, culture)",
+        "appreciationThere": "Property appreciation history in that market",
+        "lessonForHere": "Investment insights from this comparison"
+      }
+    ],
+    "growthBenchmark": "Based on sister cities, expected 5-year and 10-year appreciation potential"
   },
   "confidenceScore": 85,
   "analysisDate": "${new Date().toISOString().split('T')[0]}",

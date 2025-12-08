@@ -3,8 +3,8 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Mail, Phone, MoreHorizontal } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
+import { Mail, Phone, MoreHorizontal, CheckCircle, Flame, ThumbsUp, MessageSquare, PhoneCall, Star } from "lucide-react";
+import { formatCurrency, cn } from "@/lib/utils";
 import { useState } from "react";
 import {
   Dialog,
@@ -17,12 +17,47 @@ import { ExtractNode, LeadKanbanQuery } from "@/graphql/types";
 import { TeamLink } from "@/features/team/components/team-link";
 import { LeadActions } from "./lead-actions";
 
+// Easify-style label definitions
+const LEAD_LABELS = {
+  "confirmed": { label: "Confirmed #", icon: CheckCircle, color: "bg-green-500/20 text-green-400 border-green-500/30" },
+  "hot": { label: "Hot Lead", icon: Flame, color: "bg-orange-500/20 text-orange-400 border-orange-500/30" },
+  "positive": { label: "Positive", icon: ThumbsUp, color: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
+  "callback": { label: "Callback", icon: PhoneCall, color: "bg-purple-500/20 text-purple-400 border-purple-500/30" },
+  "priority": { label: "Priority", icon: Star, color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
+  "responded": { label: "Responded", icon: MessageSquare, color: "bg-cyan-500/20 text-cyan-400 border-cyan-500/30" },
+} as const;
+
+type LabelKey = keyof typeof LEAD_LABELS;
+
 interface LeadCardProps {
   lead: ExtractNode<LeadKanbanQuery["leads"]>;
 }
 
 export function LeadCard({ lead }: LeadCardProps) {
   const [showDetails, setShowDetails] = useState(false);
+
+  // Derive labels from lead data
+  const getLeadLabels = (): LabelKey[] => {
+    const labels: LabelKey[] = [];
+
+    // Has confirmed phone number
+    if (lead.phone && lead.phone.length >= 10) {
+      labels.push("confirmed");
+    }
+
+    // Check tags for labels
+    if (lead.tags) {
+      if (lead.tags.some(t => t.toLowerCase().includes("hot"))) labels.push("hot");
+      if (lead.tags.some(t => t.toLowerCase().includes("positive"))) labels.push("positive");
+      if (lead.tags.some(t => t.toLowerCase().includes("callback"))) labels.push("callback");
+      if (lead.tags.some(t => t.toLowerCase().includes("priority"))) labels.push("priority");
+      if (lead.tags.some(t => t.toLowerCase().includes("responded"))) labels.push("responded");
+    }
+
+    return labels;
+  };
+
+  const activeLabels = getLeadLabels();
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -43,6 +78,26 @@ export function LeadCard({ lead }: LeadCardProps) {
     <Card className="h-full relative">
       <TeamLink href={`/leads/${lead.id}`} className="absolute inset-0 z-5" />
       <CardContent className="p-3">
+        {/* Easify-style Labels */}
+        {activeLabels.length > 0 && (
+          <div className="flex flex-wrap gap-1 mb-2">
+            {activeLabels.map((labelKey) => {
+              const labelConfig = LEAD_LABELS[labelKey];
+              const Icon = labelConfig.icon;
+              return (
+                <Badge
+                  key={labelKey}
+                  variant="outline"
+                  className={cn("text-[10px] px-1.5 py-0 h-5 gap-1", labelConfig.color)}
+                >
+                  <Icon className="h-3 w-3" />
+                  {labelConfig.label}
+                </Badge>
+              );
+            })}
+          </div>
+        )}
+
         <div className="flex justify-between items-start mb-2">
           <h3 className="font-medium text-sm truncate">{lead.name}</h3>
           <div className="flex items-center gap-1 z-10">
