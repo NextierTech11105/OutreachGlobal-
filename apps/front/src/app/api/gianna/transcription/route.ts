@@ -1,20 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
+import { classifyResponse } from "@/lib/gianna/gianna-service";
 
-// Gianna AI Transcription webhook handler
-// Receives transcriptions from Twilio and processes them
+/**
+ * GIANNA AI TRANSCRIPTION WEBHOOK
+ *
+ * Processes voicemail transcriptions with Gianna's intelligence:
+ * - Intent classification
+ * - Priority routing
+ * - Automated follow-up scheduling
+ */
 
-interface TranscriptionPayload {
-  TranscriptionSid: string;
-  TranscriptionText: string;
-  TranscriptionStatus: string;
-  TranscriptionUrl: string;
-  RecordingSid: string;
-  RecordingUrl: string;
-  CallSid: string;
-  From: string;
-  To: string;
-  AccountSid: string;
-}
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://monkfish-app-mb7h3.ondigitalocean.app";
 
 export async function POST(request: NextRequest) {
   try {
@@ -47,82 +43,196 @@ export async function POST(request: NextRequest) {
       return new NextResponse("OK", { status: 200 });
     }
 
-    // Process the transcription with AI to extract insights
-    let aiInsights = null;
+    // ═════════════════════════════════════════════════
+    // STEP 1: Classify intent using Gianna
+    // ═════════════════════════════════════════════════
+    const classification = classifyResponse(transcriptionText);
+    console.log("[Gianna Transcription] Classification:", classification);
+
+    // ═════════════════════════════════════════════════
+    // STEP 2: Determine priority and action
+    // ═════════════════════════════════════════════════
+    const isHotLead = ["interested", "request_call", "request_info"].includes(classification.intent);
+    const isOptOut = ["opt_out", "anger", "hard_no"].includes(classification.intent);
+
+    let priority: "high" | "medium" | "low" = "medium";
+    let action: string = "review";
+
+    if (isHotLead) {
+      priority = "high";
+      action = "callback_urgent";
+    } else if (isOptOut) {
+      priority = "low";
+      action = "add_to_dnc";
+    } else if (classification.intent === "question") {
+      priority = "medium";
+      action = "callback";
+    }
+
+    // ═════════════════════════════════════════════════
+    // STEP 3: Get AI insights
+    // ═════════════════════════════════════════════════
+    let aiInsights = {
+      intent: classification.intent,
+      confidence: classification.confidence,
+      sentiment: classification.sentiment,
+      priority,
+      suggestedAction: action,
+      suggestedPersonality: classification.suggestedPersonality,
+    };
 
     try {
-      const suggestResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_APP_URL || "https://monkfish-app-mb7h3.ondigitalocean.app"}/api/ai/analyze-voicemail`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            transcription: transcriptionText,
-            from,
-            to,
-            callSid,
-          }),
-        }
-      );
+      const analyzeResponse = await fetch(`${APP_URL}/api/ai/analyze-voicemail`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          transcription: transcriptionText,
+          from,
+          to,
+          callSid,
+          giannaClassification: classification,
+        }),
+      });
 
-      if (suggestResponse.ok) {
-        aiInsights = await suggestResponse.json();
+      if (analyzeResponse.ok) {
+        const fullAnalysis = await analyzeResponse.json();
+        aiInsights = { ...aiInsights, ...fullAnalysis };
       }
     } catch (err) {
       console.error("[Gianna Transcription] AI analysis failed:", err);
     }
 
-    // Store transcription in database or send notification
-    // In production, this would save to a leads table or send a notification
-
-    // Log the transcription for now
+    // ═════════════════════════════════════════════════
+    // STEP 4: Store and route the voicemail
+    // ═════════════════════════════════════════════════
     console.log("[Gianna Transcription] Processed voicemail:", {
       from,
       text: transcriptionText.slice(0, 100) + "...",
       insights: aiInsights,
     });
 
-    // If high-priority voicemail detected, trigger notification
-    if (aiInsights?.priority === "high" || aiInsights?.intent === "interested") {
+    // Store the voicemail
+    try {
+      await fetch(`${APP_URL}/api/inbox/voicemail`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          from,
+          to,
+          callSid,
+          transcriptionSid,
+          transcription: transcriptionText,
+          recordingUrl,
+          insights: aiInsights,
+          priority,
+          action,
+          createdAt: new Date().toISOString(),
+        }),
+      });
+    } catch (err) {
+      console.error("[Gianna Transcription] Failed to store voicemail:", err);
+    }
+
+    // ═════════════════════════════════════════════════
+    // STEP 5: Trigger notifications for hot leads
+    // ═════════════════════════════════════════════════
+    if (priority === "high") {
       try {
-        await fetch(
-          `${process.env.NEXT_PUBLIC_APP_URL || "https://monkfish-app-mb7h3.ondigitalocean.app"}/api/notifications/send`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              type: "voicemail",
-              priority: "high",
-              from,
-              transcription: transcriptionText,
-              insights: aiInsights,
-              recordingUrl,
-            }),
-          }
-        );
+        await fetch(`${APP_URL}/api/notifications/send`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "voicemail_hot_lead",
+            priority: "high",
+            title: "Hot Lead Voicemail",
+            message: `New voicemail from ${from}: "${transcriptionText.slice(0, 100)}..."`,
+            from,
+            transcription: transcriptionText,
+            insights: aiInsights,
+            recordingUrl,
+            action: "callback_required",
+          }),
+        });
       } catch (err) {
         console.error("[Gianna Transcription] Failed to send notification:", err);
       }
     }
 
-    // Return success
+    // ═════════════════════════════════════════════════
+    // STEP 6: Handle opt-out if detected
+    // ═════════════════════════════════════════════════
+    if (isOptOut) {
+      try {
+        await fetch(`${APP_URL}/api/suppression`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            phone: from,
+            reason: "voicemail_opt_out",
+            source: "gianna_transcription",
+            transcription: transcriptionText,
+          }),
+        });
+      } catch (err) {
+        console.error("[Gianna Transcription] Failed to add to suppression list:", err);
+      }
+    }
+
+    // ═════════════════════════════════════════════════
+    // STEP 7: Schedule follow-up SMS if appropriate
+    // ═════════════════════════════════════════════════
+    if (isHotLead) {
+      try {
+        await fetch(`${APP_URL}/api/sms/queue`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            to: from,
+            template: "voicemail_followup",
+            scheduledFor: new Date(Date.now() + 5 * 60 * 1000).toISOString(), // 5 min delay
+            context: {
+              transcription: transcriptionText,
+              intent: classification.intent,
+            },
+          }),
+        });
+      } catch (err) {
+        console.error("[Gianna Transcription] Failed to queue follow-up SMS:", err);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       transcriptionSid,
       processed: true,
-      insights: aiInsights,
+      classification: {
+        intent: classification.intent,
+        confidence: classification.confidence,
+        sentiment: classification.sentiment,
+      },
+      priority,
+      action,
     });
+
   } catch (error) {
     console.error("[Gianna Transcription] Error:", error);
     return new NextResponse("OK", { status: 200 }); // Always return 200 to Twilio
   }
 }
 
-// Also support GET for webhook verification
+// Support GET for webhook verification
 export async function GET() {
   return NextResponse.json({
     service: "Gianna AI Transcription Webhook",
+    version: "2.0.0",
     status: "active",
+    capabilities: [
+      "Intent classification",
+      "Priority routing",
+      "Hot lead detection",
+      "Opt-out handling",
+      "Follow-up scheduling",
+    ],
     timestamp: new Date().toISOString(),
   });
 }

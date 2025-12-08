@@ -115,24 +115,30 @@ export function GiannaChatWidget({
       const conversationHistory = messages.map((m) => ({
         role: m.role,
         content: m.content,
+        timestamp: m.timestamp.toISOString(),
       }));
 
-      const response = await fetch("/api/ai/chat", {
+      // Use Gianna generate API for personality-driven responses
+      const response = await fetch("/api/gianna/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: userMessage.content,
-          history: conversationHistory,
           context: {
-            ...context,
-            currentPage: window.location.pathname,
+            firstName: context?.leadName?.split(" ")[0],
+            phone: context?.leadPhone,
+            email: context?.leadEmail,
+            channel: "chat",
+            stage: messages.length <= 2 ? "cold_open" : "warming_up",
+            messageNumber: messages.filter((m) => m.role === "user").length + 1,
+            conversationHistory,
           },
         }),
       });
 
       const data = await response.json();
 
-      if (data.error) {
+      if (data.error || !data.success) {
         setMessages((prev) => [
           ...prev,
           {
@@ -148,7 +154,7 @@ export function GiannaChatWidget({
           {
             id: Date.now().toString(),
             role: "assistant",
-            content: data.response || data.message || "I processed your request.",
+            content: data.response?.message || "I processed your request.",
             timestamp: new Date(),
           },
         ]);

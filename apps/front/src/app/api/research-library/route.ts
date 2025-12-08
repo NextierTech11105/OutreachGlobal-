@@ -317,46 +317,84 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Generate shareable HTML for report - Professional dark-mode design
+// Generate shareable HTML for report - Professional dark-mode design with FULL data
 function generateShareableHTML(data: {
   id: string;
   name: string;
   savedAt: string;
   report: {
     property?: {
-      address?: { address?: string; city?: string; state?: string; zipCode?: string };
+      address?: { address?: string; city?: string; state?: string; zipCode?: string; zip?: string; county?: string };
       yearBuilt?: number;
       squareFeet?: number;
       bedrooms?: number;
       bathrooms?: number;
+      halfBaths?: number;
       propertyType?: string;
       lotSize?: number;
+      lotSquareFeet?: number;
+      estimatedValue?: number;
+      estimatedEquity?: number;
+      equityPercent?: number;
+      openMortgageBalance?: number;
+      ownerFullName?: string;
+      owner1FirstName?: string;
+      owner1LastName?: string;
+      currentMortgage?: {
+        lenderName?: string;
+        amount?: number;
+        interestRate?: number;
+        interestRateType?: string;
+        loanType?: string;
+        documentDate?: string;
+      };
+      currentMortgages?: Array<{
+        lenderName?: string;
+        amount?: number;
+        interestRate?: number;
+        interestRateType?: string;
+        loanType?: string;
+        documentDate?: string;
+        position?: string;
+      }>;
+      demographics?: {
+        medianIncome?: number;
+        suggestedRent?: number;
+        fmrOneBedroom?: number;
+        fmrTwoBedroom?: number;
+        fmrThreeBedroom?: number;
+      };
+      taxAmount?: number;
+      taxYear?: number;
+      taxAssessedValue?: number;
+      taxMarketValue?: number;
+      freeClear?: boolean;
+      highEquity?: boolean;
+      preForeclosure?: boolean;
+      mailingAddress?: string;
     };
     valuation?: {
       estimatedValue?: number;
-      confidence?: number;
+      confidence?: number | string;
       pricePerSqFt?: number;
-      equity?: number;
-      equityPercent?: number;
+      pricePerSqft?: number;
+      equityEstimate?: number;
+      comparableAvg?: number;
     };
     neighborhood?: {
       appreciation?: number;
       medianIncome?: number;
+      medianValue?: number;
       population?: number;
     };
     aiAnalysis?: {
       summary?: string;
+      executiveSummary?: string;
       strengths?: string[];
       risks?: string[];
       recommendations?: string[];
     };
-    comparables?: Array<{
-      address?: string;
-      price?: number;
-      sqft?: number;
-      beds?: number;
-      baths?: number;
-    }>;
+    comparables?: Array<Record<string, unknown>>;
   };
 }) {
   const { report } = data;
@@ -366,9 +404,24 @@ function generateShareableHTML(data: {
   const neighborhood = report?.neighborhood || {};
   const aiAnalysis = report?.aiAnalysis || {};
   const comparables = report?.comparables || [];
-  const estimatedValue = valuation.estimatedValue || 0;
+  const mortgage = property.currentMortgage || {};
+  const mortgages = property.currentMortgages || [];
+  const demographics = property.demographics || {};
+
+  // Primary estimated value
+  const estimatedValue = property.estimatedValue || valuation.estimatedValue || 0;
   const pricePerSqFt = valuation.pricePerSqFt || (property.squareFeet ? Math.round(estimatedValue / property.squareFeet) : 0);
-  const confidence = valuation.confidence || 94;
+  const confidence = typeof valuation.confidence === 'number' ? valuation.confidence : 94;
+
+  // Equity calculations
+  const openMortgage = property.openMortgageBalance || mortgage.amount || 0;
+  const estimatedEquity = property.estimatedEquity || (estimatedValue - openMortgage) || 0;
+  const equityPercent = property.equityPercent || (estimatedValue > 0 ? Math.round((estimatedEquity / estimatedValue) * 100) : 0);
+
+  // Owner info
+  const ownerName = property.ownerFullName ||
+    [property.owner1FirstName, property.owner1LastName].filter(Boolean).join(' ') ||
+    'Property Owner';
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -660,17 +713,24 @@ function generateShareableHTML(data: {
       <div class="valuation-banner">
         <div class="valuation-item">
           <div class="amount green">${formatCurrency(estimatedValue)}</div>
-          <div class="label">Estimated Value</div>
+          <div class="label">Estimated Market Value</div>
         </div>
         <div class="valuation-item">
-          <div class="amount">${confidence}%</div>
-          <div class="label">Confidence</div>
+          <div class="amount" style="color: #60a5fa;">${formatCurrency(estimatedEquity)}</div>
+          <div class="label">Estimated Equity (${equityPercent}%)</div>
         </div>
         <div class="valuation-item">
           <div class="amount">$${pricePerSqFt}</div>
           <div class="label">Per Sq Ft</div>
         </div>
       </div>
+      ${property.freeClear || property.highEquity || property.preForeclosure ? `
+      <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+        ${property.freeClear ? '<span style="background: #22c55e; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.8em; font-weight: 600;">🏠 FREE & CLEAR</span>' : ''}
+        ${property.highEquity ? '<span style="background: #3b82f6; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.8em; font-weight: 600;">💎 HIGH EQUITY</span>' : ''}
+        ${property.preForeclosure ? '<span style="background: #ef4444; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.8em; font-weight: 600;">⚠️ PRE-FORECLOSURE</span>' : ''}
+      </div>
+      ` : ''}
     </div>
 
     <div class="content">
@@ -704,13 +764,117 @@ function generateShareableHTML(data: {
         </div>
       </div>
 
+      <!-- Owner & Mortgage Information -->
+      <div class="section">
+        <div class="section-title">👤 Owner & Mortgage Information</div>
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-header">
+              <div class="metric-title">Property Owner</div>
+            </div>
+            <div class="metric-value" style="font-size: 1.2em; color: #c0c5d8;">${ownerName}</div>
+            ${property.mailingAddress ? `<div style="font-size: 0.8em; color: #8a8f9e; margin-top: 8px;">${property.mailingAddress}</div>` : ''}
+          </div>
+          ${mortgage.lenderName || openMortgage > 0 ? `
+          <div class="metric-card">
+            <div class="metric-header">
+              <div class="metric-title">Current Mortgage</div>
+              ${property.freeClear ? '<div class="metric-badge green">FREE & CLEAR</div>' : ''}
+            </div>
+            <div class="metric-value">${openMortgage > 0 ? formatCurrency(openMortgage) : 'None'}</div>
+            ${mortgage.lenderName ? `<div style="font-size: 0.85em; color: #8a8f9e; margin-top: 8px;">Lender: <strong style="color: #c0c5d8;">${mortgage.lenderName}</strong></div>` : ''}
+          </div>
+          ` : ''}
+          ${mortgage.interestRate ? `
+          <div class="metric-card">
+            <div class="metric-header">
+              <div class="metric-title">Interest Rate</div>
+              <div class="metric-badge">${mortgage.interestRateType || 'FIXED'}</div>
+            </div>
+            <div class="metric-value">${mortgage.interestRate}%</div>
+            ${mortgage.loanType ? `<div style="font-size: 0.85em; color: #8a8f9e; margin-top: 8px;">Type: ${mortgage.loanType}</div>` : ''}
+          </div>
+          ` : ''}
+          <div class="metric-card">
+            <div class="metric-header">
+              <div class="metric-title">Equity Position</div>
+              <div class="metric-badge ${equityPercent >= 50 ? 'green' : ''}">${equityPercent}% EQUITY</div>
+            </div>
+            <div class="metric-value green">${formatCurrency(estimatedEquity)}</div>
+          </div>
+        </div>
+        ${mortgages.length > 1 ? `
+        <div style="margin-top: 20px; background: #0f1424; padding: 15px; border-radius: 10px;">
+          <div style="font-size: 0.85em; color: #7ab3ff; margin-bottom: 10px; font-weight: 600;">📋 All Mortgages (${mortgages.length})</div>
+          ${mortgages.map((m) => `
+          <div style="padding: 10px; border-bottom: 1px solid #2a2f4a; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div style="color: #c0c5d8; font-weight: 500;">${m.lenderName || 'Unknown Lender'}</div>
+              <div style="font-size: 0.8em; color: #8a8f9e;">${m.loanType || 'Mortgage'} ${m.position ? `• Position: ${m.position}` : ''}</div>
+            </div>
+            <div style="text-align: right;">
+              <div style="color: #7ab3ff; font-weight: 600;">${m.amount ? formatCurrency(m.amount) : '—'}</div>
+              <div style="font-size: 0.8em; color: #8a8f9e;">${m.interestRate ? `${m.interestRate}% ${m.interestRateType || ''}` : ''}</div>
+            </div>
+          </div>
+          `).join('')}
+        </div>
+        ` : ''}
+      </div>
+
+      <!-- Tax & Demographics -->
+      ${property.taxAmount || demographics.medianIncome || demographics.suggestedRent ? `
+      <div class="section">
+        <div class="section-title">📊 Tax & Market Data</div>
+        <div class="metrics-grid">
+          ${property.taxAmount ? `
+          <div class="metric-card">
+            <div class="metric-header">
+              <div class="metric-title">Annual Property Tax</div>
+              ${property.taxYear ? `<div class="metric-badge">${property.taxYear}</div>` : ''}
+            </div>
+            <div class="metric-value">${formatCurrency(property.taxAmount)}</div>
+            ${property.taxAssessedValue ? `<div style="font-size: 0.8em; color: #8a8f9e; margin-top: 8px;">Assessed: ${formatCurrency(property.taxAssessedValue)}</div>` : ''}
+          </div>
+          ` : ''}
+          ${demographics.medianIncome ? `
+          <div class="metric-card">
+            <div class="metric-header">
+              <div class="metric-title">Area Median Income</div>
+              <div class="metric-badge">CENSUS</div>
+            </div>
+            <div class="metric-value">${formatCurrency(demographics.medianIncome)}</div>
+          </div>
+          ` : ''}
+          ${demographics.suggestedRent ? `
+          <div class="metric-card">
+            <div class="metric-header">
+              <div class="metric-title">Suggested Rent</div>
+              <div class="metric-badge green">FMR</div>
+            </div>
+            <div class="metric-value green">${formatCurrency(demographics.suggestedRent)}/mo</div>
+            ${demographics.fmrThreeBedroom ? `<div style="font-size: 0.8em; color: #8a8f9e; margin-top: 8px;">3BR FMR: ${formatCurrency(demographics.fmrThreeBedroom)}</div>` : ''}
+          </div>
+          ` : ''}
+          ${address.county ? `
+          <div class="metric-card">
+            <div class="metric-header">
+              <div class="metric-title">County</div>
+            </div>
+            <div class="metric-value" style="font-size: 1.1em; color: #c0c5d8;">${address.county}</div>
+          </div>
+          ` : ''}
+        </div>
+      </div>
+      ` : ''}
+
       <div class="section">
         <div class="section-title">💰 Valuation Analysis</div>
         <div class="metrics-grid">
           <div class="metric-card">
             <div class="metric-header">
-              <div class="metric-title">Estimated Value</div>
-              <div class="metric-badge green">PRIMARY</div>
+              <div class="metric-title">Estimated Market Value</div>
+              <div class="metric-badge green">AVM</div>
             </div>
             <div class="metric-value green">${formatCurrency(estimatedValue)}</div>
           </div>
@@ -721,22 +885,31 @@ function generateShareableHTML(data: {
             </div>
             <div class="metric-value">$${pricePerSqFt}</div>
           </div>
-          ${valuation.equity ? `
+          ${openMortgage > 0 ? `
           <div class="metric-card">
             <div class="metric-header">
-              <div class="metric-title">Estimated Equity</div>
-              <div class="metric-badge">${valuation.equityPercent || 0}%</div>
+              <div class="metric-title">Mortgage Balance</div>
+              <div class="metric-badge">CURRENT</div>
             </div>
-            <div class="metric-value">${formatCurrency(valuation.equity)}</div>
+            <div class="metric-value" style="color: #f87171;">${formatCurrency(openMortgage)}</div>
           </div>
           ` : ''}
           <div class="metric-card">
             <div class="metric-header">
               <div class="metric-title">Confidence Score</div>
-              <div class="metric-badge green">HIGH</div>
+              <div class="metric-badge green">${confidence >= 80 ? 'HIGH' : confidence >= 60 ? 'MEDIUM' : 'LOW'}</div>
             </div>
             <div class="metric-value">${confidence}%</div>
           </div>
+          ${valuation.comparableAvg ? `
+          <div class="metric-card">
+            <div class="metric-header">
+              <div class="metric-title">Comparable Avg</div>
+              <div class="metric-badge">COMPS</div>
+            </div>
+            <div class="metric-value">${formatCurrency(valuation.comparableAvg)}</div>
+          </div>
+          ` : ''}
         </div>
       </div>
 
@@ -770,14 +943,23 @@ function generateShareableHTML(data: {
             </tr>
           </thead>
           <tbody>
-            ${comparables.slice(0, 5).map(comp => `
+            ${comparables.slice(0, 5).map((comp: Record<string, unknown>) => {
+              // Handle both object and string address formats
+              const compAddress = typeof comp.address === 'object' && comp.address !== null
+                ? ((comp.address as Record<string, unknown>).address || (comp.address as Record<string, unknown>).street || '—')
+                : (comp.address || '—');
+              const compBeds = comp.beds || comp.bedrooms || '—';
+              const compBaths = comp.baths || comp.bathrooms || '—';
+              const compSqft = comp.sqft || comp.squareFeet || comp.buildingSize;
+              const compPrice = comp.price || comp.lastSaleAmount || comp.estimatedValue || comp.avm;
+              return `
             <tr>
-              <td>${comp.address || '—'}</td>
-              <td>${comp.beds || '—'}/${comp.baths || '—'}</td>
-              <td>${comp.sqft?.toLocaleString() || '—'}</td>
-              <td class="price-highlight">${comp.price ? formatCurrency(comp.price) : '—'}</td>
-            </tr>
-            `).join('')}
+              <td>${compAddress}</td>
+              <td>${compBeds}/${compBaths}</td>
+              <td>${compSqft ? Number(compSqft).toLocaleString() : '—'}</td>
+              <td class="price-highlight">${compPrice ? formatCurrency(Number(compPrice)) : '—'}</td>
+            </tr>`;
+            }).join('')}
           </tbody>
         </table>
       </div>
