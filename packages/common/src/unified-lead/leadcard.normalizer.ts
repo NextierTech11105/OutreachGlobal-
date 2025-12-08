@@ -3,6 +3,7 @@
  * Normalizes and deduplicates contact information for lead cards
  */
 
+import { URL } from 'url';
 import {
   PhoneInfo,
   EmailInfo,
