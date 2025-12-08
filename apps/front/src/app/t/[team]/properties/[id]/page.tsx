@@ -19,7 +19,7 @@ import { OwnerContactCard, skipTraceToOwnerContact, OwnerContact } from "@/compo
 // Property Detail interface - full payload from RealEstateAPI
 interface PropertyDetail {
   id: string;
-  // Property Info
+  // Property Info - can be nested or flat
   propertyInfo?: {
     address?: {
       label?: string;
@@ -29,20 +29,53 @@ interface PropertyDetail {
       state?: string;
       zip?: string;
       county?: string;
+      latitude?: number;
+      longitude?: number;
+      fips?: string;
     };
     propertyType?: string;
     bedrooms?: number;
     bathrooms?: number;
     squareFeet?: number;
     lotSize?: number;
+    lotAcres?: number;
     yearBuilt?: number;
     stories?: number;
     pool?: boolean;
     garage?: number;
+    garageSpaces?: number;
     zoning?: string;
     subdivision?: string;
     apn?: string;
+    livingArea?: number;
+    buildingArea?: number;
+    basement?: boolean;
+    basementSqFt?: number;
+    fireplace?: boolean;
+    fireplaces?: number;
+    heating?: string;
+    cooling?: string;
+    roofType?: string;
+    construction?: string;
+    exteriorWalls?: string;
+    foundation?: string;
   };
+  // Flat address fields (some responses use these)
+  address?: string | {
+    label?: string;
+    address?: string;
+    street?: string;
+    city?: string;
+    state?: string;
+    zip?: string;
+  };
+  propertyType?: string;
+  bedrooms?: number;
+  bathrooms?: number;
+  squareFeet?: number;
+  sqft?: number;
+  lotSize?: number;
+  yearBuilt?: number;
   // Owner Info
   ownerInfo?: {
     owner1FirstName?: string;
@@ -54,23 +87,38 @@ interface PropertyDetail {
     ownerOccupied?: boolean;
     ownerType?: string;
     corporateName?: string;
+    trustName?: string;
     mailingAddress?: {
       address?: string;
+      street?: string;
       city?: string;
       state?: string;
       zip?: string;
     };
+    lengthOfResidence?: number;
+    ownershipLength?: number;
   };
-  // Valuation
+  // Flat owner fields
+  owner1FirstName?: string;
+  owner1LastName?: string;
+  ownerFirstName?: string;
+  ownerLastName?: string;
+  ownerOccupied?: boolean;
+  // Valuation - multiple sources
   estimatedValue?: number;
+  avm?: number;
+  avmValue?: number;
   assessedValue?: number;
   taxAssessedValue?: number;
   taxMarketValue?: number;
   lastSalePrice?: number;
   lastSaleDate?: string;
+  lastSaleAmount?: number;
   equity?: number;
   equityPercent?: number;
-  // Mortgage
+  equityAmount?: number;
+  loanToValue?: number;
+  // Mortgage - can be nested or array
   mortgageInfo?: {
     lender?: string;
     loanAmount?: number;
@@ -78,20 +126,47 @@ interface PropertyDetail {
     interestRate?: number;
     loanDate?: string;
     maturityDate?: string;
+    dueDate?: string;
+    openMortgageBalance?: number;
   };
+  mortgages?: Array<{
+    lender?: string;
+    amount?: number;
+    type?: string;
+    rate?: number;
+    date?: string;
+    maturityDate?: string;
+  }>;
+  openMortgageBalance?: number;
   // Tax Info
   taxInfo?: {
     taxYear?: number;
     taxAmount?: number;
     taxDelinquent?: boolean;
     taxLienAmount?: number;
+    taxRate?: number;
+    exemptions?: string[];
   };
-  // Foreclosure
+  taxAmount?: number;
+  taxYear?: number;
+  // Foreclosure / Distress
   foreclosureInfo?: {
     foreclosureStatus?: string;
     foreclosureDate?: string;
     defaultAmount?: number;
     auctionDate?: string;
+    recordingDate?: string;
+    documentType?: string;
+  };
+  preForeclosure?: boolean;
+  foreclosure?: boolean;
+  reo?: boolean;
+  bankOwned?: boolean;
+  // Demographics / Market
+  demographics?: {
+    medianIncome?: number;
+    medianAge?: number;
+    population?: number;
   };
   // Skip Trace Results (from owner skip trace)
   phones?: string[];
@@ -101,7 +176,16 @@ interface PropertyDetail {
   skipTracedAt?: string;
   // Lead Signals
   leadTypes?: string[];
-  // Raw data
+  motivatedSeller?: boolean;
+  vacantProperty?: boolean;
+  highEquity?: boolean;
+  absenteeOwner?: boolean;
+  // MLS / Listing Info
+  mlsStatus?: string;
+  listingDate?: string;
+  listingPrice?: number;
+  daysOnMarket?: number;
+  // Raw data (allows any additional fields)
   [key: string]: unknown;
 }
 
@@ -705,7 +789,7 @@ export default function PropertyDetailPage() {
               </CardContent>
             </Card>
 
-            {/* Raw Data (for debugging) */}
+            {/* Property ID */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-sm">Property ID</CardTitle>
@@ -722,6 +806,36 @@ export default function PropertyDetailPage() {
                 >
                   <Copy className="h-3 w-3 mr-1" />
                   Copy ID
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Raw API Data - Debug */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  Raw API Data
+                </CardTitle>
+                <CardDescription>All fields from RealEstateAPI</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <details>
+                  <summary className="cursor-pointer text-sm text-muted-foreground hover:text-foreground">
+                    Click to expand raw data
+                  </summary>
+                  <pre className="text-xs bg-muted p-3 rounded mt-2 overflow-auto max-h-96">
+                    {JSON.stringify(property, null, 2)}
+                  </pre>
+                </details>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="mt-2"
+                  onClick={() => copyToClipboard(JSON.stringify(property, null, 2), "Raw data")}
+                >
+                  <Copy className="h-3 w-3 mr-1" />
+                  Copy JSON
                 </Button>
               </CardContent>
             </Card>

@@ -70,15 +70,26 @@ async function performSkipTrace(propertyId: string, ownerInfo?: PropertyOwnerInf
     }
 
     // Build skip trace request body per RealEstateAPI docs
-    const skipTraceBody: Record<string, string> = {};
+    // IMPORTANT: Address must be nested object per Lukas at RealEstateAPI
+    // Format: address: { address: "123 Main St", city: "Miami", state: "FL", zip: "33101" }
+    const skipTraceBody: Record<string, unknown> = {};
     if (firstName) skipTraceBody.first_name = firstName;
     if (lastName) skipTraceBody.last_name = lastName;
-    if (addressStr) skipTraceBody.address = addressStr;
-    if (city) skipTraceBody.city = city;
-    if (state) skipTraceBody.state = state;
-    if (zip) skipTraceBody.zip = zip;
 
-    console.log("[Skip Trace] Calling API with:", skipTraceBody);
+    // Nested address object format (address.address, address.city, address.state, address.zip)
+    if (addressStr || city || state || zip) {
+      skipTraceBody.address = {
+        address: addressStr || "",
+        city: city || "",
+        state: state || "",
+        zip: zip || "",
+      };
+    }
+
+    // Only want matches with phones
+    skipTraceBody.match_requirements = { phones: true };
+
+    console.log("[Skip Trace] Calling API with:", JSON.stringify(skipTraceBody, null, 2));
 
     const response = await fetch(SKIP_TRACE_URL, {
       method: "POST",
@@ -97,42 +108,54 @@ async function performSkipTrace(propertyId: string, ownerInfo?: PropertyOwnerInf
       return null;
     }
 
-    const result = data.data || data;
+    // RealEstateAPI response format: { output: { identity: { phones, emails, address, names } } }
+    const identity = data.output?.identity || {};
+    const isMatch = data.match === true;
+
     console.log("[Skip Trace] Result:", {
-      phones: result.phones?.length || 0,
-      emails: result.emails?.length || 0,
-      name: result.name || result.ownerName
+      match: isMatch,
+      phones: identity.phones?.length || 0,
+      emails: identity.emails?.length || 0,
     });
 
     incrementUsage("skipTrace");
 
-    // Parse phones - handle multiple formats
+    // Parse phones from identity.phones
+    // Format: { phone: "7032371234", phoneDisplay: "(703) 237-1234", phoneType: "landline", isConnected: true, doNotCall: false }
     const phones: string[] = [];
-    if (result.phones && Array.isArray(result.phones)) {
-      phones.push(...result.phones.map((p: { number?: string; phoneNumber?: string } | string) =>
-        typeof p === "string" ? p : (p.number || p.phoneNumber || "")
-      ).filter(Boolean));
+    if (identity.phones && Array.isArray(identity.phones)) {
+      for (const p of identity.phones) {
+        // Skip Do Not Call and disconnected numbers
+        if (p.doNotCall === true || p.isConnected === false) continue;
+        const num = p.phone || p.phoneDisplay?.replace(/\D/g, "") || "";
+        if (num) phones.push(num);
+      }
     }
-    // Also check flat fields
-    if (result.phone) phones.push(result.phone);
-    if (result.mobilePhone) phones.push(result.mobilePhone);
-    if (result.homePhone) phones.push(result.homePhone);
-    if (result.workPhone) phones.push(result.workPhone);
 
-    // Parse emails - handle multiple formats
+    // Parse emails from identity.emails
+    // Format: { email: "john@email.com", emailType: "personal" }
     const emails: string[] = [];
-    if (result.emails && Array.isArray(result.emails)) {
-      emails.push(...result.emails.map((e: { email?: string; address?: string } | string) =>
-        typeof e === "string" ? e : (e.email || e.address || "")
-      ).filter(Boolean));
+    if (identity.emails && Array.isArray(identity.emails)) {
+      for (const e of identity.emails) {
+        if (e.email) emails.push(e.email);
+      }
     }
-    if (result.email) emails.push(result.email);
+
+    // Get owner name from identity.names
+    const names = identity.names || [];
+    const primaryName = names[0];
+    const ownerName = primaryName?.fullName ||
+      [primaryName?.firstName, primaryName?.lastName].filter(Boolean).join(" ") ||
+      [firstName, lastName].filter(Boolean).join(" ");
+
+    // Get mailing address from identity.address
+    const mailingAddress = identity.address?.formattedAddress;
 
     return {
       phones: [...new Set(phones)], // Dedupe
       emails: [...new Set(emails)], // Dedupe
-      ownerName: result.name || result.ownerName || [firstName, lastName].filter(Boolean).join(" "),
-      mailingAddress: result.mailingAddress || result.mailing_address,
+      ownerName,
+      mailingAddress,
     };
   } catch (error) {
     console.error("[Skip Trace] Error:", error);

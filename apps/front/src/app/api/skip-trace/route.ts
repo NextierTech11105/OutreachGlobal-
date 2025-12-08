@@ -159,13 +159,26 @@ async function skipTracePerson(input: SkipTraceInput): Promise<SkipTraceResult> 
     }
 
     // Call SkipTrace API - v1 format per RealEstateAPI docs
+    // IMPORTANT: Address must be nested object per Lukas at RealEstateAPI
+    // Format: address: { address: "123 Main St", city: "Miami", state: "FL", zip: "33101" }
     const skipTraceBody: Record<string, unknown> = {};
     if (personData.firstName) skipTraceBody.first_name = personData.firstName;
     if (personData.lastName) skipTraceBody.last_name = personData.lastName;
-    if (personData.address) skipTraceBody.address = personData.address;
-    if (personData.city) skipTraceBody.city = personData.city;
-    if (personData.state) skipTraceBody.state = personData.state;
-    if (personData.zip) skipTraceBody.zip = personData.zip;
+
+    // Nested address object format (address.address, address.city, address.state, address.zip)
+    if (personData.address || personData.city || personData.state || personData.zip) {
+      skipTraceBody.address = {
+        address: personData.address || "",
+        city: personData.city || "",
+        state: personData.state || "",
+        zip: personData.zip || "",
+      };
+    }
+
+    // Add match_requirements to only get results with phones
+    skipTraceBody.match_requirements = { phones: true };
+
+    console.log("[Skip Trace] Calling API with body:", JSON.stringify(skipTraceBody, null, 2));
 
     const response = await fetch(SKIP_TRACE_URL, {
       method: "POST",
@@ -187,71 +200,91 @@ async function skipTracePerson(input: SkipTraceInput): Promise<SkipTraceResult> 
         emails: [],
         addresses: [],
         success: false,
-        error: data.message || `Skip trace failed: ${response.status}`,
+        error: data.message || data.responseMessage || `Skip trace failed: ${response.status}`,
       };
     }
 
-    const result = data.data || data;
+    // RealEstateAPI response format: { output: { identity: { phones, emails, address, names } } }
+    const identity = data.output?.identity || {};
+    const demographics = data.output?.demographics || {};
+    const isMatch = data.match === true;
 
-    // Parse phones
+    console.log("[Skip Trace] Response match:", isMatch, "phones:", identity.phones?.length || 0);
+
+    // Parse phones from identity.phones array
+    // Format: { phone: "7032371234", phoneDisplay: "(703) 237-1234", phoneType: "landline", isConnected: true, doNotCall: false }
     const phones: SkipTraceResult["phones"] = [];
-    if (result.phones && Array.isArray(result.phones)) {
-      phones.push(...result.phones.map((p: { number?: string; phoneNumber?: string; type?: string; score?: number }) => ({
-        number: p.number || p.phoneNumber || "",
-        type: p.type,
-        score: p.score,
-      })));
+    if (identity.phones && Array.isArray(identity.phones)) {
+      for (const p of identity.phones) {
+        // Skip Do Not Call numbers and disconnected numbers
+        if (p.doNotCall === true || p.isConnected === false) continue;
+        phones.push({
+          number: p.phone || p.phoneDisplay?.replace(/\D/g, "") || "",
+          type: p.phoneType || "unknown",
+          score: undefined,
+        });
+      }
     }
-    // Also check for flat phone fields
-    if (result.phone) phones.push({ number: result.phone, type: "primary" });
-    if (result.mobilePhone) phones.push({ number: result.mobilePhone, type: "mobile" });
-    if (result.homePhone) phones.push({ number: result.homePhone, type: "home" });
-    if (result.workPhone) phones.push({ number: result.workPhone, type: "work" });
 
-    // Parse emails
+    // Parse emails from identity.emails array
+    // Format: { email: "john@email.com", emailType: "personal" }
     const emails: SkipTraceResult["emails"] = [];
-    if (result.emails && Array.isArray(result.emails)) {
-      emails.push(...result.emails.map((e: { email?: string; address?: string; type?: string }) => ({
-        email: e.email || e.address || "",
-        type: e.type,
-      })));
+    if (identity.emails && Array.isArray(identity.emails)) {
+      for (const e of identity.emails) {
+        if (e.email) {
+          emails.push({
+            email: e.email,
+            type: e.emailType || "personal",
+          });
+        }
+      }
     }
-    if (result.email) emails.push({ email: result.email, type: "primary" });
 
-    // Parse addresses
+    // Parse current address from identity.address
+    // Format: { house, street, city, state, zip, formattedAddress }
     const addresses: SkipTraceResult["addresses"] = [];
-    if (result.addresses && Array.isArray(result.addresses)) {
-      addresses.push(...result.addresses.map((a: { street?: string; address?: string; city?: string; state?: string; zip?: string; type?: string }) => ({
-        street: a.street || a.address || "",
+    if (identity.address) {
+      const a = identity.address;
+      addresses.push({
+        street: a.formattedAddress || [a.house, a.preDir, a.street, a.strType].filter(Boolean).join(" "),
         city: a.city || "",
         state: a.state || "",
         zip: a.zip || "",
-        type: a.type,
-      })));
-    }
-    if (result.currentAddress) {
-      addresses.push({
-        street: result.currentAddress.street || result.currentAddress.address || "",
-        city: result.currentAddress.city || "",
-        state: result.currentAddress.state || "",
-        zip: result.currentAddress.zip || "",
         type: "current",
       });
     }
+    // Also add address history
+    if (identity.addressHistory && Array.isArray(identity.addressHistory)) {
+      for (const a of identity.addressHistory) {
+        addresses.push({
+          street: a.formattedAddress || [a.house, a.preDir, a.street, a.strType].filter(Boolean).join(" "),
+          city: a.city || "",
+          state: a.state || "",
+          zip: a.zip || "",
+          type: "previous",
+        });
+      }
+    }
+
+    // Get owner name from identity.names or demographics.names
+    const names = identity.names || demographics.names || [];
+    const primaryName = names[0];
+    const ownerName = primaryName?.fullName ||
+      [primaryName?.firstName, primaryName?.lastName].filter(Boolean).join(" ") ||
+      [personData.firstName, personData.lastName].filter(Boolean).join(" ");
 
     return {
       input,
-      ownerName: result.name || [result.firstName, result.lastName].filter(Boolean).join(" ") ||
-                 [personData.firstName, personData.lastName].filter(Boolean).join(" "),
-      firstName: result.firstName || personData.firstName,
-      lastName: result.lastName || personData.lastName,
+      ownerName,
+      firstName: primaryName?.firstName || personData.firstName,
+      lastName: primaryName?.lastName || personData.lastName,
       phones: phones.filter(p => p.number),
       emails: emails.filter(e => e.email),
       addresses: addresses.filter(a => a.street),
-      relatives: result.relatives || result.relativeNames,
-      associates: result.associates || result.associateNames,
-      success: true,
-      rawData: result,
+      relatives: data.output?.relationships?.map((r: { name?: string }) => r.name).filter(Boolean),
+      associates: undefined,
+      success: isMatch && phones.length > 0,
+      rawData: data,
     };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Skip trace failed";
@@ -275,7 +308,8 @@ interface BulkSkipInput {
   key: string; // Unique identifier (property ID)
   first_name: string;
   last_name: string;
-  address: string;
+  // SkipTraceBatchAwait uses FLAT address fields per official docs
+  address: string;  // Street address
   city: string;
   state: string;
   zip: string;
@@ -284,15 +318,21 @@ interface BulkSkipInput {
 interface BulkSkipResponse {
   key: string;
   input: BulkSkipInput;
+  // Response format: { output: { identity: { phones, emails, address, names }, demographics: {...} } }
   output?: {
-    names?: string[];
-    phones?: Array<{ number: string; type?: string; carrier?: string; score?: number }>;
-    emails?: Array<{ email: string; type?: string }>;
-    addresses?: Array<{ street: string; city: string; state: string; zip: string; type?: string }>;
-    age?: number;
-    dateOfBirth?: string;
-    relatives?: string[];
-    associates?: string[];
+    identity?: {
+      names?: Array<{ firstName: string; lastName: string; fullName: string }>;
+      phones?: Array<{ phone: string; phoneDisplay: string; phoneType: string; isConnected: boolean; doNotCall: boolean }>;
+      emails?: Array<{ email: string; emailType: string }>;
+      address?: { formattedAddress: string; city: string; state: string; zip: string };
+      addressHistory?: Array<{ formattedAddress: string; city: string; state: string; zip: string }>;
+    };
+    demographics?: {
+      age?: number;
+      gender?: string;
+      names?: Array<{ firstName: string; lastName: string; fullName: string }>;
+    };
+    relationships?: Array<{ name: string }>;
   };
   error?: string;
   match?: boolean;
@@ -366,6 +406,7 @@ async function bulkSkipTrace(propertyIds: string[]): Promise<{
           key: propId,
           first_name: firstName,
           last_name: lastName,
+          // SkipTraceBatchAwait uses FLAT address fields
           address: addressStr,
           city,
           state,
@@ -435,56 +476,69 @@ async function bulkSkipTrace(propertyIds: string[]): Promise<{
 
       console.log(`[Bulk Skip Trace] Batch returned ${batchResults.length} results`);
 
-      // Parse each result
+      // Parse each result - format: { output: { identity: { phones, emails, address }, demographics: {...} } }
       for (const item of batchResults) {
         const propertyData = propertyDataMap.get(item.key) || {};
-        const output = item.output || {};
+        const identity = item.output?.identity || {};
+        const demographics = item.output?.demographics || {};
 
-        // Parse phones
+        // Parse phones from identity.phones
+        // Format: { phone: "7032371234", phoneDisplay: "(703) 237-1234", phoneType: "mobile", isConnected: true, doNotCall: false }
         const phones: SkipTraceResult["phones"] = [];
-        if (output.phones && Array.isArray(output.phones)) {
-          for (const p of output.phones) {
-            if (p.number) {
-              phones.push({
-                number: p.number,
-                type: p.type,
-                score: p.score,
-              });
-            }
+        if (identity.phones && Array.isArray(identity.phones)) {
+          for (const p of identity.phones) {
+            // Skip Do Not Call and disconnected numbers
+            if (p.doNotCall === true || p.isConnected === false) continue;
+            phones.push({
+              number: p.phone || p.phoneDisplay?.replace(/\D/g, "") || "",
+              type: p.phoneType || "unknown",
+              score: undefined,
+            });
           }
         }
 
-        // Parse emails
+        // Parse emails from identity.emails
+        // Format: { email: "john@email.com", emailType: "personal" }
         const emails: SkipTraceResult["emails"] = [];
-        if (output.emails && Array.isArray(output.emails)) {
-          for (const e of output.emails) {
+        if (identity.emails && Array.isArray(identity.emails)) {
+          for (const e of identity.emails) {
             if (e.email) {
               emails.push({
                 email: e.email,
-                type: e.type,
+                type: e.emailType || "personal",
               });
             }
           }
         }
 
-        // Parse addresses
+        // Parse addresses from identity.address and addressHistory
         const addresses: SkipTraceResult["addresses"] = [];
-        if (output.addresses && Array.isArray(output.addresses)) {
-          for (const a of output.addresses) {
-            if (a.street) {
-              addresses.push({
-                street: a.street,
-                city: a.city || "",
-                state: a.state || "",
-                zip: a.zip || "",
-                type: a.type,
-              });
-            }
+        if (identity.address) {
+          addresses.push({
+            street: identity.address.formattedAddress || "",
+            city: identity.address.city || "",
+            state: identity.address.state || "",
+            zip: identity.address.zip || "",
+            type: "current",
+          });
+        }
+        if (identity.addressHistory && Array.isArray(identity.addressHistory)) {
+          for (const a of identity.addressHistory) {
+            addresses.push({
+              street: a.formattedAddress || "",
+              city: a.city || "",
+              state: a.state || "",
+              zip: a.zip || "",
+              type: "previous",
+            });
           }
         }
 
         const inputData = item.input || chunk.find(c => c.key === item.key);
-        const ownerName = output.names?.[0] ||
+        const names = identity.names || demographics.names || [];
+        const primaryName = names[0];
+        const ownerName = primaryName?.fullName ||
+          [primaryName?.firstName, primaryName?.lastName].filter(Boolean).join(" ") ||
           [inputData?.first_name, inputData?.last_name].filter(Boolean).join(" ");
 
         allResults.push({
@@ -498,16 +552,16 @@ async function bulkSkipTrace(propertyIds: string[]): Promise<{
             zip: inputData?.zip,
           },
           ownerName,
-          firstName: inputData?.first_name || output.names?.[0]?.split(" ")[0],
-          lastName: inputData?.last_name || output.names?.[0]?.split(" ").slice(1).join(" "),
+          firstName: primaryName?.firstName || inputData?.first_name,
+          lastName: primaryName?.lastName || inputData?.last_name,
           phones,
           emails,
           addresses,
-          relatives: output.relatives,
-          associates: output.associates,
-          success: item.match !== false && !item.error,
+          relatives: item.output?.relationships?.map((r: { name?: string }) => r.name).filter(Boolean),
+          associates: undefined,
+          success: item.match !== false && !item.error && phones.length > 0,
           error: item.error,
-          rawData: { ...output, propertyData },
+          rawData: { ...item.output, propertyData },
         });
       }
     } catch (err) {
