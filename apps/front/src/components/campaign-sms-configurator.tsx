@@ -48,6 +48,86 @@ interface CampaignSmsConfiguratorProps {
   isSending?: boolean;
 }
 
+// ============ CAMPAIGN STAGE TYPES ============
+type CampaignStage = "initial" | "nc_retarget" | "nurture" | "nudger";
+
+interface CampaignStageConfig {
+  id: CampaignStage;
+  label: string;
+  description: string;
+  icon: React.ReactNode;
+  color: string;
+  bgColor: string;
+  defaultTone: ToneSliders;
+  templateLibrary: string[];
+  context: string;
+}
+
+const CAMPAIGN_STAGES: CampaignStageConfig[] = [
+  {
+    id: "initial",
+    label: "Initial Message",
+    description: "First contact - introduce yourself",
+    icon: <Sparkles className="h-4 w-4" />,
+    color: "text-blue-600",
+    bgColor: "bg-blue-500/10 border-blue-500/30",
+    defaultTone: { conversational: 70, humor: 20, urgency: 30, directness: 50 },
+    templateLibrary: [
+      "Hi {name}! I noticed you own {address}. I'm reaching out about potential opportunities in your area. Would you be open to a quick chat?",
+      "Hello {name}, I'm {agent_name} with {company}. We've been active in your neighborhood and wanted to connect about your property at {address}.",
+      "Hi there! I'm reaching out about your property on {street}. We've helped several owners in your area - is this something you'd consider discussing?",
+    ],
+    context: "First touchpoint. Be warm, professional, and non-pushy. Goal is to open a dialogue.",
+  },
+  {
+    id: "nc_retarget",
+    label: "NC Retarget",
+    description: "No contact follow-up - try again",
+    icon: <RefreshCw className="h-4 w-4" />,
+    color: "text-orange-600",
+    bgColor: "bg-orange-500/10 border-orange-500/30",
+    defaultTone: { conversational: 60, humor: 10, urgency: 50, directness: 60 },
+    templateLibrary: [
+      "Hi {name}, just following up on my previous message about {address}. I'd love to connect when you have a moment.",
+      "{name}, I reached out recently and wanted to check in. Still interested in discussing your property? Just reply YES if you'd like to chat.",
+      "Hey {name}! Not sure if my last message went through. I'm still interested in talking about opportunities for {address} whenever you're free.",
+    ],
+    context: "Second or third attempt after no response. Acknowledge the follow-up, stay positive, provide easy response options.",
+  },
+  {
+    id: "nurture",
+    label: "Nurture & Follow-up",
+    description: "Ongoing relationship building",
+    icon: <Hand className="h-4 w-4" />,
+    color: "text-green-600",
+    bgColor: "bg-green-500/10 border-green-500/30",
+    defaultTone: { conversational: 80, humor: 30, urgency: 20, directness: 40 },
+    templateLibrary: [
+      "Hi {name}! Just checking in. The market has been interesting lately - let me know if you ever want to discuss your options for {address}.",
+      "{name}, hope you're doing well! I came across some news about your area and thought of you. Want me to share what I'm seeing?",
+      "Hey {name}! No pressure at all, just wanted to stay in touch. If anything changes with your plans for {address}, I'm here.",
+      "Hi {name}, I recently helped a neighbor near {address} and thought you might find it interesting. Happy to share details if you're curious!",
+    ],
+    context: "Long-term relationship building. Be helpful, share value, no hard sell. Content delivery and market updates work well here.",
+  },
+  {
+    id: "nudger",
+    label: "Nudger",
+    description: "Gentle reminder campaigns",
+    icon: <MessageCircle className="h-4 w-4" />,
+    color: "text-purple-600",
+    bgColor: "bg-purple-500/10 border-purple-500/30",
+    defaultTone: { conversational: 60, humor: 20, urgency: 40, directness: 70 },
+    templateLibrary: [
+      "Quick note {name} - I'm still here if you want to chat about {address}. No rush!",
+      "{name}, just a friendly nudge! I'm available this week if you'd like to discuss your property.",
+      "Hi {name}! Still thinking about you and {address}. Drop me a line when you're ready - I'm not going anywhere!",
+      "{name}, gentle reminder that I'm still interested in connecting about your property. What would work for you?",
+    ],
+    context: "Light touch reminders between major campaign stages. Keep it short, friendly, and easy to respond to.",
+  },
+];
+
 // Tone sliders
 interface ToneSliders {
   conversational: number;
@@ -148,6 +228,13 @@ export function CampaignSmsConfigurator({
   const [isGenerating, setIsGenerating] = useState(false);
   const [provider, setProvider] = useState<"openai" | "anthropic">("openai");
 
+  // Campaign Stage Selection (4 types)
+  const [campaignStage, setCampaignStage] = useState<CampaignStage>("initial");
+  const [showTemplateLibrary, setShowTemplateLibrary] = useState(false);
+
+  // Get current stage config
+  const currentStage = CAMPAIGN_STAGES.find((s) => s.id === campaignStage) || CAMPAIGN_STAGES[0];
+
   // Tone configuration
   const [sliders, setSliders] = useState<ToneSliders>({
     conversational: 60,
@@ -158,6 +245,23 @@ export function CampaignSmsConfigurator({
 
   // Intent selection
   const [intent, setIntent] = useState<IntentType>("book_appointment");
+
+  // Apply stage defaults when stage changes
+  const handleStageChange = (stage: CampaignStage) => {
+    setCampaignStage(stage);
+    const stageConfig = CAMPAIGN_STAGES.find((s) => s.id === stage);
+    if (stageConfig) {
+      setSliders(stageConfig.defaultTone);
+      toast.info(`Switched to ${stageConfig.label} - tone adjusted`);
+    }
+  };
+
+  // Use template from library
+  const useTemplate = (template: string) => {
+    setSelectedMessage(template);
+    setShowTemplateLibrary(false);
+    toast.success("Template applied - customize as needed");
+  };
 
   // Load saved settings
   useEffect(() => {
@@ -194,6 +298,11 @@ export function CampaignSmsConfigurator({
           leadType,
           provider,
           variations: 3,
+          // Campaign stage context for AI
+          campaignStage,
+          stageContext: currentStage.context,
+          stageLabel: currentStage.label,
+          exampleTemplates: currentStage.templateLibrary,
         }),
       });
 
@@ -254,9 +363,88 @@ export function CampaignSmsConfigurator({
         </Badge>
       </div>
 
+      {/* ============ CAMPAIGN STAGE SELECTOR (4 Types) ============ */}
+      <div className="space-y-3">
+        <Label className="text-sm font-medium flex items-center gap-2">
+          <Target className="h-4 w-4" />
+          Campaign Type
+        </Label>
+        <div className="grid grid-cols-2 gap-2">
+          {CAMPAIGN_STAGES.map((stage) => (
+            <button
+              key={stage.id}
+              type="button"
+              onClick={() => handleStageChange(stage.id)}
+              className={cn(
+                "flex flex-col items-start p-3 rounded-lg border-2 transition-all text-left",
+                campaignStage === stage.id
+                  ? `${stage.bgColor} border-current`
+                  : "border-muted hover:border-muted-foreground/30"
+              )}
+            >
+              <div className={cn("flex items-center gap-2 mb-1", stage.color)}>
+                {stage.icon}
+                <span className="font-medium text-sm">{stage.label}</span>
+              </div>
+              <span className="text-xs text-muted-foreground">{stage.description}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Stage Context Info */}
+        <div className={cn("p-3 rounded-lg text-sm", currentStage.bgColor)}>
+          <div className={cn("flex items-center gap-2 font-medium mb-1", currentStage.color)}>
+            {currentStage.icon}
+            {currentStage.label} Context
+          </div>
+          <p className="text-xs text-muted-foreground">{currentStage.context}</p>
+        </div>
+
+        {/* Template Library Button */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowTemplateLibrary(!showTemplateLibrary)}
+          className="w-full"
+        >
+          <MessageCircle className="h-4 w-4 mr-2" />
+          {showTemplateLibrary ? "Hide" : "View"} {currentStage.label} Templates ({currentStage.templateLibrary.length})
+        </Button>
+
+        {/* Template Library */}
+        <AnimatePresence>
+          {showTemplateLibrary && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="space-y-2 overflow-hidden"
+            >
+              {currentStage.templateLibrary.map((template, idx) => (
+                <div
+                  key={idx}
+                  onClick={() => useTemplate(template)}
+                  className="p-3 rounded-lg border bg-card hover:bg-accent cursor-pointer transition-colors"
+                >
+                  <p className="text-sm">{template}</p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Badge variant="outline" className="text-xs">
+                      {template.length}/160
+                    </Badge>
+                    <Badge variant="secondary" className="text-xs">
+                      Click to use
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
       {/* Quick Presets */}
       <div className="space-y-2">
-        <Label className="text-sm text-muted-foreground">Quick Presets</Label>
+        <Label className="text-sm text-muted-foreground">Quick Tone Presets</Label>
         <div className="flex flex-wrap gap-2">
           {TONE_PRESETS.map((preset) => (
             <Button

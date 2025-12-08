@@ -892,6 +892,262 @@ export default function PropertiesPage() {
     window.location.href = `/t/default/valuation?address=${encodeURIComponent(address)}`;
   }, [propertyDetail]);
 
+  // 🚀 FULL REPORT - Combined Detail + Skip Trace + Push to Valuation
+  // This is the ONE BUTTON that does everything
+  const [fullReportLoading, setFullReportLoading] = useState<string | null>(null);
+  const [bulkReportProgress, setBulkReportProgress] = useState<{
+    processed: number;
+    total: number;
+    withPhones: number;
+    withEmails: number;
+  } | null>(null);
+  const [bulkReportRunning, setBulkReportRunning] = useState(false);
+
+  // Bulk Full Report - Uses SkipTraceBatchAwait API for up to 1,000 at once
+  // Much faster than sequential calls - 2K daily limit, push to SMS queue
+  const BULK_API_BATCH_SIZE = 1000; // RealEstateAPI SkipTraceBatchAwait max
+  const BULK_DAILY_LIMIT = 2000;
+
+  const handleBulkFullReport = useCallback(async () => {
+    if (selectedIds.size === 0) {
+      toast.error("Select properties to process");
+      return;
+    }
+
+    setBulkReportRunning(true);
+    setBulkReportProgress({ processed: 0, total: Math.min(selectedIds.size, BULK_DAILY_LIMIT), withPhones: 0, withEmails: 0 });
+
+    try {
+      const allIds = Array.from(selectedIds);
+      const totalToProcess = Math.min(allIds.length, BULK_DAILY_LIMIT);
+      let processedCount = 0;
+      let totalWithPhones = 0;
+      let totalWithEmails = 0;
+      const processedLeads: Array<{
+        name: string;
+        phone: string;
+        email: string;
+        address: string;
+        propertyValue: number;
+        equity: number;
+        propertyId: string;
+      }> = [];
+
+      // Get the properties to process
+      const propertiesToProcess = results.filter(p => selectedIds.has(p.id)).slice(0, totalToProcess);
+
+      // Process in batches of 1,000 using BULK API (SkipTraceBatchAwait)
+      const batchSize = BULK_API_BATCH_SIZE;
+      const numBatches = Math.ceil(propertiesToProcess.length / batchSize);
+
+      toast.info(`🚀 BULK Skip Trace: ${totalToProcess} properties in ${numBatches} batch(es) of up to ${batchSize}...`);
+
+      for (let batchIndex = 0; batchIndex < numBatches; batchIndex++) {
+        const startIdx = batchIndex * batchSize;
+        const endIdx = Math.min(startIdx + batchSize, propertiesToProcess.length);
+        const batchProperties = propertiesToProcess.slice(startIdx, endIdx);
+        const batchIds = batchProperties.map(p => p.id);
+
+        console.log(`[Bulk Skip Trace] Batch ${batchIndex + 1}/${numBatches}: ${batchIds.length} properties via SkipTraceBatchAwait`);
+
+        // BULK skip trace call using SkipTraceBatchAwait API
+        const response = await fetch("/api/skip-trace", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ids: batchIds,
+            bulk: true, // Use SkipTraceBatchAwait API for much faster processing
+          }),
+        });
+
+        const data = await response.json();
+
+        if (data.error === "Daily skip trace limit reached") {
+          toast.error(`Daily limit reached! Processed ${processedCount} of ${totalToProcess}`);
+          break;
+        }
+
+        if (data.error) {
+          console.error(`Batch ${batchIndex + 1} error:`, data.error);
+          continue;
+        }
+
+        // Process results and collect leads with phones
+        if (data.results) {
+          for (const skipResult of data.results) {
+            if (skipResult.success) {
+              processedCount++;
+              const phones = (skipResult.phones || []).map((p: string | { number: string }) =>
+                typeof p === 'string' ? p : p.number
+              );
+              const emails = (skipResult.emails || []).map((e: string | { email: string }) =>
+                typeof e === 'string' ? e : e.email
+              );
+
+              if (phones.length > 0) totalWithPhones++;
+              if (emails.length > 0) totalWithEmails++;
+
+              // Find original property
+              const originalProperty = batchProperties.find(p => p.id === skipResult.id || p.id === skipResult.input?.propertyId);
+
+              // Add to leads if has phone
+              if (phones.length > 0 && originalProperty) {
+                processedLeads.push({
+                  name: skipResult.ownerName || originalProperty.ownerName || "Property Owner",
+                  phone: phones[0],
+                  email: emails[0] || "",
+                  address: `${originalProperty.address}, ${originalProperty.city}, ${originalProperty.state} ${originalProperty.zip}`,
+                  propertyValue: originalProperty.estimatedValue || 0,
+                  equity: originalProperty.equity || 0,
+                  propertyId: originalProperty.id,
+                });
+              }
+
+              // Update property in results
+              setResults((prev) =>
+                prev.map((p) => {
+                  if (p.id === skipResult.id || p.id === skipResult.input?.propertyId) {
+                    return {
+                      ...p,
+                      phones,
+                      emails,
+                      ownerName: skipResult.ownerName || p.ownerName,
+                      skipTraced: true,
+                    };
+                  }
+                  return p;
+                })
+              );
+            }
+          }
+        }
+
+        // Update progress
+        setBulkReportProgress({
+          processed: processedCount,
+          total: totalToProcess,
+          withPhones: totalWithPhones,
+          withEmails: totalWithEmails,
+        });
+
+        // Show batch progress (Bulk API mode)
+        const apiMode = data.mode === "bulk" ? "🚀 Bulk API" : "Standard";
+        toast.info(`${apiMode} Batch ${batchIndex + 1}/${numBatches}: ${data.stats?.withPhones || 0} phones, ${data.stats?.withEmails || 0} emails`);
+
+        // Small delay between batches
+        if (batchIndex < numBatches - 1) {
+          await new Promise((r) => setTimeout(r, 500));
+        }
+      }
+
+      // Push all leads with phones to SMS Campaign Queue
+      if (processedLeads.length > 0) {
+        localStorage.setItem("nextier_sms_queue", JSON.stringify({
+          leads: processedLeads,
+          source: "bulk-full-report",
+          createdAt: new Date().toISOString(),
+          stats: {
+            processed: processedCount,
+            withPhones: totalWithPhones,
+            withEmails: totalWithEmails,
+          },
+        }));
+
+        toast.success(
+          `🚀 Bulk Skip Trace Complete! ${processedCount} processed, ${totalWithPhones} phones, ${totalWithEmails} emails. ${processedLeads.length} leads pushed to SMS Queue!`
+        );
+
+        // Offer to go to SMS Campaign
+        setTimeout(() => {
+          if (confirm(`${processedLeads.length} leads are ready for Initial SMS Campaign. Go to Campaign Setup?`)) {
+            window.location.href = "/t/default/campaigns/new?from=bulk-report&queue=sms";
+          }
+        }, 1000);
+      } else {
+        toast.warning(`Bulk Skip Trace Complete. ${processedCount} processed but no phone numbers found.`);
+      }
+
+      setSelectedIds(new Set());
+    } catch (error) {
+      console.error("Bulk Skip Trace failed:", error);
+      toast.error("Bulk Skip Trace failed");
+    } finally {
+      setBulkReportRunning(false);
+      setBulkReportProgress(null);
+    }
+  }, [selectedIds, results]);
+
+  const handleFullReport = useCallback(async (property: Property) => {
+    setFullReportLoading(property.id);
+    toast.info(`Running Full Report for ${property.address}...`);
+
+    try {
+      // Step 1: Fetch property detail with auto skip trace
+      const response = await fetch("/api/property/detail", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: property.id, autoSkipTrace: true }),
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        toast.error(data.error);
+        setFullReportLoading(null);
+        return;
+      }
+
+      const detail = data.property;
+
+      // Update the property in results with skip trace data
+      if (detail) {
+        setResults((prev) =>
+          prev.map((p) =>
+            p.id === property.id
+              ? {
+                  ...p,
+                  phones: detail.phones || p.phones,
+                  emails: detail.emails || p.emails,
+                  ownerName: detail.ownerName || p.ownerName,
+                  skipTraced: true,
+                }
+              : p
+          )
+        );
+      }
+
+      // Step 2: Store data and redirect to Valuation page
+      const address = `${property.address}, ${property.city}, ${property.state} ${property.zip}`;
+      localStorage.setItem("nextier_valuation_property", JSON.stringify({
+        address,
+        propertyId: property.id,
+        ownerName: detail?.ownerName || property.ownerName,
+        phones: detail?.phones || property.phones,
+        emails: detail?.emails || property.emails,
+        estimatedValue: detail?.estimatedValue || property.estimatedValue,
+        equity: detail?.equity || property.equity,
+        beds: detail?.beds || property.beds,
+        baths: detail?.baths || property.baths,
+        sqft: detail?.sqft || property.sqft,
+        yearBuilt: detail?.yearBuilt || property.yearBuilt,
+        propertyType: detail?.propertyType || property.propertyType,
+        propertyDetail: detail,
+      }));
+
+      toast.success("Full Report complete! Redirecting to Valuation...");
+
+      // Short delay to show success message, then redirect
+      setTimeout(() => {
+        window.location.href = `/t/default/valuation?address=${encodeURIComponent(address)}`;
+      }, 500);
+
+    } catch (error) {
+      console.error("Full Report failed:", error);
+      toast.error("Failed to run Full Report");
+      setFullReportLoading(null);
+    }
+  }, []);
+
   // Schedule action for a property (SMS, Call, Email)
   const handleSchedule = useCallback(async () => {
     if (!schedulingProperty) return;
@@ -1585,17 +1841,31 @@ export default function PropertiesPage() {
                         <span className="text-muted-foreground text-sm">-</span>
                       )}
                     </TableCell>
-                    {/* ACTION KIOSK - Run Detail + Schedule SMS/Call/Email */}
+                    {/* ACTION KIOSK - Full Report + Detail + Schedule SMS/Call/Email */}
                     <TableCell>
                       <div className="flex items-center gap-1">
-                        {/* Run Detail - fetches full property data + skip trace */}
+                        {/* 🚀 FULL REPORT - One button does Detail + Skip Trace + Valuation */}
+                        <Button
+                          size="sm"
+                          className="h-7 px-2 text-xs bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white"
+                          onClick={() => handleFullReport(property)}
+                          disabled={fullReportLoading === property.id}
+                        >
+                          {fullReportLoading === property.id ? (
+                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                          ) : (
+                            <Zap className="h-3 w-3 mr-1" />
+                          )}
+                          Full Report
+                        </Button>
+                        {/* View Full Detail Page */}
                         <Button
                           variant="outline"
                           size="sm"
                           className="h-7 px-2 text-xs"
-                          onClick={() => handleRunDetail(property)}
+                          onClick={() => window.location.href = `/t/default/properties/${property.id}`}
                         >
-                          <Play className="h-3 w-3 mr-1" />
+                          <Eye className="h-3 w-3 mr-1" />
                           Detail
                         </Button>
                         {/* Schedule SMS */}
@@ -1709,6 +1979,34 @@ export default function PropertiesPage() {
                 </div>
 
                 <div className="flex items-center gap-2">
+                  {/* 🚀 BULK SKIP TRACE - Uses SkipTraceBatchAwait API (1,000 at once) */}
+                  <Button
+                    size="sm"
+                    onClick={handleBulkFullReport}
+                    disabled={selectedIds.size === 0 || bulkReportRunning}
+                    className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white"
+                    title="Uses RealEstateAPI SkipTraceBatchAwait for fast bulk processing (up to 1,000 per batch)"
+                  >
+                    {bulkReportRunning ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Bulk Skip Trace... {bulkReportProgress && `(${bulkReportProgress.processed}/${bulkReportProgress.total})`}
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="h-4 w-4 mr-2" />
+                        Bulk Skip Trace ({Math.min(selectedIds.size, BULK_DAILY_LIMIT)})
+                      </>
+                    )}
+                  </Button>
+
+                  {/* Progress indicator */}
+                  {bulkReportProgress && (
+                    <Badge className="bg-purple-600/20 text-purple-300 border-purple-400/30">
+                      {bulkReportProgress.withPhones} 📱 | {bulkReportProgress.withEmails} ✉️
+                    </Badge>
+                  )}
+
                   {/* Batch Skip Trace with progress */}
                   <Button
                     variant="default"

@@ -1051,6 +1051,9 @@ export default function ValuationPage() {
                     type="text"
                     value={shareableLink}
                     readOnly
+                    title="Shareable report link"
+                    placeholder="Generating link..."
+                    aria-label="Shareable report link"
                     className="flex-1 bg-background px-3 py-2 rounded text-sm font-mono truncate border"
                   />
                   <Button
@@ -1242,6 +1245,9 @@ export default function ValuationPage() {
                     type="text"
                     value={shareableLink}
                     readOnly
+                    title="Shareable report link"
+                    placeholder="Generating link..."
+                    aria-label="Shareable report link"
                     className="flex-1 bg-background px-3 py-2 rounded text-sm font-mono truncate border"
                   />
                   <Button
@@ -2116,18 +2122,22 @@ export default function ValuationPage() {
                     <div className="h-48 flex items-end gap-2">
                       {aiAnalysis.priceEvolution.chartData.filter(d => typeof d.avgPrice === 'number').map((point, idx) => {
                         const maxPrice = Math.max(...aiAnalysis.priceEvolution!.chartData.filter(d => typeof d.avgPrice === 'number').map(d => d.avgPrice as number));
-                        const height = maxPrice > 0 ? ((point.avgPrice as number) / maxPrice) * 100 : 0;
+                        const heightPercent = maxPrice > 0 ? ((point.avgPrice as number) / maxPrice) * 100 : 0;
+                        const barHeight = Math.round(heightPercent * 1.5);
+                        const dotBottom = point.thisProperty && typeof point.thisProperty === 'number'
+                          ? Math.round((point.thisProperty / maxPrice) * 100 * 1.5)
+                          : 0;
                         return (
                           <div key={idx} className="flex-1 flex flex-col items-center">
                             <div className="relative w-full">
                               <div
                                 className="w-full bg-gradient-to-t from-green-600 to-green-400 rounded-t transition-all"
-                                style={{ height: `${height * 1.5}px` }}
+                                style={{ height: barHeight } as React.CSSProperties}
                               />
                               {point.thisProperty && typeof point.thisProperty === 'number' && (
                                 <div
                                   className="absolute w-3 h-3 rounded-full bg-purple-600 border-2 border-white left-1/2 -translate-x-1/2"
-                                  style={{ bottom: `${(point.thisProperty / maxPrice) * 100 * 1.5}px` }}
+                                  style={{ bottom: dotBottom } as React.CSSProperties}
                                 />
                               )}
                             </div>
@@ -2542,13 +2552,13 @@ export default function ValuationPage() {
                   <div className="flex items-end gap-2 h-32">
                     {neighborhood.priceHistory.map((ph, idx) => {
                       const maxPrice = Math.max(...neighborhood.priceHistory.map((p) => p.avgPrice));
-                      const height = maxPrice > 0 ? (ph.avgPrice / maxPrice) * 100 : 0;
+                      const heightPercent = maxPrice > 0 ? Math.round((ph.avgPrice / maxPrice) * 100) : 0;
 
                       return (
                         <div key={idx} className="flex-1 flex flex-col items-center">
                           <div
                             className="w-full bg-primary rounded-t transition-all"
-                            style={{ height: `${height}%` }}
+                            style={{ height: `${heightPercent}%` } as React.CSSProperties}
                           />
                           <p className="text-xs mt-1">{ph.year}</p>
                           <p className="text-xs text-muted-foreground">

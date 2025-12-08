@@ -21,41 +21,117 @@ function incrementUsage(type: "detail" | "skipTrace", count: number = 1) {
   dailyUsage.set(today, usage);
 }
 
-// Skip trace a property after detail fetch
-async function performSkipTrace(propertyId: string): Promise<{
+// Skip trace a property owner using owner name + property address
+// RealEstateAPI SkipTrace requires: first_name, last_name, address, city, state, zip
+interface PropertyOwnerInfo {
+  owner1FirstName?: string;
+  owner1LastName?: string;
+  ownerFirstName?: string;
+  ownerLastName?: string;
+  address?: string | { address?: string; street?: string; label?: string; city?: string; state?: string; zip?: string };
+  propertyInfo?: {
+    address?: { address?: string; street?: string; label?: string; city?: string; state?: string; zip?: string };
+  };
+}
+
+async function performSkipTrace(propertyId: string, ownerInfo?: PropertyOwnerInfo): Promise<{
   phones: string[];
   emails: string[];
   ownerName?: string;
   mailingAddress?: string;
 } | null> {
   try {
+    // Extract owner name - try multiple field names
+    const firstName = ownerInfo?.owner1FirstName || ownerInfo?.ownerFirstName || "";
+    const lastName = ownerInfo?.owner1LastName || ownerInfo?.ownerLastName || "";
+
+    // Extract address - handle nested structure
+    const propAddress = ownerInfo?.propertyInfo?.address || ownerInfo?.address;
+    let addressStr = "";
+    let city = "";
+    let state = "";
+    let zip = "";
+
+    if (typeof propAddress === "string") {
+      addressStr = propAddress;
+    } else if (propAddress) {
+      addressStr = propAddress.address || propAddress.street || propAddress.label || "";
+      city = propAddress.city || "";
+      state = propAddress.state || "";
+      zip = propAddress.zip || "";
+    }
+
+    console.log("[Skip Trace] Input:", { firstName, lastName, addressStr, city, state, zip, propertyId });
+
+    // Need at least name OR address for skip trace
+    if (!firstName && !lastName && !addressStr) {
+      console.error("[Skip Trace] No owner info available for skip trace");
+      return null;
+    }
+
+    // Build skip trace request body per RealEstateAPI docs
+    const skipTraceBody: Record<string, string> = {};
+    if (firstName) skipTraceBody.first_name = firstName;
+    if (lastName) skipTraceBody.last_name = lastName;
+    if (addressStr) skipTraceBody.address = addressStr;
+    if (city) skipTraceBody.city = city;
+    if (state) skipTraceBody.state = state;
+    if (zip) skipTraceBody.zip = zip;
+
+    console.log("[Skip Trace] Calling API with:", skipTraceBody);
+
     const response = await fetch(SKIP_TRACE_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "x-api-key": REALESTATE_API_KEY,
+        "Accept": "application/json",
       },
-      body: JSON.stringify({ id: propertyId }),
+      body: JSON.stringify(skipTraceBody),
     });
 
+    const data = await response.json();
+
     if (!response.ok) {
-      console.error("[Skip Trace] API error:", response.status);
+      console.error("[Skip Trace] API error:", response.status, data);
       return null;
     }
 
-    const data = await response.json();
     const result = data.data || data;
+    console.log("[Skip Trace] Result:", {
+      phones: result.phones?.length || 0,
+      emails: result.emails?.length || 0,
+      name: result.name || result.ownerName
+    });
 
     incrementUsage("skipTrace");
 
+    // Parse phones - handle multiple formats
+    const phones: string[] = [];
+    if (result.phones && Array.isArray(result.phones)) {
+      phones.push(...result.phones.map((p: { number?: string; phoneNumber?: string } | string) =>
+        typeof p === "string" ? p : (p.number || p.phoneNumber || "")
+      ).filter(Boolean));
+    }
+    // Also check flat fields
+    if (result.phone) phones.push(result.phone);
+    if (result.mobilePhone) phones.push(result.mobilePhone);
+    if (result.homePhone) phones.push(result.homePhone);
+    if (result.workPhone) phones.push(result.workPhone);
+
+    // Parse emails - handle multiple formats
+    const emails: string[] = [];
+    if (result.emails && Array.isArray(result.emails)) {
+      emails.push(...result.emails.map((e: { email?: string; address?: string } | string) =>
+        typeof e === "string" ? e : (e.email || e.address || "")
+      ).filter(Boolean));
+    }
+    if (result.email) emails.push(result.email);
+
     return {
-      phones: (result.phones || []).map((p: { number?: string } | string) =>
-        typeof p === "string" ? p : p.number
-      ).filter(Boolean),
-      emails: (result.emails || []).map((e: { email?: string } | string) =>
-        typeof e === "string" ? e : e.email
-      ).filter(Boolean),
-      ownerName: result.ownerName || result.name,
+      phones: [...new Set(phones)], // Dedupe
+      emails: [...new Set(emails)], // Dedupe
+      ownerName: result.name || result.ownerName || [firstName, lastName].filter(Boolean).join(" "),
       mailingAddress: result.mailingAddress || result.mailing_address,
     };
   } catch (error) {
@@ -107,9 +183,25 @@ export async function GET(request: NextRequest) {
     incrementUsage("detail");
     const property = data.data || data;
 
-    // Auto skip trace after detail fetch
-    if (autoSkipTrace && property.id) {
-      const skipTraceData = await performSkipTrace(property.id);
+    // Auto skip trace the OWNER using owner info + property address
+    if (autoSkipTrace) {
+      // Extract owner info from property detail response
+      const ownerInfo = property.ownerInfo || {};
+      const propInfo = property.propertyInfo || {};
+      const propAddress = propInfo.address || property.address;
+
+      console.log("[Property Detail] Owner info found:", {
+        owner1FirstName: ownerInfo.owner1FirstName || property.owner1FirstName,
+        owner1LastName: ownerInfo.owner1LastName || property.owner1LastName,
+        address: propAddress
+      });
+
+      const skipTraceData = await performSkipTrace(property.id, {
+        owner1FirstName: ownerInfo.owner1FirstName || property.owner1FirstName || property.ownerFirstName,
+        owner1LastName: ownerInfo.owner1LastName || property.owner1LastName || property.ownerLastName,
+        propertyInfo: { address: propAddress },
+      });
+
       if (skipTraceData) {
         property.phones = skipTraceData.phones;
         property.emails = skipTraceData.emails;
@@ -120,9 +212,10 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({ success: true, property, usage: getTodayUsage() });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Property detail failed";
     console.error("Property detail error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
@@ -178,9 +271,18 @@ export async function POST(request: NextRequest) {
       incrementUsage("detail");
       const property = data.data || data;
 
-      // Auto skip trace after detail (ALWAYS before SMS)
-      if (autoSkipTrace && property.id) {
-        const skipTraceData = await performSkipTrace(property.id);
+      // Auto skip trace the OWNER after detail fetch
+      if (autoSkipTrace) {
+        const ownerInfo = property.ownerInfo || {};
+        const propInfo = property.propertyInfo || {};
+        const propAddress = propInfo.address || property.address;
+
+        const skipTraceData = await performSkipTrace(property.id, {
+          owner1FirstName: ownerInfo.owner1FirstName || property.owner1FirstName || property.ownerFirstName,
+          owner1LastName: ownerInfo.owner1LastName || property.owner1LastName || property.ownerLastName,
+          propertyInfo: { address: propAddress },
+        });
+
         if (skipTraceData) {
           property.phones = skipTraceData.phones;
           property.emails = skipTraceData.emails;
@@ -229,9 +331,18 @@ export async function POST(request: NextRequest) {
             incrementUsage("detail");
             const property = data.data || data;
 
-            // Auto skip trace after each detail fetch
-            if (autoSkipTrace && property.id) {
-              const skipTraceData = await performSkipTrace(property.id);
+            // Auto skip trace the OWNER after each detail fetch
+            if (autoSkipTrace) {
+              const ownerInfo = property.ownerInfo || {};
+              const propInfo = property.propertyInfo || {};
+              const propAddress = propInfo.address || property.address;
+
+              const skipTraceData = await performSkipTrace(property.id, {
+                owner1FirstName: ownerInfo.owner1FirstName || property.owner1FirstName || property.ownerFirstName,
+                owner1LastName: ownerInfo.owner1LastName || property.owner1LastName || property.ownerLastName,
+                propertyInfo: { address: propAddress },
+              });
+
               if (skipTraceData) {
                 property.phones = skipTraceData.phones;
                 property.emails = skipTraceData.emails;

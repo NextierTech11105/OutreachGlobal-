@@ -3,11 +3,13 @@ import { smsQueueService } from "@/lib/services/sms-queue-service";
 
 const REALESTATE_API_KEY = process.env.REAL_ESTATE_API_KEY || process.env.REALESTATE_API_KEY || "";
 const SKIP_TRACE_URL = "https://api.realestateapi.com/v1/SkipTrace";
+const SKIP_TRACE_BATCH_AWAIT_URL = "https://api.realestateapi.com/v1/SkipTraceBatchAwait";
 const PROPERTY_DETAIL_URL = "https://api.realestateapi.com/v2/PropertyDetail";
 
 // Daily limit: 2,000 skip traces per day (matching SMS queue limit)
 const DAILY_LIMIT = 2000;
 const BATCH_SIZE = 250;
+const BULK_BATCH_SIZE = 1000; // RealEstateAPI allows up to 1,000 per bulk call
 
 // In-memory daily tracker (would be Redis/DB in production)
 const dailyUsage: { date: string; count: number } = {
@@ -265,24 +267,313 @@ async function skipTracePerson(input: SkipTraceInput): Promise<SkipTraceResult> 
   }
 }
 
+// ============ BULK SKIP TRACE USING SkipTraceBatchAwait ============
+// RealEstateAPI allows up to 1,000 skip traces in one API call using the Await endpoint
+// This is much faster than calling single skip trace endpoint in a loop
+
+interface BulkSkipInput {
+  key: string; // Unique identifier (property ID)
+  first_name: string;
+  last_name: string;
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+}
+
+interface BulkSkipResponse {
+  key: string;
+  input: BulkSkipInput;
+  output?: {
+    names?: string[];
+    phones?: Array<{ number: string; type?: string; carrier?: string; score?: number }>;
+    emails?: Array<{ email: string; type?: string }>;
+    addresses?: Array<{ street: string; city: string; state: string; zip: string; type?: string }>;
+    age?: number;
+    dateOfBirth?: string;
+    relatives?: string[];
+    associates?: string[];
+  };
+  error?: string;
+  match?: boolean;
+}
+
+// Bulk skip trace using the Await endpoint (no webhooks needed)
+async function bulkSkipTrace(propertyIds: string[]): Promise<{
+  results: SkipTraceResult[];
+  stats: { total: number; matched: number; withPhones: number; withEmails: number; errors: number };
+}> {
+  console.log(`[Bulk Skip Trace] Starting batch of ${propertyIds.length} properties`);
+
+  // Step 1: Get property details to extract owner info for each
+  const skipInputs: BulkSkipInput[] = [];
+  const propertyDataMap: Map<string, Record<string, unknown>> = new Map();
+
+  // Fetch property details in parallel (batches of 20)
+  const detailConcurrency = 20;
+  for (let i = 0; i < propertyIds.length; i += detailConcurrency) {
+    const batch = propertyIds.slice(i, i + detailConcurrency);
+
+    const detailPromises = batch.map(async (propId) => {
+      try {
+        const response = await fetch(PROPERTY_DETAIL_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": REALESTATE_API_KEY,
+          },
+          body: JSON.stringify({ id: propId }),
+        });
+
+        if (!response.ok) {
+          console.warn(`[Bulk Skip Trace] Failed to get detail for ${propId}: ${response.status}`);
+          return null;
+        }
+
+        const data = await response.json();
+        return { propId, data: data.data || data };
+      } catch (err) {
+        console.error(`[Bulk Skip Trace] Error fetching detail for ${propId}:`, err);
+        return null;
+      }
+    });
+
+    const results = await Promise.all(detailPromises);
+
+    for (const result of results) {
+      if (!result) continue;
+
+      const { propId, data } = result;
+      propertyDataMap.set(propId, data);
+
+      const ownerInfo = data.ownerInfo || {};
+      const propInfo = data.propertyInfo || {};
+      const propAddress = propInfo.address || data.address || {};
+
+      // Extract owner name components
+      const firstName = ownerInfo.owner1FirstName || data.owner1FirstName || data.ownerFirstName || "";
+      const lastName = ownerInfo.owner1LastName || data.owner1LastName || data.ownerLastName || "";
+
+      // Extract address components
+      const addressStr = propAddress.address || propAddress.street || propAddress.label || "";
+      const city = propAddress.city || "";
+      const state = propAddress.state || "";
+      const zip = propAddress.zip || "";
+
+      // Need at least some name or address info
+      if ((firstName || lastName) && addressStr) {
+        skipInputs.push({
+          key: propId,
+          first_name: firstName,
+          last_name: lastName,
+          address: addressStr,
+          city,
+          state,
+          zip,
+        });
+      } else {
+        console.warn(`[Bulk Skip Trace] Skipping ${propId} - insufficient data: name="${firstName} ${lastName}", address="${addressStr}"`);
+      }
+    }
+
+    // Brief delay between detail batches
+    if (i + detailConcurrency < propertyIds.length) {
+      await new Promise(r => setTimeout(r, 100));
+    }
+  }
+
+  console.log(`[Bulk Skip Trace] Got owner info for ${skipInputs.length}/${propertyIds.length} properties`);
+
+  if (skipInputs.length === 0) {
+    return {
+      results: [],
+      stats: { total: 0, matched: 0, withPhones: 0, withEmails: 0, errors: propertyIds.length },
+    };
+  }
+
+  // Step 2: Call SkipTraceBatchAwait API
+  // Max 1,000 per call, we'll chunk if needed
+  const allResults: SkipTraceResult[] = [];
+  const chunkSize = BULK_BATCH_SIZE;
+
+  for (let i = 0; i < skipInputs.length; i += chunkSize) {
+    const chunk = skipInputs.slice(i, i + chunkSize);
+
+    console.log(`[Bulk Skip Trace] Calling SkipTraceBatchAwait with ${chunk.length} records (chunk ${Math.floor(i / chunkSize) + 1})`);
+
+    try {
+      const response = await fetch(SKIP_TRACE_BATCH_AWAIT_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": REALESTATE_API_KEY,
+          "Accept": "application/json",
+        },
+        body: JSON.stringify({ skips: chunk }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error(`[Bulk Skip Trace] Batch API error: ${response.status}`, errorData);
+        // Mark all as failed
+        for (const input of chunk) {
+          allResults.push({
+            input: { propertyId: input.key, firstName: input.first_name, lastName: input.last_name },
+            ownerName: [input.first_name, input.last_name].filter(Boolean).join(" "),
+            phones: [],
+            emails: [],
+            addresses: [],
+            success: false,
+            error: `Batch API error: ${response.status}`,
+          });
+        }
+        continue;
+      }
+
+      const batchData = await response.json();
+      const batchResults: BulkSkipResponse[] = batchData.results || batchData.data || batchData || [];
+
+      console.log(`[Bulk Skip Trace] Batch returned ${batchResults.length} results`);
+
+      // Parse each result
+      for (const item of batchResults) {
+        const propertyData = propertyDataMap.get(item.key) || {};
+        const output = item.output || {};
+
+        // Parse phones
+        const phones: SkipTraceResult["phones"] = [];
+        if (output.phones && Array.isArray(output.phones)) {
+          for (const p of output.phones) {
+            if (p.number) {
+              phones.push({
+                number: p.number,
+                type: p.type,
+                score: p.score,
+              });
+            }
+          }
+        }
+
+        // Parse emails
+        const emails: SkipTraceResult["emails"] = [];
+        if (output.emails && Array.isArray(output.emails)) {
+          for (const e of output.emails) {
+            if (e.email) {
+              emails.push({
+                email: e.email,
+                type: e.type,
+              });
+            }
+          }
+        }
+
+        // Parse addresses
+        const addresses: SkipTraceResult["addresses"] = [];
+        if (output.addresses && Array.isArray(output.addresses)) {
+          for (const a of output.addresses) {
+            if (a.street) {
+              addresses.push({
+                street: a.street,
+                city: a.city || "",
+                state: a.state || "",
+                zip: a.zip || "",
+                type: a.type,
+              });
+            }
+          }
+        }
+
+        const inputData = item.input || chunk.find(c => c.key === item.key);
+        const ownerName = output.names?.[0] ||
+          [inputData?.first_name, inputData?.last_name].filter(Boolean).join(" ");
+
+        allResults.push({
+          input: {
+            propertyId: item.key,
+            firstName: inputData?.first_name,
+            lastName: inputData?.last_name,
+            address: inputData?.address,
+            city: inputData?.city,
+            state: inputData?.state,
+            zip: inputData?.zip,
+          },
+          ownerName,
+          firstName: inputData?.first_name || output.names?.[0]?.split(" ")[0],
+          lastName: inputData?.last_name || output.names?.[0]?.split(" ").slice(1).join(" "),
+          phones,
+          emails,
+          addresses,
+          relatives: output.relatives,
+          associates: output.associates,
+          success: item.match !== false && !item.error,
+          error: item.error,
+          rawData: { ...output, propertyData },
+        });
+      }
+    } catch (err) {
+      console.error(`[Bulk Skip Trace] Chunk error:`, err);
+      // Mark chunk as failed
+      for (const input of chunk) {
+        allResults.push({
+          input: { propertyId: input.key, firstName: input.first_name, lastName: input.last_name },
+          ownerName: [input.first_name, input.last_name].filter(Boolean).join(" "),
+          phones: [],
+          emails: [],
+          addresses: [],
+          success: false,
+          error: err instanceof Error ? err.message : "Bulk skip trace failed",
+        });
+      }
+    }
+
+    // Brief delay between chunks
+    if (i + chunkSize < skipInputs.length) {
+      await new Promise(r => setTimeout(r, 500));
+    }
+  }
+
+  // Calculate stats
+  const matched = allResults.filter(r => r.success).length;
+  const withPhones = allResults.filter(r => r.phones.length > 0).length;
+  const withEmails = allResults.filter(r => r.emails.length > 0).length;
+  const errors = allResults.filter(r => !r.success).length;
+
+  console.log(`[Bulk Skip Trace] Complete: ${matched}/${allResults.length} matched, ${withPhones} with phones, ${withEmails} with emails`);
+
+  return {
+    results: allResults,
+    stats: { total: allResults.length, matched, withPhones, withEmails, errors },
+  };
+}
+
 // POST - Skip trace people (by name/address or property ID)
+// Supports: single, batch (sequential), and bulk (SkipTraceBatchAwait)
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+
+    // Check for bulk mode flag
+    const useBulkApi = body.bulk === true || body.useBulkApi === true;
 
     // Support multiple input formats:
     // 1. Single: { firstName, lastName, address, city, state, zip }
     // 2. Single by property: { id } or { propertyId }
     // 3. Batch: { people: [...] } or { ids: [...] }
+    // 4. Bulk: { ids: [...], bulk: true } - uses SkipTraceBatchAwait API
 
     let inputs: SkipTraceInput[] = [];
+    let propertyIds: string[] = [];
 
     if (body.people && Array.isArray(body.people)) {
       inputs = body.people;
     } else if (body.ids && Array.isArray(body.ids)) {
-      inputs = body.ids.map((id: string) => ({ propertyId: String(id) }));
+      propertyIds = body.ids.map((id: string | number) => String(id));
+      inputs = propertyIds.map((id: string) => ({ propertyId: id }));
     } else if (body.id || body.propertyId || body.firstName || body.lastName || body.address) {
       inputs = [body];
+      if (body.id || body.propertyId) {
+        propertyIds = [String(body.id || body.propertyId)];
+      }
     }
 
     if (inputs.length === 0) {
@@ -293,13 +584,111 @@ export async function POST(request: NextRequest) {
           byProperty: { id: "property-id-here" },
           batch: { people: [{ firstName: "John", lastName: "Smith" }] },
           batchByIds: { ids: ["property-id-1", "property-id-2"] },
+          bulkByIds: { ids: ["id1", "id2", "...up to 1000"], bulk: true },
         }
       }, { status: 400 });
     }
 
     // Check daily limit
     const usage = getDailyUsage();
-    const requestedCount = Math.min(inputs.length, BATCH_SIZE);
+    const requestedCount = useBulkApi
+      ? Math.min(propertyIds.length, BULK_BATCH_SIZE)
+      : Math.min(inputs.length, BATCH_SIZE);
+
+    // ============ BULK MODE: Use SkipTraceBatchAwait API ============
+    if (useBulkApi && propertyIds.length > 0) {
+      console.log(`[Skip Trace] BULK MODE: Processing ${propertyIds.length} properties via SkipTraceBatchAwait`);
+
+      if (usage.remaining < requestedCount) {
+        return NextResponse.json({
+          error: "Daily skip trace limit reached",
+          dailyLimit: DAILY_LIMIT,
+          used: usage.count,
+          remaining: usage.remaining,
+          requestedCount,
+        }, { status: 429 });
+      }
+
+      // Limit to daily remaining
+      const idsToProcess = propertyIds.slice(0, Math.min(requestedCount, usage.remaining));
+
+      const bulkResult = await bulkSkipTrace(idsToProcess);
+
+      // Increment usage
+      incrementUsage(bulkResult.stats.total);
+
+      // Auto-add to SMS queue if requested
+      let smsQueueResult = null;
+      if (body.addToSmsQueue && body.smsTemplate) {
+        const leadsWithMobile = bulkResult.results
+          .filter(r => r.success && r.phones.some(p =>
+            p.type?.toLowerCase() === "mobile" || p.type?.toLowerCase() === "cell"
+          ))
+          .map(r => {
+            const mobilePhone = r.phones.find(p =>
+              p.type?.toLowerCase() === "mobile" || p.type?.toLowerCase() === "cell"
+            ) || r.phones[0];
+
+            return {
+              leadId: r.input?.propertyId || `lead_${Math.random().toString(36).slice(2)}`,
+              phone: mobilePhone?.number || "",
+              firstName: r.firstName || r.ownerName?.split(" ")[0] || "",
+              lastName: r.lastName || r.ownerName?.split(" ").slice(1).join(" ") || "",
+              companyName: body.companyName || "",
+              industry: body.industry || "",
+            };
+          })
+          .filter(lead => lead.phone);
+
+        if (leadsWithMobile.length > 0) {
+          smsQueueResult = smsQueueService.addBatchToQueue(leadsWithMobile, {
+            templateCategory: body.templateCategory || "sms_initial",
+            templateMessage: body.smsTemplate,
+            personality: body.personality || "brooklyn_bestie",
+            campaignId: body.campaignId,
+            priority: body.priority || 5,
+            scheduledAt: body.scheduledAt ? new Date(body.scheduledAt) : undefined,
+          });
+
+          console.log(`[Bulk Skip Trace] Added ${smsQueueResult.added} leads to SMS queue`);
+        }
+      }
+
+      // Add property ID to each result for client matching
+      const resultsWithIds = bulkResult.results.map(r => ({
+        ...r,
+        id: r.input?.propertyId,
+      }));
+
+      return NextResponse.json({
+        success: true,
+        mode: "bulk",
+        apiUsed: "SkipTraceBatchAwait",
+        results: resultsWithIds,
+        stats: {
+          ...bulkResult.stats,
+          withMobiles: bulkResult.results.filter(r =>
+            r.phones.some(p => p.type?.toLowerCase() === "mobile" || p.type?.toLowerCase() === "cell")
+          ).length,
+        },
+        usage: {
+          today: dailyUsage.count,
+          limit: DAILY_LIMIT,
+          remaining: DAILY_LIMIT - dailyUsage.count,
+        },
+        remaining: propertyIds.length - idsToProcess.length,
+        nextBatchIds: propertyIds.slice(idsToProcess.length, idsToProcess.length + BULK_BATCH_SIZE),
+        ...(smsQueueResult && {
+          smsQueue: {
+            added: smsQueueResult.added,
+            skipped: smsQueueResult.skipped,
+            queueIds: smsQueueResult.queueIds,
+          },
+        }),
+      });
+    }
+
+    // ============ STANDARD MODE: Sequential skip traces ============
 
     if (usage.remaining < requestedCount) {
       return NextResponse.json({
@@ -445,5 +834,11 @@ export async function GET() {
     limit: DAILY_LIMIT,
     remaining: usage.remaining,
     batchSize: BATCH_SIZE,
+    bulkBatchSize: BULK_BATCH_SIZE,
+    endpoints: {
+      single: "POST /api/skip-trace { id: 'property-id' }",
+      batch: "POST /api/skip-trace { ids: ['id1', 'id2', ...] } - max 250",
+      bulk: "POST /api/skip-trace { ids: ['id1', 'id2', ...], bulk: true } - max 1000, uses SkipTraceBatchAwait",
+    },
   });
 }
