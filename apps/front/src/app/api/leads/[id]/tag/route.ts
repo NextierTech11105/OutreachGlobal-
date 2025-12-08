@@ -45,7 +45,7 @@ export async function POST(
       .innerJoin(tags, eq(leadTags.tagId, tags.id))
       .where(eq(leadTags.leadId, id));
 
-    const currentTags = currentTagResults.map(t => t.name);
+    const currentTags = currentTagResults.map((t: { name: string }) => t.name);
 
     // Calculate new tags based on action
     let newTags: string[];
@@ -54,7 +54,7 @@ export async function POST(
         newTags = [...new Set([...currentTags, ...body.tags])];
         break;
       case "remove":
-        newTags = currentTags.filter((t) => !body.tags.includes(t));
+        newTags = currentTags.filter((t: string) => !body.tags.includes(t));
         break;
       case "replace":
         newTags = body.tags;
@@ -78,7 +78,7 @@ export async function POST(
         .from(tags)
         .where(inArray(tags.name, tagsToAdd));
 
-      const existingTagNames = existingTags.map(t => t.name);
+      const existingTagNames = existingTags.map((t: { name: string }) => t.name);
       const newTagNames = tagsToAdd.filter(t => !existingTagNames.includes(t));
 
       // Create missing tags

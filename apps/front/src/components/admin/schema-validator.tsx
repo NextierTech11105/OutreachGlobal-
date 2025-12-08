@@ -34,7 +34,8 @@ export function SchemaValidator() {
           errors.push("Schema must be a JSON object");
         } else {
           // Check each entity
-          Object.entries(parsed).forEach(([entityKey, entity]: [string, { name?: string; fields?: { name?: string; type?: string }[] }]) => {
+          Object.entries(parsed).forEach(([entityKey, entityValue]) => {
+            const entity = entityValue as { name?: string; fields?: { name?: string; type?: string }[] };
             if (!entity.name) {
               errors.push(`Entity "${entityKey}" is missing a name property`);
             }

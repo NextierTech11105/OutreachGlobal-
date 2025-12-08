@@ -1942,12 +1942,12 @@ export default function PropertiesPage() {
                       </div>
                     </div>
                   )}
-                  {propertyDetail.mailingAddress && (
+                  {propertyDetail.mailingAddress ? (
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Mailing:</span>
                       <span className="text-right text-sm">{String(propertyDetail.mailingAddress)}</span>
                     </div>
-                  )}
+                  ) : null}
                 </CardContent>
               </Card>
 

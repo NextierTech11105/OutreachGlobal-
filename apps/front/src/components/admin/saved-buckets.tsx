@@ -192,18 +192,24 @@ export function SavedBuckets({ onSelectBucket, onViewLeads }: SavedBucketsProps)
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          data: data.leads.map((l: Record<string, unknown>) => ({
-            firstName: l.firstName,
-            lastName: l.lastName,
-            email: l.email,
-            phone: l.phone,
-            company: l.apolloData?.company || "",
-            address: l.propertyData?.address || "",
-            city: l.propertyData?.city || l.apolloData?.city || "",
-            state: l.propertyData?.state || "",
-            status: l.status,
-            tags: [...(l.tags || []), ...(l.autoTags || [])].join("; "),
-          })),
+          data: data.leads.map((l: Record<string, unknown>) => {
+            const apolloData = l.apolloData as Record<string, unknown> | undefined;
+            const propertyData = l.propertyData as Record<string, unknown> | undefined;
+            const tags = (l.tags as string[] | undefined) || [];
+            const autoTags = (l.autoTags as string[] | undefined) || [];
+            return {
+              firstName: l.firstName,
+              lastName: l.lastName,
+              email: l.email,
+              phone: l.phone,
+              company: apolloData?.company || "",
+              address: propertyData?.address || "",
+              city: propertyData?.city || apolloData?.city || "",
+              state: propertyData?.state || "",
+              status: l.status,
+              tags: [...tags, ...autoTags].join("; "),
+            };
+          }),
           filename: `${bucket.name.replace(/\s+/g, "-").toLowerCase()}.csv`,
         }),
       });

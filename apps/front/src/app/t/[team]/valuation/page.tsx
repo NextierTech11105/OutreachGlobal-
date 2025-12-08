@@ -106,6 +106,7 @@ interface ValuationReport {
     estimatedEquity?: number;
     owner1FirstName?: string;
     owner1LastName?: string;
+    ownerName?: string;
     ownerOccupied?: boolean;
     latitude?: number;
     longitude?: number;
@@ -1421,7 +1422,7 @@ export default function ValuationPage() {
                 </div>
 
                 {/* Additional Addresses & Relatives */}
-                {(skipTraceResult.addresses?.length > 0 || skipTraceResult.relatives?.length > 0) && (
+                {((skipTraceResult.addresses?.length ?? 0) > 0 || (skipTraceResult.relatives?.length ?? 0) > 0) && (
                   <>
                     <Separator className="my-4" />
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1438,14 +1439,14 @@ export default function ValuationPage() {
                           </div>
                         </div>
                       )}
-                      {skipTraceResult.relatives?.length > 0 && (
+                      {(skipTraceResult.relatives?.length ?? 0) > 0 && (
                         <div>
                           <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-2">
                             <Users className="h-4 w-4" />
                             Relatives
                           </h4>
                           <div className="flex flex-wrap gap-1">
-                            {skipTraceResult.relatives.slice(0, 5).map((rel, idx) => (
+                            {skipTraceResult.relatives?.slice(0, 5).map((rel, idx) => (
                               <Badge key={idx} variant="secondary" className="text-xs">{rel}</Badge>
                             ))}
                           </div>

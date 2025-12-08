@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
       lotSize: property.lotSize || property.lotSquareFeet || 0,
       estimatedValue: valuation?.estimatedValue || property.estimatedValue || property.avm || 0,
       lastSaleAmount: property.lastSaleAmount || 0,
-      lastSaleDate: property.lastSaleDate || "",
+      lastSaleDate: String(property.lastSaleDate || ""),
       mortgageBalance: property.openMortgageBalance || property.mortgageBalance || 0,
       lastLoanAmount: property.lastLoanAmount || 0,
       lastLoanDate: property.lastLoanDate || "",

@@ -85,7 +85,7 @@ async function getBucketData(id: string): Promise<BucketData | null> {
 }
 
 // Convert property data to Lead format
-function propertyToLead(prop: BucketData["properties"][0], bucketId: string, index: number): Lead {
+function propertyToLead(prop: NonNullable<BucketData["properties"]>[number], bucketId: string, index: number): Lead {
   const addr = prop.address || {};
 
   const lead: Lead = {
@@ -101,7 +101,7 @@ function propertyToLead(prop: BucketData["properties"][0], bucketId: string, ind
     lastName: prop.owner1LastName || "",
     email: prop.email || "",
     phone: prop.phone || "",
-    enrichmentStatus: prop.enrichmentStatus || "pending",
+    enrichmentStatus: (prop.enrichmentStatus as "pending" | "queued" | "processing" | "completed" | "failed" | "partial") || "pending",
     activityCount: 0,
     propertyData: {
       propertyId: prop.id || `prop-${index}`,

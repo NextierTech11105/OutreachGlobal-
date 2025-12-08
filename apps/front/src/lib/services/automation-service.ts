@@ -25,7 +25,8 @@ export type ResponseType =
   | "opt_out"
   | "wrong_number"
   | "unclear"
-  | "no_response";
+  | "no_response"
+  | "valuation_request";
 
 // Lead status in the automation pipeline
 export interface LeadAutomationState {

@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
       .offset(offset);
 
     // Get tags for each lead
-    const leadIds = results.map(l => l.id);
+    const leadIds = results.map((l: { id: string }) => l.id);
     let leadTagsMap: Record<string, string[]> = {};
 
     if (leadIds.length > 0) {
@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
         .innerJoin(tags, eq(leadTags.tagId, tags.id))
         .where(inArray(leadTags.leadId, leadIds));
 
-      leadTagsMap = tagResults.reduce((acc, { leadId, tagName }) => {
+      leadTagsMap = tagResults.reduce((acc: Record<string, string[]>, { leadId, tagName }: { leadId: string; tagName: string }) => {
         if (!acc[leadId]) acc[leadId] = [];
         acc[leadId].push(tagName);
         return acc;
@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Transform leads to match frontend type
-    const transformedLeads = results.map(lead => ({
+    const transformedLeads = results.map((lead: typeof results[number]) => ({
       id: lead.id,
       name: [lead.firstName, lead.lastName].filter(Boolean).join(" ") || "Unknown",
       address: lead.propertyAddress || "",

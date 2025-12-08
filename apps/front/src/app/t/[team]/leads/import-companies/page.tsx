@@ -399,8 +399,8 @@ export default function ImportCompaniesPage() {
             return {
               ...company,
               enriched: result.success,
-              enrichedPhones: result.phones,
-              enrichedEmails: result.emails,
+              enrichedPhones: result.phones as string[],
+              enrichedEmails: result.emails as string[],
               ownerName: result.ownerName,
               ownerTitle: result.ownerTitle,
               propertyAddresses: result.propertyAddresses,

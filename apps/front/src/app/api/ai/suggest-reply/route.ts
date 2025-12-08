@@ -120,7 +120,7 @@ ${objection.responses.map((r) => `- "${r}"`).join("\n")}
 INTENT DETECTED: ${context.detectedIntent.toUpperCase()}
 Goal: ${strategy.goal}
 Approach: ${strategy.approach}
-${strategy.examples ? `Examples:\n${strategy.examples.map((e) => `- "${e}"`).join("\n")}` : ""}
+${"examples" in strategy && strategy.examples ? `Examples:\n${strategy.examples.map((e: string) => `- "${e}"`).join("\n")}` : ""}
 `);
   }
 

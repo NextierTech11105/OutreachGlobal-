@@ -543,14 +543,14 @@ export default function ResearchLibraryPage() {
                     <div>
                       <p className="text-sm text-muted-foreground">Address</p>
                       <p className="font-medium">
-                        {(selectedReport.report.property as Record<string, unknown>)?.address?.address ||
-                          (selectedReport.report.property as Record<string, unknown>)?.address?.street || "N/A"}
+                        {String(((selectedReport.report.property as Record<string, unknown>)?.address as Record<string, unknown>)?.address ||
+                          ((selectedReport.report.property as Record<string, unknown>)?.address as Record<string, unknown>)?.street || "N/A")}
                       </p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Type</p>
                       <p className="font-medium">
-                        {(selectedReport.report.property as Record<string, unknown>)?.propertyType || "N/A"}
+                        {String((selectedReport.report.property as Record<string, unknown>)?.propertyType || "N/A")}
                       </p>
                     </div>
                     <div>
@@ -586,7 +586,7 @@ export default function ResearchLibraryPage() {
                       <div>
                         <p className="text-sm text-muted-foreground">Price/SqFt</p>
                         <p className="font-medium">
-                          ${(selectedReport.report.valuation as Record<string, unknown>)?.pricePerSqft || 0}
+                          ${String((selectedReport.report.valuation as Record<string, unknown>)?.pricePerSqft || 0)}
                         </p>
                       </div>
                       <div>
@@ -603,8 +603,8 @@ export default function ResearchLibraryPage() {
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Confidence</p>
-                        <Badge variant={(selectedReport.report.valuation as Record<string, unknown>)?.confidence === "high" ? "default" : "outline"}>
-                          {(selectedReport.report.valuation as Record<string, unknown>)?.confidence || "N/A"}
+                        <Badge variant={String((selectedReport.report.valuation as Record<string, unknown>)?.confidence) === "high" ? "default" : "outline"}>
+                          {String((selectedReport.report.valuation as Record<string, unknown>)?.confidence || "N/A")}
                         </Badge>
                       </div>
                     </div>

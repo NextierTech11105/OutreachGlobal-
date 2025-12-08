@@ -308,7 +308,7 @@ export async function POST(request: NextRequest) {
       sector,
       subsector: subsector || null,
       sectorName: sectorDef.name,
-      subsectorName: subsector ? sectorDef.subsectors[subsector as keyof typeof sectorDef.subsectors]?.name : null,
+      subsectorName: subsector ? (sectorDef.subsectors as Record<string, { name: string; sicCodes: string[] }>)[subsector]?.name ?? null : null,
       originalFilename: file.name,
       uploadedAt: new Date().toISOString(),
       fileSize: buffer.length,
@@ -326,12 +326,12 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `Uploaded ${file.name} to ${sectorDef.name}${subsector ? ` / ${sectorDef.subsectors[subsector as keyof typeof sectorDef.subsectors]?.name}` : ""}`,
+      message: `Uploaded ${file.name} to ${sectorDef.name}${subsector ? ` / ${(sectorDef.subsectors as Record<string, { name: string; sicCodes: string[] }>)[subsector]?.name ?? subsector}` : ""}`,
       details: {
         key,
         bucket: SPACES_BUCKET,
         sector: sectorDef.name,
-        subsector: subsector ? sectorDef.subsectors[subsector as keyof typeof sectorDef.subsectors]?.name : null,
+        subsector: subsector ? (sectorDef.subsectors as Record<string, { name: string; sicCodes: string[] }>)[subsector]?.name : null,
         storagePath,
         fileSize: buffer.length,
         fileSizeFormatted: formatBytes(buffer.length),
@@ -382,7 +382,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         success: true,
         sector: sectorDef.name,
-        subsector: subsector ? sectorDef.subsectors[subsector as keyof typeof sectorDef.subsectors]?.name : null,
+        subsector: subsector ? (sectorDef.subsectors as Record<string, { name: string; sicCodes: string[] }>)[subsector]?.name : null,
         storagePath,
         fileCount: files.length,
         files,
