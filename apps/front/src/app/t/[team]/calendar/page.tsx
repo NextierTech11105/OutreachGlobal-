@@ -1,35 +1,52 @@
 "use client";
 
 import * as React from "react";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import {
   Calendar as CalendarIcon,
   ChevronLeft,
   ChevronRight,
   Plus,
-  ExternalLink,
   Phone,
   MessageSquare,
+  Mail,
   Clock,
   MapPin,
   Users,
   X,
-  Link2,
-  Settings,
+  Send,
   RefreshCw,
+  Target,
+  Sparkles,
+  Filter,
+  Download,
+  CheckCircle2,
+  AlertCircle,
+  Building2,
+  DollarSign,
+  Home,
+  User,
+  MoreHorizontal,
+  ArrowRight,
+  Loader2,
+  CheckSquare,
+  Square,
+  Inbox,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -38,71 +55,114 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import { useGlobalActions, CalendarEvent } from "@/lib/providers/global-actions-provider";
+import { toast } from "sonner";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
 // ═══════════════════════════════════════════════════════════════════════════════
 
+interface Lead {
+  id: string;
+  name: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  propertyValue?: number;
+  equity?: number;
+  leadType?: string;
+  status: "new" | "contacted" | "qualified" | "nurture" | "closed" | "lost";
+  createdAt: string;
+  lastContactedAt?: string;
+  source?: string;
+  notes?: string;
+}
+
 interface CalendarDay {
   date: Date;
   isCurrentMonth: boolean;
   isToday: boolean;
-  events: CalendarEvent[];
+  leads: Lead[];
+  leadCount: number;
 }
 
+type CampaignStage = "initial" | "nc_retarget" | "nurture" | "nudger";
+
+const CAMPAIGN_STAGES: { id: CampaignStage; label: string; description: string; icon: React.ReactNode; color: string }[] = [
+  { id: "initial", label: "Initial SMS", description: "First contact", icon: <Sparkles className="h-4 w-4" />, color: "bg-blue-500" },
+  { id: "nc_retarget", label: "NC Retarget", description: "No contact follow-up", icon: <RefreshCw className="h-4 w-4" />, color: "bg-orange-500" },
+  { id: "nurture", label: "Nurture", description: "Relationship building", icon: <Target className="h-4 w-4" />, color: "bg-green-500" },
+  { id: "nudger", label: "Nudger", description: "Final push", icon: <Send className="h-4 w-4" />, color: "bg-purple-500" },
+];
+
+const STATUS_COLORS: Record<Lead["status"], string> = {
+  new: "bg-blue-500",
+  contacted: "bg-yellow-500",
+  qualified: "bg-green-500",
+  nurture: "bg-purple-500",
+  closed: "bg-emerald-600",
+  lost: "bg-gray-500",
+};
+
 // ═══════════════════════════════════════════════════════════════════════════════
-// CALENDAR PAGE COMPONENT
+// MOCK DATA - Replace with real API calls
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export default function CalendarPage() {
-  const {
-    calendarEvents,
-    scheduledCalls,
-    smsCampaignQueue,
-    addCalendarEvent,
-    removeCalendarEvent,
-    createGoogleCalendarEvent,
-  } = useGlobalActions();
+const generateMockLeads = (date: Date): Lead[] => {
+  const dayOfMonth = date.getDate();
+  const count = Math.floor(Math.random() * 8);
 
+  const names = ["John Smith", "Sarah Johnson", "Mike Williams", "Emily Davis", "James Brown", "Lisa Miller", "Robert Wilson", "Jennifer Taylor"];
+  const statuses: Lead["status"][] = ["new", "contacted", "qualified", "nurture"];
+  const leadTypes = ["Pre-Foreclosure", "High Equity", "Absentee", "Tax Lien", "Inherited"];
+
+  return Array.from({ length: count }, (_, i) => ({
+    id: `lead-${date.toISOString()}-${i}`,
+    name: names[Math.floor(Math.random() * names.length)],
+    phone: `+1${Math.floor(Math.random() * 9000000000 + 1000000000)}`,
+    email: `lead${dayOfMonth}${i}@email.com`,
+    address: `${100 + i * 10} Main St`,
+    city: ["Miami", "Tampa", "Orlando", "Jacksonville"][Math.floor(Math.random() * 4)],
+    state: "FL",
+    propertyValue: Math.floor(Math.random() * 400000 + 150000),
+    equity: Math.floor(Math.random() * 200000 + 50000),
+    leadType: leadTypes[Math.floor(Math.random() * leadTypes.length)],
+    status: statuses[Math.floor(Math.random() * statuses.length)],
+    createdAt: date.toISOString(),
+    source: "RealEstateAPI",
+  }));
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// LEAD CALENDAR WORKSPACE
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export default function LeadCalendarWorkspace() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
-  const [viewMode, setViewMode] = useState<"month" | "week" | "day">("month");
-  const [isAddEventOpen, setIsAddEventOpen] = useState(false);
-  const [newEvent, setNewEvent] = useState({
-    title: "",
-    description: "",
-    type: "call" as CalendarEvent["type"],
-    startTime: "",
-    endTime: "",
-    location: "",
-  });
+  const [viewMode, setViewMode] = useState<"month" | "week">("month");
+  const [selectedLeads, setSelectedLeads] = useState<Set<string>>(new Set());
+  const [filterStatus, setFilterStatus] = useState<Lead["status"] | "all">("all");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isCampaignDialogOpen, setIsCampaignDialogOpen] = useState(false);
+  const [selectedCampaignStage, setSelectedCampaignStage] = useState<CampaignStage>("initial");
+  const [isPushing, setIsPushing] = useState(false);
 
-  // Combine calendar events with scheduled calls
-  const allEvents = useMemo(() => {
-    const callEvents: CalendarEvent[] = scheduledCalls
-      .filter((c) => c.status === "pending")
-      .map((call) => ({
-        id: call.id,
-        title: `Call: ${call.leadName || call.leadPhone}`,
-        description: call.notes,
-        startTime: call.scheduledAt,
-        endTime: new Date(call.scheduledAt.getTime() + 30 * 60 * 1000),
-        type: "call" as const,
-        leadId: call.leadId,
-      }));
-    return [...calendarEvents, ...callEvents];
-  }, [calendarEvents, scheduledCalls]);
-
-  // Generate calendar days for current month view
+  // Generate calendar data with leads
   const calendarDays = useMemo(() => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
-
     const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
     const startDate = new Date(firstDay);
     startDate.setDate(startDate.getDate() - startDate.getDay());
 
@@ -113,147 +173,204 @@ export default function CalendarPage() {
     for (let i = 0; i < 42; i++) {
       const date = new Date(startDate);
       date.setDate(startDate.getDate() + i);
+      date.setHours(0, 0, 0, 0);
 
-      const dayEvents = allEvents.filter((event) => {
-        const eventDate = new Date(event.startTime);
-        return (
-          eventDate.getFullYear() === date.getFullYear() &&
-          eventDate.getMonth() === date.getMonth() &&
-          eventDate.getDate() === date.getDate()
-        );
-      });
+      const leads = generateMockLeads(date);
 
       days.push({
         date,
         isCurrentMonth: date.getMonth() === month,
         isToday: date.getTime() === today.getTime(),
-        events: dayEvents,
+        leads,
+        leadCount: leads.length,
       });
     }
 
     return days;
-  }, [currentDate, allEvents]);
+  }, [currentDate]);
 
-  // Selected date events
-  const selectedDateEvents = useMemo(() => {
+  // Get leads for selected date
+  const selectedDateLeads = useMemo(() => {
     if (!selectedDate) return [];
-    return allEvents.filter((event) => {
-      const eventDate = new Date(event.startTime);
-      return (
-        eventDate.getFullYear() === selectedDate.getFullYear() &&
-        eventDate.getMonth() === selectedDate.getMonth() &&
-        eventDate.getDate() === selectedDate.getDate()
-      );
-    }).sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
-  }, [selectedDate, allEvents]);
+    const day = calendarDays.find(
+      (d) => d.date.toDateString() === selectedDate.toDateString()
+    );
+    let leads = day?.leads || [];
 
-  // Upcoming events (next 7 days)
-  const upcomingEvents = useMemo(() => {
-    const now = new Date();
-    const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-    return allEvents
-      .filter((event) => {
-        const eventDate = new Date(event.startTime);
-        return eventDate >= now && eventDate <= nextWeek;
-      })
-      .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
-  }, [allEvents]);
+    if (filterStatus !== "all") {
+      leads = leads.filter((l) => l.status === filterStatus);
+    }
 
+    return leads;
+  }, [selectedDate, calendarDays, filterStatus]);
+
+  // Navigation
   const navigateMonth = (direction: number) => {
     setCurrentDate((prev) => {
       const newDate = new Date(prev);
       newDate.setMonth(newDate.getMonth() + direction);
       return newDate;
     });
+    setSelectedLeads(new Set());
   };
 
   const goToToday = () => {
     setCurrentDate(new Date());
     setSelectedDate(new Date());
+    setSelectedLeads(new Set());
   };
 
-  const handleAddEvent = () => {
-    if (!newEvent.title || !newEvent.startTime) return;
-
-    const startTime = new Date(newEvent.startTime);
-    const endTime = newEvent.endTime
-      ? new Date(newEvent.endTime)
-      : new Date(startTime.getTime() + 60 * 60 * 1000);
-
-    addCalendarEvent({
-      title: newEvent.title,
-      description: newEvent.description,
-      type: newEvent.type,
-      startTime,
-      endTime,
-      location: newEvent.location,
-    });
-
-    setIsAddEventOpen(false);
-    setNewEvent({
-      title: "",
-      description: "",
-      type: "call",
-      startTime: "",
-      endTime: "",
-      location: "",
+  // Lead selection
+  const toggleLeadSelection = (leadId: string) => {
+    setSelectedLeads((prev) => {
+      const next = new Set(prev);
+      if (next.has(leadId)) {
+        next.delete(leadId);
+      } else {
+        next.add(leadId);
+      }
+      return next;
     });
   };
 
-  const openGoogleCalendar = () => {
-    window.open("https://calendar.google.com", "_blank");
-  };
-
-  const getEventColor = (type: CalendarEvent["type"]) => {
-    switch (type) {
-      case "call":
-        return "bg-green-500";
-      case "meeting":
-        return "bg-blue-500";
-      case "task":
-        return "bg-purple-500";
-      case "reminder":
-        return "bg-yellow-500";
-      default:
-        return "bg-gray-500";
+  const selectAllLeads = () => {
+    if (selectedLeads.size === selectedDateLeads.length) {
+      setSelectedLeads(new Set());
+    } else {
+      setSelectedLeads(new Set(selectedDateLeads.map((l) => l.id)));
     }
   };
 
-  const getEventIcon = (type: CalendarEvent["type"]) => {
-    switch (type) {
-      case "call":
-        return Phone;
-      case "meeting":
-        return Users;
-      case "task":
-        return Clock;
-      case "reminder":
-        return MessageSquare;
-      default:
-        return CalendarIcon;
+  const getSelectedLeadsList = () => {
+    return selectedDateLeads.filter((l) => selectedLeads.has(l.id));
+  };
+
+  // Actions
+  const handleCall = async (lead: Lead) => {
+    if (!lead.phone) {
+      toast.error("No phone number available");
+      return;
+    }
+    window.open(`tel:${lead.phone}`, "_self");
+    toast.success(`Calling ${lead.name}...`);
+  };
+
+  const handleSms = async (lead: Lead) => {
+    if (!lead.phone) {
+      toast.error("No phone number available");
+      return;
+    }
+    // Open SMS queue or send single SMS
+    toast.success(`SMS panel opened for ${lead.name}`);
+  };
+
+  const handleEmail = async (lead: Lead) => {
+    if (!lead.email) {
+      toast.error("No email available");
+      return;
+    }
+    window.open(`mailto:${lead.email}`, "_blank");
+    toast.success(`Email draft opened for ${lead.name}`);
+  };
+
+  const handleStatusUpdate = async (lead: Lead, newStatus: Lead["status"]) => {
+    try {
+      const response = await fetch("/api/calendar/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "update_status",
+          leadId: lead.id,
+          newStatus,
+        }),
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        toast.success(`Updated ${lead.name} to ${newStatus}`);
+      } else {
+        toast.error("Failed to update status");
+      }
+    } catch (error) {
+      toast.error("Failed to update status");
     }
   };
 
-  const formatTime = (date: Date) => {
-    return new Date(date).toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    });
-  };
+  // Campaign push - real API call
+  const handlePushToCampaign = async () => {
+    const leads = getSelectedLeadsList();
+    if (leads.length === 0) {
+      toast.error("Select leads first");
+      return;
+    }
 
-  const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-    });
+    setIsPushing(true);
+    try {
+      const response = await fetch("/api/calendar/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "push_to_campaign",
+          leads,
+          campaignStage: selectedCampaignStage,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || "Failed to push to campaign");
+      }
+
+      const stage = CAMPAIGN_STAGES.find((s) => s.id === selectedCampaignStage);
+      toast.success(
+        `${result.queued} leads pushed to ${stage?.label} campaign`,
+        {
+          description: result.skipped > 0
+            ? `${result.skipped} skipped (opted out or no phone)`
+            : "Ready for review in SMS Queue",
+        }
+      );
+      setSelectedLeads(new Set());
+      setIsCampaignDialogOpen(false);
+    } catch (error) {
+      toast.error("Failed to push to campaign", {
+        description: error instanceof Error ? error.message : "Unknown error",
+      });
+    } finally {
+      setIsPushing(false);
+    }
   };
 
   const monthYear = currentDate.toLocaleDateString("en-US", {
     month: "long",
     year: "numeric",
   });
+
+  const formatCurrency = (value?: number) => {
+    if (!value) return "N/A";
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
+
+  // Stats for the month
+  const monthStats = useMemo(() => {
+    const allLeads = calendarDays
+      .filter((d) => d.isCurrentMonth)
+      .flatMap((d) => d.leads);
+
+    return {
+      total: allLeads.length,
+      new: allLeads.filter((l) => l.status === "new").length,
+      contacted: allLeads.filter((l) => l.status === "contacted").length,
+      qualified: allLeads.filter((l) => l.status === "qualified").length,
+      withPhone: allLeads.filter((l) => l.phone).length,
+      withEmail: allLeads.filter((l) => l.email).length,
+    };
+  }, [calendarDays]);
 
   return (
     <div className="flex flex-col h-full">
@@ -263,21 +380,26 @@ export default function CalendarPage() {
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <CalendarIcon className="h-6 w-6" />
-              Calendar
+              Lead Calendar Workspace
             </h1>
             <p className="text-sm text-muted-foreground">
-              Manage your schedule and appointments
+              Pull • Push • Prep • Preview • Send — True lead generation machine
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={openGoogleCalendar}>
-              <ExternalLink className="h-4 w-4 mr-2" />
-              Google Calendar
-            </Button>
-            <Button size="sm" onClick={() => setIsAddEventOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Event
-            </Button>
+            <Badge variant="outline" className="py-1.5">
+              <Users className="h-3.5 w-3.5 mr-1" />
+              {monthStats.total} leads this month
+            </Badge>
+            {selectedLeads.size > 0 && (
+              <Button
+                onClick={() => setIsCampaignDialogOpen(true)}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+              >
+                <Send className="h-4 w-4 mr-2" />
+                Push {selectedLeads.size} to Campaign
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -303,21 +425,18 @@ export default function CalendarPage() {
               </Button>
             </div>
             <div className="flex items-center gap-2">
-              <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as any)}>
-                <TabsList>
-                  <TabsTrigger value="month">Month</TabsTrigger>
-                  <TabsTrigger value="week">Week</TabsTrigger>
-                  <TabsTrigger value="day">Day</TabsTrigger>
-                </TabsList>
-              </Tabs>
+              <Button variant="outline" size="sm">
+                <Download className="h-4 w-4 mr-2" />
+                Export
+              </Button>
             </div>
           </div>
 
           {/* Calendar Grid */}
-          <div className="border rounded-lg overflow-hidden bg-background">
+          <div className="border rounded-lg overflow-hidden bg-background shadow-sm">
             {/* Day Headers */}
             <div className="grid grid-cols-7 bg-muted">
-              {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map((day) => (
+              {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
                 <div
                   key={day}
                   className="p-3 text-center text-sm font-medium text-muted-foreground border-r last:border-r-0"
@@ -332,330 +451,360 @@ export default function CalendarPage() {
               {calendarDays.map((day, index) => (
                 <div
                   key={index}
-                  onClick={() => setSelectedDate(day.date)}
+                  onClick={() => {
+                    setSelectedDate(day.date);
+                    setSelectedLeads(new Set());
+                  }}
                   className={cn(
-                    "min-h-[120px] p-2 border-t border-r last:border-r-0 cursor-pointer transition-colors hover:bg-muted/50",
+                    "min-h-[100px] p-2 border-t border-r last:border-r-0 cursor-pointer transition-all hover:bg-muted/50",
                     !day.isCurrentMonth && "bg-muted/30 text-muted-foreground",
                     day.isToday && "bg-primary/5",
-                    selectedDate?.getTime() === day.date.getTime() && "bg-primary/10 ring-2 ring-primary ring-inset"
+                    selectedDate?.toDateString() === day.date.toDateString() &&
+                      "bg-primary/10 ring-2 ring-primary ring-inset"
                   )}
                 >
-                  <div
-                    className={cn(
-                      "text-sm font-medium mb-2",
-                      day.isToday && "bg-primary text-primary-foreground rounded-full w-7 h-7 flex items-center justify-center"
-                    )}
-                  >
-                    {day.date.getDate()}
-                  </div>
-                  <div className="space-y-1">
-                    {day.events.slice(0, 3).map((event) => (
-                      <div
-                        key={event.id}
+                  <div className="flex items-center justify-between mb-2">
+                    <div
+                      className={cn(
+                        "text-sm font-medium",
+                        day.isToday &&
+                          "bg-primary text-primary-foreground rounded-full w-7 h-7 flex items-center justify-center"
+                      )}
+                    >
+                      {day.date.getDate()}
+                    </div>
+                    {day.leadCount > 0 && (
+                      <Badge
+                        variant="secondary"
                         className={cn(
-                          "text-xs px-1.5 py-0.5 rounded truncate text-white",
-                          getEventColor(event.type)
+                          "text-xs",
+                          day.leadCount > 5 && "bg-green-500/20 text-green-700",
+                          day.leadCount > 3 && day.leadCount <= 5 && "bg-blue-500/20 text-blue-700"
                         )}
-                        title={event.title}
                       >
-                        {formatTime(event.startTime)} {event.title}
-                      </div>
-                    ))}
-                    {day.events.length > 3 && (
-                      <div className="text-xs text-muted-foreground font-medium">
-                        +{day.events.length - 3} more
-                      </div>
+                        {day.leadCount}
+                      </Badge>
                     )}
                   </div>
+
+                  {/* Lead Preview Dots */}
+                  {day.leadCount > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {day.leads.slice(0, 6).map((lead, i) => (
+                        <div
+                          key={i}
+                          className={cn(
+                            "w-2 h-2 rounded-full",
+                            STATUS_COLORS[lead.status]
+                          )}
+                          title={`${lead.name} - ${lead.status}`}
+                        />
+                      ))}
+                      {day.leadCount > 6 && (
+                        <span className="text-xs text-muted-foreground">+{day.leadCount - 6}</span>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
           </div>
-        </div>
 
-        {/* Sidebar */}
-        <div className="w-96 border-l bg-muted/30 p-4 overflow-auto">
-          <div className="space-y-4">
-            {/* Selected Date Events */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">
-                  {selectedDate
-                    ? selectedDate.toLocaleDateString("en-US", {
-                        weekday: "long",
-                        month: "long",
-                        day: "numeric",
-                      })
-                    : "Select a Date"}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {selectedDateEvents.length === 0 ? (
-                  <div className="text-center py-8">
-                    <CalendarIcon className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                    <p className="text-sm text-muted-foreground">No events scheduled</p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="mt-2"
-                      onClick={() => setIsAddEventOpen(true)}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Event
-                    </Button>
-                  </div>
-                ) : (
-                  selectedDateEvents.map((event) => {
-                    const Icon = getEventIcon(event.type);
-                    return (
-                      <div
-                        key={event.id}
-                        className="flex items-start gap-3 p-3 rounded-lg bg-background border"
-                      >
-                        <div className={cn("p-2 rounded", getEventColor(event.type))}>
-                          <Icon className="h-4 w-4 text-white" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">{event.title}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {formatTime(event.startTime)} - {formatTime(event.endTime)}
-                          </p>
-                          {event.description && (
-                            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                              {event.description}
-                            </p>
-                          )}
-                          {event.location && (
-                            <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                              <MapPin className="h-3 w-3" />
-                              {event.location}
-                            </p>
-                          )}
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => createGoogleCalendarEvent(event)}
-                            title="Add to Google Calendar"
-                          >
-                            <Link2 className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-destructive hover:text-destructive"
-                            onClick={() => removeCalendarEvent(event.id)}
-                          >
-                            <X className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </CardContent>
+          {/* Month Stats */}
+          <div className="grid grid-cols-6 gap-4 mt-6">
+            <Card className="p-4 text-center">
+              <p className="text-2xl font-bold text-blue-600">{monthStats.total}</p>
+              <p className="text-xs text-muted-foreground">Total Leads</p>
             </Card>
-
-            {/* Upcoming Events */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Upcoming (7 Days)</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {upcomingEvents.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    No upcoming events
-                  </p>
-                ) : (
-                  upcomingEvents.slice(0, 5).map((event) => {
-                    const Icon = getEventIcon(event.type);
-                    return (
-                      <div
-                        key={event.id}
-                        className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer"
-                        onClick={() => setSelectedDate(new Date(event.startTime))}
-                      >
-                        <div className={cn("p-1.5 rounded", getEventColor(event.type))}>
-                          <Icon className="h-3 w-3 text-white" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{event.title}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {formatDate(event.startTime)} at {formatTime(event.startTime)}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </CardContent>
+            <Card className="p-4 text-center">
+              <p className="text-2xl font-bold text-green-600">{monthStats.new}</p>
+              <p className="text-xs text-muted-foreground">New</p>
             </Card>
-
-            {/* Quick Links */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Calendar Integrations</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full justify-start"
-                  onClick={openGoogleCalendar}
-                >
-                  <CalendarIcon className="h-4 w-4 mr-2 text-red-500" />
-                  Google Calendar
-                  <ExternalLink className="h-3 w-3 ml-auto opacity-50" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full justify-start"
-                  onClick={() => {
-                    const url = `https://outlook.live.com/calendar`;
-                    window.open(url, "_blank");
-                  }}
-                >
-                  <CalendarIcon className="h-4 w-4 mr-2 text-blue-500" />
-                  Outlook Calendar
-                  <ExternalLink className="h-3 w-3 ml-auto opacity-50" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full justify-start"
-                  onClick={() => {
-                    const url = `https://calendar.apple.com`;
-                    window.open(url, "_blank");
-                  }}
-                >
-                  <CalendarIcon className="h-4 w-4 mr-2 text-gray-500" />
-                  Apple Calendar
-                  <ExternalLink className="h-3 w-3 ml-auto opacity-50" />
-                </Button>
-              </CardContent>
+            <Card className="p-4 text-center">
+              <p className="text-2xl font-bold text-yellow-600">{monthStats.contacted}</p>
+              <p className="text-xs text-muted-foreground">Contacted</p>
             </Card>
-
-            {/* Stats */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">This Month</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="p-3 bg-green-500/10 rounded-lg text-center">
-                    <p className="text-2xl font-bold text-green-600">
-                      {allEvents.filter((e) => e.type === "call").length}
-                    </p>
-                    <p className="text-xs text-muted-foreground">Scheduled Calls</p>
-                  </div>
-                  <div className="p-3 bg-blue-500/10 rounded-lg text-center">
-                    <p className="text-2xl font-bold text-blue-600">
-                      {allEvents.filter((e) => e.type === "meeting").length}
-                    </p>
-                    <p className="text-xs text-muted-foreground">Meetings</p>
-                  </div>
-                  <div className="p-3 bg-purple-500/10 rounded-lg text-center">
-                    <p className="text-2xl font-bold text-purple-600">
-                      {smsCampaignQueue.filter((s) => s.status === "queued").length}
-                    </p>
-                    <p className="text-xs text-muted-foreground">SMS Queued</p>
-                  </div>
-                  <div className="p-3 bg-yellow-500/10 rounded-lg text-center">
-                    <p className="text-2xl font-bold text-yellow-600">
-                      {allEvents.filter((e) => e.type === "task").length}
-                    </p>
-                    <p className="text-xs text-muted-foreground">Tasks</p>
-                  </div>
-                </div>
-              </CardContent>
+            <Card className="p-4 text-center">
+              <p className="text-2xl font-bold text-purple-600">{monthStats.qualified}</p>
+              <p className="text-xs text-muted-foreground">Qualified</p>
+            </Card>
+            <Card className="p-4 text-center">
+              <p className="text-2xl font-bold text-emerald-600">{monthStats.withPhone}</p>
+              <p className="text-xs text-muted-foreground">With Phone</p>
+            </Card>
+            <Card className="p-4 text-center">
+              <p className="text-2xl font-bold text-indigo-600">{monthStats.withEmail}</p>
+              <p className="text-xs text-muted-foreground">With Email</p>
             </Card>
           </div>
         </div>
-      </div>
 
-      {/* Add Event Dialog */}
-      <Dialog open={isAddEventOpen} onOpenChange={setIsAddEventOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add New Event</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="title">Title</Label>
-              <Input
-                id="title"
-                value={newEvent.title}
-                onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
-                placeholder="Event title"
-              />
+        {/* Day Detail Sidebar */}
+        <div className="w-[480px] border-l bg-muted/30 flex flex-col overflow-hidden">
+          {/* Day Header */}
+          <div className="p-4 border-b bg-background">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-semibold">
+                {selectedDate?.toLocaleDateString("en-US", {
+                  weekday: "long",
+                  month: "long",
+                  day: "numeric",
+                }) || "Select a Date"}
+              </h3>
+              <Badge variant="outline">
+                {selectedDateLeads.length} leads
+              </Badge>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="type">Type</Label>
-              <Select
-                value={newEvent.type}
-                onValueChange={(value: CalendarEvent["type"]) =>
-                  setNewEvent({ ...newEvent, type: value })
-                }
+
+            {/* Actions Bar */}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={selectAllLeads}
+                className="flex-shrink-0"
               >
-                <SelectTrigger>
-                  <SelectValue />
+                {selectedLeads.size === selectedDateLeads.length && selectedDateLeads.length > 0 ? (
+                  <CheckSquare className="h-4 w-4 mr-1" />
+                ) : (
+                  <Square className="h-4 w-4 mr-1" />
+                )}
+                {selectedLeads.size > 0 ? `${selectedLeads.size} selected` : "Select All"}
+              </Button>
+
+              <Select
+                value={filterStatus}
+                onValueChange={(v) => setFilterStatus(v as Lead["status"] | "all")}
+              >
+                <SelectTrigger className="w-[140px] h-8">
+                  <Filter className="h-3 w-3 mr-2" />
+                  <SelectValue placeholder="Filter" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="call">Call</SelectItem>
-                  <SelectItem value="meeting">Meeting</SelectItem>
-                  <SelectItem value="task">Task</SelectItem>
-                  <SelectItem value="reminder">Reminder</SelectItem>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="new">New</SelectItem>
+                  <SelectItem value="contacted">Contacted</SelectItem>
+                  <SelectItem value="qualified">Qualified</SelectItem>
+                  <SelectItem value="nurture">Nurture</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="startTime">Start Time</Label>
-                <Input
-                  id="startTime"
-                  type="datetime-local"
-                  value={newEvent.startTime}
-                  onChange={(e) => setNewEvent({ ...newEvent, startTime: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="endTime">End Time</Label>
-                <Input
-                  id="endTime"
-                  type="datetime-local"
-                  value={newEvent.endTime}
-                  onChange={(e) => setNewEvent({ ...newEvent, endTime: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="location">Location (optional)</Label>
-              <Input
-                id="location"
-                value={newEvent.location}
-                onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })}
-                placeholder="Meeting location"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="description">Description (optional)</Label>
-              <Textarea
-                id="description"
-                value={newEvent.description}
-                onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
-                placeholder="Event description"
-                rows={3}
-              />
-            </div>
           </div>
+
+          {/* Lead List */}
+          <ScrollArea className="flex-1">
+            <div className="p-4 space-y-3">
+              {selectedDateLeads.length === 0 ? (
+                <div className="text-center py-12">
+                  <Inbox className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
+                  <p className="text-sm text-muted-foreground">No leads for this day</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Run a property search to generate leads
+                  </p>
+                </div>
+              ) : (
+                selectedDateLeads.map((lead) => (
+                  <Card
+                    key={lead.id}
+                    className={cn(
+                      "transition-all",
+                      selectedLeads.has(lead.id) && "ring-2 ring-primary"
+                    )}
+                  >
+                    <CardContent className="p-3">
+                      <div className="flex items-start gap-3">
+                        {/* Checkbox */}
+                        <Checkbox
+                          checked={selectedLeads.has(lead.id)}
+                          onCheckedChange={() => toggleLeadSelection(lead.id)}
+                          className="mt-1"
+                        />
+
+                        {/* Lead Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-1">
+                            <h4 className="font-medium truncate">{lead.name}</h4>
+                            <Badge
+                              variant="secondary"
+                              className={cn("text-xs", STATUS_COLORS[lead.status], "text-white")}
+                            >
+                              {lead.status}
+                            </Badge>
+                          </div>
+
+                          {lead.address && (
+                            <p className="text-sm text-muted-foreground flex items-center gap-1 mb-1">
+                              <MapPin className="h-3 w-3" />
+                              {lead.address}, {lead.city}, {lead.state}
+                            </p>
+                          )}
+
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
+                            {lead.propertyValue && (
+                              <span className="flex items-center gap-1">
+                                <Home className="h-3 w-3" />
+                                {formatCurrency(lead.propertyValue)}
+                              </span>
+                            )}
+                            {lead.equity && (
+                              <span className="flex items-center gap-1">
+                                <DollarSign className="h-3 w-3" />
+                                {formatCurrency(lead.equity)} equity
+                              </span>
+                            )}
+                            {lead.leadType && (
+                              <Badge variant="outline" className="text-xs">
+                                {lead.leadType}
+                              </Badge>
+                            )}
+                          </div>
+
+                          {/* Inline Actions */}
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 px-2"
+                              onClick={() => handleCall(lead)}
+                              disabled={!lead.phone}
+                            >
+                              <Phone className="h-3 w-3 mr-1" />
+                              Call
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 px-2"
+                              onClick={() => handleSms(lead)}
+                              disabled={!lead.phone}
+                            >
+                              <MessageSquare className="h-3 w-3 mr-1" />
+                              SMS
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 px-2"
+                              onClick={() => handleEmail(lead)}
+                              disabled={!lead.email}
+                            >
+                              <Mail className="h-3 w-3 mr-1" />
+                              Email
+                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="outline" size="sm" className="h-7 px-2">
+                                  <MoreHorizontal className="h-3 w-3" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleStatusUpdate(lead, "contacted")}>
+                                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                                  Mark Contacted
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleStatusUpdate(lead, "qualified")}>
+                                  <Target className="h-4 w-4 mr-2" />
+                                  Mark Qualified
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleStatusUpdate(lead, "nurture")}>
+                                  <RefreshCw className="h-4 w-4 mr-2" />
+                                  Move to Nurture
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => handleStatusUpdate(lead, "lost")}>
+                                  <X className="h-4 w-4 mr-2" />
+                                  Mark Lost
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
+          </ScrollArea>
+
+          {/* Campaign Push Footer */}
+          {selectedLeads.size > 0 && (
+            <div className="p-4 border-t bg-gradient-to-r from-blue-500/10 to-purple-500/10">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">{selectedLeads.size} leads selected</p>
+                  <p className="text-sm text-muted-foreground">Push to SMS campaign</p>
+                </div>
+                <Button
+                  onClick={() => setIsCampaignDialogOpen(true)}
+                  className="bg-gradient-to-r from-blue-600 to-purple-600"
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  Push to Campaign
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Campaign Push Dialog */}
+      <Dialog open={isCampaignDialogOpen} onOpenChange={setIsCampaignDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Push to SMS Campaign</DialogTitle>
+            <DialogDescription>
+              Select a campaign stage for {selectedLeads.size} lead{selectedLeads.size !== 1 ? "s" : ""}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-4">
+            {CAMPAIGN_STAGES.map((stage) => (
+              <div
+                key={stage.id}
+                onClick={() => setSelectedCampaignStage(stage.id)}
+                className={cn(
+                  "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all",
+                  selectedCampaignStage === stage.id
+                    ? "border-primary bg-primary/5"
+                    : "hover:bg-muted"
+                )}
+              >
+                <div className={cn("p-2 rounded-lg text-white", stage.color)}>
+                  {stage.icon}
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium">{stage.label}</p>
+                  <p className="text-sm text-muted-foreground">{stage.description}</p>
+                </div>
+                {selectedCampaignStage === stage.id && (
+                  <CheckCircle2 className="h-5 w-5 text-primary" />
+                )}
+              </div>
+            ))}
+          </div>
+
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddEventOpen(false)}>
+            <Button variant="outline" onClick={() => setIsCampaignDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleAddEvent}>Add Event</Button>
+            <Button
+              onClick={handlePushToCampaign}
+              disabled={isPushing}
+              className="bg-gradient-to-r from-blue-600 to-purple-600"
+            >
+              {isPushing ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Pushing...
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4 mr-2" />
+                  Push {selectedLeads.size} Leads
+                </>
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
