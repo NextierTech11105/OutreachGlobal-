@@ -3,7 +3,14 @@
  * Normalizes and deduplicates contact information for lead cards
  */
 
-import { URL } from 'url';
+// Simple URL validation without node imports
+function isValidUrl(urlString: string): boolean {
+  try {
+    return /^https?:\/\/[^\s/$.?#].[^\s]*$/i.test(urlString);
+  } catch {
+    return false;
+  }
+}
 import {
   PhoneInfo,
   EmailInfo,
@@ -297,9 +304,7 @@ export function normalizeSocialForCard(
   } = {}
 ): SocialInfo | null {
   // Validate URL
-  try {
-    new URL(profileUrl);
-  } catch {
+  if (!isValidUrl(profileUrl)) {
     return null;
   }
 
