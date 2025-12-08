@@ -7,7 +7,7 @@ export interface ContentCategory {
   name: string;
   description: string;
   icon: string;
-  prompts: ContentPrompt[];
+  prompts?: ContentPrompt[];
   subcategories?: ContentCategory[];
 }
 
@@ -525,7 +525,10 @@ const CONTENT_LIBRARY: ContentCategory[] = [
 function flattenPrompts(categories: ContentCategory[]): ContentPrompt[] {
   const prompts: ContentPrompt[] = [];
   for (const cat of categories) {
-    prompts.push(...cat.prompts);
+    // Only push if prompts exists and is iterable
+    if (cat.prompts && Array.isArray(cat.prompts)) {
+      prompts.push(...cat.prompts);
+    }
     if (cat.subcategories) {
       prompts.push(...flattenPrompts(cat.subcategories));
     }
