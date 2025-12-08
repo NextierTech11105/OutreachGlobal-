@@ -34,6 +34,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import dynamic from "next/dynamic";
+import { StandardizedPhoneField, toStandardizedPhones, StandardizedPhone } from "@/components/standardized-phone-field";
+import { OwnerContactCard, skipTraceToOwnerContact, OwnerContact } from "@/components/owner-contact-card";
 
 // Dynamic import to avoid SSR issues with mapbox-gl
 const DualMapView = dynamic(
@@ -1327,99 +1329,14 @@ export default function ValuationPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* Owner Info */}
-                  <div className="space-y-3">
-                    <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide flex items-center gap-2">
-                      <User className="h-4 w-4" />
-                      Owner Information
-                    </h4>
-                    <div className="p-3 bg-background rounded-lg">
-                      <p className="font-semibold text-lg">{skipTraceResult.ownerName || "Name Not Available"}</p>
-                      {skipTraceResult.firstName && (
-                        <p className="text-sm text-muted-foreground">
-                          First: {skipTraceResult.firstName} | Last: {skipTraceResult.lastName}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Phone Numbers - CLICK TO DIAL */}
-                  <div className="space-y-3">
-                    <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide flex items-center gap-2">
-                      <Phone className="h-4 w-4" />
-                      Phone Numbers ({skipTraceResult.phones?.length || 0})
-                    </h4>
-                    <div className="space-y-2">
-                      {skipTraceResult.phones?.length > 0 ? (
-                        skipTraceResult.phones.map((phone, idx) => (
-                          <div key={idx} className="flex items-center justify-between p-2 bg-background rounded-lg border border-green-500/30 hover:border-green-500 transition-colors">
-                            <a
-                              href={`tel:${phone.number}`}
-                              className="flex items-center gap-2 text-green-600 hover:text-green-700 font-semibold"
-                            >
-                              <Phone className="h-4 w-4" />
-                              <span className="font-mono text-lg">{phone.number}</span>
-                            </a>
-                            <div className="flex items-center gap-1">
-                              {phone.type && <Badge variant="outline" className="text-xs">{phone.type}</Badge>}
-                              {phone.score && <Badge className="text-xs bg-blue-600">{phone.score}%</Badge>}
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-7 px-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                                onClick={() => window.open(`sms:${phone.number}`, '_blank')}
-                              >
-                                <MessageSquare className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-sm text-muted-foreground p-2">No phone numbers found</p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Emails - CLICK TO EMAIL */}
-                  <div className="space-y-3">
-                    <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide flex items-center gap-2">
-                      <Mail className="h-4 w-4" />
-                      Email Addresses ({skipTraceResult.emails?.length || 0})
-                    </h4>
-                    <div className="space-y-2">
-                      {skipTraceResult.emails?.length > 0 ? (
-                        skipTraceResult.emails.map((email, idx) => (
-                          <div key={idx} className="flex items-center justify-between p-2 bg-background rounded-lg border border-blue-500/30 hover:border-blue-500 transition-colors">
-                            <a
-                              href={`mailto:${email.email}`}
-                              className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium truncate"
-                            >
-                              <Mail className="h-4 w-4 flex-shrink-0" />
-                              <span className="truncate">{email.email}</span>
-                            </a>
-                            <div className="flex items-center gap-1">
-                              {email.type && <Badge variant="outline" className="text-xs">{email.type}</Badge>}
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-7 px-2 text-green-600 hover:text-green-700 hover:bg-green-50"
-                                onClick={() => {
-                                  navigator.clipboard.writeText(email.email);
-                                  toast.success("Email copied!");
-                                }}
-                              >
-                                <Copy className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-sm text-muted-foreground p-2">No email addresses found</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                {/* Owner Contact Card - 3 Phone Slots + 3 Email Slots */}
+                <OwnerContactCard
+                  contact={skipTraceToOwnerContact(skipTraceResult)}
+                  onCall={(phone) => window.location.href = `tel:${phone}`}
+                  onSMS={(phone) => window.open(`sms:${phone}`, '_blank')}
+                  onEmail={(email) => window.location.href = `mailto:${email}`}
+                  editable={false}
+                />
 
                 {/* Additional Addresses & Relatives */}
                 {((skipTraceResult.addresses?.length ?? 0) > 0 || (skipTraceResult.relatives?.length ?? 0) > 0) && (
