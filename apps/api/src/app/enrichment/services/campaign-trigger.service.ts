@@ -135,7 +135,16 @@ export class CampaignTriggerService {
     });
 
     // Get lead card details
-    const results = [];
+    const results: Array<{
+      queueId: string;
+      leadCardId: string;
+      templateId?: string;
+      templateOverride?: string;
+      phone?: string;
+      email?: string;
+      firstName?: string;
+      lastName?: string;
+    }> = [];
     for (const item of items) {
       const leadCard = await this.db.query.unifiedLeadCards.findFirst({
         where: (t, { eq }) => eq(t.id, item.leadCardId),

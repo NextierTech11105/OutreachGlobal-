@@ -123,9 +123,9 @@ export class LeadCardService {
         });
 
     const property = propertyLink
-      ? await this.db.query.properties.findFirst({
+      ? (await this.db.query.properties.findFirst({
           where: (t, { eq }) => eq(t.id, propertyLink.propertyId),
-        })
+        })) ?? null
       : null;
 
     // Calculate score

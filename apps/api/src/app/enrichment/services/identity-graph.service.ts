@@ -283,11 +283,13 @@ export class IdentityGraphService {
         number: p.normalizedNumber,
         type: p.phoneType as "mobile" | "landline" | "unknown",
         isPrimary: p.isPrimary,
+        source: p.source || "skiptrace",
       })),
       emails: emails.map((e) => ({
         address: e.normalizedAddress,
         type: e.emailType as "personal" | "business" | "unknown",
         isPrimary: e.isPrimary,
+        source: e.source || "skiptrace",
       })),
       addresses: addresses.map((a) => ({
         street: a.street,
@@ -295,6 +297,8 @@ export class IdentityGraphService {
         state: a.state,
         zip: a.zip,
         isCurrent: a.isCurrent,
+        type: "residential" as const,
+        source: a.source || "skiptrace",
       })),
     };
   }
