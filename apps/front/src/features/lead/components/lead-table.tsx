@@ -41,6 +41,7 @@ import {
   PhoneCall,
   MessageSquare,
   Loader2,
+  CalendarPlus,
 } from "lucide-react";
 import { TeamLink } from "@/features/team/components/team-link";
 import {
@@ -84,6 +85,11 @@ export const LeadTable = () => {
   const [outreachMessage, setOutreachMessage] = useState("");
   const [outreachLoading, setOutreachLoading] = useState(false);
   const [scheduleTime, setScheduleTime] = useState("9:00");
+
+  // Calendar scheduling state
+  const [calendarDialog, setCalendarDialog] = useState(false);
+  const [calendarDate, setCalendarDate] = useState("");
+  const [calendarLoading, setCalendarLoading] = useState(false);
 
   const [leads, pageInfo, { loading, refetch }] = useConnectionQuery(
     LEADS_QUERY,
@@ -137,6 +143,53 @@ export const LeadTable = () => {
         }
       },
     });
+  };
+
+  // Schedule leads to calendar
+  const scheduleToCalendar = async () => {
+    if (selectedLeads.length === 0 || !calendarDate) return;
+
+    setCalendarLoading(true);
+    try {
+      const selectedLeadDetails = leads?.filter((lead: { id: string }) =>
+        selectedLeads.some((s) => s.id === lead.id)
+      ) || [];
+
+      const response = await fetch("/api/calendar/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "schedule_to_calendar",
+          leads: selectedLeadDetails.map((lead: { id: string; firstName?: string; lastName?: string; phone?: string; email?: string; propertyAddress?: string; propertyCity?: string; propertyState?: string }) => ({
+            id: lead.id,
+            name: [lead.firstName, lead.lastName].filter(Boolean).join(" ") || "Unknown",
+            phone: lead.phone,
+            email: lead.email,
+            address: lead.propertyAddress,
+            city: lead.propertyCity,
+            state: lead.propertyState,
+          })),
+          scheduledDate: calendarDate,
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        toast.success(`${data.scheduled} leads scheduled for ${new Date(calendarDate).toLocaleDateString()}`, {
+          description: "View them in the Calendar workspace",
+        });
+        setCalendarDialog(false);
+        setCalendarDate("");
+        setSelected([]);
+      } else {
+        throw new Error(data.error);
+      }
+    } catch (error) {
+      console.error("Calendar scheduling error:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to schedule leads");
+    } finally {
+      setCalendarLoading(false);
+    }
   };
 
   // Open bulk outreach dialog
@@ -358,6 +411,17 @@ export const LeadTable = () => {
               </DropdownMenuContent>
             </DropdownMenu>
 
+            {/* Calendar Actions */}
+            <Button
+              size="xs"
+              variant="default"
+              className="gap-1 bg-orange-600 hover:bg-orange-700"
+              onClick={() => setCalendarDialog(true)}
+            >
+              <CalendarPlus className="h-3.5 w-3.5" />
+              Calendar
+            </Button>
+
             <DropdownMenuSeparator className="h-6 w-px bg-border mx-1" />
 
             <Button size="xs" variant="destructive" onClick={confirmBulkDelete}>
@@ -478,6 +542,58 @@ export const LeadTable = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Calendar Schedule Dialog */}
+      <Dialog open={calendarDialog} onOpenChange={setCalendarDialog}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CalendarPlus className="h-5 w-5 text-orange-500" />
+              Schedule to Calendar
+            </DialogTitle>
+            <DialogDescription>
+              Schedule {selectedLeads.length} leads for follow-up on a specific date
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Follow-up Date</Label>
+              <input
+                type="date"
+                value={calendarDate}
+                onChange={(e) => setCalendarDate(e.target.value)}
+                min={new Date().toISOString().split("T")[0]}
+                title="Select follow-up date"
+                aria-label="Follow-up date"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </div>
+
+            <div className="bg-muted p-4 rounded-lg">
+              <p className="text-sm">
+                <strong>{selectedLeads.length}</strong> leads will be scheduled for follow-up.
+                You can view and work them from the Calendar workspace.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCalendarDialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={scheduleToCalendar}
+              disabled={calendarLoading || !calendarDate}
+              className="bg-orange-600 hover:bg-orange-700"
+            >
+              {calendarLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Schedule
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Table>
         {!selectedLeads.length && (
           <TableHeader>

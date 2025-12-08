@@ -115,33 +115,21 @@ const STATUS_COLORS: Record<Lead["status"], string> = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// MOCK DATA - Replace with real API calls
+// REAL API DATA FETCHING
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const generateMockLeads = (date: Date): Lead[] => {
-  const dayOfMonth = date.getDate();
-  const count = Math.floor(Math.random() * 8);
-
-  const names = ["John Smith", "Sarah Johnson", "Mike Williams", "Emily Davis", "James Brown", "Lisa Miller", "Robert Wilson", "Jennifer Taylor"];
-  const statuses: Lead["status"][] = ["new", "contacted", "qualified", "nurture"];
-  const leadTypes = ["Pre-Foreclosure", "High Equity", "Absentee", "Tax Lien", "Inherited"];
-
-  return Array.from({ length: count }, (_, i) => ({
-    id: `lead-${date.toISOString()}-${i}`,
-    name: names[Math.floor(Math.random() * names.length)],
-    phone: `+1${Math.floor(Math.random() * 9000000000 + 1000000000)}`,
-    email: `lead${dayOfMonth}${i}@email.com`,
-    address: `${100 + i * 10} Main St`,
-    city: ["Miami", "Tampa", "Orlando", "Jacksonville"][Math.floor(Math.random() * 4)],
-    state: "FL",
-    propertyValue: Math.floor(Math.random() * 400000 + 150000),
-    equity: Math.floor(Math.random() * 200000 + 50000),
-    leadType: leadTypes[Math.floor(Math.random() * leadTypes.length)],
-    status: statuses[Math.floor(Math.random() * statuses.length)],
-    createdAt: date.toISOString(),
-    source: "RealEstateAPI",
-  }));
-};
+async function fetchLeadsForDateRange(startDate: Date, endDate: Date): Promise<Lead[]> {
+  try {
+    const response = await fetch(
+      `/api/calendar/leads?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`
+    );
+    const data = await response.json();
+    return data.success ? data.leads : [];
+  } catch (error) {
+    console.error("[Calendar] Failed to fetch leads:", error);
+    return [];
+  }
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // LEAD CALENDAR WORKSPACE
@@ -153,12 +141,42 @@ export default function LeadCalendarWorkspace() {
   const [viewMode, setViewMode] = useState<"month" | "week">("month");
   const [selectedLeads, setSelectedLeads] = useState<Set<string>>(new Set());
   const [filterStatus, setFilterStatus] = useState<Lead["status"] | "all">("all");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [isCampaignDialogOpen, setIsCampaignDialogOpen] = useState(false);
   const [selectedCampaignStage, setSelectedCampaignStage] = useState<CampaignStage>("initial");
   const [isPushing, setIsPushing] = useState(false);
+  const [allLeads, setAllLeads] = useState<Lead[]>([]);
 
-  // Generate calendar data with leads
+  // Calculate date range for current view
+  const dateRange = useMemo(() => {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const startDate = new Date(firstDay);
+    startDate.setDate(startDate.getDate() - startDate.getDay());
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + 42);
+    return { startDate, endDate };
+  }, [currentDate]);
+
+  // Fetch leads when date range changes
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadLeads() {
+      setIsLoading(true);
+      const leads = await fetchLeadsForDateRange(dateRange.startDate, dateRange.endDate);
+      if (!cancelled) {
+        setAllLeads(leads);
+        setIsLoading(false);
+      }
+    }
+
+    loadLeads();
+    return () => { cancelled = true; };
+  }, [dateRange.startDate.getTime(), dateRange.endDate.getTime()]);
+
+  // Generate calendar days with leads grouped by date
   const calendarDays = useMemo(() => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
@@ -170,12 +188,23 @@ export default function LeadCalendarWorkspace() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    // Group leads by date
+    const leadsByDate = new Map<string, Lead[]>();
+    for (const lead of allLeads) {
+      const dateKey = new Date(lead.createdAt).toDateString();
+      if (!leadsByDate.has(dateKey)) {
+        leadsByDate.set(dateKey, []);
+      }
+      leadsByDate.get(dateKey)!.push(lead);
+    }
+
     for (let i = 0; i < 42; i++) {
       const date = new Date(startDate);
       date.setDate(startDate.getDate() + i);
       date.setHours(0, 0, 0, 0);
 
-      const leads = generateMockLeads(date);
+      const dateKey = date.toDateString();
+      const leads = leadsByDate.get(dateKey) || [];
 
       days.push({
         date,
@@ -187,7 +216,7 @@ export default function LeadCalendarWorkspace() {
     }
 
     return days;
-  }, [currentDate]);
+  }, [currentDate, allLeads]);
 
   // Get leads for selected date
   const selectedDateLeads = useMemo(() => {

@@ -1,10 +1,14 @@
 /**
  * Calendar Leads API
  * GET leads for a date range (for calendar view)
- * POST push leads to SMS campaign stages
+ * POST push leads to SMS campaign stages / schedule to calendar
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { leads } from "@/lib/db/schema";
+import { eq, and, gte, lte, desc } from "drizzle-orm";
+import { auth } from "@clerk/nextjs/server";
 
 // Lead type for calendar
 interface CalendarLead {
@@ -44,62 +48,77 @@ const CAMPAIGN_TEMPLATES: Record<string, { message: string; category: string }> 
   },
 };
 
+// Map DB status to calendar status
+function mapDbStatus(status: string): CalendarLead["status"] {
+  const map: Record<string, CalendarLead["status"]> = {
+    new: "new",
+    contacted: "contacted",
+    qualified: "qualified",
+    nurturing: "nurture",
+    closed: "closed",
+    lost: "lost",
+  };
+  return map[status] || "new";
+}
+
 // GET - Fetch leads for calendar view by date range
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const startDate = searchParams.get("startDate");
-  const endDate = searchParams.get("endDate");
-  const status = searchParams.get("status");
-
   try {
-    // In production, this would query the database
-    // For now, we'll return mock data that matches the calendar structure
-
-    // Generate mock leads for the date range
-    const leads: CalendarLead[] = [];
-
-    if (startDate && endDate) {
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-
-      // Mock data generation - replace with real DB query
-      const names = ["John Smith", "Sarah Johnson", "Mike Williams", "Emily Davis", "James Brown", "Lisa Miller"];
-      const statuses: CalendarLead["status"][] = ["new", "contacted", "qualified", "nurture"];
-      const leadTypes = ["Pre-Foreclosure", "High Equity", "Absentee", "Tax Lien", "Inherited"];
-      const cities = ["Miami", "Tampa", "Orlando", "Jacksonville"];
-
-      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-        const count = Math.floor(Math.random() * 6) + 1;
-
-        for (let i = 0; i < count; i++) {
-          const leadStatus = statuses[Math.floor(Math.random() * statuses.length)];
-
-          // Filter by status if provided
-          if (status && status !== "all" && leadStatus !== status) continue;
-
-          leads.push({
-            id: `lead-${d.toISOString().split("T")[0]}-${i}`,
-            name: names[Math.floor(Math.random() * names.length)],
-            phone: `+1${Math.floor(Math.random() * 9000000000 + 1000000000)}`,
-            email: `lead${d.getDate()}${i}@email.com`,
-            address: `${100 + i * 10} Main St`,
-            city: cities[Math.floor(Math.random() * cities.length)],
-            state: "FL",
-            propertyValue: Math.floor(Math.random() * 400000 + 150000),
-            equity: Math.floor(Math.random() * 200000 + 50000),
-            leadType: leadTypes[Math.floor(Math.random() * leadTypes.length)],
-            status: leadStatus,
-            createdAt: new Date(d).toISOString(),
-            source: "RealEstateAPI",
-          });
-        }
-      }
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const { searchParams } = new URL(request.url);
+    const startDate = searchParams.get("startDate");
+    const endDate = searchParams.get("endDate");
+    const status = searchParams.get("status");
+
+    // Build query conditions
+    const conditions = [eq(leads.userId, userId)];
+
+    if (startDate) {
+      conditions.push(gte(leads.createdAt, new Date(startDate)));
+    }
+
+    if (endDate) {
+      conditions.push(lte(leads.createdAt, new Date(endDate)));
+    }
+
+    if (status && status !== "all") {
+      conditions.push(eq(leads.status, status));
+    }
+
+    // Fetch leads from database
+    const results = await db
+      .select()
+      .from(leads)
+      .where(and(...conditions))
+      .orderBy(desc(leads.createdAt))
+      .limit(1000); // Reasonable limit for calendar view
+
+    // Transform to calendar format
+    const calendarLeads: CalendarLead[] = results.map((lead) => ({
+      id: lead.id,
+      name: [lead.firstName, lead.lastName].filter(Boolean).join(" ") || "Unknown",
+      phone: lead.phone || undefined,
+      email: lead.email || undefined,
+      address: lead.propertyAddress || undefined,
+      city: lead.propertyCity || undefined,
+      state: lead.propertyState || undefined,
+      propertyValue: lead.estimatedValue || undefined,
+      equity: lead.equity || undefined,
+      leadType: lead.leadType || lead.propertyType || undefined,
+      status: mapDbStatus(lead.status),
+      createdAt: lead.createdAt.toISOString(),
+      lastContactedAt: lead.lastActivityAt?.toISOString(),
+      source: lead.source || "Unknown",
+    }));
 
     return NextResponse.json({
       success: true,
-      leads,
-      count: leads.length,
+      leads: calendarLeads,
+      count: calendarLeads.length,
       dateRange: { startDate, endDate },
     });
   } catch (error) {
@@ -111,15 +130,20 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Push leads to SMS campaign stage
+// POST - Push leads to SMS campaign stage or schedule to calendar
 export async function POST(request: NextRequest) {
   try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await request.json();
-    const { action, leads, campaignStage, customMessage } = body;
+    const { action, leads: inputLeads, campaignStage, customMessage, scheduledDate } = body;
 
     switch (action) {
       case "push_to_campaign": {
-        if (!leads || !Array.isArray(leads) || leads.length === 0) {
+        if (!inputLeads || !Array.isArray(inputLeads) || inputLeads.length === 0) {
           return NextResponse.json(
             { success: false, error: "leads array required" },
             { status: 400 }
@@ -137,7 +161,7 @@ export async function POST(request: NextRequest) {
         const templateMessage = customMessage || template.message;
 
         // Format leads for SMS queue
-        const smsLeads = leads
+        const smsLeads = inputLeads
           .filter((lead: CalendarLead) => lead.phone)
           .map((lead: CalendarLead) => ({
             id: lead.id,
@@ -181,7 +205,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
           success: true,
           stage: campaignStage,
-          totalLeads: leads.length,
+          totalLeads: inputLeads.length,
           leadsWithPhone: smsLeads.length,
           queued: queueResult.added || 0,
           skipped: queueResult.skipped || 0,
@@ -190,8 +214,45 @@ export async function POST(request: NextRequest) {
         });
       }
 
+      case "schedule_to_calendar": {
+        // Schedule leads for follow-up on a specific date
+        if (!inputLeads || !Array.isArray(inputLeads) || inputLeads.length === 0) {
+          return NextResponse.json(
+            { success: false, error: "leads array required" },
+            { status: 400 }
+          );
+        }
+
+        if (!scheduledDate) {
+          return NextResponse.json(
+            { success: false, error: "scheduledDate required" },
+            { status: 400 }
+          );
+        }
+
+        // Update leads with scheduled follow-up date
+        const leadIds = inputLeads.map((l: CalendarLead) => l.id);
+        const updatePromises = leadIds.map((id: string) =>
+          db
+            .update(leads)
+            .set({
+              scheduledFollowUp: new Date(scheduledDate),
+              updatedAt: new Date(),
+            })
+            .where(and(eq(leads.id, id), eq(leads.userId, userId)))
+        );
+
+        await Promise.all(updatePromises);
+
+        return NextResponse.json({
+          success: true,
+          scheduled: leadIds.length,
+          scheduledDate,
+          message: `${leadIds.length} leads scheduled for ${new Date(scheduledDate).toLocaleDateString()}`,
+        });
+      }
+
       case "update_status": {
-        // Update lead status (contacted, qualified, etc.)
         const { leadId, newStatus } = body;
 
         if (!leadId || !newStatus) {
@@ -201,18 +262,24 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        // In production, update the database
-        // For now, just return success
+        await db
+          .update(leads)
+          .set({
+            status: newStatus,
+            lastActivityAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .where(and(eq(leads.id, leadId), eq(leads.userId, userId)));
+
         return NextResponse.json({
           success: true,
           leadId,
           newStatus,
-          message: `Lead ${leadId} updated to ${newStatus}`,
+          message: `Lead updated to ${newStatus}`,
         });
       }
 
       case "bulk_update_status": {
-        // Bulk update lead statuses
         const { leadIds, newStatus } = body;
 
         if (!leadIds || !Array.isArray(leadIds) || !newStatus) {
@@ -222,7 +289,19 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        // In production, bulk update the database
+        const updatePromises = leadIds.map((id: string) =>
+          db
+            .update(leads)
+            .set({
+              status: newStatus,
+              lastActivityAt: new Date(),
+              updatedAt: new Date(),
+            })
+            .where(and(eq(leads.id, id), eq(leads.userId, userId)))
+        );
+
+        await Promise.all(updatePromises);
+
         return NextResponse.json({
           success: true,
           updated: leadIds.length,
