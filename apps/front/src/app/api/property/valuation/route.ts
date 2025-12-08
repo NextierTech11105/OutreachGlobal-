@@ -226,23 +226,75 @@ function normalizePropertyDetail(rawProperty: Record<string, unknown>, inputData
   const roofType = (propertyInfo.roofMaterial || rawProperty.roofMaterial) as string || undefined;
 
   // ═════════════════════════════════════════════════════════════════════════
-  // ESTIMATED VALUE - Use multiple sources, prioritize taxInfo.estimatedValue
+  // ESTIMATED VALUE - Use AVM first, NOT tax assessed value
   // ═════════════════════════════════════════════════════════════════════════
-  // taxInfo.estimatedValue is the most reliable market value from RealEstateAPI
-  let estimatedValue = Number(
-    taxInfo.estimatedValue ||  // Primary: Tax assessor's estimated market value
-    rawProperty.estimatedValue ||  // Secondary: API's AVM
-    rawProperty.avm ||  // Tertiary: Automated Valuation Model
-    taxInfo.marketValue  // Fallback: Tax assessed market value
+  // CRITICAL: In NYC and some other markets, taxInfo.estimatedValue is the
+  // ASSESSED value (6% of market for class 2), NOT market value!
+  // Priority: AVM > estimatedValue > calculated from $/sqft
+
+  const avmValue = Number(rawProperty.avm) || 0;
+  const apiEstimatedValue = Number(rawProperty.estimatedValue) || 0;
+  const taxEstimatedValue = Number(taxInfo.estimatedValue) || 0;
+  const taxMarketVal = Number(taxInfo.marketValue) || 0;
+
+  // Get square feet for price/sqft calculation
+  const sqftForCalc = Number(
+    propertyInfo.livingSquareFeet || propertyInfo.buildingSquareFeet ||
+    propertyInfo.squareFeet || rawProperty.squareFeet || rawProperty.buildingSize
   ) || 0;
 
-  // Sanity check: If value seems way off vs comps, flag it
+  // Use AVM as primary source - this is the Automated Valuation Model (actual market value)
+  let estimatedValue = avmValue || apiEstimatedValue;
+
+  // Sanity check: if tax estimated value looks like NYC assessed (way below market)
+  // NYC Class 2 properties are assessed at ~6% of market value
+  // If taxEstimatedValue is present but way lower than what it should be, ignore it
+  if (!estimatedValue && taxEstimatedValue > 0) {
+    // Check if this looks like a NYC assessed value (assessed values are typically <20% of market)
+    const isNYC = resolvedState?.toUpperCase() === 'NY' &&
+      ['NEW YORK', 'BROOKLYN', 'QUEENS', 'BRONX', 'STATEN ISLAND', 'MANHATTAN',
+       'LONG ISLAND CITY', 'ASTORIA', 'FLUSHING'].some(c =>
+        (resolvedCity || '').toUpperCase().includes(c) || (resolvedAddress || '').toUpperCase().includes(c)
+      );
+
+    if (isNYC) {
+      // NYC assessed values are typically 6% of market for Class 2, 45% for Class 1
+      // Estimate market value from assessed (assume Class 2 - 6%)
+      const estimatedFromAssessed = taxEstimatedValue / 0.06;
+      console.log("[Valuation] NYC property detected - adjusting from assessed:", {
+        taxEstimatedValue,
+        estimatedFromAssessed,
+        isNYC
+      });
+      // Only use this if it seems reasonable (Class 2)
+      if (taxEstimatedValue < 500000) {
+        estimatedValue = Math.round(estimatedFromAssessed);
+      } else {
+        // Might be Class 1 (single family) - assessed at 45%
+        estimatedValue = Math.round(taxEstimatedValue / 0.45);
+      }
+    } else {
+      // Non-NYC - taxInfo.estimatedValue might be actual market value
+      estimatedValue = taxEstimatedValue;
+    }
+  }
+
+  // Last fallback to tax market value
+  if (!estimatedValue && taxMarketVal > 0) {
+    estimatedValue = taxMarketVal;
+  }
+
+  // Ultimate fallback: calculate from neighborhood avg $/sqft if we have sqft
+  // This will be refined later when we have comps data
+
   console.log("[Valuation] Estimated value sources:", {
-    taxInfoEstimatedValue: taxInfo.estimatedValue,
-    rawEstimatedValue: rawProperty.estimatedValue,
-    avm: rawProperty.avm,
-    taxMarketValue: taxInfo.marketValue,
-    final: estimatedValue
+    avm: avmValue,
+    apiEstimatedValue,
+    taxEstimatedValue,
+    taxMarketValue: taxMarketVal,
+    final: estimatedValue,
+    state: resolvedState,
+    city: resolvedCity
   });
 
   // Tax info
