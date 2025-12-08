@@ -226,75 +226,62 @@ function normalizePropertyDetail(rawProperty: Record<string, unknown>, inputData
   const roofType = (propertyInfo.roofMaterial || rawProperty.roofMaterial) as string || undefined;
 
   // ═════════════════════════════════════════════════════════════════════════
-  // ESTIMATED VALUE - Use AVM first, NOT tax assessed value
+  // ESTIMATED VALUE - FIXED: Use taxMarketValue as PRIMARY source
   // ═════════════════════════════════════════════════════════════════════════
-  // CRITICAL: In NYC and some other markets, taxInfo.estimatedValue is the
-  // ASSESSED value (6% of market for class 2), NOT market value!
-  // Priority: AVM > estimatedValue > calculated from $/sqft
+  // RealEstateAPI returns:
+  //   - taxInfo.marketValue = ACTUAL MARKET VALUE (e.g., $2,109,000)
+  //   - taxInfo.estimatedValue = TAX ASSESSED VALUE (e.g., $38,263 in NYC)
+  //   - rawProperty.estimatedValue = Usually same as assessed (useless for NYC)
+  //   - rawProperty.avm = Automated Valuation Model (not always populated)
+  //
+  // For NYC: taxInfo.marketValue IS the market value we need!
 
-  const avmValue = Number(rawProperty.avm) || 0;
-  const apiEstimatedValue = Number(rawProperty.estimatedValue) || 0;
-  const taxEstimatedValue = Number(taxInfo.estimatedValue) || 0;
   const taxMarketVal = Number(taxInfo.marketValue) || 0;
+  const avmValue = Number(rawProperty.avm) || 0;
+  const lastSaleAmt = Number(rawProperty.lastSalePrice || lastSaleInfo.saleAmount) || 0;
+  const taxAssessed = Number(taxInfo.assessedValue || taxInfo.estimatedValue) || 0;
 
-  // Get square feet for price/sqft calculation
-  const sqftForCalc = Number(
-    propertyInfo.livingSquareFeet || propertyInfo.buildingSquareFeet ||
-    propertyInfo.squareFeet || rawProperty.squareFeet || rawProperty.buildingSize
-  ) || 0;
+  // Priority order for market value:
+  // 1. taxInfo.marketValue (most reliable - actual market value from tax records)
+  // 2. AVM (Automated Valuation Model)
+  // 3. Last sale amount (recent sales are good indicators)
+  // 4. Calculated from assessed value (NYC Class 2 = assessed ÷ 0.06)
+  let estimatedValue = taxMarketVal;
 
-  // Use AVM as primary source - this is the Automated Valuation Model (actual market value)
-  let estimatedValue = avmValue || apiEstimatedValue;
+  if (!estimatedValue && avmValue > 0) {
+    estimatedValue = avmValue;
+  }
 
-  // Sanity check: if tax estimated value looks like NYC assessed (way below market)
-  // NYC Class 2 properties are assessed at ~6% of market value
-  // If taxEstimatedValue is present but way lower than what it should be, ignore it
-  if (!estimatedValue && taxEstimatedValue > 0) {
-    // Check if this looks like a NYC assessed value (assessed values are typically <20% of market)
-    const isNYC = resolvedState?.toUpperCase() === 'NY' &&
-      ['NEW YORK', 'BROOKLYN', 'QUEENS', 'BRONX', 'STATEN ISLAND', 'MANHATTAN',
-       'LONG ISLAND CITY', 'ASTORIA', 'FLUSHING'].some(c =>
-        (resolvedCity || '').toUpperCase().includes(c) || (resolvedAddress || '').toUpperCase().includes(c)
-      );
-
-    if (isNYC) {
-      // NYC assessed values are typically 6% of market for Class 2, 45% for Class 1
-      // Estimate market value from assessed (assume Class 2 - 6%)
-      const estimatedFromAssessed = taxEstimatedValue / 0.06;
-      console.log("[Valuation] NYC property detected - adjusting from assessed:", {
-        taxEstimatedValue,
-        estimatedFromAssessed,
-        isNYC
-      });
-      // Only use this if it seems reasonable (Class 2)
-      if (taxEstimatedValue < 500000) {
-        estimatedValue = Math.round(estimatedFromAssessed);
-      } else {
-        // Might be Class 1 (single family) - assessed at 45%
-        estimatedValue = Math.round(taxEstimatedValue / 0.45);
+  if (!estimatedValue && lastSaleAmt > 0) {
+    // Use last sale as estimate if recent (within 2 years)
+    const lastSaleDate = rawProperty.lastSaleDate || lastSaleInfo.saleDate;
+    if (lastSaleDate) {
+      const saleYear = new Date(lastSaleDate as string).getFullYear();
+      if (saleYear >= 2023) {
+        estimatedValue = lastSaleAmt;
       }
-    } else {
-      // Non-NYC - taxInfo.estimatedValue might be actual market value
-      estimatedValue = taxEstimatedValue;
     }
   }
 
-  // Last fallback to tax market value
-  if (!estimatedValue && taxMarketVal > 0) {
-    estimatedValue = taxMarketVal;
+  // Last resort: calculate from assessed value
+  if (!estimatedValue && taxAssessed > 0) {
+    // NYC Class 2 (multi-family) = 6% of market, Class 1 (single family) = ~6% too now
+    // If assessed is very low compared to what we'd expect, it's likely NYC
+    const isNYC = resolvedState?.toUpperCase() === 'NY';
+    if (isNYC && taxAssessed < 500000) {
+      estimatedValue = Math.round(taxAssessed / 0.06);
+    } else {
+      estimatedValue = taxAssessed;
+    }
   }
 
-  // Ultimate fallback: calculate from neighborhood avg $/sqft if we have sqft
-  // This will be refined later when we have comps data
-
-  console.log("[Valuation] Estimated value sources:", {
-    avm: avmValue,
-    apiEstimatedValue,
-    taxEstimatedValue,
+  console.log("[Valuation] Market value calculation:", {
     taxMarketValue: taxMarketVal,
-    final: estimatedValue,
-    state: resolvedState,
-    city: resolvedCity
+    avm: avmValue,
+    lastSaleAmount: lastSaleAmt,
+    taxAssessed,
+    FINAL_ESTIMATED_VALUE: estimatedValue,
+    state: resolvedState
   });
 
   // Tax info
