@@ -277,11 +277,15 @@ export class IdentityGraphService {
 
     return {
       id: persona.id,
+      sourceType: (persona.primarySource as 'business' | 'property' | 'consumer' | 'skiptrace' | 'apollo') || "skiptrace",
+      sourceId: persona.id,
       firstName: persona.firstName,
       lastName: persona.lastName,
+      middleName: persona.middleName || undefined,
+      suffix: persona.suffix || undefined,
       phones: phones.map((p) => ({
         number: p.normalizedNumber,
-        type: p.phoneType as "mobile" | "landline" | "unknown",
+        type: p.phoneType as "mobile" | "landline" | "voip" | "unknown",
         isPrimary: p.isPrimary,
         source: p.source || "skiptrace",
       })),
@@ -300,6 +304,8 @@ export class IdentityGraphService {
         type: "residential" as const,
         source: a.source || "skiptrace",
       })),
+      createdAt: persona.createdAt || new Date(),
+      updatedAt: persona.updatedAt || new Date(),
     };
   }
 

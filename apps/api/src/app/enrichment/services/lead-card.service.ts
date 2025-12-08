@@ -128,8 +128,14 @@ export class LeadCardService {
         })) ?? null
       : null;
 
-    // Calculate score
-    const score = this.calculateScore(phones, emails, addresses, businessLink, property);
+    // Calculate score - extract only needed property fields
+    const propertyForScore = property ? {
+      equityPercent: property.equityPercent,
+      preForeclosure: property.preForeclosure,
+      taxLien: property.taxLien,
+      vacant: property.vacant,
+    } : null;
+    const score = this.calculateScore(phones, emails, addresses, businessLink, propertyForScore);
 
     // Determine primary contact info
     const primaryPhone = phones.find((p) => p.isPrimary) || phones[0];
