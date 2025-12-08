@@ -3,6 +3,8 @@
  * Core types for the unified lead card system
  */
 
+import { CampaignAgent } from '../identity';
+
 // ============================================
 // LEAD SOURCE TYPES
 // ============================================
@@ -220,7 +222,7 @@ export interface RoleInfo {
   confidence: number;
 }
 
-export type CampaignAgent = 'sabrina' | 'gianna';
+// CampaignAgent imported from '../identity'
 export type CampaignChannel = 'sms' | 'email' | 'call' | 'mail';
 export type CampaignPriority = 'high' | 'medium' | 'low';
 
