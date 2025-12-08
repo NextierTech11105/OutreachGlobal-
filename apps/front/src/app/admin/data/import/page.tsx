@@ -9,8 +9,9 @@ import {
 import { CrmImporter } from "@/components/crm-importer";
 import { ApiIntegrationImporter } from "@/components/api-integration-importer";
 import { FileUploader } from "@/components/file-uploader";
+import { DatalakeUploader } from "@/components/datalake-uploader";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { InfoIcon } from "lucide-react";
+import { InfoIcon, Database } from "lucide-react";
 
 export default function DataImportPage() {
   return (
@@ -21,12 +22,20 @@ export default function DataImportPage() {
           <h2 className="text-3xl font-bold tracking-tight">Data Import</h2>
         </div>
 
-        <Tabs defaultValue="crm" className="space-y-4">
+        <Tabs defaultValue="datalake" className="space-y-4">
           <TabsList>
+            <TabsTrigger value="datalake" className="gap-2">
+              <Database className="h-4 w-4" />
+              Datalake
+            </TabsTrigger>
             <TabsTrigger value="crm">CRM Import</TabsTrigger>
             <TabsTrigger value="api">API Import</TabsTrigger>
             <TabsTrigger value="file">File Upload</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="datalake">
+            <DatalakeUploader />
+          </TabsContent>
 
           <TabsContent value="crm">
             <Card>

@@ -17,6 +17,8 @@ import {
   Calendar,
   User,
   MessageSquare,
+  Sparkles,
+  Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,6 +47,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useGlobalActions } from "@/lib/providers/global-actions-provider";
+import { SMSCampaignSetup, SMSCampaignConfig } from "@/components/sms-campaign-setup";
 
 export default function SMSQueuePage() {
   const {
@@ -59,6 +62,15 @@ export default function SMSQueuePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<"sms" | "calls">("sms");
+  const [isCampaignSetupOpen, setIsCampaignSetupOpen] = useState(false);
+
+  // Handle campaign setup submission
+  const handleCampaignSubmit = (config: SMSCampaignConfig) => {
+    console.log("Campaign created:", config);
+    // Here you would typically create the campaign via API
+    // For now, we just close the dialog
+    setIsCampaignSetupOpen(false);
+  };
 
   // Filter SMS queue
   const filteredSMSQueue = useMemo(() => {
@@ -152,9 +164,13 @@ export default function SMSQueuePage() {
               <Phone className="h-4 w-4 mr-2" />
               Schedule Call
             </Button>
-            <Button size="sm" onClick={() => openSMSDialog()}>
-              <MessageSquare className="h-4 w-4 mr-2" />
-              Add to SMS Queue
+            <Button variant="outline" size="sm" onClick={() => openSMSDialog()}>
+              <Plus className="h-4 w-4 mr-2" />
+              Quick Add
+            </Button>
+            <Button size="sm" onClick={() => setIsCampaignSetupOpen(true)} className="bg-green-600 hover:bg-green-700">
+              <Sparkles className="h-4 w-4 mr-2" />
+              New Campaign
             </Button>
           </div>
         </div>
@@ -294,14 +310,24 @@ export default function SMSQueuePage() {
                     <TableCell colSpan={7} className="text-center py-8">
                       <MessageSquare className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
                       <p className="text-muted-foreground">No messages in queue</p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="mt-2"
-                        onClick={() => openSMSDialog()}
-                      >
-                        Add Message
-                      </Button>
+                      <div className="flex items-center justify-center gap-2 mt-3">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openSMSDialog()}
+                        >
+                          <Plus className="h-4 w-4 mr-1" />
+                          Quick Add
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="bg-green-600 hover:bg-green-700"
+                          onClick={() => setIsCampaignSetupOpen(true)}
+                        >
+                          <Sparkles className="h-4 w-4 mr-1" />
+                          New Campaign
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -445,6 +471,15 @@ export default function SMSQueuePage() {
           </Card>
         )}
       </div>
+
+      {/* SMS Campaign Setup Dialog */}
+      <SMSCampaignSetup
+        isOpen={isCampaignSetupOpen}
+        onClose={() => setIsCampaignSetupOpen(false)}
+        selectedCount={0}
+        dataType="property"
+        onSubmit={handleCampaignSubmit}
+      />
     </div>
   );
 }
