@@ -25,13 +25,14 @@ type DataLakeType = "business" | "residential" | "cell_phone" | "opt_in_email" |
 function detectSourceType(headers: string[]): DataLakeType {
   const headerSet = new Set(headers.map(h => h.toLowerCase().trim()));
 
-  // Business DB: has Company Name, SIC Code, Revenue
-  if (headerSet.has("company name") || headerSet.has("sic code") || headerSet.has("annual revenue")) {
+  // Business DB: has Company Name, SIC Code, Revenue, or Sales
+  if (headerSet.has("company name") || headerSet.has("company") || headerSet.has("sic code") ||
+      headerSet.has("annual revenue") || headerSet.has("sales")) {
     return "business";
   }
   // Cell Phone DB: has Cell Phone but no Company
   if ((headerSet.has("cell phone") || headerSet.has("cell") || headerSet.has("mobile")) &&
-      !headerSet.has("company name")) {
+      !headerSet.has("company name") && !headerSet.has("company")) {
     return "cell_phone";
   }
   // Opt-in Email DB: has Opt-in Date or IP Address
@@ -61,12 +62,13 @@ const SOURCE_TYPE_LABELS: Record<DataLakeType, string> = {
 
 // Standard field mappings for USBizData and similar CSV formats
 const FIELD_MAPPINGS: Record<string, string[]> = {
-  companyName: ["Company Name", "company_name", "Business Name", "business_name", "Name", "name", "COMPANY NAME"],
-  contactName: ["Contact Name", "contact_name", "Owner Name", "owner_name", "Full Name", "CONTACT NAME"],
-  firstName: ["First Name", "first_name", "FirstName", "FIRST NAME"],
-  lastName: ["Last Name", "last_name", "LastName", "LAST NAME"],
-  email: ["Email", "email", "Email Address", "email_address", "EMAIL", "E-mail"],
+  companyName: ["Company", "Company Name", "company", "company_name", "Business Name", "business_name", "COMPANY NAME", "COMPANY"],
+  contactName: ["Contact", "Contact Name", "contact", "contact_name", "Owner Name", "owner_name", "Full Name", "CONTACT NAME", "CONTACT"],
+  firstName: ["First Name", "first_name", "FirstName", "FIRST NAME", "First"],
+  lastName: ["Last Name", "last_name", "LastName", "LAST NAME", "Last"],
+  email: ["Email", "email", "Email Address", "email_address", "EMAIL", "E-mail", "E-Mail"],
   phone: ["Phone", "phone", "Phone Number", "phone_number", "PHONE", "Telephone", "Tel"],
+  directPhone: ["Direct Phone", "direct_phone", "Direct", "DIRECT PHONE"],
   cellPhone: ["Cell Phone", "cell_phone", "Cell", "cell", "Mobile", "mobile", "Mobile Phone", "CELL PHONE"],
   address: ["Street Address", "street_address", "Address", "address", "ADDRESS", "Street"],
   city: ["City", "city", "CITY"],
@@ -77,7 +79,8 @@ const FIELD_MAPPINGS: Record<string, string[]> = {
   sicCode: ["SIC Code", "sic_code", "SIC", "SIC_CODE"],
   sicDescription: ["SIC Description", "sic_description", "SIC_DESCRIPTION"],
   employees: ["Employees", "employees", "Number of Employees", "num_employees", "EMPLOYEES"],
-  revenue: ["Revenue", "revenue", "Annual Revenue", "annual_revenue", "REVENUE"],
+  revenue: ["Revenue", "revenue", "Annual Revenue", "annual_revenue", "REVENUE", "Sales", "sales", "SALES"],
+  title: ["Title", "title", "Job Title", "job_title", "TITLE", "Position"],
   county: ["County", "county", "COUNTY"],
   areaCode: ["Area Code", "area_code", "AREA CODE"],
   // Residential-specific
