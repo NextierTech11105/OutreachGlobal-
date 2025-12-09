@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { parse } from "csv-parse/sync";
+import { randomUUID } from "crypto";
 
 // DO Spaces configuration
 const SPACES_ENDPOINT = "https://nyc3.digitaloceanspaces.com";
@@ -103,6 +104,149 @@ function findColumn(headers: string[], fieldName: string): string | null {
     if (found) return found;
   }
   return null;
+}
+
+// Simple hash function for change detection
+function hashFields(record: Record<string, string | null>, fields: string[]): string {
+  const values = fields.map(f => record[f] || "").join("|");
+  // Simple hash using sum of char codes (for quick comparison)
+  let hash = 0;
+  for (let i = 0; i < values.length; i++) {
+    const char = values.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return Math.abs(hash).toString(36);
+}
+
+// Industries where businesses commonly OWN their operating property
+const OWNER_OCCUPIED_SIC_CODES: Record<string, number> = {
+  // Manufacturing - typically own their facilities (SIC 20-39)
+  "20": 30, "21": 30, "22": 30, "23": 30, "24": 30, "25": 30, "26": 30, "27": 30, "28": 30, "29": 30,
+  "30": 30, "31": 30, "32": 30, "33": 30, "34": 30, "35": 30, "36": 30, "37": 30, "38": 30, "39": 30,
+  // Construction (SIC 15-17) - own equipment yards, offices
+  "15": 25, "16": 25, "17": 25,
+  // Trucking/Transportation (SIC 41-47)
+  "41": 25, "42": 30, "421": 35, "422": 35, // Trucking terminals, warehousing
+  "44": 25, "45": 20, "47": 20,
+  // Auto repair/service (SIC 75)
+  "75": 25, "753": 30, "754": 30,
+  // Car washes (SIC 7542)
+  "7542": 40,
+  // Laundromats/cleaning (SIC 721)
+  "721": 35, "7215": 40, // Coin-op laundries
+  // Restaurants/bars - often own the building
+  "58": 25, "581": 30,
+  // Hotels/Motels/Lodging (SIC 70)
+  "70": 35, "701": 40, "7011": 45, // Hotels/motels
+  // Camping/RV parks (SIC 7033)
+  "7032": 45, "7033": 45,
+  // Healthcare/medical offices
+  "80": 20, "801": 25, "802": 25, "803": 25,
+  // Retail (smaller = more likely owner)
+  "52": 20, "53": 20, "54": 22, "55": 20, "56": 20, "57": 20, "59": 20,
+  // Real estate (definitely owns)
+  "65": 45, "651": 50, "653": 50,
+  // Mini storage/self storage (SIC 4225)
+  "4225": 45,
+  // Funeral services
+  "726": 35,
+  // Gas stations/convenience
+  "554": 30,
+  // Bowling/amusement (SIC 79)
+  "793": 30, "7933": 35,
+  // Nurseries/garden centers
+  "526": 30, "078": 30,
+};
+
+// Calculate likelihood that this business OWNS their operating property
+function calculatePropertyLinkageScore(record: Record<string, string | null>): {
+  score: number;
+  signals: string[];
+  ownerOccupiedLikelihood: "high" | "medium" | "low";
+} {
+  let score = 0;
+  const signals: string[] = [];
+
+  const companyName = (record.companyName || "").toLowerCase();
+  const sicCode = record.sicCode || "";
+  const employees = record.employees || "";
+  const revenue = record.revenue || "";
+  const industry = (record.industry || "").toLowerCase();
+
+  // 1. Check SIC code for owner-occupied industries
+  for (const [sicPrefix, pts] of Object.entries(OWNER_OCCUPIED_SIC_CODES)) {
+    if (sicCode.startsWith(sicPrefix)) {
+      score += pts;
+      signals.push(`sic:owner-occupied(${sicPrefix})`);
+      break;
+    }
+  }
+
+  // 2. Small businesses (< 100 employees) more likely to own
+  if (employees.includes("less than 25") || employees.includes("Less than 25")) {
+    score += 15;
+    signals.push("size:micro");
+  } else if (employees.includes("25 to") || employees.includes("100 to")) {
+    score += 10;
+    signals.push("size:small");
+  }
+
+  // 3. Higher revenue = more likely bought property
+  if (revenue.includes("$10 mil") || revenue.includes("$25 mil") ||
+      revenue.includes("$50 mil") || revenue.includes("$100 mil")) {
+    score += 15;
+    signals.push("revenue:established");
+  }
+
+  // 4. LLC/Inc - established business more likely owns
+  if (companyName.includes(" llc") || companyName.includes(" inc") ||
+      companyName.includes(" corp") || companyName.includes(" co.")) {
+    score += 10;
+    signals.push("entity:registered");
+  }
+
+  // 5. Industry keywords suggesting fixed location operations (likely owns property)
+  const fixedLocationKeywords = [
+    // Auto
+    "auto", "repair", "garage", "body shop", "tire", "car wash", "carwash",
+    // Manufacturing/Industrial
+    "manufacturing", "factory", "plant", "machine", "fabricat",
+    // Transportation/Trucking
+    "trucking", "freight", "logistics", "terminal", "dispatch",
+    // Warehouse/Storage
+    "warehouse", "storage", "distribution", "self storage", "mini storage",
+    // Food/Hospitality
+    "restaurant", "diner", "cafe", "bar", "grill", "pizza", "deli",
+    "hotel", "motel", "inn", "lodge", "camping", "campground", "rv park",
+    // Services
+    "laundromat", "laundry", "cleaners", "dry clean",
+    "funeral", "mortuary", "cemetery",
+    "clinic", "dental", "medical", "veterinary", "vet",
+    // Construction
+    "construction", "contractor", "builder", "excavat", "paving", "concrete",
+    // Retail
+    "shop", "mart", "store", "nursery", "garden center", "lumber"
+  ];
+  for (const keyword of fixedLocationKeywords) {
+    if (companyName.includes(keyword) || industry.includes(keyword)) {
+      score += 8;
+      signals.push(`fixed:${keyword}`);
+      break; // Only count once
+    }
+  }
+
+  // 6. Family/personal name in business (family-owned = more likely owns property)
+  if (companyName.includes("& son") || companyName.includes("& sons") ||
+      companyName.includes("brothers") || companyName.includes("family")) {
+    score += 10;
+    signals.push("family:owned");
+  }
+
+  // Determine likelihood category
+  const likelihood = score >= 50 ? "high" : score >= 25 ? "medium" : "low";
+
+  return { score: Math.min(score, 100), signals, ownerOccupiedLikelihood: likelihood };
 }
 
 // Normalize a row to standard format
@@ -211,13 +355,85 @@ export async function POST(request: NextRequest) {
       queuedLeads: 0,
       contactedLeads: 0,
       enrichmentStatus: "pending",
-      // Store the actual data
-      properties: normalizedRecords.map((record, index) => ({
-        id: `${bucketId}-${index}`,
-        ...record,
-        // Keep original row data too
-        _original: records[index],
-      })),
+      // Store the actual data with UUIDs and analytics
+      properties: normalizedRecords.map((record, index) => {
+        const linkage = calculatePropertyLinkageScore(record);
+        const recordId = randomUUID();
+
+        return {
+          id: recordId,
+          bucketId: bucketId,
+          rowIndex: index,
+          ...record,
+          // Property linkage scoring (ML-lite)
+          // Identifies businesses likely to OWN their operating property
+          propertyLinkage: {
+            score: linkage.score,
+            signals: linkage.signals,
+            likelihood: linkage.ownerOccupiedLikelihood, // "high", "medium", "low"
+            likelyPropertyOwner: linkage.score >= 50,
+            // For campaign: "Quick question. Thought about what {business} and property is worth?"
+            campaignEligible: linkage.score >= 30,
+          },
+          // Change tracking / sync metadata
+          _syncMeta: {
+            createdAt: now,
+            updatedAt: now,
+            version: 1,
+            // Fields to monitor for changes (auto-sync)
+            monitoredFields: ["phone", "email", "address", "contactName"],
+            // Hash of monitored fields for quick change detection
+            fieldHash: hashFields(record, ["phone", "email", "address", "contactName"]),
+            // Sync status
+            syncStatus: "new",
+            lastSyncAt: null,
+            syncSource: sourceLabel,
+          },
+          // Keep original row data too
+          _original: records[index],
+        };
+      }),
+      // Indexes for faster lookups
+      indexes: {
+        // Index by SIC code for industry grouping
+        bySicCode: normalizedRecords.reduce((acc, record, index) => {
+          const sic = record.sicCode as string;
+          if (sic) {
+            if (!acc[sic]) acc[sic] = [];
+            acc[sic].push(index);
+          }
+          return acc;
+        }, {} as Record<string, number[]>),
+        // Index by state for geographic grouping
+        byState: normalizedRecords.reduce((acc, record, index) => {
+          const state = record.state as string;
+          if (state) {
+            const key = state.toUpperCase();
+            if (!acc[key]) acc[key] = [];
+            acc[key].push(index);
+          }
+          return acc;
+        }, {} as Record<string, number[]>),
+        // Index by city for local grouping
+        byCity: normalizedRecords.reduce((acc, record, index) => {
+          const city = record.city as string;
+          const state = record.state as string;
+          if (city && state) {
+            const key = `${city.toLowerCase()}-${state.toUpperCase()}`;
+            if (!acc[key]) acc[key] = [];
+            acc[key].push(index);
+          }
+          return acc;
+        }, {} as Record<string, number[]>),
+        // Index of likely property owners (score >= 50)
+        likelyPropertyOwners: normalizedRecords.reduce((acc, record, index) => {
+          const linkage = calculatePropertyLinkageScore(record);
+          if (linkage.score >= 50) {
+            acc.push(index);
+          }
+          return acc;
+        }, [] as number[]),
+      },
       metadata: {
         id: bucketId,
         name: name,
