@@ -336,6 +336,102 @@ export async function POST(request: NextRequest) {
     // Count cell phones specifically
     const withCellPhone = normalizedRecords.filter(r => r.cellPhone).length;
 
+    // Calculate property ownership stats for auto-tagging
+    const propertyScores = normalizedRecords.map(r => calculatePropertyLinkageScore(r));
+    const highLikelihood = propertyScores.filter(s => s.ownerOccupiedLikelihood === "high").length;
+    const mediumLikelihood = propertyScores.filter(s => s.ownerOccupiedLikelihood === "medium").length;
+    const lowLikelihood = propertyScores.filter(s => s.ownerOccupiedLikelihood === "low").length;
+    const campaignEligible = propertyScores.filter(s => s.score >= 30).length;
+    const likelyOwners = propertyScores.filter(s => s.score >= 50).length;
+
+    // Collect all signals from property scoring for auto-tagging
+    const allSignals = propertyScores.flatMap(s => s.signals);
+    const signalCounts: Record<string, number> = {};
+    allSignals.forEach(sig => {
+      signalCounts[sig] = (signalCounts[sig] || 0) + 1;
+    });
+
+    // Auto-generate tags based on data analysis
+    const autoTags: string[] = [];
+
+    // Property ownership tags
+    if (likelyOwners > 0) autoTags.push("property-owners");
+    if (highLikelihood > records.length * 0.1) autoTags.push("high-owner-likelihood");
+    if (campaignEligible > records.length * 0.3) autoTags.push("campaign-ready");
+
+    // Source type tags
+    if (sourceType === "business") autoTags.push("b2b");
+    if (sourceType === "residential") autoTags.push("b2c");
+
+    // Contact readiness tags
+    if (withCellPhone > records.length * 0.5) autoTags.push("mobile-ready");
+    if (withEmail > records.length * 0.5) autoTags.push("email-ready");
+    if (withPhone > records.length * 0.8) autoTags.push("phone-rich");
+
+    // Industry tags based on signals (if >5% of records have this signal)
+    const minForTag = Math.max(5, records.length * 0.05);
+
+    // Fixed location / owner-occupied industries
+    if ((signalCounts["fixed:trucking"] || 0) + (signalCounts["fixed:freight"] || 0) + (signalCounts["fixed:logistics"] || 0) >= minForTag) {
+      autoTags.push("trucking");
+    }
+    if ((signalCounts["fixed:warehouse"] || 0) + (signalCounts["fixed:storage"] || 0) + (signalCounts["fixed:distribution"] || 0) >= minForTag) {
+      autoTags.push("warehouse-storage");
+    }
+    if ((signalCounts["fixed:manufacturing"] || 0) + (signalCounts["fixed:factory"] || 0) + (signalCounts["fixed:plant"] || 0) >= minForTag) {
+      autoTags.push("manufacturing");
+    }
+    if ((signalCounts["fixed:auto"] || 0) + (signalCounts["fixed:repair"] || 0) + (signalCounts["fixed:garage"] || 0) >= minForTag) {
+      autoTags.push("auto-services");
+    }
+    if ((signalCounts["fixed:car wash"] || 0) + (signalCounts["fixed:carwash"] || 0) >= minForTag) {
+      autoTags.push("car-wash");
+    }
+    if ((signalCounts["fixed:laundromat"] || 0) + (signalCounts["fixed:laundry"] || 0) + (signalCounts["fixed:cleaners"] || 0) >= minForTag) {
+      autoTags.push("laundromat");
+    }
+    if ((signalCounts["fixed:restaurant"] || 0) + (signalCounts["fixed:diner"] || 0) + (signalCounts["fixed:cafe"] || 0) + (signalCounts["fixed:bar"] || 0) >= minForTag) {
+      autoTags.push("food-service");
+    }
+    if ((signalCounts["fixed:hotel"] || 0) + (signalCounts["fixed:motel"] || 0) + (signalCounts["fixed:inn"] || 0) + (signalCounts["fixed:lodge"] || 0) >= minForTag) {
+      autoTags.push("hospitality");
+    }
+    if ((signalCounts["fixed:camping"] || 0) + (signalCounts["fixed:campground"] || 0) + (signalCounts["fixed:rv park"] || 0) >= minForTag) {
+      autoTags.push("camping-rv");
+    }
+    if ((signalCounts["fixed:construction"] || 0) + (signalCounts["fixed:contractor"] || 0) + (signalCounts["fixed:builder"] || 0) >= minForTag) {
+      autoTags.push("construction");
+    }
+    if ((signalCounts["fixed:clinic"] || 0) + (signalCounts["fixed:dental"] || 0) + (signalCounts["fixed:medical"] || 0) + (signalCounts["fixed:veterinary"] || 0) >= minForTag) {
+      autoTags.push("healthcare");
+    }
+    if ((signalCounts["fixed:funeral"] || 0) + (signalCounts["fixed:mortuary"] || 0) >= minForTag) {
+      autoTags.push("funeral-services");
+    }
+
+    // Business structure tags
+    if ((signalCounts["entity:registered"] || 0) >= records.length * 0.3) {
+      autoTags.push("established-entities");
+    }
+    if ((signalCounts["family:owned"] || 0) >= minForTag) {
+      autoTags.push("family-businesses");
+    }
+
+    // Size tags
+    if ((signalCounts["size:micro"] || 0) >= records.length * 0.5) {
+      autoTags.push("micro-businesses");
+    }
+    if ((signalCounts["size:small"] || 0) >= records.length * 0.3) {
+      autoTags.push("small-businesses");
+    }
+    if ((signalCounts["revenue:established"] || 0) >= records.length * 0.2) {
+      autoTags.push("revenue-established");
+    }
+
+    // Merge user tags with auto tags
+    const userTags = tags ? tags.split(",").map(t => t.trim()) : [];
+    const allTags = [...new Set([...userTags, ...autoTags])];
+
     const bucket = {
       id: bucketId,
       name: name,
@@ -355,7 +451,8 @@ export async function POST(request: NextRequest) {
           return acc;
         }, {} as Record<string, string>),
       },
-      tags: tags ? tags.split(",").map(t => t.trim()) : [],
+      tags: allTags,
+      autoTags: autoTags, // Tags generated by analysis
       createdAt: now,
       updatedAt: now,
       totalLeads: records.length,
@@ -459,6 +556,17 @@ export async function POST(request: NextRequest) {
           enrichable: withAddress, // Records that can be skip-traced
           needsSkipTrace: withAddress - withCellPhone, // Have address but no cell
         },
+        // Property ownership likelihood breakdown
+        propertyOwnership: {
+          highLikelihood,
+          mediumLikelihood,
+          lowLikelihood,
+          likelyOwners,        // Score >= 50
+          campaignEligible,    // Score >= 30
+          percentage: Math.round((likelyOwners / records.length) * 100),
+        },
+        // Signal distribution (what triggered the scores)
+        signalBreakdown: signalCounts,
       },
     };
 
