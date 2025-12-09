@@ -1,31 +1,51 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const SIGNALHOUSE_API_BASE = "https://api.signalhouse.io/api/v1";
+const SIGNALHOUSE_API_BASE = process.env.SIGNALHOUSE_API_URL || "https://api.signalhouse.io";
 
 export async function POST(request: NextRequest) {
   try {
-    const { apiKey } = await request.json();
+    const body = await request.json();
+    const apiKey = body.apiKey || process.env.SIGNALHOUSE_API_KEY;
+    const authToken = body.authToken || process.env.SIGNALHOUSE_AUTH_TOKEN;
 
-    if (!apiKey) {
+    if (!apiKey && !authToken) {
       return NextResponse.json(
-        { error: "API key is required" },
+        { error: "API key or auth token is required" },
         { status: 400 }
       );
     }
 
-    // Test connection by getting user info
-    const response = await fetch(`${SIGNALHOUSE_API_BASE}/user/info`, {
+    // Build auth headers - try authToken (JWT) first, then apiKey
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+
+    if (authToken) {
+      // JWT token auth (preferred)
+      headers["authToken"] = authToken;
+    }
+    if (apiKey) {
+      // API key auth
+      headers["x-api-key"] = apiKey;
+    }
+
+    // Test connection by getting wallet summary
+    const response = await fetch(`${SIGNALHOUSE_API_BASE}/wallet/summary`, {
       method: "GET",
-      headers: {
-        "x-api-key": apiKey,
-        "Content-Type": "application/json",
-      },
+      headers,
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
+      const errorText = await response.text();
+      let errorMessage = "Invalid API key or connection failed";
+      try {
+        const errorData = JSON.parse(errorText);
+        errorMessage = errorData.message || errorData.error || errorMessage;
+      } catch {
+        errorMessage = errorText || errorMessage;
+      }
       return NextResponse.json(
-        { error: errorData.message || "Invalid API key or connection failed" },
+        { error: errorMessage, status: response.status },
         { status: response.status }
       );
     }
@@ -35,7 +55,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: "Connection successful",
-      user: data,
+      wallet: data,
     });
   } catch (error: unknown) {
     console.error("SignalHouse test connection error:", error);
