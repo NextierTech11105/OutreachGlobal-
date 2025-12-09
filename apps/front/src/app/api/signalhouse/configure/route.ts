@@ -4,22 +4,26 @@ const SIGNALHOUSE_API_BASE = "https://api.signalhouse.io/api/v1";
 
 export async function POST(request: NextRequest) {
   try {
-    const { apiKey } = await request.json();
+    const { apiKey, authToken } = await request.json();
 
-    if (!apiKey) {
+    if (!apiKey && !authToken) {
       return NextResponse.json(
-        { error: "API key is required" },
+        { error: "apiKey or authToken is required" },
         { status: 400 }
       );
     }
 
-    // Verify the API key works by getting user info
+    // Build headers per SignalHouse docs
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (apiKey) headers["apiKey"] = apiKey;
+    if (authToken) headers["authToken"] = authToken;
+
+    // Verify the credentials work by getting user info
     const response = await fetch(`${SIGNALHOUSE_API_BASE}/user/info`, {
       method: "GET",
-      headers: {
-        "x-api-key": apiKey,
-        "Content-Type": "application/json",
-      },
+      headers,
     });
 
     if (!response.ok) {

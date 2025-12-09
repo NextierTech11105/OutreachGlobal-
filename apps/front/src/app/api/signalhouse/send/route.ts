@@ -2,14 +2,23 @@ import { NextRequest, NextResponse } from "next/server";
 
 const SIGNALHOUSE_API_BASE = "https://api.signalhouse.io/api/v1";
 const SIGNALHOUSE_API_KEY = process.env.SIGNALHOUSE_API_KEY || "";
+const SIGNALHOUSE_AUTH_TOKEN = process.env.SIGNALHOUSE_AUTH_TOKEN || "";
+
+// Build auth headers per SignalHouse docs
+function getAuthHeaders(): Record<string, string> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (SIGNALHOUSE_API_KEY) headers["apiKey"] = SIGNALHOUSE_API_KEY;
+  if (SIGNALHOUSE_AUTH_TOKEN) headers["authToken"] = SIGNALHOUSE_AUTH_TOKEN;
+  return headers;
+}
 
 export async function POST(request: NextRequest) {
   try {
     const { to, from, message, mediaUrl } = await request.json();
 
-    if (!SIGNALHOUSE_API_KEY) {
+    if (!SIGNALHOUSE_API_KEY && !SIGNALHOUSE_AUTH_TOKEN) {
       return NextResponse.json(
-        { error: "SignalHouse API key not configured" },
+        { error: "SignalHouse credentials not configured (need apiKey or authToken)" },
         { status: 400 }
       );
     }
@@ -32,10 +41,7 @@ export async function POST(request: NextRequest) {
 
     const response = await fetch(endpoint, {
       method: "POST",
-      headers: {
-        "x-api-key": SIGNALHOUSE_API_KEY,
-        "Content-Type": "application/json",
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify(body),
     });
 

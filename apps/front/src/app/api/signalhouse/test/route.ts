@@ -25,8 +25,8 @@ export async function POST(request: NextRequest) {
       headers["authToken"] = authToken;
     }
     if (apiKey) {
-      // API key auth
-      headers["x-api-key"] = apiKey;
+      // API key auth (header name is "apiKey" per SignalHouse docs)
+      headers["apiKey"] = apiKey;
     }
 
     // Test connection by getting wallet summary

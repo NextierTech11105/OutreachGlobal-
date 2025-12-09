@@ -1,0 +1,38 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "words": [
+    "fips",
+    "sqft",
+    "checkpointing",
+    "mgmt",
+    "drizzle",
+    "jsonb",
+    "timestamptz",
+    "apollo",
+    "apolloio",
+    "linkedin",
+    "skiptraced",
+    "skiptrace",
+    "outstate",
+    "foreclosures",
+    "preforeclosure",
+    "absentee",
+    "realestate",
+    "realestateapi",
+    "signalhouse",
+    "nextier",
+    "lucide",
+    "shadcn",
+    "tanstack",
+    "sonner",
+    "tailwindcss",
+    "drizzleorm"
+  ],
+  "ignorePaths": [
+    "node_modules",
+    "dist",
+    ".next",
+    "pnpm-lock.yaml"
+  ]
+}

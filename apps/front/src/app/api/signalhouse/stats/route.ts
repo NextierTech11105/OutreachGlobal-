@@ -2,12 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 
 const SIGNALHOUSE_API_BASE = "https://api.signalhouse.io/api/v1";
 const SIGNALHOUSE_API_KEY = process.env.SIGNALHOUSE_API_KEY || "";
+const SIGNALHOUSE_AUTH_TOKEN = process.env.SIGNALHOUSE_AUTH_TOKEN || "";
+
+// Build auth headers per SignalHouse docs
+function getAuthHeaders(): Record<string, string> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (SIGNALHOUSE_API_KEY) headers["apiKey"] = SIGNALHOUSE_API_KEY;
+  if (SIGNALHOUSE_AUTH_TOKEN) headers["authToken"] = SIGNALHOUSE_AUTH_TOKEN;
+  return headers;
+}
 
 export async function GET(request: NextRequest) {
   try {
-    if (!SIGNALHOUSE_API_KEY) {
+    if (!SIGNALHOUSE_API_KEY && !SIGNALHOUSE_AUTH_TOKEN) {
       return NextResponse.json(
-        { error: "SignalHouse API key not configured" },
+        { error: "SignalHouse credentials not configured" },
         { status: 400 }
       );
     }
@@ -17,10 +26,7 @@ export async function GET(request: NextRequest) {
       `${SIGNALHOUSE_API_BASE}/analytics/dashboardAnalytics`,
       {
         method: "GET",
-        headers: {
-          "x-api-key": SIGNALHOUSE_API_KEY,
-          "Content-Type": "application/json",
-        },
+        headers: getAuthHeaders(),
       }
     );
 
@@ -39,10 +45,7 @@ export async function GET(request: NextRequest) {
       `${SIGNALHOUSE_API_BASE}/wallet/summary`,
       {
         method: "GET",
-        headers: {
-          "x-api-key": SIGNALHOUSE_API_KEY,
-          "Content-Type": "application/json",
-        },
+        headers: getAuthHeaders(),
       }
     );
 
