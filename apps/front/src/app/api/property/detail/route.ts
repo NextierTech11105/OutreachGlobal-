@@ -70,21 +70,14 @@ async function performSkipTrace(propertyId: string, ownerInfo?: PropertyOwnerInf
     }
 
     // Build skip trace request body per RealEstateAPI docs
-    // IMPORTANT: Address must be nested object per Lukas at RealEstateAPI
-    // Format: address: { address: "123 Main St", city: "Miami", state: "FL", zip: "33101" }
+    // Uses FLAT address fields (address, city, state, zip)
     const skipTraceBody: Record<string, unknown> = {};
     if (firstName) skipTraceBody.first_name = firstName;
     if (lastName) skipTraceBody.last_name = lastName;
-
-    // Nested address object format (address.address, address.city, address.state, address.zip)
-    if (addressStr || city || state || zip) {
-      skipTraceBody.address = {
-        address: addressStr || "",
-        city: city || "",
-        state: state || "",
-        zip: zip || "",
-      };
-    }
+    if (addressStr) skipTraceBody.address = addressStr;
+    if (city) skipTraceBody.city = city;
+    if (state) skipTraceBody.state = state;
+    if (zip) skipTraceBody.zip = zip;
 
     // Only want matches with phones
     skipTraceBody.match_requirements = { phones: true };
