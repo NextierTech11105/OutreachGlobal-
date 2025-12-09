@@ -65,8 +65,8 @@ const SOURCE_TYPE_LABELS: Record<DataLakeType, string> = {
 const FIELD_MAPPINGS: Record<string, string[]> = {
   companyName: ["Company", "Company Name", "company", "company_name", "Business Name", "business_name", "COMPANY NAME", "COMPANY"],
   contactName: ["Contact", "Contact Name", "contact", "contact_name", "Owner Name", "owner_name", "Full Name", "CONTACT NAME", "CONTACT"],
-  firstName: ["First Name", "first_name", "FirstName", "FIRST NAME", "First"],
-  lastName: ["Last Name", "last_name", "LastName", "LAST NAME", "Last"],
+  firstName: ["First Name", "first_name", "FirstName", "FIRST NAME", "First", "Contact First", "contact_first"],
+  lastName: ["Last Name", "last_name", "LastName", "LAST NAME", "Last", "Contact Last", "contact_last"],
   email: ["Email", "email", "Email Address", "email_address", "EMAIL", "E-mail", "E-Mail"],
   phone: ["Phone", "phone", "Phone Number", "phone_number", "PHONE", "Telephone", "Tel"],
   directPhone: ["Direct Phone", "direct_phone", "Direct", "DIRECT PHONE"],
@@ -79,8 +79,8 @@ const FIELD_MAPPINGS: Record<string, string[]> = {
   industry: ["Industry", "industry", "INDUSTRY", "Business Type"],
   sicCode: ["SIC Code", "sic_code", "SIC", "SIC_CODE"],
   sicDescription: ["SIC Description", "sic_description", "SIC_DESCRIPTION"],
-  employees: ["Employees", "employees", "Number of Employees", "num_employees", "EMPLOYEES"],
-  revenue: ["Revenue", "revenue", "Annual Revenue", "annual_revenue", "REVENUE", "Sales", "sales", "SALES"],
+  employees: ["Employees", "employees", "Number of Employees", "num_employees", "EMPLOYEES", "Employee Range", "employee_range"],
+  revenue: ["Revenue", "revenue", "Annual Revenue", "annual_revenue", "REVENUE", "Sales", "sales", "SALES", "Annual Sales", "annual_sales"],
   title: ["Title", "title", "Job Title", "job_title", "TITLE", "Position"],
   county: ["County", "county", "COUNTY"],
   areaCode: ["Area Code", "area_code", "AREA CODE"],
@@ -184,17 +184,25 @@ function calculatePropertyLinkageScore(record: Record<string, string | null>): {
   }
 
   // 2. Small businesses (< 100 employees) more likely to own
-  if (employees.includes("less than 25") || employees.includes("Less than 25")) {
+  const empLower = employees.toLowerCase();
+  if (empLower.includes("less than 25") || empLower.includes("1 to 4") ||
+      empLower.includes("5 to 9") || empLower.includes("10 to 19") ||
+      empLower.includes("1-4") || empLower.includes("5-9") || empLower.includes("10-19")) {
     score += 15;
     signals.push("size:micro");
-  } else if (employees.includes("25 to") || employees.includes("100 to")) {
+  } else if (empLower.includes("20 to") || empLower.includes("25 to") ||
+             empLower.includes("50 to") || empLower.includes("100 to") ||
+             empLower.includes("20-") || empLower.includes("50-")) {
     score += 10;
     signals.push("size:small");
   }
 
   // 3. Higher revenue = more likely bought property
-  if (revenue.includes("$10 mil") || revenue.includes("$25 mil") ||
-      revenue.includes("$50 mil") || revenue.includes("$100 mil")) {
+  const revLower = revenue.toLowerCase();
+  if (revLower.includes("million") || revLower.includes("$10 mil") ||
+      revLower.includes("$25 mil") || revLower.includes("$50 mil") ||
+      revLower.includes("$100 mil") || revLower.includes("$5 to") ||
+      revLower.includes("$10 to") || revLower.includes("$25 to")) {
     score += 15;
     signals.push("revenue:established");
   }
