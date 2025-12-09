@@ -216,6 +216,8 @@ export const leads = pgTable("leads", {
   apolloFoundedYear: integer("apollo_founded_year"),
   apolloTechnologies: jsonb("apollo_technologies").default([]), // string[]
   apolloKeywords: jsonb("apollo_keywords").default([]), // string[]
+  apolloEnrichedAt: timestamp("apollo_enriched_at"), // When Apollo enrichment was last done
+  apolloData: jsonb("apollo_data"), // Full Apollo API response for reference
 
   // === Enrichment Metadata ===
   enrichmentStatus: text("enrichment_status").default("pending"),
@@ -852,3 +854,304 @@ export type SectorAssignment = typeof sectorAssignments.$inferSelect;
 export type NewSectorAssignment = typeof sectorAssignments.$inferInsert;
 export type ImportJob = typeof importJobs.$inferSelect;
 export type NewImportJob = typeof importJobs.$inferInsert;
+
+// ============================================================
+// BILLING & SUBSCRIPTIONS
+// ============================================================
+
+/**
+ * PLANS - Subscription tiers and pricing
+ */
+export const plans = pgTable("plans", {
+  id: uuid("id").primaryKey().defaultRandom(),
+
+  // === Plan Identity ===
+  name: text("name").notNull(), // 'Starter', 'Pro', 'Agency', 'White-Label'
+  slug: text("slug").notNull().unique(), // 'starter', 'pro', 'agency', 'white-label'
+  description: text("description"),
+
+  // === Pricing ===
+  priceMonthly: integer("price_monthly").notNull(), // cents (29700 = $297)
+  priceYearly: integer("price_yearly"), // cents (with discount)
+  setupFee: integer("setup_fee").default(0), // one-time setup fee
+
+  // === Limits ===
+  maxUsers: integer("max_users").default(1),
+  maxLeadsPerMonth: integer("max_leads_per_month").default(1000),
+  maxPropertySearches: integer("max_property_searches").default(500),
+  maxSmsPerMonth: integer("max_sms_per_month").default(500),
+  maxSkipTraces: integer("max_skip_traces").default(50),
+  maxCampaigns: integer("max_campaigns").default(3),
+  maxAiSdrAvatars: integer("max_ai_sdr_avatars").default(1),
+
+  // === Features ===
+  features: jsonb("features").default([]), // ['power_dialer', 'email_campaigns', 'api_access', 'priority_support']
+  hasPowerDialer: boolean("has_power_dialer").default(false),
+  hasEmailCampaigns: boolean("has_email_campaigns").default(false),
+  hasApiAccess: boolean("has_api_access").default(false),
+  hasPrioritySupport: boolean("has_priority_support").default(false),
+  hasWhiteLabel: boolean("has_white_label").default(false),
+
+  // === Display ===
+  displayOrder: integer("display_order").default(0),
+  isPopular: boolean("is_popular").default(false),
+  isActive: boolean("is_active").default(true),
+
+  // === Stripe ===
+  stripePriceIdMonthly: text("stripe_price_id_monthly"),
+  stripePriceIdYearly: text("stripe_price_id_yearly"),
+  stripeProductId: text("stripe_product_id"),
+
+  // === Timestamps ===
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+/**
+ * SUBSCRIPTIONS - Active customer subscriptions
+ */
+export const subscriptions = pgTable("subscriptions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+
+  // === Links ===
+  userId: text("user_id").notNull(), // Team/org owner
+  teamId: text("team_id"), // Optional team association
+  planId: uuid("plan_id").notNull().references(() => plans.id),
+
+  // === Subscription Info ===
+  status: text("status").notNull().default("active"), // 'active' | 'past_due' | 'canceled' | 'trialing' | 'paused'
+  billingCycle: text("billing_cycle").notNull().default("monthly"), // 'monthly' | 'yearly'
+
+  // === Dates ===
+  startDate: timestamp("start_date").notNull().defaultNow(),
+  endDate: timestamp("end_date"), // null = ongoing
+  trialEndsAt: timestamp("trial_ends_at"),
+  canceledAt: timestamp("canceled_at"),
+  currentPeriodStart: timestamp("current_period_start").notNull().defaultNow(),
+  currentPeriodEnd: timestamp("current_period_end").notNull(),
+
+  // === Stripe ===
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
+
+  // === Overrides (for custom deals) ===
+  customPricing: integer("custom_pricing"), // Override plan price
+  customLimits: jsonb("custom_limits"), // Override specific limits
+
+  // === Timestamps ===
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  userIdIdx: index("subscriptions_user_id_idx").on(table.userId),
+  teamIdIdx: index("subscriptions_team_id_idx").on(table.teamId),
+  statusIdx: index("subscriptions_status_idx").on(table.status),
+  stripeCustomerIdx: index("subscriptions_stripe_customer_idx").on(table.stripeCustomerId),
+}));
+
+/**
+ * USAGE - Track feature usage per billing period
+ */
+export const usage = pgTable("usage", {
+  id: uuid("id").primaryKey().defaultRandom(),
+
+  // === Links ===
+  subscriptionId: uuid("subscription_id").notNull().references(() => subscriptions.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull(),
+
+  // === Period ===
+  periodStart: timestamp("period_start").notNull(),
+  periodEnd: timestamp("period_end").notNull(),
+
+  // === Counts ===
+  leadsCreated: integer("leads_created").default(0),
+  propertySearches: integer("property_searches").default(0),
+  smsSent: integer("sms_sent").default(0),
+  skipTraces: integer("skip_traces").default(0),
+  apolloEnrichments: integer("apollo_enrichments").default(0),
+  voiceMinutes: integer("voice_minutes").default(0),
+  emailsSent: integer("emails_sent").default(0),
+  aiGenerations: integer("ai_generations").default(0),
+
+  // === Overages ===
+  overageLeads: integer("overage_leads").default(0),
+  overageSms: integer("overage_sms").default(0),
+  overageSkipTraces: integer("overage_skip_traces").default(0),
+  overageVoiceMinutes: integer("overage_voice_minutes").default(0),
+
+  // === Costs ===
+  overageCost: integer("overage_cost").default(0), // cents
+
+  // === Timestamps ===
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  subscriptionIdIdx: index("usage_subscription_id_idx").on(table.subscriptionId),
+  userIdIdx: index("usage_user_id_idx").on(table.userId),
+  periodIdx: index("usage_period_idx").on(table.periodStart, table.periodEnd),
+}));
+
+/**
+ * USAGE_EVENTS - Granular usage tracking
+ */
+export const usageEvents = pgTable("usage_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+
+  // === Links ===
+  subscriptionId: uuid("subscription_id").notNull().references(() => subscriptions.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull(),
+
+  // === Event ===
+  eventType: text("event_type").notNull(), // 'lead_created' | 'sms_sent' | 'skip_trace' | 'property_search' | 'voice_call' | 'ai_generation'
+  quantity: integer("quantity").default(1),
+
+  // === Cost ===
+  unitCost: integer("unit_cost").default(0), // cents per unit
+  totalCost: integer("total_cost").default(0), // cents
+
+  // === Metadata ===
+  metadata: jsonb("metadata"), // { leadId, campaignId, etc. }
+
+  // === Timestamps ===
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  subscriptionIdIdx: index("usage_events_subscription_id_idx").on(table.subscriptionId),
+  userIdIdx: index("usage_events_user_id_idx").on(table.userId),
+  eventTypeIdx: index("usage_events_event_type_idx").on(table.eventType),
+  createdAtIdx: index("usage_events_created_at_idx").on(table.createdAt),
+}));
+
+/**
+ * INVOICES - Billing invoices
+ */
+export const invoices = pgTable("invoices", {
+  id: uuid("id").primaryKey().defaultRandom(),
+
+  // === Links ===
+  subscriptionId: uuid("subscription_id").notNull().references(() => subscriptions.id),
+  userId: text("user_id").notNull(),
+
+  // === Invoice Info ===
+  invoiceNumber: text("invoice_number").notNull().unique(),
+  status: text("status").notNull().default("draft"), // 'draft' | 'open' | 'paid' | 'void' | 'uncollectible'
+
+  // === Amounts ===
+  subtotal: integer("subtotal").notNull(), // cents
+  tax: integer("tax").default(0),
+  discount: integer("discount").default(0),
+  total: integer("total").notNull(), // cents
+  amountPaid: integer("amount_paid").default(0),
+  amountDue: integer("amount_due").notNull(),
+
+  // === Period ===
+  periodStart: timestamp("period_start").notNull(),
+  periodEnd: timestamp("period_end").notNull(),
+  dueDate: timestamp("due_date").notNull(),
+  paidAt: timestamp("paid_at"),
+
+  // === Line Items ===
+  lineItems: jsonb("line_items").default([]), // [{ description, quantity, unitPrice, total }]
+
+  // === Stripe ===
+  stripeInvoiceId: text("stripe_invoice_id"),
+  stripePaymentIntentId: text("stripe_payment_intent_id"),
+  invoicePdf: text("invoice_pdf"), // URL to PDF
+
+  // === Timestamps ===
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  subscriptionIdIdx: index("invoices_subscription_id_idx").on(table.subscriptionId),
+  userIdIdx: index("invoices_user_id_idx").on(table.userId),
+  statusIdx: index("invoices_status_idx").on(table.status),
+  invoiceNumberIdx: index("invoices_invoice_number_idx").on(table.invoiceNumber),
+}));
+
+/**
+ * PAYMENTS - Payment transactions
+ */
+export const payments = pgTable("payments", {
+  id: uuid("id").primaryKey().defaultRandom(),
+
+  // === Links ===
+  invoiceId: uuid("invoice_id").references(() => invoices.id),
+  subscriptionId: uuid("subscription_id").references(() => subscriptions.id),
+  userId: text("user_id").notNull(),
+
+  // === Payment Info ===
+  amount: integer("amount").notNull(), // cents
+  currency: text("currency").default("usd"),
+  status: text("status").notNull(), // 'pending' | 'succeeded' | 'failed' | 'refunded'
+  paymentMethod: text("payment_method"), // 'card' | 'bank_transfer' | 'invoice'
+
+  // === Card Details (if applicable) ===
+  cardLast4: text("card_last4"),
+  cardBrand: text("card_brand"), // 'visa' | 'mastercard' | 'amex'
+
+  // === Stripe ===
+  stripePaymentId: text("stripe_payment_id"),
+  stripeChargeId: text("stripe_charge_id"),
+
+  // === Refund ===
+  refundedAmount: integer("refunded_amount").default(0),
+  refundedAt: timestamp("refunded_at"),
+  refundReason: text("refund_reason"),
+
+  // === Timestamps ===
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  invoiceIdIdx: index("payments_invoice_id_idx").on(table.invoiceId),
+  subscriptionIdIdx: index("payments_subscription_id_idx").on(table.subscriptionId),
+  userIdIdx: index("payments_user_id_idx").on(table.userId),
+  statusIdx: index("payments_status_idx").on(table.status),
+}));
+
+// ============================================================
+// BILLING RELATIONS
+// ============================================================
+
+export const plansRelations = relations(plans, ({ many }) => ({
+  subscriptions: many(subscriptions),
+}));
+
+export const subscriptionsRelations = relations(subscriptions, ({ one, many }) => ({
+  plan: one(plans, { fields: [subscriptions.planId], references: [plans.id] }),
+  usage: many(usage),
+  usageEvents: many(usageEvents),
+  invoices: many(invoices),
+  payments: many(payments),
+}));
+
+export const usageRelations = relations(usage, ({ one }) => ({
+  subscription: one(subscriptions, { fields: [usage.subscriptionId], references: [subscriptions.id] }),
+}));
+
+export const usageEventsRelations = relations(usageEvents, ({ one }) => ({
+  subscription: one(subscriptions, { fields: [usageEvents.subscriptionId], references: [subscriptions.id] }),
+}));
+
+export const invoicesRelations = relations(invoices, ({ one, many }) => ({
+  subscription: one(subscriptions, { fields: [invoices.subscriptionId], references: [subscriptions.id] }),
+  payments: many(payments),
+}));
+
+export const paymentsRelations = relations(payments, ({ one }) => ({
+  invoice: one(invoices, { fields: [payments.invoiceId], references: [invoices.id] }),
+  subscription: one(subscriptions, { fields: [payments.subscriptionId], references: [subscriptions.id] }),
+}));
+
+// ============================================================
+// BILLING TYPE EXPORTS
+// ============================================================
+
+export type Plan = typeof plans.$inferSelect;
+export type NewPlan = typeof plans.$inferInsert;
+export type Subscription = typeof subscriptions.$inferSelect;
+export type NewSubscription = typeof subscriptions.$inferInsert;
+export type Usage = typeof usage.$inferSelect;
+export type NewUsage = typeof usage.$inferInsert;
+export type UsageEvent = typeof usageEvents.$inferSelect;
+export type NewUsageEvent = typeof usageEvents.$inferInsert;
+export type Invoice = typeof invoices.$inferSelect;
+export type NewInvoice = typeof invoices.$inferInsert;
+export type Payment = typeof payments.$inferSelect;
+export type NewPayment = typeof payments.$inferInsert;

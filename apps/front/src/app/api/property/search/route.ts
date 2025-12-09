@@ -3,6 +3,17 @@ import { NextRequest, NextResponse } from "next/server";
 const REALESTATE_API_KEY = process.env.REAL_ESTATE_API_KEY || process.env.REALESTATE_API_KEY || "";
 const REALESTATE_API_URL = "https://api.realestateapi.com/v2/PropertySearch";
 
+/**
+ * PROPERTY SEARCH PIPELINE
+ *
+ * Economical flow:
+ * 1. Search returns IDs + minimal data (low/no credits)
+ * 2. Save IDs to bucket/datalake (800K+ capacity)
+ * 3. On-demand: Batch detail + skip trace (2K per campaign block)
+ *
+ * This preserves credits by only enriching properties you'll actually contact.
+ */
+
 // Valid property types per RealEstateAPI
 const VALID_PROPERTY_TYPES = ["SFR", "MFR", "LAND", "CONDO", "OTHER", "MOBILE"];
 
@@ -29,6 +40,35 @@ const INVALID_PARAMS = [
   "start", // Use 'resultIndex' instead
   "from",  // Use 'resultIndex' instead
 ];
+
+// Response mode options
+type ResponseMode = "full" | "ids" | "count";
+
+// Extract IDs from results
+function extractIds(results: Record<string, unknown>[]): string[] {
+  return results.map((p) => {
+    // RealEstateAPI returns 'id' field
+    return String(p.id || p.propertyId || "");
+  }).filter(Boolean);
+}
+
+// Count distress signals from results
+function countSignals(results: Record<string, unknown>[]) {
+  return {
+    preForeclosure: results.filter((p) => p.preForeclosure || p.pre_foreclosure).length,
+    foreclosure: results.filter((p) => p.foreclosure).length,
+    taxLien: results.filter((p) => p.taxLien || p.tax_lien).length,
+    taxDelinquent: results.filter((p) => p.taxDelinquent || p.tax_delinquent).length,
+    highEquity: results.filter((p) => p.highEquity || p.high_equity || (p.equityPercent && Number(p.equityPercent) >= 50)).length,
+    vacant: results.filter((p) => p.vacant).length,
+    absenteeOwner: results.filter((p) => p.absenteeOwner || p.absentee_owner).length,
+    outOfState: results.filter((p) => p.outOfState || p.out_of_state).length,
+    reverseMortgage: results.filter((p) => p.loanType === "REV" || p.reverseMortgage || p.loan_type === "REV").length,
+    inherited: results.filter((p) => p.inherited).length,
+    probate: results.filter((p) => p.probate).length,
+    freeClear: results.filter((p) => p.freeClear || p.free_clear).length,
+  };
+}
 
 function sanitizeSearchBody(body: Record<string, unknown>): Record<string, unknown> {
   const sanitized = { ...body };
@@ -80,10 +120,15 @@ function sanitizeSearchBody(body: Record<string, unknown>): Record<string, unkno
 export async function POST(request: NextRequest) {
   try {
     const rawBody = await request.json();
+
+    // Extract response mode (full, ids, count)
+    const mode: ResponseMode = rawBody.mode || "full";
+    delete rawBody.mode;
+
     const body = sanitizeSearchBody(rawBody);
 
     // Log the request for debugging
-    console.log("PropertySearch request (sanitized):", JSON.stringify(body, null, 2));
+    console.log(`[PropertySearch] Mode: ${mode}, Request:`, JSON.stringify(body, null, 2));
 
     // Check for required location parameter
     const hasLocation = body.state || body.county || body.city || body.zip || body.address;
@@ -123,21 +168,121 @@ export async function POST(request: NextRequest) {
     console.log("PropertySearch response status:", response.status);
     if (!response.ok) {
       console.error("PropertySearch error:", JSON.stringify(data, null, 2));
-    }
-
-    if (!response.ok) {
       return NextResponse.json(
         { error: true, message: data.message || data.error || "API request failed", details: data },
         { status: response.status }
       );
     }
 
-    return NextResponse.json(data);
-  } catch (error: any) {
+    // Extract results array
+    const results = data.data || data.properties || data.results || [];
+    const totalCount = data.resultCount || data.totalCount || data.total || results.length;
+
+    // Handle different response modes
+    if (mode === "count") {
+      // Just return count (no data, no credits used for IDs)
+      return NextResponse.json({
+        success: true,
+        count: totalCount,
+        signals: countSignals(results),
+      });
+    }
+
+    if (mode === "ids") {
+      // Return only IDs (economical - save to bucket)
+      const ids = extractIds(results);
+      const signals = countSignals(results);
+
+      console.log(`[PropertySearch] Found ${ids.length} IDs (${totalCount} total)`);
+
+      return NextResponse.json({
+        success: true,
+        ids,
+        totalCount,
+        page: body.resultIndex ? Math.floor(Number(body.resultIndex) / (Number(body.size) || 500)) + 1 : 1,
+        pageSize: Number(body.size) || 500,
+        hasMore: (body.resultIndex ? Number(body.resultIndex) : 0) + results.length < totalCount,
+        signals,
+      });
+    }
+
+    // Default: return full data
+    return NextResponse.json({
+      ...data,
+      signals: countSignals(results),
+    });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Internal server error";
     console.error("Property search error:", error);
     return NextResponse.json(
-      { error: true, message: error.message || "Internal server error" },
+      { error: true, message },
       { status: 500 }
     );
+  }
+}
+
+// GET - Quick count endpoint
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+
+    if (!REALESTATE_API_KEY) {
+      return NextResponse.json({ error: "REALESTATE_API_KEY not configured" }, { status: 500 });
+    }
+
+    // Build body from query params
+    const body: Record<string, unknown> = {};
+
+    // Location
+    if (searchParams.get("state")) body.state = searchParams.get("state");
+    if (searchParams.get("county")) body.county = searchParams.get("county");
+    if (searchParams.get("city")) body.city = searchParams.get("city");
+    if (searchParams.get("zip")) body.zip = searchParams.get("zip");
+
+    // Distress signals
+    if (searchParams.get("preForeclosure") === "true") body.pre_foreclosure = true;
+    if (searchParams.get("taxLien") === "true") body.tax_lien = true;
+    if (searchParams.get("highEquity") === "true") body.high_equity = true;
+    if (searchParams.get("vacant") === "true") body.vacant = true;
+    if (searchParams.get("absenteeOwner") === "true") body.absentee_owner = true;
+
+    // Require at least one location
+    if (!body.state && !body.county && !body.city && !body.zip) {
+      return NextResponse.json({
+        error: "At least one location filter required"
+      }, { status: 400 });
+    }
+
+    // Just get count
+    body.size = 1;
+
+    const response = await fetch(REALESTATE_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": REALESTATE_API_KEY,
+      },
+      body: JSON.stringify(body),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return NextResponse.json(
+        { error: data.message || "Count failed" },
+        { status: response.status }
+      );
+    }
+
+    const totalCount = data.resultCount || data.totalCount || data.total || 0;
+
+    return NextResponse.json({
+      success: true,
+      count: totalCount,
+    });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Count failed";
+    console.error("[Property Search] Count error:", error);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

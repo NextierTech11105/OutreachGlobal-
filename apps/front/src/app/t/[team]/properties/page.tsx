@@ -274,6 +274,34 @@ export default function PropertiesPage() {
   const [scheduleMessage, setScheduleMessage] = useState("");
   const [schedulingProperty, setSchedulingProperty] = useState<Property | null>(null);
 
+  // ============ BUCKET DATALAKE MANAGEMENT ============
+  // Save 800K+ IDs, enrich 2K at a time on demand
+  const [showBucketDialog, setShowBucketDialog] = useState(false);
+  const [bucketName, setBucketName] = useState("");
+  const [buckets, setBuckets] = useState<Array<{
+    id: string;
+    name: string;
+    description?: string;
+    totalLeads: number;
+    enrichedLeads: number;
+    enrichmentStatus: string;
+    createdAt: string;
+  }>>([]);
+  const [showBucketList, setShowBucketList] = useState(false);
+  const [savingToBucket, setSavingToBucket] = useState(false);
+  const [processingBucket, setProcessingBucket] = useState<string | null>(null);
+  const [distressSignals, setDistressSignals] = useState<{
+    preForeclosure: number;
+    taxLien: number;
+    highEquity: number;
+    vacant: number;
+    absenteeOwner: number;
+    reverseMortgage: number;
+  } | null>(null);
+
+  // Apollo Enrichment State
+  const [apolloEnriching, setApolloEnriching] = useState<string | null>(null);
+
   // Legacy state aliases for backward compatibility
   const state = filters.state;
   const city = filters.city;
@@ -286,6 +314,207 @@ export default function PropertiesPage() {
       .then((r) => r.json())
       .then((data) => setSkipTraceUsage(data))
       .catch(console.error);
+  }, []);
+
+  // Fetch buckets on mount
+  useEffect(() => {
+    fetch("/api/property/bucket")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.buckets) setBuckets(data.buckets);
+      })
+      .catch(console.error);
+  }, []);
+
+  // Save IDs to Bucket (datalake) - economical, no enrichment yet
+  const saveIdsToBucket = useCallback(async () => {
+    if (!bucketName.trim()) {
+      toast.error("Enter a name for this bucket");
+      return;
+    }
+
+    if (results.length === 0) {
+      toast.error("No properties to save");
+      return;
+    }
+
+    setSavingToBucket(true);
+    try {
+      // Extract just the IDs - economical storage
+      const propertyIds = results.map((p) => p.id);
+
+      const response = await fetch("/api/property/bucket", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: bucketName,
+          description: `${propertyIds.length} ${filters.state || ""} ${filters.leadTypes.join(", ") || "properties"}`,
+          filters: { ...filters },
+          propertyIds,
+          signals: distressSignals,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      toast.success(`Saved ${propertyIds.length} IDs to "${bucketName}" bucket`);
+      setBucketName("");
+      setShowBucketDialog(false);
+
+      // Refresh buckets list
+      const bucketsRes = await fetch("/api/property/bucket");
+      const bucketsData = await bucketsRes.json();
+      if (bucketsData.buckets) setBuckets(bucketsData.buckets);
+    } catch (error) {
+      console.error("Save to bucket failed:", error);
+      toast.error("Failed to save to bucket");
+    } finally {
+      setSavingToBucket(false);
+    }
+  }, [bucketName, results, filters, distressSignals]);
+
+  // Process bucket - enrich 2K at a time
+  const processBucket = useCallback(async (bucketId: string, limit?: number) => {
+    setProcessingBucket(bucketId);
+    toast.info(`Processing bucket... Enriching up to ${limit || 2000} leads`);
+
+    try {
+      const response = await fetch("/api/property/bucket/process", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bucketId,
+          limit: limit || 2000,
+          skipTrace: true,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      toast.success(
+        `Enriched ${data.stats.successful}/${data.stats.processed} leads. ${data.stats.withPhones} with phones. ${data.stats.remaining} remaining.`
+      );
+
+      // Refresh buckets
+      const bucketsRes = await fetch("/api/property/bucket");
+      const bucketsData = await bucketsRes.json();
+      if (bucketsData.buckets) setBuckets(bucketsData.buckets);
+
+      // If leads with phones, offer SMS campaign
+      if (data.stats.withPhones > 0) {
+        setTimeout(() => {
+          if (confirm(`${data.stats.withPhones} leads have phone numbers. Launch SMS Campaign?`)) {
+            window.location.href = `/t/default/campaigns/new?bucketId=${bucketId}`;
+          }
+        }, 500);
+      }
+    } catch (error) {
+      console.error("Process bucket failed:", error);
+      toast.error("Failed to process bucket");
+    } finally {
+      setProcessingBucket(null);
+    }
+  }, []);
+
+  // Delete bucket
+  const deleteBucket = useCallback(async (bucketId: string) => {
+    if (!confirm("Delete this bucket and all its leads?")) return;
+
+    try {
+      const response = await fetch(`/api/property/bucket?id=${bucketId}`, {
+        method: "DELETE",
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      toast.success(`Deleted bucket "${data.deleted.name}"`);
+
+      // Refresh buckets
+      setBuckets((prev) => prev.filter((b) => b.id !== bucketId));
+    } catch (error) {
+      console.error("Delete bucket failed:", error);
+      toast.error("Failed to delete bucket");
+    }
+  }, []);
+
+  // Apollo Enrich Bucket - Bulk enrich leads with Apollo.io (10 per request)
+  const apolloEnrichBucket = useCallback(async (bucketId: string, limit?: number) => {
+    setApolloEnriching(bucketId);
+    const enrichLimit = limit || 50; // Default to 50 for Apollo (5 API calls of 10)
+    toast.info(`Apollo enriching bucket... (${enrichLimit} leads)`);
+
+    try {
+      // First, get leads from the bucket that need Apollo enrichment
+      const bucketRes = await fetch(`/api/property/bucket?id=${bucketId}`);
+      const bucketData = await bucketRes.json();
+
+      if (!bucketData.bucket) {
+        toast.error("Bucket not found");
+        return;
+      }
+
+      // Get lead IDs from bucket (enriched ones that may not have Apollo data)
+      const leadsRes = await fetch(`/api/property/bucket/leads?bucketId=${bucketId}&limit=${enrichLimit}&needsApollo=true`);
+      const leadsData = await leadsRes.json();
+
+      if (!leadsData.leads || leadsData.leads.length === 0) {
+        toast.warning("No leads need Apollo enrichment");
+        setApolloEnriching(null);
+        return;
+      }
+
+      const leadIds = leadsData.leads.map((l: { id: string }) => l.id);
+
+      // Call Apollo bulk enrich
+      const response = await fetch("/api/apollo/enrich", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          leadIds,
+          type: "people",
+          revealEmails: true,
+          revealPhones: true,
+          updateDb: true,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      toast.success(
+        `Apollo enriched ${data.results.enriched}/${data.results.total}. ` +
+        `${data.results.withPhones} phones, ${data.results.withEmails} emails.`
+      );
+
+      // Refresh buckets
+      const bucketsRes = await fetch("/api/property/bucket");
+      const bucketsRefresh = await bucketsRes.json();
+      if (bucketsRefresh.buckets) setBuckets(bucketsRefresh.buckets);
+    } catch (error) {
+      console.error("Apollo enrich failed:", error);
+      toast.error("Apollo enrichment failed");
+    } finally {
+      setApolloEnriching(null);
+    }
   }, []);
 
   // Fetch counties when state changes
@@ -742,6 +971,11 @@ export default function PropertiesPage() {
 
       setResults(properties);
       setTotalCount(data.resultCount || data.recordCount || data.total || properties.length);
+
+      // Capture distress signals from response (for bucket saving)
+      if (data.signals) {
+        setDistressSignals(data.signals);
+      }
 
       // Show tray if we have results
       if (properties.length > 0) {
@@ -1339,6 +1573,30 @@ export default function PropertiesPage() {
                 <Save className="h-4 w-4" />
               </Button>
             </div>
+
+            <Separator orientation="vertical" className="h-6 bg-white/20" />
+
+            {/* Bucket Datalake Management */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowBucketDialog(true)}
+              disabled={results.length === 0}
+              className="bg-cyan-500/20 border-cyan-400/30 text-cyan-300 hover:bg-cyan-500/30"
+            >
+              <Layers className="h-4 w-4 mr-2" />
+              Save IDs ({results.length})
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowBucketList(true)}
+              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+            >
+              <FolderOpen className="h-4 w-4 mr-2" />
+              Buckets ({buckets.length})
+            </Button>
 
             <Separator orientation="vertical" className="h-6 bg-white/20" />
 
@@ -2400,6 +2658,234 @@ export default function PropertiesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Save to Bucket Dialog */}
+      <Dialog open={showBucketDialog} onOpenChange={setShowBucketDialog}>
+        <DialogContent className="sm:max-w-[450px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Layers className="h-5 w-5 text-cyan-500" />
+              Save IDs to Bucket
+            </DialogTitle>
+            <DialogDescription>
+              Save {results.length.toLocaleString()} property IDs to a bucket for economical batch enrichment.
+              No credits used until you process the bucket.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="bucket-name">Bucket Name</Label>
+              <Input
+                id="bucket-name"
+                placeholder="e.g., FL Pre-Foreclosure December 2024"
+                value={bucketName}
+                onChange={(e) => setBucketName(e.target.value)}
+              />
+            </div>
+
+            {distressSignals && (
+              <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+                <Label className="text-sm font-medium">Distress Signals Detected</Label>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  {distressSignals.preForeclosure > 0 && (
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="h-3 w-3 text-red-500" />
+                      <span>{distressSignals.preForeclosure} Pre-Foreclosure</span>
+                    </div>
+                  )}
+                  {distressSignals.taxLien > 0 && (
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="h-3 w-3 text-amber-500" />
+                      <span>{distressSignals.taxLien} Tax Lien</span>
+                    </div>
+                  )}
+                  {distressSignals.highEquity > 0 && (
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="h-3 w-3 text-green-500" />
+                      <span>{distressSignals.highEquity} High Equity</span>
+                    </div>
+                  )}
+                  {distressSignals.vacant > 0 && (
+                    <div className="flex items-center gap-2">
+                      <Home className="h-3 w-3 text-purple-500" />
+                      <span>{distressSignals.vacant} Vacant</span>
+                    </div>
+                  )}
+                  {distressSignals.absenteeOwner > 0 && (
+                    <div className="flex items-center gap-2">
+                      <Users className="h-3 w-3 text-blue-500" />
+                      <span>{distressSignals.absenteeOwner} Absentee</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="bg-cyan-50 dark:bg-cyan-950/20 border border-cyan-200 dark:border-cyan-800 rounded-lg p-3 text-sm">
+              <p className="font-medium text-cyan-800 dark:text-cyan-200">Economical Pipeline:</p>
+              <ul className="mt-1 space-y-1 text-cyan-700 dark:text-cyan-300">
+                <li>• Save 800K+ IDs (no credits)</li>
+                <li>• Process 2K per campaign block</li>
+                <li>• Detail + Skip Trace on demand</li>
+              </ul>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBucketDialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={saveIdsToBucket}
+              disabled={!bucketName.trim() || savingToBucket}
+              className="bg-cyan-600 hover:bg-cyan-700"
+            >
+              {savingToBucket ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Layers className="h-4 w-4 mr-2" />
+              )}
+              Save {results.length.toLocaleString()} IDs
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Buckets List Sheet */}
+      <Sheet open={showBucketList} onOpenChange={setShowBucketList}>
+        <SheetContent className="w-[500px] sm:max-w-[500px]">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <Layers className="h-5 w-5 text-cyan-500" />
+              Property ID Buckets
+            </SheetTitle>
+            <SheetDescription>
+              Your saved property ID buckets. Process to enrich with detail + skip trace.
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="mt-6 space-y-4">
+            {buckets.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <Layers className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                <p>No buckets yet.</p>
+                <p className="text-sm">Search properties and click "Save IDs" to create a bucket.</p>
+              </div>
+            ) : (
+              buckets.map((bucket) => (
+                <Card key={bucket.id} className="overflow-hidden">
+                  <CardHeader className="py-3 px-4 bg-muted/30">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="text-base">{bucket.name}</CardTitle>
+                        <CardDescription className="text-xs">
+                          {bucket.description || `${bucket.totalLeads.toLocaleString()} properties`}
+                        </CardDescription>
+                      </div>
+                      <Badge
+                        className={
+                          bucket.enrichmentStatus === "completed"
+                            ? "bg-green-100 text-green-800"
+                            : bucket.enrichmentStatus === "processing"
+                            ? "bg-blue-100 text-blue-800"
+                            : "bg-gray-100 text-gray-800"
+                        }
+                      >
+                        {bucket.enrichmentStatus}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="py-3 px-4">
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-4">
+                          <span className="text-muted-foreground">
+                            Total: <span className="font-medium text-foreground">{bucket.totalLeads.toLocaleString()}</span>
+                          </span>
+                          <span className="text-muted-foreground">
+                            Enriched: <span className="font-medium text-green-600">{bucket.enrichedLeads.toLocaleString()}</span>
+                          </span>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Created: {new Date(bucket.createdAt).toLocaleDateString()}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => processBucket(bucket.id, 250)}
+                          disabled={processingBucket === bucket.id || bucket.enrichedLeads >= bucket.totalLeads}
+                          className="text-xs"
+                        >
+                          {processingBucket === bucket.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <>250</>
+                          )}
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => processBucket(bucket.id, 2000)}
+                          disabled={processingBucket === bucket.id || bucket.enrichedLeads >= bucket.totalLeads}
+                          className="bg-cyan-600 hover:bg-cyan-700 text-xs"
+                        >
+                          {processingBucket === bucket.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <>
+                              <Play className="h-3 w-3 mr-1" />
+                              2K Block
+                            </>
+                          )}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => apolloEnrichBucket(bucket.id, 50)}
+                          disabled={apolloEnriching === bucket.id || bucket.enrichedLeads === 0}
+                          className="text-xs border-orange-500 text-orange-600 hover:bg-orange-50"
+                          title="Apollo.io bulk enrichment (10 per request)"
+                        >
+                          {apolloEnriching === bucket.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <>
+                              <Wand2 className="h-3 w-3 mr-1" />
+                              Apollo
+                            </>
+                          )}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => deleteBucket(bucket.id)}
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Progress bar */}
+                    {bucket.totalLeads > 0 && (
+                      <div className="mt-2">
+                        <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-cyan-500 transition-all"
+                            style={{ width: `${(bucket.enrichedLeads / bucket.totalLeads) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
