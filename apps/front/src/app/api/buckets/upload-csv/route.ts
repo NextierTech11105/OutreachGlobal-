@@ -119,6 +119,75 @@ function hashFields(record: Record<string, string | null>, fields: string[]): st
   return Math.abs(hash).toString(36);
 }
 
+// === SENIORITY DETECTION ===
+// Target decision-makers: Owner, CEO, Partner, VP, Sales Manager
+const SENIORITY_PATTERNS: { level: string; patterns: string[]; weight: number }[] = [
+  {
+    level: "owner",
+    patterns: ["owner", "co-owner", "co owner", "principal", "proprietor"],
+    weight: 100,
+  },
+  {
+    level: "founder",
+    patterns: ["founder", "co-founder", "cofounder"],
+    weight: 95,
+  },
+  {
+    level: "c_suite",
+    patterns: ["ceo", "chief executive", "cfo", "chief financial", "coo", "chief operating", "cto", "chief technology", "cmo", "chief marketing"],
+    weight: 90,
+  },
+  {
+    level: "president",
+    patterns: ["president", "managing director", "general manager", "gm"],
+    weight: 85,
+  },
+  {
+    level: "partner",
+    patterns: ["partner", "managing partner", "senior partner", "equity partner"],
+    weight: 80,
+  },
+  {
+    level: "vp",
+    patterns: ["vp", "vice president", "vice-president", "evp", "svp", "avp"],
+    weight: 75,
+  },
+  {
+    level: "director",
+    patterns: ["director", "executive director", "managing director"],
+    weight: 70,
+  },
+  {
+    level: "sales_manager",
+    patterns: ["sales manager", "sales director", "regional sales", "national sales", "sales lead", "head of sales"],
+    weight: 65,
+  },
+  {
+    level: "manager",
+    patterns: ["manager", "office manager", "operations manager", "branch manager"],
+    weight: 50,
+  },
+];
+
+// Detect seniority level from title
+function detectSeniority(title: string | null): { level: string; weight: number; isDecisionMaker: boolean } {
+  if (!title) return { level: "unknown", weight: 0, isDecisionMaker: false };
+
+  const titleLower = title.toLowerCase();
+
+  for (const { level, patterns, weight } of SENIORITY_PATTERNS) {
+    for (const pattern of patterns) {
+      if (titleLower.includes(pattern)) {
+        // Decision makers: Owner, CEO/C-Suite, President, Partner, VP, Sales Manager
+        const isDecisionMaker = ["owner", "founder", "c_suite", "president", "partner", "vp", "sales_manager"].includes(level);
+        return { level, weight, isDecisionMaker };
+      }
+    }
+  }
+
+  return { level: "other", weight: 0, isDecisionMaker: false };
+}
+
 // Industries where businesses commonly OWN their operating property
 const OWNER_OCCUPIED_SIC_CODES: Record<string, number> = {
   // Manufacturing - typically own their facilities (SIC 20-39)
@@ -344,6 +413,14 @@ export async function POST(request: NextRequest) {
     const campaignEligible = propertyScores.filter(s => s.score >= 30).length;
     const likelyOwners = propertyScores.filter(s => s.score >= 50).length;
 
+    // Calculate seniority/decision-maker stats
+    const seniorityStats = normalizedRecords.map(r => detectSeniority(r.title));
+    const decisionMakerCount = seniorityStats.filter(s => s.isDecisionMaker).length;
+    const seniorityBreakdown: Record<string, number> = {};
+    seniorityStats.forEach(s => {
+      seniorityBreakdown[s.level] = (seniorityBreakdown[s.level] || 0) + 1;
+    });
+
     // Collect all signals from property scoring for auto-tagging
     const allSignals = propertyScores.flatMap(s => s.signals);
     const signalCounts: Record<string, number> = {};
@@ -358,6 +435,16 @@ export async function POST(request: NextRequest) {
     if (likelyOwners > 0) autoTags.push("property-owners");
     if (highLikelihood > records.length * 0.1) autoTags.push("high-owner-likelihood");
     if (campaignEligible > records.length * 0.3) autoTags.push("campaign-ready");
+
+    // Decision-maker tags (Owner, CEO, Partner, VP, Sales Manager)
+    if (decisionMakerCount > 0) autoTags.push("has-decision-makers");
+    if (decisionMakerCount > records.length * 0.2) autoTags.push("decision-maker-rich");
+    if ((seniorityBreakdown["owner"] || 0) > minForTag) autoTags.push("owners");
+    if ((seniorityBreakdown["c_suite"] || 0) > minForTag) autoTags.push("c-suite");
+    if ((seniorityBreakdown["president"] || 0) > minForTag) autoTags.push("presidents");
+    if ((seniorityBreakdown["partner"] || 0) > minForTag) autoTags.push("partners");
+    if ((seniorityBreakdown["vp"] || 0) > minForTag) autoTags.push("vps");
+    if ((seniorityBreakdown["sales_manager"] || 0) > minForTag) autoTags.push("sales-managers");
 
     // Source type tags
     if (sourceType === "business") autoTags.push("b2b");
@@ -471,6 +558,9 @@ export async function POST(request: NextRequest) {
           (record.state?.toLowerCase() !== 'ny' || // Out of state = absentee
            linkage.signals.some(s => s.includes("fixed:") || s.includes("sic:owner-occupied"))));
 
+        // Detect seniority from title
+        const seniority = detectSeniority(record.title);
+
         // Record-level tags
         const recordTags: string[] = [];
         if (linkage.score >= 50) recordTags.push("likely-property-owner");
@@ -478,6 +568,12 @@ export async function POST(request: NextRequest) {
         if (isAbsentee) recordTags.push("absentee");
         if (linkage.signals.some(s => s.includes("family"))) recordTags.push("family-business");
         if (linkage.signals.some(s => s.includes("entity:registered"))) recordTags.push("established");
+
+        // Add seniority tags
+        if (seniority.isDecisionMaker) recordTags.push("decision-maker");
+        if (seniority.level !== "unknown" && seniority.level !== "other") {
+          recordTags.push(`seniority:${seniority.level}`);
+        }
 
         // Add industry tags from signals
         linkage.signals.forEach(sig => {
@@ -497,11 +593,20 @@ export async function POST(request: NextRequest) {
             contactName: record.contactName || null,
             firstName: record.firstName || null,
             lastName: record.lastName || null,
+            title: record.title || null,
             address: record.address || null,
             city: record.city || null,
             state: record.state || null,
             zip: record.zip || null,
             sicCode: record.sicCode || null,
+          },
+
+          // === SENIORITY (for decision-maker targeting) ===
+          seniority: {
+            level: seniority.level,
+            weight: seniority.weight,
+            isDecisionMaker: seniority.isDecisionMaker,
+            title: record.title || null,
           },
 
           // === PRE-COMPUTED SCORES (no enrichment needed) ===
@@ -514,6 +619,7 @@ export async function POST(request: NextRequest) {
             likelyPropertyOwner: linkage.score >= 50,
             campaignEligible: linkage.score >= 30,
             absentee: isAbsentee,
+            isDecisionMaker: seniority.isDecisionMaker, // Owner, CEO, Partner, VP, Sales Manager
             hasPhone: !!record.phone,
             hasEmail: !!record.email,
             hasCellPhone: !!record.cellPhone,
@@ -677,6 +783,25 @@ export async function POST(request: NextRequest) {
           }
           return acc;
         }, [] as number[]),
+
+        // === DECISION MAKERS INDEX ===
+        // Target: Owner, CEO, Partner, VP, Sales Manager (high-value contacts)
+        decisionMakers: normalizedRecords.reduce((acc, record, index) => {
+          const seniority = detectSeniority(record.title);
+          if (seniority.isDecisionMaker) {
+            acc.push(index);
+          }
+          return acc;
+        }, [] as number[]),
+
+        // === SENIORITY BREAKDOWN ===
+        bySeniority: normalizedRecords.reduce((acc, record, index) => {
+          const seniority = detectSeniority(record.title);
+          const level = seniority.level;
+          if (!acc[level]) acc[level] = [];
+          acc[level].push(index);
+          return acc;
+        }, {} as Record<string, number[]>),
       },
       metadata: {
         id: bucketId,
@@ -717,6 +842,13 @@ export async function POST(request: NextRequest) {
           count: 0, // Will be calculated from index
           percentage: 0,
           revenueTier: "$500K-$10M",
+        },
+        // Decision-maker stats (Owner, CEO, Partner, VP, Sales Manager)
+        decisionMakers: {
+          total: decisionMakerCount,
+          percentage: Math.round((decisionMakerCount / records.length) * 100),
+          breakdown: seniorityBreakdown,
+          targets: ["owner", "founder", "c_suite", "president", "partner", "vp", "sales_manager"],
         },
       },
     };
