@@ -19,6 +19,7 @@ import {
   ChevronRight,
   Cable,
   Target,
+  CreditCard,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -57,6 +58,12 @@ export function AdminSidebar() {
       label: "Dashboard",
       icon: <BarChart3 className="h-4 w-4" />,
       active: pathname === "/admin",
+    },
+    {
+      href: "/admin/billing",
+      label: "Billing & Revenue",
+      icon: <CreditCard className="h-4 w-4 text-green-400" />,
+      active: pathname === "/admin/billing",
     },
     {
       href: "/admin/mcp",
