@@ -55,7 +55,9 @@ import {
   Search,
   UserSearch,
   CheckCircle,
+  Eye,
 } from "lucide-react";
+import { UniversalDetailModal } from "@/components/universal-detail-modal";
 import { cn } from "@/lib/utils";
 import { useCurrentTeam } from "@/features/team/team.context";
 import { performSkipTrace, type SkipTraceInput } from "@/lib/services/data-enrichment-service";
@@ -138,6 +140,7 @@ export function PropertyTerminal() {
   const [loading, setLoading] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [selectedProperty, setSelectedProperty] = useState<PropertyResult | null>(null);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("split");
   const [filtersCollapsed, setFiltersCollapsed] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
@@ -346,8 +349,14 @@ export function PropertyTerminal() {
     const full = results.find((r) => r.id === property.id);
     if (full) {
       setSelectedProperty(full);
+      setDetailModalOpen(true);
     }
   }, [results]);
+
+  const handleOpenDetail = useCallback((property: PropertyResult) => {
+    setSelectedProperty(property);
+    setDetailModalOpen(true);
+  }, []);
 
   // Skip Trace handler - finds contact info for selected properties
   const handleSkipTrace = useCallback(async () => {
@@ -642,6 +651,7 @@ export function PropertyTerminal() {
                     onToggleSelect={toggleSelect}
                     onToggleSelectAll={toggleSelectAll}
                     onRowClick={(p) => setSelectedProperty(p)}
+                    onViewDetail={handleOpenDetail}
                     formatCurrency={formatCurrency}
                     formatNumber={formatNumber}
                   />
@@ -665,6 +675,7 @@ export function PropertyTerminal() {
                 onToggleSelect={toggleSelect}
                 onToggleSelectAll={toggleSelectAll}
                 onRowClick={(p) => setSelectedProperty(p)}
+                onViewDetail={handleOpenDetail}
                 formatCurrency={formatCurrency}
                 formatNumber={formatNumber}
               />
@@ -704,18 +715,21 @@ export function PropertyTerminal() {
         </div>
       </div>
 
-      {/* Property Detail Sheet */}
-      <Sheet open={!!selectedProperty} onOpenChange={() => setSelectedProperty(null)}>
-        <SheetContent className="w-[500px] sm:max-w-[500px]">
-          {selectedProperty && (
-            <PropertyDetailPanel
-              property={selectedProperty}
-              formatCurrency={formatCurrency}
-              formatNumber={formatNumber}
-            />
-          )}
-        </SheetContent>
-      </Sheet>
+      {/* Universal Detail Modal */}
+      <UniversalDetailModal
+        open={detailModalOpen}
+        onOpenChange={setDetailModalOpen}
+        record={selectedProperty}
+        recordType="property"
+        onAction={(action, data) => {
+          console.log("Action:", action, data);
+          if (action === "add-lead") {
+            handleCreateLeads();
+          } else if (action === "add-campaign") {
+            handleLaunchCampaign();
+          }
+        }}
+      />
 
       {/* Skip Trace Dialog */}
       <Dialog open={skipTraceDialogOpen} onOpenChange={setSkipTraceDialogOpen}>
@@ -848,6 +862,7 @@ interface PropertyTableProps {
   onToggleSelect: (id: string) => void;
   onToggleSelectAll: () => void;
   onRowClick: (property: PropertyResult) => void;
+  onViewDetail: (property: PropertyResult) => void;
   formatCurrency: (value?: number) => string;
   formatNumber: (value?: number) => string;
 }
@@ -858,6 +873,7 @@ function PropertyTable({
   onToggleSelect,
   onToggleSelectAll,
   onRowClick,
+  onViewDetail,
   formatCurrency,
   formatNumber,
 }: PropertyTableProps) {
@@ -882,6 +898,7 @@ function PropertyTable({
           <TableHead className="w-24 text-right">Value</TableHead>
           <TableHead className="w-24 text-right">Equity</TableHead>
           <TableHead>Owner</TableHead>
+          <TableHead className="w-12 text-center">Actions</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -921,11 +938,21 @@ function PropertyTable({
               {formatCurrency(property.equity)}
             </TableCell>
             <TableCell className="truncate max-w-[150px]">{property.ownerName || "-"}</TableCell>
+            <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 hover:bg-primary/10"
+                onClick={() => onViewDetail(property)}
+              >
+                <Eye className="h-4 w-4" />
+              </Button>
+            </TableCell>
           </TableRow>
         ))}
         {results.length === 0 && (
           <TableRow>
-            <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
+            <TableCell colSpan={13} className="text-center py-8 text-muted-foreground">
               No properties found. Use the filters or draw on the map to search.
             </TableCell>
           </TableRow>
