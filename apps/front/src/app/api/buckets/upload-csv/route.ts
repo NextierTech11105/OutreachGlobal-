@@ -460,41 +460,89 @@ export async function POST(request: NextRequest) {
       queuedLeads: 0,
       contactedLeads: 0,
       enrichmentStatus: "pending",
-      // Store the actual data with UUIDs and analytics
-      properties: normalizedRecords.map((record, index) => {
+      // MINIMAL STORAGE: IDs + matching keys only (enrich on-demand to control costs)
+      // Full data lives in _original, only matching keys stored for cross-referencing
+      records: normalizedRecords.map((record, index) => {
         const linkage = calculatePropertyLinkageScore(record);
         const recordId = randomUUID();
 
+        // Determine absentee status (business address != mailing address pattern)
+        const isAbsentee = !!(record.companyName && record.address &&
+          (record.state?.toLowerCase() !== 'ny' || // Out of state = absentee
+           linkage.signals.some(s => s.includes("fixed:") || s.includes("sic:owner-occupied"))));
+
+        // Record-level tags
+        const recordTags: string[] = [];
+        if (linkage.score >= 50) recordTags.push("likely-property-owner");
+        if (linkage.score >= 30) recordTags.push("campaign-ready");
+        if (isAbsentee) recordTags.push("absentee");
+        if (linkage.signals.some(s => s.includes("family"))) recordTags.push("family-business");
+        if (linkage.signals.some(s => s.includes("entity:registered"))) recordTags.push("established");
+
+        // Add industry tags from signals
+        linkage.signals.forEach(sig => {
+          if (sig.startsWith("fixed:")) recordTags.push(sig.replace("fixed:", ""));
+          if (sig.startsWith("sic:")) recordTags.push("sic-matched");
+        });
+
         return {
+          // === CORE ID ===
           id: recordId,
           bucketId: bucketId,
           rowIndex: index,
-          ...record,
-          // Property linkage scoring (ML-lite)
-          // Identifies businesses likely to OWN their operating property
-          propertyLinkage: {
-            score: linkage.score,
-            signals: linkage.signals,
-            likelihood: linkage.ownerOccupiedLikelihood, // "high", "medium", "low"
-            likelyPropertyOwner: linkage.score >= 50,
-            // For campaign: "Quick question. Thought about what {business} and property is worth?"
-            campaignEligible: linkage.score >= 30,
+
+          // === MATCHING KEYS (for cross-referencing) ===
+          matchingKeys: {
+            companyName: record.companyName || null,
+            contactName: record.contactName || null,
+            firstName: record.firstName || null,
+            lastName: record.lastName || null,
+            address: record.address || null,
+            city: record.city || null,
+            state: record.state || null,
+            zip: record.zip || null,
+            sicCode: record.sicCode || null,
           },
-          // Change tracking / sync metadata
-          _syncMeta: {
+
+          // === PRE-COMPUTED SCORES (no enrichment needed) ===
+          propertyScore: linkage.score,
+          propertyLikelihood: linkage.ownerOccupiedLikelihood,
+          signals: linkage.signals,
+
+          // === FLAGS ===
+          flags: {
+            likelyPropertyOwner: linkage.score >= 50,
+            campaignEligible: linkage.score >= 30,
+            absentee: isAbsentee,
+            hasPhone: !!record.phone,
+            hasEmail: !!record.email,
+            hasCellPhone: !!record.cellPhone,
+            hasAddress: !!(record.address && record.city && record.state),
+          },
+
+          // === TAGS (filterable) ===
+          tags: recordTags,
+
+          // === ENRICHMENT STATUS ===
+          enrichment: {
+            status: "pending", // pending | in_progress | enriched | failed
+            skipTraced: false,
+            apolloEnriched: false,
+            propertyMatched: false,
+            lastEnrichedAt: null,
+            enrichedData: null, // Populated on-demand
+          },
+
+          // === CHANGE TRACKING ===
+          changeTracking: {
             createdAt: now,
             updatedAt: now,
             version: 1,
-            // Fields to monitor for changes (auto-sync)
-            monitoredFields: ["phone", "email", "address", "contactName"],
-            // Hash of monitored fields for quick change detection
             fieldHash: hashFields(record, ["phone", "email", "address", "contactName"]),
-            // Sync status
-            syncStatus: "new",
-            lastSyncAt: null,
-            syncSource: sourceLabel,
+            changedFields: [], // Populated when data changes
           },
-          // Keep original row data too
+
+          // === ORIGINAL DATA (for enrichment input) ===
           _original: records[index],
         };
       }),
@@ -538,6 +586,97 @@ export async function POST(request: NextRequest) {
           }
           return acc;
         }, [] as number[]),
+
+        // === BLUE COLLAR INDEX ===
+        // Main Street blue collar businesses: trucking, construction, auto, manufacturing, etc.
+        blueCollar: normalizedRecords.reduce((acc, record, index) => {
+          const companyLower = (record.companyName || "").toLowerCase();
+          const sicCode = record.sicCode || "";
+          const industry = (record.industry || "").toLowerCase();
+
+          // Blue collar SIC code prefixes
+          const blueCollarSics = ["15", "16", "17", // Construction
+            "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", // Manufacturing 20-29
+            "30", "31", "32", "33", "34", "35", "36", "37", "38", "39", // Manufacturing 30-39
+            "42", "421", "422", // Trucking/Warehousing
+            "75", "753", "754", "7542", // Auto services, car wash
+            "721", "7215", // Laundromats
+          ];
+
+          // Blue collar keywords
+          const blueCollarKeywords = [
+            "trucking", "freight", "logistics", "hauling", "transport",
+            "construction", "contractor", "builder", "excavat", "paving", "concrete", "roofing", "plumbing", "electric", "hvac",
+            "manufacturing", "fabricat", "machine", "welding", "metal",
+            "auto", "repair", "garage", "body shop", "tire", "mechanic",
+            "car wash", "carwash", "laundromat", "laundry", "cleaners",
+            "warehouse", "storage", "distribution",
+            "landscap", "lawn", "tree service", "septic", "waste",
+          ];
+
+          const isBlueCollar = blueCollarSics.some(sic => sicCode.startsWith(sic)) ||
+            blueCollarKeywords.some(kw => companyLower.includes(kw) || industry.includes(kw));
+
+          if (isBlueCollar) {
+            acc.push(index);
+          }
+          return acc;
+        }, [] as number[]),
+
+        // === MAIN STREET INDEX ($500K - $10M Revenue) ===
+        // Target: established local businesses with real revenue
+        mainStreet: normalizedRecords.reduce((acc, record, index) => {
+          const revLower = (record.revenue || "").toLowerCase();
+
+          // Parse revenue indicators for $500K-$10M range
+          const isMainStreet =
+            revLower.includes("$500") || revLower.includes("500k") ||
+            revLower.includes("$1 mil") || revLower.includes("$1mil") || revLower.includes("1 million") ||
+            revLower.includes("$2.5 mil") || revLower.includes("$5 mil") || revLower.includes("$10 mil") ||
+            revLower.includes("$1 to") || revLower.includes("$2.5 to") || revLower.includes("$5 to") ||
+            revLower.includes("500,000") || revLower.includes("1,000,000") || revLower.includes("5,000,000") ||
+            (revLower.includes("million") && !revLower.includes("$50") && !revLower.includes("$100"));
+
+          if (isMainStreet) {
+            acc.push(index);
+          }
+          return acc;
+        }, [] as number[]),
+
+        // === REVENUE TIERS ===
+        byRevenueTier: normalizedRecords.reduce((acc, record, index) => {
+          const revLower = (record.revenue || "").toLowerCase();
+
+          let tier = "unknown";
+          if (revLower.includes("less than") || revLower.includes("under $500") || revLower.includes("$0")) {
+            tier = "startup"; // < $500K
+          } else if (revLower.includes("$500") || revLower.includes("500k") ||
+                     revLower.includes("$1 mil") || revLower.includes("1 million")) {
+            tier = "main-street"; // $500K - $2.5M
+          } else if (revLower.includes("$2.5") || revLower.includes("$5 mil") || revLower.includes("5 million")) {
+            tier = "growth"; // $2.5M - $10M
+          } else if (revLower.includes("$10 mil") || revLower.includes("$25 mil") || revLower.includes("$50 mil")) {
+            tier = "established"; // $10M - $50M
+          } else if (revLower.includes("$100 mil") || revLower.includes("$500 mil") || revLower.includes("billion")) {
+            tier = "enterprise"; // $100M+
+          }
+
+          if (!acc[tier]) acc[tier] = [];
+          acc[tier].push(index);
+          return acc;
+        }, {} as Record<string, number[]>),
+
+        // === ABSENTEE OWNERS INDEX ===
+        absenteeOwners: normalizedRecords.reduce((acc, record, index) => {
+          const linkage = calculatePropertyLinkageScore(record);
+          // Likely absentee if has fixed-location signals (they own property somewhere)
+          const isAbsentee = linkage.signals.some(s =>
+            s.includes("fixed:") || s.includes("sic:owner-occupied"));
+          if (isAbsentee) {
+            acc.push(index);
+          }
+          return acc;
+        }, [] as number[]),
       },
       metadata: {
         id: bucketId,
@@ -567,6 +706,18 @@ export async function POST(request: NextRequest) {
         },
         // Signal distribution (what triggered the scores)
         signalBreakdown: signalCounts,
+        // Blue Collar stats
+        blueCollar: {
+          count: 0, // Will be calculated from index
+          percentage: 0,
+          industries: ["construction", "trucking", "manufacturing", "auto-services", "landscaping"],
+        },
+        // Main Street stats ($500K-$10M revenue)
+        mainStreet: {
+          count: 0, // Will be calculated from index
+          percentage: 0,
+          revenueTier: "$500K-$10M",
+        },
       },
     };
 
