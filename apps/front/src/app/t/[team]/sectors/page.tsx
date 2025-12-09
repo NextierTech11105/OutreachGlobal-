@@ -18,7 +18,7 @@ import {
   Building2, Home, DollarSign, MapPin, Briefcase,
   Search, Database, Upload, TrendingUp, Users,
   FileSpreadsheet, RefreshCcw, Plus, ArrowRight,
-  BarChart3, Layers, HardDrive, Eye, Send, Loader2, X, CheckCircle2
+  BarChart3, Layers, HardDrive, Eye, Send, Loader2, X, CheckCircle2, Sparkles
 } from "lucide-react";
 import {
   Dialog,
@@ -231,9 +231,43 @@ export default function SectorsPage() {
     router.push(`/t/${window.location.pathname.split("/")[2]}/sectors/${lake.id}`);
   };
 
+  // Enrichment state for data lake cards
+  const [enrichingLakeId, setEnrichingLakeId] = useState<string | null>(null);
+
+  // Quick enrich a data lake
+  const handleQuickEnrich = async (lake: DataLake, enrichType: "apollo" | "skip_trace") => {
+    setEnrichingLakeId(lake.id);
+    try {
+      const response = await fetch(`/api/buckets/${lake.id}/enrich`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ maxRecords: 100, enrichType }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        toast.success(`Enriched ${data.results.enriched} records with ${enrichType === "apollo" ? "Apollo" : "Skip Trace"}`);
+        // Refresh data lakes
+        const refreshResponse = await fetch("/api/buckets?perPage=100");
+        const refreshData = await refreshResponse.json();
+        if (refreshData.buckets) {
+          setDataLakes(refreshData.buckets);
+        }
+      } else {
+        toast.error(data.error || "Enrichment failed");
+      }
+    } catch (error) {
+      console.error("Enrichment failed:", error);
+      toast.error("Enrichment failed");
+    } finally {
+      setEnrichingLakeId(null);
+    }
+  };
+
   // Data Lake Card component
   const DataLakeCard = ({ lake }: { lake: DataLake }) => {
     const isSelected = selectedDataLake?.id === lake.id;
+    const isEnriching = enrichingLakeId === lake.id;
+    const unenrichedCount = lake.totalLeads - lake.enrichedLeads;
 
     return (
       <Card
@@ -266,6 +300,8 @@ export default function SectorsPage() {
               {formatNumber(lake.contactedLeads)} contacted
             </Badge>
           </div>
+
+          {/* Action buttons */}
           <div className="flex gap-2 mt-3">
             <Button
               size="sm"
@@ -284,7 +320,6 @@ export default function SectorsPage() {
               className="flex-1 bg-green-600 hover:bg-green-700"
               onClick={(e) => {
                 e.stopPropagation();
-                // Navigate to SMS campaign
                 router.push(`/t/${window.location.pathname.split("/")[2]}/sectors/${lake.id}?action=sms`);
               }}
             >
@@ -292,6 +327,46 @@ export default function SectorsPage() {
               SMS
             </Button>
           </div>
+
+          {/* Enrich buttons - only show if there are unenriched records */}
+          {unenrichedCount > 0 && (
+            <div className="flex gap-2 mt-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="flex-1 border-blue-500 text-blue-600 hover:bg-blue-50"
+                disabled={isEnriching}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleQuickEnrich(lake, "apollo");
+                }}
+              >
+                {isEnriching ? (
+                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                ) : (
+                  <Users className="h-3 w-3 mr-1" />
+                )}
+                Apollo
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="flex-1 border-purple-500 text-purple-600 hover:bg-purple-50"
+                disabled={isEnriching}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleQuickEnrich(lake, "skip_trace");
+                }}
+              >
+                {isEnriching ? (
+                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                ) : (
+                  <Home className="h-3 w-3 mr-1" />
+                )}
+                Skip Trace
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     );

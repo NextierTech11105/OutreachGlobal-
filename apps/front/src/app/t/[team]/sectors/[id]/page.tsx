@@ -49,7 +49,9 @@ import {
   Download,
   ChevronLeft,
   ChevronRight,
+  Eye,
 } from "lucide-react";
+import { UniversalDetailModal } from "@/components/universal-detail-modal";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -126,6 +128,10 @@ export default function SectorDetailPage() {
   const [smsMessage, setSmsMessage] = useState("");
   const [sendingSms, setSendingSms] = useState(false);
   const [smsProgress, setSmsProgress] = useState<{ sent: number; failed: number; total: number } | null>(null);
+
+  // Detail modal state
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
   // Load daily skip trace count from localStorage
   useEffect(() => {
@@ -686,6 +692,7 @@ export default function SectorDetailPage() {
                     onCheckedChange={toggleSelectAll}
                   />
                 </TableHead>
+                <TableHead className="w-12"></TableHead>
                 <TableHead>Company / Contact</TableHead>
                 <TableHead>Phone</TableHead>
                 <TableHead>Email</TableHead>
@@ -697,7 +704,7 @@ export default function SectorDetailPage() {
             <TableBody>
               {paginatedLeads.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                     {searchQuery ? "No matching records" : "No records in this data lake"}
                   </TableCell>
                 </TableRow>
@@ -709,6 +716,19 @@ export default function SectorDetailPage() {
                         checked={selectedIds.has(lead.id)}
                         onCheckedChange={() => toggleSelect(lead.id)}
                       />
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 hover:bg-primary/10"
+                        onClick={() => {
+                          setSelectedLead(lead);
+                          setDetailModalOpen(true);
+                        }}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
                     </TableCell>
                     <TableCell>
                       <div className="font-medium">{lead.companyName || "-"}</div>
@@ -921,6 +941,44 @@ export default function SectorDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Universal Detail Modal - Context-aware record display */}
+      <UniversalDetailModal
+        open={detailModalOpen}
+        onOpenChange={setDetailModalOpen}
+        record={selectedLead ? {
+          // Map lead fields to universal format for context detection
+          ...selectedLead,
+          // B2B context indicators
+          company: selectedLead.companyName,
+          industry: selectedLead.industry,
+          employees: selectedLead.employees,
+          revenue: selectedLead.revenue,
+          website: selectedLead.website,
+          // Contact info
+          firstName: selectedLead.contactName?.split(" ")[0],
+          lastName: selectedLead.contactName?.split(" ").slice(1).join(" "),
+          phone: selectedLead.phone || selectedLead.enrichedPhones?.[0],
+          email: selectedLead.email || selectedLead.enrichedEmails?.[0],
+          // Address for skip trace
+          address: selectedLead.address,
+          city: selectedLead.city,
+          state: selectedLead.state,
+          zip: selectedLead.zip,
+          // Enrichment data
+          apolloData: selectedLead.apolloData,
+          skipTraceData: selectedLead.skipTraceData,
+        } : null}
+        recordType={selectedLead?.industry || selectedLead?.sicCode ? "b2b-company" : "lead"}
+        onAction={(action, data) => {
+          console.log("[SectorDetail] Action:", action, data);
+          if (action === "add-lead") {
+            toast.success("Lead added to pipeline");
+          } else if (action === "add-campaign") {
+            toast.success(`Added to ${data.campaignType} campaign`);
+          }
+        }}
+      />
     </div>
   );
 }
