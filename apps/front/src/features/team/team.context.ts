@@ -18,8 +18,9 @@ export type TeamContextReducer = Reducer<TeamContextState, TeamContextAction>;
 
 export type TTeamContext = [TeamContextState, Dispatch<TeamContextAction>];
 
+// Safe initial state - team is null until loaded, components must handle this
 export const teamContextInitialState: TeamContextState = {
-  team: undefined as unknown as Team,
+  team: null as unknown as Team,
 };
 
 export const TeamContext = createContext<TTeamContext>([
