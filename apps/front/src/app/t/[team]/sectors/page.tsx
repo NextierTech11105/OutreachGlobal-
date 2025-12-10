@@ -1,5 +1,7 @@
 "use client";
 
+
+import { sf, sfd } from "@/lib/utils/safe-format";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -933,22 +935,22 @@ export default function SectorsPage() {
                   </span>
                 </div>
                 <p className="text-sm text-muted-foreground">{uploadResult.message}</p>
-                {uploadResult.stats && (
+                {uploadResult.stats && sf(
                   <div className="grid grid-cols-4 gap-2 mt-3">
                     <div className="text-center">
-                      <div className="text-lg font-bold">{(uploadResult.stats.total ?? 0).toLocaleString()}</div>
+                      <div className="text-lg font-bold">{(uploadResult.stats.total ?? 0)}</div>
                       <div className="text-xs text-muted-foreground">Total</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-lg font-bold text-green-600">{(uploadResult.stats.withPhone ?? 0).toLocaleString()}</div>
+                      <div className="text-lg font-bold text-green-600">{sf(uploadResult.stats.withPhone ?? 0)}</div>
                       <div className="text-xs text-muted-foreground">Phones</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-lg font-bold text-blue-600">{(uploadResult.stats.withEmail ?? 0).toLocaleString()}</div>
+                      <div className="text-lg font-bold text-blue-600">{sf(uploadResult.stats.withEmail ?? 0)}</div>
                       <div className="text-xs text-muted-foreground">Emails</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-lg font-bold text-purple-600">{(uploadResult.stats.withAddress ?? 0).toLocaleString()}</div>
+                      <div className="text-lg font-bold text-purple-600">{sf(uploadResult.stats.withAddress ?? 0)}</div>
                       <div className="text-xs text-muted-foreground">Enrichable</div>
                     </div>
                   </div>

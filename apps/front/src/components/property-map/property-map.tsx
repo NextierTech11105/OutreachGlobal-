@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, MapPin, Trash2, Search, Layers } from "lucide-react";
+import { sf, sfc } from "@/lib/utils/safe-format";
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
 
@@ -203,7 +204,7 @@ export function PropertyMap({
           ) : (
             <MapPin className="h-4 w-4 mr-2" />
           )}
-          {properties.length.toLocaleString()} Properties
+          {sf(properties.length)} Properties
         </Badge>
       </div>
 
@@ -323,20 +324,20 @@ export function PropertyMap({
                 {selectedProperty.sqft && (
                   <>
                     <span className="font-medium">Sqft:</span>
-                    <span>{selectedProperty.sqft.toLocaleString()}</span>
+                    <span>{sf(selectedProperty.sqft)}</span>
                   </>
                 )}
                 {selectedProperty.estimatedValue && (
                   <>
                     <span className="font-medium">Value:</span>
-                    <span>${selectedProperty.estimatedValue.toLocaleString()}</span>
+                    <span>{sfc(selectedProperty.estimatedValue)}</span>
                   </>
                 )}
                 {selectedProperty.equity && (
                   <>
                     <span className="font-medium">Equity:</span>
                     <span className="text-green-600 font-bold">
-                      ${selectedProperty.equity.toLocaleString()}
+                      {sfc(selectedProperty.equity)}
                     </span>
                   </>
                 )}

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { Activity, ArrowUpRight, Zap } from "lucide-react";
+import { sf } from "@/lib/utils/safe-format";
 
 type EnrichmentUsage = {
   count?: number;
@@ -99,12 +100,12 @@ export function InstantActionPanel() {
     return [
       {
         label: "Enrichments",
-        value: processed.toLocaleString(),
-        detail: limit ? `of ${limit.toLocaleString()} limit` : "count today",
+        value: sf(processed),
+        detail: limit ? `of ${sf(limit)} limit` : "count today",
       },
       {
         label: "Remaining Quota",
-        value: remaining.toLocaleString(),
+        value: sf(remaining),
         detail: "today",
       },
       {

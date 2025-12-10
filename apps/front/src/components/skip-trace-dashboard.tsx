@@ -45,6 +45,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { sf } from "@/lib/utils/safe-format";
 
 interface SkipTraceResult {
   id?: string;
@@ -320,15 +321,15 @@ export function SkipTraceDashboard() {
               <div className="flex items-center gap-4">
                 <div className="text-sm">
                   <span className="text-muted-foreground">Today:</span>{" "}
-                  <span className="font-bold">{usage.today.toLocaleString()}</span>
-                  <span className="text-muted-foreground"> / {usage.limit.toLocaleString()}</span>
+                  <span className="font-bold">{sf(usage.today)}</span>
+                  <span className="text-muted-foreground"> / {sf(usage.limit)}</span>
                 </div>
                 <Progress
                   value={(usage.today / usage.limit) * 100}
                   className="w-24 h-2"
                 />
                 <Badge variant="outline" className="text-green-400 border-green-400/50">
-                  {usage.remaining.toLocaleString()} remaining
+                  {sf(usage.remaining)} remaining
                 </Badge>
               </div>
             </CardContent>

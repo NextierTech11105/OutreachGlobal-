@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import { sf } from "@/lib/utils/safe-format";
 import {
   Search,
   Download,
@@ -371,7 +372,7 @@ export function LeadTrackerSimple() {
       return;
     }
 
-    toast.info(`Queueing ${search.propertyIds.length.toLocaleString()} IDs for enrichment...`);
+    toast.info(`Queueing ${sf(search.propertyIds.length)} IDs for enrichment...`);
 
     try {
       const res = await fetch("/api/enrichment/queue", {
@@ -405,7 +406,7 @@ export function LeadTrackerSimple() {
       );
       setEnrichmentUsage(data.usage);
 
-      toast.success(`Queued ${data.job.progress.total.toLocaleString()} IDs in ${data.job.progress.totalBatches} batches`);
+      toast.success(`Queued ${sf(data.job.progress.total)} IDs in ${data.job.progress.totalBatches} batches`);
 
       // Start processing
       await processEnrichmentBatch(data.job.id, search.id);
@@ -662,7 +663,7 @@ export function LeadTrackerSimple() {
         const loc = filters.county || filters.city || filters.zip;
         setLabel(`${loc} ${filters.propertyType}`);
       }
-      toast.success(`Found ${(data.resultCount || 0).toLocaleString()} properties`);
+      toast.success(`Found ${sf(data.resultCount || 0)} properties`);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Search failed";
       toast.error(message);
@@ -736,7 +737,7 @@ export function LeadTrackerSimple() {
     // Limit to 10000 IDs per API request
     const maxIds = Math.min(count, 10000);
     if (count > 10000) {
-      toast.warning(`Limiting to first 10,000 IDs per request. Full count: ${count.toLocaleString()}`);
+      toast.warning(`Limiting to first 10,000 IDs per request. Full count: ${sf(count)}`);
     }
 
     setIsSaving(true);
@@ -778,7 +779,7 @@ export function LeadTrackerSimple() {
       };
 
       setSavedSearches(prev => [newSearch, ...prev]);
-      toast.success(`Saved "${label}" with ${allIds.length.toLocaleString()} IDs in ${totalBatches} batch(es)`);
+      toast.success(`Saved "${label}" with ${sf(allIds.length)} IDs in ${totalBatches} batch(es)`);
 
       setCount(null);
       setLabel("");
@@ -796,7 +797,7 @@ export function LeadTrackerSimple() {
 
   // Push to Leads Queue for Skip Tracing
   const pushToQueue = async (search: SavedSearch) => {
-    toast.info(`Queueing ${search.propertyIds.length.toLocaleString()} IDs for skip tracing...`);
+    toast.info(`Queueing ${sf(search.propertyIds.length)} IDs for skip tracing...`);
 
     // Update status
     setSavedSearches(prev =>
@@ -809,12 +810,12 @@ export function LeadTrackerSimple() {
 
     // TODO: Call backend API to queue leads for skip tracing
     // This would integrate with PeopleData/SkipTrace API
-    toast.success(`Queued ${search.propertyIds.length.toLocaleString()} IDs for skip tracing`);
+    toast.success(`Queued ${sf(search.propertyIds.length)} IDs for skip tracing`);
   };
 
   // Push to Campaign - creates real leads in database
   const pushToCampaign = async (search: SavedSearch, campaignId: string) => {
-    toast.info(`Creating ${search.propertyIds.length.toLocaleString()} leads in database...`);
+    toast.info(`Creating ${sf(search.propertyIds.length)} leads in database...`);
 
     try {
       const res = await fetch("/api/leads/bulk-create", {
@@ -876,7 +877,7 @@ export function LeadTrackerSimple() {
     a.download = `${search.label.replace(/[^a-zA-Z0-9]/g, "_")}_${search.propertyIds.length}_ids.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success(`Exported ${search.propertyIds.length.toLocaleString()} IDs`);
+    toast.success(`Exported ${sf(search.propertyIds.length)} IDs`);
   };
 
   // Push to Properties Page - stores IDs and navigates
@@ -969,7 +970,7 @@ export function LeadTrackerSimple() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="p-4 bg-zinc-800 rounded-lg">
-                <p className="text-2xl font-bold text-green-400">{importedData.length.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-green-400">{sf(importedData.length)}</p>
                 <p className="text-zinc-400 text-sm">Properties loaded</p>
               </div>
 
@@ -1039,7 +1040,7 @@ export function LeadTrackerSimple() {
                 className="w-full bg-green-600 hover:bg-green-700"
               >
                 <Save className="h-4 w-4 mr-2" />
-                Save Bucket ({importedData.length.toLocaleString()} IDs)
+                Save Bucket ({sf(importedData.length)} IDs)
               </Button>
             </CardContent>
           </Card>
@@ -1084,10 +1085,10 @@ export function LeadTrackerSimple() {
                 {enrichmentUsage ? (
                   <>
                     <p className="text-2xl font-bold text-cyan-400">
-                      {enrichmentUsage.remaining.toLocaleString()}
+                      {sf(enrichmentUsage.remaining)}
                     </p>
                     <p className="text-xs text-zinc-500">
-                      of {enrichmentUsage.limit.toLocaleString()} remaining today
+                      of {sf(enrichmentUsage.limit)} remaining today
                     </p>
                   </>
                 ) : (
@@ -1255,7 +1256,7 @@ export function LeadTrackerSimple() {
           {count !== null && (
             <div className="p-4 bg-zinc-800 rounded-lg space-y-4">
               <div className="flex items-center gap-4">
-                <span className="text-4xl font-bold text-green-400">{count.toLocaleString()}</span>
+                <span className="text-4xl font-bold text-green-400">{sf(count)}</span>
                 <span className="text-zinc-400">
                   {filters.propertyType} properties in {filters.county || filters.city || filters.zip}, {filters.state}
                 </span>
@@ -1327,7 +1328,7 @@ export function LeadTrackerSimple() {
                     />
                   </div>
                   <p className="text-xs text-zinc-400 mt-1">
-                    {batchProgress.ids.length.toLocaleString()} IDs fetched so far
+                    {sf(batchProgress.ids.length)} IDs fetched so far
                   </p>
                 </div>
               )}
@@ -1345,7 +1346,7 @@ export function LeadTrackerSimple() {
                 ) : (
                   <>
                     <Save className="h-4 w-4 mr-2" />
-                    SAVE BUCKET ({count.toLocaleString()} IDs)
+                    SAVE BUCKET ({sf(count)} IDs)
                   </>
                 )}
               </Button>
@@ -1421,7 +1422,7 @@ export function LeadTrackerSimple() {
                         </Badge>
                       </div>
                       <p className="text-sm text-zinc-400 mt-1">
-                        <span className="text-green-400 font-bold">{search.propertyIds.length.toLocaleString()}</span> IDs
+                        <span className="text-green-400 font-bold">{sf(search.propertyIds.length)}</span> IDs
                         {search.batches?.length > 1 && ` (${search.batches.length} batches)`}
                         {" • "}{search.filters.propertyType}
                         {search.filters.minEquity && ` • ${search.filters.minEquity}%+ equity`}
@@ -1570,7 +1571,7 @@ export function LeadTrackerSimple() {
         <Card className="bg-zinc-800 border-zinc-700">
           <CardContent className="py-4 text-center">
             <p className="text-3xl font-bold text-green-400">
-              {savedSearches.reduce((acc, s) => acc + s.propertyIds.length, 0).toLocaleString()}
+              {sf(savedSearches.reduce((acc, s) => acc + s.propertyIds.length, 0))}
             </p>
             <p className="text-xs text-zinc-400">Total IDs</p>
           </CardContent>

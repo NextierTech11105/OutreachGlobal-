@@ -35,6 +35,7 @@ import {
   CheckCircle2,
   Play,
 } from "lucide-react";
+import { sf } from "@/lib/utils/safe-format";
 
 // Audience Personas - Organized by Category
 const AUDIENCE_PERSONAS = [
@@ -541,7 +542,7 @@ export function SMSCampaignSetup({
             SMS Campaign Setup
           </DialogTitle>
           <DialogDescription>
-            Configure your initial message for {selectedCount.toLocaleString()} contacts
+            Configure your initial message for {sf(selectedCount)} contacts
           </DialogDescription>
         </DialogHeader>
 
@@ -793,7 +794,7 @@ export function SMSCampaignSetup({
             className="gap-2 bg-green-600 hover:bg-green-700"
           >
             <Play className="h-4 w-4" />
-            Push {selectedCount.toLocaleString()} to SMS Queue
+            Push {sf(selectedCount)} to SMS Queue
           </Button>
         </DialogFooter>
       </DialogContent>

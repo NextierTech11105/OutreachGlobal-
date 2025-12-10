@@ -54,6 +54,7 @@ import {
 import { toast } from "sonner";
 import { CampaignSmsConfigurator } from "@/components/campaign-sms-configurator";
 import { PropertyMap, PropertyMarker } from "@/components/property-map/property-map";
+import { sf, sfd } from "@/lib/utils/safe-format";
 
 // ============ MOTIVATED SELLER LEAD TYPES (PropWire-style) ============
 const LEAD_TYPES = [
@@ -1420,7 +1421,7 @@ export default function PropertiesPage() {
         return;
       }
 
-      toast.success(`${scheduleType.toUpperCase()} scheduled for ${new Date(scheduledFor).toLocaleString()}`);
+      toast.success(`${scheduleType.toUpperCase()} scheduled for ${sfd(scheduledFor)}`);
       setShowScheduleDialog(false);
       setSchedulingProperty(null);
       setScheduleDate("");
@@ -1491,7 +1492,7 @@ export default function PropertiesPage() {
             <div className="flex items-center gap-2 text-sm">
               <Badge className="bg-white/10 hover:bg-white/20 text-white border-white/20">
                 <MapPin className="h-3 w-3 mr-1" />
-                {totalCount.toLocaleString()} properties
+                {sf(totalCount)} properties
               </Badge>
               {selectedIds.size > 0 && (
                 <Badge className="bg-green-500/20 text-green-300 border-green-400/30">
@@ -1501,7 +1502,7 @@ export default function PropertiesPage() {
               {skipTraceUsage && (
                 <Badge className="bg-amber-500/20 text-amber-300 border-amber-400/30">
                   <Zap className="h-3 w-3 mr-1" />
-                  {skipTraceUsage.remaining.toLocaleString()} skip traces left
+                  {sf(skipTraceUsage.remaining)} skip traces left
                 </Badge>
               )}
             </div>
@@ -1536,7 +1537,7 @@ export default function PropertiesPage() {
                         <div>
                           <div className="font-medium">{search.name}</div>
                           <div className="text-xs text-muted-foreground">
-                            {search.filters.leadTypes.length} filters • {search.resultCount?.toLocaleString() || 0} results
+                            {search.filters.leadTypes.length} filters • {sf(search.resultCount) || 0} results
                           </div>
                         </div>
                         <Button
@@ -2183,7 +2184,7 @@ export default function PropertiesPage() {
           {totalCount > pageSize && (
             <div className="border-t bg-muted/30 px-4 py-2 flex items-center justify-between">
               <div className="text-sm text-muted-foreground">
-                Showing {currentPage * pageSize + 1} - {Math.min((currentPage + 1) * pageSize, totalCount)} of {totalCount.toLocaleString()} properties
+                Showing {currentPage * pageSize + 1} - {Math.min((currentPage + 1) * pageSize, totalCount)} of {sf(totalCount)} properties
               </div>
               <div className="flex items-center gap-2">
                 <Button
@@ -2526,7 +2527,7 @@ export default function PropertiesPage() {
                       <div className="text-xs text-muted-foreground">Baths</div>
                     </div>
                     <div>
-                      <div className="text-xl font-bold">{(Number(propertyDetail.sqft) || selectedProperty?.sqft)?.toLocaleString() || "-"}</div>
+                      <div className="text-xl font-bold">{sf(Number(propertyDetail.sqft) || selectedProperty?.sqft) || "-"}</div>
                       <div className="text-xs text-muted-foreground">Sq Ft</div>
                     </div>
                   </div>
@@ -2542,7 +2543,7 @@ export default function PropertiesPage() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Lot Size:</span>
-                      <span>{Number(propertyDetail.lotSize)?.toLocaleString() || "-"} sq ft</span>
+                      <span>{sf(Number(propertyDetail.lotSize)) || "-"} sq ft</span>
                     </div>
                   </div>
                 </CardContent>
@@ -2668,7 +2669,7 @@ export default function PropertiesPage() {
               Save IDs to Bucket
             </DialogTitle>
             <DialogDescription>
-              Save {results.length.toLocaleString()} property IDs to a bucket for economical batch enrichment.
+              Save {sf(results.length)} property IDs to a bucket for economical batch enrichment.
               No credits used until you process the bucket.
             </DialogDescription>
           </DialogHeader>
@@ -2746,7 +2747,7 @@ export default function PropertiesPage() {
               ) : (
                 <Layers className="h-4 w-4 mr-2" />
               )}
-              Save {results.length.toLocaleString()} IDs
+              Save {sf(results.length)} IDs
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2780,7 +2781,7 @@ export default function PropertiesPage() {
                       <div>
                         <CardTitle className="text-base">{bucket.name}</CardTitle>
                         <CardDescription className="text-xs">
-                          {bucket.description || `${bucket.totalLeads.toLocaleString()} properties`}
+                          {bucket.description || `${sf(bucket.totalLeads)} properties`}
                         </CardDescription>
                       </div>
                       <Badge
@@ -2801,10 +2802,10 @@ export default function PropertiesPage() {
                       <div className="space-y-1">
                         <div className="flex items-center gap-4">
                           <span className="text-muted-foreground">
-                            Total: <span className="font-medium text-foreground">{bucket.totalLeads.toLocaleString()}</span>
+                            Total: <span className="font-medium text-foreground">{sf(bucket.totalLeads)}</span>
                           </span>
                           <span className="text-muted-foreground">
-                            Enriched: <span className="font-medium text-green-600">{bucket.enrichedLeads.toLocaleString()}</span>
+                            Enriched: <span className="font-medium text-green-600">{sf(bucket.enrichedLeads)}</span>
                           </span>
                         </div>
                         <div className="text-xs text-muted-foreground">

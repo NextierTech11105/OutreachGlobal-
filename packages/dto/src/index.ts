@@ -9,6 +9,7 @@ export * from "./team";
 export * from "./workflow";
 export * from "./power-dialer";
 export * from "./message";
+export * from "./deal";
 
 // ===== ENRICHMENT PIPELINE DTOs =====
 export * from "./persona/persona.dto";

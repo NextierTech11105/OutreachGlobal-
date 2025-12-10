@@ -1,5 +1,7 @@
 "use client";
 
+
+import { sf, sfd } from "@/lib/utils/safe-format";
 import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -557,7 +559,7 @@ export function PropertyEnrichment() {
                         </TableCell>
                         <TableCell>
                           {e?.estimatedValue
-                            ? `$${Number(e.estimatedValue).toLocaleString()}`
+                            ? `$${Numbersf(e.estimatedValue)}`
                             : "-"}
                         </TableCell>
                         <TableCell>

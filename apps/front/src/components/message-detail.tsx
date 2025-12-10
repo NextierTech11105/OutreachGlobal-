@@ -1,5 +1,7 @@
 "use client";
 
+
+import { sf, sfd } from "@/lib/utils/safe-format";
 import { useState } from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -50,7 +52,7 @@ export function MessageDetail({
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleString();
+    return sf(date);
   };
 
   const getMessageTypeIcon = () => {

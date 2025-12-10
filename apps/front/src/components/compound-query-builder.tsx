@@ -29,6 +29,7 @@ import type { PropertySearchQuery, PropertySearchResult } from "@/lib/services/r
 import { Loader2, Save, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { sf } from "@/lib/utils/safe-format";
 
 const US_STATES = [
   { value: "AL", label: "Alabama" },
@@ -636,10 +637,10 @@ export function CompoundQueryBuilder() {
           <div className="space-y-4">
             <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
               <div>
-                <h3 className="font-semibold text-lg">{resultCount.toLocaleString()} Properties Found</h3>
+                <h3 className="font-semibold text-lg">{sf(resultCount)} Properties Found</h3>
                 <p className="text-sm text-muted-foreground">
                   {idsOnly
-                    ? `${propertyIds.length.toLocaleString()} IDs retrieved for tracking`
+                    ? `${sf(propertyIds.length)} IDs retrieved for tracking`
                     : `Showing ${results.length} detailed results`
                   }
                 </p>

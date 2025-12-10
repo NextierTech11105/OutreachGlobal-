@@ -1,3 +1,4 @@
+import { sf, sfd } from "@/lib/utils/safe-format";
 import { NextRequest, NextResponse } from "next/server";
 import { automationService } from "@/lib/services/automation-service";
 
@@ -229,7 +230,7 @@ export async function POST(request: NextRequest) {
                 const reportUrl = `${APP_URL}/report/${context.propertyId || "valuation"}`;
                 const estimatedValue = data.valuation?.estimatedValue;
                 const valueStr = estimatedValue
-                  ? `$${estimatedValue.toLocaleString()}`
+                  ? `$${sf(estimatedValue)}`
                   : "your property";
 
                 // Send follow-up SMS with report link

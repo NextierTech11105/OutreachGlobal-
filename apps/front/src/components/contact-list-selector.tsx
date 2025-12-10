@@ -1,5 +1,7 @@
 "use client";
 
+
+import { sf, sfd } from "@/lib/utils/safe-format";
 import { useState, useEffect } from "react";
 import {
   Card,
@@ -294,7 +296,7 @@ export function ContactListSelector({
                         <div className="flex items-center justify-between">
                           <div className="font-medium">{list.name}</div>
                           <Badge variant="outline">
-                            {list.count.toLocaleString()} contacts
+                            {sf(list.count)} contacts
                           </Badge>
                         </div>
                         <div className="text-sm text-muted-foreground mt-1">
@@ -383,7 +385,7 @@ export function ContactListSelector({
                         Total Contacts:
                       </div>
                       <div className="font-medium">
-                        {selectedList.count.toLocaleString()}
+                        {sf(selectedList.count)}
                       </div>
                       <div className="text-muted-foreground">Source:</div>
                       <div>{selectedList.source}</div>

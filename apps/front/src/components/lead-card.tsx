@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Mail, Phone, MessageSquare, MoreHorizontal } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import { sf } from "@/lib/utils/safe-format";
 import { useState } from "react";
 import {
   Dialog,
@@ -168,7 +169,7 @@ export function LeadCard({ lead }: LeadCardProps) {
                               Square Feet:
                             </span>
                             <span className="text-sm">
-                              {lead.squareFeet.toLocaleString()}
+                              {sf(lead.squareFeet)}
                             </span>
                           </div>
                         )}

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { sf, sfd } from "@/lib/utils/safe-format";
 import { useState } from "react";
 import {
   Card,
@@ -304,7 +306,7 @@ export function MCPSavedSearches() {
               <div className="flex items-center gap-2">
                 <h4 className="font-medium text-zinc-200">{search.name}</h4>
                 <Badge variant="outline" className="border-zinc-600 text-zinc-400">
-                  {search.resultCount.toLocaleString()} properties
+                  {sf(search.resultCount)} properties
                 </Badge>
               </div>
               <div className="flex items-center gap-3 mt-1 text-xs text-zinc-500">

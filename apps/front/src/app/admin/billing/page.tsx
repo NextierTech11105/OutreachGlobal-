@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { sf } from "@/lib/utils/safe-format";
 import {
   Card,
   CardContent,
@@ -201,7 +202,7 @@ export default function BillingDashboard() {
                   <Loader2 className="h-6 w-6 animate-spin text-zinc-500" />
                 ) : (
                   <div className="text-2xl font-bold">
-                    ${stats.totalMrr.toLocaleString()}
+                    ${sf(stats.totalMrr)}
                   </div>
                 )}
                 <DollarSign className="h-4 w-4 text-green-500" />
@@ -274,7 +275,7 @@ export default function BillingDashboard() {
                   <Loader2 className="h-6 w-6 animate-spin text-zinc-500" />
                 ) : (
                   <div className="text-2xl font-bold">
-                    ${stats.averageRevenue.toLocaleString()}
+                    ${sf(stats.averageRevenue)}
                   </div>
                 )}
                 <CreditCard className="h-4 w-4 text-purple-500" />
@@ -299,7 +300,7 @@ export default function BillingDashboard() {
               <div>
                 <div className="flex justify-between text-sm mb-2">
                   <span className="text-zinc-400">Leads Created</span>
-                  <span>{usageOverview.leadsUsed.toLocaleString()} / {usageOverview.leadsLimit.toLocaleString()}</span>
+                  <span>{sf(usageOverview.leadsUsed)} / {sf(usageOverview.leadsLimit)}</span>
                 </div>
                 <Progress
                   value={(usageOverview.leadsUsed / usageOverview.leadsLimit) * 100}
@@ -310,7 +311,7 @@ export default function BillingDashboard() {
               <div>
                 <div className="flex justify-between text-sm mb-2">
                   <span className="text-zinc-400">SMS Sent</span>
-                  <span>{usageOverview.smsUsed.toLocaleString()} / {usageOverview.smsLimit.toLocaleString()}</span>
+                  <span>{sf(usageOverview.smsUsed)} / {sf(usageOverview.smsLimit)}</span>
                 </div>
                 <Progress
                   value={(usageOverview.smsUsed / usageOverview.smsLimit) * 100}
@@ -321,7 +322,7 @@ export default function BillingDashboard() {
               <div>
                 <div className="flex justify-between text-sm mb-2">
                   <span className="text-zinc-400">Skip Traces</span>
-                  <span>{usageOverview.skipTracesUsed.toLocaleString()} / {usageOverview.skipTracesLimit.toLocaleString()}</span>
+                  <span>{sf(usageOverview.skipTracesUsed)} / {sf(usageOverview.skipTracesLimit)}</span>
                 </div>
                 <Progress
                   value={(usageOverview.skipTracesUsed / usageOverview.skipTracesLimit) * 100}
@@ -332,7 +333,7 @@ export default function BillingDashboard() {
               <div>
                 <div className="flex justify-between text-sm mb-2">
                   <span className="text-zinc-400">Property Searches</span>
-                  <span>{usageOverview.searchesUsed.toLocaleString()} / {usageOverview.searchesLimit.toLocaleString()}</span>
+                  <span>{sf(usageOverview.searchesUsed)} / {sf(usageOverview.searchesLimit)}</span>
                 </div>
                 <Progress
                   value={(usageOverview.searchesUsed / usageOverview.searchesLimit) * 100}

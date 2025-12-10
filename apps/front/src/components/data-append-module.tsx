@@ -24,6 +24,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { toast } from "sonner";
+import { sf, sfc } from "@/lib/utils/safe-format";
 
 interface EnrichmentResult {
   propertyId: string;
@@ -206,7 +207,7 @@ export function DataAppendModule() {
               variant="outline"
               className="bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300"
             >
-              {usage ? `${usage.remaining.toLocaleString()} / ${usage.limit.toLocaleString()} remaining` : "Loading..."}
+              {usage ? `${sf(usage.remaining)} / ${sf(usage.limit)} remaining` : "Loading..."}
             </Badge>
           </div>
 
@@ -326,10 +327,10 @@ export function DataAppendModule() {
                         <td className="p-2">{r.address || "-"}</td>
                         <td className="p-2">{r.data?.ownerName || "-"}</td>
                         <td className="p-2 text-right">
-                          {r.data?.estimatedValue ? `$${r.data.estimatedValue.toLocaleString()}` : "-"}
+                          {r.data?.estimatedValue ? `$${sf(r.data.estimatedValue)}` : "-"}
                         </td>
                         <td className="p-2 text-right">
-                          {r.data?.estimatedEquity ? `$${r.data.estimatedEquity.toLocaleString()}` : "-"}
+                          {r.data?.estimatedEquity ? `$${sf(r.data.estimatedEquity)}` : "-"}
                         </td>
                         <td className="p-2 text-center">
                           {r.success ? (

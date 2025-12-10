@@ -1,3 +1,4 @@
+import { sf, sfd } from "@/lib/utils/safe-format";
 import { Metadata } from "next";
 import { ReportView } from "./report-view";
 
@@ -27,7 +28,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       if (data.report) {
         address = data.report.property?.address?.address || data.report.name || "";
         estimatedValue = data.report.valuation?.estimatedValue
-          ? `$${Number(data.report.valuation.estimatedValue).toLocaleString()}`
+          ? `$${Numbersf(data.report.valuation.estimatedValue)}`
           : "";
 
         title = address ? `Valuation: ${address}` : "Property Valuation Report";

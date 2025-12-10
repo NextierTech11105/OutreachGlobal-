@@ -1,5 +1,7 @@
 "use client";
 
+
+import { sf, sfd } from "@/lib/utils/safe-format";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -166,7 +168,7 @@ export function LeadCard({ lead }: LeadCardProps) {
                             Square Feet:
                           </span>
                           <span className="text-sm">
-                            {lead.property.buildingSquareFeet.toLocaleString()}
+                            {sf(lead.property.buildingSquareFeet)}
                           </span>
                         </div>
                       )}

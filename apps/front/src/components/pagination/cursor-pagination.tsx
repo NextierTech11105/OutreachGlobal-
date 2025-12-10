@@ -2,6 +2,7 @@
 
 import { ArrowLeftIcon, ArrowRightIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { sf } from "@/lib/utils/safe-format";
 import { CursorPaginationState, PageInfo } from "@/graphql/types";
 import { Button } from "../ui/button";
 
@@ -53,7 +54,7 @@ export const CursorPagination: React.FC<CursorPaginationProps> = ({
       <div className="text-sm text-muted-foreground gap-x-1 flex flex-row">
         {!hideResult && (
           <>
-            <span>{data.total?.toLocaleString("en-US")}</span>
+            <span>{sf(data.total)}</span>
             <span>results</span>
           </>
         )}

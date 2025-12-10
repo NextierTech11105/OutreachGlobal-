@@ -1,5 +1,7 @@
 "use client";
 
+
+import { sf, sfd } from "@/lib/utils/safe-format";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -367,7 +369,7 @@ export function SavedSearches() {
                   </TableCell>
                   <TableCell>
                     <Badge variant="secondary">
-                      {search.resultCount.toLocaleString()}
+                      {sf(search.resultCount)}
                     </Badge>
                   </TableCell>
                   <TableCell>

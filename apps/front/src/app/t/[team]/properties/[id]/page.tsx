@@ -458,7 +458,7 @@ export default function PropertyDetailPage() {
                   <div>
                     <p className="text-sm text-muted-foreground">Sq Ft</p>
                     <p className="font-semibold">
-                      {property.propertyInfo?.squareFeet?.toLocaleString() || "-"}
+                      {sf(property.propertyInfo?.squareFeet) || "-"}
                     </p>
                   </div>
                   <div>
@@ -468,7 +468,7 @@ export default function PropertyDetailPage() {
                   <div>
                     <p className="text-sm text-muted-foreground">Lot Size</p>
                     <p className="font-semibold">
-                      {property.propertyInfo?.lotSize?.toLocaleString() || "-"} sqft
+                      {sf(property.propertyInfo?.lotSize) || "-"} sqft
                     </p>
                   </div>
                   <div>

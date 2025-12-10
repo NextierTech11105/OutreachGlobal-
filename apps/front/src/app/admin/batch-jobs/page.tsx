@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { sf } from "@/lib/utils/safe-format";
 import {
   Card,
   CardContent,
@@ -363,7 +364,7 @@ export default function BatchJobsPage() {
                 <Database className="h-4 w-4 text-purple-500" />
                 <span className="text-xs text-muted-foreground">Processed</span>
               </div>
-              <div className="text-2xl font-bold mt-1">{stats.records_processed_today.toLocaleString()}</div>
+              <div className="text-2xl font-bold mt-1">{sf(stats.records_processed_today)}</div>
             </CardContent>
           </Card>
           <Card>
@@ -372,7 +373,7 @@ export default function BatchJobsPage() {
                 <Target className="h-4 w-4 text-green-500" />
                 <span className="text-xs text-muted-foreground">Skip Traces</span>
               </div>
-              <div className="text-2xl font-bold mt-1">{stats.skip_traces_today.toLocaleString()}</div>
+              <div className="text-2xl font-bold mt-1">{sf(stats.skip_traces_today)}</div>
             </CardContent>
           </Card>
           <Card>
@@ -381,7 +382,7 @@ export default function BatchJobsPage() {
                 <MessageSquare className="h-4 w-4 text-purple-500" />
                 <span className="text-xs text-muted-foreground">SMS Sent</span>
               </div>
-              <div className="text-2xl font-bold mt-1">{stats.sms_sent_today.toLocaleString()}</div>
+              <div className="text-2xl font-bold mt-1">{sf(stats.sms_sent_today)}</div>
             </CardContent>
           </Card>
           <Card>
@@ -390,7 +391,7 @@ export default function BatchJobsPage() {
                 <Mail className="h-4 w-4 text-blue-500" />
                 <span className="text-xs text-muted-foreground">Emails</span>
               </div>
-              <div className="text-2xl font-bold mt-1">{stats.emails_sent_today.toLocaleString()}</div>
+              <div className="text-2xl font-bold mt-1">{sf(stats.emails_sent_today)}</div>
             </CardContent>
           </Card>
         </div>
@@ -481,7 +482,7 @@ export default function BatchJobsPage() {
                             <div className="space-y-1">
                               <Progress value={progress} className="h-2" />
                               <div className="text-xs text-muted-foreground">
-                                {job.processed_records.toLocaleString()} / {job.total_records.toLocaleString()}
+                                {sf(job.processed_records)} / {sf(job.total_records)}
                               </div>
                             </div>
                           </TableCell>

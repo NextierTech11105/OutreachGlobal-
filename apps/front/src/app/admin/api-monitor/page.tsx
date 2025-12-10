@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { sf, sfd } from "@/lib/utils/safe-format";
 import {
   Card,
   CardContent,
@@ -290,7 +291,7 @@ export default function APIMonitorPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">API Calls Today</p>
-                  <p className="text-2xl font-bold">{totalCallsToday.toLocaleString()}</p>
+                  <p className="text-2xl font-bold">{sf(totalCallsToday)}</p>
                 </div>
                 <Server className="h-8 w-8 text-blue-500" />
               </div>
@@ -459,8 +460,8 @@ export default function APIMonitorPage() {
                           className={`h-3 ${isCritical ? "[&>div]:bg-red-500" : isWarning ? "[&>div]:bg-yellow-500" : ""}`}
                         />
                         <div className="flex justify-between text-xs text-muted-foreground">
-                          <span>{u.used_today.toLocaleString()} used</span>
-                          <span>{u.remaining.toLocaleString()} left</span>
+                          <span>{sf(u.used_today)} used</span>
+                          <span>{sf(u.remaining)} left</span>
                         </div>
                       </div>
                     );
@@ -525,7 +526,7 @@ export default function APIMonitorPage() {
                           </span>
                         </TableCell>
                         <TableCell className="text-right font-medium">
-                          {ep.calls_today.toLocaleString()}
+                          {sf(ep.calls_today)}
                         </TableCell>
                         <TableCell className="text-right">
                           <span
@@ -622,14 +623,14 @@ export default function APIMonitorPage() {
                     <CardContent className="space-y-4">
                       <div className="flex justify-between items-end">
                         <div>
-                          <p className="text-3xl font-bold">{u.used_today.toLocaleString()}</p>
+                          <p className="text-3xl font-bold">{sf(u.used_today)}</p>
                           <p className="text-sm text-muted-foreground">
-                            of {u.daily_limit.toLocaleString()} daily limit
+                            of {sf(u.daily_limit)} daily limit
                           </p>
                         </div>
                         <div className="text-right">
                           <p className={`text-2xl font-bold ${isCritical ? "text-red-500" : isWarning ? "text-yellow-500" : "text-green-500"}`}>
-                            {u.remaining.toLocaleString()}
+                            {sf(u.remaining)}
                           </p>
                           <p className="text-sm text-muted-foreground">remaining</p>
                         </div>
@@ -639,7 +640,7 @@ export default function APIMonitorPage() {
                         className={`h-4 ${isCritical ? "[&>div]:bg-red-500" : isWarning ? "[&>div]:bg-yellow-500" : ""}`}
                       />
                       <p className="text-xs text-muted-foreground">
-                        Resets at {new Date(u.reset_at).toLocaleString()}
+                        Resets at {sfd(u.reset_at)}
                       </p>
                     </CardContent>
                   </Card>

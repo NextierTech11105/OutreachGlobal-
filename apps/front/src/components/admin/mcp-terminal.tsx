@@ -1,5 +1,7 @@
 "use client";
 
+
+import { sf, sfd } from "@/lib/utils/safe-format";
 import { useState, useRef, useEffect } from "react";
 import {
   Card,
@@ -198,7 +200,7 @@ export function MCPTerminal() {
       const resultMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: "result",
-        content: `Found ${totalCount.toLocaleString()} properties`,
+        content: `Found ${sf(totalCount)} properties`,
         timestamp: new Date(),
         data: {
           type: "property_search",
@@ -364,7 +366,7 @@ export function MCPTerminal() {
             );
           })}
           <p className="text-xs text-zinc-500 mt-2">
-            Showing {properties.length} of {message.data.count.toLocaleString()} results
+            Showing {properties.length} of {sf(message.data.count)} results
           </p>
         </div>
       );

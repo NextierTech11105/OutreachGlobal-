@@ -1,5 +1,7 @@
 "use client";
 
+
+import { sf, sfd } from "@/lib/utils/safe-format";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -134,7 +136,7 @@ export default function B2BPage() {
       }));
 
       toast.success(
-        `Enriched! Value: $${data.property.estimated_value?.toLocaleString() || "N/A"}, Equity: ${data.property.equity_percent || 0}%`
+        `Enriched! Value: $${sf(data.property.estimated_value) || "N/A"}, Equity: ${data.property.equity_percent || 0}%`
       );
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Enrichment failed");
@@ -179,7 +181,7 @@ export default function B2BPage() {
             </div>
           </div>
           <Badge className="bg-green-600 text-white px-4 py-2 text-lg">
-            {total.toLocaleString()} Total Leads
+            {sf(total)} Total Leads
           </Badge>
         </div>
 
@@ -333,13 +335,13 @@ export default function B2BPage() {
                             <p className="text-xs text-zinc-400 mb-2">Property Details:</p>
                             <div className="flex gap-4 text-sm">
                               <span className="text-green-400">
-                                Value: ${enrichedProperties[lead.id].estimated_value?.toLocaleString() || "N/A"}
+                                Value: ${sf(enrichedProperties[lead.id].estimated_value) || "N/A"}
                               </span>
                               <span className="text-cyan-400">
                                 Equity: {enrichedProperties[lead.id].equity_percent || 0}%
                               </span>
                               <span className="text-purple-400">
-                                ${enrichedProperties[lead.id].equity_amount?.toLocaleString() || "N/A"}
+                                ${sf(enrichedProperties[lead.id].equity_amount) || "N/A"}
                               </span>
                               <span className="text-zinc-400">
                                 Owner: {enrichedProperties[lead.id].owner_first_name}{" "}

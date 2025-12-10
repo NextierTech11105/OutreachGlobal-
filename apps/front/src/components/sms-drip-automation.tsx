@@ -33,6 +33,7 @@ import {
   PERSONALITY_ARCHETYPES,
   PersonalityArchetype,
 } from "@/lib/gianna/personality-dna";
+import { sf } from "@/lib/utils/safe-format";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -411,7 +412,7 @@ export function SMSDripAutomation({
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-gray-400">Est. leads/day:</span>
-                  <span className="text-green-400 font-medium">{leadsPerDay.toLocaleString()}</span>
+                  <span className="text-green-400 font-medium">{sf(leadsPerDay)}</span>
                 </div>
               </div>
             </CardContent>
@@ -678,7 +679,7 @@ export function SMSDripAutomation({
                 </div>
                 <div className="bg-gray-800 rounded-lg p-3 text-center">
                   <div className="text-2xl font-bold text-purple-400">
-                    {config.maxPerDay.toLocaleString()}
+                    {sf(config.maxPerDay)}
                   </div>
                   <div className="text-xs text-gray-400">Daily Limit</div>
                 </div>

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { sf, sfd } from "@/lib/utils/safe-format";
 import { useState, useEffect } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -540,7 +542,7 @@ export default function SectorDetailPage() {
             <div>
               <h2 className="text-2xl font-bold">{dataLake.name}</h2>
               <p className="text-muted-foreground">
-                {dataLake.description || `${(dataLake.totalLeads ?? 0).toLocaleString()} records`}
+                {dataLake.description || `${sf(dataLake.totalLeads ?? 0)} records`}
               </p>
             </div>
           </div>
@@ -557,14 +559,14 @@ export default function SectorDetailPage() {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <Card>
             <CardContent className="pt-4">
-              <div className="text-2xl font-bold">{(dataLake.totalLeads ?? 0).toLocaleString()}</div>
+              <div className="text-2xl font-bold">{sf(dataLake.totalLeads ?? 0)}</div>
               <p className="text-xs text-muted-foreground">Total Records</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-4">
               <div className="text-2xl font-bold text-green-600">
-                {(dataLake.metadata?.stats?.withPhone ?? 0).toLocaleString()}
+                {sf(dataLake.metadata?.stats?.withPhone ?? 0)}
               </div>
               <p className="text-xs text-muted-foreground">With Phones</p>
             </CardContent>
@@ -572,7 +574,7 @@ export default function SectorDetailPage() {
           <Card>
             <CardContent className="pt-4">
               <div className="text-2xl font-bold text-blue-600">
-                {(dataLake.metadata?.stats?.withEmail ?? 0).toLocaleString()}
+                {sf(dataLake.metadata?.stats?.withEmail ?? 0)}
               </div>
               <p className="text-xs text-muted-foreground">With Emails</p>
             </CardContent>
@@ -580,7 +582,7 @@ export default function SectorDetailPage() {
           <Card>
             <CardContent className="pt-4">
               <div className="text-2xl font-bold text-purple-600">
-                {(dataLake.metadata?.stats?.withAddress ?? 0).toLocaleString()}
+                {sf(dataLake.metadata?.stats?.withAddress ?? 0)}
               </div>
               <p className="text-xs text-muted-foreground">Enrichable</p>
             </CardContent>
@@ -588,7 +590,7 @@ export default function SectorDetailPage() {
           <Card>
             <CardContent className="pt-4">
               <div className="text-2xl font-bold text-orange-600">
-                {(leads.filter((l) => l.enriched).length ?? 0).toLocaleString()}
+                {sf(leads.filter((l) => l.enriched).length)}
               </div>
               <p className="text-xs text-muted-foreground">Enriched</p>
             </CardContent>
@@ -645,7 +647,7 @@ export default function SectorDetailPage() {
 
           {/* Daily Limit Badge */}
           <Badge variant={dailySkipTraceCount >= DAILY_SKIP_TRACE_LIMIT ? "destructive" : "secondary"} className="px-3 py-1">
-            {dailySkipTraceCount.toLocaleString()}/{DAILY_SKIP_TRACE_LIMIT.toLocaleString()} today
+            {sf(dailySkipTraceCount)}/{sf(DAILY_SKIP_TRACE_LIMIT)} today
           </Badge>
         </div>
 

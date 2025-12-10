@@ -1,4 +1,6 @@
 "use client";
+
+import { sf, sfd } from "@/lib/utils/safe-format";
 import { Input } from "@/components/ui/input";
 import * as Accordion from "@radix-ui/react-accordion";
 import { CheckedState } from "@radix-ui/react-checkbox";
@@ -188,7 +190,7 @@ export const FacetFilterItem: React.FC<Props> = ({
                 </div>
 
                 <span className="text-muted-foreground">
-                  {facet.count.toLocaleString()}
+                  {sf(facet.count)}
                 </span>
               </li>
             ))}

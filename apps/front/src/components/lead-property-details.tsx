@@ -4,6 +4,7 @@ import { Building, Home, MapPin, Ruler } from "lucide-react";
 import type { Lead } from "@/types/lead";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { sf, sfc } from "@/lib/utils/safe-format";
 
 interface LeadPropertyDetailsProps {
   lead: Lead;
@@ -28,7 +29,7 @@ export function LeadPropertyDetails({ lead }: LeadPropertyDetailsProps) {
                 <div>
                   <p className="text-sm text-muted-foreground">Value</p>
                   <p className="font-medium">
-                    ${lead.propertyValue.toLocaleString()}
+                    ${sf(lead.propertyValue)}
                   </p>
                 </div>
               </div>
@@ -45,7 +46,7 @@ export function LeadPropertyDetails({ lead }: LeadPropertyDetailsProps) {
                 <div>
                   <p className="text-sm text-muted-foreground">Square Feet</p>
                   <p className="font-medium">
-                    {lead.squareFeet?.toLocaleString() || "N/A"}
+                    {sf(lead.squareFeet) || "N/A"}
                   </p>
                 </div>
               </div>

@@ -1,3 +1,4 @@
+import { sf, sfd } from "@/lib/utils/safe-format";
 /**
  * Datalake Upload API
  * Upload USBizData CSV files directly to DigitalOcean Spaces datalake storage
@@ -130,7 +131,7 @@ export async function POST(request: NextRequest) {
         key,
         bucket: SPACES_BUCKET,
         schema: schema.name,
-        totalRecordsInSchema: schema.totalRecords.toLocaleString(),
+        totalRecordsInSchema: schema.totalRecords?.toLocaleString() || "0",
         fileSize: buffer.length,
         fileSizeFormatted: formatBytes(buffer.length),
       },
@@ -150,7 +151,7 @@ export async function GET() {
     id,
     name: schema.name,
     storagePath: SCHEMA_PATHS[id] || schema.storagePath,
-    totalRecords: schema.totalRecords.toLocaleString(),
+    totalRecords: schema.totalRecords?.toLocaleString() || "0",
     fields: schema.fields.length,
     useCases: schema.useCases,
   }));

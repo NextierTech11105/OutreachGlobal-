@@ -1,5 +1,7 @@
 "use client";
 
+
+import { sf, sfd } from "@/lib/utils/safe-format";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -260,18 +262,18 @@ export default function PricingPage() {
                   <div className="text-center mb-6">
                     <div className="flex items-baseline justify-center gap-1">
                       <span className="text-4xl font-bold">
-                        ${monthlyEquivalent.toLocaleString()}
+                        ${sf(monthlyEquivalent)}
                       </span>
                       <span className="text-muted-foreground">/mo</span>
                     </div>
                     {isYearly && (
                       <p className="text-sm text-muted-foreground mt-1">
-                        ${price.toLocaleString()} billed annually
+                        ${sf(price)} billed annually
                       </p>
                     )}
                     {plan.setupFee && (
                       <p className="text-sm text-orange-500 mt-1">
-                        + ${plan.setupFee.toLocaleString()} one-time setup
+                        + ${sf(plan.setupFee)} one-time setup
                       </p>
                     )}
                   </div>

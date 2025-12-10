@@ -1,5 +1,7 @@
 "use client";
 
+
+import { sf, sfd } from "@/lib/utils/safe-format";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -593,7 +595,7 @@ export function GiannaCopilot({
 
           <TabsContent value="responses" className="flex-1 m-0">
             <ScrollArea className="h-[calc(100vh-320px)] p-3">
-              {prioritizedResponses.map(lead => (
+              {prioritizedResponses.mapsf(lead => (
                 <Card key={lead.id} className="mb-2 border-green-200 bg-green-50/50">
                   <CardContent className="p-3">
                     <div className="flex justify-between items-start mb-2">
@@ -602,7 +604,7 @@ export function GiannaCopilot({
                           {lead.firstName} {lead.lastName}
                         </h4>
                         <p className="text-xs text-muted-foreground">
-                          {lead.responseTime && new Date(lead.responseTime).toLocaleString()}
+                          {lead.responseTime && new Date(lead.responseTime)}
                         </p>
                       </div>
                       <Badge variant="default" className="bg-green-500">

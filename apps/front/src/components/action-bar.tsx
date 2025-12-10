@@ -1,5 +1,7 @@
 "use client";
 
+
+import { sf, sfd } from "@/lib/utils/safe-format";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -219,7 +221,7 @@ export function ActionBar({
     // Enrichment actions (250 per batch, 5,000 max)
     if (["Skip Trace", "Property Detail", "Apollo Enrich"].includes(action)) {
       if (count > LIMITS.ENRICHMENT_MAX) {
-        warnings.push(`Daily limit is ${LIMITS.ENRICHMENT_MAX.toLocaleString()}. Will process first ${LIMITS.ENRICHMENT_MAX.toLocaleString()} records.`);
+        warnings.push(`Daily limit is ${sf(LIMITS.ENRICHMENT_MAX)}. Will process first ${sf(LIMITS.ENRICHMENT_MAX)} records.`);
       } else if (count > LIMITS.ENRICHMENT_BATCH) {
         const batches = Math.ceil(count / LIMITS.ENRICHMENT_BATCH);
         warnings.push(`Will process in ${batches} batches of ${LIMITS.ENRICHMENT_BATCH} each.`);
@@ -229,7 +231,7 @@ export function ActionBar({
     // Campaign actions (2,000 max per push)
     if (["Push to SMS", "Power Dialer"].includes(action)) {
       if (count > LIMITS.CAMPAIGN_MAX) {
-        warnings.push(`Campaign limit is ${LIMITS.CAMPAIGN_MAX.toLocaleString()} per push. Will create multiple campaigns.`);
+        warnings.push(`Campaign limit is ${sf(LIMITS.CAMPAIGN_MAX)} per push. Will create multiple campaigns.`);
       }
     }
 

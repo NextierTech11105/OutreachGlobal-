@@ -1,5 +1,7 @@
 "use client";
 
+
+import { sf, sfd } from "@/lib/utils/safe-format";
 import { useState, useEffect, useRef } from "react";
 import {
   Card,
@@ -491,7 +493,7 @@ export function LeadTracker() {
       const countData = await countResponse.json();
       const totalCount = countData.resultCount || countData.count || 0;
 
-      addLog("success", `✓ Found ${totalCount.toLocaleString()} properties`, `${search.propertyType} absentee owners in ${search.county} County`);
+      addLog("success", `✓ Found ${sf(totalCount)} properties`, `${search.propertyType} absentee owners in ${search.county} County`);
 
       if (totalCount === 0) {
         addLog("info", "No properties found - search complete");
@@ -521,7 +523,7 @@ export function LeadTracker() {
       const idsData = await idsResponse.json();
       const propertyIds = idsData.data || [];
 
-      addLog("success", `✓ Retrieved ${propertyIds.length.toLocaleString()} property IDs`, "IDs stored for monitoring changes");
+      addLog("success", `✓ Retrieved ${sf(propertyIds.length)} property IDs`, "IDs stored for monitoring changes");
 
       // ====== STEP 3: Get property details with pagination (250 per page, 3 pages = 750 max) ======
       setCurrentStep({ search: searchName, step: 3, total: 3 });
@@ -663,7 +665,7 @@ export function LeadTracker() {
 
       // Search complete
       setCurrentStep(null);
-      addLog("success", `✓ COMPLETE: ${searchName}`, `${totalCount.toLocaleString()} total | ${storedIds.length.toLocaleString()} tracked | ${filteredLeads.length} scored`);
+      addLog("success", `✓ COMPLETE: ${searchName}`, `${sf(totalCount)} total | ${sf(storedIds.length)} tracked | ${filteredLeads.length} scored`);
       toast.success(`${search.name} complete!`);
     } catch (error: any) {
       console.error("Search error:", error);
@@ -1322,7 +1324,7 @@ export function LeadTracker() {
               <Database className="h-5 w-5 text-blue-400" />
               <div>
                 <p className="text-xs text-blue-300">Total Properties</p>
-                <p className="text-xl font-bold text-white">{totalProperties.toLocaleString()}</p>
+                <p className="text-xl font-bold text-white">{sf(totalProperties)}</p>
               </div>
             </div>
           </CardContent>
@@ -1333,7 +1335,7 @@ export function LeadTracker() {
               <Hash className="h-5 w-5 text-purple-400" />
               <div>
                 <p className="text-xs text-purple-300">IDs Tracked</p>
-                <p className="text-xl font-bold text-white">{totalTrackedIds.toLocaleString()}</p>
+                <p className="text-xl font-bold text-white">{sf(totalTrackedIds)}</p>
               </div>
             </div>
           </CardContent>
@@ -2154,7 +2156,7 @@ export function LeadTracker() {
                         </div>
                         <div className="bg-zinc-800/50 p-2 rounded">
                           <p className="text-xs text-zinc-500">Est. Value</p>
-                          <p className="text-sm text-zinc-200">{lead.value ? `$${lead.value.toLocaleString()}` : "Unknown"}</p>
+                          <p className="text-sm text-zinc-200">{lead.value ? `$${sf(lead.value)}` : "Unknown"}</p>
                         </div>
                         <div className="bg-zinc-800/50 p-2 rounded">
                           <p className="text-xs text-zinc-500">Lot Size</p>

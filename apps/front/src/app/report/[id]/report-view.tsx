@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { sf, sfc } from "@/lib/utils/safe-format";
 import {
   Home,
   Calendar,
@@ -508,7 +509,7 @@ export function ReportView({ reportId }: ReportViewProps) {
               )}
               {property?.squareFeet && (
                 <div className="px-4 py-2 bg-slate-700/50 rounded-full">
-                  <span className="text-white font-medium">{property.squareFeet.toLocaleString()}</span>
+                  <span className="text-white font-medium">{sf(property.squareFeet)}</span>
                   <span className="text-slate-400 text-sm ml-1">Sq Ft</span>
                 </div>
               )}
@@ -660,7 +661,7 @@ export function ReportView({ reportId }: ReportViewProps) {
                     <YAxis
                       stroke="#94a3b8"
                       fontSize={12}
-                      tickFormatter={(v) => `$${(v / 1000).toFixed(0)}K`}
+                      tickFormatter={(v) => `$${(sf(v) / 1000).toFixed(0)}K`}
                     />
                     <Tooltip
                       contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #334155", borderRadius: "8px" }}
@@ -890,7 +891,7 @@ export function ReportView({ reportId }: ReportViewProps) {
                 {property?.squareFeet && (
                   <div className="bg-slate-900/40 rounded-2xl p-5 text-center">
                     <Ruler className="h-6 w-6 text-slate-500 mx-auto mb-2" />
-                    <p className="text-4xl font-bold text-white">{property.squareFeet.toLocaleString()}</p>
+                    <p className="text-4xl font-bold text-white">{sf(property.squareFeet)}</p>
                     <p className="text-sm text-slate-500">Sq Ft</p>
                   </div>
                 )}
@@ -969,7 +970,7 @@ export function ReportView({ reportId }: ReportViewProps) {
                     <YAxis
                       stroke="#94a3b8"
                       fontSize={12}
-                      tickFormatter={(v) => `$${(v / 1000).toFixed(0)}K`}
+                      tickFormatter={(v) => `$${(sf(v) / 1000).toFixed(0)}K`}
                     />
                     <Tooltip
                       contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #334155", borderRadius: "8px" }}
@@ -1038,7 +1039,7 @@ export function ReportView({ reportId }: ReportViewProps) {
                         {[
                           comp.bedrooms && `${comp.bedrooms} bed`,
                           comp.bathrooms && `${comp.bathrooms} bath`,
-                          comp.squareFeet && `${comp.squareFeet.toLocaleString()} sqft`,
+                          comp.squareFeet && `${sf(comp.squareFeet)} sqft`,
                         ].filter(Boolean).join(" · ")}
                       </p>
                     </div>
@@ -1065,7 +1066,7 @@ export function ReportView({ reportId }: ReportViewProps) {
                         name="Sq Ft"
                         stroke="#94a3b8"
                         fontSize={12}
-                        tickFormatter={(v) => `${v.toLocaleString()}`}
+                        tickFormatter={(v) => `${sf(v)}`}
                       />
                       <YAxis
                         type="number"
@@ -1073,12 +1074,12 @@ export function ReportView({ reportId }: ReportViewProps) {
                         name="Price"
                         stroke="#94a3b8"
                         fontSize={12}
-                        tickFormatter={(v) => `$${(v / 1000).toFixed(0)}K`}
+                        tickFormatter={(v) => `$${(sf(v) / 1000).toFixed(0)}K`}
                       />
                       <Tooltip
                         contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #334155", borderRadius: "8px" }}
                         formatter={(value: number, name: string) => [
-                          name === "price" ? formatCurrency(value) : `${value.toLocaleString()} sqft`,
+                          name === "price" ? formatCurrency(value) : `${sf(value)} sqft`,
                           name === "price" ? "Price" : "Size"
                         ]}
                       />
@@ -1142,7 +1143,7 @@ export function ReportView({ reportId }: ReportViewProps) {
                   </div>
                   <p className="text-slate-400 text-sm mb-4">
                     {property?.lotSize && property.lotSize > 5000
-                      ? `With ${property.lotSize.toLocaleString()} sq ft of lot space, this property may qualify for an Accessory Dwelling Unit (ADU).`
+                      ? `With ${sf(property.lotSize)} sq ft of lot space, this property may qualify for an Accessory Dwelling Unit (ADU).`
                       : "Check local zoning for ADU eligibility. Many municipalities have relaxed ADU requirements."}
                   </p>
                   <div className="grid grid-cols-2 gap-4 p-4 bg-slate-900/60 rounded-xl">

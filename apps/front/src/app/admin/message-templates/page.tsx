@@ -1,5 +1,7 @@
 "use client";
 
+
+import { sf, sfd } from "@/lib/utils/safe-format";
 import { useState } from "react";
 import {
   Card,
@@ -232,7 +234,7 @@ export default function MessageTemplatesPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {templates.reduce((sum, t) => sum + t.timesUsed, 0).toLocaleString()}
+              {sf(templates.reduce((sum, t) => sum + t.timesUsed, 0))}
             </div>
           </CardContent>
         </Card>
@@ -291,7 +293,7 @@ export default function MessageTemplatesPage() {
                   <TableCell className="max-w-[300px] truncate text-sm text-muted-foreground">
                     {template.content}
                   </TableCell>
-                  <TableCell className="text-right">{template.timesUsed.toLocaleString()}</TableCell>
+                  <TableCell className="text-right">{sf(template.timesUsed)}</TableCell>
                   <TableCell className="text-right">
                     <span className={template.responseRate > 10 ? "text-green-500" : ""}>
                       {template.responseRate}%

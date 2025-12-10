@@ -1,5 +1,7 @@
 "use client";
 
+
+import { sf, sfd } from "@/lib/utils/safe-format";
 import * as React from "react";
 import { useState, useMemo } from "react";
 import {
@@ -120,7 +122,7 @@ export default function SMSQueuePage() {
   };
 
   const formatDate = (date: Date) => {
-    return new Date(date).toLocaleString("en-US", {
+    return sfd(date, "en-US", {
       month: "short",
       day: "numeric",
       hour: "numeric",

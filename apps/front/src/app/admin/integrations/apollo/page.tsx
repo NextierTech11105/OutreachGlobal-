@@ -42,6 +42,7 @@ import {
   Download,
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { sf } from "@/lib/utils/safe-format";
 
 interface EnrichmentResult {
   id: string;
@@ -403,7 +404,7 @@ export default function ApolloIntegrationPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {stats ? stats.creditsUsed.toLocaleString() : "—"}
+              {sf(stats?.creditsUsed)}
             </div>
             <p className="text-xs text-muted-foreground">
               {isConnected ? "This billing cycle" : "Not connected"}
@@ -416,7 +417,7 @@ export default function ApolloIntegrationPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-500">
-              {stats ? stats.creditsRemaining.toLocaleString() : "—"}
+              {sf(stats?.creditsRemaining)}
             </div>
             <p className="text-xs text-muted-foreground">
               {isConnected ? "Available" : "Not connected"}
@@ -429,7 +430,7 @@ export default function ApolloIntegrationPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {stats ? stats.searchesThisMonth.toLocaleString() : "—"}
+              {sf(stats?.searchesThisMonth)}
             </div>
             <p className="text-xs text-muted-foreground">
               {isConnected ? "This month" : "Not connected"}
@@ -442,7 +443,7 @@ export default function ApolloIntegrationPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {stats ? stats.enrichmentsThisMonth.toLocaleString() : "—"}
+              {sf(stats?.enrichmentsThisMonth)}
             </div>
             <p className="text-xs text-muted-foreground">
               {isConnected ? "This month" : "Not connected"}

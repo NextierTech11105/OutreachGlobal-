@@ -1,5 +1,7 @@
 "use client";
 
+
+import { sf, sfd } from "@/lib/utils/safe-format";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { CardFooter } from "@/components/ui/card";
@@ -304,7 +306,7 @@ export function ZohoIntegration({ initialConfig }: ZohoIntegrationProps) {
                 <Label>Last Sync</Label>
                 <div className="flex items-center space-x-2 h-9 px-3 py-2 rounded-md border border-input bg-background text-sm">
                   {lastSync
-                    ? new Date(lastSync).toLocaleString()
+                    ? new Datesf(lastSync)
                     : "Never synced"}
                 </div>
               </div>
@@ -313,7 +315,7 @@ export function ZohoIntegration({ initialConfig }: ZohoIntegrationProps) {
                 <Label>Next Scheduled Sync</Label>
                 <div className="flex items-center space-x-2 h-9 px-3 py-2 rounded-md border border-input bg-background text-sm">
                   {nextSync
-                    ? new Date(nextSync).toLocaleString()
+                    ? new Datesf(nextSync)
                     : "Not scheduled"}
                 </div>
               </div>

@@ -1,3 +1,4 @@
+import { sf, sfd } from "@/lib/utils/safe-format";
 import { NextRequest, NextResponse } from "next/server";
 import { S3Client, PutObjectCommand, ListObjectsV2Command, DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 
@@ -956,7 +957,7 @@ function generateShareableHTML(data: {
             <tr>
               <td>${compAddress}</td>
               <td>${compBeds}/${compBaths}</td>
-              <td>${compSqft ? Number(compSqft).toLocaleString() : '—'}</td>
+              <td>${compSqft ? Numbersf(compSqft) : '—'}</td>
               <td class="price-highlight">${compPrice ? formatCurrency(Number(compPrice)) : '—'}</td>
             </tr>`;
             }).join('')}

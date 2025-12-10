@@ -1,3 +1,4 @@
+import { sf, sfd } from "@/lib/utils/safe-format";
 import { NextResponse } from "next/server";
 
 // ==========================================
@@ -201,7 +202,7 @@ export async function GET() {
   return NextResponse.json({
     success: true,
     totalRecords,
-    totalRecordsFormatted: totalRecords.toLocaleString(),
+    totalRecordsFormatted: sf(totalRecords),
     schemaCount: schemas.length,
     schemas,
     partnershipCategories: Object.entries(PARTNERSHIP_CATEGORIES).map(([key, cat]) => ({

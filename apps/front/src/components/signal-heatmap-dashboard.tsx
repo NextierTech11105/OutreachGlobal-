@@ -30,6 +30,7 @@ import {
   RefreshCw,
   Calendar,
 } from "lucide-react";
+import { sf } from "@/lib/utils/safe-format";
 
 // Types
 interface HeatmapCell {
@@ -388,7 +389,7 @@ export function SignalHeatmapDashboard() {
                 </Badge>
               </div>
               <div className="mt-2">
-                <div className="text-2xl font-bold">{metric.value.toLocaleString()}</div>
+                <div className="text-2xl font-bold">{sf(metric.value)}</div>
                 <div className="text-xs text-muted-foreground">{metric.name}</div>
               </div>
             </CardContent>

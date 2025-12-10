@@ -1,5 +1,7 @@
 "use client";
 
+
+import { sf, sfd } from "@/lib/utils/safe-format";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -155,7 +157,7 @@ export default function WorkflowsPage() {
               </TableCell>
               <TableCell>
                 {workflow.lastRunAt
-                  ? new Date(workflow.lastRunAt).toLocaleString(undefined, {
+                  ? sfd(workflow.lastRunAt, undefined, {
                       dateStyle: "short",
                       timeStyle: "short",
                     })

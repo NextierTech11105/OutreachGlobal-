@@ -57,6 +57,7 @@ import {
 import { MessageReply } from "@/components/message-reply";
 import type { Message } from "@/types/message";
 import { cn } from "@/lib/utils";
+import { sf, sfc } from "@/lib/utils/safe-format";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
@@ -584,7 +585,7 @@ export function LeadDetailView({ lead }: LeadDetailViewProps) {
                     <div>
                       <p className="text-muted-foreground">Value</p>
                       <p className="font-medium">
-                        ${lead.propertyValue.toLocaleString()}
+                        ${sf(lead.propertyValue)}
                       </p>
                     </div>
                     {lead.bedrooms && lead.bathrooms && (

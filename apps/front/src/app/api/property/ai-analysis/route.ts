@@ -1,3 +1,4 @@
+import { sf, sfd } from "@/lib/utils/safe-format";
 import { NextRequest, NextResponse } from "next/server";
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
@@ -78,15 +79,15 @@ Address: ${propertyDetails.address}
 Property Type: ${propertyDetails.propertyType}
 Bedrooms: ${propertyDetails.bedrooms}${propertyDetails.halfBaths ? ` + ${propertyDetails.halfBaths} half baths` : ""}
 Bathrooms: ${propertyDetails.bathrooms}
-Square Feet: ${propertyDetails.sqft.toLocaleString()}
+Square Feet: ${propertyDetails.sqft?.toLocaleString() || "N/A"}
 Year Built: ${propertyDetails.yearBuilt} (${propertyAge} years old)
-Lot Size: ${propertyDetails.lotSize.toLocaleString()} sq ft
+Lot Size: ${propertyDetails.lotSize?.toLocaleString() || "N/A"} sq ft
 Zoning: ${propertyDetails.zoning}
-Estimated Value: $${propertyDetails.estimatedValue.toLocaleString()}
-Last Sale: $${propertyDetails.lastSaleAmount.toLocaleString()} on ${propertyDetails.lastSaleDate || "N/A"}
-Last Loan Amount: $${propertyDetails.lastLoanAmount.toLocaleString()} ${propertyDetails.lastLoanDate ? `(${propertyDetails.lastLoanDate})` : ""}
-Mortgage Balance: $${propertyDetails.mortgageBalance.toLocaleString()}
-Tax Assessed Value: $${(propertyDetails.taxAssessedValue || 0).toLocaleString()}
+Estimated Value: $${propertyDetails.estimatedValue?.toLocaleString() || "0"}
+Last Sale: $${propertyDetails.lastSaleAmount?.toLocaleString() || "0"} on ${propertyDetails.lastSaleDate || "N/A"}
+Last Loan Amount: $${propertyDetails.lastLoanAmount?.toLocaleString() || "0"} ${propertyDetails.lastLoanDate ? `(${propertyDetails.lastLoanDate})` : ""}
+Mortgage Balance: $${propertyDetails.mortgageBalance?.toLocaleString() || "0"}
+Tax Assessed Value: $${sf(propertyDetails.taxAssessedValue || 0)}
 Owner Occupied: ${propertyDetails.ownerOccupied ? "Yes" : "No/Unknown"}
 Pool: ${propertyDetails.pool ? "Yes" : "No"}
 Garage: ${propertyDetails.garage ? "Yes" : "No/Unknown"}
@@ -239,7 +240,7 @@ Provide your COMPREHENSIVE analysis in the following JSON format. Be specific wi
       "bigLotFlag": "Flag if lot size > 5000 sqft with development potential"
     },
     "lotDevelopment": {
-      "lotSize": "${propertyDetails.lotSize.toLocaleString()} sq ft",
+      "lotSize": "${propertyDetails.lotSize?.toLocaleString() || "N/A"} sq ft",
       "lotUtilization": "Current lot coverage percentage and efficiency",
       "subdivisionPotential": "Can the lot be subdivided?",
       "buildableArea": "Additional buildable square footage based on unused FAR",
@@ -247,7 +248,7 @@ Provide your COMPREHENSIVE analysis in the following JSON format. Be specific wi
       "landscapingValue": "Outdoor improvements that add value"
     },
     "structuralOpportunities": {
-      "currentBuildingSqFt": "${propertyDetails.sqft.toLocaleString()} sq ft",
+      "currentBuildingSqFt": "${propertyDetails.sqft?.toLocaleString() || "N/A"} sq ft",
       "additionPotential": "Can the structure be expanded vertically or horizontally?",
       "conversionOptions": "Basement, attic, or garage conversion possibilities",
       "modernizationROI": "Which upgrades offer best ROI?"

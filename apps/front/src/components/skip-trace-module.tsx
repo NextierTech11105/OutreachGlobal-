@@ -1,5 +1,7 @@
 "use client";
 
+
+import { sf, sfd } from "@/lib/utils/safe-format";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -138,7 +140,7 @@ export function SkipTraceModule() {
               variant="outline"
               className="bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
             >
-              {usage ? `${usage.remaining.toLocaleString()} / ${usage.limit.toLocaleString()} remaining` : "Loading..."}
+              {usage ? `${sf(usage.remaining)} / ${sf(usage.limit)} remaining` : "Loading..."}
             </Badge>
           </div>
 

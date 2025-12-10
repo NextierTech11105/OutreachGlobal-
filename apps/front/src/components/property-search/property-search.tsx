@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { Search, MapPin, Home, DollarSign, User, Phone, Loader2 } from "lucide-react";
+import { sf, sfc } from "@/lib/utils/safe-format";
 
 const PROPERTY_TYPES = [
   { value: "SFR", label: "Single Family" },
@@ -358,18 +359,18 @@ function PropertyResultCard({ property }: { property: PropertyResult }) {
         )}
         {property.sqft && (
           <div>
-            {property.sqft.toLocaleString()} sqft
+            {sf(property.sqft)} sqft
           </div>
         )}
         {property.estimatedValue && (
           <div className="flex items-center gap-1">
             <DollarSign className="h-4 w-4 text-muted-foreground" />
-            ${property.estimatedValue.toLocaleString()}
+            ${sf(property.estimatedValue)}
           </div>
         )}
         {property.equity && (
           <div className="text-green-600 font-medium">
-            ${property.equity.toLocaleString()} equity
+            ${sf(property.equity)} equity
           </div>
         )}
       </div>

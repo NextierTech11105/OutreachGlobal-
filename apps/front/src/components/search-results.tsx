@@ -26,6 +26,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import type { PropertySearchResult } from "@/lib/services/real-estate-api";
 import { Database, List, Copy, Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { sf, sfc } from "@/lib/utils/safe-format";
 
 interface SearchResultsProps {
   results?: PropertySearchResult[];
@@ -170,7 +171,7 @@ export function SearchResults({
             <div>
               <h3 className="text-lg font-medium">Property IDs</h3>
               <p className="text-sm text-muted-foreground">
-                {resultCount.toLocaleString()} total matching properties
+                {sf(resultCount)} total matching properties
               </p>
             </div>
           </div>
@@ -197,7 +198,7 @@ export function SearchResults({
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
           />
-          <Badge variant="secondary">{filteredIds.length.toLocaleString()} IDs</Badge>
+          <Badge variant="secondary">{sf(filteredIds.length)} IDs</Badge>
         </div>
 
         <Card>
@@ -226,7 +227,7 @@ export function SearchResults({
 
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Showing {page * pageSize + 1}-{Math.min((page + 1) * pageSize, filteredIds.length)} of {filteredIds.length.toLocaleString()}
+            Showing {page * pageSize + 1}-{Math.min((page + 1) * pageSize, filteredIds.length)} of {sf(filteredIds.length)}
           </div>
           <div className="flex items-center space-x-2">
             <Button
@@ -285,7 +286,7 @@ export function SearchResults({
         <div>
           <h3 className="text-lg font-medium">Search Results</h3>
           <p className="text-sm text-muted-foreground">
-            {resultCount.toLocaleString()} properties found, showing {results.length} detailed
+            {sf(resultCount)} properties found, showing {sf(results.length)} detailed
           </p>
         </div>
         <div className="flex items-center space-x-2">
@@ -365,7 +366,7 @@ export function SearchResults({
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    ${result.estimatedValue?.toLocaleString() || "N/A"}
+                    ${sf(result.estimatedValue) || "N/A"}
                   </TableCell>
                   <TableCell>
                     {distress ? (
@@ -395,7 +396,7 @@ export function SearchResults({
 
       <div className="flex items-center justify-between">
         <div className="text-sm text-muted-foreground">
-          Showing {page * pageSize + 1}-{Math.min((page + 1) * pageSize, filteredResults.length)} of {filteredResults.length.toLocaleString()} results
+          Showing {page * pageSize + 1}-{Math.min((page + 1) * pageSize, filteredResults.length)} of {sf(filteredResults.length)} results
         </div>
         <div className="flex items-center space-x-2">
           <Button

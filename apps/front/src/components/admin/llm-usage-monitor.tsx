@@ -1,5 +1,7 @@
 "use client";
 
+
+import { sf, sfd } from "@/lib/utils/safe-format";
 import {
   Card,
   CardContent,
@@ -106,7 +108,7 @@ export function LlmUsageMonitor() {
                     <YAxis />
                     <Tooltip
                       formatter={(value) => [
-                        `${value.toLocaleString()} tokens`,
+                        `${sf(value)} tokens`,
                         "Usage",
                       ]}
                     />

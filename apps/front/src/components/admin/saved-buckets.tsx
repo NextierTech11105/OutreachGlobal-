@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { sf } from "@/lib/utils/safe-format";
 import {
   Table,
   TableBody,
@@ -291,7 +292,7 @@ export function SavedBuckets({ onSelectBucket, onViewLeads }: SavedBucketsProps)
                 <Users className="h-5 w-5 text-blue-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-white">{totalLeads.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-white">{sf(totalLeads)}</p>
                 <p className="text-xs text-zinc-500">Total Leads</p>
               </div>
             </div>
@@ -304,7 +305,7 @@ export function SavedBuckets({ onSelectBucket, onViewLeads }: SavedBucketsProps)
                 <Zap className="h-5 w-5 text-green-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-white">{enrichedLeads.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-white">{sf(enrichedLeads)}</p>
                 <p className="text-xs text-zinc-500">Enriched</p>
               </div>
             </div>

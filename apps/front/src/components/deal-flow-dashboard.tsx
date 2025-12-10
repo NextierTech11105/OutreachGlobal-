@@ -1,5 +1,7 @@
 "use client";
 
+
+import { sf, sfd } from "@/lib/utils/safe-format";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
@@ -274,7 +276,7 @@ export function DealFlowDashboard() {
                   </div>
                   <span className="text-sm font-medium">{stage.name}</span>
                   <span className="text-2xl font-bold">
-                    {stage.count.toLocaleString()}
+                    {sf(stage.count)}
                   </span>
                   {stage.value > 0 && (
                     <span className="text-xs text-green-400">
