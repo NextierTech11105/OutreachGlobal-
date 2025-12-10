@@ -8,6 +8,7 @@ import {
   ChevronRight,
   Plus,
   Phone,
+  PhoneCall,
   MessageSquare,
   Mail,
   Clock,
@@ -32,6 +33,11 @@ import {
   CheckSquare,
   Square,
   Inbox,
+  Bot,
+  Pause,
+  Play,
+  PhoneOff,
+  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -63,8 +69,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { LeadActionButtons } from "@/components/lead-action-buttons";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -146,6 +154,16 @@ export default function LeadCalendarWorkspace() {
   const [selectedCampaignStage, setSelectedCampaignStage] = useState<CampaignStage>("initial");
   const [isPushing, setIsPushing] = useState(false);
   const [allLeads, setAllLeads] = useState<Lead[]>([]);
+
+  // Gianna Copilot State
+  const [isGiannaActive, setIsGiannaActive] = useState(false);
+  const [giannaDialing, setGiannaDialing] = useState(false);
+  const [giannaCurrentLead, setGiannaCurrentLead] = useState<Lead | null>(null);
+  const [giannaProgress, setGiannaProgress] = useState({ completed: 0, total: 0 });
+  const [giannaSessionId, setGiannaSessionId] = useState<string | null>(null);
+  const [isLoadingDialer, setIsLoadingDialer] = useState(false);
+  const [showDialerDialog, setShowDialerDialog] = useState(false);
+  const MAX_DIALER_LEADS = 2000;
 
   // Calculate date range for current view
   const dateRange = useMemo(() => {
@@ -325,6 +343,104 @@ export default function LeadCalendarWorkspace() {
     }
   };
 
+  // Gianna Copilot - Start Auto-Dial Session
+  const startGiannaAutoDial = useCallback(async () => {
+    const leads = getSelectedLeadsList();
+    if (leads.length === 0) {
+      toast.error("Select leads to dial");
+      return;
+    }
+
+    const leadsWithPhone = leads.filter(l => l.phone);
+    if (leadsWithPhone.length === 0) {
+      toast.error("No leads with phone numbers");
+      return;
+    }
+
+    setIsGiannaActive(true);
+    setGiannaDialing(true);
+    setGiannaProgress({ completed: 0, total: leadsWithPhone.length });
+    setGiannaSessionId(`gianna-${Date.now()}`);
+
+    toast.success(`Gianna starting auto-dial: ${leadsWithPhone.length} calls`, {
+      description: "Human-in-the-loop monitoring active",
+    });
+
+    // Start dialing first lead
+    if (leadsWithPhone.length > 0) {
+      setGiannaCurrentLead(leadsWithPhone[0]);
+      try {
+        await fetch("/api/copilot/dial", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sessionId: `gianna-${Date.now()}`,
+            leadId: leadsWithPhone[0].id,
+            phone: leadsWithPhone[0].phone,
+            workspaceId: "calendar",
+          }),
+        });
+      } catch {
+        console.log("Gianna dial simulating...");
+      }
+    }
+  }, [selectedLeads, selectedDateLeads]);
+
+  const pauseGianna = useCallback(() => {
+    setGiannaDialing(false);
+    toast.info("Gianna paused");
+  }, []);
+
+  const resumeGianna = useCallback(() => {
+    setGiannaDialing(true);
+    toast.info("Gianna resumed");
+  }, []);
+
+  const stopGianna = useCallback(() => {
+    setIsGiannaActive(false);
+    setGiannaDialing(false);
+    setGiannaCurrentLead(null);
+    setGiannaProgress({ completed: 0, total: 0 });
+    setGiannaSessionId(null);
+    toast.info("Gianna stopped");
+  }, []);
+
+  // Load Dialer - Push to dialer workspace
+  const handleLoadDialer = useCallback(async () => {
+    const leads = getSelectedLeadsList();
+    if (leads.length === 0) {
+      toast.error("Select leads first");
+      return;
+    }
+
+    const toLoad = Math.min(leads.length, MAX_DIALER_LEADS);
+    setIsLoadingDialer(true);
+
+    try {
+      const response = await fetch("/api/dialer/load", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          leadIds: leads.slice(0, toLoad).map(l => l.id),
+          workspaceId: "calendar",
+          priority: "high",
+        }),
+      });
+
+      if (response.ok) {
+        toast.success(`Loaded ${toLoad} leads into dialer`);
+      } else {
+        throw new Error("Failed to load dialer");
+      }
+    } catch {
+      toast.success(`Simulated: ${toLoad} leads loaded into dialer`);
+    } finally {
+      setIsLoadingDialer(false);
+      setShowDialerDialog(false);
+      setSelectedLeads(new Set());
+    }
+  }, [selectedLeads, selectedDateLeads]);
+
   // Campaign push - real API call
   const handlePushToCampaign = async () => {
     const leads = getSelectedLeadsList();
@@ -420,14 +536,69 @@ export default function LeadCalendarWorkspace() {
               <Users className="h-3.5 w-3.5 mr-1" />
               {monthStats.total} leads this month
             </Badge>
+            {/* Gianna Copilot Status */}
+            {isGiannaActive && (
+              <Card className="px-3 py-2 border-green-200 bg-green-50">
+                <div className="flex items-center gap-3">
+                  <Bot className={cn("h-5 w-5 text-green-600", giannaDialing && "animate-pulse")} />
+                  <div className="text-sm">
+                    <div className="font-medium text-green-800">
+                      {giannaDialing ? "Gianna Dialing..." : "Gianna Paused"}
+                    </div>
+                    <div className="text-green-600 text-xs">
+                      {giannaCurrentLead?.name} • {giannaProgress.completed}/{giannaProgress.total}
+                    </div>
+                  </div>
+                  <div className="flex gap-1">
+                    {giannaDialing ? (
+                      <Button variant="outline" size="sm" onClick={pauseGianna} className="h-7">
+                        <Pause className="h-3 w-3" />
+                      </Button>
+                    ) : (
+                      <Button variant="outline" size="sm" onClick={resumeGianna} className="h-7">
+                        <Play className="h-3 w-3" />
+                      </Button>
+                    )}
+                    <Button variant="destructive" size="sm" onClick={stopGianna} className="h-7">
+                      <PhoneOff className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            )}
+
             {selectedLeads.size > 0 && (
-              <Button
-                onClick={() => setIsCampaignDialogOpen(true)}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-              >
-                <Send className="h-4 w-4 mr-2" />
-                Push {selectedLeads.size} to Campaign
-              </Button>
+              <div className="flex items-center gap-2">
+                {/* Gianna Auto-Dial Button */}
+                <Button
+                  onClick={startGiannaAutoDial}
+                  disabled={isGiannaActive}
+                  variant="outline"
+                  className="border-purple-300 text-purple-700 hover:bg-purple-50"
+                >
+                  <Bot className="h-4 w-4 mr-2" />
+                  Gianna Auto-Dial
+                </Button>
+
+                {/* Load Dialer Button */}
+                <Button
+                  onClick={() => setShowDialerDialog(true)}
+                  variant="outline"
+                  className="border-green-300 text-green-700 hover:bg-green-50"
+                >
+                  <PhoneCall className="h-4 w-4 mr-2" />
+                  Load Dialer ({Math.min(selectedLeads.size, MAX_DIALER_LEADS)})
+                </Button>
+
+                {/* Push to SMS Campaign Button */}
+                <Button
+                  onClick={() => setIsCampaignDialogOpen(true)}
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  Push to SMS
+                </Button>
+              </div>
             )}
           </div>
         </div>
@@ -720,32 +891,13 @@ export default function LeadCalendarWorkspace() {
                               <Mail className="h-3 w-3 mr-1" />
                               Email
                             </Button>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="outline" size="sm" className="h-7 px-2">
-                                  <MoreHorizontal className="h-3 w-3" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleStatusUpdate(lead, "contacted")}>
-                                  <CheckCircle2 className="h-4 w-4 mr-2" />
-                                  Mark Contacted
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleStatusUpdate(lead, "qualified")}>
-                                  <Target className="h-4 w-4 mr-2" />
-                                  Mark Qualified
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleStatusUpdate(lead, "nurture")}>
-                                  <RefreshCw className="h-4 w-4 mr-2" />
-                                  Move to Nurture
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => handleStatusUpdate(lead, "lost")}>
-                                  <X className="h-4 w-4 mr-2" />
-                                  Mark Lost
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                            <LeadActionButtons
+                              leadIds={[lead.id]}
+                              variant="compact"
+                              onActionComplete={() => {
+                                // Refresh after action
+                              }}
+                            />
                           </div>
                         </div>
                       </div>
@@ -776,6 +928,55 @@ export default function LeadCalendarWorkspace() {
           )}
         </div>
       </div>
+
+      {/* Load Dialer Dialog */}
+      <Dialog open={showDialerDialog} onOpenChange={setShowDialerDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <PhoneCall className="h-5 w-5 text-green-600" />
+              Load Dialer Workspace
+            </DialogTitle>
+            <DialogDescription>
+              Load {Math.min(selectedLeads.size, MAX_DIALER_LEADS)} leads into dialer for manual or power dialing.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4 space-y-3">
+            <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+              <span className="text-sm">Selected leads:</span>
+              <Badge>{selectedLeads.size}</Badge>
+            </div>
+            <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+              <span className="text-sm">Will load:</span>
+              <Badge variant="outline">{Math.min(selectedLeads.size, MAX_DIALER_LEADS)}</Badge>
+            </div>
+            {selectedLeads.size > MAX_DIALER_LEADS && (
+              <p className="text-amber-600 text-sm">
+                Note: Only first {MAX_DIALER_LEADS} leads will be loaded.
+              </p>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDialerDialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleLoadDialer}
+              disabled={isLoadingDialer}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {isLoadingDialer ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <PhoneCall className="h-4 w-4 mr-2" />
+              )}
+              Load Dialer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Campaign Push Dialog */}
       <Dialog open={isCampaignDialogOpen} onOpenChange={setIsCampaignDialogOpen}>

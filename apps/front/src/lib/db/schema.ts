@@ -231,6 +231,31 @@ export const leads = pgTable("leads", {
   activityCount: integer("activity_count").default(0),
   notes: text("notes"),
 
+  // === Lead Actions (Pause/Suppress/Rethink/Revisit) ===
+  pausedAt: timestamp("paused_at"),
+  pauseReason: text("pause_reason"), // 'timing' | 'busy' | 'vacation' | 'other'
+  suppressedAt: timestamp("suppressed_at"),
+  suppressReason: text("suppress_reason"), // 'dnc' | 'wrong_number' | 'deceased' | 'requested' | 'duplicate'
+  rethinkAt: timestamp("rethink_at"),
+  rethinkReason: text("rethink_reason"), // 'strategy_change' | 'new_info' | 'escalate' | 'review'
+  revisitAt: timestamp("revisit_at"),
+  revisitReason: text("revisit_reason"), // 'callback' | 'follow_up' | 'nurture' | 'seasonal'
+
+  // === Gianna/Sabrina Copilot ===
+  assignedAdvisor: text("assigned_advisor"), // 'gianna' | 'sabrina' | user_id
+  assignedNumber: text("assigned_number"), // Phone number assigned to advisor
+  dialerWorkspaceId: text("dialer_workspace_id"), // Current dialer workspace
+  dialerLoadedAt: timestamp("dialer_loaded_at"), // When loaded into dialer
+  lastContactDate: timestamp("last_contact_date"), // Last communication
+  assignedTo: text("assigned_to"), // User ID assignment
+
+  // === Lead Classification ===
+  leadType: text("lead_type"), // 'distressed' | 'equity' | 'absentee' | 'inherited' | 'business' | etc
+  priority: text("priority").default("Medium"), // 'Low' | 'Medium' | 'High' | 'Urgent'
+  companyName: text("company_name"), // Business/Company name
+  industry: text("industry"), // Industry classification
+  companySize: text("company_size"), // Employee count range
+
   // === Timestamps ===
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -1155,3 +1180,332 @@ export type Invoice = typeof invoices.$inferSelect;
 export type NewInvoice = typeof invoices.$inferInsert;
 export type Payment = typeof payments.$inferSelect;
 export type NewPayment = typeof payments.$inferInsert;
+
+// ============================================================
+// SMS & CALL LOGS - Communication tracking
+// ============================================================
+
+/**
+ * SMS MESSAGES - Track all SMS communications
+ */
+export const smsMessages = pgTable("sms_messages", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  leadId: uuid("lead_id").references(() => leads.id, { onDelete: "cascade" }),
+  userId: text("user_id"),
+
+  // === Message Info ===
+  direction: text("direction").notNull(), // 'inbound' | 'outbound'
+  fromNumber: text("from_number").notNull(),
+  toNumber: text("to_number").notNull(),
+  body: text("body").notNull(),
+
+  // === Status ===
+  status: text("status").notNull().default("pending"), // 'pending' | 'sent' | 'delivered' | 'failed' | 'received'
+  errorCode: text("error_code"),
+  errorMessage: text("error_message"),
+
+  // === Campaign Link ===
+  campaignId: text("campaign_id"),
+  batchId: text("batch_id"),
+  templateId: text("template_id"),
+
+  // === Provider Info ===
+  provider: text("provider").default("signalhouse"), // 'signalhouse' | 'twilio'
+  providerMessageId: text("provider_message_id"),
+  providerStatus: text("provider_status"),
+
+  // === AI Assistant ===
+  sentByAdvisor: text("sent_by_advisor"), // 'gianna' | 'sabrina' | null
+  aiGenerated: boolean("ai_generated").default(false),
+
+  // === Timestamps ===
+  sentAt: timestamp("sent_at"),
+  deliveredAt: timestamp("delivered_at"),
+  receivedAt: timestamp("received_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  leadIdIdx: index("sms_messages_lead_id_idx").on(table.leadId),
+  directionIdx: index("sms_messages_direction_idx").on(table.direction),
+  statusIdx: index("sms_messages_status_idx").on(table.status),
+  campaignIdIdx: index("sms_messages_campaign_id_idx").on(table.campaignId),
+  fromNumberIdx: index("sms_messages_from_number_idx").on(table.fromNumber),
+}));
+
+/**
+ * CALL LOGS - Track all voice calls
+ */
+export const callLogs = pgTable("call_logs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  leadId: uuid("lead_id").references(() => leads.id, { onDelete: "cascade" }),
+  userId: text("user_id"),
+
+  // === Call Info ===
+  direction: text("direction").notNull(), // 'inbound' | 'outbound'
+  fromNumber: text("from_number").notNull(),
+  toNumber: text("to_number").notNull(),
+
+  // === Status & Duration ===
+  status: text("status").notNull().default("initiated"), // 'initiated' | 'ringing' | 'connected' | 'completed' | 'failed' | 'no_answer' | 'busy' | 'voicemail'
+  duration: integer("duration"), // seconds
+  disposition: text("disposition"), // 'appointment_set' | 'callback_requested' | 'not_interested' | 'wrong_number' | 'no_answer' | 'voicemail' | 'other'
+  dispositionNotes: text("disposition_notes"),
+
+  // === Campaign Link ===
+  campaignId: text("campaign_id"),
+  dialerWorkspaceId: text("dialer_workspace_id"),
+
+  // === Provider Info ===
+  provider: text("provider").default("signalhouse"), // 'signalhouse' | 'twilio'
+  providerCallId: text("provider_call_id"),
+  providerStatus: text("provider_status"),
+
+  // === Recording ===
+  recordingUrl: text("recording_url"),
+  recordingDuration: integer("recording_duration"),
+  transcriptionUrl: text("transcription_url"),
+  transcriptionText: text("transcription_text"),
+
+  // === AI Assistant (Gianna Copilot) ===
+  isAutoDial: boolean("is_auto_dial").default(false),
+  autoDailSessionId: text("auto_dial_session_id"),
+  aiSummary: text("ai_summary"),
+  sentimentScore: integer("sentiment_score"), // -100 to 100
+
+  // === Timestamps ===
+  startTime: timestamp("start_time"),
+  answerTime: timestamp("answer_time"),
+  endTime: timestamp("end_time"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  leadIdIdx: index("call_logs_lead_id_idx").on(table.leadId),
+  directionIdx: index("call_logs_direction_idx").on(table.direction),
+  statusIdx: index("call_logs_status_idx").on(table.status),
+  dispositionIdx: index("call_logs_disposition_idx").on(table.disposition),
+  campaignIdIdx: index("call_logs_campaign_id_idx").on(table.campaignId),
+}));
+
+/**
+ * DIALER SESSIONS - Track auto-dial sessions
+ */
+export const dialerSessions = pgTable("dialer_sessions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: text("workspace_id").notNull(),
+  userId: text("user_id").notNull(),
+
+  // === Session Info ===
+  status: text("status").notNull().default("created"), // 'created' | 'active' | 'paused' | 'completed' | 'cancelled'
+  dialMode: text("dial_mode").default("preview"), // 'preview' | 'power' | 'predictive'
+
+  // === Progress ===
+  totalLeads: integer("total_leads").default(0),
+  dialedLeads: integer("dialed_leads").default(0),
+  connectedCalls: integer("connected_calls").default(0),
+  appointmentsSet: integer("appointments_set").default(0),
+
+  // === Advisor ===
+  assignedAdvisor: text("assigned_advisor"), // 'gianna' | 'sabrina' | user_id
+
+  // === Campaign Link ===
+  campaignId: text("campaign_id"),
+  bucketId: uuid("bucket_id").references(() => buckets.id),
+
+  // === Timestamps ===
+  startedAt: timestamp("started_at"),
+  pausedAt: timestamp("paused_at"),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  workspaceIdIdx: index("dialer_sessions_workspace_id_idx").on(table.workspaceId),
+  userIdIdx: index("dialer_sessions_user_id_idx").on(table.userId),
+  statusIdx: index("dialer_sessions_status_idx").on(table.status),
+}));
+
+// SMS & Call Relations
+export const smsMessagesRelations = relations(smsMessages, ({ one }) => ({
+  lead: one(leads, { fields: [smsMessages.leadId], references: [leads.id] }),
+}));
+
+export const callLogsRelations = relations(callLogs, ({ one }) => ({
+  lead: one(leads, { fields: [callLogs.leadId], references: [leads.id] }),
+}));
+
+export const dialerSessionsRelations = relations(dialerSessions, ({ one }) => ({
+  bucket: one(buckets, { fields: [dialerSessions.bucketId], references: [buckets.id] }),
+}));
+
+// Type exports
+export type SmsMessage = typeof smsMessages.$inferSelect;
+export type NewSmsMessage = typeof smsMessages.$inferInsert;
+export type CallLog = typeof callLogs.$inferSelect;
+export type NewCallLog = typeof callLogs.$inferInsert;
+export type DialerSession = typeof dialerSessions.$inferSelect;
+export type NewDialerSession = typeof dialerSessions.$inferInsert;
+
+// ============================================================
+// DEALS - Deal Pipeline / Machine 5
+// ============================================================
+
+/**
+ * DEALS - Pipeline deals for closing and monetization
+ * Links to leads, properties, and businesses
+ */
+export const deals = pgTable("deals", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  teamId: text("team_id").notNull(),
+  userId: text("user_id").notNull(),
+
+  // === Links ===
+  leadId: uuid("lead_id").references(() => leads.id, { onDelete: "set null" }),
+  propertyId: uuid("property_id").references(() => properties.id, { onDelete: "set null" }),
+  businessId: uuid("business_id").references(() => businesses.id, { onDelete: "set null" }),
+
+  // === Deal Type & Stage ===
+  type: text("type").notNull(), // 'b2b_exit' | 'commercial' | 'assemblage' | 'blue_collar_exit' | 'development' | 'residential_haos'
+  stage: text("stage").notNull().default("discovery"), // 'discovery' | 'qualification' | 'proposal' | 'negotiation' | 'contract' | 'closing' | 'closed_won' | 'closed_lost'
+  priority: text("priority").default("medium"), // 'low' | 'medium' | 'high' | 'urgent'
+
+  // === Deal Info ===
+  name: text("name").notNull(),
+  description: text("description"),
+  estimatedValue: integer("estimated_value").default(0), // Property/business value in cents
+  askingPrice: integer("asking_price"), // Seller's asking price
+  finalPrice: integer("final_price"), // Final deal price (when closed)
+
+  // === Monetization ===
+  monetization: jsonb("monetization").default({}), // { type, rate, estimatedEarnings, actualEarnings }
+  commissionRate: decimal("commission_rate", { precision: 5, scale: 2 }), // e.g., 6.00 for 6%
+  advisoryFee: integer("advisory_fee"), // Flat advisory fee in cents
+  referralFee: integer("referral_fee"), // Referral fee in cents
+  equityPercentage: decimal("equity_percentage", { precision: 5, scale: 2 }), // Equity stake
+
+  // === Parties ===
+  seller: jsonb("seller"), // { name, email, phone, company }
+  buyer: jsonb("buyer"), // { name, email, phone, company }
+  assignedTo: text("assigned_to"), // User ID of assigned agent
+
+  // === Property Data (denormalized for closed deals) ===
+  propertyData: jsonb("property_data"), // Snapshot of property at deal time
+
+  // === Business Data (denormalized for closed deals) ===
+  businessData: jsonb("business_data"), // Snapshot of business at deal time
+
+  // === Timeline ===
+  expectedCloseDate: timestamp("expected_close_date"),
+  actualCloseDate: timestamp("actual_close_date"),
+  lastActivityAt: timestamp("last_activity_at"),
+  stageChangedAt: timestamp("stage_changed_at"),
+
+  // === Close Info ===
+  closedReason: text("closed_reason"), // For closed_lost: 'price' | 'timing' | 'competition' | 'financing' | 'other'
+  closedNotes: text("closed_notes"),
+
+  // === Documents ===
+  documents: jsonb("documents").default([]), // [{ id, name, type, url, uploadedAt }]
+
+  // === Tags & Notes ===
+  tags: jsonb("tags").default([]), // string[]
+  notes: text("notes"),
+
+  // === Timestamps ===
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  teamIdIdx: index("deals_team_id_idx").on(table.teamId),
+  userIdIdx: index("deals_user_id_idx").on(table.userId),
+  leadIdIdx: index("deals_lead_id_idx").on(table.leadId),
+  stageIdx: index("deals_stage_idx").on(table.stage),
+  typeIdx: index("deals_type_idx").on(table.type),
+  assignedToIdx: index("deals_assigned_to_idx").on(table.assignedTo),
+}));
+
+/**
+ * DEAL_ACTIVITIES - Activity log for deals
+ * Tracks all changes, communications, and milestones
+ */
+export const dealActivities = pgTable("deal_activities", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  dealId: uuid("deal_id").notNull().references(() => deals.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull(),
+
+  // === Activity Type ===
+  type: text("type").notNull(), // 'stage_change' | 'note' | 'call' | 'email' | 'meeting' | 'document' | 'price_change' | 'assignment'
+  subtype: text("subtype"), // More specific action
+
+  // === Content ===
+  title: text("title").notNull(),
+  description: text("description"),
+  metadata: jsonb("metadata"), // Type-specific data { fromStage, toStage, amount, etc }
+
+  // === Timestamps ===
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  dealIdIdx: index("deal_activities_deal_id_idx").on(table.dealId),
+  typeIdx: index("deal_activities_type_idx").on(table.type),
+  createdAtIdx: index("deal_activities_created_at_idx").on(table.createdAt),
+}));
+
+/**
+ * DEAL_DOCUMENTS - Documents attached to deals
+ * Contracts, LOIs, appraisals, etc.
+ */
+export const dealDocuments = pgTable("deal_documents", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  dealId: uuid("deal_id").notNull().references(() => deals.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull(),
+
+  // === Document Info ===
+  name: text("name").notNull(),
+  type: text("type").notNull(), // 'contract' | 'loi' | 'appraisal' | 'inspection' | 'title' | 'financials' | 'other'
+  mimeType: text("mime_type"),
+  fileSize: integer("file_size"), // bytes
+
+  // === Storage ===
+  url: text("url").notNull(), // CDN/Storage URL
+  storageKey: text("storage_key"), // S3/Spaces key
+
+  // === Status ===
+  status: text("status").default("pending"), // 'pending' | 'approved' | 'rejected' | 'signed'
+  signedAt: timestamp("signed_at"),
+  signedBy: text("signed_by"),
+
+  // === Timestamps ===
+  uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  dealIdIdx: index("deal_documents_deal_id_idx").on(table.dealId),
+  typeIdx: index("deal_documents_type_idx").on(table.type),
+}));
+
+// ============================================================
+// DEALS RELATIONS
+// ============================================================
+
+export const dealsRelations = relations(deals, ({ one, many }) => ({
+  lead: one(leads, { fields: [deals.leadId], references: [leads.id] }),
+  property: one(properties, { fields: [deals.propertyId], references: [properties.id] }),
+  business: one(businesses, { fields: [deals.businessId], references: [businesses.id] }),
+  activities: many(dealActivities),
+  dealDocuments: many(dealDocuments),
+}));
+
+export const dealActivitiesRelations = relations(dealActivities, ({ one }) => ({
+  deal: one(deals, { fields: [dealActivities.dealId], references: [deals.id] }),
+}));
+
+export const dealDocumentsRelations = relations(dealDocuments, ({ one }) => ({
+  deal: one(deals, { fields: [dealDocuments.dealId], references: [deals.id] }),
+}));
+
+// ============================================================
+// DEALS TYPE EXPORTS
+// ============================================================
+
+export type Deal = typeof deals.$inferSelect;
+export type NewDeal = typeof deals.$inferInsert;
+export type DealActivity = typeof dealActivities.$inferSelect;
+export type NewDealActivity = typeof dealActivities.$inferInsert;
+export type DealDocument = typeof dealDocuments.$inferSelect;
+export type NewDealDocument = typeof dealDocuments.$inferInsert;
