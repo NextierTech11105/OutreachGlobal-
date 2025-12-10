@@ -1,6 +1,5 @@
 "use client";
 
-
 import { sf, sfd } from "@/lib/utils/safe-format";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -17,10 +16,29 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import {
-  Building2, Home, DollarSign, MapPin, Briefcase,
-  Search, Database, Upload, TrendingUp, Users,
-  FileSpreadsheet, RefreshCcw, Plus, ArrowRight,
-  BarChart3, Layers, HardDrive, Eye, Send, Loader2, X, CheckCircle2, Sparkles
+  Building2,
+  Home,
+  DollarSign,
+  MapPin,
+  Briefcase,
+  Search,
+  Database,
+  Upload,
+  TrendingUp,
+  Users,
+  FileSpreadsheet,
+  RefreshCcw,
+  Plus,
+  ArrowRight,
+  BarChart3,
+  Layers,
+  HardDrive,
+  Eye,
+  Send,
+  Loader2,
+  X,
+  CheckCircle2,
+  Sparkles,
 } from "lucide-react";
 import {
   Dialog,
@@ -42,7 +60,10 @@ import {
   getSectorById,
   getSectorsByCategory,
 } from "@/config/sectors";
-import { SectorWorkspaceSelector, SectorBadges } from "@/components/sector-workspace-selector";
+import {
+  SectorWorkspaceSelector,
+  SectorBadges,
+} from "@/components/sector-workspace-selector";
 
 // Stats for each sector (would come from API in production)
 interface SectorStats {
@@ -85,9 +106,13 @@ export default function SectorsPage() {
   const router = useRouter();
   const [activeWorkspace, setActiveWorkspace] = useState<string>("data_lakes");
   const [selectedSector, setSelectedSector] = useState<Sector | null>(null);
-  const [selectedDataLake, setSelectedDataLake] = useState<DataLake | null>(null);
+  const [selectedDataLake, setSelectedDataLake] = useState<DataLake | null>(
+    null,
+  );
   const [searchQuery, setSearchQuery] = useState("");
-  const [sectorStats, setSectorStats] = useState<Record<string, SectorStats>>({});
+  const [sectorStats, setSectorStats] = useState<Record<string, SectorStats>>(
+    {},
+  );
   const [dataSources, setDataSources] = useState<DataSourceSummary[]>([]);
   const [dataLakes, setDataLakes] = useState<DataLake[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -102,7 +127,12 @@ export default function SectorsPage() {
   const [uploadResult, setUploadResult] = useState<{
     success: boolean;
     message: string;
-    stats?: { total: number; withPhone: number; withEmail: number; withAddress: number };
+    stats?: {
+      total: number;
+      withPhone: number;
+      withEmail: number;
+      withAddress: number;
+    };
   } | null>(null);
 
   // Fetch REAL data from buckets API (DO Spaces data lakes)
@@ -119,38 +149,40 @@ export default function SectorsPage() {
           const stats: Record<string, SectorStats> = {};
           const sources: DataSourceSummary[] = [];
 
-          data.buckets.forEach((bucket: {
-            id: string;
-            name: string;
-            source: string;
-            totalLeads: number;
-            enrichedLeads: number;
-            contactedLeads: number;
-            queuedLeads: number;
-            createdAt: string;
-            tags?: string[];
-          }) => {
-            // Create stat entry for each bucket
-            stats[bucket.id] = {
-              sectorId: bucket.id,
-              totalRecords: bucket.totalLeads || 0,
-              enrichedRecords: bucket.enrichedLeads || 0,
-              contactedRecords: bucket.contactedLeads || 0,
-              lastUpdated: new Date(bucket.createdAt),
-            };
+          data.buckets.forEach(
+            (bucket: {
+              id: string;
+              name: string;
+              source: string;
+              totalLeads: number;
+              enrichedLeads: number;
+              contactedLeads: number;
+              queuedLeads: number;
+              createdAt: string;
+              tags?: string[];
+            }) => {
+              // Create stat entry for each bucket
+              stats[bucket.id] = {
+                sectorId: bucket.id,
+                totalRecords: bucket.totalLeads || 0,
+                enrichedRecords: bucket.enrichedLeads || 0,
+                contactedRecords: bucket.contactedLeads || 0,
+                lastUpdated: new Date(bucket.createdAt),
+              };
 
-            // Add as data source
-            sources.push({
-              id: bucket.id,
-              name: bucket.name,
-              sourceType: bucket.source === "real-estate" ? "api" : "csv",
-              sourceProvider: bucket.source || "import",
-              totalRows: bucket.totalLeads || 0,
-              status: "completed",
-              sectorId: bucket.id,
-              createdAt: new Date(bucket.createdAt),
-            });
-          });
+              // Add as data source
+              sources.push({
+                id: bucket.id,
+                name: bucket.name,
+                sourceType: bucket.source === "real-estate" ? "api" : "csv",
+                sourceProvider: bucket.source || "import",
+                totalRows: bucket.totalLeads || 0,
+                status: "completed",
+                sectorId: bucket.id,
+                createdAt: new Date(bucket.createdAt),
+              });
+            },
+          );
 
           setSectorStats(stats);
           setDataSources(sources);
@@ -230,14 +262,19 @@ export default function SectorsPage() {
 
   // Navigate to bucket/data lake detail page
   const viewDataLakeRecords = (lake: DataLake) => {
-    router.push(`/t/${window.location.pathname.split("/")[2]}/sectors/${lake.id}`);
+    router.push(
+      `/t/${window.location.pathname.split("/")[2]}/sectors/${lake.id}`,
+    );
   };
 
   // Enrichment state for data lake cards
   const [enrichingLakeId, setEnrichingLakeId] = useState<string | null>(null);
 
   // Quick enrich a data lake
-  const handleQuickEnrich = async (lake: DataLake, enrichType: "apollo" | "skip_trace") => {
+  const handleQuickEnrich = async (
+    lake: DataLake,
+    enrichType: "apollo" | "skip_trace",
+  ) => {
     setEnrichingLakeId(lake.id);
     try {
       const response = await fetch(`/api/buckets/${lake.id}/enrich`, {
@@ -247,7 +284,9 @@ export default function SectorsPage() {
       });
       const data = await response.json();
       if (data.success) {
-        toast.success(`Enriched ${data.results.enriched} records with ${enrichType === "apollo" ? "Apollo" : "Skip Trace"}`);
+        toast.success(
+          `Enriched ${data.results.enriched} records with ${enrichType === "apollo" ? "Apollo" : "Skip Trace"}`,
+        );
         // Refresh data lakes
         const refreshResponse = await fetch("/api/buckets?perPage=100");
         const refreshData = await refreshResponse.json();
@@ -275,7 +314,7 @@ export default function SectorsPage() {
       <Card
         className={cn(
           "cursor-pointer transition-all hover:shadow-md hover:border-primary/50",
-          isSelected && "ring-2 ring-primary border-primary"
+          isSelected && "ring-2 ring-primary border-primary",
         )}
         onClick={() => setSelectedDataLake(lake)}
       >
@@ -322,7 +361,9 @@ export default function SectorsPage() {
               className="flex-1 bg-green-600 hover:bg-green-700"
               onClick={(e) => {
                 e.stopPropagation();
-                router.push(`/t/${window.location.pathname.split("/")[2]}/sectors/${lake.id}?action=sms`);
+                router.push(
+                  `/t/${window.location.pathname.split("/")[2]}/sectors/${lake.id}?action=sms`,
+                );
               }}
             >
               <Send className="h-3 w-3 mr-1" />
@@ -374,12 +415,15 @@ export default function SectorsPage() {
     );
   };
 
-  const activeWorkspaceData = SECTOR_WORKSPACES.find(w => w.id === activeWorkspace);
+  const activeWorkspaceData = SECTOR_WORKSPACES.find(
+    (w) => w.id === activeWorkspace,
+  );
 
-  const filteredSectors = getAllSectors().filter(sector =>
-    sector.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    sector.shortName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (sector.sicCodes?.some(code => code.includes(searchQuery)))
+  const filteredSectors = getAllSectors().filter(
+    (sector) =>
+      sector.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      sector.shortName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      sector.sicCodes?.some((code) => code.includes(searchQuery)),
   );
 
   const handleSectorSelect = (sector: Sector) => {
@@ -405,7 +449,7 @@ export default function SectorsPage() {
       <Card
         className={cn(
           "cursor-pointer transition-all hover:shadow-md hover:border-primary/50",
-          isSelected && "ring-2 ring-primary border-primary"
+          isSelected && "ring-2 ring-primary border-primary",
         )}
         onClick={() => handleSectorSelect(sector)}
       >
@@ -421,7 +465,9 @@ export default function SectorsPage() {
           <CardTitle className="text-sm mt-2">{sector.name}</CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
-          <p className="text-xs text-muted-foreground line-clamp-2">{sector.description}</p>
+          <p className="text-xs text-muted-foreground line-clamp-2">
+            {sector.description}
+          </p>
           {stats && (
             <div className="flex gap-2 mt-2">
               <Badge variant="secondary" className="text-xs">
@@ -441,7 +487,7 @@ export default function SectorsPage() {
     const Icon = workspace.icon;
     const totalRecords = workspace.sectors.reduce(
       (acc, s) => acc + getSectorRecordCount(s.id),
-      0
+      0,
     );
 
     return (
@@ -453,7 +499,9 @@ export default function SectorsPage() {
             </div>
             <div>
               <h3 className="font-semibold text-lg">{workspace.name}</h3>
-              <p className="text-sm text-muted-foreground">{workspace.description}</p>
+              <p className="text-sm text-muted-foreground">
+                {workspace.description}
+              </p>
             </div>
           </div>
           <div className="text-right">
@@ -505,15 +553,21 @@ export default function SectorsPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="p-4 bg-muted rounded-lg">
               <p className="text-sm text-muted-foreground">Total Records</p>
-              <p className="text-2xl font-bold">{formatNumber(stats?.totalRecords || 0)}</p>
+              <p className="text-2xl font-bold">
+                {formatNumber(stats?.totalRecords || 0)}
+              </p>
             </div>
             <div className="p-4 bg-muted rounded-lg">
               <p className="text-sm text-muted-foreground">Enriched</p>
-              <p className="text-2xl font-bold">{formatNumber(stats?.enrichedRecords || 0)}</p>
+              <p className="text-2xl font-bold">
+                {formatNumber(stats?.enrichedRecords || 0)}
+              </p>
             </div>
             <div className="p-4 bg-muted rounded-lg">
               <p className="text-sm text-muted-foreground">Contacted</p>
-              <p className="text-2xl font-bold">{formatNumber(stats?.contactedRecords || 0)}</p>
+              <p className="text-2xl font-bold">
+                {formatNumber(stats?.contactedRecords || 0)}
+              </p>
             </div>
             <div className="p-4 bg-muted rounded-lg">
               <p className="text-sm text-muted-foreground">Conversion Rate</p>
@@ -534,12 +588,14 @@ export default function SectorsPage() {
                   {key}: {String(value)}
                 </Badge>
               ))}
-              {selectedSector.sicCodes && selectedSector.sicCodes.length > 0 && (
-                <Badge variant="outline">
-                  SIC: {selectedSector.sicCodes.slice(0, 3).join(", ")}
-                  {selectedSector.sicCodes.length > 3 && ` +${selectedSector.sicCodes.length - 3}`}
-                </Badge>
-              )}
+              {selectedSector.sicCodes &&
+                selectedSector.sicCodes.length > 0 && (
+                  <Badge variant="outline">
+                    SIC: {selectedSector.sicCodes.slice(0, 3).join(", ")}
+                    {selectedSector.sicCodes.length > 3 &&
+                      ` +${selectedSector.sicCodes.length - 3}`}
+                  </Badge>
+                )}
               {selectedSector.propertyTypes && (
                 <Badge variant="outline">
                   Property: {selectedSector.propertyTypes.join(", ")}
@@ -583,19 +639,30 @@ export default function SectorsPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Records</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Total Records
+              </CardTitle>
               <Database className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {formatNumber(Object.values(sectorStats).reduce((acc, s) => acc + s.totalRecords, 0))}
+                {formatNumber(
+                  Object.values(sectorStats).reduce(
+                    (acc, s) => acc + s.totalRecords,
+                    0,
+                  ),
+                )}
               </div>
-              <p className="text-xs text-muted-foreground">across all sectors</p>
+              <p className="text-xs text-muted-foreground">
+                across all sectors
+              </p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Data Sources</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Data Sources
+              </CardTitle>
               <FileSpreadsheet className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -610,14 +677,21 @@ export default function SectorsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {formatNumber(Object.values(sectorStats).reduce((acc, s) => acc + s.enrichedRecords, 0))}
+                {formatNumber(
+                  Object.values(sectorStats).reduce(
+                    (acc, s) => acc + s.enrichedRecords,
+                    0,
+                  ),
+                )}
               </div>
               <p className="text-xs text-muted-foreground">with contact data</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Sectors</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Active Sectors
+              </CardTitle>
               <BarChart3 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -644,14 +718,22 @@ export default function SectorsPage() {
             />
           </div>
           {selectedSector && (
-            <Button variant="ghost" size="sm" onClick={() => setSelectedSector(null)}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedSector(null)}
+            >
               Clear Selection
             </Button>
           )}
         </div>
 
         {/* Workspace Tabs */}
-        <Tabs value={activeWorkspace} onValueChange={setActiveWorkspace} className="w-full">
+        <Tabs
+          value={activeWorkspace}
+          onValueChange={setActiveWorkspace}
+          className="w-full"
+        >
           <TabsList className="grid w-full grid-cols-5">
             {/* DATA LAKES TAB - Shows real uploaded buckets */}
             <TabsTrigger value="data_lakes" className="flex items-center gap-2">
@@ -665,7 +747,10 @@ export default function SectorsPage() {
             </TabsTrigger>
             {SECTOR_WORKSPACES.map((ws) => {
               const Icon = ws.icon;
-              const recordCount = ws.sectors.reduce((acc, s) => acc + getSectorRecordCount(s.id), 0);
+              const recordCount = ws.sectors.reduce(
+                (acc, s) => acc + getSectorRecordCount(s.id),
+                0,
+              );
               return (
                 <TabsTrigger
                   key={ws.id}
@@ -702,9 +787,13 @@ export default function SectorsPage() {
                   </div>
                   <div className="text-right">
                     <p className="text-2xl font-bold">
-                      {formatNumber(dataLakes.reduce((acc, l) => acc + l.totalLeads, 0))}
+                      {formatNumber(
+                        dataLakes.reduce((acc, l) => acc + l.totalLeads, 0),
+                      )}
                     </p>
-                    <p className="text-sm text-muted-foreground">total records</p>
+                    <p className="text-sm text-muted-foreground">
+                      total records
+                    </p>
                   </div>
                 </div>
 
@@ -716,9 +805,12 @@ export default function SectorsPage() {
                   <Card className="border-dashed">
                     <CardContent className="flex flex-col items-center justify-center py-12">
                       <Upload className="h-12 w-12 text-muted-foreground mb-4" />
-                      <h3 className="font-semibold text-lg mb-2">No Data Lakes Yet</h3>
+                      <h3 className="font-semibold text-lg mb-2">
+                        No Data Lakes Yet
+                      </h3>
                       <p className="text-muted-foreground text-center max-w-md mb-4">
-                        Upload CSV databases from USBizData, save property searches, or import leads to create data lakes.
+                        Upload CSV databases from USBizData, save property
+                        searches, or import leads to create data lakes.
                       </p>
                       <Button onClick={() => setShowUploadDialog(true)}>
                         <Upload className="h-4 w-4 mr-2" />
@@ -741,20 +833,36 @@ export default function SectorsPage() {
                 {searchQuery ? (
                   <div className="space-y-4">
                     <p className="text-sm text-muted-foreground">
-                      Showing {filteredSectors.filter(s => s.category === ws.id.replace("_", "") ||
-                        (ws.id === "real_estate" && s.category === "real_estate") ||
-                        (ws.id === "financial" && s.category === "financial") ||
-                        (ws.id === "business" && s.category === "business") ||
-                        (ws.id === "geographic" && s.category === "geographic")
-                      ).length} results
+                      Showing{" "}
+                      {
+                        filteredSectors.filter(
+                          (s) =>
+                            s.category === ws.id.replace("_", "") ||
+                            (ws.id === "real_estate" &&
+                              s.category === "real_estate") ||
+                            (ws.id === "financial" &&
+                              s.category === "financial") ||
+                            (ws.id === "business" &&
+                              s.category === "business") ||
+                            (ws.id === "geographic" &&
+                              s.category === "geographic"),
+                        ).length
+                      }{" "}
+                      results
                     </p>
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                       {filteredSectors
-                        .filter(s => s.category === ws.id.replace("_", "") ||
-                          (ws.id === "real_estate" && s.category === "real_estate") ||
-                          (ws.id === "financial" && s.category === "financial") ||
-                          (ws.id === "business" && s.category === "business") ||
-                          (ws.id === "geographic" && s.category === "geographic")
+                        .filter(
+                          (s) =>
+                            s.category === ws.id.replace("_", "") ||
+                            (ws.id === "real_estate" &&
+                              s.category === "real_estate") ||
+                            (ws.id === "financial" &&
+                              s.category === "financial") ||
+                            (ws.id === "business" &&
+                              s.category === "business") ||
+                            (ws.id === "geographic" &&
+                              s.category === "geographic"),
                         )
                         .map((sector) => (
                           <SectorCard key={sector.id} sector={sector} />
@@ -778,7 +886,9 @@ export default function SectorsPage() {
                   <FileSpreadsheet className="h-5 w-5" />
                   Data Sources
                 </CardTitle>
-                <CardDescription>Imported files and connected APIs</CardDescription>
+                <CardDescription>
+                  Imported files and connected APIs
+                </CardDescription>
               </div>
               <Button variant="outline" size="sm">
                 <RefreshCcw className="h-4 w-4 mr-2" />
@@ -791,7 +901,9 @@ export default function SectorsPage() {
               <div className="text-center py-8 text-muted-foreground">
                 <Upload className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>No data sources yet</p>
-                <p className="text-sm">Import a CSV or connect an API to get started</p>
+                <p className="text-sm">
+                  Import a CSV or connect an API to get started
+                </p>
                 <Button variant="outline" className="mt-4">
                   <Upload className="h-4 w-4 mr-2" />
                   Import Data
@@ -800,7 +912,9 @@ export default function SectorsPage() {
             ) : (
               <div className="space-y-2">
                 {dataSources.map((source) => {
-                  const sector = source.sectorId ? getSectorById(source.sectorId) : null;
+                  const sector = source.sectorId
+                    ? getSectorById(source.sectorId)
+                    : null;
                   return (
                     <div
                       key={source.id}
@@ -817,18 +931,26 @@ export default function SectorsPage() {
                         <div>
                           <p className="font-medium text-sm">{source.name}</p>
                           <p className="text-xs text-muted-foreground">
-                            {source.sourceProvider} • {formatNumber(source.totalRows)} rows
+                            {source.sourceProvider} •{" "}
+                            {formatNumber(source.totalRows)} rows
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
                         {sector && (
-                          <Badge variant="outline" className={cn("text-xs", sector.color)}>
+                          <Badge
+                            variant="outline"
+                            className={cn("text-xs", sector.color)}
+                          >
                             {sector.shortName}
                           </Badge>
                         )}
                         <Badge
-                          variant={source.status === "completed" ? "default" : "secondary"}
+                          variant={
+                            source.status === "completed"
+                              ? "default"
+                              : "secondary"
+                          }
                           className="text-xs"
                         >
                           {source.status}
@@ -852,7 +974,8 @@ export default function SectorsPage() {
               Upload CSV Database
             </DialogTitle>
             <DialogDescription>
-              Upload a CSV file from USBizData or any other source. We'll auto-detect columns.
+              Upload a CSV file from USBizData or any other source. We'll
+              auto-detect columns.
             </DialogDescription>
           </DialogHeader>
 
@@ -870,7 +993,9 @@ export default function SectorsPage() {
                     if (file) {
                       setUploadFile(file);
                       if (!uploadName) {
-                        setUploadName(file.name.replace(".csv", "").replace(/_/g, " "));
+                        setUploadName(
+                          file.name.replace(".csv", "").replace(/_/g, " "),
+                        );
                       }
                     }
                   }}
@@ -879,7 +1004,8 @@ export default function SectorsPage() {
               </div>
               {uploadFile && (
                 <p className="text-xs text-muted-foreground">
-                  Selected: {uploadFile.name} ({(uploadFile.size / 1024 / 1024).toFixed(2)} MB)
+                  Selected: {uploadFile.name} (
+                  {(uploadFile.size / 1024 / 1024).toFixed(2)} MB)
                 </p>
               )}
             </div>
@@ -920,47 +1046,81 @@ export default function SectorsPage() {
 
             {/* Upload Result */}
             {uploadResult && (
-              <div className={cn(
-                "rounded-lg p-4",
-                uploadResult.success ? "bg-green-50 dark:bg-green-900/20" : "bg-red-50 dark:bg-red-900/20"
-              )}>
+              <div
+                className={cn(
+                  "rounded-lg p-4",
+                  uploadResult.success
+                    ? "bg-green-50 dark:bg-green-900/20"
+                    : "bg-red-50 dark:bg-red-900/20",
+                )}
+              >
                 <div className="flex items-center gap-2 mb-2">
                   {uploadResult.success ? (
                     <CheckCircle2 className="h-5 w-5 text-green-600" />
                   ) : (
                     <X className="h-5 w-5 text-red-600" />
                   )}
-                  <span className={cn("font-medium", uploadResult.success ? "text-green-700" : "text-red-700")}>
-                    {uploadResult.success ? "Upload Successful" : "Upload Failed"}
+                  <span
+                    className={cn(
+                      "font-medium",
+                      uploadResult.success ? "text-green-700" : "text-red-700",
+                    )}
+                  >
+                    {uploadResult.success
+                      ? "Upload Successful"
+                      : "Upload Failed"}
                   </span>
                 </div>
-                <p className="text-sm text-muted-foreground">{uploadResult.message}</p>
-                {uploadResult.stats && sf(
-                  <div className="grid grid-cols-4 gap-2 mt-3">
-                    <div className="text-center">
-                      <div className="text-lg font-bold">{(uploadResult.stats.total ?? 0)}</div>
-                      <div className="text-xs text-muted-foreground">Total</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-lg font-bold text-green-600">{sf(uploadResult.stats.withPhone ?? 0)}</div>
-                      <div className="text-xs text-muted-foreground">Phones</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-lg font-bold text-blue-600">{sf(uploadResult.stats.withEmail ?? 0)}</div>
-                      <div className="text-xs text-muted-foreground">Emails</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-lg font-bold text-purple-600">{sf(uploadResult.stats.withAddress ?? 0)}</div>
-                      <div className="text-xs text-muted-foreground">Enrichable</div>
-                    </div>
-                  </div>
-                )}
+                <p className="text-sm text-muted-foreground">
+                  {uploadResult.message}
+                </p>
+                {uploadResult.stats &&
+                  sf(
+                    <div className="grid grid-cols-4 gap-2 mt-3">
+                      <div className="text-center">
+                        <div className="text-lg font-bold">
+                          {uploadResult.stats.total ?? 0}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Total
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-lg font-bold text-green-600">
+                          {sf(uploadResult.stats.withPhone ?? 0)}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Phones
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-lg font-bold text-blue-600">
+                          {sf(uploadResult.stats.withEmail ?? 0)}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Emails
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-lg font-bold text-purple-600">
+                          {sf(uploadResult.stats.withAddress ?? 0)}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Enrichable
+                        </div>
+                      </div>
+                    </div>,
+                  )}
               </div>
             )}
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowUploadDialog(false)} disabled={isUploading}>
+            <Button
+              variant="outline"
+              onClick={() => setShowUploadDialog(false)}
+              disabled={isUploading}
+            >
               Cancel
             </Button>
             <Button

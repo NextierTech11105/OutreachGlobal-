@@ -7,11 +7,14 @@ import { useCurrentTeam } from "@/features/team/team.context";
 import { Loading } from "@/components/ui/loading";
 
 export function TwilioIntegration() {
-  const { team } = useCurrentTeam();
+  const { teamId, isTeamReady } = useCurrentTeam();
   const [settings, { loading }] = useSingleQuery(TWILIO_SETTINGS_QUERY, {
     pick: "twilioSettings",
-    variables: { teamId: team.id },
+    variables: { teamId },
+    skip: !isTeamReady,
   });
+
+  if (!isTeamReady) return null;
 
   if (!settings) {
     return loading ? (

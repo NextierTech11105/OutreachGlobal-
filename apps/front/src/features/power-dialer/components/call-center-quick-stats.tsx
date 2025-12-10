@@ -8,13 +8,18 @@ import { CALL_CENTER_REPORT_QUERY } from "../queries/call-center.queries";
 import { formatTime } from "@/lib/utils";
 
 export const CallCenterQuickStats: React.FC = () => {
-  const { team } = useCurrentTeam();
+  const { teamId, isTeamReady } = useCurrentTeam();
   const [report] = useSingleQuery(CALL_CENTER_REPORT_QUERY, {
     pick: "callCenterReport",
     variables: {
-      teamId: team.id,
+      teamId,
     },
+    skip: !isTeamReady,
   });
+
+  if (!isTeamReady) {
+    return null;
+  }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

@@ -28,16 +28,17 @@ const availableModules = ["Leads", "Contacts", "Accounts", "Comm_Logs"];
 
 export const ZohoIntegration = () => {
   const [connect, { loading }] = useMutation(CONNECT_INTEGRATION_MUTATION);
-  const { team } = useCurrentTeam();
+  const { teamId, isTeamReady } = useCurrentTeam();
 
   const [integration, { loading: integrationLoading }] = useSingleQuery(
     INTEGRATION_DETAILS_QUERY,
     {
       pick: "integration",
       variables: {
-        teamId: team.id,
+        teamId,
         id: "zoho",
       },
+      skip: !isTeamReady,
     },
   );
 
@@ -49,11 +50,11 @@ export const ZohoIntegration = () => {
     {
       pick: "moduleMetadata",
       variables: {
-        teamId: team.id,
+        teamId,
         provider: "zoho",
         name: selectedModule,
       },
-      skip: !integration || integration?.isExpired,
+      skip: !isTeamReady || !integration || integration?.isExpired,
     },
   );
 
@@ -62,18 +63,19 @@ export const ZohoIntegration = () => {
     {
       pick: "integrationFields",
       variables: {
-        teamId: team.id,
+        teamId,
         integrationId: integration?.id as string,
         moduleName: selectedModule,
       },
-      skip: !integration?.id,
+      skip: !isTeamReady || !integration?.id,
       fetchPolicy: "cache-and-network",
     },
   );
 
   const handleConnect = async () => {
+    if (!isTeamReady) return;
     const { data } = await connect({
-      variables: { teamId: team.id, provider: "zoho" },
+      variables: { teamId, provider: "zoho" },
     });
 
     if (data?.connectIntegration.uri) {

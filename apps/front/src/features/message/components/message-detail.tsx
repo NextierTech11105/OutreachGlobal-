@@ -1,6 +1,5 @@
 "use client";
 
-
 import { sf, sfd } from "@/lib/utils/safe-format";
 import { useState } from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -52,9 +51,9 @@ export function MessageDetail({
   onReply,
   onClose,
 }: MessageDetailProps) {
-  const [activeTab, setActiveTab] = useState<"message" | "ai" | "history" | "details">(
-    "message",
-  );
+  const [activeTab, setActiveTab] = useState<
+    "message" | "ai" | "history" | "details"
+  >("message");
 
   // AI Co-Pilot handlers
   const handleSendAiReply = async (replyMessage: string) => {
@@ -101,11 +100,13 @@ export function MessageDetail({
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ phone: message.phone }),
-    }).then(() => {
-      toast.success(`${message.phone} added to Do Not Contact list`);
-    }).catch(() => {
-      toast.error("Failed to add to DNC");
-    });
+    })
+      .then(() => {
+        toast.success(`${message.phone} added to Do Not Contact list`);
+      })
+      .catch(() => {
+        toast.error("Failed to add to DNC");
+      });
   };
 
   const handleMarkCold = () => {

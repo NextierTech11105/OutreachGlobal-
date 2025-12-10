@@ -37,13 +37,14 @@ export const LoadPresetModal: React.FC<Props> = ({
   onPresetSelect,
   ...props
 }) => {
-  const { team } = useCurrentTeam();
+  const { teamId, isTeamReady } = useCurrentTeam();
   const [selectedPreset, setSelectedPreset] = useState<Preset | null>(
     defaultSelectedPreset || null,
   );
   const [presets] = useSingleQuery(IMPORT_LEAD_PRESETS_QUERY, {
     pick: "importLeadPresets",
-    variables: { teamId: team.id },
+    variables: { teamId },
+    skip: !isTeamReady,
   });
 
   const handlePresetChange = (presetId: string) => {

@@ -52,7 +52,11 @@ const PERSONALIZATION_VARS = [
   { key: "{{name}}", label: "Lead Name", example: "John" },
   { key: "{{first_name}}", label: "First Name", example: "John" },
   { key: "{{last_name}}", label: "Last Name", example: "Smith" },
-  { key: "{{business_name}}", label: "Business Name", example: "Smith Auto Repair" },
+  {
+    key: "{{business_name}}",
+    label: "Business Name",
+    example: "Smith Auto Repair",
+  },
   { key: "{{sender_name}}", label: "Sender Name", example: "Gianna" },
   { key: "{{company}}", label: "Your Company", example: "Nextier" },
   { key: "{{city}}", label: "City", example: "Brooklyn" },
@@ -66,140 +70,160 @@ const INITIAL_SMS_TEMPLATES = [
   {
     id: "sms-1",
     name: "Valuation Curiosity",
-    message: "Hey {{name}}, {{sender_name}} with {{company}}. Quick one — ever wonder what your business could actually sell for? I can get you a valuation. Best email?",
+    message:
+      "Hey {{name}}, {{sender_name}} with {{company}}. Quick one — ever wonder what your business could actually sell for? I can get you a valuation. Best email?",
     category: "opening",
     tags: ["valuation", "soft-open"],
   },
   {
     id: "sms-2",
     name: "Hidden Value",
-    message: "Hey {{name}}, can you get a quick valuation on your business? Most owners I talk to have no idea what they're sitting on. Best email to send details?",
+    message:
+      "Hey {{name}}, can you get a quick valuation on your business? Most owners I talk to have no idea what they're sitting on. Best email to send details?",
     category: "opening",
     tags: ["valuation", "curiosity"],
   },
   {
     id: "sms-3",
     name: "Expand or Exit",
-    message: "{{sender_name}} here — have you thought about expanding or exiting anytime soon? I can get you a clean valuation. What's a good email?",
+    message:
+      "{{sender_name}} here — have you thought about expanding or exiting anytime soon? I can get you a clean valuation. What's a good email?",
     category: "opening",
     tags: ["exit", "expansion"],
   },
   {
     id: "sms-4",
     name: "Free Valuation Offer",
-    message: "Hey {{name}}, I help owners understand what their business can sell for. Want me to send you a valuation? What email should I use?",
+    message:
+      "Hey {{name}}, I help owners understand what their business can sell for. Want me to send you a valuation? What email should I use?",
     category: "opening",
     tags: ["valuation", "offer"],
   },
   {
     id: "sms-5",
     name: "Know Your Number",
-    message: "Curious — do you know what your business would sell for right now? I can show you. Best email?",
+    message:
+      "Curious — do you know what your business would sell for right now? I can show you. Best email?",
     category: "opening",
     tags: ["valuation", "direct"],
   },
   {
     id: "sms-6",
     name: "15-Min Chat",
-    message: "{{sender_name}} from {{company}} — I can get you a free business valuation. Worth a 15-min chat. What email should I send it to?",
+    message:
+      "{{sender_name}} from {{company}} — I can get you a free business valuation. Worth a 15-min chat. What email should I send it to?",
     category: "opening",
     tags: ["meeting", "valuation"],
   },
   {
     id: "sms-7",
     name: "Growth or Exit Check",
-    message: "Hey {{name}}, are you in growth mode or thinking about stepping back? I can get you a valuation either way. Best email?",
+    message:
+      "Hey {{name}}, are you in growth mode or thinking about stepping back? I can get you a valuation either way. Best email?",
     category: "opening",
     tags: ["qualification", "valuation"],
   },
   {
     id: "sms-8",
     name: "Tomorrow's Offer",
-    message: "If someone made you an offer tomorrow — do you know your number? I can get you a valuation. What's a good email?",
+    message:
+      "If someone made you an offer tomorrow — do you know your number? I can get you a valuation. What's a good email?",
     category: "opening",
     tags: ["urgency", "valuation"],
   },
   {
     id: "sms-9",
     name: "Worth Mapping",
-    message: "{{sender_name}} here — I help owners map out what they're worth. Quick valuation if you want it. Email?",
+    message:
+      "{{sender_name}} here — I help owners map out what they're worth. Quick valuation if you want it. Email?",
     category: "opening",
     tags: ["valuation", "short"],
   },
   {
     id: "sms-10",
     name: "1-2 Year Horizon",
-    message: "Hey {{name}}, thinking expansion or exit in the next year or two? Either way, I can get you a valuation. Email?",
+    message:
+      "Hey {{name}}, thinking expansion or exit in the next year or two? Either way, I can get you a valuation. Email?",
     category: "opening",
     tags: ["timeline", "valuation"],
   },
   {
     id: "sms-11",
     name: "This Week",
-    message: "I can run your business valuation this week. Want it? What's the best email for you?",
+    message:
+      "I can run your business valuation this week. Want it? What's the best email for you?",
     category: "opening",
     tags: ["urgency", "action"],
   },
   {
     id: "sms-12",
     name: "Exit Number",
-    message: "Hey {{name}}, most owners I talk to don't know their exit number. Want yours? Best email?",
+    message:
+      "Hey {{name}}, most owners I talk to don't know their exit number. Want yours? Best email?",
     category: "opening",
     tags: ["exit", "curiosity"],
   },
   {
     id: "sms-13",
     name: "Quick Intro",
-    message: "{{sender_name}} with {{company}} — I run valuations for business owners. Want me to send you yours? Email?",
+    message:
+      "{{sender_name}} with {{company}} — I run valuations for business owners. Want me to send you yours? Email?",
     category: "opening",
     tags: ["intro", "valuation"],
   },
   {
     id: "sms-14",
     name: "Head Number",
-    message: "If you ever sold, what number's in your head? I can get you the real one. Send me your best email?",
+    message:
+      "If you ever sold, what number's in your head? I can get you the real one. Send me your best email?",
     category: "opening",
     tags: ["direct", "valuation"],
   },
   {
     id: "sms-15",
     name: "Step Back Question",
-    message: "Quick one — have you thought about stepping back or selling someday? I can get you a valuation. Email?",
+    message:
+      "Quick one — have you thought about stepping back or selling someday? I can get you a valuation. Email?",
     category: "opening",
     tags: ["soft", "exit"],
   },
   {
     id: "sms-16",
     name: "True Worth",
-    message: "{{sender_name}} here — I help owners figure out what they're really worth. Want yours? What email should I send it to?",
+    message:
+      "{{sender_name}} here — I help owners figure out what they're really worth. Want yours? What email should I send it to?",
     category: "opening",
     tags: ["valuation", "worth"],
   },
   {
     id: "sms-17",
     name: "Market Value",
-    message: "Hey {{name}}, do you know your current market value? I can get it for you. Best email?",
+    message:
+      "Hey {{name}}, do you know your current market value? I can get it for you. Best email?",
     category: "opening",
     tags: ["market", "valuation"],
   },
   {
     id: "sms-18",
     name: "Buyer Snapshot",
-    message: "I can get you a full valuation + snapshot of what buyers would pay. Want it? Email?",
+    message:
+      "I can get you a full valuation + snapshot of what buyers would pay. Want it? Email?",
     category: "opening",
     tags: ["buyers", "valuation"],
   },
   {
     id: "sms-19",
     name: "This Week Batch",
-    message: "{{sender_name}} at {{company}} — I'm doing valuations this week for business owners. Want yours? Email?",
+    message:
+      "{{sender_name}} at {{company}} — I'm doing valuations this week for business owners. Want yours? Email?",
     category: "opening",
     tags: ["batch", "urgency"],
   },
   {
     id: "sms-20",
     name: "Full Valuation",
-    message: "Ever thought about expanding or exiting? I can get you a full valuation. What's the best email for you?",
+    message:
+      "Ever thought about expanding or exiting? I can get you a full valuation. What's the best email for you?",
     category: "opening",
     tags: ["complete", "valuation"],
   },
@@ -210,121 +234,141 @@ const COLD_CALL_SCRIPTS = [
   {
     id: "call-1",
     name: "Quick Question Open",
-    script: "Hey, it's {{sender_name}} with {{company}}. Quick question — have you thought about expanding or possibly exiting in the next year or two?",
+    script:
+      "Hey, it's {{sender_name}} with {{company}}. Quick question — have you thought about expanding or possibly exiting in the next year or two?",
     tags: ["direct", "timeline"],
   },
   {
     id: "call-2",
     name: "Worth Statement",
-    script: "{{sender_name}} here with {{company}}. I help owners understand what their business could actually sell for. Worth a quick minute?",
+    script:
+      "{{sender_name}} here with {{company}}. I help owners understand what their business could actually sell for. Worth a quick minute?",
     tags: ["value-prop", "soft"],
   },
   {
     id: "call-3",
     name: "Direction Check",
-    script: "Calling to see where you're heading — growth, maintaining, or exploring an exit. Mind if I ask one quick thing?",
+    script:
+      "Calling to see where you're heading — growth, maintaining, or exploring an exit. Mind if I ask one quick thing?",
     tags: ["qualification", "open"],
   },
   {
     id: "call-4",
     name: "Valuation Specialty",
-    script: "{{sender_name}} at {{company}} — I specialize in business valuations. Wanted to see if you've ever wondered what yours could fetch.",
+    script:
+      "{{sender_name}} at {{company}} — I specialize in business valuations. Wanted to see if you've ever wondered what yours could fetch.",
     tags: ["specialty", "curiosity"],
   },
   {
     id: "call-5",
     name: "Tomorrow Offer",
-    script: "Quick one — if someone made you an offer tomorrow, do you even know what your business is worth? That's why I'm calling.",
+    script:
+      "Quick one — if someone made you an offer tomorrow, do you even know what your business is worth? That's why I'm calling.",
     tags: ["urgency", "direct"],
   },
   {
     id: "call-6",
     name: "No Selling",
-    script: "I'm not selling anything — just want to see if you've ever thought about expansion or stepping back at any point.",
+    script:
+      "I'm not selling anything — just want to see if you've ever thought about expansion or stepping back at any point.",
     tags: ["disarm", "soft"],
   },
   {
     id: "call-7",
     name: "Realistic Number",
-    script: "{{sender_name}} here — I help owners get a realistic number of what they could sell for. Curious if that's ever crossed your mind?",
+    script:
+      "{{sender_name}} here — I help owners get a realistic number of what they could sell for. Curious if that's ever crossed your mind?",
     tags: ["realistic", "curiosity"],
   },
   {
     id: "call-8",
     name: "30 Seconds",
-    script: "Do you have 30 seconds? I'm calling because I can get you a valuation on what your business is worth right now.",
+    script:
+      "Do you have 30 seconds? I'm calling because I can get you a valuation on what your business is worth right now.",
     tags: ["time-bound", "direct"],
   },
   {
     id: "call-9",
     name: "One Sentence",
-    script: "I'll be quick — I help owners figure out the true market value of their business. Want me to explain in one sentence?",
+    script:
+      "I'll be quick — I help owners figure out the true market value of their business. Want me to explain in one sentence?",
     tags: ["brief", "hook"],
   },
   {
     id: "call-10",
     name: "Ever Wondered",
-    script: "Have you ever wondered what your business could sell for? That's exactly what I'm calling about.",
+    script:
+      "Have you ever wondered what your business could sell for? That's exactly what I'm calling about.",
     tags: ["simple", "direct"],
   },
   {
     id: "call-11",
     name: "Industry Talk",
-    script: "{{sender_name}} here. I talk to a lot of owners in your industry — some expanding, some thinking about an exit. Which bucket are you in?",
+    script:
+      "{{sender_name}} here. I talk to a lot of owners in your industry — some expanding, some thinking about an exit. Which bucket are you in?",
     tags: ["industry", "qualification"],
   },
   {
     id: "call-12",
     name: "Real Position",
-    script: "Not sure if this applies, but I can get you a full valuation on your business so you know your real position.",
+    script:
+      "Not sure if this applies, but I can get you a full valuation on your business so you know your real position.",
     tags: ["no-pressure", "value"],
   },
   {
     id: "call-13",
     name: "7-Figure Exit",
-    script: "I help owners find out if they're sitting on a potential 7-figure exit. Mind if I ask a quick question to see if it applies to you?",
+    script:
+      "I help owners find out if they're sitting on a potential 7-figure exit. Mind if I ask a quick question to see if it applies to you?",
     tags: ["big-number", "hook"],
   },
   {
     id: "call-14",
     name: "Not a Broker",
-    script: "I'm not a broker — I originate sellers. Wanted to see if getting a valuation would be useful for you.",
+    script:
+      "I'm not a broker — I originate sellers. Wanted to see if getting a valuation would be useful for you.",
     tags: ["differentiation", "value"],
   },
   {
     id: "call-15",
     name: "Step Back",
-    script: "Curious — have you ever thought about stepping back or selling someday? That's what I specialize in.",
+    script:
+      "Curious — have you ever thought about stepping back or selling someday? That's what I specialize in.",
     tags: ["future", "specialty"],
   },
   {
     id: "call-16",
     name: "Mode Check",
-    script: "Quick check-in — are you in growth mode, maintain mode, or possibly considering an exit?",
+    script:
+      "Quick check-in — are you in growth mode, maintain mode, or possibly considering an exit?",
     tags: ["qualification", "modes"],
   },
   {
     id: "call-17",
     name: "Clarity Offer",
-    script: "I help business owners get clarity on what their business could be worth. Worth a quick conversation?",
+    script:
+      "I help business owners get clarity on what their business could be worth. Worth a quick conversation?",
     tags: ["clarity", "value"],
   },
   {
     id: "call-18",
     name: "No Pressure",
-    script: "I can get you a no-pressure valuation so you know what you're sitting on. Interested?",
+    script:
+      "I can get you a no-pressure valuation so you know what you're sitting on. Interested?",
     tags: ["no-pressure", "direct"],
   },
   {
     id: "call-19",
     name: "Most Don't Know",
-    script: "Out of curiosity — do you know what your business would sell for today? Most owners don't. I can show you.",
+    script:
+      "Out of curiosity — do you know what your business would sell for today? Most owners don't. I can show you.",
     tags: ["statistics", "value"],
   },
   {
     id: "call-20",
     name: "Send Details",
-    script: "This is {{sender_name}} with {{company}}. I help owners understand their exit value. Want me to send you the details?",
+    script:
+      "This is {{sender_name}} with {{company}}. I help owners understand their exit value. Want me to send you the details?",
     tags: ["info-offer", "soft"],
   },
 ];
@@ -360,11 +404,17 @@ export default function MessageTemplatesPage() {
     result = result.replace(/\{\{name\}\}/g, previewVars.name);
     result = result.replace(/\{\{first_name\}\}/g, previewVars.first_name);
     result = result.replace(/\{\{last_name\}\}/g, previewVars.last_name);
-    result = result.replace(/\{\{business_name\}\}/g, previewVars.business_name);
+    result = result.replace(
+      /\{\{business_name\}\}/g,
+      previewVars.business_name,
+    );
     result = result.replace(/\{\{city\}\}/g, previewVars.city);
     result = result.replace(/\{\{state\}\}/g, previewVars.state);
     result = result.replace(/\{\{industry\}\}/g, previewVars.industry);
-    result = result.replace(/\{\{revenue_range\}\}/g, previewVars.revenue_range);
+    result = result.replace(
+      /\{\{revenue_range\}\}/g,
+      previewVars.revenue_range,
+    );
     return result;
   };
 
@@ -382,14 +432,18 @@ export default function MessageTemplatesPage() {
     (t) =>
       t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       t.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+      t.tags.some((tag) =>
+        tag.toLowerCase().includes(searchQuery.toLowerCase()),
+      ),
   );
 
   const filteredCalls = COLD_CALL_SCRIPTS.filter(
     (t) =>
       t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       t.script.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+      t.tags.some((tag) =>
+        tag.toLowerCase().includes(searchQuery.toLowerCase()),
+      ),
   );
 
   return (
@@ -417,7 +471,8 @@ export default function MessageTemplatesPage() {
                     Initial Outreach Templates
                   </CardTitle>
                   <CardDescription className="text-base">
-                    Hyperpersonalized SMS & Cold Call scripts with plug-and-play variables
+                    Hyperpersonalized SMS & Cold Call scripts with plug-and-play
+                    variables
                   </CardDescription>
                 </div>
               </div>
@@ -425,7 +480,9 @@ export default function MessageTemplatesPage() {
               {/* Sender Config */}
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
-                  <Label className="text-sm text-muted-foreground">Sender:</Label>
+                  <Label className="text-sm text-muted-foreground">
+                    Sender:
+                  </Label>
                   <Select value={senderName} onValueChange={setSenderName}>
                     <SelectTrigger className="w-36">
                       <SelectValue />
@@ -453,7 +510,9 @@ export default function MessageTemplatesPage() {
                   </Select>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Label className="text-sm text-muted-foreground">Company:</Label>
+                  <Label className="text-sm text-muted-foreground">
+                    Company:
+                  </Label>
                   <Input
                     value={companyName}
                     onChange={(e) => setCompanyName(e.target.value)}
@@ -537,7 +596,11 @@ export default function MessageTemplatesPage() {
                             {template.category}
                           </Badge>
                           {template.tags.map((tag) => (
-                            <Badge key={tag} variant="outline" className="text-xs">
+                            <Badge
+                              key={tag}
+                              variant="outline"
+                              className="text-xs"
+                            >
                               {tag}
                             </Badge>
                           ))}
@@ -546,7 +609,8 @@ export default function MessageTemplatesPage() {
                           {template.message}
                         </p>
                         <p className="text-xs text-muted-foreground mt-2">
-                          Preview: {replaceVariables(template.message).slice(0, 80)}...
+                          Preview:{" "}
+                          {replaceVariables(template.message).slice(0, 80)}...
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
@@ -563,7 +627,9 @@ export default function MessageTemplatesPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleCopy(template.message, template.id)}
+                          onClick={() =>
+                            handleCopy(template.message, template.id)
+                          }
                         >
                           {copiedId === template.id ? (
                             <Check className="w-4 h-4 text-green-500" />
@@ -596,7 +662,11 @@ export default function MessageTemplatesPage() {
                           <Phone className="w-4 h-4 text-green-500" />
                           <span className="font-medium">{script.name}</span>
                           {script.tags.map((tag) => (
-                            <Badge key={tag} variant="outline" className="text-xs">
+                            <Badge
+                              key={tag}
+                              variant="outline"
+                              className="text-xs"
+                            >
                               {tag}
                             </Badge>
                           ))}
@@ -649,7 +719,10 @@ export default function MessageTemplatesPage() {
                       <Input
                         value={previewVars.name}
                         onChange={(e) =>
-                          setPreviewVars({ ...previewVars, name: e.target.value })
+                          setPreviewVars({
+                            ...previewVars,
+                            name: e.target.value,
+                          })
                         }
                       />
                     </div>
@@ -676,7 +749,10 @@ export default function MessageTemplatesPage() {
                       <Input
                         value={previewVars.city}
                         onChange={(e) =>
-                          setPreviewVars({ ...previewVars, city: e.target.value })
+                          setPreviewVars({
+                            ...previewVars,
+                            city: e.target.value,
+                          })
                         }
                       />
                     </div>
@@ -685,7 +761,10 @@ export default function MessageTemplatesPage() {
                       <Input
                         value={previewVars.state}
                         onChange={(e) =>
-                          setPreviewVars({ ...previewVars, state: e.target.value })
+                          setPreviewVars({
+                            ...previewVars,
+                            state: e.target.value,
+                          })
                         }
                       />
                     </div>
@@ -694,7 +773,10 @@ export default function MessageTemplatesPage() {
                       <Input
                         value={previewVars.industry}
                         onChange={(e) =>
-                          setPreviewVars({ ...previewVars, industry: e.target.value })
+                          setPreviewVars({
+                            ...previewVars,
+                            industry: e.target.value,
+                          })
                         }
                       />
                     </div>
@@ -744,13 +826,19 @@ export default function MessageTemplatesPage() {
                         <div className="bg-blue-500/20 rounded-lg p-3 text-sm">
                           {previewTemplate
                             ? replaceVariables(previewTemplate)
-                            : replaceVariables(INITIAL_SMS_TEMPLATES[0].message)}
+                            : replaceVariables(
+                                INITIAL_SMS_TEMPLATES[0].message,
+                              )}
                         </div>
                         <div className="text-xs text-muted-foreground mt-2">
-                          {(previewTemplate
-                            ? replaceVariables(previewTemplate)
-                            : replaceVariables(INITIAL_SMS_TEMPLATES[0].message)
-                          ).length}{" "}
+                          {
+                            (previewTemplate
+                              ? replaceVariables(previewTemplate)
+                              : replaceVariables(
+                                  INITIAL_SMS_TEMPLATES[0].message,
+                                )
+                            ).length
+                          }{" "}
                           characters
                           {(previewTemplate
                             ? replaceVariables(previewTemplate)
@@ -770,7 +858,8 @@ export default function MessageTemplatesPage() {
                       variant="outline"
                       className="flex-1"
                       onClick={() => {
-                        const msg = previewTemplate || INITIAL_SMS_TEMPLATES[0].message;
+                        const msg =
+                          previewTemplate || INITIAL_SMS_TEMPLATES[0].message;
                         handleCopy(msg, "preview");
                       }}
                     >
@@ -789,14 +878,18 @@ export default function MessageTemplatesPage() {
             {/* Template Selector */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Select Template to Preview</CardTitle>
+                <CardTitle className="text-lg">
+                  Select Template to Preview
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-4 gap-2">
                   {INITIAL_SMS_TEMPLATES.map((t) => (
                     <Button
                       key={t.id}
-                      variant={previewTemplate === t.message ? "default" : "outline"}
+                      variant={
+                        previewTemplate === t.message ? "default" : "outline"
+                      }
                       size="sm"
                       onClick={() => setPreviewTemplate(t.message)}
                       className="justify-start text-xs"

@@ -73,7 +73,7 @@ const defaultValues = {
 };
 
 export function PromptList() {
-  const { team } = useCurrentTeam();
+  const { teamId, isTeamReady } = useCurrentTeam();
   const [activeTab, setActiveTab] = useState<string>(PromptType.EMAIL);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -97,9 +97,10 @@ export function PromptList() {
     useConnectionQuery(PROMPTS_QUERY, {
       pick: "prompts",
       variables: {
-        teamId: team.id,
+        teamId,
         type: activeTab,
       },
+      skip: !isTeamReady,
     });
 
   const handleDeletePrompt = (id: string) => {
@@ -107,8 +108,9 @@ export function PromptList() {
       title: "Delete Prompt",
       description: "Are you sure you want to delete this prompt?",
       onConfirm: async () => {
+        if (!isTeamReady) return;
         try {
-          await deletePrompt({ variables: { id, teamId: team.id } });
+          await deletePrompt({ variables: { id, teamId } });
           await refetch();
           toast.success("Prompt deleted");
         } catch (error) {
@@ -119,15 +121,16 @@ export function PromptList() {
   };
 
   const handleSavePrompt = async (input: CreatePromptDto) => {
+    if (!isTeamReady) return;
     input.type = activeTab as PromptType;
     setFormLoading(true);
     try {
       if (!currentPrompt) {
-        await createPrompt({ variables: { input, teamId: team.id } });
+        await createPrompt({ variables: { input, teamId } });
         await refetch();
       } else {
         await updatePrompt({
-          variables: { id: currentPrompt.id, input, teamId: team.id },
+          variables: { id: currentPrompt.id, input, teamId },
         });
       }
 

@@ -139,13 +139,17 @@ export const ImportLeadPresetModal: React.FC<Props> = ({
       "config.strategy",
     ],
   });
-  const { team } = useCurrentTeam();
+  const { team, teamId, isTeamReady } = useCurrentTeam();
 
   const [customDomain, setCustomDomain] = useState("");
   const [loading, setLoading] = useState(false);
   const [createPreset] = useMutation(CREATE_IMPORT_LEAD_PRESET_MUTATION);
   const { cache } = useApolloClient();
   const { showError } = useApiError();
+
+  if (!isTeamReady) {
+    return null;
+  }
 
   // Handle domain exclusion
   const handleDomainExclusion = (domain: string) => {
@@ -171,7 +175,7 @@ export const ImportLeadPresetModal: React.FC<Props> = ({
     try {
       const { data } = await createPreset({
         variables: {
-          teamId: team.id,
+          teamId,
           input,
         },
       });

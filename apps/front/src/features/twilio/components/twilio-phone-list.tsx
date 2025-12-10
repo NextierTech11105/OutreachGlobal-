@@ -23,12 +23,13 @@ import { useApiError } from "@/hooks/use-api-error";
 import { toast } from "sonner";
 
 export const TwilioPhoneList = () => {
-  const { team } = useCurrentTeam();
+  const { teamId, isTeamReady } = useCurrentTeam();
   const [phoneNumbers, { loading, refetch }] = useSingleQuery(
     TWILIO_PHONES_QUERY,
     {
       pick: "twilioPhones",
-      variables: { teamId: team.id },
+      variables: { teamId },
+      skip: !isTeamReady,
     },
   );
 
@@ -44,7 +45,7 @@ export const TwilioPhoneList = () => {
         try {
           await deletePhone({
             variables: {
-              teamId: team.id,
+              teamId,
               sid,
             },
           });

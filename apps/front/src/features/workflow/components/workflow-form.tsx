@@ -325,7 +325,8 @@ export function WorkflowForm({ onSubmit, onCancel, loading = false }: Props) {
                       )}
                     />
                     <FormDescription>
-                      Templates from this category will be used for initial outreach
+                      Templates from this category will be used for initial
+                      outreach
                     </FormDescription>
                   </FormItem>
                 )}
@@ -375,7 +376,10 @@ export function WorkflowForm({ onSubmit, onCancel, loading = false }: Props) {
                           </SelectTrigger>
                           <SelectContent>
                             {responseBuckets.map((bucket) => (
-                              <SelectItem key={bucket.value} value={bucket.value}>
+                              <SelectItem
+                                key={bucket.value}
+                                value={bucket.value}
+                              >
                                 {bucket.label}
                               </SelectItem>
                             ))}
@@ -426,14 +430,30 @@ export function WorkflowForm({ onSubmit, onCancel, loading = false }: Props) {
                             <SelectValue placeholder="Select Gianna personality" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="brooklyn_bestie">Brooklyn Bestie 🗽</SelectItem>
-                            <SelectItem value="sharp_professional">Sharp Professional 💼</SelectItem>
-                            <SelectItem value="hustler_heart">Hustler Heart 🔥</SelectItem>
-                            <SelectItem value="wise_mentor">Wise Mentor 🦉</SelectItem>
-                            <SelectItem value="playful_closer">Playful Closer 😄</SelectItem>
-                            <SelectItem value="empathetic_advisor">Empathetic Advisor 💚</SelectItem>
-                            <SelectItem value="straight_shooter">Straight Shooter 🎯</SelectItem>
-                            <SelectItem value="charming_connector">Charming Connector 🤝</SelectItem>
+                            <SelectItem value="brooklyn_bestie">
+                              Brooklyn Bestie 🗽
+                            </SelectItem>
+                            <SelectItem value="sharp_professional">
+                              Sharp Professional 💼
+                            </SelectItem>
+                            <SelectItem value="hustler_heart">
+                              Hustler Heart 🔥
+                            </SelectItem>
+                            <SelectItem value="wise_mentor">
+                              Wise Mentor 🦉
+                            </SelectItem>
+                            <SelectItem value="playful_closer">
+                              Playful Closer 😄
+                            </SelectItem>
+                            <SelectItem value="empathetic_advisor">
+                              Empathetic Advisor 💚
+                            </SelectItem>
+                            <SelectItem value="straight_shooter">
+                              Straight Shooter 🎯
+                            </SelectItem>
+                            <SelectItem value="charming_connector">
+                              Charming Connector 🤝
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                       )}

@@ -55,7 +55,7 @@ export function TwilioIntegrationContent({ defaultValues }: Props) {
   const { showError } = useApiError();
   const [updateTwilioSettings] = useMutation(UPDATE_TWILIO_SETTINGS_MUTATION);
   const [testTwilioConnection] = useMutation(TEST_TWILIO_SEND_SMS_MUTATION);
-  const { team } = useCurrentTeam();
+  const { teamId, isTeamReady } = useCurrentTeam();
 
   const [phoneNumbers, setPhoneNumbers] = useState([
     {
@@ -133,10 +133,11 @@ export function TwilioIntegrationContent({ defaultValues }: Props) {
   };
 
   const handleTestConnection = async () => {
+    if (!isTeamReady) return;
     setIsLoading(true);
 
     try {
-      await testTwilioConnection({ variables: { teamId: team.id } });
+      await testTwilioConnection({ variables: { teamId } });
       toast.success("Twilio connection test passed");
     } catch (err) {
       showError(err, { gql: true });
@@ -222,13 +223,14 @@ export function TwilioIntegrationContent({ defaultValues }: Props) {
   };
 
   const updateSettings = async (input: TwilioSettingsDto) => {
+    if (!isTeamReady) return;
     setIsLoading(true);
 
     try {
       await updateTwilioSettings({
         variables: {
           input,
-          teamId: team.id,
+          teamId,
         },
       });
 

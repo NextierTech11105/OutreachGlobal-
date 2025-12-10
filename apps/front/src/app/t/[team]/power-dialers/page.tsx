@@ -29,15 +29,18 @@ const formatTime = (seconds: number) => {
 
 export default function Page() {
   const [modalOpen, setModalOpen] = useState(false);
-  const { team } = useCurrentTeam();
+  const { teamId, isTeamReady } = useCurrentTeam();
 
   const [powerDialers, pageInfo, { loading }] = useConnectionQuery(
     POWER_DIALERS_QUERY,
     {
       pick: "powerDialers",
-      variables: { teamId: team.id, first: 50 },
+      variables: { teamId, first: 50 },
+      skip: !isTeamReady,
     },
   );
+
+  if (!isTeamReady) return null;
 
   return (
     <TeamSection>

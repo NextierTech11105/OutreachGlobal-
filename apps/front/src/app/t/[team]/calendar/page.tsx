@@ -40,7 +40,13 @@ import {
   Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -106,11 +112,41 @@ interface CalendarDay {
 
 type CampaignStage = "initial" | "nc_retarget" | "nurture" | "nudger";
 
-const CAMPAIGN_STAGES: { id: CampaignStage; label: string; description: string; icon: React.ReactNode; color: string }[] = [
-  { id: "initial", label: "Initial SMS", description: "First contact", icon: <Sparkles className="h-4 w-4" />, color: "bg-blue-500" },
-  { id: "nc_retarget", label: "NC Retarget", description: "No contact follow-up", icon: <RefreshCw className="h-4 w-4" />, color: "bg-orange-500" },
-  { id: "nurture", label: "Nurture", description: "Relationship building", icon: <Target className="h-4 w-4" />, color: "bg-green-500" },
-  { id: "nudger", label: "Nudger", description: "Final push", icon: <Send className="h-4 w-4" />, color: "bg-purple-500" },
+const CAMPAIGN_STAGES: {
+  id: CampaignStage;
+  label: string;
+  description: string;
+  icon: React.ReactNode;
+  color: string;
+}[] = [
+  {
+    id: "initial",
+    label: "Initial SMS",
+    description: "First contact",
+    icon: <Sparkles className="h-4 w-4" />,
+    color: "bg-blue-500",
+  },
+  {
+    id: "nc_retarget",
+    label: "NC Retarget",
+    description: "No contact follow-up",
+    icon: <RefreshCw className="h-4 w-4" />,
+    color: "bg-orange-500",
+  },
+  {
+    id: "nurture",
+    label: "Nurture",
+    description: "Relationship building",
+    icon: <Target className="h-4 w-4" />,
+    color: "bg-green-500",
+  },
+  {
+    id: "nudger",
+    label: "Nudger",
+    description: "Final push",
+    icon: <Send className="h-4 w-4" />,
+    color: "bg-purple-500",
+  },
 ];
 
 const STATUS_COLORS: Record<Lead["status"], string> = {
@@ -126,10 +162,13 @@ const STATUS_COLORS: Record<Lead["status"], string> = {
 // REAL API DATA FETCHING
 // ═══════════════════════════════════════════════════════════════════════════════
 
-async function fetchLeadsForDateRange(startDate: Date, endDate: Date): Promise<Lead[]> {
+async function fetchLeadsForDateRange(
+  startDate: Date,
+  endDate: Date,
+): Promise<Lead[]> {
   try {
     const response = await fetch(
-      `/api/calendar/leads?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`
+      `/api/calendar/leads?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`,
     );
     const data = await response.json();
     return data.success ? data.leads : [];
@@ -148,10 +187,13 @@ export default function LeadCalendarWorkspace() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [viewMode, setViewMode] = useState<"month" | "week">("month");
   const [selectedLeads, setSelectedLeads] = useState<Set<string>>(new Set());
-  const [filterStatus, setFilterStatus] = useState<Lead["status"] | "all">("all");
+  const [filterStatus, setFilterStatus] = useState<Lead["status"] | "all">(
+    "all",
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [isCampaignDialogOpen, setIsCampaignDialogOpen] = useState(false);
-  const [selectedCampaignStage, setSelectedCampaignStage] = useState<CampaignStage>("initial");
+  const [selectedCampaignStage, setSelectedCampaignStage] =
+    useState<CampaignStage>("initial");
   const [isPushing, setIsPushing] = useState(false);
   const [allLeads, setAllLeads] = useState<Lead[]>([]);
 
@@ -159,7 +201,10 @@ export default function LeadCalendarWorkspace() {
   const [isGiannaActive, setIsGiannaActive] = useState(false);
   const [giannaDialing, setGiannaDialing] = useState(false);
   const [giannaCurrentLead, setGiannaCurrentLead] = useState<Lead | null>(null);
-  const [giannaProgress, setGiannaProgress] = useState({ completed: 0, total: 0 });
+  const [giannaProgress, setGiannaProgress] = useState({
+    completed: 0,
+    total: 0,
+  });
   const [giannaSessionId, setGiannaSessionId] = useState<string | null>(null);
   const [isLoadingDialer, setIsLoadingDialer] = useState(false);
   const [showDialerDialog, setShowDialerDialog] = useState(false);
@@ -183,7 +228,10 @@ export default function LeadCalendarWorkspace() {
 
     async function loadLeads() {
       setIsLoading(true);
-      const leads = await fetchLeadsForDateRange(dateRange.startDate, dateRange.endDate);
+      const leads = await fetchLeadsForDateRange(
+        dateRange.startDate,
+        dateRange.endDate,
+      );
       if (!cancelled) {
         setAllLeads(leads);
         setIsLoading(false);
@@ -191,7 +239,9 @@ export default function LeadCalendarWorkspace() {
     }
 
     loadLeads();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [dateRange.startDate.getTime(), dateRange.endDate.getTime()]);
 
   // Generate calendar days with leads grouped by date
@@ -240,7 +290,7 @@ export default function LeadCalendarWorkspace() {
   const selectedDateLeads = useMemo(() => {
     if (!selectedDate) return [];
     const day = calendarDays.find(
-      (d) => d.date.toDateString() === selectedDate.toDateString()
+      (d) => d.date.toDateString() === selectedDate.toDateString(),
     );
     let leads = day?.leads || [];
 
@@ -351,7 +401,7 @@ export default function LeadCalendarWorkspace() {
       return;
     }
 
-    const leadsWithPhone = leads.filter(l => l.phone);
+    const leadsWithPhone = leads.filter((l) => l.phone);
     if (leadsWithPhone.length === 0) {
       toast.error("No leads with phone numbers");
       return;
@@ -421,7 +471,7 @@ export default function LeadCalendarWorkspace() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          leadIds: leads.slice(0, toLoad).map(l => l.id),
+          leadIds: leads.slice(0, toLoad).map((l) => l.id),
           workspaceId: "calendar",
           priority: "high",
         }),
@@ -471,10 +521,11 @@ export default function LeadCalendarWorkspace() {
       toast.success(
         `${result.queued} leads pushed to ${stage?.label} campaign`,
         {
-          description: result.skipped > 0
-            ? `${result.skipped} skipped (opted out or no phone)`
-            : "Ready for review in SMS Queue",
-        }
+          description:
+            result.skipped > 0
+              ? `${result.skipped} skipped (opted out or no phone)`
+              : "Ready for review in SMS Queue",
+        },
       );
       setSelectedLeads(new Set());
       setIsCampaignDialogOpen(false);
@@ -540,26 +591,47 @@ export default function LeadCalendarWorkspace() {
             {isGiannaActive && (
               <Card className="px-3 py-2 border-green-200 bg-green-50">
                 <div className="flex items-center gap-3">
-                  <Bot className={cn("h-5 w-5 text-green-600", giannaDialing && "animate-pulse")} />
+                  <Bot
+                    className={cn(
+                      "h-5 w-5 text-green-600",
+                      giannaDialing && "animate-pulse",
+                    )}
+                  />
                   <div className="text-sm">
                     <div className="font-medium text-green-800">
                       {giannaDialing ? "Gianna Dialing..." : "Gianna Paused"}
                     </div>
                     <div className="text-green-600 text-xs">
-                      {giannaCurrentLead?.name} • {giannaProgress.completed}/{giannaProgress.total}
+                      {giannaCurrentLead?.name} • {giannaProgress.completed}/
+                      {giannaProgress.total}
                     </div>
                   </div>
                   <div className="flex gap-1">
                     {giannaDialing ? (
-                      <Button variant="outline" size="sm" onClick={pauseGianna} className="h-7">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={pauseGianna}
+                        className="h-7"
+                      >
                         <Pause className="h-3 w-3" />
                       </Button>
                     ) : (
-                      <Button variant="outline" size="sm" onClick={resumeGianna} className="h-7">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={resumeGianna}
+                        className="h-7"
+                      >
                         <Play className="h-3 w-3" />
                       </Button>
                     )}
-                    <Button variant="destructive" size="sm" onClick={stopGianna} className="h-7">
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={stopGianna}
+                      className="h-7"
+                    >
                       <PhoneOff className="h-3 w-3" />
                     </Button>
                   </div>
@@ -611,16 +683,29 @@ export default function LeadCalendarWorkspace() {
           {/* Month Navigation */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="icon" onClick={() => navigateMonth(-1)}>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => navigateMonth(-1)}
+              >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <h2 className="text-xl font-semibold min-w-[200px] text-center">
                 {monthYear}
               </h2>
-              <Button variant="outline" size="icon" onClick={() => navigateMonth(1)}>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => navigateMonth(1)}
+              >
                 <ChevronRight className="h-4 w-4" />
               </Button>
-              <Button variant="outline" size="sm" onClick={goToToday} className="ml-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={goToToday}
+                className="ml-2"
+              >
                 Today
               </Button>
             </div>
@@ -660,7 +745,7 @@ export default function LeadCalendarWorkspace() {
                     !day.isCurrentMonth && "bg-muted/30 text-muted-foreground",
                     day.isToday && "bg-primary/5",
                     selectedDate?.toDateString() === day.date.toDateString() &&
-                      "bg-primary/10 ring-2 ring-primary ring-inset"
+                      "bg-primary/10 ring-2 ring-primary ring-inset",
                   )}
                 >
                   <div className="flex items-center justify-between mb-2">
@@ -668,7 +753,7 @@ export default function LeadCalendarWorkspace() {
                       className={cn(
                         "text-sm font-medium",
                         day.isToday &&
-                          "bg-primary text-primary-foreground rounded-full w-7 h-7 flex items-center justify-center"
+                          "bg-primary text-primary-foreground rounded-full w-7 h-7 flex items-center justify-center",
                       )}
                     >
                       {day.date.getDate()}
@@ -679,7 +764,9 @@ export default function LeadCalendarWorkspace() {
                         className={cn(
                           "text-xs",
                           day.leadCount > 5 && "bg-green-500/20 text-green-700",
-                          day.leadCount > 3 && day.leadCount <= 5 && "bg-blue-500/20 text-blue-700"
+                          day.leadCount > 3 &&
+                            day.leadCount <= 5 &&
+                            "bg-blue-500/20 text-blue-700",
                         )}
                       >
                         {day.leadCount}
@@ -695,13 +782,15 @@ export default function LeadCalendarWorkspace() {
                           key={i}
                           className={cn(
                             "w-2 h-2 rounded-full",
-                            STATUS_COLORS[lead.status]
+                            STATUS_COLORS[lead.status],
                           )}
                           title={`${lead.name} - ${lead.status}`}
                         />
                       ))}
                       {day.leadCount > 6 && (
-                        <span className="text-xs text-muted-foreground">+{day.leadCount - 6}</span>
+                        <span className="text-xs text-muted-foreground">
+                          +{day.leadCount - 6}
+                        </span>
                       )}
                     </div>
                   )}
@@ -713,27 +802,39 @@ export default function LeadCalendarWorkspace() {
           {/* Month Stats */}
           <div className="grid grid-cols-6 gap-4 mt-6">
             <Card className="p-4 text-center">
-              <p className="text-2xl font-bold text-blue-600">{monthStats.total}</p>
+              <p className="text-2xl font-bold text-blue-600">
+                {monthStats.total}
+              </p>
               <p className="text-xs text-muted-foreground">Total Leads</p>
             </Card>
             <Card className="p-4 text-center">
-              <p className="text-2xl font-bold text-green-600">{monthStats.new}</p>
+              <p className="text-2xl font-bold text-green-600">
+                {monthStats.new}
+              </p>
               <p className="text-xs text-muted-foreground">New</p>
             </Card>
             <Card className="p-4 text-center">
-              <p className="text-2xl font-bold text-yellow-600">{monthStats.contacted}</p>
+              <p className="text-2xl font-bold text-yellow-600">
+                {monthStats.contacted}
+              </p>
               <p className="text-xs text-muted-foreground">Contacted</p>
             </Card>
             <Card className="p-4 text-center">
-              <p className="text-2xl font-bold text-purple-600">{monthStats.qualified}</p>
+              <p className="text-2xl font-bold text-purple-600">
+                {monthStats.qualified}
+              </p>
               <p className="text-xs text-muted-foreground">Qualified</p>
             </Card>
             <Card className="p-4 text-center">
-              <p className="text-2xl font-bold text-emerald-600">{monthStats.withPhone}</p>
+              <p className="text-2xl font-bold text-emerald-600">
+                {monthStats.withPhone}
+              </p>
               <p className="text-xs text-muted-foreground">With Phone</p>
             </Card>
             <Card className="p-4 text-center">
-              <p className="text-2xl font-bold text-indigo-600">{monthStats.withEmail}</p>
+              <p className="text-2xl font-bold text-indigo-600">
+                {monthStats.withEmail}
+              </p>
               <p className="text-xs text-muted-foreground">With Email</p>
             </Card>
           </div>
@@ -751,9 +852,7 @@ export default function LeadCalendarWorkspace() {
                   day: "numeric",
                 }) || "Select a Date"}
               </h3>
-              <Badge variant="outline">
-                {selectedDateLeads.length} leads
-              </Badge>
+              <Badge variant="outline">{selectedDateLeads.length} leads</Badge>
             </div>
 
             {/* Actions Bar */}
@@ -764,17 +863,22 @@ export default function LeadCalendarWorkspace() {
                 onClick={selectAllLeads}
                 className="flex-shrink-0"
               >
-                {selectedLeads.size === selectedDateLeads.length && selectedDateLeads.length > 0 ? (
+                {selectedLeads.size === selectedDateLeads.length &&
+                selectedDateLeads.length > 0 ? (
                   <CheckSquare className="h-4 w-4 mr-1" />
                 ) : (
                   <Square className="h-4 w-4 mr-1" />
                 )}
-                {selectedLeads.size > 0 ? `${selectedLeads.size} selected` : "Select All"}
+                {selectedLeads.size > 0
+                  ? `${selectedLeads.size} selected`
+                  : "Select All"}
               </Button>
 
               <Select
                 value={filterStatus}
-                onValueChange={(v) => setFilterStatus(v as Lead["status"] | "all")}
+                onValueChange={(v) =>
+                  setFilterStatus(v as Lead["status"] | "all")
+                }
               >
                 <SelectTrigger className="w-[140px] h-8">
                   <Filter className="h-3 w-3 mr-2" />
@@ -797,7 +901,9 @@ export default function LeadCalendarWorkspace() {
               {selectedDateLeads.length === 0 ? (
                 <div className="text-center py-12">
                   <Inbox className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
-                  <p className="text-sm text-muted-foreground">No leads for this day</p>
+                  <p className="text-sm text-muted-foreground">
+                    No leads for this day
+                  </p>
                   <p className="text-xs text-muted-foreground mt-1">
                     Run a property search to generate leads
                   </p>
@@ -808,7 +914,7 @@ export default function LeadCalendarWorkspace() {
                     key={lead.id}
                     className={cn(
                       "transition-all",
-                      selectedLeads.has(lead.id) && "ring-2 ring-primary"
+                      selectedLeads.has(lead.id) && "ring-2 ring-primary",
                     )}
                   >
                     <CardContent className="p-3">
@@ -823,10 +929,16 @@ export default function LeadCalendarWorkspace() {
                         {/* Lead Info */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between mb-1">
-                            <h4 className="font-medium truncate">{lead.name}</h4>
+                            <h4 className="font-medium truncate">
+                              {lead.name}
+                            </h4>
                             <Badge
                               variant="secondary"
-                              className={cn("text-xs", STATUS_COLORS[lead.status], "text-white")}
+                              className={cn(
+                                "text-xs",
+                                STATUS_COLORS[lead.status],
+                                "text-white",
+                              )}
                             >
                               {lead.status}
                             </Badge>
@@ -913,8 +1025,12 @@ export default function LeadCalendarWorkspace() {
             <div className="p-4 border-t bg-gradient-to-r from-blue-500/10 to-purple-500/10">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium">{selectedLeads.size} leads selected</p>
-                  <p className="text-sm text-muted-foreground">Push to SMS campaign</p>
+                  <p className="font-medium">
+                    {selectedLeads.size} leads selected
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Push to SMS campaign
+                  </p>
                 </div>
                 <Button
                   onClick={() => setIsCampaignDialogOpen(true)}
@@ -938,7 +1054,8 @@ export default function LeadCalendarWorkspace() {
               Load Dialer Workspace
             </DialogTitle>
             <DialogDescription>
-              Load {Math.min(selectedLeads.size, MAX_DIALER_LEADS)} leads into dialer for manual or power dialing.
+              Load {Math.min(selectedLeads.size, MAX_DIALER_LEADS)} leads into
+              dialer for manual or power dialing.
             </DialogDescription>
           </DialogHeader>
 
@@ -949,7 +1066,9 @@ export default function LeadCalendarWorkspace() {
             </div>
             <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
               <span className="text-sm">Will load:</span>
-              <Badge variant="outline">{Math.min(selectedLeads.size, MAX_DIALER_LEADS)}</Badge>
+              <Badge variant="outline">
+                {Math.min(selectedLeads.size, MAX_DIALER_LEADS)}
+              </Badge>
             </div>
             {selectedLeads.size > MAX_DIALER_LEADS && (
               <p className="text-amber-600 text-sm">
@@ -959,7 +1078,10 @@ export default function LeadCalendarWorkspace() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDialerDialog(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowDialerDialog(false)}
+            >
               Cancel
             </Button>
             <Button
@@ -979,12 +1101,16 @@ export default function LeadCalendarWorkspace() {
       </Dialog>
 
       {/* Campaign Push Dialog */}
-      <Dialog open={isCampaignDialogOpen} onOpenChange={setIsCampaignDialogOpen}>
+      <Dialog
+        open={isCampaignDialogOpen}
+        onOpenChange={setIsCampaignDialogOpen}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Push to SMS Campaign</DialogTitle>
             <DialogDescription>
-              Select a campaign stage for {selectedLeads.size} lead{selectedLeads.size !== 1 ? "s" : ""}
+              Select a campaign stage for {selectedLeads.size} lead
+              {selectedLeads.size !== 1 ? "s" : ""}
             </DialogDescription>
           </DialogHeader>
 
@@ -997,7 +1123,7 @@ export default function LeadCalendarWorkspace() {
                   "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all",
                   selectedCampaignStage === stage.id
                     ? "border-primary bg-primary/5"
-                    : "hover:bg-muted"
+                    : "hover:bg-muted",
                 )}
               >
                 <div className={cn("p-2 rounded-lg text-white", stage.color)}>
@@ -1005,7 +1131,9 @@ export default function LeadCalendarWorkspace() {
                 </div>
                 <div className="flex-1">
                   <p className="font-medium">{stage.label}</p>
-                  <p className="text-sm text-muted-foreground">{stage.description}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {stage.description}
+                  </p>
                 </div>
                 {selectedCampaignStage === stage.id && (
                   <CheckCircle2 className="h-5 w-5 text-primary" />
@@ -1015,7 +1143,10 @@ export default function LeadCalendarWorkspace() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCampaignDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsCampaignDialogOpen(false)}
+            >
               Cancel
             </Button>
             <Button

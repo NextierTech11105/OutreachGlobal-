@@ -183,7 +183,7 @@ export function InboxSidebar() {
       const updatedLabels = labels.map((l) =>
         l.id === editingLabel.id
           ? { ...l, name: newLabelName.trim(), color: newLabelColor }
-          : l
+          : l,
       );
       saveLabels(updatedLabels);
     } else {
@@ -249,12 +249,14 @@ export function InboxSidebar() {
                   variant="ghost"
                   className={cn(
                     "flex-1 justify-start gap-2 font-normal text-sm h-8 px-2",
-                    activeItem === label.id && "bg-muted"
+                    activeItem === label.id && "bg-muted",
                   )}
                   onClick={() => setActiveItem(label.id)}
                 >
                   <Tag className={cn("h-4 w-4", label.color)} />
-                  <span className="flex-1 text-left truncate">{label.name}</span>
+                  <span className="flex-1 text-left truncate">
+                    {label.name}
+                  </span>
                 </Button>
                 <Button
                   variant="ghost"
@@ -306,7 +308,7 @@ export function InboxSidebar() {
                       "w-8 h-8 rounded-full flex items-center justify-center border-2",
                       newLabelColor === color.value
                         ? "border-primary"
-                        : "border-transparent"
+                        : "border-transparent",
                     )}
                     onClick={() => setNewLabelColor(color.value)}
                   >

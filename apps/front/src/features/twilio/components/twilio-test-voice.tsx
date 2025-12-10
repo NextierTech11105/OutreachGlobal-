@@ -24,13 +24,14 @@ export const TwilioTestVoice = () => {
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [activeCall, setActiveCall] = useState<Call | null>(null);
-  const { team } = useCurrentTeam();
+  const { teamId, isTeamReady } = useCurrentTeam();
 
   const createToken = async () => {
+    if (!isTeamReady) return;
     setLoading(true);
 
     try {
-      const { data } = await $http.post(`/voice/${team.id}/token`, {});
+      const { data } = await $http.post(`/voice/${teamId}/token`, {});
       setToken(data.token);
     } catch (error) {
       toast.error("failed to create token");
@@ -46,7 +47,9 @@ export const TwilioTestVoice = () => {
 
     if (!device) {
       // Dynamic import to avoid SSR issues with Twilio Voice SDK
-      const { Device: TwilioDevice, Call: TwilioCall } = await import("@twilio/voice-sdk");
+      const { Device: TwilioDevice, Call: TwilioCall } = await import(
+        "@twilio/voice-sdk"
+      );
       const newDevice = new TwilioDevice(token, {
         codecPreferences: [TwilioCall.Codec.Opus, TwilioCall.Codec.PCMU],
       });

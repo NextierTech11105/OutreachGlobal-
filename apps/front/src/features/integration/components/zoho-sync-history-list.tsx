@@ -16,15 +16,16 @@ interface Props {
 }
 
 export const ZohoSyncHistoryList = ({ integrationId }: Props) => {
-  const { team } = useCurrentTeam();
+  const { teamId, isTeamReady } = useCurrentTeam();
   const [tasks, pageInfo, { loading }] = useConnectionQuery(
     INTEGRATION_TASKS_QUERY,
     {
       pick: "integrationTasks",
       variables: {
-        teamId: team.id,
+        teamId,
         integrationId,
       },
+      skip: !isTeamReady,
     },
   );
 

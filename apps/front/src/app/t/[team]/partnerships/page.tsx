@@ -1,7 +1,13 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -147,7 +153,9 @@ export default function PartnershipsPage() {
         body: JSON.stringify({
           action: "create",
           ...newPartner,
-          maxRedemptions: newPartner.maxRedemptions ? parseInt(newPartner.maxRedemptions) : undefined,
+          maxRedemptions: newPartner.maxRedemptions
+            ? parseInt(newPartner.maxRedemptions)
+            : undefined,
         }),
       });
 
@@ -190,12 +198,13 @@ export default function PartnershipsPage() {
     }
   };
 
-  const filteredOffers = activeTab === "all"
-    ? offers
-    : offers.filter(o => o.category === activeTab);
+  const filteredOffers =
+    activeTab === "all"
+      ? offers
+      : offers.filter((o) => o.category === activeTab);
 
   const totalRedemptions = offers.reduce((sum, o) => sum + o.redemptions, 0);
-  const activeOffers = offers.filter(o => o.isActive).length;
+  const activeOffers = offers.filter((o) => o.isActive).length;
 
   if (isLoading) {
     return (
@@ -215,7 +224,8 @@ export default function PartnershipsPage() {
             Local Business Partnerships
           </h1>
           <p className="text-muted-foreground mt-1">
-            Partner with local businesses to offer exclusive coupons with valuation reports
+            Partner with local businesses to offer exclusive coupons with
+            valuation reports
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -242,7 +252,12 @@ export default function PartnershipsPage() {
                     <Label>Business Name *</Label>
                     <Input
                       value={newPartner.businessName}
-                      onChange={(e) => setNewPartner({ ...newPartner, businessName: e.target.value })}
+                      onChange={(e) =>
+                        setNewPartner({
+                          ...newPartner,
+                          businessName: e.target.value,
+                        })
+                      }
                       placeholder="Acme Home Services"
                       required
                     />
@@ -251,7 +266,9 @@ export default function PartnershipsPage() {
                     <Label>Category *</Label>
                     <Select
                       value={newPartner.category}
-                      onValueChange={(v) => setNewPartner({ ...newPartner, category: v })}
+                      onValueChange={(v) =>
+                        setNewPartner({ ...newPartner, category: v })
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select category" />
@@ -272,7 +289,12 @@ export default function PartnershipsPage() {
                     <Label>Contact Name</Label>
                     <Input
                       value={newPartner.contactName}
-                      onChange={(e) => setNewPartner({ ...newPartner, contactName: e.target.value })}
+                      onChange={(e) =>
+                        setNewPartner({
+                          ...newPartner,
+                          contactName: e.target.value,
+                        })
+                      }
                       placeholder="John Smith"
                     />
                   </div>
@@ -281,7 +303,9 @@ export default function PartnershipsPage() {
                     <Input
                       type="email"
                       value={newPartner.email}
-                      onChange={(e) => setNewPartner({ ...newPartner, email: e.target.value })}
+                      onChange={(e) =>
+                        setNewPartner({ ...newPartner, email: e.target.value })
+                      }
                       placeholder="john@business.com"
                     />
                   </div>
@@ -289,7 +313,9 @@ export default function PartnershipsPage() {
                     <Label>Phone</Label>
                     <Input
                       value={newPartner.phone}
-                      onChange={(e) => setNewPartner({ ...newPartner, phone: e.target.value })}
+                      onChange={(e) =>
+                        setNewPartner({ ...newPartner, phone: e.target.value })
+                      }
                       placeholder="212-555-0100"
                     />
                   </div>
@@ -297,7 +323,9 @@ export default function PartnershipsPage() {
                     <Label>City</Label>
                     <Input
                       value={newPartner.city}
-                      onChange={(e) => setNewPartner({ ...newPartner, city: e.target.value })}
+                      onChange={(e) =>
+                        setNewPartner({ ...newPartner, city: e.target.value })
+                      }
                       placeholder="New York"
                     />
                   </div>
@@ -307,7 +335,9 @@ export default function PartnershipsPage() {
                   <Label>Offer Description *</Label>
                   <Textarea
                     value={newPartner.offer}
-                    onChange={(e) => setNewPartner({ ...newPartner, offer: e.target.value })}
+                    onChange={(e) =>
+                      setNewPartner({ ...newPartner, offer: e.target.value })
+                    }
                     placeholder="Free inspection with any service"
                     required
                   />
@@ -318,7 +348,12 @@ export default function PartnershipsPage() {
                     <Label>Discount Value *</Label>
                     <Input
                       value={newPartner.discount}
-                      onChange={(e) => setNewPartner({ ...newPartner, discount: e.target.value })}
+                      onChange={(e) =>
+                        setNewPartner({
+                          ...newPartner,
+                          discount: e.target.value,
+                        })
+                      }
                       placeholder="$100 value"
                       required
                     />
@@ -327,7 +362,12 @@ export default function PartnershipsPage() {
                     <Label>Coupon Code</Label>
                     <Input
                       value={newPartner.couponCode}
-                      onChange={(e) => setNewPartner({ ...newPartner, couponCode: e.target.value })}
+                      onChange={(e) =>
+                        setNewPartner({
+                          ...newPartner,
+                          couponCode: e.target.value,
+                        })
+                      }
                       placeholder="NEXTIER100"
                     />
                   </div>
@@ -336,7 +376,12 @@ export default function PartnershipsPage() {
                     <Input
                       type="date"
                       value={newPartner.expiresAt}
-                      onChange={(e) => setNewPartner({ ...newPartner, expiresAt: e.target.value })}
+                      onChange={(e) =>
+                        setNewPartner({
+                          ...newPartner,
+                          expiresAt: e.target.value,
+                        })
+                      }
                     />
                   </div>
                 </div>
@@ -345,16 +390,25 @@ export default function PartnershipsPage() {
                   <Label>Terms & Conditions</Label>
                   <Textarea
                     value={newPartner.terms}
-                    onChange={(e) => setNewPartner({ ...newPartner, terms: e.target.value })}
+                    onChange={(e) =>
+                      setNewPartner({ ...newPartner, terms: e.target.value })
+                    }
                     placeholder="Valid for new customers only..."
                   />
                 </div>
 
                 <div className="flex justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={() => setShowAddDialog(false)}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowAddDialog(false)}
+                  >
                     Cancel
                   </Button>
-                  <Button type="submit" className="bg-purple-600 hover:bg-purple-700">
+                  <Button
+                    type="submit"
+                    className="bg-purple-600 hover:bg-purple-700"
+                  >
                     Create Partnership
                   </Button>
                 </div>
@@ -374,14 +428,20 @@ export default function PartnershipsPage() {
         </Card>
         <Card className="border-green-500/50">
           <CardContent className="pt-4">
-            <div className="text-2xl font-bold text-green-500">{activeOffers}</div>
+            <div className="text-2xl font-bold text-green-500">
+              {activeOffers}
+            </div>
             <div className="text-sm text-muted-foreground">Active Offers</div>
           </CardContent>
         </Card>
         <Card className="border-purple-500/50">
           <CardContent className="pt-4">
-            <div className="text-2xl font-bold text-purple-500">{totalRedemptions}</div>
-            <div className="text-sm text-muted-foreground">Total Redemptions</div>
+            <div className="text-2xl font-bold text-purple-500">
+              {totalRedemptions}
+            </div>
+            <div className="text-sm text-muted-foreground">
+              Total Redemptions
+            </div>
           </CardContent>
         </Card>
         <Card>
@@ -406,7 +466,9 @@ export default function PartnershipsPage() {
               <Card
                 key={cat.id}
                 className={`cursor-pointer transition-colors ${
-                  activeTab === cat.id ? "border-purple-500 bg-purple-500/10" : "hover:bg-muted/50"
+                  activeTab === cat.id
+                    ? "border-purple-500 bg-purple-500/10"
+                    : "hover:bg-muted/50"
                 }`}
                 onClick={() => setActiveTab(cat.id)}
               >
@@ -415,7 +477,9 @@ export default function PartnershipsPage() {
                     {categoryIcons[cat.id]}
                   </div>
                   <div className="font-medium text-sm">{cat.name}</div>
-                  <div className="text-xs text-muted-foreground">{cat.offerCount} offers</div>
+                  <div className="text-xs text-muted-foreground">
+                    {cat.offerCount} offers
+                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -430,11 +494,17 @@ export default function PartnershipsPage() {
             <div>
               <CardTitle>Partner Offers</CardTitle>
               <CardDescription>
-                {activeTab === "all" ? "All partner offers" : `${categories.find(c => c.id === activeTab)?.name || ""} partners`}
+                {activeTab === "all"
+                  ? "All partner offers"
+                  : `${categories.find((c) => c.id === activeTab)?.name || ""} partners`}
               </CardDescription>
             </div>
             {activeTab !== "all" && (
-              <Button variant="ghost" size="sm" onClick={() => setActiveTab("all")}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setActiveTab("all")}
+              >
                 Show All
               </Button>
             )}
@@ -459,23 +529,32 @@ export default function PartnershipsPage() {
                 </div>
               ) : (
                 filteredOffers.map((offer) => (
-                  <Card key={offer.id} className={!offer.isActive ? "opacity-60" : ""}>
+                  <Card
+                    key={offer.id}
+                    className={!offer.isActive ? "opacity-60" : ""}
+                  >
                     <CardContent className="p-4">
                       <div className="flex justify-between items-start">
                         <div className="flex gap-4">
                           <div className="h-12 w-12 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-500">
-                            {categoryIcons[offer.category] || <Building2 className="h-6 w-6" />}
+                            {categoryIcons[offer.category] || (
+                              <Building2 className="h-6 w-6" />
+                            )}
                           </div>
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
-                              <h3 className="font-semibold">{offer.businessName}</h3>
+                              <h3 className="font-semibold">
+                                {offer.businessName}
+                              </h3>
                               {offer.isActive ? (
                                 <Badge className="bg-green-500">Active</Badge>
                               ) : (
                                 <Badge variant="secondary">Inactive</Badge>
                               )}
                             </div>
-                            <p className="text-sm text-purple-500 font-medium">{offer.offer}</p>
+                            <p className="text-sm text-purple-500 font-medium">
+                              {offer.offer}
+                            </p>
                             <div className="flex items-center gap-4 text-xs text-muted-foreground">
                               <span className="flex items-center gap-1">
                                 <Ticket className="h-3 w-3" />
@@ -488,7 +567,8 @@ export default function PartnershipsPage() {
                               )}
                               <span className="flex items-center gap-1">
                                 <Calendar className="h-3 w-3" />
-                                Expires {new Date(offer.expiresAt).toLocaleDateString()}
+                                Expires{" "}
+                                {new Date(offer.expiresAt).toLocaleDateString()}
                               </span>
                             </div>
                             {offer.contactName && (
@@ -513,14 +593,20 @@ export default function PartnershipsPage() {
                         <div className="text-right">
                           <div className="flex items-center gap-2 mb-2">
                             <TrendingUp className="h-4 w-4 text-green-500" />
-                            <span className="font-semibold">{offer.redemptions}</span>
+                            <span className="font-semibold">
+                              {offer.redemptions}
+                            </span>
                             <span className="text-xs text-muted-foreground">
-                              {offer.maxRedemptions ? `/ ${offer.maxRedemptions}` : "redeemed"}
+                              {offer.maxRedemptions
+                                ? `/ ${offer.maxRedemptions}`
+                                : "redeemed"}
                             </span>
                           </div>
                           <Switch
                             checked={offer.isActive}
-                            onCheckedChange={() => togglePartnerStatus(offer.id)}
+                            onCheckedChange={() =>
+                              togglePartnerStatus(offer.id)
+                            }
                           />
                         </div>
                       </div>
@@ -573,7 +659,8 @@ export default function PartnershipsPage() {
             </Button>
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            Searches the NY Business database (5.5M records) by SIC code to find relevant local businesses
+            Searches the NY Business database (5.5M records) by SIC code to find
+            relevant local businesses
           </p>
         </CardContent>
       </Card>

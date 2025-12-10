@@ -64,7 +64,7 @@ const statuses = [
 ];
 
 export function LeadDetails({ lead }: Props) {
-  const { team } = useCurrentTeam();
+  const { team, teamId, isTeamReady } = useCurrentTeam();
   const [currentStatus, setCurrentStatus] = useState(
     lead.status || "No Status",
   );
@@ -78,6 +78,10 @@ export function LeadDetails({ lead }: Props) {
   const router = useRouter();
   const { showAlert } = useModalAlert();
   const { cache } = useApolloClient();
+
+  if (!isTeamReady) {
+    return null;
+  }
   const [deleteLead] = useMutation(BULK_DELETE_LEAD_MUTATION);
 
   const handleStatusChange = async (newStatus: string) => {
@@ -88,7 +92,7 @@ export function LeadDetails({ lead }: Props) {
     try {
       await updateLead({
         variables: {
-          teamId: team.id,
+          teamId,
           id: lead.id,
           input: { status: newStatus },
         },
@@ -106,7 +110,7 @@ export function LeadDetails({ lead }: Props) {
     setCurrentTags(newTags);
     await updateLead({
       variables: {
-        teamId: team.id,
+        teamId,
         id: lead.id,
         input: { tags: newTags },
       },
@@ -121,7 +125,7 @@ export function LeadDetails({ lead }: Props) {
         try {
           await deleteLead({
             variables: {
-              teamId: team.id,
+              teamId,
               leadIds: [lead.id],
             },
           });

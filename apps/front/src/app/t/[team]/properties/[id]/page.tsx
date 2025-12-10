@@ -4,17 +4,50 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  ArrowLeft, Loader2, Home, MapPin, DollarSign, TrendingUp, Calendar,
-  User, Phone, Mail, Building2, Landmark, FileText, RefreshCw, Zap,
-  MessageSquare, PhoneCall, MailPlus, ExternalLink, Copy, CheckCircle2,
-  AlertTriangle, Star, Ban, Smartphone, PhoneForwarded, Wifi
+  ArrowLeft,
+  Loader2,
+  Home,
+  MapPin,
+  DollarSign,
+  TrendingUp,
+  Calendar,
+  User,
+  Phone,
+  Mail,
+  Building2,
+  Landmark,
+  FileText,
+  RefreshCw,
+  Zap,
+  MessageSquare,
+  PhoneCall,
+  MailPlus,
+  ExternalLink,
+  Copy,
+  CheckCircle2,
+  AlertTriangle,
+  Star,
+  Ban,
+  Smartphone,
+  PhoneForwarded,
+  Wifi,
 } from "lucide-react";
 import { toast } from "sonner";
-import { OwnerContactCard, skipTraceToOwnerContact, OwnerContact } from "@/components/owner-contact-card";
+import {
+  OwnerContactCard,
+  skipTraceToOwnerContact,
+  OwnerContact,
+} from "@/components/owner-contact-card";
 
 // Property Detail interface - full payload from RealEstateAPI
 interface PropertyDetail {
@@ -61,14 +94,16 @@ interface PropertyDetail {
     foundation?: string;
   };
   // Flat address fields (some responses use these)
-  address?: string | {
-    label?: string;
-    address?: string;
-    street?: string;
-    city?: string;
-    state?: string;
-    zip?: string;
-  };
+  address?:
+    | string
+    | {
+        label?: string;
+        address?: string;
+        street?: string;
+        city?: string;
+        state?: string;
+        zip?: string;
+      };
   propertyType?: string;
   bedrooms?: number;
   bathrooms?: number;
@@ -192,13 +227,21 @@ interface PropertyDetail {
 // Format currency
 function formatCurrency(value?: number): string {
   if (!value) return "-";
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value);
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(value);
 }
 
 // Format date
 function formatDate(date?: string): string {
   if (!date) return "-";
-  return new Date(date).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+  return new Date(date).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 }
 
 // Format percentage
@@ -218,50 +261,61 @@ export default function PropertyDetailPage() {
   const [ownerContact, setOwnerContact] = useState<OwnerContact | null>(null);
 
   // Fetch property detail
-  const fetchPropertyDetail = useCallback(async (runSkipTrace = true) => {
-    setLoading(true);
-    try {
-      const response = await fetch("/api/property/detail", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: propertyId, autoSkipTrace: runSkipTrace }),
-      });
-
-      const data = await response.json();
-
-      if (data.error) {
-        toast.error(data.error);
-        return;
-      }
-
-      const prop = data.property;
-      setProperty(prop);
-
-      // Convert skip trace data to OwnerContact format
-      if (prop.phones?.length > 0 || prop.emails?.length > 0) {
-        const contact = skipTraceToOwnerContact({
-          ownerName: prop.ownerName || prop.ownerInfo?.owner1FullName ||
-                     [prop.ownerInfo?.owner1FirstName, prop.ownerInfo?.owner1LastName].filter(Boolean).join(" "),
-          phones: prop.phones?.map((p: string, idx: number) => ({
-            number: p,
-            type: idx === 0 ? "mobile" : "landline",
-          })) || [],
-          emails: prop.emails?.map((e: string, idx: number) => ({
-            email: e,
-            type: idx === 0 ? "personal" : "work",
-          })) || [],
+  const fetchPropertyDetail = useCallback(
+    async (runSkipTrace = true) => {
+      setLoading(true);
+      try {
+        const response = await fetch("/api/property/detail", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: propertyId, autoSkipTrace: runSkipTrace }),
         });
-        setOwnerContact(contact);
-      }
 
-      toast.success("Property detail loaded" + (runSkipTrace ? " with skip trace" : ""));
-    } catch (error) {
-      console.error("Failed to fetch property:", error);
-      toast.error("Failed to load property detail");
-    } finally {
-      setLoading(false);
-    }
-  }, [propertyId]);
+        const data = await response.json();
+
+        if (data.error) {
+          toast.error(data.error);
+          return;
+        }
+
+        const prop = data.property;
+        setProperty(prop);
+
+        // Convert skip trace data to OwnerContact format
+        if (prop.phones?.length > 0 || prop.emails?.length > 0) {
+          const contact = skipTraceToOwnerContact({
+            ownerName:
+              prop.ownerName ||
+              prop.ownerInfo?.owner1FullName ||
+              [prop.ownerInfo?.owner1FirstName, prop.ownerInfo?.owner1LastName]
+                .filter(Boolean)
+                .join(" "),
+            phones:
+              prop.phones?.map((p: string, idx: number) => ({
+                number: p,
+                type: idx === 0 ? "mobile" : "landline",
+              })) || [],
+            emails:
+              prop.emails?.map((e: string, idx: number) => ({
+                email: e,
+                type: idx === 0 ? "personal" : "work",
+              })) || [],
+          });
+          setOwnerContact(contact);
+        }
+
+        toast.success(
+          "Property detail loaded" + (runSkipTrace ? " with skip trace" : ""),
+        );
+      } catch (error) {
+        console.error("Failed to fetch property:", error);
+        toast.error("Failed to load property detail");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [propertyId],
+  );
 
   // Run skip trace separately
   const runSkipTrace = useCallback(async () => {
@@ -293,20 +347,32 @@ export default function PropertyDetailPage() {
       }
 
       // Update property with skip trace results
-      setProperty((prev) => prev ? {
-        ...prev,
-        phones: data.phones?.map((p: { number?: string } | string) => typeof p === "string" ? p : p.number) || [],
-        emails: data.emails?.map((e: { email?: string } | string) => typeof e === "string" ? e : e.email) || [],
-        ownerName: data.ownerName || prev.ownerName,
-        skipTracedAt: new Date().toISOString(),
-      } : null);
+      setProperty((prev) =>
+        prev
+          ? {
+              ...prev,
+              phones:
+                data.phones?.map((p: { number?: string } | string) =>
+                  typeof p === "string" ? p : p.number,
+                ) || [],
+              emails:
+                data.emails?.map((e: { email?: string } | string) =>
+                  typeof e === "string" ? e : e.email,
+                ) || [],
+              ownerName: data.ownerName || prev.ownerName,
+              skipTracedAt: new Date().toISOString(),
+            }
+          : null,
+      );
 
       // Update owner contact
       if (data.phones?.length > 0 || data.emails?.length > 0) {
         setOwnerContact(skipTraceToOwnerContact(data));
       }
 
-      toast.success(`Skip trace complete: ${data.phones?.length || 0} phones, ${data.emails?.length || 0} emails`);
+      toast.success(
+        `Skip trace complete: ${data.phones?.length || 0} phones, ${data.emails?.length || 0} emails`,
+      );
     } catch (error) {
       console.error("Skip trace failed:", error);
       toast.error("Skip trace failed");
@@ -332,17 +398,22 @@ export default function PropertyDetailPage() {
   const pushToValuation = () => {
     if (!property) return;
     const addr = property.propertyInfo?.address;
-    const address = addr?.label || `${addr?.address}, ${addr?.city}, ${addr?.state} ${addr?.zip}`;
+    const address =
+      addr?.label ||
+      `${addr?.address}, ${addr?.city}, ${addr?.state} ${addr?.zip}`;
 
-    localStorage.setItem("nextier_valuation_property", JSON.stringify({
-      address,
-      propertyId: property.id,
-      ownerName: property.ownerName,
-      phones: property.phones,
-      emails: property.emails,
-      estimatedValue: property.estimatedValue,
-      propertyDetail: property,
-    }));
+    localStorage.setItem(
+      "nextier_valuation_property",
+      JSON.stringify({
+        address,
+        propertyId: property.id,
+        ownerName: property.ownerName,
+        phones: property.phones,
+        emails: property.emails,
+        estimatedValue: property.estimatedValue,
+        propertyDetail: property,
+      }),
+    );
 
     router.push(`/t/default/valuation?address=${encodeURIComponent(address)}`);
   };
@@ -364,7 +435,11 @@ export default function PropertyDetailPage() {
         <div className="text-center">
           <AlertTriangle className="h-8 w-8 mx-auto mb-4 text-orange-500" />
           <p className="text-muted-foreground">Property not found</p>
-          <Button variant="outline" onClick={() => router.back()} className="mt-4">
+          <Button
+            variant="outline"
+            onClick={() => router.back()}
+            className="mt-4"
+          >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Go Back
           </Button>
@@ -400,7 +475,10 @@ export default function PropertyDetailPage() {
             </div>
 
             <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={() => fetchPropertyDetail(false)}>
+              <Button
+                variant="outline"
+                onClick={() => fetchPropertyDetail(false)}
+              >
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Refresh
               </Button>
@@ -445,15 +523,21 @@ export default function PropertyDetailPage() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div>
                     <p className="text-sm text-muted-foreground">Type</p>
-                    <p className="font-semibold">{property.propertyInfo?.propertyType || "-"}</p>
+                    <p className="font-semibold">
+                      {property.propertyInfo?.propertyType || "-"}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Beds</p>
-                    <p className="font-semibold">{property.propertyInfo?.bedrooms || "-"}</p>
+                    <p className="font-semibold">
+                      {property.propertyInfo?.bedrooms || "-"}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Baths</p>
-                    <p className="font-semibold">{property.propertyInfo?.bathrooms || "-"}</p>
+                    <p className="font-semibold">
+                      {property.propertyInfo?.bathrooms || "-"}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Sq Ft</p>
@@ -463,7 +547,9 @@ export default function PropertyDetailPage() {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Year Built</p>
-                    <p className="font-semibold">{property.propertyInfo?.yearBuilt || "-"}</p>
+                    <p className="font-semibold">
+                      {property.propertyInfo?.yearBuilt || "-"}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Lot Size</p>
@@ -473,11 +559,15 @@ export default function PropertyDetailPage() {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Stories</p>
-                    <p className="font-semibold">{property.propertyInfo?.stories || "-"}</p>
+                    <p className="font-semibold">
+                      {property.propertyInfo?.stories || "-"}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">APN</p>
-                    <p className="font-semibold text-xs">{property.propertyInfo?.apn || "-"}</p>
+                    <p className="font-semibold text-xs">
+                      {property.propertyInfo?.apn || "-"}
+                    </p>
                   </div>
                 </div>
 
@@ -486,7 +576,9 @@ export default function PropertyDetailPage() {
                 {/* Lead Signals */}
                 {property.leadTypes && property.leadTypes.length > 0 && (
                   <div>
-                    <p className="text-sm text-muted-foreground mb-2">Lead Signals</p>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Lead Signals
+                    </p>
                     <div className="flex flex-wrap gap-2">
                       {property.leadTypes.map((type) => (
                         <Badge key={type} variant="secondary">
@@ -512,7 +604,9 @@ export default function PropertyDetailPage() {
                   <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20">
                     <p className="text-sm text-green-600">Estimated Value</p>
                     <p className="text-2xl font-bold text-green-600">
-                      {formatCurrency(property.estimatedValue || property.taxMarketValue)}
+                      {formatCurrency(
+                        property.estimatedValue || property.taxMarketValue,
+                      )}
                     </p>
                   </div>
                   <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
@@ -525,13 +619,25 @@ export default function PropertyDetailPage() {
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Last Sale Price</p>
-                    <p className="font-semibold">{formatCurrency(property.lastSalePrice)}</p>
-                    <p className="text-xs text-muted-foreground">{formatDate(property.lastSaleDate)}</p>
+                    <p className="text-sm text-muted-foreground">
+                      Last Sale Price
+                    </p>
+                    <p className="font-semibold">
+                      {formatCurrency(property.lastSalePrice)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatDate(property.lastSaleDate)}
+                    </p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Assessed Value</p>
-                    <p className="font-semibold">{formatCurrency(property.assessedValue || property.taxAssessedValue)}</p>
+                    <p className="text-sm text-muted-foreground">
+                      Assessed Value
+                    </p>
+                    <p className="font-semibold">
+                      {formatCurrency(
+                        property.assessedValue || property.taxAssessedValue,
+                      )}
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -553,24 +659,42 @@ export default function PropertyDetailPage() {
                       <p className="font-semibold">{mortgage.lender || "-"}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Loan Amount</p>
-                      <p className="font-semibold">{formatCurrency(mortgage.loanAmount)}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Loan Amount
+                      </p>
+                      <p className="font-semibold">
+                        {formatCurrency(mortgage.loanAmount)}
+                      </p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Loan Type</p>
-                      <p className="font-semibold">{mortgage.loanType || "-"}</p>
+                      <p className="font-semibold">
+                        {mortgage.loanType || "-"}
+                      </p>
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Interest Rate</p>
-                      <p className="font-semibold">{mortgage.interestRate ? `${mortgage.interestRate}%` : "-"}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Interest Rate
+                      </p>
+                      <p className="font-semibold">
+                        {mortgage.interestRate
+                          ? `${mortgage.interestRate}%`
+                          : "-"}
+                      </p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Loan Date</p>
-                      <p className="font-semibold">{formatDate(mortgage.loanDate)}</p>
+                      <p className="font-semibold">
+                        {formatDate(mortgage.loanDate)}
+                      </p>
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Maturity Date</p>
-                      <p className="font-semibold">{formatDate(mortgage.maturityDate)}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Maturity Date
+                      </p>
+                      <p className="font-semibold">
+                        {formatDate(mortgage.maturityDate)}
+                      </p>
                     </div>
                   </div>
                 </CardContent>
@@ -591,22 +715,40 @@ export default function PropertyDetailPage() {
                     <div className="space-y-3">
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Tax Year</span>
-                        <span className="font-semibold">{tax.taxYear || "-"}</span>
+                        <span className="font-semibold">
+                          {tax.taxYear || "-"}
+                        </span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Tax Amount</span>
-                        <span className="font-semibold">{formatCurrency(tax.taxAmount)}</span>
+                        <span className="text-muted-foreground">
+                          Tax Amount
+                        </span>
+                        <span className="font-semibold">
+                          {formatCurrency(tax.taxAmount)}
+                        </span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Tax Delinquent</span>
-                        <span className={tax.taxDelinquent ? "text-red-500 font-semibold" : ""}>
+                        <span className="text-muted-foreground">
+                          Tax Delinquent
+                        </span>
+                        <span
+                          className={
+                            tax.taxDelinquent
+                              ? "text-red-500 font-semibold"
+                              : ""
+                          }
+                        >
                           {tax.taxDelinquent ? "Yes" : "No"}
                         </span>
                       </div>
                       {tax.taxLienAmount && (
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Lien Amount</span>
-                          <span className="text-red-500 font-semibold">{formatCurrency(tax.taxLienAmount)}</span>
+                          <span className="text-muted-foreground">
+                            Lien Amount
+                          </span>
+                          <span className="text-red-500 font-semibold">
+                            {formatCurrency(tax.taxLienAmount)}
+                          </span>
                         </div>
                       )}
                     </div>
@@ -626,22 +768,36 @@ export default function PropertyDetailPage() {
                     <div className="space-y-3">
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Status</span>
-                        <Badge variant="destructive">{foreclosure.foreclosureStatus}</Badge>
+                        <Badge variant="destructive">
+                          {foreclosure.foreclosureStatus}
+                        </Badge>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Filing Date</span>
-                        <span className="font-semibold">{formatDate(foreclosure.foreclosureDate)}</span>
+                        <span className="text-muted-foreground">
+                          Filing Date
+                        </span>
+                        <span className="font-semibold">
+                          {formatDate(foreclosure.foreclosureDate)}
+                        </span>
                       </div>
                       {foreclosure.defaultAmount && (
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Default Amount</span>
-                          <span className="text-red-500 font-semibold">{formatCurrency(foreclosure.defaultAmount)}</span>
+                          <span className="text-muted-foreground">
+                            Default Amount
+                          </span>
+                          <span className="text-red-500 font-semibold">
+                            {formatCurrency(foreclosure.defaultAmount)}
+                          </span>
                         </div>
                       )}
                       {foreclosure.auctionDate && (
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Auction Date</span>
-                          <span className="text-red-500 font-semibold">{formatDate(foreclosure.auctionDate)}</span>
+                          <span className="text-muted-foreground">
+                            Auction Date
+                          </span>
+                          <span className="text-red-500 font-semibold">
+                            {formatDate(foreclosure.auctionDate)}
+                          </span>
                         </div>
                       )}
                     </div>
@@ -672,8 +828,12 @@ export default function PropertyDetailPage() {
                 <div>
                   <p className="text-sm text-muted-foreground">Owner 1</p>
                   <p className="font-semibold text-lg">
-                    {property.ownerName || owner?.owner1FullName ||
-                     [owner?.owner1FirstName, owner?.owner1LastName].filter(Boolean).join(" ") || "-"}
+                    {property.ownerName ||
+                      owner?.owner1FullName ||
+                      [owner?.owner1FirstName, owner?.owner1LastName]
+                        .filter(Boolean)
+                        .join(" ") ||
+                      "-"}
                   </p>
                 </div>
 
@@ -682,14 +842,18 @@ export default function PropertyDetailPage() {
                     <p className="text-sm text-muted-foreground">Owner 2</p>
                     <p className="font-semibold">
                       {owner.owner2FullName ||
-                       [owner.owner2FirstName, owner.owner2LastName].filter(Boolean).join(" ")}
+                        [owner.owner2FirstName, owner.owner2LastName]
+                          .filter(Boolean)
+                          .join(" ")}
                     </p>
                   </div>
                 )}
 
                 {/* Owner Type */}
                 <div className="flex gap-2">
-                  <Badge variant={owner?.ownerOccupied ? "default" : "secondary"}>
+                  <Badge
+                    variant={owner?.ownerOccupied ? "default" : "secondary"}
+                  >
                     {owner?.ownerOccupied ? "Owner Occupied" : "Absentee Owner"}
                   </Badge>
                   {owner?.ownerType && (
@@ -700,10 +864,14 @@ export default function PropertyDetailPage() {
                 {/* Mailing Address */}
                 {owner?.mailingAddress && (
                   <div>
-                    <p className="text-sm text-muted-foreground">Mailing Address</p>
+                    <p className="text-sm text-muted-foreground">
+                      Mailing Address
+                    </p>
                     <p className="font-medium">
-                      {owner.mailingAddress.address}<br />
-                      {owner.mailingAddress.city}, {owner.mailingAddress.state} {owner.mailingAddress.zip}
+                      {owner.mailingAddress.address}
+                      <br />
+                      {owner.mailingAddress.city}, {owner.mailingAddress.state}{" "}
+                      {owner.mailingAddress.zip}
                     </p>
                   </div>
                 )}
@@ -713,7 +881,9 @@ export default function PropertyDetailPage() {
                 {/* Skip Trace Status */}
                 {!property.phones?.length && !property.emails?.length ? (
                   <div className="text-center py-4">
-                    <p className="text-muted-foreground mb-2">No contact info found</p>
+                    <p className="text-muted-foreground mb-2">
+                      No contact info found
+                    </p>
                     <Button onClick={runSkipTrace} disabled={skipTracing}>
                       {skipTracing ? (
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -738,9 +908,9 @@ export default function PropertyDetailPage() {
             {ownerContact && (
               <OwnerContactCard
                 contact={ownerContact}
-                onCall={(phone) => window.location.href = `tel:${phone}`}
-                onSMS={(phone) => window.open(`sms:${phone}`, '_blank')}
-                onEmail={(email) => window.location.href = `mailto:${email}`}
+                onCall={(phone) => (window.location.href = `tel:${phone}`)}
+                onSMS={(phone) => window.open(`sms:${phone}`, "_blank")}
+                onEmail={(email) => (window.location.href = `mailto:${email}`)}
                 editable={false}
               />
             )}
@@ -755,7 +925,10 @@ export default function PropertyDetailPage() {
                   className="w-full justify-start"
                   variant="outline"
                   disabled={!property.phones?.length}
-                  onClick={() => property.phones?.[0] && (window.location.href = `tel:${property.phones[0]}`)}
+                  onClick={() =>
+                    property.phones?.[0] &&
+                    (window.location.href = `tel:${property.phones[0]}`)
+                  }
                 >
                   <PhoneCall className="h-4 w-4 mr-2 text-blue-500" />
                   Call Owner
@@ -764,7 +937,10 @@ export default function PropertyDetailPage() {
                   className="w-full justify-start"
                   variant="outline"
                   disabled={!property.phones?.length}
-                  onClick={() => property.phones?.[0] && window.open(`sms:${property.phones[0]}`, '_blank')}
+                  onClick={() =>
+                    property.phones?.[0] &&
+                    window.open(`sms:${property.phones[0]}`, "_blank")
+                  }
                 >
                   <MessageSquare className="h-4 w-4 mr-2 text-green-500" />
                   Send SMS
@@ -773,7 +949,10 @@ export default function PropertyDetailPage() {
                   className="w-full justify-start"
                   variant="outline"
                   disabled={!property.emails?.length}
-                  onClick={() => property.emails?.[0] && (window.location.href = `mailto:${property.emails[0]}`)}
+                  onClick={() =>
+                    property.emails?.[0] &&
+                    (window.location.href = `mailto:${property.emails[0]}`)
+                  }
                 >
                   <MailPlus className="h-4 w-4 mr-2 text-purple-500" />
                   Send Email
@@ -832,7 +1011,12 @@ export default function PropertyDetailPage() {
                   variant="ghost"
                   size="sm"
                   className="mt-2"
-                  onClick={() => copyToClipboard(JSON.stringify(property, null, 2), "Raw data")}
+                  onClick={() =>
+                    copyToClipboard(
+                      JSON.stringify(property, null, 2),
+                      "Raw data",
+                    )
+                  }
                 >
                   <Copy className="h-3 w-3 mr-1" />
                   Copy JSON

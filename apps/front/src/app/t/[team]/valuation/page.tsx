@@ -4,7 +4,13 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
@@ -25,23 +31,72 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Search, Loader2, MapPin, Home, DollarSign, TrendingUp, TrendingDown,
-  Building2, Calendar, Ruler, Bath, BedDouble, Download, Printer,
-  Camera, Map, BarChart3, ArrowUpRight, ArrowDownRight, Minus,
-  CheckCircle2, AlertCircle, Info, FileText, Sparkles, Mail, MessageSquare,
-  Share2, Link2, Copy, ExternalLink, Brain, User, Landmark, Percent, CreditCard,
-  Phone, UserSearch, Users, FolderPlus, Save
+  Search,
+  Loader2,
+  MapPin,
+  Home,
+  DollarSign,
+  TrendingUp,
+  TrendingDown,
+  Building2,
+  Calendar,
+  Ruler,
+  Bath,
+  BedDouble,
+  Download,
+  Printer,
+  Camera,
+  Map,
+  BarChart3,
+  ArrowUpRight,
+  ArrowDownRight,
+  Minus,
+  CheckCircle2,
+  AlertCircle,
+  Info,
+  FileText,
+  Sparkles,
+  Mail,
+  MessageSquare,
+  Share2,
+  Link2,
+  Copy,
+  ExternalLink,
+  Brain,
+  User,
+  Landmark,
+  Percent,
+  CreditCard,
+  Phone,
+  UserSearch,
+  Users,
+  FolderPlus,
+  Save,
 } from "lucide-react";
 import { toast } from "sonner";
 import dynamic from "next/dynamic";
-import { StandardizedPhoneField, toStandardizedPhones, StandardizedPhone } from "@/components/standardized-phone-field";
-import { OwnerContactCard, skipTraceToOwnerContact, OwnerContact } from "@/components/owner-contact-card";
+import {
+  StandardizedPhoneField,
+  toStandardizedPhones,
+  StandardizedPhone,
+} from "@/components/standardized-phone-field";
+import {
+  OwnerContactCard,
+  skipTraceToOwnerContact,
+  OwnerContact,
+} from "@/components/owner-contact-card";
 import { sf, sfd } from "@/lib/utils/safe-format";
 
 // Dynamic import to avoid SSR issues with mapbox-gl
 const DualMapView = dynamic(
-  () => import("@/components/mapbox-property-view").then((mod) => mod.DualMapView),
-  { ssr: false, loading: () => <div className="w-full h-64 bg-muted animate-pulse rounded-lg" /> }
+  () =>
+    import("@/components/mapbox-property-view").then((mod) => mod.DualMapView),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-64 bg-muted animate-pulse rounded-lg" />
+    ),
+  },
 );
 
 interface AddressSuggestion {
@@ -59,23 +114,56 @@ interface AddressSuggestion {
 }
 
 const US_STATES = [
-  { value: "AL", label: "Alabama" }, { value: "AK", label: "Alaska" }, { value: "AZ", label: "Arizona" },
-  { value: "AR", label: "Arkansas" }, { value: "CA", label: "California" }, { value: "CO", label: "Colorado" },
-  { value: "CT", label: "Connecticut" }, { value: "DE", label: "Delaware" }, { value: "FL", label: "Florida" },
-  { value: "GA", label: "Georgia" }, { value: "HI", label: "Hawaii" }, { value: "ID", label: "Idaho" },
-  { value: "IL", label: "Illinois" }, { value: "IN", label: "Indiana" }, { value: "IA", label: "Iowa" },
-  { value: "KS", label: "Kansas" }, { value: "KY", label: "Kentucky" }, { value: "LA", label: "Louisiana" },
-  { value: "ME", label: "Maine" }, { value: "MD", label: "Maryland" }, { value: "MA", label: "Massachusetts" },
-  { value: "MI", label: "Michigan" }, { value: "MN", label: "Minnesota" }, { value: "MS", label: "Mississippi" },
-  { value: "MO", label: "Missouri" }, { value: "MT", label: "Montana" }, { value: "NE", label: "Nebraska" },
-  { value: "NV", label: "Nevada" }, { value: "NH", label: "New Hampshire" }, { value: "NJ", label: "New Jersey" },
-  { value: "NM", label: "New Mexico" }, { value: "NY", label: "New York" }, { value: "NC", label: "North Carolina" },
-  { value: "ND", label: "North Dakota" }, { value: "OH", label: "Ohio" }, { value: "OK", label: "Oklahoma" },
-  { value: "OR", label: "Oregon" }, { value: "PA", label: "Pennsylvania" }, { value: "RI", label: "Rhode Island" },
-  { value: "SC", label: "South Carolina" }, { value: "SD", label: "South Dakota" }, { value: "TN", label: "Tennessee" },
-  { value: "TX", label: "Texas" }, { value: "UT", label: "Utah" }, { value: "VT", label: "Vermont" },
-  { value: "VA", label: "Virginia" }, { value: "WA", label: "Washington" }, { value: "WV", label: "West Virginia" },
-  { value: "WI", label: "Wisconsin" }, { value: "WY", label: "Wyoming" }
+  { value: "AL", label: "Alabama" },
+  { value: "AK", label: "Alaska" },
+  { value: "AZ", label: "Arizona" },
+  { value: "AR", label: "Arkansas" },
+  { value: "CA", label: "California" },
+  { value: "CO", label: "Colorado" },
+  { value: "CT", label: "Connecticut" },
+  { value: "DE", label: "Delaware" },
+  { value: "FL", label: "Florida" },
+  { value: "GA", label: "Georgia" },
+  { value: "HI", label: "Hawaii" },
+  { value: "ID", label: "Idaho" },
+  { value: "IL", label: "Illinois" },
+  { value: "IN", label: "Indiana" },
+  { value: "IA", label: "Iowa" },
+  { value: "KS", label: "Kansas" },
+  { value: "KY", label: "Kentucky" },
+  { value: "LA", label: "Louisiana" },
+  { value: "ME", label: "Maine" },
+  { value: "MD", label: "Maryland" },
+  { value: "MA", label: "Massachusetts" },
+  { value: "MI", label: "Michigan" },
+  { value: "MN", label: "Minnesota" },
+  { value: "MS", label: "Mississippi" },
+  { value: "MO", label: "Missouri" },
+  { value: "MT", label: "Montana" },
+  { value: "NE", label: "Nebraska" },
+  { value: "NV", label: "Nevada" },
+  { value: "NH", label: "New Hampshire" },
+  { value: "NJ", label: "New Jersey" },
+  { value: "NM", label: "New Mexico" },
+  { value: "NY", label: "New York" },
+  { value: "NC", label: "North Carolina" },
+  { value: "ND", label: "North Dakota" },
+  { value: "OH", label: "Ohio" },
+  { value: "OK", label: "Oklahoma" },
+  { value: "OR", label: "Oregon" },
+  { value: "PA", label: "Pennsylvania" },
+  { value: "RI", label: "Rhode Island" },
+  { value: "SC", label: "South Carolina" },
+  { value: "SD", label: "South Dakota" },
+  { value: "TN", label: "Tennessee" },
+  { value: "TX", label: "Texas" },
+  { value: "UT", label: "Utah" },
+  { value: "VT", label: "Vermont" },
+  { value: "VA", label: "Virginia" },
+  { value: "WA", label: "Washington" },
+  { value: "WV", label: "West Virginia" },
+  { value: "WI", label: "Wisconsin" },
+  { value: "WY", label: "Wyoming" },
 ];
 
 interface ValuationReport {
@@ -198,18 +286,22 @@ interface AIAnalysis {
   };
   investmentInsights: {
     investorProfile: string;
-    rentalPotential: string | {
-      estimatedMonthlyRent: string;
-      grossYield: string;
-      netYield: string;
-      rentToValueRatio: string;
-    };
-    flipPotential: string | {
-      rehabCostEstimate: string;
-      afterRepairValue: string;
-      potentialProfit: string;
-      recommendation: string;
-    };
+    rentalPotential:
+      | string
+      | {
+          estimatedMonthlyRent: string;
+          grossYield: string;
+          netYield: string;
+          rentToValueRatio: string;
+        };
+    flipPotential:
+      | string
+      | {
+          rehabCostEstimate: string;
+          afterRepairValue: string;
+          potentialProfit: string;
+          recommendation: string;
+        };
     holdStrategy: string;
     cashFlowAnalysis?: {
       monthlyMortgage: string;
@@ -219,12 +311,14 @@ interface AIAnalysis {
   };
   marketTrends: {
     neighborhoodOutlook: string;
-    supplyDemand: string | {
-      inventoryLevel: string;
-      daysOnMarket: string;
-      buyerDemand: string;
-      priceDirection: string;
-    };
+    supplyDemand:
+      | string
+      | {
+          inventoryLevel: string;
+          daysOnMarket: string;
+          buyerDemand: string;
+          priceDirection: string;
+        };
     bestTimeToSell: string;
     economicFactors?: string[];
     competingListings?: string;
@@ -326,7 +420,8 @@ export default function ValuationPage() {
   const [showShareMenu, setShowShareMenu] = useState(false);
 
   // Skip Trace state
-  const [skipTraceResult, setSkipTraceResult] = useState<SkipTraceResult | null>(null);
+  const [skipTraceResult, setSkipTraceResult] =
+    useState<SkipTraceResult | null>(null);
   const [skipTraceLoading, setSkipTraceLoading] = useState(false);
 
   // Save to Library state
@@ -349,7 +444,9 @@ export default function ValuationPage() {
 
     setAutocompleteLoading(true);
     try {
-      const response = await fetch(`/api/address/autocomplete?q=${encodeURIComponent(searchTerm)}&type=address`);
+      const response = await fetch(
+        `/api/address/autocomplete?q=${encodeURIComponent(searchTerm)}&type=address`,
+      );
       const data = await response.json();
 
       if (data.data && Array.isArray(data.data)) {
@@ -410,7 +507,10 @@ export default function ValuationPage() {
     setLoading(true);
 
     console.log("[Valuation Page] Selected suggestion:", suggestion);
-    console.log("[Valuation Page] Property ID from autocomplete:", suggestion.id);
+    console.log(
+      "[Valuation Page] Property ID from autocomplete:",
+      suggestion.id,
+    );
 
     try {
       const response = await fetch("/api/property/valuation", {
@@ -575,7 +675,9 @@ export default function ValuationPage() {
       }
 
       setSkipTraceResult(data);
-      toast.success(`Skip trace complete! Found ${data.phones?.length || 0} phone(s), ${data.emails?.length || 0} email(s)`);
+      toast.success(
+        `Skip trace complete! Found ${data.phones?.length || 0} phone(s), ${data.emails?.length || 0} email(s)`,
+      );
     } catch (error) {
       console.error("Skip trace error:", error);
       toast.error("Failed to run skip trace");
@@ -599,7 +701,10 @@ export default function ValuationPage() {
         body: JSON.stringify({
           action: "saveReport",
           path: "/Research",
-          name: report.property?.address?.address || report.property?.address?.street || "Valuation Report",
+          name:
+            report.property?.address?.address ||
+            report.property?.address?.street ||
+            "Valuation Report",
           report: {
             property: report.property,
             valuation: report.valuation,
@@ -621,7 +726,11 @@ export default function ValuationPage() {
       toast.success("Report saved to Research Library!");
 
       // Copy shareable link to clipboard - prefer public CDN URL
-      const shareLink = data.htmlUrl || (data.shareableUrl ? `${window.location.origin}${data.shareableUrl}` : null);
+      const shareLink =
+        data.htmlUrl ||
+        (data.shareableUrl
+          ? `${window.location.origin}${data.shareableUrl}`
+          : null);
       if (shareLink) {
         setShareableLink(shareLink);
         setShowShareModal(true);
@@ -643,11 +752,14 @@ export default function ValuationPage() {
                 body: JSON.stringify({
                   reportId: data.reportId,
                   reportUrl: shareLink, // Use the public CDN URL directly
-                  reportName: report.property?.address?.address || "Property Valuation",
+                  reportName:
+                    report.property?.address?.address || "Property Valuation",
                   recipientPhone,
                   recipientEmail,
-                  recipientName: skipTraceResult.ownerName || report.property?.ownerName,
-                  propertyAddress: `${report.property?.address?.address || ""}, ${report.property?.address?.city || ""}, ${report.property?.address?.state || ""} ${report.property?.address?.zip || ""}`.trim(),
+                  recipientName:
+                    skipTraceResult.ownerName || report.property?.ownerName,
+                  propertyAddress:
+                    `${report.property?.address?.address || ""}, ${report.property?.address?.city || ""}, ${report.property?.address?.state || ""} ${report.property?.address?.zip || ""}`.trim(),
                   estimatedValue: report.valuation?.estimatedValue,
                   // Agent/Company info would come from user settings in production
                   agentName: undefined,
@@ -767,7 +879,7 @@ export default function ValuationPage() {
           </div>
           <div class="stat">
             <div class="stat-label">Estimated Equity</div>
-            <div class="stat-value">${(val?.equityEstimate ?? 0) >= 0 ? '$' + sf(val?.equityEstimate || 0) : 'Verify Data'}</div>
+            <div class="stat-value">${(val?.equityEstimate ?? 0) >= 0 ? "$" + sf(val?.equityEstimate || 0) : "Verify Data"}</div>
           </div>
           <div class="stat">
             <div class="stat-label">Comparable Avg</div>
@@ -779,7 +891,9 @@ export default function ValuationPage() {
           </div>
         </div>
 
-        ${aiAnalysis ? `
+        ${
+          aiAnalysis
+            ? `
         <div class="ai-section">
           <h3>AI Analysis</h3>
           <p><strong>Summary:</strong> ${aiAnalysis.executiveSummary}</p>
@@ -796,7 +910,9 @@ export default function ValuationPage() {
             ${(aiAnalysis.riskFactors || []).map((r: string) => `<li>${r}</li>`).join("")}
           </ul>
         </div>
-        ` : ""}
+        `
+            : ""
+        }
 
         <h2>Comparable Sales (${report.comparables.length})</h2>
         <table>
@@ -806,14 +922,19 @@ export default function ValuationPage() {
             <th>Sq Ft</th>
             <th>Sale Price</th>
           </tr>
-          ${report.comparables.slice(0, 5).map((c: any) => `
+          ${report.comparables
+            .slice(0, 5)
+            .map(
+              (c: any) => `
             <tr>
               <td>${c.address?.address || "N/A"}</td>
               <td>${c.bedrooms || c.beds || 0}/${c.bathrooms || c.baths || 0}</td>
               <td>${sf(c.squareFeet || c.buildingSize || 0)}</td>
               <td>$${sf(c.lastSaleAmount || c.estimatedValue || 0)}</td>
             </tr>
-          `).join("")}
+          `,
+            )
+            .join("")}
         </table>
 
         <div class="footer">
@@ -842,17 +963,21 @@ export default function ValuationPage() {
     const val = report.valuation;
     const fullAddress = `${prop?.address?.address || prop?.address?.street}, ${prop?.address?.city}, ${prop?.address?.state} ${prop?.address?.zip}`;
 
-    const subject = encodeURIComponent(`Property Valuation Report - ${fullAddress}`);
+    const subject = encodeURIComponent(
+      `Property Valuation Report - ${fullAddress}`,
+    );
     const body = encodeURIComponentsf(
       `Property Valuation Report\n\n` +
-      `Address: ${fullAddress}\n` +
-      `Estimated Value: $${(val?.estimatedValue || 0)}\n` +
-      `Price per Sq Ft: $${val?.pricePerSqft || 0}\n` +
-      `Beds/Baths: ${prop?.bedrooms || prop?.beds || 0}/${prop?.bathrooms || prop?.baths || 0}\n` +
-      `Square Feet: ${sf(prop?.squareFeet || prop?.buildingSize || 0)}\n\n` +
-      (aiAnalysis ? `AI Analysis Summary:\n${aiAnalysis.executiveSummary}\n\n` : "") +
-      `View full report online or contact us for more details.\n\n` +
-      `Generated by Outreach Global`
+        `Address: ${fullAddress}\n` +
+        `Estimated Value: $${val?.estimatedValue || 0}\n` +
+        `Price per Sq Ft: $${val?.pricePerSqft || 0}\n` +
+        `Beds/Baths: ${prop?.bedrooms || prop?.beds || 0}/${prop?.bathrooms || prop?.baths || 0}\n` +
+        `Square Feet: ${sf(prop?.squareFeet || prop?.buildingSize || 0)}\n\n` +
+        (aiAnalysis
+          ? `AI Analysis Summary:\n${aiAnalysis.executiveSummary}\n\n`
+          : "") +
+        `View full report online or contact us for more details.\n\n` +
+        `Generated by Outreach Global`,
     );
 
     window.open(`mailto:?subject=${subject}&body=${body}`, "_blank");
@@ -869,8 +994,8 @@ export default function ValuationPage() {
 
     const message = encodeURIComponentsf(
       `Property Valuation: ${fullAddress}\n` +
-      `Est. Value: $${(val?.estimatedValue || 0)}\n` +
-      `${prop?.bedrooms || prop?.beds || 0}bd/${prop?.bathrooms || prop?.baths || 0}ba | ${sf(prop?.squareFeet || prop?.buildingSize || 0)} sqft`
+        `Est. Value: $${val?.estimatedValue || 0}\n` +
+        `${prop?.bedrooms || prop?.beds || 0}bd/${prop?.bathrooms || prop?.baths || 0}ba | ${sf(prop?.squareFeet || prop?.buildingSize || 0)} sqft`,
     );
 
     // Works on mobile devices
@@ -924,7 +1049,8 @@ export default function ValuationPage() {
           Property Valuation Report
         </h1>
         <p className="text-muted-foreground mt-2">
-          Generate a comprehensive valuation report with comparables and neighborhood analysis
+          Generate a comprehensive valuation report with comparables and
+          neighborhood analysis
         </p>
       </div>
 
@@ -949,8 +1075,12 @@ export default function ValuationPage() {
                   placeholder="Start typing an address..."
                   value={address}
                   onChange={(e) => handleAddressChange(e.target.value)}
-                  onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
-                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                  onFocus={() =>
+                    suggestions.length > 0 && setShowSuggestions(true)
+                  }
+                  onBlur={() =>
+                    setTimeout(() => setShowSuggestions(false), 200)
+                  }
                   className="pr-8"
                 />
                 {autocompleteLoading && (
@@ -961,7 +1091,8 @@ export default function ValuationPage() {
               {showSuggestions && suggestions.length > 0 && (
                 <div className="absolute z-50 w-full mt-1 bg-background border rounded-md shadow-lg max-h-64 overflow-auto">
                   {suggestions.map((suggestion, idx) => {
-                    const displayAddress = suggestion.fullAddress ||
+                    const displayAddress =
+                      suggestion.fullAddress ||
                       `${suggestion.street || suggestion.address || ""}, ${suggestion.city || ""}, ${suggestion.state || ""} ${suggestion.zip || suggestion.zipCode || ""}`.trim();
                     return (
                       <button
@@ -1014,7 +1145,11 @@ export default function ValuationPage() {
             </div>
           </div>
           <div className="mt-4 flex gap-2">
-            <Button onClick={handleSearch} disabled={loading} className="w-full md:w-auto">
+            <Button
+              onClick={handleSearch}
+              disabled={loading}
+              className="w-full md:w-auto"
+            >
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -1039,14 +1174,19 @@ export default function ValuationPage() {
               <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CheckCircle2 className="h-8 w-8 text-green-500" />
               </div>
-              <h2 className="text-2xl font-bold mb-2">Report Ready to Share!</h2>
+              <h2 className="text-2xl font-bold mb-2">
+                Report Ready to Share!
+              </h2>
               <p className="text-muted-foreground mb-6">
-                Send this link to your client. They can view the full report and download it - no login required.
+                Send this link to your client. They can view the full report and
+                download it - no login required.
               </p>
 
               {/* Link Display */}
               <div className="bg-muted rounded-lg p-3 mb-4">
-                <p className="text-xs text-muted-foreground mb-2">SHAREABLE LINK (copied to clipboard)</p>
+                <p className="text-xs text-muted-foreground mb-2">
+                  SHAREABLE LINK (copied to clipboard)
+                </p>
                 <div className="flex items-center gap-2">
                   <input
                     type="text"
@@ -1073,7 +1213,7 @@ export default function ValuationPage() {
               <div className="flex flex-col gap-3">
                 <Button
                   className="w-full bg-green-600 hover:bg-green-700 text-white text-lg py-6"
-                  onClick={() => window.open(shareableLink, '_blank')}
+                  onClick={() => window.open(shareableLink, "_blank")}
                 >
                   <ExternalLink className="mr-2 h-5 w-5" />
                   Preview Report
@@ -1084,9 +1224,16 @@ export default function ValuationPage() {
                     variant="outline"
                     className="py-5"
                     onClick={() => {
-                      const subject = encodeURIComponent(`Your Property Valuation Report`);
-                      const body = encodeURIComponent(`Hi,\n\nHere is your property valuation report:\n${shareableLink}\n\nClick the link to view and download your full report.\n\nBest regards`);
-                      window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
+                      const subject = encodeURIComponent(
+                        `Your Property Valuation Report`,
+                      );
+                      const body = encodeURIComponent(
+                        `Hi,\n\nHere is your property valuation report:\n${shareableLink}\n\nClick the link to view and download your full report.\n\nBest regards`,
+                      );
+                      window.open(
+                        `mailto:?subject=${subject}&body=${body}`,
+                        "_blank",
+                      );
                     }}
                   >
                     <Mail className="mr-2 h-4 w-4" />
@@ -1096,8 +1243,10 @@ export default function ValuationPage() {
                     variant="outline"
                     className="py-5"
                     onClick={() => {
-                      const message = encodeURIComponent(`Your property valuation report is ready! View it here: ${shareableLink}`);
-                      window.open(`sms:?body=${message}`, '_blank');
+                      const message = encodeURIComponent(
+                        `Your property valuation report is ready! View it here: ${shareableLink}`,
+                      );
+                      window.open(`sms:?body=${message}`, "_blank");
                     }}
                   >
                     <MessageSquare className="mr-2 h-4 w-4" />
@@ -1161,12 +1310,18 @@ export default function ValuationPage() {
               )}
             </Button>
 
-            <Button onClick={handlePrint} className="bg-blue-600 hover:bg-blue-700 text-white border border-white">
+            <Button
+              onClick={handlePrint}
+              className="bg-blue-600 hover:bg-blue-700 text-white border border-white"
+            >
               <Printer className="mr-2 h-4 w-4" />
               Print
             </Button>
 
-            <Button onClick={handleDownloadPDF} className="bg-blue-600 hover:bg-blue-700 text-white border border-white">
+            <Button
+              onClick={handleDownloadPDF}
+              className="bg-blue-600 hover:bg-blue-700 text-white border border-white"
+            >
               <Download className="mr-2 h-4 w-4" />
               Download PDF
             </Button>
@@ -1209,21 +1364,30 @@ export default function ValuationPage() {
                 <div className="absolute right-0 mt-2 w-48 bg-background border rounded-md shadow-lg z-50">
                   <button
                     className="w-full px-4 py-2 text-left text-sm hover:bg-accent flex items-center gap-2"
-                    onClick={() => { handleShareEmail(); setShowShareMenu(false); }}
+                    onClick={() => {
+                      handleShareEmail();
+                      setShowShareMenu(false);
+                    }}
                   >
                     <Mail className="h-4 w-4" />
                     Email Report
                   </button>
                   <button
                     className="w-full px-4 py-2 text-left text-sm hover:bg-accent flex items-center gap-2"
-                    onClick={() => { handleShareSMS(); setShowShareMenu(false); }}
+                    onClick={() => {
+                      handleShareSMS();
+                      setShowShareMenu(false);
+                    }}
                   >
                     <MessageSquare className="h-4 w-4" />
                     Send via SMS
                   </button>
                   <button
                     className="w-full px-4 py-2 text-left text-sm hover:bg-accent flex items-center gap-2"
-                    onClick={() => { handleCopyLink(); setShowShareMenu(false); }}
+                    onClick={() => {
+                      handleCopyLink();
+                      setShowShareMenu(false);
+                    }}
                   >
                     <Copy className="h-4 w-4" />
                     Copy Link
@@ -1239,7 +1403,9 @@ export default function ValuationPage() {
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <CheckCircle2 className="h-5 w-5 text-green-500" />
-                  <span className="font-semibold text-green-600 dark:text-green-400">Report Link Ready</span>
+                  <span className="font-semibold text-green-600 dark:text-green-400">
+                    Report Link Ready
+                  </span>
                 </div>
                 <div className="flex-1 flex items-center gap-2 w-full sm:w-auto">
                   <input
@@ -1264,7 +1430,7 @@ export default function ValuationPage() {
                   <Button
                     size="sm"
                     className="bg-green-600 hover:bg-green-700"
-                    onClick={() => window.open(shareableLink, '_blank')}
+                    onClick={() => window.open(shareableLink, "_blank")}
                   >
                     <ExternalLink className="h-4 w-4 mr-1" />
                     Open
@@ -1272,7 +1438,8 @@ export default function ValuationPage() {
                 </div>
               </div>
               <p className="text-xs text-muted-foreground mt-2">
-                Share this link with your client - they can view and download the report without logging in.
+                Share this link with your client - they can view and download
+                the report without logging in.
               </p>
             </div>
           )}
@@ -1287,7 +1454,9 @@ export default function ValuationPage() {
                       <UserSearch className="h-6 w-6 text-green-600" />
                       {skipTraceResult.ownerName || "Property Owner"}
                     </CardTitle>
-                    <CardDescription className="text-base">Ready to contact - click to dial or send message</CardDescription>
+                    <CardDescription className="text-base">
+                      Ready to contact - click to dial or send message
+                    </CardDescription>
                   </div>
                   {/* QUICK ACTION BUTTONS - TOP RIGHT */}
                   <div className="flex flex-wrap gap-2">
@@ -1296,7 +1465,9 @@ export default function ValuationPage() {
                         <Button
                           size="lg"
                           className="bg-green-600 hover:bg-green-700 text-white shadow-lg"
-                          onClick={() => window.location.href = `tel:${skipTraceResult.phones[0].number}`}
+                          onClick={() =>
+                            (window.location.href = `tel:${skipTraceResult.phones[0].number}`)
+                          }
                         >
                           <Phone className="mr-2 h-5 w-5" />
                           Call Now
@@ -1305,7 +1476,12 @@ export default function ValuationPage() {
                           size="lg"
                           variant="outline"
                           className="border-blue-500 text-blue-600 hover:bg-blue-50"
-                          onClick={() => window.open(`sms:${skipTraceResult.phones[0].number}`, '_blank')}
+                          onClick={() =>
+                            window.open(
+                              `sms:${skipTraceResult.phones[0].number}`,
+                              "_blank",
+                            )
+                          }
                         >
                           <MessageSquare className="mr-2 h-5 w-5" />
                           SMS
@@ -1317,7 +1493,9 @@ export default function ValuationPage() {
                         size="lg"
                         variant="outline"
                         className="border-purple-500 text-purple-600 hover:bg-purple-50"
-                        onClick={() => window.location.href = `mailto:${skipTraceResult.emails[0].email}`}
+                        onClick={() =>
+                          (window.location.href = `mailto:${skipTraceResult.emails[0].email}`)
+                        }
                       >
                         <Mail className="mr-2 h-5 w-5" />
                         Email
@@ -1327,7 +1505,13 @@ export default function ValuationPage() {
                       size="lg"
                       variant="outline"
                       className="border-orange-500 text-orange-600 hover:bg-orange-50"
-                      onClick={() => window.open(process.env.NEXT_PUBLIC_CALENDAR_LINK || 'https://calendly.com/nextier/15min-strategy', '_blank')}
+                      onClick={() =>
+                        window.open(
+                          process.env.NEXT_PUBLIC_CALENDAR_LINK ||
+                            "https://calendly.com/nextier/15min-strategy",
+                          "_blank",
+                        )
+                      }
                     >
                       <Calendar className="mr-2 h-5 w-5" />
                       Book Call
@@ -1339,27 +1523,42 @@ export default function ValuationPage() {
                 {/* Owner Contact Card - 3 Phone Slots + 3 Email Slots */}
                 <OwnerContactCard
                   contact={skipTraceToOwnerContact(skipTraceResult)}
-                  onCall={(phone) => window.location.href = `tel:${phone}`}
-                  onSMS={(phone) => window.open(`sms:${phone}`, '_blank')}
-                  onEmail={(email) => window.location.href = `mailto:${email}`}
+                  onCall={(phone) => (window.location.href = `tel:${phone}`)}
+                  onSMS={(phone) => window.open(`sms:${phone}`, "_blank")}
+                  onEmail={(email) =>
+                    (window.location.href = `mailto:${email}`)
+                  }
                   editable={false}
                 />
 
                 {/* Additional Addresses & Relatives */}
-                {((skipTraceResult.addresses?.length ?? 0) > 0 || (skipTraceResult.relatives?.length ?? 0) > 0) && (
+                {((skipTraceResult.addresses?.length ?? 0) > 0 ||
+                  (skipTraceResult.relatives?.length ?? 0) > 0) && (
                   <>
                     <Separator className="my-4" />
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {skipTraceResult.addresses?.length > 0 && (
                         <div>
-                          <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-2">Other Addresses</h4>
+                          <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-2">
+                            Other Addresses
+                          </h4>
                           <div className="space-y-1">
-                            {skipTraceResult.addresses.slice(0, 3).map((addr, idx) => (
-                              <p key={idx} className="text-sm">
-                                {addr.street}, {addr.city}, {addr.state} {addr.zip}
-                                {addr.type && <Badge variant="outline" className="ml-2 text-xs">{addr.type}</Badge>}
-                              </p>
-                            ))}
+                            {skipTraceResult.addresses
+                              .slice(0, 3)
+                              .map((addr, idx) => (
+                                <p key={idx} className="text-sm">
+                                  {addr.street}, {addr.city}, {addr.state}{" "}
+                                  {addr.zip}
+                                  {addr.type && (
+                                    <Badge
+                                      variant="outline"
+                                      className="ml-2 text-xs"
+                                    >
+                                      {addr.type}
+                                    </Badge>
+                                  )}
+                                </p>
+                              ))}
                           </div>
                         </div>
                       )}
@@ -1370,9 +1569,17 @@ export default function ValuationPage() {
                             Relatives
                           </h4>
                           <div className="flex flex-wrap gap-1">
-                            {skipTraceResult.relatives?.slice(0, 5).map((rel, idx) => (
-                              <Badge key={idx} variant="secondary" className="text-xs">{rel}</Badge>
-                            ))}
+                            {skipTraceResult.relatives
+                              ?.slice(0, 5)
+                              .map((rel, idx) => (
+                                <Badge
+                                  key={idx}
+                                  variant="secondary"
+                                  className="text-xs"
+                                >
+                                  {rel}
+                                </Badge>
+                              ))}
                           </div>
                         </div>
                       )}
@@ -1390,11 +1597,14 @@ export default function ValuationPage() {
                 <div>
                   <CardTitle className="text-2xl flex items-center gap-2">
                     <Home className="h-6 w-6" />
-                    {prop?.address?.address || prop?.address?.street || "Property"}
+                    {prop?.address?.address ||
+                      prop?.address?.street ||
+                      "Property"}
                   </CardTitle>
                   <CardDescription className="text-lg mt-1">
                     <MapPin className="h-4 w-4 inline mr-1" />
-                    {prop?.address?.city}, {prop?.address?.state} {prop?.address?.zip}
+                    {prop?.address?.city}, {prop?.address?.state}{" "}
+                    {prop?.address?.zip}
                   </CardDescription>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -1402,35 +1612,53 @@ export default function ValuationPage() {
                     {prop?.propertyType || "Residential"}
                   </Badge>
                   <Badge className="text-lg px-3 py-1 bg-green-600">
-                    {formatCurrency(prop?.estimatedValue || val?.estimatedValue || 0)}
+                    {formatCurrency(
+                      prop?.estimatedValue || val?.estimatedValue || 0,
+                    )}
                   </Badge>
                   {/* Motivated Seller Tags - show when applicable */}
                   {prop?.preForeclosure && (
-                    <Badge className="bg-red-600 text-white">Pre-Foreclosure</Badge>
+                    <Badge className="bg-red-600 text-white">
+                      Pre-Foreclosure
+                    </Badge>
                   )}
                   {prop?.inForeclosure && (
-                    <Badge className="bg-red-700 text-white">In Foreclosure</Badge>
+                    <Badge className="bg-red-700 text-white">
+                      In Foreclosure
+                    </Badge>
                   )}
                   {prop?.ownerOccupied === false && (
-                    <Badge className="bg-purple-600 text-white">Absentee Owner</Badge>
+                    <Badge className="bg-purple-600 text-white">
+                      Absentee Owner
+                    </Badge>
                   )}
                   {prop?.highEquity && (
-                    <Badge className="bg-green-600 text-white">High Equity</Badge>
+                    <Badge className="bg-green-600 text-white">
+                      High Equity
+                    </Badge>
                   )}
                   {val?.equityEstimate && val.equityEstimate < 50000 && (
-                    <Badge className="bg-orange-600 text-white">Low Equity</Badge>
+                    <Badge className="bg-orange-600 text-white">
+                      Low Equity
+                    </Badge>
                   )}
                   {prop?.isVacant && (
                     <Badge className="bg-slate-600 text-white">Vacant</Badge>
                   )}
                   {prop?.taxDelinquent && (
-                    <Badge className="bg-red-500 text-white">Tax Delinquent</Badge>
+                    <Badge className="bg-red-500 text-white">
+                      Tax Delinquent
+                    </Badge>
                   )}
                   {prop?.freeClear && (
-                    <Badge className="bg-emerald-600 text-white">Free & Clear</Badge>
+                    <Badge className="bg-emerald-600 text-white">
+                      Free & Clear
+                    </Badge>
                   )}
                   {prop?.rentEstimate && (
-                    <Badge className="bg-blue-600 text-white">Rental: ${sf(prop.rentEstimate)}/mo</Badge>
+                    <Badge className="bg-blue-600 text-white">
+                      Rental: ${sf(prop.rentEstimate)}/mo
+                    </Badge>
                   )}
                 </div>
               </div>
@@ -1439,27 +1667,37 @@ export default function ValuationPage() {
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                 <div className="text-center p-3 bg-background rounded-lg">
                   <BedDouble className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
-                  <p className="text-xl font-bold">{prop?.bedrooms || prop?.beds || "N/A"}</p>
+                  <p className="text-xl font-bold">
+                    {prop?.bedrooms || prop?.beds || "N/A"}
+                  </p>
                   <p className="text-xs text-muted-foreground">Beds</p>
                 </div>
                 <div className="text-center p-3 bg-background rounded-lg">
                   <Bath className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
-                  <p className="text-xl font-bold">{prop?.bathrooms || prop?.baths || "N/A"}</p>
+                  <p className="text-xl font-bold">
+                    {prop?.bathrooms || prop?.baths || "N/A"}
+                  </p>
                   <p className="text-xs text-muted-foreground">Baths</p>
                 </div>
                 <div className="text-center p-3 bg-background rounded-lg">
                   <Ruler className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
-                  <p className="text-xl font-bold">{formatNumber(prop?.squareFeet || prop?.buildingSize || 0)}</p>
+                  <p className="text-xl font-bold">
+                    {formatNumber(prop?.squareFeet || prop?.buildingSize || 0)}
+                  </p>
                   <p className="text-xs text-muted-foreground">Sq Ft</p>
                 </div>
                 <div className="text-center p-3 bg-background rounded-lg">
                   <Calendar className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
-                  <p className="text-xl font-bold">{prop?.yearBuilt || "N/A"}</p>
+                  <p className="text-xl font-bold">
+                    {prop?.yearBuilt || "N/A"}
+                  </p>
                   <p className="text-xs text-muted-foreground">Year Built</p>
                 </div>
                 <div className="text-center p-3 bg-background rounded-lg">
                   <Map className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
-                  <p className="text-xl font-bold">{formatNumber(prop?.lotSquareFeet || prop?.lotSize || 0)}</p>
+                  <p className="text-xl font-bold">
+                    {formatNumber(prop?.lotSquareFeet || prop?.lotSize || 0)}
+                  </p>
                   <p className="text-xs text-muted-foreground">Lot Sq Ft</p>
                 </div>
                 <div className="text-center p-3 bg-background rounded-lg">
@@ -1482,7 +1720,10 @@ export default function ValuationPage() {
                 <User className="h-4 w-4" />
                 <span className="hidden sm:inline">Owner</span>
               </TabsTrigger>
-              <TabsTrigger value="financial" className="flex items-center gap-1">
+              <TabsTrigger
+                value="financial"
+                className="flex items-center gap-1"
+              >
                 <DollarSign className="h-4 w-4" />
                 <span className="hidden sm:inline">Financial</span>
               </TabsTrigger>
@@ -1512,64 +1753,126 @@ export default function ValuationPage() {
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <div className="space-y-4">
-                      <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Basic Info</h4>
+                      <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                        Basic Info
+                      </h4>
                       <div className="space-y-3">
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Property ID</span>
-                          <span className="font-mono font-medium">{prop?.id || "N/A"}</span>
+                          <span className="text-muted-foreground">
+                            Property ID
+                          </span>
+                          <span className="font-mono font-medium">
+                            {prop?.id || "N/A"}
+                          </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Property Type</span>
-                          <span className="font-medium">{prop?.propertyType || "Unknown"}</span>
+                          <span className="text-muted-foreground">
+                            Property Type
+                          </span>
+                          <span className="font-medium">
+                            {prop?.propertyType || "Unknown"}
+                          </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Year Built</span>
-                          <span className="font-medium">{prop?.yearBuilt || "N/A"}</span>
+                          <span className="text-muted-foreground">
+                            Year Built
+                          </span>
+                          <span className="font-medium">
+                            {prop?.yearBuilt || "N/A"}
+                          </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Property Age</span>
-                          <span className="font-medium">{prop?.yearBuilt ? `${new Date().getFullYear() - prop.yearBuilt} years` : "N/A"}</span>
+                          <span className="text-muted-foreground">
+                            Property Age
+                          </span>
+                          <span className="font-medium">
+                            {prop?.yearBuilt
+                              ? `${new Date().getFullYear() - prop.yearBuilt} years`
+                              : "N/A"}
+                          </span>
                         </div>
                       </div>
                     </div>
                     <div className="space-y-4">
-                      <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Size & Layout</h4>
+                      <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                        Size & Layout
+                      </h4>
                       <div className="space-y-3">
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Bedrooms</span>
-                          <span className="font-medium">{prop?.bedrooms || prop?.beds || "N/A"}</span>
+                          <span className="text-muted-foreground">
+                            Bedrooms
+                          </span>
+                          <span className="font-medium">
+                            {prop?.bedrooms || prop?.beds || "N/A"}
+                          </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Bathrooms</span>
-                          <span className="font-medium">{prop?.bathrooms || prop?.baths || "N/A"}</span>
+                          <span className="text-muted-foreground">
+                            Bathrooms
+                          </span>
+                          <span className="font-medium">
+                            {prop?.bathrooms || prop?.baths || "N/A"}
+                          </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Living Area</span>
-                          <span className="font-medium">{formatNumber(prop?.squareFeet || prop?.buildingSize || 0)} sq ft</span>
+                          <span className="text-muted-foreground">
+                            Living Area
+                          </span>
+                          <span className="font-medium">
+                            {formatNumber(
+                              prop?.squareFeet || prop?.buildingSize || 0,
+                            )}{" "}
+                            sq ft
+                          </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Lot Size</span>
-                          <span className="font-medium">{formatNumber(prop?.lotSquareFeet || prop?.lotSize || 0)} sq ft</span>
+                          <span className="text-muted-foreground">
+                            Lot Size
+                          </span>
+                          <span className="font-medium">
+                            {formatNumber(
+                              prop?.lotSquareFeet || prop?.lotSize || 0,
+                            )}{" "}
+                            sq ft
+                          </span>
                         </div>
                       </div>
                     </div>
                     <div className="space-y-4">
-                      <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Valuation</h4>
+                      <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                        Valuation
+                      </h4>
                       <div className="space-y-3">
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Estimated Value</span>
-                          <span className="font-medium text-green-600">{formatCurrency(prop?.estimatedValue || val?.estimatedValue || 0)}</span>
+                          <span className="text-muted-foreground">
+                            Estimated Value
+                          </span>
+                          <span className="font-medium text-green-600">
+                            {formatCurrency(
+                              prop?.estimatedValue || val?.estimatedValue || 0,
+                            )}
+                          </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Price/Sq Ft</span>
-                          <span className="font-medium">{formatCurrency(val?.pricePerSqft || 0)}</span>
+                          <span className="text-muted-foreground">
+                            Price/Sq Ft
+                          </span>
+                          <span className="font-medium">
+                            {formatCurrency(val?.pricePerSqft || 0)}
+                          </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Comp Average</span>
-                          <span className="font-medium">{formatCurrency(val?.comparableAvg || 0)}</span>
+                          <span className="text-muted-foreground">
+                            Comp Average
+                          </span>
+                          <span className="font-medium">
+                            {formatCurrency(val?.comparableAvg || 0)}
+                          </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Confidence</span>
+                          <span className="text-muted-foreground">
+                            Confidence
+                          </span>
                           {val && getConfidenceBadge(val.confidence)}
                         </div>
                       </div>
@@ -1591,7 +1894,9 @@ export default function ValuationPage() {
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-4">
-                      <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Owner Details</h4>
+                      <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                        Owner Details
+                      </h4>
                       <div className="p-4 bg-muted rounded-lg">
                         <div className="flex items-center gap-3 mb-4">
                           <div className="h-12 w-12 rounded-full bg-primary/20 flex items-center justify-center">
@@ -1599,22 +1904,40 @@ export default function ValuationPage() {
                           </div>
                           <div>
                             <p className="text-lg font-semibold">
-                              {[prop?.owner1FirstName, prop?.owner1LastName].filter(Boolean).join(" ") || "Owner Name Not Available"}
+                              {[prop?.owner1FirstName, prop?.owner1LastName]
+                                .filter(Boolean)
+                                .join(" ") || "Owner Name Not Available"}
                             </p>
-                            <Badge variant={prop?.ownerOccupied ? "default" : "secondary"}>
-                              {prop?.ownerOccupied ? "Owner Occupied" : "Non-Owner Occupied"}
+                            <Badge
+                              variant={
+                                prop?.ownerOccupied ? "default" : "secondary"
+                              }
+                            >
+                              {prop?.ownerOccupied
+                                ? "Owner Occupied"
+                                : "Non-Owner Occupied"}
                             </Badge>
                           </div>
                         </div>
                       </div>
                     </div>
                     <div className="space-y-4">
-                      <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Ownership Status</h4>
+                      <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                        Ownership Status
+                      </h4>
                       <div className="space-y-3">
                         <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                          <span className="text-muted-foreground">Occupancy</span>
-                          <Badge variant={prop?.ownerOccupied ? "default" : "outline"}>
-                            {prop?.ownerOccupied ? "Owner Occupied" : "Tenant/Vacant"}
+                          <span className="text-muted-foreground">
+                            Occupancy
+                          </span>
+                          <Badge
+                            variant={
+                              prop?.ownerOccupied ? "default" : "outline"
+                            }
+                          >
+                            {prop?.ownerOccupied
+                              ? "Owner Occupied"
+                              : "Tenant/Vacant"}
                           </Badge>
                         </div>
                       </div>
@@ -1639,11 +1962,22 @@ export default function ValuationPage() {
                     <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-900">
                       <div className="flex items-center gap-2 mb-3">
                         <Percent className="h-5 w-5 text-green-600" />
-                        <h4 className="font-semibold text-green-800 dark:text-green-400">Equity Position</h4>
+                        <h4 className="font-semibold text-green-800 dark:text-green-400">
+                          Equity Position
+                        </h4>
                       </div>
-                      <p className="text-3xl font-bold text-green-600">{formatCurrency(val?.equityEstimate || prop?.estimatedEquity || 0)}</p>
+                      <p className="text-3xl font-bold text-green-600">
+                        {formatCurrency(
+                          val?.equityEstimate || prop?.estimatedEquity || 0,
+                        )}
+                      </p>
                       <p className="text-sm text-green-700 dark:text-green-500 mt-1">
-                        {((val?.equityEstimate || 0) / (prop?.estimatedValue || 1) * 100).toFixed(0)}% of property value
+                        {(
+                          ((val?.equityEstimate || 0) /
+                            (prop?.estimatedValue || 1)) *
+                          100
+                        ).toFixed(0)}
+                        % of property value
                       </p>
                     </div>
 
@@ -1651,21 +1985,37 @@ export default function ValuationPage() {
                     <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-900">
                       <div className="flex items-center gap-2 mb-3">
                         <CreditCard className="h-5 w-5 text-blue-600" />
-                        <h4 className="font-semibold text-blue-800 dark:text-blue-400">Mortgage Balance</h4>
+                        <h4 className="font-semibold text-blue-800 dark:text-blue-400">
+                          Mortgage Balance
+                        </h4>
                       </div>
-                      <p className="text-3xl font-bold text-blue-600">{formatCurrency(prop?.openMortgageBalance || prop?.mortgageBalance || 0)}</p>
-                      <p className="text-sm text-blue-700 dark:text-blue-500 mt-1">Outstanding balance</p>
+                      <p className="text-3xl font-bold text-blue-600">
+                        {formatCurrency(
+                          prop?.openMortgageBalance ||
+                            prop?.mortgageBalance ||
+                            0,
+                        )}
+                      </p>
+                      <p className="text-sm text-blue-700 dark:text-blue-500 mt-1">
+                        Outstanding balance
+                      </p>
                     </div>
 
                     {/* Last Sale Card */}
                     <div className="p-4 bg-purple-50 dark:bg-purple-950/20 rounded-lg border border-purple-200 dark:border-purple-900">
                       <div className="flex items-center gap-2 mb-3">
                         <TrendingUp className="h-5 w-5 text-purple-600" />
-                        <h4 className="font-semibold text-purple-800 dark:text-purple-400">Last Sale</h4>
+                        <h4 className="font-semibold text-purple-800 dark:text-purple-400">
+                          Last Sale
+                        </h4>
                       </div>
-                      <p className="text-3xl font-bold text-purple-600">{formatCurrency(prop?.lastSaleAmount || 0)}</p>
+                      <p className="text-3xl font-bold text-purple-600">
+                        {formatCurrency(prop?.lastSaleAmount || 0)}
+                      </p>
                       <p className="text-sm text-purple-700 dark:text-purple-500 mt-1">
-                        {prop?.lastSaleDate ? new Date(prop.lastSaleDate).toLocaleDateString() : "Date not available"}
+                        {prop?.lastSaleDate
+                          ? new Date(prop.lastSaleDate).toLocaleDateString()
+                          : "Date not available"}
                       </p>
                     </div>
                   </div>
@@ -1674,48 +2024,89 @@ export default function ValuationPage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-4">
-                      <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Value Breakdown</h4>
+                      <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                        Value Breakdown
+                      </h4>
                       <div className="space-y-3">
                         <div className="flex justify-between p-2 hover:bg-muted rounded">
-                          <span className="text-muted-foreground">Estimated Value</span>
-                          <span className="font-semibold">{formatCurrency(prop?.estimatedValue || val?.estimatedValue || 0)}</span>
+                          <span className="text-muted-foreground">
+                            Estimated Value
+                          </span>
+                          <span className="font-semibold">
+                            {formatCurrency(
+                              prop?.estimatedValue || val?.estimatedValue || 0,
+                            )}
+                          </span>
                         </div>
                         <div className="flex justify-between p-2 hover:bg-muted rounded">
-                          <span className="text-muted-foreground">Mortgage Balance</span>
-                          <span className="font-semibold text-red-600">-{formatCurrency(prop?.openMortgageBalance || 0)}</span>
+                          <span className="text-muted-foreground">
+                            Mortgage Balance
+                          </span>
+                          <span className="font-semibold text-red-600">
+                            -{formatCurrency(prop?.openMortgageBalance || 0)}
+                          </span>
                         </div>
                         <Separator />
-                        <div className={`flex justify-between p-2 rounded ${(val?.equityEstimate ?? 0) >= 0 ? 'bg-green-50 dark:bg-green-950/20' : 'bg-amber-50 dark:bg-amber-950/20'}`}>
+                        <div
+                          className={`flex justify-between p-2 rounded ${(val?.equityEstimate ?? 0) >= 0 ? "bg-green-50 dark:bg-green-950/20" : "bg-amber-50 dark:bg-amber-950/20"}`}
+                        >
                           <span className="font-medium">Estimated Equity</span>
-                          <span className={`font-bold ${(val?.equityEstimate ?? 0) >= 0 ? 'text-green-600' : 'text-amber-600'}`}>
-                            {(val?.equityEstimate ?? 0) >= 0 ? formatCurrency(val?.equityEstimate || 0) : "Verify Data"}
+                          <span
+                            className={`font-bold ${(val?.equityEstimate ?? 0) >= 0 ? "text-green-600" : "text-amber-600"}`}
+                          >
+                            {(val?.equityEstimate ?? 0) >= 0
+                              ? formatCurrency(val?.equityEstimate || 0)
+                              : "Verify Data"}
                           </span>
                         </div>
                       </div>
                     </div>
                     <div className="space-y-4">
-                      <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Appreciation</h4>
+                      <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                        Appreciation
+                      </h4>
                       <div className="space-y-3">
                         {prop?.lastSaleAmount && prop?.estimatedValue ? (
                           <>
                             <div className="flex justify-between p-2 hover:bg-muted rounded">
-                              <span className="text-muted-foreground">Purchase Price</span>
-                              <span className="font-semibold">{formatCurrency(prop.lastSaleAmount)}</span>
+                              <span className="text-muted-foreground">
+                                Purchase Price
+                              </span>
+                              <span className="font-semibold">
+                                {formatCurrency(prop.lastSaleAmount)}
+                              </span>
                             </div>
                             <div className="flex justify-between p-2 hover:bg-muted rounded">
-                              <span className="text-muted-foreground">Current Value</span>
-                              <span className="font-semibold">{formatCurrency(prop.estimatedValue)}</span>
+                              <span className="text-muted-foreground">
+                                Current Value
+                              </span>
+                              <span className="font-semibold">
+                                {formatCurrency(prop.estimatedValue)}
+                              </span>
                             </div>
                             <div className="flex justify-between p-2 bg-green-50 dark:bg-green-950/20 rounded">
-                              <span className="font-medium">Total Appreciation</span>
+                              <span className="font-medium">
+                                Total Appreciation
+                              </span>
                               <span className="font-bold text-green-600">
-                                +{formatCurrency(prop.estimatedValue - prop.lastSaleAmount)}
-                                ({(((prop.estimatedValue - prop.lastSaleAmount) / prop.lastSaleAmount) * 100).toFixed(1)}%)
+                                +
+                                {formatCurrency(
+                                  prop.estimatedValue - prop.lastSaleAmount,
+                                )}
+                                (
+                                {(
+                                  ((prop.estimatedValue - prop.lastSaleAmount) /
+                                    prop.lastSaleAmount) *
+                                  100
+                                ).toFixed(1)}
+                                %)
                               </span>
                             </div>
                           </>
                         ) : (
-                          <p className="text-muted-foreground">Sale history not available</p>
+                          <p className="text-muted-foreground">
+                            Sale history not available
+                          </p>
                         )}
                       </div>
                     </div>
@@ -1732,7 +2123,9 @@ export default function ValuationPage() {
                     <Building2 className="h-5 w-5" />
                     Rental Analysis
                   </CardTitle>
-                  <CardDescription>Estimated rental income and investment metrics</CardDescription>
+                  <CardDescription>
+                    Estimated rental income and investment metrics
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
@@ -1740,14 +2133,19 @@ export default function ValuationPage() {
                     <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-900">
                       <div className="flex items-center gap-2 mb-3">
                         <DollarSign className="h-5 w-5 text-blue-600" />
-                        <h4 className="font-semibold text-blue-800 dark:text-blue-400">Estimated Rent</h4>
+                        <h4 className="font-semibold text-blue-800 dark:text-blue-400">
+                          Estimated Rent
+                        </h4>
                       </div>
                       <p className="text-3xl font-bold text-blue-600">
-                        {prop?.rentEstimate ? `$${sf(prop.rentEstimate)}/mo` : "N/A"}
+                        {prop?.rentEstimate
+                          ? `$${sf(prop.rentEstimate)}/mo`
+                          : "N/A"}
                       </p>
                       {prop?.rentRangeLow && prop?.rentRangeHigh && (
                         <p className="text-sm text-blue-700 dark:text-blue-500 mt-1">
-                          Range: ${sf(prop.rentRangeLow)} - ${sf(prop.rentRangeHigh)}
+                          Range: ${sf(prop.rentRangeLow)} - $
+                          {sf(prop.rentRangeHigh)}
                         </p>
                       )}
                     </div>
@@ -1756,61 +2154,97 @@ export default function ValuationPage() {
                     <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-900">
                       <div className="flex items-center gap-2 mb-3">
                         <Percent className="h-5 w-5 text-green-600" />
-                        <h4 className="font-semibold text-green-800 dark:text-green-400">Gross Yield</h4>
+                        <h4 className="font-semibold text-green-800 dark:text-green-400">
+                          Gross Yield
+                        </h4>
                       </div>
                       <p className="text-3xl font-bold text-green-600">
-                        {prop?.grossYield ? `${prop.grossYield.toFixed(1)}%` :
-                          (prop?.rentEstimate && prop?.estimatedValue)
-                            ? `${((prop.rentEstimate * 12 / prop.estimatedValue) * 100).toFixed(1)}%`
+                        {prop?.grossYield
+                          ? `${prop.grossYield.toFixed(1)}%`
+                          : prop?.rentEstimate && prop?.estimatedValue
+                            ? `${(((prop.rentEstimate * 12) / prop.estimatedValue) * 100).toFixed(1)}%`
                             : "N/A"}
                       </p>
-                      <p className="text-sm text-green-700 dark:text-green-500 mt-1">Annual rental income / Property value</p>
+                      <p className="text-sm text-green-700 dark:text-green-500 mt-1">
+                        Annual rental income / Property value
+                      </p>
                     </div>
 
                     {/* Annual Income Card */}
                     <div className="p-4 bg-purple-50 dark:bg-purple-950/20 rounded-lg border border-purple-200 dark:border-purple-900">
                       <div className="flex items-center gap-2 mb-3">
                         <TrendingUp className="h-5 w-5 text-purple-600" />
-                        <h4 className="font-semibold text-purple-800 dark:text-purple-400">Annual Income</h4>
+                        <h4 className="font-semibold text-purple-800 dark:text-purple-400">
+                          Annual Income
+                        </h4>
                       </div>
                       <p className="text-3xl font-bold text-purple-600">
-                        {prop?.rentEstimate ? `$${sf(prop.rentEstimate * 12)}` : "N/A"}
+                        {prop?.rentEstimate
+                          ? `$${sf(prop.rentEstimate * 12)}`
+                          : "N/A"}
                       </p>
-                      <p className="text-sm text-purple-700 dark:text-purple-500 mt-1">Before expenses</p>
+                      <p className="text-sm text-purple-700 dark:text-purple-500 mt-1">
+                        Before expenses
+                      </p>
                     </div>
                   </div>
 
                   {/* Multi-Family / Units Section */}
-                  {(prop?.units && prop.units > 1) && (
+                  {prop?.units && prop.units > 1 && (
                     <>
                       <Separator className="my-6" />
                       <div className="p-4 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-900">
                         <div className="flex items-center gap-2 mb-4">
                           <Building2 className="h-5 w-5 text-amber-600" />
-                          <h4 className="font-semibold text-amber-800 dark:text-amber-400">Multi-Family Details</h4>
+                          <h4 className="font-semibold text-amber-800 dark:text-amber-400">
+                            Multi-Family Details
+                          </h4>
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                           <div className="text-center p-3 bg-background rounded-lg">
-                            <p className="text-2xl font-bold text-amber-600">{prop.units}</p>
-                            <p className="text-xs text-muted-foreground">Total Units</p>
+                            <p className="text-2xl font-bold text-amber-600">
+                              {prop.units}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Total Units
+                            </p>
                           </div>
                           <div className="text-center p-3 bg-background rounded-lg">
                             <p className="text-2xl font-bold text-amber-600">
-                              ${sf(prop.rentPerUnit) || sf(Math.round((prop.rentEstimate || 0) / prop.units))}
+                              $
+                              {sf(prop.rentPerUnit) ||
+                                sf(
+                                  Math.round(
+                                    (prop.rentEstimate || 0) / prop.units,
+                                  ),
+                                )}
                             </p>
-                            <p className="text-xs text-muted-foreground">Rent Per Unit</p>
+                            <p className="text-xs text-muted-foreground">
+                              Rent Per Unit
+                            </p>
                           </div>
                           <div className="text-center p-3 bg-background rounded-lg">
                             <p className="text-2xl font-bold text-amber-600">
                               ${sf((prop.rentEstimate || 0) * 12)}
                             </p>
-                            <p className="text-xs text-muted-foreground">Annual Gross</p>
+                            <p className="text-xs text-muted-foreground">
+                              Annual Gross
+                            </p>
                           </div>
                           <div className="text-center p-3 bg-background rounded-lg">
                             <p className="text-2xl font-bold text-amber-600">
-                              ${prop.estimatedValue ? sf(Math.round(prop.estimatedValue / prop.units)) : "N/A"}
+                              $
+                              {prop.estimatedValue
+                                ? sf(
+                                    Math.round(
+                                      prop.estimatedValue / prop.units,
+                                    ),
+                                  )
+                                : "N/A"}
                             </p>
-                            <p className="text-xs text-muted-foreground">Value Per Unit</p>
+                            <p className="text-xs text-muted-foreground">
+                              Value Per Unit
+                            </p>
                           </div>
                         </div>
                       </div>
@@ -1822,54 +2256,88 @@ export default function ValuationPage() {
                   {/* Investment Metrics */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-4">
-                      <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Investment Metrics</h4>
+                      <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                        Investment Metrics
+                      </h4>
                       <div className="space-y-3">
                         <div className="flex justify-between p-2 hover:bg-muted rounded">
-                          <span className="text-muted-foreground">Monthly Rent Estimate</span>
-                          <span className="font-semibold">${sf(prop?.rentEstimate || 0)}</span>
-                        </div>
-                        <div className="flex justify-between p-2 hover:bg-muted rounded">
-                          <span className="text-muted-foreground">Annual Rent Income</span>
-                          <span className="font-semibold">${sf((prop?.rentEstimate || 0) * 12)}</span>
-                        </div>
-                        <div className="flex justify-between p-2 hover:bg-muted rounded">
-                          <span className="text-muted-foreground">Price Per Sq Ft (Rent)</span>
+                          <span className="text-muted-foreground">
+                            Monthly Rent Estimate
+                          </span>
                           <span className="font-semibold">
-                            ${prop?.rentEstimate && prop?.squareFeet
+                            ${sf(prop?.rentEstimate || 0)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between p-2 hover:bg-muted rounded">
+                          <span className="text-muted-foreground">
+                            Annual Rent Income
+                          </span>
+                          <span className="font-semibold">
+                            ${sf((prop?.rentEstimate || 0) * 12)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between p-2 hover:bg-muted rounded">
+                          <span className="text-muted-foreground">
+                            Price Per Sq Ft (Rent)
+                          </span>
+                          <span className="font-semibold">
+                            $
+                            {prop?.rentEstimate && prop?.squareFeet
                               ? (prop.rentEstimate / prop.squareFeet).toFixed(2)
-                              : "N/A"}/sqft
+                              : "N/A"}
+                            /sqft
                           </span>
                         </div>
                       </div>
                     </div>
                     <div className="space-y-4">
-                      <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Cap Rate Analysis</h4>
+                      <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                        Cap Rate Analysis
+                      </h4>
                       <div className="space-y-3">
                         <div className="flex justify-between p-2 hover:bg-muted rounded">
-                          <span className="text-muted-foreground">Gross Rent Multiplier</span>
+                          <span className="text-muted-foreground">
+                            Gross Rent Multiplier
+                          </span>
                           <span className="font-semibold">
                             {prop?.rentEstimate && prop?.estimatedValue
-                              ? (prop.estimatedValue / (prop.rentEstimate * 12)).toFixed(1) + "x"
+                              ? (
+                                  prop.estimatedValue /
+                                  (prop.rentEstimate * 12)
+                                ).toFixed(1) + "x"
                               : "N/A"}
                           </span>
                         </div>
                         <div className="flex justify-between p-2 hover:bg-muted rounded">
-                          <span className="text-muted-foreground">Est. Cap Rate (50% expense)</span>
+                          <span className="text-muted-foreground">
+                            Est. Cap Rate (50% expense)
+                          </span>
                           <span className="font-semibold">
                             {prop?.rentEstimate && prop?.estimatedValue
-                              ? (((prop.rentEstimate * 12 * 0.5) / prop.estimatedValue) * 100).toFixed(1) + "%"
+                              ? (
+                                  ((prop.rentEstimate * 12 * 0.5) /
+                                    prop.estimatedValue) *
+                                  100
+                                ).toFixed(1) + "%"
                               : "N/A"}
                           </span>
                         </div>
                         <div className="flex justify-between p-2 bg-blue-50 dark:bg-blue-950/20 rounded">
                           <span className="font-medium">1% Rule Check</span>
-                          <Badge variant={
-                            prop?.rentEstimate && prop?.estimatedValue && (prop.rentEstimate / prop.estimatedValue) >= 0.01
-                              ? "default"
-                              : "outline"
-                          }>
+                          <Badge
+                            variant={
+                              prop?.rentEstimate &&
+                              prop?.estimatedValue &&
+                              prop.rentEstimate / prop.estimatedValue >= 0.01
+                                ? "default"
+                                : "outline"
+                            }
+                          >
                             {prop?.rentEstimate && prop?.estimatedValue
-                              ? ((prop.rentEstimate / prop.estimatedValue) * 100).toFixed(2) + "%"
+                              ? (
+                                  (prop.rentEstimate / prop.estimatedValue) *
+                                  100
+                                ).toFixed(2) + "%"
                               : "N/A"}
                           </Badge>
                         </div>
@@ -1892,22 +2360,41 @@ export default function ValuationPage() {
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-4">
-                      <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Address</h4>
+                      <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                        Address
+                      </h4>
                       <div className="p-4 bg-muted rounded-lg space-y-2">
-                        <p className="font-semibold text-lg">{prop?.address?.address || prop?.address?.street}</p>
-                        <p>{prop?.address?.city}, {prop?.address?.state} {prop?.address?.zip}</p>
+                        <p className="font-semibold text-lg">
+                          {prop?.address?.address || prop?.address?.street}
+                        </p>
+                        <p>
+                          {prop?.address?.city}, {prop?.address?.state}{" "}
+                          {prop?.address?.zip}
+                        </p>
                       </div>
                     </div>
                     <div className="space-y-4">
-                      <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Coordinates</h4>
+                      <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                        Coordinates
+                      </h4>
                       <div className="space-y-3">
                         <div className="flex justify-between p-2 bg-muted rounded">
-                          <span className="text-muted-foreground">Latitude</span>
-                          <span className="font-mono font-medium">{prop?.address?.latitude || prop?.latitude || "N/A"}</span>
+                          <span className="text-muted-foreground">
+                            Latitude
+                          </span>
+                          <span className="font-mono font-medium">
+                            {prop?.address?.latitude || prop?.latitude || "N/A"}
+                          </span>
                         </div>
                         <div className="flex justify-between p-2 bg-muted rounded">
-                          <span className="text-muted-foreground">Longitude</span>
-                          <span className="font-mono font-medium">{prop?.address?.longitude || prop?.longitude || "N/A"}</span>
+                          <span className="text-muted-foreground">
+                            Longitude
+                          </span>
+                          <span className="font-mono font-medium">
+                            {prop?.address?.longitude ||
+                              prop?.longitude ||
+                              "N/A"}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -1926,10 +2413,15 @@ export default function ValuationPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {(prop?.address?.latitude && prop?.address?.longitude) || (prop?.latitude && prop?.longitude) ? (
+                  {(prop?.address?.latitude && prop?.address?.longitude) ||
+                  (prop?.latitude && prop?.longitude) ? (
                     <DualMapView
-                      latitude={Number(prop?.address?.latitude || prop?.latitude)}
-                      longitude={Number(prop?.address?.longitude || prop?.longitude)}
+                      latitude={Number(
+                        prop?.address?.latitude || prop?.latitude,
+                      )}
+                      longitude={Number(
+                        prop?.address?.longitude || prop?.longitude,
+                      )}
                       address={`${prop?.address?.address || prop?.address?.street || ""}, ${prop?.address?.city || ""}, ${prop?.address?.state || ""}`}
                     />
                   ) : (
@@ -1937,7 +2429,9 @@ export default function ValuationPage() {
                       <div className="text-center text-muted-foreground">
                         <Map className="h-12 w-12 mx-auto mb-2" />
                         <p>Property view not available</p>
-                        <p className="text-sm">Coordinates not found for this property</p>
+                        <p className="text-sm">
+                          Coordinates not found for this property
+                        </p>
                       </div>
                     </div>
                   )}
@@ -1968,31 +2462,41 @@ export default function ValuationPage() {
                   <p className="text-4xl font-bold text-primary">
                     {formatCurrency(val?.estimatedValue || 0)}
                   </p>
-                  <p className="text-sm text-muted-foreground mt-1">Estimated Value</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Estimated Value
+                  </p>
                 </div>
                 <div className="text-center">
                   <p className="text-2xl font-semibold">
                     {formatCurrency(val?.pricePerSqft || 0)}/sq ft
                   </p>
-                  <p className="text-sm text-muted-foreground mt-1">Price per Sq Ft</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Price per Sq Ft
+                  </p>
                 </div>
                 <div className="text-center">
-                  <p className={`text-2xl font-semibold ${(val?.equityEstimate ?? 0) >= 0 ? 'text-green-600' : 'text-amber-600'}`}>
+                  <p
+                    className={`text-2xl font-semibold ${(val?.equityEstimate ?? 0) >= 0 ? "text-green-600" : "text-amber-600"}`}
+                  >
                     {(val?.equityEstimate ?? 0) >= 0
                       ? formatCurrency(val?.equityEstimate || 0)
-                      : (val?.equityEstimate === 0 || !val?.equityEstimate)
+                      : val?.equityEstimate === 0 || !val?.equityEstimate
                         ? "Free & Clear"
                         : "Verify Mortgage"}
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">
-                    {(val?.equityEstimate ?? 0) >= 0 ? "Estimated Equity" : "Data Unavailable"}
+                    {(val?.equityEstimate ?? 0) >= 0
+                      ? "Estimated Equity"
+                      : "Data Unavailable"}
                   </p>
                 </div>
                 <div className="text-center">
                   <p className="text-2xl font-semibold">
                     {formatCurrency(val?.comparableAvg || 0)}
                   </p>
-                  <p className="text-sm text-muted-foreground mt-1">Comp Average</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Comp Average
+                  </p>
                 </div>
               </div>
 
@@ -2007,7 +2511,10 @@ export default function ValuationPage() {
                     </h4>
                     <div className="space-y-2">
                       {val.adjustments.map((adj, idx) => (
-                        <div key={idx} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between p-3 bg-muted rounded-lg"
+                        >
                           <div className="flex items-center gap-2">
                             {adj.impact > 0 ? (
                               <ArrowUpRight className="h-4 w-4 text-green-500" />
@@ -2018,11 +2525,22 @@ export default function ValuationPage() {
                             )}
                             <div>
                               <p className="font-medium">{adj.factor}</p>
-                              <p className="text-sm text-muted-foreground">{adj.description}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {adj.description}
+                              </p>
                             </div>
                           </div>
-                          <Badge variant={adj.impact > 0 ? "default" : adj.impact < 0 ? "destructive" : "secondary"}>
-                            {adj.impact > 0 ? "+" : ""}{adj.impact}%
+                          <Badge
+                            variant={
+                              adj.impact > 0
+                                ? "default"
+                                : adj.impact < 0
+                                  ? "destructive"
+                                  : "secondary"
+                            }
+                          >
+                            {adj.impact > 0 ? "+" : ""}
+                            {adj.impact}%
                           </Badge>
                         </div>
                       ))}
@@ -2059,7 +2577,9 @@ export default function ValuationPage() {
                     <Sparkles className="h-4 w-4 text-purple-600" />
                     Executive Summary
                   </h4>
-                  <p className="text-muted-foreground">{aiAnalysis.executiveSummary}</p>
+                  <p className="text-muted-foreground">
+                    {aiAnalysis.executiveSummary}
+                  </p>
                 </div>
 
                 {/* Neighborhood History Section */}
@@ -2069,32 +2589,53 @@ export default function ValuationPage() {
                       <Calendar className="h-4 w-4 text-indigo-600" />
                       Neighborhood History & Evolution
                     </h4>
-                    <p className="text-muted-foreground mb-4">{aiAnalysis.neighborhoodHistory.overview}</p>
+                    <p className="text-muted-foreground mb-4">
+                      {aiAnalysis.neighborhoodHistory.overview}
+                    </p>
 
                     {/* Decade by Decade Timeline */}
                     <div className="space-y-4">
-                      <h5 className="font-medium text-sm uppercase tracking-wide text-muted-foreground">Decade by Decade</h5>
+                      <h5 className="font-medium text-sm uppercase tracking-wide text-muted-foreground">
+                        Decade by Decade
+                      </h5>
                       <div className="relative">
                         <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gradient-to-b from-indigo-500 via-purple-500 to-pink-500"></div>
-                        {aiAnalysis.neighborhoodHistory.decadeByDecade?.map((decade, idx) => (
-                          <div key={idx} className="relative pl-10 pb-6 last:pb-0">
-                            <div className="absolute left-2.5 w-3 h-3 rounded-full bg-indigo-500 border-2 border-background"></div>
-                            <div className="bg-muted/50 rounded-lg p-3">
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="font-bold text-lg">{decade.decade}</span>
-                                <Badge variant="outline">{decade.avgHomePrice}</Badge>
-                              </div>
-                              <p className="text-sm text-muted-foreground mb-2">{decade.description}</p>
-                              {decade.keyEvents?.length > 0 && (
-                                <div className="flex flex-wrap gap-1">
-                                  {decade.keyEvents.map((event, eventIdx) => (
-                                    <Badge key={eventIdx} variant="secondary" className="text-xs">{event}</Badge>
-                                  ))}
+                        {aiAnalysis.neighborhoodHistory.decadeByDecade?.map(
+                          (decade, idx) => (
+                            <div
+                              key={idx}
+                              className="relative pl-10 pb-6 last:pb-0"
+                            >
+                              <div className="absolute left-2.5 w-3 h-3 rounded-full bg-indigo-500 border-2 border-background"></div>
+                              <div className="bg-muted/50 rounded-lg p-3">
+                                <div className="flex items-center justify-between mb-2">
+                                  <span className="font-bold text-lg">
+                                    {decade.decade}
+                                  </span>
+                                  <Badge variant="outline">
+                                    {decade.avgHomePrice}
+                                  </Badge>
                                 </div>
-                              )}
+                                <p className="text-sm text-muted-foreground mb-2">
+                                  {decade.description}
+                                </p>
+                                {decade.keyEvents?.length > 0 && (
+                                  <div className="flex flex-wrap gap-1">
+                                    {decade.keyEvents.map((event, eventIdx) => (
+                                      <Badge
+                                        key={eventIdx}
+                                        variant="secondary"
+                                        className="text-xs"
+                                      >
+                                        {event}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          ),
+                        )}
                       </div>
                     </div>
 
@@ -2102,12 +2643,20 @@ export default function ValuationPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <p className="text-sm text-muted-foreground">Future Outlook (5-10 years)</p>
-                        <p className="font-medium">{aiAnalysis.neighborhoodHistory.futureOutlook}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Future Outlook (5-10 years)
+                        </p>
+                        <p className="font-medium">
+                          {aiAnalysis.neighborhoodHistory.futureOutlook}
+                        </p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Gentrification Status</p>
-                        <Badge variant="outline">{aiAnalysis.neighborhoodHistory.gentrificationStatus}</Badge>
+                        <p className="text-sm text-muted-foreground">
+                          Gentrification Status
+                        </p>
+                        <Badge variant="outline">
+                          {aiAnalysis.neighborhoodHistory.gentrificationStatus}
+                        </Badge>
                       </div>
                     </div>
                   </div>
@@ -2121,34 +2670,64 @@ export default function ValuationPage() {
                       Price Evolution Over Time
                     </h4>
                     <div className="h-48 flex items-end gap-2">
-                      {aiAnalysis.priceEvolution.chartData.filter(d => typeof d.avgPrice === 'number').map((point, idx) => {
-                        const maxPrice = Math.max(...aiAnalysis.priceEvolution!.chartData.filter(d => typeof d.avgPrice === 'number').map(d => d.avgPrice as number));
-                        const heightPercent = maxPrice > 0 ? ((point.avgPrice as number) / maxPrice) * 100 : 0;
-                        const barHeight = Math.round(heightPercent * 1.5);
-                        const dotBottom = point.thisProperty && typeof point.thisProperty === 'number'
-                          ? Math.round((point.thisProperty / maxPrice) * 100 * 1.5)
-                          : 0;
-                        return (
-                          <div key={idx} className="flex-1 flex flex-col items-center">
-                            <div className="relative w-full">
-                              <div
-                                className="w-full bg-gradient-to-t from-green-600 to-green-400 rounded-t transition-all"
-                                style={{ height: barHeight } as React.CSSProperties}
-                              />
-                              {point.thisProperty && typeof point.thisProperty === 'number' && (
+                      {aiAnalysis.priceEvolution.chartData
+                        .filter((d) => typeof d.avgPrice === "number")
+                        .map((point, idx) => {
+                          const maxPrice = Math.max(
+                            ...aiAnalysis
+                              .priceEvolution!.chartData.filter(
+                                (d) => typeof d.avgPrice === "number",
+                              )
+                              .map((d) => d.avgPrice as number),
+                          );
+                          const heightPercent =
+                            maxPrice > 0
+                              ? ((point.avgPrice as number) / maxPrice) * 100
+                              : 0;
+                          const barHeight = Math.round(heightPercent * 1.5);
+                          const dotBottom =
+                            point.thisProperty &&
+                            typeof point.thisProperty === "number"
+                              ? Math.round(
+                                  (point.thisProperty / maxPrice) * 100 * 1.5,
+                                )
+                              : 0;
+                          return (
+                            <div
+                              key={idx}
+                              className="flex-1 flex flex-col items-center"
+                            >
+                              <div className="relative w-full">
                                 <div
-                                  className="absolute w-3 h-3 rounded-full bg-purple-600 border-2 border-white left-1/2 -translate-x-1/2"
-                                  style={{ bottom: dotBottom } as React.CSSProperties}
+                                  className="w-full bg-gradient-to-t from-green-600 to-green-400 rounded-t transition-all"
+                                  style={
+                                    { height: barHeight } as React.CSSProperties
+                                  }
                                 />
-                              )}
+                                {point.thisProperty &&
+                                  typeof point.thisProperty === "number" && (
+                                    <div
+                                      className="absolute w-3 h-3 rounded-full bg-purple-600 border-2 border-white left-1/2 -translate-x-1/2"
+                                      style={
+                                        {
+                                          bottom: dotBottom,
+                                        } as React.CSSProperties
+                                      }
+                                    />
+                                  )}
+                              </div>
+                              <p className="text-xs mt-1 font-medium">
+                                {point.year}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                $
+                                {typeof point.avgPrice === "number"
+                                  ? (point.avgPrice / 1000).toFixed(0) + "K"
+                                  : "-"}
+                              </p>
                             </div>
-                            <p className="text-xs mt-1 font-medium">{point.year}</p>
-                            <p className="text-xs text-muted-foreground">
-                              ${typeof point.avgPrice === 'number' ? (point.avgPrice / 1000).toFixed(0) + 'K' : '-'}
-                            </p>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
                     </div>
                     <div className="flex justify-center gap-6 mt-4 text-sm">
                       <div className="flex items-center gap-2">
@@ -2162,12 +2741,20 @@ export default function ValuationPage() {
                     </div>
                     <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t">
                       <div className="text-center">
-                        <p className="text-2xl font-bold text-green-600">{aiAnalysis.priceEvolution.totalAppreciation}</p>
-                        <p className="text-xs text-muted-foreground">Total Appreciation</p>
+                        <p className="text-2xl font-bold text-green-600">
+                          {aiAnalysis.priceEvolution.totalAppreciation}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Total Appreciation
+                        </p>
                       </div>
                       <div className="text-center">
-                        <p className="text-2xl font-bold text-green-600">{aiAnalysis.priceEvolution.annualizedReturn}</p>
-                        <p className="text-xs text-muted-foreground">Annualized Return</p>
+                        <p className="text-2xl font-bold text-green-600">
+                          {aiAnalysis.priceEvolution.annualizedReturn}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Annualized Return
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -2183,33 +2770,66 @@ export default function ValuationPage() {
                     </h4>
                     <div className="space-y-3">
                       <div>
-                        <p className="text-sm text-muted-foreground">Market Position</p>
-                        <p className="font-medium">{aiAnalysis.valuationAnalysis?.marketPosition}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Market Position
+                        </p>
+                        <p className="font-medium">
+                          {aiAnalysis.valuationAnalysis?.marketPosition}
+                        </p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Appreciation Potential</p>
-                        <p className="font-medium">{aiAnalysis.valuationAnalysis?.appreciationPotential}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Appreciation Potential
+                        </p>
+                        <p className="font-medium">
+                          {aiAnalysis.valuationAnalysis?.appreciationPotential}
+                        </p>
                       </div>
                       {aiAnalysis.valuationAnalysis?.fairMarketValueRange && (
                         <div>
-                          <p className="text-sm text-muted-foreground mb-2">Fair Market Value Range</p>
+                          <p className="text-sm text-muted-foreground mb-2">
+                            Fair Market Value Range
+                          </p>
                           <div className="flex gap-2">
-                            <Badge variant="outline" className="text-red-600">{aiAnalysis.valuationAnalysis.fairMarketValueRange.low}</Badge>
-                            <Badge className="bg-green-600">{aiAnalysis.valuationAnalysis.fairMarketValueRange.mid}</Badge>
-                            <Badge variant="outline" className="text-green-600">{aiAnalysis.valuationAnalysis.fairMarketValueRange.high}</Badge>
+                            <Badge variant="outline" className="text-red-600">
+                              {
+                                aiAnalysis.valuationAnalysis
+                                  .fairMarketValueRange.low
+                              }
+                            </Badge>
+                            <Badge className="bg-green-600">
+                              {
+                                aiAnalysis.valuationAnalysis
+                                  .fairMarketValueRange.mid
+                              }
+                            </Badge>
+                            <Badge variant="outline" className="text-green-600">
+                              {
+                                aiAnalysis.valuationAnalysis
+                                  .fairMarketValueRange.high
+                              }
+                            </Badge>
                           </div>
                         </div>
                       )}
-                      {aiAnalysis.valuationAnalysis?.valueDrivers?.length > 0 && (
+                      {aiAnalysis.valuationAnalysis?.valueDrivers?.length >
+                        0 && (
                         <div>
-                          <p className="text-sm text-muted-foreground mb-1">Value Drivers</p>
+                          <p className="text-sm text-muted-foreground mb-1">
+                            Value Drivers
+                          </p>
                           <ul className="text-sm space-y-1">
-                            {aiAnalysis.valuationAnalysis.valueDrivers.map((driver, idx) => (
-                              <li key={idx} className="flex items-start gap-2">
-                                <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
-                                {driver}
-                              </li>
-                            ))}
+                            {aiAnalysis.valuationAnalysis.valueDrivers.map(
+                              (driver, idx) => (
+                                <li
+                                  key={idx}
+                                  className="flex items-start gap-2"
+                                >
+                                  <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                                  {driver}
+                                </li>
+                              ),
+                            )}
                           </ul>
                         </div>
                       )}
@@ -2224,28 +2844,44 @@ export default function ValuationPage() {
                     </h4>
                     <div className="space-y-3">
                       <div>
-                        <p className="text-sm text-muted-foreground">Investor Profile</p>
-                        <p className="font-medium">{aiAnalysis.investmentInsights?.investorProfile}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Investor Profile
+                        </p>
+                        <p className="font-medium">
+                          {aiAnalysis.investmentInsights?.investorProfile}
+                        </p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Rental Potential</p>
+                        <p className="text-sm text-muted-foreground">
+                          Rental Potential
+                        </p>
                         <p className="font-medium">
-                          {typeof aiAnalysis.investmentInsights?.rentalPotential === 'string'
+                          {typeof aiAnalysis.investmentInsights
+                            ?.rentalPotential === "string"
                             ? aiAnalysis.investmentInsights.rentalPotential
-                            : aiAnalysis.investmentInsights?.rentalPotential?.estimatedMonthlyRent}
+                            : aiAnalysis.investmentInsights?.rentalPotential
+                                ?.estimatedMonthlyRent}
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Flip Potential</p>
+                        <p className="text-sm text-muted-foreground">
+                          Flip Potential
+                        </p>
                         <p className="font-medium">
-                          {typeof aiAnalysis.investmentInsights?.flipPotential === 'string'
+                          {typeof aiAnalysis.investmentInsights
+                            ?.flipPotential === "string"
                             ? aiAnalysis.investmentInsights.flipPotential
-                            : aiAnalysis.investmentInsights?.flipPotential?.recommendation}
+                            : aiAnalysis.investmentInsights?.flipPotential
+                                ?.recommendation}
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Hold Strategy</p>
-                        <p className="font-medium">{aiAnalysis.investmentInsights?.holdStrategy}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Hold Strategy
+                        </p>
+                        <p className="font-medium">
+                          {aiAnalysis.investmentInsights?.holdStrategy}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -2258,28 +2894,49 @@ export default function ValuationPage() {
                     </h4>
                     <div className="space-y-3">
                       <div>
-                        <p className="text-sm text-muted-foreground">Neighborhood Outlook</p>
-                        <p className="font-medium">{aiAnalysis.marketTrends?.neighborhoodOutlook}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Neighborhood Outlook
+                        </p>
+                        <p className="font-medium">
+                          {aiAnalysis.marketTrends?.neighborhoodOutlook}
+                        </p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Supply & Demand</p>
+                        <p className="text-sm text-muted-foreground">
+                          Supply & Demand
+                        </p>
                         <p className="font-medium">
-                          {typeof aiAnalysis.marketTrends?.supplyDemand === 'string'
+                          {typeof aiAnalysis.marketTrends?.supplyDemand ===
+                          "string"
                             ? aiAnalysis.marketTrends.supplyDemand
                             : `${aiAnalysis.marketTrends?.supplyDemand?.inventoryLevel} inventory, ${aiAnalysis.marketTrends?.supplyDemand?.priceDirection}`}
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Best Time to Sell</p>
-                        <p className="font-medium">{aiAnalysis.marketTrends?.bestTimeToSell}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Best Time to Sell
+                        </p>
+                        <p className="font-medium">
+                          {aiAnalysis.marketTrends?.bestTimeToSell}
+                        </p>
                       </div>
                       {aiAnalysis.marketTrends?.economicFactors && (
                         <div>
-                          <p className="text-sm text-muted-foreground mb-1">Economic Factors</p>
+                          <p className="text-sm text-muted-foreground mb-1">
+                            Economic Factors
+                          </p>
                           <div className="flex flex-wrap gap-1">
-                            {aiAnalysis.marketTrends.economicFactors.map((factor, idx) => (
-                              <Badge key={idx} variant="secondary" className="text-xs">{factor}</Badge>
-                            ))}
+                            {aiAnalysis.marketTrends.economicFactors.map(
+                              (factor, idx) => (
+                                <Badge
+                                  key={idx}
+                                  variant="secondary"
+                                  className="text-xs"
+                                >
+                                  {factor}
+                                </Badge>
+                              ),
+                            )}
                           </div>
                         </div>
                       )}
@@ -2294,27 +2951,35 @@ export default function ValuationPage() {
                     </h4>
                     {aiAnalysis.recommendations?.length > 0 && (
                       <div className="mb-4">
-                        <p className="text-sm text-muted-foreground mb-2">Recommendations</p>
+                        <p className="text-sm text-muted-foreground mb-2">
+                          Recommendations
+                        </p>
                         <ul className="text-sm space-y-1">
-                          {aiAnalysis.recommendations.slice(0, 5).map((rec, idx) => (
-                            <li key={idx} className="flex items-start gap-2">
-                              <ArrowUpRight className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
-                              {rec}
-                            </li>
-                          ))}
+                          {aiAnalysis.recommendations
+                            .slice(0, 5)
+                            .map((rec, idx) => (
+                              <li key={idx} className="flex items-start gap-2">
+                                <ArrowUpRight className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                                {rec}
+                              </li>
+                            ))}
                         </ul>
                       </div>
                     )}
                     {aiAnalysis.riskFactors?.length > 0 && (
                       <div>
-                        <p className="text-sm text-muted-foreground mb-2">Risk Factors</p>
+                        <p className="text-sm text-muted-foreground mb-2">
+                          Risk Factors
+                        </p>
                         <ul className="text-sm space-y-1">
-                          {aiAnalysis.riskFactors.slice(0, 4).map((risk, idx) => (
-                            <li key={idx} className="flex items-start gap-2">
-                              <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
-                              {risk}
-                            </li>
-                          ))}
+                          {aiAnalysis.riskFactors
+                            .slice(0, 4)
+                            .map((risk, idx) => (
+                              <li key={idx} className="flex items-start gap-2">
+                                <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
+                                {risk}
+                              </li>
+                            ))}
                         </ul>
                       </div>
                     )}
@@ -2338,12 +3003,26 @@ export default function ValuationPage() {
                         </h5>
                         <div className="space-y-2 text-sm">
                           <div>
-                            <span className="text-muted-foreground">Current:</span>
-                            <p className="font-medium">{aiAnalysis.equityUnlockingStrategies.zoningOpportunities.currentZoning}</p>
+                            <span className="text-muted-foreground">
+                              Current:
+                            </span>
+                            <p className="font-medium">
+                              {
+                                aiAnalysis.equityUnlockingStrategies
+                                  .zoningOpportunities.currentZoning
+                              }
+                            </p>
                           </div>
                           <div>
-                            <span className="text-muted-foreground">ADU/Additional Units:</span>
-                            <p className="font-medium">{aiAnalysis.equityUnlockingStrategies.zoningOpportunities.additionalUnits}</p>
+                            <span className="text-muted-foreground">
+                              ADU/Additional Units:
+                            </span>
+                            <p className="font-medium">
+                              {
+                                aiAnalysis.equityUnlockingStrategies
+                                  .zoningOpportunities.additionalUnits
+                              }
+                            </p>
                           </div>
                         </div>
                       </div>
@@ -2356,12 +3035,26 @@ export default function ValuationPage() {
                         </h5>
                         <div className="space-y-2 text-sm">
                           <div>
-                            <span className="text-muted-foreground">Subdivision:</span>
-                            <p className="font-medium">{aiAnalysis.equityUnlockingStrategies.lotDevelopment.subdivisionPotential}</p>
+                            <span className="text-muted-foreground">
+                              Subdivision:
+                            </span>
+                            <p className="font-medium">
+                              {
+                                aiAnalysis.equityUnlockingStrategies
+                                  .lotDevelopment.subdivisionPotential
+                              }
+                            </p>
                           </div>
                           <div>
-                            <span className="text-muted-foreground">Buildable Area:</span>
-                            <p className="font-medium">{aiAnalysis.equityUnlockingStrategies.lotDevelopment.buildableArea}</p>
+                            <span className="text-muted-foreground">
+                              Buildable Area:
+                            </span>
+                            <p className="font-medium">
+                              {
+                                aiAnalysis.equityUnlockingStrategies
+                                  .lotDevelopment.buildableArea
+                              }
+                            </p>
                           </div>
                         </div>
                       </div>
@@ -2374,12 +3067,26 @@ export default function ValuationPage() {
                         </h5>
                         <div className="space-y-2 text-sm">
                           <div>
-                            <span className="text-muted-foreground">Cash-Out Refi:</span>
-                            <p className="font-medium">{aiAnalysis.equityUnlockingStrategies.financialStrategies.cashOutRefi}</p>
+                            <span className="text-muted-foreground">
+                              Cash-Out Refi:
+                            </span>
+                            <p className="font-medium">
+                              {
+                                aiAnalysis.equityUnlockingStrategies
+                                  .financialStrategies.cashOutRefi
+                              }
+                            </p>
                           </div>
                           <div>
-                            <span className="text-muted-foreground">HELOC:</span>
-                            <p className="font-medium">{aiAnalysis.equityUnlockingStrategies.financialStrategies.heloc}</p>
+                            <span className="text-muted-foreground">
+                              HELOC:
+                            </span>
+                            <p className="font-medium">
+                              {
+                                aiAnalysis.equityUnlockingStrategies
+                                  .financialStrategies.heloc
+                              }
+                            </p>
                           </div>
                         </div>
                       </div>
@@ -2389,12 +3096,26 @@ export default function ValuationPage() {
 
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                       <div>
-                        <p className="text-sm text-muted-foreground">Estimated Equity Unlock Potential</p>
-                        <p className="text-2xl font-bold text-green-600">{aiAnalysis.equityUnlockingStrategies.estimatedEquityUnlock}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Estimated Equity Unlock Potential
+                        </p>
+                        <p className="text-2xl font-bold text-green-600">
+                          {
+                            aiAnalysis.equityUnlockingStrategies
+                              .estimatedEquityUnlock
+                          }
+                        </p>
                       </div>
                       <div className="flex-1 max-w-md">
-                        <p className="text-sm text-muted-foreground">Recommended Strategy</p>
-                        <p className="font-medium">{aiAnalysis.equityUnlockingStrategies.recommendedStrategy}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Recommended Strategy
+                        </p>
+                        <p className="font-medium">
+                          {
+                            aiAnalysis.equityUnlockingStrategies
+                              .recommendedStrategy
+                          }
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -2409,36 +3130,48 @@ export default function ValuationPage() {
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
-                        <p className="text-sm font-medium text-orange-600 mb-2">Immediate (30 days)</p>
+                        <p className="text-sm font-medium text-orange-600 mb-2">
+                          Immediate (30 days)
+                        </p>
                         <ul className="text-sm space-y-1">
-                          {aiAnalysis.actionPlan.immediate?.map((action, idx) => (
-                            <li key={idx} className="flex items-start gap-2">
-                              <span className="text-orange-500">•</span>
-                              {action}
-                            </li>
-                          ))}
+                          {aiAnalysis.actionPlan.immediate?.map(
+                            (action, idx) => (
+                              <li key={idx} className="flex items-start gap-2">
+                                <span className="text-orange-500">•</span>
+                                {action}
+                              </li>
+                            ),
+                          )}
                         </ul>
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-blue-600 mb-2">Short-Term (3-6 months)</p>
+                        <p className="text-sm font-medium text-blue-600 mb-2">
+                          Short-Term (3-6 months)
+                        </p>
                         <ul className="text-sm space-y-1">
-                          {aiAnalysis.actionPlan.shortTerm?.map((action, idx) => (
-                            <li key={idx} className="flex items-start gap-2">
-                              <span className="text-blue-500">•</span>
-                              {action}
-                            </li>
-                          ))}
+                          {aiAnalysis.actionPlan.shortTerm?.map(
+                            (action, idx) => (
+                              <li key={idx} className="flex items-start gap-2">
+                                <span className="text-blue-500">•</span>
+                                {action}
+                              </li>
+                            ),
+                          )}
                         </ul>
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-green-600 mb-2">Long-Term (1-5 years)</p>
+                        <p className="text-sm font-medium text-green-600 mb-2">
+                          Long-Term (1-5 years)
+                        </p>
                         <ul className="text-sm space-y-1">
-                          {aiAnalysis.actionPlan.longTerm?.map((action, idx) => (
-                            <li key={idx} className="flex items-start gap-2">
-                              <span className="text-green-500">•</span>
-                              {action}
-                            </li>
-                          ))}
+                          {aiAnalysis.actionPlan.longTerm?.map(
+                            (action, idx) => (
+                              <li key={idx} className="flex items-start gap-2">
+                                <span className="text-green-500">•</span>
+                                {action}
+                              </li>
+                            ),
+                          )}
                         </ul>
                       </div>
                     </div>
@@ -2447,7 +3180,9 @@ export default function ValuationPage() {
 
                 {/* Disclaimer */}
                 {aiAnalysis.disclaimer && (
-                  <p className="text-xs text-muted-foreground text-center italic">{aiAnalysis.disclaimer}</p>
+                  <p className="text-xs text-muted-foreground text-center italic">
+                    {aiAnalysis.disclaimer}
+                  </p>
                 )}
               </CardContent>
             </Card>
@@ -2480,22 +3215,32 @@ export default function ValuationPage() {
                   </TableHeader>
                   <TableBody>
                     {report.comparables.map((comp, idx) => {
-                      const compSqft = comp.squareFeet || comp.buildingSize || 0;
-                      const compValue = comp.lastSaleAmount || comp.estimatedValue || comp.avm || 0;
-                      const compPricePerSqft = compSqft > 0 ? compValue / compSqft : 0;
+                      const compSqft =
+                        comp.squareFeet || comp.buildingSize || 0;
+                      const compValue =
+                        comp.lastSaleAmount ||
+                        comp.estimatedValue ||
+                        comp.avm ||
+                        0;
+                      const compPricePerSqft =
+                        compSqft > 0 ? compValue / compSqft : 0;
 
                       return (
                         <TableRow key={comp.id || idx}>
                           <TableCell className="font-medium">
-                            {comp.address?.address || "N/A"}, {comp.address?.city}
+                            {comp.address?.address || "N/A"},{" "}
+                            {comp.address?.city}
                           </TableCell>
                           <TableCell>
-                            {comp.bedrooms || comp.beds || 0}/{comp.bathrooms || comp.baths || 0}
+                            {comp.bedrooms || comp.beds || 0}/
+                            {comp.bathrooms || comp.baths || 0}
                           </TableCell>
                           <TableCell>{formatNumber(compSqft)}</TableCell>
                           <TableCell>{comp.yearBuilt || "N/A"}</TableCell>
                           <TableCell>{formatCurrency(compValue)}</TableCell>
-                          <TableCell>{formatCurrency(Math.round(compPricePerSqft))}</TableCell>
+                          <TableCell>
+                            {formatCurrency(Math.round(compPricePerSqft))}
+                          </TableCell>
                           <TableCell>
                             {comp.lastSaleDate
                               ? new Date(comp.lastSaleDate).toLocaleDateString()
@@ -2523,61 +3268,98 @@ export default function ValuationPage() {
                 Neighborhood Analysis
               </CardTitle>
               <CardDescription>
-                Market statistics for {prop?.address?.zip || prop?.address?.city}
+                Market statistics for{" "}
+                {prop?.address?.zip || prop?.address?.city}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
                 <div className="text-center p-4 bg-muted rounded-lg">
-                  <p className="text-2xl font-bold">{formatCurrency(neighborhood?.medianValue || 0)}</p>
-                  <p className="text-sm text-muted-foreground">Median Home Value</p>
+                  <p className="text-2xl font-bold">
+                    {formatCurrency(neighborhood?.medianValue || 0)}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Median Home Value
+                  </p>
                 </div>
                 <div className="text-center p-4 bg-muted rounded-lg">
-                  <p className="text-2xl font-bold">{formatCurrency(neighborhood?.avgPricePerSqft || 0)}/sq ft</p>
-                  <p className="text-sm text-muted-foreground">Avg Price per Sq Ft</p>
+                  <p className="text-2xl font-bold">
+                    {formatCurrency(neighborhood?.avgPricePerSqft || 0)}/sq ft
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Avg Price per Sq Ft
+                  </p>
                 </div>
                 <div className="text-center p-4 bg-muted rounded-lg">
-                  <p className="text-2xl font-bold">{formatNumber(neighborhood?.totalProperties || 0)}</p>
-                  <p className="text-sm text-muted-foreground">Total Properties</p>
+                  <p className="text-2xl font-bold">
+                    {formatNumber(neighborhood?.totalProperties || 0)}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Total Properties
+                  </p>
                 </div>
                 <div className="text-center p-4 bg-muted rounded-lg">
-                  <p className="text-2xl font-bold">{neighborhood?.avgYearBuilt || "N/A"}</p>
-                  <p className="text-sm text-muted-foreground">Avg Year Built</p>
+                  <p className="text-2xl font-bold">
+                    {neighborhood?.avgYearBuilt || "N/A"}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Avg Year Built
+                  </p>
                 </div>
               </div>
 
               {/* Price History Chart (simplified) */}
-              {neighborhood?.priceHistory && neighborhood.priceHistory.length > 0 && (
-                <div>
-                  <h4 className="font-medium mb-3">Price History Trend</h4>
-                  <div className="flex items-end gap-2 h-32">
-                    {neighborhood.priceHistory.map((ph, idx) => {
-                      const maxPrice = Math.max(...neighborhood.priceHistory.map((p) => p.avgPrice));
-                      const heightPercent = maxPrice > 0 ? Math.round((ph.avgPrice / maxPrice) * 100) : 0;
+              {neighborhood?.priceHistory &&
+                neighborhood.priceHistory.length > 0 && (
+                  <div>
+                    <h4 className="font-medium mb-3">Price History Trend</h4>
+                    <div className="flex items-end gap-2 h-32">
+                      {neighborhood.priceHistory.map((ph, idx) => {
+                        const maxPrice = Math.max(
+                          ...neighborhood.priceHistory.map((p) => p.avgPrice),
+                        );
+                        const heightPercent =
+                          maxPrice > 0
+                            ? Math.round((ph.avgPrice / maxPrice) * 100)
+                            : 0;
 
-                      return (
-                        <div key={idx} className="flex-1 flex flex-col items-center">
+                        return (
                           <div
-                            className="w-full bg-primary rounded-t transition-all"
-                            style={{ height: `${heightPercent}%` } as React.CSSProperties}
-                          />
-                          <p className="text-xs mt-1">{ph.year}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {formatCurrency(ph.avgPrice).replace("$", "").replace(",000", "K")}
-                          </p>
-                        </div>
-                      );
-                    })}
+                            key={idx}
+                            className="flex-1 flex flex-col items-center"
+                          >
+                            <div
+                              className="w-full bg-primary rounded-t transition-all"
+                              style={
+                                {
+                                  height: `${heightPercent}%`,
+                                } as React.CSSProperties
+                              }
+                            />
+                            <p className="text-xs mt-1">{ph.year}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatCurrency(ph.avgPrice)
+                                .replace("$", "")
+                                .replace(",000", "K")}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
             </CardContent>
           </Card>
 
           {/* Report Footer */}
           <div className="text-center text-sm text-muted-foreground py-4 print:py-8">
-            <p>Report generated on {new Date().toLocaleDateString()} at {new Date().toLocaleTimeString()}</p>
-            <p className="mt-1">Data provided by RealEstateAPI. Values are estimates only.</p>
+            <p>
+              Report generated on {new Date().toLocaleDateString()} at{" "}
+              {new Date().toLocaleTimeString()}
+            </p>
+            <p className="mt-1">
+              Data provided by RealEstateAPI. Values are estimates only.
+            </p>
           </div>
         </div>
       )}
@@ -2589,8 +3371,9 @@ export default function ValuationPage() {
             <FileText className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium mb-2">No Report Generated</h3>
             <p className="text-muted-foreground max-w-md mx-auto">
-              Enter a property address above to generate a comprehensive valuation report
-              with comparable sales, neighborhood analysis, and Street View photos.
+              Enter a property address above to generate a comprehensive
+              valuation report with comparable sales, neighborhood analysis, and
+              Street View photos.
             </p>
           </CardContent>
         </Card>
@@ -2602,7 +3385,8 @@ export default function ValuationPage() {
           body * {
             visibility: hidden;
           }
-          .print\\:space-y-4, .print\\:space-y-4 * {
+          .print\\:space-y-4,
+          .print\\:space-y-4 * {
             visibility: visible;
           }
           .print\\:hidden {

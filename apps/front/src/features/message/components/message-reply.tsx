@@ -74,7 +74,9 @@ export function MessageReply({ message, onSend, onCancel }: MessageReplyProps) {
       return;
     }
 
-    const scheduledAt = new Date(`${scheduleDate}T${scheduleTime}`).toISOString();
+    const scheduledAt = new Date(
+      `${scheduleDate}T${scheduleTime}`,
+    ).toISOString();
     const phoneNumber = message.phone;
 
     if (!phoneNumber && scheduleType === "sms") {
@@ -116,11 +118,18 @@ export function MessageReply({ message, onSend, onCancel }: MessageReplyProps) {
         };
 
         // Store in localStorage for now
-        const existingReminders = JSON.parse(localStorage.getItem("call-reminders") || "[]");
+        const existingReminders = JSON.parse(
+          localStorage.getItem("call-reminders") || "[]",
+        );
         existingReminders.push(callReminder);
-        localStorage.setItem("call-reminders", JSON.stringify(existingReminders));
+        localStorage.setItem(
+          "call-reminders",
+          JSON.stringify(existingReminders),
+        );
 
-        toast.success(`Call reminder set for ${scheduleDate} at ${scheduleTime}`);
+        toast.success(
+          `Call reminder set for ${scheduleDate} at ${scheduleTime}`,
+        );
         setShowScheduleDialog(false);
       }
     } catch (error) {
@@ -453,7 +462,11 @@ Your Name`,
               <div className="space-y-2">
                 <Label>Message Preview</Label>
                 <div className="p-3 bg-muted rounded-md text-sm">
-                  {replyText || <span className="text-muted-foreground italic">Enter your message above</span>}
+                  {replyText || (
+                    <span className="text-muted-foreground italic">
+                      Enter your message above
+                    </span>
+                  )}
                 </div>
               </div>
             )}
@@ -482,7 +495,11 @@ Your Name`,
               onClick={handleSchedule}
               disabled={schedulingCall || !scheduleDate || !scheduleTime}
             >
-              {schedulingCall ? "Scheduling..." : scheduleType === "sms" ? "Schedule SMS" : "Set Reminder"}
+              {schedulingCall
+                ? "Scheduling..."
+                : scheduleType === "sms"
+                  ? "Schedule SMS"
+                  : "Set Reminder"}
             </Button>
           </DialogFooter>
         </DialogContent>

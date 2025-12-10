@@ -59,16 +59,21 @@ export const FacetFilterItem: React.FC<Props> = ({
   onValueChange,
 }) => {
   const [facetQuery, setFacetQuery] = useState("");
-  const { team } = useCurrentTeam();
+  const { teamId, isTeamReady } = useCurrentTeam();
   const [debouncedFacetQuery] = useDebounceValue(facetQuery, 350);
   const [facets, { loading }] = useSingleQuery(FACETS_QUERY, {
     pick: "searchFacets",
     variables: {
       facetQuery: debouncedFacetQuery,
       name,
-      teamId: team.id,
+      teamId,
     },
+    skip: !isTeamReady,
   });
+
+  if (!isTeamReady) {
+    return null;
+  }
 
   const total = useMemo(() => {
     return checkedValues?.length || 0;
@@ -132,7 +137,10 @@ export const FacetFilterItem: React.FC<Props> = ({
                   if (e.key === "Enter" && facetQuery.trim()) {
                     e.preventDefault();
                     if (!checkedValues.includes(facetQuery.trim())) {
-                      onValueChange?.(name, [...checkedValues, facetQuery.trim()]);
+                      onValueChange?.(name, [
+                        ...checkedValues,
+                        facetQuery.trim(),
+                      ]);
                     }
                     setFacetQuery("");
                   }
@@ -174,26 +182,28 @@ export const FacetFilterItem: React.FC<Props> = ({
           )}
 
           <ul className="divide-y max-h-[300px] overflow-y-auto">
-            {facets?.hits?.filter(f => !checkedValues.includes(f.value)).map((facet) => (
-              <li
-                key={facet.value}
-                className="px-4 py-2 flex items-center justify-between text-sm"
-              >
-                <div className="flex items-center">
-                  <Checkbox
-                    checked={checkedValues.includes(facet.value)}
-                    className="mr-2"
-                    onCheckedChange={handleCheckedChange(facet.value)}
-                  />
+            {facets?.hits
+              ?.filter((f) => !checkedValues.includes(f.value))
+              .map((facet) => (
+                <li
+                  key={facet.value}
+                  className="px-4 py-2 flex items-center justify-between text-sm"
+                >
+                  <div className="flex items-center">
+                    <Checkbox
+                      checked={checkedValues.includes(facet.value)}
+                      className="mr-2"
+                      onCheckedChange={handleCheckedChange(facet.value)}
+                    />
 
-                  <span title={facet.value}>{facet.value.slice(0, 28)}</span>
-                </div>
+                    <span title={facet.value}>{facet.value.slice(0, 28)}</span>
+                  </div>
 
-                <span className="text-muted-foreground">
-                  {sf(facet.count)}
-                </span>
-              </li>
-            ))}
+                  <span className="text-muted-foreground">
+                    {sf(facet.count)}
+                  </span>
+                </li>
+              ))}
           </ul>
         </div>
       </Accordion.Content>

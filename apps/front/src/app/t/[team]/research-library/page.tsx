@@ -3,7 +3,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -22,10 +28,27 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Folder, FolderPlus, FileText, ChevronRight, Home, Search,
-  MoreVertical, Trash2, Download, Share2, Eye, RefreshCw,
-  Building2, DollarSign, MapPin, Calendar, ArrowLeft, Plus,
-  FolderOpen, Clock, ExternalLink
+  Folder,
+  FolderPlus,
+  FileText,
+  ChevronRight,
+  Home,
+  Search,
+  MoreVertical,
+  Trash2,
+  Download,
+  Share2,
+  Eye,
+  RefreshCw,
+  Building2,
+  DollarSign,
+  MapPin,
+  Calendar,
+  ArrowLeft,
+  Plus,
+  FolderOpen,
+  Clock,
+  ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -75,14 +98,18 @@ export default function ResearchLibraryPage() {
   const [createFolderOpen, setCreateFolderOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [viewReportOpen, setViewReportOpen] = useState(false);
-  const [selectedReport, setSelectedReport] = useState<SavedReport | null>(null);
+  const [selectedReport, setSelectedReport] = useState<SavedReport | null>(
+    null,
+  );
   const [reportLoading, setReportLoading] = useState(false);
 
   // Load items for current path
   const loadItems = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/research-library?path=${encodeURIComponent(currentPath)}`);
+      const res = await fetch(
+        `/api/research-library?path=${encodeURIComponent(currentPath)}`,
+      );
       const data = await res.json();
       if (data.success) {
         setItems(data.items || []);
@@ -173,9 +200,12 @@ export default function ResearchLibraryPage() {
     if (!confirm(`Delete "${item.name}"?`)) return;
 
     try {
-      const res = await fetch(`/api/research-library?path=${encodeURIComponent(item.path)}&id=${item.id}`, {
-        method: "DELETE",
-      });
+      const res = await fetch(
+        `/api/research-library?path=${encodeURIComponent(item.path)}&id=${item.id}`,
+        {
+          method: "DELETE",
+        },
+      );
 
       const data = await res.json();
       if (data.success) {
@@ -207,7 +237,11 @@ export default function ResearchLibraryPage() {
   };
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value);
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 0,
+    }).format(value);
   };
 
   const formatDate = (dateStr: string) => {
@@ -221,15 +255,18 @@ export default function ResearchLibraryPage() {
   };
 
   // Filter items by search
-  const filteredItems = items.filter(item =>
-    item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.metadata?.address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.metadata?.city?.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredItems = items.filter(
+    (item) =>
+      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.metadata?.address
+        ?.toLowerCase()
+        .includes(searchQuery.toLowerCase()) ||
+      item.metadata?.city?.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   // Separate folders and reports
-  const folders = filteredItems.filter(i => i.type === "folder");
-  const reports = filteredItems.filter(i => i.type === "report");
+  const folders = filteredItems.filter((i) => i.type === "folder");
+  const reports = filteredItems.filter((i) => i.type === "report");
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -246,10 +283,15 @@ export default function ResearchLibraryPage() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={loadItems} disabled={loading}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+            <RefreshCw
+              className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`}
+            />
             Refresh
           </Button>
-          <Button onClick={() => setCreateFolderOpen(true)} className="bg-blue-600 hover:bg-blue-700">
+          <Button
+            onClick={() => setCreateFolderOpen(true)}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
             <FolderPlus className="h-4 w-4 mr-2" />
             New Folder
           </Button>
@@ -276,7 +318,11 @@ export default function ResearchLibraryPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setCurrentPath("/" + breadcrumbs.slice(0, idx + 1).join("/"))}
+                    onClick={() =>
+                      setCurrentPath(
+                        "/" + breadcrumbs.slice(0, idx + 1).join("/"),
+                      )
+                    }
                     className="h-8 px-2"
                   >
                     {crumb}
@@ -341,13 +387,25 @@ export default function ResearchLibraryPage() {
                         </div>
                       </div>
                       <DropdownMenu>
-                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100">
+                        <DropdownMenuTrigger
+                          asChild
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100"
+                          >
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDeleteItem(folder); }}>
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteItem(folder);
+                            }}
+                          >
                             <Trash2 className="h-4 w-4 mr-2 text-red-500" />
                             Delete Folder
                           </DropdownMenuItem>
@@ -391,22 +449,44 @@ export default function ResearchLibraryPage() {
                         </div>
                       </div>
                       <DropdownMenu>
-                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100">
+                        <DropdownMenuTrigger
+                          asChild
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100"
+                          >
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleViewReport(report); }}>
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleViewReport(report);
+                            }}
+                          >
                             <Eye className="h-4 w-4 mr-2" />
                             View Report
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleShareReport(report); }}>
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleShareReport(report);
+                            }}
+                          >
                             <Share2 className="h-4 w-4 mr-2" />
                             Copy Share Link
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDeleteItem(report); }}>
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteItem(report);
+                            }}
+                          >
                             <Trash2 className="h-4 w-4 mr-2 text-red-500" />
                             Delete
                           </DropdownMenuItem>
@@ -420,7 +500,9 @@ export default function ResearchLibraryPage() {
                         {report.metadata.address && (
                           <div className="flex items-center gap-2 text-sm">
                             <MapPin className="h-4 w-4 text-muted-foreground" />
-                            <span className="truncate">{report.metadata.address}</span>
+                            <span className="truncate">
+                              {report.metadata.address}
+                            </span>
                           </div>
                         )}
                         <div className="flex items-center justify-between">
@@ -461,11 +543,17 @@ export default function ResearchLibraryPage() {
                 Create a folder or save a valuation report here
               </p>
               <div className="flex justify-center gap-3">
-                <Button variant="outline" onClick={() => setCreateFolderOpen(true)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setCreateFolderOpen(true)}
+                >
                   <FolderPlus className="h-4 w-4 mr-2" />
                   Create Folder
                 </Button>
-                <Button onClick={() => router.push("/t/team/valuation")} className="bg-blue-600 hover:bg-blue-700">
+                <Button
+                  onClick={() => router.push("/t/team/valuation")}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
                   <Plus className="h-4 w-4 mr-2" />
                   New Valuation
                 </Button>
@@ -500,10 +588,16 @@ export default function ResearchLibraryPage() {
             </p>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateFolderOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setCreateFolderOpen(false)}
+            >
               Cancel
             </Button>
-            <Button onClick={handleCreateFolder} className="bg-blue-600 hover:bg-blue-700">
+            <Button
+              onClick={handleCreateFolder}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
               Create Folder
             </Button>
           </DialogFooter>
@@ -519,7 +613,10 @@ export default function ResearchLibraryPage() {
               {selectedReport?.name || "Valuation Report"}
             </DialogTitle>
             <DialogDescription>
-              Saved {selectedReport?.savedAt ? formatDate(selectedReport.savedAt) : ""}
+              Saved{" "}
+              {selectedReport?.savedAt
+                ? formatDate(selectedReport.savedAt)
+                : ""}
             </DialogDescription>
           </DialogHeader>
 
@@ -543,27 +640,70 @@ export default function ResearchLibraryPage() {
                     <div>
                       <p className="text-sm text-muted-foreground">Address</p>
                       <p className="font-medium">
-                        {String(((selectedReport.report.property as Record<string, unknown>)?.address as Record<string, unknown>)?.address ||
-                          ((selectedReport.report.property as Record<string, unknown>)?.address as Record<string, unknown>)?.street || "N/A")}
+                        {String(
+                          (
+                            (
+                              selectedReport.report.property as Record<
+                                string,
+                                unknown
+                              >
+                            )?.address as Record<string, unknown>
+                          )?.address ||
+                            (
+                              (
+                                selectedReport.report.property as Record<
+                                  string,
+                                  unknown
+                                >
+                              )?.address as Record<string, unknown>
+                            )?.street ||
+                            "N/A",
+                        )}
                       </p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Type</p>
                       <p className="font-medium">
-                        {String((selectedReport.report.property as Record<string, unknown>)?.propertyType || "N/A")}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Estimated Value</p>
-                      <p className="font-medium text-green-600">
-                        {formatCurrency(
-                          Number((selectedReport.report.property as Record<string, unknown>)?.estimatedValue) ||
-                          Number((selectedReport.report.valuation as Record<string, unknown>)?.estimatedValue) || 0
+                        {String(
+                          (
+                            selectedReport.report.property as Record<
+                              string,
+                              unknown
+                            >
+                          )?.propertyType || "N/A",
                         )}
                       </p>
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Comparables</p>
+                      <p className="text-sm text-muted-foreground">
+                        Estimated Value
+                      </p>
+                      <p className="font-medium text-green-600">
+                        {formatCurrency(
+                          Number(
+                            (
+                              selectedReport.report.property as Record<
+                                string,
+                                unknown
+                              >
+                            )?.estimatedValue,
+                          ) ||
+                            Number(
+                              (
+                                selectedReport.report.valuation as Record<
+                                  string,
+                                  unknown
+                                >
+                              )?.estimatedValue,
+                            ) ||
+                            0,
+                        )}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">
+                        Comparables
+                      </p>
                       <p className="font-medium">
                         {selectedReport.report.comparables?.length || 0} found
                       </p>
@@ -584,27 +724,81 @@ export default function ResearchLibraryPage() {
                   <CardContent>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       <div>
-                        <p className="text-sm text-muted-foreground">Price/SqFt</p>
+                        <p className="text-sm text-muted-foreground">
+                          Price/SqFt
+                        </p>
                         <p className="font-medium">
-                          ${String((selectedReport.report.valuation as Record<string, unknown>)?.pricePerSqft || 0)}
+                          $
+                          {String(
+                            (
+                              selectedReport.report.valuation as Record<
+                                string,
+                                unknown
+                              >
+                            )?.pricePerSqft || 0,
+                          )}
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Comparable Avg</p>
+                        <p className="text-sm text-muted-foreground">
+                          Comparable Avg
+                        </p>
                         <p className="font-medium">
-                          {formatCurrency(Number((selectedReport.report.valuation as Record<string, unknown>)?.comparableAvg) || 0)}
+                          {formatCurrency(
+                            Number(
+                              (
+                                selectedReport.report.valuation as Record<
+                                  string,
+                                  unknown
+                                >
+                              )?.comparableAvg,
+                            ) || 0,
+                          )}
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Equity Estimate</p>
+                        <p className="text-sm text-muted-foreground">
+                          Equity Estimate
+                        </p>
                         <p className="font-medium text-green-600">
-                          {formatCurrency(Number((selectedReport.report.valuation as Record<string, unknown>)?.equityEstimate) || 0)}
+                          {formatCurrency(
+                            Number(
+                              (
+                                selectedReport.report.valuation as Record<
+                                  string,
+                                  unknown
+                                >
+                              )?.equityEstimate,
+                            ) || 0,
+                          )}
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Confidence</p>
-                        <Badge variant={String((selectedReport.report.valuation as Record<string, unknown>)?.confidence) === "high" ? "default" : "outline"}>
-                          {String((selectedReport.report.valuation as Record<string, unknown>)?.confidence || "N/A")}
+                        <p className="text-sm text-muted-foreground">
+                          Confidence
+                        </p>
+                        <Badge
+                          variant={
+                            String(
+                              (
+                                selectedReport.report.valuation as Record<
+                                  string,
+                                  unknown
+                                >
+                              )?.confidence,
+                            ) === "high"
+                              ? "default"
+                              : "outline"
+                          }
+                        >
+                          {String(
+                            (
+                              selectedReport.report.valuation as Record<
+                                string,
+                                unknown
+                              >
+                            )?.confidence || "N/A",
+                          )}
                         </Badge>
                       </div>
                     </div>
@@ -613,7 +807,9 @@ export default function ResearchLibraryPage() {
               )}
             </div>
           ) : (
-            <p className="py-8 text-center text-muted-foreground">No report data available</p>
+            <p className="py-8 text-center text-muted-foreground">
+              No report data available
+            </p>
           )}
 
           <DialogFooter>

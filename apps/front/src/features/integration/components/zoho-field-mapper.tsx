@@ -56,7 +56,7 @@ export function ZohoFieldMapper({
   integrationId,
   localFields,
 }: Props) {
-  const { team } = useCurrentTeam();
+  const { teamId, isTeamReady } = useCurrentTeam();
 
   const [mappings, setMappings] = useState<FieldMapping[]>([...localFields]);
 
@@ -112,11 +112,12 @@ export function ZohoFieldMapper({
   };
 
   const saveFieldMapping = async () => {
+    if (!isTeamReady) return;
     setLoading(true);
     try {
       await upsertFields({
         variables: {
-          teamId: team.id,
+          teamId,
           integrationId: integrationId,
           moduleName: module,
           fields: mappings

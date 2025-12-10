@@ -28,7 +28,7 @@ import { FieldErrors } from "@/components/errors/field-errors";
 import { Button } from "@/components/ui/button";
 
 export const PowerDialerModal: React.FC<ModalProps> = (props) => {
-  const { team } = useCurrentTeam();
+  const { team, teamId, isTeamReady } = useCurrentTeam();
   const [loading, setLoading] = useState(false);
   const { showError } = useApiError();
   const { cache } = useApolloClient();
@@ -41,10 +41,11 @@ export const PowerDialerModal: React.FC<ModalProps> = (props) => {
   });
 
   const save = async (input: CreatePowerDialerDto) => {
+    if (!isTeamReady) return;
     setLoading(true);
     try {
       const { data } = await createPowerDialer({
-        variables: { teamId: team.id, input },
+        variables: { teamId, input },
       });
       cache.evict(POWER_DIALERS_EVICT);
       if (data?.createPowerDialer.powerDialer) {

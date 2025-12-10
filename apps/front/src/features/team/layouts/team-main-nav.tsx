@@ -197,7 +197,9 @@ export function TeamMainNav() {
   const params = useParams<{ team: string }>();
   const pathname = usePathname();
   const [isActive] = useActivePath({ baseUri: `/${params.team}` });
-  const isPathActive = (item: Omit<(typeof items)[number], "icon"> & { isAbsolute?: boolean }) => {
+  const isPathActive = (
+    item: Omit<(typeof items)[number], "icon"> & { isAbsolute?: boolean },
+  ) => {
     if (item.isAbsolute) {
       // For absolute paths, check if current pathname starts with or matches the item path
       if (item.exact) {
@@ -221,60 +223,66 @@ export function TeamMainNav() {
           {items.map((item, index) => {
             const ItemLink = item.isAbsolute ? Link : TeamLink;
             return (
-            <Fragment key={index}>
-              {!item.items?.length ? (
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    tooltip={item.title}
-                    asChild
-                    isActive={isPathActive(item)}
-                  >
-                    <ItemLink href={item.path}>
-                      {item.icon && <item.icon />}
-                      <span>{item.title}</span>
-                    </ItemLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ) : (
-                <Collapsible
-                  asChild
-                  className="group/collapsible"
-                  defaultOpen={item.items.some((subItem) =>
-                    isPathActive(subItem),
-                  )}
-                >
+              <Fragment key={index}>
+                {!item.items?.length ? (
                   <SidebarMenuItem>
-                    <CollapsibleTrigger asChild>
-                      <SidebarMenuButton tooltip={item.title}>
+                    <SidebarMenuButton
+                      tooltip={item.title}
+                      asChild
+                      isActive={isPathActive(item)}
+                    >
+                      <ItemLink href={item.path}>
                         {item.icon && <item.icon />}
                         <span>{item.title}</span>
-                        <ChevronRightIcon className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                      </SidebarMenuButton>
-                    </CollapsibleTrigger>
-
-                    <CollapsibleContent>
-                      <SidebarMenuSub>
-                        {item.items?.map((subItem) => {
-                          const SubItemLink = (subItem as { isAbsolute?: boolean }).isAbsolute ? Link : TeamLink;
-                          return (
-                          <SidebarMenuSubItem key={subItem.title}>
-                            <SidebarMenuSubButton
-                              asChild
-                              isActive={isPathActive(subItem)}
-                            >
-                              <SubItemLink href={subItem.path}>
-                                <span>{subItem.title}</span>
-                              </SubItemLink>
-                            </SidebarMenuSubButton>
-                          </SidebarMenuSubItem>
-                        )})}
-                      </SidebarMenuSub>
-                    </CollapsibleContent>
+                      </ItemLink>
+                    </SidebarMenuButton>
                   </SidebarMenuItem>
-                </Collapsible>
-              )}
-            </Fragment>
-          )})}
+                ) : (
+                  <Collapsible
+                    asChild
+                    className="group/collapsible"
+                    defaultOpen={item.items.some((subItem) =>
+                      isPathActive(subItem),
+                    )}
+                  >
+                    <SidebarMenuItem>
+                      <CollapsibleTrigger asChild>
+                        <SidebarMenuButton tooltip={item.title}>
+                          {item.icon && <item.icon />}
+                          <span>{item.title}</span>
+                          <ChevronRightIcon className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                        </SidebarMenuButton>
+                      </CollapsibleTrigger>
+
+                      <CollapsibleContent>
+                        <SidebarMenuSub>
+                          {item.items?.map((subItem) => {
+                            const SubItemLink = (
+                              subItem as { isAbsolute?: boolean }
+                            ).isAbsolute
+                              ? Link
+                              : TeamLink;
+                            return (
+                              <SidebarMenuSubItem key={subItem.title}>
+                                <SidebarMenuSubButton
+                                  asChild
+                                  isActive={isPathActive(subItem)}
+                                >
+                                  <SubItemLink href={subItem.path}>
+                                    <span>{subItem.title}</span>
+                                  </SubItemLink>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                            );
+                          })}
+                        </SidebarMenuSub>
+                      </CollapsibleContent>
+                    </SidebarMenuItem>
+                  </Collapsible>
+                )}
+              </Fragment>
+            );
+          })}
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>

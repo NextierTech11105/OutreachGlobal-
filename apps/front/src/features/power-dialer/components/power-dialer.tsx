@@ -66,16 +66,17 @@ export function PowerDialer({ powerDialer }: Props) {
   const [callDuration, setCallDuration] = useState(0);
   const [callNotes, setCallNotes] = useState("");
   const [callDisposition, setCallDisposition] = useState("");
-  const { team } = useCurrentTeam();
+  const { teamId, isTeamReady } = useCurrentTeam();
   const [{ mode, aiSdrAvatar, activeCall, device }, dispatch] =
     usePowerDialerContext();
   const [contacts = []] = useConnectionQuery(DIALER_CONTACTS_QUERY, {
     pick: "dialerContacts",
     variables: {
       powerDialerId: powerDialer.id,
-      teamId: team.id,
+      teamId,
       first: 200,
     },
+    skip: !isTeamReady,
   });
   const { cache } = useApolloClient();
   const [createCallHistory, { loading: createCallHistoryLoading }] =
@@ -84,9 +85,10 @@ export function PowerDialer({ powerDialer }: Props) {
   const [histories = [], pageInfo] = useConnectionQuery(CALL_HISTORIES_QUERY, {
     pick: "callHistories",
     variables: {
-      teamId: team.id,
+      teamId,
       powerDialerId: powerDialer.id,
     },
+    skip: !isTeamReady,
   });
 
   const { showError } = useApiError();
@@ -146,10 +148,12 @@ export function PowerDialer({ powerDialer }: Props) {
       if (!device) {
         const {
           data: { token },
-        } = await $http.post(`/voice/${team.id}/token`, {});
+        } = await $http.post(`/voice/${teamId}/token`, {});
 
         // Dynamic import to avoid SSR issues with Twilio Voice SDK
-        const { Device: TwilioDevice, Call: TwilioCall } = await import("@twilio/voice-sdk");
+        const { Device: TwilioDevice, Call: TwilioCall } = await import(
+          "@twilio/voice-sdk"
+        );
         const newDevice = new TwilioDevice(token, {
           codecPreferences: [TwilioCall.Codec.Opus, TwilioCall.Codec.PCMU],
         });
@@ -187,15 +191,7 @@ export function PowerDialer({ powerDialer }: Props) {
       toast.error("Failed to initiate call");
       setIsDialing(false);
     }
-  }, [
-    currentContact,
-    mode,
-    aiSdrAvatar,
-    handleNext,
-    device,
-    dispatch,
-    team.id,
-  ]);
+  }, [currentContact, mode, aiSdrAvatar, handleNext, device, dispatch, teamId]);
 
   const handleHangup = async () => {
     setIsInCall(false);
@@ -223,7 +219,7 @@ export function PowerDialer({ powerDialer }: Props) {
     try {
       // await createCallHistory({
       //   variables: {
-      //     teamId: team.id,
+      //     teamId,
       //     powerDialerId: powerDialer.id,
       //     dialerContactId: currentContact.id,
       //     markAsCompleted: true,

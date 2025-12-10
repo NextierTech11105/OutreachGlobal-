@@ -26,15 +26,20 @@ const defaultCursor = createDefaultCursor({
 });
 
 export function CallHistoryList() {
-  const { team } = useCurrentTeam();
+  const { teamId, isTeamReady } = useCurrentTeam();
   const [cursor, setCursor] = useState(defaultCursor);
   const [histories = [], pageInfo] = useConnectionQuery(CALL_HISTORIES_QUERY, {
     pick: "callHistories",
     variables: {
       ...cursor,
-      teamId: team.id,
+      teamId,
     },
+    skip: !isTeamReady,
   });
+
+  if (!isTeamReady) {
+    return null;
+  }
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);

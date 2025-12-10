@@ -6,7 +6,13 @@ import { TeamSection } from "@/features/team/layouts/team-section";
 import { TeamHeader } from "@/features/team/layouts/team-header";
 import { TeamLink } from "@/features/team/components/team-link";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -29,12 +35,42 @@ import {
 } from "lucide-react";
 
 const DEAL_TYPES = [
-  { value: "b2b_exit", label: "B2B Exit", icon: Building2, description: "Business-to-business sale" },
-  { value: "commercial", label: "Commercial", icon: Building2, description: "Commercial property deal" },
-  { value: "assemblage", label: "Assemblage", icon: LayoutGrid, description: "Multiple property consolidation" },
-  { value: "blue_collar_exit", label: "Blue Collar Exit", icon: Building2, description: "Trade/service business exit" },
-  { value: "development", label: "Development", icon: Target, description: "Development opportunity" },
-  { value: "residential_haos", label: "Residential HAOS", icon: Home, description: "Homeowner assistance/sale" },
+  {
+    value: "b2b_exit",
+    label: "B2B Exit",
+    icon: Building2,
+    description: "Business-to-business sale",
+  },
+  {
+    value: "commercial",
+    label: "Commercial",
+    icon: Building2,
+    description: "Commercial property deal",
+  },
+  {
+    value: "assemblage",
+    label: "Assemblage",
+    icon: LayoutGrid,
+    description: "Multiple property consolidation",
+  },
+  {
+    value: "blue_collar_exit",
+    label: "Blue Collar Exit",
+    icon: Building2,
+    description: "Trade/service business exit",
+  },
+  {
+    value: "development",
+    label: "Development",
+    icon: Target,
+    description: "Development opportunity",
+  },
+  {
+    value: "residential_haos",
+    label: "Residential HAOS",
+    icon: Home,
+    description: "Homeowner assistance/sale",
+  },
 ];
 
 const PRIORITIES = [
@@ -94,7 +130,9 @@ export default function CreateDealPage() {
     const fetchLeads = async () => {
       try {
         // Fetch leads that don't already have deals
-        const response = await fetch(`/api/leads?teamId=${teamId}&status=qualified&limit=100`);
+        const response = await fetch(
+          `/api/leads?teamId=${teamId}&status=qualified&limit=100`,
+        );
         const data = await response.json();
         if (data.leads) {
           setLeads(data.leads);
@@ -121,7 +159,10 @@ export default function CreateDealPage() {
     setFormData((prev) => ({
       ...prev,
       leadId: lead.id,
-      name: lead.propertyAddress || lead.companyName || `Deal - ${lead.firstName} ${lead.lastName}`,
+      name:
+        lead.propertyAddress ||
+        lead.companyName ||
+        `Deal - ${lead.firstName} ${lead.lastName}`,
       estimatedValue: lead.estimatedValue?.toString() || "",
     }));
   };
@@ -158,7 +199,9 @@ export default function CreateDealPage() {
             rate: parseFloat(formData.monetizationRate) || 0,
           },
           expectedCloseDate: formData.expectedCloseDate || undefined,
-          tags: formData.tags ? formData.tags.split(",").map((t) => t.trim()) : [],
+          tags: formData.tags
+            ? formData.tags.split(",").map((t) => t.trim())
+            : [],
         }),
       });
 
@@ -177,7 +220,11 @@ export default function CreateDealPage() {
     }
   };
 
-  const isValid = formData.leadId && formData.name && formData.type && formData.estimatedValue;
+  const isValid =
+    formData.leadId &&
+    formData.name &&
+    formData.type &&
+    formData.estimatedValue;
 
   return (
     <TeamSection>
@@ -204,7 +251,9 @@ export default function CreateDealPage() {
           <Card>
             <CardHeader>
               <CardTitle>Select Lead</CardTitle>
-              <CardDescription>Choose a qualified lead to create a deal from</CardDescription>
+              <CardDescription>
+                Choose a qualified lead to create a deal from
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {loadingLeads ? (
@@ -231,10 +280,14 @@ export default function CreateDealPage() {
                             {lead.firstName} {lead.lastName}
                           </span>
                           {lead.propertyAddress && (
-                            <span className="text-muted-foreground">- {lead.propertyAddress}</span>
+                            <span className="text-muted-foreground">
+                              - {lead.propertyAddress}
+                            </span>
                           )}
                           {lead.companyName && (
-                            <span className="text-muted-foreground">- {lead.companyName}</span>
+                            <span className="text-muted-foreground">
+                              - {lead.companyName}
+                            </span>
                           )}
                         </div>
                       </SelectItem>
@@ -265,7 +318,9 @@ export default function CreateDealPage() {
                     )}
                     {selectedLead.propertyAddress && (
                       <div>
-                        <span className="text-muted-foreground">Property: </span>
+                        <span className="text-muted-foreground">
+                          Property:{" "}
+                        </span>
                         {selectedLead.propertyAddress}
                       </div>
                     )}
@@ -285,7 +340,9 @@ export default function CreateDealPage() {
           <Card>
             <CardHeader>
               <CardTitle>Deal Type</CardTitle>
-              <CardDescription>Select the type of deal you&apos;re creating</CardDescription>
+              <CardDescription>
+                Select the type of deal you&apos;re creating
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-3">
@@ -305,7 +362,9 @@ export default function CreateDealPage() {
                       <Icon className="h-5 w-5 mt-0.5" />
                       <div>
                         <div className="font-medium">{type.label}</div>
-                        <div className="text-xs text-muted-foreground">{type.description}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {type.description}
+                        </div>
                       </div>
                     </button>
                   );
@@ -325,7 +384,9 @@ export default function CreateDealPage() {
                 <Input
                   id="name"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
                   placeholder="Enter deal name"
                 />
               </div>
@@ -335,7 +396,9 @@ export default function CreateDealPage() {
                 <Textarea
                   id="description"
                   value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, description: e.target.value })
+                  }
                   placeholder="Brief description of the deal"
                   rows={3}
                 />
@@ -346,7 +409,9 @@ export default function CreateDealPage() {
                   <Label htmlFor="priority">Priority</Label>
                   <Select
                     value={formData.priority}
-                    onValueChange={(v) => setFormData({ ...formData, priority: v })}
+                    onValueChange={(v) =>
+                      setFormData({ ...formData, priority: v })
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -367,7 +432,12 @@ export default function CreateDealPage() {
                     id="expectedCloseDate"
                     type="date"
                     value={formData.expectedCloseDate}
-                    onChange={(e) => setFormData({ ...formData, expectedCloseDate: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        expectedCloseDate: e.target.value,
+                      })
+                    }
                   />
                 </div>
               </div>
@@ -377,7 +447,9 @@ export default function CreateDealPage() {
                 <Input
                   id="tags"
                   value={formData.tags}
-                  onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, tags: e.target.value })
+                  }
                   placeholder="e.g., hot lead, referral, NYC"
                 />
               </div>
@@ -399,7 +471,9 @@ export default function CreateDealPage() {
                   id="estimatedValue"
                   type="number"
                   value={formData.estimatedValue}
-                  onChange={(e) => setFormData({ ...formData, estimatedValue: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, estimatedValue: e.target.value })
+                  }
                   placeholder="Enter deal value in dollars"
                 />
               </div>
@@ -409,7 +483,9 @@ export default function CreateDealPage() {
                   <Label htmlFor="monetizationType">Monetization Type</Label>
                   <Select
                     value={formData.monetizationType}
-                    onValueChange={(v) => setFormData({ ...formData, monetizationType: v })}
+                    onValueChange={(v) =>
+                      setFormData({ ...formData, monetizationType: v })
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select type" />
@@ -430,7 +506,12 @@ export default function CreateDealPage() {
                     type="number"
                     step="0.1"
                     value={formData.monetizationRate}
-                    onChange={(e) => setFormData({ ...formData, monetizationRate: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        monetizationRate: e.target.value,
+                      })
+                    }
                     placeholder="e.g., 6"
                   />
                 </div>
@@ -438,9 +519,16 @@ export default function CreateDealPage() {
 
               {formData.estimatedValue && formData.monetizationRate && (
                 <div className="p-4 bg-green-500/10 rounded-lg">
-                  <div className="text-sm text-muted-foreground">Estimated Revenue</div>
+                  <div className="text-sm text-muted-foreground">
+                    Estimated Revenue
+                  </div>
                   <div className="text-2xl font-bold text-green-600">
-                    ${sf((parseInt(formData.estimatedValue) * parseFloat(formData.monetizationRate)) / 100)}
+                    $
+                    {sf(
+                      (parseInt(formData.estimatedValue) *
+                        parseFloat(formData.monetizationRate)) /
+                        100,
+                    )}
                   </div>
                 </div>
               )}

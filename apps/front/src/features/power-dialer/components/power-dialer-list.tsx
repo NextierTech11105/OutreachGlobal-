@@ -22,15 +22,18 @@ import { PowerDialerModal } from "./power-dialer-modal";
 
 export const PowerDialerList: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
-  const { team } = useCurrentTeam();
+  const { teamId, isTeamReady } = useCurrentTeam();
 
   const [powerDialers, pageInfo, { loading }] = useConnectionQuery(
     POWER_DIALERS_QUERY,
     {
       pick: "powerDialers",
-      variables: { teamId: team.id, first: 100 },
+      variables: { teamId, first: 100 },
+      skip: !isTeamReady,
     },
   );
+
+  if (!isTeamReady) return null;
 
   return (
     <>

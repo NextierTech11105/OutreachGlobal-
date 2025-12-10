@@ -24,17 +24,18 @@ interface Props extends ModalProps {}
 
 export function WorkflowModal({ open, onOpenChange }: Props) {
   const [loading, setLoading] = useState(false);
-  const { team } = useCurrentTeam();
+  const { teamId, isTeamReady } = useCurrentTeam();
   const { showError } = useApiError();
   const { cache } = useApolloClient();
   const [createWorkflow] = useMutation(CREATE_WORKFLOW_MUTATION);
 
   const handleSubmit = async (input: CreateWorkflowDto) => {
+    if (!isTeamReady) return;
     setLoading(true);
     try {
       await createWorkflow({
         variables: {
-          teamId: team.id,
+          teamId,
           input,
         },
       });

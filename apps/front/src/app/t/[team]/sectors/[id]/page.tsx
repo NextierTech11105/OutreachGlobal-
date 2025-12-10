@@ -1,6 +1,5 @@
 "use client";
 
-
 import { sf, sfd } from "@/lib/utils/safe-format";
 import { useState, useEffect } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -121,15 +120,26 @@ export default function SectorDetailPage() {
 
   // Enrichment state
   const [enriching, setEnriching] = useState(false);
-  const [enrichType, setEnrichType] = useState<"skip_trace" | "apollo" | null>(null);
-  const [enrichProgress, setEnrichProgress] = useState({ processed: 0, total: 0, success: 0, failed: 0 });
+  const [enrichType, setEnrichType] = useState<"skip_trace" | "apollo" | null>(
+    null,
+  );
+  const [enrichProgress, setEnrichProgress] = useState({
+    processed: 0,
+    total: 0,
+    success: 0,
+    failed: 0,
+  });
   const [showEnrichDialog, setShowEnrichDialog] = useState(false);
 
   // SMS state
   const [showSmsDialog, setShowSmsDialog] = useState(action === "sms");
   const [smsMessage, setSmsMessage] = useState("");
   const [sendingSms, setSendingSms] = useState(false);
-  const [smsProgress, setSmsProgress] = useState<{ sent: number; failed: number; total: number } | null>(null);
+  const [smsProgress, setSmsProgress] = useState<{
+    sent: number;
+    failed: number;
+    total: number;
+  } | null>(null);
 
   // Detail modal state
   const [detailModalOpen, setDetailModalOpen] = useState(false);
@@ -145,7 +155,10 @@ export default function SectorDetailPage() {
         setDailySkipTraceCount(count);
       } else {
         // Reset for new day
-        localStorage.setItem("skipTraceDaily", JSON.stringify({ date: today, count: 0 }));
+        localStorage.setItem(
+          "skipTraceDaily",
+          JSON.stringify({ date: today, count: 0 }),
+        );
         setDailySkipTraceCount(0);
       }
     }
@@ -154,7 +167,10 @@ export default function SectorDetailPage() {
   // Update daily count in localStorage
   const updateDailyCount = (newCount: number) => {
     const today = new Date().toISOString().split("T")[0];
-    localStorage.setItem("skipTraceDaily", JSON.stringify({ date: today, count: newCount }));
+    localStorage.setItem(
+      "skipTraceDaily",
+      JSON.stringify({ date: today, count: newCount }),
+    );
     setDailySkipTraceCount(newCount);
   };
 
@@ -165,7 +181,9 @@ export default function SectorDetailPage() {
 
   // Select all enrichable on current page
   const selectAllEnrichable = () => {
-    const enrichable = paginatedLeads.filter((l) => l.address && l.city && l.state && !l.enriched);
+    const enrichable = paginatedLeads.filter(
+      (l) => l.address && l.city && l.state && !l.enriched,
+    );
     setSelectedIds(new Set(enrichable.map((l) => l.id)));
   };
 
@@ -221,7 +239,7 @@ export default function SectorDetailPage() {
   const totalPages = Math.ceil(filteredLeads.length / pageSize);
   const paginatedLeads = filteredLeads.slice(
     (currentPage - 1) * pageSize,
-    currentPage * pageSize
+    currentPage * pageSize,
   );
 
   // Selection handlers
@@ -247,7 +265,10 @@ export default function SectorDetailPage() {
 
   // Skip Trace Enrichment (RealEstateAPI)
   const handleSkipTrace = async () => {
-    const selected = leads.filter((l) => selectedIds.has(l.id) && l.address && l.city && l.state && !l.enriched);
+    const selected = leads.filter(
+      (l) =>
+        selectedIds.has(l.id) && l.address && l.city && l.state && !l.enriched,
+    );
     if (selected.length === 0) {
       toast.error("No selected records have addresses for skip tracing");
       return;
@@ -256,19 +277,28 @@ export default function SectorDetailPage() {
     // Check daily limit
     const remaining = DAILY_SKIP_TRACE_LIMIT - dailySkipTraceCount;
     if (remaining <= 0) {
-      toast.error(`Daily limit reached (${DAILY_SKIP_TRACE_LIMIT}/day). Try again tomorrow.`);
+      toast.error(
+        `Daily limit reached (${DAILY_SKIP_TRACE_LIMIT}/day). Try again tomorrow.`,
+      );
       return;
     }
 
     // Limit to remaining daily quota
     const toProcess = selected.slice(0, remaining);
     if (toProcess.length < selected.length) {
-      toast.warning(`Processing ${toProcess.length} of ${selected.length} (daily limit: ${remaining} remaining)`);
+      toast.warning(
+        `Processing ${toProcess.length} of ${selected.length} (daily limit: ${remaining} remaining)`,
+      );
     }
 
     setEnriching(true);
     setEnrichType("skip_trace");
-    setEnrichProgress({ processed: 0, total: toProcess.length, success: 0, failed: 0 });
+    setEnrichProgress({
+      processed: 0,
+      total: toProcess.length,
+      success: 0,
+      failed: 0,
+    });
     setShowEnrichDialog(true);
 
     let success = 0;
@@ -288,7 +318,8 @@ export default function SectorDetailPage() {
                 city: lead.city,
                 state: lead.state,
                 zip: lead.zip,
-                lastName: lead.contactName?.split(" ").pop() || lead.companyName,
+                lastName:
+                  lead.contactName?.split(" ").pop() || lead.companyName,
               }),
             });
 
@@ -297,8 +328,10 @@ export default function SectorDetailPage() {
               return {
                 leadId: lead.id,
                 success: true,
-                phones: data.phones?.map((p: { number: string }) => p.number) || [],
-                emails: data.emails?.map((e: { email: string }) => e.email) || [],
+                phones:
+                  data.phones?.map((p: { number: string }) => p.number) || [],
+                emails:
+                  data.emails?.map((e: { email: string }) => e.email) || [],
                 ownerName: data.ownerName,
               };
             }
@@ -306,7 +339,7 @@ export default function SectorDetailPage() {
           } catch {
             return { leadId: lead.id, success: false };
           }
-        })
+        }),
       );
 
       // Update leads with results
@@ -325,7 +358,7 @@ export default function SectorDetailPage() {
           }
           if (result) failed++;
           return lead;
-        })
+        }),
       );
 
       setEnrichProgress({
@@ -344,20 +377,31 @@ export default function SectorDetailPage() {
     updateDailyCount(dailySkipTraceCount + success);
 
     setEnriching(false);
-    toast.success(`Skip trace complete: ${success} enriched, ${failed} failed. Daily: ${dailySkipTraceCount + success}/${DAILY_SKIP_TRACE_LIMIT}`);
+    toast.success(
+      `Skip trace complete: ${success} enriched, ${failed} failed. Daily: ${dailySkipTraceCount + success}/${DAILY_SKIP_TRACE_LIMIT}`,
+    );
   };
 
   // Apollo Enrichment
   const handleApolloEnrich = async () => {
-    const selected = leads.filter((l) => selectedIds.has(l.id) && (l.companyName || l.website));
+    const selected = leads.filter(
+      (l) => selectedIds.has(l.id) && (l.companyName || l.website),
+    );
     if (selected.length === 0) {
-      toast.error("No selected records have company names or websites for Apollo enrichment");
+      toast.error(
+        "No selected records have company names or websites for Apollo enrichment",
+      );
       return;
     }
 
     setEnriching(true);
     setEnrichType("apollo");
-    setEnrichProgress({ processed: 0, total: selected.length, success: 0, failed: 0 });
+    setEnrichProgress({
+      processed: 0,
+      total: selected.length,
+      success: 0,
+      failed: 0,
+    });
     setShowEnrichDialog(true);
 
     let success = 0;
@@ -375,7 +419,9 @@ export default function SectorDetailPage() {
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 company_name: lead.companyName ? [lead.companyName] : undefined,
-                company_domain: lead.website ? [lead.website.replace(/^https?:\/\//, "")] : undefined,
+                company_domain: lead.website
+                  ? [lead.website.replace(/^https?:\/\//, "")]
+                  : undefined,
                 state: lead.state ? [lead.state] : undefined,
               }),
             });
@@ -396,7 +442,7 @@ export default function SectorDetailPage() {
           } catch {
             return { leadId: lead.id, success: false };
           }
-        })
+        }),
       );
 
       // Update leads with results
@@ -409,13 +455,17 @@ export default function SectorDetailPage() {
               ...lead,
               enriched: true,
               apolloData: result.apolloData,
-              enrichedPhones: result.phone ? [result.phone] : lead.enrichedPhones,
-              enrichedEmails: result.email ? [result.email] : lead.enrichedEmails,
+              enrichedPhones: result.phone
+                ? [result.phone]
+                : lead.enrichedPhones,
+              enrichedEmails: result.email
+                ? [result.email]
+                : lead.enrichedEmails,
             };
           }
           if (result) failed++;
           return lead;
-        })
+        }),
       );
 
       setEnrichProgress({
@@ -431,18 +481,24 @@ export default function SectorDetailPage() {
     }
 
     setEnriching(false);
-    toast.success(`Apollo enrichment complete: ${success} enriched, ${failed} failed`);
+    toast.success(
+      `Apollo enrichment complete: ${success} enriched, ${failed} failed`,
+    );
   };
 
   // Send SMS
   const handleSendSms = async () => {
     const phonesToSms: string[] = [];
-    leads.filter((l) => selectedIds.has(l.id)).forEach((lead) => {
-      if (lead.phone) phonesToSms.push(lead.phone);
-      if (lead.enrichedPhones) phonesToSms.push(...lead.enrichedPhones);
-    });
+    leads
+      .filter((l) => selectedIds.has(l.id))
+      .forEach((lead) => {
+        if (lead.phone) phonesToSms.push(lead.phone);
+        if (lead.enrichedPhones) phonesToSms.push(...lead.enrichedPhones);
+      });
 
-    const uniquePhones = [...new Set(phonesToSms)].filter((p) => p && p.length > 5);
+    const uniquePhones = [...new Set(phonesToSms)].filter(
+      (p) => p && p.length > 5,
+    );
 
     if (uniquePhones.length === 0) {
       toast.error("No phone numbers in selected records");
@@ -501,10 +557,12 @@ export default function SectorDetailPage() {
   // Get phone count
   const getPhoneCount = () => {
     const phones: string[] = [];
-    leads.filter((l) => selectedIds.has(l.id)).forEach((lead) => {
-      if (lead.phone) phones.push(lead.phone);
-      if (lead.enrichedPhones) phones.push(...lead.enrichedPhones);
-    });
+    leads
+      .filter((l) => selectedIds.has(l.id))
+      .forEach((lead) => {
+        if (lead.phone) phones.push(lead.phone);
+        if (lead.enrichedPhones) phones.push(...lead.enrichedPhones);
+      });
     return new Set(phones.filter((p) => p && p.length > 5)).size;
   };
 
@@ -542,7 +600,8 @@ export default function SectorDetailPage() {
             <div>
               <h2 className="text-2xl font-bold">{dataLake.name}</h2>
               <p className="text-muted-foreground">
-                {dataLake.description || `${sf(dataLake.totalLeads ?? 0)} records`}
+                {dataLake.description ||
+                  `${sf(dataLake.totalLeads ?? 0)} records`}
               </p>
             </div>
           </div>
@@ -559,7 +618,9 @@ export default function SectorDetailPage() {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <Card>
             <CardContent className="pt-4">
-              <div className="text-2xl font-bold">{sf(dataLake.totalLeads ?? 0)}</div>
+              <div className="text-2xl font-bold">
+                {sf(dataLake.totalLeads ?? 0)}
+              </div>
               <p className="text-xs text-muted-foreground">Total Records</p>
             </CardContent>
           </Card>
@@ -617,7 +678,13 @@ export default function SectorDetailPage() {
               onClick={selectAllEnrichable}
               disabled={enriching}
             >
-              Select Page ({paginatedLeads.filter((l) => l.address && l.city && l.state && !l.enriched).length})
+              Select Page (
+              {
+                paginatedLeads.filter(
+                  (l) => l.address && l.city && l.state && !l.enriched,
+                ).length
+              }
+              )
             </Button>
             <Button
               variant="outline"
@@ -646,7 +713,14 @@ export default function SectorDetailPage() {
           </div>
 
           {/* Daily Limit Badge */}
-          <Badge variant={dailySkipTraceCount >= DAILY_SKIP_TRACE_LIMIT ? "destructive" : "secondary"} className="px-3 py-1">
+          <Badge
+            variant={
+              dailySkipTraceCount >= DAILY_SKIP_TRACE_LIMIT
+                ? "destructive"
+                : "secondary"
+            }
+            className="px-3 py-1"
+          >
             {sf(dailySkipTraceCount)}/{sf(DAILY_SKIP_TRACE_LIMIT)} today
           </Badge>
         </div>
@@ -655,7 +729,11 @@ export default function SectorDetailPage() {
         <div className="flex items-center gap-4 flex-wrap">
           <Button
             onClick={handleSkipTrace}
-            disabled={enriching || selectedIds.size === 0 || dailySkipTraceCount >= DAILY_SKIP_TRACE_LIMIT}
+            disabled={
+              enriching ||
+              selectedIds.size === 0 ||
+              dailySkipTraceCount >= DAILY_SKIP_TRACE_LIMIT
+            }
             variant="outline"
             className="border-purple-500 text-purple-600 hover:bg-purple-50"
           >
@@ -690,7 +768,10 @@ export default function SectorDetailPage() {
               <TableRow>
                 <TableHead className="w-10">
                   <Checkbox
-                    checked={paginatedLeads.length > 0 && selectedIds.size === paginatedLeads.length}
+                    checked={
+                      paginatedLeads.length > 0 &&
+                      selectedIds.size === paginatedLeads.length
+                    }
                     onCheckedChange={toggleSelectAll}
                   />
                 </TableHead>
@@ -706,13 +787,23 @@ export default function SectorDetailPage() {
             <TableBody>
               {paginatedLeads.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                    {searchQuery ? "No matching records" : "No records in this data lake"}
+                  <TableCell
+                    colSpan={8}
+                    className="text-center py-8 text-muted-foreground"
+                  >
+                    {searchQuery
+                      ? "No matching records"
+                      : "No records in this data lake"}
                   </TableCell>
                 </TableRow>
               ) : (
                 paginatedLeads.map((lead) => (
-                  <TableRow key={lead.id} className={lead.enriched ? "bg-green-50 dark:bg-green-900/10" : ""}>
+                  <TableRow
+                    key={lead.id}
+                    className={
+                      lead.enriched ? "bg-green-50 dark:bg-green-900/10" : ""
+                    }
+                  >
                     <TableCell>
                       <Checkbox
                         checked={selectedIds.has(lead.id)}
@@ -733,21 +824,33 @@ export default function SectorDetailPage() {
                       </Button>
                     </TableCell>
                     <TableCell>
-                      <div className="font-medium">{lead.companyName || "-"}</div>
+                      <div className="font-medium">
+                        {lead.companyName || "-"}
+                      </div>
                       {lead.contactName && (
-                        <div className="text-sm text-muted-foreground">{lead.contactName}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {lead.contactName}
+                        </div>
                       )}
                       {lead.ownerName && (
-                        <div className="text-xs text-purple-600">Owner: {lead.ownerName}</div>
+                        <div className="text-xs text-purple-600">
+                          Owner: {lead.ownerName}
+                        </div>
                       )}
                     </TableCell>
                     <TableCell>
                       {lead.enrichedPhones && lead.enrichedPhones.length > 0 ? (
                         <div className="space-y-1">
                           {lead.enrichedPhones.slice(0, 2).map((p, i) => (
-                            <div key={i} className="flex items-center gap-1 text-sm">
+                            <div
+                              key={i}
+                              className="flex items-center gap-1 text-sm"
+                            >
                               <Phone className="h-3 w-3 text-green-600" />
-                              <a href={`tel:${p}`} className="text-blue-600 hover:underline">
+                              <a
+                                href={`tel:${p}`}
+                                className="text-blue-600 hover:underline"
+                              >
                                 {p}
                               </a>
                             </div>
@@ -766,7 +869,10 @@ export default function SectorDetailPage() {
                       {lead.enrichedEmails && lead.enrichedEmails.length > 0 ? (
                         <div className="text-sm">
                           <Mail className="h-3 w-3 text-green-600 inline mr-1" />
-                          <a href={`mailto:${lead.enrichedEmails[0]}`} className="text-blue-600 hover:underline">
+                          <a
+                            href={`mailto:${lead.enrichedEmails[0]}`}
+                            className="text-blue-600 hover:underline"
+                          >
                             {lead.enrichedEmails[0]}
                           </a>
                         </div>
@@ -790,7 +896,9 @@ export default function SectorDetailPage() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <span className="text-sm">{lead.industry || lead.sicCode || "-"}</span>
+                      <span className="text-sm">
+                        {lead.industry || lead.sicCode || "-"}
+                      </span>
                     </TableCell>
                     <TableCell>
                       {lead.enriched ? (
@@ -811,7 +919,9 @@ export default function SectorDetailPage() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between p-4 border-t">
               <p className="text-sm text-muted-foreground">
-                Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, filteredLeads.length)} of {filteredLeads.length}
+                Showing {(currentPage - 1) * pageSize + 1} to{" "}
+                {Math.min(currentPage * pageSize, filteredLeads.length)} of{" "}
+                {filteredLeads.length}
               </p>
               <div className="flex items-center gap-2">
                 <Button
@@ -828,7 +938,9 @@ export default function SectorDetailPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(totalPages, p + 1))
+                  }
                   disabled={currentPage === totalPages}
                 >
                   <ChevronRight className="h-4 w-4" />
@@ -858,10 +970,14 @@ export default function SectorDetailPage() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <Progress value={(enrichProgress.processed / enrichProgress.total) * 100} />
+            <Progress
+              value={(enrichProgress.processed / enrichProgress.total) * 100}
+            />
             <div className="grid grid-cols-4 gap-4 text-center">
               <div>
-                <div className="text-xl font-bold">{enrichProgress.processed}</div>
+                <div className="text-xl font-bold">
+                  {enrichProgress.processed}
+                </div>
                 <div className="text-xs text-muted-foreground">Processed</div>
               </div>
               <div>
@@ -869,17 +985,25 @@ export default function SectorDetailPage() {
                 <div className="text-xs text-muted-foreground">Total</div>
               </div>
               <div>
-                <div className="text-xl font-bold text-green-600">{enrichProgress.success}</div>
+                <div className="text-xl font-bold text-green-600">
+                  {enrichProgress.success}
+                </div>
                 <div className="text-xs text-muted-foreground">Success</div>
               </div>
               <div>
-                <div className="text-xl font-bold text-red-600">{enrichProgress.failed}</div>
+                <div className="text-xl font-bold text-red-600">
+                  {enrichProgress.failed}
+                </div>
                 <div className="text-xs text-muted-foreground">Failed</div>
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEnrichDialog(false)} disabled={enriching}>
+            <Button
+              variant="outline"
+              onClick={() => setShowEnrichDialog(false)}
+              disabled={enriching}
+            >
               {enriching ? "Processing..." : "Close"}
             </Button>
           </DialogFooter>
@@ -900,10 +1024,26 @@ export default function SectorDetailPage() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-2">
-              <Button variant="outline" size="sm" onClick={() => setSmsMessage("Hi! Quick question about your business - are you looking for [service]? Reply YES for more info.")}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  setSmsMessage(
+                    "Hi! Quick question about your business - are you looking for [service]? Reply YES for more info.",
+                  )
+                }
+              >
                 Intro
               </Button>
-              <Button variant="outline" size="sm" onClick={() => setSmsMessage("Hey! We help businesses like yours with [solution]. Open to a quick chat? Reply with a good time.")}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  setSmsMessage(
+                    "Hey! We help businesses like yours with [solution]. Open to a quick chat? Reply with a good time.",
+                  )
+                }
+              >
                 Casual
               </Button>
             </div>
@@ -914,15 +1054,21 @@ export default function SectorDetailPage() {
               className="w-full min-h-[100px] p-3 rounded-md border bg-background"
               maxLength={160}
             />
-            <div className="text-xs text-muted-foreground">{smsMessage.length}/160</div>
+            <div className="text-xs text-muted-foreground">
+              {smsMessage.length}/160
+            </div>
             {smsProgress && (
               <div className="grid grid-cols-3 gap-4 text-center p-4 bg-muted rounded-lg">
                 <div>
-                  <div className="text-xl font-bold text-green-600">{smsProgress.sent}</div>
+                  <div className="text-xl font-bold text-green-600">
+                    {smsProgress.sent}
+                  </div>
                   <div className="text-xs">Sent</div>
                 </div>
                 <div>
-                  <div className="text-xl font-bold text-red-600">{smsProgress.failed}</div>
+                  <div className="text-xl font-bold text-red-600">
+                    {smsProgress.failed}
+                  </div>
                   <div className="text-xs">Failed</div>
                 </div>
                 <div>
@@ -933,11 +1079,23 @@ export default function SectorDetailPage() {
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowSmsDialog(false)} disabled={sendingSms}>
+            <Button
+              variant="outline"
+              onClick={() => setShowSmsDialog(false)}
+              disabled={sendingSms}
+            >
               Cancel
             </Button>
-            <Button onClick={handleSendSms} disabled={sendingSms || !smsMessage.trim()} className="bg-green-600 hover:bg-green-700">
-              {sendingSms ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
+            <Button
+              onClick={handleSendSms}
+              disabled={sendingSms || !smsMessage.trim()}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {sendingSms ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4 mr-2" />
+              )}
               Send
             </Button>
           </DialogFooter>
@@ -948,30 +1106,41 @@ export default function SectorDetailPage() {
       <UniversalDetailModal
         open={detailModalOpen}
         onOpenChange={setDetailModalOpen}
-        record={selectedLead ? {
-          // Map lead fields to universal format for context detection
-          ...selectedLead,
-          // B2B context indicators
-          company: selectedLead.companyName,
-          industry: selectedLead.industry,
-          employees: selectedLead.employees,
-          revenue: selectedLead.revenue,
-          website: selectedLead.website,
-          // Contact info
-          firstName: selectedLead.contactName?.split(" ")[0],
-          lastName: selectedLead.contactName?.split(" ").slice(1).join(" "),
-          phone: selectedLead.phone || selectedLead.enrichedPhones?.[0],
-          email: selectedLead.email || selectedLead.enrichedEmails?.[0],
-          // Address for skip trace
-          address: selectedLead.address,
-          city: selectedLead.city,
-          state: selectedLead.state,
-          zip: selectedLead.zip,
-          // Enrichment data
-          apolloData: selectedLead.apolloData,
-          skipTraceData: selectedLead.skipTraceData,
-        } : null}
-        recordType={selectedLead?.industry || selectedLead?.sicCode ? "b2b-company" : "lead"}
+        record={
+          selectedLead
+            ? {
+                // Map lead fields to universal format for context detection
+                ...selectedLead,
+                // B2B context indicators
+                company: selectedLead.companyName,
+                industry: selectedLead.industry,
+                employees: selectedLead.employees,
+                revenue: selectedLead.revenue,
+                website: selectedLead.website,
+                // Contact info
+                firstName: selectedLead.contactName?.split(" ")[0],
+                lastName: selectedLead.contactName
+                  ?.split(" ")
+                  .slice(1)
+                  .join(" "),
+                phone: selectedLead.phone || selectedLead.enrichedPhones?.[0],
+                email: selectedLead.email || selectedLead.enrichedEmails?.[0],
+                // Address for skip trace
+                address: selectedLead.address,
+                city: selectedLead.city,
+                state: selectedLead.state,
+                zip: selectedLead.zip,
+                // Enrichment data
+                apolloData: selectedLead.apolloData,
+                skipTraceData: selectedLead.skipTraceData,
+              }
+            : null
+        }
+        recordType={
+          selectedLead?.industry || selectedLead?.sicCode
+            ? "b2b-company"
+            : "lead"
+        }
         onAction={(action, data) => {
           console.log("[SectorDetail] Action:", action, data);
           if (action === "add-lead") {

@@ -46,11 +46,15 @@ export function LeadPhoneNumbers({
   const [newPhoneLabel, setNewPhoneLabel] = useState("Mobile");
   const [loading, setLoading] = useState(false);
   const { showError } = useApiError();
-  const { team } = useCurrentTeam();
+  const { team, teamId, isTeamReady } = useCurrentTeam();
   const { showAlert } = useModalAlert();
   const [createPhoneNumber] = useMutation(CREATE_LEAD_PHONE_NUMBER_MUTATION);
   const [updatePhoneNumber] = useMutation(UPDATE_LEAD_PHONE_NUMBER_MUTATION);
   const [deletePhoneNumber] = useMutation(DELETE_LEAD_PHONE_NUMBER_MUTATION);
+
+  if (!isTeamReady) {
+    return null;
+  }
 
   const handleAddPhoneNumber = async () => {
     if (!newPhoneNumber) {
@@ -61,7 +65,7 @@ export function LeadPhoneNumbers({
     try {
       await createPhoneNumber({
         variables: {
-          teamId: team.id,
+          teamId,
           leadId,
           input: {
             phone: newPhoneNumber,
@@ -87,7 +91,7 @@ export function LeadPhoneNumbers({
         try {
           await deletePhoneNumber({
             variables: {
-              teamId: team.id,
+              teamId,
               leadPhoneNumberId: id,
               leadId,
             },
@@ -105,7 +109,7 @@ export function LeadPhoneNumbers({
     try {
       await updatePhoneNumber({
         variables: {
-          teamId: team.id,
+          teamId,
           leadPhoneNumberId: id,
           leadId,
           label,

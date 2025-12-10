@@ -61,7 +61,7 @@ const defaultFilters: Filters = {
 };
 
 export function BusinessListImport() {
-  const { team } = useCurrentTeam();
+  const { team, teamId, isTeamReady } = useCurrentTeam();
   const router = useRouter();
   const [filters, setFilters] = useState<Filters>(defaultFilters);
   const [isImporting, setIsImporting] = useState(false);
@@ -79,6 +79,10 @@ export function BusinessListImport() {
   const [presetModalOpen, setPresetModalOpen] = useState(false);
   const [loadPresetOpen, setLoadPresetOpen] = useState(false);
   const { showError } = useApiError();
+
+  if (!isTeamReady) {
+    return null;
+  }
 
   const searchParams = useMemo(() => {
     return {
@@ -121,7 +125,7 @@ export function BusinessListImport() {
     try {
       await importBusinessList({
         variables: {
-          teamId: team.id,
+          teamId,
           input: searchParams,
           presetId: selectedPreset?.id || undefined,
         },

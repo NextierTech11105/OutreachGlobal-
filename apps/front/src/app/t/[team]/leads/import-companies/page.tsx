@@ -23,7 +23,21 @@ import {
 } from "@/components/ui/table";
 import { currencyFormat } from "@/lib/currency-format";
 import { useDebounceValue } from "usehooks-ts";
-import { SearchIcon, ChevronLeft, ChevronRight, Sparkles, Phone, Mail, Building, MapPin, ExternalLink, Loader2, DollarSign, PhoneCall, Send } from "lucide-react";
+import {
+  SearchIcon,
+  ChevronLeft,
+  ChevronRight,
+  Sparkles,
+  Phone,
+  Mail,
+  Building,
+  MapPin,
+  ExternalLink,
+  Loader2,
+  DollarSign,
+  PhoneCall,
+  Send,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatNumber } from "@/lib/formatter";
 import { LoadingOverlay } from "@/components/ui/loading/loading-overlay";
@@ -122,7 +136,9 @@ export default function ImportCompaniesPage() {
   const [hits, setHits] = useState<Company[]>([]);
   const [query, setQuery] = useState("");
   const [debouncedQuery] = useDebounceValue(query, 500);
-  const [selectedCompanies, setSelectedCompanies] = useState<Set<string>>(new Set());
+  const [selectedCompanies, setSelectedCompanies] = useState<Set<string>>(
+    new Set(),
+  );
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -133,7 +149,8 @@ export default function ImportCompaniesPage() {
 
   // Enrichment state
   const [enriching, setEnriching] = useState(false);
-  const [enrichProgress, setEnrichProgress] = useState<EnrichmentProgress | null>(null);
+  const [enrichProgress, setEnrichProgress] =
+    useState<EnrichmentProgress | null>(null);
   const [showEnrichDialog, setShowEnrichDialog] = useState(false);
   const [enrichResults, setEnrichResults] = useState<{
     successful: number;
@@ -147,7 +164,11 @@ export default function ImportCompaniesPage() {
   const [showSmsDialog, setShowSmsDialog] = useState(false);
   const [smsMessage, setSmsMessage] = useState("");
   const [sendingSms, setSendingSms] = useState(false);
-  const [smsProgress, setSmsProgress] = useState<{ sent: number; failed: number; total: number } | null>(null);
+  const [smsProgress, setSmsProgress] = useState<{
+    sent: number;
+    failed: number;
+    total: number;
+  } | null>(null);
 
   const searchParams = useMemo(() => {
     return {
@@ -176,7 +197,7 @@ export default function ImportCompaniesPage() {
     setSelectedPreset(null);
   };
 
-  const selectRevenuePreset = (preset: typeof revenuePresets[0]) => {
+  const selectRevenuePreset = (preset: (typeof revenuePresets)[0]) => {
     setRevenueMin(preset.min);
     setRevenueMax(preset.max);
     setSelectedPreset(preset.label);
@@ -257,7 +278,12 @@ export default function ImportCompaniesPage() {
     const companiesToEnrich = hits.filter((c) => selectedCompanies.has(c.id));
     setEnriching(true);
     setShowEnrichDialog(true);
-    setEnrichProgress({ total: companiesToEnrich.length, processed: 0, successful: 0, failed: 0 });
+    setEnrichProgress({
+      total: companiesToEnrich.length,
+      processed: 0,
+      successful: 0,
+      failed: 0,
+    });
     setEnrichResults(null);
 
     let successful = 0;
@@ -267,7 +293,16 @@ export default function ImportCompaniesPage() {
     let totalProperties = 0;
 
     // Decision maker title priority (in order)
-    const titlePriority = ["owner", "ceo", "founder", "sales manager", "president", "director", "vp", "general manager"];
+    const titlePriority = [
+      "owner",
+      "ceo",
+      "founder",
+      "sales manager",
+      "president",
+      "director",
+      "vp",
+      "general manager",
+    ];
 
     // Process in batches of 5
     for (let i = 0; i < companiesToEnrich.length; i += 5) {
@@ -293,22 +328,34 @@ export default function ImportCompaniesPage() {
           const apolloData = await apolloResponse.json();
 
           if (apolloData.success && apolloData.data) {
-            const people = Array.isArray(apolloData.data) ? apolloData.data : [apolloData.data];
+            const people = Array.isArray(apolloData.data)
+              ? apolloData.data
+              : [apolloData.data];
 
             // Score by title priority to find decision maker
-            const scoredPeople = people.map((p: { title?: string; firstName?: string; lastName?: string; name?: string; email?: string }) => {
-              const title = (p.title || "").toLowerCase();
-              let score = 100;
-              for (let idx = 0; idx < titlePriority.length; idx++) {
-                if (title.includes(titlePriority[idx])) {
-                  score = idx;
-                  break;
+            const scoredPeople = people.map(
+              (p: {
+                title?: string;
+                firstName?: string;
+                lastName?: string;
+                name?: string;
+                email?: string;
+              }) => {
+                const title = (p.title || "").toLowerCase();
+                let score = 100;
+                for (let idx = 0; idx < titlePriority.length; idx++) {
+                  if (title.includes(titlePriority[idx])) {
+                    score = idx;
+                    break;
+                  }
                 }
-              }
-              return { ...p, score };
-            });
+                return { ...p, score };
+              },
+            );
 
-            scoredPeople.sort((a: { score: number }, b: { score: number }) => a.score - b.score);
+            scoredPeople.sort(
+              (a: { score: number }, b: { score: number }) => a.score - b.score,
+            );
             const bestPerson = scoredPeople[0];
 
             if (bestPerson) {
@@ -344,24 +391,43 @@ export default function ImportCompaniesPage() {
 
             if (skipData.success) {
               // Combine Apollo email with skip trace phones
-              const phones = skipData.phones?.map((p: { number: string }) => p.number) || [];
-              const emails = [apolloEmail, ...(skipData.emails?.map((e: { email: string }) => e.email) || [])].filter(Boolean);
+              const phones =
+                skipData.phones?.map((p: { number: string }) => p.number) || [];
+              const emails = [
+                apolloEmail,
+                ...(skipData.emails?.map((e: { email: string }) => e.email) ||
+                  []),
+              ].filter(Boolean);
 
               // Parse property addresses from skip trace
-              const propertyAddresses = skipData.addresses?.map((a: { street?: string; address?: string; city?: string; state?: string; zip?: string; type?: string }) => ({
-                street: a.street || a.address || "",
-                city: a.city || "",
-                state: a.state || "",
-                zip: a.zip || "",
-                type: a.type,
-              })).filter((a: { street: string }) => a.street) || [];
+              const propertyAddresses =
+                skipData.addresses
+                  ?.map(
+                    (a: {
+                      street?: string;
+                      address?: string;
+                      city?: string;
+                      state?: string;
+                      zip?: string;
+                      type?: string;
+                    }) => ({
+                      street: a.street || a.address || "",
+                      city: a.city || "",
+                      state: a.state || "",
+                      zip: a.zip || "",
+                      type: a.type,
+                    }),
+                  )
+                  .filter((a: { street: string }) => a.street) || [];
 
               return {
                 companyId: company.id,
                 success: true,
                 phones: [...new Set(phones)],
                 emails: [...new Set(emails)],
-                ownerName: `${ownerFirstName} ${ownerLastName}`.trim() || skipData.ownerName,
+                ownerName:
+                  `${ownerFirstName} ${ownerLastName}`.trim() ||
+                  skipData.ownerName,
                 ownerTitle,
                 // Property data from USBiz datalake cross-reference!
                 propertyAddresses,
@@ -382,10 +448,20 @@ export default function ImportCompaniesPage() {
             };
           }
 
-          return { companyId: company.id, success: false, phones: [], emails: [] };
+          return {
+            companyId: company.id,
+            success: false,
+            phones: [],
+            emails: [],
+          };
         } catch (error) {
           console.error(`Enrich error for ${company.name}:`, error);
-          return { companyId: company.id, success: false, phones: [], emails: [] };
+          return {
+            companyId: company.id,
+            success: false,
+            phones: [],
+            emails: [],
+          };
         }
       });
 
@@ -408,15 +484,24 @@ export default function ImportCompaniesPage() {
             };
           }
           return company;
-        })
+        }),
       );
 
       // Update progress
       const batchSuccessful = batchResults.filter((r) => r.success).length;
-      const batchWithPhones = batchResults.filter((r) => r.phones.length > 0).length;
-      const batchWithEmails = batchResults.filter((r) => r.emails.length > 0).length;
-      const batchWithProperties = batchResults.filter((r) => (r.propertyCount || 0) > 0).length;
-      const batchTotalProperties = batchResults.reduce((sum, r) => sum + (r.propertyCount || 0), 0);
+      const batchWithPhones = batchResults.filter(
+        (r) => r.phones.length > 0,
+      ).length;
+      const batchWithEmails = batchResults.filter(
+        (r) => r.emails.length > 0,
+      ).length;
+      const batchWithProperties = batchResults.filter(
+        (r) => (r.propertyCount || 0) > 0,
+      ).length;
+      const batchTotalProperties = batchResults.reduce(
+        (sum, r) => sum + (r.propertyCount || 0),
+        0,
+      );
 
       successful += batchSuccessful;
       withPhones += batchWithPhones;
@@ -432,7 +517,7 @@ export default function ImportCompaniesPage() {
               successful: prev.successful + batchSuccessful,
               failed: prev.failed + (batch.length - batchSuccessful),
             }
-          : null
+          : null,
       );
 
       // Small delay between batches to respect API rate limits
@@ -442,20 +527,32 @@ export default function ImportCompaniesPage() {
     }
 
     setEnriching(false);
-    setEnrichResults({ successful, withPhones, withEmails, withProperties, totalProperties });
-    toast.success(`Enriched ${successful} companies - ${withPhones} phones, ${withEmails} emails, ${totalProperties} properties`);
+    setEnrichResults({
+      successful,
+      withPhones,
+      withEmails,
+      withProperties,
+      totalProperties,
+    });
+    toast.success(
+      `Enriched ${successful} companies - ${withPhones} phones, ${withEmails} emails, ${totalProperties} properties`,
+    );
   };
 
   // Send SMS via SignalHouse
   const sendSmsToSelected = async () => {
     // Get phones from selected companies (both Apollo phone and enriched phones)
     const phonesToSms: string[] = [];
-    hits.filter(c => selectedCompanies.has(c.id)).forEach(company => {
-      if (company.phone) phonesToSms.push(company.phone);
-      if (company.enrichedPhones) phonesToSms.push(...company.enrichedPhones);
-    });
+    hits
+      .filter((c) => selectedCompanies.has(c.id))
+      .forEach((company) => {
+        if (company.phone) phonesToSms.push(company.phone);
+        if (company.enrichedPhones) phonesToSms.push(...company.enrichedPhones);
+      });
 
-    const uniquePhones = [...new Set(phonesToSms)].filter(p => p && p.length > 5);
+    const uniquePhones = [...new Set(phonesToSms)].filter(
+      (p) => p && p.length > 5,
+    );
 
     if (uniquePhones.length === 0) {
       toast.error("No phone numbers found in selected companies");
@@ -514,11 +611,13 @@ export default function ImportCompaniesPage() {
   // Get phone count for selected companies
   const getSelectedPhoneCount = () => {
     const phones: string[] = [];
-    hits.filter(c => selectedCompanies.has(c.id)).forEach(company => {
-      if (company.phone) phones.push(company.phone);
-      if (company.enrichedPhones) phones.push(...company.enrichedPhones);
-    });
-    return new Set(phones.filter(p => p && p.length > 5)).size;
+    hits
+      .filter((c) => selectedCompanies.has(c.id))
+      .forEach((company) => {
+        if (company.phone) phones.push(company.phone);
+        if (company.enrichedPhones) phones.push(...company.enrichedPhones);
+      });
+    return new Set(phones.filter((p) => p && p.length > 5)).size;
   };
 
   // Search when filters change (reset to page 1)
@@ -675,7 +774,10 @@ export default function ImportCompaniesPage() {
                   <TableRow>
                     <TableHead className="w-10">
                       <Checkbox
-                        checked={hits.length > 0 && selectedCompanies.size === hits.length}
+                        checked={
+                          hits.length > 0 &&
+                          selectedCompanies.size === hits.length
+                        }
                         onCheckedChange={toggleAll}
                       />
                     </TableHead>
@@ -703,7 +805,14 @@ export default function ImportCompaniesPage() {
                   )}
 
                   {hits?.map((company) => (
-                    <TableRow key={company.id} className={company.enriched ? "bg-green-50 dark:bg-green-900/10" : ""}>
+                    <TableRow
+                      key={company.id}
+                      className={
+                        company.enriched
+                          ? "bg-green-50 dark:bg-green-900/10"
+                          : ""
+                      }
+                    >
                       <TableCell>
                         <Checkbox
                           checked={selectedCompanies.has(company.id)}
@@ -714,7 +823,10 @@ export default function ImportCompaniesPage() {
                         <div className="flex items-center gap-2">
                           {company.name || "-"}
                           {company.enriched && (
-                            <Badge variant="outline" className="text-xs bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                            <Badge
+                              variant="outline"
+                              className="text-xs bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                            >
                               Enriched
                             </Badge>
                           )}
@@ -729,26 +841,36 @@ export default function ImportCompaniesPage() {
                       <TableCell>
                         <div className="flex items-center gap-1">
                           <MapPin className="h-3 w-3 text-muted-foreground" />
-                          <span>{company.city && company.state ? `${company.city}, ${company.state}` : company.state || "-"}</span>
+                          <span>
+                            {company.city && company.state
+                              ? `${company.city}, ${company.state}`
+                              : company.state || "-"}
+                          </span>
                         </div>
                       </TableCell>
                       <TableCell>
-                        {company.propertyAddresses && company.propertyAddresses.length > 0 ? (
+                        {company.propertyAddresses &&
+                        company.propertyAddresses.length > 0 ? (
                           <div className="space-y-1">
-                            {company.propertyAddresses.slice(0, 2).map((addr, i) => (
-                              <div key={i} className="text-xs">
-                                <div className="flex items-center gap-1">
-                                  <Building className="h-3 w-3 text-purple-600" />
-                                  <span className="font-medium">{addr.street}</span>
+                            {company.propertyAddresses
+                              .slice(0, 2)
+                              .map((addr, i) => (
+                                <div key={i} className="text-xs">
+                                  <div className="flex items-center gap-1">
+                                    <Building className="h-3 w-3 text-purple-600" />
+                                    <span className="font-medium">
+                                      {addr.street}
+                                    </span>
+                                  </div>
+                                  <span className="text-muted-foreground ml-4">
+                                    {addr.city}, {addr.state} {addr.zip}
+                                  </span>
                                 </div>
-                                <span className="text-muted-foreground ml-4">
-                                  {addr.city}, {addr.state} {addr.zip}
-                                </span>
-                              </div>
-                            ))}
+                              ))}
                             {company.propertyAddresses.length > 2 && (
                               <Badge variant="outline" className="text-xs">
-                                +{company.propertyAddresses.length - 2} more properties
+                                +{company.propertyAddresses.length - 2} more
+                                properties
                               </Badge>
                             )}
                           </div>
@@ -758,26 +880,41 @@ export default function ImportCompaniesPage() {
                             <span>{company.address}</span>
                           </div>
                         ) : (
-                          <span className="text-muted-foreground text-xs">-</span>
+                          <span className="text-muted-foreground text-xs">
+                            -
+                          </span>
                         )}
                       </TableCell>
                       <TableCell>
-                        {company.employees ? formatNumber(company.employees) : "-"}
+                        {company.employees
+                          ? formatNumber(company.employees)
+                          : "-"}
                       </TableCell>
                       <TableCell>
-                        {company.revenue ? currencyFormat(company.revenue) : "-"}
+                        {company.revenue
+                          ? currencyFormat(company.revenue)
+                          : "-"}
                       </TableCell>
                       <TableCell>
-                        {company.enrichedPhones && company.enrichedPhones.length > 0 ? (
+                        {company.enrichedPhones &&
+                        company.enrichedPhones.length > 0 ? (
                           <div className="space-y-1">
-                            {company.enrichedPhones.slice(0, 2).map((phone, i) => (
-                              <div key={i} className="flex items-center gap-1 text-sm">
-                                <Phone className="h-3 w-3 text-green-600" />
-                                <a href={`tel:${phone}`} className="text-blue-600 hover:underline">
-                                  {phone}
-                                </a>
-                              </div>
-                            ))}
+                            {company.enrichedPhones
+                              .slice(0, 2)
+                              .map((phone, i) => (
+                                <div
+                                  key={i}
+                                  className="flex items-center gap-1 text-sm"
+                                >
+                                  <Phone className="h-3 w-3 text-green-600" />
+                                  <a
+                                    href={`tel:${phone}`}
+                                    className="text-blue-600 hover:underline"
+                                  >
+                                    {phone}
+                                  </a>
+                                </div>
+                              ))}
                             {company.enrichedPhones.length > 2 && (
                               <span className="text-xs text-muted-foreground">
                                 +{company.enrichedPhones.length - 2} more
@@ -790,20 +927,31 @@ export default function ImportCompaniesPage() {
                             <span>{company.phone}</span>
                           </div>
                         ) : (
-                          <span className="text-muted-foreground text-xs">-</span>
+                          <span className="text-muted-foreground text-xs">
+                            -
+                          </span>
                         )}
                       </TableCell>
                       <TableCell>
-                        {company.enrichedEmails && company.enrichedEmails.length > 0 ? (
+                        {company.enrichedEmails &&
+                        company.enrichedEmails.length > 0 ? (
                           <div className="space-y-1">
-                            {company.enrichedEmails.slice(0, 2).map((email, i) => (
-                              <div key={i} className="flex items-center gap-1 text-sm">
-                                <Mail className="h-3 w-3 text-green-600" />
-                                <a href={`mailto:${email}`} className="text-blue-600 hover:underline truncate max-w-[150px]">
-                                  {email}
-                                </a>
-                              </div>
-                            ))}
+                            {company.enrichedEmails
+                              .slice(0, 2)
+                              .map((email, i) => (
+                                <div
+                                  key={i}
+                                  className="flex items-center gap-1 text-sm"
+                                >
+                                  <Mail className="h-3 w-3 text-green-600" />
+                                  <a
+                                    href={`mailto:${email}`}
+                                    className="text-blue-600 hover:underline truncate max-w-[150px]"
+                                  >
+                                    {email}
+                                  </a>
+                                </div>
+                              ))}
                             {company.enrichedEmails.length > 2 && (
                               <span className="text-xs text-muted-foreground">
                                 +{company.enrichedEmails.length - 2} more
@@ -811,13 +959,17 @@ export default function ImportCompaniesPage() {
                             )}
                           </div>
                         ) : (
-                          <span className="text-muted-foreground text-xs">-</span>
+                          <span className="text-muted-foreground text-xs">
+                            -
+                          </span>
                         )}
                       </TableCell>
                       <TableCell>
                         {company.domain ? (
                           <a
-                            href={company.website || `https://${company.domain}`}
+                            href={
+                              company.website || `https://${company.domain}`
+                            }
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center gap-1 text-blue-500 hover:underline"
@@ -889,26 +1041,40 @@ export default function ImportCompaniesPage() {
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span>Progress</span>
-                    <span>{enrichProgress.processed} / {enrichProgress.total}</span>
+                    <span>
+                      {enrichProgress.processed} / {enrichProgress.total}
+                    </span>
                   </div>
                   <Progress
-                    value={(enrichProgress.processed / enrichProgress.total) * 100}
+                    value={
+                      (enrichProgress.processed / enrichProgress.total) * 100
+                    }
                     className="h-2"
                   />
                 </div>
 
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div className="p-3 bg-muted rounded-lg">
-                    <div className="text-2xl font-bold text-green-600">{enrichProgress.successful}</div>
-                    <div className="text-xs text-muted-foreground">Successful</div>
+                    <div className="text-2xl font-bold text-green-600">
+                      {enrichProgress.successful}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Successful
+                    </div>
                   </div>
                   <div className="p-3 bg-muted rounded-lg">
-                    <div className="text-2xl font-bold text-red-600">{enrichProgress.failed}</div>
+                    <div className="text-2xl font-bold text-red-600">
+                      {enrichProgress.failed}
+                    </div>
                     <div className="text-xs text-muted-foreground">Failed</div>
                   </div>
                   <div className="p-3 bg-muted rounded-lg">
-                    <div className="text-2xl font-bold">{enrichProgress.total - enrichProgress.processed}</div>
-                    <div className="text-xs text-muted-foreground">Remaining</div>
+                    <div className="text-2xl font-bold">
+                      {enrichProgress.total - enrichProgress.processed}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Remaining
+                    </div>
                   </div>
                 </div>
               </>
@@ -918,26 +1084,34 @@ export default function ImportCompaniesPage() {
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-green-600">
                   <Sparkles className="h-4 w-4" />
-                  <span className="font-medium">Enrichment Summary (Cross-Referenced with USBiz Datalake)</span>
+                  <span className="font-medium">
+                    Enrichment Summary (Cross-Referenced with USBiz Datalake)
+                  </span>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-900/20 rounded">
                     <Phone className="h-4 w-4 text-green-600" />
-                    <span className="text-sm">{enrichResults.withPhones} with phones</span>
+                    <span className="text-sm">
+                      {enrichResults.withPhones} with phones
+                    </span>
                   </div>
                   <div className="flex items-center gap-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
                     <Mail className="h-4 w-4 text-blue-600" />
-                    <span className="text-sm">{enrichResults.withEmails} with emails</span>
+                    <span className="text-sm">
+                      {enrichResults.withEmails} with emails
+                    </span>
                   </div>
                   <div className="flex items-center gap-2 p-2 bg-purple-50 dark:bg-purple-900/20 rounded col-span-2">
                     <Building className="h-4 w-4 text-purple-600" />
                     <span className="text-sm">
-                      {enrichResults.withProperties} owners with {enrichResults.totalProperties} properties found
+                      {enrichResults.withProperties} owners with{" "}
+                      {enrichResults.totalProperties} properties found
                     </span>
                   </div>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Property addresses cross-referenced from USBiz datalake. Ready for outreach via SMS or email.
+                  Property addresses cross-referenced from USBiz datalake. Ready
+                  for outreach via SMS or email.
                 </p>
               </div>
             )}
@@ -967,7 +1141,11 @@ export default function ImportCompaniesPage() {
 
           <div className="space-y-4 py-4">
             <div className="text-sm text-muted-foreground">
-              Sending to <span className="font-bold text-foreground">{getSelectedPhoneCount()}</span> phone numbers from {selectedCompanies.size} companies
+              Sending to{" "}
+              <span className="font-bold text-foreground">
+                {getSelectedPhoneCount()}
+              </span>{" "}
+              phone numbers from {selectedCompanies.size} companies
             </div>
 
             {/* Quick B2B Templates */}
@@ -977,28 +1155,44 @@ export default function ImportCompaniesPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setSmsMessage("Hi! I help businesses like yours save on [service]. Quick 5-min call to see if we're a fit? Reply YES or best time to chat.")}
+                  onClick={() =>
+                    setSmsMessage(
+                      "Hi! I help businesses like yours save on [service]. Quick 5-min call to see if we're a fit? Reply YES or best time to chat.",
+                    )
+                  }
                 >
                   Intro Pitch
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setSmsMessage("Hey! Saw your company online. We work with similar businesses in your area. Open to a quick chat this week? Reply with a good time.")}
+                  onClick={() =>
+                    setSmsMessage(
+                      "Hey! Saw your company online. We work with similar businesses in your area. Open to a quick chat this week? Reply with a good time.",
+                    )
+                  }
                 >
                   Casual Outreach
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setSmsMessage("Hi, this is [Your Name]. We specialize in helping [industry] companies grow. Would you be open to a brief call? Reply YES for details.")}
+                  onClick={() =>
+                    setSmsMessage(
+                      "Hi, this is [Your Name]. We specialize in helping [industry] companies grow. Would you be open to a brief call? Reply YES for details.",
+                    )
+                  }
                 >
                   Professional
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setSmsMessage("Quick question - are you looking for [solution] for your business? We've helped companies like yours get results. Interested?")}
+                  onClick={() =>
+                    setSmsMessage(
+                      "Quick question - are you looking for [solution] for your business? We've helped companies like yours get results. Interested?",
+                    )
+                  }
                 >
                   Direct Ask
                 </Button>
@@ -1017,7 +1211,9 @@ export default function ImportCompaniesPage() {
               />
               <div className="flex justify-between text-xs text-muted-foreground">
                 <span>{smsMessage.length}/160 characters</span>
-                <span className="text-amber-600">Reply STOP added automatically</span>
+                <span className="text-amber-600">
+                  Reply STOP added automatically
+                </span>
               </div>
             </div>
 
@@ -1026,15 +1222,21 @@ export default function ImportCompaniesPage() {
               <div className="rounded-lg border bg-muted/50 p-4">
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div>
-                    <div className="text-2xl font-bold text-green-600">{smsProgress.sent}</div>
+                    <div className="text-2xl font-bold text-green-600">
+                      {smsProgress.sent}
+                    </div>
                     <div className="text-xs text-muted-foreground">Sent</div>
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-red-600">{smsProgress.failed}</div>
+                    <div className="text-2xl font-bold text-red-600">
+                      {smsProgress.failed}
+                    </div>
                     <div className="text-xs text-muted-foreground">Failed</div>
                   </div>
                   <div>
-                    <div className="text-2xl font-bold">{smsProgress.total}</div>
+                    <div className="text-2xl font-bold">
+                      {smsProgress.total}
+                    </div>
                     <div className="text-xs text-muted-foreground">Total</div>
                   </div>
                 </div>
@@ -1043,7 +1245,11 @@ export default function ImportCompaniesPage() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowSmsDialog(false)} disabled={sendingSms}>
+            <Button
+              variant="outline"
+              onClick={() => setShowSmsDialog(false)}
+              disabled={sendingSms}
+            >
               Cancel
             </Button>
             <Button

@@ -6,7 +6,7 @@ export type TNavbarContent = "full" | "off" | "no_search";
 type Team = TeamQuery["team"];
 
 export interface TeamContextState {
-  team: Team;
+  team: Team | null;
 }
 
 export type TeamContextAction = {
@@ -20,7 +20,7 @@ export type TTeamContext = [TeamContextState, Dispatch<TeamContextAction>];
 
 // Safe initial state - team is null until loaded, components must handle this
 export const teamContextInitialState: TeamContextState = {
-  team: null as unknown as Team,
+  team: null,
 };
 
 export const TeamContext = createContext<TTeamContext>([
@@ -50,12 +50,17 @@ export const teamReducer: TeamContextReducer = (state, action) => {
 export const useCurrentTeam = () => {
   const [state, dispatch] = useContext(TeamContext);
 
+  const teamId = state.team?.id ?? "";
+  const isTeamReady = Boolean(teamId);
+
   const update = (value: Partial<Team>) => {
     dispatch({ type: "UPDATE", value });
   };
 
   return {
     team: state.team,
+    teamId,
+    isTeamReady,
     update,
   };
 };

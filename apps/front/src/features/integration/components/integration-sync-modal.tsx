@@ -49,7 +49,7 @@ export const IntegrationSyncModal: React.FC<Props> = ({
   integrationId,
   ...props
 }) => {
-  const { team } = useCurrentTeam();
+  const { teamId, isTeamReady } = useCurrentTeam();
   const { handleSubmit, registerError, control } = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -63,12 +63,13 @@ export const IntegrationSyncModal: React.FC<Props> = ({
   const { cache } = useApolloClient();
 
   const save = async (input: z.infer<typeof schema>) => {
+    if (!isTeamReady) return;
     setLoading(true);
 
     try {
       await syncIntegration({
         variables: {
-          teamId: team.id,
+          teamId,
           id: integrationId,
           moduleName: input.moduleName,
         },

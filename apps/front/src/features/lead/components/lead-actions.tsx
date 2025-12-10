@@ -116,7 +116,7 @@ export function LeadActions({
   onStatusChange,
   onEnrichComplete,
 }: LeadActionsProps) {
-  const { team } = useCurrentTeam();
+  const { teamId, isTeamReady } = useCurrentTeam();
   const globalActions = useGlobalActionsSafe();
   const [scheduleCallOpen, setScheduleCallOpen] = useState(false);
   const [scheduleSmsOpen, setScheduleSmsOpen] = useState(false);
@@ -151,7 +151,8 @@ export function LeadActions({
 
   // Query for statuses
   const { data: statusesData } = useQuery(LEAD_STATUSES_QUERY, {
-    variables: { teamId: team.id },
+    variables: { teamId },
+    skip: !isTeamReady,
   });
 
   // Mutations
@@ -165,7 +166,7 @@ export function LeadActions({
       onError: (error) => {
         toast.error("Failed to update status: " + error.message);
       },
-    }
+    },
   );
 
   const [addToSuppression, { loading: blacklisting }] = useMutation(
@@ -179,7 +180,7 @@ export function LeadActions({
       onError: (error) => {
         toast.error("Failed to blacklist: " + error.message);
       },
-    }
+    },
   );
 
   const [scheduleCall, { loading: schedulingCall }] = useMutation(
@@ -195,7 +196,7 @@ export function LeadActions({
       onError: (error) => {
         toast.error("Failed to schedule call: " + error.message);
       },
-    }
+    },
   );
 
   const [scheduleSms, { loading: schedulingSms }] = useMutation(
@@ -211,13 +212,17 @@ export function LeadActions({
       onError: (error) => {
         toast.error("Failed to schedule SMS: " + error.message);
       },
-    }
+    },
   );
+
+  if (!isTeamReady) {
+    return null;
+  }
 
   const handleStatusChange = (newStatus: string) => {
     updateLeadStatus({
       variables: {
-        teamId: team.id,
+        teamId,
         id: lead.id,
         input: { status: newStatus },
       },
@@ -232,7 +237,7 @@ export function LeadActions({
     const scheduledAt = new Date(`${callDate}T${callTime}`).toISOString();
     scheduleCall({
       variables: {
-        teamId: team.id,
+        teamId,
         input: {
           leadId: lead.id,
           scheduledAt,
@@ -250,7 +255,7 @@ export function LeadActions({
     const scheduledAt = new Date(`${smsDate}T${smsTime}`).toISOString();
     scheduleSms({
       variables: {
-        teamId: team.id,
+        teamId,
         input: {
           leadId: lead.id,
           scheduledAt,
@@ -267,7 +272,7 @@ export function LeadActions({
     }
     addToSuppression({
       variables: {
-        teamId: team.id,
+        teamId,
         input: {
           phoneNumber: lead.phone,
           type: "BLACKLIST",
@@ -277,7 +282,8 @@ export function LeadActions({
     });
   };
 
-  const statuses = statusesData?.leadStatuses?.map((s: { id: string }) => s.id) || [];
+  const statuses =
+    statusesData?.leadStatuses?.map((s: { id: string }) => s.id) || [];
 
   // Apollo.io Enrichment
   const handleEnrich = async () => {
@@ -309,7 +315,8 @@ export function LeadActions({
 
       if (data.person) {
         const phone = data.person.phone_numbers?.find(
-          (p: { type: string }) => p.type === "mobile" || p.type === "work_direct"
+          (p: { type: string }) =>
+            p.type === "mobile" || p.type === "work_direct",
         );
 
         setEnrichResult({
@@ -336,7 +343,7 @@ export function LeadActions({
         if (Object.keys(updates).length > 0) {
           await updateLeadStatus({
             variables: {
-              teamId: team.id,
+              teamId,
               id: lead.id,
               input: updates,
             },
@@ -461,7 +468,9 @@ export function LeadActions({
                 </DropdownMenuItem>
               ))}
               {statuses.length === 0 && (
-                <DropdownMenuItem disabled>No statuses available</DropdownMenuItem>
+                <DropdownMenuItem disabled>
+                  No statuses available
+                </DropdownMenuItem>
               )}
             </DropdownMenuSubContent>
           </DropdownMenuSub>
@@ -518,11 +527,16 @@ export function LeadActions({
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setScheduleCallOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setScheduleCallOpen(false)}
+            >
               Cancel
             </Button>
             <Button onClick={handleScheduleCall} disabled={schedulingCall}>
-              {schedulingCall && <Loader2 className="mr-2 size-4 animate-spin" />}
+              {schedulingCall && (
+                <Loader2 className="mr-2 size-4 animate-spin" />
+              )}
               <Calendar className="mr-2 size-4" />
               Schedule Call
             </Button>
@@ -580,7 +594,9 @@ export function LeadActions({
               Cancel
             </Button>
             <Button onClick={handleScheduleSms} disabled={schedulingSms}>
-              {schedulingSms && <Loader2 className="mr-2 size-4 animate-spin" />}
+              {schedulingSms && (
+                <Loader2 className="mr-2 size-4 animate-spin" />
+              )}
               <Calendar className="mr-2 size-4" />
               Schedule SMS
             </Button>
@@ -595,8 +611,8 @@ export function LeadActions({
             <DialogTitle>Blacklist Lead</DialogTitle>
             <DialogDescription>
               Are you sure you want to blacklist {lead.name || "this lead"}
-              {lead.phone && ` (${lead.phone})`}? They will no longer receive any
-              communications.
+              {lead.phone && ` (${lead.phone})`}? They will no longer receive
+              any communications.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -641,23 +657,33 @@ export function LeadActions({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-muted-foreground">Name</Label>
-                  <p className="font-medium">{enrichResult.person?.name || "-"}</p>
+                  <p className="font-medium">
+                    {enrichResult.person?.name || "-"}
+                  </p>
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Title</Label>
-                  <p className="font-medium">{enrichResult.person?.title || "-"}</p>
+                  <p className="font-medium">
+                    {enrichResult.person?.title || "-"}
+                  </p>
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Email</Label>
-                  <p className="font-medium">{enrichResult.person?.email || "-"}</p>
+                  <p className="font-medium">
+                    {enrichResult.person?.email || "-"}
+                  </p>
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Phone</Label>
-                  <p className="font-medium">{enrichResult.person?.phone || "-"}</p>
+                  <p className="font-medium">
+                    {enrichResult.person?.phone || "-"}
+                  </p>
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Company</Label>
-                  <p className="font-medium">{enrichResult.person?.company || "-"}</p>
+                  <p className="font-medium">
+                    {enrichResult.person?.company || "-"}
+                  </p>
                 </div>
                 <div>
                   <Label className="text-muted-foreground">LinkedIn</Label>

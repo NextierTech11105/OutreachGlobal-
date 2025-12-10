@@ -61,10 +61,11 @@ export const ContactSelectionModal = ({
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedContacts, setSelectedContacts] =
     useState<Contact[]>(defaultValues);
-  const { team } = useCurrentTeam();
+  const { teamId, isTeamReady } = useCurrentTeam();
   const [tags] = useSingleQuery(LEAD_TAGS_QUERY, {
     pick: "leadTags",
-    variables: { teamId: team.id },
+    skip: !isTeamReady,
+    variables: { teamId },
   });
 
   const [upsertDialerContacts, { loading: upsertLoading }] = useMutation(
@@ -75,13 +76,18 @@ export const ContactSelectionModal = ({
 
   const [leads, pageInfo, { loading }] = useConnectionQuery(LEADS_QUERY, {
     pick: "leads",
+    skip: !isTeamReady,
     variables: {
-      teamId: team.id,
+      teamId,
       searchQuery: debouncedSearchQuery,
       tags: selectedTags,
       hasPhone: true,
     },
   });
+
+  if (!isTeamReady) {
+    return null;
+  }
 
   const handleTagToggle = (tag: string) => {
     setSelectedTags((prev) =>
@@ -113,7 +119,7 @@ export const ContactSelectionModal = ({
     try {
       await upsertDialerContacts({
         variables: {
-          teamId: team.id,
+          teamId,
           powerDialerId,
           leadIds: selectedContacts.map((c) => c.lead.id),
         },

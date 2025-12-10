@@ -73,7 +73,7 @@ const defaultCursor = createDefaultCursor({
 });
 
 export const LeadTable = () => {
-  const { team } = useCurrentTeam();
+  const { teamId, isTeamReady } = useCurrentTeam();
   const [cursor, setCursor] = useState(defaultCursor);
 
   // Bulk outreach state
@@ -95,12 +95,17 @@ export const LeadTable = () => {
     LEADS_QUERY,
     {
       pick: "leads",
+      skip: !isTeamReady,
       variables: {
         ...cursor,
-        teamId: team.id,
+        teamId,
       },
     },
   );
+
+  if (!isTeamReady) {
+    return null;
+  }
 
   const [
     selectedLeads,
@@ -128,7 +133,7 @@ export const LeadTable = () => {
         try {
           await bulkDelete({
             variables: {
-              teamId: team.id,
+              teamId,
               leadIds: selectedLeads.map((lead) => lead.id),
             },
           });
@@ -151,33 +156,50 @@ export const LeadTable = () => {
 
     setCalendarLoading(true);
     try {
-      const selectedLeadDetails = leads?.filter((lead: { id: string }) =>
-        selectedLeads.some((s) => s.id === lead.id)
-      ) || [];
+      const selectedLeadDetails =
+        leads?.filter((lead: { id: string }) =>
+          selectedLeads.some((s) => s.id === lead.id),
+        ) || [];
 
       const response = await fetch("/api/calendar/leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "schedule_to_calendar",
-          leads: selectedLeadDetails.map((lead: { id: string; firstName?: string; lastName?: string; phone?: string; email?: string; propertyAddress?: string; propertyCity?: string; propertyState?: string }) => ({
-            id: lead.id,
-            name: [lead.firstName, lead.lastName].filter(Boolean).join(" ") || "Unknown",
-            phone: lead.phone,
-            email: lead.email,
-            address: lead.propertyAddress,
-            city: lead.propertyCity,
-            state: lead.propertyState,
-          })),
+          leads: selectedLeadDetails.map(
+            (lead: {
+              id: string;
+              firstName?: string;
+              lastName?: string;
+              phone?: string;
+              email?: string;
+              propertyAddress?: string;
+              propertyCity?: string;
+              propertyState?: string;
+            }) => ({
+              id: lead.id,
+              name:
+                [lead.firstName, lead.lastName].filter(Boolean).join(" ") ||
+                "Unknown",
+              phone: lead.phone,
+              email: lead.email,
+              address: lead.propertyAddress,
+              city: lead.propertyCity,
+              state: lead.propertyState,
+            }),
+          ),
           scheduledDate: calendarDate,
         }),
       });
 
       const data = await response.json();
       if (data.success) {
-        toast.success(`${data.scheduled} leads scheduled for ${new Date(calendarDate).toLocaleDateString()}`, {
-          description: "View them in the Calendar workspace",
-        });
+        toast.success(
+          `${data.scheduled} leads scheduled for ${new Date(calendarDate).toLocaleDateString()}`,
+          {
+            description: "View them in the Calendar workspace",
+          },
+        );
         setCalendarDialog(false);
         setCalendarDate("");
         setSelected([]);
@@ -186,7 +208,9 @@ export const LeadTable = () => {
       }
     } catch (error) {
       console.error("Calendar scheduling error:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to schedule leads");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to schedule leads",
+      );
     } finally {
       setCalendarLoading(false);
     }
@@ -197,9 +221,13 @@ export const LeadTable = () => {
     setOutreachDialog({ open: true, type, timing });
     // Set default message based on type
     if (type === "sms") {
-      setOutreachMessage("Hi {name}, this is {agent} from NexTier. I wanted to reach out about your property at {address}. Do you have a few minutes to chat?");
+      setOutreachMessage(
+        "Hi {name}, this is {agent} from NexTier. I wanted to reach out about your property at {address}. Do you have a few minutes to chat?",
+      );
     } else if (type === "email") {
-      setOutreachMessage("Hi {name},\n\nI hope this message finds you well. I'm reaching out regarding your property at {address}.\n\nI'd love to discuss some opportunities with you.\n\nBest regards");
+      setOutreachMessage(
+        "Hi {name},\n\nI hope this message finds you well. I'm reaching out regarding your property at {address}.\n\nI'd love to discuss some opportunities with you.\n\nBest regards",
+      );
     }
   };
 
@@ -210,19 +238,24 @@ export const LeadTable = () => {
     setOutreachLoading(true);
     try {
       // Get lead details from the current leads list
-      const selectedLeadDetails = leads?.filter((lead: { id: string }) =>
-        selectedLeads.some((s) => s.id === lead.id)
-      ) || [];
+      const selectedLeadDetails =
+        leads?.filter((lead: { id: string }) =>
+          selectedLeads.some((s) => s.id === lead.id),
+        ) || [];
 
-      const leadsWithContact = selectedLeadDetails.filter((lead: { phone?: string; email?: string }) => {
-        if (outreachDialog.type === "sms" || outreachDialog.type === "call") {
-          return lead.phone;
-        }
-        return lead.email;
-      });
+      const leadsWithContact = selectedLeadDetails.filter(
+        (lead: { phone?: string; email?: string }) => {
+          if (outreachDialog.type === "sms" || outreachDialog.type === "call") {
+            return lead.phone;
+          }
+          return lead.email;
+        },
+      );
 
       if (leadsWithContact.length === 0) {
-        toast.error(`No leads with ${outreachDialog.type === "email" ? "email" : "phone"} found`);
+        toast.error(
+          `No leads with ${outreachDialog.type === "email" ? "email" : "phone"} found`,
+        );
         setOutreachLoading(false);
         return;
       }
@@ -248,12 +281,19 @@ export const LeadTable = () => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             action: "add_batch",
-            leads: leadsWithContact.map((lead: { id: string; name?: string; phone?: string; address?: string }) => ({
-              id: lead.id,
-              name: lead.name || "Friend",
-              phone: lead.phone,
-              address: lead.address,
-            })),
+            leads: leadsWithContact.map(
+              (lead: {
+                id: string;
+                name?: string;
+                phone?: string;
+                address?: string;
+              }) => ({
+                id: lead.id,
+                name: lead.name || "Friend",
+                phone: lead.phone,
+                address: lead.address,
+              }),
+            ),
             templateMessage: outreachMessage,
             templateCategory: "sms_initial",
             priority: 5,
@@ -264,7 +304,7 @@ export const LeadTable = () => {
         const data = await response.json();
         if (data.success) {
           toast.success(
-            `${data.added} leads added to SMS queue${data.skipped > 0 ? ` (${data.skipped} skipped - opted out)` : ""}`
+            `${data.added} leads added to SMS queue${data.skipped > 0 ? ` (${data.skipped} skipped - opted out)` : ""}`,
           );
         } else {
           throw new Error(data.error);
@@ -275,12 +315,19 @@ export const LeadTable = () => {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            leads: leadsWithContact.map((lead: { id: string; name?: string; email?: string; address?: string }) => ({
-              id: lead.id,
-              name: lead.name || "Friend",
-              email: lead.email,
-              address: lead.address,
-            })),
+            leads: leadsWithContact.map(
+              (lead: {
+                id: string;
+                name?: string;
+                email?: string;
+                address?: string;
+              }) => ({
+                id: lead.id,
+                name: lead.name || "Friend",
+                email: lead.email,
+                address: lead.address,
+              }),
+            ),
             subject: "Regarding your property",
             body: outreachMessage,
             scheduledAt,
@@ -289,7 +336,9 @@ export const LeadTable = () => {
 
         const data = await response.json();
         if (data.success || response.ok) {
-          toast.success(`${leadsWithContact.length} emails ${scheduledAt ? "scheduled" : "queued"}`);
+          toast.success(
+            `${leadsWithContact.length} emails ${scheduledAt ? "scheduled" : "queued"}`,
+          );
         } else {
           throw new Error(data.error || "Failed to send emails");
         }
@@ -300,12 +349,19 @@ export const LeadTable = () => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             action: "add_batch",
-            leads: leadsWithContact.map((lead: { id: string; name?: string; phone?: string; address?: string }) => ({
-              id: lead.id,
-              name: lead.name,
-              phone: lead.phone,
-              address: lead.address,
-            })),
+            leads: leadsWithContact.map(
+              (lead: {
+                id: string;
+                name?: string;
+                phone?: string;
+                address?: string;
+              }) => ({
+                id: lead.id,
+                name: lead.name,
+                phone: lead.phone,
+                address: lead.address,
+              }),
+            ),
             scheduledAt,
             priority: 5,
           }),
@@ -314,7 +370,7 @@ export const LeadTable = () => {
         const data = await response.json();
         if (data.success || response.ok) {
           toast.success(
-            `${leadsWithContact.length} leads added to ${scheduledAt ? "scheduled calls" : "dialer queue"}`
+            `${leadsWithContact.length} leads added to ${scheduledAt ? "scheduled calls" : "dialer queue"}`,
           );
         } else {
           throw new Error(data.error || "Failed to add to call queue");
@@ -325,7 +381,9 @@ export const LeadTable = () => {
       setSelected([]);
     } catch (error) {
       console.error("Bulk outreach error:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to send outreach");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to send outreach",
+      );
     } finally {
       setOutreachLoading(false);
     }
@@ -354,17 +412,25 @@ export const LeadTable = () => {
             {/* SMS Actions */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button size="xs" variant="default" className="gap-1 bg-blue-600 hover:bg-blue-700">
+                <Button
+                  size="xs"
+                  variant="default"
+                  className="gap-1 bg-blue-600 hover:bg-blue-700"
+                >
                   <MessageSquare className="h-3.5 w-3.5" />
                   SMS
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => openOutreachDialog("sms", "now")}>
+                <DropdownMenuItem
+                  onClick={() => openOutreachDialog("sms", "now")}
+                >
                   <Send className="h-4 w-4 mr-2" />
                   Send Now
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => openOutreachDialog("sms", "scheduled")}>
+                <DropdownMenuItem
+                  onClick={() => openOutreachDialog("sms", "scheduled")}
+                >
                   <Clock className="h-4 w-4 mr-2" />
                   Schedule
                 </DropdownMenuItem>
@@ -374,17 +440,25 @@ export const LeadTable = () => {
             {/* Email Actions */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button size="xs" variant="default" className="gap-1 bg-green-600 hover:bg-green-700">
+                <Button
+                  size="xs"
+                  variant="default"
+                  className="gap-1 bg-green-600 hover:bg-green-700"
+                >
                   <Mail className="h-3.5 w-3.5" />
                   Email
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => openOutreachDialog("email", "now")}>
+                <DropdownMenuItem
+                  onClick={() => openOutreachDialog("email", "now")}
+                >
                   <Send className="h-4 w-4 mr-2" />
                   Send Now
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => openOutreachDialog("email", "scheduled")}>
+                <DropdownMenuItem
+                  onClick={() => openOutreachDialog("email", "scheduled")}
+                >
                   <Clock className="h-4 w-4 mr-2" />
                   Schedule
                 </DropdownMenuItem>
@@ -394,17 +468,25 @@ export const LeadTable = () => {
             {/* Call Actions */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button size="xs" variant="default" className="gap-1 bg-purple-600 hover:bg-purple-700">
+                <Button
+                  size="xs"
+                  variant="default"
+                  className="gap-1 bg-purple-600 hover:bg-purple-700"
+                >
                   <Phone className="h-3.5 w-3.5" />
                   Call
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => openOutreachDialog("call", "now")}>
+                <DropdownMenuItem
+                  onClick={() => openOutreachDialog("call", "now")}
+                >
                   <PhoneCall className="h-4 w-4 mr-2" />
                   Add to Dialer
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => openOutreachDialog("call", "scheduled")}>
+                <DropdownMenuItem
+                  onClick={() => openOutreachDialog("call", "scheduled")}
+                >
                   <Clock className="h-4 w-4 mr-2" />
                   Schedule Calls
                 </DropdownMenuItem>
@@ -434,16 +516,25 @@ export const LeadTable = () => {
       {/* Bulk Outreach Dialog */}
       <Dialog
         open={outreachDialog.open}
-        onOpenChange={(open) => setOutreachDialog((prev) => ({ ...prev, open }))}
+        onOpenChange={(open) =>
+          setOutreachDialog((prev) => ({ ...prev, open }))
+        }
       >
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              {outreachDialog.type === "sms" && <MessageSquare className="h-5 w-5 text-blue-500" />}
-              {outreachDialog.type === "email" && <Mail className="h-5 w-5 text-green-500" />}
-              {outreachDialog.type === "call" && <Phone className="h-5 w-5 text-purple-500" />}
+              {outreachDialog.type === "sms" && (
+                <MessageSquare className="h-5 w-5 text-blue-500" />
+              )}
+              {outreachDialog.type === "email" && (
+                <Mail className="h-5 w-5 text-green-500" />
+              )}
+              {outreachDialog.type === "call" && (
+                <Phone className="h-5 w-5 text-purple-500" />
+              )}
               {outreachDialog.timing === "now" ? "Send" : "Schedule"}{" "}
-              {outreachDialog.type.toUpperCase()} to {selectedLeads.length} Leads
+              {outreachDialog.type.toUpperCase()} to {selectedLeads.length}{" "}
+              Leads
             </DialogTitle>
             <DialogDescription>
               {outreachDialog.type === "call"
@@ -451,8 +542,8 @@ export const LeadTable = () => {
                   ? "Add these leads to your power dialer queue"
                   : "Schedule calls for these leads"
                 : outreachDialog.timing === "now"
-                ? `Send ${outreachDialog.type.toUpperCase()} immediately to selected leads`
-                : `Schedule ${outreachDialog.type.toUpperCase()} for selected leads`}
+                  ? `Send ${outreachDialog.type.toUpperCase()} immediately to selected leads`
+                  : `Schedule ${outreachDialog.type.toUpperCase()} for selected leads`}
             </DialogDescription>
           </DialogHeader>
 
@@ -517,7 +608,9 @@ export const LeadTable = () => {
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => setOutreachDialog({ open: false, type: "sms", timing: "now" })}
+              onClick={() =>
+                setOutreachDialog({ open: false, type: "sms", timing: "now" })
+              }
             >
               Cancel
             </Button>
@@ -528,11 +621,13 @@ export const LeadTable = () => {
                 outreachDialog.type === "sms"
                   ? "bg-blue-600 hover:bg-blue-700"
                   : outreachDialog.type === "email"
-                  ? "bg-green-600 hover:bg-green-700"
-                  : "bg-purple-600 hover:bg-purple-700"
+                    ? "bg-green-600 hover:bg-green-700"
+                    : "bg-purple-600 hover:bg-purple-700"
               }
             >
-              {outreachLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {outreachLoading && (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              )}
               {outreachDialog.timing === "now"
                 ? outreachDialog.type === "call"
                   ? "Add to Dialer"
@@ -552,7 +647,8 @@ export const LeadTable = () => {
               Schedule to Calendar
             </DialogTitle>
             <DialogDescription>
-              Schedule {selectedLeads.length} leads for follow-up on a specific date
+              Schedule {selectedLeads.length} leads for follow-up on a specific
+              date
             </DialogDescription>
           </DialogHeader>
 
@@ -572,8 +668,9 @@ export const LeadTable = () => {
 
             <div className="bg-muted p-4 rounded-lg">
               <p className="text-sm">
-                <strong>{selectedLeads.length}</strong> leads will be scheduled for follow-up.
-                You can view and work them from the Calendar workspace.
+                <strong>{selectedLeads.length}</strong> leads will be scheduled
+                for follow-up. You can view and work them from the Calendar
+                workspace.
               </p>
             </div>
           </div>
@@ -587,7 +684,9 @@ export const LeadTable = () => {
               disabled={calendarLoading || !calendarDate}
               className="bg-orange-600 hover:bg-orange-700"
             >
-              {calendarLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {calendarLoading && (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              )}
               Schedule
             </Button>
           </DialogFooter>

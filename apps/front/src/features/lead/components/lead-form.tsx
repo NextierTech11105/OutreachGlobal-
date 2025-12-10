@@ -31,7 +31,7 @@ interface Props {
 }
 
 export const LeadForm: React.FC<Props> = ({ lead }) => {
-  const { team } = useCurrentTeam();
+  const { teamId, isTeamReady } = useCurrentTeam();
   const { handleSubmit, register, registerError, control, setValue } = useForm({
     resolver: zodResolver(createLeadSchema),
     defaultValues: {
@@ -66,6 +66,10 @@ export const LeadForm: React.FC<Props> = ({ lead }) => {
   const [updateLead] = useMutation(UPDATE_LEAD_MUTATION);
   const router = useRouter();
 
+  if (!isTeamReady) {
+    return null;
+  }
+
   const appendTags = () => {
     if (newTag.trim()) {
       setValue("tags", [...(tags || []), newTag.trim()]);
@@ -93,14 +97,14 @@ export const LeadForm: React.FC<Props> = ({ lead }) => {
     try {
       if (lead) {
         await updateLead({
-          variables: { id: lead.id, input, teamId: team.id },
+          variables: { id: lead.id, input, teamId },
         });
       } else {
-        await createLead({ variables: { input, teamId: team.id } });
+        await createLead({ variables: { input, teamId } });
         cache.evict(LEADS_EVICT);
       }
       toast.success("Lead saved successfully");
-      router.replace(`/t/${team.id}/leads`);
+      router.replace(`/t/${teamId}/leads`);
     } catch (error) {
       showError(error, { gql: true });
       setLoading(false);

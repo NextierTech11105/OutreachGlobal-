@@ -43,60 +43,250 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Search, Download, Loader2, MapPin, Home, Phone, Mail, UserSearch,
-  Filter, Save, FolderOpen, Layers, AlertTriangle, Building2, Users,
-  DollarSign, TrendingUp, Ban, X, ChevronLeft, ChevronRight,
-  Plus, MessageSquare, Zap, Target, Landmark, RotateCcw, Send, CheckCircle2, Wand2,
-  Map, List, FileText, Calendar, PhoneCall, MailPlus, Clock, Eye, Play
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Search,
+  Download,
+  Loader2,
+  MapPin,
+  Home,
+  Phone,
+  Mail,
+  UserSearch,
+  Filter,
+  Save,
+  FolderOpen,
+  Layers,
+  AlertTriangle,
+  Building2,
+  Users,
+  DollarSign,
+  TrendingUp,
+  Ban,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  MessageSquare,
+  Zap,
+  Target,
+  Landmark,
+  RotateCcw,
+  Send,
+  CheckCircle2,
+  Wand2,
+  Map,
+  List,
+  FileText,
+  Calendar,
+  PhoneCall,
+  MailPlus,
+  Clock,
+  Eye,
+  Play,
 } from "lucide-react";
 import { toast } from "sonner";
 import { CampaignSmsConfigurator } from "@/components/campaign-sms-configurator";
-import { PropertyMap, PropertyMarker } from "@/components/property-map/property-map";
+import {
+  PropertyMap,
+  PropertyMarker,
+} from "@/components/property-map/property-map";
 import { sf, sfd } from "@/lib/utils/safe-format";
 
 // ============ MOTIVATED SELLER LEAD TYPES (PropWire-style) ============
 const LEAD_TYPES = [
-  { id: "pre_foreclosure", label: "Pre-Foreclosure", icon: AlertTriangle, color: "text-red-500", description: "Behind on mortgage" },
-  { id: "foreclosure", label: "Foreclosure", icon: AlertTriangle, color: "text-red-600", description: "Bank-owned" },
-  { id: "auction", label: "Auction", icon: TrendingUp, color: "text-orange-500", description: "Going to auction" },
-  { id: "tax_lien", label: "Tax Lien", icon: DollarSign, color: "text-amber-500", description: "Delinquent taxes" },
-  { id: "absentee_owner", label: "Absentee Owner", icon: Users, color: "text-blue-500", description: "Owner lives elsewhere" },
-  { id: "vacant", label: "Vacant", icon: Home, color: "text-purple-500", description: "Unoccupied property" },
-  { id: "high_equity", label: "High Equity", icon: TrendingUp, color: "text-green-500", description: "50%+ equity" },
-  { id: "free_clear", label: "Free & Clear", icon: DollarSign, color: "text-emerald-500", description: "No mortgage" },
-  { id: "inherited", label: "Inherited/Probate", icon: Users, color: "text-indigo-500", description: "Recently inherited" },
-  { id: "death", label: "Death in Family", icon: Users, color: "text-slate-500", description: "Recent death record" },
-  { id: "divorce", label: "Divorce", icon: Users, color: "text-pink-500", description: "Divorce filing" },
-  { id: "tired_landlord", label: "Tired Landlord", icon: Building2, color: "text-cyan-500", description: "Long-term rentals" },
-  { id: "corporate_owned", label: "Corporate Owned", icon: Building2, color: "text-gray-500", description: "LLC/Corp ownership" },
-  { id: "cash_buyer", label: "Cash Buyer", icon: DollarSign, color: "text-yellow-500", description: "Previous cash purchase" },
-  { id: "investor_buyer", label: "Investor", icon: Target, color: "text-teal-500", description: "Known investor" },
-  { id: "code_violation", label: "Code Violation", icon: Ban, color: "text-rose-500", description: "City violations" },
-  { id: "out_of_state", label: "Out of State", icon: MapPin, color: "text-violet-500", description: "Owner in different state" },
-  { id: "reverse_mortgage", label: "Reverse Mortgage", icon: RotateCcw, color: "text-orange-600", description: "Loan type: REV" },
-  { id: "compulink_lender", label: "Compulink PHH", icon: Landmark, color: "text-sky-600", description: "Lender: Compulink PHH Reverse" },
+  {
+    id: "pre_foreclosure",
+    label: "Pre-Foreclosure",
+    icon: AlertTriangle,
+    color: "text-red-500",
+    description: "Behind on mortgage",
+  },
+  {
+    id: "foreclosure",
+    label: "Foreclosure",
+    icon: AlertTriangle,
+    color: "text-red-600",
+    description: "Bank-owned",
+  },
+  {
+    id: "auction",
+    label: "Auction",
+    icon: TrendingUp,
+    color: "text-orange-500",
+    description: "Going to auction",
+  },
+  {
+    id: "tax_lien",
+    label: "Tax Lien",
+    icon: DollarSign,
+    color: "text-amber-500",
+    description: "Delinquent taxes",
+  },
+  {
+    id: "absentee_owner",
+    label: "Absentee Owner",
+    icon: Users,
+    color: "text-blue-500",
+    description: "Owner lives elsewhere",
+  },
+  {
+    id: "vacant",
+    label: "Vacant",
+    icon: Home,
+    color: "text-purple-500",
+    description: "Unoccupied property",
+  },
+  {
+    id: "high_equity",
+    label: "High Equity",
+    icon: TrendingUp,
+    color: "text-green-500",
+    description: "50%+ equity",
+  },
+  {
+    id: "free_clear",
+    label: "Free & Clear",
+    icon: DollarSign,
+    color: "text-emerald-500",
+    description: "No mortgage",
+  },
+  {
+    id: "inherited",
+    label: "Inherited/Probate",
+    icon: Users,
+    color: "text-indigo-500",
+    description: "Recently inherited",
+  },
+  {
+    id: "death",
+    label: "Death in Family",
+    icon: Users,
+    color: "text-slate-500",
+    description: "Recent death record",
+  },
+  {
+    id: "divorce",
+    label: "Divorce",
+    icon: Users,
+    color: "text-pink-500",
+    description: "Divorce filing",
+  },
+  {
+    id: "tired_landlord",
+    label: "Tired Landlord",
+    icon: Building2,
+    color: "text-cyan-500",
+    description: "Long-term rentals",
+  },
+  {
+    id: "corporate_owned",
+    label: "Corporate Owned",
+    icon: Building2,
+    color: "text-gray-500",
+    description: "LLC/Corp ownership",
+  },
+  {
+    id: "cash_buyer",
+    label: "Cash Buyer",
+    icon: DollarSign,
+    color: "text-yellow-500",
+    description: "Previous cash purchase",
+  },
+  {
+    id: "investor_buyer",
+    label: "Investor",
+    icon: Target,
+    color: "text-teal-500",
+    description: "Known investor",
+  },
+  {
+    id: "code_violation",
+    label: "Code Violation",
+    icon: Ban,
+    color: "text-rose-500",
+    description: "City violations",
+  },
+  {
+    id: "out_of_state",
+    label: "Out of State",
+    icon: MapPin,
+    color: "text-violet-500",
+    description: "Owner in different state",
+  },
+  {
+    id: "reverse_mortgage",
+    label: "Reverse Mortgage",
+    icon: RotateCcw,
+    color: "text-orange-600",
+    description: "Loan type: REV",
+  },
+  {
+    id: "compulink_lender",
+    label: "Compulink PHH",
+    icon: Landmark,
+    color: "text-sky-600",
+    description: "Lender: Compulink PHH Reverse",
+  },
 ];
 
 const US_STATES = [
-  { value: "AL", label: "Alabama" }, { value: "AK", label: "Alaska" }, { value: "AZ", label: "Arizona" },
-  { value: "AR", label: "Arkansas" }, { value: "CA", label: "California" }, { value: "CO", label: "Colorado" },
-  { value: "CT", label: "Connecticut" }, { value: "DE", label: "Delaware" }, { value: "FL", label: "Florida" },
-  { value: "GA", label: "Georgia" }, { value: "HI", label: "Hawaii" }, { value: "ID", label: "Idaho" },
-  { value: "IL", label: "Illinois" }, { value: "IN", label: "Indiana" }, { value: "IA", label: "Iowa" },
-  { value: "KS", label: "Kansas" }, { value: "KY", label: "Kentucky" }, { value: "LA", label: "Louisiana" },
-  { value: "ME", label: "Maine" }, { value: "MD", label: "Maryland" }, { value: "MA", label: "Massachusetts" },
-  { value: "MI", label: "Michigan" }, { value: "MN", label: "Minnesota" }, { value: "MS", label: "Mississippi" },
-  { value: "MO", label: "Missouri" }, { value: "MT", label: "Montana" }, { value: "NE", label: "Nebraska" },
-  { value: "NV", label: "Nevada" }, { value: "NH", label: "New Hampshire" }, { value: "NJ", label: "New Jersey" },
-  { value: "NM", label: "New Mexico" }, { value: "NY", label: "New York" }, { value: "NC", label: "North Carolina" },
-  { value: "ND", label: "North Dakota" }, { value: "OH", label: "Ohio" }, { value: "OK", label: "Oklahoma" },
-  { value: "OR", label: "Oregon" }, { value: "PA", label: "Pennsylvania" }, { value: "RI", label: "Rhode Island" },
-  { value: "SC", label: "South Carolina" }, { value: "SD", label: "South Dakota" }, { value: "TN", label: "Tennessee" },
-  { value: "TX", label: "Texas" }, { value: "UT", label: "Utah" }, { value: "VT", label: "Vermont" },
-  { value: "VA", label: "Virginia" }, { value: "WA", label: "Washington" }, { value: "WV", label: "West Virginia" },
-  { value: "WI", label: "Wisconsin" }, { value: "WY", label: "Wyoming" }
+  { value: "AL", label: "Alabama" },
+  { value: "AK", label: "Alaska" },
+  { value: "AZ", label: "Arizona" },
+  { value: "AR", label: "Arkansas" },
+  { value: "CA", label: "California" },
+  { value: "CO", label: "Colorado" },
+  { value: "CT", label: "Connecticut" },
+  { value: "DE", label: "Delaware" },
+  { value: "FL", label: "Florida" },
+  { value: "GA", label: "Georgia" },
+  { value: "HI", label: "Hawaii" },
+  { value: "ID", label: "Idaho" },
+  { value: "IL", label: "Illinois" },
+  { value: "IN", label: "Indiana" },
+  { value: "IA", label: "Iowa" },
+  { value: "KS", label: "Kansas" },
+  { value: "KY", label: "Kentucky" },
+  { value: "LA", label: "Louisiana" },
+  { value: "ME", label: "Maine" },
+  { value: "MD", label: "Maryland" },
+  { value: "MA", label: "Massachusetts" },
+  { value: "MI", label: "Michigan" },
+  { value: "MN", label: "Minnesota" },
+  { value: "MS", label: "Mississippi" },
+  { value: "MO", label: "Missouri" },
+  { value: "MT", label: "Montana" },
+  { value: "NE", label: "Nebraska" },
+  { value: "NV", label: "Nevada" },
+  { value: "NH", label: "New Hampshire" },
+  { value: "NJ", label: "New Jersey" },
+  { value: "NM", label: "New Mexico" },
+  { value: "NY", label: "New York" },
+  { value: "NC", label: "North Carolina" },
+  { value: "ND", label: "North Dakota" },
+  { value: "OH", label: "Ohio" },
+  { value: "OK", label: "Oklahoma" },
+  { value: "OR", label: "Oregon" },
+  { value: "PA", label: "Pennsylvania" },
+  { value: "RI", label: "Rhode Island" },
+  { value: "SC", label: "South Carolina" },
+  { value: "SD", label: "South Dakota" },
+  { value: "TN", label: "Tennessee" },
+  { value: "TX", label: "Texas" },
+  { value: "UT", label: "Utah" },
+  { value: "VT", label: "Vermont" },
+  { value: "VA", label: "Virginia" },
+  { value: "WA", label: "Washington" },
+  { value: "WV", label: "West Virginia" },
+  { value: "WI", label: "Wisconsin" },
+  { value: "WY", label: "Wyoming" },
 ];
 
 const PROPERTY_TYPES = [
@@ -262,32 +452,43 @@ export default function PropertiesPage() {
   } | null>(null);
 
   // Property Detail Panel
-  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(
+    null,
+  );
   const [showPropertyDetail, setShowPropertyDetail] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
-  const [propertyDetail, setPropertyDetail] = useState<Record<string, unknown> | null>(null);
+  const [propertyDetail, setPropertyDetail] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
 
   // Schedule Dialog (Kiosk)
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
-  const [scheduleType, setScheduleType] = useState<"sms" | "call" | "email">("sms");
+  const [scheduleType, setScheduleType] = useState<"sms" | "call" | "email">(
+    "sms",
+  );
   const [scheduleDate, setScheduleDate] = useState("");
   const [scheduleTime, setScheduleTime] = useState("");
   const [scheduleMessage, setScheduleMessage] = useState("");
-  const [schedulingProperty, setSchedulingProperty] = useState<Property | null>(null);
+  const [schedulingProperty, setSchedulingProperty] = useState<Property | null>(
+    null,
+  );
 
   // ============ BUCKET DATALAKE MANAGEMENT ============
   // Save 800K+ IDs, enrich 2K at a time on demand
   const [showBucketDialog, setShowBucketDialog] = useState(false);
   const [bucketName, setBucketName] = useState("");
-  const [buckets, setBuckets] = useState<Array<{
-    id: string;
-    name: string;
-    description?: string;
-    totalLeads: number;
-    enrichedLeads: number;
-    enrichmentStatus: string;
-    createdAt: string;
-  }>>([]);
+  const [buckets, setBuckets] = useState<
+    Array<{
+      id: string;
+      name: string;
+      description?: string;
+      totalLeads: number;
+      enrichedLeads: number;
+      enrichmentStatus: string;
+      createdAt: string;
+    }>
+  >([]);
   const [showBucketList, setShowBucketList] = useState(false);
   const [savingToBucket, setSavingToBucket] = useState(false);
   const [processingBucket, setProcessingBucket] = useState<string | null>(null);
@@ -363,7 +564,9 @@ export default function PropertiesPage() {
         return;
       }
 
-      toast.success(`Saved ${propertyIds.length} IDs to "${bucketName}" bucket`);
+      toast.success(
+        `Saved ${propertyIds.length} IDs to "${bucketName}" bucket`,
+      );
       setBucketName("");
       setShowBucketDialog(false);
 
@@ -380,52 +583,59 @@ export default function PropertiesPage() {
   }, [bucketName, results, filters, distressSignals]);
 
   // Process bucket - enrich 2K at a time
-  const processBucket = useCallback(async (bucketId: string, limit?: number) => {
-    setProcessingBucket(bucketId);
-    toast.info(`Processing bucket... Enriching up to ${limit || 2000} leads`);
+  const processBucket = useCallback(
+    async (bucketId: string, limit?: number) => {
+      setProcessingBucket(bucketId);
+      toast.info(`Processing bucket... Enriching up to ${limit || 2000} leads`);
 
-    try {
-      const response = await fetch("/api/property/bucket/process", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          bucketId,
-          limit: limit || 2000,
-          skipTrace: true,
-        }),
-      });
+      try {
+        const response = await fetch("/api/property/bucket/process", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            bucketId,
+            limit: limit || 2000,
+            skipTrace: true,
+          }),
+        });
 
-      const data = await response.json();
+        const data = await response.json();
 
-      if (data.error) {
-        toast.error(data.error);
-        return;
+        if (data.error) {
+          toast.error(data.error);
+          return;
+        }
+
+        toast.success(
+          `Enriched ${data.stats.successful}/${data.stats.processed} leads. ${data.stats.withPhones} with phones. ${data.stats.remaining} remaining.`,
+        );
+
+        // Refresh buckets
+        const bucketsRes = await fetch("/api/property/bucket");
+        const bucketsData = await bucketsRes.json();
+        if (bucketsData.buckets) setBuckets(bucketsData.buckets);
+
+        // If leads with phones, offer SMS campaign
+        if (data.stats.withPhones > 0) {
+          setTimeout(() => {
+            if (
+              confirm(
+                `${data.stats.withPhones} leads have phone numbers. Launch SMS Campaign?`,
+              )
+            ) {
+              window.location.href = `/t/default/campaigns/new?bucketId=${bucketId}`;
+            }
+          }, 500);
+        }
+      } catch (error) {
+        console.error("Process bucket failed:", error);
+        toast.error("Failed to process bucket");
+      } finally {
+        setProcessingBucket(null);
       }
-
-      toast.success(
-        `Enriched ${data.stats.successful}/${data.stats.processed} leads. ${data.stats.withPhones} with phones. ${data.stats.remaining} remaining.`
-      );
-
-      // Refresh buckets
-      const bucketsRes = await fetch("/api/property/bucket");
-      const bucketsData = await bucketsRes.json();
-      if (bucketsData.buckets) setBuckets(bucketsData.buckets);
-
-      // If leads with phones, offer SMS campaign
-      if (data.stats.withPhones > 0) {
-        setTimeout(() => {
-          if (confirm(`${data.stats.withPhones} leads have phone numbers. Launch SMS Campaign?`)) {
-            window.location.href = `/t/default/campaigns/new?bucketId=${bucketId}`;
-          }
-        }, 500);
-      }
-    } catch (error) {
-      console.error("Process bucket failed:", error);
-      toast.error("Failed to process bucket");
-    } finally {
-      setProcessingBucket(null);
-    }
-  }, []);
+    },
+    [],
+  );
 
   // Delete bucket
   const deleteBucket = useCallback(async (bucketId: string) => {
@@ -454,69 +664,74 @@ export default function PropertiesPage() {
   }, []);
 
   // Apollo Enrich Bucket - Bulk enrich leads with Apollo.io (10 per request)
-  const apolloEnrichBucket = useCallback(async (bucketId: string, limit?: number) => {
-    setApolloEnriching(bucketId);
-    const enrichLimit = limit || 50; // Default to 50 for Apollo (5 API calls of 10)
-    toast.info(`Apollo enriching bucket... (${enrichLimit} leads)`);
+  const apolloEnrichBucket = useCallback(
+    async (bucketId: string, limit?: number) => {
+      setApolloEnriching(bucketId);
+      const enrichLimit = limit || 50; // Default to 50 for Apollo (5 API calls of 10)
+      toast.info(`Apollo enriching bucket... (${enrichLimit} leads)`);
 
-    try {
-      // First, get leads from the bucket that need Apollo enrichment
-      const bucketRes = await fetch(`/api/property/bucket?id=${bucketId}`);
-      const bucketData = await bucketRes.json();
+      try {
+        // First, get leads from the bucket that need Apollo enrichment
+        const bucketRes = await fetch(`/api/property/bucket?id=${bucketId}`);
+        const bucketData = await bucketRes.json();
 
-      if (!bucketData.bucket) {
-        toast.error("Bucket not found");
-        return;
-      }
+        if (!bucketData.bucket) {
+          toast.error("Bucket not found");
+          return;
+        }
 
-      // Get lead IDs from bucket (enriched ones that may not have Apollo data)
-      const leadsRes = await fetch(`/api/property/bucket/leads?bucketId=${bucketId}&limit=${enrichLimit}&needsApollo=true`);
-      const leadsData = await leadsRes.json();
+        // Get lead IDs from bucket (enriched ones that may not have Apollo data)
+        const leadsRes = await fetch(
+          `/api/property/bucket/leads?bucketId=${bucketId}&limit=${enrichLimit}&needsApollo=true`,
+        );
+        const leadsData = await leadsRes.json();
 
-      if (!leadsData.leads || leadsData.leads.length === 0) {
-        toast.warning("No leads need Apollo enrichment");
+        if (!leadsData.leads || leadsData.leads.length === 0) {
+          toast.warning("No leads need Apollo enrichment");
+          setApolloEnriching(null);
+          return;
+        }
+
+        const leadIds = leadsData.leads.map((l: { id: string }) => l.id);
+
+        // Call Apollo bulk enrich
+        const response = await fetch("/api/apollo/enrich", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            leadIds,
+            type: "people",
+            revealEmails: true,
+            revealPhones: true,
+            updateDb: true,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+          toast.error(data.error);
+          return;
+        }
+
+        toast.success(
+          `Apollo enriched ${data.results.enriched}/${data.results.total}. ` +
+            `${data.results.withPhones} phones, ${data.results.withEmails} emails.`,
+        );
+
+        // Refresh buckets
+        const bucketsRes = await fetch("/api/property/bucket");
+        const bucketsRefresh = await bucketsRes.json();
+        if (bucketsRefresh.buckets) setBuckets(bucketsRefresh.buckets);
+      } catch (error) {
+        console.error("Apollo enrich failed:", error);
+        toast.error("Apollo enrichment failed");
+      } finally {
         setApolloEnriching(null);
-        return;
       }
-
-      const leadIds = leadsData.leads.map((l: { id: string }) => l.id);
-
-      // Call Apollo bulk enrich
-      const response = await fetch("/api/apollo/enrich", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          leadIds,
-          type: "people",
-          revealEmails: true,
-          revealPhones: true,
-          updateDb: true,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.error) {
-        toast.error(data.error);
-        return;
-      }
-
-      toast.success(
-        `Apollo enriched ${data.results.enriched}/${data.results.total}. ` +
-        `${data.results.withPhones} phones, ${data.results.withEmails} emails.`
-      );
-
-      // Refresh buckets
-      const bucketsRes = await fetch("/api/property/bucket");
-      const bucketsRefresh = await bucketsRes.json();
-      if (bucketsRefresh.buckets) setBuckets(bucketsRefresh.buckets);
-    } catch (error) {
-      console.error("Apollo enrich failed:", error);
-      toast.error("Apollo enrichment failed");
-    } finally {
-      setApolloEnriching(null);
-    }
-  }, []);
+    },
+    [],
+  );
 
   // Fetch counties when state changes
   useEffect(() => {
@@ -559,7 +774,10 @@ export default function PropertiesPage() {
   };
 
   // Update filter helper
-  const updateFilter = <K extends keyof SearchFilters>(key: K, value: SearchFilters[K]) => {
+  const updateFilter = <K extends keyof SearchFilters>(
+    key: K,
+    value: SearchFilters[K],
+  ) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
@@ -570,7 +788,10 @@ export default function PropertiesPage() {
   };
 
   // Reset page when filters change
-  const updateFilterAndResetPage = <K extends keyof SearchFilters>(key: K, value: SearchFilters[K]) => {
+  const updateFilterAndResetPage = <K extends keyof SearchFilters>(
+    key: K,
+    value: SearchFilters[K],
+  ) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
     setCurrentPage(0);
   };
@@ -623,7 +844,9 @@ export default function PropertiesPage() {
       if (data.ids && data.ids.length > 0) {
         setMcpLabel(data.label);
         setTotalCount(data.totalCount || data.ids.length);
-        toast.info(`Loading ${data.ids.length} properties from "${data.label}"...`);
+        toast.info(
+          `Loading ${data.ids.length} properties from "${data.label}"...`,
+        );
 
         // Fetch property details for the IDs
         loadPropertiesFromIds(data.ids);
@@ -654,26 +877,28 @@ export default function PropertiesPage() {
       }
 
       // Map skip trace results to Property format
-      const properties: Property[] = (data.results || []).map((r: {
-        id: string;
-        propertyId?: string;
-        address?: string;
-        ownerName?: string;
-        phones?: string[];
-        emails?: string[];
-        success?: boolean;
-      }) => ({
-        id: r.id || r.propertyId || "",
-        address: r.address || "",
-        city: "",
-        state: "",
-        zip: "",
-        propertyType: "Unknown",
-        ownerName: r.ownerName,
-        phones: r.phones || [],
-        emails: r.emails || [],
-        skipTraced: r.success,
-      }));
+      const properties: Property[] = (data.results || []).map(
+        (r: {
+          id: string;
+          propertyId?: string;
+          address?: string;
+          ownerName?: string;
+          phones?: string[];
+          emails?: string[];
+          success?: boolean;
+        }) => ({
+          id: r.id || r.propertyId || "",
+          address: r.address || "",
+          city: "",
+          state: "",
+          zip: "",
+          propertyType: "Unknown",
+          ownerName: r.ownerName,
+          phones: r.phones || [],
+          emails: r.emails || [],
+          skipTraced: r.success,
+        }),
+      );
 
       setResults(properties);
       toast.success(`Loaded ${properties.length} properties with contact info`);
@@ -690,7 +915,7 @@ export default function PropertiesPage() {
     if (selectedIds.size === results.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(results.map(p => p.id)));
+      setSelectedIds(new Set(results.map((p) => p.id)));
     }
   };
 
@@ -723,12 +948,14 @@ export default function PropertiesPage() {
       let processedCount = 0;
       let totalWithPhones = 0;
       let totalWithEmails = 0;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let allSkipResults: any[] = [];
+
+      const allSkipResults: any[] = [];
 
       // Process in batches of 250
       const numBatches = Math.ceil(totalToProcess / BATCH_SIZE);
-      toast.info(`Skip tracing ${totalToProcess} properties in ${numBatches} batches...`);
+      toast.info(
+        `Skip tracing ${totalToProcess} properties in ${numBatches} batches...`,
+      );
 
       for (let batchIndex = 0; batchIndex < numBatches; batchIndex++) {
         const startIdx = batchIndex * BATCH_SIZE;
@@ -736,10 +963,14 @@ export default function PropertiesPage() {
         const batchIds = allIds.slice(startIdx, endIdx);
 
         // Update progress
-        const progressPercent = Math.round(((batchIndex + 1) / numBatches) * 100);
+        const progressPercent = Math.round(
+          ((batchIndex + 1) / numBatches) * 100,
+        );
         setSkipTraceProgress(progressPercent);
 
-        console.log(`[Skip Trace] Batch ${batchIndex + 1}/${numBatches}: ${batchIds.length} IDs`);
+        console.log(
+          `[Skip Trace] Batch ${batchIndex + 1}/${numBatches}: ${batchIds.length} IDs`,
+        );
 
         const response = await fetch("/api/skip-trace", {
           method: "POST",
@@ -750,7 +981,9 @@ export default function PropertiesPage() {
         const data = await response.json();
 
         if (data.error === "Daily skip trace limit reached") {
-          toast.error(`Daily limit reached! Processed ${processedCount} of ${totalToProcess}`);
+          toast.error(
+            `Daily limit reached! Processed ${processedCount} of ${totalToProcess}`,
+          );
           break;
         }
 
@@ -778,7 +1011,9 @@ export default function PropertiesPage() {
         }
 
         // Show batch progress
-        toast.info(`Batch ${batchIndex + 1}/${numBatches}: ${data.stats?.withPhones || 0} phones found`);
+        toast.info(
+          `Batch ${batchIndex + 1}/${numBatches}: ${data.stats?.withPhones || 0} phones found`,
+        );
 
         // Small delay between batches to avoid overwhelming the API
         if (batchIndex < numBatches - 1) {
@@ -796,11 +1031,13 @@ export default function PropertiesPage() {
           });
           if (skipData && skipData.success) {
             // Handle both string[] and {number: string}[] formats from API
-            const phones = (skipData.phones || []).map((p: string | { number: string }) =>
-              typeof p === 'string' ? p : p.number
+            const phones = (skipData.phones || []).map(
+              (p: string | { number: string }) =>
+                typeof p === "string" ? p : p.number,
             );
-            const emails = (skipData.emails || []).map((e: string | { email: string }) =>
-              typeof e === 'string' ? e : e.email
+            const emails = (skipData.emails || []).map(
+              (e: string | { email: string }) =>
+                typeof e === "string" ? e : e.email,
             );
             return {
               ...property,
@@ -811,11 +1048,11 @@ export default function PropertiesPage() {
             };
           }
           return property;
-        })
+        }),
       );
 
       toast.success(
-        `Skip traced ${processedCount} properties - ${totalWithPhones} phones, ${totalWithEmails} emails`
+        `Skip traced ${processedCount} properties - ${totalWithPhones} phones, ${totalWithEmails} emails`,
       );
       setSelectedIds(new Set());
     } catch (error) {
@@ -827,241 +1064,340 @@ export default function PropertiesPage() {
     }
   }, [selectedIds]);
 
-  const handleSearch = useCallback(async (page?: number) => {
-    const searchPage = page ?? currentPage;
-    setLoading(true);
-    try {
-      // Build request body with all filters
-      const body: Record<string, unknown> = {};
+  const handleSearch = useCallback(
+    async (page?: number) => {
+      const searchPage = page ?? currentPage;
+      setLoading(true);
+      try {
+        // Build request body with all filters
+        const body: Record<string, unknown> = {};
 
-      // Location
-      if (filters.state && filters.state !== "__all__") body.state = filters.state;
-      if (filters.county && filters.county !== "__all__") body.county = filters.county;
-      if (filters.city) body.city = filters.city;
-      if (filters.zip) body.zip = filters.zip;
+        // Location
+        if (filters.state && filters.state !== "__all__")
+          body.state = filters.state;
+        if (filters.county && filters.county !== "__all__")
+          body.county = filters.county;
+        if (filters.city) body.city = filters.city;
+        if (filters.zip) body.zip = filters.zip;
 
-      // Property type
-      if (filters.propertyType && filters.propertyType !== "__all__") {
-        body.property_type = filters.propertyType;
-      }
-
-      // Equity filters
-      if (filters.equityMin > 0) body.equity_percent_min = filters.equityMin;
-      if (filters.equityMax < 100) body.equity_percent_max = filters.equityMax;
-
-      // Value filters
-      if (filters.valueMin) body.estimated_value_min = parseInt(filters.valueMin);
-      if (filters.valueMax) body.estimated_value_max = parseInt(filters.valueMax);
-
-      // Property characteristics
-      if (filters.bedsMin) body.beds_min = parseInt(filters.bedsMin);
-      if (filters.bathsMin) body.baths_min = parseInt(filters.bathsMin);
-      if (filters.sqftMin) body.building_size_min = parseInt(filters.sqftMin);
-      if (filters.sqftMax) body.building_size_max = parseInt(filters.sqftMax);
-      if (filters.yearBuiltMin) body.year_built_min = parseInt(filters.yearBuiltMin);
-      if (filters.yearBuiltMax) body.year_built_max = parseInt(filters.yearBuiltMax);
-
-      // Lead type filters (motivated seller tags)
-      filters.leadTypes.forEach((type) => {
-        // Special handling for mortgage/lender flags
-        if (type === "reverse_mortgage") {
-          body.loan_type_code_first = "REV";
-        } else if (type === "compulink_lender") {
-          body.lender_name_match = "Compulink PHH Reverse";
-          body.flag_compulink = true; // For post-processing
-        } else {
-          body[type] = true;
+        // Property type
+        if (filters.propertyType && filters.propertyType !== "__all__") {
+          body.property_type = filters.propertyType;
         }
-      });
 
-      // Portfolio/Linked Properties Filters (find whale investors)
-      if (filters.propertiesOwnedMin) body.properties_owned_min = parseInt(filters.propertiesOwnedMin);
-      if (filters.propertiesOwnedMax) body.properties_owned_max = parseInt(filters.propertiesOwnedMax);
-      if (filters.portfolioValueMin) body.portfolio_value_min = parseInt(filters.portfolioValueMin);
-      if (filters.portfolioValueMax) body.portfolio_value_max = parseInt(filters.portfolioValueMax);
-      if (filters.portfolioEquityMin) body.portfolio_equity_min = parseInt(filters.portfolioEquityMin);
-      if (filters.portfolioEquityMax) body.portfolio_equity_max = parseInt(filters.portfolioEquityMax);
-      if (filters.portfolioMortgageMin) body.portfolio_mortgage_balance_min = parseInt(filters.portfolioMortgageMin);
-      if (filters.portfolioMortgageMax) body.portfolio_mortgage_balance_max = parseInt(filters.portfolioMortgageMax);
-      if (filters.activeBuyerMin) body.portfolio_purchased_last12_min = parseInt(filters.activeBuyerMin);
-      if (filters.activeBuyerMax) body.portfolio_purchased_last12_max = parseInt(filters.activeBuyerMax);
+        // Equity filters
+        if (filters.equityMin > 0) body.equity_percent_min = filters.equityMin;
+        if (filters.equityMax < 100)
+          body.equity_percent_max = filters.equityMax;
 
-      // Sorting
-      if (filters.sortField && filters.sortDirection) {
-        body.sort = { [filters.sortField]: filters.sortDirection };
-      }
+        // Value filters
+        if (filters.valueMin)
+          body.estimated_value_min = parseInt(filters.valueMin);
+        if (filters.valueMax)
+          body.estimated_value_max = parseInt(filters.valueMax);
 
-      body.size = pageSize;
-      if (searchPage > 0) {
-        body.resultIndex = searchPage * pageSize;
-      }
+        // Property characteristics
+        if (filters.bedsMin) body.beds_min = parseInt(filters.bedsMin);
+        if (filters.bathsMin) body.baths_min = parseInt(filters.bathsMin);
+        if (filters.sqftMin) body.building_size_min = parseInt(filters.sqftMin);
+        if (filters.sqftMax) body.building_size_max = parseInt(filters.sqftMax);
+        if (filters.yearBuiltMin)
+          body.year_built_min = parseInt(filters.yearBuiltMin);
+        if (filters.yearBuiltMax)
+          body.year_built_max = parseInt(filters.yearBuiltMax);
 
-      const response = await fetch("/api/property/search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      const data = await response.json();
+        // Lead type filters (motivated seller tags)
+        filters.leadTypes.forEach((type) => {
+          // Special handling for mortgage/lender flags
+          if (type === "reverse_mortgage") {
+            body.loan_type_code_first = "REV";
+          } else if (type === "compulink_lender") {
+            body.lender_name_match = "Compulink PHH Reverse";
+            body.flag_compulink = true; // For post-processing
+          } else {
+            body[type] = true;
+          }
+        });
 
-      if (data.error) {
-        toast.error(data.message || "Search failed");
-        console.error("Search error:", data.error);
-        return;
-      }
+        // Portfolio/Linked Properties Filters (find whale investors)
+        if (filters.propertiesOwnedMin)
+          body.properties_owned_min = parseInt(filters.propertiesOwnedMin);
+        if (filters.propertiesOwnedMax)
+          body.properties_owned_max = parseInt(filters.propertiesOwnedMax);
+        if (filters.portfolioValueMin)
+          body.portfolio_value_min = parseInt(filters.portfolioValueMin);
+        if (filters.portfolioValueMax)
+          body.portfolio_value_max = parseInt(filters.portfolioValueMax);
+        if (filters.portfolioEquityMin)
+          body.portfolio_equity_min = parseInt(filters.portfolioEquityMin);
+        if (filters.portfolioEquityMax)
+          body.portfolio_equity_max = parseInt(filters.portfolioEquityMax);
+        if (filters.portfolioMortgageMin)
+          body.portfolio_mortgage_balance_min = parseInt(
+            filters.portfolioMortgageMin,
+          );
+        if (filters.portfolioMortgageMax)
+          body.portfolio_mortgage_balance_max = parseInt(
+            filters.portfolioMortgageMax,
+          );
+        if (filters.activeBuyerMin)
+          body.portfolio_purchased_last12_min = parseInt(
+            filters.activeBuyerMin,
+          );
+        if (filters.activeBuyerMax)
+          body.portfolio_purchased_last12_max = parseInt(
+            filters.activeBuyerMax,
+          );
 
-      const rawData = data.data || data.properties || data.results || [];
-      const properties: Property[] = rawData.map((p: Record<string, unknown>) => {
-        const addr = p.address as Record<string, string> | string;
-
-        // Detect lead types from flags
-        const detectedLeadTypes: string[] = [];
-        if (p.preForeclosure || p.pre_foreclosure) detectedLeadTypes.push("pre_foreclosure");
-        if (p.foreclosure) detectedLeadTypes.push("foreclosure");
-        if (p.absenteeOwner || p.absentee_owner) detectedLeadTypes.push("absentee_owner");
-        if (p.vacant) detectedLeadTypes.push("vacant");
-        if (p.taxLien || p.tax_lien) detectedLeadTypes.push("tax_lien");
-        if (p.inherited) detectedLeadTypes.push("inherited");
-        if (p.highEquity || p.high_equity || (p.equityPercent && Number(p.equityPercent) >= 50)) {
-          detectedLeadTypes.push("high_equity");
+        // Sorting
+        if (filters.sortField && filters.sortDirection) {
+          body.sort = { [filters.sortField]: filters.sortDirection };
         }
-        if (p.freeClear || p.free_clear) detectedLeadTypes.push("free_clear");
-        if (p.corporateOwned || p.corporate_owned) detectedLeadTypes.push("corporate_owned");
 
-        // Mortgage/Lender flags from RealEstateAPI
-        const mortgages = (p.currentMortgages || p.mortgages || []) as Array<{ loan_type_code?: string; lender_name?: string; loanType?: string; lenderName?: string }>;
-        const hasReverseMortgage = mortgages.some((m) =>
-          m.loan_type_code === "REV" || m.loanType === "REV" ||
-          (p.loanTypeCode1 === "REV" || p.loan_type_code_first === "REV")
+        body.size = pageSize;
+        if (searchPage > 0) {
+          body.resultIndex = searchPage * pageSize;
+        }
+
+        const response = await fetch("/api/property/search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const data = await response.json();
+
+        if (data.error) {
+          toast.error(data.message || "Search failed");
+          console.error("Search error:", data.error);
+          return;
+        }
+
+        const rawData = data.data || data.properties || data.results || [];
+        const properties: Property[] = rawData.map(
+          (p: Record<string, unknown>) => {
+            const addr = p.address as Record<string, string> | string;
+
+            // Detect lead types from flags
+            const detectedLeadTypes: string[] = [];
+            if (p.preForeclosure || p.pre_foreclosure)
+              detectedLeadTypes.push("pre_foreclosure");
+            if (p.foreclosure) detectedLeadTypes.push("foreclosure");
+            if (p.absenteeOwner || p.absentee_owner)
+              detectedLeadTypes.push("absentee_owner");
+            if (p.vacant) detectedLeadTypes.push("vacant");
+            if (p.taxLien || p.tax_lien) detectedLeadTypes.push("tax_lien");
+            if (p.inherited) detectedLeadTypes.push("inherited");
+            if (
+              p.highEquity ||
+              p.high_equity ||
+              (p.equityPercent && Number(p.equityPercent) >= 50)
+            ) {
+              detectedLeadTypes.push("high_equity");
+            }
+            if (p.freeClear || p.free_clear)
+              detectedLeadTypes.push("free_clear");
+            if (p.corporateOwned || p.corporate_owned)
+              detectedLeadTypes.push("corporate_owned");
+
+            // Mortgage/Lender flags from RealEstateAPI
+            const mortgages = (p.currentMortgages ||
+              p.mortgages ||
+              []) as Array<{
+              loan_type_code?: string;
+              lender_name?: string;
+              loanType?: string;
+              lenderName?: string;
+            }>;
+            const hasReverseMortgage = mortgages.some(
+              (m) =>
+                m.loan_type_code === "REV" ||
+                m.loanType === "REV" ||
+                p.loanTypeCode1 === "REV" ||
+                p.loan_type_code_first === "REV",
+            );
+            if (hasReverseMortgage) detectedLeadTypes.push("reverse_mortgage");
+
+            const hasCompulinkLender =
+              mortgages.some((m) =>
+                (m.lender_name || m.lenderName || "")
+                  .toLowerCase()
+                  .includes("compulink phh reverse"),
+              ) ||
+              String(p.lenderName1 || p.lender_name_first || "")
+                .toLowerCase()
+                .includes("compulink phh reverse");
+            if (hasCompulinkLender) detectedLeadTypes.push("compulink_lender");
+
+            return {
+              id: String(p.id || p.propertyId || crypto.randomUUID()),
+              address:
+                typeof addr === "object"
+                  ? addr?.address || addr?.street
+                  : String(addr || ""),
+              city:
+                typeof addr === "object" ? addr?.city : String(p.city || ""),
+              state:
+                typeof addr === "object" ? addr?.state : String(p.state || ""),
+              zip: typeof addr === "object" ? addr?.zip : String(p.zip || ""),
+              county:
+                typeof addr === "object"
+                  ? addr?.county
+                  : String(p.county || ""),
+              propertyType: String(
+                p.propertyType || p.property_type || "Unknown",
+              ),
+              beds: Number(p.bedrooms || p.beds) || undefined,
+              baths: Number(p.bathrooms || p.baths) || undefined,
+              sqft: Number(p.squareFeet || p.sqft || p.livingArea) || undefined,
+              yearBuilt: Number(p.yearBuilt || p.year_built) || undefined,
+              estimatedValue:
+                Number(p.estimatedValue || p.estimated_value || p.avm) ||
+                undefined,
+              equity:
+                Number(p.estimatedEquity || p.estimated_equity) || undefined,
+              equityPercent:
+                Number(p.equityPercent || p.equity_percent) || undefined,
+              ownerName:
+                [p.owner1FirstName, p.owner1LastName]
+                  .filter(Boolean)
+                  .join(" ") ||
+                (p.ownerName as string) ||
+                undefined,
+              ownerOccupied: Boolean(p.ownerOccupied || p.owner_occupied),
+              absenteeOwner: Boolean(p.absenteeOwner || p.absentee_owner),
+              vacant: Boolean(p.vacant),
+              preForeclosure: Boolean(p.preForeclosure || p.pre_foreclosure),
+              leadTypes: detectedLeadTypes,
+              // Map coordinates from RealEstateAPI response
+              lat:
+                Number(
+                  p.latitude ||
+                    p.lat ||
+                    (typeof addr === "object" && addr?.latitude),
+                ) || undefined,
+              lng:
+                Number(
+                  p.longitude ||
+                    p.lng ||
+                    p.lon ||
+                    (typeof addr === "object" && addr?.longitude),
+                ) || undefined,
+            };
+          },
         );
-        if (hasReverseMortgage) detectedLeadTypes.push("reverse_mortgage");
 
-        const hasCompulinkLender = mortgages.some((m) =>
-          (m.lender_name || m.lenderName || "").toLowerCase().includes("compulink phh reverse")
-        ) || (String(p.lenderName1 || p.lender_name_first || "").toLowerCase().includes("compulink phh reverse"));
-        if (hasCompulinkLender) detectedLeadTypes.push("compulink_lender");
+        setResults(properties);
+        setTotalCount(
+          data.resultCount ||
+            data.recordCount ||
+            data.total ||
+            properties.length,
+        );
 
-        return {
-          id: String(p.id || p.propertyId || crypto.randomUUID()),
-          address: typeof addr === "object" ? addr?.address || addr?.street : String(addr || ""),
-          city: typeof addr === "object" ? addr?.city : String(p.city || ""),
-          state: typeof addr === "object" ? addr?.state : String(p.state || ""),
-          zip: typeof addr === "object" ? addr?.zip : String(p.zip || ""),
-          county: typeof addr === "object" ? addr?.county : String(p.county || ""),
-          propertyType: String(p.propertyType || p.property_type || "Unknown"),
-          beds: Number(p.bedrooms || p.beds) || undefined,
-          baths: Number(p.bathrooms || p.baths) || undefined,
-          sqft: Number(p.squareFeet || p.sqft || p.livingArea) || undefined,
-          yearBuilt: Number(p.yearBuilt || p.year_built) || undefined,
-          estimatedValue: Number(p.estimatedValue || p.estimated_value || p.avm) || undefined,
-          equity: Number(p.estimatedEquity || p.estimated_equity) || undefined,
-          equityPercent: Number(p.equityPercent || p.equity_percent) || undefined,
-          ownerName:
-            [p.owner1FirstName, p.owner1LastName].filter(Boolean).join(" ") ||
-            (p.ownerName as string) ||
-            undefined,
-          ownerOccupied: Boolean(p.ownerOccupied || p.owner_occupied),
-          absenteeOwner: Boolean(p.absenteeOwner || p.absentee_owner),
-          vacant: Boolean(p.vacant),
-          preForeclosure: Boolean(p.preForeclosure || p.pre_foreclosure),
-          leadTypes: detectedLeadTypes,
-          // Map coordinates from RealEstateAPI response
-          lat: Number(p.latitude || p.lat || (typeof addr === "object" && addr?.latitude)) || undefined,
-          lng: Number(p.longitude || p.lng || p.lon || (typeof addr === "object" && addr?.longitude)) || undefined,
-        };
-      });
+        // Capture distress signals from response (for bucket saving)
+        if (data.signals) {
+          setDistressSignals(data.signals);
+        }
 
-      setResults(properties);
-      setTotalCount(data.resultCount || data.recordCount || data.total || properties.length);
+        // Show tray if we have results
+        if (properties.length > 0) {
+          setShowTray(true);
+        }
 
-      // Capture distress signals from response (for bucket saving)
-      if (data.signals) {
-        setDistressSignals(data.signals);
+        toast.success(`Found ${properties.length} properties`);
+      } catch (error) {
+        console.error("Search failed:", error);
+        toast.error("Search failed");
+      } finally {
+        setLoading(false);
       }
-
-      // Show tray if we have results
-      if (properties.length > 0) {
-        setShowTray(true);
-      }
-
-      toast.success(`Found ${properties.length} properties`);
-    } catch (error) {
-      console.error("Search failed:", error);
-      toast.error("Search failed");
-    } finally {
-      setLoading(false);
-    }
-  }, [filters, currentPage, pageSize]);
+    },
+    [filters, currentPage, pageSize],
+  );
 
   // PUSH BUTTON SMS - Send via SignalHouse
-  const handleSendSms = useCallback(async (messageOverride?: string) => {
-    // Get properties with phone numbers
-    const propertiesWithPhones = results.filter(
-      (p) => selectedIds.has(p.id) && p.phones && p.phones.length > 0
-    );
+  const handleSendSms = useCallback(
+    async (messageOverride?: string) => {
+      // Get properties with phone numbers
+      const propertiesWithPhones = results.filter(
+        (p) => selectedIds.has(p.id) && p.phones && p.phones.length > 0,
+      );
 
-    if (propertiesWithPhones.length === 0) {
-      toast.error("No selected properties have phone numbers. Skip trace first!");
-      return;
-    }
-
-    const messageToSend = messageOverride || smsMessage;
-    if (!messageToSend.trim()) {
-      toast.error("Enter a message to send");
-      return;
-    }
-
-    setSendingSms(true);
-    setSmsProgress({ sent: 0, failed: 0, total: propertiesWithPhones.length });
-
-    try {
-      // Collect all phone numbers
-      const phoneNumbers = propertiesWithPhones.flatMap((p) => p.phones || []);
-
-      console.log(`[SMS] Sending to ${phoneNumbers.length} phone numbers via SignalHouse...`);
-
-      const response = await fetch("/api/signalhouse/bulk-send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          to: phoneNumbers,
-          message: messageToSend,
-          campaignId: `property-blitz-${Date.now()}`,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.error) {
-        toast.error(data.error);
-        setSmsProgress(null);
+      if (propertiesWithPhones.length === 0) {
+        toast.error(
+          "No selected properties have phone numbers. Skip trace first!",
+        );
         return;
       }
 
+      const messageToSend = messageOverride || smsMessage;
+      if (!messageToSend.trim()) {
+        toast.error("Enter a message to send");
+        return;
+      }
+
+      setSendingSms(true);
       setSmsProgress({
-        sent: data.sent || 0,
-        failed: data.failed || 0,
-        total: phoneNumbers.length,
+        sent: 0,
+        failed: 0,
+        total: propertiesWithPhones.length,
       });
 
-      toast.success(
-        `SMS Blast Complete! ${data.sent} sent, ${data.failed} failed. Daily remaining: ${data.dailyRemaining}`
-      );
+      try {
+        // Collect all phone numbers
+        const phoneNumbers = propertiesWithPhones.flatMap(
+          (p) => p.phones || [],
+        );
 
-      // Clear selection and close dialog after success
-      setTimeout(() => {
-        setShowSmsDialog(false);
-        setSmsMessage("");
+        console.log(
+          `[SMS] Sending to ${phoneNumbers.length} phone numbers via SignalHouse...`,
+        );
+
+        const response = await fetch("/api/signalhouse/bulk-send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            to: phoneNumbers,
+            message: messageToSend,
+            campaignId: `property-blitz-${Date.now()}`,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+          toast.error(data.error);
+          setSmsProgress(null);
+          return;
+        }
+
+        setSmsProgress({
+          sent: data.sent || 0,
+          failed: data.failed || 0,
+          total: phoneNumbers.length,
+        });
+
+        toast.success(
+          `SMS Blast Complete! ${data.sent} sent, ${data.failed} failed. Daily remaining: ${data.dailyRemaining}`,
+        );
+
+        // Clear selection and close dialog after success
+        setTimeout(() => {
+          setShowSmsDialog(false);
+          setSmsMessage("");
+          setSmsProgress(null);
+          setSelectedIds(new Set());
+        }, 2000);
+      } catch (error) {
+        console.error("SMS send failed:", error);
+        toast.error("Failed to send SMS");
         setSmsProgress(null);
-        setSelectedIds(new Set());
-      }, 2000);
-    } catch (error) {
-      console.error("SMS send failed:", error);
-      toast.error("Failed to send SMS");
-      setSmsProgress(null);
-    } finally {
-      setSendingSms(false);
-    }
-  }, [results, selectedIds, smsMessage]);
+      } finally {
+        setSendingSms(false);
+      }
+    },
+    [results, selectedIds, smsMessage],
+  );
 
   // Run Detail - Fetches full property data with auto skip trace
   const handleRunDetail = useCallback(async (property: Property) => {
@@ -1098,8 +1434,8 @@ export default function PropertiesPage() {
                   ownerName: data.property.ownerName || p.ownerName,
                   skipTraced: true,
                 }
-              : p
-          )
+              : p,
+          ),
         );
       }
 
@@ -1113,23 +1449,31 @@ export default function PropertiesPage() {
   }, []);
 
   // Push to valuation page with property data
-  const handlePushToValuation = useCallback((property: Property) => {
-    const address = `${property.address}, ${property.city}, ${property.state} ${property.zip}`;
-    localStorage.setItem("nextier_valuation_property", JSON.stringify({
-      address,
-      propertyId: property.id,
-      ownerName: property.ownerName,
-      phones: property.phones,
-      emails: property.emails,
-      estimatedValue: property.estimatedValue,
-      propertyDetail,
-    }));
-    window.location.href = `/t/default/valuation?address=${encodeURIComponent(address)}`;
-  }, [propertyDetail]);
+  const handlePushToValuation = useCallback(
+    (property: Property) => {
+      const address = `${property.address}, ${property.city}, ${property.state} ${property.zip}`;
+      localStorage.setItem(
+        "nextier_valuation_property",
+        JSON.stringify({
+          address,
+          propertyId: property.id,
+          ownerName: property.ownerName,
+          phones: property.phones,
+          emails: property.emails,
+          estimatedValue: property.estimatedValue,
+          propertyDetail,
+        }),
+      );
+      window.location.href = `/t/default/valuation?address=${encodeURIComponent(address)}`;
+    },
+    [propertyDetail],
+  );
 
   // 🚀 FULL REPORT - Combined Detail + Skip Trace + Push to Valuation
   // This is the ONE BUTTON that does everything
-  const [fullReportLoading, setFullReportLoading] = useState<string | null>(null);
+  const [fullReportLoading, setFullReportLoading] = useState<string | null>(
+    null,
+  );
   const [bulkReportProgress, setBulkReportProgress] = useState<{
     processed: number;
     total: number;
@@ -1150,7 +1494,12 @@ export default function PropertiesPage() {
     }
 
     setBulkReportRunning(true);
-    setBulkReportProgress({ processed: 0, total: Math.min(selectedIds.size, BULK_DAILY_LIMIT), withPhones: 0, withEmails: 0 });
+    setBulkReportProgress({
+      processed: 0,
+      total: Math.min(selectedIds.size, BULK_DAILY_LIMIT),
+      withPhones: 0,
+      withEmails: 0,
+    });
 
     try {
       const allIds = Array.from(selectedIds);
@@ -1169,21 +1518,30 @@ export default function PropertiesPage() {
       }> = [];
 
       // Get the properties to process
-      const propertiesToProcess = results.filter(p => selectedIds.has(p.id)).slice(0, totalToProcess);
+      const propertiesToProcess = results
+        .filter((p) => selectedIds.has(p.id))
+        .slice(0, totalToProcess);
 
       // Process in batches of 1,000 using BULK API (SkipTraceBatchAwait)
       const batchSize = BULK_API_BATCH_SIZE;
       const numBatches = Math.ceil(propertiesToProcess.length / batchSize);
 
-      toast.info(`🚀 BULK Skip Trace: ${totalToProcess} properties in ${numBatches} batch(es) of up to ${batchSize}...`);
+      toast.info(
+        `🚀 BULK Skip Trace: ${totalToProcess} properties in ${numBatches} batch(es) of up to ${batchSize}...`,
+      );
 
       for (let batchIndex = 0; batchIndex < numBatches; batchIndex++) {
         const startIdx = batchIndex * batchSize;
-        const endIdx = Math.min(startIdx + batchSize, propertiesToProcess.length);
+        const endIdx = Math.min(
+          startIdx + batchSize,
+          propertiesToProcess.length,
+        );
         const batchProperties = propertiesToProcess.slice(startIdx, endIdx);
-        const batchIds = batchProperties.map(p => p.id);
+        const batchIds = batchProperties.map((p) => p.id);
 
-        console.log(`[Bulk Skip Trace] Batch ${batchIndex + 1}/${numBatches}: ${batchIds.length} properties via SkipTraceBatchAwait`);
+        console.log(
+          `[Bulk Skip Trace] Batch ${batchIndex + 1}/${numBatches}: ${batchIds.length} properties via SkipTraceBatchAwait`,
+        );
 
         // BULK skip trace call using SkipTraceBatchAwait API
         const response = await fetch("/api/skip-trace", {
@@ -1198,7 +1556,9 @@ export default function PropertiesPage() {
         const data = await response.json();
 
         if (data.error === "Daily skip trace limit reached") {
-          toast.error(`Daily limit reached! Processed ${processedCount} of ${totalToProcess}`);
+          toast.error(
+            `Daily limit reached! Processed ${processedCount} of ${totalToProcess}`,
+          );
           break;
         }
 
@@ -1212,23 +1572,32 @@ export default function PropertiesPage() {
           for (const skipResult of data.results) {
             if (skipResult.success) {
               processedCount++;
-              const phones = (skipResult.phones || []).map((p: string | { number: string }) =>
-                typeof p === 'string' ? p : p.number
+              const phones = (skipResult.phones || []).map(
+                (p: string | { number: string }) =>
+                  typeof p === "string" ? p : p.number,
               );
-              const emails = (skipResult.emails || []).map((e: string | { email: string }) =>
-                typeof e === 'string' ? e : e.email
+              const emails = (skipResult.emails || []).map(
+                (e: string | { email: string }) =>
+                  typeof e === "string" ? e : e.email,
               );
 
               if (phones.length > 0) totalWithPhones++;
               if (emails.length > 0) totalWithEmails++;
 
               // Find original property
-              const originalProperty = batchProperties.find(p => p.id === skipResult.id || p.id === skipResult.input?.propertyId);
+              const originalProperty = batchProperties.find(
+                (p) =>
+                  p.id === skipResult.id ||
+                  p.id === skipResult.input?.propertyId,
+              );
 
               // Add to leads if has phone
               if (phones.length > 0 && originalProperty) {
                 processedLeads.push({
-                  name: skipResult.ownerName || originalProperty.ownerName || "Property Owner",
+                  name:
+                    skipResult.ownerName ||
+                    originalProperty.ownerName ||
+                    "Property Owner",
                   phone: phones[0],
                   email: emails[0] || "",
                   address: `${originalProperty.address}, ${originalProperty.city}, ${originalProperty.state} ${originalProperty.zip}`,
@@ -1241,7 +1610,10 @@ export default function PropertiesPage() {
               // Update property in results
               setResults((prev) =>
                 prev.map((p) => {
-                  if (p.id === skipResult.id || p.id === skipResult.input?.propertyId) {
+                  if (
+                    p.id === skipResult.id ||
+                    p.id === skipResult.input?.propertyId
+                  ) {
                     return {
                       ...p,
                       phones,
@@ -1251,7 +1623,7 @@ export default function PropertiesPage() {
                     };
                   }
                   return p;
-                })
+                }),
               );
             }
           }
@@ -1267,7 +1639,9 @@ export default function PropertiesPage() {
 
         // Show batch progress (Bulk API mode)
         const apiMode = data.mode === "bulk" ? "🚀 Bulk API" : "Standard";
-        toast.info(`${apiMode} Batch ${batchIndex + 1}/${numBatches}: ${data.stats?.withPhones || 0} phones, ${data.stats?.withEmails || 0} emails`);
+        toast.info(
+          `${apiMode} Batch ${batchIndex + 1}/${numBatches}: ${data.stats?.withPhones || 0} phones, ${data.stats?.withEmails || 0} emails`,
+        );
 
         // Small delay between batches
         if (batchIndex < numBatches - 1) {
@@ -1277,29 +1651,39 @@ export default function PropertiesPage() {
 
       // Push all leads with phones to SMS Campaign Queue
       if (processedLeads.length > 0) {
-        localStorage.setItem("nextier_sms_queue", JSON.stringify({
-          leads: processedLeads,
-          source: "bulk-full-report",
-          createdAt: new Date().toISOString(),
-          stats: {
-            processed: processedCount,
-            withPhones: totalWithPhones,
-            withEmails: totalWithEmails,
-          },
-        }));
+        localStorage.setItem(
+          "nextier_sms_queue",
+          JSON.stringify({
+            leads: processedLeads,
+            source: "bulk-full-report",
+            createdAt: new Date().toISOString(),
+            stats: {
+              processed: processedCount,
+              withPhones: totalWithPhones,
+              withEmails: totalWithEmails,
+            },
+          }),
+        );
 
         toast.success(
-          `🚀 Bulk Skip Trace Complete! ${processedCount} processed, ${totalWithPhones} phones, ${totalWithEmails} emails. ${processedLeads.length} leads pushed to SMS Queue!`
+          `🚀 Bulk Skip Trace Complete! ${processedCount} processed, ${totalWithPhones} phones, ${totalWithEmails} emails. ${processedLeads.length} leads pushed to SMS Queue!`,
         );
 
         // Offer to go to SMS Campaign
         setTimeout(() => {
-          if (confirm(`${processedLeads.length} leads are ready for Initial SMS Campaign. Go to Campaign Setup?`)) {
-            window.location.href = "/t/default/campaigns/new?from=bulk-report&queue=sms";
+          if (
+            confirm(
+              `${processedLeads.length} leads are ready for Initial SMS Campaign. Go to Campaign Setup?`,
+            )
+          ) {
+            window.location.href =
+              "/t/default/campaigns/new?from=bulk-report&queue=sms";
           }
         }, 1000);
       } else {
-        toast.warning(`Bulk Skip Trace Complete. ${processedCount} processed but no phone numbers found.`);
+        toast.warning(
+          `Bulk Skip Trace Complete. ${processedCount} processed but no phone numbers found.`,
+        );
       }
 
       setSelectedIds(new Set());
@@ -1346,28 +1730,31 @@ export default function PropertiesPage() {
                   ownerName: detail.ownerName || p.ownerName,
                   skipTraced: true,
                 }
-              : p
-          )
+              : p,
+          ),
         );
       }
 
       // Step 2: Store data and redirect to Valuation page
       const address = `${property.address}, ${property.city}, ${property.state} ${property.zip}`;
-      localStorage.setItem("nextier_valuation_property", JSON.stringify({
-        address,
-        propertyId: property.id,
-        ownerName: detail?.ownerName || property.ownerName,
-        phones: detail?.phones || property.phones,
-        emails: detail?.emails || property.emails,
-        estimatedValue: detail?.estimatedValue || property.estimatedValue,
-        equity: detail?.equity || property.equity,
-        beds: detail?.beds || property.beds,
-        baths: detail?.baths || property.baths,
-        sqft: detail?.sqft || property.sqft,
-        yearBuilt: detail?.yearBuilt || property.yearBuilt,
-        propertyType: detail?.propertyType || property.propertyType,
-        propertyDetail: detail,
-      }));
+      localStorage.setItem(
+        "nextier_valuation_property",
+        JSON.stringify({
+          address,
+          propertyId: property.id,
+          ownerName: detail?.ownerName || property.ownerName,
+          phones: detail?.phones || property.phones,
+          emails: detail?.emails || property.emails,
+          estimatedValue: detail?.estimatedValue || property.estimatedValue,
+          equity: detail?.equity || property.equity,
+          beds: detail?.beds || property.beds,
+          baths: detail?.baths || property.baths,
+          sqft: detail?.sqft || property.sqft,
+          yearBuilt: detail?.yearBuilt || property.yearBuilt,
+          propertyType: detail?.propertyType || property.propertyType,
+          propertyDetail: detail,
+        }),
+      );
 
       toast.success("Full Report complete! Redirecting to Valuation...");
 
@@ -1375,7 +1762,6 @@ export default function PropertiesPage() {
       setTimeout(() => {
         window.location.href = `/t/default/valuation?address=${encodeURIComponent(address)}`;
       }, 500);
-
     } catch (error) {
       console.error("Full Report failed:", error);
       toast.error("Failed to run Full Report");
@@ -1392,7 +1778,9 @@ export default function PropertiesPage() {
       return;
     }
 
-    const scheduledFor = new Date(`${scheduleDate}T${scheduleTime}`).toISOString();
+    const scheduledFor = new Date(
+      `${scheduleDate}T${scheduleTime}`,
+    ).toISOString();
 
     try {
       const response = await fetch("/api/schedule", {
@@ -1421,7 +1809,9 @@ export default function PropertiesPage() {
         return;
       }
 
-      toast.success(`${scheduleType.toUpperCase()} scheduled for ${sfd(scheduledFor)}`);
+      toast.success(
+        `${scheduleType.toUpperCase()} scheduled for ${sfd(scheduledFor)}`,
+      );
       setShowScheduleDialog(false);
       setSchedulingProperty(null);
       setScheduleDate("");
@@ -1431,23 +1821,59 @@ export default function PropertiesPage() {
       console.error("Failed to schedule:", error);
       toast.error("Failed to schedule");
     }
-  }, [schedulingProperty, scheduleType, scheduleDate, scheduleTime, scheduleMessage]);
+  }, [
+    schedulingProperty,
+    scheduleType,
+    scheduleDate,
+    scheduleTime,
+    scheduleMessage,
+  ]);
 
   // Open schedule dialog for a property
-  const openScheduleDialog = useCallback((property: Property, type: "sms" | "call" | "email") => {
-    setSchedulingProperty(property);
-    setScheduleType(type);
-    setShowScheduleDialog(true);
-  }, []);
+  const openScheduleDialog = useCallback(
+    (property: Property, type: "sms" | "call" | "email") => {
+      setSchedulingProperty(property);
+      setScheduleType(type);
+      setShowScheduleDialog(true);
+    },
+    [],
+  );
 
   const handleExportCSV = () => {
-    const headers = ["Address", "City", "State", "ZIP", "Type", "Beds", "Baths", "SqFt", "Value", "Equity", "Owner", "Phones", "Emails"];
+    const headers = [
+      "Address",
+      "City",
+      "State",
+      "ZIP",
+      "Type",
+      "Beds",
+      "Baths",
+      "SqFt",
+      "Value",
+      "Equity",
+      "Owner",
+      "Phones",
+      "Emails",
+    ];
     const rows = results.map((p) => [
-      p.address, p.city, p.state, p.zip, p.propertyType,
-      p.beds || "", p.baths || "", p.sqft || "", p.estimatedValue || "", p.equity || "", p.ownerName || "",
-      p.phones?.join("; ") || "", p.emails?.join("; ") || ""
+      p.address,
+      p.city,
+      p.state,
+      p.zip,
+      p.propertyType,
+      p.beds || "",
+      p.baths || "",
+      p.sqft || "",
+      p.estimatedValue || "",
+      p.equity || "",
+      p.ownerName || "",
+      p.phones?.join("; ") || "",
+      p.emails?.join("; ") || "",
     ]);
-    const csv = [headers.join(","), ...rows.map((r) => r.map((c) => `"${c}"`).join(","))].join("\n");
+    const csv = [
+      headers.join(","),
+      ...rows.map((r) => r.map((c) => `"${c}"`).join(",")),
+    ].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -1458,7 +1884,11 @@ export default function PropertiesPage() {
 
   const formatCurrency = (value?: number) => {
     if (!value) return "-";
-    return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value);
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 0,
+    }).format(value);
   };
 
   // Count active filters
@@ -1512,7 +1942,11 @@ export default function PropertiesPage() {
             {/* Saved Searches */}
             <Sheet open={showSavedSearches} onOpenChange={setShowSavedSearches}>
               <SheetTrigger asChild>
-                <Button variant="outline" size="sm" className="bg-white/10 border-white/20 text-white hover:bg-white/20">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                >
                   <FolderOpen className="h-4 w-4 mr-2" />
                   Saved ({savedSearches.length})
                 </Button>
@@ -1520,7 +1954,9 @@ export default function PropertiesPage() {
               <SheetContent className="w-[400px]">
                 <SheetHeader>
                   <SheetTitle>Saved Searches</SheetTitle>
-                  <SheetDescription>Load or manage your saved property searches</SheetDescription>
+                  <SheetDescription>
+                    Load or manage your saved property searches
+                  </SheetDescription>
                 </SheetHeader>
                 <div className="mt-4 space-y-2">
                   {savedSearches.length === 0 ? (
@@ -1537,7 +1973,8 @@ export default function PropertiesPage() {
                         <div>
                           <div className="font-medium">{search.name}</div>
                           <div className="text-xs text-muted-foreground">
-                            {search.filters.leadTypes.length} filters • {sf(search.resultCount) || 0} results
+                            {search.filters.leadTypes.length} filters •{" "}
+                            {sf(search.resultCount) || 0} results
                           </div>
                         </div>
                         <Button
@@ -1633,7 +2070,9 @@ export default function PropertiesPage() {
                 variant={viewMode === "table" ? "secondary" : "ghost"}
                 size="sm"
                 onClick={() => setViewMode("table")}
-                className={viewMode === "table" ? "" : "text-white hover:bg-white/20"}
+                className={
+                  viewMode === "table" ? "" : "text-white hover:bg-white/20"
+                }
               >
                 <List className="h-4 w-4" />
               </Button>
@@ -1641,7 +2080,9 @@ export default function PropertiesPage() {
                 variant={viewMode === "map" ? "secondary" : "ghost"}
                 size="sm"
                 onClick={() => setViewMode("map")}
-                className={viewMode === "map" ? "" : "text-white hover:bg-white/20"}
+                className={
+                  viewMode === "map" ? "" : "text-white hover:bg-white/20"
+                }
               >
                 <Map className="h-4 w-4" />
               </Button>
@@ -1674,19 +2115,30 @@ export default function PropertiesPage() {
                       <MapPin className="h-4 w-4" />
                       Location
                     </Label>
-                    {(filters.state || filters.county || filters.city || filters.zip) && (
-                      <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => {
-                        updateFilter("state", "");
-                        updateFilter("county", "");
-                        updateFilter("city", "");
-                        updateFilter("zip", "");
-                      }}>
+                    {(filters.state ||
+                      filters.county ||
+                      filters.city ||
+                      filters.zip) && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-xs"
+                        onClick={() => {
+                          updateFilter("state", "");
+                          updateFilter("county", "");
+                          updateFilter("city", "");
+                          updateFilter("zip", "");
+                        }}
+                      >
                         Clear
                       </Button>
                     )}
                   </div>
 
-                  <Select value={filters.state} onValueChange={(v) => updateFilter("state", v)}>
+                  <Select
+                    value={filters.state}
+                    onValueChange={(v) => updateFilter("state", v)}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select state" />
                     </SelectTrigger>
@@ -1707,7 +2159,11 @@ export default function PropertiesPage() {
                       disabled={loadingCounties}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder={loadingCounties ? "Loading..." : "Select county"} />
+                        <SelectValue
+                          placeholder={
+                            loadingCounties ? "Loading..." : "Select county"
+                          }
+                        />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="__all__">Any County</SelectItem>
@@ -1742,7 +2198,10 @@ export default function PropertiesPage() {
                     <Home className="h-4 w-4" />
                     Property Type
                   </Label>
-                  <Select value={filters.propertyType} onValueChange={(v) => updateFilter("propertyType", v)}>
+                  <Select
+                    value={filters.propertyType}
+                    onValueChange={(v) => updateFilter("propertyType", v)}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Any type" />
                     </SelectTrigger>
@@ -1767,7 +2226,12 @@ export default function PropertiesPage() {
                       Lead Types
                     </Label>
                     {filters.leadTypes.length > 0 && (
-                      <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => updateFilter("leadTypes", [])}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-xs"
+                        onClick={() => updateFilter("leadTypes", [])}
+                      >
                         Clear ({filters.leadTypes.length})
                       </Button>
                     )}
@@ -1788,8 +2252,12 @@ export default function PropertiesPage() {
                         >
                           <Icon className={`h-4 w-4 ${type.color}`} />
                           <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium">{type.label}</div>
-                            <div className="text-xs text-muted-foreground truncate">{type.description}</div>
+                            <div className="text-sm font-medium">
+                              {type.label}
+                            </div>
+                            <div className="text-xs text-muted-foreground truncate">
+                              {type.description}
+                            </div>
                           </div>
                           {isActive && (
                             <Badge variant="default" className="ml-auto">
@@ -1858,57 +2326,81 @@ export default function PropertiesPage() {
                   </Label>
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Beds</Label>
+                      <Label className="text-xs text-muted-foreground">
+                        Beds
+                      </Label>
                       <Input
                         placeholder="Min"
                         type="number"
                         value={filters.bedsMin}
-                        onChange={(e) => updateFilter("bedsMin", e.target.value)}
+                        onChange={(e) =>
+                          updateFilter("bedsMin", e.target.value)
+                        }
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Baths</Label>
+                      <Label className="text-xs text-muted-foreground">
+                        Baths
+                      </Label>
                       <Input
                         placeholder="Min"
                         type="number"
                         value={filters.bathsMin}
-                        onChange={(e) => updateFilter("bathsMin", e.target.value)}
+                        onChange={(e) =>
+                          updateFilter("bathsMin", e.target.value)
+                        }
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Sqft Min</Label>
+                      <Label className="text-xs text-muted-foreground">
+                        Sqft Min
+                      </Label>
                       <Input
                         placeholder="Min"
                         type="number"
                         value={filters.sqftMin}
-                        onChange={(e) => updateFilter("sqftMin", e.target.value)}
+                        onChange={(e) =>
+                          updateFilter("sqftMin", e.target.value)
+                        }
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Sqft Max</Label>
+                      <Label className="text-xs text-muted-foreground">
+                        Sqft Max
+                      </Label>
                       <Input
                         placeholder="Max"
                         type="number"
                         value={filters.sqftMax}
-                        onChange={(e) => updateFilter("sqftMax", e.target.value)}
+                        onChange={(e) =>
+                          updateFilter("sqftMax", e.target.value)
+                        }
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Year Min</Label>
+                      <Label className="text-xs text-muted-foreground">
+                        Year Min
+                      </Label>
                       <Input
                         placeholder="1900"
                         type="number"
                         value={filters.yearBuiltMin}
-                        onChange={(e) => updateFilter("yearBuiltMin", e.target.value)}
+                        onChange={(e) =>
+                          updateFilter("yearBuiltMin", e.target.value)
+                        }
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Year Max</Label>
+                      <Label className="text-xs text-muted-foreground">
+                        Year Max
+                      </Label>
                       <Input
                         placeholder="2024"
                         type="number"
                         value={filters.yearBuiltMax}
-                        onChange={(e) => updateFilter("yearBuiltMax", e.target.value)}
+                        onChange={(e) =>
+                          updateFilter("yearBuiltMax", e.target.value)
+                        }
                       />
                     </div>
                   </div>
@@ -1918,7 +2410,15 @@ export default function PropertiesPage() {
 
                 {/* Search Button */}
                 <div className="space-y-2">
-                  <Button className="w-full" size="lg" onClick={() => { setCurrentPage(0); handleSearch(0); }} disabled={loading}>
+                  <Button
+                    className="w-full"
+                    size="lg"
+                    onClick={() => {
+                      setCurrentPage(0);
+                      handleSearch(0);
+                    }}
+                    disabled={loading}
+                  >
                     {loading ? (
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     ) : (
@@ -1926,7 +2426,11 @@ export default function PropertiesPage() {
                     )}
                     Search Properties
                   </Button>
-                  <Button variant="outline" className="w-full" onClick={clearFilters}>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={clearFilters}
+                  >
                     <X className="h-4 w-4 mr-2" />
                     Clear All Filters
                   </Button>
@@ -1966,225 +2470,278 @@ export default function PropertiesPage() {
                   toggleSelect(property.id);
                 }}
               />
-              {results.length > 0 && results.filter((p) => p.lat && p.lng).length === 0 && (
-                <div className="absolute inset-0 flex items-center justify-center bg-background/80">
-                  <div className="text-center p-6">
-                    <MapPin className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                    <p className="text-lg font-medium">No coordinates available</p>
-                    <p className="text-sm text-muted-foreground">
-                      Properties in this search don't have GPS coordinates.
-                    </p>
+              {results.length > 0 &&
+                results.filter((p) => p.lat && p.lng).length === 0 && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-background/80">
+                    <div className="text-center p-6">
+                      <MapPin className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                      <p className="text-lg font-medium">
+                        No coordinates available
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Properties in this search don't have GPS coordinates.
+                      </p>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
             </div>
           )}
 
           {/* Results Table */}
           {viewMode === "table" && (
-          <div className="flex-1 overflow-auto">
-            <Table>
-              <TableHeader className="sticky top-0 bg-background z-10">
-                <TableRow>
-                  <TableHead className="w-10">
-                    <Checkbox
-                      checked={results.length > 0 && selectedIds.size === results.length}
-                      onCheckedChange={toggleSelectAll}
-                    />
-                  </TableHead>
-                  <TableHead>Address</TableHead>
-                  <TableHead>Lead Types</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead className="text-right">Value</TableHead>
-                  <TableHead className="text-right">Equity</TableHead>
-                  <TableHead>Owner</TableHead>
-                  <TableHead>Phone</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead className="text-center">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {results.map((property) => (
-                  <TableRow
-                    key={property.id}
-                    className={`${
-                      property.skipTraced
-                        ? "bg-green-50 dark:bg-green-950/20"
-                        : selectedIds.has(property.id)
-                        ? "bg-primary/5"
-                        : ""
-                    }`}
-                  >
-                    <TableCell>
+            <div className="flex-1 overflow-auto">
+              <Table>
+                <TableHeader className="sticky top-0 bg-background z-10">
+                  <TableRow>
+                    <TableHead className="w-10">
                       <Checkbox
-                        checked={selectedIds.has(property.id)}
-                        onCheckedChange={() => toggleSelect(property.id)}
+                        checked={
+                          results.length > 0 &&
+                          selectedIds.size === results.length
+                        }
+                        onCheckedChange={toggleSelectAll}
                       />
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      <div>{property.address}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {property.city}, {property.state} {property.zip}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1 max-w-[200px]">
-                        {property.leadTypes?.slice(0, 3).map((type) => {
-                          const leadType = LEAD_TYPES.find((t) => t.id === type);
-                          if (!leadType) return null;
-                          const Icon = leadType.icon;
-                          return (
-                            <Badge
-                              key={type}
-                              variant="outline"
-                              className={`text-xs ${leadType.color} border-current`}
-                            >
-                              <Icon className="h-3 w-3 mr-1" />
-                              {leadType.label}
+                    </TableHead>
+                    <TableHead>Address</TableHead>
+                    <TableHead>Lead Types</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead className="text-right">Value</TableHead>
+                    <TableHead className="text-right">Equity</TableHead>
+                    <TableHead>Owner</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead className="text-center">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {results.map((property) => (
+                    <TableRow
+                      key={property.id}
+                      className={`${
+                        property.skipTraced
+                          ? "bg-green-50 dark:bg-green-950/20"
+                          : selectedIds.has(property.id)
+                            ? "bg-primary/5"
+                            : ""
+                      }`}
+                    >
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedIds.has(property.id)}
+                          onCheckedChange={() => toggleSelect(property.id)}
+                        />
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        <div>{property.address}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {property.city}, {property.state} {property.zip}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1 max-w-[200px]">
+                          {property.leadTypes?.slice(0, 3).map((type) => {
+                            const leadType = LEAD_TYPES.find(
+                              (t) => t.id === type,
+                            );
+                            if (!leadType) return null;
+                            const Icon = leadType.icon;
+                            return (
+                              <Badge
+                                key={type}
+                                variant="outline"
+                                className={`text-xs ${leadType.color} border-current`}
+                              >
+                                <Icon className="h-3 w-3 mr-1" />
+                                {leadType.label}
+                              </Badge>
+                            );
+                          })}
+                          {(property.leadTypes?.length || 0) > 3 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{(property.leadTypes?.length || 0) - 3}
                             </Badge>
-                          );
-                        })}
-                        {(property.leadTypes?.length || 0) > 3 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{(property.leadTypes?.length || 0) - 3}
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">
+                          {property.propertyType}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {formatCurrency(property.estimatedValue)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="text-green-600 font-medium">
+                          {formatCurrency(property.equity)}
+                        </div>
+                        {property.equityPercent && (
+                          <div className="text-xs text-muted-foreground">
+                            {property.equityPercent}%
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <Users className="h-3 w-3 text-muted-foreground" />
+                          <span>{property.ownerName || "-"}</span>
+                        </div>
+                        {property.absenteeOwner && (
+                          <Badge
+                            variant="outline"
+                            className="text-xs text-blue-500 mt-1"
+                          >
+                            Absentee
                           </Badge>
                         )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">{property.propertyType}</Badge>
-                    </TableCell>
-                    <TableCell className="text-right">{formatCurrency(property.estimatedValue)}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="text-green-600 font-medium">{formatCurrency(property.equity)}</div>
-                      {property.equityPercent && (
-                        <div className="text-xs text-muted-foreground">{property.equityPercent}%</div>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <Users className="h-3 w-3 text-muted-foreground" />
-                        <span>{property.ownerName || "-"}</span>
-                      </div>
-                      {property.absenteeOwner && (
-                        <Badge variant="outline" className="text-xs text-blue-500 mt-1">Absentee</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {property.phones && property.phones.length > 0 ? (
+                      </TableCell>
+                      <TableCell>
+                        {property.phones && property.phones.length > 0 ? (
+                          <div className="flex items-center gap-1">
+                            <Phone className="h-3 w-3 text-green-600" />
+                            <span className="text-sm">
+                              {property.phones[0]}
+                            </span>
+                            {property.phones.length > 1 && (
+                              <Badge variant="secondary" className="text-xs">
+                                +{property.phones.length - 1}
+                              </Badge>
+                            )}
+                          </div>
+                        ) : property.skipTraced ? (
+                          <span className="text-muted-foreground text-sm">
+                            None
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">
+                            -
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {property.emails && property.emails.length > 0 ? (
+                          <div className="flex items-center gap-1">
+                            <Mail className="h-3 w-3 text-blue-600" />
+                            <span className="text-sm truncate max-w-[120px]">
+                              {property.emails[0]}
+                            </span>
+                            {property.emails.length > 1 && (
+                              <Badge variant="secondary" className="text-xs">
+                                +{property.emails.length - 1}
+                              </Badge>
+                            )}
+                          </div>
+                        ) : property.skipTraced ? (
+                          <span className="text-muted-foreground text-sm">
+                            None
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">
+                            -
+                          </span>
+                        )}
+                      </TableCell>
+                      {/* ACTION KIOSK - Full Report + Detail + Schedule SMS/Call/Email */}
+                      <TableCell>
                         <div className="flex items-center gap-1">
-                          <Phone className="h-3 w-3 text-green-600" />
-                          <span className="text-sm">{property.phones[0]}</span>
-                          {property.phones.length > 1 && (
-                            <Badge variant="secondary" className="text-xs">+{property.phones.length - 1}</Badge>
-                          )}
+                          {/* 🚀 FULL REPORT - One button does Detail + Skip Trace + Valuation */}
+                          <Button
+                            size="sm"
+                            className="h-7 px-2 text-xs bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white"
+                            onClick={() => handleFullReport(property)}
+                            disabled={fullReportLoading === property.id}
+                          >
+                            {fullReportLoading === property.id ? (
+                              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                            ) : (
+                              <Zap className="h-3 w-3 mr-1" />
+                            )}
+                            Full Report
+                          </Button>
+                          {/* View Full Detail Page */}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 px-2 text-xs"
+                            onClick={() =>
+                              (window.location.href = `/t/default/properties/${property.id}`)
+                            }
+                          >
+                            <Eye className="h-3 w-3 mr-1" />
+                            Detail
+                          </Button>
+                          {/* Schedule SMS */}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0"
+                            onClick={() => openScheduleDialog(property, "sms")}
+                            disabled={
+                              !property.phones || property.phones.length === 0
+                            }
+                            title="Schedule SMS"
+                          >
+                            <MessageSquare className="h-3 w-3 text-green-600" />
+                          </Button>
+                          {/* Schedule Call */}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0"
+                            onClick={() => openScheduleDialog(property, "call")}
+                            disabled={
+                              !property.phones || property.phones.length === 0
+                            }
+                            title="Schedule Call"
+                          >
+                            <PhoneCall className="h-3 w-3 text-blue-600" />
+                          </Button>
+                          {/* Schedule Email */}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0"
+                            onClick={() =>
+                              openScheduleDialog(property, "email")
+                            }
+                            disabled={
+                              !property.emails || property.emails.length === 0
+                            }
+                            title="Schedule Email"
+                          >
+                            <MailPlus className="h-3 w-3 text-purple-600" />
+                          </Button>
                         </div>
-                      ) : property.skipTraced ? (
-                        <span className="text-muted-foreground text-sm">None</span>
-                      ) : (
-                        <span className="text-muted-foreground text-sm">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {property.emails && property.emails.length > 0 ? (
-                        <div className="flex items-center gap-1">
-                          <Mail className="h-3 w-3 text-blue-600" />
-                          <span className="text-sm truncate max-w-[120px]">{property.emails[0]}</span>
-                          {property.emails.length > 1 && (
-                            <Badge variant="secondary" className="text-xs">+{property.emails.length - 1}</Badge>
-                          )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {results.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={10} className="text-center py-16">
+                        <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                          <Search className="h-12 w-12 opacity-20" />
+                          <div className="text-lg font-medium">
+                            No properties found
+                          </div>
+                          <div className="text-sm">
+                            Select filters and click Search to find properties
+                          </div>
                         </div>
-                      ) : property.skipTraced ? (
-                        <span className="text-muted-foreground text-sm">None</span>
-                      ) : (
-                        <span className="text-muted-foreground text-sm">-</span>
-                      )}
-                    </TableCell>
-                    {/* ACTION KIOSK - Full Report + Detail + Schedule SMS/Call/Email */}
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        {/* 🚀 FULL REPORT - One button does Detail + Skip Trace + Valuation */}
-                        <Button
-                          size="sm"
-                          className="h-7 px-2 text-xs bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white"
-                          onClick={() => handleFullReport(property)}
-                          disabled={fullReportLoading === property.id}
-                        >
-                          {fullReportLoading === property.id ? (
-                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                          ) : (
-                            <Zap className="h-3 w-3 mr-1" />
-                          )}
-                          Full Report
-                        </Button>
-                        {/* View Full Detail Page */}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-7 px-2 text-xs"
-                          onClick={() => window.location.href = `/t/default/properties/${property.id}`}
-                        >
-                          <Eye className="h-3 w-3 mr-1" />
-                          Detail
-                        </Button>
-                        {/* Schedule SMS */}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-7 p-0"
-                          onClick={() => openScheduleDialog(property, "sms")}
-                          disabled={!property.phones || property.phones.length === 0}
-                          title="Schedule SMS"
-                        >
-                          <MessageSquare className="h-3 w-3 text-green-600" />
-                        </Button>
-                        {/* Schedule Call */}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-7 p-0"
-                          onClick={() => openScheduleDialog(property, "call")}
-                          disabled={!property.phones || property.phones.length === 0}
-                          title="Schedule Call"
-                        >
-                          <PhoneCall className="h-3 w-3 text-blue-600" />
-                        </Button>
-                        {/* Schedule Email */}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-7 p-0"
-                          onClick={() => openScheduleDialog(property, "email")}
-                          disabled={!property.emails || property.emails.length === 0}
-                          title="Schedule Email"
-                        >
-                          <MailPlus className="h-3 w-3 text-purple-600" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {results.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={10} className="text-center py-16">
-                      <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                        <Search className="h-12 w-12 opacity-20" />
-                        <div className="text-lg font-medium">No properties found</div>
-                        <div className="text-sm">Select filters and click Search to find properties</div>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           )}
 
           {/* Pagination Controls */}
           {totalCount > pageSize && (
             <div className="border-t bg-muted/30 px-4 py-2 flex items-center justify-between">
               <div className="text-sm text-muted-foreground">
-                Showing {currentPage * pageSize + 1} - {Math.min((currentPage + 1) * pageSize, totalCount)} of {sf(totalCount)} properties
+                Showing {currentPage * pageSize + 1} -{" "}
+                {Math.min((currentPage + 1) * pageSize, totalCount)} of{" "}
+                {sf(totalCount)} properties
               </div>
               <div className="flex items-center gap-2">
                 <Button
@@ -2201,8 +2758,12 @@ export default function PropertiesPage() {
                   Previous
                 </Button>
                 <div className="flex items-center gap-1 px-2">
-                  <span className="text-sm font-medium">Page {currentPage + 1}</span>
-                  <span className="text-sm text-muted-foreground">of {Math.ceil(totalCount / pageSize)}</span>
+                  <span className="text-sm font-medium">
+                    Page {currentPage + 1}
+                  </span>
+                  <span className="text-sm text-muted-foreground">
+                    of {Math.ceil(totalCount / pageSize)}
+                  </span>
                 </div>
                 <Button
                   variant="outline"
@@ -2212,7 +2773,9 @@ export default function PropertiesPage() {
                     setCurrentPage(newPage);
                     handleSearch(newPage);
                   }}
-                  disabled={(currentPage + 1) * pageSize >= totalCount || loading}
+                  disabled={
+                    (currentPage + 1) * pageSize >= totalCount || loading
+                  }
                 >
                   Next
                   <ChevronRight className="h-4 w-4 ml-1" />
@@ -2228,10 +2791,15 @@ export default function PropertiesPage() {
                 <div className="flex items-center gap-4">
                   <div className="text-sm">
                     <span className="font-medium">{selectedIds.size}</span> of{" "}
-                    <span className="font-medium">{results.length}</span> selected
+                    <span className="font-medium">{results.length}</span>{" "}
+                    selected
                   </div>
                   {selectedIds.size > 0 && (
-                    <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedIds(new Set())}
+                    >
                       Clear Selection
                     </Button>
                   )}
@@ -2249,12 +2817,15 @@ export default function PropertiesPage() {
                     {bulkReportRunning ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Bulk Skip Trace... {bulkReportProgress && `(${bulkReportProgress.processed}/${bulkReportProgress.total})`}
+                        Bulk Skip Trace...{" "}
+                        {bulkReportProgress &&
+                          `(${bulkReportProgress.processed}/${bulkReportProgress.total})`}
                       </>
                     ) : (
                       <>
                         <Zap className="h-4 w-4 mr-2" />
-                        Bulk Skip Trace ({Math.min(selectedIds.size, BULK_DAILY_LIMIT)})
+                        Bulk Skip Trace (
+                        {Math.min(selectedIds.size, BULK_DAILY_LIMIT)})
                       </>
                     )}
                   </Button>
@@ -2262,7 +2833,8 @@ export default function PropertiesPage() {
                   {/* Progress indicator */}
                   {bulkReportProgress && (
                     <Badge className="bg-purple-600/20 text-purple-300 border-purple-400/30">
-                      {bulkReportProgress.withPhones} 📱 | {bulkReportProgress.withEmails} ✉️
+                      {bulkReportProgress.withPhones} 📱 |{" "}
+                      {bulkReportProgress.withEmails} ✉️
                     </Badge>
                   )}
 
@@ -2277,12 +2849,14 @@ export default function PropertiesPage() {
                     {skipTracing ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Skip Tracing... {skipTraceProgress > 0 && `(${skipTraceProgress}%)`}
+                        Skip Tracing...{" "}
+                        {skipTraceProgress > 0 && `(${skipTraceProgress}%)`}
                       </>
                     ) : (
                       <>
                         <UserSearch className="h-4 w-4 mr-2" />
-                        Skip Trace ({Math.min(selectedIds.size, 250)} / batch 250)
+                        Skip Trace ({Math.min(selectedIds.size, 250)} / batch
+                        250)
                       </>
                     )}
                   </Button>
@@ -2293,10 +2867,15 @@ export default function PropertiesPage() {
                     size="sm"
                     onClick={() => {
                       const withPhones = results.filter(
-                        (p) => selectedIds.has(p.id) && p.phones && p.phones.length > 0
+                        (p) =>
+                          selectedIds.has(p.id) &&
+                          p.phones &&
+                          p.phones.length > 0,
                       );
                       if (withPhones.length === 0) {
-                        toast.error("No selected properties have phone numbers. Skip trace first!");
+                        toast.error(
+                          "No selected properties have phone numbers. Skip trace first!",
+                        );
                         return;
                       }
                       setShowSmsDialog(true);
@@ -2315,10 +2894,15 @@ export default function PropertiesPage() {
                     onClick={() => {
                       // Get properties with phones
                       const withPhones = results.filter(
-                        (p) => selectedIds.has(p.id) && p.phones && p.phones.length > 0
+                        (p) =>
+                          selectedIds.has(p.id) &&
+                          p.phones &&
+                          p.phones.length > 0,
                       );
                       if (withPhones.length === 0) {
-                        toast.error("No selected properties have phone numbers. Skip trace first!");
+                        toast.error(
+                          "No selected properties have phone numbers. Skip trace first!",
+                        );
                         return;
                       }
                       // Store in localStorage for campaign creation
@@ -2335,11 +2919,14 @@ export default function PropertiesPage() {
                           })),
                           source: "property-search",
                           createdAt: new Date().toISOString(),
-                        })
+                        }),
                       );
-                      toast.success(`${withPhones.length} leads ready for campaign!`);
+                      toast.success(
+                        `${withPhones.length} leads ready for campaign!`,
+                      );
                       // Navigate to campaign creation
-                      window.location.href = "/t/default/campaigns/new?from=properties";
+                      window.location.href =
+                        "/t/default/campaigns/new?from=properties";
                     }}
                     disabled={selectedIds.size === 0}
                     className="bg-purple-600 hover:bg-purple-700"
@@ -2354,10 +2941,15 @@ export default function PropertiesPage() {
                     size="sm"
                     onClick={() => {
                       const withPhones = results.filter(
-                        (p) => selectedIds.has(p.id) && p.phones && p.phones.length > 0
+                        (p) =>
+                          selectedIds.has(p.id) &&
+                          p.phones &&
+                          p.phones.length > 0,
                       );
                       if (withPhones.length === 0) {
-                        toast.error("No selected properties have phone numbers. Skip trace first!");
+                        toast.error(
+                          "No selected properties have phone numbers. Skip trace first!",
+                        );
                         return;
                       }
                       localStorage.setItem(
@@ -2369,10 +2961,12 @@ export default function PropertiesPage() {
                             email: p.emails?.[0],
                             address: `${p.address}, ${p.city}, ${p.state} ${p.zip}`,
                             notes: `Property: ${p.propertyType} | Value: ${formatCurrency(p.estimatedValue)} | Equity: ${formatCurrency(p.equity)}`,
-                          }))
-                        )
+                          })),
+                        ),
                       );
-                      toast.success(`${withPhones.length} leads ready for import!`);
+                      toast.success(
+                        `${withPhones.length} leads ready for import!`,
+                      );
                       window.location.href = "/t/default/leads?from=properties";
                     }}
                     disabled={selectedIds.size === 0}
@@ -2382,7 +2976,12 @@ export default function PropertiesPage() {
                   </Button>
 
                   {/* Export */}
-                  <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={results.length === 0}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleExportCSV}
+                    disabled={results.length === 0}
+                  >
                     <Download className="h-4 w-4 mr-2" />
                     Export CSV
                   </Button>
@@ -2402,12 +3001,20 @@ export default function PropertiesPage() {
               AI Campaign SMS
             </DialogTitle>
             <DialogDescription>
-              Configure tone, intent, and generate AI-powered messages for {results.filter(p => selectedIds.has(p.id) && p.phones?.length).length} recipients
+              Configure tone, intent, and generate AI-powered messages for{" "}
+              {
+                results.filter((p) => selectedIds.has(p.id) && p.phones?.length)
+                  .length
+              }{" "}
+              recipients
             </DialogDescription>
           </DialogHeader>
 
           <CampaignSmsConfigurator
-            recipientCount={results.filter(p => selectedIds.has(p.id) && p.phones?.length).length}
+            recipientCount={
+              results.filter((p) => selectedIds.has(p.id) && p.phones?.length)
+                .length
+            }
             campaignType="real_estate"
             leadType={filters.leadTypes[0]}
             onSendSms={async (message) => {
@@ -2429,7 +3036,8 @@ export default function PropertiesPage() {
               Property Detail
             </SheetTitle>
             <SheetDescription>
-              {selectedProperty?.address}, {selectedProperty?.city}, {selectedProperty?.state}
+              {selectedProperty?.address}, {selectedProperty?.city},{" "}
+              {selectedProperty?.state}
             </SheetDescription>
           </SheetHeader>
 
@@ -2445,15 +3053,23 @@ export default function PropertiesPage() {
                 <Card>
                   <CardContent className="pt-4">
                     <div className="text-2xl font-bold text-green-600">
-                      {formatCurrency(Number(propertyDetail.estimatedValue) || selectedProperty?.estimatedValue)}
+                      {formatCurrency(
+                        Number(propertyDetail.estimatedValue) ||
+                          selectedProperty?.estimatedValue,
+                      )}
                     </div>
-                    <div className="text-xs text-muted-foreground">Estimated Value</div>
+                    <div className="text-xs text-muted-foreground">
+                      Estimated Value
+                    </div>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="pt-4">
                     <div className="text-2xl font-bold text-blue-600">
-                      {formatCurrency(Number(propertyDetail.equity) || selectedProperty?.equity)}
+                      {formatCurrency(
+                        Number(propertyDetail.equity) ||
+                          selectedProperty?.equity,
+                      )}
                     </div>
                     <div className="text-xs text-muted-foreground">Equity</div>
                   </CardContent>
@@ -2471,7 +3087,11 @@ export default function PropertiesPage() {
                 <CardContent className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Name:</span>
-                    <span className="font-medium">{String(propertyDetail.ownerName) || selectedProperty?.ownerName || "Unknown"}</span>
+                    <span className="font-medium">
+                      {String(propertyDetail.ownerName) ||
+                        selectedProperty?.ownerName ||
+                        "Unknown"}
+                    </span>
                   </div>
                   {(propertyDetail.phones as string[])?.length > 0 && (
                     <div className="flex justify-between">
@@ -2502,7 +3122,9 @@ export default function PropertiesPage() {
                   {propertyDetail.mailingAddress ? (
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Mailing:</span>
-                      <span className="text-right text-sm">{String(propertyDetail.mailingAddress)}</span>
+                      <span className="text-right text-sm">
+                        {String(propertyDetail.mailingAddress)}
+                      </span>
                     </div>
                   ) : null}
                 </CardContent>
@@ -2519,15 +3141,27 @@ export default function PropertiesPage() {
                 <CardContent>
                   <div className="grid grid-cols-3 gap-4 text-center">
                     <div>
-                      <div className="text-xl font-bold">{Number(propertyDetail.beds) || selectedProperty?.beds || "-"}</div>
+                      <div className="text-xl font-bold">
+                        {Number(propertyDetail.beds) ||
+                          selectedProperty?.beds ||
+                          "-"}
+                      </div>
                       <div className="text-xs text-muted-foreground">Beds</div>
                     </div>
                     <div>
-                      <div className="text-xl font-bold">{Number(propertyDetail.baths) || selectedProperty?.baths || "-"}</div>
+                      <div className="text-xl font-bold">
+                        {Number(propertyDetail.baths) ||
+                          selectedProperty?.baths ||
+                          "-"}
+                      </div>
                       <div className="text-xs text-muted-foreground">Baths</div>
                     </div>
                     <div>
-                      <div className="text-xl font-bold">{sf(Number(propertyDetail.sqft) || selectedProperty?.sqft) || "-"}</div>
+                      <div className="text-xl font-bold">
+                        {sf(
+                          Number(propertyDetail.sqft) || selectedProperty?.sqft,
+                        ) || "-"}
+                      </div>
                       <div className="text-xs text-muted-foreground">Sq Ft</div>
                     </div>
                   </div>
@@ -2535,15 +3169,24 @@ export default function PropertiesPage() {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Type:</span>
-                      <span>{String(propertyDetail.propertyType) || selectedProperty?.propertyType}</span>
+                      <span>
+                        {String(propertyDetail.propertyType) ||
+                          selectedProperty?.propertyType}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Year Built:</span>
-                      <span>{Number(propertyDetail.yearBuilt) || selectedProperty?.yearBuilt || "-"}</span>
+                      <span>
+                        {Number(propertyDetail.yearBuilt) ||
+                          selectedProperty?.yearBuilt ||
+                          "-"}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Lot Size:</span>
-                      <span>{sf(Number(propertyDetail.lotSize)) || "-"} sq ft</span>
+                      <span>
+                        {sf(Number(propertyDetail.lotSize)) || "-"} sq ft
+                      </span>
                     </div>
                   </div>
                 </CardContent>
@@ -2553,21 +3196,29 @@ export default function PropertiesPage() {
               <div className="flex gap-2">
                 <Button
                   className="flex-1 bg-purple-600 hover:bg-purple-700"
-                  onClick={() => selectedProperty && handlePushToValuation(selectedProperty)}
+                  onClick={() =>
+                    selectedProperty && handlePushToValuation(selectedProperty)
+                  }
                 >
                   <FileText className="h-4 w-4 mr-2" />
                   Push to Valuation Report
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => selectedProperty && openScheduleDialog(selectedProperty, "sms")}
+                  onClick={() =>
+                    selectedProperty &&
+                    openScheduleDialog(selectedProperty, "sms")
+                  }
                   disabled={!(propertyDetail.phones as string[])?.length}
                 >
                   <MessageSquare className="h-4 w-4" />
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => selectedProperty && openScheduleDialog(selectedProperty, "call")}
+                  onClick={() =>
+                    selectedProperty &&
+                    openScheduleDialog(selectedProperty, "call")
+                  }
                   disabled={!(propertyDetail.phones as string[])?.length}
                 >
                   <PhoneCall className="h-4 w-4" />
@@ -2591,7 +3242,8 @@ export default function PropertiesPage() {
               Schedule {scheduleType.toUpperCase()}
             </DialogTitle>
             <DialogDescription>
-              {schedulingProperty?.ownerName || "Property Owner"} - {schedulingProperty?.address}
+              {schedulingProperty?.ownerName || "Property Owner"} -{" "}
+              {schedulingProperty?.address}
             </DialogDescription>
           </DialogHeader>
 
@@ -2639,7 +3291,11 @@ export default function PropertiesPage() {
               <div className="space-y-2">
                 <Label>Message</Label>
                 <Textarea
-                  placeholder={scheduleType === "sms" ? "Enter SMS message..." : "Enter email content..."}
+                  placeholder={
+                    scheduleType === "sms"
+                      ? "Enter SMS message..."
+                      : "Enter email content..."
+                  }
                   value={scheduleMessage}
                   onChange={(e) => setScheduleMessage(e.target.value)}
                   rows={4}
@@ -2649,10 +3305,16 @@ export default function PropertiesPage() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowScheduleDialog(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowScheduleDialog(false)}
+            >
               Cancel
             </Button>
-            <Button onClick={handleSchedule} className="bg-blue-600 hover:bg-blue-700">
+            <Button
+              onClick={handleSchedule}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
               <Clock className="h-4 w-4 mr-2" />
               Schedule {scheduleType.toUpperCase()}
             </Button>
@@ -2669,8 +3331,8 @@ export default function PropertiesPage() {
               Save IDs to Bucket
             </DialogTitle>
             <DialogDescription>
-              Save {sf(results.length)} property IDs to a bucket for economical batch enrichment.
-              No credits used until you process the bucket.
+              Save {sf(results.length)} property IDs to a bucket for economical
+              batch enrichment. No credits used until you process the bucket.
             </DialogDescription>
           </DialogHeader>
 
@@ -2687,12 +3349,16 @@ export default function PropertiesPage() {
 
             {distressSignals && (
               <div className="bg-muted/50 rounded-lg p-3 space-y-2">
-                <Label className="text-sm font-medium">Distress Signals Detected</Label>
+                <Label className="text-sm font-medium">
+                  Distress Signals Detected
+                </Label>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   {distressSignals.preForeclosure > 0 && (
                     <div className="flex items-center gap-2">
                       <AlertTriangle className="h-3 w-3 text-red-500" />
-                      <span>{distressSignals.preForeclosure} Pre-Foreclosure</span>
+                      <span>
+                        {distressSignals.preForeclosure} Pre-Foreclosure
+                      </span>
                     </div>
                   )}
                   {distressSignals.taxLien > 0 && (
@@ -2724,7 +3390,9 @@ export default function PropertiesPage() {
             )}
 
             <div className="bg-cyan-50 dark:bg-cyan-950/20 border border-cyan-200 dark:border-cyan-800 rounded-lg p-3 text-sm">
-              <p className="font-medium text-cyan-800 dark:text-cyan-200">Economical Pipeline:</p>
+              <p className="font-medium text-cyan-800 dark:text-cyan-200">
+                Economical Pipeline:
+              </p>
               <ul className="mt-1 space-y-1 text-cyan-700 dark:text-cyan-300">
                 <li>• Save 800K+ IDs (no credits)</li>
                 <li>• Process 2K per campaign block</li>
@@ -2734,7 +3402,10 @@ export default function PropertiesPage() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowBucketDialog(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowBucketDialog(false)}
+            >
               Cancel
             </Button>
             <Button
@@ -2762,7 +3433,8 @@ export default function PropertiesPage() {
               Property ID Buckets
             </SheetTitle>
             <SheetDescription>
-              Your saved property ID buckets. Process to enrich with detail + skip trace.
+              Your saved property ID buckets. Process to enrich with detail +
+              skip trace.
             </SheetDescription>
           </SheetHeader>
 
@@ -2771,7 +3443,9 @@ export default function PropertiesPage() {
               <div className="text-center py-12 text-muted-foreground">
                 <Layers className="h-12 w-12 mx-auto mb-4 opacity-20" />
                 <p>No buckets yet.</p>
-                <p className="text-sm">Search properties and click "Save IDs" to create a bucket.</p>
+                <p className="text-sm">
+                  Search properties and click "Save IDs" to create a bucket.
+                </p>
               </div>
             ) : (
               buckets.map((bucket) => (
@@ -2779,9 +3453,12 @@ export default function PropertiesPage() {
                   <CardHeader className="py-3 px-4 bg-muted/30">
                     <div className="flex items-center justify-between">
                       <div>
-                        <CardTitle className="text-base">{bucket.name}</CardTitle>
+                        <CardTitle className="text-base">
+                          {bucket.name}
+                        </CardTitle>
                         <CardDescription className="text-xs">
-                          {bucket.description || `${sf(bucket.totalLeads)} properties`}
+                          {bucket.description ||
+                            `${sf(bucket.totalLeads)} properties`}
                         </CardDescription>
                       </div>
                       <Badge
@@ -2789,8 +3466,8 @@ export default function PropertiesPage() {
                           bucket.enrichmentStatus === "completed"
                             ? "bg-green-100 text-green-800"
                             : bucket.enrichmentStatus === "processing"
-                            ? "bg-blue-100 text-blue-800"
-                            : "bg-gray-100 text-gray-800"
+                              ? "bg-blue-100 text-blue-800"
+                              : "bg-gray-100 text-gray-800"
                         }
                       >
                         {bucket.enrichmentStatus}
@@ -2802,14 +3479,21 @@ export default function PropertiesPage() {
                       <div className="space-y-1">
                         <div className="flex items-center gap-4">
                           <span className="text-muted-foreground">
-                            Total: <span className="font-medium text-foreground">{sf(bucket.totalLeads)}</span>
+                            Total:{" "}
+                            <span className="font-medium text-foreground">
+                              {sf(bucket.totalLeads)}
+                            </span>
                           </span>
                           <span className="text-muted-foreground">
-                            Enriched: <span className="font-medium text-green-600">{sf(bucket.enrichedLeads)}</span>
+                            Enriched:{" "}
+                            <span className="font-medium text-green-600">
+                              {sf(bucket.enrichedLeads)}
+                            </span>
                           </span>
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          Created: {new Date(bucket.createdAt).toLocaleDateString()}
+                          Created:{" "}
+                          {new Date(bucket.createdAt).toLocaleDateString()}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -2817,7 +3501,10 @@ export default function PropertiesPage() {
                           size="sm"
                           variant="outline"
                           onClick={() => processBucket(bucket.id, 250)}
-                          disabled={processingBucket === bucket.id || bucket.enrichedLeads >= bucket.totalLeads}
+                          disabled={
+                            processingBucket === bucket.id ||
+                            bucket.enrichedLeads >= bucket.totalLeads
+                          }
                           className="text-xs"
                         >
                           {processingBucket === bucket.id ? (
@@ -2829,7 +3516,10 @@ export default function PropertiesPage() {
                         <Button
                           size="sm"
                           onClick={() => processBucket(bucket.id, 2000)}
-                          disabled={processingBucket === bucket.id || bucket.enrichedLeads >= bucket.totalLeads}
+                          disabled={
+                            processingBucket === bucket.id ||
+                            bucket.enrichedLeads >= bucket.totalLeads
+                          }
                           className="bg-cyan-600 hover:bg-cyan-700 text-xs"
                         >
                           {processingBucket === bucket.id ? (
@@ -2845,7 +3535,10 @@ export default function PropertiesPage() {
                           size="sm"
                           variant="outline"
                           onClick={() => apolloEnrichBucket(bucket.id, 50)}
-                          disabled={apolloEnriching === bucket.id || bucket.enrichedLeads === 0}
+                          disabled={
+                            apolloEnriching === bucket.id ||
+                            bucket.enrichedLeads === 0
+                          }
                           className="text-xs border-orange-500 text-orange-600 hover:bg-orange-50"
                           title="Apollo.io bulk enrichment (10 per request)"
                         >
@@ -2875,7 +3568,9 @@ export default function PropertiesPage() {
                         <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                           <div
                             className="h-full bg-cyan-500 transition-all"
-                            style={{ width: `${(bucket.enrichedLeads / bucket.totalLeads) * 100}%` }}
+                            style={{
+                              width: `${(bucket.enrichedLeads / bucket.totalLeads) * 100}%`,
+                            }}
                           />
                         </div>
                       </div>
@@ -2890,6 +3585,3 @@ export default function PropertiesPage() {
     </div>
   );
 }
-
-
-

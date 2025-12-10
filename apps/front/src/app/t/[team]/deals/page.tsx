@@ -204,7 +204,9 @@ export default function DealsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{formatCurrency(stats.totalValue)}</div>
+                <div className="text-2xl font-bold">
+                  {formatCurrency(stats.totalValue)}
+                </div>
               </CardContent>
             </Card>
             <Card>
@@ -215,7 +217,9 @@ export default function DealsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{formatCurrency(stats.expectedRevenue)}</div>
+                <div className="text-2xl font-bold">
+                  {formatCurrency(stats.expectedRevenue)}
+                </div>
               </CardContent>
             </Card>
             <Card>
@@ -226,7 +230,9 @@ export default function DealsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stats.avgDaysInPipeline}</div>
+                <div className="text-2xl font-bold">
+                  {stats.avgDaysInPipeline}
+                </div>
               </CardContent>
             </Card>
             <Card>
@@ -237,7 +243,9 @@ export default function DealsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stats.conversionRate}%</div>
+                <div className="text-2xl font-bold">
+                  {stats.conversionRate}%
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -256,9 +264,13 @@ export default function DealsPage() {
                 <SelectItem value="b2b_exit">B2B Exit</SelectItem>
                 <SelectItem value="commercial">Commercial</SelectItem>
                 <SelectItem value="assemblage">Assemblage</SelectItem>
-                <SelectItem value="blue_collar_exit">Blue Collar Exit</SelectItem>
+                <SelectItem value="blue_collar_exit">
+                  Blue Collar Exit
+                </SelectItem>
                 <SelectItem value="development">Development</SelectItem>
-                <SelectItem value="residential_haos">Residential HAOS</SelectItem>
+                <SelectItem value="residential_haos">
+                  Residential HAOS
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -293,7 +305,9 @@ export default function DealsPage() {
                 <div className="mb-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${STAGE_COLORS[column.stage]}`} />
+                      <div
+                        className={`w-2 h-2 rounded-full ${STAGE_COLORS[column.stage]}`}
+                      />
                       <span className="font-medium">{column.name}</span>
                       <Badge variant="secondary" className="text-xs">
                         {column.count}
@@ -308,18 +322,27 @@ export default function DealsPage() {
                 {/* Deal Cards */}
                 <div className="space-y-3">
                   {column.deals.map((deal) => (
-                    <Card key={deal.id} className="cursor-pointer hover:shadow-md transition-shadow">
+                    <Card
+                      key={deal.id}
+                      className="cursor-pointer hover:shadow-md transition-shadow"
+                    >
                       <CardContent className="p-3">
                         <div className="flex items-start justify-between">
                           <div className="flex items-center gap-2">
-                            {TYPE_ICONS[deal.type] || <Target className="h-4 w-4" />}
+                            {TYPE_ICONS[deal.type] || (
+                              <Target className="h-4 w-4" />
+                            )}
                             <span className="font-medium text-sm truncate max-w-[180px]">
                               {deal.name}
                             </span>
                           </div>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0"
+                              >
                                 <MoreVertical className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
@@ -335,7 +358,8 @@ export default function DealsPage() {
                           {deal.seller?.name && (
                             <p className="text-xs text-muted-foreground truncate">
                               {deal.seller.name}
-                              {deal.seller.company && ` - ${deal.seller.company}`}
+                              {deal.seller.company &&
+                                ` - ${deal.seller.company}`}
                             </p>
                           )}
                           <div className="flex items-center justify-between text-xs">
@@ -350,7 +374,10 @@ export default function DealsPage() {
                           </div>
                           {deal.monetization && (
                             <div className="text-xs text-muted-foreground">
-                              Est. Revenue: {formatCurrency(deal.monetization.estimatedEarnings)}
+                              Est. Revenue:{" "}
+                              {formatCurrency(
+                                deal.monetization.estimatedEarnings,
+                              )}
                             </div>
                           )}
                         </div>
@@ -395,7 +422,9 @@ export default function DealsPage() {
                     <th className="text-left p-4 font-medium">Stage</th>
                     <th className="text-left p-4 font-medium">Value</th>
                     <th className="text-left p-4 font-medium">Est. Revenue</th>
-                    <th className="text-left p-4 font-medium">Expected Close</th>
+                    <th className="text-left p-4 font-medium">
+                      Expected Close
+                    </th>
                     <th className="text-left p-4 font-medium"></th>
                   </tr>
                 </thead>
@@ -412,20 +441,34 @@ export default function DealsPage() {
                           )}
                         </td>
                         <td className="p-4">
-                          <Badge variant="outline">{deal.type.replace(/_/g, " ")}</Badge>
+                          <Badge variant="outline">
+                            {deal.type.replace(/_/g, " ")}
+                          </Badge>
                         </td>
                         <td className="p-4">
                           <div className="flex items-center gap-2">
-                            <div className={`w-2 h-2 rounded-full ${STAGE_COLORS[deal.stage]}`} />
-                            <span className="capitalize">{deal.stage.replace(/_/g, " ")}</span>
+                            <div
+                              className={`w-2 h-2 rounded-full ${STAGE_COLORS[deal.stage]}`}
+                            />
+                            <span className="capitalize">
+                              {deal.stage.replace(/_/g, " ")}
+                            </span>
                           </div>
                         </td>
-                        <td className="p-4 font-medium">{formatCurrency(deal.estimatedValue)}</td>
+                        <td className="p-4 font-medium">
+                          {formatCurrency(deal.estimatedValue)}
+                        </td>
                         <td className="p-4 text-green-600">
-                          {deal.monetization ? formatCurrency(deal.monetization.estimatedEarnings) : "-"}
+                          {deal.monetization
+                            ? formatCurrency(
+                                deal.monetization.estimatedEarnings,
+                              )
+                            : "-"}
                         </td>
                         <td className="p-4 text-muted-foreground">
-                          {deal.expectedCloseDate ? formatDate(deal.expectedCloseDate) : "-"}
+                          {deal.expectedCloseDate
+                            ? formatDate(deal.expectedCloseDate)
+                            : "-"}
                         </td>
                         <td className="p-4">
                           <Button variant="ghost" size="sm">
@@ -433,7 +476,7 @@ export default function DealsPage() {
                           </Button>
                         </td>
                       </tr>
-                    ))
+                    )),
                   )}
                 </tbody>
               </table>

@@ -97,10 +97,18 @@ interface GiannaSettings {
 
 // Categories for training data
 const CATEGORIES = [
-  { value: "interested", label: "Interested / Hot Lead", color: "bg-green-500" },
+  {
+    value: "interested",
+    label: "Interested / Hot Lead",
+    color: "bg-green-500",
+  },
   { value: "question", label: "Has Questions", color: "bg-blue-500" },
   { value: "objection", label: "Objection / Pushback", color: "bg-yellow-500" },
-  { value: "pricing", label: "Price / Money Questions", color: "bg-purple-500" },
+  {
+    value: "pricing",
+    label: "Price / Money Questions",
+    color: "bg-purple-500",
+  },
   { value: "scheduling", label: "Scheduling / Timing", color: "bg-indigo-500" },
   { value: "not_interested", label: "Not Interested", color: "bg-gray-500" },
   { value: "opt_out", label: "Opt-Out / DNC", color: "bg-red-500" },
@@ -121,93 +129,110 @@ const INTENTS = [
 
 // Starter training data for Nextier business broker deal sourcing - Tommy Borruso's scripts
 // Gianna AI trained to be conversational, firm, likable - Stratton Oakmont methodologies
-const STARTER_TRAINING_DATA: Omit<TrainingExample, "id" | "createdAt" | "updatedAt">[] = [
+const STARTER_TRAINING_DATA: Omit<
+  TrainingExample,
+  "id" | "createdAt" | "updatedAt"
+>[] = [
   // Interested / Hot Leads
   {
     category: "interested",
     incomingMessage: "Yeah I might be interested",
-    idealResponse: "Perfect! Most owners I talk to don't know what they're sitting on. I can get you a valuation this week. What's the best email?",
+    idealResponse:
+      "Perfect! Most owners I talk to don't know what they're sitting on. I can get you a valuation this week. What's the best email?",
     intent: "interested",
     notes: "Hot lead - get email, schedule valuation call",
   },
   {
     category: "interested",
     incomingMessage: "Yes tell me more",
-    idealResponse: "Great! I help owners understand what their business could actually sell for - no pressure, no commitment. Quick 15 min call work? What time's good?",
+    idealResponse:
+      "Great! I help owners understand what their business could actually sell for - no pressure, no commitment. Quick 15 min call work? What time's good?",
     intent: "interested",
   },
   {
     category: "interested",
     incomingMessage: "I've been thinking about selling",
-    idealResponse: "Perfect timing! I can get you a full valuation so you know your real number. Most owners are surprised. Best email to send the details?",
+    idealResponse:
+      "Perfect timing! I can get you a full valuation so you know your real number. Most owners are surprised. Best email to send the details?",
     intent: "interested",
   },
   {
     category: "interested",
     incomingMessage: "What's the process?",
-    idealResponse: "Simple - quick call to understand your business, I run a valuation, then we talk through what buyers would actually pay. No pressure. When works?",
+    idealResponse:
+      "Simple - quick call to understand your business, I run a valuation, then we talk through what buyers would actually pay. No pressure. When works?",
     intent: "interested",
   },
   {
     category: "interested",
     incomingMessage: "I want to know what my business is worth",
-    idealResponse: "That's exactly what I do! I can run your valuation this week - takes 15 mins. What's the best email to send you the details?",
+    idealResponse:
+      "That's exactly what I do! I can run your valuation this week - takes 15 mins. What's the best email to send you the details?",
     intent: "interested",
   },
   // Questions
   {
     category: "question",
     incomingMessage: "How much is my business worth?",
-    idealResponse: "Depends on revenue, EBITDA, and your industry. I can get you a real number - free valuation takes 15 mins. Want me to run one?",
+    idealResponse:
+      "Depends on revenue, EBITDA, and your industry. I can get you a real number - free valuation takes 15 mins. Want me to run one?",
     intent: "pricing",
   },
   {
     category: "question",
     incomingMessage: "Is this legit?",
-    idealResponse: "100% - I'm Tommy with Nextier. We help owners understand their exit value. No pressure, just clarity on what you're sitting on. Worth a quick chat?",
+    idealResponse:
+      "100% - I'm Tommy with Nextier. We help owners understand their exit value. No pressure, just clarity on what you're sitting on. Worth a quick chat?",
     intent: "question",
   },
   {
     category: "question",
     incomingMessage: "How did you find me?",
-    idealResponse: "I research growing businesses in your industry - yours stood out. I have buyers looking for exactly this. Curious what your number would be?",
+    idealResponse:
+      "I research growing businesses in your industry - yours stood out. I have buyers looking for exactly this. Curious what your number would be?",
     intent: "question",
   },
   {
     category: "question",
     incomingMessage: "Are you a broker?",
-    idealResponse: "I originate sellers - help owners figure out what they're really worth. No upfront cost, we only get paid when you do. Worth a quick chat?",
+    idealResponse:
+      "I originate sellers - help owners figure out what they're really worth. No upfront cost, we only get paid when you do. Worth a quick chat?",
     intent: "question",
   },
   {
     category: "question",
     incomingMessage: "Do you have buyers?",
-    idealResponse: "Yes - PE firms, family offices, and strategic acquirers actively looking. What's your revenue range? I can tell you if there's a fit",
+    idealResponse:
+      "Yes - PE firms, family offices, and strategic acquirers actively looking. What's your revenue range? I can tell you if there's a fit",
     intent: "interested",
   },
   {
     category: "question",
     incomingMessage: "Who is this?",
-    idealResponse: "Hey! Tommy with Nextier - I help business owners understand what they could actually sell for. Ever wondered what your number would be?",
+    idealResponse:
+      "Hey! Tommy with Nextier - I help business owners understand what they could actually sell for. Ever wondered what your number would be?",
     intent: "question",
   },
   // Pricing
   {
     category: "pricing",
     incomingMessage: "What's your fee?",
-    idealResponse: "Success-based only - no upfront cost. We get paid when you get paid. Want me to walk you through it on a quick call?",
+    idealResponse:
+      "Success-based only - no upfront cost. We get paid when you get paid. Want me to walk you through it on a quick call?",
     intent: "pricing",
   },
   {
     category: "pricing",
     incomingMessage: "What multiple can I expect?",
-    idealResponse: "Depends on your industry and margins - typically 3-6x EBITDA. I can get you a real number. Want me to run a valuation?",
+    idealResponse:
+      "Depends on your industry and margins - typically 3-6x EBITDA. I can get you a real number. Want me to run a valuation?",
     intent: "pricing",
   },
   {
     category: "pricing",
     incomingMessage: "What would buyers pay?",
-    idealResponse: "Depends on a few things - revenue, EBITDA, growth. I can get you a snapshot of what buyers would actually offer. Best email?",
+    idealResponse:
+      "Depends on a few things - revenue, EBITDA, growth. I can get you a snapshot of what buyers would actually offer. Best email?",
     intent: "pricing",
   },
   // Scheduling
@@ -228,63 +253,73 @@ const STARTER_TRAINING_DATA: Omit<TrainingExample, "id" | "createdAt" | "updated
   {
     category: "scheduling",
     incomingMessage: "Let's talk next week",
-    idealResponse: "Perfect! Early or late in the week work better? I'll send a calendar invite",
+    idealResponse:
+      "Perfect! Early or late in the week work better? I'll send a calendar invite",
     intent: "scheduling",
   },
   {
     category: "scheduling",
     incomingMessage: "I'm busy right now",
-    idealResponse: "No problem! When's better - this week or next? I'm flexible",
+    idealResponse:
+      "No problem! When's better - this week or next? I'm flexible",
     intent: "scheduling",
   },
   {
     category: "scheduling",
     incomingMessage: "Send me more info",
-    idealResponse: "For sure! What's the best email? I'll send our overview and some recent deal examples",
+    idealResponse:
+      "For sure! What's the best email? I'll send our overview and some recent deal examples",
     intent: "scheduling",
   },
   {
     category: "scheduling",
     incomingMessage: "What's your email?",
-    idealResponse: "tommy@nextierllc.com - send me yours too and I'll shoot over the valuation details",
+    idealResponse:
+      "tommy@nextierllc.com - send me yours too and I'll shoot over the valuation details",
     intent: "scheduling",
   },
   // Objections
   {
     category: "objection",
     incomingMessage: "I'm not ready to sell yet",
-    idealResponse: "Totally get it - most owners plan 2-3 years ahead. Want me to send market insights so you know what you're sitting on when the time comes?",
+    idealResponse:
+      "Totally get it - most owners plan 2-3 years ahead. Want me to send market insights so you know what you're sitting on when the time comes?",
     intent: "not_interested",
   },
   {
     category: "objection",
     incomingMessage: "I'm already working with someone",
-    idealResponse: "Nice! If you ever want a second opinion or that doesn't work out, keep my number. Good luck with the process!",
+    idealResponse:
+      "Nice! If you ever want a second opinion or that doesn't work out, keep my number. Good luck with the process!",
     intent: "not_interested",
   },
   {
     category: "objection",
     incomingMessage: "I don't think I can get what I want",
-    idealResponse: "You might be surprised - market's strong for good businesses. Free valuation takes 15 mins, no obligation. Worth checking?",
+    idealResponse:
+      "You might be surprised - market's strong for good businesses. Free valuation takes 15 mins, no obligation. Worth checking?",
     intent: "objection",
   },
   {
     category: "objection",
     incomingMessage: "I don't want my employees to know",
-    idealResponse: "Totally understand - confidentiality is #1 for us. We use NDAs and only share with vetted, serious buyers. Want to discuss how we handle it?",
+    idealResponse:
+      "Totally understand - confidentiality is #1 for us. We use NDAs and only share with vetted, serious buyers. Want to discuss how we handle it?",
     intent: "objection",
   },
   {
     category: "objection",
     incomingMessage: "I need to think about it",
-    idealResponse: "For sure! No pressure at all. If it helps, I can send you some info to review. Best email?",
+    idealResponse:
+      "For sure! No pressure at all. If it helps, I can send you some info to review. Best email?",
     intent: "objection",
   },
   // Not Interested
   {
     category: "not_interested",
     incomingMessage: "Not interested",
-    idealResponse: "No problem! If anything changes down the road, you have my number. Best of luck!",
+    idealResponse:
+      "No problem! If anything changes down the road, you have my number. Best of luck!",
     intent: "not_interested",
   },
   {
@@ -296,13 +331,15 @@ const STARTER_TRAINING_DATA: Omit<TrainingExample, "id" | "createdAt" | "updated
   {
     category: "not_interested",
     incomingMessage: "I'm never selling",
-    idealResponse: "Respect that! If you ever want a valuation just for planning, we're here. Take care!",
+    idealResponse:
+      "Respect that! If you ever want a valuation just for planning, we're here. Take care!",
     intent: "not_interested",
   },
   {
     category: "not_interested",
     incomingMessage: "Not at this time",
-    idealResponse: "All good! Mind if I check back in 6 months? Markets change, might be worth knowing your number then",
+    idealResponse:
+      "All good! Mind if I check back in 6 months? Markets change, might be worth knowing your number then",
     intent: "not_interested",
   },
   // Opt-Out / DNC
@@ -338,25 +375,29 @@ const STARTER_TRAINING_DATA: Omit<TrainingExample, "id" | "createdAt" | "updated
   {
     category: "general",
     incomingMessage: "What company is this?",
-    idealResponse: "Nextier - I'm Tommy. I help business owners understand what they could sell for. Your company caught my attention. Any interest in a quick valuation?",
+    idealResponse:
+      "Nextier - I'm Tommy. I help business owners understand what they could sell for. Your company caught my attention. Any interest in a quick valuation?",
     intent: "question",
   },
   {
     category: "general",
     incomingMessage: "How do you know about my business?",
-    idealResponse: "I research growing companies in your industry - yours stood out. I have buyers actively looking. Curious what your number would be?",
+    idealResponse:
+      "I research growing companies in your industry - yours stood out. I have buyers actively looking. Curious what your number would be?",
     intent: "question",
   },
   {
     category: "general",
     incomingMessage: "What do you want?",
-    idealResponse: "Just wanted to see if you've ever wondered what your business could sell for. I can get you a valuation - no pressure. Worth a chat?",
+    idealResponse:
+      "Just wanted to see if you've ever wondered what your business could sell for. I can get you a valuation - no pressure. Worth a chat?",
     intent: "question",
   },
   {
     category: "general",
     incomingMessage: "?",
-    idealResponse: "Hey! Tommy with Nextier here. I help owners get valuations on their business. Curious if selling is something you've ever considered?",
+    idealResponse:
+      "Hey! Tommy with Nextier here. I help owners get valuations on their business. Curious if selling is something you've ever considered?",
     intent: "question",
   },
 ];
@@ -367,7 +408,9 @@ export default function AITrainingHubPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [editingExample, setEditingExample] = useState<TrainingExample | null>(null);
+  const [editingExample, setEditingExample] = useState<TrainingExample | null>(
+    null,
+  );
   const [testMessage, setTestMessage] = useState("");
   const [testResult, setTestResult] = useState<{
     reply: string;
@@ -468,7 +511,9 @@ export default function AITrainingHubPage() {
     }
 
     const newExample: TrainingExample = {
-      id: editingExample?.id || `train-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id:
+        editingExample?.id ||
+        `train-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       category: formData.category,
       incomingMessage: formData.incomingMessage,
       idealResponse: formData.idealResponse,
@@ -480,7 +525,9 @@ export default function AITrainingHubPage() {
 
     let updated: TrainingExample[];
     if (editingExample) {
-      updated = trainingData.map((ex) => (ex.id === editingExample.id ? newExample : ex));
+      updated = trainingData.map((ex) =>
+        ex.id === editingExample.id ? newExample : ex,
+      );
     } else {
       updated = [...trainingData, newExample];
     }
@@ -505,17 +552,21 @@ export default function AITrainingHubPage() {
 
   // Load starter pack with Tommy's Nextier scripts
   const handleLoadStarterPack = () => {
-    const starterExamples: TrainingExample[] = STARTER_TRAINING_DATA.map((item, index) => ({
-      ...item,
-      id: `starter-${Date.now()}-${index}`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }));
+    const starterExamples: TrainingExample[] = STARTER_TRAINING_DATA.map(
+      (item, index) => ({
+        ...item,
+        id: `starter-${Date.now()}-${index}`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }),
+    );
 
     // Merge with existing (don't duplicate)
-    const existingMessages = new Set(trainingData.map((ex) => ex.incomingMessage.toLowerCase()));
+    const existingMessages = new Set(
+      trainingData.map((ex) => ex.incomingMessage.toLowerCase()),
+    );
     const newExamples = starterExamples.filter(
-      (ex) => !existingMessages.has(ex.incomingMessage.toLowerCase())
+      (ex) => !existingMessages.has(ex.incomingMessage.toLowerCase()),
     );
 
     if (newExamples.length === 0) {
@@ -562,9 +613,14 @@ export default function AITrainingHubPage() {
       const data = await response.json();
 
       // Find closest matching training example
-      const matchedExample = trainingData.find((ex) =>
-        testMessage.toLowerCase().includes(ex.incomingMessage.toLowerCase().slice(0, 20)) ||
-        ex.incomingMessage.toLowerCase().includes(testMessage.toLowerCase().slice(0, 20))
+      const matchedExample = trainingData.find(
+        (ex) =>
+          testMessage
+            .toLowerCase()
+            .includes(ex.incomingMessage.toLowerCase().slice(0, 20)) ||
+          ex.incomingMessage
+            .toLowerCase()
+            .includes(testMessage.toLowerCase().slice(0, 20)),
       );
 
       setTestResult({
@@ -584,9 +640,7 @@ export default function AITrainingHubPage() {
     const cat = CATEGORIES.find((c) => c.value === category);
     if (!cat) return null;
     return (
-      <Badge className={cn("text-white text-xs", cat.color)}>
-        {cat.label}
-      </Badge>
+      <Badge className={cn("text-white text-xs", cat.color)}>{cat.label}</Badge>
     );
   };
 
@@ -630,12 +684,17 @@ export default function AITrainingHubPage() {
               <div className="flex flex-col items-end gap-2">
                 <div className="flex items-center gap-3">
                   <Label className="text-sm">
-                    {settings.mode === "human-in-loop" ? "Human-in-Loop" : "Full Auto (5m delay)"}
+                    {settings.mode === "human-in-loop"
+                      ? "Human-in-Loop"
+                      : "Full Auto (5m delay)"}
                   </Label>
                   <Switch
                     checked={settings.mode === "full-auto"}
                     onCheckedChange={(checked) =>
-                      setSettings({ ...settings, mode: checked ? "full-auto" : "human-in-loop" })
+                      setSettings({
+                        ...settings,
+                        mode: checked ? "full-auto" : "human-in-loop",
+                      })
                     }
                   />
                 </div>
@@ -655,7 +714,9 @@ export default function AITrainingHubPage() {
               </div>
               <div className="flex items-center gap-2">
                 <Zap className="w-4 h-4 text-yellow-400" />
-                <span className="text-sm">{settings.minConfidence}% Min Confidence</span>
+                <span className="text-sm">
+                  {settings.minConfidence}% Min Confidence
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4 text-blue-400" />
@@ -699,7 +760,11 @@ export default function AITrainingHubPage() {
                   {stats.byCategory
                     .filter((c) => c.count > 0)
                     .map((cat) => (
-                      <Badge key={cat.value} variant="outline" className="text-xs">
+                      <Badge
+                        key={cat.value}
+                        variant="outline"
+                        className="text-xs"
+                      >
                         {cat.label}: {cat.count}
                       </Badge>
                     ))}
@@ -719,16 +784,18 @@ export default function AITrainingHubPage() {
 
                 <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
                   <DialogTrigger asChild>
-                    <Button onClick={() => {
-                      setEditingExample(null);
-                      setFormData({
-                        category: "general",
-                        incomingMessage: "",
-                        idealResponse: "",
-                        intent: "general",
-                        notes: "",
-                      });
-                    }}>
+                    <Button
+                      onClick={() => {
+                        setEditingExample(null);
+                        setFormData({
+                          category: "general",
+                          incomingMessage: "",
+                          idealResponse: "",
+                          intent: "general",
+                          notes: "",
+                        });
+                      }}
+                    >
                       <Plus className="w-4 h-4 mr-2" />
                       Add Training Data
                     </Button>
@@ -736,10 +803,13 @@ export default function AITrainingHubPage() {
                   <DialogContent className="max-w-2xl">
                     <DialogHeader>
                       <DialogTitle>
-                        {editingExample ? "Edit Training Example" : "Add Training Example"}
+                        {editingExample
+                          ? "Edit Training Example"
+                          : "Add Training Example"}
                       </DialogTitle>
                       <DialogDescription>
-                        Teach Gianna how to respond to specific types of messages.
+                        Teach Gianna how to respond to specific types of
+                        messages.
                       </DialogDescription>
                     </DialogHeader>
 
@@ -749,7 +819,9 @@ export default function AITrainingHubPage() {
                           <Label>Category</Label>
                           <Select
                             value={formData.category}
-                            onValueChange={(v) => setFormData({ ...formData, category: v })}
+                            onValueChange={(v) =>
+                              setFormData({ ...formData, category: v })
+                            }
                           >
                             <SelectTrigger>
                               <SelectValue />
@@ -768,7 +840,9 @@ export default function AITrainingHubPage() {
                           <Label>Intent</Label>
                           <Select
                             value={formData.intent}
-                            onValueChange={(v) => setFormData({ ...formData, intent: v })}
+                            onValueChange={(v) =>
+                              setFormData({ ...formData, intent: v })
+                            }
                           >
                             <SelectTrigger>
                               <SelectValue />
@@ -790,7 +864,10 @@ export default function AITrainingHubPage() {
                           placeholder="e.g., 'How much are you offering for my house?'"
                           value={formData.incomingMessage}
                           onChange={(e) =>
-                            setFormData({ ...formData, incomingMessage: e.target.value })
+                            setFormData({
+                              ...formData,
+                              incomingMessage: e.target.value,
+                            })
                           }
                           rows={3}
                         />
@@ -802,12 +879,16 @@ export default function AITrainingHubPage() {
                           placeholder="e.g., 'Great question! Every property is different - can we hop on a quick call so I can give you an accurate number?'"
                           value={formData.idealResponse}
                           onChange={(e) =>
-                            setFormData({ ...formData, idealResponse: e.target.value })
+                            setFormData({
+                              ...formData,
+                              idealResponse: e.target.value,
+                            })
                           }
                           rows={3}
                         />
                         <p className="text-xs text-muted-foreground">
-                          {formData.idealResponse.length}/160 characters (SMS limit)
+                          {formData.idealResponse.length}/160 characters (SMS
+                          limit)
                         </p>
                       </div>
 
@@ -816,13 +897,18 @@ export default function AITrainingHubPage() {
                         <Input
                           placeholder="Any context or notes about this response"
                           value={formData.notes}
-                          onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                          onChange={(e) =>
+                            setFormData({ ...formData, notes: e.target.value })
+                          }
                         />
                       </div>
                     </div>
 
                     <DialogFooter>
-                      <Button variant="outline" onClick={() => setShowAddDialog(false)}>
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowAddDialog(false)}
+                      >
                         Cancel
                       </Button>
                       <Button onClick={handleAddExample}>
@@ -843,7 +929,9 @@ export default function AITrainingHubPage() {
               <Card className="py-12">
                 <div className="text-center">
                   <Brain className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-medium mb-2">No Training Data Yet</h3>
+                  <h3 className="text-lg font-medium mb-2">
+                    No Training Data Yet
+                  </h3>
                   <p className="text-muted-foreground mb-4">
                     Start teaching Gianna how to respond to different messages.
                   </p>
@@ -867,7 +955,9 @@ export default function AITrainingHubPage() {
                   <TableBody>
                     {trainingData.map((example) => (
                       <TableRow key={example.id}>
-                        <TableCell>{getCategoryBadge(example.category)}</TableCell>
+                        <TableCell>
+                          {getCategoryBadge(example.category)}
+                        </TableCell>
                         <TableCell className="max-w-[200px]">
                           <p className="truncate">{example.incomingMessage}</p>
                         </TableCell>
@@ -944,7 +1034,9 @@ export default function AITrainingHubPage() {
 
                   {/* Quick test presets */}
                   <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground">Quick Tests:</Label>
+                    <Label className="text-xs text-muted-foreground">
+                      Quick Tests:
+                    </Label>
                     <div className="flex flex-wrap gap-2">
                       {[
                         "Yeah I'm interested",
@@ -987,8 +1079,8 @@ export default function AITrainingHubPage() {
                             testResult.confidence >= 85
                               ? "bg-green-500/20 text-green-400"
                               : testResult.confidence >= 70
-                              ? "bg-yellow-500/20 text-yellow-400"
-                              : "bg-red-500/20 text-red-400"
+                                ? "bg-yellow-500/20 text-yellow-400"
+                                : "bg-red-500/20 text-red-400",
                           )}
                         >
                           {testResult.confidence}% confidence
@@ -1000,8 +1092,12 @@ export default function AITrainingHubPage() {
 
                       {testResult.matchedExample && (
                         <div className="p-3 border rounded-lg bg-purple-500/10 border-purple-500/30">
-                          <p className="text-xs text-purple-400 mb-1">Matched Training Example:</p>
-                          <p className="text-sm">{testResult.matchedExample.idealResponse}</p>
+                          <p className="text-xs text-purple-400 mb-1">
+                            Matched Training Example:
+                          </p>
+                          <p className="text-sm">
+                            {testResult.matchedExample.idealResponse}
+                          </p>
                         </div>
                       )}
 
@@ -1066,9 +1162,11 @@ export default function AITrainingHubPage() {
                         "p-4 rounded-lg border-2 cursor-pointer transition-all",
                         settings.mode === "human-in-loop"
                           ? "border-purple-500 bg-purple-500/10"
-                          : "border-muted hover:border-muted-foreground"
+                          : "border-muted hover:border-muted-foreground",
                       )}
-                      onClick={() => setSettings({ ...settings, mode: "human-in-loop" })}
+                      onClick={() =>
+                        setSettings({ ...settings, mode: "human-in-loop" })
+                      }
                     >
                       <div className="flex items-center gap-2 mb-2">
                         <User className="w-5 h-5" />
@@ -1084,16 +1182,19 @@ export default function AITrainingHubPage() {
                         "p-4 rounded-lg border-2 cursor-pointer transition-all",
                         settings.mode === "full-auto"
                           ? "border-purple-500 bg-purple-500/10"
-                          : "border-muted hover:border-muted-foreground"
+                          : "border-muted hover:border-muted-foreground",
                       )}
-                      onClick={() => setSettings({ ...settings, mode: "full-auto" })}
+                      onClick={() =>
+                        setSettings({ ...settings, mode: "full-auto" })
+                      }
                     >
                       <div className="flex items-center gap-2 mb-2">
                         <Zap className="w-5 h-5" />
                         <span className="font-medium">Full Auto</span>
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        Gianna auto-sends after {settings.autoReplyDelay}min delay
+                        Gianna auto-sends after {settings.autoReplyDelay}min
+                        delay
                       </p>
                     </div>
                   </div>
@@ -1109,7 +1210,10 @@ export default function AITrainingHubPage() {
                         <Select
                           value={String(settings.autoReplyDelay)}
                           onValueChange={(v) =>
-                            setSettings({ ...settings, autoReplyDelay: parseInt(v) })
+                            setSettings({
+                              ...settings,
+                              autoReplyDelay: parseInt(v),
+                            })
                           }
                         >
                           <SelectTrigger>
@@ -1125,7 +1229,8 @@ export default function AITrainingHubPage() {
                           </SelectContent>
                         </Select>
                         <p className="text-xs text-muted-foreground">
-                          Gianna waits this long before auto-sending, giving you time to review
+                          Gianna waits this long before auto-sending, giving you
+                          time to review
                         </p>
                       </div>
 
@@ -1134,18 +1239,29 @@ export default function AITrainingHubPage() {
                         <Select
                           value={String(settings.minConfidence)}
                           onValueChange={(v) =>
-                            setSettings({ ...settings, minConfidence: parseInt(v) })
+                            setSettings({
+                              ...settings,
+                              minConfidence: parseInt(v),
+                            })
                           }
                         >
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="70">70% (More aggressive)</SelectItem>
+                            <SelectItem value="70">
+                              70% (More aggressive)
+                            </SelectItem>
                             <SelectItem value="80">80% (Balanced)</SelectItem>
-                            <SelectItem value="85">85% (Recommended)</SelectItem>
-                            <SelectItem value="90">90% (Conservative)</SelectItem>
-                            <SelectItem value="95">95% (Very conservative)</SelectItem>
+                            <SelectItem value="85">
+                              85% (Recommended)
+                            </SelectItem>
+                            <SelectItem value="90">
+                              90% (Conservative)
+                            </SelectItem>
+                            <SelectItem value="95">
+                              95% (Very conservative)
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -1160,7 +1276,10 @@ export default function AITrainingHubPage() {
                         <Switch
                           checked={settings.notifyOnAutoReply}
                           onCheckedChange={(checked) =>
-                            setSettings({ ...settings, notifyOnAutoReply: checked })
+                            setSettings({
+                              ...settings,
+                              notifyOnAutoReply: checked,
+                            })
                           }
                         />
                       </div>
@@ -1173,7 +1292,8 @@ export default function AITrainingHubPage() {
                           onChange={(e) =>
                             setSettings({
                               ...settings,
-                              maxAutoRepliesPerDay: parseInt(e.target.value) || 100,
+                              maxAutoRepliesPerDay:
+                                parseInt(e.target.value) || 100,
                             })
                           }
                         />
@@ -1215,7 +1335,10 @@ export default function AITrainingHubPage() {
                           type="time"
                           value={settings.businessHoursStart}
                           onChange={(e) =>
-                            setSettings({ ...settings, businessHoursStart: e.target.value })
+                            setSettings({
+                              ...settings,
+                              businessHoursStart: e.target.value,
+                            })
                           }
                         />
                       </div>
@@ -1225,7 +1348,10 @@ export default function AITrainingHubPage() {
                           type="time"
                           value={settings.businessHoursEnd}
                           onChange={(e) =>
-                            setSettings({ ...settings, businessHoursEnd: e.target.value })
+                            setSettings({
+                              ...settings,
+                              businessHoursEnd: e.target.value,
+                            })
                           }
                         />
                       </div>
@@ -1245,7 +1371,9 @@ export default function AITrainingHubPage() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="friendly">Friendly</SelectItem>
-                        <SelectItem value="professional">Professional</SelectItem>
+                        <SelectItem value="professional">
+                          Professional
+                        </SelectItem>
                         <SelectItem value="casual">Casual</SelectItem>
                         <SelectItem value="urgent">Urgent</SelectItem>
                       </SelectContent>
@@ -1265,19 +1393,25 @@ export default function AITrainingHubPage() {
                             "flex items-center gap-2 p-2 rounded border cursor-pointer",
                             settings.enabledCategories.includes(cat.value)
                               ? "bg-muted border-primary"
-                              : "border-muted"
+                              : "border-muted",
                           )}
                           onClick={() => {
-                            const enabled = settings.enabledCategories.includes(cat.value);
+                            const enabled = settings.enabledCategories.includes(
+                              cat.value,
+                            );
                             setSettings({
                               ...settings,
                               enabledCategories: enabled
-                                ? settings.enabledCategories.filter((c) => c !== cat.value)
+                                ? settings.enabledCategories.filter(
+                                    (c) => c !== cat.value,
+                                  )
                                 : [...settings.enabledCategories, cat.value],
                             });
                           }}
                         >
-                          <div className={cn("w-3 h-3 rounded-full", cat.color)} />
+                          <div
+                            className={cn("w-3 h-3 rounded-full", cat.color)}
+                          />
                           <span className="text-sm">{cat.label}</span>
                           {settings.enabledCategories.includes(cat.value) && (
                             <Check className="w-4 h-4 ml-auto text-primary" />

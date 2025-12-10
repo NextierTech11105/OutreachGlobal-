@@ -26,18 +26,21 @@ import { useCurrentTeam } from "@/features/team/team.context";
 
 export default function Page() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const { team } = useCurrentTeam();
+  const { teamId, isTeamReady } = useCurrentTeam();
   const [tab, setTab] = useState("active");
   const [workflows, pageInfo, { loading }] = useConnectionQuery(
     WORKFLOWS_QUERY,
     {
       pick: "workflows",
       variables: {
-        teamId: team.id,
+        teamId,
         active: tab === "active",
       },
+      skip: !isTeamReady,
     },
   );
+
+  if (!isTeamReady) return null;
 
   const toggleRuleStatus = (id: string) => {
     //

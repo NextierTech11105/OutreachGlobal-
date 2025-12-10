@@ -1,6 +1,5 @@
 "use client";
 
-
 import { sf, sfd } from "@/lib/utils/safe-format";
 import * as React from "react";
 import { useState, useMemo } from "react";
@@ -49,7 +48,10 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useGlobalActions } from "@/lib/providers/global-actions-provider";
-import { SMSCampaignSetup, SMSCampaignConfig } from "@/components/sms-campaign-setup";
+import {
+  SMSCampaignSetup,
+  SMSCampaignConfig,
+} from "@/components/sms-campaign-setup";
 
 export default function SMSQueuePage() {
   const {
@@ -108,14 +110,42 @@ export default function SMSQueuePage() {
     switch (status) {
       case "queued":
       case "pending":
-        return <Badge variant="outline" className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20">Pending</Badge>;
+        return (
+          <Badge
+            variant="outline"
+            className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20"
+          >
+            Pending
+          </Badge>
+        );
       case "sent":
       case "completed":
-        return <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20">Completed</Badge>;
+        return (
+          <Badge
+            variant="outline"
+            className="bg-green-500/10 text-green-600 border-green-500/20"
+          >
+            Completed
+          </Badge>
+        );
       case "failed":
-        return <Badge variant="outline" className="bg-red-500/10 text-red-600 border-red-500/20">Failed</Badge>;
+        return (
+          <Badge
+            variant="outline"
+            className="bg-red-500/10 text-red-600 border-red-500/20"
+          >
+            Failed
+          </Badge>
+        );
       case "cancelled":
-        return <Badge variant="outline" className="bg-gray-500/10 text-gray-600 border-gray-500/20">Cancelled</Badge>;
+        return (
+          <Badge
+            variant="outline"
+            className="bg-gray-500/10 text-gray-600 border-gray-500/20"
+          >
+            Cancelled
+          </Badge>
+        );
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -162,7 +192,11 @@ export default function SMSQueuePage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => openScheduleCallDialog()}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => openScheduleCallDialog()}
+            >
               <Phone className="h-4 w-4 mr-2" />
               Schedule Call
             </Button>
@@ -170,7 +204,11 @@ export default function SMSQueuePage() {
               <Plus className="h-4 w-4 mr-2" />
               Quick Add
             </Button>
-            <Button size="sm" onClick={() => setIsCampaignSetupOpen(true)} className="bg-green-600 hover:bg-green-700">
+            <Button
+              size="sm"
+              onClick={() => setIsCampaignSetupOpen(true)}
+              className="bg-green-600 hover:bg-green-700"
+            >
               <Sparkles className="h-4 w-4 mr-2" />
               New Campaign
             </Button>
@@ -215,7 +253,9 @@ export default function SMSQueuePage() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{stats.calls.pending}</p>
-                  <p className="text-xs text-muted-foreground">Calls Scheduled</p>
+                  <p className="text-xs text-muted-foreground">
+                    Calls Scheduled
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -228,7 +268,9 @@ export default function SMSQueuePage() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{stats.calls.completed}</p>
-                  <p className="text-xs text-muted-foreground">Calls Completed</p>
+                  <p className="text-xs text-muted-foreground">
+                    Calls Completed
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -311,7 +353,9 @@ export default function SMSQueuePage() {
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-8">
                       <MessageSquare className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                      <p className="text-muted-foreground">No messages in queue</p>
+                      <p className="text-muted-foreground">
+                        No messages in queue
+                      </p>
                       <div className="flex items-center justify-center gap-2 mt-3">
                         <Button
                           variant="outline"
@@ -340,13 +384,18 @@ export default function SMSQueuePage() {
                           <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
                             <User className="h-4 w-4" />
                           </div>
-                          <span className="font-medium">{entry.leadName || "Unknown"}</span>
+                          <span className="font-medium">
+                            {entry.leadName || "Unknown"}
+                          </span>
                         </div>
                       </TableCell>
-                      <TableCell className="font-mono text-sm">{entry.leadPhone}</TableCell>
+                      <TableCell className="font-mono text-sm">
+                        {entry.leadPhone}
+                      </TableCell>
                       <TableCell className="max-w-[200px]">
                         <p className="truncate text-sm text-muted-foreground">
-                          {entry.message || `Template: ${entry.templateId || "Default"}`}
+                          {entry.message ||
+                            `Template: ${entry.templateId || "Default"}`}
                         </p>
                       </TableCell>
                       <TableCell>
@@ -356,7 +405,9 @@ export default function SMSQueuePage() {
                             {formatDate(entry.scheduledAt)}
                           </div>
                         ) : (
-                          <span className="text-sm text-muted-foreground">ASAP</span>
+                          <span className="text-sm text-muted-foreground">
+                            ASAP
+                          </span>
                         )}
                       </TableCell>
                       <TableCell>{getStatusBadge(entry.status)}</TableCell>
@@ -366,7 +417,11 @@ export default function SMSQueuePage() {
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                            >
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
@@ -409,7 +464,9 @@ export default function SMSQueuePage() {
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-8">
                       <Phone className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                      <p className="text-muted-foreground">No calls scheduled</p>
+                      <p className="text-muted-foreground">
+                        No calls scheduled
+                      </p>
                       <Button
                         variant="outline"
                         size="sm"
@@ -428,10 +485,14 @@ export default function SMSQueuePage() {
                           <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
                             <User className="h-4 w-4" />
                           </div>
-                          <span className="font-medium">{call.leadName || "Unknown"}</span>
+                          <span className="font-medium">
+                            {call.leadName || "Unknown"}
+                          </span>
                         </div>
                       </TableCell>
-                      <TableCell className="font-mono text-sm">{call.leadPhone}</TableCell>
+                      <TableCell className="font-mono text-sm">
+                        {call.leadPhone}
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1 text-sm">
                           <Clock className="h-3 w-3" />
@@ -450,7 +511,11 @@ export default function SMSQueuePage() {
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                            >
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>

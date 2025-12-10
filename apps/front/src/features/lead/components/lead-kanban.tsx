@@ -58,11 +58,12 @@ const QUERY: TypedDocumentNode<LeadKanbanQuery, LeadKanbanQueryVariables> = gql`
 `;
 
 export function LeadKanban() {
-  const { team } = useCurrentTeam();
+  const { teamId, isTeamReady } = useCurrentTeam();
   const { data, loading } = useQuery(QUERY, {
     variables: {
-      teamId: team.id,
+      teamId,
     },
+    skip: !isTeamReady,
   });
 
   const [filteredLeads, setFilteredLeads] = useState<
@@ -114,7 +115,7 @@ export function LeadKanban() {
       setFilteredLeads(updatedLeads);
       updateLeadPosition({
         variables: {
-          teamId: team.id,
+          teamId,
           id: lead.id,
           newPosition: destination.index,
           oldPosition: source.index,
@@ -130,7 +131,7 @@ export function LeadKanban() {
       setFilteredLeads(newLeads);
       updateLeadPosition({
         variables: {
-          teamId: team.id,
+          teamId,
           id: lead.id,
           newPosition: destination.index,
           oldPosition: source.index,

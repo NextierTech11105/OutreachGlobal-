@@ -1,7 +1,13 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -82,7 +88,9 @@ export default function ValuationQueuePage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [autoProcess, setAutoProcess] = useState(false);
   const [activeTab, setActiveTab] = useState("pending");
-  const [deliveryMethod, setDeliveryMethod] = useState<"sms" | "email" | "both">("sms");
+  const [deliveryMethod, setDeliveryMethod] = useState<
+    "sms" | "email" | "both"
+  >("sms");
   const [includePartnerOffer, setIncludePartnerOffer] = useState(true);
   const [selectedPartner, setSelectedPartner] = useState<string>("");
 
@@ -215,19 +223,39 @@ export default function ValuationQueuePage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "pending":
-        return <Badge variant="secondary"><Clock className="h-3 w-3 mr-1" />Pending</Badge>;
+        return (
+          <Badge variant="secondary">
+            <Clock className="h-3 w-3 mr-1" />
+            Pending
+          </Badge>
+        );
       case "processing":
-        return <Badge className="bg-blue-500"><Loader2 className="h-3 w-3 mr-1 animate-spin" />Processing</Badge>;
+        return (
+          <Badge className="bg-blue-500">
+            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+            Processing
+          </Badge>
+        );
       case "completed":
-        return <Badge className="bg-green-500"><CheckCircle className="h-3 w-3 mr-1" />Completed</Badge>;
+        return (
+          <Badge className="bg-green-500">
+            <CheckCircle className="h-3 w-3 mr-1" />
+            Completed
+          </Badge>
+        );
       case "failed":
-        return <Badge variant="destructive"><XCircle className="h-3 w-3 mr-1" />Failed</Badge>;
+        return (
+          <Badge variant="destructive">
+            <XCircle className="h-3 w-3 mr-1" />
+            Failed
+          </Badge>
+        );
       default:
         return <Badge>{status}</Badge>;
     }
   };
 
-  const filteredItems = items.filter(item => {
+  const filteredItems = items.filter((item) => {
     if (activeTab === "all") return true;
     return item.status === activeTab;
   });
@@ -260,7 +288,9 @@ export default function ValuationQueuePage() {
               onCheckedChange={setAutoProcess}
               id="auto-process"
             />
-            <Label htmlFor="auto-process" className="text-sm">Auto-process</Label>
+            <Label htmlFor="auto-process" className="text-sm">
+              Auto-process
+            </Label>
           </div>
           <Button
             onClick={processNext}
@@ -286,30 +316,40 @@ export default function ValuationQueuePage() {
           <Card>
             <CardContent className="pt-4">
               <div className="text-2xl font-bold">{stats.total}</div>
-              <div className="text-sm text-muted-foreground">Total in Queue</div>
+              <div className="text-sm text-muted-foreground">
+                Total in Queue
+              </div>
             </CardContent>
           </Card>
           <Card className="border-yellow-500/50">
             <CardContent className="pt-4">
-              <div className="text-2xl font-bold text-yellow-500">{stats.pending}</div>
+              <div className="text-2xl font-bold text-yellow-500">
+                {stats.pending}
+              </div>
               <div className="text-sm text-muted-foreground">Pending</div>
             </CardContent>
           </Card>
           <Card className="border-blue-500/50">
             <CardContent className="pt-4">
-              <div className="text-2xl font-bold text-blue-500">{stats.processing}</div>
+              <div className="text-2xl font-bold text-blue-500">
+                {stats.processing}
+              </div>
               <div className="text-sm text-muted-foreground">Processing</div>
             </CardContent>
           </Card>
           <Card className="border-green-500/50">
             <CardContent className="pt-4">
-              <div className="text-2xl font-bold text-green-500">{stats.completed}</div>
+              <div className="text-2xl font-bold text-green-500">
+                {stats.completed}
+              </div>
               <div className="text-sm text-muted-foreground">Completed</div>
             </CardContent>
           </Card>
           <Card className="border-red-500/50">
             <CardContent className="pt-4">
-              <div className="text-2xl font-bold text-red-500">{stats.failed}</div>
+              <div className="text-2xl font-bold text-red-500">
+                {stats.failed}
+              </div>
               <div className="text-sm text-muted-foreground">Failed</div>
             </CardContent>
           </Card>
@@ -335,10 +375,18 @@ export default function ValuationQueuePage() {
               <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className="mb-4">
                   <TabsTrigger value="all">All ({items.length})</TabsTrigger>
-                  <TabsTrigger value="pending">Pending ({stats?.pending || 0})</TabsTrigger>
-                  <TabsTrigger value="processing">Processing ({stats?.processing || 0})</TabsTrigger>
-                  <TabsTrigger value="completed">Completed ({stats?.completed || 0})</TabsTrigger>
-                  <TabsTrigger value="failed">Failed ({stats?.failed || 0})</TabsTrigger>
+                  <TabsTrigger value="pending">
+                    Pending ({stats?.pending || 0})
+                  </TabsTrigger>
+                  <TabsTrigger value="processing">
+                    Processing ({stats?.processing || 0})
+                  </TabsTrigger>
+                  <TabsTrigger value="completed">
+                    Completed ({stats?.completed || 0})
+                  </TabsTrigger>
+                  <TabsTrigger value="failed">
+                    Failed ({stats?.failed || 0})
+                  </TabsTrigger>
                 </TabsList>
 
                 <ScrollArea className="h-[500px]">
@@ -356,7 +404,9 @@ export default function ValuationQueuePage() {
                               <div className="space-y-2">
                                 <div className="flex items-center gap-2">
                                   {getStatusBadge(item.status)}
-                                  <span className="font-medium">{item.leadName}</span>
+                                  <span className="font-medium">
+                                    {item.leadName}
+                                  </span>
                                 </div>
                                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                   <span className="flex items-center gap-1">
@@ -392,11 +442,19 @@ export default function ValuationQueuePage() {
                               </div>
                               <div className="flex items-center gap-2">
                                 {item.status === "failed" && (
-                                  <Button size="sm" variant="outline" onClick={() => retryItem(item.id)}>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => retryItem(item.id)}
+                                  >
                                     <RotateCcw className="h-3 w-3" />
                                   </Button>
                                 )}
-                                <Button size="sm" variant="ghost" onClick={() => deleteItem(item.id)}>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => deleteItem(item.id)}
+                                >
                                   <Trash2 className="h-3 w-3 text-red-500" />
                                 </Button>
                               </div>
@@ -428,7 +486,12 @@ export default function ValuationQueuePage() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>Delivery Method</Label>
-                <Select value={deliveryMethod} onValueChange={(v) => setDeliveryMethod(v as "sms" | "email" | "both")}>
+                <Select
+                  value={deliveryMethod}
+                  onValueChange={(v) =>
+                    setDeliveryMethod(v as "sms" | "email" | "both")
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -456,9 +519,12 @@ export default function ValuationQueuePage() {
               </div>
 
               <div className="p-3 bg-muted rounded-lg">
-                <Label className="text-xs text-muted-foreground">SMS Message Preview</Label>
+                <Label className="text-xs text-muted-foreground">
+                  SMS Message Preview
+                </Label>
                 <p className="text-sm mt-1">
-                  Hi {"{name}"}, here&apos;s your free property valuation for {"{address}"}: {"{link}"}
+                  Hi {"{name}"}, here&apos;s your free property valuation for{" "}
+                  {"{address}"}: {"{link}"}
                   {includePartnerOffer && " + Special offer inside!"}
                 </p>
               </div>
@@ -502,9 +568,15 @@ export default function ValuationQueuePage() {
                       <CardContent className="p-3">
                         <div className="flex items-start justify-between">
                           <div>
-                            <div className="font-medium text-sm">{partner.businessName}</div>
-                            <div className="text-xs text-muted-foreground">{partner.category}</div>
-                            <div className="text-xs text-purple-500 mt-1">{partner.offer}</div>
+                            <div className="font-medium text-sm">
+                              {partner.businessName}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {partner.category}
+                            </div>
+                            <div className="text-xs text-purple-500 mt-1">
+                              {partner.offer}
+                            </div>
                           </div>
                           <Badge variant="secondary" className="text-xs">
                             {partner.discount}
@@ -557,9 +629,21 @@ export default function ValuationQueuePage() {
               >
                 <Input name="leadName" placeholder="Lead Name" required />
                 <Input name="leadPhone" placeholder="Phone" type="tel" />
-                <Input name="leadEmail" placeholder="Email" type="email" required />
-                <Input name="propertyAddress" placeholder="Property Address" required />
-                <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">
+                <Input
+                  name="leadEmail"
+                  placeholder="Email"
+                  type="email"
+                  required
+                />
+                <Input
+                  name="propertyAddress"
+                  placeholder="Property Address"
+                  required
+                />
+                <Button
+                  type="submit"
+                  className="w-full bg-blue-600 hover:bg-blue-700"
+                >
                   Add to Queue
                 </Button>
               </form>

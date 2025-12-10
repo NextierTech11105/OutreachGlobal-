@@ -2,7 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SMSOnboardingWizard } from "@/components/signalhouse/sms-onboarding-wizard";
@@ -13,7 +19,7 @@ import {
   Zap,
   CheckCircle2,
   AlertCircle,
-  ExternalLink
+  ExternalLink,
 } from "lucide-react";
 
 export default function SMSSettingsPage() {
@@ -86,13 +92,27 @@ export default function SMSSettingsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="bg-muted p-4 rounded-lg">
-              <p className="text-sm font-medium mb-2">To enable SMS messaging:</p>
+              <p className="text-sm font-medium mb-2">
+                To enable SMS messaging:
+              </p>
               <ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
-                <li>Go to <a href="https://app.signalhouse.io" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">SignalHouse.io</a> and create an account</li>
+                <li>
+                  Go to{" "}
+                  <a
+                    href="https://app.signalhouse.io"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline"
+                  >
+                    SignalHouse.io
+                  </a>{" "}
+                  and create an account
+                </li>
                 <li>Get your API Key and Auth Token from the dashboard</li>
-                <li>Add them to your environment variables:
+                <li>
+                  Add them to your environment variables:
                   <pre className="mt-2 p-2 bg-background rounded text-xs overflow-x-auto">
-{`SIGNALHOUSE_API_KEY=your-api-key
+                    {`SIGNALHOUSE_API_KEY=your-api-key
 SIGNALHOUSE_AUTH_TOKEN=your-auth-token`}
                   </pre>
                 </li>
@@ -101,7 +121,11 @@ SIGNALHOUSE_AUTH_TOKEN=your-auth-token`}
             </div>
             <div className="flex gap-2">
               <Button asChild className="flex-1">
-                <a href="https://app.signalhouse.io" target="_blank" rel="noopener noreferrer">
+                <a
+                  href="https://app.signalhouse.io"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   Go to SignalHouse
                   <ExternalLink className="h-4 w-4 ml-2" />
                 </a>
@@ -163,7 +187,8 @@ SIGNALHOUSE_AUTH_TOKEN=your-auth-token`}
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground mb-4">
-                    You can run the setup wizard again to add more brands, campaigns, or phone numbers.
+                    You can run the setup wizard again to add more brands,
+                    campaigns, or phone numbers.
                   </p>
                   <Button variant="outline" onClick={() => setHasSetup(false)}>
                     Run Setup Wizard Again

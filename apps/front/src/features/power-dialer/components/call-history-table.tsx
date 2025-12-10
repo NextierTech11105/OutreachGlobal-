@@ -32,14 +32,19 @@ export function CallHistoryTable() {
   const [dispositionFilter, setDispositionFilter] = useState<string>("all");
   const [dateFilter, setDateFilter] = useState<string>("all");
   const [{ powerDialer }] = usePowerDialerContext();
-  const { team } = useCurrentTeam();
+  const { teamId, isTeamReady } = useCurrentTeam();
   const [histories = [], pageInfo] = useConnectionQuery(CALL_HISTORIES_QUERY, {
     pick: "callHistories",
+    skip: !isTeamReady,
     variables: {
-      teamId: team.id,
+      teamId,
       powerDialerId: powerDialer.id,
     },
   });
+
+  if (!isTeamReady) {
+    return null;
+  }
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);

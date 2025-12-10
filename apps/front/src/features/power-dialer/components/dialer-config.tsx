@@ -19,11 +19,16 @@ import { toast } from "sonner";
 import { DialerMode } from "@nextier/common";
 
 export function DialerConfigComponent() {
-  const { team } = useCurrentTeam();
+  const { teamId, isTeamReady } = useCurrentTeam();
   const [aiSdrs = []] = useConnectionQuery(AI_SDR_AVATARS_QUERY, {
     pick: "aiSdrAvatars",
-    variables: { teamId: team.id, first: 100 },
+    skip: !isTeamReady,
+    variables: { teamId, first: 100 },
   });
+
+  if (!isTeamReady) {
+    return null;
+  }
 
   const [{ mode, aiSdrAvatar }, dispatch] = usePowerDialerContext();
 

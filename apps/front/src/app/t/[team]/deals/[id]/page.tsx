@@ -1,6 +1,5 @@
 "use client";
 
-
 import { sf, sfd } from "@/lib/utils/safe-format";
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -8,7 +7,13 @@ import { TeamSection } from "@/features/team/layouts/team-section";
 import { TeamHeader } from "@/features/team/layouts/team-header";
 import { TeamLink } from "@/features/team/components/team-link";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
@@ -89,8 +94,18 @@ interface Deal {
   };
   seller?: { name: string; email?: string; phone?: string; company?: string };
   buyer?: { name: string; email?: string; phone?: string; company?: string };
-  property?: { address: string; type: string; sqft?: number; bedrooms?: number };
-  business?: { name: string; industry: string; revenue?: number; employees?: number };
+  property?: {
+    address: string;
+    type: string;
+    sqft?: number;
+    bedrooms?: number;
+  };
+  business?: {
+    name: string;
+    industry: string;
+    revenue?: number;
+    employees?: number;
+  };
   expectedCloseDate?: string;
   actualCloseDate?: string;
   closedReason?: string;
@@ -319,7 +334,11 @@ export default function DealDetailPage() {
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold">{deal.name}</h1>
               {isClosed ? (
-                <Badge className={deal.stage === "closed_won" ? "bg-green-500" : "bg-red-500"}>
+                <Badge
+                  className={
+                    deal.stage === "closed_won" ? "bg-green-500" : "bg-red-500"
+                  }
+                >
                   {deal.stage === "closed_won" ? "Won" : "Lost"}
                 </Badge>
               ) : (
@@ -327,10 +346,16 @@ export default function DealDetailPage() {
                   {deal.stage.replace(/_/g, " ")}
                 </Badge>
               )}
-              {deal.priority === "high" && <Badge variant="destructive">High Priority</Badge>}
-              {deal.priority === "urgent" && <Badge variant="destructive">Urgent</Badge>}
+              {deal.priority === "high" && (
+                <Badge variant="destructive">High Priority</Badge>
+              )}
+              {deal.priority === "urgent" && (
+                <Badge variant="destructive">Urgent</Badge>
+              )}
             </div>
-            <p className="text-muted-foreground mt-1">{deal.description || "No description"}</p>
+            <p className="text-muted-foreground mt-1">
+              {deal.description || "No description"}
+            </p>
           </div>
 
           <div className="flex items-center gap-2">
@@ -338,7 +363,10 @@ export default function DealDetailPage() {
               <>
                 <AlertDialog open={showCloseWon} onOpenChange={setShowCloseWon}>
                   <AlertDialogTrigger asChild>
-                    <Button variant="outline" className="text-green-600 border-green-600">
+                    <Button
+                      variant="outline"
+                      className="text-green-600 border-green-600"
+                    >
                       <CheckCircle className="mr-2 h-4 w-4" />
                       Mark Won
                     </Button>
@@ -347,7 +375,8 @@ export default function DealDetailPage() {
                     <AlertDialogHeader>
                       <AlertDialogTitle>Close Deal as Won</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Congratulations! Enter the final deal price to close this deal.
+                        Congratulations! Enter the final deal price to close
+                        this deal.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <div className="space-y-4 py-4">
@@ -357,22 +386,36 @@ export default function DealDetailPage() {
                           type="number"
                           placeholder={deal.estimatedValue.toString()}
                           value={closeData.finalPrice}
-                          onChange={(e) => setCloseData({ ...closeData, finalPrice: e.target.value })}
+                          onChange={(e) =>
+                            setCloseData({
+                              ...closeData,
+                              finalPrice: e.target.value,
+                            })
+                          }
                         />
                       </div>
                     </div>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => closeDeal(true)} disabled={updating}>
+                      <AlertDialogAction
+                        onClick={() => closeDeal(true)}
+                        disabled={updating}
+                      >
                         Close as Won
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
 
-                <AlertDialog open={showCloseLost} onOpenChange={setShowCloseLost}>
+                <AlertDialog
+                  open={showCloseLost}
+                  onOpenChange={setShowCloseLost}
+                >
                   <AlertDialogTrigger asChild>
-                    <Button variant="outline" className="text-red-600 border-red-600">
+                    <Button
+                      variant="outline"
+                      className="text-red-600 border-red-600"
+                    >
                       <XCircle className="mr-2 h-4 w-4" />
                       Mark Lost
                     </Button>
@@ -381,7 +424,8 @@ export default function DealDetailPage() {
                     <AlertDialogHeader>
                       <AlertDialogTitle>Close Deal as Lost</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Help improve future deals by recording why this one didn&apos;t close.
+                        Help improve future deals by recording why this one
+                        didn&apos;t close.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <div className="space-y-4 py-4">
@@ -389,7 +433,9 @@ export default function DealDetailPage() {
                         <Label>Reason</Label>
                         <Select
                           value={closeData.reason}
-                          onValueChange={(v) => setCloseData({ ...closeData, reason: v })}
+                          onValueChange={(v) =>
+                            setCloseData({ ...closeData, reason: v })
+                          }
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Select reason" />
@@ -408,7 +454,12 @@ export default function DealDetailPage() {
                         <Textarea
                           placeholder="Additional notes..."
                           value={closeData.notes}
-                          onChange={(e) => setCloseData({ ...closeData, notes: e.target.value })}
+                          onChange={(e) =>
+                            setCloseData({
+                              ...closeData,
+                              notes: e.target.value,
+                            })
+                          }
                         />
                       </div>
                     </div>
@@ -485,18 +536,28 @@ export default function DealDetailPage() {
                   <CardContent>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label className="text-muted-foreground">Estimated Value</Label>
-                        <p className="text-xl font-bold">{formatCurrency(deal.estimatedValue)}</p>
+                        <Label className="text-muted-foreground">
+                          Estimated Value
+                        </Label>
+                        <p className="text-xl font-bold">
+                          {formatCurrency(deal.estimatedValue)}
+                        </p>
                       </div>
                       {deal.askingPrice && (
                         <div>
-                          <Label className="text-muted-foreground">Asking Price</Label>
-                          <p className="text-xl font-bold">{formatCurrency(deal.askingPrice)}</p>
+                          <Label className="text-muted-foreground">
+                            Asking Price
+                          </Label>
+                          <p className="text-xl font-bold">
+                            {formatCurrency(deal.askingPrice)}
+                          </p>
                         </div>
                       )}
                       {deal.finalPrice && (
                         <div>
-                          <Label className="text-muted-foreground">Final Price</Label>
+                          <Label className="text-muted-foreground">
+                            Final Price
+                          </Label>
                           <p className="text-xl font-bold text-green-600">
                             {formatCurrency(deal.finalPrice)}
                           </p>
@@ -505,24 +566,40 @@ export default function DealDetailPage() {
                       {deal.monetization && (
                         <>
                           <div>
-                            <Label className="text-muted-foreground">Monetization Type</Label>
-                            <p className="font-medium capitalize">{deal.monetization.type}</p>
+                            <Label className="text-muted-foreground">
+                              Monetization Type
+                            </Label>
+                            <p className="font-medium capitalize">
+                              {deal.monetization.type}
+                            </p>
                           </div>
                           <div>
-                            <Label className="text-muted-foreground">Rate</Label>
-                            <p className="font-medium">{deal.monetization.rate}%</p>
+                            <Label className="text-muted-foreground">
+                              Rate
+                            </Label>
+                            <p className="font-medium">
+                              {deal.monetization.rate}%
+                            </p>
                           </div>
                           <div>
-                            <Label className="text-muted-foreground">Est. Revenue</Label>
+                            <Label className="text-muted-foreground">
+                              Est. Revenue
+                            </Label>
                             <p className="text-xl font-bold text-green-600">
-                              {formatCurrency(deal.monetization.estimatedEarnings)}
+                              {formatCurrency(
+                                deal.monetization.estimatedEarnings,
+                              )}
                             </p>
                           </div>
                           {deal.monetization.actualEarnings && (
                             <div>
-                              <Label className="text-muted-foreground">Actual Revenue</Label>
+                              <Label className="text-muted-foreground">
+                                Actual Revenue
+                              </Label>
                               <p className="text-xl font-bold text-green-600">
-                                {formatCurrency(deal.monetization.actualEarnings)}
+                                {formatCurrency(
+                                  deal.monetization.actualEarnings,
+                                )}
                               </p>
                             </div>
                           )}
@@ -544,7 +621,9 @@ export default function DealDetailPage() {
                     <CardContent>
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <Label className="text-muted-foreground">Address</Label>
+                          <Label className="text-muted-foreground">
+                            Address
+                          </Label>
                           <p className="font-medium">{deal.property.address}</p>
                         </div>
                         <div>
@@ -553,14 +632,22 @@ export default function DealDetailPage() {
                         </div>
                         {deal.property.sqft && (
                           <div>
-                            <Label className="text-muted-foreground">Sq Ft</Label>
-                            <p className="font-medium">{sf(deal.property.sqft)}</p>
+                            <Label className="text-muted-foreground">
+                              Sq Ft
+                            </Label>
+                            <p className="font-medium">
+                              {sf(deal.property.sqft)}
+                            </p>
                           </div>
                         )}
                         {deal.property.bedrooms && (
                           <div>
-                            <Label className="text-muted-foreground">Bedrooms</Label>
-                            <p className="font-medium">{deal.property.bedrooms}</p>
+                            <Label className="text-muted-foreground">
+                              Bedrooms
+                            </Label>
+                            <p className="font-medium">
+                              {deal.property.bedrooms}
+                            </p>
                           </div>
                         )}
                       </div>
@@ -583,19 +670,31 @@ export default function DealDetailPage() {
                           <p className="font-medium">{deal.business.name}</p>
                         </div>
                         <div>
-                          <Label className="text-muted-foreground">Industry</Label>
-                          <p className="font-medium">{deal.business.industry}</p>
+                          <Label className="text-muted-foreground">
+                            Industry
+                          </Label>
+                          <p className="font-medium">
+                            {deal.business.industry}
+                          </p>
                         </div>
                         {deal.business.revenue && (
                           <div>
-                            <Label className="text-muted-foreground">Revenue</Label>
-                            <p className="font-medium">{formatCurrency(deal.business.revenue)}</p>
+                            <Label className="text-muted-foreground">
+                              Revenue
+                            </Label>
+                            <p className="font-medium">
+                              {formatCurrency(deal.business.revenue)}
+                            </p>
                           </div>
                         )}
                         {deal.business.employees && (
                           <div>
-                            <Label className="text-muted-foreground">Employees</Label>
-                            <p className="font-medium">{deal.business.employees}</p>
+                            <Label className="text-muted-foreground">
+                              Employees
+                            </Label>
+                            <p className="font-medium">
+                              {deal.business.employees}
+                            </p>
                           </div>
                         )}
                       </div>
@@ -610,14 +709,19 @@ export default function DealDetailPage() {
                     {activities.length > 0 ? (
                       <div className="space-y-4">
                         {activities.map((activity) => (
-                          <div key={activity.id} className="flex gap-4 pb-4 border-b last:border-0">
+                          <div
+                            key={activity.id}
+                            className="flex gap-4 pb-4 border-b last:border-0"
+                          >
                             <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center">
                               <Activity className="h-4 w-4" />
                             </div>
                             <div>
                               <p className="font-medium">{activity.title}</p>
                               {activity.description && (
-                                <p className="text-sm text-muted-foreground">{activity.description}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {activity.description}
+                                </p>
                               )}
                               <p className="text-xs text-muted-foreground mt-1">
                                 {formatDateTime(activity.createdAt)}
@@ -627,7 +731,9 @@ export default function DealDetailPage() {
                         ))}
                       </div>
                     ) : (
-                      <p className="text-center text-muted-foreground py-8">No activity yet</p>
+                      <p className="text-center text-muted-foreground py-8">
+                        No activity yet
+                      </p>
                     )}
                   </CardContent>
                 </Card>
@@ -638,7 +744,9 @@ export default function DealDetailPage() {
                   <CardContent className="p-4">
                     <div className="text-center py-8">
                       <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                      <p className="text-muted-foreground mb-4">No documents uploaded yet</p>
+                      <p className="text-muted-foreground mb-4">
+                        No documents uploaded yet
+                      </p>
                       <Button>
                         <Upload className="mr-2 h-4 w-4" />
                         Upload Document
@@ -658,14 +766,20 @@ export default function DealDetailPage() {
                         onChange={(e) => setNewNote(e.target.value)}
                         rows={3}
                       />
-                      <Button onClick={addNote} disabled={updating || !newNote.trim()} className="mt-2">
+                      <Button
+                        onClick={addNote}
+                        disabled={updating || !newNote.trim()}
+                        className="mt-2"
+                      >
                         Add Note
                       </Button>
                     </div>
                     {deal.notes && (
                       <div className="pt-4 border-t">
                         <Label className="text-muted-foreground">Notes</Label>
-                        <div className="mt-2 whitespace-pre-wrap">{deal.notes}</div>
+                        <div className="mt-2 whitespace-pre-wrap">
+                          {deal.notes}
+                        </div>
                       </div>
                     )}
                   </CardContent>
@@ -688,12 +802,17 @@ export default function DealDetailPage() {
                 <CardContent className="space-y-3">
                   <p className="font-medium">{deal.seller.name}</p>
                   {deal.seller.company && (
-                    <p className="text-sm text-muted-foreground">{deal.seller.company}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {deal.seller.company}
+                    </p>
                   )}
                   {deal.seller.email && (
                     <div className="flex items-center gap-2 text-sm">
                       <Mail className="h-4 w-4 text-muted-foreground" />
-                      <a href={`mailto:${deal.seller.email}`} className="text-primary hover:underline">
+                      <a
+                        href={`mailto:${deal.seller.email}`}
+                        className="text-primary hover:underline"
+                      >
                         {deal.seller.email}
                       </a>
                     </div>
@@ -701,7 +820,10 @@ export default function DealDetailPage() {
                   {deal.seller.phone && (
                     <div className="flex items-center gap-2 text-sm">
                       <Phone className="h-4 w-4 text-muted-foreground" />
-                      <a href={`tel:${deal.seller.phone}`} className="text-primary hover:underline">
+                      <a
+                        href={`tel:${deal.seller.phone}`}
+                        className="text-primary hover:underline"
+                      >
                         {deal.seller.phone}
                       </a>
                     </div>
@@ -722,12 +844,17 @@ export default function DealDetailPage() {
                 <CardContent className="space-y-3">
                   <p className="font-medium">{deal.buyer.name}</p>
                   {deal.buyer.company && (
-                    <p className="text-sm text-muted-foreground">{deal.buyer.company}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {deal.buyer.company}
+                    </p>
                   )}
                   {deal.buyer.email && (
                     <div className="flex items-center gap-2 text-sm">
                       <Mail className="h-4 w-4 text-muted-foreground" />
-                      <a href={`mailto:${deal.buyer.email}`} className="text-primary hover:underline">
+                      <a
+                        href={`mailto:${deal.buyer.email}`}
+                        className="text-primary hover:underline"
+                      >
                         {deal.buyer.email}
                       </a>
                     </div>
@@ -735,7 +862,10 @@ export default function DealDetailPage() {
                   {deal.buyer.phone && (
                     <div className="flex items-center gap-2 text-sm">
                       <Phone className="h-4 w-4 text-muted-foreground" />
-                      <a href={`tel:${deal.buyer.phone}`} className="text-primary hover:underline">
+                      <a
+                        href={`tel:${deal.buyer.phone}`}
+                        className="text-primary hover:underline"
+                      >
                         {deal.buyer.phone}
                       </a>
                     </div>
@@ -763,14 +893,22 @@ export default function DealDetailPage() {
                 </div>
                 {deal.expectedCloseDate && (
                   <div>
-                    <Label className="text-muted-foreground">Expected Close</Label>
-                    <p className="text-sm">{formatDate(deal.expectedCloseDate)}</p>
+                    <Label className="text-muted-foreground">
+                      Expected Close
+                    </Label>
+                    <p className="text-sm">
+                      {formatDate(deal.expectedCloseDate)}
+                    </p>
                   </div>
                 )}
                 {deal.actualCloseDate && (
                   <div>
-                    <Label className="text-muted-foreground">Actual Close</Label>
-                    <p className="text-sm">{formatDate(deal.actualCloseDate)}</p>
+                    <Label className="text-muted-foreground">
+                      Actual Close
+                    </Label>
+                    <p className="text-sm">
+                      {formatDate(deal.actualCloseDate)}
+                    </p>
                   </div>
                 )}
               </CardContent>
