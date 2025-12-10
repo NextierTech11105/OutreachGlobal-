@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { parse } from "csv-parse/sync";
 import { randomUUID } from "crypto";
 
@@ -341,6 +341,63 @@ function normalizeRow(row: Record<string, string>, headers: string[]): Record<st
   }
 
   return normalized;
+}
+
+// Helper to update the bucket index
+async function updateBucketIndex(client: S3Client, newBucket: any) {
+  try {
+    // 1. Get existing index
+    let buckets: any[] = [];
+    try {
+      const response = await client.send(
+        new GetObjectCommand({
+          Bucket: SPACES_BUCKET,
+          Key: "buckets/_index.json",
+        })
+      );
+      const content = await response.Body?.transformToString();
+      if (content) {
+        const index = JSON.parse(content);
+        buckets = index.buckets || [];
+      }
+    } catch (e) {
+      // Index doesn't exist yet, start empty
+    }
+
+    // 2. Add new bucket to top
+    // Create a minimal bucket object for the index
+    const indexEntry = {
+      id: newBucket.id,
+      name: newBucket.name,
+      description: newBucket.metadata.description,
+      source: "csv", // Default for CSV uploads
+      tags: newBucket.metadata.tags,
+      createdAt: newBucket.metadata.createdAt,
+      updatedAt: newBucket.metadata.createdAt,
+      totalLeads: newBucket.metadata.stats.total,
+      enrichedLeads: 0,
+      enrichmentStatus: "pending",
+    };
+
+    buckets.unshift(indexEntry);
+
+    // 3. Save updated index
+    await client.send(
+      new PutObjectCommand({
+        Bucket: SPACES_BUCKET,
+        Key: "buckets/_index.json",
+        Body: JSON.stringify({
+          buckets,
+          updatedAt: new Date().toISOString(),
+          count: buckets.length,
+        }, null, 2),
+        ContentType: "application/json",
+      })
+    );
+    console.log(`[CSV Upload] Updated index with bucket ${newBucket.id}`);
+  } catch (error) {
+    console.error("[CSV Upload] Failed to update index:", error);
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -864,6 +921,9 @@ export async function POST(request: NextRequest) {
           ContentType: "application/json",
         })
       );
+
+      // Update the index so it appears in the UI immediately
+      await updateBucketIndex(client, bucket);
     } else {
       console.warn("[CSV Upload] DO Spaces not configured, data not persisted");
     }
