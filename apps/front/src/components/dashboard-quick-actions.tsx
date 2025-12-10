@@ -46,11 +46,17 @@ export function DashboardQuickActions() {
     calendarEvents,
   } = useGlobalActions();
 
-  // Check if we have leads
+  // Check if we have leads - skip query if team not loaded yet
   const { data: leadData } = useQuery(LEAD_COUNT_QUERY, {
-    variables: { teamId: team.id },
+    variables: { teamId: team?.id ?? "" },
     fetchPolicy: "cache-first",
+    skip: !team?.id, // Don't run query until team is loaded
   });
+
+  // Early return if team not loaded
+  if (!team?.id) {
+    return null;
+  }
 
   const hasLeads = (leadData?.leads?.edges?.length || 0) > 0;
   const pendingSMS = smsCampaignQueue.filter((s) => s.status === "queued").length;

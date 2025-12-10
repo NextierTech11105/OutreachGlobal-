@@ -22,7 +22,8 @@ export function formatPhoneNumber(phoneNumber: string): string {
   return phoneNumber;
 }
 
-export function formatCurrency(value: number): string {
+export function formatCurrency(value: number | null | undefined): string {
+  if (value == null) return "$0";
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
