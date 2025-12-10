@@ -207,7 +207,37 @@ export default function SectorDetailPage() {
         }
 
         setDataLake(data);
-        setLeads(data.properties || []);
+        // Support both records (new format) and properties (legacy format)
+        // Records have data in _original field, need to map them
+        const rawLeads = data.records || data.properties || [];
+        const mappedLeads = rawLeads.map((r: Record<string, unknown>) => {
+          // If it's the new format with _original, extract the data
+          const original = r._original as Record<string, unknown> || r;
+          const matchingKeys = r.matchingKeys as Record<string, unknown> || {};
+          return {
+            id: r.id,
+            companyName: original.companyName || matchingKeys.company || original.company,
+            contactName: [original.firstName, original.lastName].filter(Boolean).join(' ') ||
+                         [matchingKeys.firstName, matchingKeys.lastName].filter(Boolean).join(' '),
+            email: original.email || matchingKeys.email,
+            phone: original.phone || matchingKeys.phone,
+            address: original.address || matchingKeys.address,
+            city: original.city,
+            state: original.state,
+            zip: original.zip,
+            website: original.website,
+            industry: original.industry || original.sicDescription,
+            sicCode: original.sicCode || matchingKeys.sicCode,
+            employees: original.employees,
+            revenue: original.revenue,
+            enriched: r.enrichment?.status === 'success',
+            propertyScore: r.propertyScore,
+            propertyLikelihood: r.propertyLikelihood,
+            isDecisionMaker: (r.flags as Record<string, boolean>)?.isDecisionMaker,
+            ...r, // Keep original data too
+          };
+        });
+        setLeads(mappedLeads);
       } catch (error) {
         console.error("Failed to fetch data lake:", error);
         toast.error("Failed to load data lake");
