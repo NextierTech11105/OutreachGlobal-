@@ -540,7 +540,7 @@ export default function SectorDetailPage() {
             <div>
               <h2 className="text-2xl font-bold">{dataLake.name}</h2>
               <p className="text-muted-foreground">
-                {dataLake.description || `${dataLake.totalLeads.toLocaleString()} records`}
+                {dataLake.description || `${(dataLake.totalLeads ?? 0).toLocaleString()} records`}
               </p>
             </div>
           </div>
@@ -557,14 +557,14 @@ export default function SectorDetailPage() {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <Card>
             <CardContent className="pt-4">
-              <div className="text-2xl font-bold">{dataLake.totalLeads.toLocaleString()}</div>
+              <div className="text-2xl font-bold">{(dataLake.totalLeads ?? 0).toLocaleString()}</div>
               <p className="text-xs text-muted-foreground">Total Records</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-4">
               <div className="text-2xl font-bold text-green-600">
-                {dataLake.metadata?.stats?.withPhone?.toLocaleString() || 0}
+                {(dataLake.metadata?.stats?.withPhone ?? 0).toLocaleString()}
               </div>
               <p className="text-xs text-muted-foreground">With Phones</p>
             </CardContent>
@@ -572,7 +572,7 @@ export default function SectorDetailPage() {
           <Card>
             <CardContent className="pt-4">
               <div className="text-2xl font-bold text-blue-600">
-                {dataLake.metadata?.stats?.withEmail?.toLocaleString() || 0}
+                {(dataLake.metadata?.stats?.withEmail ?? 0).toLocaleString()}
               </div>
               <p className="text-xs text-muted-foreground">With Emails</p>
             </CardContent>
@@ -580,7 +580,7 @@ export default function SectorDetailPage() {
           <Card>
             <CardContent className="pt-4">
               <div className="text-2xl font-bold text-purple-600">
-                {dataLake.metadata?.stats?.withAddress?.toLocaleString() || 0}
+                {(dataLake.metadata?.stats?.withAddress ?? 0).toLocaleString()}
               </div>
               <p className="text-xs text-muted-foreground">Enrichable</p>
             </CardContent>
@@ -588,7 +588,7 @@ export default function SectorDetailPage() {
           <Card>
             <CardContent className="pt-4">
               <div className="text-2xl font-bold text-orange-600">
-                {leads.filter((l) => l.enriched).length.toLocaleString()}
+                {(leads.filter((l) => l.enriched).length ?? 0).toLocaleString()}
               </div>
               <p className="text-xs text-muted-foreground">Enriched</p>
             </CardContent>
