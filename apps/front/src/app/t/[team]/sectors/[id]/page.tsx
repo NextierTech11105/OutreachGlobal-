@@ -66,11 +66,18 @@ interface Lead {
   city?: string | null;
   state?: string | null;
   zip?: string | null;
+  county?: string | null;
   website?: string | null;
   industry?: string | null;
   sicCode?: string | null;
   employees?: string | null;
   revenue?: string | null;
+  title?: string | null;
+  directPhone?: string | null;
+  // Scoring fields
+  propertyScore?: number;
+  propertyLikelihood?: string;
+  isDecisionMaker?: boolean;
   // Enrichment fields
   enriched?: boolean;
   enrichedPhones?: string[];
@@ -211,26 +218,40 @@ export default function SectorDetailPage() {
         // Records have data in _original field, need to map them
         const rawLeads = data.records || data.properties || [];
         const mappedLeads = rawLeads.map((r: Record<string, unknown>) => {
-          // If it's the new format with _original, extract the data
-          const original = r._original as Record<string, unknown> || r;
+          // Extract data from both matchingKeys (normalized) and _original (raw CSV)
+          const original = r._original as Record<string, unknown> || {};
           const matchingKeys = r.matchingKeys as Record<string, unknown> || {};
+
+          // matchingKeys has normalized names, _original has raw CSV headers
           return {
             id: r.id,
-            companyName: original.companyName || matchingKeys.company || original.company,
-            contactName: [original.firstName, original.lastName].filter(Boolean).join(' ') ||
-                         [matchingKeys.firstName, matchingKeys.lastName].filter(Boolean).join(' '),
-            email: original.email || matchingKeys.email,
-            phone: original.phone || matchingKeys.phone,
-            address: original.address || matchingKeys.address,
-            city: original.city,
-            state: original.state,
-            zip: original.zip,
-            website: original.website,
-            industry: original.industry || original.sicDescription,
-            sicCode: original.sicCode || matchingKeys.sicCode,
-            employees: original.employees,
-            revenue: original.revenue,
-            enriched: r.enrichment?.status === 'success',
+            // Company name from normalized or raw CSV
+            companyName: matchingKeys.companyName || original["Company Name"] || original.companyName,
+            // Contact name from normalized or raw CSV (Contact First + Contact Last)
+            contactName: matchingKeys.contactName ||
+                         [matchingKeys.firstName, matchingKeys.lastName].filter(Boolean).join(' ') ||
+                         [original["Contact First"], original["Contact Last"]].filter(Boolean).join(' ') ||
+                         original["Contact Name"],
+            // Email from raw CSV
+            email: original["Email"] || original.email || matchingKeys.email,
+            // Phone from raw CSV
+            phone: original["Phone"] || original.phone || matchingKeys.phone,
+            // Address from normalized or raw CSV
+            address: matchingKeys.address || original["Address"] || original["Street Address"],
+            city: matchingKeys.city || original["City"],
+            state: matchingKeys.state || original["State"],
+            zip: matchingKeys.zip || original["Zip"] || original["Zip Code"],
+            county: original["County"],
+            // Website from raw CSV
+            website: original["Website"] || original.website,
+            // Industry from raw CSV (SIC Description)
+            industry: original["Industry"] || original["SIC Description"] || matchingKeys.sicDescription,
+            sicCode: matchingKeys.sicCode || original["SIC Code"],
+            employees: original["Employee Range"] || original["Number of Employees"] || original.employees,
+            revenue: original["Annual Sales"] || original["Annual Revenue"] || original.revenue,
+            title: original["Title"],
+            directPhone: original["Direct Phone"],
+            enriched: (r.enrichment as Record<string, unknown>)?.status === 'success',
             propertyScore: r.propertyScore,
             propertyLikelihood: r.propertyLikelihood,
             isDecisionMaker: (r.flags as Record<string, boolean>)?.isDecisionMaker,
