@@ -26,70 +26,185 @@ function getS3Client(): S3Client | null {
   });
 }
 
-// List all buckets from DO Spaces
-async function listBuckets(): Promise<Bucket[]> {
+// Bucket index for fast listing (cached in memory)
+let bucketIndexCache: { buckets: Bucket[]; lastUpdated: number } | null = null;
+const CACHE_TTL = 60000; // 1 minute cache
+
+// Get bucket index from DO Spaces (or create if missing)
+async function getBucketIndex(): Promise<Bucket[]> {
   const client = getS3Client();
   if (!client) return [];
 
+  // Check memory cache first
+  if (bucketIndexCache && Date.now() - bucketIndexCache.lastUpdated < CACHE_TTL) {
+    return bucketIndexCache.buckets;
+  }
+
   try {
+    // Try to read the index file first (fast path)
+    try {
+      const indexResponse = await client.send(
+        new GetObjectCommand({
+          Bucket: SPACES_BUCKET,
+          Key: "buckets/_index.json",
+        })
+      );
+      const indexContents = await indexResponse.Body?.transformToString();
+      if (indexContents) {
+        const index = JSON.parse(indexContents);
+        bucketIndexCache = { buckets: index.buckets || [], lastUpdated: Date.now() };
+        return bucketIndexCache.buckets;
+      }
+    } catch {
+      // Index doesn't exist, build it
+      console.log("[Buckets API] Building bucket index...");
+    }
+
+    // Fallback: List all buckets and build index (slow, but only once)
+    const buckets = await listBucketsFromS3(client);
+
+    // Save index for future fast loads
+    await saveBucketIndex(client, buckets);
+
+    bucketIndexCache = { buckets, lastUpdated: Date.now() };
+    return buckets;
+  } catch (error) {
+    console.error("[Buckets API] Index error:", error);
+    return [];
+  }
+}
+
+// Save bucket index to S3
+async function saveBucketIndex(client: S3Client, buckets: Bucket[]): Promise<void> {
+  try {
+    await client.send(
+      new PutObjectCommand({
+        Bucket: SPACES_BUCKET,
+        Key: "buckets/_index.json",
+        Body: JSON.stringify({
+          buckets: buckets.map(b => ({
+            id: b.id,
+            name: b.name,
+            description: b.description,
+            source: b.source,
+            tags: b.tags,
+            createdAt: b.createdAt,
+            updatedAt: b.updatedAt,
+            totalLeads: b.totalLeads,
+            enrichedLeads: b.enrichedLeads,
+            enrichmentStatus: b.enrichmentStatus,
+          })),
+          updatedAt: new Date().toISOString(),
+          count: buckets.length,
+        }, null, 2),
+        ContentType: "application/json",
+      })
+    );
+    console.log(`[Buckets API] Index saved with ${buckets.length} buckets`);
+  } catch (error) {
+    console.error("[Buckets API] Failed to save index:", error);
+  }
+}
+
+// Update index when a new bucket is added
+async function addToIndex(bucket: Bucket): Promise<void> {
+  const client = getS3Client();
+  if (!client) return;
+
+  // Invalidate cache
+  bucketIndexCache = null;
+
+  // Get current index and add new bucket
+  const buckets = await getBucketIndex();
+  const existing = buckets.findIndex(b => b.id === bucket.id);
+  if (existing >= 0) {
+    buckets[existing] = bucket;
+  } else {
+    buckets.unshift(bucket); // Add to front (newest first)
+  }
+
+  await saveBucketIndex(client, buckets);
+}
+
+// List all buckets from DO Spaces (slow - fetches each file)
+async function listBucketsFromS3(client: S3Client): Promise<Bucket[]> {
+  const buckets: Bucket[] = [];
+  let continuationToken: string | undefined;
+  let totalProcessed = 0;
+
+  do {
     const response = await client.send(
       new ListObjectsV2Command({
         Bucket: SPACES_BUCKET,
         Prefix: "buckets/",
+        ContinuationToken: continuationToken,
+        MaxKeys: 1000,
       })
     );
 
-    const buckets: Bucket[] = [];
+    // Process in parallel batches of 50
+    const objects = (response.Contents || []).filter(obj =>
+      obj.Key?.endsWith(".json") && !obj.Key.includes("_index")
+    );
 
-    for (const obj of response.Contents || []) {
-      if (!obj.Key?.endsWith(".json")) continue;
+    const batchSize = 50;
+    for (let i = 0; i < objects.length; i += batchSize) {
+      const batch = objects.slice(i, i + batchSize);
+      const batchResults = await Promise.all(
+        batch.map(async (obj) => {
+          try {
+            const getResponse = await client.send(
+              new GetObjectCommand({
+                Bucket: SPACES_BUCKET,
+                Key: obj.Key!,
+              })
+            );
 
-      try {
-        const getResponse = await client.send(
-          new GetObjectCommand({
-            Bucket: SPACES_BUCKET,
-            Key: obj.Key,
-          })
-        );
+            const bodyContents = await getResponse.Body?.transformToString();
+            if (!bodyContents) return null;
 
-        const bodyContents = await getResponse.Body?.transformToString();
-        if (!bodyContents) continue;
+            const data = JSON.parse(bodyContents);
 
-        const data = JSON.parse(bodyContents);
+            if (data.metadata) {
+              return {
+                id: data.metadata.id || obj.Key!.replace("buckets/", "").replace(".json", ""),
+                name: data.metadata.name || "Unnamed Bucket",
+                description: data.metadata.description || "",
+                source: "real-estate" as const,
+                filters: data.metadata.searchParams || {},
+                tags: data.metadata.tags || [],
+                createdAt: data.metadata.createdAt || new Date().toISOString(),
+                updatedAt: data.metadata.updatedAt || new Date().toISOString(),
+                totalLeads: data.properties?.length || data.records?.length || data.metadata.savedCount || 0,
+                enrichedLeads: 0,
+                queuedLeads: 0,
+                contactedLeads: 0,
+                enrichmentStatus: "pending" as const,
+              } as Bucket;
+            } else if (data.id) {
+              return data as Bucket;
+            }
+            return null;
+          } catch {
+            return null;
+          }
+        })
+      );
 
-        // Convert saved search format to Bucket format if needed
-        if (data.metadata) {
-          const bucket: Bucket = {
-            id: data.metadata.id || obj.Key.replace("buckets/", "").replace(".json", ""),
-            name: data.metadata.name || "Unnamed Bucket",
-            description: data.metadata.description || "",
-            source: "real-estate",
-            filters: data.metadata.searchParams || {},
-            tags: data.metadata.tags || [],
-            createdAt: data.metadata.createdAt || new Date().toISOString(),
-            updatedAt: data.metadata.updatedAt || new Date().toISOString(),
-            totalLeads: data.properties?.length || data.metadata.savedCount || 0,
-            enrichedLeads: data.properties?.filter((p: Record<string, unknown>) => p.phone || p.email).length || 0,
-            queuedLeads: 0,
-            contactedLeads: 0,
-            enrichmentStatus: "pending",
-          };
-          buckets.push(bucket);
-        } else if (data.id) {
-          // Already in bucket format
-          buckets.push(data as Bucket);
-        }
-      } catch {
-        // Skip invalid files
-        continue;
-      }
+      buckets.push(...batchResults.filter((b): b is Bucket => b !== null));
+      totalProcessed += batch.length;
+      console.log(`[Buckets API] Processed ${totalProcessed} bucket files...`);
     }
 
-    return buckets;
-  } catch (error) {
-    console.error("[Buckets API] List error:", error);
-    return [];
-  }
+    continuationToken = response.NextContinuationToken;
+  } while (continuationToken);
+
+  return buckets;
+}
+
+// Legacy function name for compatibility
+async function listBuckets(): Promise<Bucket[]> {
+  return getBucketIndex();
 }
 
 // Save bucket to DO Spaces
