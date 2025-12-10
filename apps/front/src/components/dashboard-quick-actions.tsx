@@ -24,11 +24,13 @@ import { TeamLink } from "@/features/team/components/team-link";
 import { gql, useQuery } from "@apollo/client";
 import { useCurrentTeam } from "@/features/team/team.context";
 
-// Query to check if we have leads
+// Query to check if we have leads (just check if edges exist, totalCount not in schema)
 const LEAD_COUNT_QUERY = gql`
   query LeadCount($teamId: ID!) {
     leads(teamId: $teamId, first: 1) {
-      totalCount
+      edges {
+        cursor
+      }
     }
   }
 `;
@@ -50,7 +52,7 @@ export function DashboardQuickActions() {
     fetchPolicy: "cache-first",
   });
 
-  const hasLeads = (leadData?.leads?.totalCount || 0) > 0;
+  const hasLeads = (leadData?.leads?.edges?.length || 0) > 0;
   const pendingSMS = smsCampaignQueue.filter((s) => s.status === "queued").length;
   const pendingCalls = scheduledCalls.filter((c) => c.status === "pending").length;
   const todayEvents = calendarEvents.filter((e) => {
