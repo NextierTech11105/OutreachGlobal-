@@ -1,7 +1,13 @@
 import { getAuthUser } from "@/features/auth/auth.data";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { InstantActionPanel } from "@/components/command-center/instant-action-panel";
+import dynamic from "next/dynamic";
+
+// Dynamic import to avoid SSR issues with client component
+const InstantActionPanel = dynamic(
+  () => import("@/components/command-center/instant-action-panel").then(mod => mod.InstantActionPanel),
+  { ssr: false, loading: () => <div className="animate-pulse h-64 bg-slate-800/50 rounded-3xl" /> }
+);
 
 export default async function Page() {
   const { team, user } = await getAuthUser();
