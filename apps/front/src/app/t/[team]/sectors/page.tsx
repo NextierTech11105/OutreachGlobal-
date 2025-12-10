@@ -434,10 +434,11 @@ export default function SectorsPage() {
     return sectorStats[sectorId]?.totalRecords || 0;
   };
 
-  const formatNumber = (num: number): string => {
-    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
-    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
-    return num.toString();
+  const formatNumber = (num: number | undefined | null): string => {
+    const n = num ?? 0;
+    if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`;
+    if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
+    return n.toString();
   };
 
   const SectorCard = ({ sector }: { sector: Sector }) => {
@@ -1074,12 +1075,11 @@ export default function SectorsPage() {
                 <p className="text-sm text-muted-foreground">
                   {uploadResult.message}
                 </p>
-                {uploadResult.stats &&
-                  sf(
+                {uploadResult.stats && (
                     <div className="grid grid-cols-4 gap-2 mt-3">
                       <div className="text-center">
                         <div className="text-lg font-bold">
-                          {uploadResult.stats.total ?? 0}
+                          {sf(uploadResult.stats.total)}
                         </div>
                         <div className="text-xs text-muted-foreground">
                           Total
@@ -1087,7 +1087,7 @@ export default function SectorsPage() {
                       </div>
                       <div className="text-center">
                         <div className="text-lg font-bold text-green-600">
-                          {sf(uploadResult.stats.withPhone ?? 0)}
+                          {sf(uploadResult.stats.withPhone)}
                         </div>
                         <div className="text-xs text-muted-foreground">
                           Phones
@@ -1095,7 +1095,7 @@ export default function SectorsPage() {
                       </div>
                       <div className="text-center">
                         <div className="text-lg font-bold text-blue-600">
-                          {sf(uploadResult.stats.withEmail ?? 0)}
+                          {sf(uploadResult.stats.withEmail)}
                         </div>
                         <div className="text-xs text-muted-foreground">
                           Emails
@@ -1103,13 +1103,13 @@ export default function SectorsPage() {
                       </div>
                       <div className="text-center">
                         <div className="text-lg font-bold text-purple-600">
-                          {sf(uploadResult.stats.withAddress ?? 0)}
+                          {sf(uploadResult.stats.withAddress)}
                         </div>
                         <div className="text-xs text-muted-foreground">
                           Enrichable
                         </div>
                       </div>
-                    </div>,
+                    </div>
                   )}
               </div>
             )}
