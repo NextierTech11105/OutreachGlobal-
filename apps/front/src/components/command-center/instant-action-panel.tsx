@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button, type ButtonProps } from "@/components/ui/button";
-import { Activity, ArrowRightUp, Zap } from "lucide-react";
+import { Activity, ArrowUpRight, Zap } from "lucide-react";
 
 type EnrichmentUsage = {
   count?: number;
@@ -251,7 +251,7 @@ export function InstantActionPanel() {
                     className="flex-1 justify-between rounded-2xl text-sm font-semibold tracking-wide"
                   >
                     <span>{action.buttonLabel}</span>
-                    {action.id === "queue" && <ArrowRightUp className="h-4 w-4" />}
+                    {action.id === "queue" && <ArrowUpRight className="h-4 w-4" />}
                   </Button>
                 </div>
               </div>
