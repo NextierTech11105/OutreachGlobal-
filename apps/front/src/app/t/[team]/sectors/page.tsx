@@ -141,14 +141,32 @@ export default function SectorsPage() {
       setIsLoading(true);
       try {
         // Fetch real buckets from DO Spaces
-        const response = await fetch("/api/buckets?perPage=100");
-        const data = await response.json();
+        const [bucketsResponse, sectorStatsResponse] = await Promise.all([
+          fetch("/api/buckets?perPage=100"),
+          fetch("/api/sectors/stats"),
+        ]);
+        const data = await bucketsResponse.json();
+        const sectorData = await sectorStatsResponse.json();
+
+        // Convert buckets to sector stats + merge B2B sector stats
+        const stats: Record<string, SectorStats> = {};
+        const sources: DataSourceSummary[] = [];
+
+        // Add B2B sector stats from SIC code aggregation
+        if (sectorData.sectors) {
+          Object.entries(sectorData.sectors).forEach(([sectorId, sectorStat]: [string, unknown]) => {
+            const s = sectorStat as { totalRecords: number; enriched: number };
+            stats[sectorId] = {
+              sectorId,
+              totalRecords: s.totalRecords || 0,
+              enrichedRecords: s.enriched || 0,
+              contactedRecords: 0,
+              lastUpdated: new Date(),
+            };
+          });
+        }
 
         if (data.buckets && data.buckets.length > 0) {
-          // Convert buckets to sector stats
-          const stats: Record<string, SectorStats> = {};
-          const sources: DataSourceSummary[] = [];
-
           data.buckets.forEach(
             (bucket: {
               id: string;
@@ -161,7 +179,7 @@ export default function SectorsPage() {
               createdAt: string;
               tags?: string[];
             }) => {
-              // Create stat entry for each bucket
+              // Create stat entry for each bucket (as its own data lake)
               stats[bucket.id] = {
                 sectorId: bucket.id,
                 totalRecords: bucket.totalLeads || 0,
@@ -184,10 +202,11 @@ export default function SectorsPage() {
             },
           );
 
-          setSectorStats(stats);
           setDataSources(sources);
           setDataLakes(data.buckets);
         }
+
+        setSectorStats(stats);
       } catch (error) {
         console.error("Failed to fetch buckets:", error);
       } finally {
