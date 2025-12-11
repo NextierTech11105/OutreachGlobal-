@@ -20,6 +20,7 @@ import {
   Cable,
   Target,
   CreditCard,
+  Building2,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -70,6 +71,12 @@ export function AdminSidebar() {
       label: "MCP Lead Tracker",
       icon: <Target className="h-4 w-4 text-purple-400" />,
       active: pathname === "/admin/mcp",
+    },
+    {
+      href: "/admin/b2b",
+      label: "B2B Lead Search",
+      icon: <Building2 className="h-4 w-4 text-blue-400" />,
+      active: pathname === "/admin/b2b",
     },
     {
       href: "/admin/users",
