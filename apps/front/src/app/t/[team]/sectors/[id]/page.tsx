@@ -433,14 +433,14 @@ export default function SectorDetailPage() {
     );
   };
 
-  // Apollo Enrichment
+  // Apollo Enrichment - Decision Makers Only (Owner, CRO, Partner, VP, Sales Manager)
   const handleApolloEnrich = async () => {
     const selected = leads.filter(
-      (l) => selectedIds.has(l.id) && (l.companyName || l.website),
+      (l) => selectedIds.has(l.id) && (l.email || (l.contactName && l.companyName)),
     );
     if (selected.length === 0) {
       toast.error(
-        "No selected records have company names or websites for Apollo enrichment",
+        "No selected records have email or (contact name + company) for Apollo enrichment",
       );
       return;
     }
@@ -464,29 +464,58 @@ export default function SectorDetailPage() {
       const results = await Promise.all(
         batch.map(async (lead) => {
           try {
-            // Use Apollo people search by company
-            const response = await fetch("/api/business-list/search", {
+            // Parse contact name into first/last
+            const nameParts = (lead.contactName || "").split(" ");
+            const firstName = nameParts[0] || undefined;
+            const lastName = nameParts.slice(1).join(" ") || undefined;
+
+            // Use Apollo enrichment API with email or name+company
+            const response = await fetch("/api/enrichment/apollo", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                company_name: lead.companyName ? [lead.companyName] : undefined,
-                company_domain: lead.website
-                  ? [lead.website.replace(/^https?:\/\//, "")]
-                  : undefined,
-                state: lead.state ? [lead.state] : undefined,
+                recordId: lead.id,
+                bucketId: sectorId,
+                email: lead.email || undefined,
+                firstName,
+                lastName,
+                companyName: lead.companyName || undefined,
+                domain: lead.website?.replace(/^https?:\/\//, "").replace(/\/.*$/, "") || undefined,
               }),
             });
 
             const data = await response.json();
-            if (data.hits && data.hits.length > 0) {
-              const apolloData = data.hits[0];
+            if (data.success && data.enrichedData) {
+              const enriched = data.enrichedData;
+              // Filter for decision-makers only: Owner, CRO, Partner, VP, Sales Manager
+              const seniority = (enriched.seniority || "").toLowerCase();
+              const title = (enriched.title || "").toLowerCase();
+              const isDecisionMaker =
+                seniority === "owner" ||
+                seniority === "founder" ||
+                seniority === "c_suite" ||
+                seniority === "partner" ||
+                seniority === "vp" ||
+                title.includes("owner") ||
+                title.includes("cro") ||
+                title.includes("chief revenue") ||
+                title.includes("partner") ||
+                title.includes("vp") ||
+                title.includes("vice president") ||
+                title.includes("sales manager") ||
+                title.includes("sales director");
+
               return {
                 leadId: lead.id,
                 success: true,
-                apolloData,
-                phone: apolloData.phone,
-                email: apolloData.email,
-                linkedin: apolloData.linkedin_url,
+                isDecisionMaker,
+                apolloData: enriched,
+                phones: enriched.phones || [],
+                email: enriched.email,
+                linkedin: enriched.linkedinUrl,
+                title: enriched.title,
+                seniority: enriched.seniority,
+                organization: enriched.organization,
               };
             }
             return { leadId: lead.id, success: false };
@@ -505,9 +534,11 @@ export default function SectorDetailPage() {
             return {
               ...lead,
               enriched: true,
+              isDecisionMaker: result.isDecisionMaker,
               apolloData: result.apolloData,
-              enrichedPhones: result.phone
-                ? [result.phone]
+              title: result.title || lead.title,
+              enrichedPhones: result.phones?.length > 0
+                ? result.phones
                 : lead.enrichedPhones,
               enrichedEmails: result.email
                 ? [result.email]
