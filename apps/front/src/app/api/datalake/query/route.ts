@@ -5,15 +5,22 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { S3Client, ListObjectsV2Command, GetObjectCommand, SelectObjectContentCommand } from "@aws-sdk/client-s3";
-import { DATA_LAKE_SCHEMAS } from "../schemas/route";
+import {
+  S3Client,
+  ListObjectsV2Command,
+  GetObjectCommand,
+} from "@aws-sdk/client-s3";
+import { DATA_LAKE_SCHEMAS, SCHEMA_PATHS } from "@/lib/datalake/schemas";
 
 // DO Spaces configuration
-const SPACES_ENDPOINT = process.env.SPACES_ENDPOINT || "https://nyc3.digitaloceanspaces.com";
+const SPACES_ENDPOINT =
+  process.env.SPACES_ENDPOINT || "https://nyc3.digitaloceanspaces.com";
 const SPACES_REGION = process.env.SPACES_REGION || "nyc3";
 const SPACES_KEY = process.env.SPACES_KEY || process.env.DO_SPACES_KEY || "";
-const SPACES_SECRET = process.env.SPACES_SECRET || process.env.DO_SPACES_SECRET || "";
-const SPACES_BUCKET = process.env.SPACES_BUCKET || process.env.DO_SPACES_BUCKET || "nextier";
+const SPACES_SECRET =
+  process.env.SPACES_SECRET || process.env.DO_SPACES_SECRET || "";
+const SPACES_BUCKET =
+  process.env.SPACES_BUCKET || process.env.DO_SPACES_BUCKET || "nextier";
 
 const s3Client = new S3Client({
   endpoint: SPACES_ENDPOINT,
@@ -24,14 +31,6 @@ const s3Client = new S3Client({
   },
   forcePathStyle: false,
 });
-
-// Schema ID to storage path mapping
-const SCHEMA_PATHS: Record<string, string> = {
-  ny_residential: "datalake/residential/ny/",
-  ny_cell_phone: "datalake/phones/ny/",
-  ny_optin_email: "datalake/emails/ny/",
-  ny_business: "datalake/business/ny/",
-};
 
 interface QueryParams {
   schemaId: string;
@@ -64,34 +63,47 @@ interface QueryParams {
 export async function POST(request: NextRequest) {
   try {
     if (!SPACES_KEY || !SPACES_SECRET) {
-      return NextResponse.json({
-        error: "DigitalOcean Spaces credentials not configured",
-      }, { status: 503 });
+      return NextResponse.json(
+        {
+          error: "DigitalOcean Spaces credentials not configured",
+        },
+        { status: 503 },
+      );
     }
 
     const params: QueryParams = await request.json();
     const { schemaId, limit = 100, offset = 0 } = params;
 
     if (!schemaId) {
-      return NextResponse.json({
-        error: "schemaId is required",
-        availableSchemas: Object.keys(DATA_LAKE_SCHEMAS),
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: "schemaId is required",
+          availableSchemas: Object.keys(DATA_LAKE_SCHEMAS),
+        },
+        { status: 400 },
+      );
     }
 
-    const schema = DATA_LAKE_SCHEMAS[schemaId as keyof typeof DATA_LAKE_SCHEMAS];
+    const schema =
+      DATA_LAKE_SCHEMAS[schemaId as keyof typeof DATA_LAKE_SCHEMAS];
     if (!schema) {
-      return NextResponse.json({
-        error: `Invalid schemaId: ${schemaId}`,
-        availableSchemas: Object.keys(DATA_LAKE_SCHEMAS),
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: `Invalid schemaId: ${schemaId}`,
+          availableSchemas: Object.keys(DATA_LAKE_SCHEMAS),
+        },
+        { status: 400 },
+      );
     }
 
     const basePath = SCHEMA_PATHS[schemaId];
     if (!basePath) {
-      return NextResponse.json({
-        error: `No storage path for schema: ${schemaId}`,
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: `No storage path for schema: ${schemaId}`,
+        },
+        { status: 400 },
+      );
     }
 
     // List files in the processed folder first, fall back to raw
@@ -123,7 +135,11 @@ export async function POST(request: NextRequest) {
       if (results.length >= limit) break;
 
       try {
-        const data = await fetchAndParseCsv(file.Key!, params, limit - results.length);
+        const data = await fetchAndParseCsv(
+          file.Key!,
+          params,
+          limit - results.length,
+        );
         results.push(...data.records);
         totalScanned += data.scanned;
       } catch (err) {
@@ -141,16 +157,20 @@ export async function POST(request: NextRequest) {
       count: results.length,
       totalScanned,
       filesSearched: files.length,
-      message: results.length === 0
-        ? "No matching records found"
-        : `Found ${results.length} matching records`,
+      message:
+        results.length === 0
+          ? "No matching records found"
+          : `Found ${results.length} matching records`,
     });
   } catch (error) {
     console.error("[Datalake Query] Error:", error);
-    return NextResponse.json({
-      error: "Query failed",
-      details: String(error),
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: "Query failed",
+        details: String(error),
+      },
+      { status: 500 },
+    );
   }
 }
 
@@ -159,7 +179,7 @@ export async function GET() {
   const schemas = Object.entries(DATA_LAKE_SCHEMAS).map(([id, schema]) => ({
     id,
     name: schema.name,
-    fields: schema.fields.map(f => ({
+    fields: schema.fields.map((f) => ({
       name: f.name,
       normalized: f.normalized,
       type: f.type,
@@ -209,13 +229,15 @@ export async function GET() {
 // Helper: List CSV files in a path
 async function listCsvFiles(prefix: string) {
   try {
-    const response = await s3Client.send(new ListObjectsV2Command({
-      Bucket: SPACES_BUCKET,
-      Prefix: prefix,
-    }));
+    const response = await s3Client.send(
+      new ListObjectsV2Command({
+        Bucket: SPACES_BUCKET,
+        Prefix: prefix,
+      }),
+    );
 
-    return (response.Contents || []).filter(obj =>
-      obj.Key?.endsWith(".csv") && !obj.Key?.endsWith(".meta.json")
+    return (response.Contents || []).filter(
+      (obj) => obj.Key?.endsWith(".csv") && !obj.Key?.endsWith(".meta.json"),
     );
   } catch {
     return [];
@@ -226,12 +248,14 @@ async function listCsvFiles(prefix: string) {
 async function fetchAndParseCsv(
   key: string,
   params: QueryParams,
-  maxResults: number
+  maxResults: number,
 ): Promise<{ records: Record<string, unknown>[]; scanned: number }> {
-  const response = await s3Client.send(new GetObjectCommand({
-    Bucket: SPACES_BUCKET,
-    Key: key,
-  }));
+  const response = await s3Client.send(
+    new GetObjectCommand({
+      Bucket: SPACES_BUCKET,
+      Key: key,
+    }),
+  );
 
   const content = await response.Body?.transformToString();
   if (!content) return { records: [], scanned: 0 };
@@ -291,10 +315,15 @@ function parseCsvLine(line: string): string[] {
 }
 
 // Helper: Check if record matches query filters
-function matchesFilters(record: Record<string, unknown>, params: QueryParams): boolean {
+function matchesFilters(
+  record: Record<string, unknown>,
+  params: QueryParams,
+): boolean {
   // Address matching
   if (params.address) {
-    const addr = String(record["Address"] || record["address"] || record["Street Address"] || "").toLowerCase();
+    const addr = String(
+      record["Address"] || record["address"] || record["Street Address"] || "",
+    ).toLowerCase();
     if (!addr.includes(params.address.toLowerCase())) return false;
   }
 
@@ -304,40 +333,54 @@ function matchesFilters(record: Record<string, unknown>, params: QueryParams): b
   }
 
   if (params.zipCode) {
-    const zip = String(record["Zip Code"] || record["zipCode"] || record["Zip"] || "");
+    const zip = String(
+      record["Zip Code"] || record["zipCode"] || record["Zip"] || "",
+    );
     if (!zip.startsWith(params.zipCode)) return false;
   }
 
   if (params.county) {
-    const county = String(record["County Name"] || record["county"] || record["County"] || "").toLowerCase();
+    const county = String(
+      record["County Name"] || record["county"] || record["County"] || "",
+    ).toLowerCase();
     if (!county.includes(params.county.toLowerCase())) return false;
   }
 
   // Person matching
   if (params.firstName) {
-    const fname = String(record["First Name"] || record["firstName"] || "").toLowerCase();
+    const fname = String(
+      record["First Name"] || record["firstName"] || "",
+    ).toLowerCase();
     if (!fname.includes(params.firstName.toLowerCase())) return false;
   }
 
   if (params.lastName) {
-    const lname = String(record["Last Name"] || record["lastName"] || "").toLowerCase();
+    const lname = String(
+      record["Last Name"] || record["lastName"] || "",
+    ).toLowerCase();
     if (!lname.includes(params.lastName.toLowerCase())) return false;
   }
 
   if (params.phone) {
-    const phone = String(record["Phone Number"] || record["phone"] || record["Cell Number"] || "").replace(/\D/g, "");
+    const phone = String(
+      record["Phone Number"] || record["phone"] || record["Cell Number"] || "",
+    ).replace(/\D/g, "");
     const searchPhone = params.phone.replace(/\D/g, "");
     if (!phone.includes(searchPhone)) return false;
   }
 
   if (params.email) {
-    const email = String(record["Email Address"] || record["email"] || "").toLowerCase();
+    const email = String(
+      record["Email Address"] || record["email"] || "",
+    ).toLowerCase();
     if (!email.includes(params.email.toLowerCase())) return false;
   }
 
   // Business matching
   if (params.companyName) {
-    const company = String(record["Company Name"] || record["companyName"] || "").toLowerCase();
+    const company = String(
+      record["Company Name"] || record["companyName"] || "",
+    ).toLowerCase();
     if (!company.includes(params.companyName.toLowerCase())) return false;
   }
 
@@ -348,27 +391,46 @@ function matchesFilters(record: Record<string, unknown>, params: QueryParams): b
 
   // Numeric filters
   if (params.minIncome) {
-    const income = parseFloat(String(record["Estimated Income"] || record["estimatedIncome"] || "0"));
+    const income = parseFloat(
+      String(record["Estimated Income"] || record["estimatedIncome"] || "0"),
+    );
     if (income < params.minIncome) return false;
   }
 
   if (params.maxIncome) {
-    const income = parseFloat(String(record["Estimated Income"] || record["estimatedIncome"] || "999999999"));
+    const income = parseFloat(
+      String(
+        record["Estimated Income"] || record["estimatedIncome"] || "999999999",
+      ),
+    );
     if (income > params.maxIncome) return false;
   }
 
   if (params.minWealth) {
-    const wealth = parseFloat(String(record["Estimated Wealth"] || record["estimatedWealth"] || "0"));
+    const wealth = parseFloat(
+      String(record["Estimated Wealth"] || record["estimatedWealth"] || "0"),
+    );
     if (wealth < params.minWealth) return false;
   }
 
   if (params.ageMin) {
-    const age = parseInt(String(record["Exact Age"] || record["age"] || record["Estimated Age"] || "0"));
+    const age = parseInt(
+      String(
+        record["Exact Age"] || record["age"] || record["Estimated Age"] || "0",
+      ),
+    );
     if (age < params.ageMin) return false;
   }
 
   if (params.ageMax) {
-    const age = parseInt(String(record["Exact Age"] || record["age"] || record["Estimated Age"] || "999"));
+    const age = parseInt(
+      String(
+        record["Exact Age"] ||
+          record["age"] ||
+          record["Estimated Age"] ||
+          "999",
+      ),
+    );
     if (age > params.ageMax) return false;
   }
 
