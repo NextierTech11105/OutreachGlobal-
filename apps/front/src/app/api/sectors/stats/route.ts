@@ -129,44 +129,55 @@ export async function GET(): Promise<NextResponse> {
 
     console.log(`[Sector Stats] Scanning ${bucketKeys.length} buckets...`);
 
-    // Sample up to 50 buckets for stats (full scan would be slow)
-    const sampleSize = Math.min(50, bucketKeys.length);
+    // Sample up to 20 buckets for stats (reduced for speed)
+    const sampleSize = Math.min(20, bucketKeys.length);
     const sampledKeys = bucketKeys.slice(0, sampleSize);
 
-    for (const key of sampledKeys) {
+    // Process buckets in parallel for speed
+    const bucketPromises = sampledKeys.map(async (key) => {
       try {
         const response = await client.send(
           new GetObjectCommand({ Bucket: SPACES_BUCKET, Key: key })
         );
         const content = await response.Body?.transformToString();
-        if (!content) continue;
+        if (!content) return null;
 
         const bucket = JSON.parse(content);
-        const records = bucket.records || [];
-
-        for (const record of records) {
-          const sicCode = record.matchingKeys?.sicCode || record._original?.["SIC Code"];
-          const sectorId = matchSICToSector(sicCode);
-
-          if (sectorId && sectorStats[sectorId]) {
-            sectorStats[sectorId].totalRecords++;
-
-            const original = record._original || {};
-            const flags = record.flags || {};
-
-            if (flags.hasPhone || original["Phone"]) {
-              sectorStats[sectorId].withPhone++;
-            }
-            if (flags.hasEmail || original["Email"]) {
-              sectorStats[sectorId].withEmail++;
-            }
-            if (record.enrichment?.status === "success") {
-              sectorStats[sectorId].enriched++;
-            }
-          }
-        }
+        // Handle records, leads, or properties format
+        const records = bucket.records || bucket.leads || bucket.properties || [];
+        return { key, records, totalLeads: bucket.totalLeads || records.length };
       } catch (err) {
         console.error(`[Sector Stats] Error reading ${key}:`, err);
+        return null;
+      }
+    });
+
+    const bucketResults = (await Promise.all(bucketPromises)).filter(Boolean);
+
+    for (const result of bucketResults) {
+      if (!result) continue;
+      const records = result.records;
+
+      for (const record of records) {
+        const sicCode = record.matchingKeys?.sicCode || record._original?.["SIC Code"];
+        const sectorId = matchSICToSector(sicCode);
+
+        if (sectorId && sectorStats[sectorId]) {
+          sectorStats[sectorId].totalRecords++;
+
+          const original = record._original || {};
+          const flags = record.flags || {};
+
+          if (flags.hasPhone || original["Phone"]) {
+            sectorStats[sectorId].withPhone++;
+          }
+          if (flags.hasEmail || original["Email"]) {
+            sectorStats[sectorId].withEmail++;
+          }
+          if (record.enrichment?.status === "success") {
+            sectorStats[sectorId].enriched++;
+          }
+        }
       }
     }
 
