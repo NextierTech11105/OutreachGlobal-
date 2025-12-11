@@ -269,8 +269,13 @@ async function searchBucket(
     if (!content) return [];
 
     const data = JSON.parse(content);
-    // Handle both 'leads' and 'records' formats from bucket data
-    let leads: BucketLead[] = data.leads || data.records || [];
+    // Handle 'leads', 'records', and 'properties' formats from bucket data
+    let leads: BucketLead[] = data.leads || data.records || data.properties || [];
+
+    // If no leads found, log available keys for debugging
+    if (leads.length === 0) {
+      console.log(`[B2B Search] Bucket ${bucketId} has keys:`, Object.keys(data).slice(0, 10));
+    }
 
     // Normalize records format to have standard fields
     leads = leads.map(lead => {
