@@ -22,6 +22,21 @@ const s3Client = new S3Client({
   forcePathStyle: false,
 });
 
+// Decision maker titles to filter for
+const DECISION_MAKER_TITLES = [
+  "owner",
+  "ceo",
+  "chief executive",
+  "partner",
+  "president",
+  "sales manager",
+  "general manager",
+  "managing director",
+  "founder",
+  "co-founder",
+  "principal",
+];
+
 interface BucketLead {
   id: string;
   email?: string;
@@ -29,12 +44,78 @@ interface BucketLead {
   firstName?: string;
   lastName?: string;
   company?: string;
+  title?: string;
   address?: string;
   city?: string;
   state?: string;
   zipCode?: string;
   sicCode?: string;
+  matchingKeys?: {
+    title?: string | null;
+    companyName?: string | null;
+    firstName?: string | null;
+    lastName?: string | null;
+    address?: string | null;
+    city?: string | null;
+    state?: string | null;
+    zip?: string | null;
+    sicCode?: string | null;
+  };
+  seniority?: {
+    title?: string | null;
+    level?: string;
+    isDecisionMaker?: boolean;
+  };
+  _original?: Record<string, string>;
   [key: string]: unknown;
+}
+
+// Get the title from various places in the lead data
+function getLeadTitle(lead: BucketLead): string {
+  return (
+    lead.title ||
+    lead.matchingKeys?.title ||
+    lead.seniority?.title ||
+    lead._original?.["Title"] ||
+    lead._original?.["title"] ||
+    lead._original?.["Job Title"] ||
+    ""
+  ) as string;
+}
+
+// Check if a title matches decision maker criteria
+function isDecisionMaker(lead: BucketLead): boolean {
+  const title = getLeadTitle(lead).toLowerCase();
+  if (!title) return false;
+  return DECISION_MAKER_TITLES.some(dm => title.includes(dm));
+}
+
+// Format lead for API response
+function formatLead(lead: BucketLead) {
+  const keys = lead.matchingKeys || {};
+  const original = lead._original || {};
+
+  return {
+    id: lead.id,
+    first_name: lead.firstName || keys.firstName || original["First Name"] || original["first_name"] || "",
+    last_name: lead.lastName || keys.lastName || original["Last Name"] || original["last_name"] || "",
+    title: getLeadTitle(lead),
+    company: lead.company || keys.companyName || original["Company"] || original["company"] || original["Company Name"] || "",
+    email: lead.email || original["Email"] || original["email"] || "",
+    phone: lead.phone || original["Phone"] || original["phone"] || original["Direct Phone"] || "",
+    address: lead.address || keys.address || original["Address"] || original["address"] || "",
+    city: lead.city || keys.city || original["City"] || original["city"] || "",
+    state: lead.state || keys.state || original["State"] || original["state"] || "NY",
+    zip_code: lead.zipCode || keys.zip || original["Zip"] || original["zip"] || original["Zip Code"] || "",
+    sic_code: lead.sicCode || keys.sicCode || original["SIC Code"] || original["sic_code"] || "",
+    sic_description: original["SIC Description"] || original["sic_description"] || "",
+    industry: original["Industry"] || original["industry"] || "",
+    revenue: original["Revenue"] || original["revenue"] || original["Annual Revenue"] || "",
+    employees: original["Employees"] || original["employees"] || original["Number of Employees"] || "",
+    is_decision_maker: isDecisionMaker(lead),
+    property_id: null,
+    created_at: new Date().toISOString(),
+  };
 }
 
 export async function POST(request: NextRequest) {
@@ -53,21 +134,26 @@ export async function POST(request: NextRequest) {
       company,
       sicCode,
       email,
+      title,
+      decisionMakersOnly = true, // DEFAULT: Only show decision makers (Owner, CEO, Partner, Sales Manager)
       limit = 50,
       offset = 0,
       bucketId // Optional: search specific bucket
     } = body;
 
+    const filters = { state, city, company, sicCode, email, title, decisionMakersOnly };
+
     // If specific bucket requested, search just that one
     if (bucketId) {
-      const results = await searchBucket(bucketId, { state, city, company, sicCode, email }, limit);
+      const results = await searchBucket(bucketId, filters, limit);
       return NextResponse.json({
-        leads: results,
+        leads: results.map(formatLead),
         total: results.length,
         limit,
         offset: 0,
         source: "bucket",
         bucketId,
+        filters: { decisionMakersOnly, title },
       });
     }
 
@@ -80,35 +166,23 @@ export async function POST(request: NextRequest) {
 
       const results = await searchBucket(
         bucket.key,
-        { state, city, company, sicCode, email },
+        filters,
         limit - allResults.length
       );
       allResults.push(...results);
     }
 
     return NextResponse.json({
-      leads: allResults.map(lead => ({
-        id: lead.id,
-        first_name: lead.firstName || "",
-        last_name: lead.lastName || "",
-        company: lead.company || "",
-        email: lead.email || "",
-        phone: lead.phone || "",
-        address: lead.address || "",
-        city: lead.city || "",
-        state: lead.state || "NY",
-        zip_code: lead.zipCode || "",
-        sic_code: lead.sicCode || "",
-        property_id: null,
-        metadata: lead,
-        created_at: new Date().toISOString(),
-      })),
+      leads: allResults.map(formatLead),
       total: allResults.length,
       limit,
       offset,
       source: "buckets",
       bucketsSearched: bucketList.length,
-      hint: "Add bucketId param to search a specific bucket",
+      filters: { decisionMakersOnly, title },
+      hint: decisionMakersOnly
+        ? "Showing decision makers only (Owner, CEO, Partner, Sales Manager). Set decisionMakersOnly=false to see all."
+        : "Add bucketId param to search a specific bucket",
     });
   } catch (error) {
     console.error("B2B search error:", error);
@@ -134,9 +208,12 @@ export async function GET() {
         company: "Filter by company name",
         sicCode: "Filter by SIC code prefix",
         email: "Filter by email domain",
+        title: "Filter by job title",
+        decisionMakersOnly: "DEFAULT: true - Only show Owner, CEO, Partner, Sales Manager. Set false to see all.",
         limit: "Max results (default: 50)",
         bucketId: "Search specific bucket",
       },
+      decisionMakerTitles: DECISION_MAKER_TITLES,
       availableBuckets: buckets.slice(0, 10),
       totalBuckets: buckets.length,
     });
@@ -169,7 +246,15 @@ async function listBuckets(maxBuckets: number): Promise<{ key: string; size: num
 // Search within a specific bucket
 async function searchBucket(
   bucketId: string,
-  filters: { state?: string; city?: string; company?: string; sicCode?: string; email?: string },
+  filters: {
+    state?: string;
+    city?: string;
+    company?: string;
+    sicCode?: string;
+    email?: string;
+    title?: string;
+    decisionMakersOnly?: boolean;
+  },
   maxResults: number
 ): Promise<BucketLead[]> {
   try {
@@ -184,25 +269,69 @@ async function searchBucket(
     if (!content) return [];
 
     const data = JSON.parse(content);
-    const leads: BucketLead[] = data.leads || data.records || [];
+    // Handle both 'leads' and 'records' formats from bucket data
+    let leads: BucketLead[] = data.leads || data.records || [];
+
+    // Normalize records format to have standard fields
+    leads = leads.map(lead => {
+      const keys = lead.matchingKeys || {};
+      const original = lead._original || {};
+      return {
+        ...lead,
+        firstName: lead.firstName || keys.firstName || original["First Name"] || "",
+        lastName: lead.lastName || keys.lastName || original["Last Name"] || "",
+        company: lead.company || keys.companyName || original["Company"] || original["Company Name"] || "",
+        title: getLeadTitle(lead),
+        email: lead.email || original["Email"] || original["email"] || "",
+        phone: lead.phone || original["Phone"] || original["phone"] || "",
+        address: lead.address || keys.address || original["Address"] || "",
+        city: lead.city || keys.city || original["City"] || "",
+        state: lead.state || keys.state || original["State"] || "",
+        zipCode: lead.zipCode || keys.zip || original["Zip"] || original["Zip Code"] || "",
+        sicCode: lead.sicCode || keys.sicCode || original["SIC Code"] || original["sic_code"] || "",
+      };
+    });
 
     // Apply filters
     const filtered = leads.filter(lead => {
+      // Decision maker filter (DEFAULT ON)
+      if (filters.decisionMakersOnly !== false && !isDecisionMaker(lead)) {
+        return false;
+      }
+
+      // Title filter
+      if (filters.title) {
+        const leadTitle = getLeadTitle(lead).toLowerCase();
+        if (!leadTitle.includes(filters.title.toLowerCase())) {
+          return false;
+        }
+      }
+
+      // State filter
       if (filters.state && lead.state?.toUpperCase() !== filters.state.toUpperCase()) {
         return false;
       }
+
+      // City filter
       if (filters.city && !lead.city?.toLowerCase().includes(filters.city.toLowerCase())) {
         return false;
       }
+
+      // Company filter
       if (filters.company && !lead.company?.toLowerCase().includes(filters.company.toLowerCase())) {
         return false;
       }
+
+      // SIC code filter
       if (filters.sicCode && !lead.sicCode?.startsWith(filters.sicCode)) {
         return false;
       }
+
+      // Email filter
       if (filters.email && !lead.email?.toLowerCase().includes(filters.email.toLowerCase())) {
         return false;
       }
+
       return true;
     });
 
