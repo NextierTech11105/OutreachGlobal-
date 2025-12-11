@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const REALESTATE_API_KEY = process.env.REAL_ESTATE_API_KEY || process.env.REALESTATE_API_KEY || "";
+const REALESTATE_API_KEY =
+  process.env.REAL_ESTATE_API_KEY || process.env.REALESTATE_API_KEY || "";
 const PROPERTY_DETAIL_URL = "https://api.realestateapi.com/v2/PropertyDetail";
 const PROPERTY_SEARCH_URL = "https://api.realestateapi.com/v2/PropertySearch";
 const PROPERTY_COMPS_URL = "https://api.realestateapi.com/v3/PropertyComps";
-const MAPBOX_ACCESS_TOKEN = process.env.MAPBOX_ACCESS_TOKEN || process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "pk.eyJ1IjoibmV4dGllcjExMTA1IiwiYSI6ImNtaXVrbmRodTFrY3YzanEwamFoZG44dWQifQ.EGNVQPofUwZm60KP6iID_g";
+const MAPBOX_ACCESS_TOKEN =
+  process.env.MAPBOX_ACCESS_TOKEN ||
+  process.env.NEXT_PUBLIC_MAPBOX_TOKEN ||
+  "pk.eyJ1IjoibmV4dGllcjExMTA1IiwiYSI6ImNtaXVrbmRodTFrY3YzanEwamFoZG44dWQifQ.EGNVQPofUwZm60KP6iID_g";
 
 // Validate API key on startup
 function validateApiKey(): { valid: boolean; message: string } {
@@ -12,7 +16,10 @@ function validateApiKey(): { valid: boolean; message: string } {
     return { valid: false, message: "REALESTATE_API_KEY not configured" };
   }
   if (!REALESTATE_API_KEY.startsWith("NEXTIER-")) {
-    return { valid: false, message: "Invalid API key format - should start with NEXTIER-" };
+    return {
+      valid: false,
+      message: "Invalid API key format - should start with NEXTIER-",
+    };
   }
   return { valid: true, message: "API key configured" };
 }
@@ -127,6 +134,74 @@ interface NormalizedProperty {
     openingBid?: number;
     caseNumber?: string;
   };
+  // Sale History (all historical sales)
+  saleHistory?: Array<{
+    saleDate?: string;
+    saleAmount?: number;
+    buyerNames?: string;
+    sellerNames?: string;
+    documentType?: string;
+    purchaseMethod?: string;
+    transactionType?: string;
+    recordingDate?: string;
+  }>;
+  // Mortgage History (all historical mortgages)
+  mortgageHistory?: Array<{
+    documentDate?: string;
+    amount?: number;
+    lenderName?: string;
+    interestRate?: number;
+    interestRateType?: string;
+    loanType?: string;
+    deedType?: string;
+    granteeName?: string;
+    open?: boolean;
+  }>;
+  // Schools nearby
+  schools?: Array<{
+    name?: string;
+    type?: string;
+    grades?: string;
+    rating?: string;
+    parentRating?: string;
+    distance?: number;
+    street?: string;
+    city?: string;
+    state?: string;
+  }>;
+  // Linked Properties (other properties owned by same owner)
+  linkedProperties?: {
+    ids?: string[];
+    totalOwned?: number;
+    totalValue?: number;
+    totalEquity?: number;
+  };
+  // Lot Info
+  lotInfo?: {
+    apn?: string;
+    legalDescription?: string;
+    landUse?: string;
+    propertyClass?: string;
+    zoning?: string;
+    lotAcres?: number;
+    subdivision?: string;
+  };
+  // Auction Info (if in foreclosure)
+  auctionInfo?: {
+    active?: boolean;
+    auctionDate?: string;
+    openingBid?: number;
+    judgmentAmount?: number;
+    lenderName?: string;
+    trusteeName?: string;
+    caseNumber?: string;
+  };
+  // Neighborhood
+  neighborhoodData?: {
+    id?: string;
+    name?: string;
+    type?: string;
+  };
 }
 
 interface ValuationData {
@@ -153,77 +228,164 @@ interface ValuationData {
 }
 
 // Normalize RealEstateAPI PropertyDetail response to flat structure
-function normalizePropertyDetail(rawProperty: Record<string, unknown>, inputData?: { address?: string; city?: string; state?: string; zip?: string; latitude?: number; longitude?: number }): NormalizedProperty {
-  console.log("[Valuation] Raw PropertyDetail response:", JSON.stringify(rawProperty, null, 2).substring(0, 3000));
+function normalizePropertyDetail(
+  rawProperty: Record<string, unknown>,
+  inputData?: {
+    address?: string;
+    city?: string;
+    state?: string;
+    zip?: string;
+    latitude?: number;
+    longitude?: number;
+  },
+): NormalizedProperty {
+  console.log(
+    "[Valuation] Raw PropertyDetail response:",
+    JSON.stringify(rawProperty, null, 2).substring(0, 3000),
+  );
 
   // PropertyDetail has nested structures
-  const propertyInfo = (rawProperty.propertyInfo as Record<string, unknown>) || {};
+  const propertyInfo =
+    (rawProperty.propertyInfo as Record<string, unknown>) || {};
   const addressObj = (propertyInfo.address as Record<string, unknown>) || {};
   const ownerInfo = (rawProperty.ownerInfo as Record<string, unknown>) || {};
   const lotInfo = (rawProperty.lotInfo as Record<string, unknown>) || {};
   const lastSaleInfo = (rawProperty.lastSale as Record<string, unknown>) || {};
   const taxInfo = (rawProperty.taxInfo as Record<string, unknown>) || {};
-  const demographics = (rawProperty.demographics as Record<string, unknown>) || {};
-  const currentMortgages = (rawProperty.currentMortgages as Array<Record<string, unknown>>) || [];
-  const foreclosureInfo = (rawProperty.foreclosureInfo as Array<Record<string, unknown>>) || [];
-  const mailAddressObj = (ownerInfo.mailAddress as Record<string, unknown>) || {};
+  const demographics =
+    (rawProperty.demographics as Record<string, unknown>) || {};
+  const currentMortgages =
+    (rawProperty.currentMortgages as Array<Record<string, unknown>>) || [];
+  const foreclosureInfo =
+    (rawProperty.foreclosureInfo as Array<Record<string, unknown>>) || [];
+  const mailAddressObj =
+    (ownerInfo.mailAddress as Record<string, unknown>) || {};
 
   // Also check for flat structure (v2 API sometimes returns flat)
   const flatAddress = (rawProperty.address as Record<string, unknown>) || {};
 
   // Get address - check nested first, then flat, then input
-  const resolvedAddress = (addressObj.address || addressObj.label || flatAddress.address || flatAddress.label || inputData?.address) as string;
-  const resolvedCity = (addressObj.city || flatAddress.city || inputData?.city) as string;
-  const resolvedState = (addressObj.state || flatAddress.state || inputData?.state) as string;
-  const resolvedZip = (addressObj.zip || flatAddress.zip || inputData?.zip) as string;
+  const resolvedAddress = (addressObj.address ||
+    addressObj.label ||
+    flatAddress.address ||
+    flatAddress.label ||
+    inputData?.address) as string;
+  const resolvedCity = (addressObj.city ||
+    flatAddress.city ||
+    inputData?.city) as string;
+  const resolvedState = (addressObj.state ||
+    flatAddress.state ||
+    inputData?.state) as string;
+  const resolvedZip = (addressObj.zip ||
+    flatAddress.zip ||
+    inputData?.zip) as string;
   const resolvedCounty = (addressObj.county || flatAddress.county) as string;
 
-  console.log("[Valuation] Resolved address:", resolvedAddress, resolvedCity, resolvedState, resolvedZip);
+  console.log(
+    "[Valuation] Resolved address:",
+    resolvedAddress,
+    resolvedCity,
+    resolvedState,
+    resolvedZip,
+  );
 
   // Get property values - check nested then flat (RealEstateAPI uses many field variations)
-  const bedrooms = Number(
-    propertyInfo.bedrooms || propertyInfo.beds || propertyInfo.bedroomsTotal ||
-    rawProperty.bedrooms || rawProperty.beds || rawProperty.bedroomsTotal ||
-    rawProperty.bedroomCount || rawProperty.numBedrooms
-  ) || undefined;
+  const bedrooms =
+    Number(
+      propertyInfo.bedrooms ||
+        propertyInfo.beds ||
+        propertyInfo.bedroomsTotal ||
+        rawProperty.bedrooms ||
+        rawProperty.beds ||
+        rawProperty.bedroomsTotal ||
+        rawProperty.bedroomCount ||
+        rawProperty.numBedrooms,
+    ) || undefined;
 
   // Bathrooms - check ALL possible field names from RealEstateAPI
-  const bathrooms = Number(
-    propertyInfo.bathrooms || propertyInfo.baths || propertyInfo.bathroomsTotal ||
-    propertyInfo.bathsFull || propertyInfo.bathsTotal || propertyInfo.fullBaths ||
-    rawProperty.bathrooms || rawProperty.baths || rawProperty.bathroomsTotal ||
-    rawProperty.bathsFull || rawProperty.bathsTotal || rawProperty.fullBaths ||
-    rawProperty.bathroomCount || rawProperty.numBathrooms || rawProperty.totalBaths
-  ) || undefined;
+  const bathrooms =
+    Number(
+      propertyInfo.bathrooms ||
+        propertyInfo.baths ||
+        propertyInfo.bathroomsTotal ||
+        propertyInfo.bathsFull ||
+        propertyInfo.bathsTotal ||
+        propertyInfo.fullBaths ||
+        rawProperty.bathrooms ||
+        rawProperty.baths ||
+        rawProperty.bathroomsTotal ||
+        rawProperty.bathsFull ||
+        rawProperty.bathsTotal ||
+        rawProperty.fullBaths ||
+        rawProperty.bathroomCount ||
+        rawProperty.numBathrooms ||
+        rawProperty.totalBaths,
+    ) || undefined;
 
   // Half baths / partial baths
-  const halfBaths = Number(
-    propertyInfo.partialBathrooms || propertyInfo.halfBaths || propertyInfo.bathsHalf ||
-    rawProperty.partialBathrooms || rawProperty.halfBaths || rawProperty.bathsHalf
-  ) || undefined;
+  const halfBaths =
+    Number(
+      propertyInfo.partialBathrooms ||
+        propertyInfo.halfBaths ||
+        propertyInfo.bathsHalf ||
+        rawProperty.partialBathrooms ||
+        rawProperty.halfBaths ||
+        rawProperty.bathsHalf,
+    ) || undefined;
 
-  const squareFeet = Number(
-    propertyInfo.livingSquareFeet || propertyInfo.buildingSquareFeet ||
-    propertyInfo.squareFeet || propertyInfo.livingArea || propertyInfo.grossSquareFeet ||
-    rawProperty.squareFeet || rawProperty.buildingSize || rawProperty.livingSquareFeet ||
-    rawProperty.buildingSquareFeet || rawProperty.grossSquareFeet
-  ) || undefined;
+  const squareFeet =
+    Number(
+      propertyInfo.livingSquareFeet ||
+        propertyInfo.buildingSquareFeet ||
+        propertyInfo.squareFeet ||
+        propertyInfo.livingArea ||
+        propertyInfo.grossSquareFeet ||
+        rawProperty.squareFeet ||
+        rawProperty.buildingSize ||
+        rawProperty.livingSquareFeet ||
+        rawProperty.buildingSquareFeet ||
+        rawProperty.grossSquareFeet,
+    ) || undefined;
 
-  const yearBuilt = Number(propertyInfo.yearBuilt || rawProperty.yearBuilt || rawProperty.effectiveYearBuilt) || undefined;
+  const yearBuilt =
+    Number(
+      propertyInfo.yearBuilt ||
+        rawProperty.yearBuilt ||
+        rawProperty.effectiveYearBuilt,
+    ) || undefined;
 
   // Lot info
-  const lotSquareFeet = Number(lotInfo.lotSquareFeet || propertyInfo.lotSquareFeet || rawProperty.lotSquareFeet) || undefined;
-  const zoning = (lotInfo.zoning || lotInfo.zoningCode || propertyInfo.zoning || rawProperty.zoning) as string || undefined;
+  const lotSquareFeet =
+    Number(
+      lotInfo.lotSquareFeet ||
+        propertyInfo.lotSquareFeet ||
+        rawProperty.lotSquareFeet,
+    ) || undefined;
+  const zoning =
+    ((lotInfo.zoning ||
+      lotInfo.zoningCode ||
+      propertyInfo.zoning ||
+      rawProperty.zoning) as string) || undefined;
 
   // Additional property features
-  const stories = Number(propertyInfo.stories || rawProperty.stories) || undefined;
+  const stories =
+    Number(propertyInfo.stories || rawProperty.stories) || undefined;
   const pool = Boolean(propertyInfo.pool || rawProperty.pool);
   const fireplace = Boolean(propertyInfo.fireplace || rawProperty.fireplace);
-  const garage = Boolean(propertyInfo.garageType || rawProperty.garage || rawProperty.garageSpaces);
-  const garageSpaces = Number(propertyInfo.parkingSpaces || rawProperty.garageSpaces) || undefined;
-  const basement = Boolean(propertyInfo.basementType && propertyInfo.basementType !== "NO BASEMENT");
-  const construction = (propertyInfo.construction || rawProperty.construction) as string || undefined;
-  const roofType = (propertyInfo.roofMaterial || rawProperty.roofMaterial) as string || undefined;
+  const garage = Boolean(
+    propertyInfo.garageType || rawProperty.garage || rawProperty.garageSpaces,
+  );
+  const garageSpaces =
+    Number(propertyInfo.parkingSpaces || rawProperty.garageSpaces) || undefined;
+  const basement = Boolean(
+    propertyInfo.basementType && propertyInfo.basementType !== "NO BASEMENT",
+  );
+  const construction =
+    ((propertyInfo.construction || rawProperty.construction) as string) ||
+    undefined;
+  const roofType =
+    ((propertyInfo.roofMaterial || rawProperty.roofMaterial) as string) ||
+    undefined;
 
   // ═════════════════════════════════════════════════════════════════════════
   // ESTIMATED VALUE - FIXED: Use taxMarketValue as PRIMARY source
@@ -238,8 +400,10 @@ function normalizePropertyDetail(rawProperty: Record<string, unknown>, inputData
 
   const taxMarketVal = Number(taxInfo.marketValue) || 0;
   const avmValue = Number(rawProperty.avm) || 0;
-  const lastSaleAmt = Number(rawProperty.lastSalePrice || lastSaleInfo.saleAmount) || 0;
-  const taxAssessed = Number(taxInfo.assessedValue || taxInfo.estimatedValue) || 0;
+  const lastSaleAmt =
+    Number(rawProperty.lastSalePrice || lastSaleInfo.saleAmount) || 0;
+  const taxAssessed =
+    Number(taxInfo.assessedValue || taxInfo.estimatedValue) || 0;
 
   // Priority order for market value:
   // 1. taxInfo.marketValue (most reliable - actual market value from tax records)
@@ -267,7 +431,7 @@ function normalizePropertyDetail(rawProperty: Record<string, unknown>, inputData
   if (!estimatedValue && taxAssessed > 0) {
     // NYC Class 2 (multi-family) = 6% of market, Class 1 (single family) = ~6% too now
     // If assessed is very low compared to what we'd expect, it's likely NYC
-    const isNYC = resolvedState?.toUpperCase() === 'NY';
+    const isNYC = resolvedState?.toUpperCase() === "NY";
     if (isNYC && taxAssessed < 500000) {
       estimatedValue = Math.round(taxAssessed / 0.06);
     } else {
@@ -281,7 +445,7 @@ function normalizePropertyDetail(rawProperty: Record<string, unknown>, inputData
     lastSaleAmount: lastSaleAmt,
     taxAssessed,
     FINAL_ESTIMATED_VALUE: estimatedValue,
-    state: resolvedState
+    state: resolvedState,
   });
 
   // Tax info
@@ -291,9 +455,18 @@ function normalizePropertyDetail(rawProperty: Record<string, unknown>, inputData
   const taxYear = Number(taxInfo.year || taxInfo.assessmentYear) || undefined;
 
   // Equity calculations
-  const openMortgageBalance = Number(rawProperty.openMortgageBalance || rawProperty.estimatedMortgageBalance) || 0;
-  const estimatedEquity = Number(rawProperty.estimatedEquity) || (estimatedValue > 0 ? estimatedValue - openMortgageBalance : undefined);
-  const equityPercent = Number(rawProperty.equityPercent) || (estimatedValue > 0 && estimatedEquity ? Math.round((estimatedEquity / estimatedValue) * 100) : undefined);
+  const openMortgageBalance =
+    Number(
+      rawProperty.openMortgageBalance || rawProperty.estimatedMortgageBalance,
+    ) || 0;
+  const estimatedEquity =
+    Number(rawProperty.estimatedEquity) ||
+    (estimatedValue > 0 ? estimatedValue - openMortgageBalance : undefined);
+  const equityPercent =
+    Number(rawProperty.equityPercent) ||
+    (estimatedValue > 0 && estimatedEquity
+      ? Math.round((estimatedEquity / estimatedValue) * 100)
+      : undefined);
 
   // ═════════════════════════════════════════════════════════════════════════
   // CURRENT MORTGAGE - Extract lender name, interest rate, etc.
@@ -313,7 +486,7 @@ function normalizePropertyDetail(rawProperty: Record<string, unknown>, inputData
       position: firstMortgage.position as string,
     };
 
-    allMortgages = currentMortgages.map(m => ({
+    allMortgages = currentMortgages.map((m) => ({
       lenderName: m.lenderName as string,
       amount: Number(m.amount) || undefined,
       interestRate: Number(m.interestRate) || undefined,
@@ -327,53 +500,78 @@ function normalizePropertyDetail(rawProperty: Record<string, unknown>, inputData
   // ═════════════════════════════════════════════════════════════════════════
   // DEMOGRAPHICS - Fair Market Rent, Median Income
   // ═════════════════════════════════════════════════════════════════════════
-  const demographicsData = Object.keys(demographics).length > 0 ? {
-    medianIncome: Number(demographics.medianIncome) || undefined,
-    suggestedRent: Number(demographics.suggestedRent) || undefined,
-    fmrOneBedroom: Number(demographics.fmrOneBedroom) || undefined,
-    fmrTwoBedroom: Number(demographics.fmrTwoBedroom) || undefined,
-    fmrThreeBedroom: Number(demographics.fmrThreeBedroom) || undefined,
-  } : undefined;
+  const demographicsData =
+    Object.keys(demographics).length > 0
+      ? {
+          medianIncome: Number(demographics.medianIncome) || undefined,
+          suggestedRent: Number(demographics.suggestedRent) || undefined,
+          fmrOneBedroom: Number(demographics.fmrOneBedroom) || undefined,
+          fmrTwoBedroom: Number(demographics.fmrTwoBedroom) || undefined,
+          fmrThreeBedroom: Number(demographics.fmrThreeBedroom) || undefined,
+        }
+      : undefined;
 
   // Extract rental estimate data
-  const rentalInfo = (rawProperty.rentalEstimate as Record<string, unknown>) || {};
-  const rentEstimate = Number(
-    rentalInfo.rent || rentalInfo.rentEstimate ||
-    rawProperty.rentEstimate || rawProperty.estimatedRent ||
-    demographicsData?.suggestedRent
-  ) || undefined;
-  const rentRangeLow = Number(rentalInfo.rentRangeLow || rentalInfo.low || rawProperty.rentRangeLow) || undefined;
-  const rentRangeHigh = Number(rentalInfo.rentRangeHigh || rentalInfo.high || rawProperty.rentRangeHigh) || undefined;
+  const rentalInfo =
+    (rawProperty.rentalEstimate as Record<string, unknown>) || {};
+  const rentEstimate =
+    Number(
+      rentalInfo.rent ||
+        rentalInfo.rentEstimate ||
+        rawProperty.rentEstimate ||
+        rawProperty.estimatedRent ||
+        demographicsData?.suggestedRent,
+    ) || undefined;
+  const rentRangeLow =
+    Number(
+      rentalInfo.rentRangeLow || rentalInfo.low || rawProperty.rentRangeLow,
+    ) || undefined;
+  const rentRangeHigh =
+    Number(
+      rentalInfo.rentRangeHigh || rentalInfo.high || rawProperty.rentRangeHigh,
+    ) || undefined;
 
   // Calculate gross yield if we have rent and value
-  const grossYield = rentEstimate && estimatedValue > 0 ? ((rentEstimate * 12) / estimatedValue) * 100 : undefined;
+  const grossYield =
+    rentEstimate && estimatedValue > 0
+      ? ((rentEstimate * 12) / estimatedValue) * 100
+      : undefined;
 
   // Multi-family units
-  const units = Number(propertyInfo.unitsCount || rawProperty.units) || undefined;
-  const rentPerUnit = units && rentEstimate ? Math.round(rentEstimate / units) : undefined;
+  const units =
+    Number(propertyInfo.unitsCount || rawProperty.units) || undefined;
+  const rentPerUnit =
+    units && rentEstimate ? Math.round(rentEstimate / units) : undefined;
 
   // ═════════════════════════════════════════════════════════════════════════
   // MOTIVATED SELLER FLAGS
   // ═════════════════════════════════════════════════════════════════════════
   const preForeclosure = Boolean(rawProperty.preForeclosure);
-  const inForeclosure = Boolean(rawProperty.inForeclosure || rawProperty.foreclosure);
+  const inForeclosure = Boolean(
+    rawProperty.inForeclosure || rawProperty.foreclosure,
+  );
   const isVacant = Boolean(rawProperty.vacant);
   const taxDelinquent = Boolean(rawProperty.taxDelinquent);
   const freeClear = Boolean(rawProperty.freeClear);
-  const highEquity = Boolean(rawProperty.highEquity) || (equityPercent !== undefined && equityPercent > 50);
+  const highEquity =
+    Boolean(rawProperty.highEquity) ||
+    (equityPercent !== undefined && equityPercent > 50);
   const absenteeOwner = Boolean(rawProperty.absenteeOwner);
   const corporateOwned = Boolean(rawProperty.corporateOwned);
 
   // ═════════════════════════════════════════════════════════════════════════
   // LAST SALE INFO
   // ═════════════════════════════════════════════════════════════════════════
-  const lastSale = Object.keys(lastSaleInfo).length > 0 ? {
-    buyerNames: lastSaleInfo.buyerNames as string,
-    sellerNames: lastSaleInfo.sellerNames as string,
-    documentType: lastSaleInfo.documentType as string,
-    purchaseMethod: lastSaleInfo.purchaseMethod as string,
-    transactionType: lastSaleInfo.transactionType as string,
-  } : undefined;
+  const lastSale =
+    Object.keys(lastSaleInfo).length > 0
+      ? {
+          buyerNames: lastSaleInfo.buyerNames as string,
+          sellerNames: lastSaleInfo.sellerNames as string,
+          documentType: lastSaleInfo.documentType as string,
+          purchaseMethod: lastSaleInfo.purchaseMethod as string,
+          transactionType: lastSaleInfo.transactionType as string,
+        }
+      : undefined;
 
   // ═════════════════════════════════════════════════════════════════════════
   // FORECLOSURE INFO (if applicable)
@@ -391,11 +589,14 @@ function normalizePropertyDetail(rawProperty: Record<string, unknown>, inputData
   }
 
   // Owner info
-  const ownerFullName = (ownerInfo.owner1FullName || `${ownerInfo.owner1FirstName || ""} ${ownerInfo.owner1LastName || ""}`.trim()) as string || undefined;
-  const mailingAddress = mailAddressObj.label as string || undefined;
+  const ownerFullName =
+    ((ownerInfo.owner1FullName ||
+      `${ownerInfo.owner1FirstName || ""} ${ownerInfo.owner1LastName || ""}`.trim()) as string) ||
+    undefined;
+  const mailingAddress = (mailAddressObj.label as string) || undefined;
 
   const result: NormalizedProperty = {
-    id: rawProperty.id as string || "unknown",
+    id: (rawProperty.id as string) || "unknown",
     address: {
       address: resolvedAddress,
       street: resolvedAddress,
@@ -403,29 +604,42 @@ function normalizePropertyDetail(rawProperty: Record<string, unknown>, inputData
       state: resolvedState,
       zip: resolvedZip,
       county: resolvedCounty,
-      latitude: (inputData?.latitude || propertyInfo.latitude || rawProperty.latitude) as number,
-      longitude: (inputData?.longitude || propertyInfo.longitude || rawProperty.longitude) as number,
+      latitude: (inputData?.latitude ||
+        propertyInfo.latitude ||
+        rawProperty.latitude) as number,
+      longitude: (inputData?.longitude ||
+        propertyInfo.longitude ||
+        rawProperty.longitude) as number,
     },
-    propertyType: (rawProperty.propertyType || propertyInfo.propertyUse) as string || "Unknown",
+    propertyType:
+      ((rawProperty.propertyType || propertyInfo.propertyUse) as string) ||
+      "Unknown",
     bedrooms,
     bathrooms,
     halfBaths,
     squareFeet,
     yearBuilt,
     estimatedValue: estimatedValue || undefined,
-    lastSaleAmount: Number(rawProperty.lastSalePrice || lastSaleInfo.saleAmount) || undefined,
+    lastSaleAmount:
+      Number(rawProperty.lastSalePrice || lastSaleInfo.saleAmount) || undefined,
     lastSaleDate: (rawProperty.lastSaleDate || lastSaleInfo.saleDate) as string,
     openMortgageBalance,
     estimatedEquity,
     equityPercent,
     lotSquareFeet,
     ownerOccupied: Boolean(rawProperty.ownerOccupied),
-    owner1FirstName: (ownerInfo.owner1FirstName || rawProperty.owner1FirstName) as string,
-    owner1LastName: (ownerInfo.owner1LastName || rawProperty.owner1LastName) as string,
+    owner1FirstName: (ownerInfo.owner1FirstName ||
+      rawProperty.owner1FirstName) as string,
+    owner1LastName: (ownerInfo.owner1LastName ||
+      rawProperty.owner1LastName) as string,
     ownerFullName,
     mailingAddress,
-    latitude: (inputData?.latitude || propertyInfo.latitude || rawProperty.latitude) as number,
-    longitude: (inputData?.longitude || propertyInfo.longitude || rawProperty.longitude) as number,
+    latitude: (inputData?.latitude ||
+      propertyInfo.latitude ||
+      rawProperty.latitude) as number,
+    longitude: (inputData?.longitude ||
+      propertyInfo.longitude ||
+      rawProperty.longitude) as number,
     // Property features
     zoning,
     stories,
@@ -466,9 +680,101 @@ function normalizePropertyDetail(rawProperty: Record<string, unknown>, inputData
     corporateOwned,
     // Foreclosure info
     foreclosureInfo: foreclosureData,
+    // ═════════════════════════════════════════════════════════════════════════
+    // SALE HISTORY - Full historical sales
+    // ═════════════════════════════════════════════════════════════════════════
+    saleHistory: ((rawProperty.saleHistory as Array<Record<string, unknown>>) || []).map(s => ({
+      saleDate: s.saleDate as string,
+      saleAmount: Number(s.saleAmount) || undefined,
+      buyerNames: s.buyerNames as string,
+      sellerNames: s.sellerNames as string,
+      documentType: s.documentType as string,
+      purchaseMethod: s.purchaseMethod as string,
+      transactionType: s.transactionType as string,
+      recordingDate: s.recordingDate as string,
+    })),
+    // ═════════════════════════════════════════════════════════════════════════
+    // MORTGAGE HISTORY - Full mortgage history
+    // ═════════════════════════════════════════════════════════════════════════
+    mortgageHistory: ((rawProperty.mortgageHistory as Array<Record<string, unknown>>) || []).map(m => ({
+      documentDate: m.documentDate as string,
+      amount: Number(m.amount) || undefined,
+      lenderName: m.lenderName as string,
+      interestRate: Number(m.interestRate) || undefined,
+      interestRateType: m.interestRateType as string,
+      loanType: m.loanType as string,
+      deedType: m.deedType as string,
+      granteeName: m.granteeName as string,
+      open: m.open as boolean,
+    })),
+    // ═════════════════════════════════════════════════════════════════════════
+    // SCHOOLS - Nearby schools with ratings
+    // ═════════════════════════════════════════════════════════════════════════
+    schools: ((rawProperty.schools as Array<Record<string, unknown>>) || []).map(s => ({
+      name: s.name as string,
+      type: s.type as string,
+      grades: s.grades as string,
+      rating: s.rating as string,
+      parentRating: s.parentRating as string,
+      street: s.street as string,
+      city: s.city as string,
+      state: s.state as string,
+    })),
+    // ═════════════════════════════════════════════════════════════════════════
+    // LINKED PROPERTIES - Other properties owned by same owner
+    // ═════════════════════════════════════════════════════════════════════════
+    linkedProperties: (rawProperty.linkedProperties as Record<string, unknown>)
+      ? {
+          ids: (rawProperty.linkedProperties as Record<string, unknown>).ids as string[],
+          totalOwned: Number((rawProperty.linkedProperties as Record<string, unknown>).totalOwned) || undefined,
+          totalValue: Number((rawProperty.linkedProperties as Record<string, unknown>).totalValue) || undefined,
+          totalEquity: Number((rawProperty.linkedProperties as Record<string, unknown>).totalEquity) || undefined,
+        }
+      : undefined,
+    // ═════════════════════════════════════════════════════════════════════════
+    // LOT INFO - Parcel details
+    // ═════════════════════════════════════════════════════════════════════════
+    lotInfo: Object.keys(lotInfo).length > 0
+      ? {
+          apn: lotInfo.apn as string,
+          legalDescription: lotInfo.legalDescription as string,
+          landUse: lotInfo.landUse as string,
+          propertyClass: lotInfo.propertyClass as string,
+          zoning: lotInfo.zoning as string,
+          lotAcres: Number(lotInfo.lotAcres) || undefined,
+          subdivision: lotInfo.subdivision as string,
+        }
+      : undefined,
+    // ═════════════════════════════════════════════════════════════════════════
+    // AUCTION INFO - If in foreclosure
+    // ═════════════════════════════════════════════════════════════════════════
+    auctionInfo: (rawProperty.auctionInfo as Record<string, unknown>)
+      ? {
+          active: (rawProperty.auctionInfo as Record<string, unknown>).active as boolean,
+          auctionDate: (rawProperty.auctionInfo as Record<string, unknown>).auctionDate as string,
+          openingBid: Number((rawProperty.auctionInfo as Record<string, unknown>).openingBid) || undefined,
+          judgmentAmount: Number((rawProperty.auctionInfo as Record<string, unknown>).judgmentAmount) || undefined,
+          lenderName: (rawProperty.auctionInfo as Record<string, unknown>).lenderName as string,
+          trusteeName: (rawProperty.auctionInfo as Record<string, unknown>).trusteeFullName as string,
+          caseNumber: (rawProperty.auctionInfo as Record<string, unknown>).caseNumber as string,
+        }
+      : undefined,
+    // ═════════════════════════════════════════════════════════════════════════
+    // NEIGHBORHOOD DATA
+    // ═════════════════════════════════════════════════════════════════════════
+    neighborhoodData: (rawProperty.neighborhood as Record<string, unknown>)
+      ? {
+          id: (rawProperty.neighborhood as Record<string, unknown>).id as string,
+          name: (rawProperty.neighborhood as Record<string, unknown>).name as string,
+          type: (rawProperty.neighborhood as Record<string, unknown>).type as string,
+        }
+      : undefined,
   };
 
-  console.log("[Valuation] Normalized property with full data:", JSON.stringify(result, null, 2).substring(0, 2000));
+  console.log(
+    "[Valuation] Normalized property with full data:",
+    JSON.stringify(result, null, 2).substring(0, 2000),
+  );
   return result;
 }
 
@@ -479,7 +785,7 @@ function normalizeComp(comp: Record<string, unknown>): NormalizedProperty {
   return {
     id: comp.id as string,
     address: {
-      address: addressObj.address as string || addressObj.street as string,
+      address: (addressObj.address as string) || (addressObj.street as string),
       street: addressObj.street as string,
       city: addressObj.city as string,
       state: addressObj.state as string,
@@ -512,7 +818,10 @@ export async function GET(request: NextRequest) {
   const id = searchParams.get("id");
 
   if (!id) {
-    return NextResponse.json({ error: "Property ID required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Property ID required" },
+      { status: 400 },
+    );
   }
 
   try {
@@ -529,7 +838,7 @@ export async function GET(request: NextRequest) {
       const error = await propertyResponse.json();
       return NextResponse.json(
         { error: error.message || "Failed to fetch property details" },
-        { status: propertyResponse.status }
+        { status: propertyResponse.status },
       );
     }
 
@@ -554,14 +863,24 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { address, city, state, zip, id, latitude: inputLat, longitude: inputLng, fullAddress } = body;
+    const {
+      address,
+      city,
+      state,
+      zip,
+      id,
+      latitude: inputLat,
+      longitude: inputLng,
+      fullAddress,
+    } = body;
 
     let lat = inputLat;
     let lng = inputLng;
 
     // If no coordinates provided, geocode the address using Mapbox
     if (!lat || !lng) {
-      const searchAddress = fullAddress || `${address}, ${city}, ${state} ${zip}`.trim();
+      const searchAddress =
+        fullAddress || `${address}, ${city}, ${state} ${zip}`.trim();
       console.log("[Valuation] Geocoding address:", searchAddress);
 
       try {
@@ -582,7 +901,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const inputData = { address, city, state, zip, latitude: lat, longitude: lng };
+    const inputData = {
+      address,
+      city,
+      state,
+      zip,
+      latitude: lat,
+      longitude: lng,
+    };
     let property: NormalizedProperty | null = null;
     let propertyId: string | null = null;
 
@@ -644,15 +970,31 @@ export async function POST(request: NextRequest) {
 
           if (!searchResponse.ok) {
             const errorText = await searchResponse.text();
-            console.error("[Valuation] PropertySearch failed:", searchResponse.status, errorText);
+            console.error(
+              "[Valuation] PropertySearch failed:",
+              searchResponse.status,
+              errorText,
+            );
             continue;
           }
 
           const searchData = await searchResponse.json();
-          console.log("[Valuation] PropertySearch response:", JSON.stringify(searchData).substring(0, 500));
+          console.log(
+            "[Valuation] PropertySearch response:",
+            JSON.stringify(searchData).substring(0, 500),
+          );
 
-          const results = searchData.data || searchData.properties || searchData.results || [];
-          console.log("[Valuation] Coordinate search found:", results.length, "properties at radius", radius);
+          const results =
+            searchData.data ||
+            searchData.properties ||
+            searchData.results ||
+            [];
+          console.log(
+            "[Valuation] Coordinate search found:",
+            results.length,
+            "properties at radius",
+            radius,
+          );
 
           if (results.length > 0) {
             // Find best match by comparing address if available
@@ -660,8 +1002,15 @@ export async function POST(request: NextRequest) {
             if (address && results.length > 1) {
               const inputAddrLower = address.toLowerCase();
               for (const result of results) {
-                const resultAddr = (result.address?.address || result.address || "").toLowerCase();
-                if (resultAddr.includes(inputAddrLower) || inputAddrLower.includes(resultAddr)) {
+                const resultAddr = (
+                  result.address?.address ||
+                  result.address ||
+                  ""
+                ).toLowerCase();
+                if (
+                  resultAddr.includes(inputAddrLower) ||
+                  inputAddrLower.includes(resultAddr)
+                ) {
                   bestMatch = result;
                   break;
                 }
@@ -685,22 +1034,38 @@ export async function POST(request: NextRequest) {
               const rawProperty = detailData.data || detailData;
               property = normalizePropertyDetail(rawProperty, inputData);
               propertyId = String(rawProperty.id);
-              console.log("[Valuation] Got property via coordinate search:", propertyId);
+              console.log(
+                "[Valuation] Got property via coordinate search:",
+                propertyId,
+              );
             } else {
               const errorText = await detailResponse.text();
-              console.error("[Valuation] PropertyDetail failed:", detailResponse.status, errorText);
+              console.error(
+                "[Valuation] PropertyDetail failed:",
+                detailResponse.status,
+                errorText,
+              );
             }
           }
         } catch (searchError) {
-          console.error("[Valuation] Coordinate search error at radius", radius, ":", searchError);
+          console.error(
+            "[Valuation] Coordinate search error at radius",
+            radius,
+            ":",
+            searchError,
+          );
         }
       }
     }
 
     // Fallback: Try PropertyDetail with full address if coordinate search failed
     if (!property && (fullAddress || (address && city && state))) {
-      const searchAddress = fullAddress || `${address}, ${city}, ${state} ${zip}`.trim();
-      console.log("[Valuation] Fallback: PropertyDetail with address:", searchAddress);
+      const searchAddress =
+        fullAddress || `${address}, ${city}, ${state} ${zip}`.trim();
+      console.log(
+        "[Valuation] Fallback: PropertyDetail with address:",
+        searchAddress,
+      );
 
       try {
         const detailResponse = await fetch(PROPERTY_DETAIL_URL, {
@@ -714,18 +1079,28 @@ export async function POST(request: NextRequest) {
 
         if (detailResponse.ok) {
           const detailData = await detailResponse.json();
-          console.log("[Valuation] Address fallback response:", JSON.stringify(detailData).substring(0, 500));
+          console.log(
+            "[Valuation] Address fallback response:",
+            JSON.stringify(detailData).substring(0, 500),
+          );
           const rawProperty = detailData.data || detailData;
           if (rawProperty && rawProperty.id) {
             property = normalizePropertyDetail(rawProperty, inputData);
             propertyId = String(rawProperty.id);
             console.log("[Valuation] Found via address fallback:", propertyId);
           } else {
-            console.error("[Valuation] Address fallback returned no ID:", rawProperty);
+            console.error(
+              "[Valuation] Address fallback returned no ID:",
+              rawProperty,
+            );
           }
         } else {
           const errorText = await detailResponse.text();
-          console.error("[Valuation] Address fallback failed:", detailResponse.status, errorText);
+          console.error(
+            "[Valuation] Address fallback failed:",
+            detailResponse.status,
+            errorText,
+          );
         }
       } catch (addressError) {
         console.error("[Valuation] Address fallback error:", addressError);
@@ -735,9 +1110,24 @@ export async function POST(request: NextRequest) {
     // If no property found, create a minimal property with geocoded coords
     if (!property) {
       if (lat && lng) {
-        console.warn("[Valuation] WARNING: Creating minimal mapbox-geocode property - RealEstateAPI lookup failed");
-        console.warn("[Valuation] API Key configured:", !!REALESTATE_API_KEY, "Key prefix:", REALESTATE_API_KEY?.substring(0, 10));
-        console.warn("[Valuation] Input:", { address, city, state, zip, lat, lng, id });
+        console.warn(
+          "[Valuation] WARNING: Creating minimal mapbox-geocode property - RealEstateAPI lookup failed",
+        );
+        console.warn(
+          "[Valuation] API Key configured:",
+          !!REALESTATE_API_KEY,
+          "Key prefix:",
+          REALESTATE_API_KEY?.substring(0, 10),
+        );
+        console.warn("[Valuation] Input:", {
+          address,
+          city,
+          state,
+          zip,
+          lat,
+          lng,
+          id,
+        });
         property = {
           id: "mapbox-geocode",
           address: {
@@ -755,8 +1145,11 @@ export async function POST(request: NextRequest) {
         };
       } else {
         return NextResponse.json(
-          { error: "Property not found. Please check the address and try again." },
-          { status: 404 }
+          {
+            error:
+              "Property not found. Please check the address and try again.",
+          },
+          { status: 404 },
         );
       }
     }
@@ -775,7 +1168,10 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function buildValuationReport(property: NormalizedProperty, propertyId: string | null): Promise<ValuationData> {
+async function buildValuationReport(
+  property: NormalizedProperty,
+  propertyId: string | null,
+): Promise<ValuationData> {
   const bedrooms = property.bedrooms || 0;
   const bathrooms = property.bathrooms || 0;
   const sqft = property.squareFeet || 0;
@@ -813,7 +1209,8 @@ async function buildValuationReport(property: NormalizedProperty, propertyId: st
       compAvgValue = compValues.reduce((a, b) => a + b, 0) / compValues.length;
     }
     if (compSqftPrices.length > 0) {
-      compAvgPricePerSqft = compSqftPrices.reduce((a, b) => a + b, 0) / compSqftPrices.length;
+      compAvgPricePerSqft =
+        compSqftPrices.reduce((a, b) => a + b, 0) / compSqftPrices.length;
     }
   }
 
@@ -829,7 +1226,11 @@ async function buildValuationReport(property: NormalizedProperty, propertyId: st
   }
 
   // Value adjustments
-  const adjustments: Array<{ factor: string; impact: number; description: string }> = [];
+  const adjustments: Array<{
+    factor: string;
+    impact: number;
+    description: string;
+  }> = [];
   const currentYear = new Date().getFullYear();
   const age = yearBuilt > 0 ? currentYear - yearBuilt : 0;
 
@@ -848,18 +1249,21 @@ async function buildValuationReport(property: NormalizedProperty, propertyId: st
   }
 
   if (compAvgPricePerSqft > 0 && pricePerSqft > 0) {
-    const pricePerSqftDiff = ((pricePerSqft - compAvgPricePerSqft) / compAvgPricePerSqft) * 100;
+    const pricePerSqftDiff =
+      ((pricePerSqft - compAvgPricePerSqft) / compAvgPricePerSqft) * 100;
     if (pricePerSqftDiff > 20) {
       adjustments.push({
         factor: "Price/SqFt",
         impact: -3,
-        description: "Priced above comparable average - potential overvaluation",
+        description:
+          "Priced above comparable average - potential overvaluation",
       });
     } else if (pricePerSqftDiff < -20) {
       adjustments.push({
         factor: "Price/SqFt",
         impact: 5,
-        description: "Priced below comparable average - potential value opportunity",
+        description:
+          "Priced below comparable average - potential value opportunity",
       });
     }
   }
@@ -868,7 +1272,8 @@ async function buildValuationReport(property: NormalizedProperty, propertyId: st
     const saleYear = new Date(lastSaleDate).getFullYear();
     const yearsSinceSale = currentYear - saleYear;
     if (yearsSinceSale > 0) {
-      const appreciation = ((estimatedValue - lastSaleAmount) / lastSaleAmount) * 100;
+      const appreciation =
+        ((estimatedValue - lastSaleAmount) / lastSaleAmount) * 100;
       const annualAppreciation = appreciation / yearsSinceSale;
       if (annualAppreciation > 10) {
         adjustments.push({
@@ -910,10 +1315,20 @@ async function buildValuationReport(property: NormalizedProperty, propertyId: st
   };
 }
 
-async function getComparables(property: NormalizedProperty, propertyId: string | null): Promise<NormalizedProperty[]> {
+async function getComparables(
+  property: NormalizedProperty,
+  propertyId: string | null,
+): Promise<NormalizedProperty[]> {
   // Use v3/PropertyComps API for comparables
   const address = property.address;
-  const fullAddress = [address?.address, address?.city, address?.state, address?.zip].filter(Boolean).join(", ");
+  const fullAddress = [
+    address?.address,
+    address?.city,
+    address?.state,
+    address?.zip,
+  ]
+    .filter(Boolean)
+    .join(", ");
 
   if (!propertyId && !fullAddress) {
     return [];
@@ -960,7 +1375,9 @@ async function getComparables(property: NormalizedProperty, propertyId: string |
   }
 }
 
-async function getNeighborhoodStats(property: NormalizedProperty): Promise<ValuationData["neighborhood"]> {
+async function getNeighborhoodStats(
+  property: NormalizedProperty,
+): Promise<ValuationData["neighborhood"]> {
   const address = property.address;
   const zip = address?.zip || "";
   const city = address?.city || "";
@@ -1012,7 +1429,9 @@ async function getNeighborhoodStats(property: NormalizedProperty): Promise<Valua
     }
 
     const values = results
-      .map((p: Record<string, unknown>) => Number(p.estimatedValue || p.avm) || 0)
+      .map(
+        (p: Record<string, unknown>) => Number(p.estimatedValue || p.avm) || 0,
+      )
       .filter((v: number) => v > 0)
       .sort((a: number, b: number) => a - b);
 
@@ -1028,17 +1447,27 @@ async function getNeighborhoodStats(property: NormalizedProperty): Promise<Valua
       .map((p: Record<string, unknown>) => Number(p.yearBuilt) || 0)
       .filter((y: number) => y > 1800);
 
-    const medianValue = values.length > 0 ? values[Math.floor(values.length / 2)] : 0;
-    const avgPricePerSqft = sqftPrices.length > 0
-      ? Math.round(sqftPrices.reduce((a: number, b: number) => a + b, 0) / sqftPrices.length)
-      : 0;
-    const avgYearBuilt = yearBuilts.length > 0
-      ? Math.round(yearBuilts.reduce((a: number, b: number) => a + b, 0) / yearBuilts.length)
-      : 0;
+    const medianValue =
+      values.length > 0 ? values[Math.floor(values.length / 2)] : 0;
+    const avgPricePerSqft =
+      sqftPrices.length > 0
+        ? Math.round(
+            sqftPrices.reduce((a: number, b: number) => a + b, 0) /
+              sqftPrices.length,
+          )
+        : 0;
+    const avgYearBuilt =
+      yearBuilts.length > 0
+        ? Math.round(
+            yearBuilts.reduce((a: number, b: number) => a + b, 0) /
+              yearBuilts.length,
+          )
+        : 0;
 
-    const currentAvg = values.length > 0
-      ? values.reduce((a: number, b: number) => a + b, 0) / values.length
-      : 0;
+    const currentAvg =
+      values.length > 0
+        ? values.reduce((a: number, b: number) => a + b, 0) / values.length
+        : 0;
 
     const priceHistory = [];
     const currentYear = new Date().getFullYear();

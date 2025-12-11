@@ -7,7 +7,9 @@ interface PageProps {
 }
 
 // Generate dynamic metadata for Open Graph (link previews)
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
   const { id } = await params;
 
   // Fetch report data for metadata
@@ -17,18 +19,21 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   let estimatedValue = "";
 
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://monkfish-app-mb7h3.ondigitalocean.app";
+    const baseUrl =
+      process.env.NEXT_PUBLIC_APP_URL ||
+      "https://monkfish-app-mb7h3.ondigitalocean.app";
     const res = await fetch(`${baseUrl}/api/report/${id}`, {
       cache: "no-store",
-      headers: { "Content-Type": "application/json" }
+      headers: { "Content-Type": "application/json" },
     });
 
     if (res.ok) {
       const data = await res.json();
       if (data.report) {
-        address = data.report.property?.address?.address || data.report.name || "";
+        address =
+          data.report.property?.address?.address || data.report.name || "";
         estimatedValue = data.report.valuation?.estimatedValue
-          ? `$${Numbersf(data.report.valuation.estimatedValue)}`
+          ? `$${sf(data.report.valuation.estimatedValue)}`
           : "";
 
         title = address ? `Valuation: ${address}` : "Property Valuation Report";
