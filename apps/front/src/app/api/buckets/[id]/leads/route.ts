@@ -57,6 +57,44 @@ interface BucketData {
     enrichedAt?: string;
   }>;
   leads?: Lead[];
+  // USBizData CSV records format
+  records?: Array<{
+    id: string;
+    bucketId: string;
+    rowIndex: number;
+    matchingKeys?: {
+      companyName?: string | null;
+      contactName?: string | null;
+      firstName?: string | null;
+      lastName?: string | null;
+      title?: string | null;
+      address?: string | null;
+      city?: string | null;
+      state?: string | null;
+      zip?: string | null;
+      sicCode?: string | null;
+    };
+    flags?: {
+      hasPhone?: boolean;
+      hasEmail?: boolean;
+      hasCellPhone?: boolean;
+      hasAddress?: boolean;
+      isDecisionMaker?: boolean;
+    };
+    seniority?: {
+      level?: string;
+      title?: string | null;
+      isDecisionMaker?: boolean;
+    };
+    tags?: string[];
+    propertyScore?: number;
+    propertyLikelihood?: string;
+    signals?: string[];
+    enrichment?: {
+      status?: string;
+    };
+    _original?: Record<string, string>;
+  }>;
 }
 
 // Load bucket data from DO Spaces
@@ -69,7 +107,7 @@ async function getBucketData(id: string): Promise<BucketData | null> {
       new GetObjectCommand({
         Bucket: SPACES_BUCKET,
         Key: `buckets/${id}.json`,
-      })
+      }),
     );
 
     const bodyContents = await response.Body?.transformToString();
@@ -85,7 +123,11 @@ async function getBucketData(id: string): Promise<BucketData | null> {
 }
 
 // Convert property data to Lead format
-function propertyToLead(prop: NonNullable<BucketData["properties"]>[number], bucketId: string, index: number): Lead {
+function propertyToLead(
+  prop: NonNullable<BucketData["properties"]>[number],
+  bucketId: string,
+  index: number,
+): Lead {
   const addr = prop.address || {};
 
   const lead: Lead = {
@@ -101,7 +143,14 @@ function propertyToLead(prop: NonNullable<BucketData["properties"]>[number], buc
     lastName: prop.owner1LastName || "",
     email: prop.email || "",
     phone: prop.phone || "",
-    enrichmentStatus: (prop.enrichmentStatus as "pending" | "queued" | "processing" | "completed" | "failed" | "partial") || "pending",
+    enrichmentStatus:
+      (prop.enrichmentStatus as
+        | "pending"
+        | "queued"
+        | "processing"
+        | "completed"
+        | "failed"
+        | "partial") || "pending",
     activityCount: 0,
     propertyData: {
       propertyId: prop.id || `prop-${index}`,
@@ -134,10 +183,91 @@ function propertyToLead(prop: NonNullable<BucketData["properties"]>[number], buc
   return lead;
 }
 
+// Convert USBizData CSV record to Lead format
+function csvRecordToLead(
+  record: NonNullable<BucketData["records"]>[number],
+  bucketId: string,
+): Lead {
+  const keys = record.matchingKeys || {};
+  const original = record._original || {};
+
+  // Get phone/email from _original CSV data (try multiple column name variations)
+  const phone = original["Phone"] || original["phone"] || original["Phone Number"] ||
+                original["Direct Phone"] || original["Cell Phone"] || original["cell"] ||
+                original["PHONE"] || original["Telephone"] || "";
+  const email = original["Email"] || original["email"] || original["Email Address"] ||
+                original["EMAIL"] || original["E-mail"] || "";
+
+  // Parse revenue/employees strings
+  const revenueStr = original["Revenue"] || original["revenue"] || original["Annual Revenue"] || original["Sales"] || "";
+  const employeesStr = original["Employees"] || original["employees"] || original["Number of Employees"] || "";
+
+  const lead: Lead = {
+    id: record.id,
+    bucketId,
+    source: "mixed", // USBizData is B2B mixed data
+    status: "new",
+    tags: record.tags || [],
+    autoTags: [],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    // Contact info
+    firstName: keys.firstName || "",
+    lastName: keys.lastName || "",
+    email: email,
+    phone: phone,
+    enrichmentStatus: (record.enrichment?.status as Lead["enrichmentStatus"]) || "pending",
+    activityCount: 0,
+    // Address/location in propertyData
+    propertyData: {
+      propertyId: record.id,
+      address: keys.address || "",
+      city: keys.city || "",
+      state: keys.state || "",
+      zipCode: keys.zip || "",
+      propertyType: "",
+      bedrooms: 0,
+      bathrooms: 0,
+      sqft: 0,
+      yearBuilt: 0,
+      estimatedValue: 0,
+      estimatedEquity: 0,
+      equityPercent: 0,
+      lastSaleDate: "",
+      lastSaleAmount: 0,
+      ownerOccupied: false,
+      absenteeOwner: false,
+    },
+    // B2B company data in apolloData format
+    apolloData: {
+      company: keys.companyName || "",
+      title: keys.title || record.seniority?.title || "",
+      industry: original["Industry"] || original["industry"] || "",
+      revenueRange: revenueStr,
+      employeeRange: employeesStr,
+      companyDomain: original["Website"] || original["website"] || "",
+      signals: record.signals || [],
+      // Store SIC code and other USBizData fields in keywords
+      keywords: [
+        keys.sicCode ? `SIC:${keys.sicCode}` : "",
+        original["SIC Description"] || original["sic_description"] || "",
+        record.seniority?.level ? `seniority:${record.seniority.level}` : "",
+        record.seniority?.isDecisionMaker ? "decision-maker" : "",
+        original["County"] || original["county"] || "",
+      ].filter(Boolean),
+    },
+  };
+
+  // Apply auto-tags
+  lead.autoTags = applyAutoTags(lead);
+
+  return lead;
+}
+
 // GET /api/buckets/:id/leads - Get leads for a bucket
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
@@ -162,15 +292,22 @@ export async function GET(
       });
     }
 
-    // Convert properties to leads
+    // Convert to leads from various bucket formats
     let leads: Lead[] = [];
 
     if (bucketData.leads && bucketData.leads.length > 0) {
       // Bucket already has leads format
       leads = bucketData.leads;
+    } else if (bucketData.records && bucketData.records.length > 0) {
+      // USBizData CSV records format - convert to leads
+      leads = bucketData.records.map((record) =>
+        csvRecordToLead(record, id),
+      );
     } else if (bucketData.properties && bucketData.properties.length > 0) {
-      // Convert properties to leads
-      leads = bucketData.properties.map((prop, index) => propertyToLead(prop, id, index));
+      // Property records format - convert to leads
+      leads = bucketData.properties.map((prop, index) =>
+        propertyToLead(prop, id, index),
+      );
     }
 
     // Apply filters
@@ -178,7 +315,9 @@ export async function GET(
       leads = leads.filter((l) => l.status === status);
     }
     if (tag) {
-      leads = leads.filter((l) => l.tags.includes(tag) || l.autoTags.includes(tag));
+      leads = leads.filter(
+        (l) => l.tags.includes(tag) || l.autoTags.includes(tag),
+      );
     }
     if (enriched === "true") {
       leads = leads.filter((l) => l.enrichmentStatus === "completed");
@@ -192,7 +331,9 @@ export async function GET(
     const paginatedLeads = leads.slice(start, start + perPage);
 
     // Determine enrichment status
-    const enrichedCount = leads.filter((l) => l.enrichmentStatus === "completed").length;
+    const enrichedCount = leads.filter(
+      (l) => l.enrichmentStatus === "completed",
+    ).length;
     let enrichmentStatus: BucketLeadsResponse["enrichmentStatus"] = "pending";
     if (enrichedCount === total && total > 0) {
       enrichmentStatus = "completed";
@@ -211,6 +352,9 @@ export async function GET(
     return NextResponse.json(response);
   } catch (error) {
     console.error("[Bucket Leads API] GET error:", error);
-    return NextResponse.json({ error: "Failed to fetch leads" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch leads" },
+      { status: 500 },
+    );
   }
 }
