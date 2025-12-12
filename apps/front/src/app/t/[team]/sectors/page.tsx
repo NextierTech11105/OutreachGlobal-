@@ -562,7 +562,24 @@ export default function SectorsPage() {
                 <Search className="h-4 w-4 mr-2" />
                 Search
               </Button>
-              <Button size="sm">
+              <Button
+                size="sm"
+                onClick={() => {
+                  // Build query params from sector filters
+                  const params = new URLSearchParams();
+                  if (selectedSector.sicCodes?.length) {
+                    params.set('sicCodes', selectedSector.sicCodes.join(','));
+                  }
+                  if (selectedSector.filters) {
+                    Object.entries(selectedSector.filters).forEach(([k, v]) => {
+                      params.set(k, String(v));
+                    });
+                  }
+                  params.set('sectorId', selectedSector.id);
+                  params.set('sectorName', selectedSector.name);
+                  router.push(`/t/${window.location.pathname.split("/")[2]}/leads/import-companies?${params.toString()}`);
+                }}
+              >
                 <ArrowRight className="h-4 w-4 mr-2" />
                 View Records
               </Button>

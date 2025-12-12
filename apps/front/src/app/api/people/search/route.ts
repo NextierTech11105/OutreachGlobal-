@@ -1,17 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const APOLLO_API_BASE = "https://api.apollo.io/v1";
-const APOLLO_API_KEY = process.env.APOLLO_API_KEY || "";
+const APOLLO_API_KEY = process.env.APOLLO_IO_API_KEY || process.env.NEXT_PUBLIC_APOLLO_IO_API_KEY || process.env.APOLLO_API_KEY || "";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { id, ids, email, domain, name, company } = body;
+    const { id, ids, email, domain, name, company, reveal_personal_emails = true, reveal_phone_number = true } = body;
 
     if (!APOLLO_API_KEY) {
       return NextResponse.json(
         { error: "Apollo API key not configured" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -22,14 +22,17 @@ export async function POST(request: NextRequest) {
     if (!searchEmail && !searchDomain && !name && !company) {
       return NextResponse.json(
         { error: "Email, domain, name, or company required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Build Apollo search parameters
+    // reveal_personal_emails and reveal_phone_number cost credits but return real contact data
     const searchParams: Record<string, unknown> = {
       page: 1,
       per_page: 10,
+      reveal_personal_emails,
+      reveal_phone_number,
     };
 
     if (searchEmail) {
@@ -61,48 +64,57 @@ export async function POST(request: NextRequest) {
       const errorData = await response.json().catch(() => ({}));
       return NextResponse.json(
         { error: errorData.message || "People search failed", success: false },
-        { status: response.status }
+        { status: response.status },
       );
     }
 
     const data = await response.json();
 
     // Transform results
-    const people = (data.people || []).map((person: {
-      id: string;
-      first_name?: string;
-      last_name?: string;
-      name?: string;
-      title?: string;
-      email?: string;
-      phone_numbers?: Array<{ sanitized_number?: string }>;
-      city?: string;
-      state?: string;
-      country?: string;
-      organization?: {
+    const people = (data.people || []).map(
+      (person: {
+        id: string;
+        first_name?: string;
+        last_name?: string;
         name?: string;
-        website_url?: string;
-        estimated_num_employees?: number;
-        industry?: string;
-      };
-      linkedin_url?: string;
-    }) => ({
-      id: person.id,
-      name: person.name || `${person.first_name || ""} ${person.last_name || ""}`.trim(),
-      firstName: person.first_name,
-      lastName: person.last_name,
-      title: person.title,
-      email: person.email,
-      phone: person.phone_numbers?.[0]?.sanitized_number,
-      phones: person.phone_numbers?.map(p => p.sanitized_number).filter(Boolean) || [],
-      city: person.city,
-      state: person.state,
-      country: person.country,
-      company: person.organization?.name,
-      companyDomain: person.organization?.website_url?.replace(/^https?:\/\//, "").replace(/\/$/, ""),
-      industry: person.organization?.industry,
-      linkedinUrl: person.linkedin_url,
-    }));
+        title?: string;
+        email?: string;
+        phone_numbers?: Array<{ sanitized_number?: string }>;
+        city?: string;
+        state?: string;
+        country?: string;
+        organization?: {
+          name?: string;
+          website_url?: string;
+          estimated_num_employees?: number;
+          industry?: string;
+        };
+        linkedin_url?: string;
+      }) => ({
+        id: person.id,
+        name:
+          person.name ||
+          `${person.first_name || ""} ${person.last_name || ""}`.trim(),
+        firstName: person.first_name,
+        lastName: person.last_name,
+        title: person.title,
+        email: person.email,
+        phone: person.phone_numbers?.[0]?.sanitized_number,
+        phones:
+          person.phone_numbers
+            ?.map((p) => p.sanitized_number)
+            .filter(Boolean) || [],
+        city: person.city,
+        state: person.state,
+        country: person.country,
+        company: person.organization?.name,
+        companyDomain: person.organization?.website_url
+          ?.replace(/^https?:\/\//, "")
+          .replace(/\/$/, ""),
+        industry: person.organization?.industry,
+        linkedinUrl: person.linkedin_url,
+      }),
+    );
 
     return NextResponse.json({
       success: true,
@@ -113,6 +125,9 @@ export async function POST(request: NextRequest) {
   } catch (error: unknown) {
     console.error("People search error:", error);
     const message = error instanceof Error ? error.message : "Search failed";
-    return NextResponse.json({ error: message, success: false }, { status: 500 });
+    return NextResponse.json(
+      { error: message, success: false },
+      { status: 500 },
+    );
   }
 }

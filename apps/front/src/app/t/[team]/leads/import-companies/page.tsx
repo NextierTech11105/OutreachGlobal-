@@ -323,7 +323,7 @@ export default function ImportCompaniesPage() {
     }
   };
 
-  // Single company quick enrich
+  // Single company quick enrich - UPDATED TO USE APOLLO MATCH (PAID ENDPOINT)
   const enrichSingleCompany = async (companyId: string) => {
     const company = hits.find((c) => c.id === companyId);
     if (!company) return;
@@ -338,11 +338,12 @@ export default function ImportCompaniesPage() {
     const titlePriority = ["owner", "ceo", "partner", "sales manager", "founder", "president", "director", "vp", "general manager"];
 
     try {
-      // Step 1: Apollo People Search
+      // Step 1: Apollo People Search (FREE - to find decision maker name)
       let ownerFirstName = "";
       let ownerLastName = "";
       let ownerTitle = "";
       let apolloEmail = "";
+      let companyPhone = "";
 
       const apolloResponse = await fetch("/api/people/search", {
         method: "POST",
@@ -376,7 +377,6 @@ export default function ImportCompaniesPage() {
           ownerFirstName = bestPerson.firstName || "";
           ownerLastName = bestPerson.lastName || "";
           ownerTitle = bestPerson.title || "";
-          apolloEmail = bestPerson.email || "";
 
           if (!ownerFirstName && !ownerLastName && bestPerson.name) {
             const nameParts = bestPerson.name.split(" ");
@@ -386,8 +386,32 @@ export default function ImportCompaniesPage() {
         }
       }
 
-      // Step 2: Skip trace if we have a name
-      let phones: string[] = [];
+      // Step 2: Apollo People MATCH (PAID - unlocks verified email + company phone)
+      if (ownerFirstName && ownerLastName) {
+        const matchResponse = await fetch("/api/enrichment/apollo", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            recordId: company.id,
+            bucketId: "import-companies",
+            firstName: ownerFirstName,
+            lastName: ownerLastName,
+            companyName: company.name,
+            domain: company.domain,
+          }),
+        });
+
+        const matchData = await matchResponse.json();
+
+        if (matchData.success && matchData.enrichedData) {
+          apolloEmail = matchData.enrichedData.email || "";
+          ownerTitle = matchData.enrichedData.title || ownerTitle;
+          companyPhone = matchData.enrichedData.organization?.phone || "";
+        }
+      }
+
+      // Step 3: Skip trace if we have a name (for personal cell + property portfolio)
+      let phones: string[] = companyPhone ? [companyPhone] : [];
       let emails: string[] = apolloEmail ? [apolloEmail] : [];
       let propertyAddresses: Array<{ street: string; city: string; state: string; zip: string }> = [];
 
@@ -406,8 +430,10 @@ export default function ImportCompaniesPage() {
         const skipData = await skipTraceResponse.json();
 
         if (skipData.success) {
-          phones = skipData.phones?.map((p: { number: string }) => p.number) || [];
-          emails = [...new Set([apolloEmail, ...(skipData.emails?.map((e: { email: string }) => e.email) || [])].filter(Boolean))];
+          const skipPhones = skipData.phones?.map((p: { number: string }) => p.number) || [];
+          phones = [...new Set([...phones, ...skipPhones])];
+          const skipEmails = skipData.emails?.map((e: { email: string }) => e.email) || [];
+          emails = [...new Set([...emails, ...skipEmails].filter(Boolean))];
           propertyAddresses = skipData.addresses?.map((a: { street?: string; address?: string; city?: string; state?: string; zip?: string }) => ({
             street: a.street || a.address || "",
             city: a.city || "",
@@ -442,9 +468,10 @@ export default function ImportCompaniesPage() {
     }
   };
 
-  // Enrich selected companies - TWO-STEP PROCESS:
-  // 1. Apollo People Search → Find decision maker name (Owner/CEO/Founder)
-  // 2. RealEstateAPI Skip Trace → Get cell phone + property portfolio ($0.05/record)
+  // Enrich selected companies - THREE-STEP PROCESS:
+  // 1. Apollo People Search (FREE) → Find decision maker name (Owner/CEO/Founder)
+  // 2. Apollo People Match (PAID) → Get verified email + company phone
+  // 3. RealEstateAPI Skip Trace → Get cell phone + property portfolio ($0.05/record)
   const enrichSelectedCompanies = async () => {
     if (selectedCompanies.size === 0) {
       toast.error("Select companies to enrich");
@@ -487,11 +514,12 @@ export default function ImportCompaniesPage() {
 
       const batchPromises = batch.map(async (company) => {
         try {
-          // STEP 1: Apollo People Search to find decision maker name
+          // STEP 1: Apollo People Search (FREE) to find decision maker name
           let ownerFirstName = "";
           let ownerLastName = "";
           let ownerTitle = "";
           let apolloEmail = "";
+          let companyPhone = "";
 
           const apolloResponse = await fetch("/api/people/search", {
             method: "POST",
@@ -539,7 +567,6 @@ export default function ImportCompaniesPage() {
               ownerFirstName = bestPerson.firstName || "";
               ownerLastName = bestPerson.lastName || "";
               ownerTitle = bestPerson.title || "";
-              apolloEmail = bestPerson.email || "";
 
               // If no first/last name, try to parse from full name
               if (!ownerFirstName && !ownerLastName && bestPerson.name) {
@@ -550,8 +577,35 @@ export default function ImportCompaniesPage() {
             }
           }
 
-          // STEP 2: RealEstateAPI Skip Trace to get cell phone + property data
+          // STEP 2: Apollo People MATCH (PAID) to unlock verified email + company phone
+          if (ownerFirstName && ownerLastName) {
+            const matchResponse = await fetch("/api/enrichment/apollo", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                recordId: company.id,
+                bucketId: "import-companies",
+                firstName: ownerFirstName,
+                lastName: ownerLastName,
+                companyName: company.name,
+                domain: company.domain,
+              }),
+            });
+
+            const matchData = await matchResponse.json();
+
+            if (matchData.success && matchData.enrichedData) {
+              apolloEmail = matchData.enrichedData.email || "";
+              ownerTitle = matchData.enrichedData.title || ownerTitle;
+              companyPhone = matchData.enrichedData.organization?.phone || "";
+            }
+          }
+
+          // STEP 3: RealEstateAPI Skip Trace to get cell phone + property data
           // This costs $0.05 per record but gives us cell + property portfolio!
+          let phones: string[] = companyPhone ? [companyPhone] : [];
+          let emails: string[] = apolloEmail ? [apolloEmail] : [];
+
           if (ownerFirstName || ownerLastName) {
             const skipTraceResponse = await fetch("/api/skip-trace", {
               method: "POST",
@@ -567,14 +621,14 @@ export default function ImportCompaniesPage() {
             const skipData = await skipTraceResponse.json();
 
             if (skipData.success) {
-              // Combine Apollo email with skip trace phones
-              const phones =
+              // Combine Apollo data with skip trace phones
+              const skipPhones =
                 skipData.phones?.map((p: { number: string }) => p.number) || [];
-              const emails = [
-                apolloEmail,
-                ...(skipData.emails?.map((e: { email: string }) => e.email) ||
-                  []),
-              ].filter(Boolean);
+              phones = [...new Set([...phones, ...skipPhones])];
+
+              const skipEmails =
+                skipData.emails?.map((e: { email: string }) => e.email) || [];
+              emails = [...new Set([...emails, ...skipEmails].filter(Boolean))];
 
               // Parse property addresses from skip trace
               const propertyAddresses =
@@ -600,8 +654,8 @@ export default function ImportCompaniesPage() {
               return {
                 companyId: company.id,
                 success: true,
-                phones: [...new Set(phones)],
-                emails: [...new Set(emails)],
+                phones,
+                emails,
                 ownerName:
                   `${ownerFirstName} ${ownerLastName}`.trim() ||
                   skipData.ownerName,
@@ -613,13 +667,13 @@ export default function ImportCompaniesPage() {
             }
           }
 
-          // Fallback: Return Apollo email if skip trace failed
-          if (apolloEmail) {
+          // Fallback: Return Apollo data if skip trace failed
+          if (apolloEmail || companyPhone) {
             return {
               companyId: company.id,
               success: true,
-              phones: [],
-              emails: [apolloEmail],
+              phones,
+              emails,
               ownerName: `${ownerFirstName} ${ownerLastName}`.trim(),
               ownerTitle,
             };

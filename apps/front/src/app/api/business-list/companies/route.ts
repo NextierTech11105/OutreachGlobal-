@@ -184,9 +184,12 @@ async function searchApolloPeople(params: {
   const { name, state, industry, city, title, revenueMin, revenueMax, page, per_page } = params;
 
   // Build Apollo PEOPLE search parameters
+  // Include reveal flags to get actual emails/phones (costs credits but returns real data)
   const searchParams: Record<string, unknown> = {
     page: Math.max(1, page),
     per_page: Math.min(per_page, 100),
+    reveal_personal_emails: true,
+    reveal_phone_number: true,
   };
 
   // Search by name or company
