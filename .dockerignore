@@ -1,17 +1,28 @@
-# Docker ignore file
-.git
-.gitignore
-.vercel
-.windsurf
+# Exclude NX cache (causes build failures)
 .nx
-.claude
+.nx/**
+**/workspace-data/**
+**/*.log
+
+# Node modules
 node_modules
-pnpm-lock.yaml.dirty
-tmp
+**/node_modules
+
+# Development
+.git
+.github
+.vscode
+
+# Test files
+**/*.test.ts
+**/*.spec.ts
+
+# Build outputs
 dist
+**/dist
 .next
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-*.log
+**/.next
+
+# Misc
+*.md
+.env*
