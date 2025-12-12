@@ -131,7 +131,11 @@ function isPropertyRelated(company: { industry?: string; name?: string }): boole
 
 interface Company {
   id: string;
-  name: string;
+  name: string; // Contact name (person)
+  firstName?: string;
+  lastName?: string;
+  title?: string; // Job title (Owner, CEO, etc.)
+  companyName?: string; // Organization name
   domain: string;
   website: string;
   industry: string;
@@ -141,6 +145,7 @@ interface Company {
   state: string;
   country: string;
   phone: string;
+  mobile?: string; // Cell/mobile phone
   linkedin_url: string;
   founded_year: number;
   email?: string;
@@ -302,10 +307,33 @@ export default function ImportCompaniesPage() {
         return;
       }
       setEstimatedCount(data.estimatedTotalHits || 0);
-      // Tag property-related businesses
-      const taggedHits = (data.hits || []).map((company: Company) => ({
-        ...company,
-        propertyRelated: isPropertyRelated(company),
+      // Map API response to Company interface and tag property-related businesses
+      interface ApiContact {
+        id: string;
+        name: string;
+        firstName?: string;
+        lastName?: string;
+        title?: string;
+        company?: string; // API returns 'company', we map to 'companyName'
+        domain?: string;
+        website?: string;
+        industry?: string;
+        employees?: number;
+        revenue?: number;
+        city?: string;
+        state?: string;
+        country?: string;
+        phone?: string;
+        mobile?: string;
+        email?: string;
+        linkedin_url?: string;
+        source?: "apollo" | "usbizdata";
+        sourceLabel?: string;
+      }
+      const taggedHits = (data.hits || []).map((contact: ApiContact) => ({
+        ...contact,
+        companyName: contact.company || "", // Map company to companyName
+        propertyRelated: isPropertyRelated({ industry: contact.industry, name: contact.company }),
       }));
       setHits(taggedHits);
       setCurrentPage(data.page || page);
@@ -865,9 +893,9 @@ export default function ImportCompaniesPage() {
 
       <div className="container">
         <div className="mb-4">
-          <TeamTitle>Company Search</TeamTitle>
+          <TeamTitle>B2B Contact Search</TeamTitle>
           <p className="text-muted-foreground">
-            Search 65M+ companies from Apollo.io (All US) + USBizData (5.5M NY businesses)
+            Search 275M+ decision makers (Owners, CEOs, Partners) from Apollo.io + USBizData
           </p>
         </div>
 
@@ -997,7 +1025,7 @@ export default function ImportCompaniesPage() {
             <Card className="relative overflow-hidden">
               {loading && <LoadingOverlay />}
               <CardHeader className="border-b">
-                <CardTitle>Companies</CardTitle>
+                <CardTitle>Contacts</CardTitle>
               </CardHeader>
 
               <Table>
@@ -1012,14 +1040,13 @@ export default function ImportCompaniesPage() {
                         onCheckedChange={toggleAll}
                       />
                     </TableHead>
-                    <TableHead>Company Name</TableHead>
-                    <TableHead>Industry</TableHead>
+                    <TableHead>Contact Name</TableHead>
+                    <TableHead>Title</TableHead>
+                    <TableHead>Company</TableHead>
                     <TableHead>Location</TableHead>
-                    <TableHead>Property Address</TableHead>
-                    <TableHead>Employees</TableHead>
-                    <TableHead>Revenue</TableHead>
                     <TableHead>Phones</TableHead>
                     <TableHead>Emails</TableHead>
+                    <TableHead>Industry</TableHead>
                     <TableHead>Website</TableHead>
                     <TableHead className="w-[100px]">Actions</TableHead>
                   </TableRow>
@@ -1028,7 +1055,7 @@ export default function ImportCompaniesPage() {
                 <TableBody>
                   {!loading && !hits?.length && (
                     <TableRow>
-                      <TableCell colSpan={11} className="text-center py-8">
+                      <TableCell colSpan={10} className="text-center py-8">
                         {totalFilters > 0 || debouncedQuery
                           ? "No companies found"
                           : "Enter a search term or select filters to find companies"}
@@ -1045,12 +1072,15 @@ export default function ImportCompaniesPage() {
                           : ""
                       }
                     >
+                      {/* Checkbox */}
                       <TableCell>
                         <Checkbox
                           checked={selectedCompanies.has(company.id)}
                           onCheckedChange={() => toggleCompany(company.id)}
                         />
                       </TableCell>
+
+                      {/* Contact Name */}
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
                           {company.name || "-"}
@@ -1059,7 +1089,7 @@ export default function ImportCompaniesPage() {
                               variant="outline"
                               className="text-xs bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
                             >
-                              ✓ Enriched
+                              Enriched
                             </Badge>
                           ) : (
                             <Badge
@@ -1070,7 +1100,7 @@ export default function ImportCompaniesPage() {
                             </Badge>
                           )}
                         </div>
-                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        <div className="flex items-center gap-1 mt-1">
                           {company.source && (
                             <Badge
                               variant="secondary"
@@ -1080,25 +1110,36 @@ export default function ImportCompaniesPage() {
                                   : "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300"
                               }`}
                             >
-                              {company.source === "apollo" ? "Apollo" : "USBizData NY"}
+                              {company.source === "apollo" ? "Apollo" : "USBiz"}
                             </Badge>
-                          )}
-                          {company.propertyRelated && (
-                            <Badge
-                              variant="secondary"
-                              className="text-xs bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300"
-                            >
-                              🏠 Property Related
-                            </Badge>
-                          )}
-                          {company.ownerName && (
-                            <span className="text-xs text-muted-foreground">
-                              Owner: {company.ownerName}
-                            </span>
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>{company.industry || "-"}</TableCell>
+
+                      {/* Title */}
+                      <TableCell>
+                        <span className={`text-sm ${company.title || company.ownerTitle ? "font-medium text-green-700 dark:text-green-300" : "text-muted-foreground"}`}>
+                          {company.title || company.ownerTitle || "-"}
+                        </span>
+                      </TableCell>
+
+                      {/* Company Name */}
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <Building className="h-3 w-3 text-muted-foreground" />
+                          <span>{company.companyName || company.domain?.split('.')[0] || "-"}</span>
+                        </div>
+                        {company.propertyRelated && (
+                          <Badge
+                            variant="secondary"
+                            className="text-xs bg-orange-100 text-orange-700 mt-1"
+                          >
+                            Property Related
+                          </Badge>
+                        )}
+                      </TableCell>
+
+                      {/* Location */}
                       <TableCell>
                         <div className="flex items-center gap-1">
                           <MapPin className="h-3 w-3 text-muted-foreground" />
@@ -1109,53 +1150,8 @@ export default function ImportCompaniesPage() {
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell>
-                        {company.propertyAddresses &&
-                        company.propertyAddresses.length > 0 ? (
-                          <div className="space-y-1">
-                            {company.propertyAddresses
-                              .slice(0, 2)
-                              .map((addr, i) => (
-                                <div key={i} className="text-xs">
-                                  <div className="flex items-center gap-1">
-                                    <Building className="h-3 w-3 text-purple-600" />
-                                    <span className="font-medium">
-                                      {addr.street}
-                                    </span>
-                                  </div>
-                                  <span className="text-muted-foreground ml-4">
-                                    {addr.city}, {addr.state} {addr.zip}
-                                  </span>
-                                </div>
-                              ))}
-                            {company.propertyAddresses.length > 2 && (
-                              <Badge variant="outline" className="text-xs">
-                                +{company.propertyAddresses.length - 2} more
-                                properties
-                              </Badge>
-                            )}
-                          </div>
-                        ) : company.address ? (
-                          <div className="flex items-center gap-1 text-xs">
-                            <Building className="h-3 w-3 text-muted-foreground" />
-                            <span>{company.address}</span>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground text-xs">
-                            -
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {company.employees
-                          ? formatNumber(company.employees)
-                          : "-"}
-                      </TableCell>
-                      <TableCell>
-                        {company.revenue
-                          ? currencyFormat(company.revenue)
-                          : "-"}
-                      </TableCell>
+
+                      {/* Phones */}
                       <TableCell>
                         {company.enrichedPhones &&
                         company.enrichedPhones.length > 0 ? (
@@ -1225,6 +1221,13 @@ export default function ImportCompaniesPage() {
                           </span>
                         )}
                       </TableCell>
+
+                      {/* Industry */}
+                      <TableCell>
+                        <span className="text-xs">{company.industry || "-"}</span>
+                      </TableCell>
+
+                      {/* Website */}
                       <TableCell>
                         {company.domain ? (
                           <a
@@ -1233,7 +1236,7 @@ export default function ImportCompaniesPage() {
                             }
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-1 text-blue-500 hover:underline"
+                            className="flex items-center gap-1 text-blue-500 hover:underline text-xs"
                           >
                             <ExternalLink className="h-3 w-3" />
                             {company.domain}
@@ -1242,6 +1245,8 @@ export default function ImportCompaniesPage() {
                           "-"
                         )}
                       </TableCell>
+
+                      {/* Actions */}
                       <TableCell>
                         {company.enriched ? (
                           <div className="flex items-center gap-1">
@@ -1267,7 +1272,7 @@ export default function ImportCompaniesPage() {
 
               {!loading && (
                 <CardFooter className="border-t text-sm flex justify-between items-center">
-                  <p>Found: {formatNumber(estimatedCount)} companies</p>
+                  <p>Found: {formatNumber(estimatedCount)} contacts</p>
 
                   {/* Pagination Controls */}
                   {totalPages > 1 && (
