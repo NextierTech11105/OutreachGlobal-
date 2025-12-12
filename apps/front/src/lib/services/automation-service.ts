@@ -61,20 +61,40 @@ const EMAIL_REGEX = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
 
 // Opt-out keywords
 const OPT_OUT_KEYWORDS = [
-  "stop", "unsubscribe", "remove", "optout", "opt out", "cancel",
-  "dont text", "don't text", "no more", "leave me alone"
+  "stop",
+  "unsubscribe",
+  "remove",
+  "optout",
+  "opt out",
+  "cancel",
+  "dont text",
+  "don't text",
+  "no more",
+  "leave me alone",
 ];
 
 // Wrong number keywords
 const WRONG_NUMBER_KEYWORDS = [
-  "wrong number", "wrong person", "who is this", "dont know",
-  "don't know", "never heard", "not me", "idk who"
+  "wrong number",
+  "wrong person",
+  "who is this",
+  "dont know",
+  "don't know",
+  "never heard",
+  "not me",
+  "idk who",
 ];
 
 // Interest keywords
 const INTEREST_KEYWORDS = [
-  "yes", "interested", "tell me more", "call me", "sure",
-  "sounds good", "what's the offer", "how much"
+  "yes",
+  "interested",
+  "tell me more",
+  "call me",
+  "sure",
+  "sounds good",
+  "what's the offer",
+  "how much",
 ];
 
 class AutomationService {
@@ -86,11 +106,18 @@ class AutomationService {
    * Schedule retarget drip for leads with no response
    * Day 7 → Day 14 → Day 30 → Cold bucket
    */
-  scheduleRetargetDrip(leadId: string, phone: string, firstName?: string, propertyAddress?: string): void {
+  scheduleRetargetDrip(
+    leadId: string,
+    phone: string,
+    firstName?: string,
+    propertyAddress?: string,
+  ): void {
     const state = this.getOrCreateState(leadId, phone);
 
     if (state.optedOut || state.wrongNumber) {
-      console.log(`[Automation] Skipping retarget for ${leadId} - opted out or wrong number`);
+      console.log(
+        `[Automation] Skipping retarget for ${leadId} - opted out or wrong number`,
+      );
       return;
     }
 
@@ -107,25 +134,37 @@ class AutomationService {
       state.drip.stage = 1;
 
       // Schedule Day 14
-      this.scheduleTask(leadId, "retarget_day14", 7 * 24 * 60 * 60 * 1000, () => {
-        if (!this.checkStillEligible(leadId)) return;
-
-        const message2 = `Still interested in chatting about ${propertyAddress || "the property"}? LMK! No pressure at all.`;
-        this.queueSMS(leadId, phone, message2, "retarget_nudge_2");
-        state.drip.stage = 2;
-
-        // Schedule Day 30 (final)
-        this.scheduleTask(leadId, "retarget_day30", 16 * 24 * 60 * 60 * 1000, () => {
+      this.scheduleTask(
+        leadId,
+        "retarget_day14",
+        7 * 24 * 60 * 60 * 1000,
+        () => {
           if (!this.checkStillEligible(leadId)) return;
 
-          const message3 = `Last try! If you ever want to discuss ${propertyAddress || "your property"}, I'm here. Have a great day!`;
-          this.queueSMS(leadId, phone, message3, "retarget_final");
-          state.drip.stage = 3;
-          state.priority = "cold";
+          const message2 = `Still interested in chatting about ${propertyAddress || "the property"}? LMK! No pressure at all.`;
+          this.queueSMS(leadId, phone, message2, "retarget_nudge_2");
+          state.drip.stage = 2;
 
-          console.log(`[Automation] Lead ${leadId} moved to COLD bucket after no response`);
-        });
-      });
+          // Schedule Day 30 (final)
+          this.scheduleTask(
+            leadId,
+            "retarget_day30",
+            16 * 24 * 60 * 60 * 1000,
+            () => {
+              if (!this.checkStillEligible(leadId)) return;
+
+              const message3 = `Last try! If you ever want to discuss ${propertyAddress || "your property"}, I'm here. Have a great day!`;
+              this.queueSMS(leadId, phone, message3, "retarget_final");
+              state.drip.stage = 3;
+              state.priority = "cold";
+
+              console.log(
+                `[Automation] Lead ${leadId} moved to COLD bucket after no response`,
+              );
+            },
+          );
+        },
+      );
     });
 
     leadStates.set(leadId, state);
@@ -169,7 +208,8 @@ class AutomationService {
     // Day 7: Market update SMS
     this.scheduleTask(leadId, "nurture_day7", 7 * 24 * 60 * 60 * 1000, () => {
       if (!this.checkStillEligible(leadId)) return;
-      const message = "Quick market update - prices in your area are moving! Want me to send you the latest data?";
+      const message =
+        "Quick market update - prices in your area are moving! Want me to send you the latest data?";
       this.queueSMS(leadId, phone, message, "nurture_market_update");
       state.drip.stage = 2;
     });
@@ -182,7 +222,9 @@ class AutomationService {
     });
 
     leadStates.set(leadId, state);
-    console.log(`[Automation] Nurture drip activated for ${leadId} (score: ${state.score})`);
+    console.log(
+      `[Automation] Nurture drip activated for ${leadId} (score: ${state.score})`,
+    );
   }
 
   // ============================================
@@ -193,7 +235,16 @@ class AutomationService {
    * Maximum priority for valuation/blueprint recipients
    * These are situational targets with HIGH probability
    */
-  flagAsHotLead(leadId: string, phone: string, email?: string, reason: "valuation" | "blueprint" | "interested" | "call_request" = "valuation"): void {
+  flagAsHotLead(
+    leadId: string,
+    phone: string,
+    email?: string,
+    reason:
+      | "valuation"
+      | "blueprint"
+      | "interested"
+      | "call_request" = "valuation",
+  ): void {
     const state = this.getOrCreateState(leadId, phone);
 
     // Cancel all other drips - this is priority 1
@@ -211,23 +262,28 @@ class AutomationService {
     state.drip.stage = 0;
 
     // Immediate: Log for sales alert
-    console.log(`🔥🔥🔥 [HOT LEAD] ${leadId} - Reason: ${reason} - IMMEDIATE FOLLOW-UP REQUIRED`);
+    console.log(
+      `🔥🔥🔥 [HOT LEAD] ${leadId} - Reason: ${reason} - IMMEDIATE FOLLOW-UP REQUIRED`,
+    );
 
     // Send notification (would integrate with Slack/webhook in production)
     this.sendSalesAlert(leadId, reason);
 
     // Hour 24: Follow-up if no response
     this.scheduleTask(leadId, "hot_24h", 24 * 60 * 60 * 1000, () => {
-      if (state.lastResponseAt && state.lastResponseAt > state.lastContactAt!) return;
+      if (state.lastResponseAt && state.lastResponseAt > state.lastContactAt!)
+        return;
 
-      const message = "Did you get a chance to review the report I sent? Happy to walk through it with you!";
+      const message =
+        "Did you get a chance to review the report I sent? Happy to walk through it with you!";
       this.queueSMS(leadId, phone, message, "hot_followup_24h");
       state.drip.stage = 1;
     });
 
     // Hour 48: Phone call attempt
     this.scheduleTask(leadId, "hot_48h", 48 * 60 * 60 * 1000, () => {
-      if (state.lastResponseAt && state.lastResponseAt > state.lastContactAt!) return;
+      if (state.lastResponseAt && state.lastResponseAt > state.lastContactAt!)
+        return;
 
       this.queueCall(leadId, phone, "hot_followup_call");
       state.drip.stage = 2;
@@ -235,7 +291,8 @@ class AutomationService {
 
     // Day 3: Check-in SMS
     this.scheduleTask(leadId, "hot_day3", 3 * 24 * 60 * 60 * 1000, () => {
-      if (state.lastResponseAt && state.lastResponseAt > state.lastContactAt!) return;
+      if (state.lastResponseAt && state.lastResponseAt > state.lastContactAt!)
+        return;
 
       const message = "Any questions about the numbers? I'm here to help!";
       this.queueSMS(leadId, phone, message, "hot_followup_day3");
@@ -244,16 +301,20 @@ class AutomationService {
 
     // Day 7: Final hot lead touch
     this.scheduleTask(leadId, "hot_day7", 7 * 24 * 60 * 60 * 1000, () => {
-      if (state.lastResponseAt && state.lastResponseAt > state.lastContactAt!) return;
+      if (state.lastResponseAt && state.lastResponseAt > state.lastContactAt!)
+        return;
 
-      const message = "Still thinking about it? Happy to hop on a quick call whenever works for you.";
+      const message =
+        "Still thinking about it? Happy to hop on a quick call whenever works for you.";
       this.queueSMS(leadId, phone, message, "hot_followup_day7");
       state.drip.stage = 4;
 
       // Downgrade to warm if still no response
       if (!state.lastResponseAt) {
         state.priority = "warm";
-        console.log(`[Automation] Hot lead ${leadId} downgraded to WARM after 7 days`);
+        console.log(
+          `[Automation] Hot lead ${leadId} downgraded to WARM after 7 days`,
+        );
       }
     });
 
@@ -267,7 +328,12 @@ class AutomationService {
   /**
    * Detect email in SMS response and auto-send valuation
    */
-  processIncomingMessage(leadId: string, phone: string, message: string, propertyId?: string): {
+  processIncomingMessage(
+    leadId: string,
+    phone: string,
+    message: string,
+    propertyId?: string,
+  ): {
     classification: ResponseType;
     extractedEmail?: string;
     action: string;
@@ -279,20 +345,20 @@ class AutomationService {
     state.lastResponseAt = new Date();
 
     // Check for opt-out first (highest priority)
-    if (OPT_OUT_KEYWORDS.some(kw => lowerMessage.includes(kw))) {
+    if (OPT_OUT_KEYWORDS.some((kw) => lowerMessage.includes(kw))) {
       this.handleOptOut(leadId, phone);
       return {
         classification: "opt_out",
-        action: "Added to opt-out list, all messages cancelled"
+        action: "Added to opt-out list, all messages cancelled",
       };
     }
 
     // Check for wrong number
-    if (WRONG_NUMBER_KEYWORDS.some(kw => lowerMessage.includes(kw))) {
+    if (WRONG_NUMBER_KEYWORDS.some((kw) => lowerMessage.includes(kw))) {
       this.handleWrongNumber(leadId, phone);
       return {
         classification: "wrong_number",
-        action: "Marked as wrong number, queued for re-skip-trace"
+        action: "Marked as wrong number, queued for re-skip-trace",
       };
     }
 
@@ -312,18 +378,18 @@ class AutomationService {
       return {
         classification: "email_provided",
         extractedEmail: email,
-        action: "Email captured, valuation report sent, flagged as HOT lead"
+        action: "Email captured, valuation report sent, flagged as HOT lead",
       };
     }
 
     // Check for interest signals
-    if (INTEREST_KEYWORDS.some(kw => lowerMessage.includes(kw))) {
+    if (INTEREST_KEYWORDS.some((kw) => lowerMessage.includes(kw))) {
       // Check if they want a call
       if (lowerMessage.includes("call")) {
         this.flagAsHotLead(leadId, phone, undefined, "call_request");
         return {
           classification: "appointment_request",
-          action: "Flagged as HOT lead, queued for call"
+          action: "Flagged as HOT lead, queued for call",
         };
       }
 
@@ -331,16 +397,22 @@ class AutomationService {
       this.activateNurtureDrip(leadId, phone);
       return {
         classification: "interested",
-        action: "Activated nurture drip, priority upgraded to WARM"
+        action: "Activated nurture drip, priority upgraded to WARM",
       };
     }
 
     // Check if it's a question
-    if (message.includes("?") || lowerMessage.startsWith("what") || lowerMessage.startsWith("how") || lowerMessage.startsWith("when")) {
+    if (
+      message.includes("?") ||
+      lowerMessage.startsWith("what") ||
+      lowerMessage.startsWith("how") ||
+      lowerMessage.startsWith("when")
+    ) {
       this.activateNurtureDrip(leadId, phone);
       return {
         classification: "question",
-        action: "Question detected - needs human response, nurture drip activated"
+        action:
+          "Question detected - needs human response, nurture drip activated",
       };
     }
 
@@ -351,7 +423,7 @@ class AutomationService {
 
     return {
       classification: "unclear",
-      action: "Phone confirmed, needs human review"
+      action: "Phone confirmed, needs human review",
     };
   }
 
@@ -373,7 +445,12 @@ class AutomationService {
     smsQueueService.addOptOut(phone);
 
     // Send confirmation
-    this.queueSMS(leadId, phone, "You've been unsubscribed. Reply START to re-join. Have a great day!", "opt_out_confirm");
+    this.queueSMS(
+      leadId,
+      phone,
+      "You've been unsubscribed. Reply START to re-join. Have a great day!",
+      "opt_out_confirm",
+    );
 
     leadStates.set(leadId, state);
     console.log(`[Automation] Lead ${leadId} opted out`);
@@ -394,10 +471,17 @@ class AutomationService {
     state.drip.sequence = null;
 
     // Send apology
-    this.queueSMS(leadId, phone, "So sorry for the mixup! Have a great day.", "wrong_number_apology");
+    this.queueSMS(
+      leadId,
+      phone,
+      "So sorry for the mixup! Have a great day.",
+      "wrong_number_apology",
+    );
 
     // Queue for re-skip-trace
-    console.log(`[Automation] Lead ${leadId} marked as wrong number - queue for re-skip-trace`);
+    console.log(
+      `[Automation] Lead ${leadId} marked as wrong number - queue for re-skip-trace`,
+    );
 
     leadStates.set(leadId, state);
   }
@@ -438,7 +522,12 @@ class AutomationService {
     return true;
   }
 
-  private scheduleTask(leadId: string, taskId: string, delayMs: number, callback: () => void): void {
+  private scheduleTask(
+    leadId: string,
+    taskId: string,
+    delayMs: number,
+    callback: () => void,
+  ): void {
     const fullId = `${leadId}_${taskId}`;
 
     // Clear any existing task with same ID
@@ -460,7 +549,12 @@ class AutomationService {
     }
   }
 
-  private queueSMS(leadId: string, phone: string, message: string, category: string): void {
+  private queueSMS(
+    leadId: string,
+    phone: string,
+    message: string,
+    category: string,
+  ): void {
     smsQueueService.addToQueue({
       leadId,
       to: phone,
@@ -477,7 +571,9 @@ class AutomationService {
 
   private queueEmail(_leadId: string, _email: string, _template: string): void {
     // Would integrate with SendGrid service
-    console.log(`[Automation] Email queued for ${_leadId}: ${_template} to ${_email}`);
+    console.log(
+      `[Automation] Email queued for ${_leadId}: ${_template} to ${_email}`,
+    );
   }
 
   private queueCall(_leadId: string, _phone: string, _reason: string): void {
@@ -490,12 +586,24 @@ class AutomationService {
     console.log(`🔔 [SALES ALERT] Hot lead: ${leadId} - Reason: ${reason}`);
   }
 
-  private autoSendValuationToEmail(leadId: string, phone: string, email: string, propertyId?: string): void {
-    console.log(`[Automation] Auto-generating valuation for ${leadId} to send to ${email}`);
+  private autoSendValuationToEmail(
+    leadId: string,
+    phone: string,
+    email: string,
+    propertyId?: string,
+  ): void {
+    console.log(
+      `[Automation] Auto-generating valuation for ${leadId} to send to ${email}`,
+    );
 
     // Would call valuation API and send email
     // For now, just confirm via SMS
-    this.queueSMS(leadId, phone, "Just sent it! Check your inbox 📧", "email_confirm");
+    this.queueSMS(
+      leadId,
+      phone,
+      "Just sent it! Check your inbox 📧",
+      "email_confirm",
+    );
   }
 
   // ============================================
@@ -507,11 +615,11 @@ class AutomationService {
   }
 
   getAllHotLeads(): LeadAutomationState[] {
-    return Array.from(leadStates.values()).filter(s => s.priority === "hot");
+    return Array.from(leadStates.values()).filter((s) => s.priority === "hot");
   }
 
   getAllWarmLeads(): LeadAutomationState[] {
-    return Array.from(leadStates.values()).filter(s => s.priority === "warm");
+    return Array.from(leadStates.values()).filter((s) => s.priority === "warm");
   }
 
   getStats(): {
@@ -527,13 +635,14 @@ class AutomationService {
     const states = Array.from(leadStates.values());
     return {
       total: states.length,
-      hot: states.filter(s => s.priority === "hot").length,
-      warm: states.filter(s => s.priority === "warm").length,
-      cold: states.filter(s => s.priority === "cold").length,
-      dead: states.filter(s => s.priority === "dead").length,
-      optedOut: states.filter(s => s.optedOut).length,
-      wrongNumbers: states.filter(s => s.wrongNumber).length,
-      valuationsSent: states.filter(s => s.valuationSent || s.blueprintSent).length,
+      hot: states.filter((s) => s.priority === "hot").length,
+      warm: states.filter((s) => s.priority === "warm").length,
+      cold: states.filter((s) => s.priority === "cold").length,
+      dead: states.filter((s) => s.priority === "dead").length,
+      optedOut: states.filter((s) => s.optedOut).length,
+      wrongNumbers: states.filter((s) => s.wrongNumber).length,
+      valuationsSent: states.filter((s) => s.valuationSent || s.blueprintSent)
+        .length,
     };
   }
 }

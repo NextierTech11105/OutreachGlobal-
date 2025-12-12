@@ -4,9 +4,12 @@ import { NextRequest, NextResponse } from "next/server";
 // Gianna sends scheduled Medium articles via SMS
 // Sample: "This is Gianna with NEXTIER Technologies. Can I share the article our founder wrote... what's your best email?"
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://monkfish-app-mb7h3.ondigitalocean.app";
+const APP_URL =
+  process.env.NEXT_PUBLIC_APP_URL ||
+  "https://monkfish-app-mb7h3.ondigitalocean.app";
 const SIGNALHOUSE_API_KEY = process.env.SIGNALHOUSE_API_KEY || "";
-const FROM_NUMBER = process.env.SIGNALHOUSE_FROM_NUMBER || process.env.TWILIO_PHONE_NUMBER || "";
+const FROM_NUMBER =
+  process.env.SIGNALHOUSE_FROM_NUMBER || process.env.TWILIO_PHONE_NUMBER || "";
 
 interface ContentToSend {
   id: string;
@@ -47,7 +50,10 @@ const ARTICLE_TEMPLATES = [
 ];
 
 // Send SMS via SignalHouse
-async function sendSMS(to: string, message: string): Promise<{ success: boolean; messageId?: string; error?: string }> {
+async function sendSMS(
+  to: string,
+  message: string,
+): Promise<{ success: boolean; messageId?: string; error?: string }> {
   if (!SIGNALHOUSE_API_KEY) {
     console.warn("[Content Send] SignalHouse not configured");
     return { success: false, error: "SMS not configured" };
@@ -58,7 +64,7 @@ async function sendSMS(to: string, message: string): Promise<{ success: boolean;
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${SIGNALHOUSE_API_KEY}`,
+        Authorization: `Bearer ${SIGNALHOUSE_API_KEY}`,
       },
       body: JSON.stringify({
         to,
@@ -98,37 +104,50 @@ export async function POST(request: NextRequest) {
       articleContent = content;
     } else if (contentId) {
       // Fetch from calendar
-      const calendarResponse = await fetch(`${APP_URL}/api/content-calendar?view=upcoming`);
+      const calendarResponse = await fetch(
+        `${APP_URL}/api/content-calendar?view=upcoming`,
+      );
       const calendarData = await calendarResponse.json();
-      const found = calendarData.upcoming?.find((c: { id: string }) => c.id === contentId);
+      const found = calendarData.upcoming?.find(
+        (c: { id: string }) => c.id === contentId,
+      );
       if (!found) {
-        return NextResponse.json({ error: "Content not found in calendar" }, { status: 404 });
+        return NextResponse.json(
+          { error: "Content not found in calendar" },
+          { status: 404 },
+        );
       }
       articleContent = found;
     } else {
-      return NextResponse.json({
-        error: "contentId or content object required",
-        example: {
-          content: {
-            id: "article-1",
-            title: "5 Ways to Maximize Property Value",
-            url: "https://medium.com/@nextier/article",
-            description: "Quick tips for homeowners",
+      return NextResponse.json(
+        {
+          error: "contentId or content object required",
+          example: {
+            content: {
+              id: "article-1",
+              title: "5 Ways to Maximize Property Value",
+              url: "https://medium.com/@nextier/article",
+              description: "Quick tips for homeowners",
+            },
+            leads: [{ phone: "+13055551234", firstName: "John" }],
+            templateId: "founder_article",
           },
-          leads: [
-            { phone: "+13055551234", firstName: "John" },
-          ],
-          templateId: "founder_article",
         },
-      }, { status: 400 });
+        { status: 400 },
+      );
     }
 
     if (!leads || !Array.isArray(leads) || leads.length === 0) {
-      return NextResponse.json({ error: "leads array required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "leads array required" },
+        { status: 400 },
+      );
     }
 
     // Get template
-    const template = ARTICLE_TEMPLATES.find(t => t.id === templateId) || ARTICLE_TEMPLATES[0];
+    const template =
+      ARTICLE_TEMPLATES.find((t) => t.id === templateId) ||
+      ARTICLE_TEMPLATES[0];
 
     // Prepare messages
     const messages = leads.map((lead: LeadToSMS) => ({
@@ -137,7 +156,7 @@ export async function POST(request: NextRequest) {
       message: template.message(
         lead.firstName || "",
         articleContent.title,
-        articleContent.description
+        articleContent.description,
       ),
       leadId: lead.leadId,
     }));
@@ -176,16 +195,18 @@ export async function POST(request: NextRequest) {
             results.errors.push(`${msg.phone}: ${result.error}`);
           }
           return result;
-        })
+        }),
       );
 
       // Small delay between batches
       if (i + batchSize < messages.length) {
-        await new Promise(r => setTimeout(r, 500));
+        await new Promise((r) => setTimeout(r, 500));
       }
     }
 
-    console.log(`[Content Send] Sent "${articleContent.title}" to ${results.sent}/${messages.length} leads`);
+    console.log(
+      `[Content Send] Sent "${articleContent.title}" to ${results.sent}/${messages.length} leads`,
+    );
 
     return NextResponse.json({
       success: true,
@@ -195,7 +216,8 @@ export async function POST(request: NextRequest) {
         sent: results.sent,
         failed: results.failed,
       },
-      errors: results.errors.length > 0 ? results.errors.slice(0, 10) : undefined,
+      errors:
+        results.errors.length > 0 ? results.errors.slice(0, 10) : undefined,
     });
   } catch (error) {
     console.error("[Content Send] Error:", error);
@@ -207,10 +229,11 @@ export async function POST(request: NextRequest) {
 // GET - Get available templates
 export async function GET() {
   return NextResponse.json({
-    templates: ARTICLE_TEMPLATES.map(t => ({
+    templates: ARTICLE_TEMPLATES.map((t) => ({
       id: t.id,
       preview: t.message("{firstName}", "{articleTitle}", "{description}"),
     })),
-    usage: "POST with { content: {...}, leads: [...], templateId: 'founder_article' }",
+    usage:
+      "POST with { content: {...}, leads: [...], templateId: 'founder_article' }",
   });
 }

@@ -1,16 +1,28 @@
 /**
  * B2B Search API
- * Searches USBizData records from DO Spaces buckets
+ *
+ * Data Sources:
+ * 1. Pushbutton Business List API (34M+ companies, 235M+ contacts)
+ * 2. USBizData from DO Spaces (5.5M NY businesses)
+ * 3. Apollo API fallback (all US)
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { S3Client, GetObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
 
+// Pushbutton Business List API (Primary - 34M companies)
+const BUSINESS_LIST_API_URL = process.env.BUSINESS_LIST_API_URL || "https://api.pushbuttonbusinesslist.com";
+const BUSINESS_LIST_API_KEY = process.env.BUSINESS_LIST_API_KEY || "";
+
+// DO Spaces (Secondary - USBizData NY)
 const SPACES_ENDPOINT = process.env.SPACES_ENDPOINT || "https://nyc3.digitaloceanspaces.com";
 const SPACES_REGION = process.env.SPACES_REGION || "nyc3";
 const SPACES_KEY = process.env.SPACES_KEY || process.env.DO_SPACES_KEY || "";
 const SPACES_SECRET = process.env.SPACES_SECRET || process.env.DO_SPACES_SECRET || "";
 const SPACES_BUCKET = process.env.SPACES_BUCKET || process.env.DO_SPACES_BUCKET || "nextier";
+
+// Apollo API (Fallback)
+const APOLLO_API_KEY = process.env.APOLLO_IO_API_KEY || "";
 
 const s3Client = new S3Client({
   endpoint: SPACES_ENDPOINT,

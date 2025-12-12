@@ -1,6 +1,5 @@
 "use client";
 
-
 import { sf, sfd } from "@/lib/utils/safe-format";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -180,7 +179,9 @@ export default function PricingPage() {
 
   const handleSelectPlan = async (planSlug: string) => {
     // Redirect to checkout or signup
-    router.push(`/signup?plan=${planSlug}&billing=${isYearly ? "yearly" : "monthly"}`);
+    router.push(
+      `/signup?plan=${planSlug}&billing=${isYearly ? "yearly" : "monthly"}`,
+    );
   };
 
   return (
@@ -194,8 +195,8 @@ export default function PricingPage() {
           Simple, Transparent Pricing
         </h1>
         <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
-          Choose the perfect plan for your real estate business. All plans include our
-          AI-powered research assistant and core platform features.
+          Choose the perfect plan for your real estate business. All plans
+          include our AI-powered research assistant and core platform features.
         </p>
 
         {/* Billing Toggle */}
@@ -293,7 +294,9 @@ export default function PricingPage() {
                               : "text-muted-foreground/30"
                           }`}
                         />
-                        <span className={!feature.included ? "line-through" : ""}>
+                        <span
+                          className={!feature.included ? "line-through" : ""}
+                        >
                           {feature.text}
                         </span>
                       </li>
@@ -307,7 +310,9 @@ export default function PricingPage() {
                     variant={plan.popular ? "default" : "outline"}
                     onClick={() => handleSelectPlan(plan.slug)}
                   >
-                    {plan.slug === "white-label" ? "Contact Sales" : "Get Started"}
+                    {plan.slug === "white-label"
+                      ? "Contact Sales"
+                      : "Get Started"}
                   </Button>
                 </CardFooter>
               </Card>
@@ -339,7 +344,9 @@ export default function PricingPage() {
                       <CardTitle className="text-sm font-medium">
                         {addon.name}
                       </CardTitle>
-                      <p className="text-primary font-semibold">{addon.price}</p>
+                      <p className="text-primary font-semibold">
+                        {addon.price}
+                      </p>
                     </div>
                   </div>
                 </CardHeader>
@@ -362,8 +369,8 @@ export default function PricingPage() {
               Ready to Transform Your Real Estate Business?
             </h2>
             <p className="text-primary-foreground/80 mb-6 max-w-xl mx-auto">
-              Join hundreds of agents and brokerages already using Nextier to find
-              more deals, close faster, and grow their business.
+              Join hundreds of agents and brokerages already using Nextier to
+              find more deals, close faster, and grow their business.
             </p>
             <div className="flex gap-4 justify-center">
               <Button

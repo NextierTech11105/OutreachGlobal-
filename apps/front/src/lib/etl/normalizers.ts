@@ -36,20 +36,20 @@ export function normalizeAddress(address: string | null | undefined): string {
 
   // Street suffix standardization
   const suffixes: Record<string, string> = {
-    "STREET": "ST",
-    "AVENUE": "AVE",
-    "BOULEVARD": "BLVD",
-    "DRIVE": "DR",
-    "ROAD": "RD",
-    "LANE": "LN",
-    "COURT": "CT",
-    "PLACE": "PL",
-    "CIRCLE": "CIR",
-    "HIGHWAY": "HWY",
-    "PARKWAY": "PKWY",
-    "TERRACE": "TER",
-    "TRAIL": "TRL",
-    "WAY": "WAY",
+    STREET: "ST",
+    AVENUE: "AVE",
+    BOULEVARD: "BLVD",
+    DRIVE: "DR",
+    ROAD: "RD",
+    LANE: "LN",
+    COURT: "CT",
+    PLACE: "PL",
+    CIRCLE: "CIR",
+    HIGHWAY: "HWY",
+    PARKWAY: "PKWY",
+    TERRACE: "TER",
+    TRAIL: "TRL",
+    WAY: "WAY",
   };
 
   for (const [full, abbrev] of Object.entries(suffixes)) {
@@ -58,14 +58,14 @@ export function normalizeAddress(address: string | null | undefined): string {
 
   // Direction standardization
   const directions: Record<string, string> = {
-    "NORTH": "N",
-    "SOUTH": "S",
-    "EAST": "E",
-    "WEST": "W",
-    "NORTHEAST": "NE",
-    "NORTHWEST": "NW",
-    "SOUTHEAST": "SE",
-    "SOUTHWEST": "SW",
+    NORTH: "N",
+    SOUTH: "S",
+    EAST: "E",
+    WEST: "W",
+    NORTHEAST: "NE",
+    NORTHWEST: "NW",
+    SOUTHEAST: "SE",
+    SOUTHWEST: "SW",
   };
 
   for (const [full, abbrev] of Object.entries(directions)) {
@@ -73,7 +73,10 @@ export function normalizeAddress(address: string | null | undefined): string {
   }
 
   // Remove unit/apt/suite numbers
-  normalized = normalized.replace(/\b(UNIT|APT|APARTMENT|SUITE|STE|#)\s*\w+/g, "");
+  normalized = normalized.replace(
+    /\b(UNIT|APT|APARTMENT|SUITE|STE|#)\s*\w+/g,
+    "",
+  );
 
   // Remove extra whitespace
   normalized = normalized.replace(/\s+/g, " ").trim();
@@ -95,11 +98,11 @@ export function normalizeName(name: string | null | undefined): string {
 
   // Standardize suffixes
   const suffixMap: Record<string, string> = {
-    "JUNIOR": "JR",
-    "SENIOR": "SR",
-    "SECOND": "II",
-    "THIRD": "III",
-    "FOURTH": "IV",
+    JUNIOR: "JR",
+    SENIOR: "SR",
+    SECOND: "II",
+    THIRD: "III",
+    FOURTH: "IV",
   };
 
   for (const [full, abbrev] of Object.entries(suffixMap)) {
@@ -117,19 +120,38 @@ export function normalizeCompanyName(name: string | null | undefined): string {
 
   // Remove legal suffixes
   const legalSuffixes = [
-    "LLC", "L.L.C.", "L L C",
-    "INC", "INC.", "INCORPORATED",
-    "CORP", "CORP.", "CORPORATION",
-    "CO", "CO.", "COMPANY",
-    "LTD", "LTD.", "LIMITED",
-    "LP", "L.P.", "LIMITED PARTNERSHIP",
-    "LLP", "L.L.P.",
-    "PC", "P.C.", "PROFESSIONAL CORPORATION",
-    "PLLC", "P.L.L.C.",
+    "LLC",
+    "L.L.C.",
+    "L L C",
+    "INC",
+    "INC.",
+    "INCORPORATED",
+    "CORP",
+    "CORP.",
+    "CORPORATION",
+    "CO",
+    "CO.",
+    "COMPANY",
+    "LTD",
+    "LTD.",
+    "LIMITED",
+    "LP",
+    "L.P.",
+    "LIMITED PARTNERSHIP",
+    "LLP",
+    "L.L.P.",
+    "PC",
+    "P.C.",
+    "PROFESSIONAL CORPORATION",
+    "PLLC",
+    "P.L.L.C.",
   ];
 
   for (const suffix of legalSuffixes) {
-    normalized = normalized.replace(new RegExp(`\\s*,?\\s*${suffix.replace(/\./g, "\\.")}$`, "i"), "");
+    normalized = normalized.replace(
+      new RegExp(`\\s*,?\\s*${suffix.replace(/\./g, "\\.")}$`, "i"),
+      "",
+    );
   }
 
   // Remove "THE" at start
@@ -160,19 +182,57 @@ export function normalizeState(state: string | null | undefined): string {
   if (!state) return "";
 
   const stateMap: Record<string, string> = {
-    "ALABAMA": "AL", "ALASKA": "AK", "ARIZONA": "AZ", "ARKANSAS": "AR",
-    "CALIFORNIA": "CA", "COLORADO": "CO", "CONNECTICUT": "CT", "DELAWARE": "DE",
-    "FLORIDA": "FL", "GEORGIA": "GA", "HAWAII": "HI", "IDAHO": "ID",
-    "ILLINOIS": "IL", "INDIANA": "IN", "IOWA": "IA", "KANSAS": "KS",
-    "KENTUCKY": "KY", "LOUISIANA": "LA", "MAINE": "ME", "MARYLAND": "MD",
-    "MASSACHUSETTS": "MA", "MICHIGAN": "MI", "MINNESOTA": "MN", "MISSISSIPPI": "MS",
-    "MISSOURI": "MO", "MONTANA": "MT", "NEBRASKA": "NE", "NEVADA": "NV",
-    "NEW HAMPSHIRE": "NH", "NEW JERSEY": "NJ", "NEW MEXICO": "NM", "NEW YORK": "NY",
-    "NORTH CAROLINA": "NC", "NORTH DAKOTA": "ND", "OHIO": "OH", "OKLAHOMA": "OK",
-    "OREGON": "OR", "PENNSYLVANIA": "PA", "RHODE ISLAND": "RI", "SOUTH CAROLINA": "SC",
-    "SOUTH DAKOTA": "SD", "TENNESSEE": "TN", "TEXAS": "TX", "UTAH": "UT",
-    "VERMONT": "VT", "VIRGINIA": "VA", "WASHINGTON": "WA", "WEST VIRGINIA": "WV",
-    "WISCONSIN": "WI", "WYOMING": "WY", "DISTRICT OF COLUMBIA": "DC",
+    ALABAMA: "AL",
+    ALASKA: "AK",
+    ARIZONA: "AZ",
+    ARKANSAS: "AR",
+    CALIFORNIA: "CA",
+    COLORADO: "CO",
+    CONNECTICUT: "CT",
+    DELAWARE: "DE",
+    FLORIDA: "FL",
+    GEORGIA: "GA",
+    HAWAII: "HI",
+    IDAHO: "ID",
+    ILLINOIS: "IL",
+    INDIANA: "IN",
+    IOWA: "IA",
+    KANSAS: "KS",
+    KENTUCKY: "KY",
+    LOUISIANA: "LA",
+    MAINE: "ME",
+    MARYLAND: "MD",
+    MASSACHUSETTS: "MA",
+    MICHIGAN: "MI",
+    MINNESOTA: "MN",
+    MISSISSIPPI: "MS",
+    MISSOURI: "MO",
+    MONTANA: "MT",
+    NEBRASKA: "NE",
+    NEVADA: "NV",
+    "NEW HAMPSHIRE": "NH",
+    "NEW JERSEY": "NJ",
+    "NEW MEXICO": "NM",
+    "NEW YORK": "NY",
+    "NORTH CAROLINA": "NC",
+    "NORTH DAKOTA": "ND",
+    OHIO: "OH",
+    OKLAHOMA: "OK",
+    OREGON: "OR",
+    PENNSYLVANIA: "PA",
+    "RHODE ISLAND": "RI",
+    "SOUTH CAROLINA": "SC",
+    "SOUTH DAKOTA": "SD",
+    TENNESSEE: "TN",
+    TEXAS: "TX",
+    UTAH: "UT",
+    VERMONT: "VT",
+    VIRGINIA: "VA",
+    WASHINGTON: "WA",
+    "WEST VIRGINIA": "WV",
+    WISCONSIN: "WI",
+    WYOMING: "WY",
+    "DISTRICT OF COLUMBIA": "DC",
   };
 
   const upper = state.toUpperCase().trim();

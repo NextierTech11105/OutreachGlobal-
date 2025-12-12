@@ -32,14 +32,17 @@ export async function POST(request: NextRequest) {
     if (!leadIds || !Array.isArray(leadIds) || leadIds.length === 0) {
       return NextResponse.json(
         { error: "leadIds array is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!action) {
       return NextResponse.json(
-        { error: "action is required (pause, suppress, rethink, revisit, resume)" },
-        { status: 400 }
+        {
+          error:
+            "action is required (pause, suppress, rethink, revisit, resume)",
+        },
+        { status: 400 },
       );
     }
 
@@ -76,7 +79,7 @@ export async function POST(request: NextRequest) {
         if (!revisitDate) {
           return NextResponse.json(
             { error: "revisitDate is required for revisit action" },
-            { status: 400 }
+            { status: 400 },
           );
         }
         updateData = {
@@ -101,15 +104,12 @@ export async function POST(request: NextRequest) {
       default:
         return NextResponse.json(
           { error: `Unknown action: ${action}` },
-          { status: 400 }
+          { status: 400 },
         );
     }
 
     // Apply action to all leads
-    await db
-      .update(leads)
-      .set(updateData)
-      .where(inArray(leads.id, leadIds));
+    await db.update(leads).set(updateData).where(inArray(leads.id, leadIds));
 
     console.log(`[LeadAction] ${action} applied to ${leadIds.length} leads`);
 
@@ -134,10 +134,7 @@ export async function GET(request: NextRequest) {
     const filter = searchParams.get("filter"); // 'paused' | 'suppressed' | 'rethink' | 'revisit' | 'active'
 
     if (!bucketId) {
-      return NextResponse.json(
-        { error: "bucketId required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "bucketId required" }, { status: 400 });
     }
 
     // Build query based on filter
@@ -178,31 +175,33 @@ export async function GET(request: NextRequest) {
     // Apply in-memory filter
     let filtered = leadsData;
     if (filter === "paused") {
-      filtered = leadsData.filter(l => l.pausedAt !== null);
+      filtered = leadsData.filter((l) => l.pausedAt !== null);
     } else if (filter === "suppressed") {
-      filtered = leadsData.filter(l => l.suppressedAt !== null);
+      filtered = leadsData.filter((l) => l.suppressedAt !== null);
     } else if (filter === "rethink") {
-      filtered = leadsData.filter(l => l.rethinkAt !== null);
+      filtered = leadsData.filter((l) => l.rethinkAt !== null);
     } else if (filter === "revisit") {
-      filtered = leadsData.filter(l => l.revisitAt !== null);
+      filtered = leadsData.filter((l) => l.revisitAt !== null);
     } else if (filter === "active") {
-      filtered = leadsData.filter(l =>
-        l.pausedAt === null &&
-        l.suppressedAt === null &&
-        l.rethinkAt === null
+      filtered = leadsData.filter(
+        (l) =>
+          l.pausedAt === null &&
+          l.suppressedAt === null &&
+          l.rethinkAt === null,
       );
     }
 
     // Get counts
     const counts = {
-      paused: leadsData.filter(l => l.pausedAt !== null).length,
-      suppressed: leadsData.filter(l => l.suppressedAt !== null).length,
-      rethink: leadsData.filter(l => l.rethinkAt !== null).length,
-      revisit: leadsData.filter(l => l.revisitAt !== null).length,
-      active: leadsData.filter(l =>
-        l.pausedAt === null &&
-        l.suppressedAt === null &&
-        l.rethinkAt === null
+      paused: leadsData.filter((l) => l.pausedAt !== null).length,
+      suppressed: leadsData.filter((l) => l.suppressedAt !== null).length,
+      rethink: leadsData.filter((l) => l.rethinkAt !== null).length,
+      revisit: leadsData.filter((l) => l.revisitAt !== null).length,
+      active: leadsData.filter(
+        (l) =>
+          l.pausedAt === null &&
+          l.suppressedAt === null &&
+          l.rethinkAt === null,
       ).length,
     };
 

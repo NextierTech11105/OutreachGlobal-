@@ -82,39 +82,41 @@ export function CampaignLeadsList({ campaignId }: CampaignLeadsListProps) {
       }
 
       // Transform leads to match component interface
-      const transformedLeads: Lead[] = (data.leads || []).map((lead: {
-        id: string;
-        name: string;
-        email?: string;
-        phone?: string;
-        address?: string;
-        city?: string;
-        state?: string;
-        zipCode?: string;
-        status: string;
-        tags?: string[];
-        updatedAt?: string;
-      }) => ({
-        id: lead.id,
-        name: lead.name || "Unknown",
-        email: lead.email || "",
-        phone: lead.phone || "",
-        address: [lead.address, lead.city, lead.state, lead.zipCode]
-          .filter(Boolean)
-          .join(", "),
-        status: mapStatusToDisplay(lead.status),
-        score: 30, // Computed score would come from backend
-        tags: lead.tags || [],
-        lastActivity: lead.updatedAt
-          ? new Date(lead.updatedAt).toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-              hour: "numeric",
-              minute: "2-digit",
-            })
-          : "No activity",
-      }));
+      const transformedLeads: Lead[] = (data.leads || []).map(
+        (lead: {
+          id: string;
+          name: string;
+          email?: string;
+          phone?: string;
+          address?: string;
+          city?: string;
+          state?: string;
+          zipCode?: string;
+          status: string;
+          tags?: string[];
+          updatedAt?: string;
+        }) => ({
+          id: lead.id,
+          name: lead.name || "Unknown",
+          email: lead.email || "",
+          phone: lead.phone || "",
+          address: [lead.address, lead.city, lead.state, lead.zipCode]
+            .filter(Boolean)
+            .join(", "),
+          status: mapStatusToDisplay(lead.status),
+          score: 30, // Computed score would come from backend
+          tags: lead.tags || [],
+          lastActivity: lead.updatedAt
+            ? new Date(lead.updatedAt).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+                hour: "numeric",
+                minute: "2-digit",
+              })
+            : "No activity",
+        }),
+      );
 
       setLeads(transformedLeads);
     } catch (error) {
@@ -368,9 +370,7 @@ export function CampaignLeadsList({ campaignId }: CampaignLeadsListProps) {
                     <TableCell>{lead.address || "-"}</TableCell>
                     <TableCell>{getStatusBadge(lead.status)}</TableCell>
                     <TableCell>
-                      <Badge
-                        variant={lead.score >= 30 ? "default" : "outline"}
-                      >
+                      <Badge variant={lead.score >= 30 ? "default" : "outline"}>
                         {lead.score}
                       </Badge>
                     </TableCell>
@@ -378,16 +378,24 @@ export function CampaignLeadsList({ campaignId }: CampaignLeadsListProps) {
                       <div className="flex flex-wrap gap-1">
                         {lead.tags.length > 0 ? (
                           lead.tags.map((tag) => (
-                            <Badge key={tag} variant="outline" className="text-xs">
+                            <Badge
+                              key={tag}
+                              variant="outline"
+                              className="text-xs"
+                            >
                               {tag}
                             </Badge>
                           ))
                         ) : (
-                          <span className="text-xs text-muted-foreground">-</span>
+                          <span className="text-xs text-muted-foreground">
+                            -
+                          </span>
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-sm">{lead.lastActivity}</TableCell>
+                    <TableCell className="text-sm">
+                      {lead.lastActivity}
+                    </TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>

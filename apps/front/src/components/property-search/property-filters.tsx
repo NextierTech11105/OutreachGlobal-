@@ -236,7 +236,7 @@ export function PropertyFiltersPanel({
     <K extends keyof PropertyFilters>(key: K, value: PropertyFilters[K]) => {
       onChange({ ...filters, [key]: value });
     },
-    [filters, onChange]
+    [filters, onChange],
   );
 
   const countActiveFilters = (keys: (keyof PropertyFilters)[]) => {
@@ -281,7 +281,9 @@ export function PropertyFiltersPanel({
                 <Label className="text-xs text-muted-foreground">State</Label>
                 <Select
                   value={filters.state || "__all__"}
-                  onValueChange={(v) => updateFilter("state", v === "__all__" ? undefined : v)}
+                  onValueChange={(v) =>
+                    updateFilter("state", v === "__all__" ? undefined : v)
+                  }
                 >
                   <SelectTrigger className="h-9">
                     <SelectValue placeholder="Select state" />
@@ -301,7 +303,9 @@ export function PropertyFiltersPanel({
                 <Label className="text-xs text-muted-foreground">County</Label>
                 <Input
                   value={filters.county || ""}
-                  onChange={(e) => updateFilter("county", e.target.value || undefined)}
+                  onChange={(e) =>
+                    updateFilter("county", e.target.value || undefined)
+                  }
                   placeholder="Enter county"
                   className="h-9"
                 />
@@ -311,17 +315,23 @@ export function PropertyFiltersPanel({
                 <Label className="text-xs text-muted-foreground">City</Label>
                 <Input
                   value={filters.city || ""}
-                  onChange={(e) => updateFilter("city", e.target.value || undefined)}
+                  onChange={(e) =>
+                    updateFilter("city", e.target.value || undefined)
+                  }
                   placeholder="Enter city"
                   className="h-9"
                 />
               </div>
 
               <div>
-                <Label className="text-xs text-muted-foreground">ZIP Code</Label>
+                <Label className="text-xs text-muted-foreground">
+                  ZIP Code
+                </Label>
                 <Input
                   value={filters.zip || ""}
-                  onChange={(e) => updateFilter("zip", e.target.value || undefined)}
+                  onChange={(e) =>
+                    updateFilter("zip", e.target.value || undefined)
+                  }
                   placeholder="Enter ZIP"
                   maxLength={5}
                   className="h-9"
@@ -365,10 +375,17 @@ export function PropertyFiltersPanel({
           >
             <div className="space-y-3">
               <div>
-                <Label className="text-xs text-muted-foreground">Property Type</Label>
+                <Label className="text-xs text-muted-foreground">
+                  Property Type
+                </Label>
                 <Select
                   value={filters.property_type || "__all__"}
-                  onValueChange={(v) => updateFilter("property_type", v === "__all__" ? undefined : v)}
+                  onValueChange={(v) =>
+                    updateFilter(
+                      "property_type",
+                      v === "__all__" ? undefined : v,
+                    )
+                  }
                 >
                   <SelectTrigger className="h-9">
                     <SelectValue placeholder="Any type" />
@@ -388,7 +405,9 @@ export function PropertyFiltersPanel({
                 <Label className="text-xs text-muted-foreground">Zoning</Label>
                 <Select
                   value={filters.zoning || "__all__"}
-                  onValueChange={(v) => updateFilter("zoning", v === "__all__" ? undefined : v)}
+                  onValueChange={(v) =>
+                    updateFilter("zoning", v === "__all__" ? undefined : v)
+                  }
                 >
                   <SelectTrigger className="h-9">
                     <SelectValue placeholder="Any zoning" />
@@ -406,24 +425,34 @@ export function PropertyFiltersPanel({
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <Label className="text-xs text-muted-foreground">Beds Min</Label>
+                  <Label className="text-xs text-muted-foreground">
+                    Beds Min
+                  </Label>
                   <Input
                     type="number"
                     value={filters.beds_min || ""}
                     onChange={(e) =>
-                      updateFilter("beds_min", e.target.value ? parseInt(e.target.value) : undefined)
+                      updateFilter(
+                        "beds_min",
+                        e.target.value ? parseInt(e.target.value) : undefined,
+                      )
                     }
                     placeholder="Any"
                     className="h-9"
                   />
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">Beds Max</Label>
+                  <Label className="text-xs text-muted-foreground">
+                    Beds Max
+                  </Label>
                   <Input
                     type="number"
                     value={filters.beds_max || ""}
                     onChange={(e) =>
-                      updateFilter("beds_max", e.target.value ? parseInt(e.target.value) : undefined)
+                      updateFilter(
+                        "beds_max",
+                        e.target.value ? parseInt(e.target.value) : undefined,
+                      )
                     }
                     placeholder="Any"
                     className="h-9"
@@ -433,24 +462,34 @@ export function PropertyFiltersPanel({
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <Label className="text-xs text-muted-foreground">Baths Min</Label>
+                  <Label className="text-xs text-muted-foreground">
+                    Baths Min
+                  </Label>
                   <Input
                     type="number"
                     value={filters.baths_min || ""}
                     onChange={(e) =>
-                      updateFilter("baths_min", e.target.value ? parseInt(e.target.value) : undefined)
+                      updateFilter(
+                        "baths_min",
+                        e.target.value ? parseInt(e.target.value) : undefined,
+                      )
                     }
                     placeholder="Any"
                     className="h-9"
                   />
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">Baths Max</Label>
+                  <Label className="text-xs text-muted-foreground">
+                    Baths Max
+                  </Label>
                   <Input
                     type="number"
                     value={filters.baths_max || ""}
                     onChange={(e) =>
-                      updateFilter("baths_max", e.target.value ? parseInt(e.target.value) : undefined)
+                      updateFilter(
+                        "baths_max",
+                        e.target.value ? parseInt(e.target.value) : undefined,
+                      )
                     }
                     placeholder="Any"
                     className="h-9"
@@ -460,24 +499,34 @@ export function PropertyFiltersPanel({
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <Label className="text-xs text-muted-foreground">SqFt Min</Label>
+                  <Label className="text-xs text-muted-foreground">
+                    SqFt Min
+                  </Label>
                   <Input
                     type="number"
                     value={filters.sqft_min || ""}
                     onChange={(e) =>
-                      updateFilter("sqft_min", e.target.value ? parseInt(e.target.value) : undefined)
+                      updateFilter(
+                        "sqft_min",
+                        e.target.value ? parseInt(e.target.value) : undefined,
+                      )
                     }
                     placeholder="Any"
                     className="h-9"
                   />
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">SqFt Max</Label>
+                  <Label className="text-xs text-muted-foreground">
+                    SqFt Max
+                  </Label>
                   <Input
                     type="number"
                     value={filters.sqft_max || ""}
                     onChange={(e) =>
-                      updateFilter("sqft_max", e.target.value ? parseInt(e.target.value) : undefined)
+                      updateFilter(
+                        "sqft_max",
+                        e.target.value ? parseInt(e.target.value) : undefined,
+                      )
                     }
                     placeholder="Any"
                     className="h-9"
@@ -487,12 +536,17 @@ export function PropertyFiltersPanel({
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <Label className="text-xs text-muted-foreground">Lot Min (acres)</Label>
+                  <Label className="text-xs text-muted-foreground">
+                    Lot Min (acres)
+                  </Label>
                   <Input
                     type="number"
                     value={filters.lot_size_min || ""}
                     onChange={(e) =>
-                      updateFilter("lot_size_min", e.target.value ? parseFloat(e.target.value) : undefined)
+                      updateFilter(
+                        "lot_size_min",
+                        e.target.value ? parseFloat(e.target.value) : undefined,
+                      )
                     }
                     placeholder="Any"
                     className="h-9"
@@ -500,12 +554,17 @@ export function PropertyFiltersPanel({
                   />
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">Lot Max (acres)</Label>
+                  <Label className="text-xs text-muted-foreground">
+                    Lot Max (acres)
+                  </Label>
                   <Input
                     type="number"
                     value={filters.lot_size_max || ""}
                     onChange={(e) =>
-                      updateFilter("lot_size_max", e.target.value ? parseFloat(e.target.value) : undefined)
+                      updateFilter(
+                        "lot_size_max",
+                        e.target.value ? parseFloat(e.target.value) : undefined,
+                      )
                     }
                     placeholder="Any"
                     className="h-9"
@@ -516,24 +575,34 @@ export function PropertyFiltersPanel({
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <Label className="text-xs text-muted-foreground">Year Built Min</Label>
+                  <Label className="text-xs text-muted-foreground">
+                    Year Built Min
+                  </Label>
                   <Input
                     type="number"
                     value={filters.year_built_min || ""}
                     onChange={(e) =>
-                      updateFilter("year_built_min", e.target.value ? parseInt(e.target.value) : undefined)
+                      updateFilter(
+                        "year_built_min",
+                        e.target.value ? parseInt(e.target.value) : undefined,
+                      )
                     }
                     placeholder="Any"
                     className="h-9"
                   />
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">Year Built Max</Label>
+                  <Label className="text-xs text-muted-foreground">
+                    Year Built Max
+                  </Label>
                   <Input
                     type="number"
                     value={filters.year_built_max || ""}
                     onChange={(e) =>
-                      updateFilter("year_built_max", e.target.value ? parseInt(e.target.value) : undefined)
+                      updateFilter(
+                        "year_built_max",
+                        e.target.value ? parseInt(e.target.value) : undefined,
+                      )
                     }
                     placeholder="Any"
                     className="h-9"
@@ -560,14 +629,16 @@ export function PropertyFiltersPanel({
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <Label className="text-xs text-muted-foreground">Value Min ($)</Label>
+                  <Label className="text-xs text-muted-foreground">
+                    Value Min ($)
+                  </Label>
                   <Input
                     type="number"
                     value={filters.estimated_value_min || ""}
                     onChange={(e) =>
                       updateFilter(
                         "estimated_value_min",
-                        e.target.value ? parseInt(e.target.value) : undefined
+                        e.target.value ? parseInt(e.target.value) : undefined,
                       )
                     }
                     placeholder="Any"
@@ -575,14 +646,16 @@ export function PropertyFiltersPanel({
                   />
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">Value Max ($)</Label>
+                  <Label className="text-xs text-muted-foreground">
+                    Value Max ($)
+                  </Label>
                   <Input
                     type="number"
                     value={filters.estimated_value_max || ""}
                     onChange={(e) =>
                       updateFilter(
                         "estimated_value_max",
-                        e.target.value ? parseInt(e.target.value) : undefined
+                        e.target.value ? parseInt(e.target.value) : undefined,
                       )
                     }
                     placeholder="Any"
@@ -593,14 +666,16 @@ export function PropertyFiltersPanel({
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <Label className="text-xs text-muted-foreground">Equity Min ($)</Label>
+                  <Label className="text-xs text-muted-foreground">
+                    Equity Min ($)
+                  </Label>
                   <Input
                     type="number"
                     value={filters.estimated_equity_min || ""}
                     onChange={(e) =>
                       updateFilter(
                         "estimated_equity_min",
-                        e.target.value ? parseInt(e.target.value) : undefined
+                        e.target.value ? parseInt(e.target.value) : undefined,
                       )
                     }
                     placeholder="Any"
@@ -608,14 +683,16 @@ export function PropertyFiltersPanel({
                   />
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">Equity Max ($)</Label>
+                  <Label className="text-xs text-muted-foreground">
+                    Equity Max ($)
+                  </Label>
                   <Input
                     type="number"
                     value={filters.estimated_equity_max || ""}
                     onChange={(e) =>
                       updateFilter(
                         "estimated_equity_max",
-                        e.target.value ? parseInt(e.target.value) : undefined
+                        e.target.value ? parseInt(e.target.value) : undefined,
                       )
                     }
                     placeholder="Any"
@@ -630,7 +707,9 @@ export function PropertyFiltersPanel({
                 </Label>
                 <Slider
                   value={[filters.equity_percent_min || 0]}
-                  onValueChange={([v]) => updateFilter("equity_percent_min", v || undefined)}
+                  onValueChange={([v]) =>
+                    updateFilter("equity_percent_min", v || undefined)
+                  }
                   min={0}
                   max={100}
                   step={5}
@@ -640,14 +719,16 @@ export function PropertyFiltersPanel({
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <Label className="text-xs text-muted-foreground">Mortgage Min ($)</Label>
+                  <Label className="text-xs text-muted-foreground">
+                    Mortgage Min ($)
+                  </Label>
                   <Input
                     type="number"
                     value={filters.mortgage_balance_min || ""}
                     onChange={(e) =>
                       updateFilter(
                         "mortgage_balance_min",
-                        e.target.value ? parseInt(e.target.value) : undefined
+                        e.target.value ? parseInt(e.target.value) : undefined,
                       )
                     }
                     placeholder="Any"
@@ -655,14 +736,16 @@ export function PropertyFiltersPanel({
                   />
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">Mortgage Max ($)</Label>
+                  <Label className="text-xs text-muted-foreground">
+                    Mortgage Max ($)
+                  </Label>
                   <Input
                     type="number"
                     value={filters.mortgage_balance_max || ""}
                     onChange={(e) =>
                       updateFilter(
                         "mortgage_balance_max",
-                        e.target.value ? parseInt(e.target.value) : undefined
+                        e.target.value ? parseInt(e.target.value) : undefined,
                       )
                     }
                     placeholder="Any"
@@ -691,7 +774,9 @@ export function PropertyFiltersPanel({
                 <Label className="text-sm">Pre-Foreclosure</Label>
                 <Switch
                   checked={filters.pre_foreclosure || false}
-                  onCheckedChange={(v) => updateFilter("pre_foreclosure", v || undefined)}
+                  onCheckedChange={(v) =>
+                    updateFilter("pre_foreclosure", v || undefined)
+                  }
                 />
               </div>
 
@@ -699,7 +784,9 @@ export function PropertyFiltersPanel({
                 <Label className="text-sm">Foreclosure</Label>
                 <Switch
                   checked={filters.foreclosure || false}
-                  onCheckedChange={(v) => updateFilter("foreclosure", v || undefined)}
+                  onCheckedChange={(v) =>
+                    updateFilter("foreclosure", v || undefined)
+                  }
                 />
               </div>
 
@@ -707,7 +794,9 @@ export function PropertyFiltersPanel({
                 <Label className="text-sm">Auction</Label>
                 <Switch
                   checked={filters.auction || false}
-                  onCheckedChange={(v) => updateFilter("auction", v || undefined)}
+                  onCheckedChange={(v) =>
+                    updateFilter("auction", v || undefined)
+                  }
                 />
               </div>
 
@@ -715,7 +804,9 @@ export function PropertyFiltersPanel({
                 <Label className="text-sm">Tax Lien</Label>
                 <Switch
                   checked={filters.tax_lien || false}
-                  onCheckedChange={(v) => updateFilter("tax_lien", v || undefined)}
+                  onCheckedChange={(v) =>
+                    updateFilter("tax_lien", v || undefined)
+                  }
                 />
               </div>
 
@@ -723,7 +814,9 @@ export function PropertyFiltersPanel({
                 <Label className="text-sm">Vacant</Label>
                 <Switch
                   checked={filters.vacant || false}
-                  onCheckedChange={(v) => updateFilter("vacant", v || undefined)}
+                  onCheckedChange={(v) =>
+                    updateFilter("vacant", v || undefined)
+                  }
                 />
               </div>
 
@@ -731,7 +824,9 @@ export function PropertyFiltersPanel({
                 <Label className="text-sm">Inherited/Probate</Label>
                 <Switch
                   checked={filters.inherited || false}
-                  onCheckedChange={(v) => updateFilter("inherited", v || undefined)}
+                  onCheckedChange={(v) =>
+                    updateFilter("inherited", v || undefined)
+                  }
                 />
               </div>
             </div>
@@ -755,7 +850,9 @@ export function PropertyFiltersPanel({
                 <Label className="text-sm">Absentee Owner</Label>
                 <Switch
                   checked={filters.absentee_owner || false}
-                  onCheckedChange={(v) => updateFilter("absentee_owner", v || undefined)}
+                  onCheckedChange={(v) =>
+                    updateFilter("absentee_owner", v || undefined)
+                  }
                 />
               </div>
 
@@ -763,7 +860,9 @@ export function PropertyFiltersPanel({
                 <Label className="text-sm">Owner Occupied</Label>
                 <Switch
                   checked={filters.owner_occupied || false}
-                  onCheckedChange={(v) => updateFilter("owner_occupied", v || undefined)}
+                  onCheckedChange={(v) =>
+                    updateFilter("owner_occupied", v || undefined)
+                  }
                 />
               </div>
 
@@ -771,16 +870,27 @@ export function PropertyFiltersPanel({
                 <Label className="text-sm">Corporate Owned</Label>
                 <Switch
                   checked={filters.corporate_owned || false}
-                  onCheckedChange={(v) => updateFilter("corporate_owned", v || undefined)}
+                  onCheckedChange={(v) =>
+                    updateFilter("corporate_owned", v || undefined)
+                  }
                 />
               </div>
 
               <div>
-                <Label className="text-xs text-muted-foreground">Ownership Duration</Label>
+                <Label className="text-xs text-muted-foreground">
+                  Ownership Duration
+                </Label>
                 <Select
-                  value={filters.ownership_years_min ? String(filters.ownership_years_min) : "__any__"}
+                  value={
+                    filters.ownership_years_min
+                      ? String(filters.ownership_years_min)
+                      : "__any__"
+                  }
                   onValueChange={(v) =>
-                    updateFilter("ownership_years_min", v && v !== "__any__" ? parseInt(v) : undefined)
+                    updateFilter(
+                      "ownership_years_min",
+                      v && v !== "__any__" ? parseInt(v) : undefined,
+                    )
                   }
                 >
                   <SelectTrigger className="h-9">
@@ -798,14 +908,16 @@ export function PropertyFiltersPanel({
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <Label className="text-xs text-muted-foreground">Owner Age Min</Label>
+                  <Label className="text-xs text-muted-foreground">
+                    Owner Age Min
+                  </Label>
                   <Input
                     type="number"
                     value={filters.owner_age_min || ""}
                     onChange={(e) =>
                       updateFilter(
                         "owner_age_min",
-                        e.target.value ? parseInt(e.target.value) : undefined
+                        e.target.value ? parseInt(e.target.value) : undefined,
                       )
                     }
                     placeholder="Any"
@@ -813,14 +925,16 @@ export function PropertyFiltersPanel({
                   />
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">Owner Age Max</Label>
+                  <Label className="text-xs text-muted-foreground">
+                    Owner Age Max
+                  </Label>
                   <Input
                     type="number"
                     value={filters.owner_age_max || ""}
                     onChange={(e) =>
                       updateFilter(
                         "owner_age_max",
-                        e.target.value ? parseInt(e.target.value) : undefined
+                        e.target.value ? parseInt(e.target.value) : undefined,
                       )
                     }
                     placeholder="Any"
@@ -849,7 +963,9 @@ export function PropertyFiltersPanel({
                 <Label className="text-sm">MLS Listed</Label>
                 <Switch
                   checked={filters.mls_listed || false}
-                  onCheckedChange={(v) => updateFilter("mls_listed", v || undefined)}
+                  onCheckedChange={(v) =>
+                    updateFilter("mls_listed", v || undefined)
+                  }
                 />
               </div>
 
@@ -857,7 +973,9 @@ export function PropertyFiltersPanel({
                 <Label className="text-sm">Active Listing</Label>
                 <Switch
                   checked={filters.mls_active || false}
-                  onCheckedChange={(v) => updateFilter("mls_active", v || undefined)}
+                  onCheckedChange={(v) =>
+                    updateFilter("mls_active", v || undefined)
+                  }
                 />
               </div>
 
@@ -865,7 +983,9 @@ export function PropertyFiltersPanel({
                 <Label className="text-sm">Pending Sale</Label>
                 <Switch
                   checked={filters.mls_pending || false}
-                  onCheckedChange={(v) => updateFilter("mls_pending", v || undefined)}
+                  onCheckedChange={(v) =>
+                    updateFilter("mls_pending", v || undefined)
+                  }
                 />
               </div>
 
@@ -873,20 +993,24 @@ export function PropertyFiltersPanel({
                 <Label className="text-sm">Recently Sold</Label>
                 <Switch
                   checked={filters.mls_sold || false}
-                  onCheckedChange={(v) => updateFilter("mls_sold", v || undefined)}
+                  onCheckedChange={(v) =>
+                    updateFilter("mls_sold", v || undefined)
+                  }
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <Label className="text-xs text-muted-foreground">DOM Min</Label>
+                  <Label className="text-xs text-muted-foreground">
+                    DOM Min
+                  </Label>
                   <Input
                     type="number"
                     value={filters.days_on_market_min || ""}
                     onChange={(e) =>
                       updateFilter(
                         "days_on_market_min",
-                        e.target.value ? parseInt(e.target.value) : undefined
+                        e.target.value ? parseInt(e.target.value) : undefined,
                       )
                     }
                     placeholder="Any"
@@ -894,14 +1018,16 @@ export function PropertyFiltersPanel({
                   />
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">DOM Max</Label>
+                  <Label className="text-xs text-muted-foreground">
+                    DOM Max
+                  </Label>
                   <Input
                     type="number"
                     value={filters.days_on_market_max || ""}
                     onChange={(e) =>
                       updateFilter(
                         "days_on_market_max",
-                        e.target.value ? parseInt(e.target.value) : undefined
+                        e.target.value ? parseInt(e.target.value) : undefined,
                       )
                     }
                     placeholder="Any"

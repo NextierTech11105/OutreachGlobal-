@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const REALESTATE_API_KEY = process.env.REAL_ESTATE_API_KEY || process.env.REALESTATE_API_KEY || "";
+const REALESTATE_API_KEY =
+  process.env.REAL_ESTATE_API_KEY || process.env.REALESTATE_API_KEY || "";
 const REALESTATE_API_URL = "https://api.realestateapi.com/v2/PropertyDetail";
 const SKIP_TRACE_URL = "https://api.realestateapi.com/v2/SkipTrace";
 
@@ -8,7 +9,12 @@ const SKIP_TRACE_URL = "https://api.realestateapi.com/v2/SkipTrace";
 const dailyUsage = new Map<string, { detail: number; skipTrace: number }>();
 const DAILY_LIMIT = 5000;
 
-function getTodayUsage(): { detail: number; skipTrace: number; date: string; remaining: number } {
+function getTodayUsage(): {
+  detail: number;
+  skipTrace: number;
+  date: string;
+  remaining: number;
+} {
   const today = new Date().toISOString().split("T")[0];
   const usage = dailyUsage.get(today) || { detail: 0, skipTrace: 0 };
   return { ...usage, date: today, remaining: DAILY_LIMIT - usage.detail };
@@ -28,13 +34,32 @@ interface PropertyOwnerInfo {
   owner1LastName?: string;
   ownerFirstName?: string;
   ownerLastName?: string;
-  address?: string | { address?: string; street?: string; label?: string; city?: string; state?: string; zip?: string };
+  address?:
+    | string
+    | {
+        address?: string;
+        street?: string;
+        label?: string;
+        city?: string;
+        state?: string;
+        zip?: string;
+      };
   propertyInfo?: {
-    address?: { address?: string; street?: string; label?: string; city?: string; state?: string; zip?: string };
+    address?: {
+      address?: string;
+      street?: string;
+      label?: string;
+      city?: string;
+      state?: string;
+      zip?: string;
+    };
   };
 }
 
-async function performSkipTrace(propertyId: string, ownerInfo?: PropertyOwnerInfo): Promise<{
+async function performSkipTrace(
+  propertyId: string,
+  ownerInfo?: PropertyOwnerInfo,
+): Promise<{
   phones: string[];
   emails: string[];
   ownerName?: string;
@@ -42,8 +67,10 @@ async function performSkipTrace(propertyId: string, ownerInfo?: PropertyOwnerInf
 } | null> {
   try {
     // Extract owner name - try multiple field names
-    const firstName = ownerInfo?.owner1FirstName || ownerInfo?.ownerFirstName || "";
-    const lastName = ownerInfo?.owner1LastName || ownerInfo?.ownerLastName || "";
+    const firstName =
+      ownerInfo?.owner1FirstName || ownerInfo?.ownerFirstName || "";
+    const lastName =
+      ownerInfo?.owner1LastName || ownerInfo?.ownerLastName || "";
 
     // Extract address - handle nested structure
     const propAddress = ownerInfo?.propertyInfo?.address || ownerInfo?.address;
@@ -55,13 +82,22 @@ async function performSkipTrace(propertyId: string, ownerInfo?: PropertyOwnerInf
     if (typeof propAddress === "string") {
       addressStr = propAddress;
     } else if (propAddress) {
-      addressStr = propAddress.address || propAddress.street || propAddress.label || "";
+      addressStr =
+        propAddress.address || propAddress.street || propAddress.label || "";
       city = propAddress.city || "";
       state = propAddress.state || "";
       zip = propAddress.zip || "";
     }
 
-    console.log("[Skip Trace] Input:", { firstName, lastName, addressStr, city, state, zip, propertyId });
+    console.log("[Skip Trace] Input:", {
+      firstName,
+      lastName,
+      addressStr,
+      city,
+      state,
+      zip,
+      propertyId,
+    });
 
     // Need at least name OR address for skip trace
     if (!firstName && !lastName && !addressStr) {
@@ -82,14 +118,17 @@ async function performSkipTrace(propertyId: string, ownerInfo?: PropertyOwnerInf
     // Only want matches with phones
     skipTraceBody.match_requirements = { phones: true };
 
-    console.log("[Skip Trace] Calling API with:", JSON.stringify(skipTraceBody, null, 2));
+    console.log(
+      "[Skip Trace] Calling API with:",
+      JSON.stringify(skipTraceBody, null, 2),
+    );
 
     const response = await fetch(SKIP_TRACE_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "x-api-key": REALESTATE_API_KEY,
-        "Accept": "application/json",
+        Accept: "application/json",
       },
       body: JSON.stringify(skipTraceBody),
     });
@@ -137,8 +176,11 @@ async function performSkipTrace(propertyId: string, ownerInfo?: PropertyOwnerInf
     // Get owner name from identity.names
     const names = identity.names || [];
     const primaryName = names[0];
-    const ownerName = primaryName?.fullName ||
-      [primaryName?.firstName, primaryName?.lastName].filter(Boolean).join(" ") ||
+    const ownerName =
+      primaryName?.fullName ||
+      [primaryName?.firstName, primaryName?.lastName]
+        .filter(Boolean)
+        .join(" ") ||
       [firstName, lastName].filter(Boolean).join(" ");
 
     // Get mailing address from identity.address
@@ -170,12 +212,18 @@ export async function GET(request: NextRequest) {
     }
 
     if (!id) {
-      return NextResponse.json({ error: "Property ID required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Property ID required" },
+        { status: 400 },
+      );
     }
 
     const usage = getTodayUsage();
     if (usage.remaining <= 0) {
-      return NextResponse.json({ error: "Daily limit reached", usage }, { status: 429 });
+      return NextResponse.json(
+        { error: "Daily limit reached", usage },
+        { status: 429 },
+      );
     }
 
     const response = await fetch(REALESTATE_API_URL, {
@@ -192,7 +240,7 @@ export async function GET(request: NextRequest) {
     if (!response.ok) {
       return NextResponse.json(
         { error: data.message || "Failed to get property detail" },
-        { status: response.status }
+        { status: response.status },
       );
     }
 
@@ -209,12 +257,18 @@ export async function GET(request: NextRequest) {
       console.log("[Property Detail] Owner info found:", {
         owner1FirstName: ownerInfo.owner1FirstName || property.owner1FirstName,
         owner1LastName: ownerInfo.owner1LastName || property.owner1LastName,
-        address: propAddress
+        address: propAddress,
       });
 
       const skipTraceData = await performSkipTrace(property.id, {
-        owner1FirstName: ownerInfo.owner1FirstName || property.owner1FirstName || property.ownerFirstName,
-        owner1LastName: ownerInfo.owner1LastName || property.owner1LastName || property.ownerLastName,
+        owner1FirstName:
+          ownerInfo.owner1FirstName ||
+          property.owner1FirstName ||
+          property.ownerFirstName,
+        owner1LastName:
+          ownerInfo.owner1LastName ||
+          property.owner1LastName ||
+          property.ownerLastName,
         propertyInfo: { address: propAddress },
       });
 
@@ -227,9 +281,14 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ success: true, property, usage: getTodayUsage() });
+    return NextResponse.json({
+      success: true,
+      property,
+      usage: getTodayUsage(),
+    });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Property detail failed";
+    const message =
+      error instanceof Error ? error.message : "Property detail failed";
     console.error("Property detail error:", error);
     return NextResponse.json({ error: message }, { status: 500 });
   }
@@ -255,7 +314,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (idList.length === 0) {
-      return NextResponse.json({ error: "id or ids required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "id or ids required" },
+        { status: 400 },
+      );
     }
 
     const usage = getTodayUsage();
@@ -263,7 +325,10 @@ export async function POST(request: NextRequest) {
     // If single ID, return single result with skip trace
     if (idList.length === 1) {
       if (usage.remaining <= 0) {
-        return NextResponse.json({ error: "Daily limit reached", usage }, { status: 429 });
+        return NextResponse.json(
+          { error: "Daily limit reached", usage },
+          { status: 429 },
+        );
       }
 
       const response = await fetch(REALESTATE_API_URL, {
@@ -280,7 +345,7 @@ export async function POST(request: NextRequest) {
       if (!response.ok) {
         return NextResponse.json(
           { error: data.message || "Failed to get property detail" },
-          { status: response.status }
+          { status: response.status },
         );
       }
 
@@ -294,8 +359,14 @@ export async function POST(request: NextRequest) {
         const propAddress = propInfo.address || property.address;
 
         const skipTraceData = await performSkipTrace(property.id, {
-          owner1FirstName: ownerInfo.owner1FirstName || property.owner1FirstName || property.ownerFirstName,
-          owner1LastName: ownerInfo.owner1LastName || property.owner1LastName || property.ownerLastName,
+          owner1FirstName:
+            ownerInfo.owner1FirstName ||
+            property.owner1FirstName ||
+            property.ownerFirstName,
+          owner1LastName:
+            ownerInfo.owner1LastName ||
+            property.owner1LastName ||
+            property.ownerLastName,
           propertyInfo: { address: propAddress },
         });
 
@@ -309,14 +380,24 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      return NextResponse.json({ success: true, property, usage: getTodayUsage() });
+      return NextResponse.json({
+        success: true,
+        property,
+        usage: getTodayUsage(),
+      });
     }
 
     // BATCH PROCESSING: 250 per batch, stop at 2K micro-campaign block
-    const maxToProcess = Math.min(idList.length, MICRO_CAMPAIGN_LIMIT, usage.remaining);
+    const maxToProcess = Math.min(
+      idList.length,
+      MICRO_CAMPAIGN_LIMIT,
+      usage.remaining,
+    );
     const batchIds = idList.slice(0, Math.min(BATCH_SIZE, maxToProcess));
 
-    console.log(`[Property Detail] Processing batch: ${batchIds.length} of ${idList.length} (max ${maxToProcess})`);
+    console.log(
+      `[Property Detail] Processing batch: ${batchIds.length} of ${idList.length} (max ${maxToProcess})`,
+    );
 
     const results: any[] = [];
     const errors: string[] = [];
@@ -354,18 +435,26 @@ export async function POST(request: NextRequest) {
               const propAddress = propInfo.address || property.address;
 
               const skipTraceData = await performSkipTrace(property.id, {
-                owner1FirstName: ownerInfo.owner1FirstName || property.owner1FirstName || property.ownerFirstName,
-                owner1LastName: ownerInfo.owner1LastName || property.owner1LastName || property.ownerLastName,
+                owner1FirstName:
+                  ownerInfo.owner1FirstName ||
+                  property.owner1FirstName ||
+                  property.ownerFirstName,
+                owner1LastName:
+                  ownerInfo.owner1LastName ||
+                  property.owner1LastName ||
+                  property.ownerLastName,
                 propertyInfo: { address: propAddress },
               });
 
               if (skipTraceData) {
                 property.phones = skipTraceData.phones;
                 property.emails = skipTraceData.emails;
-                property.ownerName = skipTraceData.ownerName || property.ownerName;
+                property.ownerName =
+                  skipTraceData.ownerName || property.ownerName;
                 property.mailingAddress = skipTraceData.mailingAddress;
                 property.skipTracedAt = new Date().toISOString();
-                property.skipTraceCost = skipTraceData.phones.length > 0 ? 0.05 : 0;
+                property.skipTraceCost =
+                  skipTraceData.phones.length > 0 ? 0.05 : 0;
                 totalSkipTraceCost += property.skipTraceCost;
               }
             }
@@ -375,7 +464,7 @@ export async function POST(request: NextRequest) {
             errors.push(`${propId}: ${err.message}`);
             return null;
           }
-        })
+        }),
       );
 
       results.push(...batchResults.filter(Boolean));
@@ -395,8 +484,10 @@ export async function POST(request: NextRequest) {
       results,
       stats: {
         processed: results.length,
-        withPhones: results.filter((r) => r.phones && r.phones.length > 0).length,
-        withEmails: results.filter((r) => r.emails && r.emails.length > 0).length,
+        withPhones: results.filter((r) => r.phones && r.phones.length > 0)
+          .length,
+        withEmails: results.filter((r) => r.emails && r.emails.length > 0)
+          .length,
         errors: errors.length,
         skipTraceCost: totalSkipTraceCost,
       },

@@ -22,24 +22,42 @@ interface SendTemplateRequest {
 }
 
 // Get template by ID from all libraries
-function getTemplateById(templateId: string): { message: string; name: string; category: string } | null {
+function getTemplateById(
+  templateId: string,
+): { message: string; name: string; category: string } | null {
   // Check initial templates
   const initial = smsInitial.templates.find((t) => t.id === templateId);
-  if (initial) return { message: initial.message, name: initial.name, category: initial.category };
+  if (initial)
+    return {
+      message: initial.message,
+      name: initial.name,
+      category: initial.category,
+    };
 
   // Check Gianna loop templates
   const loop = smsGiannaLoop.templates.find((t) => t.id === templateId);
-  if (loop) return { message: loop.message, name: loop.name, category: loop.category };
+  if (loop)
+    return { message: loop.message, name: loop.name, category: loop.category };
 
   // Check strategy session templates
-  const strategy = smsStrategySession.templates.find((t) => t.id === templateId);
-  if (strategy) return { message: strategy.message, name: strategy.name, category: strategy.category };
+  const strategy = smsStrategySession.templates.find(
+    (t) => t.id === templateId,
+  );
+  if (strategy)
+    return {
+      message: strategy.message,
+      name: strategy.name,
+      category: strategy.category,
+    };
 
   return null;
 }
 
 // Replace variables in template
-function replaceVariables(template: string, variables: Record<string, string | undefined>): string {
+function replaceVariables(
+  template: string,
+  variables: Record<string, string | undefined>,
+): string {
   let result = template;
   for (const [key, value] of Object.entries(variables)) {
     result = result.replace(new RegExp(`{{${key}}}`, "g"), value || "");
@@ -57,14 +75,14 @@ export async function POST(request: NextRequest) {
     if (!template_id || !to) {
       return NextResponse.json(
         { error: "template_id and to are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!SIGNALHOUSE_API_KEY) {
       return NextResponse.json(
         { error: "SignalHouse API key not configured" },
-        { status: 503 }
+        { status: 503 },
       );
     }
 
@@ -73,7 +91,7 @@ export async function POST(request: NextRequest) {
     if (!template) {
       return NextResponse.json(
         { error: `Template not found: ${template_id}` },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -87,7 +105,7 @@ export async function POST(request: NextRequest) {
           error: "Message exceeds 320 characters",
           character_count: messageText.length,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -109,7 +127,7 @@ export async function POST(request: NextRequest) {
       const errorData = await response.json().catch(() => ({}));
       return NextResponse.json(
         { error: errorData.message || `SignalHouse error: ${response.status}` },
-        { status: response.status }
+        { status: response.status },
       );
     }
 
@@ -141,8 +159,11 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("[SMS Send Template] Error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to send message" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to send message",
+      },
+      { status: 500 },
     );
   }
 }

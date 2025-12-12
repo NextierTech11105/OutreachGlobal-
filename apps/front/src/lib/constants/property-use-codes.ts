@@ -65,21 +65,50 @@ export const PROPERTY_USE_CATEGORIES: PropertyUseCategory[] = [
     description: "SFR, townhouses, patio homes - owner-occupants or landlords",
     icon: "Home",
     color: "blue",
-    apolloIndustries: ["Real Estate", "Real Estate Investment", "Property Management"],
-    decisionMakerTitles: ["Owner", "Landlord", "Property Manager", "Real Estate Investor"],
+    apolloIndustries: [
+      "Real Estate",
+      "Real Estate Investment",
+      "Property Management",
+    ],
+    decisionMakerTitles: [
+      "Owner",
+      "Landlord",
+      "Property Manager",
+      "Real Estate Investor",
+    ],
     codes: [376, 380, 382, 383, 385, 386, 377, 363, 384, 390, 423, 447, 452],
     tags: ["sfr", "single-family", "homeowner", "landlord", "residential"],
   },
   {
     id: "RESIDENTIAL_MULTI",
     label: "Multi-Family Properties",
-    description: "Duplexes, triplexes, apartments - landlords and property managers",
+    description:
+      "Duplexes, triplexes, apartments - landlords and property managers",
     icon: "Building2",
     color: "indigo",
-    apolloIndustries: ["Real Estate", "Property Management", "Apartment Management"],
-    decisionMakerTitles: ["Owner", "Property Manager", "Asset Manager", "Managing Partner", "Principal"],
-    codes: [357, 358, 359, 360, 361, 369, 372, 378, 381, 388, 362, 368, 370, 421, 461],
-    tags: ["multi-family", "apartment", "duplex", "triplex", "landlord", "property-manager"],
+    apolloIndustries: [
+      "Real Estate",
+      "Property Management",
+      "Apartment Management",
+    ],
+    decisionMakerTitles: [
+      "Owner",
+      "Property Manager",
+      "Asset Manager",
+      "Managing Partner",
+      "Principal",
+    ],
+    codes: [
+      357, 358, 359, 360, 361, 369, 372, 378, 381, 388, 362, 368, 370, 421, 461,
+    ],
+    tags: [
+      "multi-family",
+      "apartment",
+      "duplex",
+      "triplex",
+      "landlord",
+      "property-manager",
+    ],
   },
   {
     id: "RESIDENTIAL_CONDO",
@@ -98,7 +127,11 @@ export const PROPERTY_USE_CATEGORIES: PropertyUseCategory[] = [
     description: "Mobile homes, modular homes, trailer parks",
     icon: "Caravan",
     color: "amber",
-    apolloIndustries: ["Real Estate", "Mobile Home Parks", "Manufactured Housing"],
+    apolloIndustries: [
+      "Real Estate",
+      "Mobile Home Parks",
+      "Manufactured Housing",
+    ],
     decisionMakerTitles: ["Owner", "Park Manager", "Community Manager"],
     codes: [371, 373, 162],
     tags: ["mobile-home", "manufactured", "trailer-park", "modular"],
@@ -161,8 +194,8 @@ export const PROPERTY_USE_CATEGORIES: PropertyUseCategory[] = [
       "Franchise Owner",
     ],
     codes: [
-      124, 125, 137, 141, 143, 144, 145, 158, 167, 168, 178, 179, 183, 187, 188, 194,
-      307, 459, 2062, 2063, 2064, 2065, 2066, 2067, 2068, 2069, 2070, 2071,
+      124, 125, 137, 141, 143, 144, 145, 158, 167, 168, 178, 179, 183, 187, 188,
+      194, 307, 459, 2062, 2063, 2064, 2065, 2066, 2067, 2068, 2069, 2070, 2071,
     ],
     tags: ["retail", "store", "shopping", "mall", "consumer", "franchise"],
   },
@@ -219,8 +252,19 @@ export const PROPERTY_USE_CATEGORIES: PropertyUseCategory[] = [
       "Franchise Owner",
       "Operations Manager",
     ],
-    codes: [126, 147, 156, 157, 173, 175, 191, 192, 193, 296, 311, 412, 433, 458, 464, 3014],
-    tags: ["service", "automotive", "salon", "daycare", "gym", "laundry", "pet"],
+    codes: [
+      126, 147, 156, 157, 173, 175, 191, 192, 193, 296, 311, 412, 433, 458, 464,
+      3014,
+    ],
+    tags: [
+      "service",
+      "automotive",
+      "salon",
+      "daycare",
+      "gym",
+      "laundry",
+      "pet",
+    ],
   },
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -282,7 +326,12 @@ export const PROPERTY_USE_CATEGORIES: PropertyUseCategory[] = [
     description: "Gas stations, car dealerships, auto repair, car washes",
     icon: "Car",
     color: "yellow",
-    apolloIndustries: ["Automotive", "Gas Stations", "Car Dealerships", "Auto Services"],
+    apolloIndustries: [
+      "Automotive",
+      "Gas Stations",
+      "Car Dealerships",
+      "Auto Services",
+    ],
     decisionMakerTitles: [
       "Owner",
       "Dealer Principal",
@@ -363,10 +412,16 @@ export const PROPERTY_USE_CATEGORIES: PropertyUseCategory[] = [
       "General Manager",
     ],
     codes: [
-      196, 197, 199, 203, 205, 206, 207, 208, 209, 210, 211, 218, 219, 221, 225, 226, 228,
-      230, 232, 233, 234, 237, 240, 6003,
+      196, 197, 199, 203, 205, 206, 207, 208, 209, 210, 211, 218, 219, 221, 225,
+      226, 228, 230, 232, 233, 234, 237, 240, 6003,
     ],
-    tags: ["heavy-industrial", "manufacturing", "refinery", "processing", "mining"],
+    tags: [
+      "heavy-industrial",
+      "manufacturing",
+      "refinery",
+      "processing",
+      "mining",
+    ],
   },
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -379,8 +434,16 @@ export const PROPERTY_USE_CATEGORIES: PropertyUseCategory[] = [
     icon: "Tractor",
     color: "green",
     apolloIndustries: ["Agriculture", "Farming", "Food Production", "Wineries"],
-    decisionMakerTitles: ["Owner", "Farm Manager", "Operations Manager", "Winemaker"],
-    codes: [101, 103, 105, 106, 110, 111, 112, 118, 119, 120, 121, 239, 413, 446, 450, 7004, 7014],
+    decisionMakerTitles: [
+      "Owner",
+      "Farm Manager",
+      "Operations Manager",
+      "Winemaker",
+    ],
+    codes: [
+      101, 103, 105, 106, 110, 111, 112, 118, 119, 120, 121, 239, 413, 446, 450,
+      7004, 7014,
+    ],
     tags: ["farm", "agriculture", "crops", "vineyard", "orchard"],
   },
   {
@@ -419,10 +482,18 @@ export const PROPERTY_USE_CATEGORIES: PropertyUseCategory[] = [
       "Operations Director",
     ],
     codes: [
-      132, 259, 260, 261, 262, 263, 264, 267, 270, 279, 281, 285, 287, 290, 292, 293, 303,
-      305, 316, 322, 326, 327, 331, 332, 334, 343, 346, 348, 350, 355, 410, 4033, 4034,
+      132, 259, 260, 261, 262, 263, 264, 267, 270, 279, 281, 285, 287, 290, 292,
+      293, 303, 305, 316, 322, 326, 327, 331, 332, 334, 343, 346, 348, 350, 355,
+      410, 4033, 4034,
     ],
-    tags: ["entertainment", "recreation", "sports", "golf", "theater", "events"],
+    tags: [
+      "entertainment",
+      "recreation",
+      "sports",
+      "golf",
+      "theater",
+      "events",
+    ],
   },
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -457,7 +528,14 @@ export const PROPERTY_USE_CATEGORIES: PropertyUseCategory[] = [
     icon: "Church",
     color: "violet",
     apolloIndustries: ["Religious Organizations", "Non-Profit"],
-    decisionMakerTitles: ["Pastor", "Rabbi", "Priest", "Imam", "Administrator", "Board Member"],
+    decisionMakerTitles: [
+      "Pastor",
+      "Rabbi",
+      "Priest",
+      "Imam",
+      "Administrator",
+      "Board Member",
+    ],
     codes: [336],
     tags: ["church", "religious", "worship", "temple", "synagogue"],
   },
@@ -472,10 +550,15 @@ export const PROPERTY_USE_CATEGORIES: PropertyUseCategory[] = [
     icon: "Landmark",
     color: "gray",
     apolloIndustries: ["Government", "Public Administration", "Military"],
-    decisionMakerTitles: ["Administrator", "Director", "Manager", "Commissioner"],
+    decisionMakerTitles: [
+      "Administrator",
+      "Director",
+      "Manager",
+      "Commissioner",
+    ],
     codes: [
-      271, 277, 278, 282, 283, 284, 286, 288, 289, 294, 314, 319, 320, 321, 325, 333, 335, 338,
-      344, 354, 356, 8501, 9001, 9220,
+      271, 277, 278, 282, 283, 284, 286, 288, 289, 294, 314, 319, 320, 321, 325,
+      333, 335, 338, 344, 354, 356, 8501, 9001, 9220,
     ],
     tags: ["government", "municipal", "public", "federal", "state", "military"],
   },
@@ -507,7 +590,8 @@ export const PROPERTY_USE_CATEGORIES: PropertyUseCategory[] = [
     apolloIndustries: ["Real Estate", "Land Development", "Construction"],
     decisionMakerTitles: ["Owner", "Developer", "Land Manager", "Investor"],
     codes: [
-      389, 391, 393, 394, 395, 396, 398, 399, 400, 401, 402, 403, 404, 406, 409, 453, 462, 8008,
+      389, 391, 393, 394, 395, 396, 398, 399, 400, 401, 402, 403, 404, 406, 409,
+      453, 462, 8008,
     ],
     tags: ["land", "vacant", "lot", "development", "undeveloped"],
   },
@@ -524,11 +608,12 @@ export const PROPERTY_USE_CATEGORIES: PropertyUseCategory[] = [
     apolloIndustries: ["Utilities", "Telecommunications", "Energy"],
     decisionMakerTitles: ["Manager", "Director", "Superintendent"],
     codes: [
-      102, 107, 115, 116, 122, 123, 133, 134, 135, 138, 159, 182, 198, 200, 204, 235, 236, 241,
-      246, 248, 249, 250, 251, 252, 253, 255, 257, 268, 269, 272, 273, 276, 297, 298, 304, 306,
-      308, 310, 315, 317, 318, 329, 337, 340, 345, 347, 353, 407, 408, 411, 414, 415, 416, 417,
-      419, 420, 422, 425, 427, 429, 431, 432, 434, 435, 436, 437, 438, 439, 440, 441, 444, 445,
-      451, 455, 456, 457, 460, 463, 465,
+      102, 107, 115, 116, 122, 123, 133, 134, 135, 138, 159, 182, 198, 200, 204,
+      235, 236, 241, 246, 248, 249, 250, 251, 252, 253, 255, 257, 268, 269, 272,
+      273, 276, 297, 298, 304, 306, 308, 310, 315, 317, 318, 329, 337, 340, 345,
+      347, 353, 407, 408, 411, 414, 415, 416, 417, 419, 420, 422, 425, 427, 429,
+      431, 432, 434, 435, 436, 437, 438, 439, 440, 441, 444, 445, 451, 455, 456,
+      457, 460, 463, 465,
     ],
     tags: ["utility", "communications", "special", "right-of-way"],
   },
@@ -541,14 +626,18 @@ export const PROPERTY_USE_CATEGORIES: PropertyUseCategory[] = [
 /**
  * Get category by property use code
  */
-export function getCategoryByCode(code: number): PropertyUseCategory | undefined {
+export function getCategoryByCode(
+  code: number,
+): PropertyUseCategory | undefined {
   return PROPERTY_USE_CATEGORIES.find((cat) => cat.codes.includes(code));
 }
 
 /**
  * Get category by ID
  */
-export function getCategoryById(id: PropertyCategory): PropertyUseCategory | undefined {
+export function getCategoryById(
+  id: PropertyCategory,
+): PropertyUseCategory | undefined {
   return PROPERTY_USE_CATEGORIES.find((cat) => cat.id === id);
 }
 
@@ -566,7 +655,7 @@ export function getCodesByCategory(categoryId: PropertyCategory): number[] {
 export function searchCategoriesByTag(tag: string): PropertyUseCategory[] {
   const lowerTag = tag.toLowerCase();
   return PROPERTY_USE_CATEGORIES.filter((cat) =>
-    cat.tags.some((t) => t.includes(lowerTag))
+    cat.tags.some((t) => t.includes(lowerTag)),
   );
 }
 
@@ -765,8 +854,11 @@ export const QUICK_FILTERS = {
   "Hotels & Lodging": [131, 153, 154, 155, 163, 299],
   "Medical & Dental": [142, 152, 302, 312, 339, 1115],
   "Auto & Gas": [126, 127, 180, 185, 186, 190, 193, 433, 458],
-  "Retail Stores": [124, 125, 137, 141, 143, 144, 145, 158, 167, 168, 178, 179, 183, 187, 188, 194],
-  "Warehouses": [130, 202, 229, 238, 280],
+  "Retail Stores": [
+    124, 125, 137, 141, 143, 144, 145, 158, 167, 168, 178, 179, 183, 187, 188,
+    194,
+  ],
+  Warehouses: [130, 202, 229, 238, 280],
   "Office Buildings": [136, 140, 169, 170, 171, 176, 177, 184, 139],
 
   // High-Value Targets

@@ -10,7 +10,9 @@ import { classifyResponse } from "@/lib/gianna/gianna-service";
  * - Automated follow-up scheduling
  */
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://monkfish-app-mb7h3.ondigitalocean.app";
+const APP_URL =
+  process.env.NEXT_PUBLIC_APP_URL ||
+  "https://monkfish-app-mb7h3.ondigitalocean.app";
 
 export async function POST(request: NextRequest) {
   try {
@@ -52,8 +54,12 @@ export async function POST(request: NextRequest) {
     // ═════════════════════════════════════════════════
     // STEP 2: Determine priority and action
     // ═════════════════════════════════════════════════
-    const isHotLead = ["interested", "request_call", "request_info"].includes(classification.intent);
-    const isOptOut = ["opt_out", "anger", "hard_no"].includes(classification.intent);
+    const isHotLead = ["interested", "request_call", "request_info"].includes(
+      classification.intent,
+    );
+    const isOptOut = ["opt_out", "anger", "hard_no"].includes(
+      classification.intent,
+    );
 
     let priority: "high" | "medium" | "low" = "medium";
     let action: string = "review";
@@ -82,17 +88,20 @@ export async function POST(request: NextRequest) {
     };
 
     try {
-      const analyzeResponse = await fetch(`${APP_URL}/api/ai/analyze-voicemail`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          transcription: transcriptionText,
-          from,
-          to,
-          callSid,
-          giannaClassification: classification,
-        }),
-      });
+      const analyzeResponse = await fetch(
+        `${APP_URL}/api/ai/analyze-voicemail`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            transcription: transcriptionText,
+            from,
+            to,
+            callSid,
+            giannaClassification: classification,
+          }),
+        },
+      );
 
       if (analyzeResponse.ok) {
         const fullAnalysis = await analyzeResponse.json();
@@ -154,7 +163,10 @@ export async function POST(request: NextRequest) {
           }),
         });
       } catch (err) {
-        console.error("[Gianna Transcription] Failed to send notification:", err);
+        console.error(
+          "[Gianna Transcription] Failed to send notification:",
+          err,
+        );
       }
     }
 
@@ -174,7 +186,10 @@ export async function POST(request: NextRequest) {
           }),
         });
       } catch (err) {
-        console.error("[Gianna Transcription] Failed to add to suppression list:", err);
+        console.error(
+          "[Gianna Transcription] Failed to add to suppression list:",
+          err,
+        );
       }
     }
 
@@ -197,7 +212,10 @@ export async function POST(request: NextRequest) {
           }),
         });
       } catch (err) {
-        console.error("[Gianna Transcription] Failed to queue follow-up SMS:", err);
+        console.error(
+          "[Gianna Transcription] Failed to queue follow-up SMS:",
+          err,
+        );
       }
     }
 
@@ -213,7 +231,6 @@ export async function POST(request: NextRequest) {
       priority,
       action,
     });
-
   } catch (error) {
     console.error("[Gianna Transcription] Error:", error);
     return new NextResponse("OK", { status: 200 }); // Always return 200 to Twilio

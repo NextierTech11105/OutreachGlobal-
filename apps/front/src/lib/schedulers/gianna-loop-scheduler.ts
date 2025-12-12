@@ -11,7 +11,11 @@
  * - Auto-pauses at step 10
  */
 
-import { giannaLoopEngine, LeadEscalationState, SendResult } from "@/lib/engines/gianna-loop-engine";
+import {
+  giannaLoopEngine,
+  LeadEscalationState,
+  SendResult,
+} from "@/lib/engines/gianna-loop-engine";
 
 interface SchedulerConfig {
   check_interval_minutes: number;
@@ -70,7 +74,9 @@ class GiannaLoopScheduler {
       return;
     }
 
-    console.log(`[Gianna Scheduler] Starting - checking every ${this.config.check_interval_minutes} minutes`);
+    console.log(
+      `[Gianna Scheduler] Starting - checking every ${this.config.check_interval_minutes} minutes`,
+    );
 
     // Run immediately on start
     this.runScheduledJob();
@@ -78,7 +84,7 @@ class GiannaLoopScheduler {
     // Schedule recurring runs
     this.intervalId = setInterval(
       () => this.runScheduledJob(),
-      this.config.check_interval_minutes * 60 * 1000
+      this.config.check_interval_minutes * 60 * 1000,
     );
 
     this.updateNextRunTime();
@@ -142,7 +148,9 @@ class GiannaLoopScheduler {
     this.stats.is_running = true;
     this.stats.last_run_at = new Date().toISOString();
 
-    console.log(`[Gianna Scheduler] Running scheduled job at ${this.stats.last_run_at}`);
+    console.log(
+      `[Gianna Scheduler] Running scheduled job at ${this.stats.last_run_at}`,
+    );
 
     try {
       // Fetch leads ready for next message
@@ -153,20 +161,32 @@ class GiannaLoopScheduler {
         return;
       }
 
-      console.log(`[Gianna Scheduler] Processing ${leadsToProcess.length} leads`);
+      console.log(
+        `[Gianna Scheduler] Processing ${leadsToProcess.length} leads`,
+      );
 
       // Process each lead
       const results = await this.processLeads(leadsToProcess);
 
       // Update stats
       this.stats.total_processed_today += leadsToProcess.length;
-      this.stats.total_sent_today += Array.from(results.values()).filter((r) => r.success).length;
-      this.stats.total_errors_today += Array.from(results.values()).filter((r) => !r.success).length;
+      this.stats.total_sent_today += Array.from(results.values()).filter(
+        (r) => r.success,
+      ).length;
+      this.stats.total_errors_today += Array.from(results.values()).filter(
+        (r) => !r.success,
+      ).length;
 
       // Log results summary
-      const successful = Array.from(results.values()).filter((r) => r.success).length;
-      const failed = Array.from(results.values()).filter((r) => !r.success).length;
-      console.log(`[Gianna Scheduler] Completed: ${successful} sent, ${failed} failed`);
+      const successful = Array.from(results.values()).filter(
+        (r) => r.success,
+      ).length;
+      const failed = Array.from(results.values()).filter(
+        (r) => !r.success,
+      ).length;
+      console.log(
+        `[Gianna Scheduler] Completed: ${successful} sent, ${failed} failed`,
+      );
 
       // Persist updated lead states to database
       await this.persistLeadStates(leadsToProcess, results);
@@ -185,7 +205,7 @@ class GiannaLoopScheduler {
    */
   private updateNextRunTime(): void {
     this.stats.next_run_at = new Date(
-      Date.now() + this.config.check_interval_minutes * 60 * 1000
+      Date.now() + this.config.check_interval_minutes * 60 * 1000,
     ).toISOString();
   }
 
@@ -242,7 +262,9 @@ class GiannaLoopScheduler {
   /**
    * Process a batch of leads
    */
-  private async processLeads(leads: QueuedLead[]): Promise<Map<string, SendResult>> {
+  private async processLeads(
+    leads: QueuedLead[],
+  ): Promise<Map<string, SendResult>> {
     const results = new Map<string, SendResult>();
 
     for (const lead of leads) {
@@ -265,7 +287,10 @@ class GiannaLoopScheduler {
         // Add delay between sends to avoid rate limiting
         await this.delay(500);
       } catch (error) {
-        console.error(`[Gianna Scheduler] Error processing lead ${lead.lead_id}:`, error);
+        console.error(
+          `[Gianna Scheduler] Error processing lead ${lead.lead_id}:`,
+          error,
+        );
         results.set(lead.lead_id, {
           success: false,
           error: error instanceof Error ? error.message : "Unknown error",
@@ -282,7 +307,7 @@ class GiannaLoopScheduler {
    */
   private async persistLeadStates(
     leads: QueuedLead[],
-    results: Map<string, SendResult>
+    results: Map<string, SendResult>,
   ): Promise<void> {
     // TODO: Replace with actual database update
     // Update each lead with new current_step, last_sent_at, is_completed
@@ -291,7 +316,7 @@ class GiannaLoopScheduler {
       const result = results.get(lead.lead_id);
       if (result?.success) {
         console.log(
-          `[Gianna Scheduler] Updated lead ${lead.lead_id}: step ${lead.current_step}, completed: ${lead.is_completed}`
+          `[Gianna Scheduler] Updated lead ${lead.lead_id}: step ${lead.current_step}, completed: ${lead.is_completed}`,
         );
       }
     }
@@ -317,7 +342,11 @@ class GiannaLoopScheduler {
   /**
    * Force run the scheduler immediately (for testing/manual triggers)
    */
-  async forceRun(): Promise<{ processed: number; sent: number; errors: number }> {
+  async forceRun(): Promise<{
+    processed: number;
+    sent: number;
+    errors: number;
+  }> {
     await this.runScheduledJob();
     return {
       processed: this.stats.total_processed_today,

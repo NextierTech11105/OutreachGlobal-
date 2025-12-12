@@ -866,8 +866,9 @@ export function SchemaManager() {
   const handleSaveField = () => {
     if (isEditMode) {
       // Update existing field
-      const updatedFields = schemaData[activeTab].fields.map((field: SchemaField) =>
-        field.id === editingFieldId ? newField : field,
+      const updatedFields = schemaData[activeTab].fields.map(
+        (field: SchemaField) =>
+          field.id === editingFieldId ? newField : field,
       );
       setSchemaData({
         ...schemaData,

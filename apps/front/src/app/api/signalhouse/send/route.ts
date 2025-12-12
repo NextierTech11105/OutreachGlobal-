@@ -6,7 +6,9 @@ const SIGNALHOUSE_AUTH_TOKEN = process.env.SIGNALHOUSE_AUTH_TOKEN || "";
 
 // Build auth headers per SignalHouse docs
 function getAuthHeaders(): Record<string, string> {
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
   if (SIGNALHOUSE_API_KEY) headers["apiKey"] = SIGNALHOUSE_API_KEY;
   if (SIGNALHOUSE_AUTH_TOKEN) headers["authToken"] = SIGNALHOUSE_AUTH_TOKEN;
   return headers;
@@ -18,15 +20,18 @@ export async function POST(request: NextRequest) {
 
     if (!SIGNALHOUSE_API_KEY && !SIGNALHOUSE_AUTH_TOKEN) {
       return NextResponse.json(
-        { error: "SignalHouse credentials not configured (need apiKey or authToken)" },
-        { status: 400 }
+        {
+          error:
+            "SignalHouse credentials not configured (need apiKey or authToken)",
+        },
+        { status: 400 },
       );
     }
 
     if (!to || !from || !message) {
       return NextResponse.json(
         { error: "to, from, and message are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -49,7 +54,7 @@ export async function POST(request: NextRequest) {
       const errorData = await response.json().catch(() => ({}));
       return NextResponse.json(
         { error: errorData.message || "Failed to send message" },
-        { status: response.status }
+        { status: response.status },
       );
     }
 
@@ -62,7 +67,8 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: unknown) {
     console.error("SignalHouse send error:", error);
-    const message = error instanceof Error ? error.message : "Failed to send message";
+    const message =
+      error instanceof Error ? error.message : "Failed to send message";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

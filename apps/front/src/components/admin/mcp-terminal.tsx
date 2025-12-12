@@ -1,14 +1,8 @@
 "use client";
 
-
 import { sf, sfd } from "@/lib/utils/safe-format";
 import { useState, useRef, useEffect } from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -171,12 +165,15 @@ export function MCPTerminal() {
     const params = buildParams();
 
     if (!params.state && !params.city && !params.county && !params.zip) {
-      setMessages((prev) => [...prev, {
-        id: Date.now().toString(),
-        type: "error",
-        content: "Please select at least a state, city, county, or ZIP code",
-        timestamp: new Date(),
-      }]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          type: "error",
+          content: "Please select at least a state, city, county, or ZIP code",
+          timestamp: new Date(),
+        },
+      ]);
       return;
     }
 
@@ -246,12 +243,15 @@ export function MCPTerminal() {
       "Sqft",
       "Year Built",
       "Last Sale Date",
-      "Last Sale Price"
+      "Last Sale Price",
     ];
 
     const rows = properties.map((prop: any) => {
       return [
-        prop.address?.deliveryLine || prop.propertyAddress || prop.address || "",
+        prop.address?.deliveryLine ||
+          prop.propertyAddress ||
+          prop.address ||
+          "",
         prop.address?.city || prop.city || "",
         prop.address?.state || prop.state || "",
         prop.address?.zip || prop.zip || "",
@@ -259,15 +259,20 @@ export function MCPTerminal() {
         prop.owner?.phones?.[0] || prop.ownerPhone || "",
         prop.owner?.emails?.[0] || prop.ownerEmail || "",
         prop.equity?.equityPercent || prop.equityPercent || "",
-        prop.valuation?.estimatedValue || prop.estimatedValue || prop.value || "",
+        prop.valuation?.estimatedValue ||
+          prop.estimatedValue ||
+          prop.value ||
+          "",
         prop.propertyType || prop.type || "",
         prop.bedrooms || prop.beds || "",
         prop.bathrooms || prop.baths || "",
         prop.squareFeet || prop.sqft || "",
         prop.yearBuilt || "",
         prop.lastSaleDate || "",
-        prop.lastSalePrice || ""
-      ].map(val => `"${String(val).replace(/"/g, '""')}"`).join(",");
+        prop.lastSalePrice || "",
+      ]
+        .map((val) => `"${String(val).replace(/"/g, '""')}"`)
+        .join(",");
     });
 
     const csv = [headers.join(","), ...rows].join("\n");
@@ -275,7 +280,10 @@ export function MCPTerminal() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `${filename}_${new Date().toISOString().split("T")[0]}.csv`);
+    link.setAttribute(
+      "download",
+      `${filename}_${new Date().toISOString().split("T")[0]}.csv`,
+    );
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -286,12 +294,15 @@ export function MCPTerminal() {
 
     if (message.data.type === "property_search") {
       const properties = message.data.properties || [];
-      const allProperties = message.data.raw?.data || message.data.raw?.properties || properties;
+      const allProperties =
+        message.data.raw?.data || message.data.raw?.properties || properties;
 
       if (properties.length === 0) {
         return (
           <div className="mt-3 p-4 bg-zinc-800/50 rounded-lg border border-zinc-700 text-center">
-            <p className="text-zinc-400">No properties found. Try adjusting your search criteria.</p>
+            <p className="text-zinc-400">
+              No properties found. Try adjusting your search criteria.
+            </p>
           </div>
         );
       }
@@ -331,25 +342,41 @@ export function MCPTerminal() {
             } else if (prop.owner?.names?.[0]) {
               owner = prop.owner.names[0];
             } else if (prop.owner1FirstName || prop.owner1LastName) {
-              owner = [prop.owner1FirstName, prop.owner1LastName].filter(Boolean).join(" ");
+              owner = [prop.owner1FirstName, prop.owner1LastName]
+                .filter(Boolean)
+                .join(" ");
             } else if (prop.ownerName) {
               owner = prop.ownerName;
             }
-            const equity = prop.equity?.equityPercent || prop.equityPercent || null;
-            const value = prop.valuation?.estimatedValue || prop.estimatedValue || prop.value || null;
+            const equity =
+              prop.equity?.equityPercent || prop.equityPercent || null;
+            const value =
+              prop.valuation?.estimatedValue ||
+              prop.estimatedValue ||
+              prop.value ||
+              null;
 
             return (
-              <div key={i} className="flex items-center gap-3 p-3 bg-zinc-800/50 rounded-lg border border-zinc-700">
+              <div
+                key={i}
+                className="flex items-center gap-3 p-3 bg-zinc-800/50 rounded-lg border border-zinc-700"
+              >
                 <Building className="h-5 w-5 text-orange-400 shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-zinc-200 truncate">{address}</p>
-                  <p className="text-xs text-zinc-400">{city}{city && stateVal ? ", " : ""}{stateVal}</p>
+                  <p className="text-sm font-medium text-zinc-200 truncate">
+                    {address}
+                  </p>
+                  <p className="text-xs text-zinc-400">
+                    {city}
+                    {city && stateVal ? ", " : ""}
+                    {stateVal}
+                  </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   {equity && (
                     <Badge className="bg-green-900/50 text-green-300 border-green-700">
                       <DollarSign className="h-3 w-3 mr-1" />
-                      {typeof equity === 'number' ? `${equity}%` : equity}
+                      {typeof equity === "number" ? `${equity}%` : equity}
                     </Badge>
                   )}
                   {value && (
@@ -360,7 +387,9 @@ export function MCPTerminal() {
                 </div>
                 <div className="flex items-center gap-1 text-zinc-400 shrink-0">
                   <User className="h-3 w-3" />
-                  <span className="text-xs truncate max-w-[100px]">{owner}</span>
+                  <span className="text-xs truncate max-w-[100px]">
+                    {owner}
+                  </span>
                 </div>
               </div>
             );
@@ -375,7 +404,16 @@ export function MCPTerminal() {
     return null;
   };
 
-  const activeFiltersCount = [absenteeOwner, preForeclosure, highEquity, vacant, taxLien, inherited, corporateOwned, ownerOccupied].filter(Boolean).length;
+  const activeFiltersCount = [
+    absenteeOwner,
+    preForeclosure,
+    highEquity,
+    vacant,
+    taxLien,
+    inherited,
+    corporateOwned,
+    ownerOccupied,
+  ].filter(Boolean).length;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -387,7 +425,12 @@ export function MCPTerminal() {
               <Search className="h-5 w-5 text-purple-400" />
               Property Search
             </div>
-            <Button variant="ghost" size="sm" onClick={resetFilters} className="text-zinc-400 hover:text-zinc-200">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={resetFilters}
+              className="text-zinc-400 hover:text-zinc-200"
+            >
               <RotateCcw className="h-4 w-4" />
             </Button>
           </CardTitle>
@@ -440,48 +483,74 @@ export function MCPTerminal() {
             <Label className="text-zinc-300 text-xs uppercase tracking-wide flex items-center gap-2">
               <Filter className="h-3 w-3" /> Filters
               {activeFiltersCount > 0 && (
-                <Badge className="bg-purple-900/50 text-purple-300 text-xs">{activeFiltersCount}</Badge>
+                <Badge className="bg-purple-900/50 text-purple-300 text-xs">
+                  {activeFiltersCount}
+                </Badge>
               )}
             </Label>
 
             <div className="grid grid-cols-2 gap-2">
               <label className="flex items-center gap-2 p-2 bg-zinc-800/50 rounded border border-zinc-700 cursor-pointer hover:bg-zinc-800">
-                <Checkbox checked={absenteeOwner} onCheckedChange={(c) => setAbsenteeOwner(!!c)} />
+                <Checkbox
+                  checked={absenteeOwner}
+                  onCheckedChange={(c) => setAbsenteeOwner(!!c)}
+                />
                 <span className="text-sm text-zinc-300">Absentee</span>
               </label>
 
               <label className="flex items-center gap-2 p-2 bg-zinc-800/50 rounded border border-zinc-700 cursor-pointer hover:bg-zinc-800">
-                <Checkbox checked={preForeclosure} onCheckedChange={(c) => setPreForeclosure(!!c)} />
+                <Checkbox
+                  checked={preForeclosure}
+                  onCheckedChange={(c) => setPreForeclosure(!!c)}
+                />
                 <span className="text-sm text-zinc-300">Pre-Foreclosure</span>
               </label>
 
               <label className="flex items-center gap-2 p-2 bg-zinc-800/50 rounded border border-zinc-700 cursor-pointer hover:bg-zinc-800">
-                <Checkbox checked={highEquity} onCheckedChange={(c) => setHighEquity(!!c)} />
+                <Checkbox
+                  checked={highEquity}
+                  onCheckedChange={(c) => setHighEquity(!!c)}
+                />
                 <span className="text-sm text-zinc-300">High Equity</span>
               </label>
 
               <label className="flex items-center gap-2 p-2 bg-zinc-800/50 rounded border border-zinc-700 cursor-pointer hover:bg-zinc-800">
-                <Checkbox checked={vacant} onCheckedChange={(c) => setVacant(!!c)} />
+                <Checkbox
+                  checked={vacant}
+                  onCheckedChange={(c) => setVacant(!!c)}
+                />
                 <span className="text-sm text-zinc-300">Vacant</span>
               </label>
 
               <label className="flex items-center gap-2 p-2 bg-zinc-800/50 rounded border border-zinc-700 cursor-pointer hover:bg-zinc-800">
-                <Checkbox checked={taxLien} onCheckedChange={(c) => setTaxLien(!!c)} />
+                <Checkbox
+                  checked={taxLien}
+                  onCheckedChange={(c) => setTaxLien(!!c)}
+                />
                 <span className="text-sm text-zinc-300">Tax Lien</span>
               </label>
 
               <label className="flex items-center gap-2 p-2 bg-zinc-800/50 rounded border border-zinc-700 cursor-pointer hover:bg-zinc-800">
-                <Checkbox checked={inherited} onCheckedChange={(c) => setInherited(!!c)} />
+                <Checkbox
+                  checked={inherited}
+                  onCheckedChange={(c) => setInherited(!!c)}
+                />
                 <span className="text-sm text-zinc-300">Inherited</span>
               </label>
 
               <label className="flex items-center gap-2 p-2 bg-zinc-800/50 rounded border border-zinc-700 cursor-pointer hover:bg-zinc-800">
-                <Checkbox checked={corporateOwned} onCheckedChange={(c) => setCorporateOwned(!!c)} />
+                <Checkbox
+                  checked={corporateOwned}
+                  onCheckedChange={(c) => setCorporateOwned(!!c)}
+                />
                 <span className="text-sm text-zinc-300">Corporate</span>
               </label>
 
               <label className="flex items-center gap-2 p-2 bg-zinc-800/50 rounded border border-zinc-700 cursor-pointer hover:bg-zinc-800">
-                <Checkbox checked={ownerOccupied} onCheckedChange={(c) => setOwnerOccupied(!!c)} />
+                <Checkbox
+                  checked={ownerOccupied}
+                  onCheckedChange={(c) => setOwnerOccupied(!!c)}
+                />
                 <span className="text-sm text-zinc-300">Owner Occupied</span>
               </label>
             </div>
@@ -489,7 +558,9 @@ export function MCPTerminal() {
 
           {/* Result Size */}
           <div className="space-y-2">
-            <Label className="text-zinc-300 text-xs uppercase tracking-wide">Results</Label>
+            <Label className="text-zinc-300 text-xs uppercase tracking-wide">
+              Results
+            </Label>
             <select
               value={resultSize}
               onChange={(e) => setResultSize(e.target.value)}
@@ -531,7 +602,10 @@ export function MCPTerminal() {
             <div className="flex items-center gap-2">
               <Terminal className="h-5 w-5 text-green-400" />
               Results
-              <Badge variant="outline" className="text-xs border-orange-700 text-orange-400 ml-2">
+              <Badge
+                variant="outline"
+                className="text-xs border-orange-700 text-orange-400 ml-2"
+              >
                 LIVE API
               </Badge>
             </div>
@@ -559,7 +633,9 @@ export function MCPTerminal() {
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm font-medium text-zinc-200">Search</span>
+                      <span className="text-sm font-medium text-zinc-200">
+                        Search
+                      </span>
                       <span className="text-xs text-zinc-500">
                         <Clock className="h-3 w-3 inline mr-1" />
                         {message.timestamp.toLocaleTimeString()}
@@ -582,7 +658,9 @@ export function MCPTerminal() {
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm font-medium text-zinc-200">Response</span>
+                      <span className="text-sm font-medium text-zinc-200">
+                        Response
+                      </span>
                       <CheckCircle className="h-4 w-4 text-green-400" />
                     </div>
                     <p className="text-zinc-300">{message.content}</p>

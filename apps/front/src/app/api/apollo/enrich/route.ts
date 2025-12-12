@@ -15,7 +15,7 @@ import { eq, inArray } from "drizzle-orm";
  * - reveal_phone_number: true - Get phone numbers
  */
 
-const APOLLO_API_KEY = process.env.APOLLO_API_KEY || "";
+const APOLLO_API_KEY = process.env.APOLLO_IO_API_KEY || process.env.NEXT_PUBLIC_APOLLO_IO_API_KEY || process.env.APOLLO_API_KEY || "";
 const APOLLO_PEOPLE_URL = "https://api.apollo.io/api/v1/people/bulk_match";
 const APOLLO_PEOPLE_SINGLE_URL = "https://api.apollo.io/api/v1/people/match";
 const APOLLO_ORG_URL = "https://api.apollo.io/api/v1/organizations/bulk_enrich";
@@ -85,7 +85,7 @@ interface ApolloOrgResult {
 // Bulk enrich people (max 10 per request)
 async function bulkEnrichPeople(
   people: PersonMatch[],
-  options: { revealEmails?: boolean; revealPhones?: boolean } = {}
+  options: { revealEmails?: boolean; revealPhones?: boolean } = {},
 ): Promise<ApolloPersonResult[]> {
   if (!APOLLO_API_KEY) {
     throw new Error("APOLLO_API_KEY not configured");
@@ -98,7 +98,7 @@ async function bulkEnrichPeople(
     const chunk = people.slice(i, i + BULK_LIMIT);
 
     // Add reveal options to each person
-    const details = chunk.map(person => ({
+    const details = chunk.map((person) => ({
       ...person,
       reveal_personal_emails: options.revealEmails ?? true,
       reveal_phone_number: options.revealPhones ?? true,
@@ -138,7 +138,7 @@ async function bulkEnrichPeople(
 
     // Small delay between chunks to avoid rate limits
     if (i + BULK_LIMIT < people.length) {
-      await new Promise(r => setTimeout(r, 200));
+      await new Promise((r) => setTimeout(r, 200));
     }
   }
 
@@ -164,7 +164,9 @@ async function bulkEnrichOrgs(orgs: OrgEnrich[]): Promise<ApolloOrgResult[]> {
           "Content-Type": "application/json",
           "x-api-key": APOLLO_API_KEY,
         },
-        body: JSON.stringify({ domains: chunk.map(o => o.domain).filter(Boolean) }),
+        body: JSON.stringify({
+          domains: chunk.map((o) => o.domain).filter(Boolean),
+        }),
       });
 
       if (!response.ok) {
@@ -183,7 +185,7 @@ async function bulkEnrichOrgs(orgs: OrgEnrich[]): Promise<ApolloOrgResult[]> {
 
     // Small delay between chunks
     if (i + BULK_LIMIT < orgs.length) {
-      await new Promise(r => setTimeout(r, 200));
+      await new Promise((r) => setTimeout(r, 200));
     }
   }
 
@@ -235,19 +237,20 @@ export async function POST(request: NextRequest) {
     }
 
     // Single person enrichment (original behavior)
-    const { email, domain, firstName, lastName, revealEmails, revealPhones } = body;
+    const { email, domain, firstName, lastName, revealEmails, revealPhones } =
+      body;
 
     if (!APOLLO_API_KEY) {
       return NextResponse.json(
         { error: "Apollo API key not configured" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!email && !domain && !firstName && !lastName) {
       return NextResponse.json(
         { error: "Email, domain, or name is required for enrichment" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -281,13 +284,18 @@ export async function POST(request: NextRequest) {
       success: true,
       result: {
         id: person.id,
-        name: person.name || `${person.first_name || ""} ${person.last_name || ""}`.trim(),
+        name:
+          person.name ||
+          `${person.first_name || ""} ${person.last_name || ""}`.trim(),
         email: person.email || email || "",
         personalEmails: person.personal_emails || [],
         title: person.title || "",
         company: person.organization?.name || "",
         phone: person.phone_numbers?.[0]?.sanitized_number || "",
-        phones: person.phone_numbers?.map(p => p.sanitized_number || p.raw_number).filter(Boolean) || [],
+        phones:
+          person.phone_numbers
+            ?.map((p) => p.sanitized_number || p.raw_number)
+            .filter(Boolean) || [],
         linkedin: person.linkedin_url || "",
         status: "found",
         enrichedAt: new Date().toISOString(),
@@ -296,7 +304,8 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: unknown) {
     console.error("Apollo enrich error:", error);
-    const message = error instanceof Error ? error.message : "Enrichment failed";
+    const message =
+      error instanceof Error ? error.message : "Enrichment failed";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
@@ -314,13 +323,13 @@ async function handleBulkEnrichment(body: {
     type = "people",
     revealEmails = true,
     revealPhones = true,
-    updateDb = true
+    updateDb = true,
   } = body;
 
   if (!APOLLO_API_KEY) {
     return NextResponse.json(
       { error: "APOLLO_API_KEY not configured" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 
@@ -331,10 +340,7 @@ async function handleBulkEnrichment(body: {
     .where(inArray(leads.id, leadIds));
 
   if (leadsData.length === 0) {
-    return NextResponse.json(
-      { error: "No leads found" },
-      { status: 404 }
-    );
+    return NextResponse.json({ error: "No leads found" }, { status: 404 });
   }
 
   console.log(`[Apollo] Enriching ${leadsData.length} leads (type: ${type})`);
@@ -350,19 +356,24 @@ async function handleBulkEnrichment(body: {
 
   if (type === "people") {
     // Build person match requests
-    const people: (PersonMatch & { leadId: string })[] = leadsData.map(lead => ({
-      leadId: lead.id,
-      first_name: lead.firstName || lead.owner1FirstName || undefined,
-      last_name: lead.lastName || lead.owner1LastName || undefined,
-      name: lead.firstName && lead.lastName
-        ? `${lead.firstName} ${lead.lastName}`
-        : lead.owner1FirstName && lead.owner1LastName
-          ? `${lead.owner1FirstName} ${lead.owner1LastName}`
-          : undefined,
-    }));
+    const people: (PersonMatch & { leadId: string })[] = leadsData.map(
+      (lead) => ({
+        leadId: lead.id,
+        first_name: lead.firstName || lead.owner1FirstName || undefined,
+        last_name: lead.lastName || lead.owner1LastName || undefined,
+        name:
+          lead.firstName && lead.lastName
+            ? `${lead.firstName} ${lead.lastName}`
+            : lead.owner1FirstName && lead.owner1LastName
+              ? `${lead.owner1FirstName} ${lead.owner1LastName}`
+              : undefined,
+      }),
+    );
 
     // Filter out people without names
-    const validPeople = people.filter(p => p.first_name || p.last_name || p.name);
+    const validPeople = people.filter(
+      (p) => p.first_name || p.last_name || p.name,
+    );
 
     if (validPeople.length === 0) {
       return NextResponse.json({
@@ -373,10 +384,10 @@ async function handleBulkEnrichment(body: {
     }
 
     // Bulk enrich
-    const apolloResults = await bulkEnrichPeople(
-      validPeople,
-      { revealEmails, revealPhones }
-    );
+    const apolloResults = await bulkEnrichPeople(validPeople, {
+      revealEmails,
+      revealPhones,
+    });
 
     // Map results back to leads and update database
     for (let i = 0; i < validPeople.length; i++) {
@@ -391,14 +402,15 @@ async function handleBulkEnrichment(body: {
       results.enriched++;
 
       // Extract phones
-      const phones = apolloData.phone_numbers
-        ?.filter(p => p.sanitized_number || p.raw_number)
-        .map(p => p.sanitized_number || p.raw_number || "") || [];
+      const phones =
+        apolloData.phone_numbers
+          ?.filter((p) => p.sanitized_number || p.raw_number)
+          .map((p) => p.sanitized_number || p.raw_number || "") || [];
 
       // Extract emails
       const emails = [
         apolloData.email,
-        ...(apolloData.personal_emails || [])
+        ...(apolloData.personal_emails || []),
       ].filter(Boolean) as string[];
 
       if (phones.length > 0) results.withPhones++;
@@ -426,7 +438,8 @@ async function handleBulkEnrichment(body: {
               apolloLinkedinUrl: apolloData.linkedin_url || null,
               apolloOrgId: apolloData.organization?.id || null,
               apolloIndustry: apolloData.organization?.industry || null,
-              apolloEmployeeCount: apolloData.organization?.estimated_num_employees || null,
+              apolloEmployeeCount:
+                apolloData.organization?.estimated_num_employees || null,
 
               // Apollo metadata
               apolloEnrichedAt: new Date(),
@@ -440,7 +453,10 @@ async function handleBulkEnrichment(body: {
               },
 
               // Update status if we got contact info
-              enrichmentStatus: phones.length > 0 || emails.length > 0 ? "completed" : "partial",
+              enrichmentStatus:
+                phones.length > 0 || emails.length > 0
+                  ? "completed"
+                  : "partial",
               updatedAt: new Date(),
             })
             .where(eq(leads.id, lead.leadId));
@@ -453,8 +469,8 @@ async function handleBulkEnrichment(body: {
   } else if (type === "organizations") {
     // For organization enrichment (less common for property leads)
     const orgs: (OrgEnrich & { leadId: string })[] = leadsData
-      .filter(lead => lead.apolloCompany)
-      .map(lead => ({
+      .filter((lead) => lead.apolloCompany)
+      .map((lead) => ({
         leadId: lead.id,
         name: lead.apolloCompany || undefined,
       }));
@@ -510,7 +526,9 @@ async function handleBulkEnrichment(body: {
     }
   }
 
-  console.log(`[Apollo] Enrichment complete: ${results.enriched}/${results.total}, ${results.withPhones} phones, ${results.withEmails} emails`);
+  console.log(
+    `[Apollo] Enrichment complete: ${results.enriched}/${results.total}, ${results.withPhones} phones, ${results.withEmails} emails`,
+  );
 
   return NextResponse.json({
     success: true,
@@ -553,11 +571,15 @@ export async function GET() {
       },
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Health check failed";
-    return NextResponse.json({
-      configured: true,
-      healthy: false,
-      error: message,
-    }, { status: 500 });
+    const message =
+      error instanceof Error ? error.message : "Health check failed";
+    return NextResponse.json(
+      {
+        configured: true,
+        healthy: false,
+        error: message,
+      },
+      { status: 500 },
+    );
   }
 }

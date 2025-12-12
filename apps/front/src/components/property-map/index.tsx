@@ -1,6 +1,5 @@
 "use client";
 
-
 import { sf, sfd } from "@/lib/utils/safe-format";
 import dynamic from "next/dynamic";
 import { MapPin, AlertCircle } from "lucide-react";
@@ -14,7 +13,9 @@ function MapFallback({ properties = [] }: { properties?: { id: string }[] }) {
       <p className="text-sm text-zinc-500 mb-4">Using list view instead</p>
       <div className="flex items-center gap-2 text-green-500">
         <MapPin className="h-5 w-5" />
-        <span className="text-xl font-bold">{sf(properties.length)} Properties</span>
+        <span className="text-xl font-bold">
+          {sf(properties.length)} Properties
+        </span>
       </div>
     </div>
   );
@@ -35,7 +36,7 @@ export const PropertyMap = dynamic(
         <div className="animate-pulse text-zinc-500">Loading map...</div>
       </div>
     ),
-  }
+  },
 );
 
 export type { PropertyMarker } from "./property-map";

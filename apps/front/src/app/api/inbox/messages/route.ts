@@ -37,9 +37,9 @@ function getV1Headers(): Record<string, string> {
 // For message sending endpoints
 function getSendHeaders(): Record<string, string> {
   return {
-    "accept": "application/json",
-    "apiKey": SIGNALHOUSE_API_KEY,
-    "authToken": SIGNALHOUSE_AUTH_TOKEN,
+    accept: "application/json",
+    apiKey: SIGNALHOUSE_API_KEY,
+    authToken: SIGNALHOUSE_AUTH_TOKEN,
     "Content-Type": "application/json",
   };
 }
@@ -48,11 +48,14 @@ function getSendHeaders(): Record<string, string> {
 export async function GET(request: NextRequest) {
   try {
     if (!SIGNALHOUSE_API_KEY) {
-      return NextResponse.json({
-        error: "SignalHouse not configured",
-        configured: false,
-        messages: [],
-      }, { status: 200 }); // Return empty instead of error to avoid UI breaking
+      return NextResponse.json(
+        {
+          error: "SignalHouse not configured",
+          configured: false,
+          messages: [],
+        },
+        { status: 200 },
+      ); // Return empty instead of error to avoid UI breaking
     }
 
     const { searchParams } = new URL(request.url);
@@ -80,7 +83,7 @@ export async function GET(request: NextRequest) {
         {
           method: "GET",
           headers: getV1Headers(),
-        }
+        },
       );
 
       if (response.ok) {
@@ -95,7 +98,11 @@ export async function GET(request: NextRequest) {
     }
 
     // If no messages from API, return empty (messages will come from webhooks)
-    if (!rawMessages || !Array.isArray(rawMessages) || rawMessages.length === 0) {
+    if (
+      !rawMessages ||
+      !Array.isArray(rawMessages) ||
+      rawMessages.length === 0
+    ) {
       return NextResponse.json({
         success: true,
         messages: [],
@@ -109,17 +116,28 @@ export async function GET(request: NextRequest) {
 
     // Transform SignalHouse messages to our Message format
     const messages = rawMessages.map((msg: SignalHouseMessage) => {
-      const messageId = msg.id || msg.message_id || msg.sid || `msg-${Date.now()}-${Math.random()}`;
-      const isInbound = msg.direction === "inbound" || msg.direction === "incoming";
+      const messageId =
+        msg.id ||
+        msg.message_id ||
+        msg.sid ||
+        `msg-${Date.now()}-${Math.random()}`;
+      const isInbound =
+        msg.direction === "inbound" || msg.direction === "incoming";
       const messageBody = msg.body || msg.message || "";
-      const dateStr = msg.date_created || msg.date_sent || msg.created_at || new Date().toISOString();
+      const dateStr =
+        msg.date_created ||
+        msg.date_sent ||
+        msg.created_at ||
+        new Date().toISOString();
 
       return {
         id: messageId,
         type: "sms" as const, // SignalHouse is SMS/MMS
-        from: isInbound ? (msg.from || "Unknown") : (msg.to || "Unknown"),
+        from: isInbound ? msg.from || "Unknown" : msg.to || "Unknown",
         phone: isInbound ? msg.from : msg.to,
-        preview: messageBody.substring(0, 100) + (messageBody.length > 100 ? "..." : ""),
+        preview:
+          messageBody.substring(0, 100) +
+          (messageBody.length > 100 ? "..." : ""),
         content: messageBody,
         date: dateStr,
         status: mapStatus(msg.status, isInbound),
@@ -135,9 +153,10 @@ export async function GET(request: NextRequest) {
     });
 
     // Filter by type if specified
-    const filteredMessages = type === "all"
-      ? messages
-      : messages.filter((m: { type: string }) => m.type === type);
+    const filteredMessages =
+      type === "all"
+        ? messages
+        : messages.filter((m: { type: string }) => m.type === type);
 
     return NextResponse.json({
       success: true,
@@ -149,11 +168,15 @@ export async function GET(request: NextRequest) {
     });
   } catch (error: unknown) {
     console.error("[Inbox API] Error:", error);
-    const message = error instanceof Error ? error.message : "Failed to fetch messages";
-    return NextResponse.json({
-      error: message,
-      messages: [],
-    }, { status: 200 });
+    const message =
+      error instanceof Error ? error.message : "Failed to fetch messages";
+    return NextResponse.json(
+      {
+        error: message,
+        messages: [],
+      },
+      { status: 200 },
+    );
   }
 }
 
@@ -161,25 +184,34 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     if (!SIGNALHOUSE_API_KEY) {
-      return NextResponse.json({
-        error: "SignalHouse not configured",
-      }, { status: 503 });
+      return NextResponse.json(
+        {
+          error: "SignalHouse not configured",
+        },
+        { status: 503 },
+      );
     }
 
     const body = await request.json();
     const { to, message, from, mediaUrl, scheduleAt } = body;
 
     if (!to || !message) {
-      return NextResponse.json({
-        error: "to and message are required",
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: "to and message are required",
+        },
+        { status: 400 },
+      );
     }
 
     const fromNumber = from || process.env.SIGNALHOUSE_DEFAULT_NUMBER;
     if (!fromNumber) {
-      return NextResponse.json({
-        error: "No from number configured",
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: "No from number configured",
+        },
+        { status: 400 },
+      );
     }
 
     // Build payload
@@ -212,9 +244,12 @@ export async function POST(request: NextRequest) {
     const data = await response.json();
 
     if (!response.ok) {
-      return NextResponse.json({
-        error: data.message || data.error || "Failed to send message",
-      }, { status: response.status });
+      return NextResponse.json(
+        {
+          error: data.message || data.error || "Failed to send message",
+        },
+        { status: response.status },
+      );
     }
 
     return NextResponse.json({
@@ -224,12 +259,16 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: unknown) {
     console.error("[Inbox API] Send error:", error);
-    const message = error instanceof Error ? error.message : "Failed to send message";
+    const message =
+      error instanceof Error ? error.message : "Failed to send message";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
-function mapStatus(signalHouseStatus: string | undefined, isInbound: boolean): string {
+function mapStatus(
+  signalHouseStatus: string | undefined,
+  isInbound: boolean,
+): string {
   if (!signalHouseStatus) return isInbound ? "new" : "replied";
 
   const status = signalHouseStatus.toLowerCase();

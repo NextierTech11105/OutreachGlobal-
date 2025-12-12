@@ -28,7 +28,7 @@ export async function signalhouseRequest<T>(
     method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
     body?: Record<string, unknown>;
     params?: Record<string, string>;
-  } = {}
+  } = {},
 ): Promise<{ success: boolean; data?: T; error?: string; status?: number }> {
   if (!isConfigured()) {
     return { success: false, error: "SignalHouse credentials not configured" };
@@ -54,7 +54,8 @@ export async function signalhouseRequest<T>(
     if (!response.ok) {
       return {
         success: false,
-        error: data.message || data.error || `Request failed: ${response.status}`,
+        error:
+          data.message || data.error || `Request failed: ${response.status}`,
         status: response.status,
       };
     }
@@ -100,7 +101,12 @@ export interface CreateBrandInput {
   postalCode?: string;
   website?: string;
   vertical?: string; // Industry
-  entityType?: "PRIVATE_PROFIT" | "PUBLIC_PROFIT" | "NON_PROFIT" | "GOVERNMENT" | "SOLE_PROPRIETOR";
+  entityType?:
+    | "PRIVATE_PROFIT"
+    | "PUBLIC_PROFIT"
+    | "NON_PROFIT"
+    | "GOVERNMENT"
+    | "SOLE_PROPRIETOR";
 }
 
 export async function createBrand(input: CreateBrandInput) {
@@ -115,7 +121,9 @@ export async function getBrand(brandId: string) {
 }
 
 export async function getBrandByName(name: string) {
-  return signalhouseRequest<Brand>(`/brand/brandName/${encodeURIComponent(name)}`);
+  return signalhouseRequest<Brand>(
+    `/brand/brandName/${encodeURIComponent(name)}`,
+  );
 }
 
 export async function deleteBrand(brandId: string) {
@@ -164,7 +172,10 @@ export async function getCampaign(campaignId: string) {
   return signalhouseRequest<Campaign>(`/campaign/${campaignId}`);
 }
 
-export async function updateCampaign(campaignId: string, updates: Partial<CreateCampaignInput>) {
+export async function updateCampaign(
+  campaignId: string,
+  updates: Partial<CreateCampaignInput>,
+) {
   return signalhouseRequest<Campaign>(`/campaign/${campaignId}`, {
     method: "PUT",
     body: updates as unknown as Record<string, unknown>,
@@ -182,7 +193,9 @@ export async function getCampaignBasicDetails() {
 }
 
 export async function qualifyBrandForUsecases(brandId: string) {
-  return signalhouseRequest<{ usecases: string[] }>(`/campaign/campaignBuilder/brand/${brandId}`);
+  return signalhouseRequest<{ usecases: string[] }>(
+    `/campaign/campaignBuilder/brand/${brandId}`,
+  );
 }
 
 // ============ PHONE NUMBER OPERATIONS ============
@@ -204,13 +217,20 @@ export interface AvailableNumber {
   monthlyFee?: number;
 }
 
-export async function getAvailableNumbers(params?: { areaCode?: string; state?: string; limit?: number }) {
+export async function getAvailableNumbers(params?: {
+  areaCode?: string;
+  state?: string;
+  limit?: number;
+}) {
   return signalhouseRequest<AvailableNumber[]>("/phoneNumber/getPhoneNumber", {
     params: params as Record<string, string>,
   });
 }
 
-export async function buyPhoneNumber(phoneNumber: string, friendlyName?: string) {
+export async function buyPhoneNumber(
+  phoneNumber: string,
+  friendlyName?: string,
+) {
   return signalhouseRequest<PhoneNumber>("/phoneNumber/buyPhoneNumber", {
     method: "POST",
     body: { phoneNumber, friendlyName },
@@ -218,28 +238,37 @@ export async function buyPhoneNumber(phoneNumber: string, friendlyName?: string)
 }
 
 export async function releasePhoneNumber(phoneNumber: string) {
-  return signalhouseRequest<{ success: boolean }>("/phoneNumber/releasePhoneNumber", {
-    method: "POST",
-    body: { phoneNumber },
-  });
+  return signalhouseRequest<{ success: boolean }>(
+    "/phoneNumber/releasePhoneNumber",
+    {
+      method: "POST",
+      body: { phoneNumber },
+    },
+  );
 }
 
 export async function getMyPhoneNumbers() {
   return signalhouseRequest<PhoneNumber[]>("/phoneNumber/myPhoneNumbers");
 }
 
-export async function configurePhoneNumber(phoneNumber: string, config: {
-  campaignId?: string;
-  smsWebhookUrl?: string;
-  voiceWebhookUrl?: string;
-}) {
+export async function configurePhoneNumber(
+  phoneNumber: string,
+  config: {
+    campaignId?: string;
+    smsWebhookUrl?: string;
+    voiceWebhookUrl?: string;
+  },
+) {
   return signalhouseRequest<PhoneNumber>("/phoneNumber/configurePhoneNumber", {
     method: "POST",
     body: { phoneNumber, ...config },
   });
 }
 
-export async function addFriendlyName(phoneNumber: string, friendlyName: string) {
+export async function addFriendlyName(
+  phoneNumber: string,
+  friendlyName: string,
+) {
   return signalhouseRequest<PhoneNumber>("/phoneNumber/addFriendlyName", {
     method: "POST",
     body: { phoneNumber, friendlyName },
@@ -280,20 +309,29 @@ export async function sendMMS(input: SendMMSInput) {
   });
 }
 
-export async function getMessageLogs(params?: { from?: string; to?: string; limit?: number }) {
+export async function getMessageLogs(params?: {
+  from?: string;
+  to?: string;
+  limit?: number;
+}) {
   return signalhouseRequest<MessageResult[]>("/message/logs", {
     params: params as Record<string, string>,
   });
 }
 
 export async function getConversation(from: string, to: string) {
-  return signalhouseRequest<MessageResult[]>(`/message/conversation/${from}/${to}`);
+  return signalhouseRequest<MessageResult[]>(
+    `/message/conversation/${from}/${to}`,
+  );
 }
 
 export async function calculateSegments(message: string) {
-  return signalhouseRequest<{ segments: number; encoding: string }>("/message/calculateSegments", {
-    params: { message },
-  });
+  return signalhouseRequest<{ segments: number; encoding: string }>(
+    "/message/calculateSegments",
+    {
+      params: { message },
+    },
+  );
 }
 
 // ============ ANALYTICS OPERATIONS ============
@@ -310,19 +348,33 @@ export interface DashboardAnalytics {
 }
 
 export async function getDashboardAnalytics() {
-  return signalhouseRequest<DashboardAnalytics>("/analytics/dashboardAnalytics");
+  return signalhouseRequest<DashboardAnalytics>(
+    "/analytics/dashboardAnalytics",
+  );
 }
 
-export async function getOutboundAnalytics(params?: { startDate?: string; endDate?: string }) {
-  return signalhouseRequest<Record<string, number>>("/analytics/analyticsOutbound", {
-    params: params as Record<string, string>,
-  });
+export async function getOutboundAnalytics(params?: {
+  startDate?: string;
+  endDate?: string;
+}) {
+  return signalhouseRequest<Record<string, number>>(
+    "/analytics/analyticsOutbound",
+    {
+      params: params as Record<string, string>,
+    },
+  );
 }
 
-export async function getInboundAnalytics(params?: { startDate?: string; endDate?: string }) {
-  return signalhouseRequest<Record<string, number>>("/analytics/analyticsInbound", {
-    params: params as Record<string, string>,
-  });
+export async function getInboundAnalytics(params?: {
+  startDate?: string;
+  endDate?: string;
+}) {
+  return signalhouseRequest<Record<string, number>>(
+    "/analytics/analyticsInbound",
+    {
+      params: params as Record<string, string>,
+    },
+  );
 }
 
 export async function getOptOutAnalytics() {
@@ -343,7 +395,10 @@ export async function getWalletSummary() {
   return signalhouseRequest<WalletSummary>("/wallet/summary");
 }
 
-export async function getUsageSummary(params?: { startDate?: string; endDate?: string }) {
+export async function getUsageSummary(params?: {
+  startDate?: string;
+  endDate?: string;
+}) {
   return signalhouseRequest<Record<string, unknown>>("/wallet/usageSummary", {
     params: params as Record<string, string>,
   });
@@ -364,7 +419,12 @@ export interface Webhook {
   createdAt?: string;
 }
 
-export async function createWebhook(input: { name: string; url: string; events: string[]; description?: string }) {
+export async function createWebhook(input: {
+  name: string;
+  url: string;
+  events: string[];
+  description?: string;
+}) {
   return signalhouseRequest<Webhook>("/webhook", {
     method: "POST",
     body: input,
@@ -379,7 +439,15 @@ export async function getWebhook(webhookId: string) {
   return signalhouseRequest<Webhook>(`/webhook/${webhookId}`);
 }
 
-export async function updateWebhook(webhookId: string, updates: Partial<{ name: string; url: string; events: string[]; status: string }>) {
+export async function updateWebhook(
+  webhookId: string,
+  updates: Partial<{
+    name: string;
+    url: string;
+    events: string[];
+    status: string;
+  }>,
+) {
   return signalhouseRequest<Webhook>(`/webhook/${webhookId}`, {
     method: "PATCH",
     body: updates,
@@ -408,7 +476,10 @@ export interface SubGroup {
   createdAt?: string;
 }
 
-export async function createSubGroup(input: { name: string; description?: string }) {
+export async function createSubGroup(input: {
+  name: string;
+  description?: string;
+}) {
   return signalhouseRequest<SubGroup>("/user/subGroup/create", {
     method: "POST",
     body: input,
@@ -423,7 +494,11 @@ export async function getSubGroupDetails(subGroupId: string) {
   return signalhouseRequest<SubGroup>(`/user/subGroup/Details/${subGroupId}`);
 }
 
-export async function updateSubGroup(updates: { subGroupId: string; name?: string; description?: string }) {
+export async function updateSubGroup(updates: {
+  subGroupId: string;
+  name?: string;
+  description?: string;
+}) {
   return signalhouseRequest<SubGroup>("/user/subGroup/update", {
     method: "PATCH",
     body: updates,

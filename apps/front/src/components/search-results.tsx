@@ -79,13 +79,13 @@ export function SearchResults({
       if (selectedIds.size === results.length) {
         setSelectedIds(new Set());
       } else {
-        setSelectedIds(new Set(results.map(r => r.id)));
+        setSelectedIds(new Set(results.map((r) => r.id)));
       }
     }
   };
 
   const handleCopyIds = () => {
-    const ids = idsOnly ? propertyIds : results.map(r => r.id);
+    const ids = idsOnly ? propertyIds : results.map((r) => r.id);
     navigator.clipboard.writeText(ids.join("\n"));
     toast.success(`Copied ${ids.length} property IDs to clipboard`);
   };
@@ -97,8 +97,21 @@ export function SearchResults({
         const csv = "Property ID\n" + propertyIds.join("\n");
         downloadCSV(csv, "property-ids.csv");
       } else {
-        const headers = ["ID", "Address", "City", "State", "ZIP", "Type", "Equity %", "Value", "Beds", "Baths", "SqFt", "Year Built"];
-        const rows = results.map(r => [
+        const headers = [
+          "ID",
+          "Address",
+          "City",
+          "State",
+          "ZIP",
+          "Type",
+          "Equity %",
+          "Value",
+          "Beds",
+          "Baths",
+          "SqFt",
+          "Year Built",
+        ];
+        const rows = results.map((r) => [
           r.id,
           r.address?.street || "",
           r.address?.city || "",
@@ -112,7 +125,10 @@ export function SearchResults({
           r.squareFeet || "",
           r.yearBuilt || "",
         ]);
-        const csv = [headers.join(","), ...rows.map(row => row.join(","))].join("\n");
+        const csv = [
+          headers.join(","),
+          ...rows.map((row) => row.join(",")),
+        ].join("\n");
         downloadCSV(csv, "property-results.csv");
       }
       toast.success("Export complete");
@@ -147,20 +163,31 @@ export function SearchResults({
   };
 
   const filteredResults = filter
-    ? results.filter(r =>
-        r.id.toLowerCase().includes(filter.toLowerCase()) ||
-        r.address?.street?.toLowerCase().includes(filter.toLowerCase()) ||
-        r.address?.city?.toLowerCase().includes(filter.toLowerCase())
+    ? results.filter(
+        (r) =>
+          r.id.toLowerCase().includes(filter.toLowerCase()) ||
+          r.address?.street?.toLowerCase().includes(filter.toLowerCase()) ||
+          r.address?.city?.toLowerCase().includes(filter.toLowerCase()),
       )
     : results;
 
   const filteredIds = filter
-    ? propertyIds.filter(id => id.toLowerCase().includes(filter.toLowerCase()))
+    ? propertyIds.filter((id) =>
+        id.toLowerCase().includes(filter.toLowerCase()),
+      )
     : propertyIds;
 
-  const paginatedResults = filteredResults.slice(page * pageSize, (page + 1) * pageSize);
-  const paginatedIds = filteredIds.slice(page * pageSize, (page + 1) * pageSize);
-  const totalPages = Math.ceil((idsOnly ? filteredIds.length : filteredResults.length) / pageSize);
+  const paginatedResults = filteredResults.slice(
+    page * pageSize,
+    (page + 1) * pageSize,
+  );
+  const paginatedIds = filteredIds.slice(
+    page * pageSize,
+    (page + 1) * pageSize,
+  );
+  const totalPages = Math.ceil(
+    (idsOnly ? filteredIds.length : filteredResults.length) / pageSize,
+  );
 
   if (idsOnly) {
     return (
@@ -180,7 +207,12 @@ export function SearchResults({
               <Copy className="h-4 w-4 mr-2" />
               Copy All
             </Button>
-            <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={isExporting}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportCSV}
+              disabled={isExporting}
+            >
               {isExporting ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (
@@ -209,7 +241,9 @@ export function SearchResults({
                   <div
                     key={id}
                     className={`flex items-center gap-2 p-2 rounded border text-sm font-mono ${
-                      selectedIds.has(id) ? "bg-primary/10 border-primary" : "bg-muted/30"
+                      selectedIds.has(id)
+                        ? "bg-primary/10 border-primary"
+                        : "bg-muted/30"
                     }`}
                     onClick={() => toggleSelect(id)}
                   >
@@ -227,13 +261,15 @@ export function SearchResults({
 
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Showing {page * pageSize + 1}-{Math.min((page + 1) * pageSize, filteredIds.length)} of {sf(filteredIds.length)}
+            Showing {page * pageSize + 1}-
+            {Math.min((page + 1) * pageSize, filteredIds.length)} of{" "}
+            {sf(filteredIds.length)}
           </div>
           <div className="flex items-center space-x-2">
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setPage(p => Math.max(0, p - 1))}
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
               disabled={page === 0}
             >
               Previous
@@ -244,7 +280,7 @@ export function SearchResults({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
               disabled={page >= totalPages - 1}
             >
               Next
@@ -272,7 +308,10 @@ export function SearchResults({
           </div>
           <Button>
             <List className="h-4 w-4 mr-2" />
-            Enrich {selectedIds.size > 0 ? `${selectedIds.size} Selected` : `Top ${enrichCount}`}
+            Enrich{" "}
+            {selectedIds.size > 0
+              ? `${selectedIds.size} Selected`
+              : `Top ${enrichCount}`}
           </Button>
         </div>
       </div>
@@ -286,11 +325,17 @@ export function SearchResults({
         <div>
           <h3 className="text-lg font-medium">Search Results</h3>
           <p className="text-sm text-muted-foreground">
-            {sf(resultCount)} properties found, showing {sf(results.length)} detailed
+            {sf(resultCount)} properties found, showing {sf(results.length)}{" "}
+            detailed
           </p>
         </div>
         <div className="flex items-center space-x-2">
-          <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={isExporting}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportCSV}
+            disabled={isExporting}
+          >
             {isExporting ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             ) : (
@@ -318,7 +363,9 @@ export function SearchResults({
             <TableRow>
               <TableHead className="w-12">
                 <Checkbox
-                  checked={selectedIds.size > 0 && selectedIds.size === results.length}
+                  checked={
+                    selectedIds.size > 0 && selectedIds.size === results.length
+                  }
                   onCheckedChange={toggleSelectAll}
                 />
               </TableHead>
@@ -345,11 +392,16 @@ export function SearchResults({
                       onCheckedChange={() => toggleSelect(result.id)}
                     />
                   </TableCell>
-                  <TableCell className="font-mono text-xs">{result.id}</TableCell>
-                  <TableCell className="max-w-[250px] truncate">{address}</TableCell>
+                  <TableCell className="font-mono text-xs">
+                    {result.id}
+                  </TableCell>
+                  <TableCell className="max-w-[250px] truncate">
+                    {address}
+                  </TableCell>
                   <TableCell>
                     <Badge variant="outline">
-                      {PROPERTY_TYPE_LABELS[result.propertyType] || result.propertyType}
+                      {PROPERTY_TYPE_LABELS[result.propertyType] ||
+                        result.propertyType}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -365,9 +417,7 @@ export function SearchResults({
                       {result.equityPercent}%
                     </Badge>
                   </TableCell>
-                  <TableCell>
-                    ${sf(result.estimatedValue) || "N/A"}
-                  </TableCell>
+                  <TableCell>${sf(result.estimatedValue) || "N/A"}</TableCell>
                   <TableCell>
                     {distress ? (
                       <Badge
@@ -385,7 +435,10 @@ export function SearchResults({
             })}
             {paginatedResults.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                <TableCell
+                  colSpan={7}
+                  className="text-center text-muted-foreground py-8"
+                >
                   No results found
                 </TableCell>
               </TableRow>
@@ -396,13 +449,15 @@ export function SearchResults({
 
       <div className="flex items-center justify-between">
         <div className="text-sm text-muted-foreground">
-          Showing {page * pageSize + 1}-{Math.min((page + 1) * pageSize, filteredResults.length)} of {sf(filteredResults.length)} results
+          Showing {page * pageSize + 1}-
+          {Math.min((page + 1) * pageSize, filteredResults.length)} of{" "}
+          {sf(filteredResults.length)} results
         </div>
         <div className="flex items-center space-x-2">
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setPage(p => Math.max(0, p - 1))}
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
             disabled={page === 0}
           >
             Previous
@@ -413,7 +468,7 @@ export function SearchResults({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+            onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
             disabled={page >= totalPages - 1}
           >
             Next

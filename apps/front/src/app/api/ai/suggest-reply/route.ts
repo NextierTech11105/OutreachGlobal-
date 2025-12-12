@@ -60,12 +60,14 @@ function buildGiannaSystemPrompt(
     detectedObjection?: string | null;
     detectedIntent?: string;
     trainingData?: Array<{ incomingMessage: string; idealResponse: string }>;
-  }
+  },
 ): string {
   const sections: string[] = [];
 
   // === IDENTITY ===
-  sections.push(`You are ${GIANNA_IDENTITY.name}, ${GIANNA_IDENTITY.role} for ${GIANNA_IDENTITY.company}.`);
+  sections.push(
+    `You are ${GIANNA_IDENTITY.name}, ${GIANNA_IDENTITY.role} for ${GIANNA_IDENTITY.company}.`,
+  );
 
   // === CORE PRINCIPLES ===
   sections.push(`
@@ -79,22 +81,32 @@ ${GIANNA_IDENTITY.neverDo.map((n) => `- ${n}`).join("\n")}
   // === PERSONALITY INSTRUCTIONS ===
   const personalityInstructions = personalityToPrompt(personality);
   if (personalityInstructions) {
-    sections.push(`\nPERSONALITY FOR THIS RESPONSE:\n${personalityInstructions}`);
+    sections.push(
+      `\nPERSONALITY FOR THIS RESPONSE:\n${personalityInstructions}`,
+    );
   }
 
   // === CONTEXT ===
   const contextParts: string[] = [];
   if (context.leadName) contextParts.push(`Lead name: ${context.leadName}`);
-  if (context.businessName) contextParts.push(`Business: ${context.businessName}`);
-  if (context.propertyAddress) contextParts.push(`Property: ${context.propertyAddress}`);
+  if (context.businessName)
+    contextParts.push(`Business: ${context.businessName}`);
+  if (context.propertyAddress)
+    contextParts.push(`Property: ${context.propertyAddress}`);
 
   if (contextParts.length > 0) {
     sections.push(`\nCURRENT CONTEXT:\n${contextParts.join("\n")}`);
   }
 
   // === LEAD TYPE SPECIFIC APPROACH ===
-  if (context.leadType && LEAD_TYPE_APPROACHES[context.leadType as keyof typeof LEAD_TYPE_APPROACHES]) {
-    const approach = LEAD_TYPE_APPROACHES[context.leadType as keyof typeof LEAD_TYPE_APPROACHES];
+  if (
+    context.leadType &&
+    LEAD_TYPE_APPROACHES[context.leadType as keyof typeof LEAD_TYPE_APPROACHES]
+  ) {
+    const approach =
+      LEAD_TYPE_APPROACHES[
+        context.leadType as keyof typeof LEAD_TYPE_APPROACHES
+      ];
     sections.push(`
 LEAD TYPE: ${context.leadType.replace(/_/g, " ").toUpperCase()}
 Tone: ${approach.tone}
@@ -104,8 +116,16 @@ Approach: ${approach.approach}
   }
 
   // === OBJECTION HANDLING ===
-  if (context.detectedObjection && OBJECTION_RESPONSES[context.detectedObjection as keyof typeof OBJECTION_RESPONSES]) {
-    const objection = OBJECTION_RESPONSES[context.detectedObjection as keyof typeof OBJECTION_RESPONSES];
+  if (
+    context.detectedObjection &&
+    OBJECTION_RESPONSES[
+      context.detectedObjection as keyof typeof OBJECTION_RESPONSES
+    ]
+  ) {
+    const objection =
+      OBJECTION_RESPONSES[
+        context.detectedObjection as keyof typeof OBJECTION_RESPONSES
+      ];
     sections.push(`
 OBJECTION DETECTED: ${context.detectedObjection.replace(/_/g, " ").toUpperCase()}
 Example responses you can adapt:
@@ -114,8 +134,16 @@ ${objection.responses.map((r) => `- "${r}"`).join("\n")}
   }
 
   // === RESPONSE STRATEGY ===
-  if (context.detectedIntent && RESPONSE_STRATEGIES[context.detectedIntent as keyof typeof RESPONSE_STRATEGIES]) {
-    const strategy = RESPONSE_STRATEGIES[context.detectedIntent as keyof typeof RESPONSE_STRATEGIES];
+  if (
+    context.detectedIntent &&
+    RESPONSE_STRATEGIES[
+      context.detectedIntent as keyof typeof RESPONSE_STRATEGIES
+    ]
+  ) {
+    const strategy =
+      RESPONSE_STRATEGIES[
+        context.detectedIntent as keyof typeof RESPONSE_STRATEGIES
+      ];
     sections.push(`
 INTENT DETECTED: ${context.detectedIntent.toUpperCase()}
 Goal: ${strategy.goal}
@@ -126,9 +154,12 @@ ${"examples" in strategy && strategy.examples ? `Examples:\n${strategy.examples.
 
   // === TRAINING DATA ===
   if (context.trainingData && context.trainingData.length > 0) {
-    const examples = context.trainingData.slice(0, 5).map(
-      (ex, i) => `${i + 1}. Lead: "${ex.incomingMessage}" → You: "${ex.idealResponse}"`
-    );
+    const examples = context.trainingData
+      .slice(0, 5)
+      .map(
+        (ex, i) =>
+          `${i + 1}. Lead: "${ex.incomingMessage}" → You: "${ex.idealResponse}"`,
+      );
     sections.push(`
 LEARN FROM THESE EXAMPLES (match this style):
 ${examples.join("\n")}
@@ -168,46 +199,76 @@ function classifyMessage(message: string): {
   let confidence = 50;
 
   // Strong positive signals
-  if (lower.match(/\b(yes|yeah|yep|sure|definitely|absolutely|sounds good|i'm interested|tell me more)\b/)) {
+  if (
+    lower.match(
+      /\b(yes|yeah|yep|sure|definitely|absolutely|sounds good|i'm interested|tell me more)\b/,
+    )
+  ) {
     intent = "interested";
     confidence = 90;
   }
   // Wants more info
-  else if (lower.match(/\b(how much|what's the|send me|email me|more info|details)\b/)) {
+  else if (
+    lower.match(/\b(how much|what's the|send me|email me|more info|details)\b/)
+  ) {
     intent = "more_info";
     confidence = 85;
   }
   // Wants a call
-  else if (lower.match(/\b(call me|give me a call|let's talk|phone|can we talk)\b/)) {
+  else if (
+    lower.match(/\b(call me|give me a call|let's talk|phone|can we talk)\b/)
+  ) {
     intent = "wants_call";
     confidence = 95;
   }
   // Questions
-  else if (lower.includes("?") || lower.match(/\b(what|when|where|why|how|who)\b/)) {
+  else if (
+    lower.includes("?") ||
+    lower.match(/\b(what|when|where|why|how|who)\b/)
+  ) {
     intent = "question";
     confidence = 75;
   }
   // Opt out (highest priority)
-  else if (lower.match(/\b(stop|unsubscribe|remove|opt out|take me off|don't text|don't contact)\b/)) {
+  else if (
+    lower.match(
+      /\b(stop|unsubscribe|remove|opt out|take me off|don't text|don't contact)\b/,
+    )
+  ) {
     intent = "opt_out";
     confidence = 99;
   }
   // Soft no
-  else if (lower.match(/\b(not right now|maybe later|bad timing|not interested right now)\b/)) {
+  else if (
+    lower.match(
+      /\b(not right now|maybe later|bad timing|not interested right now)\b/,
+    )
+  ) {
     intent = "soft_no";
     confidence = 80;
   }
   // Hard no
-  else if (lower.match(/\b(no|not interested|don't want|leave me alone|f\*\*k off)\b/) && !lower.includes("?")) {
+  else if (
+    lower.match(
+      /\b(no|not interested|don't want|leave me alone|f\*\*k off)\b/,
+    ) &&
+    !lower.includes("?")
+  ) {
     intent = "hard_no";
     confidence = 85;
   }
 
   // Sentiment detection
   let sentiment = "neutral";
-  if (lower.match(/\b(great|awesome|perfect|thanks|thank you|appreciate|excited|love)\b/)) {
+  if (
+    lower.match(
+      /\b(great|awesome|perfect|thanks|thank you|appreciate|excited|love)\b/,
+    )
+  ) {
     sentiment = "positive";
-  } else if (lower.match(/\b(annoying|spam|scam|stop|hate|angry|pissed|wtf)\b/)) {
+  } else if (
+    lower.match(/\b(annoying|spam|scam|stop|hate|angry|pissed|wtf)\b/)
+  ) {
     sentiment = "negative";
   }
 
@@ -249,7 +310,7 @@ export async function POST(request: NextRequest) {
     if (!incomingMessage) {
       return NextResponse.json(
         { error: "incomingMessage is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -284,7 +345,10 @@ export async function POST(request: NextRequest) {
       personality = GIANNA_PRESETS[toneToPreset[tone] || "balanced"];
     } else {
       // Auto-select based on classification
-      if (classification.intent === "interested" || classification.intent === "wants_call") {
+      if (
+        classification.intent === "interested" ||
+        classification.intent === "wants_call"
+      ) {
         personality = GIANNA_PRESETS.warm_lead;
       } else if (classification.objection) {
         personality = GIANNA_PRESETS.objection_handler;
@@ -327,27 +391,46 @@ export async function POST(request: NextRequest) {
 
     // === GENERATE RESPONSE ===
     if (provider === "anthropic" && ANTHROPIC_API_KEY) {
-      const result = await generateWithAnthropic(fullSystemPrompt, messages, personality);
+      const result = await generateWithAnthropic(
+        fullSystemPrompt,
+        messages,
+        personality,
+      );
       suggestedReply = result.reply;
       confidence = Math.round((confidence + result.confidence) / 2);
     } else if (provider === "openai" && OPENAI_API_KEY) {
-      const result = await generateWithOpenAI(fullSystemPrompt, messages, personality);
+      const result = await generateWithOpenAI(
+        fullSystemPrompt,
+        messages,
+        personality,
+      );
       suggestedReply = result.reply;
       confidence = Math.round((confidence + result.confidence) / 2);
     } else if (OPENAI_API_KEY) {
-      const result = await generateWithOpenAI(fullSystemPrompt, messages, personality);
+      const result = await generateWithOpenAI(
+        fullSystemPrompt,
+        messages,
+        personality,
+      );
       suggestedReply = result.reply;
       confidence = Math.round((confidence + result.confidence) / 2);
       usedProvider = "openai";
     } else if (ANTHROPIC_API_KEY) {
-      const result = await generateWithAnthropic(fullSystemPrompt, messages, personality);
+      const result = await generateWithAnthropic(
+        fullSystemPrompt,
+        messages,
+        personality,
+      );
       suggestedReply = result.reply;
       confidence = Math.round((confidence + result.confidence) / 2);
       usedProvider = "anthropic";
     } else {
       return NextResponse.json(
-        { error: "No AI provider configured. Set OPENAI_API_KEY or ANTHROPIC_API_KEY." },
-        { status: 503 }
+        {
+          error:
+            "No AI provider configured. Set OPENAI_API_KEY or ANTHROPIC_API_KEY.",
+        },
+        { status: 503 },
       );
     }
 
@@ -374,8 +457,13 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("[Gianna AI] Error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Gianna couldn't generate a response" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Gianna couldn't generate a response",
+      },
+      { status: 500 },
     );
   }
 }
@@ -384,7 +472,7 @@ export async function POST(request: NextRequest) {
 async function generateWithOpenAI(
   systemPrompt: string,
   messages: Array<{ role: "user" | "assistant"; content: string }>,
-  personality: GiannaPersonality
+  personality: GiannaPersonality,
 ): Promise<{ reply: string; confidence: number }> {
   // Map personality to temperature (more humor/warmth = higher temp)
   const temperature = 0.5 + (personality.warmth + personality.humor) / 400;
@@ -424,7 +512,7 @@ async function generateWithOpenAI(
 async function generateWithAnthropic(
   systemPrompt: string,
   messages: Array<{ role: "user" | "assistant"; content: string }>,
-  personality: GiannaPersonality
+  personality: GiannaPersonality,
 ): Promise<{ reply: string; confidence: number }> {
   // Map personality to temperature
   const temperature = 0.5 + (personality.warmth + personality.humor) / 400;

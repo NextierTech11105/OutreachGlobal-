@@ -1,6 +1,5 @@
 "use client";
 
-
 import { sf, sfd } from "@/lib/utils/safe-format";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
@@ -233,7 +232,10 @@ export function DealFlowDashboard() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Badge variant="outline" className="text-green-400 border-green-400/50">
+          <Badge
+            variant="outline"
+            className="text-green-400 border-green-400/50"
+          >
             <span className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse" />
             System Active
           </Badge>
@@ -269,15 +271,13 @@ export function DealFlowDashboard() {
                   <div
                     className={cn(
                       "w-14 h-14 rounded-full flex items-center justify-center text-white mb-2",
-                      stage.color
+                      stage.color,
                     )}
                   >
                     {stage.icon}
                   </div>
                   <span className="text-sm font-medium">{stage.name}</span>
-                  <span className="text-2xl font-bold">
-                    {sf(stage.count)}
-                  </span>
+                  <span className="text-2xl font-bold">{sf(stage.count)}</span>
                   {stage.value > 0 && (
                     <span className="text-xs text-green-400">
                       ${(stage.value / 1000000).toFixed(1)}M
@@ -323,8 +323,8 @@ export function DealFlowDashboard() {
                       metric.trend === "up"
                         ? "text-green-400"
                         : metric.trend === "down"
-                        ? "text-red-400"
-                        : "text-zinc-400"
+                          ? "text-red-400"
+                          : "text-zinc-400",
                     )}
                   >
                     {metric.change > 0 ? "+" : ""}

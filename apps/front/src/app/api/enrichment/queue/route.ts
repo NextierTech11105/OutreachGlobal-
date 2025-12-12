@@ -16,14 +16,14 @@ export async function POST(request: NextRequest) {
     if (!bucketId || !propertyIds || !Array.isArray(propertyIds)) {
       return NextResponse.json(
         { error: "bucketId and propertyIds array required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (propertyIds.length === 0) {
       return NextResponse.json(
         { error: "propertyIds cannot be empty" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
           usage,
           resetsAt: `${usage.date}T00:00:00Z (next day)`,
         },
-        { status: 429 }
+        { status: 429 },
       );
     }
 
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     const job = await createEnrichmentJob(
       bucketId,
       bucketLabel || bucketId,
-      idsToProcess
+      idsToProcess,
     );
 
     const response: {

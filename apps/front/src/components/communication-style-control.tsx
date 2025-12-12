@@ -1,7 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
@@ -46,52 +52,55 @@ interface CommunicationStyleControlProps {
   className?: string;
 }
 
-const CHARACTER_INFO: Record<CharacterInfluence, { name: string; tagline: string; emoji: string }> = {
+const CHARACTER_INFO: Record<
+  CharacterInfluence,
+  { name: string; tagline: string; emoji: string }
+> = {
   mr_wonderful: {
     name: "Mr. Wonderful",
     tagline: "Money-focused, blunt closer",
-    emoji: "💰"
+    emoji: "💰",
   },
   grant_cardone: {
     name: "Grant Cardone",
     tagline: "10X energy, aggressive",
-    emoji: "🔥"
+    emoji: "🔥",
   },
   gary_vee: {
     name: "Gary Vaynerchuk",
     tagline: "Authentic hustle",
-    emoji: "🎯"
+    emoji: "🎯",
   },
   daymond_john: {
     name: "Daymond John",
     tagline: "Resourceful, calculated",
-    emoji: "👔"
+    emoji: "👔",
   },
   mark_cuban: {
     name: "Mark Cuban",
     tagline: "No-nonsense, analytical",
-    emoji: "📊"
+    emoji: "📊",
   },
   lori_greiner: {
     name: "Lori Greiner",
     tagline: "Confident, value-focused",
-    emoji: "👑"
+    emoji: "👑",
   },
   barbara_corcoran: {
     name: "Barbara Corcoran",
     tagline: "Warm, storytelling",
-    emoji: "🏠"
+    emoji: "🏠",
   },
   candace_owens: {
     name: "Candace Owens",
     tagline: "Bold, articulate, direct",
-    emoji: "⚡"
+    emoji: "⚡",
   },
   jordan_belfort: {
     name: "Jordan Belfort",
     tagline: "Straight Line closer",
-    emoji: "🐺"
-  }
+    emoji: "🐺",
+  },
 };
 
 export function CommunicationStyleControl({
@@ -107,12 +116,11 @@ export function CommunicationStyleControl({
     energy: 70,
     urgency: 60,
   });
-  const [character, setCharacter] = useState<CharacterInfluence>("lori_greiner");
-  const [selectedCharacters, setSelectedCharacters] = useState<CharacterInfluence[]>([
-    "lori_greiner",
-    "barbara_corcoran",
-    "candace_owens"
-  ]);
+  const [character, setCharacter] =
+    useState<CharacterInfluence>("lori_greiner");
+  const [selectedCharacters, setSelectedCharacters] = useState<
+    CharacterInfluence[]
+  >(["lori_greiner", "barbara_corcoran", "candace_owens"]);
   const [previewStage, setPreviewStage] = useState<StraightLineStage>("open");
   const [previewMessage, setPreviewMessage] = useState("");
 
@@ -144,9 +152,9 @@ export function CommunicationStyleControl({
 
   // Toggle character in mix
   const toggleCharacterInMix = (char: CharacterInfluence) => {
-    setSelectedCharacters(prev => {
+    setSelectedCharacters((prev) => {
       if (prev.includes(char)) {
-        return prev.filter(c => c !== char);
+        return prev.filter((c) => c !== char);
       }
       if (prev.length < 3) {
         return [...prev, char];
@@ -156,7 +164,9 @@ export function CommunicationStyleControl({
   };
 
   // Use presets
-  const usePreset = (preset: "shark_ladies" | "mr_wonderful" | "10x" | "straight_line") => {
+  const usePreset = (
+    preset: "shark_ladies" | "mr_wonderful" | "10x" | "straight_line",
+  ) => {
     switch (preset) {
       case "shark_ladies":
         straightLineEngine.useSharkTankLadiesMix();
@@ -220,7 +230,9 @@ export function CommunicationStyleControl({
             </div>
             <Slider
               value={[style.humor]}
-              onValueChange={([v]) => setStyle(prev => ({ ...prev, humor: v }))}
+              onValueChange={([v]) =>
+                setStyle((prev) => ({ ...prev, humor: v }))
+              }
               max={100}
               step={5}
               className="cursor-pointer"
@@ -242,7 +254,9 @@ export function CommunicationStyleControl({
             </div>
             <Slider
               value={[style.directness]}
-              onValueChange={([v]) => setStyle(prev => ({ ...prev, directness: v }))}
+              onValueChange={([v]) =>
+                setStyle((prev) => ({ ...prev, directness: v }))
+              }
               max={100}
               step={5}
               className="cursor-pointer"
@@ -264,7 +278,9 @@ export function CommunicationStyleControl({
             </div>
             <Slider
               value={[style.warmth]}
-              onValueChange={([v]) => setStyle(prev => ({ ...prev, warmth: v }))}
+              onValueChange={([v]) =>
+                setStyle((prev) => ({ ...prev, warmth: v }))
+              }
               max={100}
               step={5}
               className="cursor-pointer"
@@ -274,9 +290,7 @@ export function CommunicationStyleControl({
           {/* Energy Slider */}
           <div className="space-y-3">
             <div className="flex justify-between items-center">
-              <Label className="flex items-center gap-2">
-                Calm
-              </Label>
+              <Label className="flex items-center gap-2">Calm</Label>
               <span className="text-sm font-medium">{style.energy}%</span>
               <Label className="flex items-center gap-2">
                 High Energy
@@ -285,7 +299,9 @@ export function CommunicationStyleControl({
             </div>
             <Slider
               value={[style.energy]}
-              onValueChange={([v]) => setStyle(prev => ({ ...prev, energy: v }))}
+              onValueChange={([v]) =>
+                setStyle((prev) => ({ ...prev, energy: v }))
+              }
               max={100}
               step={5}
               className="cursor-pointer"
@@ -295,9 +311,7 @@ export function CommunicationStyleControl({
           {/* Urgency Slider */}
           <div className="space-y-3">
             <div className="flex justify-between items-center">
-              <Label className="flex items-center gap-2">
-                Relaxed
-              </Label>
+              <Label className="flex items-center gap-2">Relaxed</Label>
               <span className="text-sm font-medium">{style.urgency}%</span>
               <Label className="flex items-center gap-2">
                 Urgent
@@ -306,7 +320,9 @@ export function CommunicationStyleControl({
             </div>
             <Slider
               value={[style.urgency]}
-              onValueChange={([v]) => setStyle(prev => ({ ...prev, urgency: v }))}
+              onValueChange={([v]) =>
+                setStyle((prev) => ({ ...prev, urgency: v }))
+              }
               max={100}
               step={5}
               className="cursor-pointer"
@@ -330,7 +346,12 @@ export function CommunicationStyleControl({
           {/* Single Character Select */}
           <div className="space-y-2">
             <Label>Primary Character</Label>
-            <Select value={character} onValueChange={(v) => handleCharacterChange(v as CharacterInfluence)}>
+            <Select
+              value={character}
+              onValueChange={(v) =>
+                handleCharacterChange(v as CharacterInfluence)
+              }
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -340,7 +361,9 @@ export function CommunicationStyleControl({
                     <span className="flex items-center gap-2">
                       <span>{info.emoji}</span>
                       <span>{info.name}</span>
-                      <span className="text-xs text-muted-foreground">— {info.tagline}</span>
+                      <span className="text-xs text-muted-foreground">
+                        — {info.tagline}
+                      </span>
                     </span>
                   </SelectItem>
                 ))}
@@ -357,9 +380,15 @@ export function CommunicationStyleControl({
                   <Tooltip key={id}>
                     <TooltipTrigger asChild>
                       <Badge
-                        variant={selectedCharacters.includes(id as CharacterInfluence) ? "default" : "outline"}
+                        variant={
+                          selectedCharacters.includes(id as CharacterInfluence)
+                            ? "default"
+                            : "outline"
+                        }
                         className="cursor-pointer transition-all hover:scale-105"
-                        onClick={() => toggleCharacterInMix(id as CharacterInfluence)}
+                        onClick={() =>
+                          toggleCharacterInMix(id as CharacterInfluence)
+                        }
                       >
                         {info.emoji} {info.name}
                       </Badge>
@@ -386,16 +415,32 @@ export function CommunicationStyleControl({
           <div className="space-y-2">
             <Label>Quick Presets</Label>
             <div className="flex flex-wrap gap-2">
-              <Button variant="secondary" size="sm" onClick={() => usePreset("shark_ladies")}>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => usePreset("shark_ladies")}
+              >
                 👑 Shark Tank Ladies
               </Button>
-              <Button variant="secondary" size="sm" onClick={() => usePreset("mr_wonderful")}>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => usePreset("mr_wonderful")}
+              >
                 💰 Mr. Wonderful
               </Button>
-              <Button variant="secondary" size="sm" onClick={() => usePreset("10x")}>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => usePreset("10x")}
+              >
                 🔥 10X Energy
               </Button>
-              <Button variant="secondary" size="sm" onClick={() => usePreset("straight_line")}>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => usePreset("straight_line")}
+              >
                 🐺 Straight Line Closer
               </Button>
             </div>
@@ -414,7 +459,10 @@ export function CommunicationStyleControl({
         <CardContent className="space-y-4">
           <div className="flex items-center gap-4">
             <Label>Stage:</Label>
-            <Select value={previewStage} onValueChange={(v) => setPreviewStage(v as StraightLineStage)}>
+            <Select
+              value={previewStage}
+              onValueChange={(v) => setPreviewStage(v as StraightLineStage)}
+            >
               <SelectTrigger className="w-48">
                 <SelectValue />
               </SelectTrigger>
@@ -432,7 +480,9 @@ export function CommunicationStyleControl({
             </Button>
           </div>
           <div className="bg-muted rounded-lg p-4 min-h-[100px]">
-            <p className="text-sm leading-relaxed">{previewMessage || "Click 'Regenerate' to see a preview"}</p>
+            <p className="text-sm leading-relaxed">
+              {previewMessage || "Click 'Regenerate' to see a preview"}
+            </p>
           </div>
           <div className="flex gap-2 text-xs text-muted-foreground">
             <Badge variant="outline">

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const SIGNALHOUSE_API_BASE = process.env.SIGNALHOUSE_API_URL || "https://api.signalhouse.io";
+const SIGNALHOUSE_API_BASE = "https://api.signalhouse.io";
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
     if (!apiKey && !authToken) {
       return NextResponse.json(
         { error: "API key or auth token is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       }
       return NextResponse.json(
         { error: errorMessage, status: response.status },
-        { status: response.status }
+        { status: response.status },
       );
     }
 
@@ -59,7 +59,8 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: unknown) {
     console.error("SignalHouse test connection error:", error);
-    const message = error instanceof Error ? error.message : "Connection test failed";
+    const message =
+      error instanceof Error ? error.message : "Connection test failed";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

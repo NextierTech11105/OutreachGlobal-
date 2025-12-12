@@ -27,7 +27,15 @@ export interface QueuedMessage {
   priority: number;
   scheduledAt?: Date;
   // Human-in-loop statuses: draft -> approved -> pending -> processing -> sent
-  status: "draft" | "approved" | "rejected" | "pending" | "processing" | "sent" | "failed" | "cancelled";
+  status:
+    | "draft"
+    | "approved"
+    | "rejected"
+    | "pending"
+    | "processing"
+    | "sent"
+    | "failed"
+    | "cancelled";
   attempts: number;
   maxAttempts: number;
   createdAt: Date;
@@ -155,7 +163,9 @@ export class SMSQueueService {
   /**
    * Add a message to the queue
    */
-  public addToQueue(message: Omit<QueuedMessage, "id" | "createdAt" | "status" | "attempts">): string {
+  public addToQueue(
+    message: Omit<QueuedMessage, "id" | "createdAt" | "status" | "attempts">,
+  ): string {
     // Check if number is opted out
     if (this.optOutList.has(this.normalizePhone(message.to))) {
       console.log(`Skipping opted-out number: ${message.to}`);
@@ -174,7 +184,9 @@ export class SMSQueueService {
     };
 
     // Insert based on priority (higher priority first)
-    const insertIndex = this.queue.findIndex((m) => m.priority < queuedMessage.priority);
+    const insertIndex = this.queue.findIndex(
+      (m) => m.priority < queuedMessage.priority,
+    );
     if (insertIndex === -1) {
       this.queue.push(queuedMessage);
     } else {
@@ -203,7 +215,7 @@ export class SMSQueueService {
       campaignId?: string;
       priority?: number;
       scheduledAt?: Date;
-    }
+    },
   ): { added: number; skipped: number; queueIds: string[] } {
     const queueIds: string[] = [];
     let skipped = 0;
@@ -224,7 +236,10 @@ export class SMSQueueService {
       };
 
       // Render message with variables
-      const renderedMessage = this.renderTemplate(options.templateMessage, variables);
+      const renderedMessage = this.renderTemplate(
+        options.templateMessage,
+        variables,
+      );
 
       const id = this.addToQueue({
         leadId: lead.leadId,
@@ -285,7 +300,9 @@ export class SMSQueueService {
   public getStats(): QueueStats {
     const now = new Date();
     const draftCount = this.queue.filter((m) => m.status === "draft").length;
-    const approvedCount = this.queue.filter((m) => m.status === "approved").length;
+    const approvedCount = this.queue.filter(
+      (m) => m.status === "approved",
+    ).length;
 
     const stats: QueueStats = {
       // Human-in-loop statuses
@@ -360,14 +377,16 @@ export class SMSQueueService {
     const pendingMessages = this.queue
       .filter(
         (m) =>
-          m.status === "pending" &&
-          (!m.scheduledAt || m.scheduledAt <= now)
+          m.status === "pending" && (!m.scheduledAt || m.scheduledAt <= now),
       )
-      .slice(0, Math.min(
-        this.config.batchSize,
-        this.config.maxPerDay - this.sentToday,
-        this.config.maxPerHour - this.sentThisHour
-      ));
+      .slice(
+        0,
+        Math.min(
+          this.config.batchSize,
+          this.config.maxPerDay - this.sentToday,
+          this.config.maxPerHour - this.sentThisHour,
+        ),
+      );
 
     if (pendingMessages.length === 0) {
       console.log("No pending messages");
@@ -404,7 +423,8 @@ export class SMSQueueService {
             messageId: response.messageId,
           });
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : "Unknown error";
+          const errorMessage =
+            error instanceof Error ? error.message : "Unknown error";
 
           // Check if we should retry
           if (message.attempts < message.maxAttempts) {
@@ -449,7 +469,11 @@ export class SMSQueueService {
       while (true) {
         const stats = this.getStats();
 
-        if (stats.pending > 0 && stats.isWithinSchedule && stats.remainingToday > 0) {
+        if (
+          stats.pending > 0 &&
+          stats.isWithinSchedule &&
+          stats.remainingToday > 0
+        ) {
           await this.processBatch();
           await this.sleep(this.config.delayBetweenBatches);
         } else {
@@ -472,11 +496,13 @@ export class SMSQueueService {
   /**
    * Get messages awaiting human review (draft status)
    */
-  public getPreviewQueue(options: {
-    limit?: number;
-    campaignId?: string;
-    agent?: "gianna" | "sabrina";
-  } = {}): QueuedMessage[] {
+  public getPreviewQueue(
+    options: {
+      limit?: number;
+      campaignId?: string;
+      agent?: "gianna" | "sabrina";
+    } = {},
+  ): QueuedMessage[] {
     let drafts = this.queue.filter((m) => m.status === "draft");
 
     if (options.campaignId) {
@@ -498,10 +524,12 @@ export class SMSQueueService {
   /**
    * Get approved messages ready for deployment
    */
-  public getApprovedQueue(options: {
-    limit?: number;
-    campaignId?: string;
-  } = {}): QueuedMessage[] {
+  public getApprovedQueue(
+    options: {
+      limit?: number;
+      campaignId?: string;
+    } = {},
+  ): QueuedMessage[] {
     let approved = this.queue.filter((m) => m.status === "approved");
 
     if (options.campaignId) {
@@ -516,7 +544,7 @@ export class SMSQueueService {
    */
   public approveMessages(
     messageIds: string[],
-    approvedBy: string
+    approvedBy: string,
   ): { approved: number; notFound: number } {
     let approved = 0;
     let notFound = 0;
@@ -539,10 +567,7 @@ export class SMSQueueService {
   /**
    * Approve all draft messages in a campaign
    */
-  public approveAllInCampaign(
-    campaignId: string,
-    approvedBy: string
-  ): number {
+  public approveAllInCampaign(campaignId: string, approvedBy: string): number {
     let approved = 0;
     this.queue.forEach((m) => {
       if (m.campaignId === campaignId && m.status === "draft") {
@@ -560,14 +585,17 @@ export class SMSQueueService {
    */
   public rejectMessages(
     messageIds: string[],
-    reason?: string
+    reason?: string,
   ): { rejected: number; notFound: number } {
     let rejected = 0;
     let notFound = 0;
 
     for (const id of messageIds) {
       const message = this.queue.find((m) => m.id === id);
-      if (message && (message.status === "draft" || message.status === "approved")) {
+      if (
+        message &&
+        (message.status === "draft" || message.status === "approved")
+      ) {
         message.status = "rejected";
         if (reason) message.errorMessage = reason;
         rejected++;
@@ -585,7 +613,7 @@ export class SMSQueueService {
   public editMessage(
     messageId: string,
     newMessage: string,
-    editedBy: string
+    editedBy: string,
   ): boolean {
     const message = this.queue.find((m) => m.id === messageId);
     if (!message || !["draft", "approved"].includes(message.status)) {
@@ -607,11 +635,13 @@ export class SMSQueueService {
   /**
    * Deploy approved messages (move to pending for processing)
    */
-  public deployApproved(options: {
-    campaignId?: string;
-    limit?: number;
-    scheduledAt?: Date;
-  } = {}): { deployed: number; ids: string[] } {
+  public deployApproved(
+    options: {
+      campaignId?: string;
+      limit?: number;
+      scheduledAt?: Date;
+    } = {},
+  ): { deployed: number; ids: string[] } {
     let toDeply = this.queue.filter((m) => m.status === "approved");
 
     if (options.campaignId) {
@@ -653,7 +683,7 @@ export class SMSQueueService {
       campaignId?: string;
       priority?: number;
       agent?: "gianna" | "sabrina";
-    }
+    },
   ): { added: number; skipped: number; queueIds: string[] } {
     const queueIds: string[] = [];
     let skipped = 0;
@@ -674,7 +704,10 @@ export class SMSQueueService {
       };
 
       // Render message with variables
-      const renderedMessage = this.renderTemplate(options.templateMessage, variables);
+      const renderedMessage = this.renderTemplate(
+        options.templateMessage,
+        variables,
+      );
 
       const id = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -760,7 +793,10 @@ export class SMSQueueService {
     return phone.replace(/\D/g, "").slice(-10);
   }
 
-  private renderTemplate(template: string, variables: Record<string, string>): string {
+  private renderTemplate(
+    template: string,
+    variables: Record<string, string>,
+  ): string {
     let rendered = template;
     Object.entries(variables).forEach(([key, value]) => {
       rendered = rendered.replace(new RegExp(`{{${key}}}`, "gi"), value);
@@ -845,12 +881,21 @@ export class SMSQueueService {
     count: number;
     successRate: number;
   }> {
-    const batches = new Map<string, { sent: number; failed: number; sentAt: Date }>();
+    const batches = new Map<
+      string,
+      { sent: number; failed: number; sentAt: Date }
+    >();
 
     this.queue
-      .filter((m) => m.batchId && (m.status === "sent" || m.status === "failed"))
+      .filter(
+        (m) => m.batchId && (m.status === "sent" || m.status === "failed"),
+      )
       .forEach((m) => {
-        const batch = batches.get(m.batchId!) || { sent: 0, failed: 0, sentAt: m.sentAt || m.createdAt };
+        const batch = batches.get(m.batchId!) || {
+          sent: 0,
+          failed: 0,
+          sentAt: m.sentAt || m.createdAt,
+        };
         if (m.status === "sent") batch.sent++;
         if (m.status === "failed") batch.failed++;
         batches.set(m.batchId!, batch);
@@ -898,7 +943,7 @@ export class SMSQueueService {
       (m) =>
         m.status === "pending" ||
         m.status === "processing" ||
-        m.createdAt > cutoff
+        m.createdAt > cutoff,
     );
 
     return initialLength - this.queue.length;

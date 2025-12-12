@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { S3Client, PutObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  PutObjectCommand,
+  ListObjectsV2Command,
+} from "@aws-sdk/client-s3";
 
 // DigitalOcean Spaces configuration
 const s3Client = new S3Client({
@@ -44,9 +48,9 @@ export async function POST(request: NextRequest) {
       Metadata: {
         "original-name": file.name,
         "uploaded-at": new Date().toISOString(),
-        "source": source,
-        "tags": tags,
-        "size": String(file.size),
+        source: source,
+        tags: tags,
+        size: String(file.size),
       },
     });
 
@@ -55,19 +59,23 @@ export async function POST(request: NextRequest) {
     // Parse CSV if it's a CSV file
     let recordCount = 0;
     let headers: string[] = [];
-    let preview: Record<string, string>[] = [];
+    const preview: Record<string, string>[] = [];
 
     if (file.name.endsWith(".csv") || file.type === "text/csv") {
       const content = buffer.toString("utf-8");
       const lines = content.split("\n").filter((line) => line.trim());
 
       if (lines.length > 0) {
-        headers = lines[0].split(",").map((h) => h.trim().replace(/^"|"$/g, ""));
+        headers = lines[0]
+          .split(",")
+          .map((h) => h.trim().replace(/^"|"$/g, ""));
         recordCount = lines.length - 1;
 
         // Get preview (first 5 rows)
         for (let i = 1; i <= Math.min(5, lines.length - 1); i++) {
-          const values = lines[i].split(",").map((v) => v.trim().replace(/^"|"$/g, ""));
+          const values = lines[i]
+            .split(",")
+            .map((v) => v.trim().replace(/^"|"$/g, ""));
           const row: Record<string, string> = {};
           headers.forEach((header, idx) => {
             row[header] = values[idx] || "";
@@ -101,7 +109,7 @@ export async function POST(request: NextRequest) {
     console.error("Upload error:", error);
     return NextResponse.json(
       { error: "Upload failed", details: error.message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -136,7 +144,7 @@ export async function GET(request: NextRequest) {
     console.error("List files error:", error);
     return NextResponse.json(
       { error: "Failed to list files", details: error.message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

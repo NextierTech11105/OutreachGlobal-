@@ -94,7 +94,9 @@ interface UsageMetric {
 }
 
 // Helper function to check API health
-async function checkAPIHealth(endpoint: string): Promise<{ status: "healthy" | "degraded" | "down"; latency: number }> {
+async function checkAPIHealth(
+  endpoint: string,
+): Promise<{ status: "healthy" | "degraded" | "down"; latency: number }> {
   const start = Date.now();
   try {
     const res = await fetch(endpoint, { method: "HEAD" });
@@ -138,12 +140,48 @@ export default function APIMonitorPage() {
 
       // Define endpoints to check
       const endpointConfigs = [
-        { id: "1", name: "Skip Trace - Individual", endpoint: "/api/realestate/skip-trace", method: "POST" as const, category: "skip_trace" as const },
-        { id: "2", name: "SignalHouse - Send SMS", endpoint: "/api/signalhouse", method: "POST" as const, category: "sms" as const },
-        { id: "3", name: "Apollo - Enrich", endpoint: "/api/apollo/test", method: "GET" as const, category: "enrichment" as const },
-        { id: "4", name: "SendGrid - Email", endpoint: "/api/sendgrid/test", method: "GET" as const, category: "email" as const },
-        { id: "5", name: "AI - Generate", endpoint: "/api/ai/suggest-reply", method: "POST" as const, category: "ai" as const },
-        { id: "6", name: "Twilio - Voice", endpoint: "/api/twilio/token", method: "GET" as const, category: "sms" as const },
+        {
+          id: "1",
+          name: "Skip Trace - Individual",
+          endpoint: "/api/realestate/skip-trace",
+          method: "POST" as const,
+          category: "skip_trace" as const,
+        },
+        {
+          id: "2",
+          name: "SignalHouse - Send SMS",
+          endpoint: "/api/signalhouse",
+          method: "POST" as const,
+          category: "sms" as const,
+        },
+        {
+          id: "3",
+          name: "Apollo - Enrich",
+          endpoint: "/api/apollo/test",
+          method: "GET" as const,
+          category: "enrichment" as const,
+        },
+        {
+          id: "4",
+          name: "SendGrid - Email",
+          endpoint: "/api/sendgrid/test",
+          method: "GET" as const,
+          category: "email" as const,
+        },
+        {
+          id: "5",
+          name: "AI - Generate",
+          endpoint: "/api/ai/suggest-reply",
+          method: "POST" as const,
+          category: "ai" as const,
+        },
+        {
+          id: "6",
+          name: "Twilio - Voice",
+          endpoint: "/api/twilio/token",
+          method: "GET" as const,
+          category: "sms" as const,
+        },
       ];
 
       // Check health of each endpoint
@@ -156,10 +194,15 @@ export default function APIMonitorPage() {
             avg_latency_ms: health.latency,
             calls_today: 0,
             calls_last_hour: 0,
-            success_rate: health.status === "healthy" ? 100 : health.status === "degraded" ? 80 : 0,
+            success_rate:
+              health.status === "healthy"
+                ? 100
+                : health.status === "degraded"
+                  ? 80
+                  : 0,
             last_called: new Date().toISOString(),
           };
-        })
+        }),
       );
 
       setEndpoints(healthChecks);
@@ -170,15 +213,17 @@ export default function APIMonitorPage() {
         if (webhookRes.ok) {
           const data = await webhookRes.json();
           if (data.messages && data.messages.length > 0) {
-            setWebhooks(data.messages.map((msg: any, idx: number) => ({
-              id: `wh-${idx}`,
-              event_type: msg.isLead ? "sms.reply" : "sms.received",
-              source: "SignalHouse",
-              status: "success" as const,
-              payload_size: "1.2 KB",
-              received_at: msg.receivedAt || new Date().toISOString(),
-              processed_at: msg.receivedAt || new Date().toISOString(),
-            })));
+            setWebhooks(
+              data.messages.map((msg: any, idx: number) => ({
+                id: `wh-${idx}`,
+                event_type: msg.isLead ? "sms.reply" : "sms.received",
+                source: "SignalHouse",
+                status: "success" as const,
+                payload_size: "1.2 KB",
+                received_at: msg.receivedAt || new Date().toISOString(),
+                processed_at: msg.receivedAt || new Date().toISOString(),
+              })),
+            );
           }
         }
       } catch (err) {
@@ -226,15 +271,23 @@ export default function APIMonitorPage() {
     setTimeout(() => setIsRefreshing(false), 1000);
   };
 
-  const filteredEndpoints = categoryFilter === "all"
-    ? endpoints
-    : endpoints.filter((ep) => ep.category === categoryFilter);
+  const filteredEndpoints =
+    categoryFilter === "all"
+      ? endpoints
+      : endpoints.filter((ep) => ep.category === categoryFilter);
 
-  const totalCallsToday = endpoints.reduce((sum, ep) => sum + ep.calls_today, 0);
-  const avgSuccessRate = endpoints.length > 0
-    ? endpoints.reduce((sum, ep) => sum + ep.success_rate, 0) / endpoints.length
-    : 0;
-  const healthyEndpoints = endpoints.filter((ep) => ep.status === "healthy").length;
+  const totalCallsToday = endpoints.reduce(
+    (sum, ep) => sum + ep.calls_today,
+    0,
+  );
+  const avgSuccessRate =
+    endpoints.length > 0
+      ? endpoints.reduce((sum, ep) => sum + ep.success_rate, 0) /
+        endpoints.length
+      : 0;
+  const healthyEndpoints = endpoints.filter(
+    (ep) => ep.status === "healthy",
+  ).length;
 
   return (
     <div className="flex flex-col min-h-screen p-6">
@@ -264,8 +317,14 @@ export default function APIMonitorPage() {
                 <SelectItem value="ai">AI/GPT</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
+            <Button
+              variant="outline"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+            >
+              <RefreshCw
+                className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`}
+              />
               Refresh
             </Button>
           </div>
@@ -290,7 +349,9 @@ export default function APIMonitorPage() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">API Calls Today</p>
+                  <p className="text-sm text-muted-foreground">
+                    API Calls Today
+                  </p>
                   <p className="text-2xl font-bold">{sf(totalCallsToday)}</p>
                 </div>
                 <Server className="h-8 w-8 text-blue-500" />
@@ -301,8 +362,12 @@ export default function APIMonitorPage() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Avg Success Rate</p>
-                  <p className="text-2xl font-bold text-purple-600">{avgSuccessRate.toFixed(1)}%</p>
+                  <p className="text-sm text-muted-foreground">
+                    Avg Success Rate
+                  </p>
+                  <p className="text-2xl font-bold text-purple-600">
+                    {avgSuccessRate.toFixed(1)}%
+                  </p>
                 </div>
                 <BarChart3 className="h-8 w-8 text-purple-500" />
               </div>
@@ -312,7 +377,9 @@ export default function APIMonitorPage() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Webhooks Today</p>
+                  <p className="text-sm text-muted-foreground">
+                    Webhooks Today
+                  </p>
                   <p className="text-2xl font-bold">{webhooks.length * 47}</p>
                 </div>
                 <Webhook className="h-8 w-8 text-orange-500" />
@@ -376,16 +443,24 @@ export default function APIMonitorPage() {
                         className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
                       >
                         <div className="flex items-center gap-3">
-                          <div className={`w-2 h-2 rounded-full ${statusColors[ep.status]}`} />
+                          <div
+                            className={`w-2 h-2 rounded-full ${statusColors[ep.status]}`}
+                          />
                           {categoryIcons[ep.category]}
                           <div>
                             <p className="text-sm font-medium">{ep.name}</p>
-                            <p className="text-xs text-muted-foreground">{ep.avg_latency_ms}ms avg</p>
+                            <p className="text-xs text-muted-foreground">
+                              {ep.avg_latency_ms}ms avg
+                            </p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm font-medium">{ep.calls_last_hour}/hr</p>
-                          <p className="text-xs text-muted-foreground">{ep.success_rate}%</p>
+                          <p className="text-sm font-medium">
+                            {ep.calls_last_hour}/hr
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {ep.success_rate}%
+                          </p>
                         </div>
                       </div>
                     ))}
@@ -417,12 +492,18 @@ export default function APIMonitorPage() {
                         <div className="flex items-center gap-3">
                           <CheckCircle2 className="h-4 w-4 text-green-500" />
                           <div>
-                            <p className="text-sm font-medium">{wh.event_type}</p>
-                            <p className="text-xs text-muted-foreground">from {wh.source}</p>
+                            <p className="text-sm font-medium">
+                              {wh.event_type}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              from {wh.source}
+                            </p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-xs text-muted-foreground">{wh.payload_size}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {wh.payload_size}
+                          </p>
                           <p className="text-xs text-muted-foreground">
                             {new Date(wh.received_at).toLocaleTimeString()}
                           </p>
@@ -438,7 +519,9 @@ export default function APIMonitorPage() {
             <Card>
               <CardHeader>
                 <CardTitle>API Usage Quotas</CardTitle>
-                <CardDescription>Daily limits and current usage</CardDescription>
+                <CardDescription>
+                  Daily limits and current usage
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
@@ -451,7 +534,15 @@ export default function APIMonitorPage() {
                       <div key={u.api} className="space-y-2">
                         <div className="flex justify-between text-sm">
                           <span className="font-medium truncate">{u.api}</span>
-                          <span className={isCritical ? "text-red-500" : isWarning ? "text-yellow-500" : ""}>
+                          <span
+                            className={
+                              isCritical
+                                ? "text-red-500"
+                                : isWarning
+                                  ? "text-yellow-500"
+                                  : ""
+                            }
+                          >
                             {percent.toFixed(0)}%
                           </span>
                         </div>
@@ -495,7 +586,9 @@ export default function APIMonitorPage() {
                             {categoryIcons[ep.category]}
                             <div>
                               <p className="font-medium">{ep.name}</p>
-                              <code className="text-xs text-muted-foreground">{ep.endpoint}</code>
+                              <code className="text-xs text-muted-foreground">
+                                {ep.endpoint}
+                              </code>
                             </div>
                           </div>
                         </TableCell>
@@ -504,7 +597,9 @@ export default function APIMonitorPage() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <div className={`w-2 h-2 rounded-full ${statusColors[ep.status]}`} />
+                            <div
+                              className={`w-2 h-2 rounded-full ${statusColors[ep.status]}`}
+                            />
                             <span className="capitalize">{ep.status}</span>
                             {ep.last_error && (
                               <TooltipProvider>
@@ -521,7 +616,11 @@ export default function APIMonitorPage() {
                           </div>
                         </TableCell>
                         <TableCell className="text-right">
-                          <span className={ep.avg_latency_ms > 1000 ? "text-yellow-500" : ""}>
+                          <span
+                            className={
+                              ep.avg_latency_ms > 1000 ? "text-yellow-500" : ""
+                            }
+                          >
                             {ep.avg_latency_ms}ms
                           </span>
                         </TableCell>
@@ -534,8 +633,8 @@ export default function APIMonitorPage() {
                               ep.success_rate >= 95
                                 ? "text-green-500"
                                 : ep.success_rate >= 85
-                                ? "text-yellow-500"
-                                : "text-red-500"
+                                  ? "text-yellow-500"
+                                  : "text-red-500"
                             }
                           >
                             {ep.success_rate.toFixed(1)}%
@@ -590,7 +689,9 @@ export default function APIMonitorPage() {
                             <span className="capitalize">{wh.status}</span>
                           </div>
                         </TableCell>
-                        <TableCell className="text-muted-foreground">{wh.payload_size}</TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {wh.payload_size}
+                        </TableCell>
                         <TableCell className="text-sm">
                           {new Date(wh.received_at).toLocaleTimeString()}
                         </TableCell>
@@ -616,23 +717,38 @@ export default function APIMonitorPage() {
                 const isCritical = percent > 90;
 
                 return (
-                  <Card key={u.api} className={isCritical ? "border-red-500" : isWarning ? "border-yellow-500" : ""}>
+                  <Card
+                    key={u.api}
+                    className={
+                      isCritical
+                        ? "border-red-500"
+                        : isWarning
+                          ? "border-yellow-500"
+                          : ""
+                    }
+                  >
                     <CardHeader className="pb-2">
                       <CardTitle className="text-lg">{u.api}</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="flex justify-between items-end">
                         <div>
-                          <p className="text-3xl font-bold">{sf(u.used_today)}</p>
+                          <p className="text-3xl font-bold">
+                            {sf(u.used_today)}
+                          </p>
                           <p className="text-sm text-muted-foreground">
                             of {sf(u.daily_limit)} daily limit
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className={`text-2xl font-bold ${isCritical ? "text-red-500" : isWarning ? "text-yellow-500" : "text-green-500"}`}>
+                          <p
+                            className={`text-2xl font-bold ${isCritical ? "text-red-500" : isWarning ? "text-yellow-500" : "text-green-500"}`}
+                          >
                             {sf(u.remaining)}
                           </p>
-                          <p className="text-sm text-muted-foreground">remaining</p>
+                          <p className="text-sm text-muted-foreground">
+                            remaining
+                          </p>
                         </div>
                       </div>
                       <Progress

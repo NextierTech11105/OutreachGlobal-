@@ -63,12 +63,13 @@ export default function SignalHouseAdminPage() {
 
       if (statusData.configured) {
         // Check setup status and get counts
-        const [brandsRes, campaignsRes, numbersRes, analyticsRes] = await Promise.all([
-          fetch("/api/signalhouse/brand"),
-          fetch("/api/signalhouse/campaign"),
-          fetch("/api/signalhouse/numbers"),
-          fetch("/api/signalhouse/analytics?type=wallet"),
-        ]);
+        const [brandsRes, campaignsRes, numbersRes, analyticsRes] =
+          await Promise.all([
+            fetch("/api/signalhouse/brand"),
+            fetch("/api/signalhouse/campaign"),
+            fetch("/api/signalhouse/numbers"),
+            fetch("/api/signalhouse/analytics?type=wallet"),
+          ]);
 
         const [brands, campaigns, numbers, analytics] = await Promise.all([
           brandsRes.json(),
@@ -85,7 +86,9 @@ export default function SignalHouseAdminPage() {
           brands: brandCount,
           campaigns: campaignCount,
           numbers: numberCount,
-          balance: analytics.wallet?.balance ? `$${analytics.wallet.balance}` : "$0.00",
+          balance: analytics.wallet?.balance
+            ? `$${analytics.wallet.balance}`
+            : "$0.00",
         });
 
         setHasSetup(brandCount > 0 && campaignCount > 0 && numberCount > 0);
@@ -183,7 +186,8 @@ export default function SignalHouseAdminPage() {
             SignalHouse SMS
           </h1>
           <p className="text-muted-foreground mt-1">
-            Complete SMS platform with 10DLC compliance, phone numbers, and messaging
+            Complete SMS platform with 10DLC compliance, phone numbers, and
+            messaging
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -256,13 +260,25 @@ export default function SignalHouseAdminPage() {
       )}
 
       {/* Main Tabs */}
-      <Tabs defaultValue={!isConfigured ? "config" : hasSetup ? "dashboard" : "wizard"}>
+      <Tabs
+        defaultValue={
+          !isConfigured ? "config" : hasSetup ? "dashboard" : "wizard"
+        }
+      >
         <TabsList className="mb-6">
-          <TabsTrigger value="dashboard" className="gap-2" disabled={!isConfigured}>
+          <TabsTrigger
+            value="dashboard"
+            className="gap-2"
+            disabled={!isConfigured}
+          >
             <LayoutDashboard className="h-4 w-4" />
             Dashboard
           </TabsTrigger>
-          <TabsTrigger value="wizard" className="gap-2" disabled={!isConfigured}>
+          <TabsTrigger
+            value="wizard"
+            className="gap-2"
+            disabled={!isConfigured}
+          >
             <Wand2 className="h-4 w-4" />
             Setup Wizard
           </TabsTrigger>
@@ -305,9 +321,13 @@ export default function SignalHouseAdminPage() {
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm text-muted-foreground mb-4">
-                      You can run the setup wizard again to add more brands, campaigns, or phone numbers.
+                      You can run the setup wizard again to add more brands,
+                      campaigns, or phone numbers.
                     </p>
-                    <Button variant="outline" onClick={() => setHasSetup(false)}>
+                    <Button
+                      variant="outline"
+                      onClick={() => setHasSetup(false)}
+                    >
                       <Wand2 className="h-4 w-4 mr-2" />
                       Run Setup Wizard Again
                     </Button>
@@ -360,7 +380,9 @@ export default function SignalHouseAdminPage() {
                   <Alert className="bg-green-500/10 border-green-500/20">
                     <CheckCircle className="h-4 w-4 text-green-500" />
                     <AlertTitle className="text-green-500">Success</AlertTitle>
-                    <AlertDescription className="text-green-400">{successMessage}</AlertDescription>
+                    <AlertDescription className="text-green-400">
+                      {successMessage}
+                    </AlertDescription>
                   </Alert>
                 )}
 
@@ -397,7 +419,10 @@ export default function SignalHouseAdminPage() {
                     )}
                     Test Connection
                   </Button>
-                  <Button onClick={saveSettings} disabled={isSaving || !apiKey.trim()}>
+                  <Button
+                    onClick={saveSettings}
+                    disabled={isSaving || !apiKey.trim()}
+                  >
                     {isSaving ? (
                       <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
                     ) : (
@@ -457,7 +482,8 @@ export default function SignalHouseAdminPage() {
                     <div>
                       <p className="font-medium">Run Setup Wizard</p>
                       <p className="text-sm text-muted-foreground">
-                        Register your brand, create a campaign, and get a phone number
+                        Register your brand, create a campaign, and get a phone
+                        number
                       </p>
                     </div>
                   </div>
@@ -501,7 +527,7 @@ export default function SignalHouseAdminPage() {
             </CardHeader>
             <CardContent>
               <pre className="bg-zinc-900 p-4 rounded-lg text-sm overflow-x-auto">
-{`SIGNALHOUSE_API_KEY=your-api-key
+                {`SIGNALHOUSE_API_KEY=your-api-key
 SIGNALHOUSE_AUTH_TOKEN=your-auth-token`}
               </pre>
             </CardContent>

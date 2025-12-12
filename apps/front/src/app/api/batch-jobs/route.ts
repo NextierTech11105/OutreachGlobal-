@@ -8,7 +8,13 @@ import { smsQueueService } from "@/lib/services/sms-queue-service";
 interface BatchJob {
   id: string;
   type: "property_detail" | "skip_trace" | "sms_campaign" | "email_campaign";
-  status: "pending" | "processing" | "completed" | "failed" | "paused" | "scheduled";
+  status:
+    | "pending"
+    | "processing"
+    | "completed"
+    | "failed"
+    | "paused"
+    | "scheduled";
   createdAt: string;
   startedAt?: string;
   completedAt?: string;
@@ -98,14 +104,26 @@ export async function POST(request: NextRequest) {
     // === CREATE NEW JOB ===
     if (action === "create" && propertyIds && Array.isArray(propertyIds)) {
       if (remaining <= 0 && !scheduledFor) {
-        return NextResponse.json({
-          error: "Daily limit reached (2,000). Schedule for tomorrow or wait.",
-          dailyUsage: { date: today, used: usage.used, limit: DAILY_LIMIT, remaining: 0 },
-        }, { status: 429 });
+        return NextResponse.json(
+          {
+            error:
+              "Daily limit reached (2,000). Schedule for tomorrow or wait.",
+            dailyUsage: {
+              date: today,
+              used: usage.used,
+              limit: DAILY_LIMIT,
+              remaining: 0,
+            },
+          },
+          { status: 429 },
+        );
       }
 
       const newJobId = `batch-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      const totalToProcess = Math.min(propertyIds.length, scheduledFor ? propertyIds.length : remaining);
+      const totalToProcess = Math.min(
+        propertyIds.length,
+        scheduledFor ? propertyIds.length : remaining,
+      );
       const totalBatches = Math.ceil(totalToProcess / BATCH_SIZE);
 
       const job: BatchJob = {
@@ -158,10 +176,14 @@ export async function POST(request: NextRequest) {
         }, delay);
 
         scheduledJobs.set(newJobId, timeout);
-        console.log(`[Batch Jobs] Scheduled job ${newJobId} for ${scheduledFor} (${Math.round(delay / 60000)} min from now)`);
+        console.log(
+          `[Batch Jobs] Scheduled job ${newJobId} for ${scheduledFor} (${Math.round(delay / 60000)} min from now)`,
+        );
       }
 
-      console.log(`[Batch Jobs] Created job ${newJobId}: ${totalToProcess} properties in ${totalBatches} batches`);
+      console.log(
+        `[Batch Jobs] Created job ${newJobId}: ${totalToProcess} properties in ${totalBatches} batches`,
+      );
 
       return NextResponse.json({
         success: true,
@@ -189,7 +211,10 @@ export async function POST(request: NextRequest) {
       }
 
       if (job.status === "processing") {
-        return NextResponse.json({ error: "Job already processing" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Job already processing" },
+          { status: 400 },
+        );
       }
 
       job.status = "processing";
@@ -222,7 +247,10 @@ export async function POST(request: NextRequest) {
       job.status = "paused";
       batchJobs.set(jobId, job);
 
-      return NextResponse.json({ success: true, job: { id: job.id, status: job.status } });
+      return NextResponse.json({
+        success: true,
+        job: { id: job.id, status: job.status },
+      });
     }
 
     // === CANCEL JOB ===
@@ -236,13 +264,22 @@ export async function POST(request: NextRequest) {
       job.completedAt = new Date().toISOString();
       batchJobs.set(jobId, job);
 
-      return NextResponse.json({ success: true, job: { id: job.id, status: job.status } });
+      return NextResponse.json({
+        success: true,
+        job: { id: job.id, status: job.status },
+      });
     }
 
-    return NextResponse.json({ error: "Invalid action or missing parameters" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid action or missing parameters" },
+      { status: 400 },
+    );
   } catch (error) {
     console.error("[Batch Jobs] Error:", error);
-    return NextResponse.json({ error: "Batch job operation failed" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Batch job operation failed" },
+      { status: 500 },
+    );
   }
 }
 
@@ -257,7 +294,14 @@ async function processNextBatch(job: BatchJob): Promise<{
 }> {
   const { propertyIds, batchSize } = job.config;
   if (!propertyIds) {
-    return { batchNumber: 0, processed: 0, successful: 0, failed: 0, withPhones: 0, smsQueued: 0 };
+    return {
+      batchNumber: 0,
+      processed: 0,
+      successful: 0,
+      failed: 0,
+      withPhones: 0,
+      smsQueued: 0,
+    };
   }
 
   const startIdx = job.progress.currentBatch * batchSize;
@@ -267,10 +311,19 @@ async function processNextBatch(job: BatchJob): Promise<{
   if (batchIds.length === 0) {
     job.status = "completed";
     job.completedAt = new Date().toISOString();
-    return { batchNumber: job.progress.currentBatch, processed: 0, successful: 0, failed: 0, withPhones: 0, smsQueued: 0 };
+    return {
+      batchNumber: job.progress.currentBatch,
+      processed: 0,
+      successful: 0,
+      failed: 0,
+      withPhones: 0,
+      smsQueued: 0,
+    };
   }
 
-  console.log(`[Batch Jobs] Processing batch ${job.progress.currentBatch + 1}/${job.progress.totalBatches}: ${batchIds.length} properties`);
+  console.log(
+    `[Batch Jobs] Processing batch ${job.progress.currentBatch + 1}/${job.progress.totalBatches}: ${batchIds.length} properties`,
+  );
 
   let successful = 0;
   let failed = 0;
@@ -284,11 +337,14 @@ async function processNextBatch(job: BatchJob): Promise<{
 
   // Call the skip-trace endpoint for batch processing
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/skip-trace`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ids: batchIds }),
-    });
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/skip-trace`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: batchIds }),
+      },
+    );
 
     const data = await response.json();
 
@@ -296,7 +352,8 @@ async function processNextBatch(job: BatchJob): Promise<{
       for (const result of data.results) {
         if (result.success) {
           successful++;
-          const phones = result.phones?.map((p: { number: string }) => p.number) || [];
+          const phones =
+            result.phones?.map((p: { number: string }) => p.number) || [];
 
           job.results?.push({
             id: result.id || result.input?.propertyId,
@@ -308,16 +365,24 @@ async function processNextBatch(job: BatchJob): Promise<{
           // Collect leads with mobile phones for SMS queue
           if (phones.length > 0) {
             withPhones++;
-            const mobilePhone = result.phones?.find(
-              (p: { type?: string }) => p.type?.toLowerCase() === "mobile" || p.type?.toLowerCase() === "cell"
-            ) || result.phones?.[0];
+            const mobilePhone =
+              result.phones?.find(
+                (p: { type?: string }) =>
+                  p.type?.toLowerCase() === "mobile" ||
+                  p.type?.toLowerCase() === "cell",
+              ) || result.phones?.[0];
 
             if (mobilePhone?.number) {
               leadsWithPhones.push({
-                leadId: result.id || result.input?.propertyId || `lead_${Date.now()}`,
+                leadId:
+                  result.id || result.input?.propertyId || `lead_${Date.now()}`,
                 phone: mobilePhone.number,
-                firstName: result.firstName || result.ownerName?.split(" ")[0] || "",
-                lastName: result.lastName || result.ownerName?.split(" ").slice(1).join(" ") || "",
+                firstName:
+                  result.firstName || result.ownerName?.split(" ")[0] || "",
+                lastName:
+                  result.lastName ||
+                  result.ownerName?.split(" ").slice(1).join(" ") ||
+                  "",
               });
             }
           }
@@ -334,7 +399,11 @@ async function processNextBatch(job: BatchJob): Promise<{
       // Batch failed entirely
       failed = batchIds.length;
       for (const id of batchIds) {
-        job.results?.push({ id, success: false, error: data.error || "Batch skip trace failed" });
+        job.results?.push({
+          id,
+          success: false,
+          error: data.error || "Batch skip trace failed",
+        });
       }
     }
   } catch (err) {
@@ -346,7 +415,11 @@ async function processNextBatch(job: BatchJob): Promise<{
 
   // Push to SMS draft queue if configured
   let smsQueued = 0;
-  if (job.config.pushToSmsQueue && leadsWithPhones.length > 0 && job.config.smsTemplate) {
+  if (
+    job.config.pushToSmsQueue &&
+    leadsWithPhones.length > 0 &&
+    job.config.smsTemplate
+  ) {
     const smsResult = smsQueueService.addToDraftQueue(leadsWithPhones, {
       templateCategory: "sms_initial",
       templateMessage: job.config.smsTemplate,
@@ -365,7 +438,9 @@ async function processNextBatch(job: BatchJob): Promise<{
     job.smsQueue.skipped += smsResult.skipped;
     job.smsQueue.queueIds.push(...smsResult.queueIds);
 
-    console.log(`[Batch Jobs] Added ${smsResult.added} leads to SMS draft queue (campaign: ${job.config.campaignId})`);
+    console.log(
+      `[Batch Jobs] Added ${smsResult.added} leads to SMS draft queue (campaign: ${job.config.campaignId})`,
+    );
   }
 
   // Update progress
@@ -392,7 +467,9 @@ async function processNextBatch(job: BatchJob): Promise<{
   if (job.progress.currentBatch >= job.progress.totalBatches) {
     job.status = "completed";
     job.completedAt = new Date().toISOString();
-    console.log(`[Batch Jobs] Job ${job.id} completed: ${job.progress.successful}/${job.progress.total} successful, ${job.progress.withPhones} with phones`);
+    console.log(
+      `[Batch Jobs] Job ${job.id} completed: ${job.progress.successful}/${job.progress.total} successful, ${job.progress.withPhones} with phones`,
+    );
   } else {
     job.status = "paused"; // Pause after each batch so admin can continue
   }
@@ -413,7 +490,9 @@ async function runJobBatches(job: BatchJob): Promise<void> {
   job.startedAt = new Date().toISOString();
   batchJobs.set(job.id, job);
 
-  console.log(`[Batch Jobs] Starting scheduled job ${job.id}: ${job.progress.total} items in ${job.progress.totalBatches} batches`);
+  console.log(
+    `[Batch Jobs] Starting scheduled job ${job.id}: ${job.progress.total} items in ${job.progress.totalBatches} batches`,
+  );
 
   while (job.progress.currentBatch < job.progress.totalBatches) {
     // Check daily limit
@@ -431,7 +510,9 @@ async function runJobBatches(job: BatchJob): Promise<void> {
     const result = await processNextBatch(job);
     batchJobs.set(job.id, job);
 
-    console.log(`[Batch Jobs] Batch ${result.batchNumber}/${job.progress.totalBatches}: ${result.successful} success, ${result.withPhones} phones, ${result.smsQueued} SMS queued`);
+    console.log(
+      `[Batch Jobs] Batch ${result.batchNumber}/${job.progress.totalBatches}: ${result.successful} success, ${result.withPhones} phones, ${result.smsQueued} SMS queued`,
+    );
 
     // Small delay between batches to avoid overwhelming the API
     if (job.progress.currentBatch < job.progress.totalBatches) {
@@ -479,7 +560,9 @@ export async function GET(request: NextRequest) {
   }
 
   // Sort by createdAt descending
-  jobs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  jobs.sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
 
   // Limit results
   jobs = jobs.slice(0, limit);

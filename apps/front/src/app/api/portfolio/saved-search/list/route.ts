@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const REALESTATE_API_KEY = process.env.REAL_ESTATE_API_KEY || process.env.REALESTATE_API_KEY || "NEXTIER-2906-74a1-8684-d2f63f473b7b";
-const BASE_URL = "https://api.realestateapi.com/v1/PropertyPortfolio/SavedSearch/List";
+const REALESTATE_API_KEY =
+  process.env.REAL_ESTATE_API_KEY ||
+  process.env.REALESTATE_API_KEY ||
+  "NEXTIER-2906-74a1-8684-d2f63f473b7b";
+const BASE_URL =
+  "https://api.realestateapi.com/v1/PropertyPortfolio/SavedSearch/List";
 
 // List All Saved Searches
 export async function POST(request: NextRequest) {
@@ -9,7 +13,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => ({}));
     const { filter } = body;
 
-    console.log("Listing RealEstateAPI Saved Searches", filter ? `with filter: ${JSON.stringify(filter)}` : "");
+    console.log(
+      "Listing RealEstateAPI Saved Searches",
+      filter ? `with filter: ${JSON.stringify(filter)}` : "",
+    );
 
     const response = await fetch(BASE_URL, {
       method: "POST",
@@ -21,12 +28,19 @@ export async function POST(request: NextRequest) {
     });
 
     const data = await response.json();
-    console.log("RealEstateAPI List response:", response.status, `${data.data?.length || 0} searches found`);
+    console.log(
+      "RealEstateAPI List response:",
+      response.status,
+      `${data.data?.length || 0} searches found`,
+    );
 
     if (!response.ok || data.statusCode !== 200) {
       return NextResponse.json(
-        { error: data.statusMessage || "Failed to list saved searches", details: data },
-        { status: response.status }
+        {
+          error: data.statusMessage || "Failed to list saved searches",
+          details: data,
+        },
+        { status: response.status },
       );
     }
 
@@ -61,7 +75,7 @@ export async function GET() {
     if (!response.ok || data.statusCode !== 200) {
       return NextResponse.json(
         { error: data.statusMessage || "Failed to list saved searches" },
-        { status: response.status }
+        { status: response.status },
       );
     }
 

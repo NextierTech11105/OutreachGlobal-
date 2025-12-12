@@ -54,23 +54,25 @@ export async function POST(request: NextRequest) {
     // === SEND EMAIL NOTIFICATION ===
     if (recipientEmail && SENDGRID_API_KEY) {
       try {
-        const emailResponse = await fetch("https://api.sendgrid.com/v3/mail/send", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${SENDGRID_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            personalizations: [{ to: [{ email: recipientEmail }] }],
-            from: {
-              email: process.env.SENDGRID_FROM_EMAIL || "alerts@nextier.app",
-              name: "NexTier Alerts",
+        const emailResponse = await fetch(
+          "https://api.sendgrid.com/v3/mail/send",
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${SENDGRID_API_KEY}`,
+              "Content-Type": "application/json",
             },
-            subject: `[${priority.toUpperCase()}] ${notificationTitle}`,
-            content: [
-              {
-                type: "text/html",
-                value: `
+            body: JSON.stringify({
+              personalizations: [{ to: [{ email: recipientEmail }] }],
+              from: {
+                email: process.env.SENDGRID_FROM_EMAIL || "alerts@nextier.app",
+                name: "NexTier Alerts",
+              },
+              subject: `[${priority.toUpperCase()}] ${notificationTitle}`,
+              content: [
+                {
+                  type: "text/html",
+                  value: `
                   <div style="font-family: sans-serif; padding: 20px; background: #1a1a2e; color: #eaeaea;">
                     <h2 style="color: ${priority === "high" ? "#ef4444" : priority === "medium" ? "#f59e0b" : "#22c55e"}">
                       ${notificationTitle}
@@ -83,12 +85,15 @@ export async function POST(request: NextRequest) {
                     <p style="color: #666; font-size: 12px;">NexTier Notification System</p>
                   </div>
                 `,
-              },
-            ],
-          }),
-        });
+                },
+              ],
+            }),
+          },
+        );
 
-        results.email = { success: emailResponse.ok || emailResponse.status === 202 };
+        results.email = {
+          success: emailResponse.ok || emailResponse.status === 202,
+        };
         if (!results.email.success) {
           results.email.error = await emailResponse.text();
         }
@@ -109,14 +114,28 @@ export async function POST(request: NextRequest) {
             icon_emoji: priority === "high" ? ":rotating_light:" : ":bell:",
             attachments: [
               {
-                color: priority === "high" ? "danger" : priority === "medium" ? "warning" : "good",
+                color:
+                  priority === "high"
+                    ? "danger"
+                    : priority === "medium"
+                      ? "warning"
+                      : "good",
                 title: notificationTitle,
                 text: notificationBody,
                 fields: [
                   from ? { title: "From", value: from, short: true } : null,
-                  { title: "Priority", value: priority.toUpperCase(), short: true },
+                  {
+                    title: "Priority",
+                    value: priority.toUpperCase(),
+                    short: true,
+                  },
                   transcription
-                    ? { title: "Message", value: transcription.slice(0, 200) + (transcription.length > 200 ? "..." : "") }
+                    ? {
+                        title: "Message",
+                        value:
+                          transcription.slice(0, 200) +
+                          (transcription.length > 200 ? "..." : ""),
+                      }
                     : null,
                 ].filter(Boolean),
                 footer: "NexTier Notification System",
@@ -136,12 +155,20 @@ export async function POST(request: NextRequest) {
     }
 
     // === SEND SMS NOTIFICATION (for high priority only) ===
-    if (recipientPhone && priority === "high" && TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN) {
+    if (
+      recipientPhone &&
+      priority === "high" &&
+      TWILIO_ACCOUNT_SID &&
+      TWILIO_AUTH_TOKEN
+    ) {
       try {
         const formData = new URLSearchParams();
         formData.append("To", recipientPhone);
         formData.append("From", TWILIO_PHONE_NUMBER);
-        formData.append("Body", `[URGENT] ${notificationTitle}\n${from ? `From: ${from}\n` : ""}${notificationBody.slice(0, 140)}`);
+        formData.append(
+          "Body",
+          `[URGENT] ${notificationTitle}\n${from ? `From: ${from}\n` : ""}${notificationBody.slice(0, 140)}`,
+        );
 
         const smsResponse = await fetch(
           `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`,
@@ -152,7 +179,7 @@ export async function POST(request: NextRequest) {
               "Content-Type": "application/x-www-form-urlencoded",
             },
             body: formData.toString(),
-          }
+          },
         );
 
         results.sms = { success: smsResponse.ok };
@@ -173,7 +200,10 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("[Notifications] Error:", error);
-    return NextResponse.json({ error: "Failed to send notification" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to send notification" },
+      { status: 500 },
+    );
   }
 }
 

@@ -255,7 +255,9 @@ export function getProperty(id: string): PropertyBucketObject | undefined {
 }
 
 // Add or update property from search result
-export function addFromSearch(result: PropertySearchResult): PropertyBucketObject {
+export function addFromSearch(
+  result: PropertySearchResult,
+): PropertyBucketObject {
   const bucket = loadBucket();
 
   const existing = bucket.properties.get(result.id);
@@ -311,7 +313,10 @@ export function addFromSearch(result: PropertySearchResult): PropertyBucketObjec
 }
 
 // Update property with full detail payload
-export function updateWithDetail(id: string, detail: Record<string, unknown>): PropertyBucketObject | undefined {
+export function updateWithDetail(
+  id: string,
+  detail: Record<string, unknown>,
+): PropertyBucketObject | undefined {
   const bucket = loadBucket();
   const existing = bucket.properties.get(id);
 
@@ -322,66 +327,95 @@ export function updateWithDetail(id: string, detail: Record<string, unknown>): P
 
   const propInfo = (detail.propertyInfo || detail) as Record<string, unknown>;
   const ownerInfo = (detail.ownerInfo || detail) as Record<string, unknown>;
-  const mortgageInfo = detail.mortgageInfo as Record<string, unknown> | undefined;
+  const mortgageInfo = detail.mortgageInfo as
+    | Record<string, unknown>
+    | undefined;
   const taxInfo = detail.taxInfo as Record<string, unknown> | undefined;
-  const foreclosureInfo = detail.foreclosureInfo as Record<string, unknown> | undefined;
+  const foreclosureInfo = detail.foreclosureInfo as
+    | Record<string, unknown>
+    | undefined;
 
   const updated: PropertyBucketObject = {
     ...existing,
     propertyInfo: {
       ...existing.propertyInfo,
-      propertyType: (propInfo.propertyType as string) || existing.propertyInfo.propertyType,
+      propertyType:
+        (propInfo.propertyType as string) || existing.propertyInfo.propertyType,
       bedrooms: (propInfo.bedrooms as number) || existing.propertyInfo.bedrooms,
-      bathrooms: (propInfo.bathrooms as number) || existing.propertyInfo.bathrooms,
-      squareFeet: (propInfo.squareFeet as number) || existing.propertyInfo.squareFeet,
+      bathrooms:
+        (propInfo.bathrooms as number) || existing.propertyInfo.bathrooms,
+      squareFeet:
+        (propInfo.squareFeet as number) || existing.propertyInfo.squareFeet,
       lotSize: (propInfo.lotSize as number) || existing.propertyInfo.lotSize,
-      yearBuilt: (propInfo.yearBuilt as number) || existing.propertyInfo.yearBuilt,
+      yearBuilt:
+        (propInfo.yearBuilt as number) || existing.propertyInfo.yearBuilt,
       stories: (propInfo.stories as number) || existing.propertyInfo.stories,
       pool: (propInfo.pool as boolean) || existing.propertyInfo.pool,
       garage: (propInfo.garage as number) || existing.propertyInfo.garage,
       zoning: (propInfo.zoning as string) || existing.propertyInfo.zoning,
-      subdivision: (propInfo.subdivision as string) || existing.propertyInfo.subdivision,
+      subdivision:
+        (propInfo.subdivision as string) || existing.propertyInfo.subdivision,
     },
     owner: {
       ...existing.owner,
-      owner1FirstName: (ownerInfo.owner1FirstName as string) || existing.owner.owner1FirstName,
-      owner1LastName: (ownerInfo.owner1LastName as string) || existing.owner.owner1LastName,
-      owner1FullName: (ownerInfo.owner1FullName as string) || existing.owner.owner1FullName,
-      owner2FirstName: (ownerInfo.owner2FirstName as string) || existing.owner.owner2FirstName,
-      owner2LastName: (ownerInfo.owner2LastName as string) || existing.owner.owner2LastName,
-      ownerOccupied: (ownerInfo.ownerOccupied as boolean) ?? existing.owner.ownerOccupied,
-      ownerType: (ownerInfo.ownerType as PropertyOwner["ownerType"]) || existing.owner.ownerType,
-      corporateName: (ownerInfo.corporateName as string) || existing.owner.corporateName,
+      owner1FirstName:
+        (ownerInfo.owner1FirstName as string) || existing.owner.owner1FirstName,
+      owner1LastName:
+        (ownerInfo.owner1LastName as string) || existing.owner.owner1LastName,
+      owner1FullName:
+        (ownerInfo.owner1FullName as string) || existing.owner.owner1FullName,
+      owner2FirstName:
+        (ownerInfo.owner2FirstName as string) || existing.owner.owner2FirstName,
+      owner2LastName:
+        (ownerInfo.owner2LastName as string) || existing.owner.owner2LastName,
+      ownerOccupied:
+        (ownerInfo.ownerOccupied as boolean) ?? existing.owner.ownerOccupied,
+      ownerType:
+        (ownerInfo.ownerType as PropertyOwner["ownerType"]) ||
+        existing.owner.ownerType,
+      corporateName:
+        (ownerInfo.corporateName as string) || existing.owner.corporateName,
     },
-    mortgage: mortgageInfo ? {
-      lender: mortgageInfo.lender as string,
-      loanAmount: mortgageInfo.loanAmount as number,
-      loanType: mortgageInfo.loanType as string,
-      interestRate: mortgageInfo.interestRate as number,
-      loanDate: mortgageInfo.loanDate as string,
-      maturityDate: mortgageInfo.maturityDate as string,
-    } : existing.mortgage,
-    tax: taxInfo ? {
-      taxYear: taxInfo.taxYear as number,
-      taxAmount: taxInfo.taxAmount as number,
-      taxAssessedValue: taxInfo.taxAssessedValue as number,
-      taxMarketValue: taxInfo.taxMarketValue as number,
-      taxDelinquent: taxInfo.taxDelinquent as boolean,
-      taxLienAmount: taxInfo.taxLienAmount as number,
-    } : existing.tax,
-    foreclosure: foreclosureInfo ? {
-      status: foreclosureInfo.foreclosureStatus as PropertyForeclosure["status"],
-      filingDate: foreclosureInfo.foreclosureDate as string,
-      defaultAmount: foreclosureInfo.defaultAmount as number,
-      auctionDate: foreclosureInfo.auctionDate as string,
-    } : existing.foreclosure,
+    mortgage: mortgageInfo
+      ? {
+          lender: mortgageInfo.lender as string,
+          loanAmount: mortgageInfo.loanAmount as number,
+          loanType: mortgageInfo.loanType as string,
+          interestRate: mortgageInfo.interestRate as number,
+          loanDate: mortgageInfo.loanDate as string,
+          maturityDate: mortgageInfo.maturityDate as string,
+        }
+      : existing.mortgage,
+    tax: taxInfo
+      ? {
+          taxYear: taxInfo.taxYear as number,
+          taxAmount: taxInfo.taxAmount as number,
+          taxAssessedValue: taxInfo.taxAssessedValue as number,
+          taxMarketValue: taxInfo.taxMarketValue as number,
+          taxDelinquent: taxInfo.taxDelinquent as boolean,
+          taxLienAmount: taxInfo.taxLienAmount as number,
+        }
+      : existing.tax,
+    foreclosure: foreclosureInfo
+      ? {
+          status:
+            foreclosureInfo.foreclosureStatus as PropertyForeclosure["status"],
+          filingDate: foreclosureInfo.foreclosureDate as string,
+          defaultAmount: foreclosureInfo.defaultAmount as number,
+          auctionDate: foreclosureInfo.auctionDate as string,
+        }
+      : existing.foreclosure,
     valuation: {
       ...existing.valuation,
-      estimatedValue: (detail.estimatedValue as number) || existing.valuation.estimatedValue,
-      lastSalePrice: (detail.lastSalePrice as number) || existing.valuation.lastSalePrice,
-      lastSaleDate: (detail.lastSaleDate as string) || existing.valuation.lastSaleDate,
+      estimatedValue:
+        (detail.estimatedValue as number) || existing.valuation.estimatedValue,
+      lastSalePrice:
+        (detail.lastSalePrice as number) || existing.valuation.lastSalePrice,
+      lastSaleDate:
+        (detail.lastSaleDate as string) || existing.valuation.lastSaleDate,
       equity: (detail.equity as number) || existing.valuation.equity,
-      equityPercent: (detail.equityPercent as number) || existing.valuation.equityPercent,
+      equityPercent:
+        (detail.equityPercent as number) || existing.valuation.equityPercent,
     },
     status: {
       ...existing.status,
@@ -398,7 +432,10 @@ export function updateWithDetail(id: string, detail: Record<string, unknown>): P
 }
 
 // Update property with skip trace results
-export function updateWithSkipTrace(id: string, skipTraceResult: SkipTraceContact): PropertyBucketObject | undefined {
+export function updateWithSkipTrace(
+  id: string,
+  skipTraceResult: SkipTraceContact,
+): PropertyBucketObject | undefined {
   const bucket = loadBucket();
   const existing = bucket.properties.get(id);
 
@@ -407,7 +444,8 @@ export function updateWithSkipTrace(id: string, skipTraceResult: SkipTraceContac
     return undefined;
   }
 
-  const hasContact = skipTraceResult.phones.length > 0 || skipTraceResult.emails.length > 0;
+  const hasContact =
+    skipTraceResult.phones.length > 0 || skipTraceResult.emails.length > 0;
 
   const updated: PropertyBucketObject = {
     ...existing,
@@ -417,7 +455,8 @@ export function updateWithSkipTrace(id: string, skipTraceResult: SkipTraceContac
     },
     owner: {
       ...existing.owner,
-      owner1FullName: skipTraceResult.ownerName || existing.owner.owner1FullName,
+      owner1FullName:
+        skipTraceResult.ownerName || existing.owner.owner1FullName,
     },
     status: {
       ...existing.status,
@@ -437,14 +476,16 @@ export function updateWithSkipTrace(id: string, skipTraceResult: SkipTraceContac
 // Get all properties that are lead ready (have contact info)
 export function getLeadReadyProperties(): PropertyBucketObject[] {
   const bucket = loadBucket();
-  return Array.from(bucket.properties.values()).filter(p => p.status.isLeadReady);
+  return Array.from(bucket.properties.values()).filter(
+    (p) => p.status.isLeadReady,
+  );
 }
 
 // Get all properties with phones (for SMS campaigns)
 export function getPropertiesWithPhones(): PropertyBucketObject[] {
   const bucket = loadBucket();
   return Array.from(bucket.properties.values()).filter(
-    p => p.skipTrace?.phones && p.skipTrace.phones.length > 0
+    (p) => p.skipTrace?.phones && p.skipTrace.phones.length > 0,
   );
 }
 
@@ -452,7 +493,7 @@ export function getPropertiesWithPhones(): PropertyBucketObject[] {
 export function getPropertiesWithEmails(): PropertyBucketObject[] {
   const bucket = loadBucket();
   return Array.from(bucket.properties.values()).filter(
-    p => p.skipTrace?.emails && p.skipTrace.emails.length > 0
+    (p) => p.skipTrace?.emails && p.skipTrace.emails.length > 0,
   );
 }
 
@@ -465,11 +506,15 @@ export function clearBucket(): void {
 // Export bucket as JSON
 export function exportBucket(): string {
   const bucket = loadBucket();
-  return JSON.stringify({
-    properties: Array.from(bucket.properties.values()),
-    exportedAt: new Date().toISOString(),
-    count: bucket.properties.size,
-  }, null, 2);
+  return JSON.stringify(
+    {
+      properties: Array.from(bucket.properties.values()),
+      exportedAt: new Date().toISOString(),
+      count: bucket.properties.size,
+    },
+    null,
+    2,
+  );
 }
 
 // Get bucket stats
@@ -486,10 +531,14 @@ export function getBucketStats(): {
 
   return {
     total: properties.length,
-    withDetail: properties.filter(p => p.status.hasDetail).length,
-    withSkipTrace: properties.filter(p => p.status.hasSkipTrace).length,
-    leadReady: properties.filter(p => p.status.isLeadReady).length,
-    withPhones: properties.filter(p => p.skipTrace?.phones && p.skipTrace.phones.length > 0).length,
-    withEmails: properties.filter(p => p.skipTrace?.emails && p.skipTrace.emails.length > 0).length,
+    withDetail: properties.filter((p) => p.status.hasDetail).length,
+    withSkipTrace: properties.filter((p) => p.status.hasSkipTrace).length,
+    leadReady: properties.filter((p) => p.status.isLeadReady).length,
+    withPhones: properties.filter(
+      (p) => p.skipTrace?.phones && p.skipTrace.phones.length > 0,
+    ).length,
+    withEmails: properties.filter(
+      (p) => p.skipTrace?.emails && p.skipTrace.emails.length > 0,
+    ).length,
   };
 }

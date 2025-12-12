@@ -13,7 +13,9 @@ const SIGNALHOUSE_AUTH_TOKEN = process.env.SIGNALHOUSE_AUTH_TOKEN || ""; // auth
 const SIGNALHOUSE_DEFAULT_FROM = process.env.SIGNALHOUSE_DEFAULT_NUMBER || "";
 
 // Webhook URL for delivery status callbacks
-const WEBHOOK_BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://monkfish-app-mb7h3.ondigitalocean.app";
+const WEBHOOK_BASE_URL =
+  process.env.NEXT_PUBLIC_APP_URL ||
+  "https://monkfish-app-mb7h3.ondigitalocean.app";
 
 interface BulkSmsRequest {
   to: string[]; // Array of E.164 phone numbers
@@ -53,7 +55,10 @@ function checkRateLimit(count: number): { allowed: boolean; reason?: string } {
 
   // Check daily limit
   if (dailySendCount + count > DAILY_LIMIT) {
-    return { allowed: false, reason: `Daily limit of ${DAILY_LIMIT} reached. Resets at midnight.` };
+    return {
+      allowed: false,
+      reason: `Daily limit of ${DAILY_LIMIT} reached. Resets at midnight.`,
+    };
   }
 
   // Clean old minute entries
@@ -65,7 +70,10 @@ function checkRateLimit(count: number): { allowed: boolean; reason?: string } {
   // Check rate limit
   const currentRate = sendLog.reduce((sum, entry) => sum + entry.count, 0);
   if (currentRate + count > RATE_LIMIT_PER_MINUTE) {
-    return { allowed: false, reason: `Rate limit of ${RATE_LIMIT_PER_MINUTE}/min exceeded. Wait 1 minute.` };
+    return {
+      allowed: false,
+      reason: `Rate limit of ${RATE_LIMIT_PER_MINUTE}/min exceeded. Wait 1 minute.`,
+    };
   }
 
   sendLog.push({ timestamp: now, count });
@@ -77,47 +85,76 @@ function checkRateLimit(count: number): { allowed: boolean; reason?: string } {
 export async function POST(request: NextRequest) {
   try {
     const body: BulkSmsRequest = await request.json();
-    const { to, message, from, mediaUrl, campaignId, shortLink = false, statusCallbackUrl } = body;
+    const {
+      to,
+      message,
+      from,
+      mediaUrl,
+      campaignId,
+      shortLink = false,
+      statusCallbackUrl,
+    } = body;
 
     // Validation
     if (!SIGNALHOUSE_API_KEY || !SIGNALHOUSE_AUTH_TOKEN) {
-      return NextResponse.json({
-        error: "SignalHouse not configured. Set SIGNALHOUSE_API_KEY and SIGNALHOUSE_AUTH_TOKEN.",
-        configured: false,
-      }, { status: 503 });
+      return NextResponse.json(
+        {
+          error:
+            "SignalHouse not configured. Set SIGNALHOUSE_API_KEY and SIGNALHOUSE_AUTH_TOKEN.",
+          configured: false,
+        },
+        { status: 503 },
+      );
     }
 
     if (!to || !Array.isArray(to) || to.length === 0) {
-      return NextResponse.json({
-        error: "to array is required with at least one phone number",
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: "to array is required with at least one phone number",
+        },
+        { status: 400 },
+      );
     }
 
     if (!message || message.trim().length === 0) {
-      return NextResponse.json({
-        error: "message is required",
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: "message is required",
+        },
+        { status: 400 },
+      );
     }
 
     // Validate E.164 format (+1XXXXXXXXXX for US)
-    const validNumbers = to.filter((num) => /^\+?1?\d{10,11}$/.test(num.replace(/\D/g, "")));
-    const invalidNumbers = to.filter((num) => !/^\+?1?\d{10,11}$/.test(num.replace(/\D/g, "")));
+    const validNumbers = to.filter((num) =>
+      /^\+?1?\d{10,11}$/.test(num.replace(/\D/g, "")),
+    );
+    const invalidNumbers = to.filter(
+      (num) => !/^\+?1?\d{10,11}$/.test(num.replace(/\D/g, "")),
+    );
 
     if (validNumbers.length === 0) {
-      return NextResponse.json({
-        error: "No valid phone numbers provided. Use E.164 format: +1XXXXXXXXXX",
-        invalidNumbers,
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error:
+            "No valid phone numbers provided. Use E.164 format: +1XXXXXXXXXX",
+          invalidNumbers,
+        },
+        { status: 400 },
+      );
     }
 
     // Check rate limit
     const rateCheck = checkRateLimit(validNumbers.length);
     if (!rateCheck.allowed) {
-      return NextResponse.json({
-        error: rateCheck.reason,
-        dailyUsed: dailySendCount,
-        dailyLimit: DAILY_LIMIT,
-      }, { status: 429 });
+      return NextResponse.json(
+        {
+          error: rateCheck.reason,
+          dailyUsed: dailySendCount,
+          dailyLimit: DAILY_LIMIT,
+        },
+        { status: 429 },
+      );
     }
 
     // Ensure compliance message
@@ -126,20 +163,28 @@ export async function POST(request: NextRequest) {
       : `${message}\n\nReply STOP to opt out.`;
 
     const fromNumber = from || SIGNALHOUSE_DEFAULT_FROM;
-    const callbackUrl = statusCallbackUrl || `${WEBHOOK_BASE_URL}/api/webhook/signalhouse`;
+    const callbackUrl =
+      statusCallbackUrl || `${WEBHOOK_BASE_URL}/api/webhook/signalhouse`;
 
-    console.log(`[SignalHouse Bulk] Sending ${validNumbers.length} messages from ${fromNumber}...`);
+    console.log(
+      `[SignalHouse Bulk] Sending ${validNumbers.length} messages from ${fromNumber}...`,
+    );
 
     // SignalHouse API headers (from their curl example)
     const headers: Record<string, string> = {
-      "accept": "application/json",
-      "apiKey": SIGNALHOUSE_API_KEY,
-      "authToken": SIGNALHOUSE_AUTH_TOKEN,
+      accept: "application/json",
+      apiKey: SIGNALHOUSE_API_KEY,
+      authToken: SIGNALHOUSE_AUTH_TOKEN,
       "Content-Type": "application/json",
     };
 
     // Send messages individually (SignalHouse API takes one recipient per call)
-    const results: Array<{ phone: string; success: boolean; messageId?: string; error?: string }> = [];
+    const results: Array<{
+      phone: string;
+      success: boolean;
+      messageId?: string;
+      error?: string;
+    }> = [];
     const endpoint = mediaUrl ? SIGNALHOUSE_MMS_URL : SIGNALHOUSE_SMS_URL;
 
     // Batch in parallel (max 10 concurrent to avoid rate limits)
@@ -149,7 +194,9 @@ export async function POST(request: NextRequest) {
 
       const batchPromises = batch.map(async (phone) => {
         // Normalize to E.164
-        const normalizedPhone = phone.startsWith("+") ? phone : `+1${phone.replace(/\D/g, "").slice(-10)}`;
+        const normalizedPhone = phone.startsWith("+")
+          ? phone
+          : `+1${phone.replace(/\D/g, "").slice(-10)}`;
 
         const payload: Record<string, unknown> = {
           from: fromNumber,
@@ -172,7 +219,7 @@ export async function POST(request: NextRequest) {
 
           const data: SignalHouseResponse = await response.json();
 
-          if (response.ok && (data.success !== false)) {
+          if (response.ok && data.success !== false) {
             return {
               phone: normalizedPhone,
               success: true,
@@ -203,7 +250,9 @@ export async function POST(request: NextRequest) {
     const successCount = results.filter((r) => r.success).length;
     const failedCount = results.filter((r) => !r.success).length;
 
-    console.log(`[SignalHouse Bulk] Complete: ${successCount} sent, ${failedCount} failed`);
+    console.log(
+      `[SignalHouse Bulk] Complete: ${successCount} sent, ${failedCount} failed`,
+    );
 
     return NextResponse.json({
       success: failedCount === 0,
@@ -218,7 +267,8 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: unknown) {
     console.error("[SignalHouse Bulk] Exception:", error);
-    const message = error instanceof Error ? error.message : "Failed to send bulk SMS";
+    const message =
+      error instanceof Error ? error.message : "Failed to send bulk SMS";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
@@ -236,7 +286,9 @@ export async function GET() {
   }
 
   // Calculate current minute rate
-  const recentSends = sendLog.filter((entry) => entry.timestamp >= oneMinuteAgo);
+  const recentSends = sendLog.filter(
+    (entry) => entry.timestamp >= oneMinuteAgo,
+  );
   const currentRate = recentSends.reduce((sum, entry) => sum + entry.count, 0);
 
   return NextResponse.json({

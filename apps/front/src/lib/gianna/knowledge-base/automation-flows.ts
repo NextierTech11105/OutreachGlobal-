@@ -5,7 +5,8 @@ export const AUTOMATION_FLOWS = {
   // When email is captured via SMS → Auto email with valuation report + calendar
   emailCaptured: {
     trigger: "email_extracted_from_sms",
-    description: "When prospect shares their email via SMS, auto-queue intro email with valuation report and calendar link",
+    description:
+      "When prospect shares their email via SMS, auto-queue intro email with valuation report and calendar link",
 
     steps: [
       {
@@ -74,7 +75,8 @@ P.S. - The best time to have this conversation is before you need to make a deci
   // Calendar booked → Auto confirmation + prep email
   calendarBooked: {
     trigger: "calendar_appointment_created",
-    description: "When prospect books via calendar, send confirmation and prep materials",
+    description:
+      "When prospect books via calendar, send confirmation and prep materials",
 
     steps: [
       {
@@ -139,7 +141,8 @@ P.S. - If something comes up, just reply to this email or text me. Life happens.
   // Voicemail received → Auto transcribe + analyze + respond
   voicemailReceived: {
     trigger: "voicemail_transcription_complete",
-    description: "When voicemail is transcribed, analyze and trigger appropriate response",
+    description:
+      "When voicemail is transcribed, analyze and trigger appropriate response",
 
     steps: [
       {
@@ -176,7 +179,8 @@ P.S. - If something comes up, just reply to this email or text me. Life happens.
   // SMS response received → Parse intent + auto respond
   smsResponseReceived: {
     trigger: "inbound_sms",
-    description: "When prospect responds to SMS, parse intent and generate Gianna response",
+    description:
+      "When prospect responds to SMS, parse intent and generate Gianna response",
 
     steps: [
       {
@@ -191,9 +195,12 @@ P.S. - If something comes up, just reply to this email or text me. Life happens.
         patterns: {
           email: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/,
           phone: /\+?1?\d{10,}/,
-          time_preference: /(morning|afternoon|evening|tonight|tomorrow|monday|tuesday|wednesday|thursday|friday)/i,
-          interest_signal: /(interested|curious|tell me more|yes|yeah|sure|sounds good)/i,
-          objection: /(busy|not interested|no thanks|maybe later|too expensive)/i,
+          time_preference:
+            /(morning|afternoon|evening|tonight|tomorrow|monday|tuesday|wednesday|thursday|friday)/i,
+          interest_signal:
+            /(interested|curious|tell me more|yes|yeah|sure|sounds good)/i,
+          objection:
+            /(busy|not interested|no thanks|maybe later|too expensive)/i,
         },
       },
       {
@@ -219,7 +226,8 @@ P.S. - If something comes up, just reply to this email or text me. Life happens.
 // Calendar integration settings
 export const CALENDAR_CONFIG = {
   provider: "calendly", // or "cal.com", "acuity", "hubspot"
-  link: process.env.CALENDAR_LINK || "https://calendly.com/nextier/15min-strategy",
+  link:
+    process.env.CALENDAR_LINK || "https://calendly.com/nextier/15min-strategy",
 
   // Default meeting settings
   meeting: {
@@ -323,7 +331,8 @@ export async function processEmailCapture(data: {
     }
 
     // Step 2: Queue the intro email
-    const emailTemplate = AUTOMATION_FLOWS.emailCaptured.templates.email_with_report_and_calendar;
+    const emailTemplate =
+      AUTOMATION_FLOWS.emailCaptured.templates.email_with_report_and_calendar;
     const emailBody = emailTemplate.body
       .replace(/{firstName}/g, firstName)
       .replace(/{propertyAddress}/g, propertyAddress || "your property")
@@ -352,9 +361,10 @@ export async function processEmailCapture(data: {
     const emailQueued = (await emailResponse.json()).success;
 
     // Step 3: Send SMS confirmation
-    const smsTemplate = AUTOMATION_FLOWS.emailCaptured.templates.email_confirmation_sms
-      .replace(/{firstName}/g, firstName)
-      .replace(/{email}/g, email);
+    const smsTemplate =
+      AUTOMATION_FLOWS.emailCaptured.templates.email_confirmation_sms
+        .replace(/{firstName}/g, firstName)
+        .replace(/{email}/g, email);
 
     await fetch("/api/sms/send", {
       method: "POST",
@@ -379,40 +389,49 @@ export async function processEmailCapture(data: {
 
 // Leslie Nielsen style humor - outrageous but deadpan
 export const LESLIE_NIELSEN_HUMOR = {
-  description: "Deadpan absurdist humor - says outrageous things completely straight-faced",
+  description:
+    "Deadpan absurdist humor - says outrageous things completely straight-faced",
 
   examples: [
     {
       context: "Prospect says they don't care about AI",
-      response: "That's what the dinosaurs said about asteroids. Look how that worked out. Anyway, about your business...",
+      response:
+        "That's what the dinosaurs said about asteroids. Look how that worked out. Anyway, about your business...",
     },
     {
       context: "Prospect is hesitating",
-      response: "I once had a client who waited 6 months to call me back. He's fine now. Mostly. The point is, why risk it?",
+      response:
+        "I once had a client who waited 6 months to call me back. He's fine now. Mostly. The point is, why risk it?",
     },
     {
       context: "Prospect asks if this is a sales call",
-      response: "Sales call? No, no. This is a 'you're leaving money on the table and I'm trying to help you pick it up' call. Totally different.",
+      response:
+        "Sales call? No, no. This is a 'you're leaving money on the table and I'm trying to help you pick it up' call. Totally different.",
     },
     {
       context: "Prospect says they're too busy",
-      response: "Busy is good. Busy means you've built something. But here's the thing - I talked to a guy last week who was SO busy he forgot to cash his own checks. Don't be that guy.",
+      response:
+        "Busy is good. Busy means you've built something. But here's the thing - I talked to a guy last week who was SO busy he forgot to cash his own checks. Don't be that guy.",
     },
     {
       context: "Prospect mentions competitor",
-      response: "Oh them? Great people. Love what they're doing. I mean, I wouldn't use them, but great people. Anyway, here's what actually works...",
+      response:
+        "Oh them? Great people. Love what they're doing. I mean, I wouldn't use them, but great people. Anyway, here's what actually works...",
     },
     {
       context: "Cold open",
-      response: "Look, I know you're probably thinking 'who is this person and why should I care?' Great questions. Let me answer the second one first because the first one is less interesting.",
+      response:
+        "Look, I know you're probably thinking 'who is this person and why should I care?' Great questions. Let me answer the second one first because the first one is less interesting.",
     },
     {
       context: "Follow up after no response",
-      response: "Either you're incredibly busy, you've joined a monastery with no phones, or my last message was so good you're still thinking about it. All valid. Quick question though...",
+      response:
+        "Either you're incredibly busy, you've joined a monastery with no phones, or my last message was so good you're still thinking about it. All valid. Quick question though...",
     },
     {
       context: "Asking for the meeting",
-      response: "Here's the deal - I'm offering you 15 minutes of my time for free. I know, I know, you're welcome. The question is: Tuesday or Thursday?",
+      response:
+        "Here's the deal - I'm offering you 15 minutes of my time for free. I know, I know, you're welcome. The question is: Tuesday or Thursday?",
     },
   ],
 

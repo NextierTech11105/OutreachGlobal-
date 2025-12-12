@@ -21,36 +21,74 @@ interface MatrixCell {
   campaignName: string | null;
 }
 
-const propertyTypes = ["Single Family", "Multi-Family", "Condo", "Land", "Commercial"];
-const leadSources = ["Skip Trace", "Direct Mail", "Cold Call", "Referral", "Website"];
+const propertyTypes = [
+  "Single Family",
+  "Multi-Family",
+  "Condo",
+  "Land",
+  "Commercial",
+];
+const leadSources = [
+  "Skip Trace",
+  "Direct Mail",
+  "Cold Call",
+  "Referral",
+  "Website",
+];
 
 // NO MOCK DATA - User creates their own mappings
 const initialMatrix: MatrixCell[] = [];
 
 export default function CampaignMatrixPage() {
   const [matrix, setMatrix] = useState<MatrixCell[]>(initialMatrix);
-  const [selectedCell, setSelectedCell] = useState<{row: string, col: string} | null>(null);
+  const [selectedCell, setSelectedCell] = useState<{
+    row: string;
+    col: string;
+  } | null>(null);
 
   const getCampaign = (propertyType: string, leadSource: string) => {
-    return matrix.find(m => m.propertyType === propertyType && m.leadSource === leadSource);
+    return matrix.find(
+      (m) => m.propertyType === propertyType && m.leadSource === leadSource,
+    );
   };
 
-  const assignCampaign = (propertyType: string, leadSource: string, campaignName: string) => {
-    const existing = matrix.find(m => m.propertyType === propertyType && m.leadSource === leadSource);
+  const assignCampaign = (
+    propertyType: string,
+    leadSource: string,
+    campaignName: string,
+  ) => {
+    const existing = matrix.find(
+      (m) => m.propertyType === propertyType && m.leadSource === leadSource,
+    );
     if (existing) {
-      setMatrix(matrix.map(m =>
-        m.propertyType === propertyType && m.leadSource === leadSource
-          ? { ...m, campaignName, campaignId: `c${Date.now()}` }
-          : m
-      ));
+      setMatrix(
+        matrix.map((m) =>
+          m.propertyType === propertyType && m.leadSource === leadSource
+            ? { ...m, campaignName, campaignId: `c${Date.now()}` }
+            : m,
+        ),
+      );
     } else {
-      setMatrix([...matrix, { propertyType, leadSource, campaignId: `c${Date.now()}`, campaignName }]);
+      setMatrix([
+        ...matrix,
+        {
+          propertyType,
+          leadSource,
+          campaignId: `c${Date.now()}`,
+          campaignName,
+        },
+      ]);
     }
     setSelectedCell(null);
   };
 
   const removeCampaign = (propertyType: string, leadSource: string) => {
-    setMatrix(matrix.filter(m => !(m.propertyType === propertyType && m.leadSource === leadSource)));
+    setMatrix(
+      matrix.filter(
+        (m) =>
+          !(m.propertyType === propertyType && m.leadSource === leadSource),
+      ),
+    );
   };
 
   return (
@@ -86,28 +124,35 @@ export default function CampaignMatrixPage() {
                   <th className="border border-border p-3 bg-muted text-left font-medium">
                     Property Type / Lead Source
                   </th>
-                  {leadSources.map(source => (
-                    <th key={source} className="border border-border p-3 bg-muted text-center font-medium min-w-[150px]">
+                  {leadSources.map((source) => (
+                    <th
+                      key={source}
+                      className="border border-border p-3 bg-muted text-center font-medium min-w-[150px]"
+                    >
                       {source}
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {propertyTypes.map(propType => (
+                {propertyTypes.map((propType) => (
                   <tr key={propType}>
                     <td className="border border-border p-3 bg-muted font-medium">
                       {propType}
                     </td>
-                    {leadSources.map(source => {
+                    {leadSources.map((source) => {
                       const campaign = getCampaign(propType, source);
-                      const isSelected = selectedCell?.row === propType && selectedCell?.col === source;
+                      const isSelected =
+                        selectedCell?.row === propType &&
+                        selectedCell?.col === source;
 
                       return (
                         <td
                           key={source}
-                          className={`border border-border p-2 text-center cursor-pointer transition-colors hover:bg-muted/50 ${isSelected ? 'bg-primary/10 ring-2 ring-primary' : ''}`}
-                          onClick={() => setSelectedCell({ row: propType, col: source })}
+                          className={`border border-border p-2 text-center cursor-pointer transition-colors hover:bg-muted/50 ${isSelected ? "bg-primary/10 ring-2 ring-primary" : ""}`}
+                          onClick={() =>
+                            setSelectedCell({ row: propType, col: source })
+                          }
                         >
                           {campaign ? (
                             <div className="space-y-1">
@@ -155,8 +200,12 @@ export default function CampaignMatrixPage() {
                 placeholder="Enter campaign name..."
                 className="flex-1"
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    assignCampaign(selectedCell.row, selectedCell.col, (e.target as HTMLInputElement).value);
+                  if (e.key === "Enter") {
+                    assignCampaign(
+                      selectedCell.row,
+                      selectedCell.col,
+                      (e.target as HTMLInputElement).value,
+                    );
                   }
                 }}
               />
@@ -179,15 +228,25 @@ export default function CampaignMatrixPage() {
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
               <div className="text-3xl font-bold">{matrix.length}</div>
-              <div className="text-sm text-muted-foreground">Active Mappings</div>
+              <div className="text-sm text-muted-foreground">
+                Active Mappings
+              </div>
             </div>
             <div>
-              <div className="text-3xl font-bold">{propertyTypes.length * leadSources.length - matrix.length}</div>
-              <div className="text-sm text-muted-foreground">Unmapped Combinations</div>
+              <div className="text-3xl font-bold">
+                {propertyTypes.length * leadSources.length - matrix.length}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Unmapped Combinations
+              </div>
             </div>
             <div>
-              <div className="text-3xl font-bold">{new Set(matrix.map(m => m.campaignName)).size}</div>
-              <div className="text-sm text-muted-foreground">Unique Campaigns</div>
+              <div className="text-3xl font-bold">
+                {new Set(matrix.map((m) => m.campaignName)).size}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Unique Campaigns
+              </div>
             </div>
           </div>
         </CardContent>

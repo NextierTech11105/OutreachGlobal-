@@ -92,7 +92,7 @@ export interface SkipTraceResult {
 
 // REAL Skip Trace - Call the API endpoint
 export async function performSkipTrace(
-  input: SkipTraceInput
+  input: SkipTraceInput,
 ): Promise<SkipTraceResult | null> {
   try {
     const response = await fetch("/api/skip-trace", {
@@ -118,26 +118,38 @@ export async function performSkipTrace(
         firstName: data.firstName || input.firstName || "",
         lastName: data.lastName || input.lastName || "",
       },
-      phones: (data.phones || []).map((p: { number: string; type?: string; score?: number }) => ({
-        number: p.number,
-        label: p.type || "Mobile",
-        isPrimary: true,
-        lineType: p.type?.toLowerCase() || "mobile",
-        verified: true,
-        lastVerified: new Date().toISOString(),
-      })),
-      emails: (data.emails || []).map((e: { email: string; type?: string }) => ({
-        email: e.email,
-        verified: true,
-        source: "RealEstateAPI SkipTrace",
-      })),
-      addresses: (data.addresses || []).map((a: { street: string; city: string; state: string; zip: string; type?: string }) => ({
-        address: a.street,
-        city: a.city,
-        state: a.state,
-        zip: a.zip,
-        type: a.type || "Current",
-      })),
+      phones: (data.phones || []).map(
+        (p: { number: string; type?: string; score?: number }) => ({
+          number: p.number,
+          label: p.type || "Mobile",
+          isPrimary: true,
+          lineType: p.type?.toLowerCase() || "mobile",
+          verified: true,
+          lastVerified: new Date().toISOString(),
+        }),
+      ),
+      emails: (data.emails || []).map(
+        (e: { email: string; type?: string }) => ({
+          email: e.email,
+          verified: true,
+          source: "RealEstateAPI SkipTrace",
+        }),
+      ),
+      addresses: (data.addresses || []).map(
+        (a: {
+          street: string;
+          city: string;
+          state: string;
+          zip: string;
+          type?: string;
+        }) => ({
+          address: a.street,
+          city: a.city,
+          state: a.state,
+          zip: a.zip,
+          type: a.type || "Current",
+        }),
+      ),
       relatives: data.relatives,
       associates: data.associates,
       propertyRecords: data.propertyRecords,
@@ -156,13 +168,16 @@ export async function performSkipTrace(
 
 // REAL Data Append - Call property detail endpoint
 export async function performDataAppend(
-  propertyId: string
+  propertyId: string,
 ): Promise<Record<string, unknown> | null> {
   try {
-    const response = await fetch(`/api/property/detail?id=${propertyId}&skipTrace=true`, {
-      method: "GET",
-      headers: { "Content-Type": "application/json" },
-    });
+    const response = await fetch(
+      `/api/property/detail?id=${propertyId}&skipTrace=true`,
+      {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      },
+    );
 
     if (!response.ok) {
       console.error("[DataAppend] API failed:", response.status);

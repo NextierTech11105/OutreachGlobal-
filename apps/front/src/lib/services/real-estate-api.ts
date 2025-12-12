@@ -3,7 +3,11 @@
 import type { PhoneNumber } from "@/types/lead";
 
 const API_BASE_URL = "https://api.realestateapi.com/v2";
-const API_KEY = process.env.REALESTATE_API_KEY || process.env.REAL_ESTATE_API_KEY || process.env.NEXT_PUBLIC_REAL_ESTATE_API_KEY || "";
+const API_KEY =
+  process.env.REALESTATE_API_KEY ||
+  process.env.REAL_ESTATE_API_KEY ||
+  process.env.NEXT_PUBLIC_REAL_ESTATE_API_KEY ||
+  "";
 
 // ============ API Response Types ============
 
@@ -29,7 +33,14 @@ export interface PropertySearchResult {
   propertyId: string;
   address: PropertyAddress;
   mailAddress?: PropertyAddress;
-  propertyType: "SFR" | "CONDO" | "MFR" | "LAND" | "MOBILE" | "TOWNHOUSE" | "OTHER";
+  propertyType:
+    | "SFR"
+    | "CONDO"
+    | "MFR"
+    | "LAND"
+    | "MOBILE"
+    | "TOWNHOUSE"
+    | "OTHER";
   propertyUse: string;
   propertyUseCode: number;
   landUse: string;
@@ -327,7 +338,7 @@ class RealEstateApiService {
   private async request<T>(
     endpoint: string,
     method: "GET" | "POST" = "POST",
-    body?: Record<string, unknown>
+    body?: Record<string, unknown>,
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
 
@@ -343,7 +354,7 @@ class RealEstateApiService {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(
-        `RealEstateAPI Error: ${response.status} - ${errorData.message || response.statusText}`
+        `RealEstateAPI Error: ${response.status} - ${errorData.message || response.statusText}`,
       );
     }
 
@@ -352,28 +363,43 @@ class RealEstateApiService {
 
   // ============ Property Search ============
 
-  async searchProperties(query: PropertySearchQuery): Promise<PropertySearchResponse> {
-    return this.request<PropertySearchResponse>("/PropertySearch", "POST", query as Record<string, unknown>);
+  async searchProperties(
+    query: PropertySearchQuery,
+  ): Promise<PropertySearchResponse> {
+    return this.request<PropertySearchResponse>(
+      "/PropertySearch",
+      "POST",
+      query as Record<string, unknown>,
+    );
   }
 
-  async countProperties(query: Omit<PropertySearchQuery, "count">): Promise<number> {
+  async countProperties(
+    query: Omit<PropertySearchQuery, "count">,
+  ): Promise<number> {
     const response = await this.searchProperties({ ...query, count: true });
     return response.resultCount;
   }
 
-  async getPropertyIds(query: Omit<PropertySearchQuery, "ids_only">, maxResults = 10000): Promise<string[]> {
+  async getPropertyIds(
+    query: Omit<PropertySearchQuery, "ids_only">,
+    maxResults = 10000,
+  ): Promise<string[]> {
     const allIds: string[] = [];
     let from = 0;
     const batchSize = 1000;
 
     while (allIds.length < maxResults) {
-      const response = await this.request<{ data: (string | number)[]; resultCount: number }>(
-        "/PropertySearch",
-        "POST",
-        { ...query, ids_only: true, size: batchSize, from } as Record<string, unknown>
-      );
+      const response = await this.request<{
+        data: (string | number)[];
+        resultCount: number;
+      }>("/PropertySearch", "POST", {
+        ...query,
+        ids_only: true,
+        size: batchSize,
+        from,
+      } as Record<string, unknown>);
 
-      const ids = response.data.map(id => String(id));
+      const ids = response.data.map((id) => String(id));
       allIds.push(...ids);
 
       if (ids.length < batchSize || allIds.length >= response.resultCount) {
@@ -388,11 +414,17 @@ class RealEstateApiService {
   // ============ Property Detail ============
 
   async getPropertyDetail(propertyId: string): Promise<PropertyDetailResponse> {
-    return this.request<PropertyDetailResponse>("/PropertyDetail", "POST", { id: propertyId });
+    return this.request<PropertyDetailResponse>("/PropertyDetail", "POST", {
+      id: propertyId,
+    });
   }
 
-  async getPropertyDetailByAddress(address: string): Promise<PropertyDetailResponse> {
-    return this.request<PropertyDetailResponse>("/PropertyDetail", "POST", { address });
+  async getPropertyDetailByAddress(
+    address: string,
+  ): Promise<PropertyDetailResponse> {
+    return this.request<PropertyDetailResponse>("/PropertyDetail", "POST", {
+      address,
+    });
   }
 
   async getPropertyDetailByAddressParts(parts: {
@@ -402,20 +434,29 @@ class RealEstateApiService {
     state?: string;
     zip?: string;
   }): Promise<PropertyDetailResponse> {
-    return this.request<PropertyDetailResponse>("/PropertyDetail", "POST", parts);
+    return this.request<PropertyDetailResponse>(
+      "/PropertyDetail",
+      "POST",
+      parts,
+    );
   }
 
-  async getPropertyDetailsBulk(propertyIds: string[]): Promise<PropertyDetailResponse[]> {
+  async getPropertyDetailsBulk(
+    propertyIds: string[],
+  ): Promise<PropertyDetailResponse[]> {
     // Use PropertyDetailBulk endpoint for efficient batch lookups (max 250)
     const response = await this.request<{ data: PropertyDetailResponse[] }>(
       "/PropertyDetailBulk",
       "POST",
-      propertyIds as unknown as Record<string, unknown>
+      propertyIds as unknown as Record<string, unknown>,
     );
     return response.data || [];
   }
 
-  async getPropertyDetailsBatch(propertyIds: string[], batchSize = 250): Promise<PropertyDetailResponse[]> {
+  async getPropertyDetailsBatch(
+    propertyIds: string[],
+    batchSize = 250,
+  ): Promise<PropertyDetailResponse[]> {
     const results: PropertyDetailResponse[] = [];
 
     // Process in batches of 250 (API limit)
@@ -445,7 +486,7 @@ class RealEstateApiService {
 
   async searchAbsenteeOwners(
     location: { zip?: string; state?: string; city?: string },
-    options: Partial<PropertySearchQuery> = {}
+    options: Partial<PropertySearchQuery> = {},
   ): Promise<PropertySearchResponse> {
     return this.searchProperties({
       ...location,
@@ -457,7 +498,7 @@ class RealEstateApiService {
   async searchHighEquity(
     location: { zip?: string; state?: string; city?: string },
     minEquity?: number,
-    options: Partial<PropertySearchQuery> = {}
+    options: Partial<PropertySearchQuery> = {},
   ): Promise<PropertySearchResponse> {
     return this.searchProperties({
       ...location,
@@ -469,7 +510,7 @@ class RealEstateApiService {
 
   async searchPreForeclosure(
     location: { zip?: string; state?: string; city?: string },
-    options: Partial<PropertySearchQuery> = {}
+    options: Partial<PropertySearchQuery> = {},
   ): Promise<PropertySearchResponse> {
     return this.searchProperties({
       ...location,
@@ -480,7 +521,7 @@ class RealEstateApiService {
 
   async searchVacant(
     location: { zip?: string; state?: string; city?: string },
-    options: Partial<PropertySearchQuery> = {}
+    options: Partial<PropertySearchQuery> = {},
   ): Promise<PropertySearchResponse> {
     return this.searchProperties({
       ...location,
@@ -491,7 +532,7 @@ class RealEstateApiService {
 
   async searchInvestorTargets(
     location: { zip?: string; state?: string; city?: string },
-    options: Partial<PropertySearchQuery> = {}
+    options: Partial<PropertySearchQuery> = {},
   ): Promise<PropertySearchResponse> {
     return this.searchProperties({
       ...location,
@@ -521,7 +562,7 @@ class RealEstateApiService {
 
   detectChanges(
     previousIds: string[],
-    currentIds: string[]
+    currentIds: string[],
   ): {
     added: string[];
     removed: string[];
@@ -531,18 +572,21 @@ class RealEstateApiService {
     const currSet = new Set(currentIds);
 
     return {
-      added: currentIds.filter(id => !prevSet.has(id)),
-      removed: previousIds.filter(id => !currSet.has(id)),
-      unchanged: currentIds.filter(id => prevSet.has(id)),
+      added: currentIds.filter((id) => !prevSet.has(id)),
+      removed: previousIds.filter((id) => !currSet.has(id)),
+      unchanged: currentIds.filter((id) => prevSet.has(id)),
     };
   }
 
   // ============ Legacy Methods ============
 
-  async fetchProperties(zipCode: string, limit = 100): Promise<RealEstateApiProperty[]> {
+  async fetchProperties(
+    zipCode: string,
+    limit = 100,
+  ): Promise<RealEstateApiProperty[]> {
     const response = await this.searchProperties({ zip: zipCode, size: limit });
 
-    return response.data.map(prop => ({
+    return response.data.map((prop) => ({
       REI_ID: prop.id,
       "Lot Width": Math.sqrt(prop.lotSquareFeet) || 0,
       "Lot Depth": Math.sqrt(prop.lotSquareFeet) || 0,
@@ -565,8 +609,10 @@ class RealEstateApiService {
     }));
   }
 
-  async transformData(apiData: RealEstateApiProperty[]): Promise<EnrichedPropertyRecord[]> {
-    return apiData.map(property => ({
+  async transformData(
+    apiData: RealEstateApiProperty[],
+  ): Promise<EnrichedPropertyRecord[]> {
+    return apiData.map((property) => ({
       meta: {
         record_id: `REC-${property.REI_ID}`,
         real_estate_api_id: property.REI_ID,
@@ -608,15 +654,22 @@ class RealEstateApiService {
     }));
   }
 
-  async applyAutoTags(records: EnrichedPropertyRecord[], _tagRules: ApiTag[]): Promise<EnrichedPropertyRecord[]> {
+  async applyAutoTags(
+    records: EnrichedPropertyRecord[],
+    _tagRules: ApiTag[],
+  ): Promise<EnrichedPropertyRecord[]> {
     return records;
   }
 
-  async verifyWithTwilio(records: EnrichedPropertyRecord[]): Promise<EnrichedPropertyRecord[]> {
+  async verifyWithTwilio(
+    records: EnrichedPropertyRecord[],
+  ): Promise<EnrichedPropertyRecord[]> {
     return records;
   }
 
-  async syncWithZoho(records: EnrichedPropertyRecord[]): Promise<EnrichedPropertyRecord[]> {
+  async syncWithZoho(
+    records: EnrichedPropertyRecord[],
+  ): Promise<EnrichedPropertyRecord[]> {
     return records;
   }
 }
@@ -628,32 +681,32 @@ export const realEstateApi = new RealEstateApiService();
 export async function fetchPropertiesFromRealEstateApi(
   _apiKey: string,
   zipCode: string,
-  limit = 100
+  limit = 100,
 ): Promise<RealEstateApiProperty[]> {
   return realEstateApi.fetchProperties(zipCode, limit);
 }
 
 export async function transformRealEstateApiData(
-  apiData: RealEstateApiProperty[]
+  apiData: RealEstateApiProperty[],
 ): Promise<EnrichedPropertyRecord[]> {
   return realEstateApi.transformData(apiData);
 }
 
 export async function applyAutoTags(
   records: EnrichedPropertyRecord[],
-  tagRules: ApiTag[]
+  tagRules: ApiTag[],
 ): Promise<EnrichedPropertyRecord[]> {
   return realEstateApi.applyAutoTags(records, tagRules);
 }
 
 export async function verifyWithTwilio(
-  records: EnrichedPropertyRecord[]
+  records: EnrichedPropertyRecord[],
 ): Promise<EnrichedPropertyRecord[]> {
   return realEstateApi.verifyWithTwilio(records);
 }
 
 export async function syncWithZoho(
-  records: EnrichedPropertyRecord[]
+  records: EnrichedPropertyRecord[],
 ): Promise<EnrichedPropertyRecord[]> {
   return realEstateApi.syncWithZoho(records);
 }

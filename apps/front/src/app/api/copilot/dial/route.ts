@@ -23,7 +23,13 @@ interface DialRequest {
 interface DialSession {
   id: string;
   leadId: string;
-  status: "initiated" | "ringing" | "connected" | "completed" | "failed" | "no_answer";
+  status:
+    | "initiated"
+    | "ringing"
+    | "connected"
+    | "completed"
+    | "failed"
+    | "no_answer";
   startTime: string;
   endTime?: string;
   duration?: number;
@@ -45,7 +51,7 @@ export async function POST(request: NextRequest) {
     if (!sessionId || !leadId || !phone) {
       return NextResponse.json(
         { error: "sessionId, leadId, and phone are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -68,7 +74,9 @@ export async function POST(request: NextRequest) {
 
     // In production, this would call SignalHouse/Twilio API
     // For now, simulate the call initiation
-    console.log(`[GiannaCopilot] Initiating call to ${phone} for lead ${leadId}`);
+    console.log(
+      `[GiannaCopilot] Initiating call to ${phone} for lead ${leadId}`,
+    );
 
     // Simulate call connection after 2 seconds
     setTimeout(() => {
@@ -99,11 +107,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       session: dialSession,
-      lead: lead ? {
-        id: lead.id,
-        name: `${lead.firstName} ${lead.lastName}`,
-        phone: lead.phone,
-      } : null,
+      lead: lead
+        ? {
+            id: lead.id,
+            name: `${lead.firstName} ${lead.lastName}`,
+            phone: lead.phone,
+          }
+        : null,
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Dial failed";
@@ -116,21 +126,26 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { sessionId, status, disposition, duration, ai_summary, transcript, recording_url } = body;
+    const {
+      sessionId,
+      status,
+      disposition,
+      duration,
+      ai_summary,
+      transcript,
+      recording_url,
+    } = body;
 
     if (!sessionId) {
       return NextResponse.json(
         { error: "sessionId is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const session = activeSessions.get(sessionId);
     if (!session) {
-      return NextResponse.json(
-        { error: "Session not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Session not found" }, { status: 404 });
     }
 
     // Update session
@@ -141,7 +156,11 @@ export async function PUT(request: NextRequest) {
     if (transcript) session.transcript = transcript;
     if (recording_url) session.recording_url = recording_url;
 
-    if (status === "completed" || status === "failed" || status === "no_answer") {
+    if (
+      status === "completed" ||
+      status === "failed" ||
+      status === "no_answer"
+    ) {
       session.endTime = new Date().toISOString();
     }
 
@@ -192,8 +211,8 @@ export async function GET(request: NextRequest) {
       const sessions = Array.from(activeSessions.values());
       return NextResponse.json({
         success: true,
-        activeSessions: sessions.filter(s =>
-          s.status !== "completed" && s.status !== "failed"
+        activeSessions: sessions.filter(
+          (s) => s.status !== "completed" && s.status !== "failed",
         ).length,
         totalSessions: sessions.length,
         sessions: sessions.slice(-10), // Last 10
@@ -202,10 +221,7 @@ export async function GET(request: NextRequest) {
 
     const session = activeSessions.get(sessionId);
     if (!session) {
-      return NextResponse.json(
-        { error: "Session not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Session not found" }, { status: 404 });
     }
 
     return NextResponse.json({
@@ -228,7 +244,7 @@ export async function DELETE(request: NextRequest) {
     if (!sessionId) {
       return NextResponse.json(
         { error: "sessionId is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 

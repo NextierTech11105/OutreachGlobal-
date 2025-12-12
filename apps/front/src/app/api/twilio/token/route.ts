@@ -12,19 +12,25 @@ export async function POST(request: NextRequest) {
     const identity = body.identity || `user-${Date.now()}`;
 
     if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) {
-      return NextResponse.json({
-        error: "Twilio not configured",
-        configured: false,
-        message: "TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN are required",
-      }, { status: 503 });
+      return NextResponse.json(
+        {
+          error: "Twilio not configured",
+          configured: false,
+          message: "TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN are required",
+        },
+        { status: 503 },
+      );
     }
 
     if (!TWILIO_TWIML_APP_SID) {
-      return NextResponse.json({
-        error: "TwiML App not configured",
-        configured: false,
-        message: "TWILIO_TWIML_APP_SID is required for browser calling",
-      }, { status: 503 });
+      return NextResponse.json(
+        {
+          error: "TwiML App not configured",
+          configured: false,
+          message: "TWILIO_TWIML_APP_SID is required for browser calling",
+        },
+        { status: 503 },
+      );
     }
 
     // Generate capability token using Twilio's JWT
@@ -38,14 +44,19 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: unknown) {
     console.error("[Twilio Token] Error:", error);
-    const message = error instanceof Error ? error.message : "Failed to generate token";
+    const message =
+      error instanceof Error ? error.message : "Failed to generate token";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
 // GET - Check Twilio configuration status
 export async function GET() {
-  const configured = !!(TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN && TWILIO_TWIML_APP_SID);
+  const configured = !!(
+    TWILIO_ACCOUNT_SID &&
+    TWILIO_AUTH_TOKEN &&
+    TWILIO_TWIML_APP_SID
+  );
 
   return NextResponse.json({
     configured,
@@ -67,7 +78,7 @@ async function generateCapabilityToken(identity: string): Promise<string> {
   const header = {
     typ: "JWT",
     alg: "HS256",
-    cty: "twilio-fpa;v=1"
+    cty: "twilio-fpa;v=1",
   };
 
   // JWT Payload with Twilio grants
@@ -81,13 +92,13 @@ async function generateCapabilityToken(identity: string): Promise<string> {
       identity: identity,
       voice: {
         incoming: {
-          allow: true
+          allow: true,
         },
         outgoing: {
-          application_sid: TWILIO_TWIML_APP_SID
-        }
-      }
-    }
+          application_sid: TWILIO_TWIML_APP_SID,
+        },
+      },
+    },
   };
 
   // Base64URL encode

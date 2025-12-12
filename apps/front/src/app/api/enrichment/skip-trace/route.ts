@@ -45,13 +45,22 @@ interface SkipTraceResult {
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const body: SkipTraceRequest = await request.json();
-    const { recordId, bucketId, firstName, lastName, address, city, state, zip } = body;
+    const {
+      recordId,
+      bucketId,
+      firstName,
+      lastName,
+      address,
+      city,
+      state,
+      zip,
+    } = body;
 
     // Validate required fields
     if (!recordId || !bucketId) {
       return NextResponse.json(
         { error: "recordId and bucketId are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -59,14 +68,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (!firstName && !lastName) {
       return NextResponse.json(
         { error: "firstName or lastName is required for skip trace" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!address || !city || !state) {
       return NextResponse.json(
         { error: "address, city, and state are required for skip trace" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -76,13 +85,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json(
         {
           error: "Skip trace API not configured",
-          hint: "Set REALESTATE_API_KEY environment variable"
+          hint: "Set REALESTATE_API_KEY environment variable",
         },
-        { status: 503 }
+        { status: 503 },
       );
     }
 
-    console.log(`[Skip Trace] Processing record ${recordId} from bucket ${bucketId}`);
+    console.log(
+      `[Skip Trace] Processing record ${recordId} from bucket ${bucketId}`,
+    );
 
     // Call RealEstateAPI Skip Trace
     const response = await fetch(REALESTATE_API_URL, {
@@ -103,21 +114,29 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`[Skip Trace] API error: ${response.status} - ${errorText}`);
+      console.error(
+        `[Skip Trace] API error: ${response.status} - ${errorText}`,
+      );
 
       if (response.status === 401) {
         return NextResponse.json({ error: "Invalid API key" }, { status: 401 });
       }
       if (response.status === 403) {
-        return NextResponse.json({ error: "No skip trace credits remaining" }, { status: 403 });
+        return NextResponse.json(
+          { error: "No skip trace credits remaining" },
+          { status: 403 },
+        );
       }
       if (response.status === 429) {
-        return NextResponse.json({ error: "Rate limited - slow down requests" }, { status: 429 });
+        return NextResponse.json(
+          { error: "Rate limited - slow down requests" },
+          { status: 429 },
+        );
       }
 
       return NextResponse.json(
         { error: `Skip trace failed: ${response.status}` },
-        { status: response.status }
+        { status: response.status },
       );
     }
 
@@ -131,21 +150,23 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           recordId,
           bucketId,
         },
-        { status: 200 }
+        { status: 200 },
       );
     }
 
     // Extract the best phone (prefer mobile)
     const phones = result.data.phones || [];
-    const mobilePhone = phones.find(p => p.type === "mobile");
+    const mobilePhone = phones.find((p) => p.type === "mobile");
     const bestPhone = mobilePhone || phones[0];
 
     // Extract the best email (prefer personal)
     const emails = result.data.emails || [];
-    const personalEmail = emails.find(e => e.type === "personal");
+    const personalEmail = emails.find((e) => e.type === "personal");
     const bestEmail = personalEmail || emails[0];
 
-    console.log(`[Skip Trace] Success for ${recordId}: ${phones.length} phones, ${emails.length} emails`);
+    console.log(
+      `[Skip Trace] Success for ${recordId}: ${phones.length} phones, ${emails.length} emails`,
+    );
 
     return NextResponse.json({
       success: true,
@@ -176,7 +197,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     console.error("[Skip Trace] Error:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Skip trace failed" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -193,7 +214,15 @@ export async function GET(): Promise<NextResponse> {
   return NextResponse.json({
     configured: true,
     endpoint: "POST /api/enrichment/skip-trace",
-    requiredFields: ["recordId", "bucketId", "firstName", "lastName", "address", "city", "state"],
+    requiredFields: [
+      "recordId",
+      "bucketId",
+      "firstName",
+      "lastName",
+      "address",
+      "city",
+      "state",
+    ],
     optionalFields: ["zip"],
     costPerTrace: "$0.10-0.25",
     documentation: "/docs/REALESTATE_API_COOKBOOK.md",

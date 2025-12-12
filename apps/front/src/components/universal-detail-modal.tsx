@@ -80,13 +80,21 @@ function detectRecordType(record: any): RecordType {
   if (record.auctionDate || record.defaultAmount) return "foreclosure";
 
   // Property - has property type, beds, or is clearly real estate
-  if (record.propertyType || record.beds || record.baths || record.estimatedValue) return "property";
+  if (
+    record.propertyType ||
+    record.beds ||
+    record.baths ||
+    record.estimatedValue
+  )
+    return "property";
 
   // B2B Company - has company with industry/employees
-  if (record.company && (record.industry || record.employees || record.revenue)) return "b2b-company";
+  if (record.company && (record.industry || record.employees || record.revenue))
+    return "b2b-company";
 
   // B2B Contact - has title with company or LinkedIn
-  if (record.title && (record.company || record.linkedIn || record.seniority)) return "b2b-contact";
+  if (record.title && (record.company || record.linkedIn || record.seniority))
+    return "b2b-contact";
 
   // Lead - has lead status or source
   if (record.leadStatus || record.leadScore || record.source) return "lead";
@@ -95,14 +103,65 @@ function detectRecordType(record: any): RecordType {
 }
 
 function getRecordTypeConfig(type: RecordType) {
-  const configs: Record<RecordType, { label: string; color: string; icon: React.ElementType; enrichLabel: string; enrichApi: string }> = {
-    "property": { label: "Property", color: "bg-green-500", icon: Home, enrichLabel: "Skip Trace", enrichApi: "/api/skip-trace" },
-    "lis-pendens": { label: "Lis Pendens", color: "bg-orange-500", icon: Gavel, enrichLabel: "Skip Trace", enrichApi: "/api/skip-trace" },
-    "foreclosure": { label: "Foreclosure", color: "bg-red-500", icon: Scale, enrichLabel: "Skip Trace", enrichApi: "/api/skip-trace" },
-    "b2b-company": { label: "B2B Company", color: "bg-blue-500", icon: Building, enrichLabel: "Find Contacts", enrichApi: "/api/apollo/enrich" },
-    "b2b-contact": { label: "B2B Contact", color: "bg-purple-500", icon: Briefcase, enrichLabel: "Enrich", enrichApi: "/api/apollo/enrich" },
-    "lead": { label: "Lead", color: "bg-cyan-500", icon: Target, enrichLabel: "Re-enrich", enrichApi: "/api/enrichment" },
-    "generic": { label: "Record", color: "bg-zinc-500", icon: FileText, enrichLabel: "Enrich", enrichApi: "/api/enrichment" },
+  const configs: Record<
+    RecordType,
+    {
+      label: string;
+      color: string;
+      icon: React.ElementType;
+      enrichLabel: string;
+      enrichApi: string;
+    }
+  > = {
+    property: {
+      label: "Property",
+      color: "bg-green-500",
+      icon: Home,
+      enrichLabel: "Skip Trace",
+      enrichApi: "/api/skip-trace",
+    },
+    "lis-pendens": {
+      label: "Lis Pendens",
+      color: "bg-orange-500",
+      icon: Gavel,
+      enrichLabel: "Skip Trace",
+      enrichApi: "/api/skip-trace",
+    },
+    foreclosure: {
+      label: "Foreclosure",
+      color: "bg-red-500",
+      icon: Scale,
+      enrichLabel: "Skip Trace",
+      enrichApi: "/api/skip-trace",
+    },
+    "b2b-company": {
+      label: "B2B Company",
+      color: "bg-blue-500",
+      icon: Building,
+      enrichLabel: "Find Contacts",
+      enrichApi: "/api/apollo/enrich",
+    },
+    "b2b-contact": {
+      label: "B2B Contact",
+      color: "bg-purple-500",
+      icon: Briefcase,
+      enrichLabel: "Enrich",
+      enrichApi: "/api/apollo/enrich",
+    },
+    lead: {
+      label: "Lead",
+      color: "bg-cyan-500",
+      icon: Target,
+      enrichLabel: "Re-enrich",
+      enrichApi: "/api/enrichment",
+    },
+    generic: {
+      label: "Record",
+      color: "bg-zinc-500",
+      icon: FileText,
+      enrichLabel: "Enrich",
+      enrichApi: "/api/enrichment",
+    },
   };
   return configs[type];
 }
@@ -112,7 +171,12 @@ function getRecordTypeConfig(type: RecordType) {
 // ============================================
 
 interface FieldGridProps {
-  fields: Array<{ label: string; value: any; icon?: React.ElementType; format?: "currency" | "date" | "percent" | "number" }>;
+  fields: Array<{
+    label: string;
+    value: any;
+    icon?: React.ElementType;
+    format?: "currency" | "date" | "percent" | "number";
+  }>;
 }
 
 function FieldGrid({ fields }: FieldGridProps) {
@@ -121,7 +185,11 @@ function FieldGrid({ fields }: FieldGridProps) {
 
     switch (format) {
       case "currency":
-        return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value);
+        return new Intl.NumberFormat("en-US", {
+          style: "currency",
+          currency: "USD",
+          maximumFractionDigits: 0,
+        }).format(value);
       case "date":
         return new Date(value).toLocaleDateString();
       case "percent":
@@ -138,10 +206,15 @@ function FieldGrid({ fields }: FieldGridProps) {
       {fields.map((field, idx) => {
         const Icon = field.icon;
         return (
-          <div key={idx} className="p-3 rounded-lg bg-zinc-800/50 border border-zinc-700/50">
+          <div
+            key={idx}
+            className="p-3 rounded-lg bg-zinc-800/50 border border-zinc-700/50"
+          >
             <div className="flex items-center gap-2 mb-1">
               {Icon && <Icon className="h-3.5 w-3.5 text-zinc-500" />}
-              <span className="text-xs text-zinc-500 uppercase tracking-wide">{field.label}</span>
+              <span className="text-xs text-zinc-500 uppercase tracking-wide">
+                {field.label}
+              </span>
             </div>
             <div className="font-medium text-zinc-100 truncate">
               {formatValue(field.value, field.format)}
@@ -159,45 +232,110 @@ function FieldGrid({ fields }: FieldGridProps) {
 
 function PropertyFields({ record }: { record: any }) {
   const fields = [
-    { label: "Property Type", value: record.propertyType || record.property_type, icon: Home },
+    {
+      label: "Property Type",
+      value: record.propertyType || record.property_type,
+      icon: Home,
+    },
     { label: "Beds", value: record.beds || record.bedrooms, icon: Home },
     { label: "Baths", value: record.baths || record.bathrooms, icon: Home },
-    { label: "Sqft", value: record.sqft || record.square_footage, format: "number" as const },
-    { label: "Year Built", value: record.yearBuilt || record.year_built, icon: Calendar },
+    {
+      label: "Sqft",
+      value: record.sqft || record.square_footage,
+      format: "number" as const,
+    },
+    {
+      label: "Year Built",
+      value: record.yearBuilt || record.year_built,
+      icon: Calendar,
+    },
     { label: "Lot Size", value: record.lotSize || record.lot_size },
-    { label: "Est. Value", value: record.estimatedValue || record.estimated_value, format: "currency" as const, icon: DollarSign },
-    { label: "Equity", value: record.equity, format: "currency" as const, icon: TrendingUp },
-  ].filter(f => f.value !== undefined && f.value !== null && f.value !== "");
+    {
+      label: "Est. Value",
+      value: record.estimatedValue || record.estimated_value,
+      format: "currency" as const,
+      icon: DollarSign,
+    },
+    {
+      label: "Equity",
+      value: record.equity,
+      format: "currency" as const,
+      icon: TrendingUp,
+    },
+  ].filter((f) => f.value !== undefined && f.value !== null && f.value !== "");
 
   return <FieldGrid fields={fields} />;
 }
 
 function LisPendensFields({ record }: { record: any }) {
   const fields = [
-    { label: "Case Number", value: record.caseNumber || record.case_number, icon: FileText },
-    { label: "Filed Date", value: record.filedDate || record.filed_date, format: "date" as const, icon: Calendar },
+    {
+      label: "Case Number",
+      value: record.caseNumber || record.case_number,
+      icon: FileText,
+    },
+    {
+      label: "Filed Date",
+      value: record.filedDate || record.filed_date,
+      format: "date" as const,
+      icon: Calendar,
+    },
     { label: "Plaintiff", value: record.plaintiff, icon: Building },
     { label: "Defendant", value: record.defendant, icon: User },
     { label: "County", value: record.county },
     { label: "Court", value: record.court },
-    { label: "Property Type", value: record.propertyType || record.property_type, icon: Home },
-    { label: "Assessed Value", value: record.assessedValue || record.assessed_value || record.estimatedValue, format: "currency" as const, icon: DollarSign },
-  ].filter(f => f.value !== undefined && f.value !== null && f.value !== "");
+    {
+      label: "Property Type",
+      value: record.propertyType || record.property_type,
+      icon: Home,
+    },
+    {
+      label: "Assessed Value",
+      value:
+        record.assessedValue || record.assessed_value || record.estimatedValue,
+      format: "currency" as const,
+      icon: DollarSign,
+    },
+  ].filter((f) => f.value !== undefined && f.value !== null && f.value !== "");
 
   return <FieldGrid fields={fields} />;
 }
 
 function ForeclosureFields({ record }: { record: any }) {
   const fields = [
-    { label: "Auction Date", value: record.auctionDate || record.auction_date, format: "date" as const, icon: Calendar },
-    { label: "Default Amount", value: record.defaultAmount || record.default_amount, format: "currency" as const, icon: DollarSign },
+    {
+      label: "Auction Date",
+      value: record.auctionDate || record.auction_date,
+      format: "date" as const,
+      icon: Calendar,
+    },
+    {
+      label: "Default Amount",
+      value: record.defaultAmount || record.default_amount,
+      format: "currency" as const,
+      icon: DollarSign,
+    },
     { label: "Lender", value: record.lender, icon: Building },
     { label: "LTV", value: record.ltv, format: "percent" as const },
-    { label: "Property Type", value: record.propertyType || record.property_type, icon: Home },
-    { label: "Est. Value", value: record.estimatedValue || record.estimated_value, format: "currency" as const, icon: DollarSign },
-    { label: "Equity", value: record.equity, format: "currency" as const, icon: TrendingUp },
+    {
+      label: "Property Type",
+      value: record.propertyType || record.property_type,
+      icon: Home,
+    },
+    {
+      label: "Est. Value",
+      value: record.estimatedValue || record.estimated_value,
+      format: "currency" as const,
+      icon: DollarSign,
+    },
+    {
+      label: "Equity",
+      value: record.equity,
+      format: "currency" as const,
+      icon: TrendingUp,
+    },
     { label: "Status", value: record.foreclosureStatus || record.status },
-  ].filter(f => f.value !== undefined && f.value !== null && f.value !== "");
+  ].filter((f) => f.value !== undefined && f.value !== null && f.value !== "");
 
   return <FieldGrid fields={fields} />;
 }
@@ -206,19 +344,37 @@ function B2BCompanyFields({ record }: { record: any }) {
   const fields = [
     { label: "Company", value: record.company || record.name, icon: Building },
     { label: "Industry", value: record.industry, icon: Briefcase },
-    { label: "Revenue", value: record.revenue || record.annual_revenue, format: "currency" as const, icon: DollarSign },
-    { label: "Employees", value: record.employees || record.employee_count, format: "number" as const, icon: Users },
+    {
+      label: "Revenue",
+      value: record.revenue || record.annual_revenue,
+      format: "currency" as const,
+      icon: DollarSign,
+    },
+    {
+      label: "Employees",
+      value: record.employees || record.employee_count,
+      format: "number" as const,
+      icon: Users,
+    },
     { label: "Founded", value: record.founded || record.year_founded },
-    { label: "HQ Location", value: record.headquarters || record.location, icon: MapPin },
+    {
+      label: "HQ Location",
+      value: record.headquarters || record.location,
+      icon: MapPin,
+    },
     { label: "Website", value: record.website },
-    { label: "LinkedIn", value: record.linkedIn || record.linkedin_url ? "View" : undefined },
-  ].filter(f => f.value !== undefined && f.value !== null && f.value !== "");
+    {
+      label: "LinkedIn",
+      value: record.linkedIn || record.linkedin_url ? "View" : undefined,
+    },
+  ].filter((f) => f.value !== undefined && f.value !== null && f.value !== "");
 
   return <FieldGrid fields={fields} />;
 }
 
 function B2BContactFields({ record }: { record: any }) {
-  const fullName = record.name || `${record.firstName || ""} ${record.lastName || ""}`.trim();
+  const fullName =
+    record.name || `${record.firstName || ""} ${record.lastName || ""}`.trim();
   const fields = [
     { label: "Name", value: fullName, icon: User },
     { label: "Title", value: record.title, icon: Briefcase },
@@ -226,9 +382,12 @@ function B2BContactFields({ record }: { record: any }) {
     { label: "Seniority", value: record.seniority },
     { label: "Department", value: record.department },
     { label: "Location", value: record.location || record.city, icon: MapPin },
-    { label: "LinkedIn", value: record.linkedIn || record.linkedin_url ? "View" : undefined },
+    {
+      label: "LinkedIn",
+      value: record.linkedIn || record.linkedin_url ? "View" : undefined,
+    },
     { label: "Email", value: record.email, icon: Mail },
-  ].filter(f => f.value !== undefined && f.value !== null && f.value !== "");
+  ].filter((f) => f.value !== undefined && f.value !== null && f.value !== "");
 
   return <FieldGrid fields={fields} />;
 }
@@ -238,12 +397,24 @@ function LeadFields({ record }: { record: any }) {
     { label: "Status", value: record.leadStatus || record.status },
     { label: "Score", value: record.leadScore || record.score },
     { label: "Source", value: record.source },
-    { label: "Created", value: record.createdAt || record.created_at, format: "date" as const, icon: Calendar },
-    { label: "Last Activity", value: record.lastActivityAt || record.last_activity, format: "date" as const },
+    {
+      label: "Created",
+      value: record.createdAt || record.created_at,
+      format: "date" as const,
+      icon: Calendar,
+    },
+    {
+      label: "Last Activity",
+      value: record.lastActivityAt || record.last_activity,
+      format: "date" as const,
+    },
     { label: "Owner", value: record.ownerName || record.owner },
-    { label: "Tags", value: Array.isArray(record.tags) ? record.tags.join(", ") : record.tags },
+    {
+      label: "Tags",
+      value: Array.isArray(record.tags) ? record.tags.join(", ") : record.tags,
+    },
     { label: "Campaign", value: record.campaignName || record.campaign },
-  ].filter(f => f.value !== undefined && f.value !== null && f.value !== "");
+  ].filter((f) => f.value !== undefined && f.value !== null && f.value !== "");
 
   return <FieldGrid fields={fields} />;
 }
@@ -316,32 +487,47 @@ export function UniversalDetailModal({
         title: record.title,
         company: record.company,
         source: "enrichment",
-        isLeadReady: !!(record.ownerPhone || record.phone || record.ownerEmail || record.email),
-        phone1: record.ownerPhone || record.phone ? {
-          number: record.ownerPhone || record.phone,
-          lineType: "mobile",
-          status: "unverified",
-          isPrimary: true,
-        } : null,
-        phone2: record.phone2 ? {
-          number: record.phone2,
-          lineType: "mobile",
-          status: "unverified",
-          isPrimary: false,
-        } : null,
+        isLeadReady: !!(
+          record.ownerPhone ||
+          record.phone ||
+          record.ownerEmail ||
+          record.email
+        ),
+        phone1:
+          record.ownerPhone || record.phone
+            ? {
+                number: record.ownerPhone || record.phone,
+                lineType: "mobile",
+                status: "unverified",
+                isPrimary: true,
+              }
+            : null,
+        phone2: record.phone2
+          ? {
+              number: record.phone2,
+              lineType: "mobile",
+              status: "unverified",
+              isPrimary: false,
+            }
+          : null,
         phone3: null,
-        email1: record.ownerEmail || record.email ? {
-          email: record.ownerEmail || record.email,
-          type: "personal",
-          status: "unverified",
-          isPrimary: true,
-        } : null,
-        email2: record.email2 ? {
-          email: record.email2,
-          type: "personal",
-          status: "unverified",
-          isPrimary: false,
-        } : null,
+        email1:
+          record.ownerEmail || record.email
+            ? {
+                email: record.ownerEmail || record.email,
+                type: "personal",
+                status: "unverified",
+                isPrimary: true,
+              }
+            : null,
+        email2: record.email2
+          ? {
+              email: record.email2,
+              type: "personal",
+              status: "unverified",
+              isPrimary: false,
+            }
+          : null,
         email3: null,
       };
       setContact(existingContact);
@@ -376,8 +562,14 @@ export function UniversalDetailModal({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            firstName: record.ownerFirstName || record.owner_first_name || record.defendant?.split(" ")[0],
-            lastName: record.ownerLastName || record.owner_last_name || record.defendant?.split(" ").slice(1).join(" "),
+            firstName:
+              record.ownerFirstName ||
+              record.owner_first_name ||
+              record.defendant?.split(" ")[0],
+            lastName:
+              record.ownerLastName ||
+              record.owner_last_name ||
+              record.defendant?.split(" ").slice(1).join(" "),
             address: record.address,
             city: record.city,
             state: record.state,
@@ -392,16 +584,25 @@ export function UniversalDetailModal({
         toast.error(enrichResult.error);
       } else {
         // Convert to OwnerContact format
-        const newContact = skipTraceToOwnerContact({
-          ownerName: enrichResult.ownerName || enrichResult.name,
-          firstName: enrichResult.firstName,
-          lastName: enrichResult.lastName,
-          phones: enrichResult.phones || (enrichResult.phone ? [{ number: enrichResult.phone }] : []),
-          emails: enrichResult.emails || (enrichResult.email ? [{ email: enrichResult.email }] : []),
-        }, recordType.includes("b2b") ? "apollo" : "skip_trace");
+        const newContact = skipTraceToOwnerContact(
+          {
+            ownerName: enrichResult.ownerName || enrichResult.name,
+            firstName: enrichResult.firstName,
+            lastName: enrichResult.lastName,
+            phones:
+              enrichResult.phones ||
+              (enrichResult.phone ? [{ number: enrichResult.phone }] : []),
+            emails:
+              enrichResult.emails ||
+              (enrichResult.email ? [{ email: enrichResult.email }] : []),
+          },
+          recordType.includes("b2b") ? "apollo" : "skip_trace",
+        );
 
         setContact(newContact);
-        toast.success(`Found ${[newContact.phone1, newContact.phone2, newContact.phone3].filter(Boolean).length} phones, ${[newContact.email1, newContact.email2, newContact.email3].filter(Boolean).length} emails`);
+        toast.success(
+          `Found ${[newContact.phone1, newContact.phone2, newContact.phone3].filter(Boolean).length} phones, ${[newContact.email1, newContact.email2, newContact.email3].filter(Boolean).length} emails`,
+        );
       }
     } catch (err: any) {
       setEnrichError(err.message || "Enrichment failed");
@@ -433,7 +634,9 @@ export function UniversalDetailModal({
     toast.success("Adding to leads...");
   };
 
-  const handleAddToCampaign = (campaignType: "initial" | "retarget" | "nurture") => {
+  const handleAddToCampaign = (
+    campaignType: "initial" | "retarget" | "nurture",
+  ) => {
     onAction?.("add-campaign", { record, contact, campaignType });
     toast.success(`Adding to ${campaignType} campaign...`);
   };
@@ -488,7 +691,9 @@ export function UniversalDetailModal({
                 {getTitle()}
               </DialogTitle>
               {record.caseNumber && recordType !== "lis-pendens" && (
-                <p className="text-sm text-zinc-500 mt-1">Case #{record.caseNumber}</p>
+                <p className="text-sm text-zinc-500 mt-1">
+                  Case #{record.caseNumber}
+                </p>
               )}
             </div>
           </div>
@@ -554,7 +759,9 @@ export function UniversalDetailModal({
               ) : (
                 <div className="p-8 rounded-lg border border-dashed border-zinc-700 text-center">
                   <User className="h-8 w-8 mx-auto mb-3 text-zinc-600" />
-                  <p className="text-zinc-500 mb-4">No contact data available</p>
+                  <p className="text-zinc-500 mb-4">
+                    No contact data available
+                  </p>
                   <Button
                     variant="outline"
                     onClick={handleEnrich}
@@ -653,7 +860,9 @@ export function UniversalDetailModal({
               <Plus className="h-4 w-4 mr-2" />
               Add Lead
             </Button>
-            {(recordType === "property" || recordType === "lis-pendens" || recordType === "foreclosure") && (
+            {(recordType === "property" ||
+              recordType === "lis-pendens" ||
+              recordType === "foreclosure") && (
               <Button
                 variant="outline"
                 size="sm"

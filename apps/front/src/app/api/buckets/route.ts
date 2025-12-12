@@ -6,7 +6,12 @@ import {
   BucketListResponse,
   EnrichmentStatus,
 } from "@/lib/types/bucket";
-import { S3Client, ListObjectsV2Command, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  ListObjectsV2Command,
+  GetObjectCommand,
+  PutObjectCommand,
+} from "@aws-sdk/client-s3";
 
 // DO Spaces configuration
 const SPACES_ENDPOINT = "https://nyc3.digitaloceanspaces.com";
@@ -36,7 +41,10 @@ async function getBucketIndex(): Promise<Bucket[]> {
   if (!client) return [];
 
   // Check memory cache first
-  if (bucketIndexCache && Date.now() - bucketIndexCache.lastUpdated < CACHE_TTL) {
+  if (
+    bucketIndexCache &&
+    Date.now() - bucketIndexCache.lastUpdated < CACHE_TTL
+  ) {
     return bucketIndexCache.buckets;
   }
 
@@ -47,12 +55,15 @@ async function getBucketIndex(): Promise<Bucket[]> {
         new GetObjectCommand({
           Bucket: SPACES_BUCKET,
           Key: "buckets/_index.json",
-        })
+        }),
       );
       const indexContents = await indexResponse.Body?.transformToString();
       if (indexContents) {
         const index = JSON.parse(indexContents);
-        bucketIndexCache = { buckets: index.buckets || [], lastUpdated: Date.now() };
+        bucketIndexCache = {
+          buckets: index.buckets || [],
+          lastUpdated: Date.now(),
+        };
         return bucketIndexCache.buckets;
       }
     } catch {
@@ -75,30 +86,37 @@ async function getBucketIndex(): Promise<Bucket[]> {
 }
 
 // Save bucket index to S3
-async function saveBucketIndex(client: S3Client, buckets: Bucket[]): Promise<void> {
+async function saveBucketIndex(
+  client: S3Client,
+  buckets: Bucket[],
+): Promise<void> {
   try {
     await client.send(
       new PutObjectCommand({
         Bucket: SPACES_BUCKET,
         Key: "buckets/_index.json",
-        Body: JSON.stringify({
-          buckets: buckets.map(b => ({
-            id: b.id,
-            name: b.name,
-            description: b.description,
-            source: b.source,
-            tags: b.tags,
-            createdAt: b.createdAt,
-            updatedAt: b.updatedAt,
-            totalLeads: b.totalLeads,
-            enrichedLeads: b.enrichedLeads,
-            enrichmentStatus: b.enrichmentStatus,
-          })),
-          updatedAt: new Date().toISOString(),
-          count: buckets.length,
-        }, null, 2),
+        Body: JSON.stringify(
+          {
+            buckets: buckets.map((b) => ({
+              id: b.id,
+              name: b.name,
+              description: b.description,
+              source: b.source,
+              tags: b.tags,
+              createdAt: b.createdAt,
+              updatedAt: b.updatedAt,
+              totalLeads: b.totalLeads,
+              enrichedLeads: b.enrichedLeads,
+              enrichmentStatus: b.enrichmentStatus,
+            })),
+            updatedAt: new Date().toISOString(),
+            count: buckets.length,
+          },
+          null,
+          2,
+        ),
         ContentType: "application/json",
-      })
+      }),
     );
     console.log(`[Buckets API] Index saved with ${buckets.length} buckets`);
   } catch (error) {
@@ -116,7 +134,7 @@ async function addToIndex(bucket: Bucket): Promise<void> {
 
   // Get current index and add new bucket
   const buckets = await getBucketIndex();
-  const existing = buckets.findIndex(b => b.id === bucket.id);
+  const existing = buckets.findIndex((b) => b.id === bucket.id);
   if (existing >= 0) {
     buckets[existing] = bucket;
   } else {
@@ -139,12 +157,12 @@ async function listBucketsFromS3(client: S3Client): Promise<Bucket[]> {
         Prefix: "buckets/",
         ContinuationToken: continuationToken,
         MaxKeys: 1000,
-      })
+      }),
     );
 
     // Process in parallel batches of 50
-    const objects = (response.Contents || []).filter(obj =>
-      obj.Key?.endsWith(".json") && !obj.Key.includes("_index")
+    const objects = (response.Contents || []).filter(
+      (obj) => obj.Key?.endsWith(".json") && !obj.Key.includes("_index"),
     );
 
     const batchSize = 50;
@@ -157,7 +175,7 @@ async function listBucketsFromS3(client: S3Client): Promise<Bucket[]> {
               new GetObjectCommand({
                 Bucket: SPACES_BUCKET,
                 Key: obj.Key!,
-              })
+              }),
             );
 
             const bodyContents = await getResponse.Body?.transformToString();
@@ -167,7 +185,9 @@ async function listBucketsFromS3(client: S3Client): Promise<Bucket[]> {
 
             if (data.metadata) {
               return {
-                id: data.metadata.id || obj.Key!.replace("buckets/", "").replace(".json", ""),
+                id:
+                  data.metadata.id ||
+                  obj.Key!.replace("buckets/", "").replace(".json", ""),
                 name: data.metadata.name || "Unnamed Bucket",
                 description: data.metadata.description || "",
                 source: "real-estate" as const,
@@ -175,7 +195,11 @@ async function listBucketsFromS3(client: S3Client): Promise<Bucket[]> {
                 tags: data.metadata.tags || [],
                 createdAt: data.metadata.createdAt || new Date().toISOString(),
                 updatedAt: data.metadata.updatedAt || new Date().toISOString(),
-                totalLeads: data.properties?.length || data.records?.length || data.metadata.savedCount || 0,
+                totalLeads:
+                  data.properties?.length ||
+                  data.records?.length ||
+                  data.metadata.savedCount ||
+                  0,
                 enrichedLeads: 0,
                 queuedLeads: 0,
                 contactedLeads: 0,
@@ -188,7 +212,7 @@ async function listBucketsFromS3(client: S3Client): Promise<Bucket[]> {
           } catch {
             return null;
           }
-        })
+        }),
       );
 
       buckets.push(...batchResults.filter((b): b is Bucket => b !== null));
@@ -219,7 +243,7 @@ async function saveBucket(bucket: Bucket): Promise<boolean> {
         Key: `buckets/${bucket.id}.json`,
         Body: JSON.stringify(bucket, null, 2),
         ContentType: "application/json",
-      })
+      }),
     );
     return true;
   } catch (error) {
@@ -257,7 +281,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Sort by updated date (newest first)
-    buckets.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+    buckets.sort(
+      (a, b) =>
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+    );
 
     // Paginate
     const total = buckets.length;
@@ -274,7 +301,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(response);
   } catch (error) {
     console.error("[Buckets API] GET error:", error);
-    return NextResponse.json({ error: "Failed to fetch buckets" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch buckets" },
+      { status: 500 },
+    );
   }
 }
 
@@ -288,7 +318,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (!body.source) {
-      return NextResponse.json({ error: "Source is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Source is required" },
+        { status: 400 },
+      );
     }
 
     const id = `bucket-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -313,12 +346,17 @@ export async function POST(request: NextRequest) {
     // Save to DO Spaces
     const saved = await saveBucket(bucket);
     if (!saved) {
-      console.warn("[Buckets API] Could not save to DO Spaces, bucket created in-memory only");
+      console.warn(
+        "[Buckets API] Could not save to DO Spaces, bucket created in-memory only",
+      );
     }
 
     return NextResponse.json({ success: true, bucket }, { status: 201 });
   } catch (error) {
     console.error("[Buckets API] POST error:", error);
-    return NextResponse.json({ error: "Failed to create bucket" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to create bucket" },
+      { status: 500 },
+    );
   }
 }

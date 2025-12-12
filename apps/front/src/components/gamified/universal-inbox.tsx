@@ -26,7 +26,13 @@ import { cn } from "@/lib/utils";
 
 // Types
 type Priority = "HOT" | "WARM" | "COLD" | "URGENT";
-type Classification = "POSITIVE" | "NEUTRAL" | "WRONG_NUMBER" | "PROFANITY" | "DNC_REQUEST" | "UNCLASSIFIED";
+type Classification =
+  | "POSITIVE"
+  | "NEUTRAL"
+  | "WRONG_NUMBER"
+  | "PROFANITY"
+  | "DNC_REQUEST"
+  | "UNCLASSIFIED";
 
 interface InboxMessage {
   id: string;
@@ -63,10 +69,30 @@ interface SdrAssignment {
 
 // Priority configuration
 const priorityConfig = {
-  URGENT: { icon: Sparkles, color: "#a855f7", label: "Urgent", glow: "rgba(168, 85, 247, 0.5)" },
-  HOT: { icon: Flame, color: "#ef4444", label: "Hot", glow: "rgba(239, 68, 68, 0.5)" },
-  WARM: { icon: Zap, color: "#f59e0b", label: "Warm", glow: "rgba(245, 158, 11, 0.5)" },
-  COLD: { icon: Clock, color: "#3b82f6", label: "Cold", glow: "rgba(59, 130, 246, 0.5)" },
+  URGENT: {
+    icon: Sparkles,
+    color: "#a855f7",
+    label: "Urgent",
+    glow: "rgba(168, 85, 247, 0.5)",
+  },
+  HOT: {
+    icon: Flame,
+    color: "#ef4444",
+    label: "Hot",
+    glow: "rgba(239, 68, 68, 0.5)",
+  },
+  WARM: {
+    icon: Zap,
+    color: "#f59e0b",
+    label: "Warm",
+    glow: "rgba(245, 158, 11, 0.5)",
+  },
+  COLD: {
+    icon: Clock,
+    color: "#3b82f6",
+    label: "Cold",
+    glow: "rgba(59, 130, 246, 0.5)",
+  },
 };
 
 const classificationConfig = {
@@ -96,7 +122,10 @@ function calculatePriorityScore(message: Partial<InboxMessage>): number {
   if (message.intent === "question") score += 15;
 
   // Confidence penalty
-  if (message.classificationConfidence && message.classificationConfidence < 70) {
+  if (
+    message.classificationConfidence &&
+    message.classificationConfidence < 70
+  ) {
     score += 10; // Needs human review
   }
 
@@ -144,11 +173,15 @@ function InboxMessageCard({
       onClick={onSelect}
       className={cn(
         "relative bg-zinc-900/50 border rounded-lg p-4 cursor-pointer transition-all",
-        isSelected ? "border-indigo-500 bg-indigo-500/10" : "border-zinc-800 hover:border-zinc-700",
+        isSelected
+          ? "border-indigo-500 bg-indigo-500/10"
+          : "border-zinc-800 hover:border-zinc-700",
         !message.isRead && "border-l-4",
         message.priority === "HOT" && !message.isRead && "border-l-red-500",
-        message.priority === "URGENT" && !message.isRead && "border-l-purple-500",
-        message.requiresReview && "ring-1 ring-amber-500/50"
+        message.priority === "URGENT" &&
+          !message.isRead &&
+          "border-l-purple-500",
+        message.requiresReview && "ring-1 ring-amber-500/50",
       )}
     >
       {/* Priority indicator glow */}
@@ -175,10 +208,17 @@ function InboxMessageCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2 mb-1">
             <div className="flex items-center gap-2">
-              <span className={cn("font-medium", !message.isRead && "text-zinc-100")}>
+              <span
+                className={cn(
+                  "font-medium",
+                  !message.isRead && "text-zinc-100",
+                )}
+              >
                 {message.leadName}
               </span>
-              {message.isStarred && <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />}
+              {message.isStarred && (
+                <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+              )}
               {message.requiresReview && (
                 <span className="px-2 py-0.5 text-xs bg-amber-500/20 text-amber-400 rounded">
                   Review
@@ -192,10 +232,12 @@ function InboxMessageCard({
 
           <p className="text-sm text-zinc-400 mb-2">{message.phone}</p>
 
-          <p className={cn(
-            "text-sm line-clamp-2 mb-3",
-            !message.isRead ? "text-zinc-200" : "text-zinc-400"
-          )}>
+          <p
+            className={cn(
+              "text-sm line-clamp-2 mb-3",
+              !message.isRead ? "text-zinc-200" : "text-zinc-400",
+            )}
+          >
             {message.message}
           </p>
 
@@ -220,7 +262,10 @@ function InboxMessageCard({
             {/* Priority Score */}
             <span
               className="px-2 py-0.5 text-xs rounded-full"
-              style={{ backgroundColor: `${priority.color}20`, color: priority.color }}
+              style={{
+                backgroundColor: `${priority.color}20`,
+                color: priority.color,
+              }}
             >
               Score: {message.priorityScore}
             </span>
@@ -268,7 +313,9 @@ function InboxStats({ messages }: { messages: InboxMessage[] }) {
     const urgent = messages.filter((m) => m.priority === "URGENT").length;
     const hot = messages.filter((m) => m.priority === "HOT").length;
     const unread = messages.filter((m) => !m.isRead).length;
-    const positive = messages.filter((m) => m.classification === "POSITIVE").length;
+    const positive = messages.filter(
+      (m) => m.classification === "POSITIVE",
+    ).length;
     const needsReview = messages.filter((m) => m.requiresReview).length;
 
     return { urgent, hot, unread, positive, needsReview };
@@ -317,7 +364,9 @@ function InboxStats({ messages }: { messages: InboxMessage[] }) {
           <AlertCircle className="w-4 h-4 text-amber-400" />
         </div>
         <div>
-          <p className="text-lg font-bold text-amber-400">{stats.needsReview}</p>
+          <p className="text-lg font-bold text-amber-400">
+            {stats.needsReview}
+          </p>
           <p className="text-xs text-zinc-500">Review</p>
         </div>
       </div>
@@ -353,7 +402,9 @@ export function UniversalInbox() {
       filtered = filtered.filter((m) => m.priority === filter.priority);
     }
     if (filter.classification) {
-      filtered = filtered.filter((m) => m.classification === filter.classification);
+      filtered = filtered.filter(
+        (m) => m.classification === filter.classification,
+      );
     }
     if (filter.showUnreadOnly) {
       filtered = filtered.filter((m) => !m.isRead);
@@ -364,7 +415,7 @@ export function UniversalInbox() {
         (m) =>
           m.leadName.toLowerCase().includes(query) ||
           m.message.toLowerCase().includes(query) ||
-          m.phone.includes(query)
+          m.phone.includes(query),
       );
     }
 
@@ -394,8 +445,8 @@ export function UniversalInbox() {
               assignedSdrName: assignment.sdrName,
               initialMessageId: assignment.initialMessageId,
             }
-          : m
-      )
+          : m,
+      ),
     );
   };
 
@@ -414,7 +465,9 @@ export function UniversalInbox() {
             </motion.div>
             <div>
               <h1 className="text-2xl font-bold">Universal Inbox</h1>
-              <p className="text-sm text-zinc-500">AI-prioritized response queue</p>
+              <p className="text-sm text-zinc-500">
+                AI-prioritized response queue
+              </p>
             </div>
           </div>
 
@@ -426,7 +479,12 @@ export function UniversalInbox() {
               disabled={isRefreshing}
               className="p-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 transition-colors"
             >
-              <RefreshCw className={cn("w-5 h-5 text-zinc-400", isRefreshing && "animate-spin")} />
+              <RefreshCw
+                className={cn(
+                  "w-5 h-5 text-zinc-400",
+                  isRefreshing && "animate-spin",
+                )}
+              />
             </motion.button>
           </div>
         </div>
@@ -452,49 +510,58 @@ export function UniversalInbox() {
 
           {/* Priority Filter */}
           <div className="flex items-center gap-2">
-            {(["URGENT", "HOT", "WARM", "COLD"] as Priority[]).map((priority) => {
-              const config = priorityConfig[priority];
-              const Icon = config.icon;
-              const isActive = filter.priority === priority;
+            {(["URGENT", "HOT", "WARM", "COLD"] as Priority[]).map(
+              (priority) => {
+                const config = priorityConfig[priority];
+                const Icon = config.icon;
+                const isActive = filter.priority === priority;
 
-              return (
-                <motion.button
-                  key={priority}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() =>
-                    setFilter((f) => ({
-                      ...f,
-                      priority: f.priority === priority ? undefined : priority,
-                    }))
-                  }
-                  className={cn(
-                    "flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm transition-all",
-                    isActive
-                      ? "bg-opacity-100"
-                      : "bg-zinc-800 hover:bg-zinc-700"
-                  )}
-                  style={{
-                    backgroundColor: isActive ? `${config.color}30` : undefined,
-                    color: isActive ? config.color : undefined,
-                    boxShadow: isActive ? `0 0 10px ${config.glow}` : undefined,
-                  }}
-                >
-                  <Icon className="w-4 h-4" />
-                  {config.label}
-                </motion.button>
-              );
-            })}
+                return (
+                  <motion.button
+                    key={priority}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() =>
+                      setFilter((f) => ({
+                        ...f,
+                        priority:
+                          f.priority === priority ? undefined : priority,
+                      }))
+                    }
+                    className={cn(
+                      "flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm transition-all",
+                      isActive
+                        ? "bg-opacity-100"
+                        : "bg-zinc-800 hover:bg-zinc-700",
+                    )}
+                    style={{
+                      backgroundColor: isActive
+                        ? `${config.color}30`
+                        : undefined,
+                      color: isActive ? config.color : undefined,
+                      boxShadow: isActive
+                        ? `0 0 10px ${config.glow}`
+                        : undefined,
+                    }}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {config.label}
+                  </motion.button>
+                );
+              },
+            )}
           </div>
 
           {/* Unread Toggle */}
           <button
-            onClick={() => setFilter((f) => ({ ...f, showUnreadOnly: !f.showUnreadOnly }))}
+            onClick={() =>
+              setFilter((f) => ({ ...f, showUnreadOnly: !f.showUnreadOnly }))
+            }
             className={cn(
               "px-3 py-1.5 rounded-lg text-sm transition-colors",
               filter.showUnreadOnly
                 ? "bg-indigo-500/20 text-indigo-400"
-                : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700",
             )}
           >
             Unread only
@@ -512,7 +579,9 @@ export function UniversalInbox() {
                 message={message}
                 isSelected={selectedMessage === message.id}
                 onSelect={() => setSelectedMessage(message.id)}
-                onAssignSdr={(assignment) => handleAssignSdr(message.id, assignment)}
+                onAssignSdr={(assignment) =>
+                  handleAssignSdr(message.id, assignment)
+                }
               />
             ))}
           </AnimatePresence>

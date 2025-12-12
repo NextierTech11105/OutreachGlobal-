@@ -255,7 +255,10 @@ export function TeamSettings() {
               <p className="mt-2 text-sm text-muted-foreground">
                 Get started by inviting your first team member.
               </p>
-              <Button className="mt-4" onClick={() => setIsInviteDialogOpen(true)}>
+              <Button
+                className="mt-4"
+                onClick={() => setIsInviteDialogOpen(true)}
+              >
                 <UserPlus className="mr-2 h-4 w-4" />
                 Invite Team Member
               </Button>
@@ -283,7 +286,9 @@ export function TeamSettings() {
                             src={member.avatar || "/placeholder.svg"}
                             alt={member.name}
                           />
-                          <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
+                          <AvatarFallback>
+                            {member.name.charAt(0)}
+                          </AvatarFallback>
                         </Avatar>
                         <div>
                           <div className="font-medium">{member.name}</div>
@@ -325,9 +330,12 @@ export function TeamSettings() {
                             Change to Admin
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            onClick={() => handleChangeRole(member.id, "Member")}
+                            onClick={() =>
+                              handleChangeRole(member.id, "Member")
+                            }
                             disabled={
-                              member.role === "Owner" || member.role === "Member"
+                              member.role === "Owner" ||
+                              member.role === "Member"
                             }
                           >
                             Change to Member

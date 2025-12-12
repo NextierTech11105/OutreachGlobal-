@@ -12,7 +12,10 @@ import {
 // GET - List webhooks or get specific webhook
 export async function GET(request: NextRequest) {
   if (!isConfigured()) {
-    return NextResponse.json({ error: "SignalHouse not configured" }, { status: 503 });
+    return NextResponse.json(
+      { error: "SignalHouse not configured" },
+      { status: 503 },
+    );
   }
 
   const { searchParams } = new URL(request.url);
@@ -24,7 +27,10 @@ export async function GET(request: NextRequest) {
     if (action === "events") {
       const result = await getWebhookEvents();
       if (!result.success) {
-        return NextResponse.json({ error: result.error }, { status: result.status || 400 });
+        return NextResponse.json(
+          { error: result.error },
+          { status: result.status || 400 },
+        );
       }
       return NextResponse.json({
         success: true,
@@ -45,7 +51,10 @@ export async function GET(request: NextRequest) {
     if (webhookId) {
       const result = await getWebhook(webhookId);
       if (!result.success) {
-        return NextResponse.json({ error: result.error }, { status: result.status || 400 });
+        return NextResponse.json(
+          { error: result.error },
+          { status: result.status || 400 },
+        );
       }
       return NextResponse.json({ success: true, webhook: result.data });
     }
@@ -53,7 +62,10 @@ export async function GET(request: NextRequest) {
     // List all webhooks
     const result = await getWebhooks();
     if (!result.success) {
-      return NextResponse.json({ error: result.error }, { status: result.status || 400 });
+      return NextResponse.json(
+        { error: result.error },
+        { status: result.status || 400 },
+      );
     }
 
     return NextResponse.json({
@@ -63,8 +75,11 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("[SignalHouse Webhook] Error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to get webhooks" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to get webhooks",
+      },
+      { status: 500 },
     );
   }
 }
@@ -72,7 +87,10 @@ export async function GET(request: NextRequest) {
 // POST - Create a new webhook
 export async function POST(request: NextRequest) {
   if (!isConfigured()) {
-    return NextResponse.json({ error: "SignalHouse not configured" }, { status: 503 });
+    return NextResponse.json(
+      { error: "SignalHouse not configured" },
+      { status: 503 },
+    );
   }
 
   try {
@@ -82,14 +100,17 @@ export async function POST(request: NextRequest) {
     if (!name || !url || !events || !Array.isArray(events)) {
       return NextResponse.json(
         { error: "name, url, and events array are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const result = await createWebhook({ name, url, events, description });
 
     if (!result.success) {
-      return NextResponse.json({ error: result.error }, { status: result.status || 400 });
+      return NextResponse.json(
+        { error: result.error },
+        { status: result.status || 400 },
+      );
     }
 
     return NextResponse.json({
@@ -100,8 +121,11 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("[SignalHouse Webhook] Create error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to create webhook" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to create webhook",
+      },
+      { status: 500 },
     );
   }
 }
@@ -109,7 +133,10 @@ export async function POST(request: NextRequest) {
 // PATCH - Update a webhook
 export async function PATCH(request: NextRequest) {
   if (!isConfigured()) {
-    return NextResponse.json({ error: "SignalHouse not configured" }, { status: 503 });
+    return NextResponse.json(
+      { error: "SignalHouse not configured" },
+      { status: 503 },
+    );
   }
 
   try {
@@ -117,13 +144,19 @@ export async function PATCH(request: NextRequest) {
     const { webhookId, ...updates } = body;
 
     if (!webhookId) {
-      return NextResponse.json({ error: "webhookId required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "webhookId required" },
+        { status: 400 },
+      );
     }
 
     const result = await updateWebhook(webhookId, updates);
 
     if (!result.success) {
-      return NextResponse.json({ error: result.error }, { status: result.status || 400 });
+      return NextResponse.json(
+        { error: result.error },
+        { status: result.status || 400 },
+      );
     }
 
     return NextResponse.json({
@@ -134,8 +167,11 @@ export async function PATCH(request: NextRequest) {
   } catch (error) {
     console.error("[SignalHouse Webhook] Update error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to update webhook" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to update webhook",
+      },
+      { status: 500 },
     );
   }
 }
@@ -143,7 +179,10 @@ export async function PATCH(request: NextRequest) {
 // DELETE - Delete a webhook
 export async function DELETE(request: NextRequest) {
   if (!isConfigured()) {
-    return NextResponse.json({ error: "SignalHouse not configured" }, { status: 503 });
+    return NextResponse.json(
+      { error: "SignalHouse not configured" },
+      { status: 503 },
+    );
   }
 
   const { searchParams } = new URL(request.url);
@@ -157,15 +196,21 @@ export async function DELETE(request: NextRequest) {
     const result = await deleteWebhook(webhookId);
 
     if (!result.success) {
-      return NextResponse.json({ error: result.error }, { status: result.status || 400 });
+      return NextResponse.json(
+        { error: result.error },
+        { status: result.status || 400 },
+      );
     }
 
     return NextResponse.json({ success: true, message: "Webhook deleted" });
   } catch (error) {
     console.error("[SignalHouse Webhook] Delete error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to delete webhook" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to delete webhook",
+      },
+      { status: 500 },
     );
   }
 }

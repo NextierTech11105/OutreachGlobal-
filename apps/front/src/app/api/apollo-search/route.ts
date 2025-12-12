@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { apolloIoApi, searchCommercialRealEstateB2B } from "@/lib/services/apollo-io-api";
+import {
+  apolloIoApi,
+  searchCommercialRealEstateB2B,
+} from "@/lib/services/apollo-io-api";
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -19,7 +22,10 @@ export async function GET(request: NextRequest) {
     if (searchType === "decision-makers") {
       const domain = searchParams.get("domain");
       if (!domain) {
-        return NextResponse.json({ error: "Domain is required" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Domain is required" },
+          { status: 400 },
+        );
       }
       const data = await apolloIoApi.searchDecisionMakers(domain);
       return NextResponse.json(data);
@@ -27,7 +33,7 @@ export async function GET(request: NextRequest) {
 
     if (searchType === "property-owners") {
       const data = await apolloIoApi.searchPropertyOwners(
-        searchParams.get("location") || undefined
+        searchParams.get("location") || undefined,
       );
       return NextResponse.json(data);
     }
@@ -41,8 +47,12 @@ export async function GET(request: NextRequest) {
     const data = await apolloIoApi.searchPeople({
       q_organization_name: searchParams.get("company") || undefined,
       person_titles: searchParams.get("titles")?.split(",") || undefined,
-      person_locations: searchParams.get("location") ? [searchParams.get("location")!] : undefined,
-      organization_locations: searchParams.get("orgLocation") ? [searchParams.get("orgLocation")!] : undefined,
+      person_locations: searchParams.get("location")
+        ? [searchParams.get("location")!]
+        : undefined,
+      organization_locations: searchParams.get("orgLocation")
+        ? [searchParams.get("orgLocation")!]
+        : undefined,
       page: parseInt(searchParams.get("page") || "1"),
       per_page: parseInt(searchParams.get("perPage") || "25"),
     });
@@ -52,7 +62,7 @@ export async function GET(request: NextRequest) {
     console.error("Apollo search error:", error);
     return NextResponse.json(
       { error: "Failed to search Apollo.io", details: String(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -73,11 +83,13 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(await apolloIoApi.enrichPerson(params));
 
       case "enrich-organization":
-        return NextResponse.json(await apolloIoApi.enrichOrganization(params.domain));
+        return NextResponse.json(
+          await apolloIoApi.enrichOrganization(params.domain),
+        );
 
       case "search-by-company":
         return NextResponse.json(
-          await apolloIoApi.searchPeopleByCompany(params.domain, params)
+          await apolloIoApi.searchPeopleByCompany(params.domain, params),
         );
 
       case "b2b-prospects":
@@ -86,8 +98,8 @@ export async function POST(request: NextRequest) {
             params.industry,
             params.location,
             params.employeeRange,
-            params
-          )
+            params,
+          ),
         );
 
       default:
@@ -97,7 +109,7 @@ export async function POST(request: NextRequest) {
     console.error("Apollo API error:", error);
     return NextResponse.json(
       { error: "Failed to call Apollo.io API", details: String(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

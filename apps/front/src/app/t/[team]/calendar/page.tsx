@@ -38,6 +38,10 @@ import {
   Play,
   PhoneOff,
   Zap,
+  Search,
+  Upload,
+  UserSearch,
+  Tag,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -209,6 +213,20 @@ export default function LeadCalendarWorkspace() {
   const [isLoadingDialer, setIsLoadingDialer] = useState(false);
   const [showDialerDialog, setShowDialerDialog] = useState(false);
   const MAX_DIALER_LEADS = 2000;
+
+  // Pull Leads State
+  const [showPullLeadsDialog, setShowPullLeadsDialog] = useState(false);
+  const [isPullingLeads, setIsPullingLeads] = useState(false);
+  const [pullLeadsFilter, setPullLeadsFilter] = useState({
+    state: "NY",
+    decisionMakersOnly: true,
+    limit: 50,
+  });
+
+  // Skip Trace State
+  const [showSkipTraceDialog, setShowSkipTraceDialog] = useState(false);
+  const [isSkipTracing, setIsSkipTracing] = useState(false);
+  const [skipTraceProgress, setSkipTraceProgress] = useState({ done: 0, total: 0, success: 0, failed: 0 });
 
   // Calculate date range for current view
   const dateRange = useMemo(() => {
@@ -491,6 +509,143 @@ export default function LeadCalendarWorkspace() {
     }
   }, [selectedLeads, selectedDateLeads]);
 
+  // Pull Leads from B2B Search
+  const handlePullLeads = useCallback(async () => {
+    setIsPullingLeads(true);
+    try {
+      const response = await fetch("/api/b2b/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          state: pullLeadsFilter.state,
+          decisionMakersOnly: pullLeadsFilter.decisionMakersOnly,
+          limit: pullLeadsFilter.limit,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.leads && data.leads.length > 0) {
+        // Transform B2B leads to calendar leads
+        const newLeads: Lead[] = data.leads.map((lead: Record<string, unknown>) => ({
+          id: lead.id || `lead-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          name: `${lead.first_name || ""} ${lead.last_name || ""}`.trim() || (lead.company as string) || "Unknown",
+          phone: lead.phone as string || undefined,
+          email: lead.email as string || undefined,
+          address: lead.address as string || undefined,
+          city: lead.city as string || undefined,
+          state: lead.state as string || "NY",
+          propertyValue: undefined,
+          equity: undefined,
+          leadType: "B2B",
+          status: "new" as const,
+          createdAt: new Date().toISOString(),
+          source: "b2b_search",
+          notes: `Company: ${lead.company || "N/A"}, Title: ${lead.title || "N/A"}`,
+        }));
+
+        setAllLeads((prev) => [...newLeads, ...prev]);
+        toast.success(`Pulled ${newLeads.length} leads`, {
+          description: `${data.filters?.decisionMakersOnly ? "Decision makers only" : "All contacts"} from ${pullLeadsFilter.state}`,
+        });
+      } else {
+        toast.info("No leads found", { description: "Try adjusting your filters" });
+      }
+    } catch (error) {
+      toast.error("Failed to pull leads", {
+        description: error instanceof Error ? error.message : "Unknown error",
+      });
+    } finally {
+      setIsPullingLeads(false);
+      setShowPullLeadsDialog(false);
+    }
+  }, [pullLeadsFilter]);
+
+  // Skip Trace using RealEstateAPI
+  const handleSkipTrace = useCallback(async () => {
+    const leads = getSelectedLeadsList();
+    if (leads.length === 0) {
+      toast.error("Select leads to skip trace");
+      return;
+    }
+
+    const leadsToTrace = leads.filter((l) => l.address && l.city && l.state);
+    if (leadsToTrace.length === 0) {
+      toast.error("No leads with addresses to skip trace", {
+        description: "Skip trace requires address, city, and state",
+      });
+      return;
+    }
+
+    setIsSkipTracing(true);
+    setSkipTraceProgress({ done: 0, total: leadsToTrace.length, success: 0, failed: 0 });
+
+    let successCount = 0;
+    let failedCount = 0;
+
+    for (let i = 0; i < leadsToTrace.length; i++) {
+      const lead = leadsToTrace[i];
+      const nameParts = lead.name?.split(" ") || [];
+      const firstName = nameParts[0] || "";
+      const lastName = nameParts.slice(1).join(" ") || "";
+
+      try {
+        const response = await fetch("/api/enrichment/skip-trace", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            recordId: lead.id,
+            bucketId: "calendar-workspace",
+            firstName,
+            lastName,
+            address: lead.address,
+            city: lead.city,
+            state: lead.state,
+          }),
+        });
+
+        const result = await response.json();
+
+        if (result.success && result.enrichedData) {
+          // Update lead with skip trace data
+          setAllLeads((prev) =>
+            prev.map((l) =>
+              l.id === lead.id
+                ? {
+                    ...l,
+                    phone: result.enrichedData.phone || l.phone,
+                    email: result.enrichedData.email || l.email,
+                    notes: `${l.notes || ""}\n[Skip Traced] ${result.enrichedData.allPhones?.length || 0} phones, ${result.enrichedData.allEmails?.length || 0} emails`,
+                  }
+                : l,
+            ),
+          );
+          successCount++;
+        } else {
+          failedCount++;
+        }
+      } catch {
+        failedCount++;
+      }
+
+      setSkipTraceProgress({ done: i + 1, total: leadsToTrace.length, success: successCount, failed: failedCount });
+    }
+
+    setIsSkipTracing(false);
+    setSelectedLeads(new Set());
+    setShowSkipTraceDialog(false);
+
+    if (successCount > 0) {
+      toast.success(`Skip traced ${successCount} leads`, {
+        description: failedCount > 0 ? `${failedCount} failed` : "Phone numbers and emails updated",
+      });
+    } else {
+      toast.error("Skip trace failed", {
+        description: "No leads could be traced. Check API configuration.",
+      });
+    }
+  }, [selectedLeads, selectedDateLeads]);
+
   // Campaign push - real API call
   const handlePushToCampaign = async () => {
     const leads = getSelectedLeadsList();
@@ -583,6 +738,27 @@ export default function LeadCalendarWorkspace() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            {/* Pull Leads Button */}
+            <Button
+              variant="outline"
+              onClick={() => setShowPullLeadsDialog(true)}
+              className="border-blue-300 text-blue-700 hover:bg-blue-50"
+            >
+              <Search className="h-4 w-4 mr-2" />
+              Pull Leads
+            </Button>
+
+            {/* Skip Trace Button */}
+            <Button
+              variant="outline"
+              onClick={() => setShowSkipTraceDialog(true)}
+              disabled={selectedLeads.size === 0}
+              className="border-amber-300 text-amber-700 hover:bg-amber-50"
+            >
+              <UserSearch className="h-4 w-4 mr-2" />
+              Skip Trace {selectedLeads.size > 0 && `(${selectedLeads.size})`}
+            </Button>
+
             <Badge variant="outline" className="py-1.5">
               <Users className="h-3.5 w-3.5 mr-1" />
               {monthStats.total} leads this month
@@ -1163,6 +1339,181 @@ export default function LeadCalendarWorkspace() {
                 <>
                   <Send className="h-4 w-4 mr-2" />
                   Push {selectedLeads.size} Leads
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Pull Leads Dialog */}
+      <Dialog open={showPullLeadsDialog} onOpenChange={setShowPullLeadsDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Search className="h-5 w-5 text-blue-600" />
+              Pull Leads from B2B Database
+            </DialogTitle>
+            <DialogDescription>
+              Pull decision makers from your 2.8M+ USBizData records
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4 space-y-4">
+            <div className="space-y-2">
+              <Label>State</Label>
+              <Select
+                value={pullLeadsFilter.state}
+                onValueChange={(v) => setPullLeadsFilter({ ...pullLeadsFilter, state: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="NY">New York</SelectItem>
+                  <SelectItem value="CA">California</SelectItem>
+                  <SelectItem value="TX">Texas</SelectItem>
+                  <SelectItem value="FL">Florida</SelectItem>
+                  <SelectItem value="IL">Illinois</SelectItem>
+                  <SelectItem value="PA">Pennsylvania</SelectItem>
+                  <SelectItem value="OH">Ohio</SelectItem>
+                  <SelectItem value="GA">Georgia</SelectItem>
+                  <SelectItem value="NC">North Carolina</SelectItem>
+                  <SelectItem value="NJ">New Jersey</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+              <div>
+                <p className="font-medium text-sm">Decision Makers Only</p>
+                <p className="text-xs text-muted-foreground">Owner, CEO, VP, Director, Partner</p>
+              </div>
+              <Checkbox
+                checked={pullLeadsFilter.decisionMakersOnly}
+                onCheckedChange={(checked) =>
+                  setPullLeadsFilter({ ...pullLeadsFilter, decisionMakersOnly: checked === true })
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Number of Leads</Label>
+              <Select
+                value={String(pullLeadsFilter.limit)}
+                onValueChange={(v) => setPullLeadsFilter({ ...pullLeadsFilter, limit: parseInt(v) })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="25">25 leads</SelectItem>
+                  <SelectItem value="50">50 leads</SelectItem>
+                  <SelectItem value="100">100 leads</SelectItem>
+                  <SelectItem value="250">250 leads</SelectItem>
+                  <SelectItem value="500">500 leads</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPullLeadsDialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handlePullLeads}
+              disabled={isPullingLeads}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {isPullingLeads ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Pulling...
+                </>
+              ) : (
+                <>
+                  <Search className="h-4 w-4 mr-2" />
+                  Pull {pullLeadsFilter.limit} Leads
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Skip Trace Dialog */}
+      <Dialog open={showSkipTraceDialog} onOpenChange={setShowSkipTraceDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserSearch className="h-5 w-5 text-amber-600" />
+              Skip Trace Selected Leads
+            </DialogTitle>
+            <DialogDescription>
+              Enrich leads with phone numbers and emails using RealEstateAPI
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4 space-y-4">
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5" />
+                <div>
+                  <p className="font-medium text-amber-800">Cost: ~$0.10-0.25 per lead</p>
+                  <p className="text-sm text-amber-700">
+                    Skip trace returns mobile phones, emails, address history
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                <span className="text-sm">Selected leads:</span>
+                <Badge>{selectedLeads.size}</Badge>
+              </div>
+              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                <span className="text-sm">With addresses:</span>
+                <Badge variant="outline">
+                  {getSelectedLeadsList().filter((l) => l.address && l.city && l.state).length}
+                </Badge>
+              </div>
+            </div>
+
+            {isSkipTracing && (
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Progress</span>
+                  <span>{skipTraceProgress.done} / {skipTraceProgress.total}</span>
+                </div>
+                <Progress value={(skipTraceProgress.done / skipTraceProgress.total) * 100} />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span className="text-green-600">{skipTraceProgress.success} success</span>
+                  <span className="text-red-600">{skipTraceProgress.failed} failed</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSkipTraceDialog(false)} disabled={isSkipTracing}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSkipTrace}
+              disabled={isSkipTracing || selectedLeads.size === 0}
+              className="bg-amber-600 hover:bg-amber-700"
+            >
+              {isSkipTracing ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Tracing...
+                </>
+              ) : (
+                <>
+                  <UserSearch className="h-4 w-4 mr-2" />
+                  Skip Trace {selectedLeads.size} Leads
                 </>
               )}
             </Button>

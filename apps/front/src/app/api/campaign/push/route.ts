@@ -2,16 +2,56 @@ import { NextRequest, NextResponse } from "next/server";
 
 // Area codes by state for SignalHouse number provisioning
 const STATE_AREA_CODES: Record<string, string> = {
-  AL: "205", AK: "907", AZ: "480", AR: "501", CA: "310",
-  CO: "303", CT: "203", DE: "302", FL: "305", GA: "404",
-  HI: "808", ID: "208", IL: "312", IN: "317", IA: "515",
-  KS: "316", KY: "502", LA: "504", ME: "207", MD: "301",
-  MA: "617", MI: "313", MN: "612", MS: "601", MO: "314",
-  MT: "406", NE: "402", NV: "702", NH: "603", NJ: "201",
-  NM: "505", NY: "212", NC: "704", ND: "701", OH: "216",
-  OK: "405", OR: "503", PA: "215", RI: "401", SC: "803",
-  SD: "605", TN: "615", TX: "214", UT: "801", VT: "802",
-  VA: "703", WA: "206", WV: "304", WI: "414", WY: "307",
+  AL: "205",
+  AK: "907",
+  AZ: "480",
+  AR: "501",
+  CA: "310",
+  CO: "303",
+  CT: "203",
+  DE: "302",
+  FL: "305",
+  GA: "404",
+  HI: "808",
+  ID: "208",
+  IL: "312",
+  IN: "317",
+  IA: "515",
+  KS: "316",
+  KY: "502",
+  LA: "504",
+  ME: "207",
+  MD: "301",
+  MA: "617",
+  MI: "313",
+  MN: "612",
+  MS: "601",
+  MO: "314",
+  MT: "406",
+  NE: "402",
+  NV: "702",
+  NH: "603",
+  NJ: "201",
+  NM: "505",
+  NY: "212",
+  NC: "704",
+  ND: "701",
+  OH: "216",
+  OK: "405",
+  OR: "503",
+  PA: "215",
+  RI: "401",
+  SC: "803",
+  SD: "605",
+  TN: "615",
+  TX: "214",
+  UT: "801",
+  VT: "802",
+  VA: "703",
+  WA: "206",
+  WV: "304",
+  WI: "414",
+  WY: "307",
 };
 
 function getAreaCodeForState(state: string): string | undefined {
@@ -49,13 +89,13 @@ export interface CampaignPushRequest {
   campaignName: string;
   campaignType: "sms" | "email" | "voice" | "multi";
   leads: CampaignLead[];
-  assignNumber?: boolean;      // Provision Twilio number for campaign
-  assignAiSdr?: boolean;       // Assign AI SDR for auto-responses
-  aiSdrId?: string;            // Specific AI SDR to use
-  initialMessageId?: string;   // Initial message template
-  scheduleStart?: string;      // ISO datetime to start campaign
-  dailyLimit?: number;         // Max messages per day
-  tags?: string[];             // Campaign-level tags
+  assignNumber?: boolean; // Provision Twilio number for campaign
+  assignAiSdr?: boolean; // Assign AI SDR for auto-responses
+  aiSdrId?: string; // Specific AI SDR to use
+  initialMessageId?: string; // Initial message template
+  scheduleStart?: string; // ISO datetime to start campaign
+  dailyLimit?: number; // Max messages per day
+  tags?: string[]; // Campaign-level tags
 }
 
 export interface CampaignPushResult {
@@ -87,16 +127,26 @@ export async function POST(request: NextRequest) {
     } = body;
 
     if (!campaignName) {
-      return NextResponse.json({ error: "campaignName required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "campaignName required" },
+        { status: 400 },
+      );
     }
 
     if (!leads || !Array.isArray(leads) || leads.length === 0) {
-      return NextResponse.json({ error: "leads array required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "leads array required" },
+        { status: 400 },
+      );
     }
 
     // Filter leads that have contact info
     const validLeads = leads.filter((lead) => {
-      if (campaignType === "sms" || campaignType === "voice" || campaignType === "multi") {
+      if (
+        campaignType === "sms" ||
+        campaignType === "voice" ||
+        campaignType === "multi"
+      ) {
         return lead.phones && lead.phones.length > 0;
       }
       if (campaignType === "email") {
@@ -106,14 +156,19 @@ export async function POST(request: NextRequest) {
     });
 
     if (validLeads.length === 0) {
-      return NextResponse.json({
-        error: `No leads with valid ${campaignType === "email" ? "emails" : "phone numbers"}`,
-        totalLeads: leads.length,
-        validLeads: 0,
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: `No leads with valid ${campaignType === "email" ? "emails" : "phone numbers"}`,
+          totalLeads: leads.length,
+          validLeads: 0,
+        },
+        { status: 400 },
+      );
     }
 
-    console.log(`[Campaign Push] Creating "${campaignName}" with ${validLeads.length} leads (${campaignType})`);
+    console.log(
+      `[Campaign Push] Creating "${campaignName}" with ${validLeads.length} leads (${campaignType})`,
+    );
 
     // Generate campaign ID
     const campaignId = `camp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -175,24 +230,33 @@ export async function POST(request: NextRequest) {
     if (assignNumber) {
       try {
         // Call SignalHouse API to provision number
-        const signalHouseResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || ""}/api/signalhouse`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "provision_number",
-            campaignName: name,
-            areaCode: validLeads[0]?.state ? getAreaCodeForState(validLeads[0].state) : undefined,
-          }),
-        });
+        const signalHouseResponse = await fetch(
+          `${process.env.NEXT_PUBLIC_APP_URL || ""}/api/signalhouse`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "provision_number",
+              campaignName: name,
+              areaCode: validLeads[0]?.state
+                ? getAreaCodeForState(validLeads[0].state)
+                : undefined,
+            }),
+          },
+        );
 
         if (signalHouseResponse.ok) {
           const shResult = await signalHouseResponse.json();
           result.phoneAssigned = shResult.phoneNumber;
-          console.log(`[Campaign Push] SignalHouse number assigned: ${result.phoneAssigned}`);
+          console.log(
+            `[Campaign Push] SignalHouse number assigned: ${result.phoneAssigned}`,
+          );
         } else {
           // Fallback: Use placeholder until SignalHouse is configured
           result.phoneAssigned = `+1${Math.floor(Math.random() * 9000000000 + 1000000000)}`;
-          console.log(`[Campaign Push] SignalHouse not configured, using placeholder: ${result.phoneAssigned}`);
+          console.log(
+            `[Campaign Push] SignalHouse not configured, using placeholder: ${result.phoneAssigned}`,
+          );
         }
       } catch (err) {
         // SignalHouse not available, use placeholder
@@ -214,7 +278,9 @@ export async function POST(request: NextRequest) {
       (globalThis as any).__campaigns.push(campaignData);
     }
 
-    console.log(`[Campaign Push] Success: ${result.leadsAdded} leads added to "${campaignName}"`);
+    console.log(
+      `[Campaign Push] Success: ${result.leadsAdded} leads added to "${campaignName}"`,
+    );
 
     return NextResponse.json({
       success: true,

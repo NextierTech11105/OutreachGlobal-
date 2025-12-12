@@ -315,7 +315,12 @@ export const REBUTTAL_LIBRARY = {
     rebuttals: [
       {
         id: "ah_1",
-        trigger: ["already have", "using something", "got covered", "have a system"],
+        trigger: [
+          "already have",
+          "using something",
+          "got covered",
+          "have a system",
+        ],
         responses: [
           "Cool - what are you using? Always curious what's working. Most people are only at 30% of what's possible.",
           "Nice. Is it actually saving you time though? Or just different work? Be honest.",
@@ -369,7 +374,13 @@ export const REBUTTAL_LIBRARY = {
     rebuttals: [
       {
         id: "sk_1",
-        trigger: ["sounds too good", "scam", "bs", "don't believe", "yeah right"],
+        trigger: [
+          "sounds too good",
+          "scam",
+          "bs",
+          "don't believe",
+          "yeah right",
+        ],
         responses: [
           "Healthy skepticism {firstName}. I like it. Here's the thing - I can prove it. 15 mins, no pitch, just proof.",
           "I'd be skeptical too. That's why I show, not tell. Free strategy session = you see exactly how it works.",
@@ -442,7 +453,7 @@ export const LEARNING_CONFIG = {
 export function getBestOpeners(
   category: keyof typeof OPENER_LIBRARY,
   performance: MessagePerformance[],
-  count: number = 5
+  count: number = 5,
 ): string[] {
   const categoryMessages = OPENER_LIBRARY[category];
 
@@ -482,7 +493,10 @@ export function recordFeedback(data: {
 
   // If user modified the message and it worked, add to library
   if (data.userModification && data.feedback === "good") {
-    console.log("[Learning] User improvement added to library:", data.userModification);
+    console.log(
+      "[Learning] User improvement added to library:",
+      data.userModification,
+    );
   }
 }
 

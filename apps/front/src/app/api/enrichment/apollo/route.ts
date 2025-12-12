@@ -14,7 +14,7 @@ import { NextRequest, NextResponse } from "next/server";
  */
 
 const APOLLO_API_URL = "https://api.apollo.io/v1/people/match";
-const APOLLO_API_KEY = process.env.APOLLO_API_KEY || "";
+const APOLLO_API_KEY = process.env.APOLLO_IO_API_KEY || process.env.NEXT_PUBLIC_APOLLO_IO_API_KEY || process.env.APOLLO_API_KEY || "";
 
 interface ApolloEnrichRequest {
   recordId: string;
@@ -63,24 +63,38 @@ interface ApolloPersonMatch {
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const body: ApolloEnrichRequest = await request.json();
-    const { recordId, bucketId, email, companyName, firstName, lastName, linkedinUrl, domain } = body;
+    const {
+      recordId,
+      bucketId,
+      email,
+      companyName,
+      firstName,
+      lastName,
+      linkedinUrl,
+      domain,
+    } = body;
 
     // Validate required fields
     if (!recordId || !bucketId) {
       return NextResponse.json(
         { error: "recordId and bucketId are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Need at least one identifier for Apollo match
-    if (!email && !linkedinUrl && !(firstName && lastName && (companyName || domain))) {
+    if (
+      !email &&
+      !linkedinUrl &&
+      !(firstName && lastName && (companyName || domain))
+    ) {
       return NextResponse.json(
         {
-          error: "Need email, linkedinUrl, or (firstName + lastName + companyName/domain)",
-          hint: "Provide at least one strong identifier for matching"
+          error:
+            "Need email, linkedinUrl, or (firstName + lastName + companyName/domain)",
+          hint: "Provide at least one strong identifier for matching",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -90,13 +104,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json(
         {
           error: "Apollo API not configured",
-          hint: "Set APOLLO_API_KEY environment variable"
+          hint: "Set APOLLO_API_KEY environment variable",
         },
-        { status: 503 }
+        { status: 503 },
       );
     }
 
-    console.log(`[Apollo] Enriching record ${recordId} from bucket ${bucketId}`);
+    console.log(
+      `[Apollo] Enriching record ${recordId} from bucket ${bucketId}`,
+    );
 
     // Build Apollo match request
     const matchRequest: Record<string, string | undefined> = {};
@@ -123,15 +139,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       console.error(`[Apollo] API error: ${response.status} - ${errorText}`);
 
       if (response.status === 401) {
-        return NextResponse.json({ error: "Invalid Apollo API key" }, { status: 401 });
+        return NextResponse.json(
+          { error: "Invalid Apollo API key" },
+          { status: 401 },
+        );
       }
       if (response.status === 429) {
-        return NextResponse.json({ error: "Apollo rate limited" }, { status: 429 });
+        return NextResponse.json(
+          { error: "Apollo rate limited" },
+          { status: 429 },
+        );
       }
 
       return NextResponse.json(
         { error: `Apollo enrichment failed: ${response.status}` },
-        { status: response.status }
+        { status: response.status },
       );
     }
 
@@ -164,7 +186,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     else if (revenue < 50000000) revenueTier = "established";
     else revenueTier = "enterprise";
 
-    console.log(`[Apollo] Match found for ${recordId}: ${person.name} @ ${org?.name}`);
+    console.log(
+      `[Apollo] Match found for ${recordId}: ${person.name} @ ${org?.name}`,
+    );
 
     return NextResponse.json({
       success: true,
@@ -185,37 +209,41 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         linkedinUrl: person.linkedin_url,
         email: person.email,
         emailStatus: person.email_status,
-        phones: person.phone_numbers?.map(p => p.raw_number) || [],
+        phones: person.phone_numbers?.map((p) => p.raw_number) || [],
 
         // Organization data
-        organization: org ? {
-          id: org.id,
-          name: org.name,
-          website: org.website_url,
-          linkedinUrl: org.linkedin_url,
-          foundedYear: org.founded_year,
-          yearsInBusiness,
-          employees: org.estimated_num_employees,
-          industry: org.industry,
-          keywords: org.keywords,
-          phone: org.phone,
-          location: {
-            city: org.city,
-            state: org.state,
-            country: org.country,
-          },
-          description: org.short_description,
-          annualRevenue: org.annual_revenue,
-          revenueTier,
-          totalFunding: org.total_funding,
-          technologies: org.technologies,
-        } : null,
+        organization: org
+          ? {
+              id: org.id,
+              name: org.name,
+              website: org.website_url,
+              linkedinUrl: org.linkedin_url,
+              foundedYear: org.founded_year,
+              yearsInBusiness,
+              employees: org.estimated_num_employees,
+              industry: org.industry,
+              keywords: org.keywords,
+              phone: org.phone,
+              location: {
+                city: org.city,
+                state: org.state,
+                country: org.country,
+              },
+              description: org.short_description,
+              annualRevenue: org.annual_revenue,
+              revenueTier,
+              totalFunding: org.total_funding,
+              technologies: org.technologies,
+            }
+          : null,
 
         // Flags for filtering
         flags: {
           hasVerifiedEmail: person.email_status === "verified",
           hasLinkedin: !!person.linkedin_url,
-          isOwnerOrCLevel: ["owner", "founder", "c_suite"].includes(person.seniority?.toLowerCase() || ""),
+          isOwnerOrCLevel: ["owner", "founder", "c_suite"].includes(
+            person.seniority?.toLowerCase() || "",
+          ),
           isMainStreet: ["main-street", "growth"].includes(revenueTier),
           isEstablished: yearsInBusiness !== null && yearsInBusiness >= 5,
         },
@@ -224,8 +252,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   } catch (error) {
     console.error("[Apollo] Error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Apollo enrichment failed" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Apollo enrichment failed",
+      },
+      { status: 500 },
     );
   }
 }

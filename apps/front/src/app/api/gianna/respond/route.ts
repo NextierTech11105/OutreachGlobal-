@@ -17,52 +17,62 @@ import { eq } from "drizzle-orm";
 const TEMPLATES = {
   appointment: {
     label: "Book Appointment",
-    content: "I'd love to schedule a time to discuss your property options. Here's my calendar: {calendar_link}",
+    content:
+      "I'd love to schedule a time to discuss your property options. Here's my calendar: {calendar_link}",
     variables: ["calendar_link"],
   },
   article_distressed: {
     label: "Distressed Property Article",
-    content: "I found this helpful article about options for homeowners in challenging situations: {article_link}",
+    content:
+      "I found this helpful article about options for homeowners in challenging situations: {article_link}",
     variables: ["article_link"],
-    defaultLink: "https://medium.com/@nextier/navigating-distressed-property-options",
+    defaultLink:
+      "https://medium.com/@nextier/navigating-distressed-property-options",
   },
   article_equity: {
     label: "Home Equity Article",
-    content: "Here's some valuable information about maximizing your home equity: {article_link}",
+    content:
+      "Here's some valuable information about maximizing your home equity: {article_link}",
     variables: ["article_link"],
     defaultLink: "https://medium.com/@nextier/understanding-home-equity",
   },
   article_market: {
     label: "Market Update",
-    content: "Check out our latest market analysis for your area - it has some great insights: {article_link}",
+    content:
+      "Check out our latest market analysis for your area - it has some great insights: {article_link}",
     variables: ["article_link"],
     defaultLink: "https://medium.com/@nextier/2025-real-estate-market-update",
   },
   article_inheritance: {
     label: "Inherited Property Article",
-    content: "Dealing with an inherited property can be complex. This article covers your options: {article_link}",
+    content:
+      "Dealing with an inherited property can be complex. This article covers your options: {article_link}",
     variables: ["article_link"],
     defaultLink: "https://medium.com/@nextier/inherited-property-guide",
   },
   article_divorce: {
     label: "Divorce Property Article",
-    content: "Going through a property division? Here's a guide to help: {article_link}",
+    content:
+      "Going through a property division? Here's a guide to help: {article_link}",
     variables: ["article_link"],
     defaultLink: "https://medium.com/@nextier/property-division-guide",
   },
   followup: {
     label: "Follow Up",
-    content: "Just following up on our previous conversation. Is now a good time to chat about your property?",
+    content:
+      "Just following up on our previous conversation. Is now a good time to chat about your property?",
     variables: [],
   },
   callback: {
     label: "Callback Request",
-    content: "I saw you tried to reach us. I'm available now if you'd like to talk. When works best for you?",
+    content:
+      "I saw you tried to reach us. I'm available now if you'd like to talk. When works best for you?",
     variables: [],
   },
   thank_you: {
     label: "Thank You",
-    content: "Thank you for your interest! I'll be in touch soon with more details.",
+    content:
+      "Thank you for your interest! I'll be in touch soon with more details.",
     variables: [],
   },
 };
@@ -81,12 +91,20 @@ interface RespondRequest {
 export async function POST(request: NextRequest) {
   try {
     const body: RespondRequest = await request.json();
-    const { leadId, templateKey, content, workspaceId, variables = {}, advisor = "gianna", requireApproval } = body;
+    const {
+      leadId,
+      templateKey,
+      content,
+      workspaceId,
+      variables = {},
+      advisor = "gianna",
+      requireApproval,
+    } = body;
 
     if (!leadId) {
       return NextResponse.json(
         { error: "leadId is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -95,7 +113,7 @@ export async function POST(request: NextRequest) {
     if (!template && !content) {
       return NextResponse.json(
         { error: "Valid templateKey or content is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -107,10 +125,7 @@ export async function POST(request: NextRequest) {
       .limit(1);
 
     if (!lead) {
-      return NextResponse.json(
-        { error: "Lead not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Lead not found" }, { status: 404 });
     }
 
     // Build message content
@@ -124,18 +139,27 @@ export async function POST(request: NextRequest) {
       }
 
       // Generate calendar link if needed
-      if (messageContent.includes("{calendar_link}") && !variables.calendar_link) {
+      if (
+        messageContent.includes("{calendar_link}") &&
+        !variables.calendar_link
+      ) {
         variables.calendar_link = `https://calendly.com/nextier/${advisor}`;
       }
 
       // Replace all variables
       for (const [key, value] of Object.entries(variables)) {
-        messageContent = messageContent.replace(new RegExp(`\\{${key}\\}`, "g"), value);
+        messageContent = messageContent.replace(
+          new RegExp(`\\{${key}\\}`, "g"),
+          value,
+        );
       }
     }
 
     // Personalize with lead name
-    messageContent = messageContent.replace("{first_name}", lead.firstName || "there");
+    messageContent = messageContent.replace(
+      "{first_name}",
+      lead.firstName || "there",
+    );
     messageContent = messageContent.replace("{last_name}", lead.lastName || "");
 
     // If requires approval, store as pending
@@ -152,7 +176,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Send the message
-    const sendingNumber = lead.assignedNumber || process.env.SIGNALHOUSE_PHONE_NUMBER;
+    const sendingNumber =
+      lead.assignedNumber || process.env.SIGNALHOUSE_PHONE_NUMBER;
 
     // Create SMS record
     const smsId = crypto.randomUUID();
@@ -182,7 +207,9 @@ export async function POST(request: NextRequest) {
       })
       .where(eq(leads.id, leadId));
 
-    console.log(`[GiannaRespond] ${advisor} sent ${templateKey} to ${lead.phone}`);
+    console.log(
+      `[GiannaRespond] ${advisor} sent ${templateKey} to ${lead.phone}`,
+    );
 
     return NextResponse.json({
       success: true,
@@ -213,9 +240,9 @@ export async function GET(request: NextRequest) {
     }));
 
     if (category === "articles") {
-      templates = templates.filter(t => t.key.startsWith("article_"));
+      templates = templates.filter((t) => t.key.startsWith("article_"));
     } else if (category === "actions") {
-      templates = templates.filter(t => !t.key.startsWith("article_"));
+      templates = templates.filter((t) => !t.key.startsWith("article_"));
     }
 
     return NextResponse.json({

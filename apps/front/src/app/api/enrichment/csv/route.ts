@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const API_KEY = process.env.REALESTATE_API_KEY || process.env.REAL_ESTATE_API_KEY || "";
+const API_KEY =
+  process.env.REALESTATE_API_KEY || process.env.REAL_ESTATE_API_KEY || "";
 const API_BASE = "https://api.realestateapi.com/v2";
 
 interface CSVRecord {
@@ -15,7 +16,10 @@ interface EnrichmentResult {
 }
 
 // Helper to build address from CSV record
-function buildAddress(record: CSVRecord, mapping: Record<string, string>): string | null {
+function buildAddress(
+  record: CSVRecord,
+  mapping: Record<string, string>,
+): string | null {
   // Try full address field first
   if (mapping.address && record[mapping.address]) {
     return record[mapping.address];
@@ -41,8 +45,13 @@ function buildAddress(record: CSVRecord, mapping: Record<string, string>): strin
 }
 
 // Parse address into components for PropertySearch
-function parseAddress(fullAddress: string): { street?: string; city?: string; state?: string; zip?: string } {
-  const parts = fullAddress.split(",").map(p => p.trim());
+function parseAddress(fullAddress: string): {
+  street?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+} {
+  const parts = fullAddress.split(",").map((p) => p.trim());
   if (parts.length >= 3) {
     // Format: "123 Main St, Miami, FL 33101" or "123 Main St, Miami, FL"
     const street = parts[0];
@@ -64,7 +73,9 @@ function parseAddress(fullAddress: string): { street?: string; city?: string; st
 }
 
 // Enrich a single address using PropertySearch then PropertyDetail
-async function enrichAddress(address: string): Promise<{ data: Record<string, unknown> | null; error?: string }> {
+async function enrichAddress(
+  address: string,
+): Promise<{ data: Record<string, unknown> | null; error?: string }> {
   try {
     // Step 1: Search for property by address
     const parsed = parseAddress(address);
@@ -80,7 +91,7 @@ async function enrichAddress(address: string): Promise<{ data: Record<string, un
       headers: {
         "Content-Type": "application/json",
         "x-api-key": API_KEY,
-        "Accept": "application/json",
+        Accept: "application/json",
       },
       body: JSON.stringify(searchBody),
     });
@@ -99,7 +110,7 @@ async function enrichAddress(address: string): Promise<{ data: Record<string, un
       headers: {
         "Content-Type": "application/json",
         "x-api-key": API_KEY,
-        "Accept": "application/json",
+        Accept: "application/json",
       },
       body: JSON.stringify({ id: propertyId }),
     });
@@ -107,12 +118,16 @@ async function enrichAddress(address: string): Promise<{ data: Record<string, un
     const detailData = await detailResponse.json();
 
     if (!detailResponse.ok) {
-      return { data: null, error: detailData.message || "Failed to get property details" };
+      return {
+        data: null,
+        error: detailData.message || "Failed to get property details",
+      };
     }
 
     return { data: detailData.data || detailData };
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Enrichment failed";
+    const message =
+      error instanceof Error ? error.message : "Enrichment failed";
     return { data: null, error: message };
   }
 }
@@ -122,12 +137,16 @@ export async function POST(request: NextRequest) {
     if (!API_KEY) {
       return NextResponse.json(
         { error: "RealEstateAPI key not configured" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
     const body = await request.json();
-    const { records, mapping, batchSize = 10 } = body as {
+    const {
+      records,
+      mapping,
+      batchSize = 10,
+    } = body as {
       records: CSVRecord[];
       mapping: Record<string, string>;
       batchSize?: number;
@@ -136,14 +155,14 @@ export async function POST(request: NextRequest) {
     if (!records || !Array.isArray(records) || records.length === 0) {
       return NextResponse.json(
         { error: "No records provided" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!mapping) {
       return NextResponse.json(
         { error: "Column mapping required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -183,7 +202,9 @@ export async function POST(request: NextRequest) {
           return {
             original: record,
             enriched: null,
-            status: result.error?.includes("not found") ? "not_found" as const : "error" as const,
+            status: result.error?.includes("not found")
+              ? ("not_found" as const)
+              : ("error" as const),
             error: result.error,
           };
         }
@@ -200,7 +221,7 @@ export async function POST(request: NextRequest) {
 
       // Add small delay between batches to avoid rate limiting
       if (i + maxBatch < records.length) {
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 100));
       }
     }
 
@@ -216,7 +237,8 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: unknown) {
     console.error("CSV enrichment error:", error);
-    const message = error instanceof Error ? error.message : "Enrichment failed";
+    const message =
+      error instanceof Error ? error.message : "Enrichment failed";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

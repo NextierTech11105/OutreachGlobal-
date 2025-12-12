@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { uploadFile } from "@/lib/spaces";
 
-const REALESTATE_API_KEY = process.env.REAL_ESTATE_API_KEY || process.env.REALESTATE_API_KEY || "";
+const REALESTATE_API_KEY =
+  process.env.REAL_ESTATE_API_KEY || process.env.REALESTATE_API_KEY || "";
 const REALESTATE_API_URL = "https://api.realestateapi.com/v2/PropertySearch";
 const MAX_SAVE_SIZE = 10000; // Max 10K properties per save
 
@@ -27,7 +28,7 @@ export const EVENT_SIGNALS = [
   "mlsWithdrawn",
 ] as const;
 
-export type EventSignal = typeof EVENT_SIGNALS[number];
+export type EventSignal = (typeof EVENT_SIGNALS)[number];
 
 // Property CRITERIA - static characteristics for filtering/scoring (not signals)
 // Examples: equity%, absentee, outOfState, yearsOwned, propertyType, lotSize, yearBuilt
@@ -66,27 +67,43 @@ export async function POST(request: NextRequest) {
       filters,
       saveSize = 1000,
       // Event signal configuration
-      monitoredSignals = ["preForeclosure", "foreclosure", "taxLien", "inherited"],
+      monitoredSignals = [
+        "preForeclosure",
+        "foreclosure",
+        "taxLien",
+        "inherited",
+      ],
       autoTriggerSMS = true,
       autoTriggerEmail = false,
       smsTemplateOverride,
     } = body;
 
     if (!name) {
-      return NextResponse.json({ error: "Search name is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Search name is required" },
+        { status: 400 },
+      );
     }
 
-    if (!filters || (!filters.state && !filters.county && !filters.zip && !filters.city)) {
+    if (
+      !filters ||
+      (!filters.state && !filters.county && !filters.zip && !filters.city)
+    ) {
       return NextResponse.json(
-        { error: "At least one location filter is required (state, county, city, or zip)" },
-        { status: 400 }
+        {
+          error:
+            "At least one location filter is required (state, county, city, or zip)",
+        },
+        { status: 400 },
       );
     }
 
     // Limit save size
     const requestedSize = Math.min(saveSize, MAX_SAVE_SIZE);
 
-    console.log(`[Save Search] Starting "${name}" - requesting ${requestedSize} properties`);
+    console.log(
+      `[Save Search] Starting "${name}" - requesting ${requestedSize} properties`,
+    );
 
     // First, get total count
     const countResponse = await fetch(REALESTATE_API_URL, {
@@ -113,7 +130,10 @@ export async function POST(request: NextRequest) {
     let offset = 0;
 
     while (allProperties.length < requestedSize && offset < totalCount) {
-      const fetchSize = Math.min(batchSize, requestedSize - allProperties.length);
+      const fetchSize = Math.min(
+        batchSize,
+        requestedSize - allProperties.length,
+      );
 
       const dataResponse = await fetch(REALESTATE_API_URL, {
         method: "POST",
@@ -136,7 +156,9 @@ export async function POST(request: NextRequest) {
       allProperties.push(...properties);
       offset += properties.length;
 
-      console.log(`[Save Search] Fetched ${allProperties.length}/${requestedSize}`);
+      console.log(
+        `[Save Search] Fetched ${allProperties.length}/${requestedSize}`,
+      );
 
       // Small delay to avoid rate limits
       if (allProperties.length < requestedSize) {
@@ -155,11 +177,13 @@ export async function POST(request: NextRequest) {
     // Count initial signals in the data
     const signalCounts: Record<string, number> = {};
     for (const signal of monitoredSignals) {
-      signalCounts[signal] = allProperties.filter((p: Record<string, unknown>) => {
-        if (signal === "highEquity") return (p.equityPercent as number) >= 70;
-        if (signal === "longOwnership") return (p.yearsOwned as number) >= 10;
-        return p[signal] === true;
-      }).length;
+      signalCounts[signal] = allProperties.filter(
+        (p: Record<string, unknown>) => {
+          if (signal === "highEquity") return (p.equityPercent as number) >= 70;
+          if (signal === "longOwnership") return (p.yearsOwned as number) >= 10;
+          return p[signal] === true;
+        },
+      ).length;
     }
 
     const searchRecord: SavedSearchResult = {
@@ -260,12 +284,14 @@ export async function POST(request: NextRequest) {
       bucketPath,
       JSON.stringify(bucketData, null, 2),
       "application/json",
-      false // Private - use signed URLs
+      false, // Private - use signed URLs
     );
 
     if (!uploadResult) {
       // If Spaces not configured, return data anyway
-      console.warn("[Save Search] DO Spaces not configured, returning inline data");
+      console.warn(
+        "[Save Search] DO Spaces not configured, returning inline data",
+      );
       return NextResponse.json({
         success: true,
         search: {
@@ -276,7 +302,8 @@ export async function POST(request: NextRequest) {
         totalCount,
         savedCount: allProperties.length,
         data: allProperties, // Return inline since no bucket
-        warning: "DO Spaces not configured. Data returned inline instead of saved to bucket.",
+        warning:
+          "DO Spaces not configured. Data returned inline instead of saved to bucket.",
       });
     }
 
@@ -365,6 +392,7 @@ export async function GET() {
   // For now, return empty list - the client tracks in localStorage
   return NextResponse.json({
     searches: [],
-    message: "Saved searches are tracked client-side. Use POST to create new searches.",
+    message:
+      "Saved searches are tracked client-side. Use POST to create new searches.",
   });
 }

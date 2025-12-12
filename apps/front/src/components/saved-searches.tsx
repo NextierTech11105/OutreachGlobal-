@@ -1,6 +1,5 @@
 "use client";
 
-
 import { sf, sfd } from "@/lib/utils/safe-format";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -145,8 +144,8 @@ export function SavedSearches() {
       const data: RefreshResult & SavedSearchData = await response.json();
 
       // Update the search in the list
-      setSearches(prev =>
-        prev.map(s => (s.id === search.id ? { ...s, ...data } : s))
+      setSearches((prev) =>
+        prev.map((s) => (s.id === search.id ? { ...s, ...data } : s)),
       );
 
       if (data.changes) {
@@ -188,7 +187,7 @@ export function SavedSearches() {
       if (!response.ok) throw new Error("Failed to duplicate");
 
       const newSearch = await response.json();
-      setSearches(prev => [newSearch, ...prev]);
+      setSearches((prev) => [newSearch, ...prev]);
       toast.success("Search duplicated");
     } catch (error) {
       console.error("Duplicate error:", error);
@@ -209,13 +208,17 @@ export function SavedSearches() {
 
       if (!response.ok) throw new Error("Failed to update");
 
-      setSearches(prev =>
-        prev.map(s =>
-          s.id === search.id ? { ...s, notifyOnChanges: !s.notifyOnChanges } : s
-        )
+      setSearches((prev) =>
+        prev.map((s) =>
+          s.id === search.id
+            ? { ...s, notifyOnChanges: !s.notifyOnChanges }
+            : s,
+        ),
       );
       toast.success(
-        search.notifyOnChanges ? "Notifications disabled" : "Notifications enabled"
+        search.notifyOnChanges
+          ? "Notifications disabled"
+          : "Notifications enabled",
       );
     } catch (error) {
       console.error("Toggle error:", error);
@@ -253,9 +256,9 @@ export function SavedSearches() {
 
   const filteredSearches = filter
     ? searches.filter(
-        s =>
+        (s) =>
           s.name.toLowerCase().includes(filter.toLowerCase()) ||
-          s.description?.toLowerCase().includes(filter.toLowerCase())
+          s.description?.toLowerCase().includes(filter.toLowerCase()),
       )
     : searches;
 
@@ -281,13 +284,23 @@ export function SavedSearches() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {[1, 2, 3].map(i => (
+              {[1, 2, 3].map((i) => (
                 <TableRow key={i}>
-                  <TableCell><Skeleton className="h-4 w-40" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-60" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-32 ml-auto" /></TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-40" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-60" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-24" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-16" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-32 ml-auto" />
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -368,16 +381,18 @@ export function SavedSearches() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="secondary">
-                      {sf(search.resultCount)}
-                    </Badge>
+                    <Badge variant="secondary">{sf(search.resultCount)}</Badge>
                   </TableCell>
                   <TableCell>
                     <Button
                       variant="ghost"
                       size="icon"
                       onClick={() => toggleNotifications(search)}
-                      title={search.notifyOnChanges ? "Disable alerts" : "Enable alerts"}
+                      title={
+                        search.notifyOnChanges
+                          ? "Disable alerts"
+                          : "Enable alerts"
+                      }
                     >
                       {search.notifyOnChanges ? (
                         <Bell className="h-4 w-4 text-primary" />
@@ -466,7 +481,7 @@ export function SavedSearches() {
       {/* Changes Detection Dialog */}
       <Dialog
         open={changesDialog.open}
-        onOpenChange={(open) => setChangesDialog(prev => ({ ...prev, open }))}
+        onOpenChange={(open) => setChangesDialog((prev) => ({ ...prev, open }))}
       >
         <DialogContent>
           <DialogHeader>
@@ -507,7 +522,9 @@ export function SavedSearches() {
           )}
           <DialogFooter>
             <Button
-              onClick={() => setChangesDialog(prev => ({ ...prev, open: false }))}
+              onClick={() =>
+                setChangesDialog((prev) => ({ ...prev, open: false }))
+              }
             >
               Close
             </Button>

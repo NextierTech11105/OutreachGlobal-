@@ -108,9 +108,21 @@ const TRIGGER_EVENTS = [
 
 const TEMPLATE_CATEGORIES = [
   { value: "sms_initial", label: "Initial Outreach", source: "individual" },
-  { value: "sms_initial_medium_article", label: "Medium Article Invite", source: "master" },
-  { value: "strategy_session_sms", label: "Strategy Session", source: "master" },
-  { value: "gianna_nielsen_loop", label: "Gianna Nielsen Loop", source: "master" },
+  {
+    value: "sms_initial_medium_article",
+    label: "Medium Article Invite",
+    source: "master",
+  },
+  {
+    value: "strategy_session_sms",
+    label: "Strategy Session",
+    source: "master",
+  },
+  {
+    value: "gianna_nielsen_loop",
+    label: "Gianna Nielsen Loop",
+    source: "master",
+  },
 ];
 
 const DAYS_OF_WEEK = [
@@ -157,7 +169,9 @@ export function SMSDripAutomation({
 
   const [previewMessage, setPreviewMessage] = useState<string>("");
   const [previewLead, setPreviewLead] = useState<LeadPreview | null>(null);
-  const [templates, setTemplates] = useState<Array<{ id: string; text: string }>>([]);
+  const [templates, setTemplates] = useState<
+    Array<{ id: string; text: string }>
+  >([]);
 
   // Load templates when category changes
   useEffect(() => {
@@ -172,13 +186,16 @@ export function SMSDripAutomation({
   }, [config.selectedTemplate, previewLead]);
 
   const loadTemplates = (category: string) => {
-    const masterCats = masterTemplates.templates as Record<string, Array<{ id: string; text: string }>>;
+    const masterCats = masterTemplates.templates as Record<
+      string,
+      Array<{ id: string; text: string }>
+    >;
 
     if (masterCats[category]) {
       setTemplates(masterCats[category]);
     } else if (category === "sms_initial") {
       setTemplates(
-        smsInitial.templates.map((t) => ({ id: t.id, text: t.message }))
+        smsInitial.templates.map((t) => ({ id: t.id, text: t.message })),
       );
     }
   };
@@ -188,16 +205,25 @@ export function SMSDripAutomation({
     if (!template || !previewLead) return;
 
     let message = template.text;
-    message = message.replace(/\{\{first_name\}\}/g, previewLead.firstName || "there");
-    message = message.replace(/\{\{company_name\}\}/g, previewLead.companyName || "your business");
-    message = message.replace(/\{\{industry\}\}/g, previewLead.industry || "your industry");
+    message = message.replace(
+      /\{\{first_name\}\}/g,
+      previewLead.firstName || "there",
+    );
+    message = message.replace(
+      /\{\{company_name\}\}/g,
+      previewLead.companyName || "your business",
+    );
+    message = message.replace(
+      /\{\{industry\}\}/g,
+      previewLead.industry || "your industry",
+    );
 
     setPreviewMessage(message);
   };
 
   const handleConfigChange = <K extends keyof SMSDripConfig>(
     key: K,
-    value: SMSDripConfig[K]
+    value: SMSDripConfig[K],
   ) => {
     setConfig((prev) => ({ ...prev, [key]: value }));
   };
@@ -213,7 +239,10 @@ export function SMSDripAutomation({
     const hoursPerDay = config.scheduleEndHour - config.scheduleStartHour;
     const minutesPerDay = hoursPerDay * 60;
     const batchesPerDay = Math.floor(minutesPerDay / config.dripDelayMinutes);
-    const leadsPerDay = Math.min(batchesPerDay * config.batchSize, config.maxPerDay);
+    const leadsPerDay = Math.min(
+      batchesPerDay * config.batchSize,
+      config.maxPerDay,
+    );
     return { batchesPerDay, leadsPerDay };
   };
 
@@ -252,7 +281,10 @@ export function SMSDripAutomation({
               <Select
                 value={config.triggerEvent}
                 onValueChange={(v) =>
-                  handleConfigChange("triggerEvent", v as SMSDripConfig["triggerEvent"])
+                  handleConfigChange(
+                    "triggerEvent",
+                    v as SMSDripConfig["triggerEvent"],
+                  )
                 }
               >
                 <SelectTrigger>
@@ -273,11 +305,15 @@ export function SMSDripAutomation({
               <div className="flex items-center justify-between">
                 <div>
                   <Label className="text-gray-300">Require Mobile Number</Label>
-                  <p className="text-xs text-gray-500">Only process leads with mobile</p>
+                  <p className="text-xs text-gray-500">
+                    Only process leads with mobile
+                  </p>
                 </div>
                 <Switch
                   checked={config.requireMobile}
-                  onCheckedChange={(v) => handleConfigChange("requireMobile", v)}
+                  onCheckedChange={(v) =>
+                    handleConfigChange("requireMobile", v)
+                  }
                 />
               </div>
             </CardContent>
@@ -296,7 +332,9 @@ export function SMSDripAutomation({
                 <Label className="text-gray-300">Template Category</Label>
                 <Select
                   value={config.templateCategory}
-                  onValueChange={(v) => handleConfigChange("templateCategory", v)}
+                  onValueChange={(v) =>
+                    handleConfigChange("templateCategory", v)
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -315,7 +353,9 @@ export function SMSDripAutomation({
                 <Label className="text-gray-300">Select Template</Label>
                 <Select
                   value={config.selectedTemplate}
-                  onValueChange={(v) => handleConfigChange("selectedTemplate", v)}
+                  onValueChange={(v) =>
+                    handleConfigChange("selectedTemplate", v)
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -369,12 +409,17 @@ export function SMSDripAutomation({
                     type="number"
                     value={config.batchSize}
                     onChange={(e) =>
-                      handleConfigChange("batchSize", parseInt(e.target.value) || 250)
+                      handleConfigChange(
+                        "batchSize",
+                        parseInt(e.target.value) || 250,
+                      )
                     }
                     min={1}
                     max={500}
                   />
-                  <p className="text-xs text-gray-500 mt-1">Max 500 per batch</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Max 500 per batch
+                  </p>
                 </div>
                 <div>
                   <Label className="text-gray-300">Max Per Day</Label>
@@ -382,12 +427,17 @@ export function SMSDripAutomation({
                     type="number"
                     value={config.maxPerDay}
                     onChange={(e) =>
-                      handleConfigChange("maxPerDay", parseInt(e.target.value) || 2000)
+                      handleConfigChange(
+                        "maxPerDay",
+                        parseInt(e.target.value) || 2000,
+                      )
                     }
                     min={1}
                     max={5000}
                   />
-                  <p className="text-xs text-gray-500 mt-1">Compliance limit: 2000</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Compliance limit: 2000
+                  </p>
                 </div>
               </div>
 
@@ -397,7 +447,9 @@ export function SMSDripAutomation({
                 </Label>
                 <Slider
                   value={[config.dripDelayMinutes]}
-                  onValueChange={(v) => handleConfigChange("dripDelayMinutes", v[0])}
+                  onValueChange={(v) =>
+                    handleConfigChange("dripDelayMinutes", v[0])
+                  }
                   min={1}
                   max={30}
                   step={1}
@@ -408,11 +460,15 @@ export function SMSDripAutomation({
               <div className="bg-gray-800 rounded-lg p-3">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-gray-400">Est. batches/day:</span>
-                  <span className="text-white font-medium">{batchesPerDay}</span>
+                  <span className="text-white font-medium">
+                    {batchesPerDay}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-gray-400">Est. leads/day:</span>
-                  <span className="text-green-400 font-medium">{sf(leadsPerDay)}</span>
+                  <span className="text-green-400 font-medium">
+                    {sf(leadsPerDay)}
+                  </span>
                 </div>
               </div>
             </CardContent>
@@ -431,7 +487,9 @@ export function SMSDripAutomation({
                 <Label className="text-gray-300">Enable Scheduling</Label>
                 <Switch
                   checked={config.scheduleEnabled}
-                  onCheckedChange={(v) => handleConfigChange("scheduleEnabled", v)}
+                  onCheckedChange={(v) =>
+                    handleConfigChange("scheduleEnabled", v)
+                  }
                 />
               </div>
 
@@ -452,7 +510,13 @@ export function SMSDripAutomation({
                         <SelectContent>
                           {Array.from({ length: 24 }, (_, i) => (
                             <SelectItem key={i} value={i.toString()}>
-                              {i === 0 ? "12 AM" : i < 12 ? `${i} AM` : i === 12 ? "12 PM" : `${i - 12} PM`}
+                              {i === 0
+                                ? "12 AM"
+                                : i < 12
+                                  ? `${i} AM`
+                                  : i === 12
+                                    ? "12 PM"
+                                    : `${i - 12} PM`}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -472,7 +536,13 @@ export function SMSDripAutomation({
                         <SelectContent>
                           {Array.from({ length: 24 }, (_, i) => (
                             <SelectItem key={i} value={i.toString()}>
-                              {i === 0 ? "12 AM" : i < 12 ? `${i} AM` : i === 12 ? "12 PM" : `${i - 12} PM`}
+                              {i === 0
+                                ? "12 AM"
+                                : i < 12
+                                  ? `${i} AM`
+                                  : i === 12
+                                    ? "12 PM"
+                                    : `${i - 12} PM`}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -481,13 +551,19 @@ export function SMSDripAutomation({
                   </div>
 
                   <div>
-                    <Label className="text-gray-300 mb-2 block">Active Days</Label>
+                    <Label className="text-gray-300 mb-2 block">
+                      Active Days
+                    </Label>
                     <div className="flex gap-2">
                       {DAYS_OF_WEEK.map((day) => (
                         <Button
                           key={day.value}
                           type="button"
-                          variant={config.scheduleDays.includes(day.value) ? "default" : "outline"}
+                          variant={
+                            config.scheduleDays.includes(day.value)
+                              ? "default"
+                              : "outline"
+                          }
                           size="sm"
                           onClick={() => toggleDay(day.value)}
                           className="w-10"
@@ -514,26 +590,38 @@ export function SMSDripAutomation({
               <div className="flex items-center justify-between">
                 <div>
                   <Label className="text-gray-300">Enable Straight Line</Label>
-                  <p className="text-xs text-gray-500">AGREE → OVERCOME → CLOSE</p>
+                  <p className="text-xs text-gray-500">
+                    AGREE → OVERCOME → CLOSE
+                  </p>
                 </div>
                 <Switch
                   checked={config.straightLineEnabled}
-                  onCheckedChange={(v) => handleConfigChange("straightLineEnabled", v)}
+                  onCheckedChange={(v) =>
+                    handleConfigChange("straightLineEnabled", v)
+                  }
                 />
               </div>
 
               {config.straightLineEnabled && (
                 <div className="bg-purple-500/10 border border-purple-500/20 rounded-lg p-3 space-y-2">
                   <div className="flex items-center gap-2 text-sm">
-                    <Badge className="bg-green-500/20 text-green-400">AGREE</Badge>
-                    <span className="text-gray-400">→ Validate their position</span>
+                    <Badge className="bg-green-500/20 text-green-400">
+                      AGREE
+                    </Badge>
+                    <span className="text-gray-400">
+                      → Validate their position
+                    </span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
-                    <Badge className="bg-yellow-500/20 text-yellow-400">OVERCOME</Badge>
+                    <Badge className="bg-yellow-500/20 text-yellow-400">
+                      OVERCOME
+                    </Badge>
                     <span className="text-gray-400">→ Address objections</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
-                    <Badge className="bg-blue-500/20 text-blue-400">CLOSE</Badge>
+                    <Badge className="bg-blue-500/20 text-blue-400">
+                      CLOSE
+                    </Badge>
                     <span className="text-gray-400">→ Lock in the meeting</span>
                   </div>
                 </div>
@@ -555,7 +643,9 @@ export function SMSDripAutomation({
             <CardContent className="space-y-4">
               {/* Sample Lead Selector */}
               <div>
-                <Label className="text-gray-300 mb-2 block">Preview with Lead</Label>
+                <Label className="text-gray-300 mb-2 block">
+                  Preview with Lead
+                </Label>
                 <div className="flex gap-2">
                   <Input
                     placeholder="First Name"
@@ -617,7 +707,9 @@ export function SMSDripAutomation({
                       {Math.ceil(previewMessage.length / 160)} SMS segment(s)
                     </span>
                     <span className="text-green-400">
-                      {previewMessage.toLowerCase().includes("stop") ? "✓ Has opt-out" : "⚠ Add opt-out"}
+                      {previewMessage.toLowerCase().includes("stop")
+                        ? "✓ Has opt-out"
+                        : "⚠ Add opt-out"}
                     </span>
                   </div>
                 </div>
@@ -625,7 +717,9 @@ export function SMSDripAutomation({
 
               {/* Template Quick View */}
               <div>
-                <Label className="text-gray-300 mb-2 block">Available Templates</Label>
+                <Label className="text-gray-300 mb-2 block">
+                  Available Templates
+                </Label>
                 <div className="max-h-[300px] overflow-y-auto space-y-2">
                   {templates.slice(0, 5).map((t) => (
                     <div
@@ -635,7 +729,9 @@ export function SMSDripAutomation({
                           ? "bg-purple-500/20 border border-purple-500/40"
                           : "bg-gray-800 hover:bg-gray-700"
                       }`}
-                      onClick={() => handleConfigChange("selectedTemplate", t.id)}
+                      onClick={() =>
+                        handleConfigChange("selectedTemplate", t.id)
+                      }
                     >
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-xs text-gray-400">{t.id}</span>
@@ -643,7 +739,9 @@ export function SMSDripAutomation({
                           {t.text.length} chars
                         </Badge>
                       </div>
-                      <p className="text-sm text-gray-300 line-clamp-2">{t.text}</p>
+                      <p className="text-sm text-gray-300 line-clamp-2">
+                        {t.text}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -662,7 +760,9 @@ export function SMSDripAutomation({
             <CardContent>
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-gray-800 rounded-lg p-3 text-center">
-                  <div className="text-2xl font-bold text-white">{leads.length}</div>
+                  <div className="text-2xl font-bold text-white">
+                    {leads.length}
+                  </div>
                   <div className="text-xs text-gray-400">Leads Ready</div>
                 </div>
                 <div className="bg-gray-800 rounded-lg p-3 text-center">

@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     if (!userId) {
       return NextResponse.json(
         { error: "userId is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     const subscription = await db.query.subscriptions.findFirst({
       where: and(
         eq(subscriptions.userId, userId),
-        eq(subscriptions.status, "active")
+        eq(subscriptions.status, "active"),
       ),
       with: {
         plan: true,
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
     const currentUsage = await db.query.usage.findFirst({
       where: and(
         eq(usage.subscriptionId, subscription.id),
-        eq(usage.periodStart, subscription.currentPeriodStart!)
+        eq(usage.periodStart, subscription.currentPeriodStart!),
       ),
     });
 
@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
     console.error("[Billing] Error fetching subscription:", error);
     return NextResponse.json(
       { error: error.message || "Failed to fetch subscription" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
     if (!userId || !planSlug) {
       return NextResponse.json(
         { error: "userId and planSlug are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -86,23 +86,22 @@ export async function POST(request: NextRequest) {
     });
 
     if (!plan) {
-      return NextResponse.json(
-        { error: "Plan not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Plan not found" }, { status: 404 });
     }
 
     // Check for existing subscription
     const existingSubscription = await db.query.subscriptions.findFirst({
       where: and(
         eq(subscriptions.userId, userId),
-        eq(subscriptions.status, "active")
+        eq(subscriptions.status, "active"),
       ),
     });
 
     const now = new Date();
     const periodEnd = new Date(now);
-    periodEnd.setMonth(periodEnd.getMonth() + (billingCycle === "yearly" ? 12 : 1));
+    periodEnd.setMonth(
+      periodEnd.getMonth() + (billingCycle === "yearly" ? 12 : 1),
+    );
 
     // If Stripe is configured, create checkout session
     if (STRIPE_SECRET_KEY && paymentMethodId) {
@@ -111,9 +110,10 @@ export async function POST(request: NextRequest) {
         const Stripe = (await import("stripe")).default;
         const stripe = new Stripe(STRIPE_SECRET_KEY);
 
-        const priceId = billingCycle === "yearly"
-          ? plan.stripePriceIdYearly
-          : plan.stripePriceIdMonthly;
+        const priceId =
+          billingCycle === "yearly"
+            ? plan.stripePriceIdYearly
+            : plan.stripePriceIdMonthly;
 
         if (priceId) {
           // Create or retrieve customer
@@ -139,16 +139,19 @@ export async function POST(request: NextRequest) {
           });
 
           // Create subscription record
-          const newSubscription = await db.insert(subscriptions).values({
-            userId,
-            planId: plan.id,
-            status: "pending",
-            billingCycle: billingCycle || "monthly",
-            stripeCustomerId: customerId,
-            stripeSubscriptionId: stripeSubscription.id,
-            currentPeriodStart: now,
-            currentPeriodEnd: periodEnd,
-          }).returning();
+          const newSubscription = await db
+            .insert(subscriptions)
+            .values({
+              userId,
+              planId: plan.id,
+              status: "pending",
+              billingCycle: billingCycle || "monthly",
+              stripeCustomerId: customerId,
+              stripeSubscriptionId: stripeSubscription.id,
+              currentPeriodStart: now,
+              currentPeriodEnd: periodEnd,
+            })
+            .returning();
 
           // Initialize usage record
           await db.insert(usage).values({
@@ -168,7 +171,8 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({
             success: true,
             subscription: newSubscription[0],
-            clientSecret: (stripeSubscription.latest_invoice as any)?.payment_intent?.client_secret,
+            clientSecret: (stripeSubscription.latest_invoice as any)
+              ?.payment_intent?.client_secret,
             requiresPayment: true,
           });
         }
@@ -181,7 +185,8 @@ export async function POST(request: NextRequest) {
     // Create subscription without Stripe (for development/testing)
     if (existingSubscription) {
       // Update existing subscription
-      const updated = await db.update(subscriptions)
+      const updated = await db
+        .update(subscriptions)
         .set({
           planId: plan.id,
           billingCycle: billingCycle || "monthly",
@@ -200,14 +205,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Create new subscription
-    const newSubscription = await db.insert(subscriptions).values({
-      userId,
-      planId: plan.id,
-      status: "active",
-      billingCycle: billingCycle || "monthly",
-      currentPeriodStart: now,
-      currentPeriodEnd: periodEnd,
-    }).returning();
+    const newSubscription = await db
+      .insert(subscriptions)
+      .values({
+        userId,
+        planId: plan.id,
+        status: "active",
+        billingCycle: billingCycle || "monthly",
+        currentPeriodStart: now,
+        currentPeriodEnd: periodEnd,
+      })
+      .returning();
 
     // Initialize usage record
     await db.insert(usage).values({
@@ -233,7 +241,7 @@ export async function POST(request: NextRequest) {
     console.error("[Billing] Error creating subscription:", error);
     return NextResponse.json(
       { error: error.message || "Failed to create subscription" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -248,21 +256,21 @@ export async function DELETE(request: NextRequest) {
     if (!userId) {
       return NextResponse.json(
         { error: "userId is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const subscription = await db.query.subscriptions.findFirst({
       where: and(
         eq(subscriptions.userId, userId),
-        eq(subscriptions.status, "active")
+        eq(subscriptions.status, "active"),
       ),
     });
 
     if (!subscription) {
       return NextResponse.json(
         { error: "No active subscription found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -285,7 +293,8 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Update subscription status
-    const updated = await db.update(subscriptions)
+    const updated = await db
+      .update(subscriptions)
       .set({
         status: immediate ? "canceled" : "canceling",
         canceledAt: new Date(),
@@ -305,7 +314,7 @@ export async function DELETE(request: NextRequest) {
     console.error("[Billing] Error canceling subscription:", error);
     return NextResponse.json(
       { error: error.message || "Failed to cancel subscription" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

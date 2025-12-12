@@ -231,11 +231,13 @@ export function InboxFilters({ filters, onFilterChange }: InboxFiltersProps) {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Campaigns</SelectItem>
-                {campaigns.filter((c) => c.id).map((campaign) => (
-                  <SelectItem key={campaign.id} value={campaign.id}>
-                    {campaign.name}
-                  </SelectItem>
-                ))}
+                {campaigns
+                  .filter((c) => c.id)
+                  .map((campaign) => (
+                    <SelectItem key={campaign.id} value={campaign.id}>
+                      {campaign.name}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
           </div>

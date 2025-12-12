@@ -8,7 +8,7 @@ import { auth } from "@clerk/nextjs/server";
 // POST /api/leads/:id/tag - Add/remove/replace tags on a lead (REAL DATABASE)
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { userId } = await auth();
@@ -20,11 +20,17 @@ export async function POST(
     const body: TagLeadRequest = await request.json();
 
     if (!body.tags || !Array.isArray(body.tags)) {
-      return NextResponse.json({ error: "Tags array is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Tags array is required" },
+        { status: 400 },
+      );
     }
 
     if (!["add", "remove", "replace"].includes(body.action)) {
-      return NextResponse.json({ error: "Action must be add, remove, or replace" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Action must be add, remove, or replace" },
+        { status: 400 },
+      );
     }
 
     // Fetch lead to verify ownership
@@ -69,7 +75,10 @@ export async function POST(
     }
 
     // Add new tag associations
-    const tagsToAdd = body.action === "replace" ? newTags : body.tags.filter(t => !currentTags.includes(t));
+    const tagsToAdd =
+      body.action === "replace"
+        ? newTags
+        : body.tags.filter((t) => !currentTags.includes(t));
 
     if (tagsToAdd.length > 0) {
       // Get or create tag IDs
@@ -78,36 +87,46 @@ export async function POST(
         .from(tags)
         .where(inArray(tags.name, tagsToAdd));
 
-      const existingTagNames = existingTags.map((t: { name: string }) => t.name);
-      const newTagNames = tagsToAdd.filter(t => !existingTagNames.includes(t));
+      const existingTagNames = existingTags.map(
+        (t: { name: string }) => t.name,
+      );
+      const newTagNames = tagsToAdd.filter(
+        (t) => !existingTagNames.includes(t),
+      );
 
       // Create missing tags
-      const createdTags = newTagNames.length > 0
-        ? await db
-            .insert(tags)
-            .values(newTagNames.map(name => ({
-              name,
-              slug: name.toLowerCase().replace(/\s+/g, "-"),
-              userId,
-            })))
-            .returning()
-        : [];
+      const createdTags =
+        newTagNames.length > 0
+          ? await db
+              .insert(tags)
+              .values(
+                newTagNames.map((name) => ({
+                  name,
+                  slug: name.toLowerCase().replace(/\s+/g, "-"),
+                  userId,
+                })),
+              )
+              .returning()
+          : [];
 
       // Link all tags to the lead
-      const allTagIds = [...existingTags, ...createdTags].map(t => t.id);
+      const allTagIds = [...existingTags, ...createdTags].map((t) => t.id);
       if (allTagIds.length > 0) {
         await db.insert(leadTags).values(
-          allTagIds.map(tagId => ({
+          allTagIds.map((tagId) => ({
             leadId: id,
             tagId,
             appliedBy: userId,
-          }))
+          })),
         );
       }
     }
 
     // Update lead's updatedAt
-    await db.update(leads).set({ updatedAt: new Date() }).where(eq(leads.id, id));
+    await db
+      .update(leads)
+      .set({ updatedAt: new Date() })
+      .where(eq(leads.id, id));
 
     return NextResponse.json({
       success: true,
@@ -119,6 +138,9 @@ export async function POST(
     });
   } catch (error) {
     console.error("[Lead Tag API] POST error:", error);
-    return NextResponse.json({ error: "Failed to update tags" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to update tags" },
+      { status: 500 },
+    );
   }
 }

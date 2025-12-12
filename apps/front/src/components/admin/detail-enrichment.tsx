@@ -45,7 +45,9 @@ export function DetailEnrichment() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [results, setResults] = useState<EnrichmentResult[]>([]);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
-  const [activeTab, setActiveTab] = useState<"property" | "people" | "skip">("property");
+  const [activeTab, setActiveTab] = useState<"property" | "people" | "skip">(
+    "property",
+  );
   const [savedBuckets, setSavedBuckets] = useState<SavedBucket[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -65,11 +67,18 @@ export function DetailEnrichment() {
         } catch {}
       }
     }
-    setSavedBuckets(buckets.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+    setSavedBuckets(
+      buckets.sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+      ),
+    );
   };
 
   const parseIds = (input: string) =>
-    input.split(/[\n,\s]+/).map((id) => id.trim()).filter(Boolean);
+    input
+      .split(/[\n,\s]+/)
+      .map((id) => id.trim())
+      .filter(Boolean);
 
   const idCount = parseIds(ids).length;
 
@@ -114,7 +123,7 @@ export function DetailEnrichment() {
               error: err instanceof Error ? err.message : "Error",
             } as EnrichmentResult;
           }
-        })
+        }),
       );
       allResults.push(...batchResults);
       setResults([...allResults]);
@@ -129,7 +138,11 @@ export function DetailEnrichment() {
     // Save bucket
     localStorage.setItem(
       `bucket_${bucketName.replace(/\s+/g, "_")}`,
-      JSON.stringify({ name: bucketName, date: new Date().toISOString(), results: allResults })
+      JSON.stringify({
+        name: bucketName,
+        date: new Date().toISOString(),
+        results: allResults,
+      }),
     );
     loadBuckets();
   };
@@ -148,7 +161,10 @@ export function DetailEnrichment() {
       r.error || "",
       JSON.stringify(r.data || {}).slice(0, 200),
     ]);
-    const csv = [["ID", "Status", "Error", "Data"].join(","), ...rows.map((r) => r.map((c) => `"${c}"`).join(","))].join("\n");
+    const csv = [
+      ["ID", "Status", "Error", "Data"].join(","),
+      ...rows.map((r) => r.map((c) => `"${c}"`).join(",")),
+    ].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -163,7 +179,9 @@ export function DetailEnrichment() {
     const reader = new FileReader();
     reader.onload = (ev) => {
       const lines = (ev.target?.result as string).split("\n").slice(1);
-      const extracted = lines.map((l) => l.split(",")[0]?.replace(/"/g, "").trim()).filter(Boolean);
+      const extracted = lines
+        .map((l) => l.split(",")[0]?.replace(/"/g, "").trim())
+        .filter(Boolean);
       setIds(extracted.join("\n"));
       toast.success(`Loaded ${extracted.length} IDs`);
     };
@@ -185,15 +203,27 @@ export function DetailEnrichment() {
 
       {/* Header Row */}
       <div className="flex items-center justify-between">
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) => setActiveTab(v as typeof activeTab)}
+        >
           <TabsList className="bg-zinc-800">
-            <TabsTrigger value="property" className="data-[state=active]:bg-cyan-600">
+            <TabsTrigger
+              value="property"
+              className="data-[state=active]:bg-cyan-600"
+            >
               <Building2 className="h-4 w-4 mr-1" /> Property
             </TabsTrigger>
-            <TabsTrigger value="people" className="data-[state=active]:bg-purple-600">
+            <TabsTrigger
+              value="people"
+              className="data-[state=active]:bg-purple-600"
+            >
               <Users className="h-4 w-4 mr-1" /> People
             </TabsTrigger>
-            <TabsTrigger value="skip" className="data-[state=active]:bg-orange-600">
+            <TabsTrigger
+              value="skip"
+              className="data-[state=active]:bg-orange-600"
+            >
               <Phone className="h-4 w-4 mr-1" /> Skip Trace
             </TabsTrigger>
           </TabsList>
@@ -207,7 +237,9 @@ export function DetailEnrichment() {
           >
             <Upload className="h-4 w-4 mr-2" /> Import CSV
           </Button>
-          <Badge className="bg-zinc-800 text-zinc-400">250/batch • 5K/day</Badge>
+          <Badge className="bg-zinc-800 text-zinc-400">
+            250/batch • 5K/day
+          </Badge>
         </div>
       </div>
 
@@ -236,7 +268,10 @@ export function DetailEnrichment() {
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() => { setIds(""); setResults([]); }}
+                  onClick={() => {
+                    setIds("");
+                    setResults([]);
+                  }}
                   className="h-8 px-2 text-zinc-500"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -246,14 +281,19 @@ export function DetailEnrichment() {
                   onClick={runEnrichment}
                   disabled={isProcessing || !idCount}
                   className={`h-8 ${
-                    activeTab === "property" ? "bg-cyan-600" :
-                    activeTab === "people" ? "bg-purple-600" : "bg-orange-600"
+                    activeTab === "property"
+                      ? "bg-cyan-600"
+                      : activeTab === "people"
+                        ? "bg-purple-600"
+                        : "bg-orange-600"
                   }`}
                 >
                   {isProcessing ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    <><Play className="h-4 w-4 mr-1" /> Run</>
+                    <>
+                      <Play className="h-4 w-4 mr-1" /> Run
+                    </>
                   )}
                 </Button>
               </div>
@@ -263,7 +303,9 @@ export function DetailEnrichment() {
               <div className="w-full bg-zinc-700 rounded-full h-1.5">
                 <div
                   className="bg-cyan-500 h-1.5 rounded-full transition-all"
-                  style={{ width: `${Math.round((progress.current / progress.total) * 100)}%` }}
+                  style={{
+                    width: `${Math.round((progress.current / progress.total) * 100)}%`,
+                  }}
                 />
               </div>
             )}
@@ -284,10 +326,19 @@ export function DetailEnrichment() {
               <>
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex gap-2">
-                    <Badge className="bg-green-600 text-xs">{successCount} OK</Badge>
-                    <Badge className="bg-red-600 text-xs">{results.length - successCount} Fail</Badge>
+                    <Badge className="bg-green-600 text-xs">
+                      {successCount} OK
+                    </Badge>
+                    <Badge className="bg-red-600 text-xs">
+                      {results.length - successCount} Fail
+                    </Badge>
                   </div>
-                  <Button size="sm" variant="outline" onClick={exportCSV} className="h-6 text-xs border-zinc-700">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={exportCSV}
+                    className="h-6 text-xs border-zinc-700"
+                  >
                     <FileSpreadsheet className="h-3 w-3 mr-1" /> CSV
                   </Button>
                 </div>
@@ -306,9 +357,15 @@ export function DetailEnrichment() {
                           ) : (
                             <XCircle className="h-3 w-3 text-red-400" />
                           )}
-                          <span className="font-mono text-zinc-300">{r.id}</span>
+                          <span className="font-mono text-zinc-300">
+                            {r.id}
+                          </span>
                         </div>
-                        {r.error && <span className="text-red-400 text-[10px]">{r.error}</span>}
+                        {r.error && (
+                          <span className="text-red-400 text-[10px]">
+                            {r.error}
+                          </span>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -324,7 +381,9 @@ export function DetailEnrichment() {
             <div className="flex items-center gap-2 mb-3">
               <Box className="h-5 w-5 text-purple-400" />
               <span className="font-medium text-white">Saved Buckets</span>
-              <Badge className="bg-purple-600 text-xs ml-auto">{savedBuckets.length}</Badge>
+              <Badge className="bg-purple-600 text-xs ml-auto">
+                {savedBuckets.length}
+              </Badge>
             </div>
 
             {savedBuckets.length === 0 ? (
@@ -338,7 +397,9 @@ export function DetailEnrichment() {
               <ScrollArea className="h-[180px]">
                 <div className="space-y-2">
                   {savedBuckets.map((bucket, i) => {
-                    const okCount = bucket.results.filter((r) => r.success).length;
+                    const okCount = bucket.results.filter(
+                      (r) => r.success,
+                    ).length;
                     return (
                       <div
                         key={i}
@@ -350,14 +411,19 @@ export function DetailEnrichment() {
                               <Box className="h-4 w-4 text-white" />
                             </div>
                             <div>
-                              <p className="text-sm font-medium text-white">{bucket.name}</p>
+                              <p className="text-sm font-medium text-white">
+                                {bucket.name}
+                              </p>
                               <p className="text-[10px] text-zinc-500">
-                                {new Date(bucket.date).toLocaleDateString()} • {bucket.results.length} IDs
+                                {new Date(bucket.date).toLocaleDateString()} •{" "}
+                                {bucket.results.length} IDs
                               </p>
                             </div>
                           </div>
                           <div className="flex items-center gap-1">
-                            <Badge className="bg-green-600/20 text-green-400 text-[10px]">{okCount}</Badge>
+                            <Badge className="bg-green-600/20 text-green-400 text-[10px]">
+                              {okCount}
+                            </Badge>
                             <Button
                               size="sm"
                               variant="ghost"

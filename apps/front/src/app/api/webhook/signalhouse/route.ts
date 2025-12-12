@@ -46,8 +46,24 @@ const recentInboundMessages: Array<{
 }> = [];
 
 // Keywords that indicate a lead is interested
-const POSITIVE_KEYWORDS = ["YES", "INTERESTED", "INFO", "MORE", "CALL", "DETAILS", "HELP"];
-const OPT_OUT_KEYWORDS = ["STOP", "UNSUBSCRIBE", "CANCEL", "END", "QUIT", "OPTOUT", "OPT OUT"];
+const POSITIVE_KEYWORDS = [
+  "YES",
+  "INTERESTED",
+  "INFO",
+  "MORE",
+  "CALL",
+  "DETAILS",
+  "HELP",
+];
+const OPT_OUT_KEYWORDS = [
+  "STOP",
+  "UNSUBSCRIBE",
+  "CANCEL",
+  "END",
+  "QUIT",
+  "OPTOUT",
+  "OPT OUT",
+];
 
 // GET - Retrieve recent inbound messages
 export async function GET(request: NextRequest) {
@@ -68,15 +84,21 @@ export async function POST(request: NextRequest) {
 
     // SignalHouse uses dot notation: message.received, message.sent, etc.
     const eventType = payload.event || "unknown";
-    const messageId = payload.message_id || payload.messageId || `msg_${Date.now()}`;
+    const messageId =
+      payload.message_id || payload.messageId || `msg_${Date.now()}`;
     const messageBody = payload.text || payload.body || "";
 
-    console.log(`[SignalHouse Webhook] Event: ${eventType}`, JSON.stringify(payload, null, 2));
+    console.log(
+      `[SignalHouse Webhook] Event: ${eventType}`,
+      JSON.stringify(payload, null, 2),
+    );
 
     // Check if message is opt-out or positive lead response
     const upperBody = messageBody.toUpperCase().trim();
-    const isOptOut = OPT_OUT_KEYWORDS.some(kw => upperBody.includes(kw));
-    const isPositiveLead = POSITIVE_KEYWORDS.some(kw => upperBody.includes(kw));
+    const isOptOut = OPT_OUT_KEYWORDS.some((kw) => upperBody.includes(kw));
+    const isPositiveLead = POSITIVE_KEYWORDS.some((kw) =>
+      upperBody.includes(kw),
+    );
 
     // Handle different event types (SignalHouse uses various formats)
     // Support both dot notation (message.received) and underscore (MESSAGE_RECEIVED)
@@ -110,10 +132,14 @@ export async function POST(request: NextRequest) {
           smsQueueService.handleStopMessage(inboundMessage.from);
           // TODO: Mark lead as opted-out in database
         } else if (isPositiveLead) {
-          console.log(`[SignalHouse] 🎯 LEAD RESPONSE from ${inboundMessage.from}: ${messageBody}`);
+          console.log(
+            `[SignalHouse] 🎯 LEAD RESPONSE from ${inboundMessage.from}: ${messageBody}`,
+          );
           // TODO: Flag as hot lead, notify team, update CRM
         } else {
-          console.log(`[SignalHouse] Inbound SMS from ${inboundMessage.from}: ${messageBody}`);
+          console.log(
+            `[SignalHouse] Inbound SMS from ${inboundMessage.from}: ${messageBody}`,
+          );
         }
 
         // TODO: Save to database
@@ -164,7 +190,9 @@ export async function POST(request: NextRequest) {
         // SMS failed to deliver
         const errorCode = payload.error_code || payload.errorCode;
         const errorMessage = payload.error_message || payload.errorMessage;
-        console.error(`[SignalHouse] Message ${messageId} FAILED: ${errorCode} - ${errorMessage}`);
+        console.error(
+          `[SignalHouse] Message ${messageId} FAILED: ${errorCode} - ${errorMessage}`,
+        );
 
         return NextResponse.json({
           success: true,
@@ -178,27 +206,41 @@ export async function POST(request: NextRequest) {
 
       case "number.provisioned":
       case "number.purchased": {
-        console.log(`[SignalHouse] Number provisioned: ${payload.from || payload.phone_number}`);
-        return NextResponse.json({ success: true, event: "number_provisioned" });
+        console.log(
+          `[SignalHouse] Number provisioned: ${payload.from || payload.phone_number}`,
+        );
+        return NextResponse.json({
+          success: true,
+          event: "number_provisioned",
+        });
       }
 
       case "number.ported": {
-        console.log(`[SignalHouse] Number ported: ${payload.from || payload.phone_number}`);
+        console.log(
+          `[SignalHouse] Number ported: ${payload.from || payload.phone_number}`,
+        );
         return NextResponse.json({ success: true, event: "number_ported" });
       }
 
       default: {
         // Log unknown events for debugging
         console.log(`[SignalHouse] Event: ${eventType}`, payload);
-        return NextResponse.json({ success: true, event: eventType, logged: true });
+        return NextResponse.json({
+          success: true,
+          event: eventType,
+          logged: true,
+        });
       }
     }
   } catch (error: any) {
     console.error("[SignalHouse Webhook] Error processing webhook:", error);
 
-    return NextResponse.json({
-      success: false,
-      error: error.message,
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: error.message,
+      },
+      { status: 500 },
+    );
   }
 }

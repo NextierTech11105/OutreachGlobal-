@@ -7,7 +7,9 @@ import { NextRequest, NextResponse } from "next/server";
  * Handles voicemail fallback and call logging.
  */
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://monkfish-app-mb7h3.ondigitalocean.app";
+const APP_URL =
+  process.env.NEXT_PUBLIC_APP_URL ||
+  "https://monkfish-app-mb7h3.ondigitalocean.app";
 
 export async function POST(request: NextRequest) {
   try {
@@ -88,7 +90,6 @@ export async function POST(request: NextRequest) {
           <Say voice="Polly.Joanna">Got it! Talk soon!</Say>
         `);
     }
-
   } catch (error) {
     console.error("[Gianna Call Complete] Error:", error);
     return twimlResponse(`

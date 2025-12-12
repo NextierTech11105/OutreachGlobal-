@@ -64,7 +64,8 @@ export function GiannaChatWidget({
     {
       id: "welcome",
       role: "assistant",
-      content: "Hey! I'm Gianna, your AI SDR. I'm watching your inbox and ready to help with responses. What do you need?",
+      content:
+        "Hey! I'm Gianna, your AI SDR. I'm watching your inbox and ready to help with responses. What do you need?",
       timestamp: new Date(),
     },
   ]);
@@ -144,7 +145,8 @@ export function GiannaChatWidget({
           {
             id: Date.now().toString(),
             role: "assistant",
-            content: "Sorry, I'm having trouble right now. Try again in a moment.",
+            content:
+              "Sorry, I'm having trouble right now. Try again in a moment.",
             timestamp: new Date(),
           },
         ]);
@@ -195,9 +197,21 @@ export function GiannaChatWidget({
 
   // Quick actions for inbox
   const quickActions = [
-    { label: "Draft Reply", icon: MessageSquare, action: "Help me draft a reply to this lead" },
-    { label: "Objection Help", icon: Zap, action: "How should I handle this objection?" },
-    { label: "Follow-up", icon: Clock, action: "Write a follow-up message for a ghosted lead" },
+    {
+      label: "Draft Reply",
+      icon: MessageSquare,
+      action: "Help me draft a reply to this lead",
+    },
+    {
+      label: "Objection Help",
+      icon: Zap,
+      action: "How should I handle this objection?",
+    },
+    {
+      label: "Follow-up",
+      icon: Clock,
+      action: "Write a follow-up message for a ghosted lead",
+    },
   ];
 
   const handleQuickAction = (action: string) => {
@@ -222,7 +236,7 @@ export function GiannaChatWidget({
             <motion.div
               animate={{
                 scale: [1, 1.1, 1],
-                rotate: [0, 5, -5, 0]
+                rotate: [0, 5, -5, 0],
               }}
               transition={{ duration: 3, repeat: Infinity }}
             >
@@ -282,10 +296,12 @@ export function GiannaChatWidget({
                     <Brain className="w-5 h-5 text-white" />
                   </div>
                   {/* Online indicator */}
-                  <div className={cn(
-                    "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-zinc-900",
-                    autoMode ? "bg-green-500" : "bg-yellow-500"
-                  )} />
+                  <div
+                    className={cn(
+                      "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-zinc-900",
+                      autoMode ? "bg-green-500" : "bg-yellow-500",
+                    )}
+                  />
                 </div>
                 <div>
                   <h3 className="font-semibold text-white flex items-center gap-1">
@@ -313,7 +329,11 @@ export function GiannaChatWidget({
                   className="h-8 w-8 text-zinc-400 hover:text-white"
                   onClick={() => setIsMinimized(!isMinimized)}
                 >
-                  {isMinimized ? <ChevronDown className="w-4 h-4" /> : <Minimize2 className="w-4 h-4" />}
+                  {isMinimized ? (
+                    <ChevronDown className="w-4 h-4" />
+                  ) : (
+                    <Minimize2 className="w-4 h-4" />
+                  )}
                 </Button>
                 <Button
                   variant="ghost"
@@ -334,17 +354,31 @@ export function GiannaChatWidget({
                   <div className="flex-1 p-4 space-y-4">
                     <div className="flex items-center justify-between p-3 bg-zinc-800 rounded-lg">
                       <div className="flex items-center gap-3">
-                        <Zap className={cn("w-5 h-5", autoMode ? "text-green-400" : "text-zinc-400")} />
+                        <Zap
+                          className={cn(
+                            "w-5 h-5",
+                            autoMode ? "text-green-400" : "text-zinc-400",
+                          )}
+                        />
                         <div>
-                          <p className="text-sm font-medium text-white">Auto-Reply Mode</p>
-                          <p className="text-xs text-zinc-500">Gianna responds automatically</p>
+                          <p className="text-sm font-medium text-white">
+                            Auto-Reply Mode
+                          </p>
+                          <p className="text-xs text-zinc-500">
+                            Gianna responds automatically
+                          </p>
                         </div>
                       </div>
-                      <Switch checked={autoMode} onCheckedChange={toggleAutoMode} />
+                      <Switch
+                        checked={autoMode}
+                        onCheckedChange={toggleAutoMode}
+                      />
                     </div>
 
                     <div className="space-y-2">
-                      <p className="text-xs text-zinc-500 uppercase tracking-wide">Quick Actions</p>
+                      <p className="text-xs text-zinc-500 uppercase tracking-wide">
+                        Quick Actions
+                      </p>
                       <div className="grid grid-cols-2 gap-2">
                         <Button
                           variant="outline"
@@ -401,7 +435,9 @@ export function GiannaChatWidget({
                             animate={{ opacity: 1, y: 0 }}
                             className={cn(
                               "flex gap-3",
-                              message.role === "user" ? "flex-row-reverse" : "flex-row"
+                              message.role === "user"
+                                ? "flex-row-reverse"
+                                : "flex-row",
                             )}
                           >
                             {/* Avatar */}
@@ -410,7 +446,7 @@ export function GiannaChatWidget({
                                 "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0",
                                 message.role === "assistant"
                                   ? "bg-gradient-to-br from-purple-500 to-indigo-600"
-                                  : "bg-zinc-700"
+                                  : "bg-zinc-700",
                               )}
                             >
                               {message.role === "assistant" ? (
@@ -426,10 +462,12 @@ export function GiannaChatWidget({
                                 "max-w-[75%] rounded-2xl px-4 py-2.5",
                                 message.role === "assistant"
                                   ? "bg-zinc-800 text-zinc-100 rounded-tl-sm"
-                                  : "bg-purple-600 text-white rounded-tr-sm"
+                                  : "bg-purple-600 text-white rounded-tr-sm",
                               )}
                             >
-                              <p className="text-sm leading-relaxed">{message.content}</p>
+                              <p className="text-sm leading-relaxed">
+                                {message.content}
+                              </p>
                             </div>
                           </motion.div>
                         ))}
@@ -451,7 +489,9 @@ export function GiannaChatWidget({
                                 className="flex items-center gap-2"
                               >
                                 <Loader2 className="w-4 h-4 animate-spin text-purple-400" />
-                                <span className="text-sm text-zinc-400">Gianna is thinking...</span>
+                                <span className="text-sm text-zinc-400">
+                                  Gianna is thinking...
+                                </span>
                               </motion.div>
                             </div>
                           </motion.div>

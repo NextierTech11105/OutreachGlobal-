@@ -1,6 +1,5 @@
 "use client";
 
-
 import { sf, sfd } from "@/lib/utils/safe-format";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -18,7 +17,13 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { InfoIcon as InfoCircle, Search, Download, CheckCircle, XCircle } from "lucide-react";
+import {
+  InfoIcon as InfoCircle,
+  Search,
+  Download,
+  CheckCircle,
+  XCircle,
+} from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -100,7 +105,17 @@ export function SkipTraceModule() {
   const downloadResults = () => {
     if (results.length === 0) return;
     const csv = [
-      ["ID", "Address", "City", "State", "ZIP", "Owner", "Phones", "Emails", "Success"].join(","),
+      [
+        "ID",
+        "Address",
+        "City",
+        "State",
+        "ZIP",
+        "Owner",
+        "Phones",
+        "Emails",
+        "Success",
+      ].join(","),
       ...results.map((r) =>
         [
           r.id,
@@ -112,7 +127,7 @@ export function SkipTraceModule() {
           `"${r.phones.join("; ")}"`,
           `"${r.emails.join("; ")}"`,
           r.success ? "Yes" : "No",
-        ].join(",")
+        ].join(","),
       ),
     ].join("\n");
 
@@ -140,7 +155,9 @@ export function SkipTraceModule() {
               variant="outline"
               className="bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
             >
-              {usage ? `${sf(usage.remaining)} / ${sf(usage.limit)} remaining` : "Loading..."}
+              {usage
+                ? `${sf(usage.remaining)} / ${sf(usage.limit)} remaining`
+                : "Loading..."}
             </Badge>
           </div>
 
@@ -164,8 +181,20 @@ export function SkipTraceModule() {
               <div className="space-y-4">
                 <div className="text-sm text-muted-foreground bg-muted/50 p-4 rounded-md">
                   <p className="font-medium mb-2">Connect to Sectors</p>
-                  <p>Go to <a href="/t/thomas-borrusos-team-f43716/sectors" className="text-blue-500 underline">Sectors</a> to select records for skip tracing.</p>
-                  <p className="mt-2">Each sector shows a "Skip Trace" button to enrich selected records with owner contact info.</p>
+                  <p>
+                    Go to{" "}
+                    <a
+                      href="/t/thomas-borrusos-team-f43716/sectors"
+                      className="text-blue-500 underline"
+                    >
+                      Sectors
+                    </a>{" "}
+                    to select records for skip tracing.
+                  </p>
+                  <p className="mt-2">
+                    Each sector shows a "Skip Trace" button to enrich selected
+                    records with owner contact info.
+                  </p>
                 </div>
               </div>
             </TabsContent>
@@ -178,7 +207,12 @@ export function SkipTraceModule() {
                       id="firstName"
                       placeholder="John"
                       value={manualEntry.firstName}
-                      onChange={(e) => setManualEntry({ ...manualEntry, firstName: e.target.value })}
+                      onChange={(e) =>
+                        setManualEntry({
+                          ...manualEntry,
+                          firstName: e.target.value,
+                        })
+                      }
                     />
                   </div>
                   <div className="space-y-2">
@@ -187,7 +221,12 @@ export function SkipTraceModule() {
                       id="lastName"
                       placeholder="Smith"
                       value={manualEntry.lastName}
-                      onChange={(e) => setManualEntry({ ...manualEntry, lastName: e.target.value })}
+                      onChange={(e) =>
+                        setManualEntry({
+                          ...manualEntry,
+                          lastName: e.target.value,
+                        })
+                      }
                     />
                   </div>
                 </div>
@@ -197,7 +236,12 @@ export function SkipTraceModule() {
                     id="address"
                     placeholder="123 Main St"
                     value={manualEntry.address}
-                    onChange={(e) => setManualEntry({ ...manualEntry, address: e.target.value })}
+                    onChange={(e) =>
+                      setManualEntry({
+                        ...manualEntry,
+                        address: e.target.value,
+                      })
+                    }
                   />
                 </div>
                 <div className="grid grid-cols-3 gap-4">
@@ -207,7 +251,9 @@ export function SkipTraceModule() {
                       id="city"
                       placeholder="New York"
                       value={manualEntry.city}
-                      onChange={(e) => setManualEntry({ ...manualEntry, city: e.target.value })}
+                      onChange={(e) =>
+                        setManualEntry({ ...manualEntry, city: e.target.value })
+                      }
                     />
                   </div>
                   <div className="space-y-2">
@@ -216,7 +262,12 @@ export function SkipTraceModule() {
                       id="state"
                       placeholder="NY"
                       value={manualEntry.state}
-                      onChange={(e) => setManualEntry({ ...manualEntry, state: e.target.value })}
+                      onChange={(e) =>
+                        setManualEntry({
+                          ...manualEntry,
+                          state: e.target.value,
+                        })
+                      }
                     />
                   </div>
                   <div className="space-y-2">
@@ -225,7 +276,9 @@ export function SkipTraceModule() {
                       id="zip"
                       placeholder="10001"
                       value={manualEntry.zip}
-                      onChange={(e) => setManualEntry({ ...manualEntry, zip: e.target.value })}
+                      onChange={(e) =>
+                        setManualEntry({ ...manualEntry, zip: e.target.value })
+                      }
                     />
                   </div>
                 </div>
@@ -257,9 +310,15 @@ export function SkipTraceModule() {
                   <SelectValue placeholder="Select a provider" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="realestateapi">RealEstateAPI (Configured)</SelectItem>
-                  <SelectItem value="tlo" disabled>TLO (Not configured)</SelectItem>
-                  <SelectItem value="lexisnexis" disabled>LexisNexis (Not configured)</SelectItem>
+                  <SelectItem value="realestateapi">
+                    RealEstateAPI (Configured)
+                  </SelectItem>
+                  <SelectItem value="tlo" disabled>
+                    TLO (Not configured)
+                  </SelectItem>
+                  <SelectItem value="lexisnexis" disabled>
+                    LexisNexis (Not configured)
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -403,7 +462,9 @@ export function SkipTraceModule() {
         <CardContent className="border-t pt-6">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="font-medium">Results ({results.length} records)</h3>
+              <h3 className="font-medium">
+                Results ({results.length} records)
+              </h3>
               <Button variant="outline" size="sm" onClick={downloadResults}>
                 <Download className="mr-2 h-4 w-4" />
                 Download CSV
@@ -423,7 +484,9 @@ export function SkipTraceModule() {
                 <tbody>
                   {results.slice(0, 50).map((r) => (
                     <tr key={r.id} className="border-t">
-                      <td className="p-2">{r.address}, {r.city} {r.state}</td>
+                      <td className="p-2">
+                        {r.address}, {r.city} {r.state}
+                      </td>
                       <td className="p-2">{r.ownerName}</td>
                       <td className="p-2">{r.phones.join(", ") || "-"}</td>
                       <td className="p-2">{r.emails.join(", ") || "-"}</td>
@@ -448,7 +511,11 @@ export function SkipTraceModule() {
         </Button>
         <Button
           onClick={async () => {
-            if (!manualEntry.firstName && !manualEntry.lastName && !manualEntry.address) {
+            if (
+              !manualEntry.firstName &&
+              !manualEntry.lastName &&
+              !manualEntry.address
+            ) {
               toast.error("Enter at least name or address to skip trace");
               return;
             }
@@ -472,25 +539,36 @@ export function SkipTraceModule() {
                 return;
               }
               if (data.success) {
-                setResults([{
-                  id: "manual-1",
-                  propertyId: "",
-                  address: manualEntry.address,
-                  city: manualEntry.city,
-                  state: manualEntry.state,
-                  zip: manualEntry.zip,
-                  ownerName: data.ownerName || `${manualEntry.firstName} ${manualEntry.lastName}`,
-                  phones: data.phones?.map((p: { number: string }) => p.number) || [],
-                  emails: data.emails?.map((e: { email: string }) => e.email) || [],
-                  success: true,
-                }]);
+                setResults([
+                  {
+                    id: "manual-1",
+                    propertyId: "",
+                    address: manualEntry.address,
+                    city: manualEntry.city,
+                    state: manualEntry.state,
+                    zip: manualEntry.zip,
+                    ownerName:
+                      data.ownerName ||
+                      `${manualEntry.firstName} ${manualEntry.lastName}`,
+                    phones:
+                      data.phones?.map((p: { number: string }) => p.number) ||
+                      [],
+                    emails:
+                      data.emails?.map((e: { email: string }) => e.email) || [],
+                    success: true,
+                  },
+                ]);
                 setUsage(data.usage);
-                toast.success(`Found ${data.phones?.length || 0} phones, ${data.emails?.length || 0} emails`);
+                toast.success(
+                  `Found ${data.phones?.length || 0} phones, ${data.emails?.length || 0} emails`,
+                );
               } else {
                 toast.error(data.error || "No results found");
               }
             } catch (error: unknown) {
-              toast.error(error instanceof Error ? error.message : "Skip trace failed");
+              toast.error(
+                error instanceof Error ? error.message : "Skip trace failed",
+              );
             } finally {
               setIsProcessing(false);
             }

@@ -37,7 +37,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { useGlobalActions, CalendarEvent } from "@/lib/providers/global-actions-provider";
+import {
+  useGlobalActions,
+  CalendarEvent,
+} from "@/lib/providers/global-actions-provider";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -134,27 +137,37 @@ export function CalendarDashboard() {
   // Today's events
   const todayEvents = useMemo(() => {
     const today = new Date();
-    return allEvents.filter((event) => {
-      const eventDate = new Date(event.startTime);
-      return (
-        eventDate.getFullYear() === today.getFullYear() &&
-        eventDate.getMonth() === today.getMonth() &&
-        eventDate.getDate() === today.getDate()
+    return allEvents
+      .filter((event) => {
+        const eventDate = new Date(event.startTime);
+        return (
+          eventDate.getFullYear() === today.getFullYear() &&
+          eventDate.getMonth() === today.getMonth() &&
+          eventDate.getDate() === today.getDate()
+        );
+      })
+      .sort(
+        (a, b) =>
+          new Date(a.startTime).getTime() - new Date(b.startTime).getTime(),
       );
-    }).sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
   }, [allEvents]);
 
   // Selected date events
   const selectedDateEvents = useMemo(() => {
     if (!selectedDate) return [];
-    return allEvents.filter((event) => {
-      const eventDate = new Date(event.startTime);
-      return (
-        eventDate.getFullYear() === selectedDate.getFullYear() &&
-        eventDate.getMonth() === selectedDate.getMonth() &&
-        eventDate.getDate() === selectedDate.getDate()
+    return allEvents
+      .filter((event) => {
+        const eventDate = new Date(event.startTime);
+        return (
+          eventDate.getFullYear() === selectedDate.getFullYear() &&
+          eventDate.getMonth() === selectedDate.getMonth() &&
+          eventDate.getDate() === selectedDate.getDate()
+        );
+      })
+      .sort(
+        (a, b) =>
+          new Date(a.startTime).getTime() - new Date(b.startTime).getTime(),
       );
-    }).sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
   }, [selectedDate, allEvents]);
 
   const navigateMonth = (direction: number) => {
@@ -273,13 +286,21 @@ export function CalendarDashboard() {
             {/* Month Navigation */}
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="icon" onClick={() => navigateMonth(-1)}>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => navigateMonth(-1)}
+                >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
                 <h2 className="text-xl font-semibold min-w-[180px] text-center">
                   {monthYear}
                 </h2>
-                <Button variant="outline" size="icon" onClick={() => navigateMonth(1)}>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => navigateMonth(1)}
+                >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
@@ -292,14 +313,16 @@ export function CalendarDashboard() {
             <div className="border rounded-lg overflow-hidden">
               {/* Day Headers */}
               <div className="grid grid-cols-7 bg-muted">
-                {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-                  <div
-                    key={day}
-                    className="p-2 text-center text-sm font-medium text-muted-foreground"
-                  >
-                    {day}
-                  </div>
-                ))}
+                {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(
+                  (day) => (
+                    <div
+                      key={day}
+                      className="p-2 text-center text-sm font-medium text-muted-foreground"
+                    >
+                      {day}
+                    </div>
+                  ),
+                )}
               </div>
 
               {/* Calendar Days */}
@@ -310,15 +333,18 @@ export function CalendarDashboard() {
                     onClick={() => setSelectedDate(day.date)}
                     className={cn(
                       "min-h-[100px] p-2 border-t border-l cursor-pointer transition-colors hover:bg-muted/50",
-                      !day.isCurrentMonth && "bg-muted/30 text-muted-foreground",
+                      !day.isCurrentMonth &&
+                        "bg-muted/30 text-muted-foreground",
                       day.isToday && "bg-primary/5",
-                      selectedDate?.getTime() === day.date.getTime() && "bg-primary/10 ring-2 ring-primary ring-inset"
+                      selectedDate?.getTime() === day.date.getTime() &&
+                        "bg-primary/10 ring-2 ring-primary ring-inset",
                     )}
                   >
                     <div
                       className={cn(
                         "text-sm font-medium mb-1",
-                        day.isToday && "bg-primary text-primary-foreground rounded-full w-7 h-7 flex items-center justify-center"
+                        day.isToday &&
+                          "bg-primary text-primary-foreground rounded-full w-7 h-7 flex items-center justify-center",
                       )}
                     >
                       {day.date.getDate()}
@@ -329,7 +355,7 @@ export function CalendarDashboard() {
                           key={event.id}
                           className={cn(
                             "text-xs px-1.5 py-0.5 rounded truncate text-white",
-                            getEventColor(event.type)
+                            getEventColor(event.type),
                           )}
                           title={event.title}
                         >
@@ -365,53 +391,66 @@ export function CalendarDashboard() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  {(selectedDate ? selectedDateEvents : todayEvents).length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No events scheduled</p>
+                  {(selectedDate ? selectedDateEvents : todayEvents).length ===
+                  0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      No events scheduled
+                    </p>
                   ) : (
-                    (selectedDate ? selectedDateEvents : todayEvents).map((event) => {
-                      const Icon = getEventIcon(event.type);
-                      return (
-                        <div
-                          key={event.id}
-                          className="flex items-start gap-3 p-2 rounded-lg bg-background border"
-                        >
-                          <div className={cn("p-1.5 rounded", getEventColor(event.type))}>
-                            <Icon className="h-3 w-3 text-white" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{event.title}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {formatTime(event.startTime)} - {formatTime(event.endTime)}
-                            </p>
-                            {event.location && (
-                              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                                <MapPin className="h-3 w-3" />
-                                {event.location}
+                    (selectedDate ? selectedDateEvents : todayEvents).map(
+                      (event) => {
+                        const Icon = getEventIcon(event.type);
+                        return (
+                          <div
+                            key={event.id}
+                            className="flex items-start gap-3 p-2 rounded-lg bg-background border"
+                          >
+                            <div
+                              className={cn(
+                                "p-1.5 rounded",
+                                getEventColor(event.type),
+                              )}
+                            >
+                              <Icon className="h-3 w-3 text-white" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">
+                                {event.title}
                               </p>
-                            )}
+                              <p className="text-xs text-muted-foreground">
+                                {formatTime(event.startTime)} -{" "}
+                                {formatTime(event.endTime)}
+                              </p>
+                              {event.location && (
+                                <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                                  <MapPin className="h-3 w-3" />
+                                  {event.location}
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={() => createGoogleCalendarEvent(event)}
+                                title="Add to Google Calendar"
+                              >
+                                <Link2 className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 text-destructive"
+                                onClick={() => removeCalendarEvent(event.id)}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
                           </div>
-                          <div className="flex gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={() => createGoogleCalendarEvent(event)}
-                              title="Add to Google Calendar"
-                            >
-                              <Link2 className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6 text-destructive"
-                              onClick={() => removeCalendarEvent(event.id)}
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </div>
-                      );
-                    })
+                        );
+                      },
+                    )
                   )}
                 </CardContent>
               </Card>
@@ -419,7 +458,9 @@ export function CalendarDashboard() {
               {/* Quick Links */}
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">Quick Links</CardTitle>
+                  <CardTitle className="text-sm font-medium">
+                    Quick Links
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
                   <Button
@@ -496,7 +537,9 @@ export function CalendarDashboard() {
                 <Input
                   id="title"
                   value={newEvent.title}
-                  onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
+                  onChange={(e) =>
+                    setNewEvent({ ...newEvent, title: e.target.value })
+                  }
                   placeholder="Event title"
                 />
               </div>
@@ -526,7 +569,9 @@ export function CalendarDashboard() {
                     id="startTime"
                     type="datetime-local"
                     value={newEvent.startTime}
-                    onChange={(e) => setNewEvent({ ...newEvent, startTime: e.target.value })}
+                    onChange={(e) =>
+                      setNewEvent({ ...newEvent, startTime: e.target.value })
+                    }
                   />
                 </div>
                 <div className="space-y-2">
@@ -535,7 +580,9 @@ export function CalendarDashboard() {
                     id="endTime"
                     type="datetime-local"
                     value={newEvent.endTime}
-                    onChange={(e) => setNewEvent({ ...newEvent, endTime: e.target.value })}
+                    onChange={(e) =>
+                      setNewEvent({ ...newEvent, endTime: e.target.value })
+                    }
                   />
                 </div>
               </div>
@@ -544,7 +591,9 @@ export function CalendarDashboard() {
                 <Input
                   id="location"
                   value={newEvent.location}
-                  onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })}
+                  onChange={(e) =>
+                    setNewEvent({ ...newEvent, location: e.target.value })
+                  }
                   placeholder="Meeting location"
                 />
               </div>
@@ -553,14 +602,19 @@ export function CalendarDashboard() {
                 <Textarea
                   id="description"
                   value={newEvent.description}
-                  onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
+                  onChange={(e) =>
+                    setNewEvent({ ...newEvent, description: e.target.value })
+                  }
                   placeholder="Event description"
                   rows={3}
                 />
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsAddEventOpen(false)}>
+              <Button
+                variant="outline"
+                onClick={() => setIsAddEventOpen(false)}
+              >
                 Cancel
               </Button>
               <Button onClick={handleAddEvent}>Add Event</Button>

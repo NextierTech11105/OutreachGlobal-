@@ -1,6 +1,5 @@
 "use client";
 
-
 import { sf, sfd } from "@/lib/utils/safe-format";
 import { useState, useEffect, useRef } from "react";
 import {
@@ -135,26 +134,294 @@ const STATES = [
 
 // Counties by state - major markets
 const COUNTIES_BY_STATE: Record<string, string[]> = {
-  NY: ["New York", "Kings", "Queens", "Bronx", "Richmond", "Nassau", "Suffolk", "Westchester", "Erie", "Monroe", "Onondaga", "Albany", "Orange", "Rockland", "Dutchess"],
-  NJ: ["Bergen", "Essex", "Hudson", "Middlesex", "Monmouth", "Morris", "Passaic", "Union", "Camden", "Burlington", "Ocean", "Mercer", "Somerset", "Atlantic", "Gloucester"],
-  CA: ["Los Angeles", "San Diego", "Orange", "Riverside", "San Bernardino", "Santa Clara", "Alameda", "Sacramento", "Contra Costa", "Fresno", "San Francisco", "Ventura", "San Mateo", "Kern", "San Joaquin"],
-  TX: ["Harris", "Dallas", "Tarrant", "Bexar", "Travis", "Collin", "Denton", "Fort Bend", "Hidalgo", "El Paso", "Williamson", "Montgomery", "Cameron", "Nueces", "Brazoria"],
-  FL: ["Miami-Dade", "Broward", "Palm Beach", "Hillsborough", "Orange", "Pinellas", "Duval", "Lee", "Polk", "Brevard", "Volusia", "Seminole", "Sarasota", "Manatee", "Collier"],
-  PA: ["Philadelphia", "Allegheny", "Montgomery", "Bucks", "Delaware", "Chester", "Lancaster", "Berks", "Lehigh", "York", "Northampton", "Dauphin", "Erie", "Westmoreland", "Cumberland"],
-  IL: ["Cook", "DuPage", "Lake", "Will", "Kane", "McHenry", "Winnebago", "Madison", "St. Clair", "Champaign", "Sangamon", "Peoria", "Kendall", "Rock Island", "Tazewell"],
-  OH: ["Cuyahoga", "Franklin", "Hamilton", "Summit", "Montgomery", "Lucas", "Butler", "Stark", "Lorain", "Warren", "Lake", "Medina", "Clermont", "Mahoning", "Delaware"],
-  GA: ["Fulton", "Gwinnett", "Cobb", "DeKalb", "Chatham", "Cherokee", "Clayton", "Forsyth", "Henry", "Hall", "Richmond", "Muscogee", "Bibb", "Douglas", "Paulding"],
-  NC: ["Mecklenburg", "Wake", "Guilford", "Forsyth", "Cumberland", "Durham", "Buncombe", "Union", "Gaston", "New Hanover", "Cabarrus", "Iredell", "Johnston", "Pitt", "Catawba"],
-  AZ: ["Maricopa", "Pima", "Pinal", "Yavapai", "Mohave", "Yuma", "Coconino", "Cochise", "Navajo", "Apache"],
-  CO: ["Denver", "El Paso", "Arapahoe", "Jefferson", "Adams", "Larimer", "Douglas", "Boulder", "Weld", "Pueblo"],
-  MI: ["Wayne", "Oakland", "Macomb", "Kent", "Genesee", "Washtenaw", "Ingham", "Ottawa", "Kalamazoo", "Livingston"],
-  WA: ["King", "Pierce", "Snohomish", "Spokane", "Clark", "Thurston", "Kitsap", "Whatcom", "Benton", "Yakima"],
-  MA: ["Middlesex", "Worcester", "Suffolk", "Essex", "Norfolk", "Bristol", "Plymouth", "Hampden", "Barnstable", "Hampshire"],
-  VA: ["Fairfax", "Virginia Beach", "Prince William", "Loudoun", "Chesterfield", "Henrico", "Arlington", "Richmond", "Norfolk", "Chesapeake"],
-  MD: ["Montgomery", "Prince George's", "Baltimore", "Anne Arundel", "Howard", "Baltimore City", "Harford", "Frederick", "Charles", "Carroll"],
-  TN: ["Shelby", "Davidson", "Knox", "Hamilton", "Rutherford", "Williamson", "Sumner", "Montgomery", "Wilson", "Blount"],
-  NV: ["Clark", "Washoe", "Carson City", "Douglas", "Elko", "Lyon", "Nye", "Churchill", "Humboldt", "White Pine"],
-  CT: ["Fairfield", "Hartford", "New Haven", "Litchfield", "Middlesex", "New London", "Tolland", "Windham"],
+  NY: [
+    "New York",
+    "Kings",
+    "Queens",
+    "Bronx",
+    "Richmond",
+    "Nassau",
+    "Suffolk",
+    "Westchester",
+    "Erie",
+    "Monroe",
+    "Onondaga",
+    "Albany",
+    "Orange",
+    "Rockland",
+    "Dutchess",
+  ],
+  NJ: [
+    "Bergen",
+    "Essex",
+    "Hudson",
+    "Middlesex",
+    "Monmouth",
+    "Morris",
+    "Passaic",
+    "Union",
+    "Camden",
+    "Burlington",
+    "Ocean",
+    "Mercer",
+    "Somerset",
+    "Atlantic",
+    "Gloucester",
+  ],
+  CA: [
+    "Los Angeles",
+    "San Diego",
+    "Orange",
+    "Riverside",
+    "San Bernardino",
+    "Santa Clara",
+    "Alameda",
+    "Sacramento",
+    "Contra Costa",
+    "Fresno",
+    "San Francisco",
+    "Ventura",
+    "San Mateo",
+    "Kern",
+    "San Joaquin",
+  ],
+  TX: [
+    "Harris",
+    "Dallas",
+    "Tarrant",
+    "Bexar",
+    "Travis",
+    "Collin",
+    "Denton",
+    "Fort Bend",
+    "Hidalgo",
+    "El Paso",
+    "Williamson",
+    "Montgomery",
+    "Cameron",
+    "Nueces",
+    "Brazoria",
+  ],
+  FL: [
+    "Miami-Dade",
+    "Broward",
+    "Palm Beach",
+    "Hillsborough",
+    "Orange",
+    "Pinellas",
+    "Duval",
+    "Lee",
+    "Polk",
+    "Brevard",
+    "Volusia",
+    "Seminole",
+    "Sarasota",
+    "Manatee",
+    "Collier",
+  ],
+  PA: [
+    "Philadelphia",
+    "Allegheny",
+    "Montgomery",
+    "Bucks",
+    "Delaware",
+    "Chester",
+    "Lancaster",
+    "Berks",
+    "Lehigh",
+    "York",
+    "Northampton",
+    "Dauphin",
+    "Erie",
+    "Westmoreland",
+    "Cumberland",
+  ],
+  IL: [
+    "Cook",
+    "DuPage",
+    "Lake",
+    "Will",
+    "Kane",
+    "McHenry",
+    "Winnebago",
+    "Madison",
+    "St. Clair",
+    "Champaign",
+    "Sangamon",
+    "Peoria",
+    "Kendall",
+    "Rock Island",
+    "Tazewell",
+  ],
+  OH: [
+    "Cuyahoga",
+    "Franklin",
+    "Hamilton",
+    "Summit",
+    "Montgomery",
+    "Lucas",
+    "Butler",
+    "Stark",
+    "Lorain",
+    "Warren",
+    "Lake",
+    "Medina",
+    "Clermont",
+    "Mahoning",
+    "Delaware",
+  ],
+  GA: [
+    "Fulton",
+    "Gwinnett",
+    "Cobb",
+    "DeKalb",
+    "Chatham",
+    "Cherokee",
+    "Clayton",
+    "Forsyth",
+    "Henry",
+    "Hall",
+    "Richmond",
+    "Muscogee",
+    "Bibb",
+    "Douglas",
+    "Paulding",
+  ],
+  NC: [
+    "Mecklenburg",
+    "Wake",
+    "Guilford",
+    "Forsyth",
+    "Cumberland",
+    "Durham",
+    "Buncombe",
+    "Union",
+    "Gaston",
+    "New Hanover",
+    "Cabarrus",
+    "Iredell",
+    "Johnston",
+    "Pitt",
+    "Catawba",
+  ],
+  AZ: [
+    "Maricopa",
+    "Pima",
+    "Pinal",
+    "Yavapai",
+    "Mohave",
+    "Yuma",
+    "Coconino",
+    "Cochise",
+    "Navajo",
+    "Apache",
+  ],
+  CO: [
+    "Denver",
+    "El Paso",
+    "Arapahoe",
+    "Jefferson",
+    "Adams",
+    "Larimer",
+    "Douglas",
+    "Boulder",
+    "Weld",
+    "Pueblo",
+  ],
+  MI: [
+    "Wayne",
+    "Oakland",
+    "Macomb",
+    "Kent",
+    "Genesee",
+    "Washtenaw",
+    "Ingham",
+    "Ottawa",
+    "Kalamazoo",
+    "Livingston",
+  ],
+  WA: [
+    "King",
+    "Pierce",
+    "Snohomish",
+    "Spokane",
+    "Clark",
+    "Thurston",
+    "Kitsap",
+    "Whatcom",
+    "Benton",
+    "Yakima",
+  ],
+  MA: [
+    "Middlesex",
+    "Worcester",
+    "Suffolk",
+    "Essex",
+    "Norfolk",
+    "Bristol",
+    "Plymouth",
+    "Hampden",
+    "Barnstable",
+    "Hampshire",
+  ],
+  VA: [
+    "Fairfax",
+    "Virginia Beach",
+    "Prince William",
+    "Loudoun",
+    "Chesterfield",
+    "Henrico",
+    "Arlington",
+    "Richmond",
+    "Norfolk",
+    "Chesapeake",
+  ],
+  MD: [
+    "Montgomery",
+    "Prince George's",
+    "Baltimore",
+    "Anne Arundel",
+    "Howard",
+    "Baltimore City",
+    "Harford",
+    "Frederick",
+    "Charles",
+    "Carroll",
+  ],
+  TN: [
+    "Shelby",
+    "Davidson",
+    "Knox",
+    "Hamilton",
+    "Rutherford",
+    "Williamson",
+    "Sumner",
+    "Montgomery",
+    "Wilson",
+    "Blount",
+  ],
+  NV: [
+    "Clark",
+    "Washoe",
+    "Carson City",
+    "Douglas",
+    "Elko",
+    "Lyon",
+    "Nye",
+    "Churchill",
+    "Humboldt",
+    "White Pine",
+  ],
+  CT: [
+    "Fairfield",
+    "Hartford",
+    "New Haven",
+    "Litchfield",
+    "Middlesex",
+    "New London",
+    "Tolland",
+    "Windham",
+  ],
 };
 
 interface SavedSearch {
@@ -189,7 +456,7 @@ interface PrioritizedLead {
   equity: number | null;
   value: number | null;
   lotSize: number | null;
-  yearsOwned: number | null;  // Years current owner has owned
+  yearsOwned: number | null; // Years current owner has owned
   isAbsentee: boolean;
   isPreForeclosure: boolean;
   isTaxLien: boolean;
@@ -197,42 +464,44 @@ interface PrioritizedLead {
   // Loan/Mortgage Flags
   isReverseMortgage: boolean; // REVERSE MORTGAGE - Special handling needed!
   // MLS & Change Tracking
-  isMlsActive: boolean;       // Currently listed - DO NOT PURSUE
-  isMlsExpired: boolean;      // Listing expired - HOT LEAD!
-  hasDeedChange: boolean;     // Recent deed change - FLAG for review
-  hasStatusChange: boolean;   // Any recent status change
+  isMlsActive: boolean; // Currently listed - DO NOT PURSUE
+  isMlsExpired: boolean; // Listing expired - HOT LEAD!
+  hasDeedChange: boolean; // Recent deed change - FLAG for review
+  hasStatusChange: boolean; // Any recent status change
   changeType?: "added" | "updated" | "deleted" | "unchanged";
   // Skip Trace Contact Info
-  phones: string[];           // Owner phone numbers from skip trace
-  emails: string[];           // Owner emails from skip trace
-  skipTraced: boolean;        // Whether skip trace has been run
-  skipTracedAt?: Date;        // When skip trace was run
+  phones: string[]; // Owner phone numbers from skip trace
+  emails: string[]; // Owner emails from skip trace
+  skipTraced: boolean; // Whether skip trace has been run
+  skipTracedAt?: Date; // When skip trace was run
   // Campaign Status
-  campaignId?: string;        // If pushed to a campaign
+  campaignId?: string; // If pushed to a campaign
   campaignStatus?: "pending" | "sent" | "delivered" | "responded";
   raw: any;
 }
 
 // Lead scoring weights
 const SCORE_WEIGHTS = {
-  absentee: 25,        // Absentee owner = high motivation
-  highEquity: 20,      // 50%+ equity = can sell below market
-  preForeclosure: 30,  // Distressed = urgent seller
-  taxLien: 25,         // Tax issues = motivated
-  vacant: 15,          // Vacant = carrying costs
-  bigLot: 10,          // Development potential
-  sfr: 5,              // Single family baseline
-  mfr: 15,             // Multi-family = investor target
-  commercial: 20,      // Commercial = higher value
-  mlsExpired: 35,      // Listing expired = HOT! Failed to sell
+  absentee: 25, // Absentee owner = high motivation
+  highEquity: 20, // 50%+ equity = can sell below market
+  preForeclosure: 30, // Distressed = urgent seller
+  taxLien: 25, // Tax issues = motivated
+  vacant: 15, // Vacant = carrying costs
+  bigLot: 10, // Development potential
+  sfr: 5, // Single family baseline
+  mfr: 15, // Multi-family = investor target
+  commercial: 20, // Commercial = higher value
+  mlsExpired: 35, // Listing expired = HOT! Failed to sell
   reverseMortgage: 40, // REVERSE MORTGAGE = elderly/estate, complex but motivated!
-  deedChange: -50,     // Recent sale = probably not motivated (negative)
-  mlsActive: -100,     // Currently listed = DO NOT PURSUE
+  deedChange: -50, // Recent sale = probably not motivated (negative)
+  mlsActive: -100, // Currently listed = DO NOT PURSUE
 };
 
 export function LeadTracker() {
   const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
-  const [prioritizedLeads, setPrioritizedLeads] = useState<PrioritizedLead[]>([]);
+  const [prioritizedLeads, setPrioritizedLeads] = useState<PrioritizedLead[]>(
+    [],
+  );
   const [isGenerating, setIsGenerating] = useState(false);
   const [isRunningAll, setIsRunningAll] = useState(false);
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
@@ -243,27 +512,47 @@ export function LeadTracker() {
 
   // Skip Trace Workflow State
   const [isSkipTracing, setIsSkipTracing] = useState(false);
-  const [skipTraceUsage, setSkipTraceUsage] = useState<{ used: number; limit: number; remaining: number }>({ used: 0, limit: 5000, remaining: 5000 });
-  const [skipTraceProgress, setSkipTraceProgress] = useState<{ current: number; total: number } | null>(null);
+  const [skipTraceUsage, setSkipTraceUsage] = useState<{
+    used: number;
+    limit: number;
+    remaining: number;
+  }>({ used: 0, limit: 5000, remaining: 5000 });
+  const [skipTraceProgress, setSkipTraceProgress] = useState<{
+    current: number;
+    total: number;
+  } | null>(null);
 
   // Campaign Workflow State
   const [isPushingToCampaign, setIsPushingToCampaign] = useState(false);
   const [isAssigningNumber, setIsAssigningNumber] = useState(false);
   const [isAssigningAiSdr, setIsAssigningAiSdr] = useState(false);
-  const [activeCampaign, setActiveCampaign] = useState<{ id: string; name: string; phone?: string; sdr?: string } | null>(null);
+  const [activeCampaign, setActiveCampaign] = useState<{
+    id: string;
+    name: string;
+    phone?: string;
+    sdr?: string;
+  } | null>(null);
 
   // Selected leads for workflow actions
-  const [selectedLeadIds, setSelectedLeadIds] = useState<Set<string>>(new Set());
+  const [selectedLeadIds, setSelectedLeadIds] = useState<Set<string>>(
+    new Set(),
+  );
 
   // Expanded lead detail view
   const [expandedLeadId, setExpandedLeadId] = useState<string | null>(null);
 
   // Lead filtering
   const [hideMlsActive, setHideMlsActive] = useState(true); // Default: hide MLS listed
-  const [showOnlyHot, setShowOnlyHot] = useState(false);    // Show only score >= 70
+  const [showOnlyHot, setShowOnlyHot] = useState(false); // Show only score >= 70
   const [showOnlyExpired, setShowOnlyExpired] = useState(false); // Show only expired listings
-  const [sortLeadsBy, setSortLeadsBy] = useState<"score" | "years_owned" | "equity" | "value">("years_owned"); // Default to years_owned!
-  const [currentStep, setCurrentStep] = useState<{ search: string; step: number; total: number } | null>(null);
+  const [sortLeadsBy, setSortLeadsBy] = useState<
+    "score" | "years_owned" | "equity" | "value"
+  >("years_owned"); // Default to years_owned!
+  const [currentStep, setCurrentStep] = useState<{
+    search: string;
+    step: number;
+    total: number;
+  } | null>(null);
   const activityLogRef = useRef<HTMLDivElement>(null);
 
   // New search form
@@ -277,7 +566,12 @@ export function LeadTracker() {
   const [includeMlsData, setIncludeMlsData] = useState<boolean>(true); // Include MLS status
 
   // Add entry to activity log
-  const addLog = (type: ActivityLogEntry["type"], message: string, details?: string, step?: number) => {
+  const addLog = (
+    type: ActivityLogEntry["type"],
+    message: string,
+    details?: string,
+    step?: number,
+  ) => {
     const entry: ActivityLogEntry = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
       timestamp: new Date(),
@@ -301,10 +595,12 @@ export function LeadTracker() {
     const saved = localStorage.getItem("leadTracker_searches");
     if (saved) {
       const parsed = JSON.parse(saved);
-      setSavedSearches(parsed.map((s: any) => ({
-        ...s,
-        lastRun: s.lastRun ? new Date(s.lastRun) : null,
-      })));
+      setSavedSearches(
+        parsed.map((s: any) => ({
+          ...s,
+          lastRun: s.lastRun ? new Date(s.lastRun) : null,
+        })),
+      );
     }
 
     const leads = localStorage.getItem("leadTracker_leads");
@@ -316,13 +612,19 @@ export function LeadTracker() {
   // Save to localStorage when data changes
   useEffect(() => {
     if (savedSearches.length > 0) {
-      localStorage.setItem("leadTracker_searches", JSON.stringify(savedSearches));
+      localStorage.setItem(
+        "leadTracker_searches",
+        JSON.stringify(savedSearches),
+      );
     }
   }, [savedSearches]);
 
   useEffect(() => {
     if (prioritizedLeads.length > 0) {
-      localStorage.setItem("leadTracker_leads", JSON.stringify(prioritizedLeads));
+      localStorage.setItem(
+        "leadTracker_leads",
+        JSON.stringify(prioritizedLeads),
+      );
     }
   }, [prioritizedLeads]);
 
@@ -340,7 +642,7 @@ export function LeadTracker() {
 
     const newSearches: SavedSearch[] = selectedTypes.map((type) => ({
       id: `${county}-${selectedState}-${type}-${Date.now()}`,
-      name: `${county} County ${selectedState} - ${PROPERTY_TYPES.find(t => t.value === type)?.label || type}`,
+      name: `${county} County ${selectedState} - ${PROPERTY_TYPES.find((t) => t.value === type)?.label || type}`,
       county: county.trim(),
       state: selectedState,
       propertyType: type,
@@ -359,13 +661,17 @@ export function LeadTracker() {
 
     setSavedSearches((prev) => [...prev, ...newSearches]);
     setCounty("");
-    toast.success(`Created ${newSearches.length} saved searches for ${county} County`);
+    toast.success(
+      `Created ${newSearches.length} saved searches for ${county} County`,
+    );
   };
 
   // Calculate lead score using API response fields
   // API fields: absenteeOwner, equityPercent, preForeclosure, taxLien, vacant, lotSize, propertyType
   // MLS fields: mlsActive, mlsCancelled (expired), mlsDaysOnMarket
-  const calculateScore = (prop: any): { score: number; breakdown: PrioritizedLead["scoreBreakdown"] } => {
+  const calculateScore = (
+    prop: any,
+  ): { score: number; breakdown: PrioritizedLead["scoreBreakdown"] } => {
     const breakdown = {
       absentee: 0,
       equity: 0,
@@ -420,14 +726,21 @@ export function LeadTracker() {
     }
 
     // REVERSE MORTGAGE - elderly/estate, motivated! Check mtg fields for "Reverse" or "HECM"
-    const loanType = String(prop.mtg1Type || prop.mortgageType || prop.openLoanType || "").toLowerCase();
-    if (prop.reverseMortgage || loanType.includes("reverse") || loanType.includes("hecm")) {
+    const loanType = String(
+      prop.mtg1Type || prop.mortgageType || prop.openLoanType || "",
+    ).toLowerCase();
+    if (
+      prop.reverseMortgage ||
+      loanType.includes("reverse") ||
+      loanType.includes("hecm")
+    ) {
       breakdown.distressed += SCORE_WEIGHTS.reverseMortgage;
     }
 
     // Big lot (development potential) - over 1 acre (API field: lotSize or lotSquareFeet)
     const lotSize = prop.lotSize || prop.lotSquareFeet || 0;
-    if (lotSize >= 43560) { // 1 acre in sqft
+    if (lotSize >= 43560) {
+      // 1 acre in sqft
       breakdown.lotSize = SCORE_WEIGHTS.bigLot;
     }
 
@@ -453,12 +766,16 @@ export function LeadTracker() {
     const search = savedSearches[searchIndex];
     const searchName = `${search.county} ${search.state} - ${search.propertyType}`;
 
-    addLog("info", `Starting search: ${searchName}`, "Initializing 3-step workflow...");
+    addLog(
+      "info",
+      `Starting search: ${searchName}`,
+      "Initializing 3-step workflow...",
+    );
     setCurrentStep({ search: searchName, step: 0, total: 3 });
 
     // Update status to running
     setSavedSearches((prev) =>
-      prev.map((s) => (s.id === searchId ? { ...s, status: "running" } : s))
+      prev.map((s) => (s.id === searchId ? { ...s, status: "running" } : s)),
     );
 
     try {
@@ -476,7 +793,12 @@ export function LeadTracker() {
 
       // ====== STEP 1: Get count first (FREE - 0 credits) ======
       setCurrentStep({ search: searchName, step: 1, total: 3 });
-      addLog("step", "STEP 1/3: Count Query", `Fetching total count (FREE - 0 credits)`, 1);
+      addLog(
+        "step",
+        "STEP 1/3: Count Query",
+        `Fetching total count (FREE - 0 credits)`,
+        1,
+      );
 
       const countResponse = await fetch("/api/property/search", {
         method: "POST",
@@ -486,27 +808,49 @@ export function LeadTracker() {
 
       if (!countResponse.ok) {
         const errorData = await countResponse.json();
-        addLog("error", `Step 1 FAILED: ${errorData.message || "Count query failed"}`);
+        addLog(
+          "error",
+          `Step 1 FAILED: ${errorData.message || "Count query failed"}`,
+        );
         throw new Error(errorData.message || "Count query failed");
       }
 
       const countData = await countResponse.json();
       const totalCount = countData.resultCount || countData.count || 0;
 
-      addLog("success", `✓ Found ${sf(totalCount)} properties`, `${search.propertyType} absentee owners in ${search.county} County`);
+      addLog(
+        "success",
+        `✓ Found ${sf(totalCount)} properties`,
+        `${search.propertyType} absentee owners in ${search.county} County`,
+      );
 
       if (totalCount === 0) {
         addLog("info", "No properties found - search complete");
         setCurrentStep(null);
         setSavedSearches((prev) =>
-          prev.map((s) => s.id === searchId ? { ...s, status: "complete", lastRun: new Date(), resultCount: 0, propertyIds: [] } : s)
+          prev.map((s) =>
+            s.id === searchId
+              ? {
+                  ...s,
+                  status: "complete",
+                  lastRun: new Date(),
+                  resultCount: 0,
+                  propertyIds: [],
+                }
+              : s,
+          ),
         );
         return;
       }
 
       // ====== STEP 2: Get IDs using ids_only: true (up to 10,000 IDs per call) ======
       setCurrentStep({ search: searchName, step: 2, total: 3 });
-      addLog("step", "STEP 2/3: Fetch Property IDs", `Retrieving up to 10,000 IDs for tracking`, 2);
+      addLog(
+        "step",
+        "STEP 2/3: Fetch Property IDs",
+        `Retrieving up to 10,000 IDs for tracking`,
+        2,
+      );
 
       const idsResponse = await fetch("/api/property/search", {
         method: "POST",
@@ -516,18 +860,30 @@ export function LeadTracker() {
 
       if (!idsResponse.ok) {
         const errorData = await idsResponse.json();
-        addLog("error", `Step 2 FAILED: ${errorData.message || "IDs query failed"}`);
+        addLog(
+          "error",
+          `Step 2 FAILED: ${errorData.message || "IDs query failed"}`,
+        );
         throw new Error(errorData.message || "IDs query failed");
       }
 
       const idsData = await idsResponse.json();
       const propertyIds = idsData.data || [];
 
-      addLog("success", `✓ Retrieved ${sf(propertyIds.length)} property IDs`, "IDs stored for monitoring changes");
+      addLog(
+        "success",
+        `✓ Retrieved ${sf(propertyIds.length)} property IDs`,
+        "IDs stored for monitoring changes",
+      );
 
       // ====== STEP 3: Get property details with pagination (250 per page, 3 pages = 750 max) ======
       setCurrentStep({ search: searchName, step: 3, total: 3 });
-      addLog("step", "STEP 3/3: Get Property Details", `Fetching up to 750 properties (3 pages) for lead scoring`, 3);
+      addLog(
+        "step",
+        "STEP 3/3: Get Property Details",
+        `Fetching up to 750 properties (3 pages) for lead scoring`,
+        3,
+      );
 
       let properties: any[] = [];
       const maxPages = 3; // Get 3 pages of 250 = 750 properties max
@@ -543,12 +899,19 @@ export function LeadTracker() {
           const detailData = await detailResponse.json();
           const pageData = detailData.data || [];
           properties = [...properties, ...pageData];
-          addLog("success", `✓ Page ${page}: Got ${pageData.length} properties`, `Total so far: ${properties.length}`);
+          addLog(
+            "success",
+            `✓ Page ${page}: Got ${pageData.length} properties`,
+            `Total so far: ${properties.length}`,
+          );
 
           // Stop if we got less than 250 (no more pages)
           if (pageData.length < 250) break;
         } else {
-          addLog("error", `Page ${page} FAILED: Could not fetch property details`);
+          addLog(
+            "error",
+            `Page ${page} FAILED: Could not fetch property details`,
+          );
           break;
         }
 
@@ -556,7 +919,11 @@ export function LeadTracker() {
         if (page < maxPages) await new Promise((r) => setTimeout(r, 200));
       }
 
-      addLog("success", `✓ Got ${properties.length} total properties with full details`, "Ready for lead scoring");
+      addLog(
+        "success",
+        `✓ Got ${properties.length} total properties with full details`,
+        "Ready for lead scoring",
+      );
 
       // Store property IDs (convert numbers to strings)
       const storedIds = propertyIds.map((p: any) => String(p));
@@ -569,11 +936,11 @@ export function LeadTracker() {
                 ...s,
                 status: "complete",
                 lastRun: new Date(),
-                resultCount: totalCount,  // Use the count from the count query
-                propertyIds: storedIds,   // Store the IDs from ids_only
+                resultCount: totalCount, // Use the count from the count query
+                propertyIds: storedIds, // Store the IDs from ids_only
               }
-            : s
-        )
+            : s,
+        ),
       );
 
       // Process and score leads from the detail response
@@ -582,29 +949,39 @@ export function LeadTracker() {
       const newLeads: PrioritizedLead[] = properties.map((prop: any) => {
         const { score, breakdown } = calculateScore(prop);
         // Build owner name from owner1FirstName + owner1LastName
-        const ownerName = [prop.owner1FirstName, prop.owner1LastName]
-          .filter(Boolean)
-          .join(" ") || prop.ownerName || "Unknown";
+        const ownerName =
+          [prop.owner1FirstName, prop.owner1LastName]
+            .filter(Boolean)
+            .join(" ") ||
+          prop.ownerName ||
+          "Unknown";
 
         // Check MLS status from API response
         const isMlsActive = prop.mlsActive || false;
         const isMlsExpired = prop.mlsCancelled || false;
-        const hasDeedChange = prop.lastSale?.documentTypeCode === "DTWD" &&
-          prop.lastSaleDate && new Date(prop.lastSaleDate) > new Date(Date.now() - 90 * 24 * 60 * 60 * 1000); // Last 90 days
+        const hasDeedChange =
+          prop.lastSale?.documentTypeCode === "DTWD" &&
+          prop.lastSaleDate &&
+          new Date(prop.lastSaleDate) >
+            new Date(Date.now() - 90 * 24 * 60 * 60 * 1000); // Last 90 days
 
         // Calculate years owned from lastSaleDate
         let yearsOwned: number | null = null;
         if (prop.lastSaleDate) {
           const saleDate = new Date(prop.lastSaleDate);
           const now = new Date();
-          yearsOwned = Math.floor((now.getTime() - saleDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+          yearsOwned = Math.floor(
+            (now.getTime() - saleDate.getTime()) /
+              (365.25 * 24 * 60 * 60 * 1000),
+          );
         } else if (prop.yearsOwned) {
           yearsOwned = prop.yearsOwned;
         }
 
         // Check for REVERSE MORTGAGE - elderly/estate, complex but motivated!
         // RealEstateAPI fields: loanType, mortgageType, or mtg fields
-        const isReverseMortgage = prop.reverseMortgage ||
+        const isReverseMortgage =
+          prop.reverseMortgage ||
           prop.loanType?.toLowerCase()?.includes("reverse") ||
           prop.mortgageType?.toLowerCase()?.includes("reverse") ||
           prop.mtg1Type?.toLowerCase()?.includes("reverse") ||
@@ -612,7 +989,10 @@ export function LeadTracker() {
           false;
 
         return {
-          id: prop.id || prop.propertyId || `${prop.address?.street}-${prop.address?.zip}`,
+          id:
+            prop.id ||
+            prop.propertyId ||
+            `${prop.address?.street}-${prop.address?.zip}`,
           address: prop.address?.street || prop.address?.address || "",
           city: prop.address?.city || "",
           state: prop.address?.state || search.state,
@@ -624,17 +1004,17 @@ export function LeadTracker() {
           equity: prop.equityPercent || null,
           value: prop.estimatedValue || null,
           lotSize: prop.lotSize || prop.lotSquareFeet || null,
-          yearsOwned,  // Years current owner has owned
+          yearsOwned, // Years current owner has owned
           isAbsentee: prop.absenteeOwner || false,
           isPreForeclosure: prop.preForeclosure || false,
           isTaxLien: prop.taxLien || false,
           isVacant: prop.vacant || false,
           // Loan/Mortgage
-          isReverseMortgage,     // REVERSE MORTGAGE - elderly/estate, motivated!
+          isReverseMortgage, // REVERSE MORTGAGE - elderly/estate, motivated!
           // MLS & Change Tracking
-          isMlsActive,           // Currently listed - DO NOT PURSUE
-          isMlsExpired,          // Listing expired - HOT LEAD!
-          hasDeedChange,         // Recent deed change - FLAG
+          isMlsActive, // Currently listed - DO NOT PURSUE
+          isMlsExpired, // Listing expired - HOT LEAD!
+          hasDeedChange, // Recent deed change - FLAG
           hasStatusChange: false, // Will be set from Portfolio API
           changeType: undefined,
           // Skip Trace - not yet run
@@ -646,12 +1026,19 @@ export function LeadTracker() {
       });
 
       // Client-side filter: Years owned (API doesn't support this param)
-      const filteredLeads = filterByYearsOwned && minYearsOwned > 0
-        ? newLeads.filter((l) => l.yearsOwned !== null && l.yearsOwned >= minYearsOwned)
-        : newLeads;
+      const filteredLeads =
+        filterByYearsOwned && minYearsOwned > 0
+          ? newLeads.filter(
+              (l) => l.yearsOwned !== null && l.yearsOwned >= minYearsOwned,
+            )
+          : newLeads;
 
       if (filterByYearsOwned && minYearsOwned > 0) {
-        addLog("info", `Filtered to ${filteredLeads.length} leads with ${minYearsOwned}+ years owned`, `${newLeads.length - filteredLeads.length} leads removed`);
+        addLog(
+          "info",
+          `Filtered to ${filteredLeads.length} leads with ${minYearsOwned}+ years owned`,
+          `${newLeads.length - filteredLeads.length} leads removed`,
+        );
       }
 
       // Merge with existing leads (avoid duplicates)
@@ -665,14 +1052,18 @@ export function LeadTracker() {
 
       // Search complete
       setCurrentStep(null);
-      addLog("success", `✓ COMPLETE: ${searchName}`, `${sf(totalCount)} total | ${sf(storedIds.length)} tracked | ${filteredLeads.length} scored`);
+      addLog(
+        "success",
+        `✓ COMPLETE: ${searchName}`,
+        `${sf(totalCount)} total | ${sf(storedIds.length)} tracked | ${filteredLeads.length} scored`,
+      );
       toast.success(`${search.name} complete!`);
     } catch (error: any) {
       console.error("Search error:", error);
       setCurrentStep(null);
       addLog("error", `✗ FAILED: ${searchName}`, error.message);
       setSavedSearches((prev) =>
-        prev.map((s) => (s.id === searchId ? { ...s, status: "error" } : s))
+        prev.map((s) => (s.id === searchId ? { ...s, status: "error" } : s)),
       );
       toast.error(`Error: ${error.message}`);
     }
@@ -686,14 +1077,21 @@ export function LeadTracker() {
     }
 
     setIsRunningAll(true);
-    addLog("info", `▶ STARTING BATCH: ${savedSearches.length} searches`, "Running all saved searches sequentially...");
+    addLog(
+      "info",
+      `▶ STARTING BATCH: ${savedSearches.length} searches`,
+      "Running all saved searches sequentially...",
+    );
 
     let completed = 0;
     let failed = 0;
 
     for (let i = 0; i < savedSearches.length; i++) {
       const search = savedSearches[i];
-      addLog("info", `Processing ${i + 1}/${savedSearches.length}: ${search.name}`);
+      addLog(
+        "info",
+        `Processing ${i + 1}/${savedSearches.length}: ${search.name}`,
+      );
 
       if (search.status !== "running") {
         try {
@@ -708,8 +1106,13 @@ export function LeadTracker() {
     }
 
     setIsRunningAll(false);
-    addLog("success", `✓ BATCH COMPLETE: ${completed} succeeded, ${failed} failed`);
-    toast.success(`All searches complete! ${completed} succeeded, ${failed} failed`);
+    addLog(
+      "success",
+      `✓ BATCH COMPLETE: ${completed} succeeded, ${failed} failed`,
+    );
+    toast.success(
+      `All searches complete! ${completed} succeeded, ${failed} failed`,
+    );
   };
 
   // Delete a search
@@ -726,13 +1129,18 @@ export function LeadTracker() {
     }
 
     setIsSavingToDb(true);
-    addLog("info", "Saving to RealEstateAPI Portfolio...", "Creating tracked saved searches with daily change reports");
+    addLog(
+      "info",
+      "Saving to RealEstateAPI Portfolio...",
+      "Creating tracked saved searches with daily change reports",
+    );
 
     let saved = 0;
     let failed = 0;
 
     for (const search of savedSearches) {
-      if (search.status !== "complete" || search.propertyIds.length === 0) continue;
+      if (search.status !== "complete" || search.propertyIds.length === 0)
+        continue;
 
       try {
         // Use RealEstateAPI's official Saved Search API for tracking changes
@@ -757,7 +1165,11 @@ export function LeadTracker() {
         if (response.ok) {
           const result = await response.json();
           saved++;
-          addLog("success", `✓ Saved: ${search.name}`, `searchId: ${result.searchId}`);
+          addLog(
+            "success",
+            `✓ Saved: ${search.name}`,
+            `searchId: ${result.searchId}`,
+          );
         } else {
           failed++;
           const err = await response.json();
@@ -774,13 +1186,19 @@ export function LeadTracker() {
     setIsSavingToDb(false);
     if (saved > 0) {
       toast.success(`${saved} searches saved to RealEstateAPI Portfolio!`);
-      addLog("success", `Daily tracking enabled for ${saved} searches`, "Check changes via Retrieve API");
+      addLog(
+        "success",
+        `Daily tracking enabled for ${saved} searches`,
+        "Check changes via Retrieve API",
+      );
     }
   };
 
   // Fetch batch details for leads (250 at a time)
   const fetchBatchDetails = async () => {
-    const leadsNeedingDetails = prioritizedLeads.filter((l) => !l.raw?.saleHistory);
+    const leadsNeedingDetails = prioritizedLeads.filter(
+      (l) => !l.raw?.saleHistory,
+    );
 
     if (leadsNeedingDetails.length === 0) {
       toast.info("All leads already have details");
@@ -791,7 +1209,11 @@ export function LeadTracker() {
     const batchSize = 250;
     const ids = leadsNeedingDetails.slice(0, batchSize).map((l) => l.id);
 
-    addLog("step", `Fetching details for ${ids.length} properties...`, "Getting personalization variables");
+    addLog(
+      "step",
+      `Fetching details for ${ids.length} properties...`,
+      "Getting personalization variables",
+    );
 
     try {
       const response = await fetch("/api/property/detail", {
@@ -807,12 +1229,20 @@ export function LeadTracker() {
       const result = await response.json();
       const details = result.data || [];
 
-      addLog("success", `✓ Got ${details.length} property details`, "Owner info, sale history, equity data");
+      addLog(
+        "success",
+        `✓ Got ${details.length} property details`,
+        "Owner info, sale history, equity data",
+      );
 
       // Merge details with existing leads
       setPrioritizedLeads((prev) => {
         return prev.map((lead) => {
-          const detail = details.find((d: any) => String(d.id) === String(lead.id) || String(d.propertyId) === String(lead.id));
+          const detail = details.find(
+            (d: any) =>
+              String(d.id) === String(lead.id) ||
+              String(d.propertyId) === String(lead.id),
+          );
           if (detail) {
             return {
               ...lead,
@@ -820,9 +1250,10 @@ export function LeadTracker() {
               // Update with more accurate data
               equity: detail.equityPercent || lead.equity,
               value: detail.estimatedValue || lead.value,
-              owner: detail.owner1FirstName && detail.owner1LastName
-                ? `${detail.owner1FirstName} ${detail.owner1LastName}`
-                : lead.owner,
+              owner:
+                detail.owner1FirstName && detail.owner1LastName
+                  ? `${detail.owner1FirstName} ${detail.owner1LastName}`
+                  : lead.owner,
             };
           }
           return lead;
@@ -845,7 +1276,9 @@ export function LeadTracker() {
     // Get leads to skip trace (either selected or all non-traced)
     const leadsToTrace = leadIds
       ? prioritizedLeads.filter((l) => leadIds.includes(l.id) && !l.skipTraced)
-      : prioritizedLeads.filter((l) => !l.skipTraced && !l.isMlsActive && l.score >= 40);
+      : prioritizedLeads.filter(
+          (l) => !l.skipTraced && !l.isMlsActive && l.score >= 40,
+        );
 
     if (leadsToTrace.length === 0) {
       toast.info("No leads to skip trace (all already traced or filtered out)");
@@ -855,11 +1288,21 @@ export function LeadTracker() {
     // Check daily limit
     const usageResponse = await fetch("/api/skip-trace");
     const usageData = await usageResponse.json();
-    setSkipTraceUsage({ used: usageData.used, limit: usageData.limit, remaining: usageData.remaining });
+    setSkipTraceUsage({
+      used: usageData.used,
+      limit: usageData.limit,
+      remaining: usageData.remaining,
+    });
 
     if (usageData.remaining < 1) {
-      toast.error(`Daily skip trace limit reached (${usageData.limit}/day). Resets at midnight.`);
-      addLog("error", "Skip trace limit reached", `${usageData.used}/${usageData.limit} used today`);
+      toast.error(
+        `Daily skip trace limit reached (${usageData.limit}/day). Resets at midnight.`,
+      );
+      addLog(
+        "error",
+        "Skip trace limit reached",
+        `${usageData.used}/${usageData.limit} used today`,
+      );
       return;
     }
 
@@ -868,7 +1311,11 @@ export function LeadTracker() {
     const maxToProcess = Math.min(leadsToTrace.length, usageData.remaining);
     const batches = Math.ceil(maxToProcess / batchSize);
 
-    addLog("info", `Starting Skip Trace: ${maxToProcess} leads in ${batches} batches`, `Daily usage: ${usageData.used}/${usageData.limit}`);
+    addLog(
+      "info",
+      `Starting Skip Trace: ${maxToProcess} leads in ${batches} batches`,
+      `Daily usage: ${usageData.used}/${usageData.limit}`,
+    );
     setSkipTraceProgress({ current: 0, total: maxToProcess });
 
     let totalWithPhones = 0;
@@ -881,7 +1328,11 @@ export function LeadTracker() {
         const batchLeads = leadsToTrace.slice(startIdx, startIdx + batchSize);
         const ids = batchLeads.map((l) => l.id);
 
-        addLog("step", `Batch ${batch + 1}/${batches}: Processing ${ids.length} leads`, "Calling RealEstateAPI Skip Trace...");
+        addLog(
+          "step",
+          `Batch ${batch + 1}/${batches}: Processing ${ids.length} leads`,
+          "Calling RealEstateAPI Skip Trace...",
+        );
 
         const response = await fetch("/api/skip-trace", {
           method: "POST",
@@ -904,7 +1355,9 @@ export function LeadTracker() {
         // Update leads with contact info
         setPrioritizedLeads((prev) =>
           prev.map((lead) => {
-            const traced = result.results?.find((r: any) => String(r.id) === String(lead.id));
+            const traced = result.results?.find(
+              (r: any) => String(r.id) === String(lead.id),
+            );
             if (traced && traced.success) {
               return {
                 ...lead,
@@ -916,7 +1369,7 @@ export function LeadTracker() {
               };
             }
             return lead;
-          })
+          }),
         );
 
         totalWithPhones += result.stats?.withPhones || 0;
@@ -924,9 +1377,16 @@ export function LeadTracker() {
         totalProcessed += result.stats?.successful || 0;
 
         setSkipTraceProgress({ current: totalProcessed, total: maxToProcess });
-        setSkipTraceUsage({ used: result.usage?.today || 0, limit: result.usage?.limit || 5000, remaining: result.usage?.remaining || 0 });
+        setSkipTraceUsage({
+          used: result.usage?.today || 0,
+          limit: result.usage?.limit || 5000,
+          remaining: result.usage?.remaining || 0,
+        });
 
-        addLog("success", `Batch ${batch + 1} complete: ${result.stats?.withPhones || 0} phones, ${result.stats?.withEmails || 0} emails`);
+        addLog(
+          "success",
+          `Batch ${batch + 1} complete: ${result.stats?.withPhones || 0} phones, ${result.stats?.withEmails || 0} emails`,
+        );
 
         // Delay between batches
         if (batch < batches - 1) {
@@ -935,8 +1395,14 @@ export function LeadTracker() {
       }
 
       setSkipTraceProgress(null);
-      addLog("success", `Skip Trace Complete: ${totalProcessed} leads processed`, `${totalWithPhones} phones, ${totalWithEmails} emails found`);
-      toast.success(`Skip trace complete! Found ${totalWithPhones} phones, ${totalWithEmails} emails`);
+      addLog(
+        "success",
+        `Skip Trace Complete: ${totalProcessed} leads processed`,
+        `${totalWithPhones} phones, ${totalWithEmails} emails found`,
+      );
+      toast.success(
+        `Skip trace complete! Found ${totalWithPhones} phones, ${totalWithEmails} emails`,
+      );
     } catch (err: any) {
       addLog("error", "Skip trace failed", err.message);
       toast.error(`Skip trace error: ${err.message}`);
@@ -950,7 +1416,8 @@ export function LeadTracker() {
   const pushLeadsToCampaign = async (campaignName?: string) => {
     // Get leads that have been skip traced and have phone numbers
     const leadsWithContact = prioritizedLeads.filter(
-      (l) => l.skipTraced && l.phones.length > 0 && !l.isMlsActive && !l.campaignId
+      (l) =>
+        l.skipTraced && l.phones.length > 0 && !l.isMlsActive && !l.campaignId,
     );
 
     if (leadsWithContact.length === 0) {
@@ -958,10 +1425,16 @@ export function LeadTracker() {
       return;
     }
 
-    const name = campaignName || `Campaign_${new Date().toISOString().split("T")[0]}_${leadsWithContact.length}`;
+    const name =
+      campaignName ||
+      `Campaign_${new Date().toISOString().split("T")[0]}_${leadsWithContact.length}`;
 
     setIsPushingToCampaign(true);
-    addLog("info", `Creating campaign: ${name}`, `${leadsWithContact.length} leads with contact info`);
+    addLog(
+      "info",
+      `Creating campaign: ${name}`,
+      `${leadsWithContact.length} leads with contact info`,
+    );
 
     try {
       const response = await fetch("/api/campaign/push", {
@@ -1010,7 +1483,7 @@ export function LeadTracker() {
             };
           }
           return lead;
-        })
+        }),
       );
 
       setActiveCampaign({
@@ -1020,8 +1493,14 @@ export function LeadTracker() {
         sdr: result.campaign?.aiSdrAssigned,
       });
 
-      addLog("success", `Campaign created: ${name}`, `${result.campaign?.leadsAdded} leads | Phone: ${result.campaign?.phoneAssigned} | SDR: ${result.campaign?.aiSdrAssigned}`);
-      toast.success(`Campaign "${name}" created with ${result.campaign?.leadsAdded} leads!`);
+      addLog(
+        "success",
+        `Campaign created: ${name}`,
+        `${result.campaign?.leadsAdded} leads | Phone: ${result.campaign?.phoneAssigned} | SDR: ${result.campaign?.aiSdrAssigned}`,
+      );
+      toast.success(
+        `Campaign "${name}" created with ${result.campaign?.leadsAdded} leads!`,
+      );
     } catch (err: any) {
       addLog("error", "Campaign push failed", err.message);
       toast.error(`Campaign error: ${err.message}`);
@@ -1031,7 +1510,9 @@ export function LeadTracker() {
   };
 
   // Handle CSV Upload - Import addresses from PropWire, Zoho, etc.
-  const handleCsvUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCsvUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -1040,22 +1521,40 @@ export function LeadTracker() {
 
     try {
       const text = await file.text();
-      const lines = text.split("\n").map((line) => line.trim()).filter(Boolean);
+      const lines = text
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean);
 
       // Get headers from first line
-      const headers = lines[0].toLowerCase().split(",").map((h) => h.trim().replace(/"/g, ""));
-      const addressIdx = headers.findIndex((h) =>
-        h.includes("address") || h.includes("street") || h.includes("property")
+      const headers = lines[0]
+        .toLowerCase()
+        .split(",")
+        .map((h) => h.trim().replace(/"/g, ""));
+      const addressIdx = headers.findIndex(
+        (h) =>
+          h.includes("address") ||
+          h.includes("street") ||
+          h.includes("property"),
       );
       const cityIdx = headers.findIndex((h) => h.includes("city"));
       const stateIdx = headers.findIndex((h) => h.includes("state"));
-      const zipIdx = headers.findIndex((h) => h.includes("zip") || h.includes("postal"));
+      const zipIdx = headers.findIndex(
+        (h) => h.includes("zip") || h.includes("postal"),
+      );
 
       if (addressIdx === -1) {
-        throw new Error("CSV must have an address column (address, street, or property_address)");
+        throw new Error(
+          "CSV must have an address column (address, street, or property_address)",
+        );
       }
 
-      const addresses: Array<{ address: string; city?: string; state?: string; zip?: string }> = [];
+      const addresses: Array<{
+        address: string;
+        city?: string;
+        state?: string;
+        zip?: string;
+      }> = [];
 
       for (let i = 1; i < lines.length; i++) {
         const cols = lines[i].split(",").map((c) => c.trim().replace(/"/g, ""));
@@ -1096,10 +1595,18 @@ export function LeadTracker() {
       };
 
       setSavedSearches((prev) => [...prev, newSearch]);
-      addLog("info", `Created search: ${newSearch.name}`, "Click Run to lookup property IDs");
+      addLog(
+        "info",
+        `Created search: ${newSearch.name}`,
+        "Click Run to lookup property IDs",
+      );
 
       // Now lookup each address to get property IDs
-      addLog("step", "Looking up property IDs...", `Processing ${addresses.length} addresses`);
+      addLog(
+        "step",
+        "Looking up property IDs...",
+        `Processing ${addresses.length} addresses`,
+      );
 
       const propertyIds: string[] = [];
       const batchSize = 10; // Lookup 10 at a time
@@ -1136,10 +1643,14 @@ export function LeadTracker() {
             } catch (e) {
               // Skip failed lookups
             }
-          })
+          }),
         );
 
-        addLog("step", `Looked up ${Math.min(i + batchSize, addresses.length)}/${addresses.length}`, `Found ${propertyIds.length} IDs so far`);
+        addLog(
+          "step",
+          `Looked up ${Math.min(i + batchSize, addresses.length)}/${addresses.length}`,
+          `Found ${propertyIds.length} IDs so far`,
+        );
         await new Promise((r) => setTimeout(r, 200)); // Rate limit
       }
 
@@ -1148,12 +1659,18 @@ export function LeadTracker() {
         prev.map((s) =>
           s.id === newSearch.id
             ? { ...s, propertyIds, status: "complete", lastRun: new Date() }
-            : s
-        )
+            : s,
+        ),
       );
 
-      addLog("success", `✓ Found ${propertyIds.length} property IDs`, "Ready to save to Portfolio");
-      toast.success(`Imported ${addresses.length} addresses, found ${propertyIds.length} property IDs`);
+      addLog(
+        "success",
+        `✓ Found ${propertyIds.length} property IDs`,
+        "Ready to save to Portfolio",
+      );
+      toast.success(
+        `Imported ${addresses.length} addresses, found ${propertyIds.length} property IDs`,
+      );
     } catch (err: any) {
       addLog("error", "CSV Upload Failed", err.message);
       toast.error(err.message);
@@ -1164,7 +1681,10 @@ export function LeadTracker() {
   };
 
   // Push to SMS Campaign (5K batch)
-  const pushToCampaign = async (leads: PrioritizedLead[], campaignName: string) => {
+  const pushToCampaign = async (
+    leads: PrioritizedLead[],
+    campaignName: string,
+  ) => {
     if (leads.length === 0) {
       toast.error("No leads selected");
       return;
@@ -1190,7 +1710,9 @@ export function LeadTracker() {
       }));
 
       // Store campaign batch in localStorage (would be API call in production)
-      const existingCampaigns = JSON.parse(localStorage.getItem("sms_campaigns") || "[]");
+      const existingCampaigns = JSON.parse(
+        localStorage.getItem("sms_campaigns") || "[]",
+      );
       existingCampaigns.push({
         id: `${campaignName}-batch-${i + 1}-${Date.now()}`,
         name: `${campaignName} - Batch ${i + 1}`,
@@ -1202,7 +1724,9 @@ export function LeadTracker() {
       localStorage.setItem("sms_campaigns", JSON.stringify(existingCampaigns));
     }
 
-    toast.success(`Pushed ${leads.length} leads to "${campaignName}" campaign (${batches} batch${batches > 1 ? "es" : ""})`);
+    toast.success(
+      `Pushed ${leads.length} leads to "${campaignName}" campaign (${batches} batch${batches > 1 ? "es" : ""})`,
+    );
   };
 
   // Generate tags for a lead
@@ -1262,34 +1786,41 @@ export function LeadTracker() {
       "Distressed Score",
     ];
 
-    const rows = prioritizedLeads.map((lead) => [
-      lead.score,
-      lead.address,
-      lead.city,
-      lead.state,
-      lead.county,
-      lead.propertyType,
-      lead.owner,
-      lead.equity || "",
-      lead.value || "",
-      lead.lotSize || "",
-      lead.isAbsentee ? "Yes" : "No",
-      lead.isPreForeclosure ? "Yes" : "No",
-      lead.isTaxLien ? "Yes" : "No",
-      lead.isVacant ? "Yes" : "No",
-      lead.scoreBreakdown.absentee,
-      lead.scoreBreakdown.equity,
-      lead.scoreBreakdown.lotSize,
-      lead.scoreBreakdown.propertyType,
-      lead.scoreBreakdown.distressed,
-    ].map((val) => `"${String(val).replace(/"/g, '""')}"`).join(","));
+    const rows = prioritizedLeads.map((lead) =>
+      [
+        lead.score,
+        lead.address,
+        lead.city,
+        lead.state,
+        lead.county,
+        lead.propertyType,
+        lead.owner,
+        lead.equity || "",
+        lead.value || "",
+        lead.lotSize || "",
+        lead.isAbsentee ? "Yes" : "No",
+        lead.isPreForeclosure ? "Yes" : "No",
+        lead.isTaxLien ? "Yes" : "No",
+        lead.isVacant ? "Yes" : "No",
+        lead.scoreBreakdown.absentee,
+        lead.scoreBreakdown.equity,
+        lead.scoreBreakdown.lotSize,
+        lead.scoreBreakdown.propertyType,
+        lead.scoreBreakdown.distressed,
+      ]
+        .map((val) => `"${String(val).replace(/"/g, '""')}"`)
+        .join(","),
+    );
 
     const csv = [headers.join(","), ...rows].join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `prioritized_leads_${new Date().toISOString().split("T")[0]}.csv`);
+    link.setAttribute(
+      "download",
+      `prioritized_leads_${new Date().toISOString().split("T")[0]}.csv`,
+    );
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -1298,7 +1829,8 @@ export function LeadTracker() {
 
   const getScoreColor = (score: number) => {
     if (score >= 70) return "text-green-400 bg-green-900/50 border-green-700";
-    if (score >= 40) return "text-yellow-400 bg-yellow-900/50 border-yellow-700";
+    if (score >= 40)
+      return "text-yellow-400 bg-yellow-900/50 border-yellow-700";
     return "text-zinc-400 bg-zinc-800 border-zinc-700";
   };
 
@@ -1308,11 +1840,21 @@ export function LeadTracker() {
   };
 
   // Calculate totals for dashboard
-  const totalProperties = savedSearches.reduce((sum, s) => sum + s.resultCount, 0);
-  const totalTrackedIds = savedSearches.reduce((sum, s) => sum + s.propertyIds.length, 0);
-  const completedSearches = savedSearches.filter((s) => s.status === "complete").length;
+  const totalProperties = savedSearches.reduce(
+    (sum, s) => sum + s.resultCount,
+    0,
+  );
+  const totalTrackedIds = savedSearches.reduce(
+    (sum, s) => sum + s.propertyIds.length,
+    0,
+  );
+  const completedSearches = savedSearches.filter(
+    (s) => s.status === "complete",
+  ).length;
   const hotLeads = prioritizedLeads.filter((l) => l.score >= 70).length;
-  const warmLeads = prioritizedLeads.filter((l) => l.score >= 40 && l.score < 70).length;
+  const warmLeads = prioritizedLeads.filter(
+    (l) => l.score >= 40 && l.score < 70,
+  ).length;
 
   return (
     <div className="space-y-6">
@@ -1324,7 +1866,9 @@ export function LeadTracker() {
               <Database className="h-5 w-5 text-blue-400" />
               <div>
                 <p className="text-xs text-blue-300">Total Properties</p>
-                <p className="text-xl font-bold text-white">{sf(totalProperties)}</p>
+                <p className="text-xl font-bold text-white">
+                  {sf(totalProperties)}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -1335,7 +1879,9 @@ export function LeadTracker() {
               <Hash className="h-5 w-5 text-purple-400" />
               <div>
                 <p className="text-xs text-purple-300">IDs Tracked</p>
-                <p className="text-xl font-bold text-white">{sf(totalTrackedIds)}</p>
+                <p className="text-xl font-bold text-white">
+                  {sf(totalTrackedIds)}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -1346,7 +1892,9 @@ export function LeadTracker() {
               <CheckCircle2 className="h-5 w-5 text-green-400" />
               <div>
                 <p className="text-xs text-green-300">Searches Done</p>
-                <p className="text-xl font-bold text-white">{completedSearches} / {savedSearches.length}</p>
+                <p className="text-xl font-bold text-white">
+                  {completedSearches} / {savedSearches.length}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -1379,7 +1927,9 @@ export function LeadTracker() {
               <Users className="h-5 w-5 text-zinc-400" />
               <div>
                 <p className="text-xs text-zinc-300">Total Leads</p>
-                <p className="text-xl font-bold text-white">{prioritizedLeads.length}</p>
+                <p className="text-xl font-bold text-white">
+                  {prioritizedLeads.length}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -1395,7 +1945,8 @@ export function LeadTracker() {
               Live Activity
               {currentStep && (
                 <Badge className="ml-2 bg-cyan-900/50 text-cyan-300 animate-pulse">
-                  {currentStep.search}: Step {currentStep.step}/{currentStep.total}
+                  {currentStep.search}: Step {currentStep.step}/
+                  {currentStep.total}
                 </Badge>
               )}
             </CardTitle>
@@ -1417,7 +1968,9 @@ export function LeadTracker() {
             className="h-32 overflow-y-auto bg-black/40 rounded-lg p-2 font-mono text-xs space-y-1"
           >
             {activityLog.length === 0 ? (
-              <p className="text-zinc-600 text-center py-4">Waiting for activity... Run searches to see live progress.</p>
+              <p className="text-zinc-600 text-center py-4">
+                Waiting for activity... Run searches to see live progress.
+              </p>
             ) : (
               activityLog.map((entry) => (
                 <div
@@ -1426,22 +1979,36 @@ export function LeadTracker() {
                     entry.type === "success"
                       ? "text-green-400"
                       : entry.type === "error"
-                      ? "text-red-400"
-                      : entry.type === "step"
-                      ? "text-cyan-400"
-                      : "text-zinc-400"
+                        ? "text-red-400"
+                        : entry.type === "step"
+                          ? "text-cyan-400"
+                          : "text-zinc-400"
                   }`}
                 >
                   <span className="text-zinc-600 shrink-0">
-                    {entry.timestamp.toLocaleTimeString("en-US", { hour12: false })}
+                    {entry.timestamp.toLocaleTimeString("en-US", {
+                      hour12: false,
+                    })}
                   </span>
-                  {entry.type === "step" && <FileSearch className="h-3 w-3 shrink-0 mt-0.5" />}
-                  {entry.type === "success" && <CheckCircle2 className="h-3 w-3 shrink-0 mt-0.5" />}
-                  {entry.type === "error" && <XCircle className="h-3 w-3 shrink-0 mt-0.5" />}
-                  {entry.type === "info" && <Clock className="h-3 w-3 shrink-0 mt-0.5" />}
+                  {entry.type === "step" && (
+                    <FileSearch className="h-3 w-3 shrink-0 mt-0.5" />
+                  )}
+                  {entry.type === "success" && (
+                    <CheckCircle2 className="h-3 w-3 shrink-0 mt-0.5" />
+                  )}
+                  {entry.type === "error" && (
+                    <XCircle className="h-3 w-3 shrink-0 mt-0.5" />
+                  )}
+                  {entry.type === "info" && (
+                    <Clock className="h-3 w-3 shrink-0 mt-0.5" />
+                  )}
                   <span>
                     {entry.message}
-                    {entry.details && <span className="text-zinc-500 ml-2">— {entry.details}</span>}
+                    {entry.details && (
+                      <span className="text-zinc-500 ml-2">
+                        — {entry.details}
+                      </span>
+                    )}
                   </span>
                 </div>
               ))
@@ -1453,18 +2020,40 @@ export function LeadTracker() {
             <div className="mt-3 space-y-1">
               <div className="flex justify-between text-xs text-zinc-400">
                 <span>{currentStep.search}</span>
-                <span>Step {currentStep.step} of {currentStep.total}</span>
+                <span>
+                  Step {currentStep.step} of {currentStep.total}
+                </span>
               </div>
               <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-gradient-to-r from-cyan-500 to-purple-500 transition-all duration-300"
-                  style={{ width: `${(currentStep.step / currentStep.total) * 100}%` }}
+                  style={{
+                    width: `${(currentStep.step / currentStep.total) * 100}%`,
+                  }}
                 />
               </div>
               <div className="flex justify-between text-xs">
-                <span className={currentStep.step >= 1 ? "text-green-400" : "text-zinc-600"}>① Count (FREE)</span>
-                <span className={currentStep.step >= 2 ? "text-green-400" : "text-zinc-600"}>② Get IDs</span>
-                <span className={currentStep.step >= 3 ? "text-green-400" : "text-zinc-600"}>③ Details</span>
+                <span
+                  className={
+                    currentStep.step >= 1 ? "text-green-400" : "text-zinc-600"
+                  }
+                >
+                  ① Count (FREE)
+                </span>
+                <span
+                  className={
+                    currentStep.step >= 2 ? "text-green-400" : "text-zinc-600"
+                  }
+                >
+                  ② Get IDs
+                </span>
+                <span
+                  className={
+                    currentStep.step >= 3 ? "text-green-400" : "text-zinc-600"
+                  }
+                >
+                  ③ Details
+                </span>
               </div>
             </div>
           )}
@@ -1497,7 +2086,9 @@ export function LeadTracker() {
               >
                 <option value="">Select State</option>
                 {STATES.map((s) => (
-                  <option key={s.value} value={s.value}>{s.label}</option>
+                  <option key={s.value} value={s.value}>
+                    {s.label}
+                  </option>
                 ))}
               </select>
             </div>
@@ -1511,14 +2102,18 @@ export function LeadTracker() {
                 >
                   <option value="">Select County</option>
                   {COUNTIES_BY_STATE[selectedState].map((c) => (
-                    <option key={c} value={c}>{c}</option>
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
                   ))}
                 </select>
               ) : (
                 <Input
                   value={county}
                   onChange={(e) => setCounty(e.target.value)}
-                  placeholder={selectedState ? "Enter county name" : "Select state first"}
+                  placeholder={
+                    selectedState ? "Enter county name" : "Select state first"
+                  }
                   className="bg-zinc-800 border-zinc-700 text-zinc-200"
                   disabled={!selectedState}
                 />
@@ -1543,7 +2138,7 @@ export function LeadTracker() {
                         setSelectedTypes((prev) =>
                           isSelected
                             ? prev.filter((t) => t !== type.value)
-                            : [...prev, type.value]
+                            : [...prev, type.value],
                         )
                       }
                     >
@@ -1563,7 +2158,9 @@ export function LeadTracker() {
               <label className="flex items-center gap-2 text-sm text-zinc-400 cursor-pointer">
                 <Checkbox
                   checked={filterByYearsOwned}
-                  onCheckedChange={(checked) => setFilterByYearsOwned(!!checked)}
+                  onCheckedChange={(checked) =>
+                    setFilterByYearsOwned(!!checked)
+                  }
                   className="border-zinc-600"
                 />
                 <span>Min {minYearsOwned}+ Years Owned</span>
@@ -1590,7 +2187,10 @@ export function LeadTracker() {
             </p>
           </div>
 
-          <Button onClick={generateSearches} className="bg-purple-600 hover:bg-purple-700">
+          <Button
+            onClick={generateSearches}
+            className="bg-purple-600 hover:bg-purple-700"
+          >
             <Plus className="h-4 w-4 mr-2" />
             Generate Searches
           </Button>
@@ -1648,7 +2248,11 @@ export function LeadTracker() {
                 </Button>
                 <Button
                   onClick={saveAllToDatabase}
-                  disabled={isSavingToDb || savedSearches.filter(s => s.status === "complete").length === 0}
+                  disabled={
+                    isSavingToDb ||
+                    savedSearches.filter((s) => s.status === "complete")
+                      .length === 0
+                  }
                   className="bg-blue-600 hover:bg-blue-700"
                   title="Save to RealEstateAPI Portfolio for daily change tracking"
                 >
@@ -1682,13 +2286,19 @@ export function LeadTracker() {
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <Rocket className="h-5 w-5 text-purple-400" />
-                  <h3 className="font-semibold text-zinc-100">Lead Workflow Pipeline</h3>
+                  <h3 className="font-semibold text-zinc-100">
+                    Lead Workflow Pipeline
+                  </h3>
                 </div>
                 <div className="flex items-center gap-4 text-xs text-zinc-400">
-                  <span>Skip Trace: {skipTraceUsage.used}/{skipTraceUsage.limit}/day ({skipTraceUsage.remaining} left)</span>
+                  <span>
+                    Skip Trace: {skipTraceUsage.used}/{skipTraceUsage.limit}/day
+                    ({skipTraceUsage.remaining} left)
+                  </span>
                   {skipTraceProgress && (
                     <span className="text-cyan-400 animate-pulse">
-                      Processing: {skipTraceProgress.current}/{skipTraceProgress.total}
+                      Processing: {skipTraceProgress.current}/
+                      {skipTraceProgress.total}
                     </span>
                   )}
                 </div>
@@ -1700,7 +2310,12 @@ export function LeadTracker() {
                 <div className="flex-1">
                   <Button
                     onClick={() => runSkipTrace()}
-                    disabled={isSkipTracing || prioritizedLeads.filter((l) => !l.skipTraced && !l.isMlsActive).length === 0}
+                    disabled={
+                      isSkipTracing ||
+                      prioritizedLeads.filter(
+                        (l) => !l.skipTraced && !l.isMlsActive,
+                      ).length === 0
+                    }
                     className="w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800"
                   >
                     {isSkipTracing ? (
@@ -1708,9 +2323,17 @@ export function LeadTracker() {
                     ) : (
                       <Phone className="h-4 w-4 mr-2" />
                     )}
-                    1. Skip Trace ({prioritizedLeads.filter((l) => !l.skipTraced && !l.isMlsActive && l.score >= 40).length})
+                    1. Skip Trace (
+                    {
+                      prioritizedLeads.filter(
+                        (l) => !l.skipTraced && !l.isMlsActive && l.score >= 40,
+                      ).length
+                    }
+                    )
                   </Button>
-                  <p className="text-xs text-zinc-500 mt-1 text-center">Get owner phone/email</p>
+                  <p className="text-xs text-zinc-500 mt-1 text-center">
+                    Get owner phone/email
+                  </p>
                 </div>
 
                 <div className="text-zinc-600">→</div>
@@ -1719,7 +2342,13 @@ export function LeadTracker() {
                 <div className="flex-1">
                   <Button
                     onClick={() => pushLeadsToCampaign()}
-                    disabled={isPushingToCampaign || prioritizedLeads.filter((l) => l.skipTraced && l.phones.length > 0 && !l.campaignId).length === 0}
+                    disabled={
+                      isPushingToCampaign ||
+                      prioritizedLeads.filter(
+                        (l) =>
+                          l.skipTraced && l.phones.length > 0 && !l.campaignId,
+                      ).length === 0
+                    }
                     className="w-full bg-gradient-to-r from-cyan-600 to-cyan-700 hover:from-cyan-700 hover:to-cyan-800"
                   >
                     {isPushingToCampaign ? (
@@ -1727,9 +2356,18 @@ export function LeadTracker() {
                     ) : (
                       <MessageSquare className="h-4 w-4 mr-2" />
                     )}
-                    2. Push to Campaign ({prioritizedLeads.filter((l) => l.skipTraced && l.phones.length > 0 && !l.campaignId).length})
+                    2. Push to Campaign (
+                    {
+                      prioritizedLeads.filter(
+                        (l) =>
+                          l.skipTraced && l.phones.length > 0 && !l.campaignId,
+                      ).length
+                    }
+                    )
                   </Button>
-                  <p className="text-xs text-zinc-500 mt-1 text-center">Create SMS campaign</p>
+                  <p className="text-xs text-zinc-500 mt-1 text-center">
+                    Create SMS campaign
+                  </p>
                 </div>
 
                 <div className="text-zinc-600">→</div>
@@ -1778,12 +2416,18 @@ export function LeadTracker() {
                 <div className="mt-3 p-2 bg-green-900/30 rounded border border-green-700/50 text-sm">
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="h-4 w-4 text-green-400" />
-                    <span className="text-green-300">Active Campaign: {activeCampaign.name}</span>
+                    <span className="text-green-300">
+                      Active Campaign: {activeCampaign.name}
+                    </span>
                     {activeCampaign.phone && (
-                      <Badge className="bg-green-900/50 text-green-300">{activeCampaign.phone}</Badge>
+                      <Badge className="bg-green-900/50 text-green-300">
+                        {activeCampaign.phone}
+                      </Badge>
                     )}
                     {activeCampaign.sdr && (
-                      <Badge className="bg-orange-900/50 text-orange-300">SDR: {activeCampaign.sdr}</Badge>
+                      <Badge className="bg-orange-900/50 text-orange-300">
+                        SDR: {activeCampaign.sdr}
+                      </Badge>
                     )}
                   </div>
                 </div>
@@ -1795,13 +2439,16 @@ export function LeadTracker() {
                   📊 Total: {prioritizedLeads.length}
                 </span>
                 <span className="text-purple-400">
-                  📞 Skip Traced: {prioritizedLeads.filter((l) => l.skipTraced).length}
+                  📞 Skip Traced:{" "}
+                  {prioritizedLeads.filter((l) => l.skipTraced).length}
                 </span>
                 <span className="text-cyan-400">
-                  ☎️ With Phone: {prioritizedLeads.filter((l) => l.phones.length > 0).length}
+                  ☎️ With Phone:{" "}
+                  {prioritizedLeads.filter((l) => l.phones.length > 0).length}
                 </span>
                 <span className="text-green-400">
-                  📤 In Campaign: {prioritizedLeads.filter((l) => l.campaignId).length}
+                  📤 In Campaign:{" "}
+                  {prioritizedLeads.filter((l) => l.campaignId).length}
                 </span>
               </div>
             </div>
@@ -1819,9 +2466,12 @@ export function LeadTracker() {
                       <div className="flex items-center gap-2">
                         <TypeIcon className="h-4 w-4 text-zinc-400" />
                         <div>
-                          <p className="text-sm font-medium text-zinc-200">{search.name}</p>
+                          <p className="text-sm font-medium text-zinc-200">
+                            {search.name}
+                          </p>
                           <p className="text-xs text-zinc-500">
-                            {search.resultCount} properties | {search.propertyIds.length} tracked
+                            {search.resultCount} properties |{" "}
+                            {search.propertyIds.length} tracked
                           </p>
                         </div>
                       </div>
@@ -1830,10 +2480,10 @@ export function LeadTracker() {
                           search.status === "complete"
                             ? "bg-green-900/50 text-green-300"
                             : search.status === "running"
-                            ? "bg-blue-900/50 text-blue-300"
-                            : search.status === "error"
-                            ? "bg-red-900/50 text-red-300"
-                            : "bg-zinc-800 text-zinc-400"
+                              ? "bg-blue-900/50 text-blue-300"
+                              : search.status === "error"
+                                ? "bg-red-900/50 text-red-300"
+                                : "bg-zinc-800 text-zinc-400"
                         }
                       >
                         {search.status}
@@ -1880,19 +2530,36 @@ export function LeadTracker() {
                 Prioritized Leads ({prioritizedLeads.length})
               </CardTitle>
               <CardDescription className="text-zinc-400">
-                Leads scored by: Absentee + Equity + Distress + Lot Size + Property Type
+                Leads scored by: Absentee + Equity + Distress + Lot Size +
+                Property Type
               </CardDescription>
             </div>
             {prioritizedLeads.length > 0 && (
               <div className="flex gap-2">
                 <Button
-                  onClick={() => pushToCampaign(prioritizedLeads.filter(l => l.score >= 40 && !l.isMlsActive), "Hot_Leads")}
+                  onClick={() =>
+                    pushToCampaign(
+                      prioritizedLeads.filter(
+                        (l) => l.score >= 40 && !l.isMlsActive,
+                      ),
+                      "Hot_Leads",
+                    )
+                  }
                   className="bg-orange-600 hover:bg-orange-700"
                 >
                   <Target className="h-4 w-4 mr-2" />
-                  Push to SMS ({prioritizedLeads.filter(l => l.score >= 40 && !l.isMlsActive).length})
+                  Push to SMS (
+                  {
+                    prioritizedLeads.filter(
+                      (l) => l.score >= 40 && !l.isMlsActive,
+                    ).length
+                  }
+                  )
                 </Button>
-                <Button onClick={exportLeadsToCSV} className="bg-green-600 hover:bg-green-700">
+                <Button
+                  onClick={exportLeadsToCSV}
+                  className="bg-green-600 hover:bg-green-700"
+                >
                   <Download className="h-4 w-4 mr-2" />
                   Export CSV
                 </Button>
@@ -1910,7 +2577,9 @@ export function LeadTracker() {
                   onChange={(e) => setSortLeadsBy(e.target.value as any)}
                   className="h-8 px-2 rounded bg-zinc-800 border border-zinc-700 text-zinc-200 text-sm"
                 >
-                  <option value="years_owned">Years Owned (longest first)</option>
+                  <option value="years_owned">
+                    Years Owned (longest first)
+                  </option>
                   <option value="score">Lead Score (highest first)</option>
                   <option value="equity">Equity % (highest first)</option>
                   <option value="value">Property Value (highest first)</option>
@@ -1923,7 +2592,10 @@ export function LeadTracker() {
                   onCheckedChange={(checked) => setHideMlsActive(!!checked)}
                   className="border-zinc-600"
                 />
-                <span>Hide MLS Listed ({prioritizedLeads.filter(l => l.isMlsActive).length})</span>
+                <span>
+                  Hide MLS Listed (
+                  {prioritizedLeads.filter((l) => l.isMlsActive).length})
+                </span>
               </label>
               <label className="flex items-center gap-2 text-sm text-zinc-400 cursor-pointer">
                 <Checkbox
@@ -1939,14 +2611,32 @@ export function LeadTracker() {
                   onCheckedChange={(checked) => setShowOnlyExpired(!!checked)}
                   className="border-zinc-600"
                 />
-                <span>Expired Listings Only ({prioritizedLeads.filter(l => l.isMlsExpired).length})</span>
+                <span>
+                  Expired Listings Only (
+                  {prioritizedLeads.filter((l) => l.isMlsExpired).length})
+                </span>
               </label>
               {/* Stats */}
               <div className="ml-auto flex gap-4 text-xs text-zinc-500">
-                <span className="text-green-400">🔥 Hot: {prioritizedLeads.filter(l => l.score >= 70).length}</span>
-                <span className="text-orange-400">⚠️ Warm: {prioritizedLeads.filter(l => l.score >= 40 && l.score < 70).length}</span>
-                <span className="text-blue-400">📋 MLS Listed: {prioritizedLeads.filter(l => l.isMlsActive).length}</span>
-                <span className="text-purple-400">⏰ Expired: {prioritizedLeads.filter(l => l.isMlsExpired).length}</span>
+                <span className="text-green-400">
+                  🔥 Hot: {prioritizedLeads.filter((l) => l.score >= 70).length}
+                </span>
+                <span className="text-orange-400">
+                  ⚠️ Warm:{" "}
+                  {
+                    prioritizedLeads.filter(
+                      (l) => l.score >= 40 && l.score < 70,
+                    ).length
+                  }
+                </span>
+                <span className="text-blue-400">
+                  📋 MLS Listed:{" "}
+                  {prioritizedLeads.filter((l) => l.isMlsActive).length}
+                </span>
+                <span className="text-purple-400">
+                  ⏰ Expired:{" "}
+                  {prioritizedLeads.filter((l) => l.isMlsExpired).length}
+                </span>
               </div>
             </div>
           )}
@@ -1955,12 +2645,15 @@ export function LeadTracker() {
           {prioritizedLeads.length === 0 ? (
             <div className="text-center py-8 text-zinc-500">
               <Target className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p>No leads yet. Create and run saved searches to generate prioritized leads.</p>
+              <p>
+                No leads yet. Create and run saved searches to generate
+                prioritized leads.
+              </p>
             </div>
           ) : (
             <div className="space-y-2 max-h-[600px] overflow-y-auto">
               {prioritizedLeads
-                .filter(lead => {
+                .filter((lead) => {
                   // Apply filters
                   if (hideMlsActive && lead.isMlsActive) return false;
                   if (showOnlyHot && lead.score < 70) return false;
@@ -1984,218 +2677,305 @@ export function LeadTracker() {
                 })
                 .slice(0, 50)
                 .map((lead, i) => (
-                <div key={lead.id} className="space-y-0">
-                  {/* Lead Row - Clickable */}
-                  <div
-                    onClick={() => setExpandedLeadId(expandedLeadId === lead.id ? null : lead.id)}
-                    className={`flex items-center gap-3 p-3 bg-zinc-800/50 rounded-lg border cursor-pointer hover:bg-zinc-800 transition-colors ${
-                      lead.isMlsActive
-                        ? "border-blue-700/50 opacity-60"
-                        : lead.isMlsExpired
-                        ? "border-purple-500 border-2"
-                        : expandedLeadId === lead.id
-                        ? "border-cyan-500 bg-zinc-800"
-                        : "border-zinc-700"
-                    }`}
-                  >
-                    <div className={`flex items-center justify-center w-12 h-12 rounded-lg font-bold ${getScoreColor(lead.score)}`}>
-                      {lead.score}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-sm font-medium text-zinc-200 truncate">{lead.address}</p>
-                        {lead.isMlsActive && (
-                          <Badge className="bg-blue-900/50 text-blue-300 text-xs border border-blue-500">📋 MLS Listed</Badge>
+                  <div key={lead.id} className="space-y-0">
+                    {/* Lead Row - Clickable */}
+                    <div
+                      onClick={() =>
+                        setExpandedLeadId(
+                          expandedLeadId === lead.id ? null : lead.id,
+                        )
+                      }
+                      className={`flex items-center gap-3 p-3 bg-zinc-800/50 rounded-lg border cursor-pointer hover:bg-zinc-800 transition-colors ${
+                        lead.isMlsActive
+                          ? "border-blue-700/50 opacity-60"
+                          : lead.isMlsExpired
+                            ? "border-purple-500 border-2"
+                            : expandedLeadId === lead.id
+                              ? "border-cyan-500 bg-zinc-800"
+                              : "border-zinc-700"
+                      }`}
+                    >
+                      <div
+                        className={`flex items-center justify-center w-12 h-12 rounded-lg font-bold ${getScoreColor(lead.score)}`}
+                      >
+                        {lead.score}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-sm font-medium text-zinc-200 truncate">
+                            {lead.address}
+                          </p>
+                          {lead.isMlsActive && (
+                            <Badge className="bg-blue-900/50 text-blue-300 text-xs border border-blue-500">
+                              📋 MLS Listed
+                            </Badge>
+                          )}
+                          {lead.isMlsExpired && (
+                            <Badge className="bg-purple-900/50 text-purple-300 text-xs border border-purple-500">
+                              ⏰ EXPIRED
+                            </Badge>
+                          )}
+                          {lead.hasDeedChange && (
+                            <Badge className="bg-yellow-900/50 text-yellow-300 text-xs">
+                              📝 Recent Deed
+                            </Badge>
+                          )}
+                          {lead.isAbsentee && (
+                            <Badge className="bg-purple-900/50 text-purple-300 text-xs">
+                              Absentee
+                            </Badge>
+                          )}
+                          {lead.isPreForeclosure && (
+                            <Badge className="bg-red-900/50 text-red-300 text-xs">
+                              Pre-Foreclosure
+                            </Badge>
+                          )}
+                          {lead.isTaxLien && (
+                            <Badge className="bg-orange-900/50 text-orange-300 text-xs">
+                              Tax Lien
+                            </Badge>
+                          )}
+                          {lead.isVacant && (
+                            <Badge className="bg-gray-700/50 text-gray-300 text-xs">
+                              Vacant
+                            </Badge>
+                          )}
+                          {lead.isReverseMortgage && (
+                            <Badge className="bg-pink-900/50 text-pink-300 text-xs border border-pink-500 font-bold">
+                              🏦 REVERSE MTG
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-zinc-500">
+                          {lead.city}, {lead.state} | {lead.county} County |{" "}
+                          {lead.propertyType}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {lead.yearsOwned !== null && lead.yearsOwned > 0 && (
+                          <Badge
+                            className={`border ${
+                              lead.yearsOwned >= 10
+                                ? "bg-gradient-to-r from-cyan-900 to-cyan-700 text-white border-cyan-500 font-bold"
+                                : lead.yearsOwned >= 5
+                                  ? "bg-cyan-900/50 text-cyan-300 border-cyan-700"
+                                  : "bg-zinc-800 text-zinc-400 border-zinc-600"
+                            }`}
+                          >
+                            {lead.yearsOwned} yrs
+                          </Badge>
                         )}
-                        {lead.isMlsExpired && (
-                          <Badge className="bg-purple-900/50 text-purple-300 text-xs border border-purple-500">⏰ EXPIRED</Badge>
+                        {lead.equity && (
+                          <Badge className="bg-green-900/50 text-green-300 border-green-700">
+                            {lead.equity}% equity
+                          </Badge>
                         )}
-                        {lead.hasDeedChange && (
-                          <Badge className="bg-yellow-900/50 text-yellow-300 text-xs">📝 Recent Deed</Badge>
-                        )}
-                        {lead.isAbsentee && (
-                          <Badge className="bg-purple-900/50 text-purple-300 text-xs">Absentee</Badge>
-                        )}
-                        {lead.isPreForeclosure && (
-                          <Badge className="bg-red-900/50 text-red-300 text-xs">Pre-Foreclosure</Badge>
-                        )}
-                        {lead.isTaxLien && (
-                          <Badge className="bg-orange-900/50 text-orange-300 text-xs">Tax Lien</Badge>
-                        )}
-                        {lead.isVacant && (
-                          <Badge className="bg-gray-700/50 text-gray-300 text-xs">Vacant</Badge>
-                        )}
-                        {lead.isReverseMortgage && (
-                          <Badge className="bg-pink-900/50 text-pink-300 text-xs border border-pink-500 font-bold">🏦 REVERSE MTG</Badge>
+                        {lead.value && (
+                          <Badge className="bg-blue-900/50 text-blue-300 border-blue-700">
+                            ${(lead.value / 1000).toFixed(0)}K
+                          </Badge>
                         )}
                       </div>
-                      <p className="text-xs text-zinc-500">
-                        {lead.city}, {lead.state} | {lead.county} County | {lead.propertyType}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      {lead.yearsOwned !== null && lead.yearsOwned > 0 && (
-                        <Badge className={`border ${
-                          lead.yearsOwned >= 10
-                            ? "bg-gradient-to-r from-cyan-900 to-cyan-700 text-white border-cyan-500 font-bold"
-                            : lead.yearsOwned >= 5
-                            ? "bg-cyan-900/50 text-cyan-300 border-cyan-700"
-                            : "bg-zinc-800 text-zinc-400 border-zinc-600"
-                        }`}>
-                          {lead.yearsOwned} yrs
-                        </Badge>
-                      )}
-                      {lead.equity && (
-                        <Badge className="bg-green-900/50 text-green-300 border-green-700">
-                          {lead.equity}% equity
-                        </Badge>
-                      )}
-                      {lead.value && (
-                        <Badge className="bg-blue-900/50 text-blue-300 border-blue-700">
-                          ${(lead.value / 1000).toFixed(0)}K
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="text-xs text-zinc-500 shrink-0 flex items-center gap-2">
-                      <span>
-                        <Users className="h-3 w-3 inline mr-1" />
-                        {lead.owner}
-                      </span>
-                      {lead.skipTraced && (
-                        <span className="flex items-center gap-1">
-                          {lead.phones.length > 0 && (
-                            <Badge className="bg-green-900/50 text-green-300 text-xs py-0">
-                              <Phone className="h-2.5 w-2.5 mr-0.5" />
-                              {lead.phones.length}
-                            </Badge>
-                          )}
-                          {lead.emails.length > 0 && (
-                            <Badge className="bg-blue-900/50 text-blue-300 text-xs py-0">
-                              <Mail className="h-2.5 w-2.5 mr-0.5" />
-                              {lead.emails.length}
-                            </Badge>
-                          )}
-                          {lead.campaignId && (
-                            <Badge className="bg-orange-900/50 text-orange-300 text-xs py-0">
-                              📤 Campaign
-                            </Badge>
-                          )}
+                      <div className="text-xs text-zinc-500 shrink-0 flex items-center gap-2">
+                        <span>
+                          <Users className="h-3 w-3 inline mr-1" />
+                          {lead.owner}
                         </span>
-                      )}
-                    </div>
-                    {/* Expand indicator */}
-                    <div className="text-zinc-500">
-                      {expandedLeadId === lead.id ? "▼" : "▶"}
-                    </div>
-                  </div>
-
-                  {/* Expanded Detail Panel */}
-                  {expandedLeadId === lead.id && (
-                    <div className="ml-4 p-4 bg-zinc-900 border border-zinc-700 rounded-lg mt-1 space-y-4">
-                      {/* Contact Info - Most Important */}
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <h4 className="text-sm font-semibold text-zinc-300 flex items-center gap-2">
-                            <Phone className="h-4 w-4 text-green-400" />
-                            Phone Numbers
-                          </h4>
-                          {lead.phones.length > 0 ? (
-                            <div className="space-y-1">
-                              {lead.phones.map((phone, idx) => (
-                                <div key={idx} className="flex items-center gap-2">
-                                  <code className="text-green-400 bg-green-900/30 px-2 py-1 rounded text-sm">{phone}</code>
-                                  <Button size="sm" variant="ghost" className="h-6 text-xs" onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(phone); toast.success("Copied!"); }}>
-                                    Copy
-                                  </Button>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <p className="text-xs text-zinc-500 italic">No phones - run Skip Trace</p>
-                          )}
-                        </div>
-                        <div className="space-y-2">
-                          <h4 className="text-sm font-semibold text-zinc-300 flex items-center gap-2">
-                            <Mail className="h-4 w-4 text-blue-400" />
-                            Email Addresses
-                          </h4>
-                          {lead.emails.length > 0 ? (
-                            <div className="space-y-1">
-                              {lead.emails.map((email, idx) => (
-                                <div key={idx} className="flex items-center gap-2">
-                                  <code className="text-blue-400 bg-blue-900/30 px-2 py-1 rounded text-sm">{email}</code>
-                                  <Button size="sm" variant="ghost" className="h-6 text-xs" onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(email); toast.success("Copied!"); }}>
-                                    Copy
-                                  </Button>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <p className="text-xs text-zinc-500 italic">No emails - run Skip Trace</p>
-                          )}
-                        </div>
+                        {lead.skipTraced && (
+                          <span className="flex items-center gap-1">
+                            {lead.phones.length > 0 && (
+                              <Badge className="bg-green-900/50 text-green-300 text-xs py-0">
+                                <Phone className="h-2.5 w-2.5 mr-0.5" />
+                                {lead.phones.length}
+                              </Badge>
+                            )}
+                            {lead.emails.length > 0 && (
+                              <Badge className="bg-blue-900/50 text-blue-300 text-xs py-0">
+                                <Mail className="h-2.5 w-2.5 mr-0.5" />
+                                {lead.emails.length}
+                              </Badge>
+                            )}
+                            {lead.campaignId && (
+                              <Badge className="bg-orange-900/50 text-orange-300 text-xs py-0">
+                                📤 Campaign
+                              </Badge>
+                            )}
+                          </span>
+                        )}
                       </div>
+                      {/* Expand indicator */}
+                      <div className="text-zinc-500">
+                        {expandedLeadId === lead.id ? "▼" : "▶"}
+                      </div>
+                    </div>
 
-                      {/* Property Details */}
-                      <div className="grid grid-cols-4 gap-3 pt-3 border-t border-zinc-800">
-                        <div className="bg-zinc-800/50 p-2 rounded">
-                          <p className="text-xs text-zinc-500">Owner</p>
-                          <p className="text-sm text-zinc-200 font-medium">{lead.owner}</p>
+                    {/* Expanded Detail Panel */}
+                    {expandedLeadId === lead.id && (
+                      <div className="ml-4 p-4 bg-zinc-900 border border-zinc-700 rounded-lg mt-1 space-y-4">
+                        {/* Contact Info - Most Important */}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <h4 className="text-sm font-semibold text-zinc-300 flex items-center gap-2">
+                              <Phone className="h-4 w-4 text-green-400" />
+                              Phone Numbers
+                            </h4>
+                            {lead.phones.length > 0 ? (
+                              <div className="space-y-1">
+                                {lead.phones.map((phone, idx) => (
+                                  <div
+                                    key={idx}
+                                    className="flex items-center gap-2"
+                                  >
+                                    <code className="text-green-400 bg-green-900/30 px-2 py-1 rounded text-sm">
+                                      {phone}
+                                    </code>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-6 text-xs"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigator.clipboard.writeText(phone);
+                                        toast.success("Copied!");
+                                      }}
+                                    >
+                                      Copy
+                                    </Button>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-xs text-zinc-500 italic">
+                                No phones - run Skip Trace
+                              </p>
+                            )}
+                          </div>
+                          <div className="space-y-2">
+                            <h4 className="text-sm font-semibold text-zinc-300 flex items-center gap-2">
+                              <Mail className="h-4 w-4 text-blue-400" />
+                              Email Addresses
+                            </h4>
+                            {lead.emails.length > 0 ? (
+                              <div className="space-y-1">
+                                {lead.emails.map((email, idx) => (
+                                  <div
+                                    key={idx}
+                                    className="flex items-center gap-2"
+                                  >
+                                    <code className="text-blue-400 bg-blue-900/30 px-2 py-1 rounded text-sm">
+                                      {email}
+                                    </code>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-6 text-xs"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigator.clipboard.writeText(email);
+                                        toast.success("Copied!");
+                                      }}
+                                    >
+                                      Copy
+                                    </Button>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-xs text-zinc-500 italic">
+                                No emails - run Skip Trace
+                              </p>
+                            )}
+                          </div>
                         </div>
-                        <div className="bg-zinc-800/50 p-2 rounded">
-                          <p className="text-xs text-zinc-500">Property Type</p>
-                          <p className="text-sm text-zinc-200">{lead.propertyType}</p>
+
+                        {/* Property Details */}
+                        <div className="grid grid-cols-4 gap-3 pt-3 border-t border-zinc-800">
+                          <div className="bg-zinc-800/50 p-2 rounded">
+                            <p className="text-xs text-zinc-500">Owner</p>
+                            <p className="text-sm text-zinc-200 font-medium">
+                              {lead.owner}
+                            </p>
+                          </div>
+                          <div className="bg-zinc-800/50 p-2 rounded">
+                            <p className="text-xs text-zinc-500">
+                              Property Type
+                            </p>
+                            <p className="text-sm text-zinc-200">
+                              {lead.propertyType}
+                            </p>
+                          </div>
+                          <div className="bg-zinc-800/50 p-2 rounded">
+                            <p className="text-xs text-zinc-500">Years Owned</p>
+                            <p className="text-sm text-zinc-200">
+                              {lead.yearsOwned || "Unknown"}
+                            </p>
+                          </div>
+                          <div className="bg-zinc-800/50 p-2 rounded">
+                            <p className="text-xs text-zinc-500">Equity</p>
+                            <p className="text-sm text-zinc-200">
+                              {lead.equity ? `${lead.equity}%` : "Unknown"}
+                            </p>
+                          </div>
+                          <div className="bg-zinc-800/50 p-2 rounded">
+                            <p className="text-xs text-zinc-500">Est. Value</p>
+                            <p className="text-sm text-zinc-200">
+                              {lead.value ? `$${sf(lead.value)}` : "Unknown"}
+                            </p>
+                          </div>
+                          <div className="bg-zinc-800/50 p-2 rounded">
+                            <p className="text-xs text-zinc-500">Lot Size</p>
+                            <p className="text-sm text-zinc-200">
+                              {lead.lotSize
+                                ? `${(lead.lotSize / 43560).toFixed(2)} acres`
+                                : "Unknown"}
+                            </p>
+                          </div>
+                          <div className="bg-zinc-800/50 p-2 rounded">
+                            <p className="text-xs text-zinc-500">
+                              Score Breakdown
+                            </p>
+                            <p className="text-xs text-zinc-400">
+                              A:{lead.scoreBreakdown.absentee} E:
+                              {lead.scoreBreakdown.equity} D:
+                              {lead.scoreBreakdown.distressed}
+                            </p>
+                          </div>
+                          <div className="bg-zinc-800/50 p-2 rounded">
+                            <p className="text-xs text-zinc-500">Skip Traced</p>
+                            <p className="text-sm text-zinc-200">
+                              {lead.skipTraced ? "Yes" : "No"}
+                            </p>
+                          </div>
                         </div>
-                        <div className="bg-zinc-800/50 p-2 rounded">
-                          <p className="text-xs text-zinc-500">Years Owned</p>
-                          <p className="text-sm text-zinc-200">{lead.yearsOwned || "Unknown"}</p>
-                        </div>
-                        <div className="bg-zinc-800/50 p-2 rounded">
-                          <p className="text-xs text-zinc-500">Equity</p>
-                          <p className="text-sm text-zinc-200">{lead.equity ? `${lead.equity}%` : "Unknown"}</p>
-                        </div>
-                        <div className="bg-zinc-800/50 p-2 rounded">
-                          <p className="text-xs text-zinc-500">Est. Value</p>
-                          <p className="text-sm text-zinc-200">{lead.value ? `$${sf(lead.value)}` : "Unknown"}</p>
-                        </div>
-                        <div className="bg-zinc-800/50 p-2 rounded">
-                          <p className="text-xs text-zinc-500">Lot Size</p>
-                          <p className="text-sm text-zinc-200">{lead.lotSize ? `${(lead.lotSize / 43560).toFixed(2)} acres` : "Unknown"}</p>
-                        </div>
-                        <div className="bg-zinc-800/50 p-2 rounded">
-                          <p className="text-xs text-zinc-500">Score Breakdown</p>
-                          <p className="text-xs text-zinc-400">
-                            A:{lead.scoreBreakdown.absentee} E:{lead.scoreBreakdown.equity} D:{lead.scoreBreakdown.distressed}
+
+                        {/* Full Address */}
+                        <div className="pt-3 border-t border-zinc-800">
+                          <p className="text-xs text-zinc-500">Full Address</p>
+                          <p className="text-sm text-zinc-200">
+                            {lead.address}, {lead.city}, {lead.state} -{" "}
+                            {lead.county} County
                           </p>
                         </div>
-                        <div className="bg-zinc-800/50 p-2 rounded">
-                          <p className="text-xs text-zinc-500">Skip Traced</p>
-                          <p className="text-sm text-zinc-200">{lead.skipTraced ? "Yes" : "No"}</p>
-                        </div>
-                      </div>
 
-                      {/* Full Address */}
-                      <div className="pt-3 border-t border-zinc-800">
-                        <p className="text-xs text-zinc-500">Full Address</p>
-                        <p className="text-sm text-zinc-200">{lead.address}, {lead.city}, {lead.state} - {lead.county} County</p>
+                        {/* Raw Data (if exists) */}
+                        {lead.raw && (
+                          <details className="pt-3 border-t border-zinc-800">
+                            <summary className="text-xs text-zinc-500 cursor-pointer hover:text-zinc-300">
+                              View Raw API Data
+                            </summary>
+                            <pre className="mt-2 p-2 bg-black/50 rounded text-xs text-zinc-400 overflow-x-auto max-h-48">
+                              {JSON.stringify(lead.raw, null, 2)}
+                            </pre>
+                          </details>
+                        )}
                       </div>
-
-                      {/* Raw Data (if exists) */}
-                      {lead.raw && (
-                        <details className="pt-3 border-t border-zinc-800">
-                          <summary className="text-xs text-zinc-500 cursor-pointer hover:text-zinc-300">View Raw API Data</summary>
-                          <pre className="mt-2 p-2 bg-black/50 rounded text-xs text-zinc-400 overflow-x-auto max-h-48">
-                            {JSON.stringify(lead.raw, null, 2)}
-                          </pre>
-                        </details>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
+                    )}
+                  </div>
+                ))}
               {prioritizedLeads.length > 50 && (
                 <p className="text-xs text-zinc-500 text-center py-2">
-                  Showing top 50 of {prioritizedLeads.length} leads. Export to CSV for full list.
+                  Showing top 50 of {prioritizedLeads.length} leads. Export to
+                  CSV for full list.
                 </p>
               )}
             </div>
@@ -2215,23 +2995,33 @@ export function LeadTracker() {
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-xs">
             <div className="p-2 bg-zinc-800/50 rounded">
               <p className="text-zinc-400">Absentee Owner</p>
-              <p className="text-zinc-200 font-bold">+{SCORE_WEIGHTS.absentee} pts</p>
+              <p className="text-zinc-200 font-bold">
+                +{SCORE_WEIGHTS.absentee} pts
+              </p>
             </div>
             <div className="p-2 bg-zinc-800/50 rounded">
               <p className="text-zinc-400">Pre-Foreclosure</p>
-              <p className="text-zinc-200 font-bold">+{SCORE_WEIGHTS.preForeclosure} pts</p>
+              <p className="text-zinc-200 font-bold">
+                +{SCORE_WEIGHTS.preForeclosure} pts
+              </p>
             </div>
             <div className="p-2 bg-zinc-800/50 rounded">
               <p className="text-zinc-400">Tax Lien</p>
-              <p className="text-zinc-200 font-bold">+{SCORE_WEIGHTS.taxLien} pts</p>
+              <p className="text-zinc-200 font-bold">
+                +{SCORE_WEIGHTS.taxLien} pts
+              </p>
             </div>
             <div className="p-2 bg-zinc-800/50 rounded">
               <p className="text-zinc-400">High Equity (50%+)</p>
-              <p className="text-zinc-200 font-bold">+{SCORE_WEIGHTS.highEquity} pts</p>
+              <p className="text-zinc-200 font-bold">
+                +{SCORE_WEIGHTS.highEquity} pts
+              </p>
             </div>
             <div className="p-2 bg-zinc-800/50 rounded">
               <p className="text-zinc-400">Commercial</p>
-              <p className="text-zinc-200 font-bold">+{SCORE_WEIGHTS.commercial} pts</p>
+              <p className="text-zinc-200 font-bold">
+                +{SCORE_WEIGHTS.commercial} pts
+              </p>
             </div>
           </div>
         </CardContent>

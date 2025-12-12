@@ -73,8 +73,14 @@ interface ApolloLeadCardProps {
 
 // Source badge styling
 const sourceStyles = {
-  apollo_firmo: { label: "Apollo Firmo", className: "bg-purple-600 text-white" },
-  apollo_intent: { label: "Apollo Intent", className: "bg-orange-500 text-white" },
+  apollo_firmo: {
+    label: "Apollo Firmo",
+    className: "bg-purple-600 text-white",
+  },
+  apollo_intent: {
+    label: "Apollo Intent",
+    className: "bg-orange-500 text-white",
+  },
   manual: { label: "Manual", className: "bg-zinc-600 text-white" },
   enriched: { label: "Enriched", className: "bg-cyan-600 text-white" },
 };
@@ -104,7 +110,9 @@ export function ApolloLeadCard({
   };
 
   const sourceInfo = sourceStyles[lead.source];
-  const emailStatus = lead.emailStatus ? emailStatusStyles[lead.emailStatus] : null;
+  const emailStatus = lead.emailStatus
+    ? emailStatusStyles[lead.emailStatus]
+    : null;
 
   return (
     <Card className="bg-zinc-900 border-zinc-800 hover:border-purple-600/50 transition-all">
@@ -130,7 +138,9 @@ export function ApolloLeadCard({
             {/* Header Row */}
             <div className="flex items-start justify-between mb-2">
               <div>
-                <h3 className="text-white font-semibold text-lg">{lead.name}</h3>
+                <h3 className="text-white font-semibold text-lg">
+                  {lead.name}
+                </h3>
                 <p className="text-zinc-400 text-sm flex items-center gap-1">
                   <Briefcase className="h-3 w-3" />
                   {lead.title}
@@ -140,17 +150,25 @@ export function ApolloLeadCard({
                 {lead.intentScore && (
                   <div className="flex items-center gap-1 text-orange-400">
                     <Zap className="h-4 w-4" />
-                    <span className="text-sm font-medium">{lead.intentScore}</span>
+                    <span className="text-sm font-medium">
+                      {lead.intentScore}
+                    </span>
                   </div>
                 )}
-                <Badge className={sourceInfo.className}>{sourceInfo.label}</Badge>
+                <Badge className={sourceInfo.className}>
+                  {sourceInfo.label}
+                </Badge>
               </div>
             </div>
 
             {/* Company Row */}
             <div className="flex items-center gap-3 mb-3 text-sm">
               {lead.companyLogo ? (
-                <img src={lead.companyLogo} alt={lead.company} className="h-5 w-5 rounded" />
+                <img
+                  src={lead.companyLogo}
+                  alt={lead.company}
+                  className="h-5 w-5 rounded"
+                />
               ) : (
                 <Building2 className="h-4 w-4 text-zinc-500" />
               )}
@@ -169,20 +187,30 @@ export function ApolloLeadCard({
             {/* Company Metrics */}
             <div className="flex flex-wrap gap-2 mb-3">
               {lead.employeeRange && (
-                <Badge variant="outline" className="border-blue-600 text-blue-400">
+                <Badge
+                  variant="outline"
+                  className="border-blue-600 text-blue-400"
+                >
                   <Users className="h-3 w-3 mr-1" />
                   {lead.employeeRange}
                 </Badge>
               )}
               {lead.revenueRange && (
-                <Badge variant="outline" className="border-green-600 text-green-400">
+                <Badge
+                  variant="outline"
+                  className="border-green-600 text-green-400"
+                >
                   <DollarSign className="h-3 w-3 mr-1" />
                   {lead.revenueRange}
                 </Badge>
               )}
               {/* Apollo Signals */}
               {lead.signals.map((signal, i) => (
-                <Badge key={i} variant="outline" className="border-purple-600 text-purple-400">
+                <Badge
+                  key={i}
+                  variant="outline"
+                  className="border-purple-600 text-purple-400"
+                >
                   <TrendingUp className="h-3 w-3 mr-1" />
                   {signal}
                 </Badge>
@@ -193,7 +221,10 @@ export function ApolloLeadCard({
             {lead.painFlags && lead.painFlags.length > 0 && (
               <div className="flex flex-wrap gap-1 mb-3">
                 {lead.painFlags.map((flag, i) => (
-                  <Badge key={i} className="bg-red-900/50 text-red-400 border border-red-800">
+                  <Badge
+                    key={i}
+                    className="bg-red-900/50 text-red-400 border border-red-800"
+                  >
                     {flag}
                   </Badge>
                 ))}
@@ -209,8 +240,14 @@ export function ApolloLeadCard({
                 >
                   <Mail className="h-3 w-3" />
                   <span className="truncate max-w-[200px]">{lead.email}</span>
-                  {emailStatus?.icon && <emailStatus.icon className={`h-3 w-3 ${emailStatus.className}`} />}
-                  {copied === "email" && <Check className="h-3 w-3 text-green-500" />}
+                  {emailStatus?.icon && (
+                    <emailStatus.icon
+                      className={`h-3 w-3 ${emailStatus.className}`}
+                    />
+                  )}
+                  {copied === "email" && (
+                    <Check className="h-3 w-3 text-green-500" />
+                  )}
                 </button>
               )}
               {lead.phone && (
@@ -220,7 +257,9 @@ export function ApolloLeadCard({
                 >
                   <Phone className="h-3 w-3" />
                   {lead.phone}
-                  {copied === "phone" && <Check className="h-3 w-3 text-green-500" />}
+                  {copied === "phone" && (
+                    <Check className="h-3 w-3 text-green-500" />
+                  )}
                 </button>
               )}
             </div>
@@ -229,7 +268,8 @@ export function ApolloLeadCard({
             {lead.lastActivity && (
               <div className="text-xs text-zinc-500 mb-3 flex items-center gap-1">
                 <Clock className="h-3 w-3" />
-                Last {lead.lastActivity.type}: {new Date(lead.lastActivity.date).toLocaleDateString()}
+                Last {lead.lastActivity.type}:{" "}
+                {new Date(lead.lastActivity.date).toLocaleDateString()}
                 {lead.lastActivity.note && ` - "${lead.lastActivity.note}"`}
               </div>
             )}
@@ -243,7 +283,11 @@ export function ApolloLeadCard({
                   onClick={() => setExpanded(!expanded)}
                   className="text-purple-400 hover:text-purple-300 p-0 h-auto mb-2"
                 >
-                  {expanded ? <ChevronUp className="h-4 w-4 mr-1" /> : <ChevronDown className="h-4 w-4 mr-1" />}
+                  {expanded ? (
+                    <ChevronUp className="h-4 w-4 mr-1" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 mr-1" />
+                  )}
                   Playbook Snippet
                 </Button>
 
@@ -251,13 +295,19 @@ export function ApolloLeadCard({
                   <div className="bg-zinc-800/50 rounded-lg p-3 mb-3 border border-zinc-700">
                     {lead.recommendedAction && (
                       <div className="mb-2">
-                        <span className="text-xs text-zinc-500 uppercase tracking-wide">Recommended Action</span>
-                        <p className="text-amber-400 font-medium">{lead.recommendedAction}</p>
+                        <span className="text-xs text-zinc-500 uppercase tracking-wide">
+                          Recommended Action
+                        </span>
+                        <p className="text-amber-400 font-medium">
+                          {lead.recommendedAction}
+                        </p>
                       </div>
                     )}
                     {lead.talkingPoints && lead.talkingPoints.length > 0 && (
                       <div>
-                        <span className="text-xs text-zinc-500 uppercase tracking-wide">Talking Points</span>
+                        <span className="text-xs text-zinc-500 uppercase tracking-wide">
+                          Talking Points
+                        </span>
                         <ul className="list-disc list-inside text-zinc-300 text-sm space-y-1 mt-1">
                           {lead.talkingPoints.map((point, i) => (
                             <li key={i}>{point}</li>
@@ -327,9 +377,14 @@ export function ApolloLeadCard({
             {/* Data Freshness Indicator */}
             {lead.lastUpdated && (
               <div className="mt-3 flex items-center gap-2 text-xs text-zinc-600">
-                <span>Apollo data from {new Date(lead.lastUpdated).toLocaleDateString()}</span>
+                <span>
+                  Apollo data from{" "}
+                  {new Date(lead.lastUpdated).toLocaleDateString()}
+                </span>
                 {lead.confidence && (
-                  <span className="text-purple-500">• {lead.confidence}% confidence</span>
+                  <span className="text-purple-500">
+                    • {lead.confidence}% confidence
+                  </span>
                 )}
               </div>
             )}
@@ -341,7 +396,13 @@ export function ApolloLeadCard({
 }
 
 // Compact list version for tables
-export function ApolloLeadRow({ lead, onSelect }: { lead: ApolloLeadData; onSelect?: () => void }) {
+export function ApolloLeadRow({
+  lead,
+  onSelect,
+}: {
+  lead: ApolloLeadData;
+  onSelect?: () => void;
+}) {
   return (
     <tr
       onClick={onSelect}
@@ -350,7 +411,11 @@ export function ApolloLeadRow({ lead, onSelect }: { lead: ApolloLeadData; onSele
       <td className="p-3">
         <div className="flex items-center gap-3">
           {lead.photoUrl ? (
-            <img src={lead.photoUrl} alt={lead.name} className="w-8 h-8 rounded-full" />
+            <img
+              src={lead.photoUrl}
+              alt={lead.name}
+              className="w-8 h-8 rounded-full"
+            />
           ) : (
             <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-white text-sm font-medium">
               {lead.name.charAt(0)}
@@ -366,7 +431,11 @@ export function ApolloLeadRow({ lead, onSelect }: { lead: ApolloLeadData; onSele
       <td className="p-3">
         <div className="flex gap-1">
           {lead.signals.slice(0, 2).map((s, i) => (
-            <Badge key={i} variant="outline" className="border-purple-600 text-purple-400 text-xs">
+            <Badge
+              key={i}
+              variant="outline"
+              className="border-purple-600 text-purple-400 text-xs"
+            >
               {s}
             </Badge>
           ))}

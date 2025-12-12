@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { leads, leadTags, tags } from "@/lib/db/schema";
-import { eq, and, ilike, inArray, desc, asc, sql, count as sqlCount } from "drizzle-orm";
+import {
+  eq,
+  and,
+  ilike,
+  inArray,
+  desc,
+  asc,
+  sql,
+  count as sqlCount,
+} from "drizzle-orm";
 import { auth } from "@clerk/nextjs/server";
 
 // GET - List leads with filtering and pagination
@@ -46,7 +55,7 @@ export async function GET(request: NextRequest) {
           ${leads.email} ILIKE ${"%" + search + "%"} OR
           ${leads.phone} ILIKE ${"%" + search + "%"} OR
           ${leads.propertyAddress} ILIKE ${"%" + search + "%"}
-        )`
+        )`,
       );
     }
 
@@ -63,11 +72,16 @@ export async function GET(request: NextRequest) {
     // Get leads with sorting
     const orderColumn = (() => {
       switch (sortBy) {
-        case "name": return leads.firstName;
-        case "status": return leads.status;
-        case "estimatedValue": return leads.estimatedValue;
-        case "updatedAt": return leads.updatedAt;
-        default: return leads.createdAt;
+        case "name":
+          return leads.firstName;
+        case "status":
+          return leads.status;
+        case "estimatedValue":
+          return leads.estimatedValue;
+        case "updatedAt":
+          return leads.updatedAt;
+        default:
+          return leads.createdAt;
       }
     })();
 
@@ -95,17 +109,24 @@ export async function GET(request: NextRequest) {
         .innerJoin(tags, eq(leadTags.tagId, tags.id))
         .where(inArray(leadTags.leadId, leadIds));
 
-      leadTagsMap = tagResults.reduce((acc: Record<string, string[]>, { leadId, tagName }: { leadId: string; tagName: string }) => {
-        if (!acc[leadId]) acc[leadId] = [];
-        acc[leadId].push(tagName);
-        return acc;
-      }, {} as Record<string, string[]>);
+      leadTagsMap = tagResults.reduce(
+        (
+          acc: Record<string, string[]>,
+          { leadId, tagName }: { leadId: string; tagName: string },
+        ) => {
+          if (!acc[leadId]) acc[leadId] = [];
+          acc[leadId].push(tagName);
+          return acc;
+        },
+        {} as Record<string, string[]>,
+      );
     }
 
     // Transform leads to match frontend type
-    const transformedLeads = results.map((lead: typeof results[number]) => ({
+    const transformedLeads = results.map((lead: (typeof results)[number]) => ({
       id: lead.id,
-      name: [lead.firstName, lead.lastName].filter(Boolean).join(" ") || "Unknown",
+      name:
+        [lead.firstName, lead.lastName].filter(Boolean).join(" ") || "Unknown",
       address: lead.propertyAddress || "",
       city: lead.propertyCity || "",
       state: lead.propertyState || "",
@@ -125,7 +146,8 @@ export async function GET(request: NextRequest) {
           isPrimary: true,
           lineType: "mobile",
           verified: true,
-          lastVerified: lead.skipTracedAt?.toISOString() || new Date().toISOString(),
+          lastVerified:
+            lead.skipTracedAt?.toISOString() || new Date().toISOString(),
         },
         lead.secondaryPhone && {
           number: lead.secondaryPhone,
@@ -133,7 +155,8 @@ export async function GET(request: NextRequest) {
           isPrimary: false,
           lineType: "mobile",
           verified: true,
-          lastVerified: lead.skipTracedAt?.toISOString() || new Date().toISOString(),
+          lastVerified:
+            lead.skipTracedAt?.toISOString() || new Date().toISOString(),
         },
       ].filter(Boolean),
       status: mapDbStatusToFrontend(lead.status),
@@ -160,7 +183,8 @@ export async function GET(request: NextRequest) {
     });
   } catch (error: unknown) {
     console.error("[Leads API] Error:", error);
-    const message = error instanceof Error ? error.message : "Failed to fetch leads";
+    const message =
+      error instanceof Error ? error.message : "Failed to fetch leads";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
@@ -208,7 +232,8 @@ export async function PATCH(request: NextRequest) {
     });
   } catch (error: unknown) {
     console.error("[Leads API] PATCH Error:", error);
-    const message = error instanceof Error ? error.message : "Failed to update lead";
+    const message =
+      error instanceof Error ? error.message : "Failed to update lead";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
@@ -216,11 +241,11 @@ export async function PATCH(request: NextRequest) {
 // Map frontend status to DB status
 function mapFrontendStatusToDb(status: string): string {
   const map: Record<string, string> = {
-    "New": "new",
-    "Contacted": "contacted",
-    "Qualified": "qualified",
-    "Proposal": "nurturing",
-    "Negotiation": "nurturing",
+    New: "new",
+    Contacted: "contacted",
+    Qualified: "qualified",
+    Proposal: "nurturing",
+    Negotiation: "nurturing",
     "Closed Won": "closed",
     "Closed Lost": "lost",
   };
@@ -230,12 +255,12 @@ function mapFrontendStatusToDb(status: string): string {
 // Map DB status to frontend status
 function mapDbStatusToFrontend(status: string): string {
   const map: Record<string, string> = {
-    "new": "New",
-    "contacted": "Contacted",
-    "qualified": "Qualified",
-    "nurturing": "Negotiation",
-    "closed": "Closed Won",
-    "lost": "Closed Lost",
+    new: "New",
+    contacted: "Contacted",
+    qualified: "Qualified",
+    nurturing: "Negotiation",
+    closed: "Closed Won",
+    lost: "Closed Lost",
   };
   return map[status] || "New";
 }

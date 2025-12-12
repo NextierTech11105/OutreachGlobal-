@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const GRAPHQL_URL = process.env.NEXT_PUBLIC_GRAPHQL_URL || "https://monkfish-app-mb7h3.ondigitalocean.app/graphql";
+const GRAPHQL_URL =
+  process.env.NEXT_PUBLIC_GRAPHQL_URL ||
+  "https://monkfish-app-mb7h3.ondigitalocean.app/graphql";
 
 interface BulkCreateLeadInput {
   teamId: string;
@@ -18,14 +20,26 @@ interface BulkCreateLeadInput {
 export async function POST(request: NextRequest) {
   try {
     const body: BulkCreateLeadInput = await request.json();
-    const { teamId, propertyIds, source = "Property Search", tags = [], filters } = body;
+    const {
+      teamId,
+      propertyIds,
+      source = "Property Search",
+      tags = [],
+      filters,
+    } = body;
 
     if (!teamId) {
-      return NextResponse.json({ error: "teamId is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "teamId is required" },
+        { status: 400 },
+      );
     }
 
     if (!propertyIds || propertyIds.length === 0) {
-      return NextResponse.json({ error: "propertyIds are required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "propertyIds are required" },
+        { status: 400 },
+      );
     }
 
     // Limit to 100 at a time to avoid timeout
@@ -57,7 +71,9 @@ export async function POST(request: NextRequest) {
                 input: {
                   source,
                   tags: [...tags, "Property Search"],
-                  address: filters?.county ? `${filters.county}, ${filters.state}` : undefined,
+                  address: filters?.county
+                    ? `${filters.county}, ${filters.state}`
+                    : undefined,
                   state: filters?.state,
                   notes: `Property ID: ${propertyId}`,
                 },
@@ -70,7 +86,7 @@ export async function POST(request: NextRequest) {
             throw new Error(data.errors[0]?.message || "GraphQL error");
           }
           return data.data.createLead.lead.id;
-        })
+        }),
       );
 
       for (const result of results) {
@@ -89,7 +105,8 @@ export async function POST(request: NextRequest) {
       errors: errors.length > 0 ? errors.slice(0, 10) : undefined,
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Internal server error";
+    const message =
+      error instanceof Error ? error.message : "Internal server error";
     console.error("Bulk create leads error:", error);
     return NextResponse.json({ error: message }, { status: 500 });
   }

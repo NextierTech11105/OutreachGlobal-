@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
           .filter(
             (i) =>
               i.status === "pending" &&
-              (!i.scheduledAt || new Date(i.scheduledAt) <= now)
+              (!i.scheduledAt || new Date(i.scheduledAt) <= now),
           )
           .sort((a, b) => b.priority - a.priority);
 
@@ -81,7 +81,9 @@ export async function GET(request: NextRequest) {
         // Sort by priority (highest first) then by createdAt
         filtered.sort((a, b) => {
           if (b.priority !== a.priority) return b.priority - a.priority;
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+          return (
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
         });
 
         return NextResponse.json({
@@ -94,14 +96,14 @@ export async function GET(request: NextRequest) {
       default:
         return NextResponse.json(
           { success: false, error: `Unknown action: ${action}` },
-          { status: 400 }
+          { status: 400 },
         );
     }
   } catch (error) {
     console.error("[Call Queue] GET error:", error);
     return NextResponse.json(
       { success: false, error: "Failed to get queue info" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -114,12 +116,19 @@ export async function POST(request: NextRequest) {
 
     switch (action) {
       case "add_single": {
-        const { leadId, leadName, phone, address, priority = 5, scheduledAt } = body;
+        const {
+          leadId,
+          leadName,
+          phone,
+          address,
+          priority = 5,
+          scheduledAt,
+        } = body;
 
         if (!leadId || !phone) {
           return NextResponse.json(
             { success: false, error: "leadId and phone required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -151,7 +160,7 @@ export async function POST(request: NextRequest) {
         if (!leads || !Array.isArray(leads) || leads.length === 0) {
           return NextResponse.json(
             { success: false, error: "leads array required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -198,7 +207,7 @@ export async function POST(request: NextRequest) {
         if (!callId) {
           return NextResponse.json(
             { success: false, error: "callId required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -206,7 +215,7 @@ export async function POST(request: NextRequest) {
         if (!item) {
           return NextResponse.json(
             { success: false, error: "Call not found" },
-            { status: 404 }
+            { status: 404 },
           );
         }
 
@@ -227,7 +236,7 @@ export async function POST(request: NextRequest) {
         if (!callId) {
           return NextResponse.json(
             { success: false, error: "callId required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -235,7 +244,7 @@ export async function POST(request: NextRequest) {
         if (!item) {
           return NextResponse.json(
             { success: false, error: "Call not found" },
-            { status: 404 }
+            { status: 404 },
           );
         }
 
@@ -257,7 +266,7 @@ export async function POST(request: NextRequest) {
         if (!callId || !scheduledAt) {
           return NextResponse.json(
             { success: false, error: "callId and scheduledAt required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -265,7 +274,7 @@ export async function POST(request: NextRequest) {
         if (!item) {
           return NextResponse.json(
             { success: false, error: "Call not found" },
-            { status: 404 }
+            { status: 404 },
           );
         }
 
@@ -282,14 +291,14 @@ export async function POST(request: NextRequest) {
       default:
         return NextResponse.json(
           { success: false, error: `Unknown action: ${action}` },
-          { status: 400 }
+          { status: 400 },
         );
     }
   } catch (error) {
     console.error("[Call Queue] POST error:", error);
     return NextResponse.json(
       { success: false, error: "Failed to process request" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -305,7 +314,7 @@ export async function DELETE(request: NextRequest) {
         if (!callId) {
           return NextResponse.json(
             { success: false, error: "callId required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -320,7 +329,7 @@ export async function DELETE(request: NextRequest) {
         if (!leadId) {
           return NextResponse.json(
             { success: false, error: "leadId required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -356,14 +365,14 @@ export async function DELETE(request: NextRequest) {
       default:
         return NextResponse.json(
           { success: false, error: `Unknown action: ${action}` },
-          { status: 400 }
+          { status: 400 },
         );
     }
   } catch (error) {
     console.error("[Call Queue] DELETE error:", error);
     return NextResponse.json(
       { success: false, error: "Failed to process request" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

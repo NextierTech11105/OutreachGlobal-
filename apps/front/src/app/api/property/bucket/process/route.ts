@@ -18,7 +18,8 @@ import { eq, and, sql, isNull } from "drizzle-orm";
  * 4. Track progress for resume capability
  */
 
-const REALESTATE_API_KEY = process.env.REAL_ESTATE_API_KEY || process.env.REALESTATE_API_KEY || "";
+const REALESTATE_API_KEY =
+  process.env.REAL_ESTATE_API_KEY || process.env.REALESTATE_API_KEY || "";
 const PROPERTY_DETAIL_URL = "https://api.realestateapi.com/v2/PropertyDetail";
 const SKIP_TRACE_URL = "https://api.realestateapi.com/v2/SkipTrace";
 
@@ -33,11 +34,17 @@ export async function POST(request: NextRequest) {
     const { bucketId, limit, skipTrace = true } = await request.json();
 
     if (!bucketId) {
-      return NextResponse.json({ error: "Bucket ID required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Bucket ID required" },
+        { status: 400 },
+      );
     }
 
     if (!REALESTATE_API_KEY) {
-      return NextResponse.json({ error: "REALESTATE_API_KEY not configured" }, { status: 500 });
+      return NextResponse.json(
+        { error: "REALESTATE_API_KEY not configured" },
+        { status: 500 },
+      );
     }
 
     // Get bucket
@@ -53,7 +60,7 @@ export async function POST(request: NextRequest) {
     // Determine how many to process (respect limits)
     const requestedLimit = Math.min(
       limit || MICRO_CAMPAIGN_LIMIT,
-      MICRO_CAMPAIGN_LIMIT
+      MICRO_CAMPAIGN_LIMIT,
     );
 
     // Get pending leads from bucket
@@ -66,8 +73,8 @@ export async function POST(request: NextRequest) {
       .where(
         and(
           eq(leads.bucketId, bucketId),
-          eq(leads.enrichmentStatus, "pending")
-        )
+          eq(leads.enrichmentStatus, "pending"),
+        ),
       )
       .limit(requestedLimit);
 
@@ -82,7 +89,9 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    console.log(`[Bucket Process] Processing ${pendingLeads.length} leads from "${bucket.name}"`);
+    console.log(
+      `[Bucket Process] Processing ${pendingLeads.length} leads from "${bucket.name}"`,
+    );
 
     // Mark as processing
     await db
@@ -107,197 +116,243 @@ export async function POST(request: NextRequest) {
 
     for (let i = 0; i < pendingLeads.length; i += BATCH_SIZE) {
       const batch = pendingLeads.slice(i, i + BATCH_SIZE);
-      console.log(`[Bucket Process] Batch ${Math.floor(i / BATCH_SIZE) + 1}: ${batch.length} leads`);
+      console.log(
+        `[Bucket Process] Batch ${Math.floor(i / BATCH_SIZE) + 1}: ${batch.length} leads`,
+      );
 
       // Process batch with concurrency limit
       for (let j = 0; j < batch.length; j += CONCURRENCY) {
         const concurrent = batch.slice(j, j + CONCURRENCY);
 
         const batchResults = await Promise.all(
-          concurrent.map(async (lead: { id: string; propertyId: string | null }) => {
-            try {
-              // 1. Fetch property detail
-              const detailRes = await fetch(PROPERTY_DETAIL_URL, {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  "x-api-key": REALESTATE_API_KEY,
-                },
-                body: JSON.stringify({ id: lead.propertyId }),
-              });
+          concurrent.map(
+            async (lead: { id: string; propertyId: string | null }) => {
+              try {
+                // 1. Fetch property detail
+                const detailRes = await fetch(PROPERTY_DETAIL_URL, {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    "x-api-key": REALESTATE_API_KEY,
+                  },
+                  body: JSON.stringify({ id: lead.propertyId }),
+                });
 
-              if (!detailRes.ok) {
-                throw new Error(`Detail API returned ${detailRes.status}`);
-              }
-
-              const detailData = await detailRes.json();
-              const property = detailData.data || detailData;
-
-              // 2. Skip trace the owner
-              let skipTraceData = null;
-              if (skipTrace) {
-                const ownerInfo = property.ownerInfo || property;
-                const propInfo = property.propertyInfo || property;
-                const address = propInfo.address || property.address;
-
-                const firstName = ownerInfo.owner1FirstName || property.owner1FirstName || "";
-                const lastName = ownerInfo.owner1LastName || property.owner1LastName || "";
-
-                // Build skip trace request (flat address format)
-                const skipTraceBody: Record<string, unknown> = {};
-                if (firstName) skipTraceBody.first_name = firstName;
-                if (lastName) skipTraceBody.last_name = lastName;
-
-                if (typeof address === "string") {
-                  skipTraceBody.address = address;
-                } else if (address) {
-                  if (address.address || address.street) skipTraceBody.address = address.address || address.street;
-                  if (address.city) skipTraceBody.city = address.city;
-                  if (address.state) skipTraceBody.state = address.state;
-                  if (address.zip) skipTraceBody.zip = address.zip;
+                if (!detailRes.ok) {
+                  throw new Error(`Detail API returned ${detailRes.status}`);
                 }
 
-                skipTraceBody.match_requirements = { phones: true };
+                const detailData = await detailRes.json();
+                const property = detailData.data || detailData;
 
-                if (Object.keys(skipTraceBody).length > 1) {
-                  try {
-                    const stRes = await fetch(SKIP_TRACE_URL, {
-                      method: "POST",
-                      headers: {
-                        "Content-Type": "application/json",
-                        "x-api-key": REALESTATE_API_KEY,
-                        "Accept": "application/json",
-                      },
-                      body: JSON.stringify(skipTraceBody),
-                    });
+                // 2. Skip trace the owner
+                let skipTraceData = null;
+                if (skipTrace) {
+                  const ownerInfo = property.ownerInfo || property;
+                  const propInfo = property.propertyInfo || property;
+                  const address = propInfo.address || property.address;
 
-                    if (stRes.ok) {
-                      const stData = await stRes.json();
-                      const identity = stData.output?.identity || {};
+                  const firstName =
+                    ownerInfo.owner1FirstName || property.owner1FirstName || "";
+                  const lastName =
+                    ownerInfo.owner1LastName || property.owner1LastName || "";
 
-                      // Extract phones (skip DNC and disconnected)
-                      const phones: string[] = [];
-                      if (identity.phones && Array.isArray(identity.phones)) {
-                        for (const p of identity.phones) {
-                          if (p.doNotCall === true || p.isConnected === false) continue;
-                          const num = p.phone || p.phoneDisplay?.replace(/\D/g, "") || "";
-                          if (num) phones.push(num);
+                  // Build skip trace request (flat address format)
+                  const skipTraceBody: Record<string, unknown> = {};
+                  if (firstName) skipTraceBody.first_name = firstName;
+                  if (lastName) skipTraceBody.last_name = lastName;
+
+                  if (typeof address === "string") {
+                    skipTraceBody.address = address;
+                  } else if (address) {
+                    if (address.address || address.street)
+                      skipTraceBody.address = address.address || address.street;
+                    if (address.city) skipTraceBody.city = address.city;
+                    if (address.state) skipTraceBody.state = address.state;
+                    if (address.zip) skipTraceBody.zip = address.zip;
+                  }
+
+                  skipTraceBody.match_requirements = { phones: true };
+
+                  if (Object.keys(skipTraceBody).length > 1) {
+                    try {
+                      const stRes = await fetch(SKIP_TRACE_URL, {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "application/json",
+                          "x-api-key": REALESTATE_API_KEY,
+                          Accept: "application/json",
+                        },
+                        body: JSON.stringify(skipTraceBody),
+                      });
+
+                      if (stRes.ok) {
+                        const stData = await stRes.json();
+                        const identity = stData.output?.identity || {};
+
+                        // Extract phones (skip DNC and disconnected)
+                        const phones: string[] = [];
+                        if (identity.phones && Array.isArray(identity.phones)) {
+                          for (const p of identity.phones) {
+                            if (p.doNotCall === true || p.isConnected === false)
+                              continue;
+                            const num =
+                              p.phone ||
+                              p.phoneDisplay?.replace(/\D/g, "") ||
+                              "";
+                            if (num) phones.push(num);
+                          }
                         }
-                      }
 
-                      // Extract emails
-                      const emails: string[] = [];
-                      if (identity.emails && Array.isArray(identity.emails)) {
-                        for (const e of identity.emails) {
-                          if (e.email) emails.push(e.email);
+                        // Extract emails
+                        const emails: string[] = [];
+                        if (identity.emails && Array.isArray(identity.emails)) {
+                          for (const e of identity.emails) {
+                            if (e.email) emails.push(e.email);
+                          }
                         }
-                      }
 
-                      skipTraceData = {
-                        phones,
-                        emails,
-                        ownerName: identity.names?.[0]?.fullName || `${firstName} ${lastName}`.trim(),
-                        mailingAddress: identity.address?.formattedAddress,
-                      };
+                        skipTraceData = {
+                          phones,
+                          emails,
+                          ownerName:
+                            identity.names?.[0]?.fullName ||
+                            `${firstName} ${lastName}`.trim(),
+                          mailingAddress: identity.address?.formattedAddress,
+                        };
+                      }
+                    } catch (stErr) {
+                      console.error(
+                        `[Bucket Process] Skip trace error for ${lead.propertyId}:`,
+                        stErr,
+                      );
                     }
-                  } catch (stErr) {
-                    console.error(`[Bucket Process] Skip trace error for ${lead.propertyId}:`, stErr);
                   }
                 }
+
+                // 3. Update lead record with enriched data
+                const propInfo = property.propertyInfo || property;
+                const ownerInfo = property.ownerInfo || property;
+                const mortgageInfo = property.mortgageInfo || {};
+                const address = propInfo.address || property.address || {};
+
+                await db
+                  .update(leads)
+                  .set({
+                    // Property address
+                    propertyAddress:
+                      typeof address === "string"
+                        ? address
+                        : address.address || address.street,
+                    propertyCity:
+                      typeof address === "object" ? address.city : undefined,
+                    propertyState:
+                      typeof address === "object" ? address.state : undefined,
+                    propertyZip:
+                      typeof address === "object" ? address.zip : undefined,
+                    propertyCounty:
+                      typeof address === "object" ? address.county : undefined,
+                    latitude: property.latitude?.toString(),
+                    longitude: property.longitude?.toString(),
+
+                    // Property characteristics
+                    propertyType:
+                      propInfo.propertyType || property.propertyType,
+                    bedrooms: propInfo.bedrooms || property.bedrooms,
+                    bathrooms:
+                      propInfo.bathrooms?.toString() ||
+                      property.bathrooms?.toString(),
+                    sqft: propInfo.squareFeet || property.sqft,
+                    lotSizeSqft: propInfo.lotSize || property.lotSize,
+                    yearBuilt: propInfo.yearBuilt || property.yearBuilt,
+
+                    // Valuation
+                    estimatedValue: property.avm || property.estimatedValue,
+                    assessedValue:
+                      property.taxMarketValue || property.assessedValue,
+                    taxAmount: property.taxAmount,
+                    estimatedEquity:
+                      property.equity || property.estimatedEquity,
+                    equityPercent: property.equityPercent?.toString(),
+
+                    // Mortgage
+                    mtg1Amount: mortgageInfo.loanAmount || property.mtg1Amount,
+                    mtg1LoanType:
+                      mortgageInfo.loanType || property.mtg1LoanType,
+                    mtg1Lender: mortgageInfo.lender || property.mtg1Lender,
+
+                    // Owner info
+                    owner1FirstName:
+                      ownerInfo.owner1FirstName || property.owner1FirstName,
+                    owner1LastName:
+                      ownerInfo.owner1LastName || property.owner1LastName,
+                    ownerType: ownerInfo.ownerType || property.ownerType,
+                    ownerOccupied:
+                      ownerInfo.ownerOccupied ?? property.ownerOccupied,
+                    absenteeOwner: !(
+                      ownerInfo.ownerOccupied ?? property.ownerOccupied
+                    ),
+
+                    // Distress flags
+                    preForeclosure: property.preForeclosure || false,
+                    foreclosure: property.foreclosure || false,
+                    taxLien: property.taxLien || false,
+                    taxDelinquent: property.taxDelinquent || false,
+                    vacant: property.vacant || false,
+                    highEquity:
+                      (property.equityPercent &&
+                        Number(property.equityPercent) >= 50) ||
+                      property.highEquity ||
+                      false,
+                    freeClear: property.freeClear || false,
+
+                    // Skip trace data
+                    phone: skipTraceData?.phones?.[0] || null,
+                    secondaryPhone: skipTraceData?.phones?.[1] || null,
+                    email: skipTraceData?.emails?.[0] || null,
+                    mailingAddress: skipTraceData?.mailingAddress || null,
+                    firstName:
+                      skipTraceData?.ownerName?.split(" ")[0] ||
+                      ownerInfo.owner1FirstName,
+                    lastName:
+                      skipTraceData?.ownerName?.split(" ").slice(1).join(" ") ||
+                      ownerInfo.owner1LastName,
+
+                    // Status
+                    enrichmentStatus: "completed",
+                    enrichedAt: new Date(),
+                    skipTracedAt: skipTraceData ? new Date() : null,
+                    updatedAt: new Date(),
+                  })
+                  .where(eq(leads.id, lead.id));
+
+                return {
+                  success: true,
+                  hasPhone: (skipTraceData?.phones?.length || 0) > 0,
+                  hasEmail: (skipTraceData?.emails?.length || 0) > 0,
+                };
+              } catch (err: unknown) {
+                const msg =
+                  err instanceof Error ? err.message : "Unknown error";
+                console.error(
+                  `[Bucket Process] Error for ${lead.propertyId}:`,
+                  msg,
+                );
+
+                // Mark as failed
+                await db
+                  .update(leads)
+                  .set({
+                    enrichmentStatus: "failed",
+                    enrichmentError: msg,
+                    updatedAt: new Date(),
+                  })
+                  .where(eq(leads.id, lead.id));
+
+                return { success: false, error: msg };
               }
-
-              // 3. Update lead record with enriched data
-              const propInfo = property.propertyInfo || property;
-              const ownerInfo = property.ownerInfo || property;
-              const mortgageInfo = property.mortgageInfo || {};
-              const address = propInfo.address || property.address || {};
-
-              await db
-                .update(leads)
-                .set({
-                  // Property address
-                  propertyAddress: typeof address === "string" ? address : address.address || address.street,
-                  propertyCity: typeof address === "object" ? address.city : undefined,
-                  propertyState: typeof address === "object" ? address.state : undefined,
-                  propertyZip: typeof address === "object" ? address.zip : undefined,
-                  propertyCounty: typeof address === "object" ? address.county : undefined,
-                  latitude: property.latitude?.toString(),
-                  longitude: property.longitude?.toString(),
-
-                  // Property characteristics
-                  propertyType: propInfo.propertyType || property.propertyType,
-                  bedrooms: propInfo.bedrooms || property.bedrooms,
-                  bathrooms: propInfo.bathrooms?.toString() || property.bathrooms?.toString(),
-                  sqft: propInfo.squareFeet || property.sqft,
-                  lotSizeSqft: propInfo.lotSize || property.lotSize,
-                  yearBuilt: propInfo.yearBuilt || property.yearBuilt,
-
-                  // Valuation
-                  estimatedValue: property.avm || property.estimatedValue,
-                  assessedValue: property.taxMarketValue || property.assessedValue,
-                  taxAmount: property.taxAmount,
-                  estimatedEquity: property.equity || property.estimatedEquity,
-                  equityPercent: property.equityPercent?.toString(),
-
-                  // Mortgage
-                  mtg1Amount: mortgageInfo.loanAmount || property.mtg1Amount,
-                  mtg1LoanType: mortgageInfo.loanType || property.mtg1LoanType,
-                  mtg1Lender: mortgageInfo.lender || property.mtg1Lender,
-
-                  // Owner info
-                  owner1FirstName: ownerInfo.owner1FirstName || property.owner1FirstName,
-                  owner1LastName: ownerInfo.owner1LastName || property.owner1LastName,
-                  ownerType: ownerInfo.ownerType || property.ownerType,
-                  ownerOccupied: ownerInfo.ownerOccupied ?? property.ownerOccupied,
-                  absenteeOwner: !(ownerInfo.ownerOccupied ?? property.ownerOccupied),
-
-                  // Distress flags
-                  preForeclosure: property.preForeclosure || false,
-                  foreclosure: property.foreclosure || false,
-                  taxLien: property.taxLien || false,
-                  taxDelinquent: property.taxDelinquent || false,
-                  vacant: property.vacant || false,
-                  highEquity: (property.equityPercent && Number(property.equityPercent) >= 50) || property.highEquity || false,
-                  freeClear: property.freeClear || false,
-
-                  // Skip trace data
-                  phone: skipTraceData?.phones?.[0] || null,
-                  secondaryPhone: skipTraceData?.phones?.[1] || null,
-                  email: skipTraceData?.emails?.[0] || null,
-                  mailingAddress: skipTraceData?.mailingAddress || null,
-                  firstName: skipTraceData?.ownerName?.split(" ")[0] || ownerInfo.owner1FirstName,
-                  lastName: skipTraceData?.ownerName?.split(" ").slice(1).join(" ") || ownerInfo.owner1LastName,
-
-                  // Status
-                  enrichmentStatus: "completed",
-                  enrichedAt: new Date(),
-                  skipTracedAt: skipTraceData ? new Date() : null,
-                  updatedAt: new Date(),
-                })
-                .where(eq(leads.id, lead.id));
-
-              return {
-                success: true,
-                hasPhone: (skipTraceData?.phones?.length || 0) > 0,
-                hasEmail: (skipTraceData?.emails?.length || 0) > 0,
-              };
-            } catch (err: unknown) {
-              const msg = err instanceof Error ? err.message : "Unknown error";
-              console.error(`[Bucket Process] Error for ${lead.propertyId}:`, msg);
-
-              // Mark as failed
-              await db
-                .update(leads)
-                .set({
-                  enrichmentStatus: "failed",
-                  enrichmentError: msg,
-                  updatedAt: new Date(),
-                })
-                .where(eq(leads.id, lead.id));
-
-              return { success: false, error: msg };
-            }
-          })
+            },
+          ),
         );
 
         // Aggregate results
@@ -327,8 +382,8 @@ export async function POST(request: NextRequest) {
       .where(
         and(
           eq(leads.bucketId, bucketId),
-          eq(leads.enrichmentStatus, "pending")
-        )
+          eq(leads.enrichmentStatus, "pending"),
+        ),
       );
 
     const remaining = remainingCount[0]?.count || 0;
@@ -349,7 +404,9 @@ export async function POST(request: NextRequest) {
       })
       .where(eq(buckets.id, bucketId));
 
-    console.log(`[Bucket Process] Completed: ${results.successful}/${results.processed}, ${results.withPhones} with phones`);
+    console.log(
+      `[Bucket Process] Completed: ${results.successful}/${results.processed}, ${results.withPhones} with phones`,
+    );
 
     return NextResponse.json({
       success: true,
@@ -368,10 +425,12 @@ export async function POST(request: NextRequest) {
         microCampaignLimit: MICRO_CAMPAIGN_LIMIT,
         dailyLimit: DAILY_LIMIT,
       },
-      errors: results.errors.length > 0 ? results.errors.slice(0, 10) : undefined,
+      errors:
+        results.errors.length > 0 ? results.errors.slice(0, 10) : undefined,
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Processing failed";
+    const message =
+      error instanceof Error ? error.message : "Processing failed";
     console.error("[Bucket Process] Error:", error);
     return NextResponse.json({ error: message }, { status: 500 });
   }
@@ -384,7 +443,10 @@ export async function GET(request: NextRequest) {
     const bucketId = searchParams.get("id");
 
     if (!bucketId) {
-      return NextResponse.json({ error: "Bucket ID required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Bucket ID required" },
+        { status: 400 },
+      );
     }
 
     const [bucket] = await db
@@ -426,7 +488,8 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Failed to get status";
+    const message =
+      error instanceof Error ? error.message : "Failed to get status";
     console.error("[Bucket Process] Status error:", error);
     return NextResponse.json({ error: message }, { status: 500 });
   }

@@ -1,7 +1,12 @@
 // DigitalOcean Spaces Configuration
 // S3-compatible object storage for CSV exports, file uploads, etc.
 
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+} from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const SPACES_ENDPOINT = "https://nyc3.digitaloceanspaces.com";
@@ -9,8 +14,10 @@ const SPACES_BUCKET = "nextier";
 const SPACES_CDN_URL = "https://nextier.nyc3.cdn.digitaloceanspaces.com";
 
 // Keys from environment (set these in DO App Platform)
-const SPACES_KEY = process.env.DO_SPACES_KEY || process.env.SPACES_ACCESS_KEY_ID || "";
-const SPACES_SECRET = process.env.DO_SPACES_SECRET || process.env.SPACES_SECRET_ACCESS_KEY || "";
+const SPACES_KEY =
+  process.env.DO_SPACES_KEY || process.env.SPACES_ACCESS_KEY_ID || "";
+const SPACES_SECRET =
+  process.env.DO_SPACES_SECRET || process.env.SPACES_SECRET_ACCESS_KEY || "";
 
 let _s3Client: S3Client | null = null;
 
@@ -18,7 +25,9 @@ function getS3Client(): S3Client | null {
   if (_s3Client) return _s3Client;
 
   if (!SPACES_KEY || !SPACES_SECRET) {
-    console.warn("[Spaces] Not configured. Set DO_SPACES_KEY and DO_SPACES_SECRET");
+    console.warn(
+      "[Spaces] Not configured. Set DO_SPACES_KEY and DO_SPACES_SECRET",
+    );
     return null;
   }
 
@@ -43,7 +52,7 @@ export async function uploadFile(
   key: string,
   body: Buffer | string,
   contentType: string = "application/octet-stream",
-  isPublic: boolean = false
+  isPublic: boolean = false,
 ): Promise<{ url: string; cdnUrl: string } | null> {
   const client = getS3Client();
   if (!client) return null;
@@ -56,7 +65,7 @@ export async function uploadFile(
         Body: body,
         ContentType: contentType,
         ACL: isPublic ? "public-read" : "private",
-      })
+      }),
     );
 
     return {
@@ -73,14 +82,17 @@ export async function uploadFile(
 export async function uploadCSV(
   filename: string,
   csvContent: string,
-  folder: string = "exports"
+  folder: string = "exports",
 ): Promise<{ url: string; cdnUrl: string } | null> {
   const key = `${folder}/${Date.now()}-${filename}`;
   return uploadFile(key, csvContent, "text/csv", true);
 }
 
 // Get a signed URL for private files
-export async function getSignedDownloadUrl(key: string, expiresIn: number = 3600): Promise<string | null> {
+export async function getSignedDownloadUrl(
+  key: string,
+  expiresIn: number = 3600,
+): Promise<string | null> {
   const client = getS3Client();
   if (!client) return null;
 
@@ -107,7 +119,7 @@ export async function deleteFile(key: string): Promise<boolean> {
       new DeleteObjectCommand({
         Bucket: SPACES_BUCKET,
         Key: key,
-      })
+      }),
     );
     return true;
   } catch (error) {
@@ -120,7 +132,7 @@ export async function deleteFile(key: string): Promise<boolean> {
 export async function getPresignedUploadUrl(
   key: string,
   contentType: string,
-  expiresIn: number = 3600
+  expiresIn: number = 3600,
 ): Promise<string | null> {
   const client = getS3Client();
   if (!client) return null;

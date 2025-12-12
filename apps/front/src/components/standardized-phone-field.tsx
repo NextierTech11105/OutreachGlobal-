@@ -34,10 +34,22 @@ import {
 import { cn } from "@/lib/utils";
 
 // Phone line types
-export type PhoneLineType = "mobile" | "landline" | "voip" | "toll_free" | "premium" | "unknown";
+export type PhoneLineType =
+  | "mobile"
+  | "landline"
+  | "voip"
+  | "toll_free"
+  | "premium"
+  | "unknown";
 
 // Phone status/flags
-export type PhoneFlag = "confirmed" | "dnc" | "wrong_number" | "invalid" | "primary" | "secondary";
+export type PhoneFlag =
+  | "confirmed"
+  | "dnc"
+  | "wrong_number"
+  | "invalid"
+  | "primary"
+  | "secondary";
 
 // Extended phone number interface
 export interface StandardizedPhone {
@@ -65,50 +77,60 @@ interface StandardizedPhoneFieldProps {
 }
 
 // Line type configurations
-const LINE_TYPE_CONFIG: Record<PhoneLineType, { icon: React.ElementType; label: string; color: string; bgColor: string }> = {
+const LINE_TYPE_CONFIG: Record<
+  PhoneLineType,
+  { icon: React.ElementType; label: string; color: string; bgColor: string }
+> = {
   mobile: {
     icon: Smartphone,
     label: "Mobile",
     color: "text-green-600",
-    bgColor: "bg-green-500/10 border-green-500/20"
+    bgColor: "bg-green-500/10 border-green-500/20",
   },
   landline: {
     icon: PhoneCall,
     label: "Landline",
     color: "text-blue-600",
-    bgColor: "bg-blue-500/10 border-blue-500/20"
+    bgColor: "bg-blue-500/10 border-blue-500/20",
   },
   voip: {
     icon: Wifi,
     label: "VoIP",
     color: "text-purple-600",
-    bgColor: "bg-purple-500/10 border-purple-500/20"
+    bgColor: "bg-purple-500/10 border-purple-500/20",
   },
   toll_free: {
     icon: Phone,
     label: "Toll-Free",
     color: "text-cyan-600",
-    bgColor: "bg-cyan-500/10 border-cyan-500/20"
+    bgColor: "bg-cyan-500/10 border-cyan-500/20",
   },
   premium: {
     icon: Star,
     label: "Premium",
     color: "text-yellow-600",
-    bgColor: "bg-yellow-500/10 border-yellow-500/20"
+    bgColor: "bg-yellow-500/10 border-yellow-500/20",
   },
   unknown: {
     icon: HelpCircle,
     label: "Unknown",
     color: "text-gray-500",
-    bgColor: "bg-gray-500/10 border-gray-500/20"
+    bgColor: "bg-gray-500/10 border-gray-500/20",
   },
 };
 
 // Flag configurations
-const FLAG_CONFIG: Record<PhoneFlag, { label: string; color: string; icon: React.ElementType }> = {
+const FLAG_CONFIG: Record<
+  PhoneFlag,
+  { label: string; color: string; icon: React.ElementType }
+> = {
   confirmed: { label: "Confirmed", color: "bg-green-500", icon: Check },
   dnc: { label: "DNC", color: "bg-red-500", icon: Ban },
-  wrong_number: { label: "Wrong #", color: "bg-orange-500", icon: AlertTriangle },
+  wrong_number: {
+    label: "Wrong #",
+    color: "bg-orange-500",
+    icon: AlertTriangle,
+  },
   invalid: { label: "Invalid", color: "bg-gray-500", icon: AlertTriangle },
   primary: { label: "Primary", color: "bg-blue-500", icon: Star },
   secondary: { label: "Secondary", color: "bg-gray-400", icon: Phone },
@@ -144,7 +166,8 @@ function PhoneItem({
   compact?: boolean;
   showActions?: boolean;
 }) {
-  const lineTypeConfig = LINE_TYPE_CONFIG[phone.lineType] || LINE_TYPE_CONFIG.unknown;
+  const lineTypeConfig =
+    LINE_TYPE_CONFIG[phone.lineType] || LINE_TYPE_CONFIG.unknown;
   const LineTypeIcon = lineTypeConfig.icon;
 
   const isDNC = phone.flags?.includes("dnc");
@@ -160,10 +183,12 @@ function PhoneItem({
   if (compact) {
     // Compact view for tables/lists
     return (
-      <div className={cn(
-        "flex items-center gap-2 group",
-        isDisabled && "opacity-50"
-      )}>
+      <div
+        className={cn(
+          "flex items-center gap-2 group",
+          isDisabled && "opacity-50",
+        )}
+      >
         {/* Line type badge */}
         <TooltipProvider>
           <Tooltip>
@@ -173,7 +198,7 @@ function PhoneItem({
                 className={cn(
                   "h-5 px-1.5 text-xs font-medium",
                   lineTypeConfig.bgColor,
-                  lineTypeConfig.color
+                  lineTypeConfig.color,
                 )}
               >
                 <LineTypeIcon className="h-3 w-3" />
@@ -181,17 +206,21 @@ function PhoneItem({
             </TooltipTrigger>
             <TooltipContent>
               <p>{lineTypeConfig.label}</p>
-              {phone.carrier && <p className="text-xs text-muted-foreground">{phone.carrier}</p>}
+              {phone.carrier && (
+                <p className="text-xs text-muted-foreground">{phone.carrier}</p>
+              )}
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
 
         {/* Phone number */}
-        <span className={cn(
-          "font-mono text-sm",
-          phone.isPrimary && "font-semibold",
-          isDisabled && "line-through"
-        )}>
+        <span
+          className={cn(
+            "font-mono text-sm",
+            phone.isPrimary && "font-semibold",
+            isDisabled && "line-through",
+          )}
+        >
           {formatPhoneNumber(phone.number)}
         </span>
 
@@ -201,16 +230,21 @@ function PhoneItem({
         )}
 
         {/* Verification status */}
-        {phone.verified && (
-          <Check className="h-3 w-3 text-green-500" />
-        )}
+        {phone.verified && <Check className="h-3 w-3 text-green-500" />}
 
         {/* Flags */}
         {isDNC && (
-          <Badge variant="destructive" className="h-4 px-1 text-[10px]">DNC</Badge>
+          <Badge variant="destructive" className="h-4 px-1 text-[10px]">
+            DNC
+          </Badge>
         )}
         {isWrongNumber && (
-          <Badge variant="outline" className="h-4 px-1 text-[10px] bg-orange-500/10 text-orange-600 border-orange-500/20">Wrong</Badge>
+          <Badge
+            variant="outline"
+            className="h-4 px-1 text-[10px] bg-orange-500/10 text-orange-600 border-orange-500/20"
+          >
+            Wrong
+          </Badge>
         )}
 
         {/* Quick actions on hover */}
@@ -262,15 +296,22 @@ function PhoneItem({
                   Copy Number
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => onFlag?.(phone.number, "confirmed")}>
+                <DropdownMenuItem
+                  onClick={() => onFlag?.(phone.number, "confirmed")}
+                >
                   <Check className="h-4 w-4 mr-2 text-green-500" />
                   Mark Confirmed
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onFlag?.(phone.number, "wrong_number")}>
+                <DropdownMenuItem
+                  onClick={() => onFlag?.(phone.number, "wrong_number")}
+                >
                   <AlertTriangle className="h-4 w-4 mr-2 text-orange-500" />
                   Mark Wrong Number
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onFlag?.(phone.number, "dnc")} className="text-red-600">
+                <DropdownMenuItem
+                  onClick={() => onFlag?.(phone.number, "dnc")}
+                  className="text-red-600"
+                >
                   <Ban className="h-4 w-4 mr-2" />
                   Add to DNC
                 </DropdownMenuItem>
@@ -284,33 +325,39 @@ function PhoneItem({
 
   // Full view
   return (
-    <div className={cn(
-      "flex items-center justify-between p-3 rounded-lg border bg-card",
-      isDisabled && "opacity-50 bg-muted"
-    )}>
+    <div
+      className={cn(
+        "flex items-center justify-between p-3 rounded-lg border bg-card",
+        isDisabled && "opacity-50 bg-muted",
+      )}
+    >
       <div className="flex items-center gap-3">
         {/* Line type icon */}
-        <div className={cn(
-          "p-2 rounded-lg",
-          lineTypeConfig.bgColor
-        )}>
+        <div className={cn("p-2 rounded-lg", lineTypeConfig.bgColor)}>
           <LineTypeIcon className={cn("h-5 w-5", lineTypeConfig.color)} />
         </div>
 
         <div>
           {/* Phone number */}
           <div className="flex items-center gap-2">
-            <span className={cn(
-              "font-mono font-medium",
-              isDisabled && "line-through"
-            )}>
+            <span
+              className={cn(
+                "font-mono font-medium",
+                isDisabled && "line-through",
+              )}
+            >
               {formatPhoneNumber(phone.number)}
             </span>
             {phone.isPrimary && (
-              <Badge variant="secondary" className="text-xs">Primary</Badge>
+              <Badge variant="secondary" className="text-xs">
+                Primary
+              </Badge>
             )}
             {phone.verified && (
-              <Badge variant="outline" className="text-xs bg-green-500/10 text-green-600 border-green-500/20">
+              <Badge
+                variant="outline"
+                className="text-xs bg-green-500/10 text-green-600 border-green-500/20"
+              >
                 <Check className="h-3 w-3 mr-1" />
                 Verified
               </Badge>
@@ -319,7 +366,14 @@ function PhoneItem({
 
           {/* Meta info */}
           <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-            <Badge variant="outline" className={cn("text-xs", lineTypeConfig.bgColor, lineTypeConfig.color)}>
+            <Badge
+              variant="outline"
+              className={cn(
+                "text-xs",
+                lineTypeConfig.bgColor,
+                lineTypeConfig.color,
+              )}
+            >
               {lineTypeConfig.label}
             </Badge>
             {phone.carrier && <span>{phone.carrier}</span>}
@@ -334,7 +388,8 @@ function PhoneItem({
             <div className="flex items-center gap-1 mt-1">
               {phone.flags.map((flag) => {
                 const config = FLAG_CONFIG[flag];
-                if (!config || flag === "primary" || flag === "secondary") return null;
+                if (!config || flag === "primary" || flag === "secondary")
+                  return null;
                 return (
                   <Badge
                     key={flag}
@@ -384,20 +439,29 @@ function PhoneItem({
                 Copy Number
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => onFlag?.(phone.number, "confirmed")}>
+              <DropdownMenuItem
+                onClick={() => onFlag?.(phone.number, "confirmed")}
+              >
                 <Check className="h-4 w-4 mr-2 text-green-500" />
                 Mark as Confirmed
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onFlag?.(phone.number, "primary")}>
+              <DropdownMenuItem
+                onClick={() => onFlag?.(phone.number, "primary")}
+              >
                 <Star className="h-4 w-4 mr-2 text-yellow-500" />
                 Set as Primary
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => onFlag?.(phone.number, "wrong_number")}>
+              <DropdownMenuItem
+                onClick={() => onFlag?.(phone.number, "wrong_number")}
+              >
                 <AlertTriangle className="h-4 w-4 mr-2 text-orange-500" />
                 Mark as Wrong Number
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onFlag?.(phone.number, "dnc")} className="text-red-600">
+              <DropdownMenuItem
+                onClick={() => onFlag?.(phone.number, "dnc")}
+                className="text-red-600"
+              >
                 <Ban className="h-4 w-4 mr-2" />
                 Add to Do Not Call
               </DropdownMenuItem>
@@ -439,7 +503,9 @@ export function StandardizedPhoneField({
   // Filter out DNC/invalid phones for display if not showing all
   const displayPhones = showAllPhones
     ? sortedPhones
-    : sortedPhones.filter(p => !p.flags?.includes("dnc") && !p.flags?.includes("invalid"));
+    : sortedPhones.filter(
+        (p) => !p.flags?.includes("dnc") && !p.flags?.includes("invalid"),
+      );
 
   const phonesToShow = compact ? displayPhones.slice(0, 2) : displayPhones;
   const hiddenCount = displayPhones.length - phonesToShow.length;
@@ -472,7 +538,7 @@ export function toStandardizedPhone(
   phone: string | { number: string; type?: string; score?: number },
   lineType: PhoneLineType = "unknown",
   isPrimary = false,
-  verified = false
+  verified = false,
 ): StandardizedPhone {
   if (typeof phone === "string") {
     return {
@@ -494,7 +560,9 @@ export function toStandardizedPhone(
 // Helper to convert array of phone strings to StandardizedPhone[]
 export function toStandardizedPhones(
   phones: Array<string | { number: string; type?: string; score?: number }>,
-  defaultLineType: PhoneLineType = "mobile"
+  defaultLineType: PhoneLineType = "mobile",
 ): StandardizedPhone[] {
-  return phones.map((p, idx) => toStandardizedPhone(p, defaultLineType, idx === 0));
+  return phones.map((p, idx) =>
+    toStandardizedPhone(p, defaultLineType, idx === 0),
+  );
 }

@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     if (!first_name) {
       return NextResponse.json(
         { error: "first_name is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -55,7 +55,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Apply character mix if specified (overrides single character)
-    if (mix_characters && Array.isArray(mix_characters) && mix_characters.length > 0) {
+    if (
+      mix_characters &&
+      Array.isArray(mix_characters) &&
+      mix_characters.length > 0
+    ) {
       engine.mixCharacters(mix_characters as CharacterInfluence[]);
     }
 
@@ -81,7 +85,7 @@ export async function POST(request: NextRequest) {
     console.error("[Communication Style API] Error:", error);
     return NextResponse.json(
       { error: "Failed to generate message" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -126,7 +130,14 @@ export async function GET() {
       },
     ];
 
-    const stages: StraightLineStage[] = ["open", "rapport", "qualify", "present", "objection", "close"];
+    const stages: StraightLineStage[] = [
+      "open",
+      "rapport",
+      "qualify",
+      "present",
+      "objection",
+      "close",
+    ];
 
     return NextResponse.json({
       success: true,
@@ -135,8 +146,18 @@ export async function GET() {
       stages,
       style_ranges: {
         humor: { min: 0, max: 100, default: 40, label: "Serious ↔ Funny" },
-        directness: { min: 0, max: 100, default: 70, label: "Conversational ↔ Direct" },
-        warmth: { min: 0, max: 100, default: 75, label: "Professional ↔ Warm" },
+        directness: {
+          min: 0,
+          max: 100,
+          default: 70,
+          label: "Conversational ↔ Direct",
+        },
+        warmth: {
+          min: 0,
+          max: 100,
+          default: 75,
+          label: "Professional ↔ Warm",
+        },
         energy: { min: 0, max: 100, default: 70, label: "Calm ↔ High Energy" },
         urgency: { min: 0, max: 100, default: 60, label: "Relaxed ↔ Urgent" },
       },
@@ -145,7 +166,7 @@ export async function GET() {
     console.error("[Communication Style API] Error:", error);
     return NextResponse.json(
       { error: "Failed to get communication style options" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

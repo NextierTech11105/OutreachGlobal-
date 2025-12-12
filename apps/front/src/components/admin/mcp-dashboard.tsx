@@ -97,7 +97,7 @@ export function MCPDashboard() {
         prev.map((server) => ({
           ...server,
           status: "connected" as const,
-        }))
+        })),
       );
     }, 1500);
     return () => clearTimeout(timer);
@@ -106,8 +106,8 @@ export function MCPDashboard() {
   const testConnection = async (serverId: string) => {
     setServers((prev) =>
       prev.map((s) =>
-        s.id === serverId ? { ...s, status: "checking" as const } : s
-      )
+        s.id === serverId ? { ...s, status: "checking" as const } : s,
+      ),
     );
 
     // Simulate connection test
@@ -115,8 +115,8 @@ export function MCPDashboard() {
 
     setServers((prev) =>
       prev.map((s) =>
-        s.id === serverId ? { ...s, status: "connected" as const } : s
-      )
+        s.id === serverId ? { ...s, status: "connected" as const } : s,
+      ),
     );
 
     toast.success(`${servers.find((s) => s.id === serverId)?.name} connected`);
@@ -168,7 +168,9 @@ export function MCPDashboard() {
             <Cable className="h-6 w-6 text-white" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold tracking-tight text-zinc-100">MCP Dashboard</h2>
+            <h2 className="text-2xl font-bold tracking-tight text-zinc-100">
+              MCP Dashboard
+            </h2>
             <p className="text-zinc-400">
               Model Context Protocol connections for AI-powered operations
             </p>
@@ -176,10 +178,18 @@ export function MCPDashboard() {
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 bg-zinc-800 px-4 py-2 rounded-lg border border-zinc-700">
-            <Activity className={`h-4 w-4 ${connectedCount === servers.length ? "text-green-400" : "text-yellow-400"}`} />
-            <span className="text-zinc-300 font-medium">{connectedCount}/{servers.length} Active</span>
+            <Activity
+              className={`h-4 w-4 ${connectedCount === servers.length ? "text-green-400" : "text-yellow-400"}`}
+            />
+            <span className="text-zinc-300 font-medium">
+              {connectedCount}/{servers.length} Active
+            </span>
           </div>
-          <Button onClick={testAllConnections} disabled={isTestingAll} className="bg-purple-600 hover:bg-purple-700">
+          <Button
+            onClick={testAllConnections}
+            disabled={isTestingAll}
+            className="bg-purple-600 hover:bg-purple-700"
+          >
             {isTestingAll ? (
               <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
             ) : (
@@ -233,9 +243,15 @@ export function MCPDashboard() {
                         : "bg-slate-800 border-slate-600"
                     }`}
                   >
-                    <Icon className={`h-8 w-8 mb-2 ${isConnected ? "text-green-400" : "text-slate-400"}`} />
-                    <span className="text-sm font-medium text-center">{server.name}</span>
-                    <span className={`text-xs mt-1 ${isConnected ? "text-green-400" : "text-slate-500"}`}>
+                    <Icon
+                      className={`h-8 w-8 mb-2 ${isConnected ? "text-green-400" : "text-slate-400"}`}
+                    />
+                    <span className="text-sm font-medium text-center">
+                      {server.name}
+                    </span>
+                    <span
+                      className={`text-xs mt-1 ${isConnected ? "text-green-400" : "text-slate-500"}`}
+                    >
                       {isConnected ? "● Live" : "○ Offline"}
                     </span>
                   </div>
@@ -273,14 +289,17 @@ export function MCPDashboard() {
         {servers.map((server) => {
           const Icon = server.icon;
           return (
-            <Card key={server.id} className="relative overflow-hidden bg-zinc-900 border-zinc-800">
+            <Card
+              key={server.id}
+              className="relative overflow-hidden bg-zinc-900 border-zinc-800"
+            >
               <div
                 className={`absolute top-0 left-0 w-1 h-full ${
                   server.status === "connected"
                     ? "bg-green-500"
                     : server.status === "checking"
-                    ? "bg-yellow-500"
-                    : "bg-red-500"
+                      ? "bg-yellow-500"
+                      : "bg-red-500"
                 }`}
               />
               <CardHeader className="pb-2">
@@ -302,8 +321,13 @@ export function MCPDashboard() {
                       />
                     </div>
                     <div>
-                      <CardTitle className="text-base text-zinc-100">{server.name}</CardTitle>
-                      <Badge variant="outline" className="text-xs mt-1 border-zinc-700 text-zinc-400">
+                      <CardTitle className="text-base text-zinc-100">
+                        {server.name}
+                      </CardTitle>
+                      <Badge
+                        variant="outline"
+                        className="text-xs mt-1 border-zinc-700 text-zinc-400"
+                      >
                         {server.type === "local" ? (
                           <>
                             <Server className="h-3 w-3 mr-1" />
@@ -322,12 +346,14 @@ export function MCPDashboard() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
-                <p className="text-sm text-zinc-400">
-                  {server.description}
-                </p>
+                <p className="text-sm text-zinc-400">{server.description}</p>
                 <div className="flex flex-wrap gap-1">
                   {server.capabilities.map((cap) => (
-                    <Badge key={cap} variant="secondary" className="text-xs bg-zinc-800 text-zinc-300 border-zinc-700">
+                    <Badge
+                      key={cap}
+                      variant="secondary"
+                      className="text-xs bg-zinc-800 text-zinc-300 border-zinc-700"
+                    >
                       {cap}
                     </Badge>
                   ))}
@@ -387,12 +413,14 @@ export function MCPDashboard() {
                 icon: FileText,
               },
               {
-                query: "Find absentee owners with high equity in NY, NJ, CT, FL",
+                query:
+                  "Find absentee owners with high equity in NY, NJ, CT, FL",
                 mcp: "realestate-api",
                 icon: MapPin,
               },
               {
-                query: "Cross-reference these properties with our saved searches",
+                query:
+                  "Cross-reference these properties with our saved searches",
                 mcp: "postgres",
                 icon: Database,
               },
@@ -403,10 +431,15 @@ export function MCPDashboard() {
               >
                 <example.icon className="h-5 w-5 text-zinc-400 mt-0.5" />
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-zinc-200">"{example.query}"</p>
+                  <p className="text-sm font-medium text-zinc-200">
+                    "{example.query}"
+                  </p>
                   <div className="flex items-center gap-1 mt-1">
                     <ArrowRight className="h-3 w-3 text-zinc-500" />
-                    <Badge variant="outline" className="text-xs border-zinc-600 text-zinc-400">
+                    <Badge
+                      variant="outline"
+                      className="text-xs border-zinc-600 text-zinc-400"
+                    >
                       {example.mcp}
                     </Badge>
                   </div>
@@ -430,16 +463,24 @@ export function MCPDashboard() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-2">
-            {["New York (NY)", "New Jersey (NJ)", "Connecticut (CT)", "Florida (FL)"].map((state) => (
-              <Badge key={state} className="text-sm px-3 py-1 bg-blue-900/50 text-blue-300 border-blue-700">
+            {[
+              "New York (NY)",
+              "New Jersey (NJ)",
+              "Connecticut (CT)",
+              "Florida (FL)",
+            ].map((state) => (
+              <Badge
+                key={state}
+                className="text-sm px-3 py-1 bg-blue-900/50 text-blue-300 border-blue-700"
+              >
                 <MapPin className="h-3 w-3 mr-1" />
                 {state}
               </Badge>
             ))}
           </div>
           <p className="text-sm text-zinc-400 mt-3">
-            Use the RealEstateAPI MCP to search properties, find absentee owners,
-            and identify pre-foreclosure opportunities in these markets.
+            Use the RealEstateAPI MCP to search properties, find absentee
+            owners, and identify pre-foreclosure opportunities in these markets.
           </p>
         </CardContent>
       </Card>

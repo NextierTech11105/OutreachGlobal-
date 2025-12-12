@@ -38,14 +38,14 @@ export async function trackUsage(
   userId: string,
   eventType: UsageEventType,
   quantity: number = 1,
-  metadata?: Record<string, any>
+  metadata?: Record<string, any>,
 ): Promise<TrackUsageResult> {
   try {
     // Get user's active subscription
     const subscription = await db.query.subscriptions.findFirst({
       where: and(
         eq(subscriptions.userId, userId),
-        eq(subscriptions.status, "active")
+        eq(subscriptions.status, "active"),
       ),
       with: { plan: true },
     });
@@ -74,25 +74,28 @@ export async function trackUsage(
       where: and(
         eq(usage.subscriptionId, subscription.id),
         gte(usage.periodStart, subscription.currentPeriodStart!),
-        lte(usage.periodEnd, subscription.currentPeriodEnd!)
+        lte(usage.periodEnd, subscription.currentPeriodEnd!),
       ),
     });
 
     // Create usage record if it doesn't exist
     if (!currentUsage) {
-      const newUsage = await db.insert(usage).values({
-        subscriptionId: subscription.id,
-        periodStart: subscription.currentPeriodStart!,
-        periodEnd: subscription.currentPeriodEnd!,
-        leadsUsed: 0,
-        leadsLimit: subscription.plan?.maxLeadsPerMonth || 1000,
-        propertySearchesUsed: 0,
-        propertySearchesLimit: subscription.plan?.maxPropertySearches || 500,
-        smsUsed: 0,
-        smsLimit: subscription.plan?.maxSmsPerMonth || 500,
-        skipTracesUsed: 0,
-        skipTracesLimit: subscription.plan?.maxSkipTraces || 50,
-      }).returning();
+      const newUsage = await db
+        .insert(usage)
+        .values({
+          subscriptionId: subscription.id,
+          periodStart: subscription.currentPeriodStart!,
+          periodEnd: subscription.currentPeriodEnd!,
+          leadsUsed: 0,
+          leadsLimit: subscription.plan?.maxLeadsPerMonth || 1000,
+          propertySearchesUsed: 0,
+          propertySearchesLimit: subscription.plan?.maxPropertySearches || 500,
+          smsUsed: 0,
+          smsLimit: subscription.plan?.maxSmsPerMonth || 500,
+          skipTracesUsed: 0,
+          skipTracesLimit: subscription.plan?.maxSkipTraces || 50,
+        })
+        .returning();
       currentUsage = newUsage[0];
     }
 
@@ -130,9 +133,7 @@ export async function trackUsage(
     const isOverage = currentCount > limit;
 
     // Update usage record
-    await db.update(usage)
-      .set(updateData)
-      .where(eq(usage.id, currentUsage.id));
+    await db.update(usage).set(updateData).where(eq(usage.id, currentUsage.id));
 
     // Record the event
     await db.insert(usageEvents).values({
@@ -149,7 +150,9 @@ export async function trackUsage(
       currentUsage: currentCount,
       limit,
       isOverage,
-      overageCharge: isOverage ? (OVERAGE_COSTS[eventType] * quantity) / 100 : 0,
+      overageCharge: isOverage
+        ? (OVERAGE_COSTS[eventType] * quantity) / 100
+        : 0,
     };
   } catch (error: any) {
     console.error("[Billing] Track usage error:", error);
@@ -169,13 +172,13 @@ export async function trackUsage(
  */
 export async function checkQuota(
   userId: string,
-  eventType: UsageEventType
+  eventType: UsageEventType,
 ): Promise<{ hasQuota: boolean; remaining: number; limit: number }> {
   try {
     const subscription = await db.query.subscriptions.findFirst({
       where: and(
         eq(subscriptions.userId, userId),
-        eq(subscriptions.status, "active")
+        eq(subscriptions.status, "active"),
       ),
       with: { plan: true },
     });
@@ -247,7 +250,7 @@ export async function getSubscriptionSummary(userId: string) {
   const subscription = await db.query.subscriptions.findFirst({
     where: and(
       eq(subscriptions.userId, userId),
-      eq(subscriptions.status, "active")
+      eq(subscriptions.status, "active"),
     ),
     with: { plan: true },
   });
@@ -271,12 +274,23 @@ export async function getSubscriptionSummary(userId: string) {
       currentPeriodStart: subscription.currentPeriodStart,
       currentPeriodEnd: subscription.currentPeriodEnd,
     },
-    usage: currentUsage ? {
-      leads: { used: currentUsage.leadsUsed, limit: currentUsage.leadsLimit },
-      searches: { used: currentUsage.propertySearchesUsed, limit: currentUsage.propertySearchesLimit },
-      sms: { used: currentUsage.smsUsed, limit: currentUsage.smsLimit },
-      skipTraces: { used: currentUsage.skipTracesUsed, limit: currentUsage.skipTracesLimit },
-    } : null,
+    usage: currentUsage
+      ? {
+          leads: {
+            used: currentUsage.leadsUsed,
+            limit: currentUsage.leadsLimit,
+          },
+          searches: {
+            used: currentUsage.propertySearchesUsed,
+            limit: currentUsage.propertySearchesLimit,
+          },
+          sms: { used: currentUsage.smsUsed, limit: currentUsage.smsLimit },
+          skipTraces: {
+            used: currentUsage.skipTracesUsed,
+            limit: currentUsage.skipTracesLimit,
+          },
+        }
+      : null,
     features: {
       powerDialer: subscription.plan?.hasPowerDialer || false,
       apiAccess: subscription.plan?.hasApiAccess || false,

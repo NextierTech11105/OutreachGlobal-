@@ -4,7 +4,7 @@ const APOLLO_API_BASE = "https://api.apollo.io/v1";
 
 // Check if Apollo is configured via env vars
 export async function GET() {
-  const apiKey = process.env.APOLLO_API_KEY;
+  const apiKey = process.env.APOLLO_IO_API_KEY || process.env.NEXT_PUBLIC_APOLLO_IO_API_KEY || process.env.APOLLO_API_KEY;
   const configured = !!apiKey;
 
   if (!configured) {
@@ -26,11 +26,14 @@ export async function GET() {
       const meData = await meResponse.json();
 
       // Apollo returns credits info in different places depending on plan
-      const creditsUsed = meData.credits_used || meData.organization?.credits_used || 0;
-      const creditsRemaining = meData.credits_remaining ||
-                               meData.organization?.credits_remaining ||
-                               meData.organization?.available_credits ||
-                               meData.team?.credits_remaining || 0;
+      const creditsUsed =
+        meData.credits_used || meData.organization?.credits_used || 0;
+      const creditsRemaining =
+        meData.credits_remaining ||
+        meData.organization?.credits_remaining ||
+        meData.organization?.available_credits ||
+        meData.team?.credits_remaining ||
+        0;
 
       // Try to get more detailed usage stats
       let searchCount = 0;
@@ -39,7 +42,8 @@ export async function GET() {
       // Some Apollo plans expose usage stats
       if (meData.usage) {
         searchCount = meData.usage.searches || meData.usage.search_count || 0;
-        enrichCount = meData.usage.enrichments || meData.usage.enrich_count || 0;
+        enrichCount =
+          meData.usage.enrichments || meData.usage.enrich_count || 0;
       }
 
       return NextResponse.json({
@@ -52,7 +56,9 @@ export async function GET() {
         },
         user: {
           email: meData.email,
-          name: meData.name || `${meData.first_name || ""} ${meData.last_name || ""}`.trim(),
+          name:
+            meData.name ||
+            `${meData.first_name || ""} ${meData.last_name || ""}`.trim(),
           organization: meData.organization?.name || meData.team?.name,
         },
       });
@@ -83,7 +89,7 @@ export async function POST(request: NextRequest) {
     if (!apiKey) {
       return NextResponse.json(
         { error: "API key is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -101,7 +107,7 @@ export async function POST(request: NextRequest) {
       const errorData = await response.json().catch(() => ({}));
       return NextResponse.json(
         { error: errorData.message || "Invalid API key" },
-        { status: response.status }
+        { status: response.status },
       );
     }
 
@@ -117,7 +123,8 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: unknown) {
     console.error("Apollo test connection error:", error);
-    const message = error instanceof Error ? error.message : "Connection test failed";
+    const message =
+      error instanceof Error ? error.message : "Connection test failed";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

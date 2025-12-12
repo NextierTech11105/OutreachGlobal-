@@ -47,9 +47,24 @@ import {
   type ConversationFlow,
 } from "./conversation-flows";
 
-import { OPENER_LIBRARY, REBUTTAL_LIBRARY, getBestOpeners, CAPTURE_GOALS } from "./knowledge-base/message-library";
-import { AUTOMATION_FLOWS, CALENDAR_CONFIG, EMAIL_QUEUE_CONFIG, processEmailCapture, LESLIE_NIELSEN_HUMOR } from "./knowledge-base/automation-flows";
-import { GIANNA_PERSONALITY, getGiannaPrompt, GIANNA_TEMPLATES } from "./knowledge-base/personality";
+import {
+  OPENER_LIBRARY,
+  REBUTTAL_LIBRARY,
+  getBestOpeners,
+  CAPTURE_GOALS,
+} from "./knowledge-base/message-library";
+import {
+  AUTOMATION_FLOWS,
+  CALENDAR_CONFIG,
+  EMAIL_QUEUE_CONFIG,
+  processEmailCapture,
+  LESLIE_NIELSEN_HUMOR,
+} from "./knowledge-base/automation-flows";
+import {
+  GIANNA_PERSONALITY,
+  getGiannaPrompt,
+  GIANNA_TEMPLATES,
+} from "./knowledge-base/personality";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -67,16 +82,44 @@ export interface GiannaContext {
 
   // Conversation state
   channel: "sms" | "voice" | "email" | "chat";
-  stage: "cold_open" | "warming_up" | "digging_in" | "pitching" | "handling_pushback" | "going_for_close" | "follow_up" | "re_engagement" | "hot_response" | "cool_down";
+  stage:
+    | "cold_open"
+    | "warming_up"
+    | "digging_in"
+    | "pitching"
+    | "handling_pushback"
+    | "going_for_close"
+    | "follow_up"
+    | "re_engagement"
+    | "hot_response"
+    | "cool_down";
   messageNumber: number;
   daysSinceLastContact?: number;
 
   // Previous interactions
-  lastResponseTone?: "positive" | "neutral" | "negative" | "question" | "objection";
-  conversationHistory?: Array<{ role: "user" | "assistant"; content: string; timestamp: string }>;
+  lastResponseTone?:
+    | "positive"
+    | "neutral"
+    | "negative"
+    | "question"
+    | "objection";
+  conversationHistory?: Array<{
+    role: "user" | "assistant";
+    content: string;
+    timestamp: string;
+  }>;
 
   // Lead type for real estate
-  leadType?: "pre_foreclosure" | "foreclosure" | "absentee_owner" | "vacant" | "tax_lien" | "inherited" | "high_equity" | "tired_landlord" | "divorce";
+  leadType?:
+    | "pre_foreclosure"
+    | "foreclosure"
+    | "absentee_owner"
+    | "vacant"
+    | "tax_lien"
+    | "inherited"
+    | "high_equity"
+    | "tired_landlord"
+    | "divorce";
   distressLevel?: number; // 0-100
 
   // Preferences
@@ -100,7 +143,13 @@ export interface GiannaResponse {
   requiresHumanReview?: boolean;
   automationTrigger?: string;
   nextAction?: {
-    type: "wait" | "follow_up" | "schedule_call" | "send_email" | "add_to_dnc" | "escalate";
+    type:
+      | "wait"
+      | "follow_up"
+      | "schedule_call"
+      | "send_email"
+      | "add_to_dnc"
+      | "escalate";
     delayMinutes?: number;
     metadata?: Record<string, unknown>;
   };
@@ -139,7 +188,7 @@ export class GiannaService {
    */
   async generateResponse(
     incomingMessage: string,
-    context: GiannaContext
+    context: GiannaContext,
   ): Promise<GiannaResponse> {
     // Step 1: Classify the incoming message
     const classification = classifyResponse(incomingMessage);
@@ -163,7 +212,8 @@ export class GiannaService {
     // Step 3: Check for anger/de-escalation needed
     if (classification.intent === "anger") {
       return {
-        message: "I apologize for any inconvenience. I'll remove you from our list right now. Take care!",
+        message:
+          "I apologize for any inconvenience. I'll remove you from our list right now. Take care!",
         personality: "empathetic_advisor",
         confidence: 100,
         intent: "anger",
@@ -176,13 +226,20 @@ export class GiannaService {
     const flow = getFlowForResponse(classification);
 
     // Step 5: Determine personality
-    const personalityId = context.preferredPersonality || this.selectPersonality(context, classification);
+    const personalityId =
+      context.preferredPersonality ||
+      this.selectPersonality(context, classification);
     const personality = PERSONALITY_ARCHETYPES[personalityId];
 
     // Step 6: Check for objection
     const objectionType = detectObjection(incomingMessage);
     if (objectionType) {
-      return this.handleObjection(objectionType, context, classification, personalityId);
+      return this.handleObjection(
+        objectionType,
+        context,
+        classification,
+        personalityId,
+      );
     }
 
     // Step 7: Generate response using DNA system
@@ -215,7 +272,10 @@ export class GiannaService {
     }
 
     // Step 10: Check if human review needed
-    const requiresHumanReview = this.shouldRequireHumanReview(context, classification);
+    const requiresHumanReview = this.shouldRequireHumanReview(
+      context,
+      classification,
+    );
 
     return {
       message: finalMessage,
@@ -260,7 +320,9 @@ export class GiannaService {
     }
 
     // Apply context variables
-    return selectedOpeners.map((opener) => this.applyFlowTemplate(opener, context));
+    return selectedOpeners.map((opener) =>
+      this.applyFlowTemplate(opener, context),
+    );
   }
 
   /**
@@ -280,9 +342,10 @@ export class GiannaService {
     objectionType: string,
     context: GiannaContext,
     classification: ResponseClassification,
-    personalityId: PersonalityArchetype
+    personalityId: PersonalityArchetype,
   ): GiannaResponse {
-    const objectionConfig = OBJECTION_RESPONSES[objectionType as keyof typeof OBJECTION_RESPONSES];
+    const objectionConfig =
+      OBJECTION_RESPONSES[objectionType as keyof typeof OBJECTION_RESPONSES];
 
     if (!objectionConfig) {
       return {
@@ -296,14 +359,17 @@ export class GiannaService {
 
     // Select random response from objection handler
     const responses = objectionConfig.responses;
-    const selectedResponse = responses[Math.floor(Math.random() * responses.length)];
+    const selectedResponse =
+      responses[Math.floor(Math.random() * responses.length)];
 
     // Apply context
     const finalMessage = this.applyFlowTemplate(selectedResponse, context);
 
     // Check if this is a rebuttal that needs human review
-    const rebuttalConfig = REBUTTAL_LIBRARY[objectionType as keyof typeof REBUTTAL_LIBRARY];
-    const requiresHumanReview = rebuttalConfig?.human_in_loop && context.messageNumber <= 3;
+    const rebuttalConfig =
+      REBUTTAL_LIBRARY[objectionType as keyof typeof REBUTTAL_LIBRARY];
+    const requiresHumanReview =
+      rebuttalConfig?.human_in_loop && context.messageNumber <= 3;
 
     return {
       message: finalMessage,
@@ -311,16 +377,20 @@ export class GiannaService {
       confidence: 75,
       intent: `objection_${objectionType}`,
       requiresHumanReview,
-      nextAction: objectionType === "not_interested" && context.messageNumber >= 3
-        ? { type: "follow_up", delayMinutes: 90 * 24 * 60 } // 90 days
-        : undefined,
+      nextAction:
+        objectionType === "not_interested" && context.messageNumber >= 3
+          ? { type: "follow_up", delayMinutes: 90 * 24 * 60 } // 90 days
+          : undefined,
     };
   }
 
   /**
    * Select appropriate personality based on context
    */
-  private selectPersonality(context: GiannaContext, classification: ResponseClassification): PersonalityArchetype {
+  private selectPersonality(
+    context: GiannaContext,
+    classification: ResponseClassification,
+  ): PersonalityArchetype {
     // Use classification's suggested personality if available
     if (classification.suggestedPersonality) {
       return classification.suggestedPersonality;
@@ -332,17 +402,28 @@ export class GiannaService {
     }
 
     // High-value/professional → sharp professional
-    if (context.industry && ["healthcare", "legal", "finance", "consulting"].includes(context.industry.toLowerCase())) {
+    if (
+      context.industry &&
+      ["healthcare", "legal", "finance", "consulting"].includes(
+        context.industry.toLowerCase(),
+      )
+    ) {
       return "sharp_professional";
     }
 
     // Ghost revival → playful
-    if (context.stage === "re_engagement" || (context.daysSinceLastContact && context.daysSinceLastContact > 7)) {
+    if (
+      context.stage === "re_engagement" ||
+      (context.daysSinceLastContact && context.daysSinceLastContact > 7)
+    ) {
       return context.messageNumber > 3 ? "playful_closer" : "brooklyn_bestie";
     }
 
     // Hot response → hustler
-    if (classification.intent === "interested" || classification.sentiment === "positive") {
+    if (
+      classification.intent === "interested" ||
+      classification.sentiment === "positive"
+    ) {
       return "hustler_heart";
     }
 
@@ -363,8 +444,14 @@ export class GiannaService {
       .replace(/\{industry\}/g, context.industry || "your industry")
       .replace(/\{\{industry\}\}/g, context.industry || "your industry")
       .replace(/\{address\}/g, context.propertyAddress || "your property")
-      .replace(/\{propertyAddress\}/g, context.propertyAddress || "your property")
-      .replace(/\{\{property_address\}\}/g, context.propertyAddress || "your property")
+      .replace(
+        /\{propertyAddress\}/g,
+        context.propertyAddress || "your property",
+      )
+      .replace(
+        /\{\{property_address\}\}/g,
+        context.propertyAddress || "your property",
+      )
       .replace(/\{calendarLink\}/g, CALENDAR_CONFIG.link)
       .replace(/\{\{calendar_link\}\}/g, CALENDAR_CONFIG.link)
       .replace(/\{agentName\}/g, context.agentName || GIANNA_IDENTITY.name);
@@ -398,9 +485,15 @@ export class GiannaService {
   /**
    * Check if human review is required
    */
-  private shouldRequireHumanReview(context: GiannaContext, classification: ResponseClassification): boolean {
+  private shouldRequireHumanReview(
+    context: GiannaContext,
+    classification: ResponseClassification,
+  ): boolean {
     // First 3 rebuttals need human review
-    if (classification.intent?.startsWith("objection") && context.messageNumber <= 3) {
+    if (
+      classification.intent?.startsWith("objection") &&
+      context.messageNumber <= 3
+    ) {
       return true;
     }
 
@@ -410,7 +503,10 @@ export class GiannaService {
     }
 
     // Negative sentiment needs review
-    if (classification.sentiment === "negative" && classification.intent !== "opt_out") {
+    if (
+      classification.sentiment === "negative" &&
+      classification.intent !== "opt_out"
+    ) {
       return true;
     }
 
@@ -422,7 +518,7 @@ export class GiannaService {
    */
   private determineNextAction(
     classification: ResponseClassification,
-    context: GiannaContext
+    context: GiannaContext,
   ): GiannaResponse["nextAction"] {
     switch (classification.intent) {
       case "interested":
@@ -483,7 +579,7 @@ export class GiannaService {
    */
   async checkEmailCaptureAutomation(
     message: string,
-    context: GiannaContext
+    context: GiannaContext,
   ): Promise<{ triggered: boolean; email?: string }> {
     const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/i;
     const match = message.match(emailRegex);
@@ -524,7 +620,10 @@ export class GiannaService {
     // Add lead-type specific context
     let leadContext = "";
     if (context.leadType) {
-      const leadApproach = LEAD_TYPE_APPROACHES[context.leadType as keyof typeof LEAD_TYPE_APPROACHES];
+      const leadApproach =
+        LEAD_TYPE_APPROACHES[
+          context.leadType as keyof typeof LEAD_TYPE_APPROACHES
+        ];
       if (leadApproach) {
         leadContext = `\n\nLEAD TYPE: ${context.leadType.toUpperCase()}
 Tone: ${leadApproach.tone}
@@ -559,7 +658,9 @@ ${context.daysSinceLastContact ? `Days since last contact: ${context.daysSinceLa
   /**
    * Get email template
    */
-  getEmailTemplate(type: keyof typeof GIANNA_TEMPLATES.email): string | string[] {
+  getEmailTemplate(
+    type: keyof typeof GIANNA_TEMPLATES.email,
+  ): string | string[] {
     return GIANNA_TEMPLATES.email[type];
   }
 
@@ -578,8 +679,8 @@ ${context.daysSinceLastContact ? `Days since last contact: ${context.daysSinceLa
    * Get Leslie Nielsen style humor
    */
   getLeslieNielsenHumor(context: string): string {
-    const examples = LESLIE_NIELSEN_HUMOR.examples.filter(
-      (ex) => ex.context.toLowerCase().includes(context.toLowerCase())
+    const examples = LESLIE_NIELSEN_HUMOR.examples.filter((ex) =>
+      ex.context.toLowerCase().includes(context.toLowerCase()),
     );
 
     if (examples.length > 0) {

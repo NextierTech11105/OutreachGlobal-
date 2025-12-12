@@ -1,313 +1,364 @@
-import { pgTable, text, timestamp, jsonb, integer, boolean, uuid, decimal, date, index } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  timestamp,
+  jsonb,
+  integer,
+  boolean,
+  uuid,
+  decimal,
+  date,
+  index,
+} from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
 // ============================================================
 // BUCKETS - Saved searches with lead management
 // ============================================================
 
-export const buckets = pgTable("buckets", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: text("user_id").notNull(),
-  name: text("name").notNull(),
-  description: text("description"),
-  source: text("source").notNull().default("real-estate"), // 'real-estate' | 'apollo' | 'mixed'
-  filters: jsonb("filters").notNull().default({}), // BucketFilters JSON
-  // Counts (denormalized for performance)
-  totalLeads: integer("total_leads").default(0),
-  enrichedLeads: integer("enriched_leads").default(0),
-  queuedLeads: integer("queued_leads").default(0),
-  contactedLeads: integer("contacted_leads").default(0),
-  // Enrichment tracking
-  enrichmentStatus: text("enrichment_status").default("pending"), // 'pending' | 'queued' | 'processing' | 'completed' | 'failed'
-  enrichmentProgress: jsonb("enrichment_progress"), // { total, processed, successful, failed }
-  queuedAt: timestamp("queued_at"),
-  lastEnrichedAt: timestamp("last_enriched_at"),
-  // Campaign link
-  campaignId: uuid("campaign_id"),
-  // Timestamps
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-}, (table) => ({
-  userIdIdx: index("buckets_user_id_idx").on(table.userId),
-  sourceIdx: index("buckets_source_idx").on(table.source),
-  statusIdx: index("buckets_enrichment_status_idx").on(table.enrichmentStatus),
-}));
+export const buckets = pgTable(
+  "buckets",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id").notNull(),
+    name: text("name").notNull(),
+    description: text("description"),
+    source: text("source").notNull().default("real-estate"), // 'real-estate' | 'apollo' | 'mixed'
+    filters: jsonb("filters").notNull().default({}), // BucketFilters JSON
+    // Counts (denormalized for performance)
+    totalLeads: integer("total_leads").default(0),
+    enrichedLeads: integer("enriched_leads").default(0),
+    queuedLeads: integer("queued_leads").default(0),
+    contactedLeads: integer("contacted_leads").default(0),
+    // Enrichment tracking
+    enrichmentStatus: text("enrichment_status").default("pending"), // 'pending' | 'queued' | 'processing' | 'completed' | 'failed'
+    enrichmentProgress: jsonb("enrichment_progress"), // { total, processed, successful, failed }
+    queuedAt: timestamp("queued_at"),
+    lastEnrichedAt: timestamp("last_enriched_at"),
+    // Campaign link
+    campaignId: uuid("campaign_id"),
+    // Timestamps
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdIdx: index("buckets_user_id_idx").on(table.userId),
+    sourceIdx: index("buckets_source_idx").on(table.source),
+    statusIdx: index("buckets_enrichment_status_idx").on(
+      table.enrichmentStatus,
+    ),
+  }),
+);
 
 // ============================================================
 // LEADS - Full RealEstateAPI + Apollo merged data
 // ============================================================
 
-export const leads = pgTable("leads", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  bucketId: uuid("bucket_id").notNull().references(() => buckets.id, { onDelete: "cascade" }),
-  userId: text("user_id").notNull(),
-  source: text("source").notNull().default("real-estate"), // 'real-estate' | 'apollo' | 'mixed'
-  status: text("status").notNull().default("new"), // 'new' | 'contacted' | 'qualified' | 'nurturing' | 'closed' | 'lost'
+export const leads = pgTable(
+  "leads",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    bucketId: uuid("bucket_id")
+      .notNull()
+      .references(() => buckets.id, { onDelete: "cascade" }),
+    userId: text("user_id").notNull(),
+    source: text("source").notNull().default("real-estate"), // 'real-estate' | 'apollo' | 'mixed'
+    status: text("status").notNull().default("new"), // 'new' | 'contacted' | 'qualified' | 'nurturing' | 'closed' | 'lost'
 
-  // === Contact Info ===
-  firstName: text("first_name"),
-  lastName: text("last_name"),
-  email: text("email"),
-  phone: text("phone"),
-  secondaryPhone: text("secondary_phone"),
+    // === Contact Info ===
+    firstName: text("first_name"),
+    lastName: text("last_name"),
+    email: text("email"),
+    phone: text("phone"),
+    secondaryPhone: text("secondary_phone"),
 
-  // === RealEstateAPI Property Identifiers ===
-  propertyId: text("property_id"), // RealEstateAPI ID
-  apn: text("apn"), // Assessor Parcel Number
-  fips: text("fips"), // FIPS code
-  legalDescription: text("legal_description"),
-  subdivision: text("subdivision"),
-  tract: text("tract"),
-  block: text("block"),
-  lot: text("lot"),
-  // === Address ===
-  propertyAddress: text("property_address"),
-  propertyAddress2: text("property_address_2"),
-  propertyCity: text("property_city"),
-  propertyState: text("property_state"),
-  propertyZip: text("property_zip"),
-  propertyZip4: text("property_zip_4"),
-  propertyCounty: text("property_county"),
-  latitude: decimal("latitude", { precision: 10, scale: 7 }),
-  longitude: decimal("longitude", { precision: 10, scale: 7 }),
-  censusTract: text("census_tract"),
-  congressionalDistrict: text("congressional_district"),
-  // === Property Classification ===
-  propertyType: text("property_type"), // 'SFR' | 'Condo' | 'Townhouse' | 'Multi-Family' | 'Commercial' | 'Land' | 'Mobile'
-  propertySubtype: text("property_subtype"), // 'Duplex' | 'Triplex' | 'Fourplex' | 'Apartment' | 'Retail' | 'Office' | 'Industrial' | 'Mixed Use'
-  propertyClass: text("property_class"), // 'Residential' | 'Commercial' | 'Industrial' | 'Agricultural' | 'Vacant Land'
-  propertyUse: text("property_use"), // 'Single Family' | 'Investment' | 'Vacation' | 'Agricultural'
-  zoning: text("zoning"), // 'R1' | 'R2' | 'C1' | 'M1' etc
-  zoningDescription: text("zoning_description"),
-  landUseCode: text("land_use_code"),
-  // === Units (for multi-family) ===
-  units: integer("units"),
-  buildingCount: integer("building_count"),
-  // Physical characteristics
-  bedrooms: integer("bedrooms"),
-  bathrooms: decimal("bathrooms", { precision: 3, scale: 1 }),
-  sqft: integer("sqft"),
-  lotSizeSqft: integer("lot_size_sqft"),
-  lotSizeAcres: decimal("lot_size_acres", { precision: 10, scale: 4 }),
-  yearBuilt: integer("year_built"),
-  stories: integer("stories"),
-  pool: boolean("pool"),
-  garage: boolean("garage"),
-  garageSpaces: integer("garage_spaces"),
-  // Valuation
-  estimatedValue: integer("estimated_value"),
-  assessedValue: integer("assessed_value"),
-  taxAmount: integer("tax_amount"),
-  estimatedEquity: integer("estimated_equity"),
-  equityPercent: decimal("equity_percent", { precision: 5, scale: 2 }),
-  // === Primary Mortgage (1st Position) ===
-  mtg1Amount: integer("mtg1_amount"),
-  mtg1Date: date("mtg1_date"),
-  mtg1LoanType: text("mtg1_loan_type"), // 'Conventional' | 'FHA' | 'VA' | 'USDA' | 'ARM' | 'Balloon'
-  mtg1InterestRate: decimal("mtg1_interest_rate", { precision: 5, scale: 3 }),
-  mtg1Term: integer("mtg1_term"), // months
-  mtg1Lender: text("mtg1_lender"),
-  mtg1DueDate: date("mtg1_due_date"),
-  // === Secondary Mortgage (2nd Position) ===
-  mtg2Amount: integer("mtg2_amount"),
-  mtg2Date: date("mtg2_date"),
-  mtg2LoanType: text("mtg2_loan_type"),
-  mtg2InterestRate: decimal("mtg2_interest_rate", { precision: 5, scale: 3 }),
-  mtg2Term: integer("mtg2_term"),
-  mtg2Lender: text("mtg2_lender"),
-  // === Combined Mortgage Info ===
-  totalMortgageBalance: integer("total_mortgage_balance"),
-  combinedLtv: decimal("combined_ltv", { precision: 5, scale: 2 }), // Loan-to-Value ratio
-  // === Liens & Encumbrances ===
-  lienAmount: integer("lien_amount"),
-  lienType: text("lien_type"), // 'tax' | 'mechanic' | 'judgment' | 'hoa'
-  lienDate: date("lien_date"),
-  lienHolder: text("lien_holder"),
-  // === Last Sale ===
-  lastSaleDate: date("last_sale_date"),
-  lastSaleAmount: integer("last_sale_amount"),
-  lastSaleType: text("last_sale_type"), // 'arms_length' | 'foreclosure' | 'reo' | 'short_sale' | 'auction'
-  lastSaleSeller: text("last_sale_seller"),
-  lastSaleBuyer: text("last_sale_buyer"),
-  lastSaleDocNumber: text("last_sale_doc_number"),
-  // === Prior Sale ===
-  priorSaleDate: date("prior_sale_date"),
-  priorSaleAmount: integer("prior_sale_amount"),
-  priorSaleType: text("prior_sale_type"),
-  // === Calculated Fields ===
-  appreciationSinceLastSale: integer("appreciation_since_last_sale"),
-  appreciationPercent: decimal("appreciation_percent", { precision: 5, scale: 2 }),
-  daysOnMarket: integer("days_on_market"),
-  yearsOwned: decimal("years_owned", { precision: 4, scale: 1 }),
-  // Owner info from RealEstateAPI
-  owner1FirstName: text("owner1_first_name"),
-  owner1LastName: text("owner1_last_name"),
-  owner2FirstName: text("owner2_first_name"),
-  owner2LastName: text("owner2_last_name"),
-  ownerType: text("owner_type"), // 'individual' | 'trust' | 'corporation' | 'llc'
-  ownerOccupied: boolean("owner_occupied"),
-  absenteeOwner: boolean("absentee_owner"),
-  // Mailing address (from skip trace)
-  mailingAddress: text("mailing_address"),
-  mailingCity: text("mailing_city"),
-  mailingState: text("mailing_state"),
-  mailingZip: text("mailing_zip"),
-  // === Distress Flags ===
-  preForeclosure: boolean("pre_foreclosure").default(false),
-  preForeclosureDate: date("pre_foreclosure_date"),
-  foreclosure: boolean("foreclosure").default(false),
-  foreclosureDate: date("foreclosure_date"),
-  foreclosureAuctionDate: date("foreclosure_auction_date"),
-  reo: boolean("reo").default(false), // Bank-owned
-  reoDate: date("reo_date"),
-  bankruptcy: boolean("bankruptcy").default(false),
-  bankruptcyDate: date("bankruptcy_date"),
-  bankruptcyChapter: text("bankruptcy_chapter"), // '7' | '11' | '13'
-  taxLien: boolean("tax_lien").default(false),
-  taxLienAmount: integer("tax_lien_amount"),
-  taxLienDate: date("tax_lien_date"),
-  taxDelinquent: boolean("tax_delinquent").default(false),
-  taxDelinquentYear: integer("tax_delinquent_year"),
-  // === Opportunity Flags ===
-  inherited: boolean("inherited").default(false),
-  inheritedDate: date("inherited_date"),
-  probate: boolean("probate").default(false),
-  probateDate: date("probate_date"),
-  divorce: boolean("divorce").default(false),
-  vacant: boolean("vacant").default(false),
-  vacantIndicator: text("vacant_indicator"), // Source of vacancy data
-  tired: boolean("tired").default(false), // Landlord with old property
-  cashBuyer: boolean("cash_buyer").default(false), // Previous cash buyer
-  investor: boolean("investor").default(false), // Known investor
-  outOfState: boolean("out_of_state").default(false), // Owner lives out of state
-  outOfCounty: boolean("out_of_county").default(false),
-  seniorOwner: boolean("senior_owner").default(false), // Owner 65+
-  // === Equity Flags ===
-  highEquity: boolean("high_equity").default(false), // 50%+ equity
-  lowEquity: boolean("low_equity").default(false), // <20% equity
-  negativeEquity: boolean("negative_equity").default(false), // Underwater
-  freeClear: boolean("free_clear").default(false), // No mortgage
-  // === Market Flags ===
-  listedForSale: boolean("listed_for_sale").default(false),
-  listedDate: date("listed_date"),
-  listingPrice: integer("listing_price"),
-  mlsNumber: text("mls_number"),
-  daysOnMarket: integer("dom"),
-  priceReduced: boolean("price_reduced").default(false),
-  // === Quality Flags ===
-  needsRepair: boolean("needs_repair").default(false),
-  codeViolation: boolean("code_violation").default(false),
-  permitPulled: boolean("permit_pulled").default(false),
+    // === RealEstateAPI Property Identifiers ===
+    propertyId: text("property_id"), // RealEstateAPI ID
+    apn: text("apn"), // Assessor Parcel Number
+    fips: text("fips"), // FIPS code
+    legalDescription: text("legal_description"),
+    subdivision: text("subdivision"),
+    tract: text("tract"),
+    block: text("block"),
+    lot: text("lot"),
+    // === Address ===
+    propertyAddress: text("property_address"),
+    propertyAddress2: text("property_address_2"),
+    propertyCity: text("property_city"),
+    propertyState: text("property_state"),
+    propertyZip: text("property_zip"),
+    propertyZip4: text("property_zip_4"),
+    propertyCounty: text("property_county"),
+    latitude: decimal("latitude", { precision: 10, scale: 7 }),
+    longitude: decimal("longitude", { precision: 10, scale: 7 }),
+    censusTract: text("census_tract"),
+    congressionalDistrict: text("congressional_district"),
+    // === Property Classification ===
+    propertyType: text("property_type"), // 'SFR' | 'Condo' | 'Townhouse' | 'Multi-Family' | 'Commercial' | 'Land' | 'Mobile'
+    propertySubtype: text("property_subtype"), // 'Duplex' | 'Triplex' | 'Fourplex' | 'Apartment' | 'Retail' | 'Office' | 'Industrial' | 'Mixed Use'
+    propertyClass: text("property_class"), // 'Residential' | 'Commercial' | 'Industrial' | 'Agricultural' | 'Vacant Land'
+    propertyUse: text("property_use"), // 'Single Family' | 'Investment' | 'Vacation' | 'Agricultural'
+    zoning: text("zoning"), // 'R1' | 'R2' | 'C1' | 'M1' etc
+    zoningDescription: text("zoning_description"),
+    landUseCode: text("land_use_code"),
+    // === Units (for multi-family) ===
+    units: integer("units"),
+    buildingCount: integer("building_count"),
+    // Physical characteristics
+    bedrooms: integer("bedrooms"),
+    bathrooms: decimal("bathrooms", { precision: 3, scale: 1 }),
+    sqft: integer("sqft"),
+    lotSizeSqft: integer("lot_size_sqft"),
+    lotSizeAcres: decimal("lot_size_acres", { precision: 10, scale: 4 }),
+    yearBuilt: integer("year_built"),
+    stories: integer("stories"),
+    pool: boolean("pool"),
+    garage: boolean("garage"),
+    garageSpaces: integer("garage_spaces"),
+    // Valuation
+    estimatedValue: integer("estimated_value"),
+    assessedValue: integer("assessed_value"),
+    taxAmount: integer("tax_amount"),
+    estimatedEquity: integer("estimated_equity"),
+    equityPercent: decimal("equity_percent", { precision: 5, scale: 2 }),
+    // === Primary Mortgage (1st Position) ===
+    mtg1Amount: integer("mtg1_amount"),
+    mtg1Date: date("mtg1_date"),
+    mtg1LoanType: text("mtg1_loan_type"), // 'Conventional' | 'FHA' | 'VA' | 'USDA' | 'ARM' | 'Balloon'
+    mtg1InterestRate: decimal("mtg1_interest_rate", { precision: 5, scale: 3 }),
+    mtg1Term: integer("mtg1_term"), // months
+    mtg1Lender: text("mtg1_lender"),
+    mtg1DueDate: date("mtg1_due_date"),
+    // === Secondary Mortgage (2nd Position) ===
+    mtg2Amount: integer("mtg2_amount"),
+    mtg2Date: date("mtg2_date"),
+    mtg2LoanType: text("mtg2_loan_type"),
+    mtg2InterestRate: decimal("mtg2_interest_rate", { precision: 5, scale: 3 }),
+    mtg2Term: integer("mtg2_term"),
+    mtg2Lender: text("mtg2_lender"),
+    // === Combined Mortgage Info ===
+    totalMortgageBalance: integer("total_mortgage_balance"),
+    combinedLtv: decimal("combined_ltv", { precision: 5, scale: 2 }), // Loan-to-Value ratio
+    // === Liens & Encumbrances ===
+    lienAmount: integer("lien_amount"),
+    lienType: text("lien_type"), // 'tax' | 'mechanic' | 'judgment' | 'hoa'
+    lienDate: date("lien_date"),
+    lienHolder: text("lien_holder"),
+    // === Last Sale ===
+    lastSaleDate: date("last_sale_date"),
+    lastSaleAmount: integer("last_sale_amount"),
+    lastSaleType: text("last_sale_type"), // 'arms_length' | 'foreclosure' | 'reo' | 'short_sale' | 'auction'
+    lastSaleSeller: text("last_sale_seller"),
+    lastSaleBuyer: text("last_sale_buyer"),
+    lastSaleDocNumber: text("last_sale_doc_number"),
+    // === Prior Sale ===
+    priorSaleDate: date("prior_sale_date"),
+    priorSaleAmount: integer("prior_sale_amount"),
+    priorSaleType: text("prior_sale_type"),
+    // === Calculated Fields ===
+    appreciationSinceLastSale: integer("appreciation_since_last_sale"),
+    appreciationPercent: decimal("appreciation_percent", {
+      precision: 5,
+      scale: 2,
+    }),
+    daysOnMarket: integer("days_on_market"),
+    yearsOwned: decimal("years_owned", { precision: 4, scale: 1 }),
+    // Owner info from RealEstateAPI
+    owner1FirstName: text("owner1_first_name"),
+    owner1LastName: text("owner1_last_name"),
+    owner2FirstName: text("owner2_first_name"),
+    owner2LastName: text("owner2_last_name"),
+    ownerType: text("owner_type"), // 'individual' | 'trust' | 'corporation' | 'llc'
+    ownerOccupied: boolean("owner_occupied"),
+    absenteeOwner: boolean("absentee_owner"),
+    // Mailing address (from skip trace)
+    mailingAddress: text("mailing_address"),
+    mailingCity: text("mailing_city"),
+    mailingState: text("mailing_state"),
+    mailingZip: text("mailing_zip"),
+    // === Distress Flags ===
+    preForeclosure: boolean("pre_foreclosure").default(false),
+    preForeclosureDate: date("pre_foreclosure_date"),
+    foreclosure: boolean("foreclosure").default(false),
+    foreclosureDate: date("foreclosure_date"),
+    foreclosureAuctionDate: date("foreclosure_auction_date"),
+    reo: boolean("reo").default(false), // Bank-owned
+    reoDate: date("reo_date"),
+    bankruptcy: boolean("bankruptcy").default(false),
+    bankruptcyDate: date("bankruptcy_date"),
+    bankruptcyChapter: text("bankruptcy_chapter"), // '7' | '11' | '13'
+    taxLien: boolean("tax_lien").default(false),
+    taxLienAmount: integer("tax_lien_amount"),
+    taxLienDate: date("tax_lien_date"),
+    taxDelinquent: boolean("tax_delinquent").default(false),
+    taxDelinquentYear: integer("tax_delinquent_year"),
+    // === Opportunity Flags ===
+    inherited: boolean("inherited").default(false),
+    inheritedDate: date("inherited_date"),
+    probate: boolean("probate").default(false),
+    probateDate: date("probate_date"),
+    divorce: boolean("divorce").default(false),
+    vacant: boolean("vacant").default(false),
+    vacantIndicator: text("vacant_indicator"), // Source of vacancy data
+    tired: boolean("tired").default(false), // Landlord with old property
+    cashBuyer: boolean("cash_buyer").default(false), // Previous cash buyer
+    investor: boolean("investor").default(false), // Known investor
+    outOfState: boolean("out_of_state").default(false), // Owner lives out of state
+    outOfCounty: boolean("out_of_county").default(false),
+    seniorOwner: boolean("senior_owner").default(false), // Owner 65+
+    // === Equity Flags ===
+    highEquity: boolean("high_equity").default(false), // 50%+ equity
+    lowEquity: boolean("low_equity").default(false), // <20% equity
+    negativeEquity: boolean("negative_equity").default(false), // Underwater
+    freeClear: boolean("free_clear").default(false), // No mortgage
+    // === Market Flags ===
+    listedForSale: boolean("listed_for_sale").default(false),
+    listedDate: date("listed_date"),
+    listingPrice: integer("listing_price"),
+    mlsNumber: text("mls_number"),
+    daysOnMarket: integer("dom"),
+    priceReduced: boolean("price_reduced").default(false),
+    // === Quality Flags ===
+    needsRepair: boolean("needs_repair").default(false),
+    codeViolation: boolean("code_violation").default(false),
+    permitPulled: boolean("permit_pulled").default(false),
 
-  // === Apollo.io Data ===
-  apolloPersonId: text("apollo_person_id"),
-  apolloOrgId: text("apollo_org_id"),
-  apolloTitle: text("apollo_title"),
-  apolloCompany: text("apollo_company"),
-  apolloCompanyDomain: text("apollo_company_domain"),
-  apolloIndustry: text("apollo_industry"),
-  apolloRevenue: integer("apollo_revenue"),
-  apolloRevenueRange: text("apollo_revenue_range"),
-  apolloEmployeeCount: integer("apollo_employee_count"),
-  apolloEmployeeRange: text("apollo_employee_range"),
-  apolloLinkedinUrl: text("apollo_linkedin_url"),
-  apolloIntentScore: integer("apollo_intent_score"),
-  apolloSignals: jsonb("apollo_signals").default([]), // string[]
-  apolloFoundedYear: integer("apollo_founded_year"),
-  apolloTechnologies: jsonb("apollo_technologies").default([]), // string[]
-  apolloKeywords: jsonb("apollo_keywords").default([]), // string[]
-  apolloEnrichedAt: timestamp("apollo_enriched_at"), // When Apollo enrichment was last done
-  apolloData: jsonb("apollo_data"), // Full Apollo API response for reference
+    // === Apollo.io Data ===
+    apolloPersonId: text("apollo_person_id"),
+    apolloOrgId: text("apollo_org_id"),
+    apolloTitle: text("apollo_title"),
+    apolloCompany: text("apollo_company"),
+    apolloCompanyDomain: text("apollo_company_domain"),
+    apolloIndustry: text("apollo_industry"),
+    apolloRevenue: integer("apollo_revenue"),
+    apolloRevenueRange: text("apollo_revenue_range"),
+    apolloEmployeeCount: integer("apollo_employee_count"),
+    apolloEmployeeRange: text("apollo_employee_range"),
+    apolloLinkedinUrl: text("apollo_linkedin_url"),
+    apolloIntentScore: integer("apollo_intent_score"),
+    apolloSignals: jsonb("apollo_signals").default([]), // string[]
+    apolloFoundedYear: integer("apollo_founded_year"),
+    apolloTechnologies: jsonb("apollo_technologies").default([]), // string[]
+    apolloKeywords: jsonb("apollo_keywords").default([]), // string[]
+    apolloEnrichedAt: timestamp("apollo_enriched_at"), // When Apollo enrichment was last done
+    apolloData: jsonb("apollo_data"), // Full Apollo API response for reference
 
-  // === Enrichment Metadata ===
-  enrichmentStatus: text("enrichment_status").default("pending"),
-  enrichedAt: timestamp("enriched_at"),
-  enrichmentError: text("enrichment_error"),
-  skipTracedAt: timestamp("skip_traced_at"),
+    // === Enrichment Metadata ===
+    enrichmentStatus: text("enrichment_status").default("pending"),
+    enrichedAt: timestamp("enriched_at"),
+    enrichmentError: text("enrichment_error"),
+    skipTracedAt: timestamp("skip_traced_at"),
 
-  // === Activity Tracking ===
-  lastActivityAt: timestamp("last_activity_at"),
-  lastActivityType: text("last_activity_type"), // 'email' | 'call' | 'sms' | 'meeting'
-  activityCount: integer("activity_count").default(0),
-  notes: text("notes"),
+    // === Activity Tracking ===
+    lastActivityAt: timestamp("last_activity_at"),
+    lastActivityType: text("last_activity_type"), // 'email' | 'call' | 'sms' | 'meeting'
+    activityCount: integer("activity_count").default(0),
+    notes: text("notes"),
 
-  // === Lead Actions (Pause/Suppress/Rethink/Revisit) ===
-  pausedAt: timestamp("paused_at"),
-  pauseReason: text("pause_reason"), // 'timing' | 'busy' | 'vacation' | 'other'
-  suppressedAt: timestamp("suppressed_at"),
-  suppressReason: text("suppress_reason"), // 'dnc' | 'wrong_number' | 'deceased' | 'requested' | 'duplicate'
-  rethinkAt: timestamp("rethink_at"),
-  rethinkReason: text("rethink_reason"), // 'strategy_change' | 'new_info' | 'escalate' | 'review'
-  revisitAt: timestamp("revisit_at"),
-  revisitReason: text("revisit_reason"), // 'callback' | 'follow_up' | 'nurture' | 'seasonal'
+    // === Lead Actions (Pause/Suppress/Rethink/Revisit) ===
+    pausedAt: timestamp("paused_at"),
+    pauseReason: text("pause_reason"), // 'timing' | 'busy' | 'vacation' | 'other'
+    suppressedAt: timestamp("suppressed_at"),
+    suppressReason: text("suppress_reason"), // 'dnc' | 'wrong_number' | 'deceased' | 'requested' | 'duplicate'
+    rethinkAt: timestamp("rethink_at"),
+    rethinkReason: text("rethink_reason"), // 'strategy_change' | 'new_info' | 'escalate' | 'review'
+    revisitAt: timestamp("revisit_at"),
+    revisitReason: text("revisit_reason"), // 'callback' | 'follow_up' | 'nurture' | 'seasonal'
 
-  // === Gianna/Sabrina Copilot ===
-  assignedAdvisor: text("assigned_advisor"), // 'gianna' | 'sabrina' | user_id
-  assignedNumber: text("assigned_number"), // Phone number assigned to advisor
-  dialerWorkspaceId: text("dialer_workspace_id"), // Current dialer workspace
-  dialerLoadedAt: timestamp("dialer_loaded_at"), // When loaded into dialer
-  lastContactDate: timestamp("last_contact_date"), // Last communication
-  assignedTo: text("assigned_to"), // User ID assignment
+    // === Gianna/Sabrina Copilot ===
+    assignedAdvisor: text("assigned_advisor"), // 'gianna' | 'sabrina' | user_id
+    assignedNumber: text("assigned_number"), // Phone number assigned to advisor
+    dialerWorkspaceId: text("dialer_workspace_id"), // Current dialer workspace
+    dialerLoadedAt: timestamp("dialer_loaded_at"), // When loaded into dialer
+    lastContactDate: timestamp("last_contact_date"), // Last communication
+    assignedTo: text("assigned_to"), // User ID assignment
 
-  // === Lead Classification ===
-  leadType: text("lead_type"), // 'distressed' | 'equity' | 'absentee' | 'inherited' | 'business' | etc
-  priority: text("priority").default("Medium"), // 'Low' | 'Medium' | 'High' | 'Urgent'
-  companyName: text("company_name"), // Business/Company name
-  industry: text("industry"), // Industry classification
-  companySize: text("company_size"), // Employee count range
+    // === Lead Classification ===
+    leadType: text("lead_type"), // 'distressed' | 'equity' | 'absentee' | 'inherited' | 'business' | etc
+    priority: text("priority").default("Medium"), // 'Low' | 'Medium' | 'High' | 'Urgent'
+    companyName: text("company_name"), // Business/Company name
+    industry: text("industry"), // Industry classification
+    companySize: text("company_size"), // Employee count range
 
-  // === Timestamps ===
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-}, (table) => ({
-  bucketIdIdx: index("leads_bucket_id_idx").on(table.bucketId),
-  userIdIdx: index("leads_user_id_idx").on(table.userId),
-  propertyIdIdx: index("leads_property_id_idx").on(table.propertyId),
-  statusIdx: index("leads_status_idx").on(table.status),
-  stateIdx: index("leads_property_state_idx").on(table.propertyState),
-  enrichmentIdx: index("leads_enrichment_status_idx").on(table.enrichmentStatus),
-}));
+    // === Timestamps ===
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    bucketIdIdx: index("leads_bucket_id_idx").on(table.bucketId),
+    userIdIdx: index("leads_user_id_idx").on(table.userId),
+    propertyIdIdx: index("leads_property_id_idx").on(table.propertyId),
+    statusIdx: index("leads_status_idx").on(table.status),
+    stateIdx: index("leads_property_state_idx").on(table.propertyState),
+    enrichmentIdx: index("leads_enrichment_status_idx").on(
+      table.enrichmentStatus,
+    ),
+  }),
+);
 
 // ============================================================
 // TAGS - Custom and auto-generated tags
 // ============================================================
 
-export const tags = pgTable("tags", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: text("user_id"), // null = system tag
-  name: text("name").notNull(),
-  slug: text("slug").notNull().unique(),
-  color: text("color").default("#6366f1"), // hex color
-  description: text("description"),
-  isSystem: boolean("is_system").default(false), // auto-generated tags
-  isActive: boolean("is_active").default(true),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => ({
-  slugIdx: index("tags_slug_idx").on(table.slug),
-  userIdIdx: index("tags_user_id_idx").on(table.userId),
-}));
+export const tags = pgTable(
+  "tags",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id"), // null = system tag
+    name: text("name").notNull(),
+    slug: text("slug").notNull().unique(),
+    color: text("color").default("#6366f1"), // hex color
+    description: text("description"),
+    isSystem: boolean("is_system").default(false), // auto-generated tags
+    isActive: boolean("is_active").default(true),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    slugIdx: index("tags_slug_idx").on(table.slug),
+    userIdIdx: index("tags_user_id_idx").on(table.userId),
+  }),
+);
 
 // Lead-Tag junction table
-export const leadTags = pgTable("lead_tags", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  leadId: uuid("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
-  tagId: uuid("tag_id").notNull().references(() => tags.id, { onDelete: "cascade" }),
-  isAutoTag: boolean("is_auto_tag").default(false), // true if applied by auto-tagging rule
-  appliedAt: timestamp("applied_at").defaultNow().notNull(),
-  appliedBy: text("applied_by"), // user_id or 'system'
-}, (table) => ({
-  leadTagIdx: index("lead_tags_lead_tag_idx").on(table.leadId, table.tagId),
-}));
+export const leadTags = pgTable(
+  "lead_tags",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    leadId: uuid("lead_id")
+      .notNull()
+      .references(() => leads.id, { onDelete: "cascade" }),
+    tagId: uuid("tag_id")
+      .notNull()
+      .references(() => tags.id, { onDelete: "cascade" }),
+    isAutoTag: boolean("is_auto_tag").default(false), // true if applied by auto-tagging rule
+    appliedAt: timestamp("applied_at").defaultNow().notNull(),
+    appliedBy: text("applied_by"), // user_id or 'system'
+  },
+  (table) => ({
+    leadTagIdx: index("lead_tags_lead_tag_idx").on(table.leadId, table.tagId),
+  }),
+);
 
 // Bucket-Tag junction table
-export const bucketTags = pgTable("bucket_tags", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  bucketId: uuid("bucket_id").notNull().references(() => buckets.id, { onDelete: "cascade" }),
-  tagId: uuid("tag_id").notNull().references(() => tags.id, { onDelete: "cascade" }),
-  appliedAt: timestamp("applied_at").defaultNow().notNull(),
-}, (table) => ({
-  bucketTagIdx: index("bucket_tags_bucket_tag_idx").on(table.bucketId, table.tagId),
-}));
+export const bucketTags = pgTable(
+  "bucket_tags",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    bucketId: uuid("bucket_id")
+      .notNull()
+      .references(() => buckets.id, { onDelete: "cascade" }),
+    tagId: uuid("tag_id")
+      .notNull()
+      .references(() => tags.id, { onDelete: "cascade" }),
+    appliedAt: timestamp("applied_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    bucketTagIdx: index("bucket_tags_bucket_tag_idx").on(
+      table.bucketId,
+      table.tagId,
+    ),
+  }),
+);
 
 // ============================================================
 // AUTO-TAGGING RULES
@@ -323,7 +374,9 @@ export const autoTagRules = pgTable("auto_tag_rules", {
   operator: text("operator").notNull(), // 'gte' | 'lte' | 'eq' | 'contains' | 'exists'
   value: text("value").notNull(), // stored as string, parsed based on field type
   // Tag to apply
-  tagId: uuid("tag_id").notNull().references(() => tags.id, { onDelete: "cascade" }),
+  tagId: uuid("tag_id")
+    .notNull()
+    .references(() => tags.id, { onDelete: "cascade" }),
   // Settings
   priority: integer("priority").default(0), // higher = applied first
   isActive: boolean("is_active").default(true),
@@ -358,7 +411,10 @@ export const leadTagsRelations = relations(leadTags, ({ one }) => ({
 }));
 
 export const bucketTagsRelations = relations(bucketTags, ({ one }) => ({
-  bucket: one(buckets, { fields: [bucketTags.bucketId], references: [buckets.id] }),
+  bucket: one(buckets, {
+    fields: [bucketTags.bucketId],
+    references: [buckets.id],
+  }),
   tag: one(tags, { fields: [bucketTags.tagId], references: [tags.id] }),
 }));
 
@@ -388,7 +444,9 @@ export const savedSearches = pgTable("saved_searches", {
 // Property IDs tracked by saved searches
 export const savedSearchPropertyIds = pgTable("saved_search_property_ids", {
   id: uuid("id").primaryKey().defaultRandom(),
-  savedSearchId: uuid("saved_search_id").notNull().references(() => savedSearches.id, { onDelete: "cascade" }),
+  savedSearchId: uuid("saved_search_id")
+    .notNull()
+    .references(() => savedSearches.id, { onDelete: "cascade" }),
   propertyId: text("property_id").notNull(),
   addedAt: timestamp("added_at").defaultNow().notNull(),
   removedAt: timestamp("removed_at"),
@@ -398,7 +456,9 @@ export const savedSearchPropertyIds = pgTable("saved_search_property_ids", {
 // Change events when properties enter/leave saved searches
 export const propertyChangeEvents = pgTable("property_change_events", {
   id: uuid("id").primaryKey().defaultRandom(),
-  savedSearchId: uuid("saved_search_id").notNull().references(() => savedSearches.id, { onDelete: "cascade" }),
+  savedSearchId: uuid("saved_search_id")
+    .notNull()
+    .references(() => savedSearches.id, { onDelete: "cascade" }),
   propertyId: text("property_id").notNull(),
   eventType: text("event_type").notNull(), // 'added' | 'removed'
   propertySnapshot: jsonb("property_snapshot"), // Store property data at time of event
@@ -431,403 +491,450 @@ export type NewAutoTagRule = typeof autoTagRules.$inferInsert;
  * DATA SOURCES - Track imported files and API feeds
  * Examples: USBizData CSVs, RealEstateAPI feeds, Apollo exports
  */
-export const dataSources = pgTable("data_sources", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: text("user_id").notNull(),
+export const dataSources = pgTable(
+  "data_sources",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id").notNull(),
 
-  // Source identification
-  name: text("name").notNull(), // "NY Business Database 2024"
-  slug: text("slug").notNull(), // "ny-business-db-2024"
-  sourceType: text("source_type").notNull(), // 'csv' | 'api' | 'manual' | 'scrape'
-  sourceProvider: text("source_provider"), // 'usbizdata' | 'realestateapi' | 'apollo' | 'custom'
+    // Source identification
+    name: text("name").notNull(), // "NY Business Database 2024"
+    slug: text("slug").notNull(), // "ny-business-db-2024"
+    sourceType: text("source_type").notNull(), // 'csv' | 'api' | 'manual' | 'scrape'
+    sourceProvider: text("source_provider"), // 'usbizdata' | 'realestateapi' | 'apollo' | 'custom'
 
-  // File metadata (for CSV imports)
-  fileName: text("file_name"),
-  fileSize: integer("file_size"), // bytes
-  fileHash: text("file_hash"), // MD5 for dedup
+    // File metadata (for CSV imports)
+    fileName: text("file_name"),
+    fileSize: integer("file_size"), // bytes
+    fileHash: text("file_hash"), // MD5 for dedup
 
-  // Schema mapping
-  columnMapping: jsonb("column_mapping").default({}), // { csvColumn: schemaField }
-  originalHeaders: jsonb("original_headers").default([]), // string[]
+    // Schema mapping
+    columnMapping: jsonb("column_mapping").default({}), // { csvColumn: schemaField }
+    originalHeaders: jsonb("original_headers").default([]), // string[]
 
-  // Processing status
-  status: text("status").notNull().default("pending"), // 'pending' | 'processing' | 'completed' | 'failed'
-  totalRows: integer("total_rows").default(0),
-  processedRows: integer("processed_rows").default(0),
-  errorRows: integer("error_rows").default(0),
-  errorLog: jsonb("error_log").default([]), // Array of { row, error }
+    // Processing status
+    status: text("status").notNull().default("pending"), // 'pending' | 'processing' | 'completed' | 'failed'
+    totalRows: integer("total_rows").default(0),
+    processedRows: integer("processed_rows").default(0),
+    errorRows: integer("error_rows").default(0),
+    errorLog: jsonb("error_log").default([]), // Array of { row, error }
 
-  // Sector association
-  primarySectorId: text("primary_sector_id"), // e.g., "healthcare", "restaurants_food"
-  sectorCategory: text("sector_category"), // 'real_estate' | 'business' | 'financial' | 'geographic'
+    // Sector association
+    primarySectorId: text("primary_sector_id"), // e.g., "healthcare", "restaurants_food"
+    sectorCategory: text("sector_category"), // 'real_estate' | 'business' | 'financial' | 'geographic'
 
-  // Timestamps
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-  processedAt: timestamp("processed_at"),
-}, (table) => ({
-  userIdIdx: index("data_sources_user_id_idx").on(table.userId),
-  slugIdx: index("data_sources_slug_idx").on(table.slug),
-  statusIdx: index("data_sources_status_idx").on(table.status),
-  sectorIdx: index("data_sources_sector_idx").on(table.primarySectorId),
-}));
+    // Timestamps
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    processedAt: timestamp("processed_at"),
+  },
+  (table) => ({
+    userIdIdx: index("data_sources_user_id_idx").on(table.userId),
+    slugIdx: index("data_sources_slug_idx").on(table.slug),
+    statusIdx: index("data_sources_status_idx").on(table.status),
+    sectorIdx: index("data_sources_sector_idx").on(table.primarySectorId),
+  }),
+);
 
 /**
  * BUSINESSES - B2B entities from USBizData and other sources
  * Core business data lake table for company information
  */
-export const businesses = pgTable("businesses", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  dataSourceId: uuid("data_source_id").references(() => dataSources.id, { onDelete: "set null" }),
-  userId: text("user_id").notNull(),
+export const businesses = pgTable(
+  "businesses",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    dataSourceId: uuid("data_source_id").references(() => dataSources.id, {
+      onDelete: "set null",
+    }),
+    userId: text("user_id").notNull(),
 
-  // === Business Identifiers ===
-  externalId: text("external_id"), // Original ID from source
-  ein: text("ein"), // Employer ID Number
-  duns: text("duns"), // D&B DUNS Number
+    // === Business Identifiers ===
+    externalId: text("external_id"), // Original ID from source
+    ein: text("ein"), // Employer ID Number
+    duns: text("duns"), // D&B DUNS Number
 
-  // === Company Info ===
-  companyName: text("company_name").notNull(),
-  dba: text("dba"), // Doing Business As
-  legalName: text("legal_name"),
-  entityType: text("entity_type"), // 'llc' | 'corp' | 'sole_prop' | 'partnership' | 'nonprofit'
+    // === Company Info ===
+    companyName: text("company_name").notNull(),
+    dba: text("dba"), // Doing Business As
+    legalName: text("legal_name"),
+    entityType: text("entity_type"), // 'llc' | 'corp' | 'sole_prop' | 'partnership' | 'nonprofit'
 
-  // === Address ===
-  address: text("address"),
-  address2: text("address_2"),
-  city: text("city"),
-  state: text("state"),
-  zip: text("zip"),
-  zip4: text("zip_4"),
-  county: text("county"),
-  country: text("country").default("US"),
-  latitude: decimal("latitude", { precision: 10, scale: 7 }),
-  longitude: decimal("longitude", { precision: 10, scale: 7 }),
+    // === Address ===
+    address: text("address"),
+    address2: text("address_2"),
+    city: text("city"),
+    state: text("state"),
+    zip: text("zip"),
+    zip4: text("zip_4"),
+    county: text("county"),
+    country: text("country").default("US"),
+    latitude: decimal("latitude", { precision: 10, scale: 7 }),
+    longitude: decimal("longitude", { precision: 10, scale: 7 }),
 
-  // === Contact Info ===
-  phone: text("phone"),
-  phoneAlt: text("phone_alt"),
-  fax: text("fax"),
-  email: text("email"),
-  website: text("website"),
+    // === Contact Info ===
+    phone: text("phone"),
+    phoneAlt: text("phone_alt"),
+    fax: text("fax"),
+    email: text("email"),
+    website: text("website"),
 
-  // === Classification ===
-  sicCode: text("sic_code"), // Primary SIC
-  sicCode2: text("sic_code_2"),
-  sicCode3: text("sic_code_3"),
-  sicDescription: text("sic_description"),
-  naicsCode: text("naics_code"),
-  naicsDescription: text("naics_description"),
+    // === Classification ===
+    sicCode: text("sic_code"), // Primary SIC
+    sicCode2: text("sic_code_2"),
+    sicCode3: text("sic_code_3"),
+    sicDescription: text("sic_description"),
+    naicsCode: text("naics_code"),
+    naicsDescription: text("naics_description"),
 
-  // === Size & Revenue ===
-  employeeCount: integer("employee_count"),
-  employeeRange: text("employee_range"), // '1-10' | '11-50' | '51-200' | '201-500' | '500+'
-  annualRevenue: integer("annual_revenue"),
-  revenueRange: text("revenue_range"), // 'Under 500K' | '500K-1M' | '1M-5M' | '5M-10M' | '10M+'
-  salesVolume: text("sales_volume"),
+    // === Size & Revenue ===
+    employeeCount: integer("employee_count"),
+    employeeRange: text("employee_range"), // '1-10' | '11-50' | '51-200' | '201-500' | '500+'
+    annualRevenue: integer("annual_revenue"),
+    revenueRange: text("revenue_range"), // 'Under 500K' | '500K-1M' | '1M-5M' | '5M-10M' | '10M+'
+    salesVolume: text("sales_volume"),
 
-  // === Business Details ===
-  yearEstablished: integer("year_established"),
-  yearsInBusiness: integer("years_in_business"),
-  isHeadquarters: boolean("is_headquarters").default(true),
-  parentCompany: text("parent_company"),
-  franchiseFlag: boolean("franchise_flag").default(false),
+    // === Business Details ===
+    yearEstablished: integer("year_established"),
+    yearsInBusiness: integer("years_in_business"),
+    isHeadquarters: boolean("is_headquarters").default(true),
+    parentCompany: text("parent_company"),
+    franchiseFlag: boolean("franchise_flag").default(false),
 
-  // === Owner/Executive Info ===
-  ownerName: text("owner_name"),
-  ownerFirstName: text("owner_first_name"),
-  ownerLastName: text("owner_last_name"),
-  ownerTitle: text("owner_title"),
-  ownerGender: text("owner_gender"),
-  ownerPhone: text("owner_phone"),
-  ownerEmail: text("owner_email"),
+    // === Owner/Executive Info ===
+    ownerName: text("owner_name"),
+    ownerFirstName: text("owner_first_name"),
+    ownerLastName: text("owner_last_name"),
+    ownerTitle: text("owner_title"),
+    ownerGender: text("owner_gender"),
+    ownerPhone: text("owner_phone"),
+    ownerEmail: text("owner_email"),
 
-  // === Additional Contacts ===
-  executiveName: text("executive_name"),
-  executiveTitle: text("executive_title"),
-  executivePhone: text("executive_phone"),
-  executiveEmail: text("executive_email"),
+    // === Additional Contacts ===
+    executiveName: text("executive_name"),
+    executiveTitle: text("executive_title"),
+    executivePhone: text("executive_phone"),
+    executiveEmail: text("executive_email"),
 
-  // === Sector Assignment ===
-  primarySectorId: text("primary_sector_id"), // From sectors.ts
-  secondarySectorIds: jsonb("secondary_sector_ids").default([]), // string[]
-  sectorCategory: text("sector_category"), // 'business' | 'real_estate' etc
+    // === Sector Assignment ===
+    primarySectorId: text("primary_sector_id"), // From sectors.ts
+    secondarySectorIds: jsonb("secondary_sector_ids").default([]), // string[]
+    sectorCategory: text("sector_category"), // 'business' | 'real_estate' etc
 
-  // === Enrichment Status ===
-  enrichmentStatus: text("enrichment_status").default("pending"),
-  apolloMatched: boolean("apollo_matched").default(false),
-  apolloOrgId: text("apollo_org_id"),
-  skipTraced: boolean("skip_traced").default(false),
-  skipTracedAt: timestamp("skip_traced_at"),
+    // === Enrichment Status ===
+    enrichmentStatus: text("enrichment_status").default("pending"),
+    apolloMatched: boolean("apollo_matched").default(false),
+    apolloOrgId: text("apollo_org_id"),
+    skipTraced: boolean("skip_traced").default(false),
+    skipTracedAt: timestamp("skip_traced_at"),
 
-  // === Engagement ===
-  status: text("status").default("new"), // 'new' | 'contacted' | 'qualified' | 'customer' | 'churned'
-  score: integer("score").default(0), // Lead score 0-100
-  lastContactedAt: timestamp("last_contacted_at"),
-  notes: text("notes"),
+    // === Engagement ===
+    status: text("status").default("new"), // 'new' | 'contacted' | 'qualified' | 'customer' | 'churned'
+    score: integer("score").default(0), // Lead score 0-100
+    lastContactedAt: timestamp("last_contacted_at"),
+    notes: text("notes"),
 
-  // === Raw Data ===
-  rawData: jsonb("raw_data"), // Original row from CSV
+    // === Raw Data ===
+    rawData: jsonb("raw_data"), // Original row from CSV
 
-  // === Timestamps ===
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-}, (table) => ({
-  userIdIdx: index("businesses_user_id_idx").on(table.userId),
-  dataSourceIdx: index("businesses_data_source_idx").on(table.dataSourceId),
-  companyNameIdx: index("businesses_company_name_idx").on(table.companyName),
-  sicCodeIdx: index("businesses_sic_code_idx").on(table.sicCode),
-  stateIdx: index("businesses_state_idx").on(table.state),
-  cityIdx: index("businesses_city_idx").on(table.city),
-  sectorIdx: index("businesses_sector_idx").on(table.primarySectorId),
-  statusIdx: index("businesses_status_idx").on(table.status),
-}));
+    // === Timestamps ===
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdIdx: index("businesses_user_id_idx").on(table.userId),
+    dataSourceIdx: index("businesses_data_source_idx").on(table.dataSourceId),
+    companyNameIdx: index("businesses_company_name_idx").on(table.companyName),
+    sicCodeIdx: index("businesses_sic_code_idx").on(table.sicCode),
+    stateIdx: index("businesses_state_idx").on(table.state),
+    cityIdx: index("businesses_city_idx").on(table.city),
+    sectorIdx: index("businesses_sector_idx").on(table.primarySectorId),
+    statusIdx: index("businesses_status_idx").on(table.status),
+  }),
+);
 
 /**
  * PROPERTIES - Enhanced property table for data lake
  * Extends RealEstateAPI data with sector organization
  */
-export const properties = pgTable("properties", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  dataSourceId: uuid("data_source_id").references(() => dataSources.id, { onDelete: "set null" }),
-  userId: text("user_id").notNull(),
+export const properties = pgTable(
+  "properties",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    dataSourceId: uuid("data_source_id").references(() => dataSources.id, {
+      onDelete: "set null",
+    }),
+    userId: text("user_id").notNull(),
 
-  // === External IDs ===
-  realEstateApiId: text("realestate_api_id"), // RealEstateAPI property ID
-  apn: text("apn"), // Assessor Parcel Number
-  fips: text("fips"),
+    // === External IDs ===
+    realEstateApiId: text("realestate_api_id"), // RealEstateAPI property ID
+    apn: text("apn"), // Assessor Parcel Number
+    fips: text("fips"),
 
-  // === Address ===
-  address: text("address"),
-  address2: text("address_2"),
-  city: text("city"),
-  state: text("state"),
-  zip: text("zip"),
-  zip4: text("zip_4"),
-  county: text("county"),
-  latitude: decimal("latitude", { precision: 10, scale: 7 }),
-  longitude: decimal("longitude", { precision: 10, scale: 7 }),
+    // === Address ===
+    address: text("address"),
+    address2: text("address_2"),
+    city: text("city"),
+    state: text("state"),
+    zip: text("zip"),
+    zip4: text("zip_4"),
+    county: text("county"),
+    latitude: decimal("latitude", { precision: 10, scale: 7 }),
+    longitude: decimal("longitude", { precision: 10, scale: 7 }),
 
-  // === Property Type ===
-  propertyType: text("property_type"), // 'SFR' | 'MFR' | 'CONDO' | 'LAND' | 'MOBILE' | 'OTHER'
-  propertySubtype: text("property_subtype"),
-  propertyClass: text("property_class"), // 'residential' | 'commercial' | 'industrial' | 'land'
-  zoning: text("zoning"),
+    // === Property Type ===
+    propertyType: text("property_type"), // 'SFR' | 'MFR' | 'CONDO' | 'LAND' | 'MOBILE' | 'OTHER'
+    propertySubtype: text("property_subtype"),
+    propertyClass: text("property_class"), // 'residential' | 'commercial' | 'industrial' | 'land'
+    zoning: text("zoning"),
 
-  // === Physical ===
-  bedrooms: integer("bedrooms"),
-  bathrooms: decimal("bathrooms", { precision: 3, scale: 1 }),
-  sqft: integer("sqft"),
-  lotSizeSqft: integer("lot_size_sqft"),
-  lotSizeAcres: decimal("lot_size_acres", { precision: 10, scale: 4 }),
-  yearBuilt: integer("year_built"),
-  stories: integer("stories"),
-  units: integer("units"),
+    // === Physical ===
+    bedrooms: integer("bedrooms"),
+    bathrooms: decimal("bathrooms", { precision: 3, scale: 1 }),
+    sqft: integer("sqft"),
+    lotSizeSqft: integer("lot_size_sqft"),
+    lotSizeAcres: decimal("lot_size_acres", { precision: 10, scale: 4 }),
+    yearBuilt: integer("year_built"),
+    stories: integer("stories"),
+    units: integer("units"),
 
-  // === Owner Info ===
-  ownerName: text("owner_name"),
-  owner1FirstName: text("owner1_first_name"),
-  owner1LastName: text("owner1_last_name"),
-  owner2FirstName: text("owner2_first_name"),
-  owner2LastName: text("owner2_last_name"),
-  ownerType: text("owner_type"), // 'individual' | 'trust' | 'corp' | 'llc'
-  ownerOccupied: boolean("owner_occupied"),
-  absenteeOwner: boolean("absentee_owner"),
+    // === Owner Info ===
+    ownerName: text("owner_name"),
+    owner1FirstName: text("owner1_first_name"),
+    owner1LastName: text("owner1_last_name"),
+    owner2FirstName: text("owner2_first_name"),
+    owner2LastName: text("owner2_last_name"),
+    ownerType: text("owner_type"), // 'individual' | 'trust' | 'corp' | 'llc'
+    ownerOccupied: boolean("owner_occupied"),
+    absenteeOwner: boolean("absentee_owner"),
 
-  // === Mailing Address ===
-  mailingAddress: text("mailing_address"),
-  mailingCity: text("mailing_city"),
-  mailingState: text("mailing_state"),
-  mailingZip: text("mailing_zip"),
+    // === Mailing Address ===
+    mailingAddress: text("mailing_address"),
+    mailingCity: text("mailing_city"),
+    mailingState: text("mailing_state"),
+    mailingZip: text("mailing_zip"),
 
-  // === Valuation ===
-  estimatedValue: integer("estimated_value"),
-  assessedValue: integer("assessed_value"),
-  taxAmount: integer("tax_amount"),
-  estimatedEquity: integer("estimated_equity"),
-  equityPercent: decimal("equity_percent", { precision: 5, scale: 2 }),
+    // === Valuation ===
+    estimatedValue: integer("estimated_value"),
+    assessedValue: integer("assessed_value"),
+    taxAmount: integer("tax_amount"),
+    estimatedEquity: integer("estimated_equity"),
+    equityPercent: decimal("equity_percent", { precision: 5, scale: 2 }),
 
-  // === Mortgage ===
-  mtg1Amount: integer("mtg1_amount"),
-  mtg1LoanType: text("mtg1_loan_type"), // 'conventional' | 'fha' | 'va' | 'rev' (reverse)
-  mtg1Lender: text("mtg1_lender"),
-  mtg1Date: date("mtg1_date"),
-  freeClear: boolean("free_clear").default(false),
+    // === Mortgage ===
+    mtg1Amount: integer("mtg1_amount"),
+    mtg1LoanType: text("mtg1_loan_type"), // 'conventional' | 'fha' | 'va' | 'rev' (reverse)
+    mtg1Lender: text("mtg1_lender"),
+    mtg1Date: date("mtg1_date"),
+    freeClear: boolean("free_clear").default(false),
 
-  // === Distress Flags ===
-  preForeclosure: boolean("pre_foreclosure").default(false),
-  foreclosure: boolean("foreclosure").default(false),
-  taxLien: boolean("tax_lien").default(false),
-  taxDelinquent: boolean("tax_delinquent").default(false),
-  bankruptcy: boolean("bankruptcy").default(false),
+    // === Distress Flags ===
+    preForeclosure: boolean("pre_foreclosure").default(false),
+    foreclosure: boolean("foreclosure").default(false),
+    taxLien: boolean("tax_lien").default(false),
+    taxDelinquent: boolean("tax_delinquent").default(false),
+    bankruptcy: boolean("bankruptcy").default(false),
 
-  // === Opportunity Flags ===
-  inherited: boolean("inherited").default(false),
-  probate: boolean("probate").default(false),
-  vacant: boolean("vacant").default(false),
-  highEquity: boolean("high_equity").default(false),
-  reverseMortgage: boolean("reverse_mortgage").default(false),
-  compulinkLender: boolean("compulink_lender").default(false),
+    // === Opportunity Flags ===
+    inherited: boolean("inherited").default(false),
+    probate: boolean("probate").default(false),
+    vacant: boolean("vacant").default(false),
+    highEquity: boolean("high_equity").default(false),
+    reverseMortgage: boolean("reverse_mortgage").default(false),
+    compulinkLender: boolean("compulink_lender").default(false),
 
-  // === Skip Trace Data ===
-  phones: jsonb("phones").default([]), // string[]
-  emails: jsonb("emails").default([]), // string[]
-  skipTraced: boolean("skip_traced").default(false),
-  skipTracedAt: timestamp("skip_traced_at"),
+    // === Skip Trace Data ===
+    phones: jsonb("phones").default([]), // string[]
+    emails: jsonb("emails").default([]), // string[]
+    skipTraced: boolean("skip_traced").default(false),
+    skipTracedAt: timestamp("skip_traced_at"),
 
-  // === Sector Assignment ===
-  primarySectorId: text("primary_sector_id"),
-  secondarySectorIds: jsonb("secondary_sector_ids").default([]),
-  sectorCategory: text("sector_category"), // 'real_estate' | 'financial' | 'geographic'
-  leadTypes: jsonb("lead_types").default([]), // ['pre_foreclosure', 'high_equity', etc]
+    // === Sector Assignment ===
+    primarySectorId: text("primary_sector_id"),
+    secondarySectorIds: jsonb("secondary_sector_ids").default([]),
+    sectorCategory: text("sector_category"), // 'real_estate' | 'financial' | 'geographic'
+    leadTypes: jsonb("lead_types").default([]), // ['pre_foreclosure', 'high_equity', etc]
 
-  // === Status & Engagement ===
-  status: text("status").default("new"),
-  score: integer("score").default(0),
-  lastContactedAt: timestamp("last_contacted_at"),
-  notes: text("notes"),
+    // === Status & Engagement ===
+    status: text("status").default("new"),
+    score: integer("score").default(0),
+    lastContactedAt: timestamp("last_contacted_at"),
+    notes: text("notes"),
 
-  // === Raw Data ===
-  rawData: jsonb("raw_data"),
+    // === Raw Data ===
+    rawData: jsonb("raw_data"),
 
-  // === Timestamps ===
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-}, (table) => ({
-  userIdIdx: index("properties_user_id_idx").on(table.userId),
-  dataSourceIdx: index("properties_data_source_idx").on(table.dataSourceId),
-  realEstateApiIdIdx: index("properties_realestate_api_id_idx").on(table.realEstateApiId),
-  apnIdx: index("properties_apn_idx").on(table.apn),
-  stateIdx: index("properties_state_idx").on(table.state),
-  countyIdx: index("properties_county_idx").on(table.county),
-  cityIdx: index("properties_city_idx").on(table.city),
-  propertyTypeIdx: index("properties_property_type_idx").on(table.propertyType),
-  sectorIdx: index("properties_sector_idx").on(table.primarySectorId),
-  statusIdx: index("properties_status_idx").on(table.status),
-}));
+    // === Timestamps ===
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdIdx: index("properties_user_id_idx").on(table.userId),
+    dataSourceIdx: index("properties_data_source_idx").on(table.dataSourceId),
+    realEstateApiIdIdx: index("properties_realestate_api_id_idx").on(
+      table.realEstateApiId,
+    ),
+    apnIdx: index("properties_apn_idx").on(table.apn),
+    stateIdx: index("properties_state_idx").on(table.state),
+    countyIdx: index("properties_county_idx").on(table.county),
+    cityIdx: index("properties_city_idx").on(table.city),
+    propertyTypeIdx: index("properties_property_type_idx").on(
+      table.propertyType,
+    ),
+    sectorIdx: index("properties_sector_idx").on(table.primarySectorId),
+    statusIdx: index("properties_status_idx").on(table.status),
+  }),
+);
 
 /**
  * CONTACTS - Unified contact records from all sources
  * Links to businesses and properties
  */
-export const contacts = pgTable("contacts", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: text("user_id").notNull(),
-  dataSourceId: uuid("data_source_id").references(() => dataSources.id, { onDelete: "set null" }),
+export const contacts = pgTable(
+  "contacts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id").notNull(),
+    dataSourceId: uuid("data_source_id").references(() => dataSources.id, {
+      onDelete: "set null",
+    }),
 
-  // === Links ===
-  businessId: uuid("business_id").references(() => businesses.id, { onDelete: "set null" }),
-  propertyId: uuid("property_id").references(() => properties.id, { onDelete: "set null" }),
-  leadId: uuid("lead_id").references(() => leads.id, { onDelete: "set null" }),
+    // === Links ===
+    businessId: uuid("business_id").references(() => businesses.id, {
+      onDelete: "set null",
+    }),
+    propertyId: uuid("property_id").references(() => properties.id, {
+      onDelete: "set null",
+    }),
+    leadId: uuid("lead_id").references(() => leads.id, {
+      onDelete: "set null",
+    }),
 
-  // === Contact Info ===
-  firstName: text("first_name"),
-  lastName: text("last_name"),
-  fullName: text("full_name"),
-  title: text("title"),
-  email: text("email"),
-  emailVerified: boolean("email_verified").default(false),
-  phone: text("phone"),
-  phoneType: text("phone_type"), // 'mobile' | 'home' | 'work' | 'fax'
-  phoneVerified: boolean("phone_verified").default(false),
-  phoneAlt: text("phone_alt"),
+    // === Contact Info ===
+    firstName: text("first_name"),
+    lastName: text("last_name"),
+    fullName: text("full_name"),
+    title: text("title"),
+    email: text("email"),
+    emailVerified: boolean("email_verified").default(false),
+    phone: text("phone"),
+    phoneType: text("phone_type"), // 'mobile' | 'home' | 'work' | 'fax'
+    phoneVerified: boolean("phone_verified").default(false),
+    phoneAlt: text("phone_alt"),
 
-  // === Address ===
-  address: text("address"),
-  city: text("city"),
-  state: text("state"),
-  zip: text("zip"),
+    // === Address ===
+    address: text("address"),
+    city: text("city"),
+    state: text("state"),
+    zip: text("zip"),
 
-  // === Social ===
-  linkedinUrl: text("linkedin_url"),
-  facebookUrl: text("facebook_url"),
-  twitterUrl: text("twitter_url"),
+    // === Social ===
+    linkedinUrl: text("linkedin_url"),
+    facebookUrl: text("facebook_url"),
+    twitterUrl: text("twitter_url"),
 
-  // === Source & Quality ===
-  sourceType: text("source_type"), // 'skip_trace' | 'apollo' | 'csv' | 'manual'
-  confidenceScore: integer("confidence_score"), // 0-100
+    // === Source & Quality ===
+    sourceType: text("source_type"), // 'skip_trace' | 'apollo' | 'csv' | 'manual'
+    confidenceScore: integer("confidence_score"), // 0-100
 
-  // === Status ===
-  status: text("status").default("active"), // 'active' | 'dnc' | 'invalid' | 'bounced'
-  optedOut: boolean("opted_out").default(false),
-  lastContactedAt: timestamp("last_contacted_at"),
+    // === Status ===
+    status: text("status").default("active"), // 'active' | 'dnc' | 'invalid' | 'bounced'
+    optedOut: boolean("opted_out").default(false),
+    lastContactedAt: timestamp("last_contacted_at"),
 
-  // === Timestamps ===
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-}, (table) => ({
-  userIdIdx: index("contacts_user_id_idx").on(table.userId),
-  businessIdIdx: index("contacts_business_id_idx").on(table.businessId),
-  propertyIdIdx: index("contacts_property_id_idx").on(table.propertyId),
-  emailIdx: index("contacts_email_idx").on(table.email),
-  phoneIdx: index("contacts_phone_idx").on(table.phone),
-  statusIdx: index("contacts_status_idx").on(table.status),
-}));
+    // === Timestamps ===
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdIdx: index("contacts_user_id_idx").on(table.userId),
+    businessIdIdx: index("contacts_business_id_idx").on(table.businessId),
+    propertyIdIdx: index("contacts_property_id_idx").on(table.propertyId),
+    emailIdx: index("contacts_email_idx").on(table.email),
+    phoneIdx: index("contacts_phone_idx").on(table.phone),
+    statusIdx: index("contacts_status_idx").on(table.status),
+  }),
+);
 
 /**
  * SECTOR ASSIGNMENTS - Link entities to multiple sectors
  * Enables cross-sector analysis and targeting
  */
-export const sectorAssignments = pgTable("sector_assignments", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: text("user_id").notNull(),
+export const sectorAssignments = pgTable(
+  "sector_assignments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id").notNull(),
 
-  // === Entity Reference (polymorphic) ===
-  entityType: text("entity_type").notNull(), // 'business' | 'property' | 'lead' | 'contact'
-  entityId: uuid("entity_id").notNull(),
+    // === Entity Reference (polymorphic) ===
+    entityType: text("entity_type").notNull(), // 'business' | 'property' | 'lead' | 'contact'
+    entityId: uuid("entity_id").notNull(),
 
-  // === Sector ===
-  sectorId: text("sector_id").notNull(), // e.g., "healthcare", "pre_foreclosure"
-  sectorCategory: text("sector_category").notNull(), // 'real_estate' | 'business' | 'financial' | 'geographic'
+    // === Sector ===
+    sectorId: text("sector_id").notNull(), // e.g., "healthcare", "pre_foreclosure"
+    sectorCategory: text("sector_category").notNull(), // 'real_estate' | 'business' | 'financial' | 'geographic'
 
-  // === Assignment Metadata ===
-  isPrimary: boolean("is_primary").default(false),
-  confidence: integer("confidence").default(100), // 0-100, how confident the assignment is
-  assignedBy: text("assigned_by"), // 'system' | 'user' | 'rule:{rule_id}'
+    // === Assignment Metadata ===
+    isPrimary: boolean("is_primary").default(false),
+    confidence: integer("confidence").default(100), // 0-100, how confident the assignment is
+    assignedBy: text("assigned_by"), // 'system' | 'user' | 'rule:{rule_id}'
 
-  // === Timestamps ===
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => ({
-  userIdIdx: index("sector_assignments_user_id_idx").on(table.userId),
-  entityIdx: index("sector_assignments_entity_idx").on(table.entityType, table.entityId),
-  sectorIdx: index("sector_assignments_sector_idx").on(table.sectorId),
-  categoryIdx: index("sector_assignments_category_idx").on(table.sectorCategory),
-}));
+    // === Timestamps ===
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdIdx: index("sector_assignments_user_id_idx").on(table.userId),
+    entityIdx: index("sector_assignments_entity_idx").on(
+      table.entityType,
+      table.entityId,
+    ),
+    sectorIdx: index("sector_assignments_sector_idx").on(table.sectorId),
+    categoryIdx: index("sector_assignments_category_idx").on(
+      table.sectorCategory,
+    ),
+  }),
+);
 
 /**
  * IMPORT JOBS - Track CSV/data import progress
  */
-export const importJobs = pgTable("import_jobs", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: text("user_id").notNull(),
-  dataSourceId: uuid("data_source_id").references(() => dataSources.id, { onDelete: "cascade" }),
+export const importJobs = pgTable(
+  "import_jobs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id").notNull(),
+    dataSourceId: uuid("data_source_id").references(() => dataSources.id, {
+      onDelete: "cascade",
+    }),
 
-  // === Job Info ===
-  jobType: text("job_type").notNull(), // 'csv_import' | 'api_sync' | 'enrichment'
-  status: text("status").notNull().default("pending"), // 'pending' | 'running' | 'completed' | 'failed' | 'cancelled'
+    // === Job Info ===
+    jobType: text("job_type").notNull(), // 'csv_import' | 'api_sync' | 'enrichment'
+    status: text("status").notNull().default("pending"), // 'pending' | 'running' | 'completed' | 'failed' | 'cancelled'
 
-  // === Progress ===
-  totalItems: integer("total_items").default(0),
-  processedItems: integer("processed_items").default(0),
-  successItems: integer("success_items").default(0),
-  errorItems: integer("error_items").default(0),
+    // === Progress ===
+    totalItems: integer("total_items").default(0),
+    processedItems: integer("processed_items").default(0),
+    successItems: integer("success_items").default(0),
+    errorItems: integer("error_items").default(0),
 
-  // === Configuration ===
-  config: jsonb("config").default({}), // Job-specific settings
+    // === Configuration ===
+    config: jsonb("config").default({}), // Job-specific settings
 
-  // === Results ===
-  result: jsonb("result"), // Final summary
-  errorLog: jsonb("error_log").default([]),
+    // === Results ===
+    result: jsonb("result"), // Final summary
+    errorLog: jsonb("error_log").default([]),
 
-  // === Timestamps ===
-  startedAt: timestamp("started_at"),
-  completedAt: timestamp("completed_at"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => ({
-  userIdIdx: index("import_jobs_user_id_idx").on(table.userId),
-  dataSourceIdx: index("import_jobs_data_source_idx").on(table.dataSourceId),
-  statusIdx: index("import_jobs_status_idx").on(table.status),
-}));
+    // === Timestamps ===
+    startedAt: timestamp("started_at"),
+    completedAt: timestamp("completed_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdIdx: index("import_jobs_user_id_idx").on(table.userId),
+    dataSourceIdx: index("import_jobs_data_source_idx").on(table.dataSourceId),
+    statusIdx: index("import_jobs_status_idx").on(table.status),
+  }),
+);
 
 // ============================================================
 // DATA LAKE RELATIONS
@@ -841,26 +948,44 @@ export const dataSourcesRelations = relations(dataSources, ({ many }) => ({
 }));
 
 export const businessesRelations = relations(businesses, ({ one, many }) => ({
-  dataSource: one(dataSources, { fields: [businesses.dataSourceId], references: [dataSources.id] }),
+  dataSource: one(dataSources, {
+    fields: [businesses.dataSourceId],
+    references: [dataSources.id],
+  }),
   contacts: many(contacts),
   sectorAssignments: many(sectorAssignments),
 }));
 
 export const propertiesRelations = relations(properties, ({ one, many }) => ({
-  dataSource: one(dataSources, { fields: [properties.dataSourceId], references: [dataSources.id] }),
+  dataSource: one(dataSources, {
+    fields: [properties.dataSourceId],
+    references: [dataSources.id],
+  }),
   contacts: many(contacts),
   sectorAssignments: many(sectorAssignments),
 }));
 
 export const contactsRelations = relations(contacts, ({ one }) => ({
-  dataSource: one(dataSources, { fields: [contacts.dataSourceId], references: [dataSources.id] }),
-  business: one(businesses, { fields: [contacts.businessId], references: [businesses.id] }),
-  property: one(properties, { fields: [contacts.propertyId], references: [properties.id] }),
+  dataSource: one(dataSources, {
+    fields: [contacts.dataSourceId],
+    references: [dataSources.id],
+  }),
+  business: one(businesses, {
+    fields: [contacts.businessId],
+    references: [businesses.id],
+  }),
+  property: one(properties, {
+    fields: [contacts.propertyId],
+    references: [properties.id],
+  }),
   lead: one(leads, { fields: [contacts.leadId], references: [leads.id] }),
 }));
 
 export const importJobsRelations = relations(importJobs, ({ one }) => ({
-  dataSource: one(dataSources, { fields: [importJobs.dataSourceId], references: [dataSources.id] }),
+  dataSource: one(dataSources, {
+    fields: [importJobs.dataSourceId],
+    references: [dataSources.id],
+  }),
 }));
 
 // ============================================================
@@ -935,200 +1060,242 @@ export const plans = pgTable("plans", {
 /**
  * SUBSCRIPTIONS - Active customer subscriptions
  */
-export const subscriptions = pgTable("subscriptions", {
-  id: uuid("id").primaryKey().defaultRandom(),
+export const subscriptions = pgTable(
+  "subscriptions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
 
-  // === Links ===
-  userId: text("user_id").notNull(), // Team/org owner
-  teamId: text("team_id"), // Optional team association
-  planId: uuid("plan_id").notNull().references(() => plans.id),
+    // === Links ===
+    userId: text("user_id").notNull(), // Team/org owner
+    teamId: text("team_id"), // Optional team association
+    planId: uuid("plan_id")
+      .notNull()
+      .references(() => plans.id),
 
-  // === Subscription Info ===
-  status: text("status").notNull().default("active"), // 'active' | 'past_due' | 'canceled' | 'trialing' | 'paused'
-  billingCycle: text("billing_cycle").notNull().default("monthly"), // 'monthly' | 'yearly'
+    // === Subscription Info ===
+    status: text("status").notNull().default("active"), // 'active' | 'past_due' | 'canceled' | 'trialing' | 'paused'
+    billingCycle: text("billing_cycle").notNull().default("monthly"), // 'monthly' | 'yearly'
 
-  // === Dates ===
-  startDate: timestamp("start_date").notNull().defaultNow(),
-  endDate: timestamp("end_date"), // null = ongoing
-  trialEndsAt: timestamp("trial_ends_at"),
-  canceledAt: timestamp("canceled_at"),
-  currentPeriodStart: timestamp("current_period_start").notNull().defaultNow(),
-  currentPeriodEnd: timestamp("current_period_end").notNull(),
+    // === Dates ===
+    startDate: timestamp("start_date").notNull().defaultNow(),
+    endDate: timestamp("end_date"), // null = ongoing
+    trialEndsAt: timestamp("trial_ends_at"),
+    canceledAt: timestamp("canceled_at"),
+    currentPeriodStart: timestamp("current_period_start")
+      .notNull()
+      .defaultNow(),
+    currentPeriodEnd: timestamp("current_period_end").notNull(),
 
-  // === Stripe ===
-  stripeCustomerId: text("stripe_customer_id"),
-  stripeSubscriptionId: text("stripe_subscription_id"),
+    // === Stripe ===
+    stripeCustomerId: text("stripe_customer_id"),
+    stripeSubscriptionId: text("stripe_subscription_id"),
 
-  // === Overrides (for custom deals) ===
-  customPricing: integer("custom_pricing"), // Override plan price
-  customLimits: jsonb("custom_limits"), // Override specific limits
+    // === Overrides (for custom deals) ===
+    customPricing: integer("custom_pricing"), // Override plan price
+    customLimits: jsonb("custom_limits"), // Override specific limits
 
-  // === Timestamps ===
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-}, (table) => ({
-  userIdIdx: index("subscriptions_user_id_idx").on(table.userId),
-  teamIdIdx: index("subscriptions_team_id_idx").on(table.teamId),
-  statusIdx: index("subscriptions_status_idx").on(table.status),
-  stripeCustomerIdx: index("subscriptions_stripe_customer_idx").on(table.stripeCustomerId),
-}));
+    // === Timestamps ===
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdIdx: index("subscriptions_user_id_idx").on(table.userId),
+    teamIdIdx: index("subscriptions_team_id_idx").on(table.teamId),
+    statusIdx: index("subscriptions_status_idx").on(table.status),
+    stripeCustomerIdx: index("subscriptions_stripe_customer_idx").on(
+      table.stripeCustomerId,
+    ),
+  }),
+);
 
 /**
  * USAGE - Track feature usage per billing period
  */
-export const usage = pgTable("usage", {
-  id: uuid("id").primaryKey().defaultRandom(),
+export const usage = pgTable(
+  "usage",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
 
-  // === Links ===
-  subscriptionId: uuid("subscription_id").notNull().references(() => subscriptions.id, { onDelete: "cascade" }),
-  userId: text("user_id").notNull(),
+    // === Links ===
+    subscriptionId: uuid("subscription_id")
+      .notNull()
+      .references(() => subscriptions.id, { onDelete: "cascade" }),
+    userId: text("user_id").notNull(),
 
-  // === Period ===
-  periodStart: timestamp("period_start").notNull(),
-  periodEnd: timestamp("period_end").notNull(),
+    // === Period ===
+    periodStart: timestamp("period_start").notNull(),
+    periodEnd: timestamp("period_end").notNull(),
 
-  // === Counts ===
-  leadsCreated: integer("leads_created").default(0),
-  propertySearches: integer("property_searches").default(0),
-  smsSent: integer("sms_sent").default(0),
-  skipTraces: integer("skip_traces").default(0),
-  apolloEnrichments: integer("apollo_enrichments").default(0),
-  voiceMinutes: integer("voice_minutes").default(0),
-  emailsSent: integer("emails_sent").default(0),
-  aiGenerations: integer("ai_generations").default(0),
+    // === Counts ===
+    leadsCreated: integer("leads_created").default(0),
+    propertySearches: integer("property_searches").default(0),
+    smsSent: integer("sms_sent").default(0),
+    skipTraces: integer("skip_traces").default(0),
+    apolloEnrichments: integer("apollo_enrichments").default(0),
+    voiceMinutes: integer("voice_minutes").default(0),
+    emailsSent: integer("emails_sent").default(0),
+    aiGenerations: integer("ai_generations").default(0),
 
-  // === Overages ===
-  overageLeads: integer("overage_leads").default(0),
-  overageSms: integer("overage_sms").default(0),
-  overageSkipTraces: integer("overage_skip_traces").default(0),
-  overageVoiceMinutes: integer("overage_voice_minutes").default(0),
+    // === Overages ===
+    overageLeads: integer("overage_leads").default(0),
+    overageSms: integer("overage_sms").default(0),
+    overageSkipTraces: integer("overage_skip_traces").default(0),
+    overageVoiceMinutes: integer("overage_voice_minutes").default(0),
 
-  // === Costs ===
-  overageCost: integer("overage_cost").default(0), // cents
+    // === Costs ===
+    overageCost: integer("overage_cost").default(0), // cents
 
-  // === Timestamps ===
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-}, (table) => ({
-  subscriptionIdIdx: index("usage_subscription_id_idx").on(table.subscriptionId),
-  userIdIdx: index("usage_user_id_idx").on(table.userId),
-  periodIdx: index("usage_period_idx").on(table.periodStart, table.periodEnd),
-}));
+    // === Timestamps ===
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    subscriptionIdIdx: index("usage_subscription_id_idx").on(
+      table.subscriptionId,
+    ),
+    userIdIdx: index("usage_user_id_idx").on(table.userId),
+    periodIdx: index("usage_period_idx").on(table.periodStart, table.periodEnd),
+  }),
+);
 
 /**
  * USAGE_EVENTS - Granular usage tracking
  */
-export const usageEvents = pgTable("usage_events", {
-  id: uuid("id").primaryKey().defaultRandom(),
+export const usageEvents = pgTable(
+  "usage_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
 
-  // === Links ===
-  subscriptionId: uuid("subscription_id").notNull().references(() => subscriptions.id, { onDelete: "cascade" }),
-  userId: text("user_id").notNull(),
+    // === Links ===
+    subscriptionId: uuid("subscription_id")
+      .notNull()
+      .references(() => subscriptions.id, { onDelete: "cascade" }),
+    userId: text("user_id").notNull(),
 
-  // === Event ===
-  eventType: text("event_type").notNull(), // 'lead_created' | 'sms_sent' | 'skip_trace' | 'property_search' | 'voice_call' | 'ai_generation'
-  quantity: integer("quantity").default(1),
+    // === Event ===
+    eventType: text("event_type").notNull(), // 'lead_created' | 'sms_sent' | 'skip_trace' | 'property_search' | 'voice_call' | 'ai_generation'
+    quantity: integer("quantity").default(1),
 
-  // === Cost ===
-  unitCost: integer("unit_cost").default(0), // cents per unit
-  totalCost: integer("total_cost").default(0), // cents
+    // === Cost ===
+    unitCost: integer("unit_cost").default(0), // cents per unit
+    totalCost: integer("total_cost").default(0), // cents
 
-  // === Metadata ===
-  metadata: jsonb("metadata"), // { leadId, campaignId, etc. }
+    // === Metadata ===
+    metadata: jsonb("metadata"), // { leadId, campaignId, etc. }
 
-  // === Timestamps ===
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => ({
-  subscriptionIdIdx: index("usage_events_subscription_id_idx").on(table.subscriptionId),
-  userIdIdx: index("usage_events_user_id_idx").on(table.userId),
-  eventTypeIdx: index("usage_events_event_type_idx").on(table.eventType),
-  createdAtIdx: index("usage_events_created_at_idx").on(table.createdAt),
-}));
+    // === Timestamps ===
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    subscriptionIdIdx: index("usage_events_subscription_id_idx").on(
+      table.subscriptionId,
+    ),
+    userIdIdx: index("usage_events_user_id_idx").on(table.userId),
+    eventTypeIdx: index("usage_events_event_type_idx").on(table.eventType),
+    createdAtIdx: index("usage_events_created_at_idx").on(table.createdAt),
+  }),
+);
 
 /**
  * INVOICES - Billing invoices
  */
-export const invoices = pgTable("invoices", {
-  id: uuid("id").primaryKey().defaultRandom(),
+export const invoices = pgTable(
+  "invoices",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
 
-  // === Links ===
-  subscriptionId: uuid("subscription_id").notNull().references(() => subscriptions.id),
-  userId: text("user_id").notNull(),
+    // === Links ===
+    subscriptionId: uuid("subscription_id")
+      .notNull()
+      .references(() => subscriptions.id),
+    userId: text("user_id").notNull(),
 
-  // === Invoice Info ===
-  invoiceNumber: text("invoice_number").notNull().unique(),
-  status: text("status").notNull().default("draft"), // 'draft' | 'open' | 'paid' | 'void' | 'uncollectible'
+    // === Invoice Info ===
+    invoiceNumber: text("invoice_number").notNull().unique(),
+    status: text("status").notNull().default("draft"), // 'draft' | 'open' | 'paid' | 'void' | 'uncollectible'
 
-  // === Amounts ===
-  subtotal: integer("subtotal").notNull(), // cents
-  tax: integer("tax").default(0),
-  discount: integer("discount").default(0),
-  total: integer("total").notNull(), // cents
-  amountPaid: integer("amount_paid").default(0),
-  amountDue: integer("amount_due").notNull(),
+    // === Amounts ===
+    subtotal: integer("subtotal").notNull(), // cents
+    tax: integer("tax").default(0),
+    discount: integer("discount").default(0),
+    total: integer("total").notNull(), // cents
+    amountPaid: integer("amount_paid").default(0),
+    amountDue: integer("amount_due").notNull(),
 
-  // === Period ===
-  periodStart: timestamp("period_start").notNull(),
-  periodEnd: timestamp("period_end").notNull(),
-  dueDate: timestamp("due_date").notNull(),
-  paidAt: timestamp("paid_at"),
+    // === Period ===
+    periodStart: timestamp("period_start").notNull(),
+    periodEnd: timestamp("period_end").notNull(),
+    dueDate: timestamp("due_date").notNull(),
+    paidAt: timestamp("paid_at"),
 
-  // === Line Items ===
-  lineItems: jsonb("line_items").default([]), // [{ description, quantity, unitPrice, total }]
+    // === Line Items ===
+    lineItems: jsonb("line_items").default([]), // [{ description, quantity, unitPrice, total }]
 
-  // === Stripe ===
-  stripeInvoiceId: text("stripe_invoice_id"),
-  stripePaymentIntentId: text("stripe_payment_intent_id"),
-  invoicePdf: text("invoice_pdf"), // URL to PDF
+    // === Stripe ===
+    stripeInvoiceId: text("stripe_invoice_id"),
+    stripePaymentIntentId: text("stripe_payment_intent_id"),
+    invoicePdf: text("invoice_pdf"), // URL to PDF
 
-  // === Timestamps ===
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-}, (table) => ({
-  subscriptionIdIdx: index("invoices_subscription_id_idx").on(table.subscriptionId),
-  userIdIdx: index("invoices_user_id_idx").on(table.userId),
-  statusIdx: index("invoices_status_idx").on(table.status),
-  invoiceNumberIdx: index("invoices_invoice_number_idx").on(table.invoiceNumber),
-}));
+    // === Timestamps ===
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    subscriptionIdIdx: index("invoices_subscription_id_idx").on(
+      table.subscriptionId,
+    ),
+    userIdIdx: index("invoices_user_id_idx").on(table.userId),
+    statusIdx: index("invoices_status_idx").on(table.status),
+    invoiceNumberIdx: index("invoices_invoice_number_idx").on(
+      table.invoiceNumber,
+    ),
+  }),
+);
 
 /**
  * PAYMENTS - Payment transactions
  */
-export const payments = pgTable("payments", {
-  id: uuid("id").primaryKey().defaultRandom(),
+export const payments = pgTable(
+  "payments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
 
-  // === Links ===
-  invoiceId: uuid("invoice_id").references(() => invoices.id),
-  subscriptionId: uuid("subscription_id").references(() => subscriptions.id),
-  userId: text("user_id").notNull(),
+    // === Links ===
+    invoiceId: uuid("invoice_id").references(() => invoices.id),
+    subscriptionId: uuid("subscription_id").references(() => subscriptions.id),
+    userId: text("user_id").notNull(),
 
-  // === Payment Info ===
-  amount: integer("amount").notNull(), // cents
-  currency: text("currency").default("usd"),
-  status: text("status").notNull(), // 'pending' | 'succeeded' | 'failed' | 'refunded'
-  paymentMethod: text("payment_method"), // 'card' | 'bank_transfer' | 'invoice'
+    // === Payment Info ===
+    amount: integer("amount").notNull(), // cents
+    currency: text("currency").default("usd"),
+    status: text("status").notNull(), // 'pending' | 'succeeded' | 'failed' | 'refunded'
+    paymentMethod: text("payment_method"), // 'card' | 'bank_transfer' | 'invoice'
 
-  // === Card Details (if applicable) ===
-  cardLast4: text("card_last4"),
-  cardBrand: text("card_brand"), // 'visa' | 'mastercard' | 'amex'
+    // === Card Details (if applicable) ===
+    cardLast4: text("card_last4"),
+    cardBrand: text("card_brand"), // 'visa' | 'mastercard' | 'amex'
 
-  // === Stripe ===
-  stripePaymentId: text("stripe_payment_id"),
-  stripeChargeId: text("stripe_charge_id"),
+    // === Stripe ===
+    stripePaymentId: text("stripe_payment_id"),
+    stripeChargeId: text("stripe_charge_id"),
 
-  // === Refund ===
-  refundedAmount: integer("refunded_amount").default(0),
-  refundedAt: timestamp("refunded_at"),
-  refundReason: text("refund_reason"),
+    // === Refund ===
+    refundedAmount: integer("refunded_amount").default(0),
+    refundedAt: timestamp("refunded_at"),
+    refundReason: text("refund_reason"),
 
-  // === Timestamps ===
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => ({
-  invoiceIdIdx: index("payments_invoice_id_idx").on(table.invoiceId),
-  subscriptionIdIdx: index("payments_subscription_id_idx").on(table.subscriptionId),
-  userIdIdx: index("payments_user_id_idx").on(table.userId),
-  statusIdx: index("payments_status_idx").on(table.status),
-}));
+    // === Timestamps ===
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    invoiceIdIdx: index("payments_invoice_id_idx").on(table.invoiceId),
+    subscriptionIdIdx: index("payments_subscription_id_idx").on(
+      table.subscriptionId,
+    ),
+    userIdIdx: index("payments_user_id_idx").on(table.userId),
+    statusIdx: index("payments_status_idx").on(table.status),
+  }),
+);
 
 // ============================================================
 // BILLING RELATIONS
@@ -1138,30 +1305,51 @@ export const plansRelations = relations(plans, ({ many }) => ({
   subscriptions: many(subscriptions),
 }));
 
-export const subscriptionsRelations = relations(subscriptions, ({ one, many }) => ({
-  plan: one(plans, { fields: [subscriptions.planId], references: [plans.id] }),
-  usage: many(usage),
-  usageEvents: many(usageEvents),
-  invoices: many(invoices),
-  payments: many(payments),
-}));
+export const subscriptionsRelations = relations(
+  subscriptions,
+  ({ one, many }) => ({
+    plan: one(plans, {
+      fields: [subscriptions.planId],
+      references: [plans.id],
+    }),
+    usage: many(usage),
+    usageEvents: many(usageEvents),
+    invoices: many(invoices),
+    payments: many(payments),
+  }),
+);
 
 export const usageRelations = relations(usage, ({ one }) => ({
-  subscription: one(subscriptions, { fields: [usage.subscriptionId], references: [subscriptions.id] }),
+  subscription: one(subscriptions, {
+    fields: [usage.subscriptionId],
+    references: [subscriptions.id],
+  }),
 }));
 
 export const usageEventsRelations = relations(usageEvents, ({ one }) => ({
-  subscription: one(subscriptions, { fields: [usageEvents.subscriptionId], references: [subscriptions.id] }),
+  subscription: one(subscriptions, {
+    fields: [usageEvents.subscriptionId],
+    references: [subscriptions.id],
+  }),
 }));
 
 export const invoicesRelations = relations(invoices, ({ one, many }) => ({
-  subscription: one(subscriptions, { fields: [invoices.subscriptionId], references: [subscriptions.id] }),
+  subscription: one(subscriptions, {
+    fields: [invoices.subscriptionId],
+    references: [subscriptions.id],
+  }),
   payments: many(payments),
 }));
 
 export const paymentsRelations = relations(payments, ({ one }) => ({
-  invoice: one(invoices, { fields: [payments.invoiceId], references: [invoices.id] }),
-  subscription: one(subscriptions, { fields: [payments.subscriptionId], references: [subscriptions.id] }),
+  invoice: one(invoices, {
+    fields: [payments.invoiceId],
+    references: [invoices.id],
+  }),
+  subscription: one(subscriptions, {
+    fields: [payments.subscriptionId],
+    references: [subscriptions.id],
+  }),
 }));
 
 // ============================================================
@@ -1188,140 +1376,154 @@ export type NewPayment = typeof payments.$inferInsert;
 /**
  * SMS MESSAGES - Track all SMS communications
  */
-export const smsMessages = pgTable("sms_messages", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  leadId: uuid("lead_id").references(() => leads.id, { onDelete: "cascade" }),
-  userId: text("user_id"),
+export const smsMessages = pgTable(
+  "sms_messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    leadId: uuid("lead_id").references(() => leads.id, { onDelete: "cascade" }),
+    userId: text("user_id"),
 
-  // === Message Info ===
-  direction: text("direction").notNull(), // 'inbound' | 'outbound'
-  fromNumber: text("from_number").notNull(),
-  toNumber: text("to_number").notNull(),
-  body: text("body").notNull(),
+    // === Message Info ===
+    direction: text("direction").notNull(), // 'inbound' | 'outbound'
+    fromNumber: text("from_number").notNull(),
+    toNumber: text("to_number").notNull(),
+    body: text("body").notNull(),
 
-  // === Status ===
-  status: text("status").notNull().default("pending"), // 'pending' | 'sent' | 'delivered' | 'failed' | 'received'
-  errorCode: text("error_code"),
-  errorMessage: text("error_message"),
+    // === Status ===
+    status: text("status").notNull().default("pending"), // 'pending' | 'sent' | 'delivered' | 'failed' | 'received'
+    errorCode: text("error_code"),
+    errorMessage: text("error_message"),
 
-  // === Campaign Link ===
-  campaignId: text("campaign_id"),
-  batchId: text("batch_id"),
-  templateId: text("template_id"),
+    // === Campaign Link ===
+    campaignId: text("campaign_id"),
+    batchId: text("batch_id"),
+    templateId: text("template_id"),
 
-  // === Provider Info ===
-  provider: text("provider").default("signalhouse"), // 'signalhouse' | 'twilio'
-  providerMessageId: text("provider_message_id"),
-  providerStatus: text("provider_status"),
+    // === Provider Info ===
+    provider: text("provider").default("signalhouse"), // 'signalhouse' | 'twilio'
+    providerMessageId: text("provider_message_id"),
+    providerStatus: text("provider_status"),
 
-  // === AI Assistant ===
-  sentByAdvisor: text("sent_by_advisor"), // 'gianna' | 'sabrina' | null
-  aiGenerated: boolean("ai_generated").default(false),
+    // === AI Assistant ===
+    sentByAdvisor: text("sent_by_advisor"), // 'gianna' | 'sabrina' | null
+    aiGenerated: boolean("ai_generated").default(false),
 
-  // === Timestamps ===
-  sentAt: timestamp("sent_at"),
-  deliveredAt: timestamp("delivered_at"),
-  receivedAt: timestamp("received_at"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-}, (table) => ({
-  leadIdIdx: index("sms_messages_lead_id_idx").on(table.leadId),
-  directionIdx: index("sms_messages_direction_idx").on(table.direction),
-  statusIdx: index("sms_messages_status_idx").on(table.status),
-  campaignIdIdx: index("sms_messages_campaign_id_idx").on(table.campaignId),
-  fromNumberIdx: index("sms_messages_from_number_idx").on(table.fromNumber),
-}));
+    // === Timestamps ===
+    sentAt: timestamp("sent_at"),
+    deliveredAt: timestamp("delivered_at"),
+    receivedAt: timestamp("received_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    leadIdIdx: index("sms_messages_lead_id_idx").on(table.leadId),
+    directionIdx: index("sms_messages_direction_idx").on(table.direction),
+    statusIdx: index("sms_messages_status_idx").on(table.status),
+    campaignIdIdx: index("sms_messages_campaign_id_idx").on(table.campaignId),
+    fromNumberIdx: index("sms_messages_from_number_idx").on(table.fromNumber),
+  }),
+);
 
 /**
  * CALL LOGS - Track all voice calls
  */
-export const callLogs = pgTable("call_logs", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  leadId: uuid("lead_id").references(() => leads.id, { onDelete: "cascade" }),
-  userId: text("user_id"),
+export const callLogs = pgTable(
+  "call_logs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    leadId: uuid("lead_id").references(() => leads.id, { onDelete: "cascade" }),
+    userId: text("user_id"),
 
-  // === Call Info ===
-  direction: text("direction").notNull(), // 'inbound' | 'outbound'
-  fromNumber: text("from_number").notNull(),
-  toNumber: text("to_number").notNull(),
+    // === Call Info ===
+    direction: text("direction").notNull(), // 'inbound' | 'outbound'
+    fromNumber: text("from_number").notNull(),
+    toNumber: text("to_number").notNull(),
 
-  // === Status & Duration ===
-  status: text("status").notNull().default("initiated"), // 'initiated' | 'ringing' | 'connected' | 'completed' | 'failed' | 'no_answer' | 'busy' | 'voicemail'
-  duration: integer("duration"), // seconds
-  disposition: text("disposition"), // 'appointment_set' | 'callback_requested' | 'not_interested' | 'wrong_number' | 'no_answer' | 'voicemail' | 'other'
-  dispositionNotes: text("disposition_notes"),
+    // === Status & Duration ===
+    status: text("status").notNull().default("initiated"), // 'initiated' | 'ringing' | 'connected' | 'completed' | 'failed' | 'no_answer' | 'busy' | 'voicemail'
+    duration: integer("duration"), // seconds
+    disposition: text("disposition"), // 'appointment_set' | 'callback_requested' | 'not_interested' | 'wrong_number' | 'no_answer' | 'voicemail' | 'other'
+    dispositionNotes: text("disposition_notes"),
 
-  // === Campaign Link ===
-  campaignId: text("campaign_id"),
-  dialerWorkspaceId: text("dialer_workspace_id"),
+    // === Campaign Link ===
+    campaignId: text("campaign_id"),
+    dialerWorkspaceId: text("dialer_workspace_id"),
 
-  // === Provider Info ===
-  provider: text("provider").default("signalhouse"), // 'signalhouse' | 'twilio'
-  providerCallId: text("provider_call_id"),
-  providerStatus: text("provider_status"),
+    // === Provider Info ===
+    provider: text("provider").default("signalhouse"), // 'signalhouse' | 'twilio'
+    providerCallId: text("provider_call_id"),
+    providerStatus: text("provider_status"),
 
-  // === Recording ===
-  recordingUrl: text("recording_url"),
-  recordingDuration: integer("recording_duration"),
-  transcriptionUrl: text("transcription_url"),
-  transcriptionText: text("transcription_text"),
+    // === Recording ===
+    recordingUrl: text("recording_url"),
+    recordingDuration: integer("recording_duration"),
+    transcriptionUrl: text("transcription_url"),
+    transcriptionText: text("transcription_text"),
 
-  // === AI Assistant (Gianna Copilot) ===
-  isAutoDial: boolean("is_auto_dial").default(false),
-  autoDailSessionId: text("auto_dial_session_id"),
-  aiSummary: text("ai_summary"),
-  sentimentScore: integer("sentiment_score"), // -100 to 100
+    // === AI Assistant (Gianna Copilot) ===
+    isAutoDial: boolean("is_auto_dial").default(false),
+    autoDailSessionId: text("auto_dial_session_id"),
+    aiSummary: text("ai_summary"),
+    sentimentScore: integer("sentiment_score"), // -100 to 100
 
-  // === Timestamps ===
-  startTime: timestamp("start_time"),
-  answerTime: timestamp("answer_time"),
-  endTime: timestamp("end_time"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-}, (table) => ({
-  leadIdIdx: index("call_logs_lead_id_idx").on(table.leadId),
-  directionIdx: index("call_logs_direction_idx").on(table.direction),
-  statusIdx: index("call_logs_status_idx").on(table.status),
-  dispositionIdx: index("call_logs_disposition_idx").on(table.disposition),
-  campaignIdIdx: index("call_logs_campaign_id_idx").on(table.campaignId),
-}));
+    // === Timestamps ===
+    startTime: timestamp("start_time"),
+    answerTime: timestamp("answer_time"),
+    endTime: timestamp("end_time"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    leadIdIdx: index("call_logs_lead_id_idx").on(table.leadId),
+    directionIdx: index("call_logs_direction_idx").on(table.direction),
+    statusIdx: index("call_logs_status_idx").on(table.status),
+    dispositionIdx: index("call_logs_disposition_idx").on(table.disposition),
+    campaignIdIdx: index("call_logs_campaign_id_idx").on(table.campaignId),
+  }),
+);
 
 /**
  * DIALER SESSIONS - Track auto-dial sessions
  */
-export const dialerSessions = pgTable("dialer_sessions", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  workspaceId: text("workspace_id").notNull(),
-  userId: text("user_id").notNull(),
+export const dialerSessions = pgTable(
+  "dialer_sessions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspaceId: text("workspace_id").notNull(),
+    userId: text("user_id").notNull(),
 
-  // === Session Info ===
-  status: text("status").notNull().default("created"), // 'created' | 'active' | 'paused' | 'completed' | 'cancelled'
-  dialMode: text("dial_mode").default("preview"), // 'preview' | 'power' | 'predictive'
+    // === Session Info ===
+    status: text("status").notNull().default("created"), // 'created' | 'active' | 'paused' | 'completed' | 'cancelled'
+    dialMode: text("dial_mode").default("preview"), // 'preview' | 'power' | 'predictive'
 
-  // === Progress ===
-  totalLeads: integer("total_leads").default(0),
-  dialedLeads: integer("dialed_leads").default(0),
-  connectedCalls: integer("connected_calls").default(0),
-  appointmentsSet: integer("appointments_set").default(0),
+    // === Progress ===
+    totalLeads: integer("total_leads").default(0),
+    dialedLeads: integer("dialed_leads").default(0),
+    connectedCalls: integer("connected_calls").default(0),
+    appointmentsSet: integer("appointments_set").default(0),
 
-  // === Advisor ===
-  assignedAdvisor: text("assigned_advisor"), // 'gianna' | 'sabrina' | user_id
+    // === Advisor ===
+    assignedAdvisor: text("assigned_advisor"), // 'gianna' | 'sabrina' | user_id
 
-  // === Campaign Link ===
-  campaignId: text("campaign_id"),
-  bucketId: uuid("bucket_id").references(() => buckets.id),
+    // === Campaign Link ===
+    campaignId: text("campaign_id"),
+    bucketId: uuid("bucket_id").references(() => buckets.id),
 
-  // === Timestamps ===
-  startedAt: timestamp("started_at"),
-  pausedAt: timestamp("paused_at"),
-  completedAt: timestamp("completed_at"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-}, (table) => ({
-  workspaceIdIdx: index("dialer_sessions_workspace_id_idx").on(table.workspaceId),
-  userIdIdx: index("dialer_sessions_user_id_idx").on(table.userId),
-  statusIdx: index("dialer_sessions_status_idx").on(table.status),
-}));
+    // === Timestamps ===
+    startedAt: timestamp("started_at"),
+    pausedAt: timestamp("paused_at"),
+    completedAt: timestamp("completed_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    workspaceIdIdx: index("dialer_sessions_workspace_id_idx").on(
+      table.workspaceId,
+    ),
+    userIdIdx: index("dialer_sessions_user_id_idx").on(table.userId),
+    statusIdx: index("dialer_sessions_status_idx").on(table.status),
+  }),
+);
 
 // SMS & Call Relations
 export const smsMessagesRelations = relations(smsMessages, ({ one }) => ({
@@ -1333,7 +1535,10 @@ export const callLogsRelations = relations(callLogs, ({ one }) => ({
 }));
 
 export const dialerSessionsRelations = relations(dialerSessions, ({ one }) => ({
-  bucket: one(buckets, { fields: [dialerSessions.bucketId], references: [buckets.id] }),
+  bucket: one(buckets, {
+    fields: [dialerSessions.bucketId],
+    references: [buckets.id],
+  }),
 }));
 
 // Type exports
@@ -1352,132 +1557,154 @@ export type NewDialerSession = typeof dialerSessions.$inferInsert;
  * DEALS - Pipeline deals for closing and monetization
  * Links to leads, properties, and businesses
  */
-export const deals = pgTable("deals", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  teamId: text("team_id").notNull(),
-  userId: text("user_id").notNull(),
+export const deals = pgTable(
+  "deals",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    teamId: text("team_id").notNull(),
+    userId: text("user_id").notNull(),
 
-  // === Links ===
-  leadId: uuid("lead_id").references(() => leads.id, { onDelete: "set null" }),
-  propertyId: uuid("property_id").references(() => properties.id, { onDelete: "set null" }),
-  businessId: uuid("business_id").references(() => businesses.id, { onDelete: "set null" }),
+    // === Links ===
+    leadId: uuid("lead_id").references(() => leads.id, {
+      onDelete: "set null",
+    }),
+    propertyId: uuid("property_id").references(() => properties.id, {
+      onDelete: "set null",
+    }),
+    businessId: uuid("business_id").references(() => businesses.id, {
+      onDelete: "set null",
+    }),
 
-  // === Deal Type & Stage ===
-  type: text("type").notNull(), // 'b2b_exit' | 'commercial' | 'assemblage' | 'blue_collar_exit' | 'development' | 'residential_haos'
-  stage: text("stage").notNull().default("discovery"), // 'discovery' | 'qualification' | 'proposal' | 'negotiation' | 'contract' | 'closing' | 'closed_won' | 'closed_lost'
-  priority: text("priority").default("medium"), // 'low' | 'medium' | 'high' | 'urgent'
+    // === Deal Type & Stage ===
+    type: text("type").notNull(), // 'b2b_exit' | 'commercial' | 'assemblage' | 'blue_collar_exit' | 'development' | 'residential_haos'
+    stage: text("stage").notNull().default("discovery"), // 'discovery' | 'qualification' | 'proposal' | 'negotiation' | 'contract' | 'closing' | 'closed_won' | 'closed_lost'
+    priority: text("priority").default("medium"), // 'low' | 'medium' | 'high' | 'urgent'
 
-  // === Deal Info ===
-  name: text("name").notNull(),
-  description: text("description"),
-  estimatedValue: integer("estimated_value").default(0), // Property/business value in cents
-  askingPrice: integer("asking_price"), // Seller's asking price
-  finalPrice: integer("final_price"), // Final deal price (when closed)
+    // === Deal Info ===
+    name: text("name").notNull(),
+    description: text("description"),
+    estimatedValue: integer("estimated_value").default(0), // Property/business value in cents
+    askingPrice: integer("asking_price"), // Seller's asking price
+    finalPrice: integer("final_price"), // Final deal price (when closed)
 
-  // === Monetization ===
-  monetization: jsonb("monetization").default({}), // { type, rate, estimatedEarnings, actualEarnings }
-  commissionRate: decimal("commission_rate", { precision: 5, scale: 2 }), // e.g., 6.00 for 6%
-  advisoryFee: integer("advisory_fee"), // Flat advisory fee in cents
-  referralFee: integer("referral_fee"), // Referral fee in cents
-  equityPercentage: decimal("equity_percentage", { precision: 5, scale: 2 }), // Equity stake
+    // === Monetization ===
+    monetization: jsonb("monetization").default({}), // { type, rate, estimatedEarnings, actualEarnings }
+    commissionRate: decimal("commission_rate", { precision: 5, scale: 2 }), // e.g., 6.00 for 6%
+    advisoryFee: integer("advisory_fee"), // Flat advisory fee in cents
+    referralFee: integer("referral_fee"), // Referral fee in cents
+    equityPercentage: decimal("equity_percentage", { precision: 5, scale: 2 }), // Equity stake
 
-  // === Parties ===
-  seller: jsonb("seller"), // { name, email, phone, company }
-  buyer: jsonb("buyer"), // { name, email, phone, company }
-  assignedTo: text("assigned_to"), // User ID of assigned agent
+    // === Parties ===
+    seller: jsonb("seller"), // { name, email, phone, company }
+    buyer: jsonb("buyer"), // { name, email, phone, company }
+    assignedTo: text("assigned_to"), // User ID of assigned agent
 
-  // === Property Data (denormalized for closed deals) ===
-  propertyData: jsonb("property_data"), // Snapshot of property at deal time
+    // === Property Data (denormalized for closed deals) ===
+    propertyData: jsonb("property_data"), // Snapshot of property at deal time
 
-  // === Business Data (denormalized for closed deals) ===
-  businessData: jsonb("business_data"), // Snapshot of business at deal time
+    // === Business Data (denormalized for closed deals) ===
+    businessData: jsonb("business_data"), // Snapshot of business at deal time
 
-  // === Timeline ===
-  expectedCloseDate: timestamp("expected_close_date"),
-  actualCloseDate: timestamp("actual_close_date"),
-  lastActivityAt: timestamp("last_activity_at"),
-  stageChangedAt: timestamp("stage_changed_at"),
+    // === Timeline ===
+    expectedCloseDate: timestamp("expected_close_date"),
+    actualCloseDate: timestamp("actual_close_date"),
+    lastActivityAt: timestamp("last_activity_at"),
+    stageChangedAt: timestamp("stage_changed_at"),
 
-  // === Close Info ===
-  closedReason: text("closed_reason"), // For closed_lost: 'price' | 'timing' | 'competition' | 'financing' | 'other'
-  closedNotes: text("closed_notes"),
+    // === Close Info ===
+    closedReason: text("closed_reason"), // For closed_lost: 'price' | 'timing' | 'competition' | 'financing' | 'other'
+    closedNotes: text("closed_notes"),
 
-  // === Documents ===
-  documents: jsonb("documents").default([]), // [{ id, name, type, url, uploadedAt }]
+    // === Documents ===
+    documents: jsonb("documents").default([]), // [{ id, name, type, url, uploadedAt }]
 
-  // === Tags & Notes ===
-  tags: jsonb("tags").default([]), // string[]
-  notes: text("notes"),
+    // === Tags & Notes ===
+    tags: jsonb("tags").default([]), // string[]
+    notes: text("notes"),
 
-  // === Timestamps ===
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-}, (table) => ({
-  teamIdIdx: index("deals_team_id_idx").on(table.teamId),
-  userIdIdx: index("deals_user_id_idx").on(table.userId),
-  leadIdIdx: index("deals_lead_id_idx").on(table.leadId),
-  stageIdx: index("deals_stage_idx").on(table.stage),
-  typeIdx: index("deals_type_idx").on(table.type),
-  assignedToIdx: index("deals_assigned_to_idx").on(table.assignedTo),
-}));
+    // === Timestamps ===
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    teamIdIdx: index("deals_team_id_idx").on(table.teamId),
+    userIdIdx: index("deals_user_id_idx").on(table.userId),
+    leadIdIdx: index("deals_lead_id_idx").on(table.leadId),
+    stageIdx: index("deals_stage_idx").on(table.stage),
+    typeIdx: index("deals_type_idx").on(table.type),
+    assignedToIdx: index("deals_assigned_to_idx").on(table.assignedTo),
+  }),
+);
 
 /**
  * DEAL_ACTIVITIES - Activity log for deals
  * Tracks all changes, communications, and milestones
  */
-export const dealActivities = pgTable("deal_activities", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  dealId: uuid("deal_id").notNull().references(() => deals.id, { onDelete: "cascade" }),
-  userId: text("user_id").notNull(),
+export const dealActivities = pgTable(
+  "deal_activities",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    dealId: uuid("deal_id")
+      .notNull()
+      .references(() => deals.id, { onDelete: "cascade" }),
+    userId: text("user_id").notNull(),
 
-  // === Activity Type ===
-  type: text("type").notNull(), // 'stage_change' | 'note' | 'call' | 'email' | 'meeting' | 'document' | 'price_change' | 'assignment'
-  subtype: text("subtype"), // More specific action
+    // === Activity Type ===
+    type: text("type").notNull(), // 'stage_change' | 'note' | 'call' | 'email' | 'meeting' | 'document' | 'price_change' | 'assignment'
+    subtype: text("subtype"), // More specific action
 
-  // === Content ===
-  title: text("title").notNull(),
-  description: text("description"),
-  metadata: jsonb("metadata"), // Type-specific data { fromStage, toStage, amount, etc }
+    // === Content ===
+    title: text("title").notNull(),
+    description: text("description"),
+    metadata: jsonb("metadata"), // Type-specific data { fromStage, toStage, amount, etc }
 
-  // === Timestamps ===
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => ({
-  dealIdIdx: index("deal_activities_deal_id_idx").on(table.dealId),
-  typeIdx: index("deal_activities_type_idx").on(table.type),
-  createdAtIdx: index("deal_activities_created_at_idx").on(table.createdAt),
-}));
+    // === Timestamps ===
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    dealIdIdx: index("deal_activities_deal_id_idx").on(table.dealId),
+    typeIdx: index("deal_activities_type_idx").on(table.type),
+    createdAtIdx: index("deal_activities_created_at_idx").on(table.createdAt),
+  }),
+);
 
 /**
  * DEAL_DOCUMENTS - Documents attached to deals
  * Contracts, LOIs, appraisals, etc.
  */
-export const dealDocuments = pgTable("deal_documents", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  dealId: uuid("deal_id").notNull().references(() => deals.id, { onDelete: "cascade" }),
-  userId: text("user_id").notNull(),
+export const dealDocuments = pgTable(
+  "deal_documents",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    dealId: uuid("deal_id")
+      .notNull()
+      .references(() => deals.id, { onDelete: "cascade" }),
+    userId: text("user_id").notNull(),
 
-  // === Document Info ===
-  name: text("name").notNull(),
-  type: text("type").notNull(), // 'contract' | 'loi' | 'appraisal' | 'inspection' | 'title' | 'financials' | 'other'
-  mimeType: text("mime_type"),
-  fileSize: integer("file_size"), // bytes
+    // === Document Info ===
+    name: text("name").notNull(),
+    type: text("type").notNull(), // 'contract' | 'loi' | 'appraisal' | 'inspection' | 'title' | 'financials' | 'other'
+    mimeType: text("mime_type"),
+    fileSize: integer("file_size"), // bytes
 
-  // === Storage ===
-  url: text("url").notNull(), // CDN/Storage URL
-  storageKey: text("storage_key"), // S3/Spaces key
+    // === Storage ===
+    url: text("url").notNull(), // CDN/Storage URL
+    storageKey: text("storage_key"), // S3/Spaces key
 
-  // === Status ===
-  status: text("status").default("pending"), // 'pending' | 'approved' | 'rejected' | 'signed'
-  signedAt: timestamp("signed_at"),
-  signedBy: text("signed_by"),
+    // === Status ===
+    status: text("status").default("pending"), // 'pending' | 'approved' | 'rejected' | 'signed'
+    signedAt: timestamp("signed_at"),
+    signedBy: text("signed_by"),
 
-  // === Timestamps ===
-  uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => ({
-  dealIdIdx: index("deal_documents_deal_id_idx").on(table.dealId),
-  typeIdx: index("deal_documents_type_idx").on(table.type),
-}));
+    // === Timestamps ===
+    uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    dealIdIdx: index("deal_documents_deal_id_idx").on(table.dealId),
+    typeIdx: index("deal_documents_type_idx").on(table.type),
+  }),
+);
 
 // ============================================================
 // DEALS RELATIONS
@@ -1485,8 +1712,14 @@ export const dealDocuments = pgTable("deal_documents", {
 
 export const dealsRelations = relations(deals, ({ one, many }) => ({
   lead: one(leads, { fields: [deals.leadId], references: [leads.id] }),
-  property: one(properties, { fields: [deals.propertyId], references: [properties.id] }),
-  business: one(businesses, { fields: [deals.businessId], references: [businesses.id] }),
+  property: one(properties, {
+    fields: [deals.propertyId],
+    references: [properties.id],
+  }),
+  business: one(businesses, {
+    fields: [deals.businessId],
+    references: [businesses.id],
+  }),
   activities: many(dealActivities),
   dealDocuments: many(dealDocuments),
 }));

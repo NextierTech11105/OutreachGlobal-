@@ -79,7 +79,8 @@ export async function fetchMessages(
       if (filter.assignedTo && filter.assignedTo.length > 0) {
         filteredMessages = filteredMessages.filter(
           (message) =>
-            message.assignedTo && filter.assignedTo?.includes(message.assignedTo),
+            message.assignedTo &&
+            filter.assignedTo?.includes(message.assignedTo),
         );
       }
     }
@@ -106,7 +107,7 @@ export async function sendReply(
   options?: {
     to?: string;
     scheduleAt?: string;
-  }
+  },
 ): Promise<boolean> {
   try {
     if (replyType === "sms" && options?.to) {
@@ -129,7 +130,9 @@ export async function sendReply(
     }
 
     // For other types, log and return true for now
-    console.log(`Sending ${replyType} reply to message ${messageId}: ${replyText}`);
+    console.log(
+      `Sending ${replyType} reply to message ${messageId}: ${replyText}`,
+    );
     return true;
   } catch (error) {
     console.error("Failed to send reply:", error);

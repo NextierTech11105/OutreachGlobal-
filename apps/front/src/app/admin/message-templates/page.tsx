@@ -1,6 +1,5 @@
 "use client";
 
-
 import { sf, sfd } from "@/lib/utils/safe-format";
 import { useState } from "react";
 import {
@@ -82,22 +81,34 @@ export default function MessageTemplatesPage() {
   // Templates state - starts empty, populated by user creation
   const [templates, setTemplates] = useState<MessageTemplate[]>([]);
   const [isOpen, setIsOpen] = useState(false);
-  const [editingTemplate, setEditingTemplate] = useState<MessageTemplate | null>(null);
-  const [newTemplate, setNewTemplate] = useState({ name: "", category: "", content: "" });
+  const [editingTemplate, setEditingTemplate] =
+    useState<MessageTemplate | null>(null);
+  const [newTemplate, setNewTemplate] = useState({
+    name: "",
+    category: "",
+    content: "",
+  });
 
   const handleSave = () => {
     if (editingTemplate) {
-      setTemplates(templates.map(t =>
-        t.id === editingTemplate.id ? { ...editingTemplate, ...newTemplate } : t
-      ));
+      setTemplates(
+        templates.map((t) =>
+          t.id === editingTemplate.id
+            ? { ...editingTemplate, ...newTemplate }
+            : t,
+        ),
+      );
     } else {
-      setTemplates([...templates, {
-        id: `${Date.now()}`,
-        ...newTemplate,
-        timesUsed: 0,
-        responseRate: 0,
-        isActive: true,
-      }]);
+      setTemplates([
+        ...templates,
+        {
+          id: `${Date.now()}`,
+          ...newTemplate,
+          timesUsed: 0,
+          responseRate: 0,
+          isActive: true,
+        },
+      ]);
     }
     setIsOpen(false);
     setNewTemplate({ name: "", category: "", content: "" });
@@ -105,16 +116,19 @@ export default function MessageTemplatesPage() {
   };
 
   const deleteTemplate = (id: string) => {
-    setTemplates(templates.filter(t => t.id !== id));
+    setTemplates(templates.filter((t) => t.id !== id));
   };
 
   const duplicateTemplate = (template: MessageTemplate) => {
-    setTemplates([...templates, {
-      ...template,
-      id: `${Date.now()}`,
-      name: `${template.name} (Copy)`,
-      timesUsed: 0,
-    }]);
+    setTemplates([
+      ...templates,
+      {
+        ...template,
+        id: `${Date.now()}`,
+        name: `${template.name} (Copy)`,
+        timesUsed: 0,
+      },
+    ]);
   };
 
   return (
@@ -145,7 +159,9 @@ export default function MessageTemplatesPage() {
                   <Label>Template Name</Label>
                   <Input
                     value={newTemplate.name}
-                    onChange={(e) => setNewTemplate({ ...newTemplate, name: e.target.value })}
+                    onChange={(e) =>
+                      setNewTemplate({ ...newTemplate, name: e.target.value })
+                    }
                     placeholder="e.g., Initial Outreach"
                   />
                 </div>
@@ -153,14 +169,18 @@ export default function MessageTemplatesPage() {
                   <Label>Category</Label>
                   <Select
                     value={newTemplate.category}
-                    onValueChange={(value) => setNewTemplate({ ...newTemplate, category: value })}
+                    onValueChange={(value) =>
+                      setNewTemplate({ ...newTemplate, category: value })
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select category..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {categories.map(cat => (
-                        <SelectItem key={cat} value={cat}>{cat.replace("_", " ")}</SelectItem>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat} value={cat}>
+                          {cat.replace("_", " ")}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -171,7 +191,9 @@ export default function MessageTemplatesPage() {
                 <Label>Message Content</Label>
                 <Textarea
                   value={newTemplate.content}
-                  onChange={(e) => setNewTemplate({ ...newTemplate, content: e.target.value })}
+                  onChange={(e) =>
+                    setNewTemplate({ ...newTemplate, content: e.target.value })
+                  }
                   placeholder="Hi {{firstName}}, I noticed your property..."
                   rows={4}
                 />
@@ -188,13 +210,17 @@ export default function MessageTemplatesPage() {
                       key={token}
                       variant="outline"
                       size="sm"
-                      onClick={() => setNewTemplate({
-                        ...newTemplate,
-                        content: newTemplate.content + token
-                      })}
+                      onClick={() =>
+                        setNewTemplate({
+                          ...newTemplate,
+                          content: newTemplate.content + token,
+                        })
+                      }
                     >
                       {token}
-                      <span className="ml-1 text-xs text-muted-foreground">({desc})</span>
+                      <span className="ml-1 text-xs text-muted-foreground">
+                        ({desc})
+                      </span>
                     </Button>
                   ))}
                 </div>
@@ -248,8 +274,12 @@ export default function MessageTemplatesPage() {
           <CardContent>
             <div className="text-2xl font-bold">
               {templates.length > 0
-                ? (templates.reduce((sum, t) => sum + t.responseRate, 0) / templates.length).toFixed(1)
-                : "0"}%
+                ? (
+                    templates.reduce((sum, t) => sum + t.responseRate, 0) /
+                    templates.length
+                  ).toFixed(1)
+                : "0"}
+              %
             </div>
           </CardContent>
         </Card>
@@ -259,7 +289,7 @@ export default function MessageTemplatesPage() {
         <CardHeader>
           <CardTitle>All Templates</CardTitle>
           <CardDescription>
-            {templates.filter(t => t.isActive).length} active templates
+            {templates.filter((t) => t.isActive).length} active templates
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -277,25 +307,41 @@ export default function MessageTemplatesPage() {
             <TableBody>
               {templates.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                  <TableCell
+                    colSpan={6}
+                    className="text-center py-12 text-muted-foreground"
+                  >
                     <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
                     <p className="font-medium">No Templates Yet</p>
-                    <p className="text-sm">Create your first message template to get started</p>
+                    <p className="text-sm">
+                      Create your first message template to get started
+                    </p>
                   </TableCell>
                 </TableRow>
               ) : null}
               {templates.map((template) => (
-                <TableRow key={template.id} className={!template.isActive ? "opacity-50" : ""}>
+                <TableRow
+                  key={template.id}
+                  className={!template.isActive ? "opacity-50" : ""}
+                >
                   <TableCell className="font-medium">{template.name}</TableCell>
                   <TableCell>
-                    <Badge variant="secondary">{template.category.replace("_", " ")}</Badge>
+                    <Badge variant="secondary">
+                      {template.category.replace("_", " ")}
+                    </Badge>
                   </TableCell>
                   <TableCell className="max-w-[300px] truncate text-sm text-muted-foreground">
                     {template.content}
                   </TableCell>
-                  <TableCell className="text-right">{sf(template.timesUsed)}</TableCell>
                   <TableCell className="text-right">
-                    <span className={template.responseRate > 10 ? "text-green-500" : ""}>
+                    {sf(template.timesUsed)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <span
+                      className={
+                        template.responseRate > 10 ? "text-green-500" : ""
+                      }
+                    >
                       {template.responseRate}%
                     </span>
                   </TableCell>
@@ -306,7 +352,11 @@ export default function MessageTemplatesPage() {
                         size="icon"
                         onClick={() => {
                           setEditingTemplate(template);
-                          setNewTemplate({ name: template.name, category: template.category, content: template.content });
+                          setNewTemplate({
+                            name: template.name,
+                            category: template.category,
+                            content: template.content,
+                          });
                           setIsOpen(true);
                         }}
                       >

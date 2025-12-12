@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { gianna, classifyResponse, type GiannaContext } from "@/lib/gianna/gianna-service";
+import {
+  gianna,
+  classifyResponse,
+  type GiannaContext,
+} from "@/lib/gianna/gianna-service";
 
 /**
  * GIANNA VOICE GATHER HANDLER
@@ -8,7 +12,9 @@ import { gianna, classifyResponse, type GiannaContext } from "@/lib/gianna/giann
  * personality-driven responses using the full DNA system.
  */
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://monkfish-app-mb7h3.ondigitalocean.app";
+const APP_URL =
+  process.env.NEXT_PUBLIC_APP_URL ||
+  "https://monkfish-app-mb7h3.ondigitalocean.app";
 const FORWARD_NUMBER = process.env.FORWARD_PHONE_NUMBER || "+12125551234";
 
 export async function POST(request: NextRequest) {
@@ -26,7 +32,7 @@ export async function POST(request: NextRequest) {
       speechResult,
       digits,
       confidence,
-      from
+      from,
     });
 
     // Handle DTMF input (button presses)
@@ -76,7 +82,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Interested in property valuation
-    if (classification.intent === "interested" || wantsValuation(speechResult)) {
+    if (
+      classification.intent === "interested" ||
+      wantsValuation(speechResult)
+    ) {
       console.log("[Gianna Voice] Caller interested in valuation");
 
       // Log the hot lead for callback
@@ -144,7 +153,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Opt-out / Not interested
-    if (classification.intent === "opt_out" || classification.intent === "hard_no") {
+    if (
+      classification.intent === "opt_out" ||
+      classification.intent === "hard_no"
+    ) {
       return twimlResponse(`
         <Say voice="Polly.Joanna">
           No problem at all. Thanks for letting me know. Take care!
@@ -154,7 +166,10 @@ export async function POST(request: NextRequest) {
 
     // Question - generate AI response
     if (classification.intent === "question") {
-      const giannaResponse = await gianna.generateResponse(speechResult, context);
+      const giannaResponse = await gianna.generateResponse(
+        speechResult,
+        context,
+      );
 
       return twimlResponse(`
         <Say voice="Polly.Joanna">${escapeXml(giannaResponse.message)}</Say>
@@ -194,7 +209,6 @@ export async function POST(request: NextRequest) {
       </Gather>
       <Say voice="Polly.Joanna">Thanks for calling NexTier. Have a great one!</Say>
     `);
-
   } catch (error) {
     console.error("[Gianna Voice Gather] Error:", error);
     return twimlResponse(`
@@ -306,11 +320,18 @@ function isBusinessInquiry(speech: string): boolean {
 function looksLikeAddress(speech: string): boolean {
   // Simple heuristic for address detection
   const hasNumber = /\d+/.test(speech);
-  const hasStreetWord = /\b(street|st|avenue|ave|road|rd|drive|dr|lane|ln|way|boulevard|blvd)\b/i.test(speech);
+  const hasStreetWord =
+    /\b(street|st|avenue|ave|road|rd|drive|dr|lane|ln|way|boulevard|blvd)\b/i.test(
+      speech,
+    );
   return hasNumber && hasStreetWord;
 }
 
-async function logHotLead(phone: string, transcript: string, type: string): Promise<void> {
+async function logHotLead(
+  phone: string,
+  transcript: string,
+  type: string,
+): Promise<void> {
   try {
     await fetch(`${APP_URL}/api/leads/hot`, {
       method: "POST",
@@ -328,7 +349,10 @@ async function logHotLead(phone: string, transcript: string, type: string): Prom
   }
 }
 
-async function logPropertyAddress(phone: string, address: string): Promise<void> {
+async function logPropertyAddress(
+  phone: string,
+  address: string,
+): Promise<void> {
   try {
     await fetch(`${APP_URL}/api/property/from-voice`, {
       method: "POST",

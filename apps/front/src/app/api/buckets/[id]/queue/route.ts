@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { QueueBucketRequest } from "@/lib/types/bucket";
-import { S3Client, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  GetObjectCommand,
+  PutObjectCommand,
+} from "@aws-sdk/client-s3";
 
 // DO Spaces configuration
 const SPACES_ENDPOINT = "https://nyc3.digitaloceanspaces.com";
@@ -60,7 +64,7 @@ async function getBucketData(id: string): Promise<BucketData | null> {
       new GetObjectCommand({
         Bucket: SPACES_BUCKET,
         Key: `buckets/${id}.json`,
-      })
+      }),
     );
 
     const bodyContents = await response.Body?.transformToString();
@@ -87,7 +91,7 @@ async function saveQueueEntry(entry: QueueEntry): Promise<boolean> {
         Key: `queues/${entry.id}.json`,
         Body: JSON.stringify(entry, null, 2),
         ContentType: "application/json",
-      })
+      }),
     );
     return true;
   } catch (error) {
@@ -99,7 +103,7 @@ async function saveQueueEntry(entry: QueueEntry): Promise<boolean> {
 // POST /api/buckets/:id/queue - Queue bucket leads for outreach
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
@@ -115,7 +119,11 @@ export async function POST(
       // Only queue enriched leads (those with phone/email)
       if (bucketData.leads && bucketData.leads.length > 0) {
         for (const lead of bucketData.leads) {
-          if (lead.enrichmentStatus === "completed" || lead.phone || lead.email) {
+          if (
+            lead.enrichmentStatus === "completed" ||
+            lead.phone ||
+            lead.email
+          ) {
             leadsQueued++;
             leadsIds.push(lead.id);
           }
@@ -151,7 +159,10 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
-      message: leadsQueued > 0 ? "Leads queued for outreach" : "No enriched leads to queue",
+      message:
+        leadsQueued > 0
+          ? "Leads queued for outreach"
+          : "No enriched leads to queue",
       queue: {
         id: queueId,
         bucketId: id,
@@ -164,6 +175,9 @@ export async function POST(
     });
   } catch (error) {
     console.error("[Bucket Queue API] POST error:", error);
-    return NextResponse.json({ error: "Failed to queue leads" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to queue leads" },
+      { status: 500 },
+    );
   }
 }

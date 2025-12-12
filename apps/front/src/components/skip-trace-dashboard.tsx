@@ -63,7 +63,13 @@ interface SkipTraceResult {
   lastName?: string;
   phones: Array<{ number: string; type?: string; score?: number }>;
   emails: Array<{ email: string; type?: string }>;
-  addresses: Array<{ street: string; city: string; state: string; zip: string; type?: string }>;
+  addresses: Array<{
+    street: string;
+    city: string;
+    state: string;
+    zip: string;
+    type?: string;
+  }>;
   success: boolean;
   error?: string;
 }
@@ -92,7 +98,9 @@ export function SkipTraceDashboard() {
   const [usage, setUsage] = useState<UsageInfo | null>(null);
   const [sortField, setSortField] = useState<SortField>("status");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
-  const [filterStatus, setFilterStatus] = useState<"all" | "success" | "failed" | "with_phones">("all");
+  const [filterStatus, setFilterStatus] = useState<
+    "all" | "success" | "failed" | "with_phones"
+  >("all");
 
   // Single skip trace form
   const [singleForm, setSingleForm] = useState({
@@ -159,7 +167,9 @@ export function SkipTraceDashboard() {
       setUsage(data.usage);
 
       if (data.success && data.phones?.length > 0) {
-        toast.success(`Found ${data.phones.length} phone(s) for ${data.ownerName}`);
+        toast.success(
+          `Found ${data.phones.length} phone(s) for ${data.ownerName}`,
+        );
       } else if (data.success) {
         toast.info("Skip trace successful but no phone found");
       } else {
@@ -209,7 +219,7 @@ export function SkipTraceDashboard() {
       setUsage(data.usage);
 
       toast.success(
-        `Skip traced ${data.stats.successful}/${data.stats.requested} - ${data.stats.withPhones} with phones`
+        `Skip traced ${data.stats.successful}/${data.stats.requested} - ${data.stats.withPhones} with phones`,
       );
     } catch (error) {
       toast.error("Bulk skip trace failed");
@@ -322,13 +332,19 @@ export function SkipTraceDashboard() {
                 <div className="text-sm">
                   <span className="text-muted-foreground">Today:</span>{" "}
                   <span className="font-bold">{sf(usage.today)}</span>
-                  <span className="text-muted-foreground"> / {sf(usage.limit)}</span>
+                  <span className="text-muted-foreground">
+                    {" "}
+                    / {sf(usage.limit)}
+                  </span>
                 </div>
                 <Progress
                   value={(usage.today / usage.limit) * 100}
                   className="w-24 h-2"
                 />
-                <Badge variant="outline" className="text-green-400 border-green-400/50">
+                <Badge
+                  variant="outline"
+                  className="text-green-400 border-green-400/50"
+                >
                   {sf(usage.remaining)} remaining
                 </Badge>
               </div>
@@ -426,7 +442,8 @@ export function SkipTraceDashboard() {
             />
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">
-                {bulkIds.split(/[\n,]/).filter((id) => id.trim()).length} IDs entered
+                {bulkIds.split(/[\n,]/).filter((id) => id.trim()).length} IDs
+                entered
               </span>
               <Button
                 onClick={handleBulkSkipTrace}
@@ -461,22 +478,33 @@ export function SkipTraceDashboard() {
                 <div className="text-sm text-muted-foreground">Requested</div>
               </div>
               <div className="text-center p-4 bg-green-500/10 rounded-lg border border-green-500/30">
-                <div className="text-3xl font-bold text-green-400">{stats.successful}</div>
+                <div className="text-3xl font-bold text-green-400">
+                  {stats.successful}
+                </div>
                 <div className="text-sm text-muted-foreground">Successful</div>
               </div>
               <div className="text-center p-4 bg-blue-500/10 rounded-lg border border-blue-500/30">
-                <div className="text-3xl font-bold text-blue-400">{stats.withPhones}</div>
+                <div className="text-3xl font-bold text-blue-400">
+                  {stats.withPhones}
+                </div>
                 <div className="text-sm text-muted-foreground">With Phones</div>
                 <div className="text-xs text-blue-300">
-                  {stats.requested > 0 ? Math.round((stats.withPhones / stats.requested) * 100) : 0}% hit rate
+                  {stats.requested > 0
+                    ? Math.round((stats.withPhones / stats.requested) * 100)
+                    : 0}
+                  % hit rate
                 </div>
               </div>
               <div className="text-center p-4 bg-purple-500/10 rounded-lg border border-purple-500/30">
-                <div className="text-3xl font-bold text-purple-400">{stats.withEmails}</div>
+                <div className="text-3xl font-bold text-purple-400">
+                  {stats.withEmails}
+                </div>
                 <div className="text-sm text-muted-foreground">With Emails</div>
               </div>
               <div className="text-center p-4 bg-red-500/10 rounded-lg border border-red-500/30">
-                <div className="text-3xl font-bold text-red-400">{stats.failed}</div>
+                <div className="text-3xl font-bold text-red-400">
+                  {stats.failed}
+                </div>
                 <div className="text-sm text-muted-foreground">Failed</div>
               </div>
             </div>
@@ -644,7 +672,8 @@ export function SkipTraceDashboard() {
                         <div className="flex items-center gap-1 text-sm">
                           <MapPin className="w-3 h-3 text-orange-400" />
                           <span>
-                            {result.addresses[0].city}, {result.addresses[0].state}
+                            {result.addresses[0].city},{" "}
+                            {result.addresses[0].state}
                           </span>
                         </div>
                       ) : result.input?.city ? (

@@ -10,8 +10,8 @@ export function VerificationResults() {
         <AlertCircle className="h-12 w-12 mx-auto text-zinc-500" />
         <h3 className="text-lg font-medium">No Verification Results</h3>
         <p className="text-sm text-muted-foreground max-w-md mx-auto">
-          Upload a CSV file or import from your CRM to verify addresses.
-          Results will appear here after processing.
+          Upload a CSV file or import from your CRM to verify addresses. Results
+          will appear here after processing.
         </p>
       </div>
     </Card>

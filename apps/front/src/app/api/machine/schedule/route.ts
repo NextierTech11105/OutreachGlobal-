@@ -22,7 +22,12 @@ interface ScheduleInput {
   teamId: string;
   dealId: string;
   userId: string;
-  appointmentType: "discovery" | "strategy" | "proposal" | "closing" | "follow_up";
+  appointmentType:
+    | "discovery"
+    | "strategy"
+    | "proposal"
+    | "closing"
+    | "follow_up";
   title?: string;
   description?: string;
   duration?: number; // minutes
@@ -38,12 +43,15 @@ interface ScheduleInput {
 }
 
 // Appointment type configurations
-const APPOINTMENT_CONFIGS: Record<string, {
-  defaultTitle: string;
-  defaultDuration: number;
-  description: string;
-  nextStage?: string;
-}> = {
+const APPOINTMENT_CONFIGS: Record<
+  string,
+  {
+    defaultTitle: string;
+    defaultDuration: number;
+    description: string;
+    nextStage?: string;
+  }
+> = {
   discovery: {
     defaultTitle: "Discovery Call",
     defaultDuration: 30,
@@ -95,7 +103,7 @@ export async function POST(request: NextRequest) {
     if (!teamId || !dealId || !userId || !appointmentType) {
       return NextResponse.json(
         { error: "teamId, dealId, userId, and appointmentType required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -129,14 +137,14 @@ export async function POST(request: NextRequest) {
     const config = APPOINTMENT_CONFIGS[appointmentType];
 
     // Build appointment title
-    const appointmentTitle = title ||
-      `${config.defaultTitle}: ${dealData.name}`;
+    const appointmentTitle =
+      title || `${config.defaultTitle}: ${dealData.name}`;
 
     // Build attendee list (add seller from deal if not specified)
     const finalAttendees = [...attendees];
     const seller = dealData.seller as Record<string, string> | null;
 
-    if (seller && !attendees.some(a => a.role === "seller")) {
+    if (seller && !attendees.some((a) => a.role === "seller")) {
       finalAttendees.push({
         name: seller.name || "Seller",
         email: seller.email,
@@ -214,7 +222,9 @@ export async function POST(request: NextRequest) {
       },
       nextActions: [
         "Appointment will be confirmed once calendar slot is selected",
-        config.nextStage ? `After meeting, consider moving deal to ${config.nextStage}` : null,
+        config.nextStage
+          ? `After meeting, consider moving deal to ${config.nextStage}`
+          : null,
         "Send calendar invite to attendees",
       ].filter(Boolean),
     });
@@ -222,7 +232,7 @@ export async function POST(request: NextRequest) {
     console.error("[Machine] Schedule error:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to schedule" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -237,7 +247,7 @@ export async function GET(request: NextRequest) {
     if (!dealId || !teamId) {
       return NextResponse.json(
         { error: "dealId and teamId required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -267,7 +277,7 @@ export async function GET(request: NextRequest) {
     const suggestedTypes = stageSuggestions[dealData.stage] || ["follow_up"];
 
     // Build suggestions
-    const suggestions = suggestedTypes.map(type => ({
+    const suggestions = suggestedTypes.map((type) => ({
       type,
       ...APPOINTMENT_CONFIGS[type],
       recommended: type === suggestedTypes[0],
@@ -281,16 +291,21 @@ export async function GET(request: NextRequest) {
         stage: dealData.stage,
       },
       suggestions,
-      appointmentTypes: Object.entries(APPOINTMENT_CONFIGS).map(([type, config]) => ({
-        type,
-        ...config,
-      })),
+      appointmentTypes: Object.entries(APPOINTMENT_CONFIGS).map(
+        ([type, config]) => ({
+          type,
+          ...config,
+        }),
+      ),
     });
   } catch (error) {
     console.error("[Machine] Schedule suggestions error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to get suggestions" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to get suggestions",
+      },
+      { status: 500 },
     );
   }
 }

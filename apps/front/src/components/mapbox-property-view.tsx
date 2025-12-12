@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 
-const MAPBOX_TOKEN = "pk.eyJ1IjoibmV4dGllcjExMTA1IiwiYSI6ImNtaXVrbmRodTFrY3YzanEwamFoZG44dWQifQ.EGNVQPofUwZm60KP6iID_g";
+const MAPBOX_TOKEN =
+  "pk.eyJ1IjoibmV4dGllcjExMTA1IiwiYSI6ImNtaXVrbmRodTFrY3YzanEwamFoZG44dWQifQ.EGNVQPofUwZm60KP6iID_g";
 
 interface MapboxPropertyViewProps {
   latitude: number;
@@ -67,7 +68,10 @@ export function MapboxPropertyView({
       });
 
       // Add navigation controls
-      map.current.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
+      map.current.addControl(
+        new mapboxgl.NavigationControl({ showCompass: false }),
+        "top-right",
+      );
 
       // Add marker with popup
       if (showMarker) {
@@ -76,8 +80,12 @@ export function MapboxPropertyView({
           .addTo(map.current);
 
         if (address) {
-          const popup = new mapboxgl.Popup({ offset: 25, closeButton: false })
-            .setHTML(`<div style="padding:4px;font-size:12px;"><strong>${address}</strong></div>`);
+          const popup = new mapboxgl.Popup({
+            offset: 25,
+            closeButton: false,
+          }).setHTML(
+            `<div style="padding:4px;font-size:12px;"><strong>${address}</strong></div>`,
+          );
           marker.current.setPopup(popup);
         }
       }
@@ -91,7 +99,6 @@ export function MapboxPropertyView({
         console.error("Mapbox error:", e);
         setError("Map failed to load");
       });
-
     } catch (err) {
       console.error("Map initialization error:", err);
       setError("Failed to initialize map");
@@ -130,7 +137,11 @@ interface DualMapViewProps {
   address?: string;
 }
 
-export function DualMapView({ latitude, longitude, address }: DualMapViewProps) {
+export function DualMapView({
+  latitude,
+  longitude,
+  address,
+}: DualMapViewProps) {
   if (!latitude || !longitude) {
     return (
       <div className="space-y-4">

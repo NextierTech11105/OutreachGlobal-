@@ -35,7 +35,9 @@ export function AddressVerificationModule() {
   const [singleAddress, setSingleAddress] = useState("");
   const [bulkAddresses, setBulkAddresses] = useState("");
 
-  const verifyAddress = async (address: string): Promise<VerificationResult> => {
+  const verifyAddress = async (
+    address: string,
+  ): Promise<VerificationResult> => {
     try {
       // Use PropertyDetail API with address parameter for verification
       const response = await fetch("/api/address/verify", {
@@ -51,7 +53,8 @@ export function AddressVerificationModule() {
         return {
           original: address,
           verified: true,
-          standardized: prop.address?.address || prop.address?.street || address,
+          standardized:
+            prop.address?.address || prop.address?.street || address,
           city: prop.address?.city,
           state: prop.address?.state,
           zip: prop.address?.zip,
@@ -127,7 +130,17 @@ export function AddressVerificationModule() {
   const downloadResults = () => {
     if (results.length === 0) return;
     const csv = [
-      ["Original", "Verified", "Standardized", "City", "State", "ZIP", "County", "Property ID", "Error"].join(","),
+      [
+        "Original",
+        "Verified",
+        "Standardized",
+        "City",
+        "State",
+        "ZIP",
+        "County",
+        "Property ID",
+        "Error",
+      ].join(","),
       ...results.map((r) =>
         [
           `"${r.original}"`,
@@ -139,7 +152,7 @@ export function AddressVerificationModule() {
           r.county || "",
           r.propertyId || "",
           `"${r.error || ""}"`,
-        ].join(",")
+        ].join(","),
       ),
     ].join("\n");
 
@@ -159,7 +172,11 @@ export function AddressVerificationModule() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="single" value={activeTab} onValueChange={setActiveTab}>
+        <Tabs
+          defaultValue="single"
+          value={activeTab}
+          onValueChange={setActiveTab}
+        >
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="single">Single Address</TabsTrigger>
             <TabsTrigger value="bulk">Bulk Verify</TabsTrigger>
@@ -176,7 +193,11 @@ export function AddressVerificationModule() {
                 onKeyDown={(e) => e.key === "Enter" && handleVerifySingle()}
               />
             </div>
-            <Button onClick={handleVerifySingle} disabled={isVerifying} className="w-full">
+            <Button
+              onClick={handleVerifySingle}
+              disabled={isVerifying}
+              className="w-full"
+            >
               {isVerifying ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -190,7 +211,9 @@ export function AddressVerificationModule() {
 
           <TabsContent value="bulk" className="mt-6 space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="bulk">Enter Addresses (one per line, max 100)</Label>
+              <Label htmlFor="bulk">
+                Enter Addresses (one per line, max 100)
+              </Label>
               <Textarea
                 id="bulk"
                 placeholder="123 Main St, Miami, FL 33101&#10;456 Oak Ave, Houston, TX 77001&#10;789 Pine Rd, Denver, CO 80202"
@@ -199,11 +222,16 @@ export function AddressVerificationModule() {
                 onChange={(e) => setBulkAddresses(e.target.value)}
               />
             </div>
-            <Button onClick={handleVerifyBulk} disabled={isVerifying} className="w-full">
+            <Button
+              onClick={handleVerifyBulk}
+              disabled={isVerifying}
+              className="w-full"
+            >
               {isVerifying ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Verifying {results.length}/{bulkAddresses.split("\n").filter((a) => a.trim()).length}...
+                  Verifying {results.length}/
+                  {bulkAddresses.split("\n").filter((a) => a.trim()).length}...
                 </>
               ) : (
                 "Verify All Addresses"
@@ -216,7 +244,8 @@ export function AddressVerificationModule() {
           <div className="mt-6 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-medium">
-                Results ({results.filter((r) => r.verified).length}/{results.length} verified)
+                Results ({results.filter((r) => r.verified).length}/
+                {results.length} verified)
               </h3>
               <Button variant="outline" size="sm" onClick={downloadResults}>
                 <Download className="mr-2 h-4 w-4" />
@@ -239,7 +268,9 @@ export function AddressVerificationModule() {
                       <td className="p-2">{r.original}</td>
                       <td className="p-2">{r.standardized || "-"}</td>
                       <td className="p-2">
-                        {r.city && r.state ? `${r.city}, ${r.state} ${r.zip || ""}` : "-"}
+                        {r.city && r.state
+                          ? `${r.city}, ${r.state} ${r.zip || ""}`
+                          : "-"}
                       </td>
                       <td className="p-2 text-center">
                         {r.verified ? (
@@ -257,7 +288,14 @@ export function AddressVerificationModule() {
         )}
       </CardContent>
       <CardFooter className="flex justify-between">
-        <Button variant="outline" onClick={() => { setResults([]); setSingleAddress(""); setBulkAddresses(""); }}>
+        <Button
+          variant="outline"
+          onClick={() => {
+            setResults([]);
+            setSingleAddress("");
+            setBulkAddresses("");
+          }}
+        >
           Clear
         </Button>
         {results.length > 0 && results.some((r) => r.propertyId) && (

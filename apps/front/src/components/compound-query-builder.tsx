@@ -25,7 +25,10 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { MapComponent } from "@/components/map-component";
 import { SearchResults } from "@/components/search-results";
-import type { PropertySearchQuery, PropertySearchResult } from "@/lib/services/real-estate-api";
+import type {
+  PropertySearchQuery,
+  PropertySearchResult,
+} from "@/lib/services/real-estate-api";
 import { Loader2, Save, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -129,7 +132,9 @@ export function CompoundQueryBuilder() {
   const [results, setResults] = useState<PropertySearchResult[]>([]);
   const [resultCount, setResultCount] = useState(0);
   const [propertyIds, setPropertyIds] = useState<string[]>([]);
-  const [currentQuery, setCurrentQuery] = useState<PropertySearchQuery | null>(null);
+  const [currentQuery, setCurrentQuery] = useState<PropertySearchQuery | null>(
+    null,
+  );
 
   const buildQuery = useCallback((): PropertySearchQuery => {
     const query: PropertySearchQuery = {};
@@ -139,7 +144,10 @@ export function CompoundQueryBuilder() {
     if (county) query.county = county;
     if (city) query.city = city;
     if (zipCodes) {
-      const zips = zipCodes.split(",").map(z => z.trim()).filter(Boolean);
+      const zips = zipCodes
+        .split(",")
+        .map((z) => z.trim())
+        .filter(Boolean);
       if (zips.length === 1) query.zip = zips[0];
     }
 
@@ -184,17 +192,36 @@ export function CompoundQueryBuilder() {
 
     return query;
   }, [
-    selectedState, county, city, zipCodes,
-    equityRange, highEquity, freeClear,
-    preForeclosure, foreclosure, auction, taxLien, vacant, inherited, death,
-    absenteeOwner, corporateOwned, cashBuyer, investorBuyer,
-    propertyTypes, sortField, sortOrder, idsOnly
+    selectedState,
+    county,
+    city,
+    zipCodes,
+    equityRange,
+    highEquity,
+    freeClear,
+    preForeclosure,
+    foreclosure,
+    auction,
+    taxLien,
+    vacant,
+    inherited,
+    death,
+    absenteeOwner,
+    corporateOwned,
+    cashBuyer,
+    investorBuyer,
+    propertyTypes,
+    sortField,
+    sortOrder,
+    idsOnly,
   ]);
 
   const handleSearch = async () => {
     // Validate location
     if (!selectedState && !county && !city && !zipCodes) {
-      setError("Please specify at least one location filter (state, county, city, or ZIP)");
+      setError(
+        "Please specify at least one location filter (state, county, city, or ZIP)",
+      );
       return;
     }
 
@@ -229,7 +256,9 @@ export function CompoundQueryBuilder() {
       }
 
       setSearchComplete(true);
-      toast.success(`Found ${data.resultCount || data.count || data.ids?.length || 0} properties`);
+      toast.success(
+        `Found ${data.resultCount || data.count || data.ids?.length || 0} properties`,
+      );
     } catch (err) {
       console.error("Search error:", err);
       setError(err instanceof Error ? err.message : "Search failed");
@@ -259,7 +288,9 @@ export function CompoundQueryBuilder() {
       if (!response.ok) throw new Error("Failed to save search");
 
       const data = await response.json();
-      toast.success(`Saved search with ${data.propertyIds?.length || 0} property IDs tracked`);
+      toast.success(
+        `Saved search with ${data.propertyIds?.length || 0} property IDs tracked`,
+      );
     } catch (err) {
       console.error("Save error:", err);
       toast.error("Failed to save search");
@@ -281,16 +312,26 @@ export function CompoundQueryBuilder() {
   };
 
   const togglePropertyType = (type: string) => {
-    setPropertyTypes(prev =>
-      prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+    setPropertyTypes((prev) =>
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type],
     );
   };
 
   const getActiveFiltersCount = () => {
     let count = 0;
     if (selectedState || county || city || zipCodes) count++;
-    if (equityRange[0] > 0 || equityRange[1] < 100 || highEquity || freeClear) count++;
-    if (preForeclosure || foreclosure || auction || taxLien || vacant || inherited || death) count++;
+    if (equityRange[0] > 0 || equityRange[1] < 100 || highEquity || freeClear)
+      count++;
+    if (
+      preForeclosure ||
+      foreclosure ||
+      auction ||
+      taxLien ||
+      vacant ||
+      inherited ||
+      death
+    )
+      count++;
     if (absenteeOwner || corporateOwned || propertyTypes.length > 0) count++;
     return count;
   };
@@ -306,7 +347,9 @@ export function CompoundQueryBuilder() {
             </CardDescription>
           </div>
           {getActiveFiltersCount() > 0 && (
-            <Badge variant="secondary">{getActiveFiltersCount()} filter groups active</Badge>
+            <Badge variant="secondary">
+              {getActiveFiltersCount()} filter groups active
+            </Badge>
           )}
         </div>
       </CardHeader>
@@ -335,12 +378,15 @@ export function CompoundQueryBuilder() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="state">State</Label>
-                  <Select value={selectedState} onValueChange={setSelectedState}>
+                  <Select
+                    value={selectedState}
+                    onValueChange={setSelectedState}
+                  >
                     <SelectTrigger id="state">
                       <SelectValue placeholder="Select state" />
                     </SelectTrigger>
                     <SelectContent>
-                      {US_STATES.map(state => (
+                      {US_STATES.map((state) => (
                         <SelectItem key={state.value} value={state.value}>
                           {state.label}
                         </SelectItem>
@@ -413,7 +459,9 @@ export function CompoundQueryBuilder() {
                   <Checkbox
                     id="high-equity"
                     checked={highEquity}
-                    onCheckedChange={(checked) => setHighEquity(checked === true)}
+                    onCheckedChange={(checked) =>
+                      setHighEquity(checked === true)
+                    }
                   />
                   <Label htmlFor="high-equity">High Equity (80%+)</Label>
                 </div>
@@ -422,7 +470,9 @@ export function CompoundQueryBuilder() {
                   <Checkbox
                     id="free-clear"
                     checked={freeClear}
-                    onCheckedChange={(checked) => setFreeClear(checked === true)}
+                    onCheckedChange={(checked) =>
+                      setFreeClear(checked === true)
+                    }
                   />
                   <Label htmlFor="free-clear">Free & Clear (No Mortgage)</Label>
                 </div>
@@ -438,15 +488,26 @@ export function CompoundQueryBuilder() {
                     <SelectContent>
                       <SelectItem value="years_owned">Years Owned</SelectItem>
                       <SelectItem value="equity_percent">Equity %</SelectItem>
-                      <SelectItem value="estimated_equity">Equity Amount</SelectItem>
-                      <SelectItem value="estimated_value">Property Value</SelectItem>
+                      <SelectItem value="estimated_equity">
+                        Equity Amount
+                      </SelectItem>
+                      <SelectItem value="estimated_value">
+                        Property Value
+                      </SelectItem>
                       <SelectItem value="year_built">Year Built</SelectItem>
-                      <SelectItem value="building_size">Building Size</SelectItem>
+                      <SelectItem value="building_size">
+                        Building Size
+                      </SelectItem>
                       <SelectItem value="lot_size">Lot Size</SelectItem>
-                      <SelectItem value="last_sale_date">Last Sale Date</SelectItem>
+                      <SelectItem value="last_sale_date">
+                        Last Sale Date
+                      </SelectItem>
                     </SelectContent>
                   </Select>
-                  <Select value={sortOrder} onValueChange={(v) => setSortOrder(v as "asc" | "desc")}>
+                  <Select
+                    value={sortOrder}
+                    onValueChange={(v) => setSortOrder(v as "asc" | "desc")}
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -461,7 +522,9 @@ export function CompoundQueryBuilder() {
 
             <TabsContent value="distress" className="mt-6 space-y-4">
               <div className="space-y-4">
-                <Label className="text-base font-semibold">Distress Indicators</Label>
+                <Label className="text-base font-semibold">
+                  Distress Indicators
+                </Label>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex items-center space-x-2">
                     <Switch
@@ -469,7 +532,9 @@ export function CompoundQueryBuilder() {
                       checked={preForeclosure}
                       onCheckedChange={setPreForeclosure}
                     />
-                    <Label htmlFor="pre-foreclosure">Pre-Foreclosure / Lis Pendens</Label>
+                    <Label htmlFor="pre-foreclosure">
+                      Pre-Foreclosure / Lis Pendens
+                    </Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Switch
@@ -523,13 +588,17 @@ export function CompoundQueryBuilder() {
               </div>
 
               <div className="space-y-4 pt-4 border-t">
-                <Label className="text-base font-semibold">Owner Characteristics</Label>
+                <Label className="text-base font-semibold">
+                  Owner Characteristics
+                </Label>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id="absentee"
                       checked={absenteeOwner}
-                      onCheckedChange={(checked) => setAbsenteeOwner(checked === true)}
+                      onCheckedChange={(checked) =>
+                        setAbsenteeOwner(checked === true)
+                      }
                     />
                     <Label htmlFor="absentee">Absentee Owner</Label>
                   </div>
@@ -537,7 +606,9 @@ export function CompoundQueryBuilder() {
                     <Checkbox
                       id="corporate"
                       checked={corporateOwned}
-                      onCheckedChange={(checked) => setCorporateOwned(checked === true)}
+                      onCheckedChange={(checked) =>
+                        setCorporateOwned(checked === true)
+                      }
                     />
                     <Label htmlFor="corporate">Corporate Owned (LLC)</Label>
                   </div>
@@ -545,7 +616,9 @@ export function CompoundQueryBuilder() {
                     <Checkbox
                       id="cash-buyer"
                       checked={cashBuyer}
-                      onCheckedChange={(checked) => setCashBuyer(checked === true)}
+                      onCheckedChange={(checked) =>
+                        setCashBuyer(checked === true)
+                      }
                     />
                     <Label htmlFor="cash-buyer">Cash Buyer</Label>
                   </div>
@@ -553,7 +626,9 @@ export function CompoundQueryBuilder() {
                     <Checkbox
                       id="investor"
                       checked={investorBuyer}
-                      onCheckedChange={(checked) => setInvestorBuyer(checked === true)}
+                      onCheckedChange={(checked) =>
+                        setInvestorBuyer(checked === true)
+                      }
                     />
                     <Label htmlFor="investor">Investor Buyer</Label>
                   </div>
@@ -619,9 +694,15 @@ export function CompoundQueryBuilder() {
               <div className="space-y-2 pt-4 border-t">
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label htmlFor="ids-only" className="text-base font-semibold">IDs Only Mode</Label>
+                    <Label
+                      htmlFor="ids-only"
+                      className="text-base font-semibold"
+                    >
+                      IDs Only Mode
+                    </Label>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Fetch up to 10,000 property IDs for tracking & change detection
+                      Fetch up to 10,000 property IDs for tracking & change
+                      detection
                     </p>
                   </div>
                   <Switch
@@ -637,12 +718,13 @@ export function CompoundQueryBuilder() {
           <div className="space-y-4">
             <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
               <div>
-                <h3 className="font-semibold text-lg">{sf(resultCount)} Properties Found</h3>
+                <h3 className="font-semibold text-lg">
+                  {sf(resultCount)} Properties Found
+                </h3>
                 <p className="text-sm text-muted-foreground">
                   {idsOnly
                     ? `${sf(propertyIds.length)} IDs retrieved for tracking`
-                    : `Showing ${results.length} detailed results`
-                  }
+                    : `Showing ${results.length} detailed results`}
                 </p>
               </div>
               <Button

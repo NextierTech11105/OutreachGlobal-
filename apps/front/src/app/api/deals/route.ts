@@ -46,9 +46,7 @@ export async function GET(request: NextRequest) {
 
     // Exclude closed deals from main list unless specifically requested
     if (!stage) {
-      conditions.push(
-        sql`${deals.stage} NOT IN ('closed_won', 'closed_lost')`
-      );
+      conditions.push(sql`${deals.stage} NOT IN ('closed_won', 'closed_lost')`);
     }
 
     // Fetch deals
@@ -88,8 +86,10 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("[Deals] List error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to list deals" },
-      { status: 500 }
+      {
+        error: error instanceof Error ? error.message : "Failed to list deals",
+      },
+      { status: 500 },
     );
   }
 }
@@ -97,7 +97,8 @@ export async function GET(request: NextRequest) {
 // POST - Create a new deal
 export async function POST(request: NextRequest) {
   try {
-    const body: CreateDealInput & { teamId: string; userId: string } = await request.json();
+    const body: CreateDealInput & { teamId: string; userId: string } =
+      await request.json();
     const {
       leadId,
       teamId,
@@ -114,8 +115,10 @@ export async function POST(request: NextRequest) {
 
     if (!leadId || !teamId || !type || !name || !estimatedValue) {
       return NextResponse.json(
-        { error: "leadId, teamId, type, name, and estimatedValue are required" },
-        { status: 400 }
+        {
+          error: "leadId, teamId, type, name, and estimatedValue are required",
+        },
+        { status: 400 },
       );
     }
 
@@ -166,7 +169,9 @@ export async function POST(request: NextRequest) {
 
     // Build seller from lead
     const seller = {
-      name: `${leadData.firstName || ""} ${leadData.lastName || ""}`.trim() || "Unknown",
+      name:
+        `${leadData.firstName || ""} ${leadData.lastName || ""}`.trim() ||
+        "Unknown",
       email: leadData.email,
       phone: leadData.phone,
       role: "seller" as const,
@@ -218,8 +223,10 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("[Deals] Create error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to create deal" },
-      { status: 500 }
+      {
+        error: error instanceof Error ? error.message : "Failed to create deal",
+      },
+      { status: 500 },
     );
   }
 }
@@ -277,15 +284,20 @@ async function getPipelineStats(teamId: string): Promise<PipelineStats> {
     // Days in pipeline
     const created = new Date(deal.createdAt);
     const updated = new Date(deal.updatedAt);
-    totalDays += Math.floor((updated.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
+    totalDays += Math.floor(
+      (updated.getTime() - created.getTime()) / (1000 * 60 * 60 * 24),
+    );
   }
 
   const totalClosed = closedWon + closedLost;
   const conversionRate = totalClosed > 0 ? (closedWon / totalClosed) * 100 : 0;
-  const avgDaysInPipeline = allDeals.length > 0 ? totalDays / allDeals.length : 0;
+  const avgDaysInPipeline =
+    allDeals.length > 0 ? totalDays / allDeals.length : 0;
 
   return {
-    totalDeals: allDeals.filter((d) => activeStages.includes(d.stage as DealStage)).length,
+    totalDeals: allDeals.filter((d) =>
+      activeStages.includes(d.stage as DealStage),
+    ).length,
     totalValue,
     byStage: byStage as Record<DealStage, { count: number; value: number }>,
     byType: byType as Record<string, { count: number; value: number }>,

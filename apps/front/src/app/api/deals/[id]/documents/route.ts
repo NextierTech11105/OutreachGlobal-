@@ -28,7 +28,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     // Get documents
-    let query = db
+    const query = db
       .select()
       .from(dealDocuments)
       .where(eq(dealDocuments.dealId, dealId))
@@ -49,8 +49,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     console.error("[Deals] Get documents error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to get documents" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to get documents",
+      },
+      { status: 500 },
     );
   }
 }
@@ -65,7 +68,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     if (!type || !name || !url) {
       return NextResponse.json(
         { error: "type, name, and url are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -110,10 +113,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     await db.insert(dealActivities).values(activity);
 
     // Update deal timestamp
-    await db
-      .update(deals)
-      .set({ updatedAt: now })
-      .where(eq(deals.id, dealId));
+    await db.update(deals).set({ updatedAt: now }).where(eq(deals.id, dealId));
 
     return NextResponse.json({
       success: true,
@@ -123,8 +123,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     console.error("[Deals] Add document error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to add document" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to add document",
+      },
+      { status: 500 },
     );
   }
 }
@@ -139,7 +142,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     if (!documentId) {
       return NextResponse.json(
         { error: "documentId is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -151,13 +154,16 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       .limit(1);
 
     if (!document.length) {
-      return NextResponse.json({ error: "Document not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Document not found" },
+        { status: 404 },
+      );
     }
 
     if (document[0].dealId !== dealId) {
       return NextResponse.json(
         { error: "Document does not belong to this deal" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -183,8 +189,11 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     console.error("[Deals] Delete document error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to delete document" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to delete document",
+      },
+      { status: 500 },
     );
   }
 }

@@ -10,7 +10,9 @@ import { automationService } from "@/lib/services/automation-service";
 // - Email capture & auto-send
 // - Opt-out/wrong number handling
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://monkfish-app-mb7h3.ondigitalocean.app";
+const APP_URL =
+  process.env.NEXT_PUBLIC_APP_URL ||
+  "https://monkfish-app-mb7h3.ondigitalocean.app";
 const EMAIL_REGEX = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
 
 interface TwilioSmsPayload {
@@ -40,7 +42,9 @@ interface ConversationContext {
   propertyAddress?: string;
 }
 
-async function getConversationContext(phone: string): Promise<ConversationContext> {
+async function getConversationContext(
+  phone: string,
+): Promise<ConversationContext> {
   // In production: lookup lead by phone number
   // For now, return empty context
   return {};
@@ -113,7 +117,7 @@ export async function POST(request: NextRequest) {
       leadId,
       from,
       body,
-      context.propertyId
+      context.propertyId,
     );
 
     console.log(`[Twilio SMS] Automation result:`, automationResult);
@@ -150,7 +154,9 @@ export async function POST(request: NextRequest) {
 
       case "email_provided": {
         const email = automationResult.extractedEmail;
-        console.log(`[Twilio SMS] Email captured: ${email} - Flagged as HOT LEAD`);
+        console.log(
+          `[Twilio SMS] Email captured: ${email} - Flagged as HOT LEAD`,
+        );
 
         // Trigger valuation email in background
         fetch(`${APP_URL}/api/automation/email-capture`, {
@@ -166,7 +172,9 @@ export async function POST(request: NextRequest) {
             propertyAddress: context.propertyAddress,
             leadId,
           }),
-        }).catch((err) => console.error("[Twilio SMS] Email automation failed:", err));
+        }).catch((err) =>
+          console.error("[Twilio SMS] Email automation failed:", err),
+        );
 
         const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
@@ -195,7 +203,9 @@ export async function POST(request: NextRequest) {
       }
 
       case "interested": {
-        console.log(`[Twilio SMS] Interest signal from ${from} - Nurture drip activated`);
+        console.log(
+          `[Twilio SMS] Interest signal from ${from} - Nurture drip activated`,
+        );
         const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Message>
@@ -210,7 +220,9 @@ export async function POST(request: NextRequest) {
 
       case "valuation_request": {
         // Someone asked for a valuation report - run it automatically
-        console.log(`[Twilio SMS] VALUATION REQUEST from ${from} - Running PropertyDetail`);
+        console.log(
+          `[Twilio SMS] VALUATION REQUEST from ${from} - Running PropertyDetail`,
+        );
 
         // If we have property context, generate valuation immediately
         if (context.propertyId || context.propertyAddress) {
@@ -241,10 +253,17 @@ export async function POST(request: NextRequest) {
                     to: from,
                     message: `Here's your property valuation! Estimated value: ${valueStr}\n\nView full report: ${reportUrl}`,
                   }),
-                }).catch((err) => console.error("[Twilio SMS] Failed to send valuation link:", err));
+                }).catch((err) =>
+                  console.error(
+                    "[Twilio SMS] Failed to send valuation link:",
+                    err,
+                  ),
+                );
               }
             })
-            .catch((err) => console.error("[Twilio SMS] Valuation generation failed:", err));
+            .catch((err) =>
+              console.error("[Twilio SMS] Valuation generation failed:", err),
+            );
 
           const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
@@ -272,7 +291,9 @@ export async function POST(request: NextRequest) {
       }
 
       case "question": {
-        console.log(`[Twilio SMS] Question from ${from} - Needs human response`);
+        console.log(
+          `[Twilio SMS] Question from ${from} - Needs human response`,
+        );
         // Queue for human review but acknowledge
         const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
@@ -288,7 +309,9 @@ export async function POST(request: NextRequest) {
 
       default: {
         // Unclear response - phone is confirmed, needs human review
-        console.log(`[Twilio SMS] Unclear response from ${from} - Phone confirmed`);
+        console.log(
+          `[Twilio SMS] Unclear response from ${from} - Phone confirmed`,
+        );
         const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Message>

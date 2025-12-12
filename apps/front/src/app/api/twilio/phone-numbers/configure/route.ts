@@ -5,14 +5,17 @@ const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || "";
 
 // In-memory store for Gianna settings (would be database in production)
 // In a real app, this would be stored in your database
-const giannaSettings = new Map<string, {
-  giannaEnabled: boolean;
-  giannaMode: "inbound" | "outbound" | "both" | "off";
-  giannaAvatar?: string;
-  autoRespondMissedCalls?: boolean;
-  scheduleFollowups?: boolean;
-  transcribeVoicemails?: boolean;
-}>();
+const giannaSettings = new Map<
+  string,
+  {
+    giannaEnabled: boolean;
+    giannaMode: "inbound" | "outbound" | "both" | "off";
+    giannaAvatar?: string;
+    autoRespondMissedCalls?: boolean;
+    scheduleFollowups?: boolean;
+    transcribeVoicemails?: boolean;
+  }
+>();
 
 // POST - Configure Gianna AI for a phone number
 export async function POST(request: NextRequest) {
@@ -29,7 +32,10 @@ export async function POST(request: NextRequest) {
     } = body;
 
     if (!phoneNumberSid) {
-      return NextResponse.json({ error: "Phone number SID required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Phone number SID required" },
+        { status: 400 },
+      );
     }
 
     // Store settings
@@ -44,7 +50,9 @@ export async function POST(request: NextRequest) {
 
     // If Gianna is enabled, configure Twilio webhooks
     if (giannaEnabled && TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN) {
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://monkfish-app-mb7h3.ondigitalocean.app";
+      const baseUrl =
+        process.env.NEXT_PUBLIC_APP_URL ||
+        "https://monkfish-app-mb7h3.ondigitalocean.app";
 
       // Update Twilio webhooks to point to our Gianna handlers
       const webhookConfig: Record<string, string> = {};
@@ -63,7 +71,11 @@ export async function POST(request: NextRequest) {
         try {
           const formData = new URLSearchParams();
           Object.entries(webhookConfig).forEach(([key, value]) => {
-            formData.append(key.charAt(0).toUpperCase() + key.slice(1).replace(/_([a-z])/g, (g) => g[1].toUpperCase()), value);
+            formData.append(
+              key.charAt(0).toUpperCase() +
+                key.slice(1).replace(/_([a-z])/g, (g) => g[1].toUpperCase()),
+              value,
+            );
           });
 
           await fetch(
@@ -75,7 +87,7 @@ export async function POST(request: NextRequest) {
                 "Content-Type": "application/x-www-form-urlencoded",
               },
               body: formData.toString(),
-            }
+            },
           );
         } catch (err) {
           console.error("[Twilio API] Failed to update webhooks:", err);
@@ -92,7 +104,10 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("[Configure API] Error:", error);
-    return NextResponse.json({ error: "Failed to configure phone number" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to configure phone number" },
+      { status: 500 },
+    );
   }
 }
 
@@ -103,7 +118,10 @@ export async function GET(request: NextRequest) {
     const phoneNumberSid = searchParams.get("sid");
 
     if (!phoneNumberSid) {
-      return NextResponse.json({ error: "Phone number SID required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Phone number SID required" },
+        { status: 400 },
+      );
     }
 
     const settings = giannaSettings.get(phoneNumberSid) || {
@@ -114,6 +132,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ settings });
   } catch (error) {
     console.error("[Configure API] Error:", error);
-    return NextResponse.json({ error: "Failed to get settings" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to get settings" },
+      { status: 500 },
+    );
   }
 }

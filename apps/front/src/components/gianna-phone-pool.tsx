@@ -1,7 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -170,7 +176,12 @@ export function GiannaPhonePool() {
             number: "+18889990001",
             friendlyName: "Main Dialer Line",
             provider: "easify",
-            capabilities: { sms: true, voice: true, mms: false, bulkSms: false },
+            capabilities: {
+              sms: true,
+              voice: true,
+              mms: false,
+              bulkSms: false,
+            },
             giannaEnabled: true,
             giannaMode: "both",
             giannaAvatar: "gianna-default",
@@ -181,7 +192,12 @@ export function GiannaPhonePool() {
             number: "+18889990002",
             friendlyName: "SMS Response Line",
             provider: "easify",
-            capabilities: { sms: true, voice: true, mms: false, bulkSms: false },
+            capabilities: {
+              sms: true,
+              voice: true,
+              mms: false,
+              bulkSms: false,
+            },
             giannaEnabled: true,
             giannaMode: "inbound",
             giannaAvatar: "gianna-default",
@@ -192,11 +208,16 @@ export function GiannaPhonePool() {
             number: "+18889990003",
             friendlyName: "Bulk Campaign Pool",
             provider: "signalhouse",
-            capabilities: { sms: true, voice: false, mms: false, bulkSms: true },
+            capabilities: {
+              sms: true,
+              voice: false,
+              mms: false,
+              bulkSms: true,
+            },
             giannaEnabled: false,
             giannaMode: "off",
             status: "active",
-          }
+          },
         );
       }
 
@@ -256,7 +277,7 @@ export function GiannaPhonePool() {
       if (response.ok) {
         // Update local state
         setPhoneNumbers((prev) =>
-          prev.map((p) => (p.id === selectedPhone.id ? selectedPhone : p))
+          prev.map((p) => (p.id === selectedPhone.id ? selectedPhone : p)),
         );
         toast.success("Phone number configured for Gianna AI");
         setConfigDialogOpen(false);
@@ -292,7 +313,7 @@ export function GiannaPhonePool() {
 
       if (response.ok) {
         setPhoneNumbers((prev) =>
-          prev.map((p) => (p.id === phone.id ? updatedPhone : p))
+          prev.map((p) => (p.id === phone.id ? updatedPhone : p)),
         );
         toast.success(enabled ? "Gianna AI enabled" : "Gianna AI disabled");
       }
@@ -335,7 +356,8 @@ export function GiannaPhonePool() {
                 Gianna AI Phone Pool
               </CardTitle>
               <CardDescription>
-                Assign Gianna AI to handle communications. Uses Easify (dialer/SMS) and SignalHouse (bulk SMS) infrastructure.
+                Assign Gianna AI to handle communications. Uses Easify
+                (dialer/SMS) and SignalHouse (bulk SMS) infrastructure.
               </CardDescription>
             </div>
             <Button variant="outline" size="sm" onClick={fetchPhoneNumbers}>
@@ -383,7 +405,10 @@ export function GiannaPhonePool() {
                     <TableCell>
                       <Badge
                         variant="outline"
-                        className={cn("text-xs", PROVIDER_CONFIG[phone.provider].color)}
+                        className={cn(
+                          "text-xs",
+                          PROVIDER_CONFIG[phone.provider].color,
+                        )}
                       >
                         {PROVIDER_CONFIG[phone.provider].name}
                       </Badge>
@@ -396,14 +421,18 @@ export function GiannaPhonePool() {
                             Dialer
                           </Badge>
                         )}
-                        {phone.capabilities.sms && !phone.capabilities.bulkSms && (
-                          <Badge variant="outline" className="text-xs">
-                            <MessageSquare className="h-3 w-3 mr-1" />
-                            SMS
-                          </Badge>
-                        )}
+                        {phone.capabilities.sms &&
+                          !phone.capabilities.bulkSms && (
+                            <Badge variant="outline" className="text-xs">
+                              <MessageSquare className="h-3 w-3 mr-1" />
+                              SMS
+                            </Badge>
+                          )}
                         {phone.capabilities.bulkSms && (
-                          <Badge variant="outline" className="text-xs bg-green-500/10 text-green-400 border-green-500/30">
+                          <Badge
+                            variant="outline"
+                            className="text-xs bg-green-500/10 text-green-400 border-green-500/30"
+                          >
                             <Zap className="h-3 w-3 mr-1" />
                             Bulk SMS
                           </Badge>
@@ -413,14 +442,19 @@ export function GiannaPhonePool() {
                     <TableCell>
                       <Switch
                         checked={phone.giannaEnabled}
-                        onCheckedChange={(checked) => toggleGianna(phone, checked)}
+                        onCheckedChange={(checked) =>
+                          toggleGianna(phone, checked)
+                        }
                       />
                     </TableCell>
                     <TableCell>
                       {phone.giannaEnabled && (
                         <Badge
                           variant="outline"
-                          className={cn("text-xs", getModeColor(phone.giannaMode))}
+                          className={cn(
+                            "text-xs",
+                            getModeColor(phone.giannaMode),
+                          )}
                         >
                           {phone.giannaMode === "inbound" && "Inbound"}
                           {phone.giannaMode === "outbound" && "Outbound"}
@@ -486,7 +520,10 @@ export function GiannaPhonePool() {
                 <Switch
                   checked={selectedPhone.giannaEnabled}
                   onCheckedChange={(checked) =>
-                    setSelectedPhone({ ...selectedPhone, giannaEnabled: checked })
+                    setSelectedPhone({
+                      ...selectedPhone,
+                      giannaEnabled: checked,
+                    })
                   }
                 />
               </div>
@@ -499,7 +536,10 @@ export function GiannaPhonePool() {
                     <Select
                       value={selectedPhone.giannaMode}
                       onValueChange={(value: PhoneNumber["giannaMode"]) =>
-                        setSelectedPhone({ ...selectedPhone, giannaMode: value })
+                        setSelectedPhone({
+                          ...selectedPhone,
+                          giannaMode: value,
+                        })
                       }
                     >
                       <SelectTrigger>
@@ -542,7 +582,10 @@ export function GiannaPhonePool() {
                     <Select
                       value={selectedPhone.giannaAvatar || "gianna-default"}
                       onValueChange={(value) =>
-                        setSelectedPhone({ ...selectedPhone, giannaAvatar: value })
+                        setSelectedPhone({
+                          ...selectedPhone,
+                          giannaAvatar: value,
+                        })
                       }
                     >
                       <SelectTrigger>
@@ -560,7 +603,8 @@ export function GiannaPhonePool() {
                       </SelectContent>
                     </Select>
                     <p className="text-xs text-muted-foreground">
-                      Select which AI personality Gianna should use for this number
+                      Select which AI personality Gianna should use for this
+                      number
                     </p>
                   </div>
 
@@ -572,7 +616,9 @@ export function GiannaPhonePool() {
                     </h4>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm">Auto-respond to missed calls</span>
+                        <span className="text-sm">
+                          Auto-respond to missed calls
+                        </span>
                         <Switch defaultChecked />
                       </div>
                       <div className="flex items-center justify-between">
@@ -591,7 +637,10 @@ export function GiannaPhonePool() {
           )}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setConfigDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setConfigDialogOpen(false)}
+            >
               Cancel
             </Button>
             <Button onClick={handleSaveConfig} disabled={saving}>

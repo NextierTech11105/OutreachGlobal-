@@ -1,6 +1,5 @@
 "use client";
 
-
 import { sf, sfd } from "@/lib/utils/safe-format";
 import {
   Card,
@@ -107,10 +106,7 @@ export function LlmUsageMonitor() {
                     <XAxis dataKey="name" />
                     <YAxis />
                     <Tooltip
-                      formatter={(value) => [
-                        `${sf(value)} tokens`,
-                        "Usage",
-                      ]}
+                      formatter={(value) => [`${sf(value)} tokens`, "Usage"]}
                     />
                     <Bar dataKey="tokens" fill="#8884d8" />
                   </BarChart>
@@ -171,7 +167,10 @@ export function LlmUsageMonitor() {
                     <XAxis dataKey="name" />
                     <YAxis />
                     <Tooltip
-                      formatter={(value) => [`$${Number(value).toFixed(2)}`, "Cost"]}
+                      formatter={(value) => [
+                        `$${Number(value).toFixed(2)}`,
+                        "Cost",
+                      ]}
                     />
                     <Bar dataKey="cost" fill="#00C49F" />
                   </BarChart>

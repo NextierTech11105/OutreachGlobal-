@@ -85,7 +85,9 @@ export default function ApolloIntegrationPage() {
   const [enrichEmail, setEnrichEmail] = useState("");
   const [enrichDomain, setEnrichDomain] = useState("");
   const [isEnriching, setIsEnriching] = useState(false);
-  const [enrichmentResults, setEnrichmentResults] = useState<EnrichmentResult[]>([]);
+  const [enrichmentResults, setEnrichmentResults] = useState<
+    EnrichmentResult[]
+  >([]);
 
   // CSV upload state
   const [csvFile, setCsvFile] = useState<File | null>(null);
@@ -288,18 +290,24 @@ export default function ApolloIntegrationPage() {
       const lines = text.split("\n").filter((l) => l.trim());
       const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
 
-      const contacts = lines.slice(1).map((line) => {
-        const values = line.split(",").map((v) => v.trim());
-        const contact: Record<string, string> = {};
-        headers.forEach((h, i) => {
-          if (h.includes("email")) contact.email = values[i];
-          else if (h.includes("first") && h.includes("name")) contact.first_name = values[i];
-          else if (h.includes("last") && h.includes("name")) contact.last_name = values[i];
-          else if (h.includes("company") || h.includes("organization")) contact.organization_name = values[i];
-          else if (h.includes("domain")) contact.domain = values[i];
-        });
-        return contact;
-      }).filter((c) => c.email || c.domain);
+      const contacts = lines
+        .slice(1)
+        .map((line) => {
+          const values = line.split(",").map((v) => v.trim());
+          const contact: Record<string, string> = {};
+          headers.forEach((h, i) => {
+            if (h.includes("email")) contact.email = values[i];
+            else if (h.includes("first") && h.includes("name"))
+              contact.first_name = values[i];
+            else if (h.includes("last") && h.includes("name"))
+              contact.last_name = values[i];
+            else if (h.includes("company") || h.includes("organization"))
+              contact.organization_name = values[i];
+            else if (h.includes("domain")) contact.domain = values[i];
+          });
+          return contact;
+        })
+        .filter((c) => c.email || c.domain);
 
       const response = await fetch("/api/apollo/bulk-enrich", {
         method: "POST",
@@ -324,7 +332,15 @@ export default function ApolloIntegrationPage() {
 
   const downloadCsvResults = () => {
     if (csvResults.length === 0) return;
-    const headers = ["Name", "Email", "Title", "Company", "Phone", "LinkedIn", "Status"];
+    const headers = [
+      "Name",
+      "Email",
+      "Title",
+      "Company",
+      "Phone",
+      "LinkedIn",
+      "Status",
+    ];
     const rows = csvResults.map((r) => [
       r.enriched?.name || "",
       r.enriched?.email || r.original?.email || "",
@@ -382,7 +398,9 @@ export default function ApolloIntegrationPage() {
         <Alert className="bg-green-500/10 border-green-500/20">
           <CheckCircle className="h-4 w-4 text-green-500" />
           <AlertTitle className="text-green-500">Success</AlertTitle>
-          <AlertDescription className="text-green-400">{successMessage}</AlertDescription>
+          <AlertDescription className="text-green-400">
+            {successMessage}
+          </AlertDescription>
         </Alert>
       )}
 
@@ -391,7 +409,8 @@ export default function ApolloIntegrationPage() {
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Not Configured</AlertTitle>
           <AlertDescription>
-            Enter your Apollo.io API key below to enable lead enrichment and prospecting features.
+            Enter your Apollo.io API key below to enable lead enrichment and
+            prospecting features.
           </AlertDescription>
         </Alert>
       )}
@@ -403,9 +422,7 @@ export default function ApolloIntegrationPage() {
             <CardTitle className="text-sm font-medium">Credits Used</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {sf(stats?.creditsUsed)}
-            </div>
+            <div className="text-2xl font-bold">{sf(stats?.creditsUsed)}</div>
             <p className="text-xs text-muted-foreground">
               {isConnected ? "This billing cycle" : "Not connected"}
             </p>
@@ -413,7 +430,9 @@ export default function ApolloIntegrationPage() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Credits Remaining</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Credits Remaining
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-500">
@@ -487,7 +506,10 @@ export default function ApolloIntegrationPage() {
                 )}
                 Test Connection
               </Button>
-              <Button onClick={saveSettings} disabled={isSaving || !apiKey.trim()}>
+              <Button
+                onClick={saveSettings}
+                disabled={isSaving || !apiKey.trim()}
+              >
                 {isSaving ? (
                   <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
@@ -559,7 +581,10 @@ export default function ApolloIntegrationPage() {
                   />
                 </div>
               </div>
-              <Button onClick={searchPeople} disabled={isSearching || !isConnected}>
+              <Button
+                onClick={searchPeople}
+                disabled={isSearching || !isConnected}
+              >
                 {isSearching ? (
                   <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
@@ -583,11 +608,17 @@ export default function ApolloIntegrationPage() {
                   <TableBody>
                     {searchResults.map((result) => (
                       <TableRow key={result.id}>
-                        <TableCell className="font-medium">{result.name}</TableCell>
+                        <TableCell className="font-medium">
+                          {result.name}
+                        </TableCell>
                         <TableCell>{result.title}</TableCell>
                         <TableCell>{result.company}</TableCell>
-                        <TableCell className="font-mono text-sm">{result.email || "—"}</TableCell>
-                        <TableCell className="font-mono text-sm">{result.phone || "—"}</TableCell>
+                        <TableCell className="font-mono text-sm">
+                          {result.email || "—"}
+                        </TableCell>
+                        <TableCell className="font-mono text-sm">
+                          {result.phone || "—"}
+                        </TableCell>
                         <TableCell>{result.location}</TableCell>
                       </TableRow>
                     ))}
@@ -638,7 +669,10 @@ export default function ApolloIntegrationPage() {
                   />
                 </div>
               </div>
-              <Button onClick={enrichContact} disabled={isEnriching || !isConnected}>
+              <Button
+                onClick={enrichContact}
+                disabled={isEnriching || !isConnected}
+              >
                 {isEnriching ? (
                   <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
@@ -662,11 +696,17 @@ export default function ApolloIntegrationPage() {
                   <TableBody>
                     {enrichmentResults.map((result) => (
                       <TableRow key={result.id}>
-                        <TableCell className="font-medium">{result.name}</TableCell>
-                        <TableCell className="font-mono text-sm">{result.email}</TableCell>
+                        <TableCell className="font-medium">
+                          {result.name}
+                        </TableCell>
+                        <TableCell className="font-mono text-sm">
+                          {result.email}
+                        </TableCell>
                         <TableCell>{result.title}</TableCell>
                         <TableCell>{result.company}</TableCell>
-                        <TableCell className="font-mono text-sm">{result.phone || "—"}</TableCell>
+                        <TableCell className="font-mono text-sm">
+                          {result.phone || "—"}
+                        </TableCell>
                         <TableCell>
                           <Badge
                             variant="secondary"
@@ -674,8 +714,8 @@ export default function ApolloIntegrationPage() {
                               result.status === "found"
                                 ? "bg-green-500/10 text-green-500"
                                 : result.status === "not_found"
-                                ? "bg-red-500/10 text-red-500"
-                                : ""
+                                  ? "bg-red-500/10 text-red-500"
+                                  : ""
                             }
                           >
                             {result.status}
@@ -705,7 +745,8 @@ export default function ApolloIntegrationPage() {
             <CardHeader>
               <CardTitle>Bulk CSV Enrichment</CardTitle>
               <CardDescription>
-                Upload a CSV file to enrich contacts in bulk (from DatabaseUSA, PropWire, etc.)
+                Upload a CSV file to enrich contacts in bulk (from DatabaseUSA,
+                PropWire, etc.)
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -713,8 +754,10 @@ export default function ApolloIntegrationPage() {
                 <FileSpreadsheet className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                 <div className="space-y-2">
                   <Label htmlFor="csv-upload" className="cursor-pointer">
-                    <span className="text-primary hover:underline">Click to upload</span>
-                    {" "}or drag and drop
+                    <span className="text-primary hover:underline">
+                      Click to upload
+                    </span>{" "}
+                    or drag and drop
                   </Label>
                   <input
                     id="csv-upload"
@@ -726,7 +769,8 @@ export default function ApolloIntegrationPage() {
                     disabled={!isConnected}
                   />
                   <p className="text-xs text-muted-foreground">
-                    CSV with columns: email, first_name, last_name, company, domain
+                    CSV with columns: email, first_name, last_name, company,
+                    domain
                   </p>
                 </div>
               </div>
@@ -738,7 +782,11 @@ export default function ApolloIntegrationPage() {
                     <span className="font-medium">{csvFile.name}</span>
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => setCsvFile(null)}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setCsvFile(null)}
+                    >
                       Remove
                     </Button>
                     <Button onClick={handleCsvUpload} disabled={isUploadingCsv}>
@@ -757,9 +805,14 @@ export default function ApolloIntegrationPage() {
                 <>
                   <div className="flex justify-between items-center">
                     <p className="text-sm text-muted-foreground">
-                      {csvResults.filter((r) => r.status === "found").length} of {csvResults.length} contacts enriched
+                      {csvResults.filter((r) => r.status === "found").length} of{" "}
+                      {csvResults.length} contacts enriched
                     </p>
-                    <Button variant="outline" size="sm" onClick={downloadCsvResults}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={downloadCsvResults}
+                    >
                       <Download className="mr-2 h-4 w-4" />
                       Download Results
                     </Button>
@@ -778,11 +831,21 @@ export default function ApolloIntegrationPage() {
                     <TableBody>
                       {csvResults.slice(0, 50).map((result, idx) => (
                         <TableRow key={idx}>
-                          <TableCell className="font-medium">{result.enriched?.name || "—"}</TableCell>
-                          <TableCell className="font-mono text-sm">{result.enriched?.email || result.original?.email || "—"}</TableCell>
+                          <TableCell className="font-medium">
+                            {result.enriched?.name || "—"}
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">
+                            {result.enriched?.email ||
+                              result.original?.email ||
+                              "—"}
+                          </TableCell>
                           <TableCell>{result.enriched?.title || "—"}</TableCell>
-                          <TableCell>{result.enriched?.company || "—"}</TableCell>
-                          <TableCell className="font-mono text-sm">{result.enriched?.phone || "—"}</TableCell>
+                          <TableCell>
+                            {result.enriched?.company || "—"}
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">
+                            {result.enriched?.phone || "—"}
+                          </TableCell>
                           <TableCell>
                             <Badge
                               variant="secondary"
@@ -801,7 +864,8 @@ export default function ApolloIntegrationPage() {
                   </Table>
                   {csvResults.length > 50 && (
                     <p className="text-xs text-muted-foreground text-center">
-                      Showing first 50 of {csvResults.length} results. Download CSV for full results.
+                      Showing first 50 of {csvResults.length} results. Download
+                      CSV for full results.
                     </p>
                   )}
                 </>

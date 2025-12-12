@@ -16,7 +16,14 @@ import {
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { InfoIcon as InfoCircle, PlusCircle, Download, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import {
+  InfoIcon as InfoCircle,
+  PlusCircle,
+  Download,
+  CheckCircle,
+  XCircle,
+  Loader2,
+} from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -128,28 +135,36 @@ export function DataAppendModule() {
         return;
       }
 
-      const enrichmentResults: EnrichmentResult[] = (data.results || []).map((r: any) => ({
-        propertyId: r.id || r.propertyId,
-        address: r.address?.address || r.address?.street || "",
-        success: r.success !== false,
-        data: r.success !== false ? {
-          propertyType: r.propertyType,
-          bedrooms: r.bedrooms,
-          bathrooms: r.bathrooms,
-          sqft: r.squareFeet || r.sqft,
-          yearBuilt: r.yearBuilt,
-          estimatedValue: r.estimatedValue || r.avm,
-          estimatedEquity: r.estimatedEquity,
-          ownerName: [r.owner1FirstName, r.owner1LastName].filter(Boolean).join(" ") || r.ownerName,
-          mortgageAmount: r.mortgage1Amount || r.openLoanAmount,
-          mortgageLender: r.mortgage1Lender,
-          lastSaleDate: r.lastSaleDate,
-          lastSaleAmount: r.lastSaleAmount,
-          preForeclosure: r.preForeclosure,
-          absenteeOwner: r.absenteeOwner,
-        } : undefined,
-        error: r.error,
-      }));
+      const enrichmentResults: EnrichmentResult[] = (data.results || []).map(
+        (r: any) => ({
+          propertyId: r.id || r.propertyId,
+          address: r.address?.address || r.address?.street || "",
+          success: r.success !== false,
+          data:
+            r.success !== false
+              ? {
+                  propertyType: r.propertyType,
+                  bedrooms: r.bedrooms,
+                  bathrooms: r.bathrooms,
+                  sqft: r.squareFeet || r.sqft,
+                  yearBuilt: r.yearBuilt,
+                  estimatedValue: r.estimatedValue || r.avm,
+                  estimatedEquity: r.estimatedEquity,
+                  ownerName:
+                    [r.owner1FirstName, r.owner1LastName]
+                      .filter(Boolean)
+                      .join(" ") || r.ownerName,
+                  mortgageAmount: r.mortgage1Amount || r.openLoanAmount,
+                  mortgageLender: r.mortgage1Lender,
+                  lastSaleDate: r.lastSaleDate,
+                  lastSaleAmount: r.lastSaleAmount,
+                  preForeclosure: r.preForeclosure,
+                  absenteeOwner: r.absenteeOwner,
+                }
+              : undefined,
+          error: r.error,
+        }),
+      );
 
       setResults(enrichmentResults);
       const successful = enrichmentResults.filter((r) => r.success).length;
@@ -164,7 +179,21 @@ export function DataAppendModule() {
   const downloadResults = () => {
     if (results.length === 0) return;
     const csv = [
-      ["Property ID", "Address", "Type", "Beds", "Baths", "SqFt", "Year", "Value", "Equity", "Owner", "Mortgage", "Last Sale", "Success"].join(","),
+      [
+        "Property ID",
+        "Address",
+        "Type",
+        "Beds",
+        "Baths",
+        "SqFt",
+        "Year",
+        "Value",
+        "Equity",
+        "Owner",
+        "Mortgage",
+        "Last Sale",
+        "Success",
+      ].join(","),
       ...results.map((r) =>
         [
           r.propertyId,
@@ -180,7 +209,7 @@ export function DataAppendModule() {
           r.data?.mortgageAmount || "",
           r.data?.lastSaleDate || "",
           r.success ? "Yes" : "No",
-        ].join(",")
+        ].join(","),
       ),
     ].join("\n");
 
@@ -207,7 +236,9 @@ export function DataAppendModule() {
               variant="outline"
               className="bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300"
             >
-              {usage ? `${sf(usage.remaining)} / ${sf(usage.limit)} remaining` : "Loading..."}
+              {usage
+                ? `${sf(usage.remaining)} / ${sf(usage.limit)} remaining`
+                : "Loading..."}
             </Badge>
           </div>
 
@@ -219,7 +250,9 @@ export function DataAppendModule() {
 
             <TabsContent value="ids" className="mt-6 space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="propertyIds">Enter Property IDs (one per line, max 250)</Label>
+                <Label htmlFor="propertyIds">
+                  Enter Property IDs (one per line, max 250)
+                </Label>
                 <Textarea
                   id="propertyIds"
                   placeholder="12345678&#10;23456789&#10;34567890"
@@ -262,7 +295,8 @@ export function DataAppendModule() {
                     </TooltipTrigger>
                     <TooltipContent>
                       <p className="max-w-xs">
-                        RealEstateAPI provides comprehensive property data including owner info, valuations, and mortgage details.
+                        RealEstateAPI provides comprehensive property data
+                        including owner info, valuations, and mortgage details.
                       </p>
                     </TooltipContent>
                   </Tooltip>
@@ -273,9 +307,15 @@ export function DataAppendModule() {
                   <SelectValue placeholder="Select a provider" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="realestateapi">RealEstateAPI (Configured)</SelectItem>
-                  <SelectItem value="attom" disabled>ATTOM Data (Not configured)</SelectItem>
-                  <SelectItem value="corelogic" disabled>CoreLogic (Not configured)</SelectItem>
+                  <SelectItem value="realestateapi">
+                    RealEstateAPI (Configured)
+                  </SelectItem>
+                  <SelectItem value="attom" disabled>
+                    ATTOM Data (Not configured)
+                  </SelectItem>
+                  <SelectItem value="corelogic" disabled>
+                    CoreLogic (Not configured)
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -303,7 +343,8 @@ export function DataAppendModule() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="font-medium">
-                  Results ({results.filter((r) => r.success).length}/{results.length} enriched)
+                  Results ({results.filter((r) => r.success).length}/
+                  {results.length} enriched)
                 </h3>
                 <Button variant="outline" size="sm" onClick={downloadResults}>
                   <Download className="mr-2 h-4 w-4" />
@@ -327,10 +368,14 @@ export function DataAppendModule() {
                         <td className="p-2">{r.address || "-"}</td>
                         <td className="p-2">{r.data?.ownerName || "-"}</td>
                         <td className="p-2 text-right">
-                          {r.data?.estimatedValue ? `$${sf(r.data.estimatedValue)}` : "-"}
+                          {r.data?.estimatedValue
+                            ? `$${sf(r.data.estimatedValue)}`
+                            : "-"}
                         </td>
                         <td className="p-2 text-right">
-                          {r.data?.estimatedEquity ? `$${sf(r.data.estimatedEquity)}` : "-"}
+                          {r.data?.estimatedEquity
+                            ? `$${sf(r.data.estimatedEquity)}`
+                            : "-"}
                         </td>
                         <td className="p-2 text-center">
                           {r.success ? (
@@ -349,7 +394,13 @@ export function DataAppendModule() {
         </div>
       </CardContent>
       <CardFooter className="flex justify-between">
-        <Button variant="outline" onClick={() => { setResults([]); setPropertyIds(""); }}>
+        <Button
+          variant="outline"
+          onClick={() => {
+            setResults([]);
+            setPropertyIds("");
+          }}
+        >
           {results.length > 0 ? "Clear Results" : "Cancel"}
         </Button>
         <Button onClick={handleAppendData} disabled={isProcessing}>

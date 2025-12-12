@@ -86,7 +86,11 @@ export function LeadActionButtons({
   const [reason, setReason] = useState("");
   const [revisitDate, setRevisitDate] = useState("");
 
-  const executeAction = async (action: LeadAction, actionReason?: string, actionRevisitDate?: string) => {
+  const executeAction = async (
+    action: LeadAction,
+    actionReason?: string,
+    actionRevisitDate?: string,
+  ) => {
     if (leadIds.length === 0) {
       toast.error("No leads selected");
       return;
@@ -121,7 +125,9 @@ export function LeadActionButtons({
         resume: "resumed",
       };
 
-      toast.success(`${data.count} lead${data.count > 1 ? "s" : ""} ${actionLabels[action]}`);
+      toast.success(
+        `${data.count} lead${data.count > 1 ? "s" : ""} ${actionLabels[action]}`,
+      );
       onActionComplete?.(action, data.count);
       setDialogOpen(false);
       setReason("");
@@ -151,32 +157,47 @@ export function LeadActionButtons({
 
   const getReasonOptions = () => {
     switch (currentAction) {
-      case "pause": return PAUSE_REASONS;
-      case "suppress": return SUPPRESS_REASONS;
-      case "rethink": return RETHINK_REASONS;
-      case "revisit": return REVISIT_REASONS;
-      default: return [];
+      case "pause":
+        return PAUSE_REASONS;
+      case "suppress":
+        return SUPPRESS_REASONS;
+      case "rethink":
+        return RETHINK_REASONS;
+      case "revisit":
+        return REVISIT_REASONS;
+      default:
+        return [];
     }
   };
 
   const getDialogTitle = () => {
     const count = leadIds.length;
     switch (currentAction) {
-      case "pause": return `Pause ${count} lead${count > 1 ? "s" : ""}`;
-      case "suppress": return `Suppress ${count} lead${count > 1 ? "s" : ""}`;
-      case "rethink": return `Flag ${count} lead${count > 1 ? "s" : ""} for review`;
-      case "revisit": return `Schedule revisit for ${count} lead${count > 1 ? "s" : ""}`;
-      default: return "Confirm Action";
+      case "pause":
+        return `Pause ${count} lead${count > 1 ? "s" : ""}`;
+      case "suppress":
+        return `Suppress ${count} lead${count > 1 ? "s" : ""}`;
+      case "rethink":
+        return `Flag ${count} lead${count > 1 ? "s" : ""} for review`;
+      case "revisit":
+        return `Schedule revisit for ${count} lead${count > 1 ? "s" : ""}`;
+      default:
+        return "Confirm Action";
     }
   };
 
   const getDialogDescription = () => {
     switch (currentAction) {
-      case "pause": return "Paused leads will be skipped in campaign queues until resumed.";
-      case "suppress": return "Suppressed leads will be permanently removed from all campaigns (DNC).";
-      case "rethink": return "Flagged leads will appear in your review queue.";
-      case "revisit": return "Select when you want to revisit these leads.";
-      default: return "";
+      case "pause":
+        return "Paused leads will be skipped in campaign queues until resumed.";
+      case "suppress":
+        return "Suppressed leads will be permanently removed from all campaigns (DNC).";
+      case "rethink":
+        return "Flagged leads will appear in your review queue.";
+      case "revisit":
+        return "Select when you want to revisit these leads.";
+      default:
+        return "";
     }
   };
 
@@ -394,7 +415,9 @@ function ActionDialog({
           <Button
             onClick={onConfirm}
             disabled={loading}
-            className={action === "suppress" ? "bg-red-600 hover:bg-red-700" : ""}
+            className={
+              action === "suppress" ? "bg-red-600 hover:bg-red-700" : ""
+            }
           >
             {loading ? "Processing..." : "Confirm"}
           </Button>

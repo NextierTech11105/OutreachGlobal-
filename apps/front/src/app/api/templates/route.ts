@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json(
         { error: `Unknown category: ${category}` },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -74,9 +74,15 @@ export async function GET(request: NextRequest) {
         gianna_loop: smsGiannaLoop,
         strategy_session: smsStrategySession,
         master: {
-          sms_initial_medium_article: (masterTemplates.templates as Record<string, unknown[]>).sms_initial_medium_article,
-          strategy_session_sms: (masterTemplates.templates as Record<string, unknown[]>).strategy_session_sms,
-          gianna_nielsen_loop: (masterTemplates.templates as Record<string, unknown[]>).gianna_nielsen_loop,
+          sms_initial_medium_article: (
+            masterTemplates.templates as Record<string, unknown[]>
+          ).sms_initial_medium_article,
+          strategy_session_sms: (
+            masterTemplates.templates as Record<string, unknown[]>
+          ).strategy_session_sms,
+          gianna_nielsen_loop: (
+            masterTemplates.templates as Record<string, unknown[]>
+          ).gianna_nielsen_loop,
         },
       });
     }
@@ -86,7 +92,9 @@ export async function GET(request: NextRequest) {
         success: true,
         ...coldCallOpeners,
         master: {
-          cold_call_medium_article: (masterTemplates.templates as Record<string, unknown[]>).cold_call_medium_article,
+          cold_call_medium_article: (
+            masterTemplates.templates as Record<string, unknown[]>
+          ).cold_call_medium_article,
         },
       });
     }
@@ -94,15 +102,38 @@ export async function GET(request: NextRequest) {
     // List format - just names and counts
     if (format === "list") {
       const categories = [
-        { id: "initial", name: "Initial Outreach", count: smsInitial.templates.length, source: "individual" },
-        { id: "gianna_loop", name: "Gianna Escalation Loop", count: smsGiannaLoop.templates.length, source: "individual" },
-        { id: "cold_calls", name: "Cold Call Openers", count: coldCallOpeners.templates.length, source: "individual" },
-        { id: "strategy_session", name: "Strategy Session Invites", count: smsStrategySession.templates.length, source: "individual" },
+        {
+          id: "initial",
+          name: "Initial Outreach",
+          count: smsInitial.templates.length,
+          source: "individual",
+        },
+        {
+          id: "gianna_loop",
+          name: "Gianna Escalation Loop",
+          count: smsGiannaLoop.templates.length,
+          source: "individual",
+        },
+        {
+          id: "cold_calls",
+          name: "Cold Call Openers",
+          count: coldCallOpeners.templates.length,
+          source: "individual",
+        },
+        {
+          id: "strategy_session",
+          name: "Strategy Session Invites",
+          count: smsStrategySession.templates.length,
+          source: "individual",
+        },
       ];
 
       // Add master template categories
       const masterCats = masterTemplates.templates as Record<string, unknown[]>;
-      const masterMeta = masterTemplates.categories as Record<string, { name: string }>;
+      const masterMeta = masterTemplates.categories as Record<
+        string,
+        { name: string }
+      >;
       for (const [key, templates] of Object.entries(masterCats)) {
         categories.push({
           id: key,
@@ -126,10 +157,26 @@ export async function GET(request: NextRequest) {
       master_templates: masterTemplates.templates,
       categories: {
         individual: [
-          { id: "initial", name: "Initial Outreach", count: smsInitial.templates.length },
-          { id: "gianna_loop", name: "Gianna Escalation Loop", count: smsGiannaLoop.templates.length },
-          { id: "cold_calls", name: "Cold Call Openers", count: coldCallOpeners.templates.length },
-          { id: "strategy_session", name: "Strategy Session Invites", count: smsStrategySession.templates.length },
+          {
+            id: "initial",
+            name: "Initial Outreach",
+            count: smsInitial.templates.length,
+          },
+          {
+            id: "gianna_loop",
+            name: "Gianna Escalation Loop",
+            count: smsGiannaLoop.templates.length,
+          },
+          {
+            id: "cold_calls",
+            name: "Cold Call Openers",
+            count: coldCallOpeners.templates.length,
+          },
+          {
+            id: "strategy_session",
+            name: "Strategy Session Invites",
+            count: smsStrategySession.templates.length,
+          },
         ],
         master: masterTemplates.categories,
       },
@@ -140,16 +187,15 @@ export async function GET(request: NextRequest) {
         smsGiannaLoop.templates.length +
         coldCallOpeners.templates.length +
         smsStrategySession.templates.length +
-        Object.values(masterTemplates.templates as Record<string, unknown[]>).reduce(
-          (sum, arr) => sum + arr.length,
-          0
-        ),
+        Object.values(
+          masterTemplates.templates as Record<string, unknown[]>,
+        ).reduce((sum, arr) => sum + arr.length, 0),
     });
   } catch (error) {
     console.error("[Templates API] Error:", error);
     return NextResponse.json(
       { error: "Failed to load templates" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -171,7 +217,7 @@ export async function POST(request: NextRequest) {
     if (!template_id) {
       return NextResponse.json(
         { error: "template_id is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -193,7 +239,9 @@ export async function POST(request: NextRequest) {
     // If not found, search individual files
     if (!template) {
       // Check smsInitial
-      const initTemplate = smsInitial.templates.find((t) => t.id === template_id);
+      const initTemplate = smsInitial.templates.find(
+        (t) => t.id === template_id,
+      );
       if (initTemplate) {
         template = initTemplate;
         foundCategory = "initial";
@@ -202,7 +250,9 @@ export async function POST(request: NextRequest) {
 
     if (!template) {
       // Check smsGiannaLoop
-      const loopTemplate = smsGiannaLoop.templates.find((t) => t.id === template_id);
+      const loopTemplate = smsGiannaLoop.templates.find(
+        (t) => t.id === template_id,
+      );
       if (loopTemplate) {
         template = loopTemplate;
         foundCategory = "gianna_loop";
@@ -211,7 +261,9 @@ export async function POST(request: NextRequest) {
 
     if (!template) {
       // Check smsStrategySession
-      const strategyTemplate = smsStrategySession.templates.find((t) => t.id === template_id);
+      const strategyTemplate = smsStrategySession.templates.find(
+        (t) => t.id === template_id,
+      );
       if (strategyTemplate) {
         template = strategyTemplate;
         foundCategory = "strategy_session";
@@ -220,7 +272,9 @@ export async function POST(request: NextRequest) {
 
     if (!template) {
       // Check coldCallOpeners
-      const coldTemplate = coldCallOpeners.templates.find((t) => t.id === template_id);
+      const coldTemplate = coldCallOpeners.templates.find(
+        (t) => t.id === template_id,
+      );
       if (coldTemplate) {
         template = coldTemplate;
         foundCategory = "cold_calls";
@@ -246,7 +300,7 @@ export async function POST(request: NextRequest) {
     if (!template) {
       return NextResponse.json(
         { error: `Template '${template_id}' not found` },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -257,17 +311,20 @@ export async function POST(request: NextRequest) {
       for (const [key, value] of Object.entries(variables)) {
         rendered = rendered.replace(
           new RegExp(`\\{\\{${key}\\}\\}`, "g"),
-          String(value)
+          String(value),
         );
       }
     }
 
     // Replace any remaining variables with fallbacks from master
-    const varDefs = masterTemplates.variables as Record<string, { fallback: string }>;
+    const varDefs = masterTemplates.variables as Record<
+      string,
+      { fallback: string }
+    >;
     for (const [key, def] of Object.entries(varDefs)) {
       rendered = rendered.replace(
         new RegExp(`\\{\\{${key}\\}\\}`, "g"),
-        def.fallback
+        def.fallback,
       );
     }
 
@@ -281,14 +338,16 @@ export async function POST(request: NextRequest) {
       sms_segments: Math.ceil(rendered.length / 160),
       compliance: {
         has_opt_out: rendered.toLowerCase().includes("stop"),
-        tcpa_compliant: rendered.toLowerCase().includes("stop") || rendered.toLowerCase().includes("opt out"),
+        tcpa_compliant:
+          rendered.toLowerCase().includes("stop") ||
+          rendered.toLowerCase().includes("opt out"),
       },
     });
   } catch (error) {
     console.error("[Templates API] Render error:", error);
     return NextResponse.json(
       { error: "Failed to render template" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

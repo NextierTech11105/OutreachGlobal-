@@ -5,15 +5,24 @@ import { sf, sfd } from "@/lib/utils/safe-format";
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { S3Client, PutObjectCommand, CreateMultipartUploadCommand, UploadPartCommand, CompleteMultipartUploadCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  PutObjectCommand,
+  CreateMultipartUploadCommand,
+  UploadPartCommand,
+  CompleteMultipartUploadCommand,
+} from "@aws-sdk/client-s3";
 import { DATA_LAKE_SCHEMAS } from "../schemas/route";
 
 // DO Spaces configuration
-const SPACES_ENDPOINT = process.env.SPACES_ENDPOINT || "https://nyc3.digitaloceanspaces.com";
+const SPACES_ENDPOINT =
+  process.env.SPACES_ENDPOINT || "https://nyc3.digitaloceanspaces.com";
 const SPACES_REGION = process.env.SPACES_REGION || "nyc3";
 const SPACES_KEY = process.env.SPACES_KEY || process.env.DO_SPACES_KEY || "";
-const SPACES_SECRET = process.env.SPACES_SECRET || process.env.DO_SPACES_SECRET || "";
-const SPACES_BUCKET = process.env.SPACES_BUCKET || process.env.DO_SPACES_BUCKET || "nextier";
+const SPACES_SECRET =
+  process.env.SPACES_SECRET || process.env.DO_SPACES_SECRET || "";
+const SPACES_BUCKET =
+  process.env.SPACES_BUCKET || process.env.DO_SPACES_BUCKET || "nextier";
 
 const s3Client = new S3Client({
   endpoint: SPACES_ENDPOINT,
@@ -47,10 +56,16 @@ interface UploadMetadata {
 export async function POST(request: NextRequest) {
   try {
     if (!SPACES_KEY || !SPACES_SECRET) {
-      return NextResponse.json({
-        error: "DigitalOcean Spaces credentials not configured",
-        required: ["SPACES_KEY/DO_SPACES_KEY", "SPACES_SECRET/DO_SPACES_SECRET"],
-      }, { status: 503 });
+      return NextResponse.json(
+        {
+          error: "DigitalOcean Spaces credentials not configured",
+          required: [
+            "SPACES_KEY/DO_SPACES_KEY",
+            "SPACES_SECRET/DO_SPACES_SECRET",
+          ],
+        },
+        { status: 503 },
+      );
     }
 
     const formData = await request.formData();
@@ -64,26 +79,36 @@ export async function POST(request: NextRequest) {
     }
 
     if (!schemaId) {
-      return NextResponse.json({
-        error: "schemaId is required",
-        availableSchemas: Object.keys(DATA_LAKE_SCHEMAS),
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: "schemaId is required",
+          availableSchemas: Object.keys(DATA_LAKE_SCHEMAS),
+        },
+        { status: 400 },
+      );
     }
 
     // Validate schema
-    const schema = DATA_LAKE_SCHEMAS[schemaId as keyof typeof DATA_LAKE_SCHEMAS];
+    const schema =
+      DATA_LAKE_SCHEMAS[schemaId as keyof typeof DATA_LAKE_SCHEMAS];
     if (!schema) {
-      return NextResponse.json({
-        error: `Invalid schemaId: ${schemaId}`,
-        availableSchemas: Object.keys(DATA_LAKE_SCHEMAS),
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: `Invalid schemaId: ${schemaId}`,
+          availableSchemas: Object.keys(DATA_LAKE_SCHEMAS),
+        },
+        { status: 400 },
+      );
     }
 
     const storagePath = SCHEMA_PATHS[schemaId];
     if (!storagePath) {
-      return NextResponse.json({
-        error: `No storage path configured for schema: ${schemaId}`,
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: `No storage path configured for schema: ${schemaId}`,
+        },
+        { status: 400 },
+      );
     }
 
     // Generate unique filename
@@ -95,17 +120,19 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(await file.arrayBuffer());
 
     // Upload to Spaces
-    await s3Client.send(new PutObjectCommand({
-      Bucket: SPACES_BUCKET,
-      Key: key,
-      Body: buffer,
-      ContentType: "text/csv",
-      Metadata: {
-        "x-amz-meta-schema": schemaId,
-        "x-amz-meta-original-filename": file.name,
-        "x-amz-meta-uploaded-at": new Date().toISOString(),
-      },
-    }));
+    await s3Client.send(
+      new PutObjectCommand({
+        Bucket: SPACES_BUCKET,
+        Key: key,
+        Body: buffer,
+        ContentType: "text/csv",
+        Metadata: {
+          "x-amz-meta-schema": schemaId,
+          "x-amz-meta-original-filename": file.name,
+          "x-amz-meta-uploaded-at": new Date().toISOString(),
+        },
+      }),
+    );
 
     // Save metadata file
     const metadata: UploadMetadata = {
@@ -117,12 +144,14 @@ export async function POST(request: NextRequest) {
       notes: notes || undefined,
     };
 
-    await s3Client.send(new PutObjectCommand({
-      Bucket: SPACES_BUCKET,
-      Key: `${key}.meta.json`,
-      Body: JSON.stringify(metadata, null, 2),
-      ContentType: "application/json",
-    }));
+    await s3Client.send(
+      new PutObjectCommand({
+        Bucket: SPACES_BUCKET,
+        Key: `${key}.meta.json`,
+        Body: JSON.stringify(metadata, null, 2),
+        ContentType: "application/json",
+      }),
+    );
 
     return NextResponse.json({
       success: true,
@@ -138,10 +167,13 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("[Datalake Upload] Error:", error);
-    return NextResponse.json({
-      error: "Upload failed",
-      details: String(error),
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: "Upload failed",
+        details: String(error),
+      },
+      { status: 500 },
+    );
   }
 }
 

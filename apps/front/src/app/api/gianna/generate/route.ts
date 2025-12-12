@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { gianna, type GiannaContext, type GiannaResponse } from "@/lib/gianna/gianna-service";
+import {
+  gianna,
+  type GiannaContext,
+  type GiannaResponse,
+} from "@/lib/gianna/gianna-service";
 import { PERSONALITY_ARCHETYPES } from "@/lib/gianna/personality-dna";
 
 /**
@@ -34,14 +38,14 @@ export async function POST(request: NextRequest) {
       default:
         return NextResponse.json(
           { error: `Unknown action: ${action}` },
-          { status: 400 }
+          { status: 400 },
         );
     }
   } catch (error) {
     console.error("[Gianna API] Error:", error);
     return NextResponse.json(
       { error: "Internal server error", details: String(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -56,10 +60,7 @@ async function handleRespond(body: {
   const { message, context } = body;
 
   if (!message) {
-    return NextResponse.json(
-      { error: "Message is required" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "Message is required" }, { status: 400 });
   }
 
   // Build full context with defaults
@@ -120,7 +121,10 @@ async function handleOpener(body: {
   // Also generate industry-specific opener if industry is provided
   let industryOpener: string | undefined;
   if (fullContext.industry) {
-    industryOpener = gianna.generateIndustryOpener(fullContext.industry, fullContext);
+    industryOpener = gianna.generateIndustryOpener(
+      fullContext.industry,
+      fullContext,
+    );
   }
 
   return NextResponse.json({
@@ -167,20 +171,22 @@ async function handleSystemPrompt(body: {
  * Get available personalities
  */
 async function handlePersonalities(): Promise<NextResponse> {
-  const personalities = Object.entries(PERSONALITY_ARCHETYPES).map(([id, p]) => ({
-    id,
-    name: p.name,
-    tagline: p.tagline,
-    description: p.description,
-    traits: {
-      warmth: p.warmth,
-      directness: p.directness,
-      humor: p.humor,
-      energy: p.energy,
-      assertiveness: p.assertiveness,
-    },
-    bestFor: p.bestFor,
-  }));
+  const personalities = Object.entries(PERSONALITY_ARCHETYPES).map(
+    ([id, p]) => ({
+      id,
+      name: p.name,
+      tagline: p.tagline,
+      description: p.description,
+      traits: {
+        warmth: p.warmth,
+        directness: p.directness,
+        humor: p.humor,
+        energy: p.energy,
+        assertiveness: p.assertiveness,
+      },
+      bestFor: p.bestFor,
+    }),
+  );
 
   return NextResponse.json({
     success: true,
@@ -198,10 +204,7 @@ async function handleClassify(body: {
   const { message } = body;
 
   if (!message) {
-    return NextResponse.json(
-      { error: "Message is required" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "Message is required" }, { status: 400 });
   }
 
   // Import classifyResponse
@@ -244,7 +247,8 @@ export async function GET(request: NextRequest) {
       "POST /api/gianna/generate?action=opener": "Generate opener messages",
       "POST /api/gianna/generate?action=systemPrompt": "Get AI system prompt",
       "POST /api/gianna/generate?action=classify": "Classify message intent",
-      "GET /api/gianna/generate?action=personalities": "List available personalities",
+      "GET /api/gianna/generate?action=personalities":
+        "List available personalities",
     },
     features: [
       "8 personality archetypes",

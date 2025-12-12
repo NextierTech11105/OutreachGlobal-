@@ -12,21 +12,23 @@ interface ContactToEnrich {
 
 export async function POST(request: NextRequest) {
   try {
-    const apiKey = process.env.APOLLO_API_KEY;
+    const apiKey = process.env.APOLLO_IO_API_KEY || process.env.NEXT_PUBLIC_APOLLO_IO_API_KEY || process.env.APOLLO_API_KEY;
 
     if (!apiKey) {
       return NextResponse.json(
         { error: "Apollo API key not configured" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    const { contacts } = await request.json() as { contacts: ContactToEnrich[] };
+    const { contacts } = (await request.json()) as {
+      contacts: ContactToEnrich[];
+    };
 
     if (!contacts || !Array.isArray(contacts) || contacts.length === 0) {
       return NextResponse.json(
         { error: "Contacts array is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -52,7 +54,7 @@ export async function POST(request: NextRequest) {
       const errorData = await response.json().catch(() => ({}));
       return NextResponse.json(
         { error: errorData.message || "Bulk enrichment failed" },
-        { status: response.status }
+        { status: response.status },
       );
     }
 

@@ -61,7 +61,7 @@ export function SectorWorkspaceSelector({
       <Card
         className={cn(
           "cursor-pointer transition-all hover:shadow-md",
-          isSelected && "ring-2 ring-primary"
+          isSelected && "ring-2 ring-primary",
         )}
         onClick={() => handleSelectSector(sector)}
       >
@@ -164,7 +164,9 @@ export function SectorWorkspaceSelector({
           <Layers className="h-4 w-4" />
           {selectedSector ? (
             <>
-              <span className="hidden sm:inline">{selectedSector.shortName}</span>
+              <span className="hidden sm:inline">
+                {selectedSector.shortName}
+              </span>
               <Badge variant="secondary" className="ml-1">
                 {selectedSector.category.replace(/_/g, " ")}
               </Badge>

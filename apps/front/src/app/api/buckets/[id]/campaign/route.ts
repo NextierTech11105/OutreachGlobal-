@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { S3Client, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  GetObjectCommand,
+  PutObjectCommand,
+} from "@aws-sdk/client-s3";
 
 // DO Spaces configuration
 const SPACES_ENDPOINT = "https://nyc3.digitaloceanspaces.com";
@@ -59,7 +63,7 @@ async function getBucketData(id: string): Promise<BucketData | null> {
       new GetObjectCommand({
         Bucket: SPACES_BUCKET,
         Key: `buckets/${id}.json`,
-      })
+      }),
     );
 
     const bodyContents = await response.Body?.transformToString();
@@ -86,7 +90,7 @@ async function saveCampaign(campaign: Campaign): Promise<boolean> {
         Key: `campaigns/${campaign.id}.json`,
         Body: JSON.stringify(campaign, null, 2),
         ContentType: "application/json",
-      })
+      }),
     );
     return true;
   } catch (error) {
@@ -98,7 +102,7 @@ async function saveCampaign(campaign: Campaign): Promise<boolean> {
 // POST /api/buckets/:id/campaign - Create campaign from bucket
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
@@ -147,6 +151,9 @@ export async function POST(
     });
   } catch (error) {
     console.error("[Bucket Campaign API] POST error:", error);
-    return NextResponse.json({ error: "Failed to create campaign" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to create campaign" },
+      { status: 500 },
+    );
   }
 }

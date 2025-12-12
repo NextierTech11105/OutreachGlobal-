@@ -28,9 +28,7 @@ export function LeadPropertyDetails({ lead }: LeadPropertyDetailsProps) {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Value</p>
-                  <p className="font-medium">
-                    ${sf(lead.propertyValue)}
-                  </p>
+                  <p className="font-medium">${sf(lead.propertyValue)}</p>
                 </div>
               </div>
               <Separator />
@@ -45,9 +43,7 @@ export function LeadPropertyDetails({ lead }: LeadPropertyDetailsProps) {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Square Feet</p>
-                  <p className="font-medium">
-                    {sf(lead.squareFeet) || "N/A"}
-                  </p>
+                  <p className="font-medium">{sf(lead.squareFeet) || "N/A"}</p>
                 </div>
               </div>
               <Separator />

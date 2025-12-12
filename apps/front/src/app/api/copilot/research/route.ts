@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     if (!source || !scope) {
       return NextResponse.json(
         { error: "source and scope are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -73,27 +73,31 @@ export async function POST(request: NextRequest) {
         activeResearchJobs.set(jobId, job);
 
         // Simulate research completion after 3-5 seconds
-        setTimeout(async () => {
-          const processingJob = activeResearchJobs.get(jobId);
-          if (processingJob && processingJob.status === "processing") {
-            try {
-              // Generate mock research insights
-              const insights = generateMockInsights(scope, leadId, query);
+        setTimeout(
+          async () => {
+            const processingJob = activeResearchJobs.get(jobId);
+            if (processingJob && processingJob.status === "processing") {
+              try {
+                // Generate mock research insights
+                const insights = generateMockInsights(scope, leadId, query);
 
-              processingJob.status = "completed";
-              processingJob.completedAt = new Date().toISOString();
-              processingJob.insights = insights;
-              activeResearchJobs.set(jobId, processingJob);
-            } catch (error) {
-              const processingJob = activeResearchJobs.get(jobId);
-              if (processingJob) {
-                processingJob.status = "failed";
-                processingJob.error = error instanceof Error ? error.message : "Research failed";
+                processingJob.status = "completed";
+                processingJob.completedAt = new Date().toISOString();
+                processingJob.insights = insights;
                 activeResearchJobs.set(jobId, processingJob);
+              } catch (error) {
+                const processingJob = activeResearchJobs.get(jobId);
+                if (processingJob) {
+                  processingJob.status = "failed";
+                  processingJob.error =
+                    error instanceof Error ? error.message : "Research failed";
+                  activeResearchJobs.set(jobId, processingJob);
+                }
               }
             }
-          }
-        }, 3000 + Math.random() * 2000);
+          },
+          3000 + Math.random() * 2000,
+        );
       }
     }, 1000);
 
@@ -104,7 +108,8 @@ export async function POST(request: NextRequest) {
       job: researchJob,
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Research initiation failed";
+    const message =
+      error instanceof Error ? error.message : "Research initiation failed";
     console.error("[GiannaCopilot] Research error:", error);
     return NextResponse.json({ error: message }, { status: 500 });
   }
@@ -121,8 +126,8 @@ export async function GET(request: NextRequest) {
       const jobs = Array.from(activeResearchJobs.values());
       return NextResponse.json({
         success: true,
-        activeJobs: jobs.filter(j =>
-          j.status !== "completed" && j.status !== "failed"
+        activeJobs: jobs.filter(
+          (j) => j.status !== "completed" && j.status !== "failed",
         ).length,
         totalJobs: jobs.length,
         jobs: jobs.slice(-10), // Last 10 jobs
@@ -133,7 +138,7 @@ export async function GET(request: NextRequest) {
     if (!job) {
       return NextResponse.json(
         { error: "Research job not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -149,12 +154,20 @@ export async function GET(request: NextRequest) {
 }
 
 // Helper function to generate mock insights based on scope
-function generateMockInsights(scope: string, leadId?: string, query?: string): ResearchResult["insights"] {
+function generateMockInsights(
+  scope: string,
+  leadId?: string,
+  query?: string,
+): ResearchResult["insights"] {
   // Get lead details if available
   let leadDetails = null;
   if (leadId) {
     try {
-      const [lead] = db.select().from(leads).where(eq(leads.id, leadId)).limit(1);
+      const [lead] = db
+        .select()
+        .from(leads)
+        .where(eq(leads.id, leadId))
+        .limit(1);
       leadDetails = lead;
     } catch (error) {
       console.log("[GiannaCopilot] Lead lookup failed, using generic insights");
@@ -166,14 +179,14 @@ function generateMockInsights(scope: string, leadId?: string, query?: string): R
     keyFindings: [
       "Target lead shows strong potential for conversion",
       "Multiple contact methods available for outreach",
-      "Industry trends indicate high demand for our services"
+      "Industry trends indicate high demand for our services",
     ],
     recommendations: [
       "Prioritize this lead for immediate contact",
       "Use personalized messaging based on industry insights",
-      "Schedule follow-up within 48 hours for best results"
+      "Schedule follow-up within 48 hours for best results",
     ],
-    confidenceScore: 0.85
+    confidenceScore: 0.85,
   };
 
   if (scope === "lead" && leadDetails) {
@@ -184,14 +197,14 @@ function generateMockInsights(scope: string, leadId?: string, query?: string): R
         `Lead is a ${leadDetails.title || "decision maker"} with high authority`,
         `Company operates in ${leadDetails.industry || "a growing industry"}`,
         `Multiple contact methods available (phone: ${leadDetails.phone ? "yes" : "no"}, email: ${leadDetails.email ? "yes" : "no"})`,
-        `Property ownership likelihood: ${leadDetails.propertyScore ? `${leadDetails.propertyScore}%` : "unknown"}`
+        `Property ownership likelihood: ${leadDetails.propertyScore ? `${leadDetails.propertyScore}%` : "unknown"}`,
       ],
       recommendations: [
         `Contact via ${leadDetails.phone ? "phone" : "email"} for highest response rate`,
         `Mention industry-specific benefits during conversation`,
         `Offer to schedule a demo or consultation within the next week`,
-        `Follow up ${leadDetails.phone ? "with SMS" : "via email"} if no response within 48 hours`
-      ]
+        `Follow up ${leadDetails.phone ? "with SMS" : "via email"} if no response within 48 hours`,
+      ],
     };
   }
 
@@ -202,14 +215,14 @@ function generateMockInsights(scope: string, leadId?: string, query?: string): R
       keyFindings: [
         "Bucket contains high-quality leads with strong conversion potential",
         "Majority of leads are decision makers or have high authority",
-        "Diverse industry representation with multiple contact methods available"
+        "Diverse industry representation with multiple contact methods available",
       ],
       recommendations: [
         "Prioritize leads with phone numbers for immediate outreach",
         "Segment leads by industry for targeted messaging",
         "Schedule automated follow-ups for leads without immediate response",
-        "Monitor conversion rates and adjust strategy as needed"
-      ]
+        "Monitor conversion rates and adjust strategy as needed",
+      ],
     };
   }
 
@@ -220,14 +233,14 @@ function generateMockInsights(scope: string, leadId?: string, query?: string): R
       keyFindings: [
         `Market shows ${Math.random() > 0.5 ? "strong" : "moderate"} demand for our services`,
         `Competitive landscape analysis reveals opportunities for differentiation`,
-        `Target audience responds best to ${Math.random() > 0.5 ? "value-based" : "feature-based"} messaging`
+        `Target audience responds best to ${Math.random() > 0.5 ? "value-based" : "feature-based"} messaging`,
       ],
       recommendations: [
         `Focus marketing efforts on ${query} segment`,
         `Highlight unique value proposition in outreach materials`,
         `Consider targeted advertising campaigns in this market`,
-        `Monitor market trends and adjust strategy quarterly`
-      ]
+        `Monitor market trends and adjust strategy quarterly`,
+      ],
     };
   }
 

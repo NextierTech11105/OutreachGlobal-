@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const API_KEY = process.env.REALESTATE_API_KEY || process.env.REAL_ESTATE_API_KEY || "";
+const API_KEY =
+  process.env.REALESTATE_API_KEY || process.env.REAL_ESTATE_API_KEY || "";
 const API_BASE = "https://api.realestateapi.com/v2";
 
 export async function POST(request: NextRequest) {
@@ -24,7 +25,7 @@ export async function POST(request: NextRequest) {
     } else {
       return NextResponse.json(
         { error: "Address or address parts required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
       headers: {
         "Content-Type": "application/json",
         "x-api-key": API_KEY,
-        "Accept": "application/json",
+        Accept: "application/json",
       },
       body: JSON.stringify(requestBody),
     });
@@ -43,8 +44,11 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       return NextResponse.json(
-        { error: data.message || "Property not found", statusCode: response.status },
-        { status: response.status }
+        {
+          error: data.message || "Property not found",
+          statusCode: response.status,
+        },
+        { status: response.status },
       );
     }
 
@@ -59,7 +63,7 @@ export async function POST(request: NextRequest) {
     console.error("Address verify error:", error);
     return NextResponse.json(
       { error: "Verification failed", details: error.message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -79,7 +83,7 @@ export async function GET(request: NextRequest) {
       headers: {
         "Content-Type": "application/json",
         "x-api-key": API_KEY,
-        "Accept": "application/json",
+        Accept: "application/json",
       },
       body: JSON.stringify({ address }),
     });
@@ -89,7 +93,7 @@ export async function GET(request: NextRequest) {
     if (!response.ok) {
       return NextResponse.json(
         { error: data.message || "Property not found", verified: false },
-        { status: response.status }
+        { status: response.status },
       );
     }
 
@@ -102,7 +106,7 @@ export async function GET(request: NextRequest) {
     console.error("Address verify error:", error);
     return NextResponse.json(
       { error: "Verification failed", details: error.message, verified: false },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

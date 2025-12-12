@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+} from "@aws-sdk/client-s3";
 
 // DigitalOcean Spaces configuration
-const SPACES_ENDPOINT = process.env.SPACES_ENDPOINT || "https://nyc3.digitaloceanspaces.com";
+const SPACES_ENDPOINT =
+  process.env.SPACES_ENDPOINT || "https://nyc3.digitaloceanspaces.com";
 const SPACES_REGION = process.env.SPACES_REGION || "nyc3";
 const SPACES_KEY = process.env.SPACES_KEY || process.env.DO_SPACES_KEY || "";
-const SPACES_SECRET = process.env.SPACES_SECRET || process.env.DO_SPACES_SECRET || "";
-const SPACES_BUCKET = process.env.SPACES_BUCKET || process.env.DO_SPACES_BUCKET || "nextier";
+const SPACES_SECRET =
+  process.env.SPACES_SECRET || process.env.DO_SPACES_SECRET || "";
+const SPACES_BUCKET =
+  process.env.SPACES_BUCKET || process.env.DO_SPACES_BUCKET || "nextier";
 
 const s3Client = new S3Client({
   endpoint: SPACES_ENDPOINT,
@@ -28,7 +35,10 @@ export async function GET(request: NextRequest, context: RouteContext) {
     const { id } = await context.params;
 
     if (!id) {
-      return NextResponse.json({ error: "Report ID required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Report ID required" },
+        { status: 400 },
+      );
     }
 
     // Check if PDF already exists in bucket
@@ -56,11 +66,14 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     // For now, return a redirect to the HTML report page
     // PDF generation will be handled client-side using browser print or we can add server-side generation later
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://monkfish-app-mb7h3.ondigitalocean.app";
+    const baseUrl =
+      process.env.NEXT_PUBLIC_APP_URL ||
+      "https://monkfish-app-mb7h3.ondigitalocean.app";
 
     return NextResponse.json({
       success: true,
-      message: "PDF not yet generated. Use the share link or print from browser.",
+      message:
+        "PDF not yet generated. Use the share link or print from browser.",
       shareUrl: `${baseUrl}/report/${id}`,
       printUrl: `${baseUrl}/report/${id}?print=true`,
     });
@@ -76,7 +89,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const { id } = await context.params;
 
     if (!id) {
-      return NextResponse.json({ error: "Report ID required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Report ID required" },
+        { status: 400 },
+      );
     }
 
     // Get the report data first
@@ -102,15 +118,19 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     // Save HTML version to bucket (can be converted to PDF by external service or browser)
     const htmlKey = `research-library/pdfs/${id}.html`;
-    await s3Client.send(new PutObjectCommand({
-      Bucket: SPACES_BUCKET,
-      Key: htmlKey,
-      Body: htmlContent,
-      ContentType: "text/html",
-      ACL: "public-read",
-    }));
+    await s3Client.send(
+      new PutObjectCommand({
+        Bucket: SPACES_BUCKET,
+        Key: htmlKey,
+        Body: htmlContent,
+        ContentType: "text/html",
+        ACL: "public-read",
+      }),
+    );
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://monkfish-app-mb7h3.ondigitalocean.app";
+    const baseUrl =
+      process.env.NEXT_PUBLIC_APP_URL ||
+      "https://monkfish-app-mb7h3.ondigitalocean.app";
     const cdnUrl = `https://${SPACES_BUCKET}.${SPACES_REGION}.cdn.digitaloceanspaces.com`;
 
     return NextResponse.json({
@@ -119,11 +139,15 @@ export async function POST(request: NextRequest, context: RouteContext) {
       shareUrl: `${baseUrl}/report/${id}`,
       htmlUrl: `${cdnUrl}/research-library/pdfs/${id}.html`,
       // PDF URL will be available once converted
-      message: "Report HTML generated. Share the link directly for best experience.",
+      message:
+        "Report HTML generated. Share the link directly for best experience.",
     });
   } catch (error) {
     console.error("[PDF API] Error:", error);
-    return NextResponse.json({ error: "Failed to generate PDF" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to generate PDF" },
+      { status: 500 },
+    );
   }
 }
 
@@ -134,7 +158,12 @@ function generateReportHTML(data: {
   savedAt: string;
   report: {
     property?: {
-      address?: { address?: string; city?: string; state?: string; zipCode?: string };
+      address?: {
+        address?: string;
+        city?: string;
+        state?: string;
+        zipCode?: string;
+      };
       yearBuilt?: number;
       squareFeet?: number;
       bedrooms?: number;
@@ -303,20 +332,28 @@ function generateReportHTML(data: {
       </div>
     </div>
 
-    ${report.aiAnalysis?.summary ? `
+    ${
+      report.aiAnalysis?.summary
+        ? `
     <div class="section">
       <h2>AI Analysis</h2>
       <p style="color: #cbd5e1; line-height: 1.6;">${report.aiAnalysis.summary}</p>
-      ${report.aiAnalysis.strengths?.length ? `
+      ${
+        report.aiAnalysis.strengths?.length
+          ? `
         <div style="margin-top: 16px;">
           <strong style="color: #4ade80;">Key Strengths:</strong>
           <ul style="margin-top: 8px; padding-left: 20px; color: #94a3b8;">
-            ${report.aiAnalysis.strengths.map(s => `<li style="margin-bottom: 4px;">${s}</li>`).join("")}
+            ${report.aiAnalysis.strengths.map((s) => `<li style="margin-bottom: 4px;">${s}</li>`).join("")}
           </ul>
         </div>
-      ` : ""}
+      `
+          : ""
+      }
     </div>
-    ` : ""}
+    `
+        : ""
+    }
 
     <div class="footer">
       <p>Report generated ${new Date(data.savedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</p>

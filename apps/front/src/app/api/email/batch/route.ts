@@ -31,21 +31,21 @@ export async function POST(request: NextRequest) {
     if (!leads || !Array.isArray(leads) || leads.length === 0) {
       return NextResponse.json(
         { success: false, error: "leads array required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!subject || !emailBody) {
       return NextResponse.json(
         { success: false, error: "subject and body required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!SENDGRID_API_KEY) {
       return NextResponse.json(
         { success: false, error: "SendGrid not configured" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     if (validLeads.length === 0) {
       return NextResponse.json(
         { success: false, error: "No valid email addresses found" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
       } catch (error) {
         results.failed += batch.length;
         results.errors.push(
-          `Batch error: ${error instanceof Error ? error.message : "Unknown error"}`
+          `Batch error: ${error instanceof Error ? error.message : "Unknown error"}`,
         );
       }
     }
@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
     console.error("[Email Batch] Error:", error);
     return NextResponse.json(
       { success: false, error: "Failed to send emails" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -52,13 +52,13 @@ export default function CampaignAutomationPage() {
   const [showNewRule, setShowNewRule] = useState(false);
 
   const toggleRule = (id: string) => {
-    setRules(rules.map(r =>
-      r.id === id ? { ...r, isActive: !r.isActive } : r
-    ));
+    setRules(
+      rules.map((r) => (r.id === id ? { ...r, isActive: !r.isActive } : r)),
+    );
   };
 
   const deleteRule = (id: string) => {
-    setRules(rules.filter(r => r.id !== id));
+    setRules(rules.filter((r) => r.id !== id));
   };
 
   return (
@@ -113,14 +113,30 @@ export default function CampaignAutomationPage() {
                     <SelectValue placeholder="Select trigger..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="response_positive">Positive Response</SelectItem>
-                    <SelectItem value="response_negative">Negative Response</SelectItem>
-                    <SelectItem value="response_wrong_number">Wrong Number</SelectItem>
-                    <SelectItem value="response_profanity">Profanity Detected</SelectItem>
-                    <SelectItem value="no_response_1d">No Response (1 day)</SelectItem>
-                    <SelectItem value="no_response_3d">No Response (3 days)</SelectItem>
-                    <SelectItem value="lead_score_high">Lead Score &gt; 80</SelectItem>
-                    <SelectItem value="phone_verified">Phone Verified</SelectItem>
+                    <SelectItem value="response_positive">
+                      Positive Response
+                    </SelectItem>
+                    <SelectItem value="response_negative">
+                      Negative Response
+                    </SelectItem>
+                    <SelectItem value="response_wrong_number">
+                      Wrong Number
+                    </SelectItem>
+                    <SelectItem value="response_profanity">
+                      Profanity Detected
+                    </SelectItem>
+                    <SelectItem value="no_response_1d">
+                      No Response (1 day)
+                    </SelectItem>
+                    <SelectItem value="no_response_3d">
+                      No Response (3 days)
+                    </SelectItem>
+                    <SelectItem value="lead_score_high">
+                      Lead Score &gt; 80
+                    </SelectItem>
+                    <SelectItem value="phone_verified">
+                      Phone Verified
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -136,13 +152,25 @@ export default function CampaignAutomationPage() {
                     <SelectValue placeholder="Select action..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="assign_sdr">Assign to Gianna SDR</SelectItem>
-                    <SelectItem value="add_suppression">Add to Suppression List</SelectItem>
-                    <SelectItem value="move_priority">Move to Priority Queue</SelectItem>
-                    <SelectItem value="send_followup">Send Follow-up Message</SelectItem>
+                    <SelectItem value="assign_sdr">
+                      Assign to Gianna SDR
+                    </SelectItem>
+                    <SelectItem value="add_suppression">
+                      Add to Suppression List
+                    </SelectItem>
+                    <SelectItem value="move_priority">
+                      Move to Priority Queue
+                    </SelectItem>
+                    <SelectItem value="send_followup">
+                      Send Follow-up Message
+                    </SelectItem>
                     <SelectItem value="add_tag">Add Tag</SelectItem>
-                    <SelectItem value="update_score">Update Lead Score</SelectItem>
-                    <SelectItem value="notify_user">Notify Team Member</SelectItem>
+                    <SelectItem value="update_score">
+                      Update Lead Score
+                    </SelectItem>
+                    <SelectItem value="notify_user">
+                      Notify Team Member
+                    </SelectItem>
                     <SelectItem value="move_bucket">Move to Bucket</SelectItem>
                   </SelectContent>
                 </Select>
@@ -166,7 +194,8 @@ export default function CampaignAutomationPage() {
         <CardHeader>
           <CardTitle>Active Rules</CardTitle>
           <CardDescription>
-            {rules.filter(r => r.isActive).length} of {rules.length} rules enabled
+            {rules.filter((r) => r.isActive).length} of {rules.length} rules
+            enabled
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -184,10 +213,15 @@ export default function CampaignAutomationPage() {
             <TableBody>
               {rules.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                  <TableCell
+                    colSpan={6}
+                    className="text-center py-12 text-muted-foreground"
+                  >
                     <Zap className="h-12 w-12 mx-auto mb-4 opacity-50" />
                     <p className="font-medium">No Automation Rules</p>
-                    <p className="text-sm">Create your first automation rule to get started</p>
+                    <p className="text-sm">
+                      Create your first automation rule to get started
+                    </p>
                   </TableCell>
                 </TableRow>
               ) : null}
@@ -204,7 +238,9 @@ export default function CampaignAutomationPage() {
                       {rule.action}
                     </code>
                   </TableCell>
-                  <TableCell className="text-right">{rule.executionCount}</TableCell>
+                  <TableCell className="text-right">
+                    {rule.executionCount}
+                  </TableCell>
                   <TableCell className="text-center">
                     <Switch
                       checked={rule.isActive}

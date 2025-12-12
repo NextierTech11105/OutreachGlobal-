@@ -19,5 +19,5 @@ try {
 }
 
 // Export a typed database instance
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 export const db = dbClient as any;

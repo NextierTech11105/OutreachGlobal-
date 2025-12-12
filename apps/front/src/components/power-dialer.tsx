@@ -173,7 +173,9 @@ export function PowerDialer({
           // Check if Twilio is properly configured
           if (!tokenResponse.token || tokenResponse.configured === false) {
             console.warn("Twilio not configured - calls will not work");
-            setError("Twilio calling is not configured. Add TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_TWIML_APP_SID in Admin > Integrations > Twilio.");
+            setError(
+              "Twilio calling is not configured. Add TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_TWIML_APP_SID in Admin > Integrations > Twilio.",
+            );
             setIsDeviceReady(false);
             setIsInitializing(false);
             return;
@@ -253,13 +255,16 @@ export function PowerDialer({
 
           if (cleanup) return;
 
-          setError("Failed to initialize calling. Please configure Twilio in Admin > Integrations.");
+          setError(
+            "Failed to initialize calling. Please configure Twilio in Admin > Integrations.",
+          );
           setIsDeviceReady(false);
           setIsInitializing(false);
 
           toast({
             title: "Calling Not Available",
-            description: "Twilio credentials are required for calling. Configure in Admin > Integrations > Twilio.",
+            description:
+              "Twilio credentials are required for calling. Configure in Admin > Integrations > Twilio.",
             variant: "destructive",
           });
         }
@@ -268,13 +273,16 @@ export function PowerDialer({
 
         if (cleanup) return;
 
-        setError("Phone system initialization failed. Please check Twilio configuration.");
+        setError(
+          "Phone system initialization failed. Please check Twilio configuration.",
+        );
         setIsDeviceReady(false);
         setIsInitializing(false);
 
         toast({
           title: "Calling Not Available",
-          description: "Phone system could not be initialized. Check your Twilio configuration.",
+          description:
+            "Phone system could not be initialized. Check your Twilio configuration.",
           variant: "destructive",
         });
       }

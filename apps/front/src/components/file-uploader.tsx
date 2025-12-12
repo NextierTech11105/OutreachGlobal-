@@ -147,7 +147,7 @@ export function FileUploader({
       });
 
       toast.success(
-        `Uploaded ${selectedFile.name} (${data.csv?.recordCount || 0} records)`
+        `Uploaded ${selectedFile.name} (${data.csv?.recordCount || 0} records)`,
       );
 
       onUploadComplete?.(data.file, data.csv);
@@ -160,7 +160,7 @@ export function FileUploader({
 
   const toggleTag = (tag: string) => {
     setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
     );
   };
 

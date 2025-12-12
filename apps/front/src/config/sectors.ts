@@ -4,14 +4,38 @@
  */
 
 import {
-  Building2, Home, Landmark, Store, Briefcase, Factory,
-  Truck, Utensils, Heart, GraduationCap, Scale, Stethoscope,
-  Car, Plane, Ship, TreePine, Warehouse, Hotel,
-  AlertTriangle, TrendingUp, Users, DollarSign, MapPin, RotateCcw
+  Building2,
+  Home,
+  Landmark,
+  Store,
+  Briefcase,
+  Factory,
+  Truck,
+  Utensils,
+  Heart,
+  GraduationCap,
+  Scale,
+  Stethoscope,
+  Car,
+  Plane,
+  Ship,
+  TreePine,
+  Warehouse,
+  Hotel,
+  AlertTriangle,
+  TrendingUp,
+  Users,
+  DollarSign,
+  MapPin,
+  RotateCcw,
 } from "lucide-react";
 
 // ============ SECTOR TYPES ============
-export type SectorCategory = "real_estate" | "business" | "financial" | "geographic";
+export type SectorCategory =
+  | "real_estate"
+  | "business"
+  | "financial"
+  | "geographic";
 
 export interface Sector {
   id: string;
@@ -241,7 +265,20 @@ export const BUSINESS_SECTORS: Sector[] = [
     color: "text-red-500",
     bgColor: "bg-red-50",
     filters: {},
-    sicCodes: ["8011", "8021", "8031", "8041", "8042", "8049", "8051", "8052", "8059", "8062", "8063", "8069"],
+    sicCodes: [
+      "8011",
+      "8021",
+      "8031",
+      "8041",
+      "8042",
+      "8049",
+      "8051",
+      "8052",
+      "8059",
+      "8062",
+      "8063",
+      "8069",
+    ],
   },
   {
     id: "restaurants_food",
@@ -277,7 +314,28 @@ export const BUSINESS_SECTORS: Sector[] = [
     color: "text-gray-600",
     bgColor: "bg-gray-50",
     filters: {},
-    sicCodes: ["20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33", "34", "35", "36", "37", "38", "39"],
+    sicCodes: [
+      "20",
+      "21",
+      "22",
+      "23",
+      "24",
+      "25",
+      "26",
+      "27",
+      "28",
+      "29",
+      "30",
+      "31",
+      "32",
+      "33",
+      "34",
+      "35",
+      "36",
+      "37",
+      "38",
+      "39",
+    ],
   },
   {
     id: "transportation",
@@ -325,7 +383,24 @@ export const BUSINESS_SECTORS: Sector[] = [
     color: "text-zinc-600",
     bgColor: "bg-zinc-50",
     filters: {},
-    sicCodes: ["5511", "5521", "5531", "5541", "5551", "5561", "5571", "5599", "7532", "7533", "7534", "7535", "7536", "7537", "7538", "7539"],
+    sicCodes: [
+      "5511",
+      "5521",
+      "5531",
+      "5541",
+      "5551",
+      "5561",
+      "5571",
+      "5599",
+      "7532",
+      "7533",
+      "7534",
+      "7535",
+      "7536",
+      "7537",
+      "7538",
+      "7539",
+    ],
   },
   {
     id: "financial_services",
@@ -349,7 +424,18 @@ export const BUSINESS_SECTORS: Sector[] = [
     color: "text-teal-600",
     bgColor: "bg-teal-50",
     filters: {},
-    sicCodes: ["6512", "6513", "6514", "6515", "6517", "6519", "6531", "6541", "6552", "6553"],
+    sicCodes: [
+      "6512",
+      "6513",
+      "6514",
+      "6515",
+      "6517",
+      "6519",
+      "6531",
+      "6541",
+      "6552",
+      "6553",
+    ],
   },
   {
     id: "construction",
@@ -376,7 +462,19 @@ export const GEOGRAPHIC_SECTORS: Sector[] = [
     icon: MapPin,
     color: "text-blue-600",
     bgColor: "bg-blue-50",
-    filters: { state: "NY", county: ["New York", "Kings", "Queens", "Bronx", "Richmond", "Nassau", "Suffolk", "Westchester"] },
+    filters: {
+      state: "NY",
+      county: [
+        "New York",
+        "Kings",
+        "Queens",
+        "Bronx",
+        "Richmond",
+        "Nassau",
+        "Suffolk",
+        "Westchester",
+      ],
+    },
   },
   {
     id: "ny_upstate",
@@ -508,7 +606,9 @@ export function getSectorsByCategory(category: SectorCategory): Sector[] {
   }
 }
 
-export function getWorkspaceById(workspaceId: string): SectorWorkspace | undefined {
+export function getWorkspaceById(
+  workspaceId: string,
+): SectorWorkspace | undefined {
   return SECTOR_WORKSPACES.find((w) => w.id === workspaceId);
 }
 
@@ -523,6 +623,6 @@ export function getAllSectors(): Sector[] {
 
 export function matchSectorBySIC(sicCode: string): Sector[] {
   return BUSINESS_SECTORS.filter((sector) =>
-    sector.sicCodes?.some((code) => sicCode.startsWith(code))
+    sector.sicCodes?.some((code) => sicCode.startsWith(code)),
   );
 }

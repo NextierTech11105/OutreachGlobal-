@@ -8,9 +8,14 @@ import { NextRequest, NextResponse } from "next/server";
 const SIGNALHOUSE_API_BASE = "https://api.signalhouse.io/api/v1";
 const SIGNALHOUSE_API_KEY = process.env.SIGNALHOUSE_API_KEY || "";
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || "";
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://monkfish-app-mb7h3.ondigitalocean.app";
-const CALENDAR_LINK = process.env.CALENDAR_LINK || "https://calendly.com/nextier/15min-strategy";
-const SPACES_CDN = process.env.SPACES_CDN_URL || "https://nextier-assets.nyc3.cdn.digitaloceanspaces.com";
+const APP_URL =
+  process.env.NEXT_PUBLIC_APP_URL ||
+  "https://monkfish-app-mb7h3.ondigitalocean.app";
+const CALENDAR_LINK =
+  process.env.CALENDAR_LINK || "https://calendly.com/nextier/15min-strategy";
+const SPACES_CDN =
+  process.env.SPACES_CDN_URL ||
+  "https://nextier-assets.nyc3.cdn.digitaloceanspaces.com";
 
 // Email regex pattern
 const EMAIL_REGEX = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
@@ -35,14 +40,16 @@ const CONTENT_LIBRARY = {
       {
         id: "property-investing-guide",
         title: "The Complete Guide to Property Investing",
-        description: "Everything you need to know about building wealth through real estate",
+        description:
+          "Everything you need to know about building wealth through real estate",
         file: "ebooks/property-investing-guide.pdf",
         pages: 24,
       },
       {
         id: "first-time-seller-handbook",
         title: "First-Time Seller's Handbook",
-        description: "Step-by-step guide to selling your home for maximum value",
+        description:
+          "Step-by-step guide to selling your home for maximum value",
         file: "ebooks/first-time-seller-handbook.pdf",
         pages: 18,
       },
@@ -78,7 +85,8 @@ const CONTENT_LIBRARY = {
       {
         id: "miami-flip-success",
         title: "Miami Property Flip: 42% ROI in 6 Months",
-        description: "How we identified and maximized value on a distressed property",
+        description:
+          "How we identified and maximized value on a distressed property",
         file: "case-studies/miami-flip-success.pdf",
       },
       {
@@ -119,7 +127,8 @@ const CONTENT_LIBRARY = {
       {
         id: "enrichment-roi-calculator",
         title: "Data Enrichment ROI Calculator",
-        description: "See exactly how much better data impacts your bottom line",
+        description:
+          "See exactly how much better data impacts your bottom line",
         file: "one-pagers/enrichment-roi-calculator.pdf",
       },
       {
@@ -198,9 +207,20 @@ function selectContentForLead(context: {
   } else {
     // Infer from SMS content
     const msgLower = smsMessage.toLowerCase();
-    if (msgLower.includes("property") || msgLower.includes("home") || msgLower.includes("house") || msgLower.includes("sell") || msgLower.includes("value")) {
+    if (
+      msgLower.includes("property") ||
+      msgLower.includes("home") ||
+      msgLower.includes("house") ||
+      msgLower.includes("sell") ||
+      msgLower.includes("value")
+    ) {
       category = "property";
-    } else if (msgLower.includes("business") || msgLower.includes("company") || msgLower.includes("sales") || msgLower.includes("leads")) {
+    } else if (
+      msgLower.includes("business") ||
+      msgLower.includes("company") ||
+      msgLower.includes("sales") ||
+      msgLower.includes("leads")
+    ) {
       category = "b2b";
     }
   }
@@ -210,10 +230,19 @@ function selectContentForLead(context: {
   let contentType: ContentType = "ebook";
   const msgLower = smsMessage.toLowerCase();
 
-  if (msgLower.includes("quick") || msgLower.includes("summary") || msgLower.includes("checklist")) {
+  if (
+    msgLower.includes("quick") ||
+    msgLower.includes("summary") ||
+    msgLower.includes("checklist")
+  ) {
     contentTypeKey = "one_pagers";
     contentType = "one_pager";
-  } else if (msgLower.includes("example") || msgLower.includes("case study") || msgLower.includes("success") || msgLower.includes("results")) {
+  } else if (
+    msgLower.includes("example") ||
+    msgLower.includes("case study") ||
+    msgLower.includes("success") ||
+    msgLower.includes("results")
+  ) {
     contentTypeKey = "case_studies";
     contentType = "case_study";
   }
@@ -229,7 +258,8 @@ function selectContentForLead(context: {
   }
 
   // Select random content (could be smarter with AI)
-  const selected = contentArray[Math.floor(Math.random() * contentArray.length)];
+  const selected =
+    contentArray[Math.floor(Math.random() * contentArray.length)];
 
   return {
     id: selected.id,
@@ -248,7 +278,11 @@ function extractEmail(message: string): string | null {
 }
 
 // Send SMS via SignalHouse
-async function sendSMS(to: string, from: string, message: string): Promise<boolean> {
+async function sendSMS(
+  to: string,
+  from: string,
+  message: string,
+): Promise<boolean> {
   if (!SIGNALHOUSE_API_KEY) {
     console.error("[Automation] SignalHouse API key not configured");
     return false;
@@ -350,13 +384,17 @@ function generateEmailHTML(params: {
   <div class="content">
     <p>Great chatting with you! As promised, here's that property analysis we talked about.</p>
 
-    ${reportLink ? `
+    ${
+      reportLink
+        ? `
     <div class="section">
       <h3>📊 Your Property Report</h3>
       <p>I put together some numbers on <strong>${propertyAddress || "your property"}</strong> - the valuation, market trends, and what I'm seeing in your area.</p>
       <a href="${reportLink}" class="cta-button">View Your Report</a>
     </div>
-    ` : ""}
+    `
+        : ""
+    }
 
     <div class="section">
       <h3>🗓️ Book Your Strategy Session</h3>
@@ -382,14 +420,17 @@ function generateEmailHTML(params: {
 }
 
 // In-memory tracking for automation runs
-const automationRuns = new Map<string, {
-  id: string;
-  status: "processing" | "completed" | "failed";
-  startedAt: string;
-  completedAt?: string;
-  input: Record<string, unknown>;
-  results: Record<string, unknown>;
-}>();
+const automationRuns = new Map<
+  string,
+  {
+    id: string;
+    status: "processing" | "completed" | "failed";
+    startedAt: string;
+    completedAt?: string;
+    input: Record<string, unknown>;
+    results: Record<string, unknown>;
+  }
+>();
 
 // POST - Process email capture automation
 export async function POST(request: NextRequest) {
@@ -412,14 +453,14 @@ export async function POST(request: NextRequest) {
     if (!email) {
       return NextResponse.json(
         { error: "No email found in message", smsMessage },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!fromPhone) {
       return NextResponse.json(
         { error: "fromPhone required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -459,7 +500,10 @@ export async function POST(request: NextRequest) {
             name: `Valuation Report - ${propertyAddress || propertyId}`,
             category: "valuation_reports",
             report: {
-              property: { id: propertyId, address: { address: propertyAddress } },
+              property: {
+                id: propertyId,
+                address: { address: propertyAddress },
+              },
               generatedFor: { email, phone: fromPhone, firstName: name },
               generatedAt: new Date().toISOString(),
               source: "email_capture_automation",
@@ -563,7 +607,7 @@ export async function POST(request: NextRequest) {
     console.error("[Automation] Email capture error:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Automation failed" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -585,7 +629,10 @@ export async function GET(request: NextRequest) {
 
   // List recent runs
   const runs = Array.from(automationRuns.values())
-    .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime())
+    .sort(
+      (a, b) =>
+        new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime(),
+    )
     .slice(0, limit);
 
   const stats = {

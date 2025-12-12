@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { S3Client, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  GetObjectCommand,
+  PutObjectCommand,
+} from "@aws-sdk/client-s3";
 
 // DO Spaces configuration
 const SPACES_ENDPOINT = "https://nyc3.digitaloceanspaces.com";
@@ -50,12 +54,16 @@ async function loadTrainingData(): Promise<TrainingData> {
       new GetObjectCommand({
         Bucket: SPACES_BUCKET,
         Key: TRAINING_DATA_KEY,
-      })
+      }),
     );
 
     const bodyContents = await response.Body?.transformToString();
     if (!bodyContents) {
-      return { examples: [], lastUpdated: new Date().toISOString(), version: 1 };
+      return {
+        examples: [],
+        lastUpdated: new Date().toISOString(),
+        version: 1,
+      };
     }
 
     return JSON.parse(bodyContents);
@@ -63,7 +71,11 @@ async function loadTrainingData(): Promise<TrainingData> {
     const err = error as { name?: string };
     if (err.name === "NoSuchKey") {
       // File doesn't exist yet, return empty data
-      return { examples: [], lastUpdated: new Date().toISOString(), version: 1 };
+      return {
+        examples: [],
+        lastUpdated: new Date().toISOString(),
+        version: 1,
+      };
     }
     console.error("[AI Training API] Load error:", error);
     return { examples: [], lastUpdated: new Date().toISOString(), version: 1 };
@@ -85,7 +97,7 @@ async function saveTrainingData(data: TrainingData): Promise<boolean> {
         Key: TRAINING_DATA_KEY,
         Body: JSON.stringify(data, null, 2),
         ContentType: "application/json",
-      })
+      }),
     );
     return true;
   } catch (error) {
@@ -103,7 +115,7 @@ export async function GET() {
     console.error("[AI Training API] GET error:", error);
     return NextResponse.json(
       { error: "Failed to load training data", examples: [] },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -117,7 +129,7 @@ export async function POST(request: NextRequest) {
     if (!Array.isArray(examples)) {
       return NextResponse.json(
         { error: "examples must be an array" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -150,8 +162,13 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("[AI Training API] POST error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to save training data" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to save training data",
+      },
+      { status: 500 },
     );
   }
 }
@@ -175,7 +192,7 @@ export async function DELETE() {
     console.error("[AI Training API] DELETE error:", error);
     return NextResponse.json(
       { error: "Failed to clear training data" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

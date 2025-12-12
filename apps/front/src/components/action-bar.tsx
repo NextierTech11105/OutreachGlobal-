@@ -1,6 +1,5 @@
 "use client";
 
-
 import { sf, sfd } from "@/lib/utils/safe-format";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -105,7 +104,11 @@ export function ActionBar({
 
   // Calculate batch info
   const getBatchInfo = (action: string, count: number) => {
-    const isEnrichment = ["Skip Trace", "Property Detail", "Apollo Enrich"].includes(action);
+    const isEnrichment = [
+      "Skip Trace",
+      "Property Detail",
+      "Apollo Enrich",
+    ].includes(action);
     const isCampaign = ["Push to SMS", "Power Dialer"].includes(action);
 
     if (isEnrichment) {
@@ -137,7 +140,10 @@ export function ActionBar({
   };
 
   // Start an action - show preview first
-  const startAction = async (actionName: string, handler?: (ids: string[]) => Promise<any>) => {
+  const startAction = async (
+    actionName: string,
+    handler?: (ids: string[]) => Promise<any>,
+  ) => {
     if (!handler) return;
 
     const batchInfo = getBatchInfo(actionName, selectedCount);
@@ -147,8 +153,14 @@ export function ActionBar({
       stage: "preview",
       preview: {
         count: selectedCount,
-        estimatedCost: calculateCost(actionName, batchInfo?.willProcess || selectedCount),
-        estimatedTime: estimateTime(actionName, batchInfo?.willProcess || selectedCount),
+        estimatedCost: calculateCost(
+          actionName,
+          batchInfo?.willProcess || selectedCount,
+        ),
+        estimatedTime: estimateTime(
+          actionName,
+          batchInfo?.willProcess || selectedCount,
+        ),
         warnings: getWarnings(actionName, selectedCount),
         batchInfo,
       },
@@ -160,13 +172,19 @@ export function ActionBar({
   const executeAction = async (handler: (ids: string[]) => Promise<any>) => {
     if (!actionState) return;
 
-    setActionState((prev) => prev ? { ...prev, stage: "executing", progress: 0 } : null);
+    setActionState((prev) =>
+      prev ? { ...prev, stage: "executing", progress: 0 } : null,
+    );
 
     try {
       const result = await handler(selectedIds);
-      setActionState((prev) => prev ? { ...prev, stage: "done", result, progress: 100 } : null);
+      setActionState((prev) =>
+        prev ? { ...prev, stage: "done", result, progress: 100 } : null,
+      );
     } catch (err: any) {
-      setActionState((prev) => prev ? { ...prev, stage: "error", error: err.message } : null);
+      setActionState((prev) =>
+        prev ? { ...prev, stage: "error", error: err.message } : null,
+      );
     }
   };
 
@@ -177,10 +195,10 @@ export function ActionBar({
 
   // Batch limits
   const LIMITS = {
-    ENRICHMENT_BATCH: 250,      // Per batch for enrichment APIs
-    ENRICHMENT_MAX: 5000,       // Max per day for enrichment
-    CAMPAIGN_MAX: 2000,         // Max per campaign push (SMS/Call)
-    APOLLO_RATE: 100,           // Apollo rate limit per minute
+    ENRICHMENT_BATCH: 250, // Per batch for enrichment APIs
+    ENRICHMENT_MAX: 5000, // Max per day for enrichment
+    CAMPAIGN_MAX: 2000, // Max per campaign push (SMS/Call)
+    APOLLO_RATE: 100, // Apollo rate limit per minute
   };
 
   // Cost estimation
@@ -221,24 +239,32 @@ export function ActionBar({
     // Enrichment actions (250 per batch, 5,000 max)
     if (["Skip Trace", "Property Detail", "Apollo Enrich"].includes(action)) {
       if (count > LIMITS.ENRICHMENT_MAX) {
-        warnings.push(`Daily limit is ${sf(LIMITS.ENRICHMENT_MAX)}. Will process first ${sf(LIMITS.ENRICHMENT_MAX)} records.`);
+        warnings.push(
+          `Daily limit is ${sf(LIMITS.ENRICHMENT_MAX)}. Will process first ${sf(LIMITS.ENRICHMENT_MAX)} records.`,
+        );
       } else if (count > LIMITS.ENRICHMENT_BATCH) {
         const batches = Math.ceil(count / LIMITS.ENRICHMENT_BATCH);
-        warnings.push(`Will process in ${batches} batches of ${LIMITS.ENRICHMENT_BATCH} each.`);
+        warnings.push(
+          `Will process in ${batches} batches of ${LIMITS.ENRICHMENT_BATCH} each.`,
+        );
       }
     }
 
     // Campaign actions (2,000 max per push)
     if (["Push to SMS", "Power Dialer"].includes(action)) {
       if (count > LIMITS.CAMPAIGN_MAX) {
-        warnings.push(`Campaign limit is ${sf(LIMITS.CAMPAIGN_MAX)} per push. Will create multiple campaigns.`);
+        warnings.push(
+          `Campaign limit is ${sf(LIMITS.CAMPAIGN_MAX)} per push. Will create multiple campaigns.`,
+        );
       }
     }
 
     // Apollo specific rate limit
     if (action === "Apollo Enrich" && count > LIMITS.APOLLO_RATE) {
       const minutes = Math.ceil(count / LIMITS.APOLLO_RATE);
-      warnings.push(`Apollo rate limit: ${LIMITS.APOLLO_RATE}/min. Will take ~${minutes} minutes.`);
+      warnings.push(
+        `Apollo rate limit: ${LIMITS.APOLLO_RATE}/min. Will take ~${minutes} minutes.`,
+      );
     }
 
     return warnings;
@@ -336,7 +362,8 @@ export function ActionBar({
     },
   ];
 
-  const enrichActions = dataType === "business" ? businessActions : propertyActions;
+  const enrichActions =
+    dataType === "business" ? businessActions : propertyActions;
 
   return (
     <>
@@ -345,7 +372,10 @@ export function ActionBar({
         <div className="flex items-center justify-between gap-4 max-w-screen-2xl mx-auto">
           {/* Selection Count */}
           <div className="flex items-center gap-3">
-            <Badge variant={hasSelection ? "default" : "secondary"} className="text-sm px-3 py-1">
+            <Badge
+              variant={hasSelection ? "default" : "secondary"}
+              className="text-sm px-3 py-1"
+            >
               {hasSelection ? `${selectedCount} selected` : "No selection"}
             </Badge>
             {hasSelection && (
@@ -359,7 +389,9 @@ export function ActionBar({
           <div className="flex items-center gap-2">
             {/* Enrichment Actions */}
             <div className="flex items-center gap-1 border-r pr-3 mr-1">
-              <span className="text-xs text-muted-foreground mr-2">Enrich:</span>
+              <span className="text-xs text-muted-foreground mr-2">
+                Enrich:
+              </span>
               {enrichActions.map((action) => (
                 <Button
                   key={action.id}
@@ -377,7 +409,9 @@ export function ActionBar({
 
             {/* Campaign Actions */}
             <div className="flex items-center gap-1">
-              <span className="text-xs text-muted-foreground mr-2">Campaign:</span>
+              <span className="text-xs text-muted-foreground mr-2">
+                Campaign:
+              </span>
               {campaignActions.map((action) => (
                 <Button
                   key={action.id}
@@ -402,9 +436,15 @@ export function ActionBar({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {actionState?.stage === "preview" && <Eye className="h-5 w-5" />}
-              {actionState?.stage === "executing" && <Loader2 className="h-5 w-5 animate-spin" />}
-              {actionState?.stage === "done" && <CheckCircle2 className="h-5 w-5 text-green-500" />}
-              {actionState?.stage === "error" && <AlertCircle className="h-5 w-5 text-red-500" />}
+              {actionState?.stage === "executing" && (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              )}
+              {actionState?.stage === "done" && (
+                <CheckCircle2 className="h-5 w-5 text-green-500" />
+              )}
+              {actionState?.stage === "error" && (
+                <AlertCircle className="h-5 w-5 text-red-500" />
+              )}
               {actionState?.action}
             </DialogTitle>
             <DialogDescription>
@@ -421,51 +461,70 @@ export function ActionBar({
               <>
                 <div className="grid grid-cols-3 gap-3">
                   <div className="p-3 bg-muted rounded-lg text-center">
-                    <div className="text-2xl font-bold">{actionState.preview.count}</div>
-                    <div className="text-xs text-muted-foreground">Selected</div>
+                    <div className="text-2xl font-bold">
+                      {actionState.preview.count}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Selected
+                    </div>
                   </div>
                   {actionState.preview.batchInfo && (
                     <div className="p-3 bg-blue-500/10 rounded-lg text-center">
                       <div className="text-2xl font-bold text-blue-500">
                         {actionState.preview.batchInfo.willProcess}
                       </div>
-                      <div className="text-xs text-muted-foreground">Will Process</div>
+                      <div className="text-xs text-muted-foreground">
+                        Will Process
+                      </div>
                     </div>
                   )}
                   <div className="p-3 bg-green-500/10 rounded-lg text-center">
                     <div className="text-2xl font-bold text-green-500">
                       ${actionState.preview.estimatedCost?.toFixed(2)}
                     </div>
-                    <div className="text-xs text-muted-foreground">Est. Cost</div>
+                    <div className="text-xs text-muted-foreground">
+                      Est. Cost
+                    </div>
                   </div>
                 </div>
 
                 {/* Batch breakdown */}
-                {actionState.preview.batchInfo && actionState.preview.batchInfo.totalBatches > 1 && (
-                  <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg text-sm">
-                    <div className="flex items-center gap-2">
-                      <FileSpreadsheet className="h-4 w-4 text-muted-foreground" />
-                      <span>{actionState.preview.batchInfo.totalBatches} batches</span>
+                {actionState.preview.batchInfo &&
+                  actionState.preview.batchInfo.totalBatches > 1 && (
+                    <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg text-sm">
+                      <div className="flex items-center gap-2">
+                        <FileSpreadsheet className="h-4 w-4 text-muted-foreground" />
+                        <span>
+                          {actionState.preview.batchInfo.totalBatches} batches
+                        </span>
+                      </div>
+                      <Badge variant="outline">
+                        {actionState.preview.batchInfo.perBatchLabel}
+                      </Badge>
+                      <Badge variant="secondary">
+                        {actionState.preview.batchInfo.maxLabel}
+                      </Badge>
                     </div>
-                    <Badge variant="outline">{actionState.preview.batchInfo.perBatchLabel}</Badge>
-                    <Badge variant="secondary">{actionState.preview.batchInfo.maxLabel}</Badge>
-                  </div>
-                )}
+                  )}
 
                 <div className="text-sm text-muted-foreground text-center">
                   Estimated time: {actionState.preview.estimatedTime}
                 </div>
 
-                {actionState.preview.warnings && actionState.preview.warnings.length > 0 && (
-                  <div className="space-y-2">
-                    {actionState.preview.warnings.map((warning, i) => (
-                      <div key={i} className="flex items-start gap-2 text-sm text-yellow-600 bg-yellow-500/10 p-2 rounded">
-                        <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
-                        {warning}
-                      </div>
-                    ))}
-                  </div>
-                )}
+                {actionState.preview.warnings &&
+                  actionState.preview.warnings.length > 0 && (
+                    <div className="space-y-2">
+                      {actionState.preview.warnings.map((warning, i) => (
+                        <div
+                          key={i}
+                          className="flex items-start gap-2 text-sm text-yellow-600 bg-yellow-500/10 p-2 rounded"
+                        >
+                          <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                          {warning}
+                        </div>
+                      ))}
+                    </div>
+                  )}
               </>
             )}
 
@@ -493,19 +552,25 @@ export function ActionBar({
                   <div className="grid grid-cols-3 gap-2 text-center text-sm">
                     {actionState.result.stats.withPhone && (
                       <div className="p-2 bg-muted rounded">
-                        <div className="font-medium">{actionState.result.stats.withPhone}</div>
+                        <div className="font-medium">
+                          {actionState.result.stats.withPhone}
+                        </div>
                         <div className="text-muted-foreground">With Phone</div>
                       </div>
                     )}
                     {actionState.result.stats.withEmail && (
                       <div className="p-2 bg-muted rounded">
-                        <div className="font-medium">{actionState.result.stats.withEmail}</div>
+                        <div className="font-medium">
+                          {actionState.result.stats.withEmail}
+                        </div>
                         <div className="text-muted-foreground">With Email</div>
                       </div>
                     )}
                     {actionState.result.stats.cost && (
                       <div className="p-2 bg-muted rounded">
-                        <div className="font-medium">${actionState.result.stats.cost}</div>
+                        <div className="font-medium">
+                          ${actionState.result.stats.cost}
+                        </div>
                         <div className="text-muted-foreground">Total Cost</div>
                       </div>
                     )}
@@ -519,7 +584,9 @@ export function ActionBar({
               <div className="p-4 bg-red-500/10 rounded-lg text-center">
                 <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
                 <div className="font-medium">Error</div>
-                <div className="text-sm text-muted-foreground">{actionState.error}</div>
+                <div className="text-sm text-muted-foreground">
+                  {actionState.error}
+                </div>
               </div>
             )}
           </div>
@@ -533,7 +600,7 @@ export function ActionBar({
                 <Button
                   onClick={() => {
                     const action = [...enrichActions, ...campaignActions].find(
-                      (a) => a.label === actionState.action
+                      (a) => a.label === actionState.action,
                     );
                     if (action?.handler) {
                       executeAction(action.handler);
@@ -546,7 +613,8 @@ export function ActionBar({
                 </Button>
               </>
             )}
-            {(actionState?.stage === "done" || actionState?.stage === "error") && (
+            {(actionState?.stage === "done" ||
+              actionState?.stage === "error") && (
               <Button onClick={closeDialog}>Close</Button>
             )}
           </DialogFooter>

@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
         if (!leadId) {
           return NextResponse.json(
             { success: false, error: "leadId required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
         const messages = smsQueueService.getLeadMessages(leadId);
@@ -63,8 +63,15 @@ export async function GET(request: NextRequest) {
       case "preview": {
         const limit = parseInt(searchParams.get("limit") || "50");
         const campaignId = searchParams.get("campaignId") || undefined;
-        const agent = searchParams.get("agent") as "gianna" | "sabrina" | undefined;
-        const messages = smsQueueService.getPreviewQueue({ limit, campaignId, agent });
+        const agent = searchParams.get("agent") as
+          | "gianna"
+          | "sabrina"
+          | undefined;
+        const messages = smsQueueService.getPreviewQueue({
+          limit,
+          campaignId,
+          agent,
+        });
 
         return NextResponse.json({
           success: true,
@@ -88,7 +95,10 @@ export async function GET(request: NextRequest) {
       case "approved": {
         const limit = parseInt(searchParams.get("limit") || "50");
         const campaignId = searchParams.get("campaignId") || undefined;
-        const messages = smsQueueService.getApprovedQueue({ limit, campaignId });
+        const messages = smsQueueService.getApprovedQueue({
+          limit,
+          campaignId,
+        });
 
         return NextResponse.json({
           success: true,
@@ -109,14 +119,14 @@ export async function GET(request: NextRequest) {
       default:
         return NextResponse.json(
           { success: false, error: `Unknown action: ${action}` },
-          { status: 400 }
+          { status: 400 },
         );
     }
   } catch (error) {
     console.error("[SMS Queue] GET error:", error);
     return NextResponse.json(
       { success: false, error: "Failed to get queue info" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -130,12 +140,21 @@ export async function POST(request: NextRequest) {
     switch (action) {
       case "add_single": {
         // Add single message to queue
-        const { leadId, to, message, templateCategory, variables, personality, priority, scheduledAt } = body;
+        const {
+          leadId,
+          to,
+          message,
+          templateCategory,
+          variables,
+          personality,
+          priority,
+          scheduledAt,
+        } = body;
 
         if (!leadId || !to || !message) {
           return NextResponse.json(
             { success: false, error: "leadId, to, and message required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -166,19 +185,27 @@ export async function POST(request: NextRequest) {
 
       case "add_batch": {
         // Add batch of messages (from skip trace results)
-        const { leads, templateCategory, templateMessage, personality, campaignId, priority, scheduledAt } = body;
+        const {
+          leads,
+          templateCategory,
+          templateMessage,
+          personality,
+          campaignId,
+          priority,
+          scheduledAt,
+        } = body;
 
         if (!leads || !Array.isArray(leads) || leads.length === 0) {
           return NextResponse.json(
             { success: false, error: "leads array required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
         if (!templateMessage) {
           return NextResponse.json(
             { success: false, error: "templateMessage required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -210,8 +237,8 @@ export async function POST(request: NextRequest) {
             reason: !stats.isWithinSchedule
               ? "Outside scheduled hours"
               : stats.remainingToday <= 0
-              ? "Daily limit reached"
-              : "No pending messages or already processing",
+                ? "Daily limit reached"
+                : "No pending messages or already processing",
             stats,
           });
         }
@@ -242,7 +269,7 @@ export async function POST(request: NextRequest) {
         if (!phoneNumber) {
           return NextResponse.json(
             { success: false, error: "phoneNumber required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -259,7 +286,7 @@ export async function POST(request: NextRequest) {
         if (!phoneNumber) {
           return NextResponse.json(
             { success: false, error: "phoneNumber required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -276,19 +303,27 @@ export async function POST(request: NextRequest) {
 
       case "add_draft_batch": {
         // Add batch as drafts for human review (NOT auto-send)
-        const { leads, templateCategory, templateMessage, personality, campaignId, priority, agent } = body;
+        const {
+          leads,
+          templateCategory,
+          templateMessage,
+          personality,
+          campaignId,
+          priority,
+          agent,
+        } = body;
 
         if (!leads || !Array.isArray(leads) || leads.length === 0) {
           return NextResponse.json(
             { success: false, error: "leads array required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
         if (!templateMessage) {
           return NextResponse.json(
             { success: false, error: "templateMessage required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -314,7 +349,11 @@ export async function POST(request: NextRequest) {
       case "preview": {
         // Get messages awaiting review
         const { limit, campaignId, agent } = body;
-        const messages = smsQueueService.getPreviewQueue({ limit, campaignId, agent });
+        const messages = smsQueueService.getPreviewQueue({
+          limit,
+          campaignId,
+          agent,
+        });
 
         return NextResponse.json({
           success: true,
@@ -342,13 +381,13 @@ export async function POST(request: NextRequest) {
         if (!messageIds || !Array.isArray(messageIds)) {
           return NextResponse.json(
             { success: false, error: "messageIds array required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
         const result = smsQueueService.approveMessages(
           messageIds,
-          approvedBy || "admin"
+          approvedBy || "admin",
         );
 
         return NextResponse.json({
@@ -365,13 +404,13 @@ export async function POST(request: NextRequest) {
         if (!campaignId) {
           return NextResponse.json(
             { success: false, error: "campaignId required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
         const approved = smsQueueService.approveAllInCampaign(
           campaignId,
-          approvedBy || "admin"
+          approvedBy || "admin",
         );
 
         return NextResponse.json({
@@ -387,7 +426,7 @@ export async function POST(request: NextRequest) {
         if (!messageIds || !Array.isArray(messageIds)) {
           return NextResponse.json(
             { success: false, error: "messageIds array required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -407,20 +446,20 @@ export async function POST(request: NextRequest) {
         if (!messageId || !newMessage) {
           return NextResponse.json(
             { success: false, error: "messageId and newMessage required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
         const success = smsQueueService.editMessage(
           messageId,
           newMessage,
-          editedBy || "admin"
+          editedBy || "admin",
         );
 
         if (!success) {
           return NextResponse.json(
             { success: false, error: "Message not found or cannot be edited" },
-            { status: 404 }
+            { status: 404 },
           );
         }
 
@@ -452,7 +491,10 @@ export async function POST(request: NextRequest) {
       case "get_approved": {
         // Get approved messages ready for deployment
         const { limit, campaignId } = body;
-        const messages = smsQueueService.getApprovedQueue({ limit, campaignId });
+        const messages = smsQueueService.getApprovedQueue({
+          limit,
+          campaignId,
+        });
 
         return NextResponse.json({
           success: true,
@@ -473,14 +515,14 @@ export async function POST(request: NextRequest) {
       default:
         return NextResponse.json(
           { success: false, error: `Unknown action: ${action}` },
-          { status: 400 }
+          { status: 400 },
         );
     }
   } catch (error) {
     console.error("[SMS Queue] POST error:", error);
     return NextResponse.json(
       { success: false, error: "Failed to process request" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -497,14 +539,16 @@ export async function DELETE(request: NextRequest) {
         if (!messageId) {
           return NextResponse.json(
             { success: false, error: "messageId required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
         const removed = smsQueueService.removeFromQueue(messageId);
         return NextResponse.json({
           success: removed,
-          message: removed ? "Message removed" : "Message not found or already processed",
+          message: removed
+            ? "Message removed"
+            : "Message not found or already processed",
         });
       }
 
@@ -513,7 +557,7 @@ export async function DELETE(request: NextRequest) {
         if (!leadId) {
           return NextResponse.json(
             { success: false, error: "leadId required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -536,14 +580,14 @@ export async function DELETE(request: NextRequest) {
       default:
         return NextResponse.json(
           { success: false, error: `Unknown action: ${action}` },
-          { status: 400 }
+          { status: 400 },
         );
     }
   } catch (error) {
     console.error("[SMS Queue] DELETE error:", error);
     return NextResponse.json(
       { success: false, error: "Failed to process request" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

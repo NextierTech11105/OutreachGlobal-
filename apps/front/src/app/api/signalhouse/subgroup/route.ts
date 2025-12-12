@@ -11,7 +11,10 @@ import {
 // GET - List sub-groups or get specific sub-group
 export async function GET(request: NextRequest) {
   if (!isConfigured()) {
-    return NextResponse.json({ error: "SignalHouse not configured" }, { status: 503 });
+    return NextResponse.json(
+      { error: "SignalHouse not configured" },
+      { status: 503 },
+    );
   }
 
   const { searchParams } = new URL(request.url);
@@ -22,7 +25,10 @@ export async function GET(request: NextRequest) {
     if (subGroupId) {
       const result = await getSubGroupDetails(subGroupId);
       if (!result.success) {
-        return NextResponse.json({ error: result.error }, { status: result.status || 400 });
+        return NextResponse.json(
+          { error: result.error },
+          { status: result.status || 400 },
+        );
       }
       return NextResponse.json({ success: true, subGroup: result.data });
     }
@@ -30,7 +36,10 @@ export async function GET(request: NextRequest) {
     // List all sub-groups
     const result = await getSubGroups();
     if (!result.success) {
-      return NextResponse.json({ error: result.error }, { status: result.status || 400 });
+      return NextResponse.json(
+        { error: result.error },
+        { status: result.status || 400 },
+      );
     }
 
     return NextResponse.json({
@@ -40,8 +49,11 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("[SignalHouse SubGroup] Error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to get sub-groups" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to get sub-groups",
+      },
+      { status: 500 },
     );
   }
 }
@@ -49,7 +61,10 @@ export async function GET(request: NextRequest) {
 // POST - Create a new sub-group
 export async function POST(request: NextRequest) {
   if (!isConfigured()) {
-    return NextResponse.json({ error: "SignalHouse not configured" }, { status: 503 });
+    return NextResponse.json(
+      { error: "SignalHouse not configured" },
+      { status: 503 },
+    );
   }
 
   try {
@@ -63,7 +78,10 @@ export async function POST(request: NextRequest) {
     const result = await createSubGroup({ name, description });
 
     if (!result.success) {
-      return NextResponse.json({ error: result.error }, { status: result.status || 400 });
+      return NextResponse.json(
+        { error: result.error },
+        { status: result.status || 400 },
+      );
     }
 
     return NextResponse.json({
@@ -74,8 +92,11 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("[SignalHouse SubGroup] Create error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to create sub-group" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to create sub-group",
+      },
+      { status: 500 },
     );
   }
 }
@@ -83,7 +104,10 @@ export async function POST(request: NextRequest) {
 // PATCH - Update a sub-group
 export async function PATCH(request: NextRequest) {
   if (!isConfigured()) {
-    return NextResponse.json({ error: "SignalHouse not configured" }, { status: 503 });
+    return NextResponse.json(
+      { error: "SignalHouse not configured" },
+      { status: 503 },
+    );
   }
 
   try {
@@ -91,13 +115,19 @@ export async function PATCH(request: NextRequest) {
     const { subGroupId, name, description } = body;
 
     if (!subGroupId) {
-      return NextResponse.json({ error: "subGroupId required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "subGroupId required" },
+        { status: 400 },
+      );
     }
 
     const result = await updateSubGroup({ subGroupId, name, description });
 
     if (!result.success) {
-      return NextResponse.json({ error: result.error }, { status: result.status || 400 });
+      return NextResponse.json(
+        { error: result.error },
+        { status: result.status || 400 },
+      );
     }
 
     return NextResponse.json({
@@ -108,8 +138,11 @@ export async function PATCH(request: NextRequest) {
   } catch (error) {
     console.error("[SignalHouse SubGroup] Update error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to update sub-group" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to update sub-group",
+      },
+      { status: 500 },
     );
   }
 }
@@ -117,7 +150,10 @@ export async function PATCH(request: NextRequest) {
 // DELETE - Delete a sub-group
 export async function DELETE(request: NextRequest) {
   if (!isConfigured()) {
-    return NextResponse.json({ error: "SignalHouse not configured" }, { status: 503 });
+    return NextResponse.json(
+      { error: "SignalHouse not configured" },
+      { status: 503 },
+    );
   }
 
   const { searchParams } = new URL(request.url);
@@ -131,15 +167,21 @@ export async function DELETE(request: NextRequest) {
     const result = await deleteSubGroup(subGroupId);
 
     if (!result.success) {
-      return NextResponse.json({ error: result.error }, { status: result.status || 400 });
+      return NextResponse.json(
+        { error: result.error },
+        { status: result.status || 400 },
+      );
     }
 
     return NextResponse.json({ success: true, message: "Sub-group deleted" });
   } catch (error) {
     console.error("[SignalHouse SubGroup] Delete error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to delete sub-group" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to delete sub-group",
+      },
+      { status: 500 },
     );
   }
 }

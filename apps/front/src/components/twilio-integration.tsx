@@ -123,15 +123,17 @@ export function TwilioIntegration() {
     signatureValidation: true,
   });
 
-  const [templates, setTemplates] = useState<{
-    id: string;
-    name: string;
-    description: string;
-    content: string;
-    tags: string[];
-    channel: string;
-    isActive: boolean;
-  }[]>([]);
+  const [templates, setTemplates] = useState<
+    {
+      id: string;
+      name: string;
+      description: string;
+      content: string;
+      tags: string[];
+      channel: string;
+      isActive: boolean;
+    }[]
+  >([]);
 
   const [newTemplate, setNewTemplate] = useState({
     name: "",
@@ -141,25 +143,29 @@ export function TwilioIntegration() {
     channel: "sms",
   });
 
-  const [phoneNumbers, setPhoneNumbers] = useState<{
-    id: string;
-    phoneNumber: string;
-    friendlyName: string;
-    capabilities: { voice: boolean; sms: boolean; mms: boolean };
-    status: string;
-    usage: { voice: number; sms: number };
-    monthlyPrice: number;
-    dateAdded: string;
-  }[]>([]);
+  const [phoneNumbers, setPhoneNumbers] = useState<
+    {
+      id: string;
+      phoneNumber: string;
+      friendlyName: string;
+      capabilities: { voice: boolean; sms: boolean; mms: boolean };
+      status: string;
+      usage: { voice: number; sms: number };
+      monthlyPrice: number;
+      dateAdded: string;
+    }[]
+  >([]);
 
-  const [webhooks, setWebhooks] = useState<{
-    id: string;
-    name: string;
-    url: string;
-    method: string;
-    eventType: string;
-    isActive: boolean;
-  }[]>([]);
+  const [webhooks, setWebhooks] = useState<
+    {
+      id: string;
+      name: string;
+      url: string;
+      method: string;
+      eventType: string;
+      isActive: boolean;
+    }[]
+  >([]);
 
   const [newWebhook, setNewWebhook] = useState({
     name: "",
@@ -2109,7 +2115,9 @@ export function TwilioIntegration() {
       <CardFooter className="flex justify-between border-t px-6 py-4">
         <div className="flex items-center text-sm text-muted-foreground">
           <Phone className="mr-2 h-4 w-4" />
-          {isConnected ? "Connection verified" : "Not connected - enter credentials above"}
+          {isConnected
+            ? "Connection verified"
+            : "Not connected - enter credentials above"}
         </div>
         <Button
           variant="outline"

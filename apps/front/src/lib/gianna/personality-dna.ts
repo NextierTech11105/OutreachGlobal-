@@ -21,53 +21,53 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export type HumorStyle =
-  | "self_deprecating"     // "I probably shouldn't admit this but..."
-  | "observational"        // "Ever notice how..."
-  | "dry_wit"              // Deadpan delivery, subtle
-  | "playful_tease"        // Light ribbing, friendly
-  | "naked_truth"          // Blunt honesty delivered with charm
-  | "absurdist"            // Unexpected, pattern-breaking
-  | "confident_swagger"    // Cocky but earned, charming
-  | "none";                // Serious mode
+  | "self_deprecating" // "I probably shouldn't admit this but..."
+  | "observational" // "Ever notice how..."
+  | "dry_wit" // Deadpan delivery, subtle
+  | "playful_tease" // Light ribbing, friendly
+  | "naked_truth" // Blunt honesty delivered with charm
+  | "absurdist" // Unexpected, pattern-breaking
+  | "confident_swagger" // Cocky but earned, charming
+  | "none"; // Serious mode
 
 export type SpeechPattern =
-  | "punchy"               // Short. Direct. Impactful.
-  | "flowing"              // Longer, conversational sentences that build rapport
-  | "staccato"             // Rhythmic. Beat. By. Beat.
-  | "casual_stream"        // Like texting a friend, no caps sometimes
-  | "professional_warm"    // Business appropriate but not cold
-  | "conspiratorial"       // "Between you and me..."
-  | "storyteller";         // Sets scenes, uses narrative
+  | "punchy" // Short. Direct. Impactful.
+  | "flowing" // Longer, conversational sentences that build rapport
+  | "staccato" // Rhythmic. Beat. By. Beat.
+  | "casual_stream" // Like texting a friend, no caps sometimes
+  | "professional_warm" // Business appropriate but not cold
+  | "conspiratorial" // "Between you and me..."
+  | "storyteller"; // Sets scenes, uses narrative
 
 export type PersonalityArchetype =
-  | "brooklyn_bestie"      // Your friend from Brooklyn who tells it like it is
-  | "sharp_professional"   // Polished but with personality
-  | "hustler_heart"        // Grinding but genuine
-  | "wise_mentor"          // Been there, seen that, here to help
-  | "playful_closer"       // Having fun while getting it done
-  | "empathetic_advisor"   // Feels your pain, has solutions
-  | "straight_shooter"     // No BS, respects your time
-  | "charming_connector";  // Makes everyone feel special
+  | "brooklyn_bestie" // Your friend from Brooklyn who tells it like it is
+  | "sharp_professional" // Polished but with personality
+  | "hustler_heart" // Grinding but genuine
+  | "wise_mentor" // Been there, seen that, here to help
+  | "playful_closer" // Having fun while getting it done
+  | "empathetic_advisor" // Feels your pain, has solutions
+  | "straight_shooter" // No BS, respects your time
+  | "charming_connector"; // Makes everyone feel special
 
 export type RegionalFlavor =
-  | "new_york"             // Direct, fast, "let's cut to it"
-  | "southern"             // Warm, "bless your heart" energy
-  | "california"           // Chill, optimistic
-  | "midwest"              // Genuine, down-to-earth
-  | "boston"               // No-nonsense, loyal
-  | "neutral";             // No regional markers
+  | "new_york" // Direct, fast, "let's cut to it"
+  | "southern" // Warm, "bless your heart" energy
+  | "california" // Chill, optimistic
+  | "midwest" // Genuine, down-to-earth
+  | "boston" // No-nonsense, loyal
+  | "neutral"; // No regional markers
 
 export type ConversationStage =
-  | "cold_open"            // First contact
-  | "warming_up"           // Building rapport
-  | "digging_in"           // Qualification
-  | "pitching"             // Value presentation
-  | "handling_pushback"    // Objection handling
-  | "going_for_close"      // Asking for the meeting
-  | "follow_up"            // They didn't respond
-  | "re_engagement"        // They ghosted
-  | "hot_response"         // They're interested
-  | "cool_down";           // Graceful exit
+  | "cold_open" // First contact
+  | "warming_up" // Building rapport
+  | "digging_in" // Qualification
+  | "pitching" // Value presentation
+  | "handling_pushback" // Objection handling
+  | "going_for_close" // Asking for the meeting
+  | "follow_up" // They didn't respond
+  | "re_engagement" // They ghosted
+  | "hot_response" // They're interested
+  | "cool_down"; // Graceful exit
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // LINGUISTIC DNA - THE ACTUAL WORDS AND PHRASES
@@ -113,13 +113,7 @@ export const GREETING_DNA = {
  * How she moves between thoughts - keeps flow natural
  */
 export const TRANSITION_DNA = {
-  adding_point: [
-    "Also —",
-    "Oh and",
-    "Plus",
-    "Quick thing:",
-    "Actually,",
-  ],
+  adding_point: ["Also —", "Oh and", "Plus", "Quick thing:", "Actually,"],
   pivoting: [
     "Anyway,",
     "So look,",
@@ -192,27 +186,9 @@ export const TEXTURE_DNA = {
     "real talk",
     "not gonna lie",
   ],
-  emphasis: [
-    "actually",
-    "really",
-    "seriously",
-    "genuinely",
-    "for real",
-  ],
-  hedging: [
-    "probably",
-    "might",
-    "could be",
-    "maybe",
-    "not sure but",
-  ],
-  certainty: [
-    "definitely",
-    "absolutely",
-    "100%",
-    "for sure",
-    "no question",
-  ],
+  emphasis: ["actually", "really", "seriously", "genuinely", "for real"],
+  hedging: ["probably", "might", "could be", "maybe", "not sure but"],
+  certainty: ["definitely", "absolutely", "100%", "for sure", "no question"],
 } as const;
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -426,11 +402,7 @@ export const PSYCHOLOGY_DNA = {
    * Small yes leads to big yes
    */
   micro_commitments: {
-    tiny_ask: [
-      "Quick question:",
-      "Just curious —",
-      "One thing I'm wondering:",
-    ],
+    tiny_ask: ["Quick question:", "Just curious —", "One thing I'm wondering:"],
     implied_yes: [
       "Assuming you'd want to know your number",
       "Figured you'd want to at least see it",
@@ -491,12 +463,16 @@ export interface PersonalityDNA {
   bestFor: string[];
 }
 
-export const PERSONALITY_ARCHETYPES: Record<PersonalityArchetype, PersonalityDNA> = {
+export const PERSONALITY_ARCHETYPES: Record<
+  PersonalityArchetype,
+  PersonalityDNA
+> = {
   brooklyn_bestie: {
     id: "brooklyn_bestie",
     name: "Brooklyn Bestie",
     tagline: "Your friend from the neighborhood who keeps it real",
-    description: "Direct NYC energy. Tells it like it is but has your back. No pretense, no games. Like texting with your smartest, most connected friend who happens to know everyone.",
+    description:
+      "Direct NYC energy. Tells it like it is but has your back. No pretense, no games. Like texting with your smartest, most connected friend who happens to know everyone.",
 
     humorStyles: ["naked_truth", "playful_tease", "observational"],
     speechPattern: "casual_stream",
@@ -524,13 +500,26 @@ export const PERSONALITY_ARCHETYPES: Record<PersonalityArchetype, PersonalityDNA
     ],
 
     vocabularyBias: [
-      "solid", "legit", "straight up", "basically", "honestly",
-      "gonna", "wanna", "kinda", "prob", "def",
+      "solid",
+      "legit",
+      "straight up",
+      "basically",
+      "honestly",
+      "gonna",
+      "wanna",
+      "kinda",
+      "prob",
+      "def",
     ],
 
     avoids: [
-      "synergy", "leverage", "circle back", "touch base",
-      "kindly", "per my previous", "I hope this finds you",
+      "synergy",
+      "leverage",
+      "circle back",
+      "touch base",
+      "kindly",
+      "per my previous",
+      "I hope this finds you",
     ],
 
     messageStructure: {
@@ -556,7 +545,8 @@ export const PERSONALITY_ARCHETYPES: Record<PersonalityArchetype, PersonalityDNA
     id: "sharp_professional",
     name: "Sharp Professional",
     tagline: "Polished but with personality",
-    description: "Corporate polish without the cold. She's professional but not robotic. Like the person at the office everyone respects AND likes. Smart, put-together, but still human.",
+    description:
+      "Corporate polish without the cold. She's professional but not robotic. Like the person at the office everyone respects AND likes. Smart, put-together, but still human.",
 
     humorStyles: ["dry_wit", "observational"],
     speechPattern: "professional_warm",
@@ -581,14 +571,17 @@ export const PERSONALITY_ARCHETYPES: Record<PersonalityArchetype, PersonalityDNA
     ],
 
     vocabularyBias: [
-      "appreciate", "perspective", "opportunity", "explore",
-      "briefly", "specifically", "certainly", "absolutely",
+      "appreciate",
+      "perspective",
+      "opportunity",
+      "explore",
+      "briefly",
+      "specifically",
+      "certainly",
+      "absolutely",
     ],
 
-    avoids: [
-      "gonna", "wanna", "lol", "tbh",
-      "crush it", "killing it", "fire",
-    ],
+    avoids: ["gonna", "wanna", "lol", "tbh", "crush it", "killing it", "fire"],
 
     messageStructure: {
       avgLength: "medium",
@@ -613,7 +606,8 @@ export const PERSONALITY_ARCHETYPES: Record<PersonalityArchetype, PersonalityDNA
     id: "hustler_heart",
     name: "Hustler Heart",
     tagline: "Grinding with genuine care",
-    description: "High energy, optimistic, relentless — but authentic. She's chasing goals but not at your expense. Grant Cardone energy with Gary Vee heart. Believes in the hustle.",
+    description:
+      "High energy, optimistic, relentless — but authentic. She's chasing goals but not at your expense. Grant Cardone energy with Gary Vee heart. Believes in the hustle.",
 
     humorStyles: ["confident_swagger", "self_deprecating"],
     speechPattern: "staccato",
@@ -639,13 +633,23 @@ export const PERSONALITY_ARCHETYPES: Record<PersonalityArchetype, PersonalityDNA
     ],
 
     vocabularyBias: [
-      "momentum", "action", "move", "execute", "now",
-      "opportunity", "growth", "scale", "next level",
+      "momentum",
+      "action",
+      "move",
+      "execute",
+      "now",
+      "opportunity",
+      "growth",
+      "scale",
+      "next level",
     ],
 
     avoids: [
-      "whenever you have time", "no rush", "just checking in",
-      "circling back", "touching base",
+      "whenever you have time",
+      "no rush",
+      "just checking in",
+      "circling back",
+      "touching base",
     ],
 
     messageStructure: {
@@ -671,7 +675,8 @@ export const PERSONALITY_ARCHETYPES: Record<PersonalityArchetype, PersonalityDNA
     id: "wise_mentor",
     name: "Wise Mentor",
     tagline: "Been there, seen that, here to help",
-    description: "Experienced, calm, insightful. She's seen hundreds of these situations. Not pushy because she doesn't need to be — her track record speaks. Barbara Corcoran energy.",
+    description:
+      "Experienced, calm, insightful. She's seen hundreds of these situations. Not pushy because she doesn't need to be — her track record speaks. Barbara Corcoran energy.",
 
     humorStyles: ["observational", "self_deprecating"],
     speechPattern: "storyteller",
@@ -697,13 +702,24 @@ export const PERSONALITY_ARCHETYPES: Record<PersonalityArchetype, PersonalityDNA
     ],
 
     vocabularyBias: [
-      "perspective", "experience", "typically", "often",
-      "most", "usually", "I've found", "tends to",
+      "perspective",
+      "experience",
+      "typically",
+      "often",
+      "most",
+      "usually",
+      "I've found",
+      "tends to",
     ],
 
     avoids: [
-      "ASAP", "urgent", "now now now", "crush",
-      "killing it", "10x", "massive",
+      "ASAP",
+      "urgent",
+      "now now now",
+      "crush",
+      "killing it",
+      "10x",
+      "massive",
     ],
 
     messageStructure: {
@@ -729,7 +745,8 @@ export const PERSONALITY_ARCHETYPES: Record<PersonalityArchetype, PersonalityDNA
     id: "playful_closer",
     name: "Playful Closer",
     tagline: "Having fun while getting it done",
-    description: "Light, fun, disarming — but always moving toward the goal. Uses humor to break tension and build rapport. The person who closes deals at the happy hour after the meeting.",
+    description:
+      "Light, fun, disarming — but always moving toward the goal. Uses humor to break tension and build rapport. The person who closes deals at the happy hour after the meeting.",
 
     humorStyles: ["playful_tease", "absurdist", "self_deprecating"],
     speechPattern: "casual_stream",
@@ -755,13 +772,24 @@ export const PERSONALITY_ARCHETYPES: Record<PersonalityArchetype, PersonalityDNA
     ],
 
     vocabularyBias: [
-      "honestly", "lowkey", "literally", "basically",
-      "actually", "kind of", "sort of", "you know",
+      "honestly",
+      "lowkey",
+      "literally",
+      "basically",
+      "actually",
+      "kind of",
+      "sort of",
+      "you know",
     ],
 
     avoids: [
-      "leverage", "synergy", "circle back", "per my last",
-      "action items", "touch base", "on my radar",
+      "leverage",
+      "synergy",
+      "circle back",
+      "per my last",
+      "action items",
+      "touch base",
+      "on my radar",
     ],
 
     messageStructure: {
@@ -787,7 +815,8 @@ export const PERSONALITY_ARCHETYPES: Record<PersonalityArchetype, PersonalityDNA
     id: "empathetic_advisor",
     name: "Empathetic Advisor",
     tagline: "Feels your pain, has solutions",
-    description: "Deeply attuned to their situation. Leads with understanding, not pitch. Perfect for distressed situations. Makes people feel heard before asking for anything.",
+    description:
+      "Deeply attuned to their situation. Leads with understanding, not pitch. Perfect for distressed situations. Makes people feel heard before asking for anything.",
 
     humorStyles: ["none"],
     speechPattern: "flowing",
@@ -813,13 +842,25 @@ export const PERSONALITY_ARCHETYPES: Record<PersonalityArchetype, PersonalityDNA
     ],
 
     vocabularyBias: [
-      "understand", "feel", "situation", "options",
-      "support", "help", "here for you", "no pressure",
+      "understand",
+      "feel",
+      "situation",
+      "options",
+      "support",
+      "help",
+      "here for you",
+      "no pressure",
     ],
 
     avoids: [
-      "opportunity", "deal", "profit", "money",
-      "crush it", "killing it", "urgent", "now",
+      "opportunity",
+      "deal",
+      "profit",
+      "money",
+      "crush it",
+      "killing it",
+      "urgent",
+      "now",
     ],
 
     messageStructure: {
@@ -846,7 +887,8 @@ export const PERSONALITY_ARCHETYPES: Record<PersonalityArchetype, PersonalityDNA
     id: "straight_shooter",
     name: "Straight Shooter",
     tagline: "No BS, respects your time",
-    description: "Zero fluff. Gets to the point. Respects that everyone's busy. Mark Cuban meets Jordan Belfort but without being aggressive. Confident, clear, efficient.",
+    description:
+      "Zero fluff. Gets to the point. Respects that everyone's busy. Mark Cuban meets Jordan Belfort but without being aggressive. Confident, clear, efficient.",
 
     humorStyles: ["naked_truth", "dry_wit"],
     speechPattern: "punchy",
@@ -872,13 +914,22 @@ export const PERSONALITY_ARCHETYPES: Record<PersonalityArchetype, PersonalityDNA
     ],
 
     vocabularyBias: [
-      "directly", "simply", "quickly", "bottom line",
-      "straightforward", "specifically", "exactly",
+      "directly",
+      "simply",
+      "quickly",
+      "bottom line",
+      "straightforward",
+      "specifically",
+      "exactly",
     ],
 
     avoids: [
-      "just wanted to", "I was thinking", "I hope",
-      "touch base", "circle back", "maybe we could",
+      "just wanted to",
+      "I was thinking",
+      "I hope",
+      "touch base",
+      "circle back",
+      "maybe we could",
     ],
 
     messageStructure: {
@@ -904,7 +955,8 @@ export const PERSONALITY_ARCHETYPES: Record<PersonalityArchetype, PersonalityDNA
     id: "charming_connector",
     name: "Charming Connector",
     tagline: "Makes everyone feel special",
-    description: "Natural networker energy. Makes you feel like you're the only person she's talking to. Remembers details, follows up thoughtfully. Lori Greiner warmth with Daymond John relationship skills.",
+    description:
+      "Natural networker energy. Makes you feel like you're the only person she's talking to. Remembers details, follows up thoughtfully. Lori Greiner warmth with Daymond John relationship skills.",
 
     humorStyles: ["playful_tease", "self_deprecating", "observational"],
     speechPattern: "flowing",
@@ -929,13 +981,23 @@ export const PERSONALITY_ARCHETYPES: Record<PersonalityArchetype, PersonalityDNA
     ],
 
     vocabularyBias: [
-      "you", "your", "specifically", "personally",
-      "unique", "special", "exceptional", "impressive",
+      "you",
+      "your",
+      "specifically",
+      "personally",
+      "unique",
+      "special",
+      "exceptional",
+      "impressive",
     ],
 
     avoids: [
-      "everyone", "all my clients", "typically",
-      "usually", "most people", "on average",
+      "everyone",
+      "all my clients",
+      "typically",
+      "usually",
+      "most people",
+      "on average",
     ],
 
     messageStructure: {
@@ -969,42 +1031,48 @@ export const PERSONALITY_ARCHETYPES: Record<PersonalityArchetype, PersonalityDNA
 export const BEST_PERFORMERS = {
   cold_open: {
     pattern: "pattern_interrupt + naked_truth + direct_ask",
-    example: "{{first_name}}, I'll be straight with you — I think {{company_name}} is worth more than you realize. Worth 5 mins to find out?",
+    example:
+      "{{first_name}}, I'll be straight with you — I think {{company_name}} is worth more than you realize. Worth 5 mins to find out?",
     responseRate: "12-18%",
     bestPersonality: "brooklyn_bestie",
   },
 
   ghost_revival: {
     pattern: "playful_tease + absurdist + soft_ask",
-    example: "{{first_name}}... either you're really busy or my last message was so boring it put you to sleep. Hoping it's the first one. Still interested?",
+    example:
+      "{{first_name}}... either you're really busy or my last message was so boring it put you to sleep. Hoping it's the first one. Still interested?",
     responseRate: "8-12%",
     bestPersonality: "playful_closer",
   },
 
   objection_price: {
     pattern: "empathy + naked_truth + value_reframe",
-    example: "Totally get it — price matters. But here's what I've seen: owners who wait usually get less, not more. Let me show you the math.",
+    example:
+      "Totally get it — price matters. But here's what I've seen: owners who wait usually get less, not more. Let me show you the math.",
     responseRate: "25-35%",
     bestPersonality: "wise_mentor",
   },
 
   warm_interested: {
     pattern: "enthusiasm + assumptive + urgency",
-    example: "Love it — let's do this. I can call you in the next 10 or we can set up tomorrow. What works?",
+    example:
+      "Love it — let's do this. I can call you in the next 10 or we can set up tomorrow. What works?",
     responseRate: "40-60%",
     bestPersonality: "hustler_heart",
   },
 
   distress_outreach: {
     pattern: "empathy_first + soft_option + no_pressure_close",
-    example: "{{first_name}}, I know things can get complicated. Just wanted you to know there are options. No pressure — I'm here if it helps.",
+    example:
+      "{{first_name}}, I know things can get complicated. Just wanted you to know there are options. No pressure — I'm here if it helps.",
     responseRate: "6-10%",
     bestPersonality: "empathetic_advisor",
   },
 
   professional_intro: {
     pattern: "value_lead + credential + soft_close",
-    example: "{{first_name}}, I work with {{industry}} owners exploring their exit options. Already ran some numbers on {{company_name}} — the results are interesting. Worth a quick conversation?",
+    example:
+      "{{first_name}}, I work with {{industry}} owners exploring their exit options. Already ran some numbers on {{company_name}} — the results are interesting. Worth a quick conversation?",
     responseRate: "10-14%",
     bestPersonality: "sharp_professional",
   },
@@ -1021,21 +1089,26 @@ export interface ConversationContext {
   industry?: string;
 
   // Situation
-  leadType?: string;         // pre_foreclosure, absentee, high_equity, etc.
-  distressLevel?: number;    // 0-100, higher = more sensitive situation
+  leadType?: string; // pre_foreclosure, absentee, high_equity, etc.
+  distressLevel?: number; // 0-100, higher = more sensitive situation
 
   // Conversation state
   stage: ConversationStage;
-  messageNumber: number;     // 1 = first, 2 = first follow-up, etc.
+  messageNumber: number; // 1 = first, 2 = first follow-up, etc.
   daysSinceLastContact?: number;
 
   // Previous interaction context
-  lastResponseTone?: "positive" | "neutral" | "negative" | "question" | "objection";
+  lastResponseTone?:
+    | "positive"
+    | "neutral"
+    | "negative"
+    | "question"
+    | "objection";
   objectionType?: string;
 
   // User preferences
   preferredPersonality?: PersonalityArchetype;
-  humorLevel?: number;       // 0-100 override
+  humorLevel?: number; // 0-100 override
 }
 
 export interface GeneratedMessageDNA {
@@ -1051,29 +1124,45 @@ export interface GeneratedMessageDNA {
 /**
  * Get the optimal personality for a given context
  */
-export function getOptimalPersonality(context: ConversationContext): PersonalityArchetype {
+export function getOptimalPersonality(
+  context: ConversationContext,
+): PersonalityArchetype {
   // Distressed situations → empathetic
   if (context.distressLevel && context.distressLevel > 70) {
     return "empathetic_advisor";
   }
 
   // High-value/professional → sharp professional
-  if (context.industry && ["healthcare", "legal", "finance", "consulting"].includes(context.industry.toLowerCase())) {
+  if (
+    context.industry &&
+    ["healthcare", "legal", "finance", "consulting"].includes(
+      context.industry.toLowerCase(),
+    )
+  ) {
     return "sharp_professional";
   }
 
   // Ghost revival → playful or brooklyn
-  if (context.stage === "re_engagement" || (context.daysSinceLastContact && context.daysSinceLastContact > 7)) {
+  if (
+    context.stage === "re_engagement" ||
+    (context.daysSinceLastContact && context.daysSinceLastContact > 7)
+  ) {
     return context.messageNumber > 3 ? "playful_closer" : "brooklyn_bestie";
   }
 
   // Hot response → hustler
-  if (context.stage === "hot_response" || context.lastResponseTone === "positive") {
+  if (
+    context.stage === "hot_response" ||
+    context.lastResponseTone === "positive"
+  ) {
     return "hustler_heart";
   }
 
   // Objection handling → wise mentor
-  if (context.stage === "handling_pushback" || context.lastResponseTone === "objection") {
+  if (
+    context.stage === "handling_pushback" ||
+    context.lastResponseTone === "objection"
+  ) {
     return "wise_mentor";
   }
 
@@ -1086,7 +1175,7 @@ export function getOptimalPersonality(context: ConversationContext): Personality
  */
 export function selectHumor(
   personality: PersonalityDNA,
-  context: ConversationContext
+  context: ConversationContext,
 ): HumorStyle | null {
   // No humor in distressed situations
   if (context.distressLevel && context.distressLevel > 50) {
@@ -1105,8 +1194,13 @@ export function selectHumor(
   }
 
   // Pick from personality's humor styles
-  if (personality.humorStyles.length > 0 && personality.humorStyles[0] !== "none") {
-    return personality.humorStyles[Math.floor(Math.random() * personality.humorStyles.length)];
+  if (
+    personality.humorStyles.length > 0 &&
+    personality.humorStyles[0] !== "none"
+  ) {
+    return personality.humorStyles[
+      Math.floor(Math.random() * personality.humorStyles.length)
+    ];
   }
 
   return null;
@@ -1132,9 +1226,12 @@ function replaceVars(template: string, context: ConversationContext): string {
 /**
  * Generate a message using the personality DNA system
  */
-export function generateMessageWithDNA(context: ConversationContext): GeneratedMessageDNA {
+export function generateMessageWithDNA(
+  context: ConversationContext,
+): GeneratedMessageDNA {
   // Get personality (use preferred or calculate optimal)
-  const personalityId = context.preferredPersonality || getOptimalPersonality(context);
+  const personalityId =
+    context.preferredPersonality || getOptimalPersonality(context);
   const personality = PERSONALITY_ARCHETYPES[personalityId];
 
   // Select humor if appropriate
@@ -1157,7 +1254,9 @@ export function generateMessageWithDNA(context: ConversationContext): GeneratedM
 
     // Add psychology trigger
     if (personality.primaryPsychology.includes("reciprocity")) {
-      parts.push(replaceVars(pickRandom(PSYCHOLOGY_DNA.reciprocity.phrases), context));
+      parts.push(
+        replaceVars(pickRandom(PSYCHOLOGY_DNA.reciprocity.phrases), context),
+      );
       psychologyTriggers.push("reciprocity");
     }
   }
@@ -1187,12 +1286,15 @@ export function generateMessageWithDNA(context: ConversationContext): GeneratedM
   // Apply message structure rules
   if (personality.messageStructure.capitalization === "casual") {
     // Lowercase first letter of some sentences randomly
-    message = message.replace(/(?<=\. )[A-Z]/g, (m) => Math.random() > 0.5 ? m.toLowerCase() : m);
+    message = message.replace(/(?<=\. )[A-Z]/g, (m) =>
+      Math.random() > 0.5 ? m.toLowerCase() : m,
+    );
   }
 
   // Calculate certainty score
   const certaintyScore = Math.round(
-    (personality.directness + personality.assertiveness + personality.energy) / 30
+    (personality.directness + personality.assertiveness + personality.energy) /
+      30,
   );
 
   // Generate alternatives
@@ -1217,19 +1319,19 @@ export function generateMessageWithDNA(context: ConversationContext): GeneratedM
 function generateAlternatives(
   context: ConversationContext,
   currentPersonality: PersonalityDNA,
-  count: number
+  count: number,
 ): string[] {
   const alternatives: string[] = [];
 
   // Get different personalities for variety
   const otherPersonalities = Object.values(PERSONALITY_ARCHETYPES)
-    .filter(p => p.id !== currentPersonality.id)
+    .filter((p) => p.id !== currentPersonality.id)
     .slice(0, count);
 
   for (const altPersonality of otherPersonalities) {
     const greeting = replaceVars(
       pickRandom(GREETING_DNA[altPersonality.greetingStyle]),
-      context
+      context,
     );
     const signature = pickRandom(altPersonality.signaturePhrases);
     const closing = pickRandom(CLOSING_DNA[altPersonality.closingStyle]);

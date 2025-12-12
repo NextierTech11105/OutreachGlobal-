@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     console.error("[ETL API] Error:", error);
     return NextResponse.json(
       { error: "Failed to get ETL status" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     if (!bucketId) {
       return NextResponse.json(
         { error: "bucketId is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
     console.error("[ETL API] Error:", error);
     return NextResponse.json(
       { error: "ETL processing failed" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

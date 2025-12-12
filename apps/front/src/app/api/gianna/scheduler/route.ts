@@ -20,7 +20,7 @@ export async function GET() {
     console.error("[Gianna Scheduler API] Error:", error);
     return NextResponse.json(
       { error: "Failed to get scheduler status" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
         if (!config) {
           return NextResponse.json(
             { error: "Config object required for update_config action" },
-            { status: 400 }
+            { status: 400 },
           );
         }
         giannaLoopScheduler.updateConfig(config);
@@ -80,15 +80,17 @@ export async function POST(request: NextRequest) {
 
       default:
         return NextResponse.json(
-          { error: `Unknown action: ${action}. Valid actions: start, stop, force_run, reset_stats, update_config` },
-          { status: 400 }
+          {
+            error: `Unknown action: ${action}. Valid actions: start, stop, force_run, reset_stats, update_config`,
+          },
+          { status: 400 },
         );
     }
   } catch (error) {
     console.error("[Gianna Scheduler API] Error:", error);
     return NextResponse.json(
       { error: "Failed to execute scheduler action" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

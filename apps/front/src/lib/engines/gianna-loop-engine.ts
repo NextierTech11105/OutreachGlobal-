@@ -68,7 +68,7 @@ class GiannaLoopEngine {
    */
   private replaceVariables(
     template: string,
-    variables: Record<string, string>
+    variables: Record<string, string>,
   ): string {
     let result = template;
     for (const [key, value] of Object.entries(variables)) {
@@ -179,7 +179,8 @@ class GiannaLoopEngine {
       console.error("[Gianna Loop Engine] Send error:", error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : "Failed to send message",
+        error:
+          error instanceof Error ? error.message : "Failed to send message",
       };
     }
   }
@@ -188,7 +189,7 @@ class GiannaLoopEngine {
    * Process a batch of leads for the loop
    */
   async processLeadBatch(
-    leads: LeadEscalationState[]
+    leads: LeadEscalationState[],
   ): Promise<Map<string, SendResult>> {
     const results = new Map<string, SendResult>();
 
@@ -217,7 +218,7 @@ class GiannaLoopEngine {
     const nextSendTime = state.last_sent_at
       ? new Date(
           new Date(state.last_sent_at).getTime() +
-            this.config.delay_between_steps_hours * 60 * 60 * 1000
+            this.config.delay_between_steps_hours * 60 * 60 * 1000,
         )
       : null;
 
@@ -226,7 +227,8 @@ class GiannaLoopEngine {
       max_steps: this.config.max_steps,
       progress_percent: (state.current_step / this.config.max_steps) * 100,
       next_send_time: nextSendTime,
-      is_complete: state.is_completed || state.current_step >= this.config.max_steps,
+      is_complete:
+        state.is_completed || state.current_step >= this.config.max_steps,
       is_paused: state.is_paused,
     };
   }
@@ -257,7 +259,7 @@ class GiannaLoopEngine {
    */
   previewStep(
     step: number,
-    variables: { first_name: string; company_name: string }
+    variables: { first_name: string; company_name: string },
   ): string | null {
     const template = this.getTemplateForStep(step);
     if (!template) return null;

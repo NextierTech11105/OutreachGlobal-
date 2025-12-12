@@ -73,7 +73,9 @@ export default function RealEstateApiIntegrationPage() {
       const response = await fetch("/api/address/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address: "1600 Pennsylvania Avenue NW, Washington, DC 20500" }),
+        body: JSON.stringify({
+          address: "1600 Pennsylvania Avenue NW, Washington, DC 20500",
+        }),
       });
 
       const data = await response.json();
@@ -113,7 +115,9 @@ export default function RealEstateApiIntegrationPage() {
 
       if (response.status !== 500) {
         setIsConnected(true);
-        setSuccessMessage("RealEstateAPI is configured via environment variable. Key saved!");
+        setSuccessMessage(
+          "RealEstateAPI is configured via environment variable. Key saved!",
+        );
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save settings");
@@ -161,7 +165,9 @@ export default function RealEstateApiIntegrationPage() {
         <Alert className="bg-green-500/10 border-green-500/20">
           <CheckCircle className="h-4 w-4 text-green-500" />
           <AlertTitle className="text-green-500">Success</AlertTitle>
-          <AlertDescription className="text-green-400">{successMessage}</AlertDescription>
+          <AlertDescription className="text-green-400">
+            {successMessage}
+          </AlertDescription>
         </Alert>
       )}
 
@@ -170,8 +176,9 @@ export default function RealEstateApiIntegrationPage() {
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Configuration Required</AlertTitle>
           <AlertDescription>
-            RealEstateAPI key is configured via environment variable (REALESTATE_API_KEY).
-            Contact admin to update the key on DigitalOcean.
+            RealEstateAPI key is configured via environment variable
+            (REALESTATE_API_KEY). Contact admin to update the key on
+            DigitalOcean.
           </AlertDescription>
         </Alert>
       )}
@@ -183,7 +190,9 @@ export default function RealEstateApiIntegrationPage() {
             <CardTitle className="text-sm font-medium">API Status</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${isConnected ? "text-green-500" : "text-red-500"}`}>
+            <div
+              className={`text-2xl font-bold ${isConnected ? "text-green-500" : "text-red-500"}`}
+            >
               {isConnected ? "Active" : "Inactive"}
             </div>
             <p className="text-xs text-muted-foreground">Connection status</p>
@@ -224,9 +233,7 @@ export default function RealEstateApiIntegrationPage() {
       <Card>
         <CardHeader>
           <CardTitle>API Configuration</CardTitle>
-          <CardDescription>
-            Test your RealEstateAPI connection
-          </CardDescription>
+          <CardDescription>Test your RealEstateAPI connection</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -239,7 +246,8 @@ export default function RealEstateApiIntegrationPage() {
                 placeholder="Enter API key to test"
               />
               <p className="text-xs text-muted-foreground">
-                Production key is set via REALESTATE_API_KEY environment variable
+                Production key is set via REALESTATE_API_KEY environment
+                variable
               </p>
             </div>
             <div className="flex items-end gap-2">
@@ -255,7 +263,10 @@ export default function RealEstateApiIntegrationPage() {
                 )}
                 Test Connection
               </Button>
-              <Button onClick={saveSettings} disabled={isSaving || !apiKey.trim()}>
+              <Button
+                onClick={saveSettings}
+                disabled={isSaving || !apiKey.trim()}
+              >
                 {isSaving ? (
                   <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
@@ -299,7 +310,8 @@ export default function RealEstateApiIntegrationPage() {
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
-                Use the Property Search page to find properties by location, filters, and criteria.
+                Use the Property Search page to find properties by location,
+                filters, and criteria.
               </p>
               <Button className="mt-4" asChild>
                 <a href="/admin/data/verification">Go to Property Search</a>
@@ -313,21 +325,27 @@ export default function RealEstateApiIntegrationPage() {
             <CardHeader>
               <CardTitle>Data Lake</CardTitle>
               <CardDescription>
-                View and manage enriched property data stored in DigitalOcean Spaces
+                View and manage enriched property data stored in DigitalOcean
+                Spaces
               </CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground mb-4">
-                Enriched property data is stored in your DigitalOcean Spaces bucket for ML training and scoring.
+                Enriched property data is stored in your DigitalOcean Spaces
+                bucket for ML training and scoring.
               </p>
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 border rounded">
                   <h4 className="font-medium">Bucket</h4>
-                  <p className="text-sm text-muted-foreground">nextier.nyc3.digitaloceanspaces.com</p>
+                  <p className="text-sm text-muted-foreground">
+                    nextier.nyc3.digitaloceanspaces.com
+                  </p>
                 </div>
                 <div className="p-4 border rounded">
                   <h4 className="font-medium">Folders</h4>
-                  <p className="text-sm text-muted-foreground">uploads/, enriched/, processed/</p>
+                  <p className="text-sm text-muted-foreground">
+                    uploads/, enriched/, processed/
+                  </p>
                 </div>
               </div>
             </CardContent>

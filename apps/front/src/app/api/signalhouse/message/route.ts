@@ -11,14 +11,19 @@ import {
 // GET - Get message logs or conversations
 export async function GET(request: NextRequest) {
   if (!isConfigured()) {
-    return NextResponse.json({ error: "SignalHouse not configured" }, { status: 503 });
+    return NextResponse.json(
+      { error: "SignalHouse not configured" },
+      { status: 503 },
+    );
   }
 
   const { searchParams } = new URL(request.url);
   const action = searchParams.get("action") || "logs";
   const from = searchParams.get("from") || undefined;
   const to = searchParams.get("to") || undefined;
-  const limit = searchParams.get("limit") ? parseInt(searchParams.get("limit")!) : undefined;
+  const limit = searchParams.get("limit")
+    ? parseInt(searchParams.get("limit")!)
+    : undefined;
   const message = searchParams.get("message");
 
   try {
@@ -26,7 +31,10 @@ export async function GET(request: NextRequest) {
     if (action === "segments" && message) {
       const result = await calculateSegments(message);
       if (!result.success) {
-        return NextResponse.json({ error: result.error }, { status: result.status || 400 });
+        return NextResponse.json(
+          { error: result.error },
+          { status: result.status || 400 },
+        );
       }
       return NextResponse.json({
         success: true,
@@ -40,7 +48,10 @@ export async function GET(request: NextRequest) {
     if (action === "conversation" && from && to) {
       const result = await getConversation(from, to);
       if (!result.success) {
-        return NextResponse.json({ error: result.error }, { status: result.status || 400 });
+        return NextResponse.json(
+          { error: result.error },
+          { status: result.status || 400 },
+        );
       }
       return NextResponse.json({
         success: true,
@@ -53,7 +64,10 @@ export async function GET(request: NextRequest) {
     // Get message logs (default)
     const result = await getMessageLogs({ from, to, limit });
     if (!result.success) {
-      return NextResponse.json({ error: result.error }, { status: result.status || 400 });
+      return NextResponse.json(
+        { error: result.error },
+        { status: result.status || 400 },
+      );
     }
 
     return NextResponse.json({
@@ -64,8 +78,11 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("[SignalHouse Message] Error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to get messages" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to get messages",
+      },
+      { status: 500 },
     );
   }
 }
@@ -73,7 +90,10 @@ export async function GET(request: NextRequest) {
 // POST - Send SMS or MMS
 export async function POST(request: NextRequest) {
   if (!isConfigured()) {
-    return NextResponse.json({ error: "SignalHouse not configured" }, { status: 503 });
+    return NextResponse.json(
+      { error: "SignalHouse not configured" },
+      { status: 503 },
+    );
   }
 
   try {
@@ -83,11 +103,17 @@ export async function POST(request: NextRequest) {
     // Calculate segments without sending
     if (action === "segments") {
       if (!message) {
-        return NextResponse.json({ error: "message required" }, { status: 400 });
+        return NextResponse.json(
+          { error: "message required" },
+          { status: 400 },
+        );
       }
       const result = await calculateSegments(message);
       if (!result.success) {
-        return NextResponse.json({ error: result.error }, { status: result.status || 400 });
+        return NextResponse.json(
+          { error: result.error },
+          { status: result.status || 400 },
+        );
       }
       return NextResponse.json({
         success: true,
@@ -101,7 +127,7 @@ export async function POST(request: NextRequest) {
     if (!to || !from || !message) {
       return NextResponse.json(
         { error: "to, from, and message are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -109,7 +135,10 @@ export async function POST(request: NextRequest) {
     if (mediaUrl) {
       const result = await sendMMS({ to, from, message, mediaUrl });
       if (!result.success) {
-        return NextResponse.json({ error: result.error }, { status: result.status || 400 });
+        return NextResponse.json(
+          { error: result.error },
+          { status: result.status || 400 },
+        );
       }
       return NextResponse.json({
         success: true,
@@ -124,7 +153,10 @@ export async function POST(request: NextRequest) {
     // Send SMS
     const result = await sendSMS({ to, from, message });
     if (!result.success) {
-      return NextResponse.json({ error: result.error }, { status: result.status || 400 });
+      return NextResponse.json(
+        { error: result.error },
+        { status: result.status || 400 },
+      );
     }
 
     return NextResponse.json({
@@ -139,8 +171,11 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("[SignalHouse Message] Send error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to send message" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to send message",
+      },
+      { status: 500 },
     );
   }
 }

@@ -15,7 +15,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
-import { Search, MapPin, Home, DollarSign, User, Phone, Loader2 } from "lucide-react";
+import {
+  Search,
+  MapPin,
+  Home,
+  DollarSign,
+  User,
+  Phone,
+  Loader2,
+} from "lucide-react";
 import { sf, sfc } from "@/lib/utils/safe-format";
 
 const PROPERTY_TYPES = [
@@ -47,7 +55,9 @@ interface PropertyResult {
 }
 
 export function PropertySearch() {
-  const [searchType, setSearchType] = useState<"radius" | "address" | "zip">("radius");
+  const [searchType, setSearchType] = useState<"radius" | "address" | "zip">(
+    "radius",
+  );
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<PropertyResult[]>([]);
 
@@ -75,7 +85,7 @@ export function PropertySearch() {
     setLoading(true);
     try {
       // Build query params based on search type
-      let endpoint = "/api/property-search";
+      const endpoint = "/api/property-search";
       const params = new URLSearchParams();
 
       if (searchType === "radius") {
@@ -121,7 +131,10 @@ export function PropertySearch() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Tabs value={searchType} onValueChange={(v) => setSearchType(v as typeof searchType)}>
+          <Tabs
+            value={searchType}
+            onValueChange={(v) => setSearchType(v as typeof searchType)}
+          >
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="radius">
                 <MapPin className="h-4 w-4 mr-2" />
@@ -320,9 +333,7 @@ export function PropertySearch() {
       {results.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>
-              Results ({results.length} properties)
-            </CardTitle>
+            <CardTitle>Results ({results.length} properties)</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -357,15 +368,11 @@ function PropertyResultCard({ property }: { property: PropertyResult }) {
             {property.bedrooms} bed / {property.bathrooms} bath
           </div>
         )}
-        {property.sqft && (
-          <div>
-            {sf(property.sqft)} sqft
-          </div>
-        )}
+        {property.sqft && <div>{sf(property.sqft)} sqft</div>}
         {property.estimatedValue && (
           <div className="flex items-center gap-1">
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-            ${sf(property.estimatedValue)}
+            <DollarSign className="h-4 w-4 text-muted-foreground" />$
+            {sf(property.estimatedValue)}
           </div>
         )}
         {property.equity && (

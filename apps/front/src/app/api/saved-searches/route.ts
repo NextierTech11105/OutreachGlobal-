@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { savedSearches, savedSearchPropertyIds, propertyChangeEvents } from "@/lib/db/schema";
-import { realEstateApi, type PropertySearchQuery } from "@/lib/services/real-estate-api";
+import {
+  savedSearches,
+  savedSearchPropertyIds,
+  propertyChangeEvents,
+} from "@/lib/db/schema";
+import {
+  realEstateApi,
+  type PropertySearchQuery,
+} from "@/lib/services/real-estate-api";
 import { eq, and } from "drizzle-orm";
 
 // GET - List all saved searches or get one by ID
@@ -18,7 +25,10 @@ export async function GET(request: NextRequest) {
         .where(eq(savedSearches.id, id));
 
       if (!search) {
-        return NextResponse.json({ error: "Saved search not found" }, { status: 404 });
+        return NextResponse.json(
+          { error: "Saved search not found" },
+          { status: 404 },
+        );
       }
 
       // Get property IDs
@@ -28,13 +38,15 @@ export async function GET(request: NextRequest) {
         .where(
           and(
             eq(savedSearchPropertyIds.savedSearchId, id),
-            eq(savedSearchPropertyIds.isActive, true)
-          )
+            eq(savedSearchPropertyIds.isActive, true),
+          ),
         );
 
       return NextResponse.json({
         ...search,
-        propertyIds: propertyIds.map((p: { propertyId: string }) => p.propertyId),
+        propertyIds: propertyIds.map(
+          (p: { propertyId: string }) => p.propertyId,
+        ),
       });
     }
 
@@ -54,7 +66,7 @@ export async function GET(request: NextRequest) {
     console.error("Get saved searches error:", error);
     return NextResponse.json(
       { error: "Failed to get saved searches", details: String(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -68,12 +80,14 @@ export async function POST(request: NextRequest) {
     if (!userId || !name || !query) {
       return NextResponse.json(
         { error: "userId, name, and query are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Run the search to get count and IDs
-    const { count, ids } = await realEstateApi.runSavedSearchForIds(query as PropertySearchQuery);
+    const { count, ids } = await realEstateApi.runSavedSearchForIds(
+      query as PropertySearchQuery,
+    );
 
     // Create the saved search
     const [newSearch] = await db
@@ -98,7 +112,9 @@ export async function POST(request: NextRequest) {
 
       // Batch insert in chunks of 1000
       for (let i = 0; i < idRecords.length; i += 1000) {
-        await db.insert(savedSearchPropertyIds).values(idRecords.slice(i, i + 1000));
+        await db
+          .insert(savedSearchPropertyIds)
+          .values(idRecords.slice(i, i + 1000));
       }
     }
 
@@ -111,7 +127,7 @@ export async function POST(request: NextRequest) {
     console.error("Create saved search error:", error);
     return NextResponse.json(
       { error: "Failed to create saved search", details: String(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -123,7 +139,10 @@ export async function PUT(request: NextRequest) {
     const { id, name, description, query, notifyOnChanges, refresh } = body;
 
     if (!id) {
-      return NextResponse.json({ error: "Search ID required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Search ID required" },
+        { status: 400 },
+      );
     }
 
     // Get existing search
@@ -133,7 +152,10 @@ export async function PUT(request: NextRequest) {
       .where(eq(savedSearches.id, id));
 
     if (!existingSearch) {
-      return NextResponse.json({ error: "Saved search not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Saved search not found" },
+        { status: 404 },
+      );
     }
 
     // Build update data
@@ -143,14 +165,17 @@ export async function PUT(request: NextRequest) {
     if (name) updateData.name = name;
     if (description !== undefined) updateData.description = description;
     if (query) updateData.query = query;
-    if (notifyOnChanges !== undefined) updateData.notifyOnChanges = notifyOnChanges;
+    if (notifyOnChanges !== undefined)
+      updateData.notifyOnChanges = notifyOnChanges;
 
     let changes = null;
 
     // If refresh requested or query changed, re-run the search
     if (refresh || query) {
-      const searchQuery = (query || existingSearch.query) as PropertySearchQuery;
-      const { count, ids: currentIds } = await realEstateApi.runSavedSearchForIds(searchQuery);
+      const searchQuery = (query ||
+        existingSearch.query) as PropertySearchQuery;
+      const { count, ids: currentIds } =
+        await realEstateApi.runSavedSearchForIds(searchQuery);
 
       // Get previous IDs
       const previousIdsResult = await db
@@ -159,10 +184,12 @@ export async function PUT(request: NextRequest) {
         .where(
           and(
             eq(savedSearchPropertyIds.savedSearchId, id),
-            eq(savedSearchPropertyIds.isActive, true)
-          )
+            eq(savedSearchPropertyIds.isActive, true),
+          ),
         );
-      const previousIds = previousIdsResult.map((r: { propertyId: string }) => r.propertyId);
+      const previousIds = previousIdsResult.map(
+        (r: { propertyId: string }) => r.propertyId,
+      );
 
       // Detect changes
       changes = realEstateApi.detectChanges(previousIds, currentIds);
@@ -184,7 +211,9 @@ export async function PUT(request: NextRequest) {
 
         // Batch insert change events
         for (let i = 0; i < changeEventRecords.length; i += 1000) {
-          await db.insert(propertyChangeEvents).values(changeEventRecords.slice(i, i + 1000));
+          await db
+            .insert(propertyChangeEvents)
+            .values(changeEventRecords.slice(i, i + 1000));
         }
       }
 
@@ -197,8 +226,8 @@ export async function PUT(request: NextRequest) {
             .where(
               and(
                 eq(savedSearchPropertyIds.savedSearchId, id),
-                eq(savedSearchPropertyIds.propertyId, removedId)
-              )
+                eq(savedSearchPropertyIds.propertyId, removedId),
+              ),
             );
         }
       }
@@ -210,7 +239,9 @@ export async function PUT(request: NextRequest) {
           propertyId,
         }));
         for (let i = 0; i < newIdRecords.length; i += 1000) {
-          await db.insert(savedSearchPropertyIds).values(newIdRecords.slice(i, i + 1000));
+          await db
+            .insert(savedSearchPropertyIds)
+            .values(newIdRecords.slice(i, i + 1000));
         }
       }
 
@@ -241,7 +272,7 @@ export async function PUT(request: NextRequest) {
     console.error("Update saved search error:", error);
     return NextResponse.json(
       { error: "Failed to update saved search", details: String(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -263,7 +294,7 @@ export async function DELETE(request: NextRequest) {
     console.error("Delete saved search error:", error);
     return NextResponse.json(
       { error: "Failed to delete saved search", details: String(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

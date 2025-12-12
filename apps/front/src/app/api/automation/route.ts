@@ -27,11 +27,16 @@ export async function POST(request: NextRequest) {
         if (!leadId || !phone) {
           return NextResponse.json(
             { success: false, error: "leadId and phone required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
-        automationService.scheduleRetargetDrip(leadId, phone, firstName, propertyAddress);
+        automationService.scheduleRetargetDrip(
+          leadId,
+          phone,
+          firstName,
+          propertyAddress,
+        );
 
         return NextResponse.json({
           success: true,
@@ -47,7 +52,7 @@ export async function POST(request: NextRequest) {
         if (!leadId || !phone) {
           return NextResponse.json(
             { success: false, error: "leadId and phone required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -56,7 +61,13 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
           success: true,
           message: `Nurture drip activated for ${leadId}`,
-          schedule: ["Day 3 email", "Day 7 SMS", "Day 14 call", "Day 21 email", "Day 30 SMS"],
+          schedule: [
+            "Day 3 email",
+            "Day 7 SMS",
+            "Day 14 call",
+            "Day 21 email",
+            "Day 30 SMS",
+          ],
         });
       }
 
@@ -67,11 +78,16 @@ export async function POST(request: NextRequest) {
         if (!leadId || !phone) {
           return NextResponse.json(
             { success: false, error: "leadId and phone required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
-        automationService.flagAsHotLead(leadId, phone, email, reason || "valuation");
+        automationService.flagAsHotLead(
+          leadId,
+          phone,
+          email,
+          reason || "valuation",
+        );
 
         const state = automationService.getLeadState(leadId);
 
@@ -91,11 +107,16 @@ export async function POST(request: NextRequest) {
         if (!leadId || !phone || !message) {
           return NextResponse.json(
             { success: false, error: "leadId, phone, and message required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
-        const result = automationService.processIncomingMessage(leadId, phone, message, propertyId);
+        const result = automationService.processIncomingMessage(
+          leadId,
+          phone,
+          message,
+          propertyId,
+        );
         const state = automationService.getLeadState(leadId);
 
         return NextResponse.json({
@@ -121,7 +142,7 @@ export async function POST(request: NextRequest) {
         if (!leadId || !phone) {
           return NextResponse.json(
             { success: false, error: "leadId and phone required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -140,7 +161,7 @@ export async function POST(request: NextRequest) {
         if (!leadId || !phone) {
           return NextResponse.json(
             { success: false, error: "leadId and phone required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -159,7 +180,7 @@ export async function POST(request: NextRequest) {
         if (!leads || !Array.isArray(leads)) {
           return NextResponse.json(
             { success: false, error: "leads array required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -170,7 +191,7 @@ export async function POST(request: NextRequest) {
               lead.leadId,
               lead.phone,
               lead.firstName,
-              lead.propertyAddress
+              lead.propertyAddress,
             );
             scheduled++;
           }
@@ -186,14 +207,14 @@ export async function POST(request: NextRequest) {
       default:
         return NextResponse.json(
           { success: false, error: `Unknown action: ${action}` },
-          { status: 400 }
+          { status: 400 },
         );
     }
   } catch (error) {
     console.error("[Automation] Error:", error);
     return NextResponse.json(
       { success: false, error: "Automation action failed" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -218,7 +239,7 @@ export async function GET(request: NextRequest) {
         if (!leadId) {
           return NextResponse.json(
             { success: false, error: "leadId required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -227,7 +248,7 @@ export async function GET(request: NextRequest) {
         if (!state) {
           return NextResponse.json(
             { success: false, error: "Lead not found in automation system" },
-            { status: 404 }
+            { status: 404 },
           );
         }
 
@@ -242,7 +263,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({
           success: true,
           count: hotLeads.length,
-          leads: hotLeads.map(l => ({
+          leads: hotLeads.map((l) => ({
             leadId: l.leadId,
             phone: l.phone,
             email: l.email,
@@ -259,7 +280,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({
           success: true,
           count: warmLeads.length,
-          leads: warmLeads.map(l => ({
+          leads: warmLeads.map((l) => ({
             leadId: l.leadId,
             phone: l.phone,
             email: l.email,
@@ -273,14 +294,14 @@ export async function GET(request: NextRequest) {
       default:
         return NextResponse.json(
           { success: false, error: `Unknown action: ${action}` },
-          { status: 400 }
+          { status: 400 },
         );
     }
   } catch (error) {
     console.error("[Automation] GET error:", error);
     return NextResponse.json(
       { success: false, error: "Failed to get automation data" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

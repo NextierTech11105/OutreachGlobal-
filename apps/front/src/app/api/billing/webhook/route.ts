@@ -24,10 +24,20 @@ export async function POST(request: NextRequest) {
       try {
         const Stripe = (await import("stripe")).default;
         const stripe = new Stripe(STRIPE_SECRET_KEY);
-        event = stripe.webhooks.constructEvent(body, signature, STRIPE_WEBHOOK_SECRET);
+        event = stripe.webhooks.constructEvent(
+          body,
+          signature,
+          STRIPE_WEBHOOK_SECRET,
+        );
       } catch (err: any) {
-        console.error("[Billing Webhook] Signature verification failed:", err.message);
-        return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+        console.error(
+          "[Billing Webhook] Signature verification failed:",
+          err.message,
+        );
+        return NextResponse.json(
+          { error: "Invalid signature" },
+          { status: 400 },
+        );
       }
     } else {
       // Parse without verification (development only)
@@ -78,7 +88,7 @@ export async function POST(request: NextRequest) {
     console.error("[Billing Webhook] Error processing webhook:", error);
     return NextResponse.json(
       { error: error.message || "Webhook processing failed" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -96,18 +106,27 @@ async function handleSubscriptionUpdate(stripeSubscription: any) {
 
   if (existingSubscription) {
     // Update existing subscription
-    await db.update(subscriptions)
+    await db
+      .update(subscriptions)
       .set({
         status,
-        currentPeriodStart: new Date(stripeSubscription.current_period_start * 1000),
-        currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
+        currentPeriodStart: new Date(
+          stripeSubscription.current_period_start * 1000,
+        ),
+        currentPeriodEnd: new Date(
+          stripeSubscription.current_period_end * 1000,
+        ),
         updatedAt: new Date(),
       })
       .where(eq(subscriptions.id, existingSubscription.id));
 
-    console.log(`[Billing Webhook] Updated subscription ${existingSubscription.id} to status: ${status}`);
+    console.log(
+      `[Billing Webhook] Updated subscription ${existingSubscription.id} to status: ${status}`,
+    );
   } else {
-    console.log(`[Billing Webhook] Subscription not found for Stripe ID: ${subscriptionId}`);
+    console.log(
+      `[Billing Webhook] Subscription not found for Stripe ID: ${subscriptionId}`,
+    );
   }
 }
 
@@ -120,7 +139,8 @@ async function handleSubscriptionCanceled(stripeSubscription: any) {
   });
 
   if (existingSubscription) {
-    await db.update(subscriptions)
+    await db
+      .update(subscriptions)
       .set({
         status: "canceled",
         canceledAt: new Date(),
@@ -128,7 +148,9 @@ async function handleSubscriptionCanceled(stripeSubscription: any) {
       })
       .where(eq(subscriptions.id, existingSubscription.id));
 
-    console.log(`[Billing Webhook] Canceled subscription ${existingSubscription.id}`);
+    console.log(
+      `[Billing Webhook] Canceled subscription ${existingSubscription.id}`,
+    );
   }
 }
 
@@ -142,7 +164,9 @@ async function handleInvoicePaid(stripeInvoice: any) {
   });
 
   if (!subscription) {
-    console.log(`[Billing Webhook] Subscription not found for invoice: ${stripeInvoice.id}`);
+    console.log(
+      `[Billing Webhook] Subscription not found for invoice: ${stripeInvoice.id}`,
+    );
     return;
   }
 
@@ -160,14 +184,17 @@ async function handleInvoicePaid(stripeInvoice: any) {
   });
 
   // Ensure subscription is active
-  await db.update(subscriptions)
+  await db
+    .update(subscriptions)
     .set({
       status: "active",
       updatedAt: new Date(),
     })
     .where(eq(subscriptions.id, subscription.id));
 
-  console.log(`[Billing Webhook] Invoice paid for subscription ${subscription.id}`);
+  console.log(
+    `[Billing Webhook] Invoice paid for subscription ${subscription.id}`,
+  );
 }
 
 // Handle failed payment
@@ -194,14 +221,17 @@ async function handlePaymentFailed(stripeInvoice: any) {
   });
 
   // Update subscription status
-  await db.update(subscriptions)
+  await db
+    .update(subscriptions)
     .set({
       status: "past_due",
       updatedAt: new Date(),
     })
     .where(eq(subscriptions.id, subscription.id));
 
-  console.log(`[Billing Webhook] Payment failed for subscription ${subscription.id}`);
+  console.log(
+    `[Billing Webhook] Payment failed for subscription ${subscription.id}`,
+  );
 
   // TODO: Send payment failed notification email
 }

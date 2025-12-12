@@ -66,8 +66,7 @@ const aiSdrs = [
     id: "2",
     name: "Gianna",
     model: "Nextier M&A Advisory",
-    description:
-      "AI-Powered M&A Advisory for Business Owners & Exit Planning",
+    description: "AI-Powered M&A Advisory for Business Owners & Exit Planning",
     industry: "real-estate",
     tags: ["development", "buyouts", "consulting"],
     avatar: "/stylized-letters-sj.png",

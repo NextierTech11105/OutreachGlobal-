@@ -11,10 +11,14 @@ let _redisError: string | null = null;
 // Parse ioredis URL format to extract REST credentials
 // rediss://default:PASSWORD@improved-donkey-20354.upstash.io:6379
 // -> { url: "https://improved-donkey-20354.upstash.io", token: "PASSWORD" }
-function parseIoredisUrl(redisUrl: string): { url: string; token: string } | null {
+function parseIoredisUrl(
+  redisUrl: string,
+): { url: string; token: string } | null {
   try {
     // Handle rediss:// or redis:// format
-    const match = redisUrl.match(/rediss?:\/\/([^:]+):([^@]+)@([^:]+)(?::\d+)?/);
+    const match = redisUrl.match(
+      /rediss?:\/\/([^:]+):([^@]+)@([^:]+)(?::\d+)?/,
+    );
     if (match) {
       const [, , password, host] = match;
       return {
@@ -49,7 +53,8 @@ function getRedis(): Redis | null {
   }
 
   if (!url || !token) {
-    _redisError = "Redis not configured. Set UPSTASH_REDIS_REST_URL + TOKEN, or REDIS_URL";
+    _redisError =
+      "Redis not configured. Set UPSTASH_REDIS_REST_URL + TOKEN, or REDIS_URL";
     console.warn("[Redis]", _redisError);
     return null;
   }
@@ -58,7 +63,8 @@ function getRedis(): Redis | null {
     _redis = new Redis({ url, token });
     return _redis;
   } catch (err) {
-    _redisError = err instanceof Error ? err.message : "Failed to connect to Redis";
+    _redisError =
+      err instanceof Error ? err.message : "Failed to connect to Redis";
     console.error("[Redis]", _redisError);
     return null;
   }
@@ -75,10 +81,16 @@ export const redis = {
     const r = getRedis();
     return r ? r.get<T>(key) : null;
   },
-  set: async (key: string, value: string, options?: { ex?: number }): Promise<"OK" | null> => {
+  set: async (
+    key: string,
+    value: string,
+    options?: { ex?: number },
+  ): Promise<"OK" | null> => {
     const r = getRedis();
     if (!r) return null;
-    return options?.ex ? r.set(key, value, { ex: options.ex }) : r.set(key, value);
+    return options?.ex
+      ? r.set(key, value, { ex: options.ex })
+      : r.set(key, value);
   },
   incrby: async (key: string, amount: number): Promise<number | null> => {
     const r = getRedis();
@@ -96,11 +108,19 @@ export const redis = {
     const r = getRedis();
     return r ? r.lpop<T>(key) : null;
   },
-  zadd: async (key: string, ...args: { score: number; member: string }[]): Promise<number | null> => {
+  zadd: async (
+    key: string,
+    ...args: { score: number; member: string }[]
+  ): Promise<number | null> => {
     const r = getRedis();
     return r ? r.zadd(key, ...args) : null;
   },
-  zrange: async (key: string, start: number, stop: number, options?: { rev?: boolean }): Promise<string[]> => {
+  zrange: async (
+    key: string,
+    start: number,
+    stop: number,
+    options?: { rev?: boolean },
+  ): Promise<string[]> => {
     const r = getRedis();
     return r ? (r.zrange(key, start, stop, options) as Promise<string[]>) : [];
   },
@@ -109,7 +129,8 @@ export const redis = {
 // Keys
 export const ENRICHMENT_QUEUE_KEY = "enrichment:queue";
 export const ENRICHMENT_JOBS_KEY = "enrichment:jobs";
-export const ENRICHMENT_DAILY_KEY = (date: string) => `enrichment:daily:${date}`;
+export const ENRICHMENT_DAILY_KEY = (date: string) =>
+  `enrichment:daily:${date}`;
 export const ENRICHMENT_JOB_KEY = (jobId: string) => `enrichment:job:${jobId}`;
 
 // Limits
@@ -165,7 +186,11 @@ export function getTodayKey(): string {
 }
 
 // Check daily usage
-export async function getDailyUsage(): Promise<{ date: string; count: number; remaining: number }> {
+export async function getDailyUsage(): Promise<{
+  date: string;
+  count: number;
+  remaining: number;
+}> {
   const today = getTodayKey();
   const key = ENRICHMENT_DAILY_KEY(today);
   const count = (await redis.get<number>(key)) || 0;
@@ -196,7 +221,7 @@ export async function incrementDailyUsage(amount: number): Promise<boolean> {
 export async function createEnrichmentJob(
   bucketId: string,
   bucketLabel: string,
-  propertyIds: string[]
+  propertyIds: string[],
 ): Promise<EnrichmentJob> {
   const jobId = `enrich-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   const totalBatches = Math.ceil(propertyIds.length / BATCH_SIZE);
@@ -232,7 +257,9 @@ export async function createEnrichmentJob(
 }
 
 // Get job by ID
-export async function getEnrichmentJob(jobId: string): Promise<EnrichmentJob | null> {
+export async function getEnrichmentJob(
+  jobId: string,
+): Promise<EnrichmentJob | null> {
   const data = await redis.get<string>(ENRICHMENT_JOB_KEY(jobId));
   if (!data) return null;
   return typeof data === "string" ? JSON.parse(data) : data;
@@ -245,11 +272,13 @@ export async function updateEnrichmentJob(job: EnrichmentJob): Promise<void> {
 
 // Get all jobs (recent first)
 export async function getEnrichmentJobs(limit = 50): Promise<EnrichmentJob[]> {
-  const jobIds = await redis.zrange(ENRICHMENT_JOBS_KEY, 0, limit - 1, { rev: true });
+  const jobIds = await redis.zrange(ENRICHMENT_JOBS_KEY, 0, limit - 1, {
+    rev: true,
+  });
   if (!jobIds || jobIds.length === 0) return [];
 
   const jobs = await Promise.all(
-    jobIds.map((id) => getEnrichmentJob(id as string))
+    jobIds.map((id) => getEnrichmentJob(id as string)),
   );
 
   return jobs.filter((j): j is EnrichmentJob => j !== null);

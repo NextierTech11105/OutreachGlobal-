@@ -20,7 +20,16 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Save, RotateCcw, TrendingUp, Target, Star, Plus, Trash2, AlertTriangle } from "lucide-react";
+import {
+  Save,
+  RotateCcw,
+  TrendingUp,
+  Target,
+  Star,
+  Plus,
+  Trash2,
+  AlertTriangle,
+} from "lucide-react";
 import { toast } from "sonner";
 
 interface ScoringFactor {
@@ -38,7 +47,12 @@ export default function CampaignScoringPage() {
   const [factors, setFactors] = useState<ScoringFactor[]>([]);
   const [hasChanges, setHasChanges] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [newFactor, setNewFactor] = useState({ name: "", description: "", weight: 10, category: "loan" as ScoringFactor["category"] });
+  const [newFactor, setNewFactor] = useState({
+    name: "",
+    description: "",
+    weight: 10,
+    category: "loan" as ScoringFactor["category"],
+  });
 
   // Load from localStorage - no defaults, user adds their own
   useEffect(() => {
@@ -56,12 +70,12 @@ export default function CampaignScoringPage() {
   }, [factors]);
 
   const updateWeight = (id: string, weight: number) => {
-    setFactors(factors.map(f => f.id === id ? { ...f, weight } : f));
+    setFactors(factors.map((f) => (f.id === id ? { ...f, weight } : f)));
     setHasChanges(true);
   };
 
   const deleteFactor = (id: string) => {
-    setFactors(factors.filter(f => f.id !== id));
+    setFactors(factors.filter((f) => f.id !== id));
     setHasChanges(true);
     toast.success("Factor removed");
   };
@@ -87,16 +101,22 @@ export default function CampaignScoringPage() {
   };
 
   const totalWeight = factors.reduce((sum, f) => sum + f.weight, 0);
-  const activeFactors = factors.filter(f => f.weight > 0);
+  const activeFactors = factors.filter((f) => f.weight > 0);
 
   const getCategoryColor = (category: string) => {
     switch (category) {
-      case "property": return "bg-blue-500/20 text-blue-400 border-blue-500/50";
-      case "loan": return "bg-pink-500/20 text-pink-400 border-pink-500/50";
-      case "lead": return "bg-green-500/20 text-green-400 border-green-500/50";
-      case "engagement": return "bg-purple-500/20 text-purple-400 border-purple-500/50";
-      case "distressed": return "bg-red-500/20 text-red-400 border-red-500/50";
-      default: return "bg-gray-500/20 text-gray-400 border-gray-500/50";
+      case "property":
+        return "bg-blue-500/20 text-blue-400 border-blue-500/50";
+      case "loan":
+        return "bg-pink-500/20 text-pink-400 border-pink-500/50";
+      case "lead":
+        return "bg-green-500/20 text-green-400 border-green-500/50";
+      case "engagement":
+        return "bg-purple-500/20 text-purple-400 border-purple-500/50";
+      case "distressed":
+        return "bg-red-500/20 text-red-400 border-red-500/50";
+      default:
+        return "bg-gray-500/20 text-gray-400 border-gray-500/50";
     }
   };
 
@@ -113,7 +133,6 @@ export default function CampaignScoringPage() {
     toast.success("Cleared all factors");
   };
 
-
   return (
     <div className="p-8 space-y-6 bg-zinc-950 min-h-screen text-white">
       <div className="flex justify-between items-center">
@@ -128,11 +147,18 @@ export default function CampaignScoringPage() {
             <RotateCcw className="mr-2 h-4 w-4" />
             Reset
           </Button>
-          <Button onClick={() => setShowAddDialog(true)} className="bg-green-600 hover:bg-green-700">
+          <Button
+            onClick={() => setShowAddDialog(true)}
+            className="bg-green-600 hover:bg-green-700"
+          >
             <Plus className="mr-2 h-4 w-4" />
             Add Factor
           </Button>
-          <Button disabled={!hasChanges} onClick={saveChanges} className="bg-blue-600 hover:bg-blue-700">
+          <Button
+            disabled={!hasChanges}
+            onClick={saveChanges}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
             <Save className="mr-2 h-4 w-4" />
             Save
           </Button>
@@ -156,7 +182,9 @@ export default function CampaignScoringPage() {
               <Star className="h-4 w-4" />
               Active Factors
             </div>
-            <div className="text-2xl font-bold mt-1">{activeFactors.length}</div>
+            <div className="text-2xl font-bold mt-1">
+              {activeFactors.length}
+            </div>
           </CardContent>
         </Card>
         <Card className="bg-zinc-900 border-zinc-800">
@@ -166,7 +194,11 @@ export default function CampaignScoringPage() {
               Distress Factors
             </div>
             <div className="text-2xl font-bold mt-1 text-red-400">
-              {factors.filter(f => f.category === "distressed" && f.weight > 0).length}
+              {
+                factors.filter(
+                  (f) => f.category === "distressed" && f.weight > 0,
+                ).length
+              }
             </div>
           </CardContent>
         </Card>
@@ -177,7 +209,10 @@ export default function CampaignScoringPage() {
               Loan Factors
             </div>
             <div className="text-2xl font-bold mt-1 text-pink-400">
-              {factors.filter(f => f.category === "loan" && f.weight > 0).length}
+              {
+                factors.filter((f) => f.category === "loan" && f.weight > 0)
+                  .length
+              }
             </div>
           </CardContent>
         </Card>
@@ -196,7 +231,10 @@ export default function CampaignScoringPage() {
             <div className="text-center py-12">
               <Plus className="h-12 w-12 mx-auto text-zinc-600 mb-4" />
               <p className="text-zinc-400 mb-4">No scoring factors yet</p>
-              <Button onClick={() => setShowAddDialog(true)} className="bg-green-600 hover:bg-green-700">
+              <Button
+                onClick={() => setShowAddDialog(true)}
+                className="bg-green-600 hover:bg-green-700"
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Your First Factor
               </Button>
@@ -204,16 +242,27 @@ export default function CampaignScoringPage() {
           ) : (
             <div className="space-y-3">
               {factors.map((factor) => (
-                <div key={factor.id} className="flex items-center gap-4 p-3 bg-zinc-800/50 rounded-lg">
-                  <Badge className={getCategoryColor(factor.category)}>{factor.category}</Badge>
+                <div
+                  key={factor.id}
+                  className="flex items-center gap-4 p-3 bg-zinc-800/50 rounded-lg"
+                >
+                  <Badge className={getCategoryColor(factor.category)}>
+                    {factor.category}
+                  </Badge>
                   <div className="flex-1">
-                    <span className="font-medium text-white">{factor.name}</span>
-                    <p className="text-sm text-zinc-500">{factor.description}</p>
+                    <span className="font-medium text-white">
+                      {factor.name}
+                    </span>
+                    <p className="text-sm text-zinc-500">
+                      {factor.description}
+                    </p>
                   </div>
                   <div className="w-48">
                     <Slider
                       value={[factor.weight]}
-                      onValueChange={([value]) => updateWeight(factor.id, value)}
+                      onValueChange={([value]) =>
+                        updateWeight(factor.id, value)
+                      }
                       max={50}
                       step={5}
                       className="w-full"
@@ -222,7 +271,11 @@ export default function CampaignScoringPage() {
                   <div className="w-16 text-right font-mono text-lg">
                     {factor.weight}%
                   </div>
-                  <Button size="sm" variant="ghost" onClick={() => deleteFactor(factor.id)}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => deleteFactor(factor.id)}
+                  >
                     <Trash2 className="h-4 w-4 text-red-400" />
                   </Button>
                 </div>
@@ -236,14 +289,18 @@ export default function CampaignScoringPage() {
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogContent className="bg-zinc-900 border-zinc-700">
           <DialogHeader>
-            <DialogTitle className="text-white">Add Custom Scoring Factor</DialogTitle>
+            <DialogTitle className="text-white">
+              Add Custom Scoring Factor
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div>
               <Label className="text-zinc-300">Factor Name</Label>
               <Input
                 value={newFactor.name}
-                onChange={(e) => setNewFactor({ ...newFactor, name: e.target.value })}
+                onChange={(e) =>
+                  setNewFactor({ ...newFactor, name: e.target.value })
+                }
                 placeholder="e.g., Divorce Filing"
                 className="bg-zinc-800 border-zinc-700 text-white"
               />
@@ -252,7 +309,9 @@ export default function CampaignScoringPage() {
               <Label className="text-zinc-300">Description</Label>
               <Input
                 value={newFactor.description}
-                onChange={(e) => setNewFactor({ ...newFactor, description: e.target.value })}
+                onChange={(e) =>
+                  setNewFactor({ ...newFactor, description: e.target.value })
+                }
                 placeholder="e.g., Recent divorce = forced sale"
                 className="bg-zinc-800 border-zinc-700 text-white"
               />
@@ -261,7 +320,12 @@ export default function CampaignScoringPage() {
               <Label className="text-zinc-300">Category</Label>
               <select
                 value={newFactor.category}
-                onChange={(e) => setNewFactor({ ...newFactor, category: e.target.value as ScoringFactor["category"] })}
+                onChange={(e) =>
+                  setNewFactor({
+                    ...newFactor,
+                    category: e.target.value as ScoringFactor["category"],
+                  })
+                }
                 aria-label="Select category"
                 className="w-full h-10 px-3 rounded bg-zinc-800 border border-zinc-700 text-white"
               >
@@ -273,10 +337,14 @@ export default function CampaignScoringPage() {
               </select>
             </div>
             <div>
-              <Label className="text-zinc-300">Initial Weight: {newFactor.weight}%</Label>
+              <Label className="text-zinc-300">
+                Initial Weight: {newFactor.weight}%
+              </Label>
               <Slider
                 value={[newFactor.weight]}
-                onValueChange={([value]) => setNewFactor({ ...newFactor, weight: value })}
+                onValueChange={([value]) =>
+                  setNewFactor({ ...newFactor, weight: value })
+                }
                 max={50}
                 step={5}
                 className="mt-2"
@@ -284,8 +352,15 @@ export default function CampaignScoringPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddDialog(false)}>Cancel</Button>
-            <Button onClick={addCustomFactor} className="bg-green-600 hover:bg-green-700">Add Factor</Button>
+            <Button variant="outline" onClick={() => setShowAddDialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={addCustomFactor}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              Add Factor
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

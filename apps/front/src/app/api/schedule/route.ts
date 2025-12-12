@@ -44,35 +44,47 @@ const scheduledItems = new Map<string, ScheduledItem>();
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const {
-      type,
-      scheduledFor,
-      recipient,
-      content,
-      createdBy,
-    } = body;
+    const { type, scheduledFor, recipient, content, createdBy } = body;
 
     if (!type || !["sms", "call", "email"].includes(type)) {
-      return NextResponse.json({ error: "Valid type required (sms, call, email)" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Valid type required (sms, call, email)" },
+        { status: 400 },
+      );
     }
 
     if (!scheduledFor) {
-      return NextResponse.json({ error: "scheduledFor datetime required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "scheduledFor datetime required" },
+        { status: 400 },
+      );
     }
 
     if (!recipient || (!recipient.phone && !recipient.email)) {
-      return NextResponse.json({ error: "Recipient phone or email required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Recipient phone or email required" },
+        { status: 400 },
+      );
     }
 
     // Validate type-specific requirements
     if (type === "sms" && !recipient.phone) {
-      return NextResponse.json({ error: "Phone required for SMS" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Phone required for SMS" },
+        { status: 400 },
+      );
     }
     if (type === "call" && !recipient.phone) {
-      return NextResponse.json({ error: "Phone required for calls" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Phone required for calls" },
+        { status: 400 },
+      );
     }
     if (type === "email" && !recipient.email) {
-      return NextResponse.json({ error: "Email required for email" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Email required for email" },
+        { status: 400 },
+      );
     }
 
     const id = `sched-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -104,14 +116,19 @@ export async function POST(request: NextRequest) {
         scheduledFor,
         recipient: {
           name: recipient.name,
-          phone: recipient.phone ? `${recipient.phone.slice(0, 4)}****` : undefined,
+          phone: recipient.phone
+            ? `${recipient.phone.slice(0, 4)}****`
+            : undefined,
           email: recipient.email,
         },
       },
     });
   } catch (error) {
     console.error("[Schedule] Error:", error);
-    return NextResponse.json({ error: "Failed to schedule item" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to schedule item" },
+      { status: 500 },
+    );
   }
 }
 
@@ -129,7 +146,10 @@ export async function GET(request: NextRequest) {
   if (id) {
     const item = scheduledItems.get(id);
     if (!item) {
-      return NextResponse.json({ error: "Scheduled item not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Scheduled item not found" },
+        { status: 404 },
+      );
     }
     return NextResponse.json({ success: true, item });
   }
@@ -159,7 +179,10 @@ export async function GET(request: NextRequest) {
   }
 
   // Sort by scheduledFor
-  items.sort((a, b) => new Date(a.scheduledFor).getTime() - new Date(b.scheduledFor).getTime());
+  items.sort(
+    (a, b) =>
+      new Date(a.scheduledFor).getTime() - new Date(b.scheduledFor).getTime(),
+  );
 
   // Limit results
   items = items.slice(0, limit);
@@ -169,9 +192,12 @@ export async function GET(request: NextRequest) {
   const counts = {
     total: allItems.length,
     pending: allItems.filter((i) => i.status === "pending").length,
-    sms: allItems.filter((i) => i.type === "sms" && i.status === "pending").length,
-    call: allItems.filter((i) => i.type === "call" && i.status === "pending").length,
-    email: allItems.filter((i) => i.type === "email" && i.status === "pending").length,
+    sms: allItems.filter((i) => i.type === "sms" && i.status === "pending")
+      .length,
+    call: allItems.filter((i) => i.type === "call" && i.status === "pending")
+      .length,
+    email: allItems.filter((i) => i.type === "email" && i.status === "pending")
+      .length,
   };
 
   return NextResponse.json({
@@ -203,23 +229,35 @@ export async function PUT(request: NextRequest) {
 
     const item = scheduledItems.get(id);
     if (!item) {
-      return NextResponse.json({ error: "Scheduled item not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Scheduled item not found" },
+        { status: 404 },
+      );
     }
 
     // Cancel
     if (action === "cancel") {
       if (item.status !== "pending") {
-        return NextResponse.json({ error: "Can only cancel pending items" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Can only cancel pending items" },
+          { status: 400 },
+        );
       }
       item.status = "cancelled";
       scheduledItems.set(id, item);
-      return NextResponse.json({ success: true, item: { id, status: item.status } });
+      return NextResponse.json({
+        success: true,
+        item: { id, status: item.status },
+      });
     }
 
     // Reschedule
     if (scheduledFor) {
       if (item.status !== "pending") {
-        return NextResponse.json({ error: "Can only reschedule pending items" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Can only reschedule pending items" },
+          { status: 400 },
+        );
       }
       item.scheduledFor = scheduledFor;
     }
@@ -242,7 +280,10 @@ export async function PUT(request: NextRequest) {
     });
   } catch (error) {
     console.error("[Schedule] Update error:", error);
-    return NextResponse.json({ error: "Failed to update scheduled item" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to update scheduled item" },
+      { status: 500 },
+    );
   }
 }
 
@@ -257,7 +298,10 @@ export async function DELETE(request: NextRequest) {
 
   const item = scheduledItems.get(id);
   if (!item) {
-    return NextResponse.json({ error: "Scheduled item not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Scheduled item not found" },
+      { status: 404 },
+    );
   }
 
   scheduledItems.delete(id);

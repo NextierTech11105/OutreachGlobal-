@@ -26,14 +26,15 @@ export default function MCPPage() {
               <Cable className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold">Nextier Command Center</h1>
-              <p className="text-zinc-400 text-sm">
-                Search • Enrich • Track
-              </p>
+              <h1 className="text-2xl font-bold">Property Pipeline</h1>
+              <p className="text-zinc-400 text-sm">Search → Save IDs → View Details</p>
             </div>
           </div>
           <Link href="/t/test/properties">
-            <Button variant="outline" className="bg-green-600 hover:bg-green-700 border-green-600">
+            <Button
+              variant="outline"
+              className="bg-green-600 hover:bg-green-700 border-green-600"
+            >
               <ExternalLink className="h-4 w-4 mr-2" />
               Property Search
             </Button>
@@ -43,19 +44,31 @@ export default function MCPPage() {
       <div className="p-6">
         <Tabs defaultValue="leads" className="space-y-4">
           <TabsList className="bg-zinc-900 border border-zinc-800">
-            <TabsTrigger value="leads" className="data-[state=active]:bg-purple-600">
+            <TabsTrigger
+              value="leads"
+              className="data-[state=active]:bg-purple-600"
+            >
               <Target className="h-4 w-4 mr-2" />
-              Lead Tracker
+              ID Search
             </TabsTrigger>
-            <TabsTrigger value="enrich" className="data-[state=active]:bg-cyan-600">
+            <TabsTrigger
+              value="enrich"
+              className="data-[state=active]:bg-cyan-600"
+            >
               <Database className="h-4 w-4 mr-2" />
               Enrichment
             </TabsTrigger>
-            <TabsTrigger value="connections" className="data-[state=active]:bg-purple-600">
+            <TabsTrigger
+              value="connections"
+              className="data-[state=active]:bg-purple-600"
+            >
               <LayoutDashboard className="h-4 w-4 mr-2" />
               MCP Connections
             </TabsTrigger>
-            <TabsTrigger value="b2b" className="data-[state=active]:bg-orange-600">
+            <TabsTrigger
+              value="b2b"
+              className="data-[state=active]:bg-orange-600"
+            >
               <Zap className="h-4 w-4 mr-2" />
               B2B Advisor
             </TabsTrigger>

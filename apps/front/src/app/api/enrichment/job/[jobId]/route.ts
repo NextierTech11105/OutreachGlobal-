@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getEnrichmentJob, updateEnrichmentJob, getDailyUsage } from "@/lib/redis";
+import {
+  getEnrichmentJob,
+  updateEnrichmentJob,
+  getDailyUsage,
+} from "@/lib/redis";
 
 // GET - Get job status
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ jobId: string }> }
+  { params }: { params: Promise<{ jobId: string }> },
 ) {
   try {
     const { jobId } = await params;
@@ -31,7 +35,7 @@ export async function GET(
 // PATCH - Update job (pause/resume)
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ jobId: string }> }
+  { params }: { params: Promise<{ jobId: string }> },
 ) {
   try {
     const { jobId } = await params;

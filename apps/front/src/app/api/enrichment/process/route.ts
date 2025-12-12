@@ -67,7 +67,8 @@ async function enrichProperty(propertyId: string): Promise<EnrichmentResult> {
       emails: Array.from(new Set(emails.filter(Boolean))),
       mailingAddress: prop.mailingAddress
         ? {
-            street: prop.mailingAddress.street || prop.mailingAddress.address || "",
+            street:
+              prop.mailingAddress.street || prop.mailingAddress.address || "",
             city: prop.mailingAddress.city || "",
             state: prop.mailingAddress.state || "",
             zip: prop.mailingAddress.zip || "",
@@ -105,7 +106,7 @@ export async function POST(request: NextRequest) {
           usage,
           message: "Cannot process more properties today. Try again tomorrow.",
         },
-        { status: 429 }
+        { status: 429 },
       );
     }
 
@@ -147,7 +148,11 @@ export async function POST(request: NextRequest) {
 
     // Calculate next batch
     const startIdx = job.progress.processed;
-    const batchSize = Math.min(BATCH_SIZE, job.propertyIds.length - startIdx, usage.remaining);
+    const batchSize = Math.min(
+      BATCH_SIZE,
+      job.propertyIds.length - startIdx,
+      usage.remaining,
+    );
     const batchIds = job.propertyIds.slice(startIdx, startIdx + batchSize);
 
     if (batchIds.length === 0) {
@@ -172,12 +177,12 @@ export async function POST(request: NextRequest) {
           job,
           usage: await getDailyUsage(),
         },
-        { status: 429 }
+        { status: 429 },
       );
     }
 
     console.log(
-      `[Enrichment] Processing batch ${job.progress.currentBatch + 1}/${job.progress.totalBatches} - ${batchIds.length} IDs`
+      `[Enrichment] Processing batch ${job.progress.currentBatch + 1}/${job.progress.totalBatches} - ${batchIds.length} IDs`,
     );
 
     // Process batch with concurrency limit

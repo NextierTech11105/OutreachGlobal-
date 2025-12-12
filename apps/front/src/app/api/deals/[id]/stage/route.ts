@@ -48,7 +48,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           error: `Invalid stage transition from ${currentStage} to ${newStage}`,
           validTransitions,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       if (!finalPrice) {
         return NextResponse.json(
           { error: "finalPrice is required when closing won" },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -88,7 +88,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         .update(leads)
         .set({ status: "closed_won", updatedAt: new Date() })
         .where(eq(leads.id, currentDeal.leadId));
-
     } else if (newStage === "closed_lost") {
       updateData.actualCloseDate = now;
       updateData.outcome = {
@@ -151,8 +150,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     console.error("[Deals] Stage change error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to change stage" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to change stage",
+      },
+      { status: 500 },
     );
   }
 }
@@ -186,8 +188,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     console.error("[Deals] Get stage history error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to get stage history" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to get stage history",
+      },
+      { status: 500 },
     );
   }
 }

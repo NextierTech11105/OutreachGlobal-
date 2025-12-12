@@ -2,12 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { deals } from "@/lib/db/schema";
 import { eq, desc, and, sql, gte, lte } from "drizzle-orm";
-import {
-  Deal,
-  DealStage,
-  DealType,
-  PipelineStats,
-} from "../types";
+import { Deal, DealStage, DealType, PipelineStats } from "../types";
 
 // Pipeline stages in order
 const PIPELINE_STAGES: DealStage[] = [
@@ -74,7 +69,10 @@ export async function GET(request: NextRequest) {
     // Build pipeline columns
     const columns: PipelineColumn[] = PIPELINE_STAGES.map((stage) => {
       const stageDeals = allDeals.filter((d) => d.stage === stage);
-      const totalValue = stageDeals.reduce((sum, d) => sum + (d.estimatedValue || 0), 0);
+      const totalValue = stageDeals.reduce(
+        (sum, d) => sum + (d.estimatedValue || 0),
+        0,
+      );
 
       return {
         stage,
@@ -91,22 +89,22 @@ export async function GET(request: NextRequest) {
 
     // Calculate stats
     const activeDeals = allDeals.filter((d) =>
-      PIPELINE_STAGES.includes(d.stage as DealStage)
+      PIPELINE_STAGES.includes(d.stage as DealStage),
     );
 
     const totalValue = activeDeals.reduce(
       (sum, d) => sum + (d.estimatedValue || 0),
-      0
+      0,
     );
 
     const expectedRevenue = activeDeals.reduce(
       (sum, d) => sum + (d.monetization?.estimatedEarnings || 0),
-      0
+      0,
     );
 
     const actualRevenue = closedWon.reduce(
       (sum, d) => sum + (d.monetization?.actualEarnings || 0),
-      0
+      0,
     );
 
     const totalClosed = closedWon.length + closedLost.length;
@@ -119,7 +117,7 @@ export async function GET(request: NextRequest) {
       const created = new Date(deal.createdAt);
       const now = new Date();
       totalDays += Math.floor(
-        (now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24)
+        (now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24),
       );
     }
     const avgDaysInPipeline =
@@ -177,8 +175,11 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("[Deals] Pipeline error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to get pipeline" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to get pipeline",
+      },
+      { status: 500 },
     );
   }
 }

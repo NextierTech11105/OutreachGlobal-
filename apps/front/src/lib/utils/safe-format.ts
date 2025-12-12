@@ -39,7 +39,10 @@ export const sfc = (v: unknown): string => {
  * Safe date formatter
  * Returns formatted date string or "-" for invalid values
  */
-export const sfd = (v: unknown, options?: Intl.DateTimeFormatOptions): string => {
+export const sfd = (
+  v: unknown,
+  options?: Intl.DateTimeFormatOptions,
+): string => {
   if (v === null || v === undefined) return "-";
   try {
     const date = new Date(v as string | number | Date);

@@ -584,9 +584,7 @@ export function LeadDetailView({ lead }: LeadDetailViewProps) {
                     </div>
                     <div>
                       <p className="text-muted-foreground">Value</p>
-                      <p className="font-medium">
-                        ${sf(lead.propertyValue)}
-                      </p>
+                      <p className="font-medium">${sf(lead.propertyValue)}</p>
                     </div>
                     {lead.bedrooms && lead.bathrooms && (
                       <>

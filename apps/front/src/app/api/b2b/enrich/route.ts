@@ -3,7 +3,8 @@ import { Client } from "pg";
 
 // DATABASE_URL must be set in environment
 const DB_URL = process.env.DATABASE_URL || "";
-const REALESTATE_API_KEY = process.env.REAL_ESTATE_API_KEY || process.env.REALESTATE_API_KEY || "";
+const REALESTATE_API_KEY =
+  process.env.REAL_ESTATE_API_KEY || process.env.REALESTATE_API_KEY || "";
 
 export async function POST(request: NextRequest) {
   const client = new Client({ connectionString: DB_URL });
@@ -13,11 +14,17 @@ export async function POST(request: NextRequest) {
     const { leadId, address, city, state, zip } = body;
 
     if (!leadId) {
-      return NextResponse.json({ error: "leadId is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "leadId is required" },
+        { status: 400 },
+      );
     }
 
     if (!address || !state) {
-      return NextResponse.json({ error: "address and state are required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "address and state are required" },
+        { status: 400 },
+      );
     }
 
     // Query RealEstateAPI for property at this address
@@ -31,14 +38,17 @@ export async function POST(request: NextRequest) {
 
     console.log("Enriching lead with address:", searchPayload);
 
-    const apiResponse = await fetch("https://api.realestateapi.com/v2/PropertySearch", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": REALESTATE_API_KEY,
+    const apiResponse = await fetch(
+      "https://api.realestateapi.com/v2/PropertySearch",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": REALESTATE_API_KEY,
+        },
+        body: JSON.stringify(searchPayload),
       },
-      body: JSON.stringify(searchPayload),
-    });
+    );
 
     const apiData = await apiResponse.json();
 
@@ -46,14 +56,14 @@ export async function POST(request: NextRequest) {
       console.error("RealEstateAPI error:", apiData);
       return NextResponse.json(
         { error: apiData.message || "Property lookup failed" },
-        { status: apiResponse.status }
+        { status: apiResponse.status },
       );
     }
 
     if (!apiData.data || apiData.data.length === 0) {
       return NextResponse.json(
         { error: "No property found at this address", searched: searchPayload },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -63,7 +73,8 @@ export async function POST(request: NextRequest) {
     await client.connect();
 
     // Upsert property record
-    const propertyId = property.id || property.propertyId || `prop-${Date.now()}`;
+    const propertyId =
+      property.id || property.propertyId || `prop-${Date.now()}`;
 
     const upsertPropertyQuery = `
       INSERT INTO properties (
@@ -125,12 +136,15 @@ export async function POST(request: NextRequest) {
       property.openMortgageBalance || null,
     ];
 
-    const propertyResult = await client.query(upsertPropertyQuery, propertyParams);
+    const propertyResult = await client.query(
+      upsertPropertyQuery,
+      propertyParams,
+    );
 
     // Update lead with property_id
     await client.query(
       "UPDATE leads SET property_id = $1, updated_at = NOW() WHERE id = $2",
-      [propertyId, leadId]
+      [propertyId, leadId],
     );
 
     return NextResponse.json({
@@ -143,7 +157,7 @@ export async function POST(request: NextRequest) {
     console.error("B2B enrich error:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Enrichment failed" },
-      { status: 500 }
+      { status: 500 },
     );
   } finally {
     await client.end();

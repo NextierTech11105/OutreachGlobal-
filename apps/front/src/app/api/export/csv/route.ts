@@ -13,7 +13,10 @@ export async function POST(request: NextRequest) {
     const body: ExportCSVRequest = await request.json();
 
     if (!body.data || !Array.isArray(body.data) || body.data.length === 0) {
-      return NextResponse.json({ error: "Data array is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Data array is required" },
+        { status: 400 },
+      );
     }
 
     // Generate CSV content
@@ -25,12 +28,15 @@ export async function POST(request: NextRequest) {
           .map((header) => {
             const value = row[header];
             // Escape values with commas or quotes
-            if (typeof value === "string" && (value.includes(",") || value.includes('"'))) {
+            if (
+              typeof value === "string" &&
+              (value.includes(",") || value.includes('"'))
+            ) {
               return `"${value.replace(/"/g, '""')}"`;
             }
             return value ?? "";
           })
-          .join(",")
+          .join(","),
       ),
     ];
     const csvContent = csvRows.join("\n");

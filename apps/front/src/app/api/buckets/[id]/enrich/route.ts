@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { S3Client, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  GetObjectCommand,
+  PutObjectCommand,
+} from "@aws-sdk/client-s3";
 
 // DO Spaces configuration
 const SPACES_ENDPOINT = "https://nyc3.digitaloceanspaces.com";
@@ -8,7 +12,7 @@ const SPACES_KEY = process.env.DO_SPACES_KEY || "";
 const SPACES_SECRET = process.env.DO_SPACES_SECRET || "";
 
 // Apollo API
-const APOLLO_API_KEY = process.env.APOLLO_API_KEY || "";
+const APOLLO_API_KEY = process.env.APOLLO_IO_API_KEY || process.env.NEXT_PUBLIC_APOLLO_IO_API_KEY || process.env.APOLLO_API_KEY || "";
 const APOLLO_PEOPLE_URL = "https://api.apollo.io/api/v1/people/bulk_match";
 
 function getS3Client(): S3Client | null {
@@ -87,7 +91,7 @@ async function bulkEnrichPeople(
     name?: string;
     organization_name?: string;
     domain?: string;
-  }>
+  }>,
 ): Promise<Map<string, ApolloPersonResult>> {
   const results = new Map<string, ApolloPersonResult>();
 
@@ -100,7 +104,7 @@ async function bulkEnrichPeople(
   for (let i = 0; i < people.length; i += 10) {
     const chunk = people.slice(i, i + 10);
 
-    const details = chunk.map(p => ({
+    const details = chunk.map((p) => ({
       first_name: p.first_name,
       last_name: p.last_name,
       name: p.name,
@@ -121,7 +125,10 @@ async function bulkEnrichPeople(
       });
 
       if (!response.ok) {
-        console.error(`[Bucket Enrich] Apollo bulk_match failed:`, await response.text());
+        console.error(
+          `[Bucket Enrich] Apollo bulk_match failed:`,
+          await response.text(),
+        );
         continue;
       }
 
@@ -140,7 +147,7 @@ async function bulkEnrichPeople(
 
     // Rate limit delay between chunks
     if (i + 10 < people.length) {
-      await new Promise(r => setTimeout(r, 250));
+      await new Promise((r) => setTimeout(r, 250));
     }
   }
 
@@ -150,7 +157,7 @@ async function bulkEnrichPeople(
 // POST /api/buckets/:id/enrich - Enrich bucket records with Apollo
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
@@ -159,7 +166,10 @@ export async function POST(
 
     const client = getS3Client();
     if (!client) {
-      return NextResponse.json({ error: "Storage not configured" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Storage not configured" },
+        { status: 500 },
+      );
     }
 
     // Load bucket data
@@ -169,11 +179,14 @@ export async function POST(
         new GetObjectCommand({
           Bucket: SPACES_BUCKET,
           Key: `buckets/${id}.json`,
-        })
+        }),
       );
       const bodyContents = await response.Body?.transformToString();
       if (!bodyContents) {
-        return NextResponse.json({ error: "Bucket not found" }, { status: 404 });
+        return NextResponse.json(
+          { error: "Bucket not found" },
+          { status: 404 },
+        );
       }
       bucket = JSON.parse(bodyContents);
     } catch (error) {
@@ -191,25 +204,35 @@ export async function POST(
 
     // Filter to records that haven't been enriched yet
     const toEnrich = bucket.properties
-      .filter(p => !p.enriched && (p.companyName || p.contactName || p.firstName || p.lastName))
+      .filter(
+        (p) =>
+          !p.enriched &&
+          (p.companyName || p.contactName || p.firstName || p.lastName),
+      )
       .slice(0, maxRecords);
 
     if (toEnrich.length === 0) {
       return NextResponse.json({
         success: true,
         message: "All records already enriched",
-        results: { total: bucket.properties.length, enriched: 0, alreadyEnriched: bucket.enrichedLeads },
+        results: {
+          total: bucket.properties.length,
+          enriched: 0,
+          alreadyEnriched: bucket.enrichedLeads,
+        },
       });
     }
 
-    console.log(`[Bucket Enrich] Starting ${enrichType} enrichment for ${toEnrich.length} records in bucket ${id}`);
+    console.log(
+      `[Bucket Enrich] Starting ${enrichType} enrichment for ${toEnrich.length} records in bucket ${id}`,
+    );
 
     let enrichedCount = 0;
     let failedCount = 0;
 
     if (enrichType === "apollo") {
       // Build Apollo match requests
-      const peopleToMatch = toEnrich.map(p => {
+      const peopleToMatch = toEnrich.map((p) => {
         const nameParts = p.contactName?.split(" ") || [];
         return {
           id: p.id,
@@ -217,7 +240,8 @@ export async function POST(
           last_name: p.lastName || nameParts.slice(1).join(" ") || undefined,
           name: p.contactName || undefined,
           organization_name: p.companyName || undefined,
-          domain: p.website?.replace(/^https?:\/\//, "").split("/")[0] || undefined,
+          domain:
+            p.website?.replace(/^https?:\/\//, "").split("/")[0] || undefined,
         };
       });
 
@@ -225,16 +249,17 @@ export async function POST(
       const apolloResults = await bulkEnrichPeople(peopleToMatch);
 
       // Update bucket properties with Apollo data
-      bucket.properties = bucket.properties.map(prop => {
+      bucket.properties = bucket.properties.map((prop) => {
         const apolloData = apolloResults.get(prop.id);
         if (apolloData) {
           enrichedCount++;
-          const phones = apolloData.phone_numbers
-            ?.filter(p => p.sanitized_number || p.raw_number)
-            .map(p => p.sanitized_number || p.raw_number || "") || [];
+          const phones =
+            apolloData.phone_numbers
+              ?.filter((p) => p.sanitized_number || p.raw_number)
+              .map((p) => p.sanitized_number || p.raw_number || "") || [];
           const emails = [
             apolloData.email,
-            ...(apolloData.personal_emails || [])
+            ...(apolloData.personal_emails || []),
           ].filter(Boolean) as string[];
 
           return {
@@ -253,7 +278,7 @@ export async function POST(
             phone: phones[0] || prop.phone,
             email: emails[0] || prop.email,
           };
-        } else if (toEnrich.some(e => e.id === prop.id)) {
+        } else if (toEnrich.some((e) => e.id === prop.id)) {
           failedCount++;
         }
         return prop;
@@ -267,27 +292,37 @@ export async function POST(
         }
 
         try {
-          const response = await fetch(`${request.nextUrl.origin}/api/skip-trace`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              address: prop.address,
-              city: prop.city,
-              state: prop.state,
-              zip: prop.zip,
-            }),
-          });
+          const response = await fetch(
+            `${request.nextUrl.origin}/api/skip-trace`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                address: prop.address,
+                city: prop.city,
+                state: prop.state,
+                zip: prop.zip,
+              }),
+            },
+          );
 
           const data = await response.json();
-          if (data.success && (data.phones?.length > 0 || data.emails?.length > 0)) {
+          if (
+            data.success &&
+            (data.phones?.length > 0 || data.emails?.length > 0)
+          ) {
             enrichedCount++;
-            const propIndex = bucket.properties!.findIndex(p => p.id === prop.id);
+            const propIndex = bucket.properties!.findIndex(
+              (p) => p.id === prop.id,
+            );
             if (propIndex >= 0) {
               bucket.properties![propIndex] = {
                 ...bucket.properties![propIndex],
                 enriched: true,
-                enrichedPhones: data.phones?.map((p: { number: string }) => p.number) || [],
-                enrichedEmails: data.emails?.map((e: { email: string }) => e.email) || [],
+                enrichedPhones:
+                  data.phones?.map((p: { number: string }) => p.number) || [],
+                enrichedEmails:
+                  data.emails?.map((e: { email: string }) => e.email) || [],
                 ownerName: data.ownerName,
               };
             }
@@ -295,17 +330,20 @@ export async function POST(
             failedCount++;
           }
         } catch (err) {
-          console.error(`[Bucket Enrich] Skip trace error for ${prop.id}:`, err);
+          console.error(
+            `[Bucket Enrich] Skip trace error for ${prop.id}:`,
+            err,
+          );
           failedCount++;
         }
 
         // Rate limit
-        await new Promise(r => setTimeout(r, 100));
+        await new Promise((r) => setTimeout(r, 100));
       }
     }
 
     // Update bucket stats
-    bucket.enrichedLeads = bucket.properties.filter(p => p.enriched).length;
+    bucket.enrichedLeads = bucket.properties.filter((p) => p.enriched).length;
 
     // Save updated bucket
     await client.send(
@@ -314,10 +352,12 @@ export async function POST(
         Key: `buckets/${id}.json`,
         Body: JSON.stringify(bucket, null, 2),
         ContentType: "application/json",
-      })
+      }),
     );
 
-    console.log(`[Bucket Enrich] Complete: ${enrichedCount} enriched, ${failedCount} failed`);
+    console.log(
+      `[Bucket Enrich] Complete: ${enrichedCount} enriched, ${failedCount} failed`,
+    );
 
     return NextResponse.json({
       success: true,
@@ -332,21 +372,27 @@ export async function POST(
     });
   } catch (error) {
     console.error("[Bucket Enrich] POST error:", error);
-    return NextResponse.json({ error: "Failed to enrich bucket" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to enrich bucket" },
+      { status: 500 },
+    );
   }
 }
 
 // GET /api/buckets/:id/enrich - Check enrichment status
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
     const client = getS3Client();
 
     if (!client) {
-      return NextResponse.json({ error: "Storage not configured" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Storage not configured" },
+        { status: 500 },
+      );
     }
 
     // Load bucket
@@ -354,7 +400,7 @@ export async function GET(
       new GetObjectCommand({
         Bucket: SPACES_BUCKET,
         Key: `buckets/${id}.json`,
-      })
+      }),
     );
 
     const bodyContents = await response.Body?.transformToString();
@@ -363,9 +409,12 @@ export async function GET(
     }
 
     const bucket: Bucket = JSON.parse(bodyContents);
-    const enrichable = bucket.properties?.filter(p =>
-      !p.enriched && (p.companyName || p.contactName || p.firstName || p.address)
-    ).length || 0;
+    const enrichable =
+      bucket.properties?.filter(
+        (p) =>
+          !p.enriched &&
+          (p.companyName || p.contactName || p.firstName || p.address),
+      ).length || 0;
 
     return NextResponse.json({
       bucketId: id,
@@ -377,6 +426,9 @@ export async function GET(
     });
   } catch (error) {
     console.error("[Bucket Enrich] GET error:", error);
-    return NextResponse.json({ error: "Failed to get enrichment status" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to get enrichment status" },
+      { status: 500 },
+    );
   }
 }

@@ -1,7 +1,13 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -57,20 +63,58 @@ interface SavedBucketsProps {
 }
 
 // Status badge styling
-const statusStyles: Record<EnrichmentStatus, { icon: React.ElementType; className: string; label: string }> = {
-  pending: { icon: Clock, className: "bg-zinc-600 text-zinc-200", label: "Pending" },
+const statusStyles: Record<
+  EnrichmentStatus,
+  { icon: React.ElementType; className: string; label: string }
+> = {
+  pending: {
+    icon: Clock,
+    className: "bg-zinc-600 text-zinc-200",
+    label: "Pending",
+  },
   queued: { icon: Clock, className: "bg-blue-600 text-white", label: "Queued" },
-  processing: { icon: Loader2, className: "bg-yellow-600 text-white", label: "Processing" },
-  completed: { icon: CheckCircle, className: "bg-green-600 text-white", label: "Completed" },
-  failed: { icon: AlertCircle, className: "bg-red-600 text-white", label: "Failed" },
-  partial: { icon: AlertCircle, className: "bg-orange-600 text-white", label: "Partial" },
+  processing: {
+    icon: Loader2,
+    className: "bg-yellow-600 text-white",
+    label: "Processing",
+  },
+  completed: {
+    icon: CheckCircle,
+    className: "bg-green-600 text-white",
+    label: "Completed",
+  },
+  failed: {
+    icon: AlertCircle,
+    className: "bg-red-600 text-white",
+    label: "Failed",
+  },
+  partial: {
+    icon: AlertCircle,
+    className: "bg-orange-600 text-white",
+    label: "Partial",
+  },
 };
 
 // Source badge styling
-const sourceStyles: Record<BucketSource, { icon: React.ElementType; className: string; label: string }> = {
-  "real-estate": { icon: Home, className: "bg-emerald-600 text-white", label: "Real Estate" },
-  apollo: { icon: Building2, className: "bg-purple-600 text-white", label: "Apollo" },
-  mixed: { icon: Database, className: "bg-cyan-600 text-white", label: "Mixed" },
+const sourceStyles: Record<
+  BucketSource,
+  { icon: React.ElementType; className: string; label: string }
+> = {
+  "real-estate": {
+    icon: Home,
+    className: "bg-emerald-600 text-white",
+    label: "Real Estate",
+  },
+  apollo: {
+    icon: Building2,
+    className: "bg-purple-600 text-white",
+    label: "Apollo",
+  },
+  mixed: {
+    icon: Database,
+    className: "bg-cyan-600 text-white",
+    label: "Mixed",
+  },
 };
 
 function formatDate(dateString: string): string {
@@ -85,7 +129,10 @@ function formatDate(dateString: string): string {
   return date.toLocaleDateString();
 }
 
-export function SavedBuckets({ onSelectBucket, onViewLeads }: SavedBucketsProps) {
+export function SavedBuckets({
+  onSelectBucket,
+  onViewLeads,
+}: SavedBucketsProps) {
   const [buckets, setBuckets] = useState<Bucket[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -125,7 +172,7 @@ export function SavedBuckets({ onSelectBucket, onViewLeads }: SavedBucketsProps)
     (b) =>
       b.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       b.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      b.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()))
+      b.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase())),
   );
 
   // Actions
@@ -184,7 +231,9 @@ export function SavedBuckets({ onSelectBucket, onViewLeads }: SavedBucketsProps)
     setActionLoading(bucket.id);
     try {
       // Fetch leads first
-      const response = await fetch(`/api/buckets/${bucket.id}/leads?perPage=1000`);
+      const response = await fetch(
+        `/api/buckets/${bucket.id}/leads?perPage=1000`,
+      );
       if (!response.ok) throw new Error("Failed to fetch leads");
       const data = await response.json();
 
@@ -194,8 +243,12 @@ export function SavedBuckets({ onSelectBucket, onViewLeads }: SavedBucketsProps)
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           data: data.leads.map((l: Record<string, unknown>) => {
-            const apolloData = l.apolloData as Record<string, unknown> | undefined;
-            const propertyData = l.propertyData as Record<string, unknown> | undefined;
+            const apolloData = l.apolloData as
+              | Record<string, unknown>
+              | undefined;
+            const propertyData = l.propertyData as
+              | Record<string, unknown>
+              | undefined;
             const tags = (l.tags as string[] | undefined) || [];
             const autoTags = (l.autoTags as string[] | undefined) || [];
             return {
@@ -244,7 +297,9 @@ export function SavedBuckets({ onSelectBucket, onViewLeads }: SavedBucketsProps)
   // Stats
   const totalLeads = buckets.reduce((sum, b) => sum + b.totalLeads, 0);
   const enrichedLeads = buckets.reduce((sum, b) => sum + b.enrichedLeads, 0);
-  const processingBuckets = buckets.filter((b) => b.enrichmentStatus === "processing").length;
+  const processingBuckets = buckets.filter(
+    (b) => b.enrichmentStatus === "processing",
+  ).length;
 
   return (
     <div className="space-y-6">
@@ -252,7 +307,9 @@ export function SavedBuckets({ onSelectBucket, onViewLeads }: SavedBucketsProps)
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-white">Saved Buckets</h2>
-          <p className="text-zinc-400">Manage your lead buckets and campaigns</p>
+          <p className="text-zinc-400">
+            Manage your lead buckets and campaigns
+          </p>
         </div>
         <Dialog>
           <DialogTrigger asChild>
@@ -265,7 +322,9 @@ export function SavedBuckets({ onSelectBucket, onViewLeads }: SavedBucketsProps)
             <DialogHeader>
               <DialogTitle>Create New Bucket</DialogTitle>
             </DialogHeader>
-            <p className="text-zinc-400">Use MCP Command Center to search and create buckets.</p>
+            <p className="text-zinc-400">
+              Use MCP Command Center to search and create buckets.
+            </p>
           </DialogContent>
         </Dialog>
       </div>
@@ -279,7 +338,9 @@ export function SavedBuckets({ onSelectBucket, onViewLeads }: SavedBucketsProps)
                 <Database className="h-5 w-5 text-purple-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-white">{buckets.length}</p>
+                <p className="text-2xl font-bold text-white">
+                  {buckets.length}
+                </p>
                 <p className="text-xs text-zinc-500">Total Buckets</p>
               </div>
             </div>
@@ -292,7 +353,9 @@ export function SavedBuckets({ onSelectBucket, onViewLeads }: SavedBucketsProps)
                 <Users className="h-5 w-5 text-blue-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-white">{sf(totalLeads)}</p>
+                <p className="text-2xl font-bold text-white">
+                  {sf(totalLeads)}
+                </p>
                 <p className="text-xs text-zinc-500">Total Leads</p>
               </div>
             </div>
@@ -305,7 +368,9 @@ export function SavedBuckets({ onSelectBucket, onViewLeads }: SavedBucketsProps)
                 <Zap className="h-5 w-5 text-green-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-white">{sf(enrichedLeads)}</p>
+                <p className="text-2xl font-bold text-white">
+                  {sf(enrichedLeads)}
+                </p>
                 <p className="text-xs text-zinc-500">Enriched</p>
               </div>
             </div>
@@ -318,7 +383,9 @@ export function SavedBuckets({ onSelectBucket, onViewLeads }: SavedBucketsProps)
                 <RefreshCw className="h-5 w-5 text-yellow-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-white">{processingBuckets}</p>
+                <p className="text-2xl font-bold text-white">
+                  {processingBuckets}
+                </p>
                 <p className="text-xs text-zinc-500">Processing</p>
               </div>
             </div>
@@ -341,24 +408,33 @@ export function SavedBuckets({ onSelectBucket, onViewLeads }: SavedBucketsProps)
             </div>
             <div className="flex items-center gap-2">
               <Filter className="h-4 w-4 text-zinc-500" />
-              {(["all", "real-estate", "apollo", "mixed"] as const).map((source) => (
-                <Button
-                  key={source}
-                  size="sm"
-                  variant={sourceFilter === source ? "default" : "outline"}
-                  onClick={() => setSourceFilter(source)}
-                  className={
-                    sourceFilter === source
-                      ? "bg-purple-600"
-                      : "border-zinc-700 text-zinc-400 hover:text-white"
-                  }
-                >
-                  {source === "all" ? "All" : sourceStyles[source].label}
-                </Button>
-              ))}
+              {(["all", "real-estate", "apollo", "mixed"] as const).map(
+                (source) => (
+                  <Button
+                    key={source}
+                    size="sm"
+                    variant={sourceFilter === source ? "default" : "outline"}
+                    onClick={() => setSourceFilter(source)}
+                    className={
+                      sourceFilter === source
+                        ? "bg-purple-600"
+                        : "border-zinc-700 text-zinc-400 hover:text-white"
+                    }
+                  >
+                    {source === "all" ? "All" : sourceStyles[source].label}
+                  </Button>
+                ),
+              )}
             </div>
-            <Button variant="outline" size="icon" onClick={fetchBuckets} className="border-zinc-700">
-              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={fetchBuckets}
+              className="border-zinc-700"
+            >
+              <RefreshCw
+                className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
+              />
             </Button>
           </div>
         </CardContent>
@@ -368,7 +444,9 @@ export function SavedBuckets({ onSelectBucket, onViewLeads }: SavedBucketsProps)
       <Card className="bg-zinc-900 border-zinc-800">
         <CardHeader>
           <CardTitle className="text-white">All Buckets</CardTitle>
-          <CardDescription>{filteredBuckets.length} buckets found</CardDescription>
+          <CardDescription>
+            {filteredBuckets.length} buckets found
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -390,7 +468,9 @@ export function SavedBuckets({ onSelectBucket, onViewLeads }: SavedBucketsProps)
                   <TableHead className="text-zinc-400">Enrichment</TableHead>
                   <TableHead className="text-zinc-400">Tags</TableHead>
                   <TableHead className="text-zinc-400">Updated</TableHead>
-                  <TableHead className="text-zinc-400 text-right">Actions</TableHead>
+                  <TableHead className="text-zinc-400 text-right">
+                    Actions
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -398,7 +478,9 @@ export function SavedBuckets({ onSelectBucket, onViewLeads }: SavedBucketsProps)
                   const SourceIcon = sourceStyles[bucket.source].icon;
                   const StatusIcon = statusStyles[bucket.enrichmentStatus].icon;
                   const enrichmentPercent = bucket.totalLeads
-                    ? Math.round((bucket.enrichedLeads / bucket.totalLeads) * 100)
+                    ? Math.round(
+                        (bucket.enrichedLeads / bucket.totalLeads) * 100,
+                      )
                     : 0;
 
                   return (
@@ -409,7 +491,9 @@ export function SavedBuckets({ onSelectBucket, onViewLeads }: SavedBucketsProps)
                     >
                       <TableCell>
                         <div>
-                          <p className="font-medium text-white">{bucket.name}</p>
+                          <p className="font-medium text-white">
+                            {bucket.name}
+                          </p>
                           {bucket.description && (
                             <p className="text-xs text-zinc-500 truncate max-w-[200px]">
                               {bucket.description}
@@ -418,14 +502,18 @@ export function SavedBuckets({ onSelectBucket, onViewLeads }: SavedBucketsProps)
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge className={sourceStyles[bucket.source].className}>
+                        <Badge
+                          className={sourceStyles[bucket.source].className}
+                        >
                           <SourceIcon className="h-3 w-3 mr-1" />
                           {sourceStyles[bucket.source].label}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         <div className="text-sm">
-                          <span className="text-white font-medium">{bucket.totalLeads}</span>
+                          <span className="text-white font-medium">
+                            {bucket.totalLeads}
+                          </span>
                           <span className="text-zinc-500 ml-1">total</span>
                           <div className="text-xs text-zinc-500">
                             {bucket.contactedLeads} contacted
@@ -435,18 +523,28 @@ export function SavedBuckets({ onSelectBucket, onViewLeads }: SavedBucketsProps)
                       <TableCell>
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
-                            <Badge className={statusStyles[bucket.enrichmentStatus].className}>
+                            <Badge
+                              className={
+                                statusStyles[bucket.enrichmentStatus].className
+                              }
+                            >
                               <StatusIcon
                                 className={`h-3 w-3 mr-1 ${
-                                  bucket.enrichmentStatus === "processing" ? "animate-spin" : ""
+                                  bucket.enrichmentStatus === "processing"
+                                    ? "animate-spin"
+                                    : ""
                                 }`}
                               />
                               {statusStyles[bucket.enrichmentStatus].label}
                             </Badge>
                           </div>
-                          {bucket.enrichmentStatus === "processing" && bucket.enrichmentProgress && (
-                            <Progress value={enrichmentPercent} className="h-1" />
-                          )}
+                          {bucket.enrichmentStatus === "processing" &&
+                            bucket.enrichmentProgress && (
+                              <Progress
+                                value={enrichmentPercent}
+                                className="h-1"
+                              />
+                            )}
                           <p className="text-xs text-zinc-500">
                             {bucket.enrichedLeads}/{bucket.totalLeads} enriched
                           </p>
@@ -464,7 +562,10 @@ export function SavedBuckets({ onSelectBucket, onViewLeads }: SavedBucketsProps)
                             </Badge>
                           ))}
                           {bucket.tags.length > 3 && (
-                            <Badge variant="outline" className="border-zinc-700 text-zinc-500 text-xs">
+                            <Badge
+                              variant="outline"
+                              className="border-zinc-700 text-zinc-500 text-xs"
+                            >
                               +{bucket.tags.length - 3}
                             </Badge>
                           )}
@@ -473,10 +574,17 @@ export function SavedBuckets({ onSelectBucket, onViewLeads }: SavedBucketsProps)
                       <TableCell className="text-zinc-400 text-sm">
                         {formatDate(bucket.updatedAt)}
                       </TableCell>
-                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                      <TableCell
+                        className="text-right"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                            >
                               {actionLoading === bucket.id ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
                               ) : (
@@ -484,7 +592,10 @@ export function SavedBuckets({ onSelectBucket, onViewLeads }: SavedBucketsProps)
                               )}
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="bg-zinc-900 border-zinc-800">
+                          <DropdownMenuContent
+                            align="end"
+                            className="bg-zinc-900 border-zinc-800"
+                          >
                             <DropdownMenuItem
                               onClick={() => onViewLeads?.(bucket)}
                               className="cursor-pointer"
@@ -494,7 +605,9 @@ export function SavedBuckets({ onSelectBucket, onViewLeads }: SavedBucketsProps)
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => handleEnrich(bucket)}
-                              disabled={bucket.enrichmentStatus === "processing"}
+                              disabled={
+                                bucket.enrichmentStatus === "processing"
+                              }
                               className="cursor-pointer"
                             >
                               <Zap className="h-4 w-4 mr-2" />

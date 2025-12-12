@@ -55,12 +55,35 @@ interface Achievement {
 }
 
 // Tier configurations
-const tierConfig: Record<BadgeTier, { color: string; glow: string; bg: string }> = {
-  BRONZE: { color: "#cd7f32", glow: "rgba(205, 127, 50, 0.6)", bg: "rgba(205, 127, 50, 0.2)" },
-  SILVER: { color: "#c0c0c0", glow: "rgba(192, 192, 192, 0.6)", bg: "rgba(192, 192, 192, 0.2)" },
-  GOLD: { color: "#ffd700", glow: "rgba(255, 215, 0, 0.6)", bg: "rgba(255, 215, 0, 0.2)" },
-  PLATINUM: { color: "#e5e4e2", glow: "rgba(229, 228, 226, 0.8)", bg: "rgba(229, 228, 226, 0.2)" },
-  DIAMOND: { color: "#b9f2ff", glow: "rgba(185, 242, 255, 0.8)", bg: "rgba(185, 242, 255, 0.2)" },
+const tierConfig: Record<
+  BadgeTier,
+  { color: string; glow: string; bg: string }
+> = {
+  BRONZE: {
+    color: "#cd7f32",
+    glow: "rgba(205, 127, 50, 0.6)",
+    bg: "rgba(205, 127, 50, 0.2)",
+  },
+  SILVER: {
+    color: "#c0c0c0",
+    glow: "rgba(192, 192, 192, 0.6)",
+    bg: "rgba(192, 192, 192, 0.2)",
+  },
+  GOLD: {
+    color: "#ffd700",
+    glow: "rgba(255, 215, 0, 0.6)",
+    bg: "rgba(255, 215, 0, 0.2)",
+  },
+  PLATINUM: {
+    color: "#e5e4e2",
+    glow: "rgba(229, 228, 226, 0.8)",
+    bg: "rgba(229, 228, 226, 0.2)",
+  },
+  DIAMOND: {
+    color: "#b9f2ff",
+    glow: "rgba(185, 242, 255, 0.8)",
+    bg: "rgba(185, 242, 255, 0.2)",
+  },
 };
 
 // Achievement icon mapping
@@ -128,7 +151,7 @@ export function AchievementBadge({
           className={cn(
             "relative flex items-center justify-center rounded-full border-2",
             sizeConfig.badge,
-            isEarned ? "opacity-100" : "opacity-40 grayscale"
+            isEarned ? "opacity-100" : "opacity-40 grayscale",
           )}
           style={{
             backgroundColor: tier.bg,
@@ -258,8 +281,8 @@ export function AchievementPopup({
                       i % 3 === 0
                         ? tier.color
                         : i % 3 === 1
-                        ? "#ffd700"
-                        : "#ff6b6b",
+                          ? "#ffd700"
+                          : "#ff6b6b",
                   }}
                 />
               ))}
@@ -411,8 +434,8 @@ export function useAchievements() {
   const earnAchievement = (type: AchievementType) => {
     setAchievements((prev) =>
       prev.map((a) =>
-        a.type === type && !a.earnedAt ? { ...a, earnedAt: new Date() } : a
-      )
+        a.type === type && !a.earnedAt ? { ...a, earnedAt: new Date() } : a,
+      ),
     );
     const earned = achievements.find((a) => a.type === type);
     if (earned) {
@@ -425,18 +448,26 @@ export function useAchievements() {
       prev.map((a) => {
         if (a.type === type && !a.earnedAt) {
           const newCount = (a.currentCount || 0) + amount;
-          const newProgress = Math.min(100, (newCount / (a.targetCount || 1)) * 100);
+          const newProgress = Math.min(
+            100,
+            (newCount / (a.targetCount || 1)) * 100,
+          );
 
           // Auto-earn if target reached
           if (newCount >= (a.targetCount || 1)) {
             setPendingPopup({ ...a, earnedAt: new Date() });
-            return { ...a, currentCount: newCount, progress: 100, earnedAt: new Date() };
+            return {
+              ...a,
+              currentCount: newCount,
+              progress: 100,
+              earnedAt: new Date(),
+            };
           }
 
           return { ...a, currentCount: newCount, progress: newProgress };
         }
         return a;
-      })
+      }),
     );
   };
 

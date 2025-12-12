@@ -1,6 +1,5 @@
 "use client";
 
-
 import { sf, sfd } from "@/lib/utils/safe-format";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
@@ -101,23 +100,28 @@ const DIALER_MAX_LEADS = 2000;
 const RESPONSE_TEMPLATES = {
   appointment: {
     label: "Book Appointment",
-    content: "I'd love to schedule a time to discuss your property. Here's my calendar link: {calendar_link}",
+    content:
+      "I'd love to schedule a time to discuss your property. Here's my calendar link: {calendar_link}",
   },
   article_distressed: {
     label: "Distressed Property Article",
-    content: "I found this helpful article about options for distressed homeowners: {article_link}",
+    content:
+      "I found this helpful article about options for distressed homeowners: {article_link}",
   },
   article_equity: {
     label: "Home Equity Article",
-    content: "Here's some information about maximizing your home equity: {article_link}",
+    content:
+      "Here's some information about maximizing your home equity: {article_link}",
   },
   article_market: {
     label: "Market Update",
-    content: "Check out our latest market analysis for your area: {article_link}",
+    content:
+      "Check out our latest market analysis for your area: {article_link}",
   },
   followup: {
     label: "Follow Up",
-    content: "Just following up on our previous conversation. Is now a good time to chat?",
+    content:
+      "Just following up on our previous conversation. Is now a good time to chat?",
   },
 };
 
@@ -146,13 +150,16 @@ export function GiannaCopilot({
 
   // Sort leads by response priority
   useEffect(() => {
-    const responded = leads.filter(l => l.responseStatus === "responded");
+    const responded = leads.filter((l) => l.responseStatus === "responded");
     // Sort by response time (newest first) and priority
     const sorted = responded.sort((a, b) => {
       if (a.priority === "High" && b.priority !== "High") return -1;
       if (b.priority === "High" && a.priority !== "High") return 1;
       if (a.responseTime && b.responseTime) {
-        return new Date(b.responseTime).getTime() - new Date(a.responseTime).getTime();
+        return (
+          new Date(b.responseTime).getTime() -
+          new Date(a.responseTime).getTime()
+        );
       }
       return 0;
     });
@@ -174,7 +181,7 @@ export function GiannaCopilot({
       return;
     }
 
-    const leadsToCall = leads.filter(l => selectedLeads.includes(l.id));
+    const leadsToCall = leads.filter((l) => selectedLeads.includes(l.id));
 
     setDialSession({
       id: `dial-${Date.now()}`,
@@ -185,21 +192,25 @@ export function GiannaCopilot({
       startTime: new Date().toISOString(),
     });
 
-    toast.success(`Gianna starting auto-dial session: ${leadsToCall.length} calls`);
+    toast.success(
+      `Gianna starting auto-dial session: ${leadsToCall.length} calls`,
+    );
 
     // Start the dial simulation
     let currentIndex = 0;
     dialSessionRef.current = setInterval(async () => {
       if (currentIndex >= leadsToCall.length) {
         // Session complete
-        setDialSession(prev => prev ? { ...prev, status: "completed", currentLead: null } : null);
+        setDialSession((prev) =>
+          prev ? { ...prev, status: "completed", currentLead: null } : null,
+        );
         if (dialSessionRef.current) clearInterval(dialSessionRef.current);
         toast.success("Gianna completed dial session");
         return;
       }
 
       // Update to next lead
-      setDialSession(prev => {
+      setDialSession((prev) => {
         if (!prev || prev.status === "paused") return prev;
         return {
           ...prev,
@@ -227,20 +238,19 @@ export function GiannaCopilot({
 
       currentIndex++;
     }, 30000); // 30 seconds per call simulation
-
   }, [selectedLeads, leads, workspaceId]);
 
   const pauseDialSession = useCallback(() => {
     if (dialSessionRef.current) {
       clearInterval(dialSessionRef.current);
     }
-    setDialSession(prev => prev ? { ...prev, status: "paused" } : null);
+    setDialSession((prev) => (prev ? { ...prev, status: "paused" } : null));
     toast.info("Dial session paused");
   }, []);
 
   const resumeDialSession = useCallback(() => {
     if (dialSession && dialSession.status === "paused") {
-      setDialSession(prev => prev ? { ...prev, status: "dialing" } : null);
+      setDialSession((prev) => (prev ? { ...prev, status: "dialing" } : null));
       toast.info("Dial session resumed");
       // Would restart the interval here
     }
@@ -250,7 +260,7 @@ export function GiannaCopilot({
     if (dialSessionRef.current) {
       clearInterval(dialSessionRef.current);
     }
-    setDialSession(prev => prev ? { ...prev, status: "completed" } : null);
+    setDialSession((prev) => (prev ? { ...prev, status: "completed" } : null));
     toast.info("Dial session stopped");
   }, []);
 
@@ -274,7 +284,9 @@ export function GiannaCopilot({
     });
 
     setShowSmsDialog(false);
-    toast.success(`Starting SMS campaign: ${totalToSend} messages in ${totalBatches} batches`);
+    toast.success(
+      `Starting SMS campaign: ${totalToSend} messages in ${totalBatches} batches`,
+    );
 
     // Process batches
     let sent = 0;
@@ -303,13 +315,18 @@ export function GiannaCopilot({
       sent += batchSize;
       batchNum++;
 
-      setSmsBatch(prev => {
+      setSmsBatch((prev) => {
         if (!prev || prev.status === "paused") return prev;
 
         if (sent >= totalToSend) {
           if (smsSessionRef.current) clearInterval(smsSessionRef.current);
           toast.success(`SMS campaign complete: ${sent} messages sent`);
-          return { ...prev, status: "completed", sent, batchNumber: batchNum - 1 };
+          return {
+            ...prev,
+            status: "completed",
+            sent,
+            batchNumber: batchNum - 1,
+          };
         }
 
         // Check if we hit the 2000 limit
@@ -321,9 +338,7 @@ export function GiannaCopilot({
 
         return { ...prev, sent, batchNumber: batchNum };
       });
-
     }, 5000); // 5 seconds between batches
-
   }, [selectedLeads, campaignId, workspaceId]);
 
   // === Load Dialer Function ===
@@ -361,80 +376,93 @@ export function GiannaCopilot({
   }, [selectedLeads, workspaceId, campaignId]);
 
   // === Gianna Response Handler ===
-  const sendGiannaResponse = useCallback(async (leadId: string, templateKey: string) => {
-    const template = RESPONSE_TEMPLATES[templateKey as keyof typeof RESPONSE_TEMPLATES];
-    if (!template) return;
+  const sendGiannaResponse = useCallback(
+    async (leadId: string, templateKey: string) => {
+      const template =
+        RESPONSE_TEMPLATES[templateKey as keyof typeof RESPONSE_TEMPLATES];
+      if (!template) return;
 
-    setIsLoading(true);
-    try {
-      const response = await fetch("/api/gianna/respond", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          leadId,
-          templateKey,
-          content: template.content,
-          workspaceId,
-        }),
-      });
+      setIsLoading(true);
+      try {
+        const response = await fetch("/api/gianna/respond", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            leadId,
+            templateKey,
+            content: template.content,
+            workspaceId,
+          }),
+        });
 
-      if (!response.ok) throw new Error("Failed to send response");
+        if (!response.ok) throw new Error("Failed to send response");
 
-      toast.success(`Gianna sent: ${template.label}`);
+        toast.success(`Gianna sent: ${template.label}`);
 
-      // Update lead status
-      setLeads(prev => prev.map(l =>
-        l.id === leadId ? { ...l, responseStatus: "pending" as const } : l
-      ));
-      onLeadUpdate?.(leadId, { responseStatus: "pending" });
-    } catch {
-      toast.success(`Simulated Gianna response: ${template.label}`);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [workspaceId, onLeadUpdate]);
+        // Update lead status
+        setLeads((prev) =>
+          prev.map((l) =>
+            l.id === leadId ? { ...l, responseStatus: "pending" as const } : l,
+          ),
+        );
+        onLeadUpdate?.(leadId, { responseStatus: "pending" });
+      } catch {
+        toast.success(`Simulated Gianna response: ${template.label}`);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [workspaceId, onLeadUpdate],
+  );
 
   // === Book Appointment ===
-  const bookAppointment = useCallback(async (lead: Lead) => {
-    setIsLoading(true);
-    try {
-      const response = await fetch("/api/appointments/book", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          leadId: lead.id,
-          workspaceId,
-          sendCalendarLink: true,
-        }),
-      });
+  const bookAppointment = useCallback(
+    async (lead: Lead) => {
+      setIsLoading(true);
+      try {
+        const response = await fetch("/api/appointments/book", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            leadId: lead.id,
+            workspaceId,
+            sendCalendarLink: true,
+          }),
+        });
 
-      if (!response.ok) throw new Error("Failed to book appointment");
+        if (!response.ok) throw new Error("Failed to book appointment");
 
-      const data = await response.json();
-      toast.success("Appointment booked! Calendar link sent.");
+        const data = await response.json();
+        toast.success("Appointment booked! Calendar link sent.");
 
-      setLeads(prev => prev.map(l =>
-        l.id === lead.id ? { ...l, responseStatus: "appointment_set" as const } : l
-      ));
-      onAppointmentBooked?.(lead.id, data);
-    } catch {
-      toast.success("Simulated: Appointment booking initiated");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [workspaceId, onAppointmentBooked]);
+        setLeads((prev) =>
+          prev.map((l) =>
+            l.id === lead.id
+              ? { ...l, responseStatus: "appointment_set" as const }
+              : l,
+          ),
+        );
+        onAppointmentBooked?.(lead.id, data);
+      } catch {
+        toast.success("Simulated: Appointment booking initiated");
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [workspaceId, onAppointmentBooked],
+  );
 
   // === Selection handlers ===
   const toggleLeadSelection = (leadId: string) => {
-    setSelectedLeads(prev =>
+    setSelectedLeads((prev) =>
       prev.includes(leadId)
-        ? prev.filter(id => id !== leadId)
-        : [...prev, leadId]
+        ? prev.filter((id) => id !== leadId)
+        : [...prev, leadId],
     );
   };
 
   const selectAllLeads = () => {
-    setSelectedLeads(leads.map(l => l.id));
+    setSelectedLeads(leads.map((l) => l.id));
   };
 
   const clearSelection = () => {
@@ -448,7 +476,8 @@ export function GiannaCopilot({
       className={cn(
         "mb-2 cursor-pointer transition-all",
         selectedLeads.includes(lead.id) && "ring-2 ring-primary",
-        dialSession?.currentLead?.id === lead.id && "ring-2 ring-green-500 bg-green-50"
+        dialSession?.currentLead?.id === lead.id &&
+          "ring-2 ring-green-500 bg-green-50",
       )}
       onClick={() => toggleLeadSelection(lead.id)}
     >
@@ -490,7 +519,10 @@ export function GiannaCopilot({
         )}
 
         {showActions && (
-          <div className="flex items-center justify-between mt-2" onClick={e => e.stopPropagation()}>
+          <div
+            className="flex items-center justify-between mt-2"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex gap-1">
               <Button
                 variant="outline"
@@ -548,10 +580,20 @@ export function GiannaCopilot({
 
           {/* Selection controls */}
           <div className="flex gap-1 mb-2">
-            <Button variant="outline" size="sm" onClick={selectAllLeads} className="text-xs">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={selectAllLeads}
+              className="text-xs"
+            >
               Select All
             </Button>
-            <Button variant="outline" size="sm" onClick={clearSelection} className="text-xs">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={clearSelection}
+              className="text-xs"
+            >
               Clear
             </Button>
             <Badge variant="secondary" className="ml-auto">
@@ -569,13 +611,22 @@ export function GiannaCopilot({
           )}
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+        <Tabs
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="flex-1 flex flex-col"
+        >
           <TabsList className="mx-3 mt-2">
-            <TabsTrigger value="queue" className="text-xs">Queue</TabsTrigger>
+            <TabsTrigger value="queue" className="text-xs">
+              Queue
+            </TabsTrigger>
             <TabsTrigger value="responses" className="text-xs">
               Responses
               {prioritizedResponses.length > 0 && (
-                <Badge variant="destructive" className="ml-1 h-4 w-4 p-0 text-[10px]">
+                <Badge
+                  variant="destructive"
+                  className="ml-1 h-4 w-4 p-0 text-[10px]"
+                >
                   {prioritizedResponses.length}
                 </Badge>
               )}
@@ -584,7 +635,7 @@ export function GiannaCopilot({
 
           <TabsContent value="queue" className="flex-1 m-0">
             <ScrollArea className="h-[calc(100vh-320px)] p-3">
-              {leads.map(lead => renderLeadCard(lead))}
+              {leads.map((lead) => renderLeadCard(lead))}
               {leads.length === 0 && (
                 <div className="text-center text-muted-foreground py-8">
                   No leads in queue
@@ -595,8 +646,11 @@ export function GiannaCopilot({
 
           <TabsContent value="responses" className="flex-1 m-0">
             <ScrollArea className="h-[calc(100vh-320px)] p-3">
-              {prioritizedResponses.mapsf(lead => (
-                <Card key={lead.id} className="mb-2 border-green-200 bg-green-50/50">
+              {prioritizedResponses.mapsf((lead) => (
+                <Card
+                  key={lead.id}
+                  className="mb-2 border-green-200 bg-green-50/50"
+                >
                   <CardContent className="p-3">
                     <div className="flex justify-between items-start mb-2">
                       <div>
@@ -640,11 +694,13 @@ export function GiannaCopilot({
                           <SelectValue placeholder="Template" />
                         </SelectTrigger>
                         <SelectContent>
-                          {Object.entries(RESPONSE_TEMPLATES).map(([key, val]) => (
-                            <SelectItem key={key} value={key}>
-                              {val.label}
-                            </SelectItem>
-                          ))}
+                          {Object.entries(RESPONSE_TEMPLATES).map(
+                            ([key, val]) => (
+                              <SelectItem key={key} value={key}>
+                                {val.label}
+                              </SelectItem>
+                            ),
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
@@ -681,35 +737,55 @@ export function GiannaCopilot({
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">
-                    {dialSession.status === "dialing" ? "Currently calling:" : "Session " + dialSession.status}
+                    {dialSession.status === "dialing"
+                      ? "Currently calling:"
+                      : "Session " + dialSession.status}
                   </span>
                   {dialSession.currentLead && (
                     <span className="font-medium">
-                      {dialSession.currentLead.firstName} {dialSession.currentLead.lastName}
+                      {dialSession.currentLead.firstName}{" "}
+                      {dialSession.currentLead.lastName}
                     </span>
                   )}
                 </div>
 
                 <Progress
-                  value={(dialSession.completedCalls / dialSession.totalCalls) * 100}
+                  value={
+                    (dialSession.completedCalls / dialSession.totalCalls) * 100
+                  }
                   className="h-2"
                 />
 
                 <div className="flex items-center justify-between text-sm">
-                  <span>{dialSession.completedCalls} / {dialSession.totalCalls} calls</span>
+                  <span>
+                    {dialSession.completedCalls} / {dialSession.totalCalls}{" "}
+                    calls
+                  </span>
                   <div className="flex gap-2">
                     {dialSession.status === "dialing" ? (
-                      <Button variant="outline" size="sm" onClick={pauseDialSession}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={pauseDialSession}
+                      >
                         <Pause className="h-4 w-4 mr-1" />
                         Pause
                       </Button>
                     ) : dialSession.status === "paused" ? (
-                      <Button variant="outline" size="sm" onClick={resumeDialSession}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={resumeDialSession}
+                      >
                         <Play className="h-4 w-4 mr-1" />
                         Resume
                       </Button>
                     ) : null}
-                    <Button variant="destructive" size="sm" onClick={stopDialSession}>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={stopDialSession}
+                    >
                       <PhoneOff className="h-4 w-4 mr-1" />
                       Stop
                     </Button>
@@ -742,7 +818,11 @@ export function GiannaCopilot({
               <CardTitle className="flex items-center gap-2 text-blue-700">
                 <MessageSquare className="h-5 w-5" />
                 SMS Campaign
-                <Badge variant={smsBatch.status === "sending" ? "default" : "secondary"}>
+                <Badge
+                  variant={
+                    smsBatch.status === "sending" ? "default" : "secondary"
+                  }
+                >
                   {smsBatch.status}
                 </Badge>
               </CardTitle>
@@ -753,14 +833,19 @@ export function GiannaCopilot({
                 className="h-2 mb-2"
               />
               <div className="flex justify-between text-sm text-muted-foreground">
-                <span>{smsBatch.sent} / {smsBatch.total} sent</span>
-                <span>Batch {smsBatch.batchNumber} of {smsBatch.totalBatches}</span>
+                <span>
+                  {smsBatch.sent} / {smsBatch.total} sent
+                </span>
+                <span>
+                  Batch {smsBatch.batchNumber} of {smsBatch.totalBatches}
+                </span>
               </div>
-              {smsBatch.status === "paused" && smsBatch.sent >= SMS_MAX_TOTAL && (
-                <p className="text-amber-600 text-sm mt-2">
-                  Paused at {SMS_MAX_TOTAL} SMS limit. Resume to continue.
-                </p>
-              )}
+              {smsBatch.status === "paused" &&
+                smsBatch.sent >= SMS_MAX_TOTAL && (
+                  <p className="text-amber-600 text-sm mt-2">
+                    Paused at {SMS_MAX_TOTAL} SMS limit. Resume to continue.
+                  </p>
+                )}
             </CardContent>
           </Card>
         )}
@@ -807,7 +892,7 @@ export function GiannaCopilot({
             <CardContent className="p-3 text-center">
               <CheckCircle2 className="h-5 w-5 mx-auto mb-1 text-green-500" />
               <p className="text-2xl font-bold">
-                {leads.filter(l => l.responseStatus === "responded").length}
+                {leads.filter((l) => l.responseStatus === "responded").length}
               </p>
               <p className="text-xs text-muted-foreground">Responded</p>
             </CardContent>
@@ -816,7 +901,10 @@ export function GiannaCopilot({
             <CardContent className="p-3 text-center">
               <Calendar className="h-5 w-5 mx-auto mb-1 text-purple-500" />
               <p className="text-2xl font-bold">
-                {leads.filter(l => l.responseStatus === "appointment_set").length}
+                {
+                  leads.filter((l) => l.responseStatus === "appointment_set")
+                    .length
+                }
               </p>
               <p className="text-xs text-muted-foreground">Appts Set</p>
             </CardContent>
@@ -824,7 +912,9 @@ export function GiannaCopilot({
           <Card>
             <CardContent className="p-3 text-center">
               <AlertCircle className="h-5 w-5 mx-auto mb-1 text-amber-500" />
-              <p className="text-2xl font-bold">{prioritizedResponses.length}</p>
+              <p className="text-2xl font-bold">
+                {prioritizedResponses.length}
+              </p>
               <p className="text-xs text-muted-foreground">Need Action</p>
             </CardContent>
           </Card>
@@ -848,12 +938,17 @@ export function GiannaCopilot({
             </div>
             <div className="flex items-center justify-between mb-2">
               <span>Will send:</span>
-              <Badge variant="outline">{Math.min(selectedLeads.length, SMS_MAX_TOTAL)}</Badge>
+              <Badge variant="outline">
+                {Math.min(selectedLeads.length, SMS_MAX_TOTAL)}
+              </Badge>
             </div>
             <div className="flex items-center justify-between">
               <span>Batches:</span>
               <Badge variant="outline">
-                {Math.ceil(Math.min(selectedLeads.length, SMS_MAX_TOTAL) / SMS_BATCH_SIZE)}
+                {Math.ceil(
+                  Math.min(selectedLeads.length, SMS_MAX_TOTAL) /
+                    SMS_BATCH_SIZE,
+                )}
               </Badge>
             </div>
             {selectedLeads.length > SMS_MAX_TOTAL && (
@@ -880,7 +975,8 @@ export function GiannaCopilot({
           <DialogHeader>
             <DialogTitle>Load Dialer Workspace</DialogTitle>
             <DialogDescription>
-              Load {Math.min(selectedLeads.length, DIALER_MAX_LEADS)} leads into dialer workspace.
+              Load {Math.min(selectedLeads.length, DIALER_MAX_LEADS)} leads into
+              dialer workspace.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
@@ -890,7 +986,9 @@ export function GiannaCopilot({
             </div>
             <div className="flex items-center justify-between">
               <span>Will load:</span>
-              <Badge variant="outline">{Math.min(selectedLeads.length, DIALER_MAX_LEADS)}</Badge>
+              <Badge variant="outline">
+                {Math.min(selectedLeads.length, DIALER_MAX_LEADS)}
+              </Badge>
             </div>
             {selectedLeads.length > DIALER_MAX_LEADS && (
               <p className="text-amber-600 text-sm mt-3">
@@ -899,7 +997,10 @@ export function GiannaCopilot({
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDialerDialog(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowDialerDialog(false)}
+            >
               Cancel
             </Button>
             <Button onClick={loadDialer} disabled={isLoading}>

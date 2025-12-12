@@ -15,7 +15,10 @@ import { CheckCircle, AlertCircle, RefreshCw } from "lucide-react";
 
 export function SchemaValidator() {
   const [jsonInput, setJsonInput] = useState("");
-  const [validationResult, setValidationResult] = useState<{ valid: boolean; errors: string[] } | null>(null);
+  const [validationResult, setValidationResult] = useState<{
+    valid: boolean;
+    errors: string[];
+  } | null>(null);
   const [isValidating, setIsValidating] = useState(false);
 
   const validateSchema = () => {
@@ -35,7 +38,10 @@ export function SchemaValidator() {
         } else {
           // Check each entity
           Object.entries(parsed).forEach(([entityKey, entityValue]) => {
-            const entity = entityValue as { name?: string; fields?: { name?: string; type?: string }[] };
+            const entity = entityValue as {
+              name?: string;
+              fields?: { name?: string; type?: string }[];
+            };
             if (!entity.name) {
               errors.push(`Entity "${entityKey}" is missing a name property`);
             }
@@ -44,18 +50,20 @@ export function SchemaValidator() {
               errors.push(`Entity "${entityKey}" must have a fields array`);
             } else {
               // Check each field
-              entity.fields.forEach((field: { name?: string; type?: string }, index: number) => {
-                if (!field.name) {
-                  errors.push(
-                    `Field at index ${index} in "${entityKey}" is missing a name property`,
-                  );
-                }
-                if (!field.type) {
-                  errors.push(
-                    `Field "${field.name || index}" in "${entityKey}" is missing a type property`,
-                  );
-                }
-              });
+              entity.fields.forEach(
+                (field: { name?: string; type?: string }, index: number) => {
+                  if (!field.name) {
+                    errors.push(
+                      `Field at index ${index} in "${entityKey}" is missing a name property`,
+                    );
+                  }
+                  if (!field.type) {
+                    errors.push(
+                      `Field "${field.name || index}" in "${entityKey}" is missing a type property`,
+                    );
+                  }
+                },
+              );
             }
           });
         }
@@ -67,7 +75,10 @@ export function SchemaValidator() {
       } catch (error) {
         setValidationResult({
           valid: false,
-          errors: ["Invalid JSON format: " + (error instanceof Error ? error.message : String(error))],
+          errors: [
+            "Invalid JSON format: " +
+              (error instanceof Error ? error.message : String(error)),
+          ],
         });
       }
 

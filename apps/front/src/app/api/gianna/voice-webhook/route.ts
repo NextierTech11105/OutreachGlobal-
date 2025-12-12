@@ -12,7 +12,9 @@ import { NextRequest, NextResponse } from "next/server";
  * - Call routing based on caller interest
  */
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://monkfish-app-mb7h3.ondigitalocean.app";
+const APP_URL =
+  process.env.NEXT_PUBLIC_APP_URL ||
+  "https://monkfish-app-mb7h3.ondigitalocean.app";
 const FORWARD_NUMBER = process.env.FORWARD_PHONE_NUMBER || "+12125551234";
 
 export async function POST(request: NextRequest) {
@@ -26,18 +28,28 @@ export async function POST(request: NextRequest) {
     const callStatus = formData.get("CallStatus") as string;
     const direction = formData.get("Direction") as string;
 
-    console.log("[Gianna Voice] Inbound call:", { from, to, callSid, callStatus, direction });
+    console.log("[Gianna Voice] Inbound call:", {
+      from,
+      to,
+      callSid,
+      callStatus,
+      direction,
+    });
 
     // Check if caller is in database to personalize
     let callerName = "";
     try {
-      const lookupResponse = await fetch(`${APP_URL}/api/lookup/phone?phone=${encodeURIComponent(from)}`);
+      const lookupResponse = await fetch(
+        `${APP_URL}/api/lookup/phone?phone=${encodeURIComponent(from)}`,
+      );
       if (lookupResponse.ok) {
         const data = await lookupResponse.json();
         callerName = data.firstName || "";
       }
     } catch (error) {
-      console.log("[Gianna Voice] Caller lookup failed, continuing without personalization");
+      console.log(
+        "[Gianna Voice] Caller lookup failed, continuing without personalization",
+      );
     }
 
     // Personalized greeting
@@ -109,7 +121,6 @@ export async function POST(request: NextRequest) {
     return new NextResponse(twiml, {
       headers: { "Content-Type": "text/xml" },
     });
-
   } catch (error) {
     console.error("[Gianna Voice] Error:", error);
 

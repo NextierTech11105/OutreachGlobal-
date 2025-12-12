@@ -15,24 +15,42 @@ import { gianna, type GiannaContext } from "@/lib/gianna/gianna-service";
  * - Opt-out compliance
  */
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://monkfish-app-mb7h3.ondigitalocean.app";
+const APP_URL =
+  process.env.NEXT_PUBLIC_APP_URL ||
+  "https://monkfish-app-mb7h3.ondigitalocean.app";
 const EMAIL_REGEX = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/i;
-const OPT_OUT_KEYWORDS = ["stop", "unsubscribe", "opt out", "opt-out", "remove", "cancel", "quit", "end"];
+const OPT_OUT_KEYWORDS = [
+  "stop",
+  "unsubscribe",
+  "opt out",
+  "opt-out",
+  "remove",
+  "cancel",
+  "quit",
+  "end",
+];
 
 // Conversation context store (would be DB in production)
-const conversationContextStore = new Map<string, {
-  firstName?: string;
-  lastName?: string;
-  companyName?: string;
-  industry?: string;
-  propertyAddress?: string;
-  propertyId?: string;
-  leadType?: string;
-  lastMessageAt: string;
-  messageCount: number;
-  lastIntent?: string;
-  history: Array<{ role: "user" | "assistant"; content: string; timestamp: string }>;
-}>();
+const conversationContextStore = new Map<
+  string,
+  {
+    firstName?: string;
+    lastName?: string;
+    companyName?: string;
+    industry?: string;
+    propertyAddress?: string;
+    propertyId?: string;
+    leadType?: string;
+    lastMessageAt: string;
+    messageCount: number;
+    lastIntent?: string;
+    history: Array<{
+      role: "user" | "assistant";
+      content: string;
+      timestamp: string;
+    }>;
+  }
+>();
 
 export async function POST(request: NextRequest) {
   try {
@@ -48,7 +66,7 @@ export async function POST(request: NextRequest) {
       from,
       to,
       body: body?.slice(0, 50),
-      messageSid
+      messageSid,
     });
 
     if (!from || !body) {
@@ -190,10 +208,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Low confidence - don't auto-respond
-    console.log("[Gianna SMS] Low confidence, not auto-responding:", giannaResponse.confidence);
+    console.log(
+      "[Gianna SMS] Low confidence, not auto-responding:",
+      giannaResponse.confidence,
+    );
     conversationContextStore.set(from, storedContext);
     return emptyTwimlResponse();
-
   } catch (error) {
     console.error("[Gianna SMS] Error:", error);
     return emptyTwimlResponse();
@@ -204,7 +224,10 @@ export async function POST(request: NextRequest) {
 // HELPER FUNCTIONS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function determineStage(context: { messageCount: number; lastIntent?: string }): GiannaContext["stage"] {
+function determineStage(context: {
+  messageCount: number;
+  lastIntent?: string;
+}): GiannaContext["stage"] {
   if (context.messageCount === 1) return "cold_open";
   if (context.lastIntent === "interested") return "hot_response";
   if (context.lastIntent?.startsWith("objection")) return "handling_pushback";
@@ -226,7 +249,7 @@ function twimlResponse(message: string): NextResponse {
 function emptyTwimlResponse(): NextResponse {
   return new NextResponse(
     `<?xml version="1.0" encoding="UTF-8"?><Response></Response>`,
-    { headers: { "Content-Type": "text/xml" } }
+    { headers: { "Content-Type": "text/xml" } },
   );
 }
 
@@ -268,7 +291,9 @@ function triggerEmailCaptureAutomation(data: {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
-  }).catch((err) => console.error("[Gianna SMS] Email automation trigger failed:", err));
+  }).catch((err) =>
+    console.error("[Gianna SMS] Email automation trigger failed:", err),
+  );
 }
 
 async function queueForHumanReview(data: {
@@ -297,9 +322,13 @@ async function queueForHumanReview(data: {
 }
 
 function handleNextAction(
-  action: { type: string; delayMinutes?: number; metadata?: Record<string, unknown> },
+  action: {
+    type: string;
+    delayMinutes?: number;
+    metadata?: Record<string, unknown>;
+  },
   phone: string,
-  context: Record<string, unknown>
+  context: Record<string, unknown>,
 ): void {
   if (action.type === "follow_up" && action.delayMinutes) {
     // Schedule follow-up
@@ -308,11 +337,15 @@ function handleNextAction(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         type: "sms_follow_up",
-        scheduledFor: new Date(Date.now() + action.delayMinutes * 60 * 1000).toISOString(),
+        scheduledFor: new Date(
+          Date.now() + action.delayMinutes * 60 * 1000,
+        ).toISOString(),
         recipient: { phone },
         context,
       }),
-    }).catch((err) => console.error("[Gianna SMS] Follow-up scheduling failed:", err));
+    }).catch((err) =>
+      console.error("[Gianna SMS] Follow-up scheduling failed:", err),
+    );
   }
 
   if (action.type === "add_to_dnc") {

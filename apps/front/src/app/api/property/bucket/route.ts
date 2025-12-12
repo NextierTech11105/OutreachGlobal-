@@ -41,37 +41,43 @@ export async function POST(request: NextRequest) {
     const { name, description, filters, propertyIds, signals } = payload;
 
     if (!name || !propertyIds || propertyIds.length === 0) {
-      return NextResponse.json({
-        error: "Bucket name and at least one property ID required"
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: "Bucket name and at least one property ID required",
+        },
+        { status: 400 },
+      );
     }
 
     // For now, use a placeholder user ID (in prod, get from auth)
     const userId = "system";
 
     // Create the bucket
-    const [bucket] = await db.insert(buckets).values({
-      userId,
-      name,
-      description: description || `${propertyIds.length} properties`,
-      source: "real-estate",
-      filters: {
-        ...filters,
-        signals,
-        savedAt: new Date().toISOString(),
-      },
-      totalLeads: propertyIds.length,
-      enrichedLeads: 0,
-      queuedLeads: 0,
-      contactedLeads: 0,
-      enrichmentStatus: "pending",
-      enrichmentProgress: {
-        total: propertyIds.length,
-        processed: 0,
-        successful: 0,
-        failed: 0,
-      },
-    }).returning();
+    const [bucket] = await db
+      .insert(buckets)
+      .values({
+        userId,
+        name,
+        description: description || `${propertyIds.length} properties`,
+        source: "real-estate",
+        filters: {
+          ...filters,
+          signals,
+          savedAt: new Date().toISOString(),
+        },
+        totalLeads: propertyIds.length,
+        enrichedLeads: 0,
+        queuedLeads: 0,
+        contactedLeads: 0,
+        enrichmentStatus: "pending",
+        enrichmentProgress: {
+          total: propertyIds.length,
+          processed: 0,
+          successful: 0,
+          failed: 0,
+        },
+      })
+      .returning();
 
     // Create lead records for each property ID (just IDs, no enrichment yet)
     // Batch insert for performance
@@ -89,13 +95,15 @@ export async function POST(request: NextRequest) {
           status: "new",
           propertyId,
           enrichmentStatus: "pending",
-        }))
+        })),
       );
 
       insertedCount += batch.length;
     }
 
-    console.log(`[Bucket] Created "${name}" with ${insertedCount} property IDs`);
+    console.log(
+      `[Bucket] Created "${name}" with ${insertedCount} property IDs`,
+    );
 
     return NextResponse.json({
       success: true,
@@ -114,7 +122,8 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Failed to create bucket";
+    const message =
+      error instanceof Error ? error.message : "Failed to create bucket";
     console.error("[Bucket] Create error:", error);
     return NextResponse.json({ error: message }, { status: 500 });
   }
@@ -135,7 +144,10 @@ export async function GET(request: NextRequest) {
         .where(eq(buckets.id, bucketId));
 
       if (!bucket) {
-        return NextResponse.json({ error: "Bucket not found" }, { status: 404 });
+        return NextResponse.json(
+          { error: "Bucket not found" },
+          { status: 404 },
+        );
       }
 
       // Get lead stats
@@ -158,7 +170,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // List all buckets
+    // List all buckets (don't filter by userId to show all system buckets)
     const allBuckets = await db
       .select({
         id: buckets.id,
@@ -174,8 +186,8 @@ export async function GET(request: NextRequest) {
         updatedAt: buckets.updatedAt,
       })
       .from(buckets)
-      .where(eq(buckets.userId, userId))
-      .orderBy(sql`${buckets.createdAt} DESC`);
+      .orderBy(sql`${buckets.createdAt} DESC`)
+      .limit(100);
 
     return NextResponse.json({
       success: true,
@@ -183,7 +195,8 @@ export async function GET(request: NextRequest) {
       count: allBuckets.length,
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Failed to get buckets";
+    const message =
+      error instanceof Error ? error.message : "Failed to get buckets";
     console.error("[Bucket] Get error:", error);
     return NextResponse.json({ error: message }, { status: 500 });
   }
@@ -198,7 +211,10 @@ export async function PUT(request: NextRequest) {
     const userId = "system";
 
     if (!bucketId) {
-      return NextResponse.json({ error: "Bucket ID required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Bucket ID required" },
+        { status: 400 },
+      );
     }
 
     // Get existing bucket
@@ -212,7 +228,11 @@ export async function PUT(request: NextRequest) {
     }
 
     // Add new property IDs if provided
-    if (payload.propertyIds && Array.isArray(payload.propertyIds) && payload.propertyIds.length > 0) {
+    if (
+      payload.propertyIds &&
+      Array.isArray(payload.propertyIds) &&
+      payload.propertyIds.length > 0
+    ) {
       const BATCH_SIZE = 1000;
       let insertedCount = 0;
 
@@ -227,7 +247,7 @@ export async function PUT(request: NextRequest) {
             status: "new",
             propertyId,
             enrichmentStatus: "pending",
-          }))
+          })),
         );
 
         insertedCount += batch.length;
@@ -268,7 +288,8 @@ export async function PUT(request: NextRequest) {
       bucket: updated,
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Failed to update bucket";
+    const message =
+      error instanceof Error ? error.message : "Failed to update bucket";
     console.error("[Bucket] Update error:", error);
     return NextResponse.json({ error: message }, { status: 500 });
   }
@@ -281,7 +302,10 @@ export async function DELETE(request: NextRequest) {
     const bucketId = searchParams.get("id");
 
     if (!bucketId) {
-      return NextResponse.json({ error: "Bucket ID required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Bucket ID required" },
+        { status: 400 },
+      );
     }
 
     // Get bucket info before deleting
@@ -297,7 +321,9 @@ export async function DELETE(request: NextRequest) {
     // Delete bucket (leads are deleted via cascade)
     await db.delete(buckets).where(eq(buckets.id, bucketId));
 
-    console.log(`[Bucket] Deleted "${existing.name}" with ${existing.totalLeads} leads`);
+    console.log(
+      `[Bucket] Deleted "${existing.name}" with ${existing.totalLeads} leads`,
+    );
 
     return NextResponse.json({
       success: true,
@@ -308,7 +334,8 @@ export async function DELETE(request: NextRequest) {
       },
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Failed to delete bucket";
+    const message =
+      error instanceof Error ? error.message : "Failed to delete bucket";
     console.error("[Bucket] Delete error:", error);
     return NextResponse.json({ error: message }, { status: 500 });
   }

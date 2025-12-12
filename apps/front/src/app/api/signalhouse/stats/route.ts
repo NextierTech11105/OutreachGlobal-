@@ -6,7 +6,9 @@ const SIGNALHOUSE_AUTH_TOKEN = process.env.SIGNALHOUSE_AUTH_TOKEN || "";
 
 // Build auth headers per SignalHouse docs
 function getAuthHeaders(): Record<string, string> {
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
   if (SIGNALHOUSE_API_KEY) headers["apiKey"] = SIGNALHOUSE_API_KEY;
   if (SIGNALHOUSE_AUTH_TOKEN) headers["authToken"] = SIGNALHOUSE_AUTH_TOKEN;
   return headers;
@@ -17,7 +19,7 @@ export async function GET(request: NextRequest) {
     if (!SIGNALHOUSE_API_KEY && !SIGNALHOUSE_AUTH_TOKEN) {
       return NextResponse.json(
         { error: "SignalHouse credentials not configured" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -27,14 +29,14 @@ export async function GET(request: NextRequest) {
       {
         method: "GET",
         headers: getAuthHeaders(),
-      }
+      },
     );
 
     if (!analyticsResponse.ok) {
       const errorData = await analyticsResponse.json().catch(() => ({}));
       return NextResponse.json(
         { error: errorData.message || "Failed to fetch analytics" },
-        { status: analyticsResponse.status }
+        { status: analyticsResponse.status },
       );
     }
 
@@ -46,7 +48,7 @@ export async function GET(request: NextRequest) {
       {
         method: "GET",
         headers: getAuthHeaders(),
-      }
+      },
     );
 
     let walletData = null;
@@ -61,7 +63,8 @@ export async function GET(request: NextRequest) {
     });
   } catch (error: unknown) {
     console.error("SignalHouse stats error:", error);
-    const message = error instanceof Error ? error.message : "Failed to fetch stats";
+    const message =
+      error instanceof Error ? error.message : "Failed to fetch stats";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

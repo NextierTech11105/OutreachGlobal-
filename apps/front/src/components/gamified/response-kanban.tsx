@@ -48,11 +48,36 @@ interface Bucket {
 // Priority badge component
 const PriorityBadge = ({ priority }: { priority: string }) => {
   const config = {
-    HOT: { icon: Flame, color: "text-red-500", bg: "bg-red-500/20", glow: "shadow-red-500/50" },
-    WARM: { icon: Zap, color: "text-orange-500", bg: "bg-orange-500/20", glow: "shadow-orange-500/50" },
-    COLD: { icon: Clock, color: "text-blue-500", bg: "bg-blue-500/20", glow: "shadow-blue-500/50" },
-    URGENT: { icon: Sparkles, color: "text-purple-500", bg: "bg-purple-500/20", glow: "shadow-purple-500/50" },
-  }[priority] || { icon: Clock, color: "text-gray-500", bg: "bg-gray-500/20", glow: "" };
+    HOT: {
+      icon: Flame,
+      color: "text-red-500",
+      bg: "bg-red-500/20",
+      glow: "shadow-red-500/50",
+    },
+    WARM: {
+      icon: Zap,
+      color: "text-orange-500",
+      bg: "bg-orange-500/20",
+      glow: "shadow-orange-500/50",
+    },
+    COLD: {
+      icon: Clock,
+      color: "text-blue-500",
+      bg: "bg-blue-500/20",
+      glow: "shadow-blue-500/50",
+    },
+    URGENT: {
+      icon: Sparkles,
+      color: "text-purple-500",
+      bg: "bg-purple-500/20",
+      glow: "shadow-purple-500/50",
+    },
+  }[priority] || {
+    icon: Clock,
+    color: "text-gray-500",
+    bg: "bg-gray-500/20",
+    glow: "",
+  };
 
   const Icon = config.icon;
 
@@ -64,7 +89,7 @@ const PriorityBadge = ({ priority }: { priority: string }) => {
         "flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium",
         config.bg,
         config.color,
-        priority === "HOT" || priority === "URGENT" ? "animate-pulse" : ""
+        priority === "HOT" || priority === "URGENT" ? "animate-pulse" : "",
       )}
     >
       <Icon className="w-3 h-3" />
@@ -98,7 +123,8 @@ const ResponseCard = ({
         "bg-zinc-800/80 backdrop-blur-sm border border-zinc-700/50 rounded-lg p-3 cursor-grab active:cursor-grabbing",
         "hover:border-zinc-600 hover:shadow-lg transition-all duration-200",
         item.priority === "HOT" && "border-l-4 border-l-red-500",
-        item.priority === "URGENT" && "border-l-4 border-l-purple-500 animate-pulse"
+        item.priority === "URGENT" &&
+          "border-l-4 border-l-purple-500 animate-pulse",
       )}
     >
       <div className="flex items-start justify-between gap-2 mb-2">
@@ -152,7 +178,7 @@ const BucketColumn = ({
       className={cn(
         "flex flex-col bg-zinc-900/50 backdrop-blur-sm rounded-xl border border-zinc-800 min-w-[300px] max-w-[300px]",
         isDragOver && "border-2 border-dashed",
-        isDragOver && `border-[${bucket.color}]`
+        isDragOver && `border-[${bucket.color}]`,
       )}
       onDragOver={(e) => {
         e.preventDefault();
@@ -190,11 +216,12 @@ const BucketColumn = ({
             animate={{ scale: 1 }}
             className={cn(
               "w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm",
-              bucket.count > 0 ? "text-white" : "text-zinc-500"
+              bucket.count > 0 ? "text-white" : "text-zinc-500",
             )}
             style={{
               backgroundColor: bucket.count > 0 ? bucket.color : "transparent",
-              boxShadow: bucket.count > 0 ? `0 0 20px ${bucket.glowColor}` : "none",
+              boxShadow:
+                bucket.count > 0 ? `0 0 20px ${bucket.glowColor}` : "none",
             }}
           >
             {bucket.count}
@@ -228,7 +255,15 @@ const BucketColumn = ({
 };
 
 // Progress ring component
-const ProgressRing = ({ progress, size = 60, strokeWidth = 4 }: { progress: number; size?: number; strokeWidth?: number }) => {
+const ProgressRing = ({
+  progress,
+  size = 60,
+  strokeWidth = 4,
+}: {
+  progress: number;
+  size?: number;
+  strokeWidth?: number;
+}) => {
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
   const offset = circumference - (progress / 100) * circumference;
@@ -378,7 +413,11 @@ export function ResponseKanban() {
           <div className="flex items-center gap-6">
             {/* Daily Progress */}
             <div className="flex items-center gap-3">
-              <ProgressRing progress={Math.round((stats.processedToday / stats.dailyGoal) * 100)} />
+              <ProgressRing
+                progress={Math.round(
+                  (stats.processedToday / stats.dailyGoal) * 100,
+                )}
+              />
               <div>
                 <p className="text-sm text-zinc-400">Daily Goal</p>
                 <p className="font-semibold">
@@ -401,7 +440,9 @@ export function ResponseKanban() {
               <ThumbsUp className="w-5 h-5 text-green-500" />
               <div>
                 <p className="text-xs text-green-400">Positive Rate</p>
-                <p className="font-bold text-green-500">{stats.positiveRate}%</p>
+                <p className="font-bold text-green-500">
+                  {stats.positiveRate}%
+                </p>
               </div>
             </div>
           </div>

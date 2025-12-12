@@ -1,6 +1,5 @@
 "use client";
 
-
 import { sf, sfd } from "@/lib/utils/safe-format";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -305,18 +304,14 @@ export function ZohoIntegration({ initialConfig }: ZohoIntegrationProps) {
               <div className="space-y-2">
                 <Label>Last Sync</Label>
                 <div className="flex items-center space-x-2 h-9 px-3 py-2 rounded-md border border-input bg-background text-sm">
-                  {lastSync
-                    ? new Datesf(lastSync)
-                    : "Never synced"}
+                  {lastSync ? new Datesf(lastSync) : "Never synced"}
                 </div>
               </div>
 
               <div className="space-y-2">
                 <Label>Next Scheduled Sync</Label>
                 <div className="flex items-center space-x-2 h-9 px-3 py-2 rounded-md border border-input bg-background text-sm">
-                  {nextSync
-                    ? new Datesf(nextSync)
-                    : "Not scheduled"}
+                  {nextSync ? new Datesf(nextSync) : "Not scheduled"}
                 </div>
               </div>
             </div>

@@ -72,6 +72,20 @@ function getScoreLabel(score: number): string {
   return "Cold";
 }
 
+// Quick search industry presets
+const INDUSTRY_PRESETS = [
+  { label: "🍕 Pizza Shops", query: "pizza restaurant owner" },
+  { label: "🏨 Hotels/Motels", query: "hotel motel owner" },
+  { label: "🔧 HVAC", query: "HVAC contractor owner" },
+  { label: "🔌 Electrical", query: "electrical contractor owner" },
+  { label: "🪠 Plumbing", query: "plumbing contractor owner" },
+  { label: "🏗️ General Contractor", query: "general contractor owner" },
+  { label: "🏭 Manufacturing", query: "manufacturing business owner" },
+  { label: "🥯 Bagel Shops", query: "bagel bakery owner" },
+  { label: "🚗 Auto Repair", query: "auto repair shop owner" },
+  { label: "🏠 Roofing", query: "roofing contractor owner" },
+];
+
 function getStatusBadge(status: OpportunityLead["status"]) {
   const styles = {
     hot: "bg-red-600 text-white",
@@ -136,29 +150,31 @@ export function OpportunityPulse({
       const data = await response.json();
 
       // Transform Apollo results to OpportunityLead format
-      const newLeads: OpportunityLead[] = data.results.map((r: {
-        id: string;
-        name: string;
-        title: string;
-        company: string;
-        email: string;
-        phone: string;
-        location: string;
-      }) => ({
-        id: r.id,
-        name: r.name,
-        title: r.title,
-        company: r.company,
-        email: r.email,
-        phone: r.phone,
-        location: r.location,
-        // Generate Apollo score based on available data
-        apolloScore: calculateApolloScore(r),
-        signals: detectSignals(r),
-        outreachCount: 0,
-        status: "cold" as const,
-        nextAction: "Initial outreach",
-      }));
+      const newLeads: OpportunityLead[] = data.results.map(
+        (r: {
+          id: string;
+          name: string;
+          title: string;
+          company: string;
+          email: string;
+          phone: string;
+          location: string;
+        }) => ({
+          id: r.id,
+          name: r.name,
+          title: r.title,
+          company: r.company,
+          email: r.email,
+          phone: r.phone,
+          location: r.location,
+          // Generate Apollo score based on available data
+          apolloScore: calculateApolloScore(r),
+          signals: detectSignals(r),
+          outreachCount: 0,
+          status: "cold" as const,
+          nextAction: "Initial outreach",
+        }),
+      );
 
       setLeads(newLeads);
     } catch (err) {
@@ -169,7 +185,12 @@ export function OpportunityPulse({
   }, [searchQuery]);
 
   // Calculate Apollo score based on data quality
-  function calculateApolloScore(result: { email?: string; phone?: string; title?: string; company?: string }): number {
+  function calculateApolloScore(result: {
+    email?: string;
+    phone?: string;
+    title?: string;
+    company?: string;
+  }): number {
     let score = 40; // Base score
     if (result.email) score += 20;
     if (result.phone) score += 20;
@@ -180,37 +201,54 @@ export function OpportunityPulse({
   }
 
   // Detect Apollo signals from result
-  function detectSignals(result: { title?: string; company?: string }): string[] {
+  function detectSignals(result: {
+    title?: string;
+    company?: string;
+  }): string[] {
     const signals: string[] = [];
     if (result.title?.toLowerCase().includes("owner")) signals.push("Owner");
-    if (result.title?.toLowerCase().includes("founder")) signals.push("Founder");
+    if (result.title?.toLowerCase().includes("founder"))
+      signals.push("Founder");
     // In production, these would come from Apollo's intent signals
     return signals.length ? signals : ["Apollo Sourced"];
   }
 
   // Mark lead as contacted
-  const handleMarkContacted = useCallback((lead: OpportunityLead) => {
-    setLeads(prev => prev.map(l =>
-      l.id === lead.id
-        ? { ...l, status: "contacted", lastOutreach: new Date(), outreachCount: l.outreachCount + 1 }
-        : l
-    ));
-    onMarkContacted?.(lead);
-  }, [onMarkContacted]);
+  const handleMarkContacted = useCallback(
+    (lead: OpportunityLead) => {
+      setLeads((prev) =>
+        prev.map((l) =>
+          l.id === lead.id
+            ? {
+                ...l,
+                status: "contacted",
+                lastOutreach: new Date(),
+                outreachCount: l.outreachCount + 1,
+              }
+            : l,
+        ),
+      );
+      onMarkContacted?.(lead);
+    },
+    [onMarkContacted],
+  );
 
   // Filter leads
-  const filteredLeads = leads.filter(lead => {
+  const filteredLeads = leads.filter((lead) => {
     if (filter === "all") return true;
     if (filter === "hot") return lead.apolloScore >= 80;
-    if (filter === "warm") return lead.apolloScore >= 60 && lead.apolloScore < 80;
+    if (filter === "warm")
+      return lead.apolloScore >= 60 && lead.apolloScore < 80;
     if (filter === "cold") return lead.apolloScore < 60;
     return true;
   });
 
   // Stats
-  const hotCount = leads.filter(l => l.apolloScore >= 80).length;
-  const warmCount = leads.filter(l => l.apolloScore >= 60 && l.apolloScore < 80).length;
-  const contactedCount = leads.filter(l => l.status === "contacted").length;
+  const hotCount = leads.filter((l) => l.apolloScore >= 80).length;
+  const warmCount = leads.filter(
+    (l) => l.apolloScore >= 60 && l.apolloScore < 80,
+  ).length;
+  const contactedCount = leads.filter((l) => l.status === "contacted").length;
 
   return (
     <div className="space-y-6">
@@ -224,13 +262,17 @@ export function OpportunityPulse({
               </div>
               <div>
                 <CardTitle className="text-white">Opportunity Pulse</CardTitle>
-                <p className="text-zinc-400 text-sm">Apollo-powered lead scoring & engagement</p>
+                <p className="text-zinc-400 text-sm">
+                  Apollo-powered lead scoring & engagement
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-2 text-sm">
               <Badge className="bg-green-600">{hotCount} Hot</Badge>
               <Badge className="bg-orange-500">{warmCount} Warm</Badge>
-              <Badge className="bg-purple-600">{contactedCount} Contacted</Badge>
+              <Badge className="bg-purple-600">
+                {contactedCount} Contacted
+              </Badge>
             </div>
           </div>
         </CardHeader>
@@ -252,7 +294,11 @@ export function OpportunityPulse({
               disabled={loading || !searchQuery.trim()}
               className="bg-purple-600 hover:bg-purple-700"
             >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Search Apollo"}
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Search Apollo"
+              )}
             </Button>
           </div>
 
@@ -264,7 +310,11 @@ export function OpportunityPulse({
                 size="sm"
                 variant={filter === f ? "default" : "outline"}
                 onClick={() => setFilter(f)}
-                className={filter === f ? "bg-purple-600" : "border-zinc-700 text-zinc-400"}
+                className={
+                  filter === f
+                    ? "bg-purple-600"
+                    : "border-zinc-700 text-zinc-400"
+                }
               >
                 {f.charAt(0).toUpperCase() + f.slice(1)}
               </Button>
@@ -292,15 +342,24 @@ export function OpportunityPulse({
           </Card>
         ) : (
           filteredLeads.map((lead) => (
-            <Card key={lead.id} className="bg-zinc-900 border-zinc-800 hover:border-purple-600/50 transition-colors">
+            <Card
+              key={lead.id}
+              className="bg-zinc-900 border-zinc-800 hover:border-purple-600/50 transition-colors"
+            >
               <CardContent className="p-4">
                 <div className="flex items-start gap-4">
                   {/* Apollo Score Indicator */}
                   <div className="flex flex-col items-center gap-1">
-                    <div className={`w-12 h-12 rounded-full ${getScoreColor(lead.apolloScore)} flex items-center justify-center`}>
-                      <span className="text-white font-bold">{lead.apolloScore}</span>
+                    <div
+                      className={`w-12 h-12 rounded-full ${getScoreColor(lead.apolloScore)} flex items-center justify-center`}
+                    >
+                      <span className="text-white font-bold">
+                        {lead.apolloScore}
+                      </span>
                     </div>
-                    <span className="text-xs text-zinc-500">{getScoreLabel(lead.apolloScore)}</span>
+                    <span className="text-xs text-zinc-500">
+                      {getScoreLabel(lead.apolloScore)}
+                    </span>
                   </div>
 
                   {/* Lead Info */}
@@ -330,18 +389,28 @@ export function OpportunityPulse({
                     {/* Signals */}
                     <div className="flex flex-wrap gap-1 mb-3">
                       {lead.signals.map((signal, i) => (
-                        <Badge key={i} variant="outline" className="border-purple-600 text-purple-400 text-xs">
+                        <Badge
+                          key={i}
+                          variant="outline"
+                          className="border-purple-600 text-purple-400 text-xs"
+                        >
                           {signal}
                         </Badge>
                       ))}
                       {lead.revenueRange && (
-                        <Badge variant="outline" className="border-green-600 text-green-400 text-xs">
+                        <Badge
+                          variant="outline"
+                          className="border-green-600 text-green-400 text-xs"
+                        >
                           <DollarSign className="h-3 w-3 mr-1" />
                           {lead.revenueRange}
                         </Badge>
                       )}
                       {lead.employeeCount && (
-                        <Badge variant="outline" className="border-blue-600 text-blue-400 text-xs">
+                        <Badge
+                          variant="outline"
+                          className="border-blue-600 text-blue-400 text-xs"
+                        >
                           <Users className="h-3 w-3 mr-1" />
                           {lead.employeeCount} employees
                         </Badge>
@@ -419,7 +488,9 @@ export function OpportunityPulse({
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => window.open(lead.linkedinUrl, "_blank")}
+                          onClick={() =>
+                            window.open(lead.linkedinUrl, "_blank")
+                          }
                           className="border-cyan-600 text-cyan-400 hover:bg-cyan-600/20"
                         >
                           <ExternalLink className="h-3 w-3 mr-1" />

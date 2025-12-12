@@ -75,7 +75,12 @@ import { SignalHeatmapDashboard } from "@/components/signal-heatmap-dashboard";
 interface BatchJob {
   id: string;
   name: string;
-  type: "skip_trace" | "sms_campaign" | "email_campaign" | "enrichment" | "gianna_loop";
+  type:
+    | "skip_trace"
+    | "sms_campaign"
+    | "email_campaign"
+    | "enrichment"
+    | "gianna_loop";
   status: "pending" | "running" | "completed" | "failed" | "paused";
   total_records: number;
   processed_records: number;
@@ -148,10 +153,13 @@ export default function BatchJobsPage() {
     const interval = setInterval(() => {
       setJobs((prev) =>
         prev.map((job) => {
-          if (job.status === "running" && job.processed_records < job.total_records) {
+          if (
+            job.status === "running" &&
+            job.processed_records < job.total_records
+          ) {
             const increment = Math.min(
               Math.floor(Math.random() * 50) + 10,
-              job.total_records - job.processed_records
+              job.total_records - job.processed_records,
             );
             const newProcessed = job.processed_records + increment;
             const successRate = 0.88;
@@ -161,12 +169,16 @@ export default function BatchJobsPage() {
               processed_records: newProcessed,
               success_count: job.success_count + newSuccess,
               fail_count: job.fail_count + (increment - newSuccess),
-              status: newProcessed >= job.total_records ? "completed" : "running",
-              completed_at: newProcessed >= job.total_records ? new Date().toISOString() : null,
+              status:
+                newProcessed >= job.total_records ? "completed" : "running",
+              completed_at:
+                newProcessed >= job.total_records
+                  ? new Date().toISOString()
+                  : null,
             };
           }
           return job;
-        })
+        }),
       );
     }, 2000);
     return () => clearInterval(interval);
@@ -182,16 +194,16 @@ export default function BatchJobsPage() {
       prev.map((job) =>
         job.id === jobId
           ? { ...job, status: "running", started_at: new Date().toISOString() }
-          : job
-      )
+          : job,
+      ),
     );
   };
 
   const handlePauseJob = (jobId: string) => {
     setJobs((prev) =>
       prev.map((job) =>
-        job.id === jobId ? { ...job, status: "paused" } : job
-      )
+        job.id === jobId ? { ...job, status: "paused" } : job,
+      ),
     );
   };
 
@@ -205,8 +217,8 @@ export default function BatchJobsPage() {
               started_at: new Date().toISOString(),
               error_message: undefined,
             }
-          : job
-      )
+          : job,
+      ),
     );
   };
 
@@ -247,8 +259,14 @@ export default function BatchJobsPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
+            <Button
+              variant="outline"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+            >
+              <RefreshCw
+                className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`}
+              />
               Refresh
             </Button>
             <Dialog open={isCreatingJob} onOpenChange={setIsCreatingJob}>
@@ -316,7 +334,10 @@ export default function BatchJobsPage() {
                     </div>
                   </div>
                   <div className="flex justify-end gap-2">
-                    <Button variant="outline" onClick={() => setIsCreatingJob(false)}>
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsCreatingJob(false)}
+                    >
                       Cancel
                     </Button>
                     <Button onClick={handleCreateJob} disabled={!newJobType}>
@@ -335,18 +356,26 @@ export default function BatchJobsPage() {
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-blue-500" />
-                <span className="text-xs text-muted-foreground">Jobs Today</span>
+                <span className="text-xs text-muted-foreground">
+                  Jobs Today
+                </span>
               </div>
-              <div className="text-2xl font-bold mt-1">{stats.total_jobs_today}</div>
+              <div className="text-2xl font-bold mt-1">
+                {stats.total_jobs_today}
+              </div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-green-500" />
-                <span className="text-xs text-muted-foreground">Successful</span>
+                <span className="text-xs text-muted-foreground">
+                  Successful
+                </span>
               </div>
-              <div className="text-2xl font-bold mt-1 text-green-600">{stats.successful_jobs}</div>
+              <div className="text-2xl font-bold mt-1 text-green-600">
+                {stats.successful_jobs}
+              </div>
             </CardContent>
           </Card>
           <Card>
@@ -355,7 +384,9 @@ export default function BatchJobsPage() {
                 <XCircle className="h-4 w-4 text-red-500" />
                 <span className="text-xs text-muted-foreground">Failed</span>
               </div>
-              <div className="text-2xl font-bold mt-1 text-red-600">{stats.failed_jobs}</div>
+              <div className="text-2xl font-bold mt-1 text-red-600">
+                {stats.failed_jobs}
+              </div>
             </CardContent>
           </Card>
           <Card>
@@ -364,16 +395,22 @@ export default function BatchJobsPage() {
                 <Database className="h-4 w-4 text-purple-500" />
                 <span className="text-xs text-muted-foreground">Processed</span>
               </div>
-              <div className="text-2xl font-bold mt-1">{sf(stats.records_processed_today)}</div>
+              <div className="text-2xl font-bold mt-1">
+                {sf(stats.records_processed_today)}
+              </div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
                 <Target className="h-4 w-4 text-green-500" />
-                <span className="text-xs text-muted-foreground">Skip Traces</span>
+                <span className="text-xs text-muted-foreground">
+                  Skip Traces
+                </span>
               </div>
-              <div className="text-2xl font-bold mt-1">{sf(stats.skip_traces_today)}</div>
+              <div className="text-2xl font-bold mt-1">
+                {sf(stats.skip_traces_today)}
+              </div>
             </CardContent>
           </Card>
           <Card>
@@ -382,7 +419,9 @@ export default function BatchJobsPage() {
                 <MessageSquare className="h-4 w-4 text-purple-500" />
                 <span className="text-xs text-muted-foreground">SMS Sent</span>
               </div>
-              <div className="text-2xl font-bold mt-1">{sf(stats.sms_sent_today)}</div>
+              <div className="text-2xl font-bold mt-1">
+                {sf(stats.sms_sent_today)}
+              </div>
             </CardContent>
           </Card>
           <Card>
@@ -391,7 +430,9 @@ export default function BatchJobsPage() {
                 <Mail className="h-4 w-4 text-blue-500" />
                 <span className="text-xs text-muted-foreground">Emails</span>
               </div>
-              <div className="text-2xl font-bold mt-1">{sf(stats.emails_sent_today)}</div>
+              <div className="text-2xl font-bold mt-1">
+                {sf(stats.emails_sent_today)}
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -428,31 +469,42 @@ export default function BatchJobsPage() {
                   <TableBody>
                     {jobs.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
+                        <TableCell
+                          colSpan={7}
+                          className="text-center py-12 text-muted-foreground"
+                        >
                           <FileSpreadsheet className="h-12 w-12 mx-auto mb-4 opacity-50" />
                           <p className="font-medium">No Batch Jobs</p>
-                          <p className="text-sm">Create a new batch job to get started</p>
+                          <p className="text-sm">
+                            Create a new batch job to get started
+                          </p>
                         </TableCell>
                       </TableRow>
                     ) : null}
                     {jobs.map((job) => {
-                      const progress = job.total_records > 0
-                        ? (job.processed_records / job.total_records) * 100
-                        : 0;
-                      const successRate = job.processed_records > 0
-                        ? (job.success_count / job.processed_records) * 100
-                        : 0;
+                      const progress =
+                        job.total_records > 0
+                          ? (job.processed_records / job.total_records) * 100
+                          : 0;
+                      const successRate =
+                        job.processed_records > 0
+                          ? (job.success_count / job.processed_records) * 100
+                          : 0;
 
                       return (
                         <TableRow key={job.id}>
                           <TableCell>
                             <div className="font-medium">{job.name}</div>
-                            <div className="text-xs text-muted-foreground">{job.id}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {job.id}
+                            </div>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
                               {typeIcons[job.type]}
-                              <span className="capitalize">{job.type.replace("_", " ")}</span>
+                              <span className="capitalize">
+                                {job.type.replace("_", " ")}
+                              </span>
                             </div>
                           </TableCell>
                           <TableCell>
@@ -472,7 +524,9 @@ export default function BatchJobsPage() {
                                     <AlertCircle className="h-4 w-4 text-red-500 ml-2" />
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    <p className="max-w-xs">{job.error_message}</p>
+                                    <p className="max-w-xs">
+                                      {job.error_message}
+                                    </p>
                                   </TooltipContent>
                                 </Tooltip>
                               </TooltipProvider>
@@ -482,7 +536,8 @@ export default function BatchJobsPage() {
                             <div className="space-y-1">
                               <Progress value={progress} className="h-2" />
                               <div className="text-xs text-muted-foreground">
-                                {sf(job.processed_records)} / {sf(job.total_records)}
+                                {sf(job.processed_records)} /{" "}
+                                {sf(job.total_records)}
                               </div>
                             </div>
                           </TableCell>
@@ -492,8 +547,8 @@ export default function BatchJobsPage() {
                                 successRate >= 90
                                   ? "text-green-600"
                                   : successRate >= 70
-                                  ? "text-yellow-600"
-                                  : "text-red-600"
+                                    ? "text-yellow-600"
+                                    : "text-red-600"
                               }
                             >
                               {successRate.toFixed(1)}%
@@ -522,7 +577,8 @@ export default function BatchJobsPage() {
                                   <Pause className="h-4 w-4 text-yellow-500" />
                                 </Button>
                               )}
-                              {(job.status === "paused" || job.status === "failed") && (
+                              {(job.status === "paused" ||
+                                job.status === "failed") && (
                                 <Button
                                   variant="ghost"
                                   size="icon"

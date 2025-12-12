@@ -70,10 +70,16 @@ export class LeadResolver extends BaseResolver(Lead) {
   async leads(@Auth() user: User, @Args() args: LeadConnectionArgs) {
     const team = await this.teamService.findById(args.teamId);
     await this.teamPolicy.can().read(user, team);
-    return this.service.paginate({
+    const result = await this.service.paginate({
       ...args,
       teamId: team.id,
     });
+    console.log('LeadConnection result:', JSON.stringify({
+      edgesCount: result.edges?.length,
+      pageInfo: result.pageInfo,
+      hasTotalCount: 'totalCount' in result
+    }, null, 2));
+    return result;
   }
 
   @Query(() => Int)

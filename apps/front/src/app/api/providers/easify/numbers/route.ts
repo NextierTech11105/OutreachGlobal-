@@ -22,11 +22,14 @@ interface EasifyPhoneNumber {
 }
 
 // In-memory store for Gianna settings (would be database in production)
-const giannaSettings = new Map<string, {
-  giannaEnabled: boolean;
-  giannaMode: "inbound" | "outbound" | "both" | "off";
-  giannaAvatar?: string;
-}>();
+const giannaSettings = new Map<
+  string,
+  {
+    giannaEnabled: boolean;
+    giannaMode: "inbound" | "outbound" | "both" | "off";
+    giannaAvatar?: string;
+  }
+>();
 
 // GET - Fetch all Easify phone numbers
 export async function GET() {
@@ -85,13 +88,20 @@ export async function GET() {
     if (!response.ok) {
       const error = await response.text();
       console.error("[Easify API] Failed to fetch numbers:", error);
-      return NextResponse.json({ error: "Failed to fetch Easify numbers" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Failed to fetch Easify numbers" },
+        { status: 500 },
+      );
     }
 
     const data = await response.json();
 
     // Map Easify response to our format and merge with Gianna settings
-    const numbers: EasifyPhoneNumber[] = (data.phoneNumbers || data.numbers || []).map((num: any) => {
+    const numbers: EasifyPhoneNumber[] = (
+      data.phoneNumbers ||
+      data.numbers ||
+      []
+    ).map((num: any) => {
       const settings = giannaSettings.get(num.id) || {
         giannaEnabled: false,
         giannaMode: "off" as const,
@@ -120,7 +130,10 @@ export async function GET() {
     });
   } catch (error) {
     console.error("[Easify API] Error:", error);
-    return NextResponse.json({ error: "Failed to fetch Easify numbers" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch Easify numbers" },
+      { status: 500 },
+    );
   }
 }
 
@@ -143,7 +156,9 @@ export async function POST(request: NextRequest) {
 
     // If Gianna is enabled, configure webhooks on Easify
     if (giannaEnabled && EASIFY_API_KEY) {
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://monkfish-app-mb7h3.ondigitalocean.app";
+      const baseUrl =
+        process.env.NEXT_PUBLIC_APP_URL ||
+        "https://monkfish-app-mb7h3.ondigitalocean.app";
 
       try {
         await fetch(`${EASIFY_API_URL}/phone-numbers/${phoneId}/webhooks`, {
@@ -171,6 +186,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("[Easify API] Error:", error);
-    return NextResponse.json({ error: "Failed to update settings" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to update settings" },
+      { status: 500 },
+    );
   }
 }

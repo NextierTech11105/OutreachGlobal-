@@ -22,6 +22,9 @@ export function WithConnection<T extends ObjectEdge<any>>(
 
     @Field(() => PageInfo)
     pageInfo: PageInfo;
+
+    @Field(() => Number)
+    totalCount: number;
   }
 
   return ConnectionHost;

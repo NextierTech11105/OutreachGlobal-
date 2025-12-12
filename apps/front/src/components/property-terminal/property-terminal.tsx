@@ -60,25 +60,31 @@ import {
 import { UniversalDetailModal } from "@/components/universal-detail-modal";
 import { cn } from "@/lib/utils";
 import { useCurrentTeam } from "@/features/team/team.context";
-import { performSkipTrace, type SkipTraceInput } from "@/lib/services/data-enrichment-service";
+import {
+  performSkipTrace,
+  type SkipTraceInput,
+} from "@/lib/services/data-enrichment-service";
 import { toast } from "sonner";
 
 // REST API helper to create lead (avoids Apollo bundling issues)
-async function createLeadViaAPI(teamId: string, input: {
-  firstName?: string;
-  lastName?: string;
-  phone?: string;
-  email?: string;
-  address?: string;
-  city?: string;
-  state?: string;
-  zipCode?: string;
-  source?: string;
-  tags?: string[];
-}) {
-  const response = await fetch('/api/graphql', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+async function createLeadViaAPI(
+  teamId: string,
+  input: {
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+    email?: string;
+    address?: string;
+    city?: string;
+    state?: string;
+    zipCode?: string;
+    source?: string;
+    tags?: string[];
+  },
+) {
+  const response = await fetch("/api/graphql", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       query: `
         mutation CreateLead($teamId: ID!, $input: CreateLeadInput!) {
@@ -87,11 +93,12 @@ async function createLeadViaAPI(teamId: string, input: {
           }
         }
       `,
-      variables: { teamId, input }
-    })
+      variables: { teamId, input },
+    }),
   });
   const data = await response.json();
-  if (data.errors) throw new Error(data.errors[0]?.message || 'Failed to create lead');
+  if (data.errors)
+    throw new Error(data.errors[0]?.message || "Failed to create lead");
   return data.data;
 }
 
@@ -139,7 +146,8 @@ export function PropertyTerminal() {
   const [results, setResults] = useState<PropertyResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [selectedProperty, setSelectedProperty] = useState<PropertyResult | null>(null);
+  const [selectedProperty, setSelectedProperty] =
+    useState<PropertyResult | null>(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("split");
   const [filtersCollapsed, setFiltersCollapsed] = useState(false);
@@ -150,7 +158,9 @@ export function PropertyTerminal() {
   // Skip Trace & Lead Creation state
   const [skipTraceDialogOpen, setSkipTraceDialogOpen] = useState(false);
   const [skipTraceLoading, setSkipTraceLoading] = useState(false);
-  const [skipTraceResults, setSkipTraceResults] = useState<Map<string, { phone?: string; email?: string }>>(new Map());
+  const [skipTraceResults, setSkipTraceResults] = useState<
+    Map<string, { phone?: string; email?: string }>
+  >(new Map());
   const [createLeadsDialogOpen, setCreateLeadsDialogOpen] = useState(false);
   const [createLeadsLoading, setCreateLeadsLoading] = useState(false);
   const [createdLeadsCount, setCreatedLeadsCount] = useState(0);
@@ -206,45 +216,75 @@ export function PropertyTerminal() {
         (p: Record<string, unknown>) => {
           // Handle nested address object from RealEstateAPI
           const addr = p.address as Record<string, string> | string;
-          const addressStr = typeof addr === 'object' ? addr?.address || addr?.street : addr || "";
-          const cityStr = typeof addr === 'object' ? addr?.city : p.city as string || "";
-          const stateStr = typeof addr === 'object' ? addr?.state : p.state as string || "";
-          const zipStr = typeof addr === 'object' ? addr?.zip : p.zip as string || p.zipcode as string || "";
+          const addressStr =
+            typeof addr === "object"
+              ? addr?.address || addr?.street
+              : addr || "";
+          const cityStr =
+            typeof addr === "object" ? addr?.city : (p.city as string) || "";
+          const stateStr =
+            typeof addr === "object" ? addr?.state : (p.state as string) || "";
+          const zipStr =
+            typeof addr === "object"
+              ? addr?.zip
+              : (p.zip as string) || (p.zipcode as string) || "";
 
           return {
-            id: String(p.id || p.propertyId || p.property_id || crypto.randomUUID()),
+            id: String(
+              p.id || p.propertyId || p.property_id || crypto.randomUUID(),
+            ),
             address: addressStr,
             city: cityStr,
             state: stateStr,
             zip: zipStr,
-            propertyType: String(p.propertyType || p.property_type || "Unknown"),
+            propertyType: String(
+              p.propertyType || p.property_type || "Unknown",
+            ),
             beds: Number(p.bedrooms || p.beds) || undefined,
             baths: Number(p.bathrooms || p.baths) || undefined,
-            sqft: Number(p.squareFeet || p.sqft || p.building_size) || undefined,
+            sqft:
+              Number(p.squareFeet || p.sqft || p.building_size) || undefined,
             yearBuilt: Number(p.yearBuilt || p.year_built) || undefined,
             lotSize: Number(p.lotSquareFeet || p.lot_size) || undefined,
-            estimatedValue: Number(p.estimatedValue || p.estimated_value) || undefined,
-            equity: Number(p.estimatedEquity || p.estimated_equity) || undefined,
-            equityPercent: Number(p.equityPercent || p.equity_percent) || undefined,
-            mortgageBalance: Number(p.openMortgageBalance || p.mortgage_balance) || undefined,
-            ownerName: [p.owner1FirstName, p.owner1LastName].filter(Boolean).join(' ') || p.ownerName as string || undefined,
-            ownerPhone: p.owner_phone as string || undefined,
-            ownerEmail: p.owner_email as string || undefined,
-            mailingAddress: typeof p.mailAddress === 'object' ? (p.mailAddress as Record<string, string>)?.address : undefined,
+            estimatedValue:
+              Number(p.estimatedValue || p.estimated_value) || undefined,
+            equity:
+              Number(p.estimatedEquity || p.estimated_equity) || undefined,
+            equityPercent:
+              Number(p.equityPercent || p.equity_percent) || undefined,
+            mortgageBalance:
+              Number(p.openMortgageBalance || p.mortgage_balance) || undefined,
+            ownerName:
+              [p.owner1FirstName, p.owner1LastName].filter(Boolean).join(" ") ||
+              (p.ownerName as string) ||
+              undefined,
+            ownerPhone: (p.owner_phone as string) || undefined,
+            ownerEmail: (p.owner_email as string) || undefined,
+            mailingAddress:
+              typeof p.mailAddress === "object"
+                ? (p.mailAddress as Record<string, string>)?.address
+                : undefined,
             latitude: Number(p.latitude) || undefined,
             longitude: Number(p.longitude) || undefined,
             preForeclosure: Boolean(p.preForeclosure || p.pre_foreclosure),
             foreclosure: Boolean(p.foreclosure),
             vacant: Boolean(p.vacant),
             absenteeOwner: Boolean(p.absenteeOwner || p.absentee_owner),
-            mlsStatus: p.mlsStatus as string || undefined,
-            daysOnMarket: Number(p.mlsDaysOnMarket || p.days_on_market) || undefined,
+            mlsStatus: (p.mlsStatus as string) || undefined,
+            daysOnMarket:
+              Number(p.mlsDaysOnMarket || p.days_on_market) || undefined,
           };
-        }
+        },
       );
 
       setResults(properties);
-      setTotalCount(data.resultCount || data.recordCount || data.total || data.count || properties.length);
+      setTotalCount(
+        data.resultCount ||
+          data.recordCount ||
+          data.total ||
+          data.count ||
+          properties.length,
+      );
     } catch (error) {
       console.error("Search failed:", error);
     } finally {
@@ -263,7 +303,7 @@ export function PropertyTerminal() {
       // Trigger search after setting location
       setTimeout(() => handleSearch(), 100);
     },
-    [handleSearch]
+    [handleSearch],
   );
 
   const handleReset = useCallback(() => {
@@ -295,7 +335,7 @@ export function PropertyTerminal() {
 
   const handleExportCSV = useCallback(() => {
     const toExport = results.filter(
-      (r) => selectedIds.size === 0 || selectedIds.has(r.id)
+      (r) => selectedIds.size === 0 || selectedIds.has(r.id),
     );
 
     const headers = [
@@ -332,9 +372,10 @@ export function PropertyTerminal() {
       p.ownerEmail || "",
     ]);
 
-    const csv = [headers.join(","), ...rows.map((r) => r.map((c) => `"${c}"`).join(","))].join(
-      "\n"
-    );
+    const csv = [
+      headers.join(","),
+      ...rows.map((r) => r.map((c) => `"${c}"`).join(",")),
+    ].join("\n");
 
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -345,13 +386,16 @@ export function PropertyTerminal() {
     URL.revokeObjectURL(url);
   }, [results, selectedIds]);
 
-  const handlePropertyClick = useCallback((property: PropertyMarker) => {
-    const full = results.find((r) => r.id === property.id);
-    if (full) {
-      setSelectedProperty(full);
-      setDetailModalOpen(true);
-    }
-  }, [results]);
+  const handlePropertyClick = useCallback(
+    (property: PropertyMarker) => {
+      const full = results.find((r) => r.id === property.id);
+      if (full) {
+        setSelectedProperty(full);
+        setDetailModalOpen(true);
+      }
+    },
+    [results],
+  );
 
   const handleOpenDetail = useCallback((property: PropertyResult) => {
     setSelectedProperty(property);
@@ -387,7 +431,10 @@ export function PropertyTerminal() {
       });
 
       // Map results back to property IDs
-      const newSkipTraceResults = new Map<string, { phone?: string; email?: string }>();
+      const newSkipTraceResults = new Map<
+        string,
+        { phone?: string; email?: string }
+      >();
       selectedProperties.forEach((p, index) => {
         const result = results[index];
         if (result) {
@@ -420,7 +467,9 @@ export function PropertyTerminal() {
 
     // Check 5k max limit
     if (selectedProperties.length > 5000) {
-      toast.error("Maximum 5,000 leads per batch. Please select fewer properties.");
+      toast.error(
+        "Maximum 5,000 leads per batch. Please select fewer properties.",
+      );
       return;
     }
 
@@ -497,7 +546,9 @@ export function PropertyTerminal() {
     sessionStorage.setItem("campaignLeads", JSON.stringify(campaignData));
 
     // Navigate to campaign creation
-    router.push(`/t/${team.slug}/campaigns/new?source=property-search&count=${selectedProperties.length}`);
+    router.push(
+      `/t/${team.slug}/campaigns/new?source=property-search&count=${selectedProperties.length}`,
+    );
   }, [team?.id, team?.slug, results, selectedIds, skipTraceResults, router]);
 
   const formatCurrency = (value?: number) => {
@@ -553,9 +604,7 @@ export function PropertyTerminal() {
           </Badge>
 
           {selectedIds.size > 0 && (
-            <Badge variant="secondary">
-              {selectedIds.size} selected
-            </Badge>
+            <Badge variant="secondary">{selectedIds.size} selected</Badge>
           )}
         </div>
 
@@ -604,7 +653,7 @@ export function PropertyTerminal() {
         <div
           className={cn(
             "border-r bg-background transition-all duration-200",
-            filtersCollapsed ? "w-0 overflow-hidden" : "w-80"
+            filtersCollapsed ? "w-0 overflow-hidden" : "w-80",
           )}
         >
           <PropertyFiltersPanel
@@ -686,7 +735,8 @@ export function PropertyTerminal() {
           <div className="flex items-center justify-between px-4 py-2 border-t bg-muted/30">
             <div className="text-sm text-muted-foreground">
               Showing {Math.min((page - 1) * pageSize + 1, totalCount)} -{" "}
-              {Math.min(page * pageSize, totalCount)} of {formatNumber(totalCount)}
+              {Math.min(page * pageSize, totalCount)} of{" "}
+              {formatNumber(totalCount)}
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -740,7 +790,8 @@ export function PropertyTerminal() {
               Skip Trace Properties
             </DialogTitle>
             <DialogDescription>
-              Finding contact information for {selectedIds.size} selected properties
+              Finding contact information for {selectedIds.size} selected
+              properties
             </DialogDescription>
           </DialogHeader>
 
@@ -788,7 +839,10 @@ export function PropertyTerminal() {
       </Dialog>
 
       {/* Create Leads Dialog */}
-      <Dialog open={createLeadsDialogOpen} onOpenChange={setCreateLeadsDialogOpen}>
+      <Dialog
+        open={createLeadsDialogOpen}
+        onOpenChange={setCreateLeadsDialogOpen}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -805,7 +859,9 @@ export function PropertyTerminal() {
               <div className="flex flex-col items-center gap-4">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 <div className="text-center">
-                  <p className="text-2xl font-bold">{createdLeadsCount} / {selectedIds.size}</p>
+                  <p className="text-2xl font-bold">
+                    {createdLeadsCount} / {selectedIds.size}
+                  </p>
                   <p className="text-sm text-muted-foreground">
                     Creating leads...
                   </p>
@@ -813,7 +869,9 @@ export function PropertyTerminal() {
                 <div className="w-full bg-muted rounded-full h-2">
                   <div
                     className="bg-primary h-2 rounded-full transition-all"
-                    style={{ width: `${(createdLeadsCount / selectedIds.size) * 100}%` }}
+                    style={{
+                      width: `${(createdLeadsCount / selectedIds.size) * 100}%`,
+                    }}
                   />
                 </div>
               </div>
@@ -883,7 +941,9 @@ function PropertyTable({
         <TableRow>
           <TableHead className="w-10">
             <Checkbox
-              checked={results.length > 0 && selectedIds.size === results.length}
+              checked={
+                results.length > 0 && selectedIds.size === results.length
+              }
               onCheckedChange={onToggleSelectAll}
             />
           </TableHead>
@@ -907,7 +967,7 @@ function PropertyTable({
             key={property.id}
             className={cn(
               "cursor-pointer hover:bg-muted/50",
-              selectedIds.has(property.id) && "bg-muted"
+              selectedIds.has(property.id) && "bg-muted",
             )}
             onClick={() => onRowClick(property)}
           >
@@ -926,8 +986,12 @@ function PropertyTable({
                 {property.propertyType}
               </Badge>
             </TableCell>
-            <TableCell className="text-right font-mono">{property.beds || "-"}</TableCell>
-            <TableCell className="text-right font-mono">{property.baths || "-"}</TableCell>
+            <TableCell className="text-right font-mono">
+              {property.beds || "-"}
+            </TableCell>
+            <TableCell className="text-right font-mono">
+              {property.baths || "-"}
+            </TableCell>
             <TableCell className="text-right font-mono">
               {formatNumber(property.sqft)}
             </TableCell>
@@ -937,8 +1001,13 @@ function PropertyTable({
             <TableCell className="text-right font-mono text-green-600">
               {formatCurrency(property.equity)}
             </TableCell>
-            <TableCell className="truncate max-w-[150px]">{property.ownerName || "-"}</TableCell>
-            <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+            <TableCell className="truncate max-w-[150px]">
+              {property.ownerName || "-"}
+            </TableCell>
+            <TableCell
+              className="text-center"
+              onClick={(e) => e.stopPropagation()}
+            >
               <Button
                 variant="ghost"
                 size="icon"
@@ -952,7 +1021,10 @@ function PropertyTable({
         ))}
         {results.length === 0 && (
           <TableRow>
-            <TableCell colSpan={13} className="text-center py-8 text-muted-foreground">
+            <TableCell
+              colSpan={13}
+              className="text-center py-8 text-muted-foreground"
+            >
               No properties found. Use the filters or draw on the map to search.
             </TableCell>
           </TableRow>
@@ -1029,7 +1101,9 @@ function PropertyDetailPanel({
             </div>
             <div className="space-y-1">
               <div className="text-xs text-muted-foreground">MLS Status</div>
-              <div className="font-medium">{property.mlsStatus || "Not Listed"}</div>
+              <div className="font-medium">
+                {property.mlsStatus || "Not Listed"}
+              </div>
             </div>
           </div>
 
@@ -1037,9 +1111,13 @@ function PropertyDetailPanel({
             {property.preForeclosure && (
               <Badge variant="destructive">Pre-Foreclosure</Badge>
             )}
-            {property.foreclosure && <Badge variant="destructive">Foreclosure</Badge>}
+            {property.foreclosure && (
+              <Badge variant="destructive">Foreclosure</Badge>
+            )}
             {property.vacant && <Badge variant="secondary">Vacant</Badge>}
-            {property.absenteeOwner && <Badge variant="secondary">Absentee</Badge>}
+            {property.absenteeOwner && (
+              <Badge variant="secondary">Absentee</Badge>
+            )}
           </div>
         </TabsContent>
 
@@ -1050,15 +1128,22 @@ function PropertyDetailPanel({
                 <User className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <div className="font-medium">{property.ownerName || "Unknown"}</div>
-                <div className="text-xs text-muted-foreground">Property Owner</div>
+                <div className="font-medium">
+                  {property.ownerName || "Unknown"}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Property Owner
+                </div>
               </div>
             </div>
 
             {property.ownerPhone && (
               <div className="flex items-center gap-3 p-3 border rounded-lg">
                 <Phone className="h-4 w-4 text-muted-foreground" />
-                <a href={`tel:${property.ownerPhone}`} className="text-primary hover:underline">
+                <a
+                  href={`tel:${property.ownerPhone}`}
+                  className="text-primary hover:underline"
+                >
                   {property.ownerPhone}
                 </a>
               </div>
@@ -1067,7 +1152,10 @@ function PropertyDetailPanel({
             {property.ownerEmail && (
               <div className="flex items-center gap-3 p-3 border rounded-lg">
                 <Mail className="h-4 w-4 text-muted-foreground" />
-                <a href={`mailto:${property.ownerEmail}`} className="text-primary hover:underline">
+                <a
+                  href={`mailto:${property.ownerEmail}`}
+                  className="text-primary hover:underline"
+                >
                   {property.ownerEmail}
                 </a>
               </div>
@@ -1095,7 +1183,9 @@ function PropertyDetailPanel({
         <TabsContent value="financial" className="space-y-4 mt-4">
           <div className="space-y-3">
             <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-              <div className="text-sm text-muted-foreground">Estimated Value</div>
+              <div className="text-sm text-muted-foreground">
+                Estimated Value
+              </div>
               <div className="font-bold text-lg">
                 {formatCurrency(property.estimatedValue)}
               </div>
@@ -1106,13 +1196,17 @@ function PropertyDetailPanel({
               <div className="font-bold text-lg text-green-600">
                 {formatCurrency(property.equity)}
                 {property.equityPercent && (
-                  <span className="text-sm ml-1">({property.equityPercent}%)</span>
+                  <span className="text-sm ml-1">
+                    ({property.equityPercent}%)
+                  </span>
                 )}
               </div>
             </div>
 
             <div className="flex items-center justify-between p-3 border rounded-lg">
-              <div className="text-sm text-muted-foreground">Mortgage Balance</div>
+              <div className="text-sm text-muted-foreground">
+                Mortgage Balance
+              </div>
               <div className="font-medium">
                 {formatCurrency(property.mortgageBalance)}
               </div>

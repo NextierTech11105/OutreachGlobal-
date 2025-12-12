@@ -29,22 +29,29 @@ interface CalendarLead {
 }
 
 // Campaign stage templates
-const CAMPAIGN_TEMPLATES: Record<string, { message: string; category: string }> = {
+const CAMPAIGN_TEMPLATES: Record<
+  string,
+  { message: string; category: string }
+> = {
   initial: {
     category: "sms_initial",
-    message: "Hi {name}! I noticed your property at {address}. I'm reaching out about potential opportunities in your area. Would you be open to a quick chat?",
+    message:
+      "Hi {name}! I noticed your property at {address}. I'm reaching out about potential opportunities in your area. Would you be open to a quick chat?",
   },
   nc_retarget: {
     category: "sms_followup",
-    message: "Hi {name}, just following up on my previous message about {address}. I'd love to connect when you have a moment. Reply YES if interested!",
+    message:
+      "Hi {name}, just following up on my previous message about {address}. I'd love to connect when you have a moment. Reply YES if interested!",
   },
   nurture: {
     category: "sms_nurture",
-    message: "Hey {name}! Hope you're doing well. I wanted to check in and see if anything has changed with your property at {address}. Always here if you need anything!",
+    message:
+      "Hey {name}! Hope you're doing well. I wanted to check in and see if anything has changed with your property at {address}. Always here if you need anything!",
   },
   nudger: {
     category: "sms_nudge",
-    message: "{name}, quick reminder - we're still interested in discussing {address}. This week might be our last chance to connect. Let me know if you'd like to chat!",
+    message:
+      "{name}, quick reminder - we're still interested in discussing {address}. This week might be our last chance to connect. Let me know if you'd like to chat!",
   },
 };
 
@@ -100,7 +107,8 @@ export async function GET(request: NextRequest) {
     // Transform to calendar format
     const calendarLeads: CalendarLead[] = results.map((lead) => ({
       id: lead.id,
-      name: [lead.firstName, lead.lastName].filter(Boolean).join(" ") || "Unknown",
+      name:
+        [lead.firstName, lead.lastName].filter(Boolean).join(" ") || "Unknown",
       phone: lead.phone || undefined,
       email: lead.email || undefined,
       address: lead.propertyAddress || undefined,
@@ -125,7 +133,7 @@ export async function GET(request: NextRequest) {
     console.error("[Calendar Leads] GET error:", error);
     return NextResponse.json(
       { success: false, error: "Failed to fetch leads" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -139,21 +147,35 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { action, leads: inputLeads, campaignStage, customMessage, scheduledDate } = body;
+    const {
+      action,
+      leads: inputLeads,
+      campaignStage,
+      customMessage,
+      scheduledDate,
+    } = body;
 
     switch (action) {
       case "push_to_campaign": {
-        if (!inputLeads || !Array.isArray(inputLeads) || inputLeads.length === 0) {
+        if (
+          !inputLeads ||
+          !Array.isArray(inputLeads) ||
+          inputLeads.length === 0
+        ) {
           return NextResponse.json(
             { success: false, error: "leads array required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
         if (!campaignStage || !CAMPAIGN_TEMPLATES[campaignStage]) {
           return NextResponse.json(
-            { success: false, error: "Valid campaignStage required (initial, nc_retarget, nurture, nudger)" },
-            { status: 400 }
+            {
+              success: false,
+              error:
+                "Valid campaignStage required (initial, nc_retarget, nurture, nudger)",
+            },
+            { status: 400 },
           );
         }
 
@@ -187,18 +209,21 @@ export async function POST(request: NextRequest) {
         }
 
         // Push to SMS queue as drafts for human review
-        const queueResponse = await fetch(new URL("/api/sms/queue", request.url).toString(), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "add_draft_batch",
-            leads: smsLeads,
-            templateCategory: template.category,
-            templateMessage,
-            campaignId: `calendar-${campaignStage}-${Date.now()}`,
-            agent: "gianna",
-          }),
-        });
+        const queueResponse = await fetch(
+          new URL("/api/sms/queue", request.url).toString(),
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "add_draft_batch",
+              leads: smsLeads,
+              templateCategory: template.category,
+              templateMessage,
+              campaignId: `calendar-${campaignStage}-${Date.now()}`,
+              agent: "gianna",
+            }),
+          },
+        );
 
         const queueResult = await queueResponse.json();
 
@@ -216,17 +241,21 @@ export async function POST(request: NextRequest) {
 
       case "schedule_to_calendar": {
         // Schedule leads for follow-up on a specific date
-        if (!inputLeads || !Array.isArray(inputLeads) || inputLeads.length === 0) {
+        if (
+          !inputLeads ||
+          !Array.isArray(inputLeads) ||
+          inputLeads.length === 0
+        ) {
           return NextResponse.json(
             { success: false, error: "leads array required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
         if (!scheduledDate) {
           return NextResponse.json(
             { success: false, error: "scheduledDate required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -239,7 +268,7 @@ export async function POST(request: NextRequest) {
               scheduledFollowUp: new Date(scheduledDate),
               updatedAt: new Date(),
             })
-            .where(and(eq(leads.id, id), eq(leads.userId, userId)))
+            .where(and(eq(leads.id, id), eq(leads.userId, userId))),
         );
 
         await Promise.all(updatePromises);
@@ -258,7 +287,7 @@ export async function POST(request: NextRequest) {
         if (!leadId || !newStatus) {
           return NextResponse.json(
             { success: false, error: "leadId and newStatus required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -285,7 +314,7 @@ export async function POST(request: NextRequest) {
         if (!leadIds || !Array.isArray(leadIds) || !newStatus) {
           return NextResponse.json(
             { success: false, error: "leadIds array and newStatus required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -297,7 +326,7 @@ export async function POST(request: NextRequest) {
               lastActivityAt: new Date(),
               updatedAt: new Date(),
             })
-            .where(and(eq(leads.id, id), eq(leads.userId, userId)))
+            .where(and(eq(leads.id, id), eq(leads.userId, userId))),
         );
 
         await Promise.all(updatePromises);
@@ -313,14 +342,14 @@ export async function POST(request: NextRequest) {
       default:
         return NextResponse.json(
           { success: false, error: `Unknown action: ${action}` },
-          { status: 400 }
+          { status: 400 },
         );
     }
   } catch (error) {
     console.error("[Calendar Leads] POST error:", error);
     return NextResponse.json(
       { success: false, error: "Failed to process request" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

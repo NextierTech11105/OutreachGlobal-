@@ -10,20 +10,20 @@
  */
 export interface GiannaPersonality {
   // Core Tone Settings
-  warmth: number;        // 0 = cold/professional, 100 = warm/friendly
-  directness: number;    // 0 = soft/indirect, 100 = straight to the point
-  humor: number;         // 0 = serious only, 100 = playful/witty
-  formality: number;     // 0 = casual texting, 100 = business formal
+  warmth: number; // 0 = cold/professional, 100 = warm/friendly
+  directness: number; // 0 = soft/indirect, 100 = straight to the point
+  humor: number; // 0 = serious only, 100 = playful/witty
+  formality: number; // 0 = casual texting, 100 = business formal
 
   // Persistence Settings
-  urgency: number;       // 0 = patient/relaxed, 100 = time-sensitive push
-  nudging: number;       // 0 = one and done, 100 = persistent follow-up
+  urgency: number; // 0 = patient/relaxed, 100 = time-sensitive push
+  nudging: number; // 0 = one and done, 100 = persistent follow-up
   assertiveness: number; // 0 = passive/suggestive, 100 = confident/direct ask
 
   // Situational Settings
-  empathy: number;       // 0 = transactional, 100 = emotionally attuned
-  curiosity: number;     // 0 = stay on script, 100 = ask discovery questions
-  closingPush: number;   // 0 = soft close, 100 = hard close for meeting/call
+  empathy: number; // 0 = transactional, 100 = emotionally attuned
+  curiosity: number; // 0 = stay on script, 100 = ask discovery questions
+  closingPush: number; // 0 = soft close, 100 = hard close for meeting/call
 }
 
 /**
@@ -243,9 +243,12 @@ export const RESPONSE_STRATEGIES = {
     templates: {
       day3: "Hey {{name}} — just checking in. Still interested in that valuation?",
       day7: "Quick follow up — did my last message get lost?",
-      day14: "{{name}} — closing the loop. Worth a quick chat or should I move on?",
-      day30: "Last try — wanted to see if timing's better now for that valuation?",
-      final: "Looks like timing isn't right. I'll circle back in a few months. Good luck!",
+      day14:
+        "{{name}} — closing the loop. Worth a quick chat or should I move on?",
+      day30:
+        "Last try — wanted to see if timing's better now for that valuation?",
+      final:
+        "Looks like timing isn't right. I'll circle back in a few months. Good luck!",
     },
   },
 };
@@ -341,7 +344,8 @@ export const LEAD_TYPE_APPROACHES = {
     tone: "empathetic, solution-focused",
     avoid: "mentioning distress directly, sounding vulture-like",
     approach: "Position as a way out, not as taking advantage",
-    opener: "I know things can get complicated with finances. Just wanted to see if I could help.",
+    opener:
+      "I know things can get complicated with finances. Just wanted to see if I could help.",
   },
 
   foreclosure: {
@@ -355,49 +359,56 @@ export const LEAD_TYPE_APPROACHES = {
     tone: "practical, convenience-focused",
     avoid: "assuming they want to sell",
     approach: "Emphasize hassle-free, no-work-required sale",
-    opener: "Managing a property from afar can be a headache. Ever thought about offloading it?",
+    opener:
+      "Managing a property from afar can be a headache. Ever thought about offloading it?",
   },
 
   vacant: {
     tone: "helpful, problem-solving",
     avoid: "assuming the property is a burden",
     approach: "Empty property = carrying costs, offer a solution",
-    opener: "Sitting on a vacant property? Might be worth seeing what it's worth to buyers right now.",
+    opener:
+      "Sitting on a vacant property? Might be worth seeing what it's worth to buyers right now.",
   },
 
   tax_lien: {
     tone: "discreet, helpful",
     avoid: "mentioning tax issues directly, judgmental tone",
     approach: "Subtle acknowledgment, focus on resolution",
-    opener: "I help property owners explore their options. Sometimes a quick sale solves a lot of problems.",
+    opener:
+      "I help property owners explore their options. Sometimes a quick sale solves a lot of problems.",
   },
 
   inherited: {
     tone: "compassionate, patient",
     avoid: "rushing, insensitivity to loss",
     approach: "Acknowledge the situation may be overwhelming",
-    opener: "Inheriting property can come with a lot of decisions. I'm here if you want to talk through options.",
+    opener:
+      "Inheriting property can come with a lot of decisions. I'm here if you want to talk through options.",
   },
 
   high_equity: {
     tone: "value-focused, opportunity-minded",
     avoid: "assuming they need money",
     approach: "You have options - let's explore them",
-    opener: "With the equity you've built, you've got a lot of options. Curious what a sale could look like?",
+    opener:
+      "With the equity you've built, you've got a lot of options. Curious what a sale could look like?",
   },
 
   tired_landlord: {
     tone: "understanding, solution-oriented",
     avoid: "diminishing their experience",
     approach: "Acknowledge tenant fatigue, offer exit path",
-    opener: "Tenants can be exhausting. Ever think about cashing out and letting someone else deal with it?",
+    opener:
+      "Tenants can be exhausting. Ever think about cashing out and letting someone else deal with it?",
   },
 
   divorce: {
     tone: "professional, discrete",
     avoid: "mentioning the divorce, taking sides",
     approach: "Clean, quick, fair — everyone moves on",
-    opener: "I help with quick property sales when people need clean breaks. Happy to help if that's useful.",
+    opener:
+      "I help with quick property sales when people need clean breaks. Happy to help if that's useful.",
   },
 };
 
@@ -437,7 +448,9 @@ export function personalityToPrompt(personality: GiannaPersonality): string {
 
   // Warmth
   if (personality.warmth > 70) {
-    instructions.push("Be warm and friendly, use casual language like 'Hey' instead of 'Hello'");
+    instructions.push(
+      "Be warm and friendly, use casual language like 'Hey' instead of 'Hello'",
+    );
   } else if (personality.warmth < 30) {
     instructions.push("Keep it professional and business-like");
   }
@@ -460,26 +473,34 @@ export function personalityToPrompt(personality: GiannaPersonality): string {
   if (personality.formality > 70) {
     instructions.push("Use proper grammar and formal language");
   } else if (personality.formality < 30) {
-    instructions.push("Write like you're texting a friend - casual, abbreviated is okay");
+    instructions.push(
+      "Write like you're texting a friend - casual, abbreviated is okay",
+    );
   }
 
   // Urgency
   if (personality.urgency > 70) {
-    instructions.push("Create a sense of time-sensitivity, mention 'today' or 'this week'");
+    instructions.push(
+      "Create a sense of time-sensitivity, mention 'today' or 'this week'",
+    );
   } else if (personality.urgency < 30) {
     instructions.push("Be patient, no rush or pressure");
   }
 
   // Assertiveness
   if (personality.assertiveness > 70) {
-    instructions.push("Ask confidently for what you want (the call, the email)");
+    instructions.push(
+      "Ask confidently for what you want (the call, the email)",
+    );
   } else if (personality.assertiveness < 30) {
     instructions.push("Suggest rather than ask, be gentle with asks");
   }
 
   // Empathy
   if (personality.empathy > 70) {
-    instructions.push("Acknowledge their situation and feelings before pushing forward");
+    instructions.push(
+      "Acknowledge their situation and feelings before pushing forward",
+    );
   }
 
   // Closing push
@@ -495,22 +516,35 @@ export function personalityToPrompt(personality: GiannaPersonality): string {
 /**
  * GET STRATEGY FOR INCOMING MESSAGE INTENT
  */
-export function getResponseStrategy(intent: string): typeof RESPONSE_STRATEGIES[keyof typeof RESPONSE_STRATEGIES] | null {
-  return RESPONSE_STRATEGIES[intent as keyof typeof RESPONSE_STRATEGIES] || null;
+export function getResponseStrategy(
+  intent: string,
+): (typeof RESPONSE_STRATEGIES)[keyof typeof RESPONSE_STRATEGIES] | null {
+  return (
+    RESPONSE_STRATEGIES[intent as keyof typeof RESPONSE_STRATEGIES] || null
+  );
 }
 
 /**
  * GET OBJECTION HANDLER
  */
-export function getObjectionResponse(objectionType: string): typeof OBJECTION_RESPONSES[keyof typeof OBJECTION_RESPONSES] | null {
-  return OBJECTION_RESPONSES[objectionType as keyof typeof OBJECTION_RESPONSES] || null;
+export function getObjectionResponse(
+  objectionType: string,
+): (typeof OBJECTION_RESPONSES)[keyof typeof OBJECTION_RESPONSES] | null {
+  return (
+    OBJECTION_RESPONSES[objectionType as keyof typeof OBJECTION_RESPONSES] ||
+    null
+  );
 }
 
 /**
  * GET LEAD TYPE APPROACH
  */
-export function getLeadTypeApproach(leadType: string): typeof LEAD_TYPE_APPROACHES[keyof typeof LEAD_TYPE_APPROACHES] | null {
-  return LEAD_TYPE_APPROACHES[leadType as keyof typeof LEAD_TYPE_APPROACHES] || null;
+export function getLeadTypeApproach(
+  leadType: string,
+): (typeof LEAD_TYPE_APPROACHES)[keyof typeof LEAD_TYPE_APPROACHES] | null {
+  return (
+    LEAD_TYPE_APPROACHES[leadType as keyof typeof LEAD_TYPE_APPROACHES] || null
+  );
 }
 
 /**
@@ -519,25 +553,50 @@ export function getLeadTypeApproach(leadType: string): typeof LEAD_TYPE_APPROACH
 export function detectObjection(message: string): string | null {
   const lower = message.toLowerCase();
 
-  if (lower.includes("not interested") || lower.includes("no thanks") || lower.includes("pass")) {
+  if (
+    lower.includes("not interested") ||
+    lower.includes("no thanks") ||
+    lower.includes("pass")
+  ) {
     return "not_interested";
   }
-  if (lower.includes("busy") || lower.includes("don't have time") || lower.includes("not now")) {
+  if (
+    lower.includes("busy") ||
+    lower.includes("don't have time") ||
+    lower.includes("not now")
+  ) {
     return "too_busy";
   }
   if (lower.includes("send") && lower.includes("email")) {
     return "send_email";
   }
-  if (lower.includes("how") && (lower.includes("number") || lower.includes("got my") || lower.includes("find me"))) {
+  if (
+    lower.includes("how") &&
+    (lower.includes("number") ||
+      lower.includes("got my") ||
+      lower.includes("find me"))
+  ) {
     return "how_got_number";
   }
-  if (lower.includes("already") || lower.includes("working with") || lower.includes("have someone")) {
+  if (
+    lower.includes("already") ||
+    lower.includes("working with") ||
+    lower.includes("have someone")
+  ) {
     return "already_working_with";
   }
-  if (lower.includes("scam") || lower.includes("fraud") || lower.includes("fake")) {
+  if (
+    lower.includes("scam") ||
+    lower.includes("fraud") ||
+    lower.includes("fake")
+  ) {
     return "scam_accusation";
   }
-  if (lower.includes("catch") || lower.includes("hidden") || lower.includes("what's in it")) {
+  if (
+    lower.includes("catch") ||
+    lower.includes("hidden") ||
+    lower.includes("what's in it")
+  ) {
     return "whats_the_catch";
   }
 

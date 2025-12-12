@@ -59,8 +59,12 @@ export function DashboardQuickActions() {
   }
 
   const hasLeads = (leadData?.leads?.edges?.length || 0) > 0;
-  const pendingSMS = smsCampaignQueue.filter((s) => s.status === "queued").length;
-  const pendingCalls = scheduledCalls.filter((c) => c.status === "pending").length;
+  const pendingSMS = smsCampaignQueue.filter(
+    (s) => s.status === "queued",
+  ).length;
+  const pendingCalls = scheduledCalls.filter(
+    (c) => c.status === "pending",
+  ).length;
   const todayEvents = calendarEvents.filter((e) => {
     const today = new Date();
     const eventDate = new Date(e.startTime);
@@ -187,7 +191,11 @@ export function DashboardQuickActions() {
           Quick Actions
         </h3>
         <p className="text-sm text-muted-foreground">
-          Press <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono">Ctrl+K</kbd> for command palette
+          Press{" "}
+          <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono">
+            Ctrl+K
+          </kbd>{" "}
+          for command palette
         </p>
       </div>
 
@@ -204,7 +212,10 @@ export function DashboardQuickActions() {
                 <Send className="h-6 w-6 text-blue-500" />
               </div>
               {pendingSMS > 0 && (
-                <Badge variant="secondary" className="bg-blue-500/10 text-blue-600">
+                <Badge
+                  variant="secondary"
+                  className="bg-blue-500/10 text-blue-600"
+                >
                   {pendingSMS} queued
                 </Badge>
               )}
@@ -227,7 +238,10 @@ export function DashboardQuickActions() {
                 <PhoneOutgoing className="h-6 w-6 text-green-500" />
               </div>
               {pendingCalls > 0 && (
-                <Badge variant="secondary" className="bg-green-500/10 text-green-600">
+                <Badge
+                  variant="secondary"
+                  className="bg-green-500/10 text-green-600"
+                >
                   {pendingCalls} scheduled
                 </Badge>
               )}
@@ -250,7 +264,10 @@ export function DashboardQuickActions() {
                 <Calendar className="h-6 w-6 text-purple-500" />
               </div>
               {todayEvents > 0 && (
-                <Badge variant="secondary" className="bg-purple-500/10 text-purple-600">
+                <Badge
+                  variant="secondary"
+                  className="bg-purple-500/10 text-purple-600"
+                >
                   {todayEvents} today
                 </Badge>
               )}

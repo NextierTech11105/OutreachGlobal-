@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 // SignalHouse API configuration
 const SIGNALHOUSE_API_KEY = process.env.SIGNALHOUSE_API_KEY || "";
-const SIGNALHOUSE_API_URL = process.env.SIGNALHOUSE_API_URL || "https://api.signalhouse.io/v1";
+const SIGNALHOUSE_API_URL =
+  process.env.SIGNALHOUSE_API_URL || "https://api.signalhouse.io/v1";
 
 interface SignalHousePhoneNumber {
   id: string;
@@ -25,18 +26,23 @@ interface SignalHousePhoneNumber {
 }
 
 // In-memory store for Gianna settings (would be database in production)
-const giannaSettings = new Map<string, {
-  giannaEnabled: boolean;
-  giannaMode: "inbound" | "outbound" | "both" | "off";
-  giannaAvatar?: string;
-}>();
+const giannaSettings = new Map<
+  string,
+  {
+    giannaEnabled: boolean;
+    giannaMode: "inbound" | "outbound" | "both" | "off";
+    giannaAvatar?: string;
+  }
+>();
 
 // GET - Fetch all SignalHouse phone numbers
 export async function GET() {
   try {
     // If no API key, return demo data
     if (!SIGNALHOUSE_API_KEY) {
-      console.log("[SignalHouse API] No API key configured, returning demo data");
+      console.log(
+        "[SignalHouse API] No API key configured, returning demo data",
+      );
       return NextResponse.json({
         numbers: [
           {
@@ -45,7 +51,12 @@ export async function GET() {
             label: "Bulk SMS Pool A",
             friendlyName: "SignalHouse Bulk A",
             status: "active",
-            capabilities: { sms: true, voice: false, mms: false, bulkSms: true },
+            capabilities: {
+              sms: true,
+              voice: false,
+              mms: false,
+              bulkSms: true,
+            },
             giannaEnabled: false,
             giannaMode: "off",
             dailyLimit: 10000,
@@ -57,7 +68,12 @@ export async function GET() {
             label: "Bulk SMS Pool B",
             friendlyName: "SignalHouse Bulk B",
             status: "active",
-            capabilities: { sms: true, voice: false, mms: false, bulkSms: true },
+            capabilities: {
+              sms: true,
+              voice: false,
+              mms: false,
+              bulkSms: true,
+            },
             giannaEnabled: false,
             giannaMode: "off",
             dailyLimit: 10000,
@@ -69,7 +85,12 @@ export async function GET() {
             label: "Response Line",
             friendlyName: "SignalHouse Response",
             status: "active",
-            capabilities: { sms: true, voice: false, mms: false, bulkSms: true },
+            capabilities: {
+              sms: true,
+              voice: false,
+              mms: false,
+              bulkSms: true,
+            },
             giannaEnabled: true,
             giannaMode: "inbound",
             giannaAvatar: "gianna-default",
@@ -93,13 +114,21 @@ export async function GET() {
     if (!response.ok) {
       const error = await response.text();
       console.error("[SignalHouse API] Failed to fetch numbers:", error);
-      return NextResponse.json({ error: "Failed to fetch SignalHouse numbers" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Failed to fetch SignalHouse numbers" },
+        { status: 500 },
+      );
     }
 
     const data = await response.json();
 
     // Map SignalHouse response to our format and merge with Gianna settings
-    const numbers: SignalHousePhoneNumber[] = (data.phoneNumbers || data.numbers || data.data || []).map((num: any) => {
+    const numbers: SignalHousePhoneNumber[] = (
+      data.phoneNumbers ||
+      data.numbers ||
+      data.data ||
+      []
+    ).map((num: any) => {
       const settings = giannaSettings.get(num.id) || {
         giannaEnabled: false,
         giannaMode: "off" as const,
@@ -109,7 +138,8 @@ export async function GET() {
         id: num.id || num.sid || num.phone_number_id,
         phoneNumber: num.phoneNumber || num.phone_number || num.number,
         label: num.label || num.name || num.friendly_name,
-        friendlyName: num.friendlyName || num.friendly_name || num.label || num.name,
+        friendlyName:
+          num.friendlyName || num.friendly_name || num.label || num.name,
         status: num.status || "active",
         capabilities: {
           sms: true,
@@ -131,7 +161,10 @@ export async function GET() {
     });
   } catch (error) {
     console.error("[SignalHouse API] Error:", error);
-    return NextResponse.json({ error: "Failed to fetch SignalHouse numbers" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch SignalHouse numbers" },
+      { status: 500 },
+    );
   }
 }
 
@@ -154,7 +187,9 @@ export async function POST(request: NextRequest) {
 
     // If Gianna is enabled, configure webhooks on SignalHouse
     if (giannaEnabled && SIGNALHOUSE_API_KEY) {
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://monkfish-app-mb7h3.ondigitalocean.app";
+      const baseUrl =
+        process.env.NEXT_PUBLIC_APP_URL ||
+        "https://monkfish-app-mb7h3.ondigitalocean.app";
 
       try {
         await fetch(`${SIGNALHOUSE_API_URL}/webhooks`, {
@@ -181,6 +216,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("[SignalHouse API] Error:", error);
-    return NextResponse.json({ error: "Failed to update settings" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to update settings" },
+      { status: 500 },
+    );
   }
 }

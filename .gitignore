@@ -205,3 +205,19 @@ ios/Pods/Flipper-RSocket
 
 # MCP Config (contains secrets)
 .mcp.json
+
+# Local scripts with secrets
+*.ps1
+do-spec-backup.yaml
+homeowner-advisors-spec.yaml
+nextier-spec-current.yaml
+temp.txt
+nul
+*.py
+*.js
+postman/
+scripts/
+functions/.deployed/
+functions/packages/**/__deployer__.zip
+functions/packages/**/package-lock.json
+

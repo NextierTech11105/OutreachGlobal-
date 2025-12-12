@@ -44,7 +44,13 @@ interface DialerLead {
   lastName: string;
   phone: string;
   priority: string;
-  status: "pending" | "dialing" | "connected" | "completed" | "skipped" | "failed";
+  status:
+    | "pending"
+    | "dialing"
+    | "connected"
+    | "completed"
+    | "skipped"
+    | "failed";
   attempts: number;
   lastAttempt?: string;
   disposition?: string;
@@ -57,19 +63,26 @@ const dialerWorkspaces = new Map<string, DialerWorkspace>();
 export async function POST(request: NextRequest) {
   try {
     const body: LoadRequest = await request.json();
-    const { leadIds, workspaceId, campaignId, priority, dialMode = "preview", assignedAgent } = body;
+    const {
+      leadIds,
+      workspaceId,
+      campaignId,
+      priority,
+      dialMode = "preview",
+      assignedAgent,
+    } = body;
 
     if (!leadIds || !Array.isArray(leadIds) || leadIds.length === 0) {
       return NextResponse.json(
         { error: "leadIds array is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!workspaceId) {
       return NextResponse.json(
         { error: "workspaceId is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -90,7 +103,7 @@ export async function POST(request: NextRequest) {
       .where(inArray(leads.id, limitedLeadIds));
 
     // Filter and validate leads
-    const validLeads = leadsData.filter(l => {
+    const validLeads = leadsData.filter((l) => {
       // Must have phone
       if (!l.phone || l.phone.length < 10) return false;
       // Skip suppressed leads
@@ -102,14 +115,18 @@ export async function POST(request: NextRequest) {
     if (priority) {
       validLeads.sort((a, b) => {
         const priorityOrder = { high: 0, medium: 1, low: 2 };
-        const aPriority = (a.priority?.toLowerCase() || "medium") as keyof typeof priorityOrder;
-        const bPriority = (b.priority?.toLowerCase() || "medium") as keyof typeof priorityOrder;
-        return (priorityOrder[aPriority] || 1) - (priorityOrder[bPriority] || 1);
+        const aPriority = (a.priority?.toLowerCase() ||
+          "medium") as keyof typeof priorityOrder;
+        const bPriority = (b.priority?.toLowerCase() ||
+          "medium") as keyof typeof priorityOrder;
+        return (
+          (priorityOrder[aPriority] || 1) - (priorityOrder[bPriority] || 1)
+        );
       });
     }
 
     // Create dialer leads
-    const dialerLeads: DialerLead[] = validLeads.map(l => ({
+    const dialerLeads: DialerLead[] = validLeads.map((l) => ({
       id: crypto.randomUUID(),
       leadId: l.id,
       firstName: l.firstName || "",
@@ -146,9 +163,16 @@ export async function POST(request: NextRequest) {
         assignedTo: assignedAgent,
         updatedAt: new Date(),
       })
-      .where(inArray(leads.id, validLeads.map(l => l.id)));
+      .where(
+        inArray(
+          leads.id,
+          validLeads.map((l) => l.id),
+        ),
+      );
 
-    console.log(`[Dialer] Loaded ${validLeads.length} leads into workspace ${dialerWorkspaceId}`);
+    console.log(
+      `[Dialer] Loaded ${validLeads.length} leads into workspace ${dialerWorkspaceId}`,
+    );
 
     return NextResponse.json({
       success: true,
@@ -180,7 +204,7 @@ export async function GET(request: NextRequest) {
       if (!workspace) {
         return NextResponse.json(
           { error: "Dialer workspace not found" },
-          { status: 404 }
+          { status: 404 },
         );
       }
       return NextResponse.json({
@@ -194,12 +218,15 @@ export async function GET(request: NextRequest) {
 
     if (workspaceId) {
       const workspaces = Array.from(dialerWorkspaces.values())
-        .filter(w => w.workspaceId === workspaceId)
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        .filter((w) => w.workspaceId === workspaceId)
+        .sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        );
 
       return NextResponse.json({
         success: true,
-        workspaces: workspaces.map(w => ({
+        workspaces: workspaces.map((w) => ({
           id: w.id,
           status: w.status,
           totalLeads: w.totalLeads,
@@ -213,9 +240,12 @@ export async function GET(request: NextRequest) {
 
     // Return all recent workspaces summary
     const recentWorkspaces = Array.from(dialerWorkspaces.values())
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      )
       .slice(0, 10)
-      .map(w => ({
+      .map((w) => ({
         id: w.id,
         workspaceId: w.workspaceId,
         status: w.status,
@@ -249,7 +279,7 @@ export async function PUT(request: NextRequest) {
     if (!dialerWorkspaceId) {
       return NextResponse.json(
         { error: "dialerWorkspaceId is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -257,7 +287,7 @@ export async function PUT(request: NextRequest) {
     if (!workspace) {
       return NextResponse.json(
         { error: "Workspace not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -274,7 +304,7 @@ export async function PUT(request: NextRequest) {
 
     // Handle lead disposition update
     if (leadId && disposition) {
-      const lead = workspace.leads.find(l => l.leadId === leadId);
+      const lead = workspace.leads.find((l) => l.leadId === leadId);
       if (lead) {
         lead.status = "completed";
         lead.disposition = disposition;

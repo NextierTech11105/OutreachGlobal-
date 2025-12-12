@@ -61,20 +61,24 @@ export async function POST(request: NextRequest) {
     if (!message) {
       return NextResponse.json(
         { error: "message is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Build context string
     const contextParts = [];
     if (context.page) contextParts.push(`User is on: ${context.page} page`);
-    if (context.leadName) contextParts.push(`Working with lead: ${context.leadName}`);
-    if (context.leadPhone) contextParts.push(`Lead phone: ${context.leadPhone}`);
-    if (context.currentPage) contextParts.push(`Current URL: ${context.currentPage}`);
+    if (context.leadName)
+      contextParts.push(`Working with lead: ${context.leadName}`);
+    if (context.leadPhone)
+      contextParts.push(`Lead phone: ${context.leadPhone}`);
+    if (context.currentPage)
+      contextParts.push(`Current URL: ${context.currentPage}`);
 
-    const contextString = contextParts.length > 0
-      ? `\n\nCurrent context:\n${contextParts.join("\n")}`
-      : "";
+    const contextString =
+      contextParts.length > 0
+        ? `\n\nCurrent context:\n${contextParts.join("\n")}`
+        : "";
 
     const fullSystemPrompt = GIANNA_SYSTEM_PROMPT + contextString;
 
@@ -97,7 +101,7 @@ export async function POST(request: NextRequest) {
     } else {
       return NextResponse.json(
         { error: "No AI provider configured" },
-        { status: 503 }
+        { status: 503 },
       );
     }
 
@@ -109,14 +113,14 @@ export async function POST(request: NextRequest) {
     console.error("[Gianna Chat] Error:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Chat failed" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 async function generateWithOpenAI(
   systemPrompt: string,
-  messages: Array<{ role: "user" | "assistant"; content: string }>
+  messages: Array<{ role: "user" | "assistant"; content: string }>,
 ): Promise<string> {
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -138,12 +142,15 @@ async function generateWithOpenAI(
   }
 
   const data = await response.json();
-  return data.choices?.[0]?.message?.content?.trim() || "I couldn't generate a response.";
+  return (
+    data.choices?.[0]?.message?.content?.trim() ||
+    "I couldn't generate a response."
+  );
 }
 
 async function generateWithAnthropic(
   systemPrompt: string,
-  messages: Array<{ role: "user" | "assistant"; content: string }>
+  messages: Array<{ role: "user" | "assistant"; content: string }>,
 ): Promise<string> {
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",

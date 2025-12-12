@@ -4,11 +4,14 @@ const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || "";
 const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || "";
 
 // In-memory store for Gianna settings (would be database in production)
-const giannaSettings = new Map<string, {
-  giannaEnabled: boolean;
-  giannaMode: "inbound" | "outbound" | "both" | "off";
-  giannaAvatar?: string;
-}>();
+const giannaSettings = new Map<
+  string,
+  {
+    giannaEnabled: boolean;
+    giannaMode: "inbound" | "outbound" | "both" | "off";
+    giannaAvatar?: string;
+  }
+>();
 
 // GET - List all phone numbers from Twilio
 export async function GET() {
@@ -29,7 +32,7 @@ export async function GET() {
         headers: {
           Authorization: `Basic ${Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString("base64")}`,
         },
-      }
+      },
     );
 
     if (!response.ok) {
@@ -58,6 +61,9 @@ export async function GET() {
     return NextResponse.json({ numbers });
   } catch (error) {
     console.error("[Twilio API] Error:", error);
-    return NextResponse.json({ error: "Failed to fetch phone numbers" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch phone numbers" },
+      { status: 500 },
+    );
   }
 }

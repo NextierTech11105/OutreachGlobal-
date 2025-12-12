@@ -13,7 +13,10 @@ import {
 
 interface PersonalitySelectorProps {
   onSelect?: (personality: PersonalityDNA) => void;
-  onGenerateMessage?: (message: string, personality: PersonalityArchetype) => void;
+  onGenerateMessage?: (
+    message: string,
+    personality: PersonalityArchetype,
+  ) => void;
   leadContext?: {
     firstName: string;
     companyName?: string;
@@ -50,9 +53,12 @@ export function GiannaPersonalitySelector({
   leadContext,
   showPreview = true,
 }: PersonalitySelectorProps) {
-  const [selectedPersonality, setSelectedPersonality] = useState<PersonalityArchetype>("brooklyn_bestie");
+  const [selectedPersonality, setSelectedPersonality] =
+    useState<PersonalityArchetype>("brooklyn_bestie");
   const [humorOverride, setHumorOverride] = useState<number | null>(null);
-  const [directnessOverride, setDirectnessOverride] = useState<number | null>(null);
+  const [directnessOverride, setDirectnessOverride] = useState<number | null>(
+    null,
+  );
   const [previewMessage, setPreviewMessage] = useState<string>("");
 
   const personality = PERSONALITY_ARCHETYPES[selectedPersonality];
@@ -96,11 +102,17 @@ export function GiannaPersonalitySelector({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-white">Gianna Personality DNA</h2>
-          <p className="text-gray-400 text-sm">Select how Gianna communicates</p>
+          <h2 className="text-xl font-bold text-white">
+            Gianna Personality DNA
+          </h2>
+          <p className="text-gray-400 text-sm">
+            Select how Gianna communicates
+          </p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-2xl">{ARCHETYPE_ICONS[selectedPersonality]}</span>
+          <span className="text-2xl">
+            {ARCHETYPE_ICONS[selectedPersonality]}
+          </span>
           <span className="text-white font-medium">{personality.name}</span>
         </div>
       </div>
@@ -118,7 +130,9 @@ export function GiannaPersonalitySelector({
             }`}
           >
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-xl">{ARCHETYPE_ICONS[id as PersonalityArchetype]}</span>
+              <span className="text-xl">
+                {ARCHETYPE_ICONS[id as PersonalityArchetype]}
+              </span>
               <span className="text-white font-medium text-sm">{p.name}</span>
             </div>
             <p className="text-gray-400 text-xs line-clamp-2">{p.tagline}</p>
@@ -136,15 +150,25 @@ export function GiannaPersonalitySelector({
         {/* Trait Bars */}
         <div className="grid grid-cols-2 gap-4">
           <TraitBar label="Warmth" value={personality.warmth} color="pink" />
-          <TraitBar label="Directness" value={effectiveDirectness} color="blue" />
+          <TraitBar
+            label="Directness"
+            value={effectiveDirectness}
+            color="blue"
+          />
           <TraitBar label="Humor" value={effectiveHumor} color="yellow" />
           <TraitBar label="Energy" value={personality.energy} color="green" />
-          <TraitBar label="Assertiveness" value={personality.assertiveness} color="purple" />
+          <TraitBar
+            label="Assertiveness"
+            value={personality.assertiveness}
+            color="purple"
+          />
         </div>
 
         {/* Humor Styles */}
         <div>
-          <h4 className="text-gray-300 text-sm font-medium mb-2">Humor Styles</h4>
+          <h4 className="text-gray-300 text-sm font-medium mb-2">
+            Humor Styles
+          </h4>
           <div className="flex flex-wrap gap-2">
             {personality.humorStyles.map((style) => (
               <span
@@ -159,7 +183,9 @@ export function GiannaPersonalitySelector({
 
         {/* Signature Phrases */}
         <div>
-          <h4 className="text-gray-300 text-sm font-medium mb-2">Signature Phrases</h4>
+          <h4 className="text-gray-300 text-sm font-medium mb-2">
+            Signature Phrases
+          </h4>
           <div className="flex flex-wrap gap-2">
             {personality.signaturePhrases.slice(0, 5).map((phrase, i) => (
               <span
@@ -225,7 +251,9 @@ export function GiannaPersonalitySelector({
 
           {previewMessage && (
             <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
-              <p className="text-gray-200 text-sm leading-relaxed">{previewMessage}</p>
+              <p className="text-gray-200 text-sm leading-relaxed">
+                {previewMessage}
+              </p>
               <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
                 <span>{previewMessage.length} characters</span>
                 <span>

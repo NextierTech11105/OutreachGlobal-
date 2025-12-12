@@ -1,6 +1,5 @@
 "use client";
 
-
 import { sf, sfd } from "@/lib/utils/safe-format";
 import { useState } from "react";
 import {
@@ -97,7 +96,7 @@ export function MCPSavedSearches() {
 
   const handleRunSearch = async (id: string) => {
     setSearches((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, status: "running" as const } : s))
+      prev.map((s) => (s.id === id ? { ...s, status: "running" as const } : s)),
     );
 
     // Simulate search
@@ -112,8 +111,8 @@ export function MCPSavedSearches() {
               lastRun: new Date(),
               resultCount: Math.floor(Math.random() * 5000) + 500,
             }
-          : s
-      )
+          : s,
+      ),
     );
 
     toast.success("Search completed successfully!");
@@ -124,17 +123,21 @@ export function MCPSavedSearches() {
     if (!search) return;
 
     setSearches((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, status: "exporting" as const } : s))
+      prev.map((s) =>
+        s.id === id ? { ...s, status: "exporting" as const } : s,
+      ),
     );
 
     // Simulate export
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
     setSearches((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, status: "ready" as const } : s))
+      prev.map((s) => (s.id === id ? { ...s, status: "ready" as const } : s)),
     );
 
-    toast.success(`Exported ${search.resultCount} properties to ${search.bucketPath}`);
+    toast.success(
+      `Exported ${search.resultCount} properties to ${search.bucketPath}`,
+    );
   };
 
   const handleCreateSearch = () => {
@@ -203,21 +206,31 @@ export function MCPSavedSearches() {
               <DialogHeader>
                 <DialogTitle>Create New Saved Search</DialogTitle>
                 <DialogDescription className="text-zinc-400">
-                  Define filters for your property search. Results will be saved to a CSV bucket.
+                  Define filters for your property search. Results will be saved
+                  to a CSV bucket.
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-zinc-300">Search Name</label>
+                  <label className="text-sm font-medium text-zinc-300">
+                    Search Name
+                  </label>
                   <Input
                     value={newSearch.name}
-                    onChange={(e) => setNewSearch((prev) => ({ ...prev, name: e.target.value }))}
+                    onChange={(e) =>
+                      setNewSearch((prev) => ({
+                        ...prev,
+                        name: e.target.value,
+                      }))
+                    }
                     placeholder="e.g., Pre-Foreclosure Miami"
                     className="bg-zinc-800 border-zinc-700 text-zinc-200"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-zinc-300">Target States</label>
+                  <label className="text-sm font-medium text-zinc-300">
+                    Target States
+                  </label>
                   <div className="flex flex-wrap gap-2">
                     {STATES.map((state) => (
                       <Badge
@@ -244,17 +257,25 @@ export function MCPSavedSearches() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-zinc-300">Property Status</label>
+                  <label className="text-sm font-medium text-zinc-300">
+                    Property Status
+                  </label>
                   <Select
                     value={newSearch.status}
-                    onValueChange={(value) => setNewSearch((prev) => ({ ...prev, status: value }))}
+                    onValueChange={(value) =>
+                      setNewSearch((prev) => ({ ...prev, status: value }))
+                    }
                   >
                     <SelectTrigger className="bg-zinc-800 border-zinc-700 text-zinc-200">
                       <SelectValue placeholder="Select status filter" />
                     </SelectTrigger>
                     <SelectContent className="bg-zinc-800 border-zinc-700">
                       {PROPERTY_STATUSES.map((status) => (
-                        <SelectItem key={status.value} value={status.value} className="text-zinc-200">
+                        <SelectItem
+                          key={status.value}
+                          value={status.value}
+                          className="text-zinc-200"
+                        >
                           {status.label}
                         </SelectItem>
                       ))}
@@ -271,17 +292,27 @@ export function MCPSavedSearches() {
                     max="100"
                     value={newSearch.equityMin}
                     onChange={(e) =>
-                      setNewSearch((prev) => ({ ...prev, equityMin: parseInt(e.target.value) }))
+                      setNewSearch((prev) => ({
+                        ...prev,
+                        equityMin: parseInt(e.target.value),
+                      }))
                     }
                     className="w-full"
                   />
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setIsCreateOpen(false)} className="border-zinc-700">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsCreateOpen(false)}
+                  className="border-zinc-700"
+                >
                   Cancel
                 </Button>
-                <Button onClick={handleCreateSearch} className="bg-purple-600 hover:bg-purple-700">
+                <Button
+                  onClick={handleCreateSearch}
+                  className="bg-purple-600 hover:bg-purple-700"
+                >
                   <Save className="h-4 w-4 mr-2" />
                   Create Search
                 </Button>
@@ -305,7 +336,10 @@ export function MCPSavedSearches() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <h4 className="font-medium text-zinc-200">{search.name}</h4>
-                <Badge variant="outline" className="border-zinc-600 text-zinc-400">
+                <Badge
+                  variant="outline"
+                  className="border-zinc-600 text-zinc-400"
+                >
                   {sf(search.resultCount)} properties
                 </Badge>
               </div>

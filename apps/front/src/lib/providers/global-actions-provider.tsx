@@ -69,21 +69,27 @@ interface GlobalActionsContextType {
 
   // SMS Campaign Queue
   smsCampaignQueue: SMSCampaignEntry[];
-  pushToSMSCampaign: (lead: LeadContext, options?: {
-    templateId?: string;
-    message?: string;
-    scheduledAt?: Date;
-    priority?: number;
-  }) => void;
+  pushToSMSCampaign: (
+    lead: LeadContext,
+    options?: {
+      templateId?: string;
+      message?: string;
+      scheduledAt?: Date;
+      priority?: number;
+    },
+  ) => void;
   removeFromSMSQueue: (entryId: string) => void;
 
   // Phone Center / Scheduled Calls
   scheduledCalls: ScheduledCall[];
-  pushToPhoneCenter: (lead: LeadContext, options?: {
-    scheduledAt?: Date;
-    notes?: string;
-    priority?: number;
-  }) => void;
+  pushToPhoneCenter: (
+    lead: LeadContext,
+    options?: {
+      scheduledAt?: Date;
+      notes?: string;
+      priority?: number;
+    },
+  ) => void;
   removeScheduledCall: (callId: string) => void;
   completeScheduledCall: (callId: string) => void;
 
@@ -110,12 +116,16 @@ interface GlobalActionsContextType {
 // CONTEXT
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const GlobalActionsContext = createContext<GlobalActionsContextType | null>(null);
+const GlobalActionsContext = createContext<GlobalActionsContextType | null>(
+  null,
+);
 
 export function useGlobalActions() {
   const context = useContext(GlobalActionsContext);
   if (!context) {
-    throw new Error("useGlobalActions must be used within GlobalActionsProvider");
+    throw new Error(
+      "useGlobalActions must be used within GlobalActionsProvider",
+    );
   }
   return context;
 }
@@ -129,7 +139,11 @@ export function useGlobalActionsSafe() {
 // PROVIDER
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export function GlobalActionsProvider({ children }: { children: React.ReactNode }) {
+export function GlobalActionsProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const router = useRouter();
   const pathname = usePathname();
 
@@ -141,56 +155,62 @@ export function GlobalActionsProvider({ children }: { children: React.ReactNode 
 
   // State
   const [selectedLead, setSelectedLead] = useState<LeadContext | null>(null);
-  const [smsCampaignQueue, setSMSCampaignQueue] = useState<SMSCampaignEntry[]>([]);
+  const [smsCampaignQueue, setSMSCampaignQueue] = useState<SMSCampaignEntry[]>(
+    [],
+  );
   const [scheduledCalls, setScheduledCalls] = useState<ScheduledCall[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [isSMSDialogOpen, setIsSMSDialogOpen] = useState(false);
-  const [isScheduleCallDialogOpen, setIsScheduleCallDialogOpen] = useState(false);
+  const [isScheduleCallDialogOpen, setIsScheduleCallDialogOpen] =
+    useState(false);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // SMS CAMPAIGN ACTIONS
   // ─────────────────────────────────────────────────────────────────────────────
 
-  const pushToSMSCampaign = useCallback((
-    lead: LeadContext,
-    options?: {
-      templateId?: string;
-      message?: string;
-      scheduledAt?: Date;
-      priority?: number;
-    }
-  ) => {
-    if (!lead.phone) {
-      toast.error("Cannot add to SMS queue", {
-        description: "Lead has no phone number",
-      });
-      return;
-    }
-
-    const entry: SMSCampaignEntry = {
-      id: `sms_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      leadId: lead.id,
-      leadName: lead.name,
-      leadPhone: lead.phone,
-      templateId: options?.templateId,
-      message: options?.message,
-      scheduledAt: options?.scheduledAt,
-      priority: options?.priority || 5,
-      status: "queued",
-      createdAt: new Date(),
-    };
-
-    setSMSCampaignQueue((prev) => [...prev, entry]);
-
-    toast.success("Added to SMS Campaign Queue", {
-      description: `${lead.name || lead.phone} queued for initial message`,
-      action: {
-        label: "View Queue",
-        onClick: () => router.push(`/t/${teamId}/campaigns/sms-queue`),
+  const pushToSMSCampaign = useCallback(
+    (
+      lead: LeadContext,
+      options?: {
+        templateId?: string;
+        message?: string;
+        scheduledAt?: Date;
+        priority?: number;
       },
-    });
-  }, [teamId, router]);
+    ) => {
+      if (!lead.phone) {
+        toast.error("Cannot add to SMS queue", {
+          description: "Lead has no phone number",
+        });
+        return;
+      }
+
+      const entry: SMSCampaignEntry = {
+        id: `sms_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        leadId: lead.id,
+        leadName: lead.name,
+        leadPhone: lead.phone,
+        templateId: options?.templateId,
+        message: options?.message,
+        scheduledAt: options?.scheduledAt,
+        priority: options?.priority || 5,
+        status: "queued",
+        createdAt: new Date(),
+      };
+
+      setSMSCampaignQueue((prev) => [...prev, entry]);
+
+      toast.success("Added to SMS Campaign Queue", {
+        description: `${lead.name || lead.phone} queued for initial message`,
+        action: {
+          label: "View Queue",
+          onClick: () => router.push(`/t/${teamId}/campaigns/sms-queue`),
+        },
+      });
+    },
+    [teamId, router],
+  );
 
   const removeFromSMSQueue = useCallback((entryId: string) => {
     setSMSCampaignQueue((prev) => prev.filter((e) => e.id !== entryId));
@@ -201,60 +221,65 @@ export function GlobalActionsProvider({ children }: { children: React.ReactNode 
   // PHONE CENTER ACTIONS
   // ─────────────────────────────────────────────────────────────────────────────
 
-  const pushToPhoneCenter = useCallback((
-    lead: LeadContext,
-    options?: {
-      scheduledAt?: Date;
-      notes?: string;
-      priority?: number;
-    }
-  ) => {
-    if (!lead.phone) {
-      toast.error("Cannot schedule call", {
-        description: "Lead has no phone number",
-      });
-      return;
-    }
-
-    const scheduledCall: ScheduledCall = {
-      id: `call_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      leadId: lead.id,
-      leadName: lead.name,
-      leadPhone: lead.phone,
-      scheduledAt: options?.scheduledAt || new Date(),
-      notes: options?.notes,
-      priority: options?.priority || 5,
-      status: "pending",
-      createdAt: new Date(),
-    };
-
-    setScheduledCalls((prev) => {
-      // Sort by scheduled time and priority
-      const updated = [...prev, scheduledCall];
-      return updated.sort((a, b) => {
-        if (a.priority !== b.priority) return b.priority - a.priority;
-        return a.scheduledAt.getTime() - b.scheduledAt.getTime();
-      });
-    });
-
-    // Also create a calendar event
-    addCalendarEvent({
-      title: `Call: ${lead.name || lead.phone}`,
-      description: options?.notes,
-      startTime: options?.scheduledAt || new Date(),
-      endTime: new Date((options?.scheduledAt || new Date()).getTime() + 30 * 60 * 1000),
-      type: "call",
-      leadId: lead.id,
-    });
-
-    toast.success("Added to Phone Center", {
-      description: `Call scheduled for ${lead.name || lead.phone}`,
-      action: {
-        label: "View Schedule",
-        onClick: () => router.push(`/t/${teamId}/power-dialer`),
+  const pushToPhoneCenter = useCallback(
+    (
+      lead: LeadContext,
+      options?: {
+        scheduledAt?: Date;
+        notes?: string;
+        priority?: number;
       },
-    });
-  }, [teamId, router]);
+    ) => {
+      if (!lead.phone) {
+        toast.error("Cannot schedule call", {
+          description: "Lead has no phone number",
+        });
+        return;
+      }
+
+      const scheduledCall: ScheduledCall = {
+        id: `call_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        leadId: lead.id,
+        leadName: lead.name,
+        leadPhone: lead.phone,
+        scheduledAt: options?.scheduledAt || new Date(),
+        notes: options?.notes,
+        priority: options?.priority || 5,
+        status: "pending",
+        createdAt: new Date(),
+      };
+
+      setScheduledCalls((prev) => {
+        // Sort by scheduled time and priority
+        const updated = [...prev, scheduledCall];
+        return updated.sort((a, b) => {
+          if (a.priority !== b.priority) return b.priority - a.priority;
+          return a.scheduledAt.getTime() - b.scheduledAt.getTime();
+        });
+      });
+
+      // Also create a calendar event
+      addCalendarEvent({
+        title: `Call: ${lead.name || lead.phone}`,
+        description: options?.notes,
+        startTime: options?.scheduledAt || new Date(),
+        endTime: new Date(
+          (options?.scheduledAt || new Date()).getTime() + 30 * 60 * 1000,
+        ),
+        type: "call",
+        leadId: lead.id,
+      });
+
+      toast.success("Added to Phone Center", {
+        description: `Call scheduled for ${lead.name || lead.phone}`,
+        action: {
+          label: "View Schedule",
+          onClick: () => router.push(`/t/${teamId}/power-dialer`),
+        },
+      });
+    },
+    [teamId, router],
+  );
 
   const removeScheduledCall = useCallback((callId: string) => {
     setScheduledCalls((prev) => prev.filter((c) => c.id !== callId));
@@ -264,8 +289,8 @@ export function GlobalActionsProvider({ children }: { children: React.ReactNode 
   const completeScheduledCall = useCallback((callId: string) => {
     setScheduledCalls((prev) =>
       prev.map((c) =>
-        c.id === callId ? { ...c, status: "completed" as const } : c
-      )
+        c.id === callId ? { ...c, status: "completed" as const } : c,
+      ),
     );
   }, []);
 

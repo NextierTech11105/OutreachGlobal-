@@ -9,15 +9,22 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { S3Client, ListObjectsV2Command, GetObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  ListObjectsV2Command,
+  GetObjectCommand,
+} from "@aws-sdk/client-s3";
 import { DATA_LAKE_SCHEMAS } from "../schemas/route";
 
 // DO Spaces configuration
-const SPACES_ENDPOINT = process.env.SPACES_ENDPOINT || "https://nyc3.digitaloceanspaces.com";
+const SPACES_ENDPOINT =
+  process.env.SPACES_ENDPOINT || "https://nyc3.digitaloceanspaces.com";
 const SPACES_REGION = process.env.SPACES_REGION || "nyc3";
 const SPACES_KEY = process.env.SPACES_KEY || process.env.DO_SPACES_KEY || "";
-const SPACES_SECRET = process.env.SPACES_SECRET || process.env.DO_SPACES_SECRET || "";
-const SPACES_BUCKET = process.env.SPACES_BUCKET || process.env.DO_SPACES_BUCKET || "nextier";
+const SPACES_SECRET =
+  process.env.SPACES_SECRET || process.env.DO_SPACES_SECRET || "";
+const SPACES_BUCKET =
+  process.env.SPACES_BUCKET || process.env.DO_SPACES_BUCKET || "nextier";
 
 const s3Client = new S3Client({
   endpoint: SPACES_ENDPOINT,
@@ -39,7 +46,15 @@ const DATALAKE_PATHS: Record<string, string> = {
 
 interface PropertyRecord {
   id?: string;
-  address?: string | { address?: string; street?: string; city?: string; state?: string; zip?: string };
+  address?:
+    | string
+    | {
+        address?: string;
+        street?: string;
+        city?: string;
+        state?: string;
+        zip?: string;
+      };
   city?: string;
   state?: string;
   zip?: string;
@@ -74,9 +89,12 @@ interface EnrichmentResult {
 export async function POST(request: NextRequest) {
   try {
     if (!SPACES_KEY || !SPACES_SECRET) {
-      return NextResponse.json({
-        error: "DigitalOcean Spaces credentials not configured",
-      }, { status: 503 });
+      return NextResponse.json(
+        {
+          error: "DigitalOcean Spaces credentials not configured",
+        },
+        { status: 503 },
+      );
     }
 
     const body = await request.json();
@@ -88,16 +106,25 @@ export async function POST(request: NextRequest) {
     } = body;
 
     if (!properties || !Array.isArray(properties)) {
-      return NextResponse.json({
-        error: "properties array is required",
-        example: {
-          properties: [
-            { address: "123 Main St", city: "Brooklyn", state: "NY", ownerFirstName: "John", ownerLastName: "Smith" }
-          ],
-          enrichFrom: ["residential", "phones", "emails"],
-          matchBy: ["address", "name"],
+      return NextResponse.json(
+        {
+          error: "properties array is required",
+          example: {
+            properties: [
+              {
+                address: "123 Main St",
+                city: "Brooklyn",
+                state: "NY",
+                ownerFirstName: "John",
+                ownerLastName: "Smith",
+              },
+            ],
+            enrichFrom: ["residential", "phones", "emails"],
+            matchBy: ["address", "name"],
+          },
         },
-      }, { status: 400 });
+        { status: 400 },
+      );
     }
 
     // Load datalake indexes
@@ -109,11 +136,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if any data loaded
-    const totalRecords = Object.values(datalakes).reduce((sum, arr) => sum + arr.length, 0);
+    const totalRecords = Object.values(datalakes).reduce(
+      (sum, arr) => sum + arr.length,
+      0,
+    );
     if (totalRecords === 0) {
       return NextResponse.json({
         success: false,
-        message: "No datalake records found. Upload USBizData CSVs to the datalake first.",
+        message:
+          "No datalake records found. Upload USBizData CSVs to the datalake first.",
         uploadEndpoint: "/api/datalake/upload",
         enrichFrom,
         properties: properties.slice(0, limit),
@@ -130,9 +161,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Summary stats
-    const enriched = results.filter(r => r.matchScore > 0);
-    const withPhone = results.filter(r => r.enrichedData.phone || r.enrichedData.cellPhone);
-    const withEmail = results.filter(r => r.enrichedData.email);
+    const enriched = results.filter((r) => r.matchScore > 0);
+    const withPhone = results.filter(
+      (r) => r.enrichedData.phone || r.enrichedData.cellPhone,
+    );
+    const withEmail = results.filter((r) => r.enrichedData.email);
 
     return NextResponse.json({
       success: true,
@@ -141,24 +174,35 @@ export async function POST(request: NextRequest) {
         enriched: enriched.length,
         withPhone: withPhone.length,
         withEmail: withEmail.length,
-        enrichmentRate: Math.round((enriched.length / propertiesToProcess.length) * 100) + "%",
+        enrichmentRate:
+          Math.round((enriched.length / propertiesToProcess.length) * 100) +
+          "%",
       },
-      datalakesUsed: Object.entries(datalakes).map(([k, v]) => ({ source: k, records: v.length })),
+      datalakesUsed: Object.entries(datalakes).map(([k, v]) => ({
+        source: k,
+        records: v.length,
+      })),
       results,
     });
   } catch (error) {
     console.error("[Datalake Enrich] Error:", error);
-    return NextResponse.json({
-      error: "Enrichment failed",
-      details: String(error),
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: "Enrichment failed",
+        details: String(error),
+      },
+      { status: 500 },
+    );
   }
 }
 
 // GET - Get enrichment options
 export async function GET() {
   // Check what data is available in each datalake
-  const availability: Record<string, { available: boolean; recordCount: number }> = {};
+  const availability: Record<
+    string,
+    { available: boolean; recordCount: number }
+  > = {};
 
   for (const [source, path] of Object.entries(DATALAKE_PATHS)) {
     const records = await loadDatalakeRecords(path, 1); // Just check if files exist
@@ -174,7 +218,8 @@ export async function GET() {
     endpoint: "POST /api/datalake/enrich",
     params: {
       properties: "Array of property records with address/owner info",
-      enrichFrom: "Array of datalakes to search: residential, phones, emails, business (default: all)",
+      enrichFrom:
+        "Array of datalakes to search: residential, phones, emails, business (default: all)",
       matchBy: "Array of match strategies: address, name (default: both)",
       limit: "Max properties to process (default: 100)",
     },
@@ -218,7 +263,10 @@ export async function GET() {
 }
 
 // Load records from datalake path
-async function loadDatalakeRecords(basePath: string, maxFiles = 10): Promise<Record<string, unknown>[]> {
+async function loadDatalakeRecords(
+  basePath: string,
+  maxFiles = 10,
+): Promise<Record<string, unknown>[]> {
   const records: Record<string, unknown>[] = [];
 
   try {
@@ -226,20 +274,26 @@ async function loadDatalakeRecords(basePath: string, maxFiles = 10): Promise<Rec
     for (const subfolder of ["processed/", "raw/"]) {
       const path = basePath + subfolder;
 
-      const listResponse = await s3Client.send(new ListObjectsV2Command({
-        Bucket: SPACES_BUCKET,
-        Prefix: path,
-        MaxKeys: maxFiles,
-      }));
+      const listResponse = await s3Client.send(
+        new ListObjectsV2Command({
+          Bucket: SPACES_BUCKET,
+          Prefix: path,
+          MaxKeys: maxFiles,
+        }),
+      );
 
-      const csvFiles = (listResponse.Contents || []).filter(f => f.Key?.endsWith(".csv"));
+      const csvFiles = (listResponse.Contents || []).filter((f) =>
+        f.Key?.endsWith(".csv"),
+      );
 
       for (const file of csvFiles) {
         try {
-          const getResponse = await s3Client.send(new GetObjectCommand({
-            Bucket: SPACES_BUCKET,
-            Key: file.Key,
-          }));
+          const getResponse = await s3Client.send(
+            new GetObjectCommand({
+              Bucket: SPACES_BUCKET,
+              Key: file.Key,
+            }),
+          );
 
           const content = await getResponse.Body?.transformToString();
           if (!content) continue;
@@ -313,7 +367,7 @@ function parseCsvLine(line: string): string[] {
 function enrichProperty(
   prop: PropertyRecord,
   datalakes: Record<string, Record<string, unknown>[]>,
-  matchBy: string[]
+  matchBy: string[],
 ): EnrichmentResult {
   const result: EnrichmentResult = {
     original: prop,
@@ -325,24 +379,42 @@ function enrichProperty(
 
   // Normalize property data
   const propAddress = normalizeAddress(prop);
-  const propFirstName = (prop.ownerFirstName || prop.owner1FirstName || "").toLowerCase().trim();
-  const propLastName = (prop.ownerLastName || prop.owner1LastName || "").toLowerCase().trim();
+  const propFirstName = (prop.ownerFirstName || prop.owner1FirstName || "")
+    .toLowerCase()
+    .trim();
+  const propLastName = (prop.ownerLastName || prop.owner1LastName || "")
+    .toLowerCase()
+    .trim();
   const propZip = propAddress.zip;
 
   // Search residential datalake
   if (datalakes.residential) {
     for (const record of datalakes.residential) {
-      const score = calculateMatchScore(record, propAddress, propFirstName, propLastName, matchBy);
+      const score = calculateMatchScore(
+        record,
+        propAddress,
+        propFirstName,
+        propLastName,
+        matchBy,
+      );
       if (score > result.matchScore) {
         result.matches.residential = record;
         result.matchScore = score;
 
         // Extract enrichment data
-        result.enrichedData.phone = String(record["Phone Number"] || record["phone"] || "");
-        result.enrichedData.estimatedIncome = parseFloat(String(record["Estimated Income"] || "0")) || undefined;
-        result.enrichedData.estimatedWealth = parseFloat(String(record["Estimated Wealth"] || "0")) || undefined;
-        result.enrichedData.age = parseInt(String(record["Exact Age"] || record["Estimated Age"] || "0")) || undefined;
-        result.enrichedData.lengthOfResidence = parseInt(String(record["Length of Residence"] || "0")) || undefined;
+        result.enrichedData.phone = String(
+          record["Phone Number"] || record["phone"] || "",
+        );
+        result.enrichedData.estimatedIncome =
+          parseFloat(String(record["Estimated Income"] || "0")) || undefined;
+        result.enrichedData.estimatedWealth =
+          parseFloat(String(record["Estimated Wealth"] || "0")) || undefined;
+        result.enrichedData.age =
+          parseInt(
+            String(record["Exact Age"] || record["Estimated Age"] || "0"),
+          ) || undefined;
+        result.enrichedData.lengthOfResidence =
+          parseInt(String(record["Length of Residence"] || "0")) || undefined;
 
         if (score >= 80) result.matchedOn.push("residential-high");
         else if (score >= 50) result.matchedOn.push("residential-medium");
@@ -353,10 +425,18 @@ function enrichProperty(
   // Search phone datalake
   if (datalakes.phones) {
     for (const record of datalakes.phones) {
-      const score = calculateMatchScore(record, propAddress, propFirstName, propLastName, matchBy);
+      const score = calculateMatchScore(
+        record,
+        propAddress,
+        propFirstName,
+        propLastName,
+        matchBy,
+      );
       if (score >= 50) {
         result.matches.phone = record;
-        result.enrichedData.cellPhone = String(record["Cell Number"] || record["cellPhone"] || "");
+        result.enrichedData.cellPhone = String(
+          record["Cell Number"] || record["cellPhone"] || "",
+        );
         result.matchedOn.push("phone");
         break;
       }
@@ -366,10 +446,18 @@ function enrichProperty(
   // Search email datalake
   if (datalakes.emails) {
     for (const record of datalakes.emails) {
-      const score = calculateMatchScore(record, propAddress, propFirstName, propLastName, matchBy);
+      const score = calculateMatchScore(
+        record,
+        propAddress,
+        propFirstName,
+        propLastName,
+        matchBy,
+      );
       if (score >= 50) {
         result.matches.email = record;
-        result.enrichedData.email = String(record["Email Address"] || record["email"] || "");
+        result.enrichedData.email = String(
+          record["Email Address"] || record["email"] || "",
+        );
         result.matchedOn.push("email");
         break;
       }
@@ -380,10 +468,17 @@ function enrichProperty(
 }
 
 // Normalize address from property record
-function normalizeAddress(prop: PropertyRecord): { street: string; city: string; state: string; zip: string } {
+function normalizeAddress(prop: PropertyRecord): {
+  street: string;
+  city: string;
+  state: string;
+  zip: string;
+} {
   if (typeof prop.address === "object" && prop.address) {
     return {
-      street: (prop.address.address || prop.address.street || "").toLowerCase().trim(),
+      street: (prop.address.address || prop.address.street || "")
+        .toLowerCase()
+        .trim(),
       city: (prop.address.city || "").toLowerCase().trim(),
       state: (prop.address.state || "").toUpperCase().trim(),
       zip: (prop.address.zip || "").trim().substring(0, 5),
@@ -391,7 +486,9 @@ function normalizeAddress(prop: PropertyRecord): { street: string; city: string;
   }
 
   return {
-    street: String(prop.address || "").toLowerCase().trim(),
+    street: String(prop.address || "")
+      .toLowerCase()
+      .trim(),
     city: (prop.city || "").toLowerCase().trim(),
     state: (prop.state || "").toUpperCase().trim(),
     zip: (prop.zip || "").trim().substring(0, 5),
@@ -404,16 +501,30 @@ function calculateMatchScore(
   propAddress: { street: string; city: string; state: string; zip: string },
   propFirstName: string,
   propLastName: string,
-  matchBy: string[]
+  matchBy: string[],
 ): number {
   let score = 0;
 
   // Get record values
-  const recAddress = String(record["Address"] || record["address"] || record["Street Address"] || "").toLowerCase().trim();
-  const recCity = String(record["City"] || record["city"] || "").toLowerCase().trim();
-  const recZip = String(record["Zip Code"] || record["zipCode"] || record["Zip"] || "").trim().substring(0, 5);
-  const recFirstName = String(record["First Name"] || record["firstName"] || "").toLowerCase().trim();
-  const recLastName = String(record["Last Name"] || record["lastName"] || "").toLowerCase().trim();
+  const recAddress = String(
+    record["Address"] || record["address"] || record["Street Address"] || "",
+  )
+    .toLowerCase()
+    .trim();
+  const recCity = String(record["City"] || record["city"] || "")
+    .toLowerCase()
+    .trim();
+  const recZip = String(
+    record["Zip Code"] || record["zipCode"] || record["Zip"] || "",
+  )
+    .trim()
+    .substring(0, 5);
+  const recFirstName = String(record["First Name"] || record["firstName"] || "")
+    .toLowerCase()
+    .trim();
+  const recLastName = String(record["Last Name"] || record["lastName"] || "")
+    .toLowerCase()
+    .trim();
 
   // Address matching
   if (matchBy.includes("address")) {
@@ -437,10 +548,26 @@ function calculateMatchScore(
         score += 20;
 
         // Street name match
-        const propStreet = propAddress.street.replace(/^\d+\s*/, "").replace(/\b(st|street|ave|avenue|rd|road|dr|drive|ln|lane|blvd|boulevard|ct|court|pl|place)\b/gi, "").trim();
-        const recStreet = recAddress.replace(/^\d+\s*/, "").replace(/\b(st|street|ave|avenue|rd|road|dr|drive|ln|lane|blvd|boulevard|ct|court|pl|place)\b/gi, "").trim();
+        const propStreet = propAddress.street
+          .replace(/^\d+\s*/, "")
+          .replace(
+            /\b(st|street|ave|avenue|rd|road|dr|drive|ln|lane|blvd|boulevard|ct|court|pl|place)\b/gi,
+            "",
+          )
+          .trim();
+        const recStreet = recAddress
+          .replace(/^\d+\s*/, "")
+          .replace(
+            /\b(st|street|ave|avenue|rd|road|dr|drive|ln|lane|blvd|boulevard|ct|court|pl|place)\b/gi,
+            "",
+          )
+          .trim();
 
-        if (propStreet && recStreet && propStreet.includes(recStreet.substring(0, 5))) {
+        if (
+          propStreet &&
+          recStreet &&
+          propStreet.includes(recStreet.substring(0, 5))
+        ) {
           score += 20;
         }
       }

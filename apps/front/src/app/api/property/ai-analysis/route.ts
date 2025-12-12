@@ -30,17 +30,22 @@ export async function POST(request: NextRequest) {
     const { property, comparables, valuation, neighborhood } = body;
 
     if (!property) {
-      return NextResponse.json({ error: "Property data required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Property data required" },
+        { status: 400 },
+      );
     }
 
     // Extract property details
-    const address = property.address as Record<string, unknown> || {};
+    const address = (property.address as Record<string, unknown>) || {};
     const fullAddress = [
       address.address || address.street,
       address.city,
       address.state,
       address.zip,
-    ].filter(Boolean).join(", ");
+    ]
+      .filter(Boolean)
+      .join(", ");
 
     const propertyDetails = {
       address: fullAddress,
@@ -48,13 +53,22 @@ export async function POST(request: NextRequest) {
       bedrooms: property.bedrooms || property.beds || 0,
       bathrooms: property.bathrooms || property.baths || 0,
       halfBaths: property.halfBaths || 0,
-      sqft: property.squareFeet || property.buildingSize || property.livingArea || 0,
+      sqft:
+        property.squareFeet ||
+        property.buildingSize ||
+        property.livingArea ||
+        0,
       yearBuilt: property.yearBuilt || 0,
       lotSize: property.lotSize || property.lotSquareFeet || 0,
-      estimatedValue: valuation?.estimatedValue || property.estimatedValue || property.avm || 0,
+      estimatedValue:
+        valuation?.estimatedValue ||
+        property.estimatedValue ||
+        property.avm ||
+        0,
       lastSaleAmount: property.lastSaleAmount || 0,
       lastSaleDate: String(property.lastSaleDate || ""),
-      mortgageBalance: property.openMortgageBalance || property.mortgageBalance || 0,
+      mortgageBalance:
+        property.openMortgageBalance || property.mortgageBalance || 0,
       lastLoanAmount: property.lastLoanAmount || 0,
       lastLoanDate: property.lastLoanDate || "",
       ownerOccupied: property.ownerOccupied,
@@ -69,7 +83,9 @@ export async function POST(request: NextRequest) {
     // Determine the city/area for context
     const cityState = [address.city, address.state].filter(Boolean).join(", ");
     const currentYear = new Date().getFullYear();
-    const propertyAge = propertyDetails.yearBuilt ? currentYear - Number(propertyDetails.yearBuilt) : 0;
+    const propertyAge = propertyDetails.yearBuilt
+      ? currentYear - Number(propertyDetails.yearBuilt)
+      : 0;
 
     // Build prompt for AI analysis with neighborhood history
     const prompt = `You are an expert real estate analyst with deep knowledge of ${cityState || "this area"}'s real estate market history. Analyze the following property and provide a COMPREHENSIVE valuation report with neighborhood history, decade-by-decade market evolution, and actionable insights.
@@ -301,7 +317,7 @@ Provide your COMPREHENSIVE analysis in the following JSON format. Be specific wi
     "growthBenchmark": "Based on sister cities, expected 5-year and 10-year appreciation potential"
   },
   "confidenceScore": 85,
-  "analysisDate": "${new Date().toISOString().split('T')[0]}",
+  "analysisDate": "${new Date().toISOString().split("T")[0]}",
   "disclaimer": "This analysis is for informational purposes only and should not be considered financial advice. Values are estimates based on available data."
 }
 
@@ -314,7 +330,10 @@ CRITICAL:
 
     // Call OpenAI API for comprehensive analysis
     if (!OPENAI_API_KEY) {
-      return NextResponse.json({ error: "OpenAI API key not configured" }, { status: 503 });
+      return NextResponse.json(
+        { error: "OpenAI API key not configured" },
+        { status: 503 },
+      );
     }
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -326,7 +345,11 @@ CRITICAL:
       body: JSON.stringify({
         model: "gpt-4o-mini", // Using mini for higher rate limits
         messages: [
-          { role: "system", content: "You are an expert real estate analyst. Always respond with valid JSON only, no markdown or code blocks." },
+          {
+            role: "system",
+            content:
+              "You are an expert real estate analyst. Always respond with valid JSON only, no markdown or code blocks.",
+          },
           { role: "user", content: prompt },
         ],
         max_tokens: 4000,
@@ -337,7 +360,10 @@ CRITICAL:
     if (!response.ok) {
       const error = await response.text();
       console.error("[AI Analysis] OpenAI error:", error);
-      return NextResponse.json({ error: `OpenAI API error: ${response.status}` }, { status: 500 });
+      return NextResponse.json(
+        { error: `OpenAI API error: ${response.status}` },
+        { status: 500 },
+      );
     }
 
     const data = await response.json();
@@ -375,7 +401,9 @@ CRITICAL:
           supplyDemand: "Analysis unavailable",
           bestTimeToSell: "Analysis unavailable",
         },
-        recommendations: ["Contact a local real estate professional for detailed analysis"],
+        recommendations: [
+          "Contact a local real estate professional for detailed analysis",
+        ],
         riskFactors: ["Insufficient data for comprehensive risk assessment"],
         confidenceScore: 50,
         analysisDate: new Date().toISOString().split("T")[0],
@@ -391,7 +419,8 @@ CRITICAL:
     });
   } catch (error: unknown) {
     console.error("[AI Analysis] Error:", error);
-    const message = error instanceof Error ? error.message : "AI analysis failed";
+    const message =
+      error instanceof Error ? error.message : "AI analysis failed";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

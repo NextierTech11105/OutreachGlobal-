@@ -23,10 +23,7 @@ export async function GET(request: NextRequest) {
     const enrichedOnly = searchParams.get("enrichedOnly") === "true";
 
     if (!bucketId) {
-      return NextResponse.json(
-        { error: "bucketId required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "bucketId required" }, { status: 400 });
     }
 
     const limit = Math.min(parseInt(limitParam || "50"), 500);
@@ -90,7 +87,8 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Failed to fetch leads";
+    const message =
+      error instanceof Error ? error.message : "Failed to fetch leads";
     console.error("[BucketLeads] Error:", error);
     return NextResponse.json({ error: message }, { status: 500 });
   }

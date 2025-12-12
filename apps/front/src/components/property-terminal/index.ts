@@ -6,5 +6,5 @@ import dynamic from "next/dynamic";
 // PropertyTerminal uses sessionStorage, crypto.randomUUID, and PropertyMap (which uses google.maps)
 export const PropertyTerminal = dynamic(
   () => import("./property-terminal").then((mod) => mod.PropertyTerminal),
-  { ssr: false }
+  { ssr: false },
 );

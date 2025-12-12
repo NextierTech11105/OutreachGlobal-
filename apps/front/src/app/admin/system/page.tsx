@@ -58,13 +58,15 @@ export default function SystemSettingsPage() {
     size: "0 MB",
     items: 0,
   });
-  const [auditLogs, setAuditLogs] = useState<Array<{
-    timestamp: string;
-    user: string;
-    action: string;
-    entityType: string;
-    entityId: string;
-  }>>([]);
+  const [auditLogs, setAuditLogs] = useState<
+    Array<{
+      timestamp: string;
+      user: string;
+      action: string;
+      entityType: string;
+      entityId: string;
+    }>
+  >([]);
 
   // State for modals
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
@@ -206,7 +208,9 @@ export default function SystemSettingsPage() {
     <div className="flex flex-col min-h-screen">
       <div className="border-b p-6">
         <h1 className="text-3xl font-bold">System Settings</h1>
-        <p className="text-muted-foreground mt-2">Configure global system settings and monitor system health</p>
+        <p className="text-muted-foreground mt-2">
+          Configure global system settings and monitor system health
+        </p>
       </div>
       <div className="flex-1 space-y-6 p-6">
         <Tabs defaultValue="general" className="space-y-4">
@@ -337,7 +341,9 @@ export default function SystemSettingsPage() {
                       <div className="flex justify-between items-center">
                         <span className="text-sm">Environment</span>
                         <span className="text-sm font-medium">
-                          {process.env.NODE_ENV === "production" ? "Production" : "Development"}
+                          {process.env.NODE_ENV === "production"
+                            ? "Production"
+                            : "Development"}
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
@@ -533,10 +539,16 @@ export default function SystemSettingsPage() {
                   <TableBody>
                     {auditLogs.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                        <TableCell
+                          colSpan={6}
+                          className="text-center py-12 text-muted-foreground"
+                        >
                           <History className="h-12 w-12 mx-auto mb-4 opacity-50" />
                           <p className="font-medium">No Audit Logs</p>
-                          <p className="text-sm">Activity logs will appear here as actions are performed</p>
+                          <p className="text-sm">
+                            Activity logs will appear here as actions are
+                            performed
+                          </p>
                         </TableCell>
                       </TableRow>
                     ) : (

@@ -1,6 +1,5 @@
 "use client";
 
-
 import { sf, sfd } from "@/lib/utils/safe-format";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -72,7 +71,8 @@ export default function WorkflowsPage() {
   };
 
   const handleToggleStatus = (workflow: Workflow) => {
-    const newStatus: "active" | "draft" | "archived" = workflow.status === "active" ? "draft" : "active";
+    const newStatus: "active" | "draft" | "archived" =
+      workflow.status === "active" ? "draft" : "active";
     const updatedWorkflows = workflows.map((w) =>
       w.id === workflow.id ? { ...w, status: newStatus } : w,
     );
@@ -229,7 +229,6 @@ export default function WorkflowsPage() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      
       <div className="flex-1 space-y-6 p-6">
         <div className="flex items-center justify-between">
           <div>

@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Bucket, UpdateBucketRequest } from "@/lib/types/bucket";
-import { S3Client, GetObjectCommand, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  GetObjectCommand,
+  PutObjectCommand,
+  DeleteObjectCommand,
+} from "@aws-sdk/client-s3";
 
 // DO Spaces configuration
 const SPACES_ENDPOINT = "https://nyc3.digitaloceanspaces.com";
@@ -30,7 +35,7 @@ async function getBucket(id: string): Promise<Bucket | null> {
       new GetObjectCommand({
         Bucket: SPACES_BUCKET,
         Key: `buckets/${id}.json`,
-      })
+      }),
     );
 
     const bodyContents = await response.Body?.transformToString();
@@ -58,7 +63,7 @@ async function saveBucket(bucket: Bucket): Promise<boolean> {
         Key: `buckets/${bucket.id}.json`,
         Body: JSON.stringify(bucket, null, 2),
         ContentType: "application/json",
-      })
+      }),
     );
     return true;
   } catch (error) {
@@ -77,7 +82,7 @@ async function deleteBucketFile(id: string): Promise<boolean> {
       new DeleteObjectCommand({
         Bucket: SPACES_BUCKET,
         Key: `buckets/${id}.json`,
-      })
+      }),
     );
     return true;
   } catch (error) {
@@ -89,14 +94,17 @@ async function deleteBucketFile(id: string): Promise<boolean> {
 // GET /api/buckets/:id - Get bucket details with all properties
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
     const client = getS3Client();
 
     if (!client) {
-      return NextResponse.json({ error: "Storage not configured" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Storage not configured" },
+        { status: 500 },
+      );
     }
 
     // Get full bucket data including properties
@@ -104,7 +112,7 @@ export async function GET(
       new GetObjectCommand({
         Bucket: SPACES_BUCKET,
         Key: `buckets/${id}.json`,
-      })
+      }),
     );
 
     const bodyContents = await response.Body?.transformToString();
@@ -126,7 +134,7 @@ export async function GET(
 // PUT /api/buckets/:id - Update bucket
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
@@ -141,7 +149,8 @@ export async function PUT(
     const updated: Bucket = {
       ...bucket,
       name: body.name || bucket.name,
-      description: body.description !== undefined ? body.description : bucket.description,
+      description:
+        body.description !== undefined ? body.description : bucket.description,
       tags: body.tags || bucket.tags,
       filters: body.filters || bucket.filters,
       updatedAt: new Date().toISOString(),
@@ -152,14 +161,17 @@ export async function PUT(
     return NextResponse.json({ success: true, bucket: updated });
   } catch (error) {
     console.error("[Bucket API] PUT error:", error);
-    return NextResponse.json({ error: "Failed to update bucket" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to update bucket" },
+      { status: 500 },
+    );
   }
 }
 
 // DELETE /api/buckets/:id - Delete bucket
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
@@ -172,12 +184,18 @@ export async function DELETE(
     // Delete from DO Spaces
     const deleted = await deleteBucketFile(id);
     if (!deleted) {
-      return NextResponse.json({ error: "Failed to delete bucket from storage" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Failed to delete bucket from storage" },
+        { status: 500 },
+      );
     }
 
     return NextResponse.json({ success: true, message: "Bucket deleted" });
   } catch (error) {
     console.error("[Bucket API] DELETE error:", error);
-    return NextResponse.json({ error: "Failed to delete bucket" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to delete bucket" },
+      { status: 500 },
+    );
   }
 }

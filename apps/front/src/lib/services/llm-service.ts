@@ -110,14 +110,14 @@ export class LlmService {
   private async callLangChain(
     prompt: string,
     chain: string = LANGCHAIN_CONFIG.defaultChain,
-    temperature: number = 0.7
+    temperature: number = 0.7,
   ): Promise<{ text: string }> {
     try {
       const response = await fetch(`${LANGCHAIN_CONFIG.baseUrl}/invoke`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${LANGCHAIN_CONFIG.token}`,
+          Authorization: `Bearer ${LANGCHAIN_CONFIG.token}`,
           "X-API-Key": LANGCHAIN_CONFIG.token,
         },
         body: JSON.stringify({
@@ -135,7 +135,9 @@ export class LlmService {
       });
 
       if (!response.ok) {
-        console.warn(`LangChain returned ${response.status}, falling back to OpenAI`);
+        console.warn(
+          `LangChain returned ${response.status}, falling back to OpenAI`,
+        );
         // Fallback to OpenAI if LangChain fails
         const fallback = await generateText({
           model: openai(this.defaultModels.openai),
@@ -165,24 +167,29 @@ export class LlmService {
   public async callChain(
     chainName: string,
     input: Record<string, unknown>,
-    config?: Record<string, unknown>
+    config?: Record<string, unknown>,
   ): Promise<unknown> {
     try {
-      const response = await fetch(`${LANGCHAIN_CONFIG.baseUrl}/${chainName}/invoke`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${LANGCHAIN_CONFIG.token}`,
-          "X-API-Key": LANGCHAIN_CONFIG.token,
+      const response = await fetch(
+        `${LANGCHAIN_CONFIG.baseUrl}/${chainName}/invoke`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${LANGCHAIN_CONFIG.token}`,
+            "X-API-Key": LANGCHAIN_CONFIG.token,
+          },
+          body: JSON.stringify({
+            input,
+            config: config || {},
+          }),
         },
-        body: JSON.stringify({
-          input,
-          config: config || {},
-        }),
-      });
+      );
 
       if (!response.ok) {
-        throw new Error(`LangChain chain ${chainName} failed: ${response.status}`);
+        throw new Error(
+          `LangChain chain ${chainName} failed: ${response.status}`,
+        );
       }
 
       return await response.json();
@@ -198,17 +205,20 @@ export class LlmService {
   public async streamChain(
     chainName: string,
     input: Record<string, unknown>,
-    onChunk: (chunk: string) => void
+    onChunk: (chunk: string) => void,
   ): Promise<void> {
-    const response = await fetch(`${LANGCHAIN_CONFIG.baseUrl}/${chainName}/stream`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${LANGCHAIN_CONFIG.token}`,
-        "X-API-Key": LANGCHAIN_CONFIG.token,
+    const response = await fetch(
+      `${LANGCHAIN_CONFIG.baseUrl}/${chainName}/stream`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${LANGCHAIN_CONFIG.token}`,
+          "X-API-Key": LANGCHAIN_CONFIG.token,
+        },
+        body: JSON.stringify({ input }),
       },
-      body: JSON.stringify({ input }),
-    });
+    );
 
     if (!response.ok || !response.body) {
       throw new Error(`LangChain stream failed: ${response.status}`);

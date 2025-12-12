@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 const SIGNALHOUSE_API_KEY = process.env.SIGNALHOUSE_API_KEY || "";
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || "";
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://monkfish-app-mb7h3.ondigitalocean.app";
+const APP_URL =
+  process.env.NEXT_PUBLIC_APP_URL ||
+  "https://monkfish-app-mb7h3.ondigitalocean.app";
 
 interface ShareRequest {
   reportId: string;
@@ -41,7 +43,10 @@ export async function POST(request: NextRequest) {
     } = body;
 
     if (!reportId && !providedReportUrl) {
-      return NextResponse.json({ error: "Report ID or URL is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Report ID or URL is required" },
+        { status: 400 },
+      );
     }
 
     // Use provided URL (CDN) or fall back to app URL
@@ -70,26 +75,37 @@ export async function POST(request: NextRequest) {
           propertyAddress || "your property"
         }${formattedValue ? ` - estimated at ${formattedValue}` : ""}.\n\nView your personalized report: ${reportUrl}\n\nReply STOP to opt out.`;
 
-        const smsResponse = await fetch("https://api.signalhouse.io/v1/messages", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${SIGNALHOUSE_API_KEY}`,
+        const smsResponse = await fetch(
+          "https://api.signalhouse.io/v1/messages",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${SIGNALHOUSE_API_KEY}`,
+            },
+            body: JSON.stringify({
+              to: recipientPhone,
+              text: smsMessage,
+              from:
+                process.env.SIGNALHOUSE_FROM_NUMBER ||
+                process.env.TWILIO_PHONE_NUMBER,
+            }),
           },
-          body: JSON.stringify({
-            to: recipientPhone,
-            text: smsMessage,
-            from: process.env.SIGNALHOUSE_FROM_NUMBER || process.env.TWILIO_PHONE_NUMBER,
-          }),
-        });
+        );
 
         const smsData = await smsResponse.json();
 
         if (smsResponse.ok) {
-          results.sms = { success: true, messageId: smsData.id || smsData.messageId };
+          results.sms = {
+            success: true,
+            messageId: smsData.id || smsData.messageId,
+          };
           console.log("[Report Share] SMS sent successfully:", smsData);
         } else {
-          results.sms = { success: false, error: smsData.error || "SMS send failed" };
+          results.sms = {
+            success: false,
+            error: smsData.error || "SMS send failed",
+          };
           console.error("[Report Share] SMS failed:", smsData);
         }
       } catch (smsError) {
@@ -155,14 +171,18 @@ export async function POST(request: NextRequest) {
                     <p style="margin: 0; color: #ffffff; font-size: 20px; font-weight: 600;">
                       ${propertyAddress || "Your Property"}
                     </p>
-                    ${formattedValue ? `
+                    ${
+                      formattedValue
+                        ? `
                     <p style="margin: 16px 0 0 0; color: #93c5fd; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">
                       Estimated Value
                     </p>
                     <p style="margin: 4px 0 0; color: #34d399; font-size: 32px; font-weight: 700;">
                       ${formattedValue}
                     </p>
-                    ` : ""}
+                    `
+                        : ""
+                    }
                   </td>
                 </tr>
               </table>
@@ -229,13 +249,17 @@ export async function POST(request: NextRequest) {
                     <p style="margin: 4px 0 0; color: #94a3b8; font-size: 14px;">
                       ${companyName || "NexTier Real Estate"}
                     </p>
-                    ${agentPhone ? `
+                    ${
+                      agentPhone
+                        ? `
                     <p style="margin: 12px 0 0;">
                       <a href="tel:${agentPhone}" style="color: #3b82f6; text-decoration: none; font-size: 14px;">
                         ${agentPhone}
                       </a>
                     </p>
-                    ` : ""}
+                    `
+                        : ""
+                    }
                   </td>
                 </tr>
               </table>
@@ -282,37 +306,45 @@ ${agentPhone ? `Phone: ${agentPhone}` : ""}
 ---
 Powered by NexTier Property Intelligence`;
 
-        const emailResponse = await fetch("https://api.sendgrid.com/v3/mail/send", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${SENDGRID_API_KEY}`,
-          },
-          body: JSON.stringify({
-            personalizations: [
-              {
-                to: [{ email: recipientEmail, name: recipientName || undefined }],
-                subject: `Your Property Valuation Report${propertyAddress ? ` - ${propertyAddress}` : ""}`,
+        const emailResponse = await fetch(
+          "https://api.sendgrid.com/v3/mail/send",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${SENDGRID_API_KEY}`,
+            },
+            body: JSON.stringify({
+              personalizations: [
+                {
+                  to: [
+                    { email: recipientEmail, name: recipientName || undefined },
+                  ],
+                  subject: `Your Property Valuation Report${propertyAddress ? ` - ${propertyAddress}` : ""}`,
+                },
+              ],
+              from: {
+                email: process.env.SENDGRID_FROM_EMAIL || "reports@nextier.app",
+                name: agentName || companyName || "NexTier",
               },
-            ],
-            from: {
-              email: process.env.SENDGRID_FROM_EMAIL || "reports@nextier.app",
-              name: agentName || companyName || "NexTier",
-            },
-            reply_to: {
-              email: process.env.SENDGRID_REPLY_TO || process.env.SENDGRID_FROM_EMAIL || "hello@nextier.app",
-              name: agentName || companyName || "NexTier",
-            },
-            content: [
-              { type: "text/plain", value: textContent },
-              { type: "text/html", value: htmlContent },
-            ],
-            tracking_settings: {
-              click_tracking: { enable: true },
-              open_tracking: { enable: true },
-            },
-          }),
-        });
+              reply_to: {
+                email:
+                  process.env.SENDGRID_REPLY_TO ||
+                  process.env.SENDGRID_FROM_EMAIL ||
+                  "hello@nextier.app",
+                name: agentName || companyName || "NexTier",
+              },
+              content: [
+                { type: "text/plain", value: textContent },
+                { type: "text/html", value: htmlContent },
+              ],
+              tracking_settings: {
+                click_tracking: { enable: true },
+                open_tracking: { enable: true },
+              },
+            }),
+          },
+        );
 
         if (emailResponse.ok || emailResponse.status === 202) {
           results.email = { success: true };
@@ -345,7 +377,7 @@ Powered by NexTier Property Intelligence`;
     console.error("[Report Share] Error:", error);
     return NextResponse.json(
       { error: "Failed to share report" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

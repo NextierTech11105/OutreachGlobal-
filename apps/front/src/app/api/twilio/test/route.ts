@@ -11,7 +11,9 @@ export async function GET() {
   return NextResponse.json({
     configured,
     hasPhoneNumber: !!phoneNumber,
-    phoneNumber: phoneNumber ? phoneNumber.slice(-4).padStart(phoneNumber.length, "*") : null,
+    phoneNumber: phoneNumber
+      ? phoneNumber.slice(-4).padStart(phoneNumber.length, "*")
+      : null,
   });
 }
 
@@ -22,12 +24,14 @@ export async function POST(request: NextRequest) {
     if (!accountSid || !authToken) {
       return NextResponse.json(
         { error: "Account SID and Auth Token are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Test connection by fetching account info from Twilio
-    const credentials = Buffer.from(`${accountSid}:${authToken}`).toString("base64");
+    const credentials = Buffer.from(`${accountSid}:${authToken}`).toString(
+      "base64",
+    );
 
     const response = await fetch(
       `https://api.twilio.com/2010-04-01/Accounts/${accountSid}.json`,
@@ -37,17 +41,18 @@ export async function POST(request: NextRequest) {
           Authorization: `Basic ${credentials}`,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       return NextResponse.json(
         {
-          error: errorData.message || "Invalid credentials or connection failed",
-          code: errorData.code
+          error:
+            errorData.message || "Invalid credentials or connection failed",
+          code: errorData.code,
         },
-        { status: response.status }
+        { status: response.status },
       );
     }
 
@@ -65,7 +70,8 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: unknown) {
     console.error("Twilio test connection error:", error);
-    const message = error instanceof Error ? error.message : "Connection test failed";
+    const message =
+      error instanceof Error ? error.message : "Connection test failed";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

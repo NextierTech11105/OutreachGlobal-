@@ -2,7 +2,10 @@
 // API Docs: https://apolloio.github.io/apollo-api-docs/
 
 const APOLLO_API_BASE_URL = "https://api.apollo.io/api/v1";
-const APOLLO_API_KEY = process.env.APOLLO_IO_API_KEY || process.env.NEXT_PUBLIC_APOLLO_IO_API_KEY || "";
+const APOLLO_API_KEY =
+  process.env.APOLLO_IO_API_KEY ||
+  process.env.NEXT_PUBLIC_APOLLO_IO_API_KEY ||
+  "";
 
 // ============ Response Types ============
 
@@ -141,7 +144,19 @@ export interface ApolloPersonSearchQuery {
   q_organization_keyword_tags?: string[];
   person_titles?: string[];
   person_not_titles?: string[];
-  person_seniorities?: ("owner" | "founder" | "c_suite" | "partner" | "vp" | "head" | "director" | "manager" | "senior" | "entry" | "intern")[];
+  person_seniorities?: (
+    | "owner"
+    | "founder"
+    | "c_suite"
+    | "partner"
+    | "vp"
+    | "head"
+    | "director"
+    | "manager"
+    | "senior"
+    | "entry"
+    | "intern"
+  )[];
   q_keywords?: string;
   person_locations?: string[];
   organization_locations?: string[];
@@ -230,7 +245,10 @@ class ApolloIoApiService {
   private apiKey: string;
   private baseUrl: string;
 
-  constructor(apiKey: string = APOLLO_API_KEY, baseUrl: string = APOLLO_API_BASE_URL) {
+  constructor(
+    apiKey: string = APOLLO_API_KEY,
+    baseUrl: string = APOLLO_API_BASE_URL,
+  ) {
     this.apiKey = apiKey;
     this.baseUrl = baseUrl;
   }
@@ -238,7 +256,7 @@ class ApolloIoApiService {
   private async request<T>(
     endpoint: string,
     method: "GET" | "POST" = "POST",
-    body?: Record<string, unknown>
+    body?: Record<string, unknown>,
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
 
@@ -247,7 +265,9 @@ class ApolloIoApiService {
     };
 
     // Apollo.io uses api_key in the request body, not header
-    const requestBody = body ? { ...body, api_key: this.apiKey } : { api_key: this.apiKey };
+    const requestBody = body
+      ? { ...body, api_key: this.apiKey }
+      : { api_key: this.apiKey };
 
     const response = await fetch(url, {
       method,
@@ -258,7 +278,7 @@ class ApolloIoApiService {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(
-        `Apollo.io API Error: ${response.status} - ${errorData.message || response.statusText}`
+        `Apollo.io API Error: ${response.status} - ${errorData.message || response.statusText}`,
       );
     }
 
@@ -267,13 +287,19 @@ class ApolloIoApiService {
 
   // ============ People Search ============
 
-  async searchPeople(query: ApolloPersonSearchQuery): Promise<ApolloSearchResponse> {
-    return this.request<ApolloSearchResponse>("/mixed_people/search", "POST", query as Record<string, unknown>);
+  async searchPeople(
+    query: ApolloPersonSearchQuery,
+  ): Promise<ApolloSearchResponse> {
+    return this.request<ApolloSearchResponse>(
+      "/mixed_people/search",
+      "POST",
+      query as Record<string, unknown>,
+    );
   }
 
   async searchPeopleByCompany(
     domain: string,
-    options: Partial<ApolloPersonSearchQuery> = {}
+    options: Partial<ApolloPersonSearchQuery> = {},
   ): Promise<ApolloSearchResponse> {
     return this.searchPeople({
       q_organization_domains: [domain],
@@ -283,18 +309,26 @@ class ApolloIoApiService {
 
   async searchDecisionMakers(
     domain: string,
-    options: Partial<ApolloPersonSearchQuery> = {}
+    options: Partial<ApolloPersonSearchQuery> = {},
   ): Promise<ApolloSearchResponse> {
     return this.searchPeople({
       q_organization_domains: [domain],
-      person_seniorities: ["owner", "founder", "c_suite", "partner", "vp", "head", "director"],
+      person_seniorities: [
+        "owner",
+        "founder",
+        "c_suite",
+        "partner",
+        "vp",
+        "head",
+        "director",
+      ],
       ...options,
     });
   }
 
   async searchByTitle(
     titles: string[],
-    options: Partial<ApolloPersonSearchQuery> = {}
+    options: Partial<ApolloPersonSearchQuery> = {},
   ): Promise<ApolloSearchResponse> {
     return this.searchPeople({
       person_titles: titles,
@@ -304,14 +338,24 @@ class ApolloIoApiService {
 
   // ============ Organization Search ============
 
-  async searchOrganizations(query: ApolloOrganizationSearchQuery): Promise<{ organizations: ApolloOrganization[]; pagination: ApolloSearchResponse["pagination"] }> {
-    return this.request("/mixed_companies/search", "POST", query as Record<string, unknown>);
+  async searchOrganizations(query: ApolloOrganizationSearchQuery): Promise<{
+    organizations: ApolloOrganization[];
+    pagination: ApolloSearchResponse["pagination"];
+  }> {
+    return this.request(
+      "/mixed_companies/search",
+      "POST",
+      query as Record<string, unknown>,
+    );
   }
 
   async searchOrganizationsByIndustry(
     industries: string[],
-    options: Partial<ApolloOrganizationSearchQuery> = {}
-  ): Promise<{ organizations: ApolloOrganization[]; pagination: ApolloSearchResponse["pagination"] }> {
+    options: Partial<ApolloOrganizationSearchQuery> = {},
+  ): Promise<{
+    organizations: ApolloOrganization[];
+    pagination: ApolloSearchResponse["pagination"];
+  }> {
     return this.searchOrganizations({
       organization_industry_tag_ids: industries,
       ...options,
@@ -321,18 +365,29 @@ class ApolloIoApiService {
   // ============ Enrichment ============
 
   async enrichPerson(query: ApolloEnrichQuery): Promise<ApolloEnrichResponse> {
-    return this.request<ApolloEnrichResponse>("/people/match", "POST", query as Record<string, unknown>);
+    return this.request<ApolloEnrichResponse>(
+      "/people/match",
+      "POST",
+      query as Record<string, unknown>,
+    );
   }
 
   async enrichPersonByEmail(email: string): Promise<ApolloEnrichResponse> {
     return this.enrichPerson({ email, reveal_phone_number: true });
   }
 
-  async enrichPersonByLinkedIn(linkedinUrl: string): Promise<ApolloEnrichResponse> {
-    return this.enrichPerson({ linkedin_url: linkedinUrl, reveal_phone_number: true });
+  async enrichPersonByLinkedIn(
+    linkedinUrl: string,
+  ): Promise<ApolloEnrichResponse> {
+    return this.enrichPerson({
+      linkedin_url: linkedinUrl,
+      reveal_phone_number: true,
+    });
   }
 
-  async enrichOrganization(domain: string): Promise<{ organization: ApolloOrganization | null }> {
+  async enrichOrganization(
+    domain: string,
+  ): Promise<{ organization: ApolloOrganization | null }> {
     return this.request("/organizations/enrich", "POST", { domain });
   }
 
@@ -343,16 +398,28 @@ class ApolloIoApiService {
    * This saves the contact to your Apollo account so you don't consume credits
    * when enriching the same person again.
    */
-  async createContact(input: ApolloContactInput): Promise<{ contact: ApolloContact }> {
-    return this.request<{ contact: ApolloContact }>("/contacts", "POST", input as Record<string, unknown>);
+  async createContact(
+    input: ApolloContactInput,
+  ): Promise<{ contact: ApolloContact }> {
+    return this.request<{ contact: ApolloContact }>(
+      "/contacts",
+      "POST",
+      input as Record<string, unknown>,
+    );
   }
 
   /**
    * Convert an enriched person to a contact to save credits on future lookups.
    */
-  async createContactFromEnrichedPerson(person: ApolloPerson): Promise<{ contact: ApolloContact }> {
-    const mobilePhone = person.phone_numbers?.find(p => p.type === "mobile")?.raw_number;
-    const directPhone = person.phone_numbers?.find(p => p.type === "work_direct")?.raw_number;
+  async createContactFromEnrichedPerson(
+    person: ApolloPerson,
+  ): Promise<{ contact: ApolloContact }> {
+    const mobilePhone = person.phone_numbers?.find(
+      (p) => p.type === "mobile",
+    )?.raw_number;
+    const directPhone = person.phone_numbers?.find(
+      (p) => p.type === "work_direct",
+    )?.raw_number;
 
     return this.createContact({
       first_name: person.first_name,
@@ -373,18 +440,23 @@ class ApolloIoApiService {
   /**
    * Bulk create contacts from enriched people
    */
-  async createContactsBulk(people: ApolloPerson[], concurrency = 5): Promise<{ contact: ApolloContact }[]> {
+  async createContactsBulk(
+    people: ApolloPerson[],
+    concurrency = 5,
+  ): Promise<{ contact: ApolloContact }[]> {
     const results: { contact: ApolloContact }[] = [];
 
     for (let i = 0; i < people.length; i += concurrency) {
       const batch = people.slice(i, i + concurrency);
       const batchResults = await Promise.all(
-        batch.map(p => this.createContactFromEnrichedPerson(p).catch(err => {
-          console.error("Create contact failed:", err);
-          return { contact: null as unknown as ApolloContact };
-        }))
+        batch.map((p) =>
+          this.createContactFromEnrichedPerson(p).catch((err) => {
+            console.error("Create contact failed:", err);
+            return { contact: null as unknown as ApolloContact };
+          }),
+        ),
       );
-      results.push(...batchResults.filter(r => r.contact));
+      results.push(...batchResults.filter((r) => r.contact));
     }
 
     return results;
@@ -392,16 +464,21 @@ class ApolloIoApiService {
 
   // ============ Bulk Operations ============
 
-  async enrichPeopleBulk(queries: ApolloEnrichQuery[], concurrency = 5): Promise<ApolloEnrichResponse[]> {
+  async enrichPeopleBulk(
+    queries: ApolloEnrichQuery[],
+    concurrency = 5,
+  ): Promise<ApolloEnrichResponse[]> {
     const results: ApolloEnrichResponse[] = [];
 
     for (let i = 0; i < queries.length; i += concurrency) {
       const batch = queries.slice(i, i + concurrency);
       const batchResults = await Promise.all(
-        batch.map(q => this.enrichPerson(q).catch(err => {
-          console.error("Enrich failed:", err);
-          return { person: null, organization: null };
-        }))
+        batch.map((q) =>
+          this.enrichPerson(q).catch((err) => {
+            console.error("Enrich failed:", err);
+            return { person: null, organization: null };
+          }),
+        ),
       );
       results.push(...batchResults);
     }
@@ -413,7 +490,7 @@ class ApolloIoApiService {
 
   async searchCommercialRealEstateContacts(
     location?: string,
-    options: Partial<ApolloPersonSearchQuery> = {}
+    options: Partial<ApolloPersonSearchQuery> = {},
   ): Promise<ApolloSearchResponse> {
     return this.searchPeople({
       person_titles: [
@@ -435,7 +512,7 @@ class ApolloIoApiService {
 
   async searchPropertyOwners(
     location?: string,
-    options: Partial<ApolloPersonSearchQuery> = {}
+    options: Partial<ApolloPersonSearchQuery> = {},
   ): Promise<ApolloSearchResponse> {
     return this.searchPeople({
       person_titles: [
@@ -459,7 +536,7 @@ class ApolloIoApiService {
   }
 
   async searchInvestmentFirmContacts(
-    options: Partial<ApolloPersonSearchQuery> = {}
+    options: Partial<ApolloPersonSearchQuery> = {},
   ): Promise<ApolloSearchResponse> {
     return this.searchPeople({
       person_seniorities: ["owner", "founder", "c_suite", "partner", "vp"],
@@ -480,10 +557,18 @@ class ApolloIoApiService {
     industry: string,
     location?: string,
     employeeRange?: string,
-    options: Partial<ApolloPersonSearchQuery> = {}
+    options: Partial<ApolloPersonSearchQuery> = {},
   ): Promise<ApolloSearchResponse> {
     const query: ApolloPersonSearchQuery = {
-      person_seniorities: ["owner", "founder", "c_suite", "partner", "vp", "head", "director"],
+      person_seniorities: [
+        "owner",
+        "founder",
+        "c_suite",
+        "partner",
+        "vp",
+        "head",
+        "director",
+      ],
       ...options,
     };
 
@@ -513,13 +598,34 @@ export async function searchCommercialRealEstateB2B(params: {
 }) {
   const { location, propertyType, page = 1, perPage = 25 } = params;
 
-  const titles = propertyType === "industrial"
-    ? ["Warehouse Manager", "Logistics Manager", "Distribution Manager", "Industrial Property Manager"]
-    : propertyType === "retail"
-    ? ["Retail Manager", "Store Manager", "Regional Manager", "Retail Property Manager"]
-    : propertyType === "office"
-    ? ["Office Manager", "Facilities Manager", "Workplace Manager", "Corporate Real Estate"]
-    : ["Property Manager", "Asset Manager", "Real Estate Manager", "Portfolio Manager"];
+  const titles =
+    propertyType === "industrial"
+      ? [
+          "Warehouse Manager",
+          "Logistics Manager",
+          "Distribution Manager",
+          "Industrial Property Manager",
+        ]
+      : propertyType === "retail"
+        ? [
+            "Retail Manager",
+            "Store Manager",
+            "Regional Manager",
+            "Retail Property Manager",
+          ]
+        : propertyType === "office"
+          ? [
+              "Office Manager",
+              "Facilities Manager",
+              "Workplace Manager",
+              "Corporate Real Estate",
+            ]
+          : [
+              "Property Manager",
+              "Asset Manager",
+              "Real Estate Manager",
+              "Portfolio Manager",
+            ];
 
   return apolloIoApi.searchPeople({
     person_titles: titles,

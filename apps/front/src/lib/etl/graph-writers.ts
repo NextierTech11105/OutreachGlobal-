@@ -3,7 +3,12 @@
  * Writes nodes (entities) and edges (relationships) to DO Spaces in graph format
  */
 
-import { S3Client, PutObjectCommand, GetObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  ListObjectsV2Command,
+} from "@aws-sdk/client-s3";
 import { v4 as uuidv4 } from "uuid";
 
 // ============================================================================
@@ -11,34 +16,34 @@ import { v4 as uuidv4 } from "uuid";
 // ============================================================================
 
 export type NodeType =
-  | "property"      // Real estate property
-  | "business"      // B2B business entity
-  | "contact"       // Individual person
-  | "phone"         // Phone number
-  | "email"         // Email address
-  | "address"       // Physical address
-  | "owner"         // Property owner
-  | "campaign";     // Outreach campaign
+  | "property" // Real estate property
+  | "business" // B2B business entity
+  | "contact" // Individual person
+  | "phone" // Phone number
+  | "email" // Email address
+  | "address" // Physical address
+  | "owner" // Property owner
+  | "campaign"; // Outreach campaign
 
 export type EdgeType =
-  | "owns"          // owner -> property
-  | "works_at"      // contact -> business
-  | "located_at"    // business -> address, property -> address
-  | "has_phone"     // contact -> phone, business -> phone
-  | "has_email"     // contact -> email, business -> email
-  | "contacted_by"  // contact -> campaign
-  | "occupies"      // business -> property
-  | "associated";   // generic relationship
+  | "owns" // owner -> property
+  | "works_at" // contact -> business
+  | "located_at" // business -> address, property -> address
+  | "has_phone" // contact -> phone, business -> phone
+  | "has_email" // contact -> email, business -> email
+  | "contacted_by" // contact -> campaign
+  | "occupies" // business -> property
+  | "associated"; // generic relationship
 
 export interface GraphNode {
-  id: string;                   // UUID
+  id: string; // UUID
   type: NodeType;
-  normalizedKey: string;        // Deduplication key (e.g., normalized address, phone)
-  data: Record<string, unknown>;// Entity data
-  sources: string[];            // Source bucket IDs that contributed to this node
+  normalizedKey: string; // Deduplication key (e.g., normalized address, phone)
+  data: Record<string, unknown>; // Entity data
+  sources: string[]; // Source bucket IDs that contributed to this node
   createdAt: string;
   updatedAt: string;
-  confidence: number;           // 0-1 confidence score
+  confidence: number; // 0-1 confidence score
 }
 
 export interface GraphEdge {
@@ -46,7 +51,7 @@ export interface GraphEdge {
   type: EdgeType;
   sourceNodeId: string;
   targetNodeId: string;
-  weight: number;               // Relationship strength 0-1
+  weight: number; // Relationship strength 0-1
   metadata?: Record<string, unknown>;
   createdAt: string;
 }
@@ -64,7 +69,8 @@ export interface GraphWriteResult {
 
 function getS3Client(): S3Client {
   return new S3Client({
-    endpoint: process.env.DO_SPACES_ENDPOINT || "https://nyc3.digitaloceanspaces.com",
+    endpoint:
+      process.env.DO_SPACES_ENDPOINT || "https://nyc3.digitaloceanspaces.com",
     region: process.env.DO_SPACES_REGION || "nyc3",
     credentials: {
       accessKeyId: process.env.DO_SPACES_KEY || "",
@@ -97,10 +103,12 @@ async function loadNodeIndex(type: NodeType): Promise<NodeIndex> {
   const key = `${GRAPH_PREFIX}/indexes/${type}-index.json`;
 
   try {
-    const response = await client.send(new GetObjectCommand({
-      Bucket: BUCKET,
-      Key: key,
-    }));
+    const response = await client.send(
+      new GetObjectCommand({
+        Bucket: BUCKET,
+        Key: key,
+      }),
+    );
     const body = await response.Body?.transformToString();
     return body ? JSON.parse(body) : {};
   } catch {
@@ -115,12 +123,14 @@ async function saveNodeIndex(type: NodeType, index: NodeIndex): Promise<void> {
   const client = getS3Client();
   const key = `${GRAPH_PREFIX}/indexes/${type}-index.json`;
 
-  await client.send(new PutObjectCommand({
-    Bucket: BUCKET,
-    Key: key,
-    Body: JSON.stringify(index),
-    ContentType: "application/json",
-  }));
+  await client.send(
+    new PutObjectCommand({
+      Bucket: BUCKET,
+      Key: key,
+      Body: JSON.stringify(index),
+      ContentType: "application/json",
+    }),
+  );
 }
 
 // ============================================================================
@@ -136,7 +146,7 @@ export async function writeNode(
   normalizedKey: string,
   data: Record<string, unknown>,
   sourceId: string,
-  confidence: number = 0.8
+  confidence: number = 0.8,
 ): Promise<{ nodeId: string; isNew: boolean }> {
   const client = getS3Client();
   const index = await loadNodeIndex(type);
@@ -147,11 +157,15 @@ export async function writeNode(
   if (existing) {
     // Update existing node - merge data
     const nodePath = existing.path;
-    const response = await client.send(new GetObjectCommand({
-      Bucket: BUCKET,
-      Key: nodePath,
-    }));
-    const existingNode: GraphNode = JSON.parse(await response.Body?.transformToString() || "{}");
+    const response = await client.send(
+      new GetObjectCommand({
+        Bucket: BUCKET,
+        Key: nodePath,
+      }),
+    );
+    const existingNode: GraphNode = JSON.parse(
+      (await response.Body?.transformToString()) || "{}",
+    );
 
     // Merge data, add source if new
     const updatedNode: GraphNode = {
@@ -162,12 +176,14 @@ export async function writeNode(
       confidence: Math.max(existingNode.confidence, confidence),
     };
 
-    await client.send(new PutObjectCommand({
-      Bucket: BUCKET,
-      Key: nodePath,
-      Body: JSON.stringify(updatedNode),
-      ContentType: "application/json",
-    }));
+    await client.send(
+      new PutObjectCommand({
+        Bucket: BUCKET,
+        Key: nodePath,
+        Body: JSON.stringify(updatedNode),
+        ContentType: "application/json",
+      }),
+    );
 
     return { nodeId: existing.nodeId, isNew: false };
   }
@@ -188,12 +204,14 @@ export async function writeNode(
     confidence,
   };
 
-  await client.send(new PutObjectCommand({
-    Bucket: BUCKET,
-    Key: nodePath,
-    Body: JSON.stringify(newNode),
-    ContentType: "application/json",
-  }));
+  await client.send(
+    new PutObjectCommand({
+      Bucket: BUCKET,
+      Key: nodePath,
+      Body: JSON.stringify(newNode),
+      ContentType: "application/json",
+    }),
+  );
 
   // Update index
   index[normalizedKey] = { nodeId, type, path: nodePath };
@@ -205,7 +223,10 @@ export async function writeNode(
 /**
  * Get a node by its normalized key
  */
-export async function getNodeByKey(type: NodeType, normalizedKey: string): Promise<GraphNode | null> {
+export async function getNodeByKey(
+  type: NodeType,
+  normalizedKey: string,
+): Promise<GraphNode | null> {
   const client = getS3Client();
   const index = await loadNodeIndex(type);
   const entry = index[normalizedKey];
@@ -213,11 +234,13 @@ export async function getNodeByKey(type: NodeType, normalizedKey: string): Promi
   if (!entry) return null;
 
   try {
-    const response = await client.send(new GetObjectCommand({
-      Bucket: BUCKET,
-      Key: entry.path,
-    }));
-    return JSON.parse(await response.Body?.transformToString() || "null");
+    const response = await client.send(
+      new GetObjectCommand({
+        Bucket: BUCKET,
+        Key: entry.path,
+      }),
+    );
+    return JSON.parse((await response.Body?.transformToString()) || "null");
   } catch {
     return null;
   }
@@ -226,25 +249,34 @@ export async function getNodeByKey(type: NodeType, normalizedKey: string): Promi
 /**
  * Get a node by ID
  */
-export async function getNodeById(type: NodeType, nodeId: string): Promise<GraphNode | null> {
+export async function getNodeById(
+  type: NodeType,
+  nodeId: string,
+): Promise<GraphNode | null> {
   const client = getS3Client();
 
   // List potential paths (node could be in any month folder)
   const prefix = `${GRAPH_PREFIX}/nodes/${type}/`;
-  const response = await client.send(new ListObjectsV2Command({
-    Bucket: BUCKET,
-    Prefix: prefix,
-    MaxKeys: 1000,
-  }));
+  const response = await client.send(
+    new ListObjectsV2Command({
+      Bucket: BUCKET,
+      Prefix: prefix,
+      MaxKeys: 1000,
+    }),
+  );
 
   for (const obj of response.Contents || []) {
     if (obj.Key?.endsWith(`${nodeId}.json`)) {
       try {
-        const nodeResponse = await client.send(new GetObjectCommand({
-          Bucket: BUCKET,
-          Key: obj.Key,
-        }));
-        return JSON.parse(await nodeResponse.Body?.transformToString() || "null");
+        const nodeResponse = await client.send(
+          new GetObjectCommand({
+            Bucket: BUCKET,
+            Key: obj.Key,
+          }),
+        );
+        return JSON.parse(
+          (await nodeResponse.Body?.transformToString()) || "null",
+        );
       } catch {
         return null;
       }
@@ -266,7 +298,7 @@ export async function writeEdge(
   sourceNodeId: string,
   targetNodeId: string,
   weight: number = 1.0,
-  metadata?: Record<string, unknown>
+  metadata?: Record<string, unknown>,
 ): Promise<string> {
   const client = getS3Client();
   const edgeId = uuidv4();
@@ -289,24 +321,30 @@ export async function writeEdge(
   const typePath = `${GRAPH_PREFIX}/edges/by-type/${type}/${datePrefix}/${edgeId}.json`;
 
   await Promise.all([
-    client.send(new PutObjectCommand({
-      Bucket: BUCKET,
-      Key: sourcePath,
-      Body: JSON.stringify(edge),
-      ContentType: "application/json",
-    })),
-    client.send(new PutObjectCommand({
-      Bucket: BUCKET,
-      Key: targetPath,
-      Body: JSON.stringify(edge),
-      ContentType: "application/json",
-    })),
-    client.send(new PutObjectCommand({
-      Bucket: BUCKET,
-      Key: typePath,
-      Body: JSON.stringify(edge),
-      ContentType: "application/json",
-    })),
+    client.send(
+      new PutObjectCommand({
+        Bucket: BUCKET,
+        Key: sourcePath,
+        Body: JSON.stringify(edge),
+        ContentType: "application/json",
+      }),
+    ),
+    client.send(
+      new PutObjectCommand({
+        Bucket: BUCKET,
+        Key: targetPath,
+        Body: JSON.stringify(edge),
+        ContentType: "application/json",
+      }),
+    ),
+    client.send(
+      new PutObjectCommand({
+        Bucket: BUCKET,
+        Key: typePath,
+        Body: JSON.stringify(edge),
+        ContentType: "application/json",
+      }),
+    ),
   ]);
 
   return edgeId;
@@ -315,25 +353,33 @@ export async function writeEdge(
 /**
  * Get all edges from a source node
  */
-export async function getEdgesFromNode(sourceNodeId: string): Promise<GraphEdge[]> {
+export async function getEdgesFromNode(
+  sourceNodeId: string,
+): Promise<GraphEdge[]> {
   const client = getS3Client();
   const prefix = `${GRAPH_PREFIX}/edges/by-source/${sourceNodeId}/`;
 
-  const response = await client.send(new ListObjectsV2Command({
-    Bucket: BUCKET,
-    Prefix: prefix,
-    MaxKeys: 1000,
-  }));
+  const response = await client.send(
+    new ListObjectsV2Command({
+      Bucket: BUCKET,
+      Prefix: prefix,
+      MaxKeys: 1000,
+    }),
+  );
 
   const edges: GraphEdge[] = [];
   for (const obj of response.Contents || []) {
     if (obj.Key) {
       try {
-        const edgeResponse = await client.send(new GetObjectCommand({
-          Bucket: BUCKET,
-          Key: obj.Key,
-        }));
-        const edge = JSON.parse(await edgeResponse.Body?.transformToString() || "null");
+        const edgeResponse = await client.send(
+          new GetObjectCommand({
+            Bucket: BUCKET,
+            Key: obj.Key,
+          }),
+        );
+        const edge = JSON.parse(
+          (await edgeResponse.Body?.transformToString()) || "null",
+        );
         if (edge) edges.push(edge);
       } catch {
         // Skip invalid edges
@@ -347,25 +393,33 @@ export async function getEdgesFromNode(sourceNodeId: string): Promise<GraphEdge[
 /**
  * Get all edges to a target node
  */
-export async function getEdgesToNode(targetNodeId: string): Promise<GraphEdge[]> {
+export async function getEdgesToNode(
+  targetNodeId: string,
+): Promise<GraphEdge[]> {
   const client = getS3Client();
   const prefix = `${GRAPH_PREFIX}/edges/by-target/${targetNodeId}/`;
 
-  const response = await client.send(new ListObjectsV2Command({
-    Bucket: BUCKET,
-    Prefix: prefix,
-    MaxKeys: 1000,
-  }));
+  const response = await client.send(
+    new ListObjectsV2Command({
+      Bucket: BUCKET,
+      Prefix: prefix,
+      MaxKeys: 1000,
+    }),
+  );
 
   const edges: GraphEdge[] = [];
   for (const obj of response.Contents || []) {
     if (obj.Key) {
       try {
-        const edgeResponse = await client.send(new GetObjectCommand({
-          Bucket: BUCKET,
-          Key: obj.Key,
-        }));
-        const edge = JSON.parse(await edgeResponse.Body?.transformToString() || "null");
+        const edgeResponse = await client.send(
+          new GetObjectCommand({
+            Bucket: BUCKET,
+            Key: obj.Key,
+          }),
+        );
+        const edge = JSON.parse(
+          (await edgeResponse.Body?.transformToString()) || "null",
+        );
         if (edge) edges.push(edge);
       } catch {
         // Skip invalid edges
@@ -390,7 +444,7 @@ export async function writeNodesBatch(
     data: Record<string, unknown>;
     confidence?: number;
   }>,
-  sourceId: string
+  sourceId: string,
 ): Promise<GraphWriteResult> {
   const result: GraphWriteResult = {
     nodesWritten: 0,
@@ -418,7 +472,7 @@ export async function writeNodesBatch(
           node.normalizedKey,
           node.data,
           sourceId,
-          node.confidence
+          node.confidence,
         );
 
         if (isNew) {
@@ -445,7 +499,7 @@ export async function writeEdgesBatch(
     targetNodeId: string;
     weight?: number;
     metadata?: Record<string, unknown>;
-  }>
+  }>,
 ): Promise<number> {
   let written = 0;
 
@@ -456,7 +510,7 @@ export async function writeEdgesBatch(
         edge.sourceNodeId,
         edge.targetNodeId,
         edge.weight,
-        edge.metadata
+        edge.metadata,
       );
       written++;
     } catch {
@@ -484,17 +538,20 @@ export async function findConnectedNodes(nodeId: string): Promise<{
   ]);
 
   return {
-    outgoing: outEdges.map(edge => ({ edge, targetId: edge.targetNodeId })),
-    incoming: inEdges.map(edge => ({ edge, sourceId: edge.sourceNodeId })),
+    outgoing: outEdges.map((edge) => ({ edge, targetId: edge.targetNodeId })),
+    incoming: inEdges.map((edge) => ({ edge, sourceId: edge.sourceNodeId })),
   };
 }
 
 /**
  * Check if an edge exists between two nodes
  */
-export async function edgeExists(sourceNodeId: string, targetNodeId: string): Promise<boolean> {
+export async function edgeExists(
+  sourceNodeId: string,
+  targetNodeId: string,
+): Promise<boolean> {
   const edges = await getEdgesFromNode(sourceNodeId);
-  return edges.some(e => e.targetNodeId === targetNodeId);
+  return edges.some((e) => e.targetNodeId === targetNodeId);
 }
 
 // ============================================================================
@@ -527,11 +584,13 @@ export async function getGraphStats(): Promise<{
   }
 
   // Count edges (approximate by counting files in edges directory)
-  const edgeResponse = await client.send(new ListObjectsV2Command({
-    Bucket: BUCKET,
-    Prefix: `${GRAPH_PREFIX}/edges/by-type/`,
-    MaxKeys: 1,
-  }));
+  const edgeResponse = await client.send(
+    new ListObjectsV2Command({
+      Bucket: BUCKET,
+      Prefix: `${GRAPH_PREFIX}/edges/by-type/`,
+      MaxKeys: 1,
+    }),
+  );
 
   return {
     nodesByType: stats,

@@ -32,7 +32,10 @@ interface PromoteInput {
 
 // Default monetization by deal type
 // Nextier operates as a "waterfall advisory umbrella" - adapting to each unique situation
-const DEFAULT_MONETIZATION: Record<string, { type: string; rate: number; isFlat?: boolean }> = {
+const DEFAULT_MONETIZATION: Record<
+  string,
+  { type: string; rate: number; isFlat?: boolean }
+> = {
   // === REAL ESTATE DEALS (percentage-based) ===
   b2b_exit: { type: "advisory", rate: 5 },
   commercial: { type: "commission", rate: 3 },
@@ -67,7 +70,7 @@ export async function POST(request: NextRequest) {
     if (!teamId || !leadId || !userId) {
       return NextResponse.json(
         { error: "teamId, leadId, and userId required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -79,11 +82,14 @@ export async function POST(request: NextRequest) {
       .limit(1);
 
     if (existingDeal.length) {
-      return NextResponse.json({
-        success: false,
-        error: "Lead already has an active deal",
-        existingDealId: existingDeal[0].id,
-      }, { status: 409 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Lead already has an active deal",
+          existingDealId: existingDeal[0].id,
+        },
+        { status: 409 },
+      );
     }
 
     // Get lead data
@@ -106,7 +112,8 @@ export async function POST(request: NextRequest) {
     const estimatedValue = inputValue || leadData.estimatedValue || 0;
 
     // Get monetization rates
-    const monetization = DEFAULT_MONETIZATION[dealType] || DEFAULT_MONETIZATION.residential_haos;
+    const monetization =
+      DEFAULT_MONETIZATION[dealType] || DEFAULT_MONETIZATION.residential_haos;
     // Consulting deals use flat fees, real estate deals use percentage
     const estimatedEarnings = monetization.isFlat
       ? monetization.rate
@@ -116,32 +123,40 @@ export async function POST(request: NextRequest) {
     const dealName = buildDealName(leadData, dealType);
 
     // Build property data snapshot
-    const propertyData = leadData.propertyAddress ? {
-      id: leadData.propertyId || "",
-      address: leadData.propertyAddress,
-      city: leadData.propertyCity,
-      state: leadData.propertyState,
-      zip: leadData.propertyZip,
-      type: leadData.propertyType || "unknown",
-      avm: leadData.estimatedValue,
-      equity: leadData.estimatedEquity,
-      sqft: leadData.sqft,
-      bedrooms: leadData.bedrooms,
-      bathrooms: leadData.bathrooms ? Number(leadData.bathrooms) : undefined,
-    } : undefined;
+    const propertyData = leadData.propertyAddress
+      ? {
+          id: leadData.propertyId || "",
+          address: leadData.propertyAddress,
+          city: leadData.propertyCity,
+          state: leadData.propertyState,
+          zip: leadData.propertyZip,
+          type: leadData.propertyType || "unknown",
+          avm: leadData.estimatedValue,
+          equity: leadData.estimatedEquity,
+          sqft: leadData.sqft,
+          bedrooms: leadData.bedrooms,
+          bathrooms: leadData.bathrooms
+            ? Number(leadData.bathrooms)
+            : undefined,
+        }
+      : undefined;
 
     // Build business data snapshot
-    const businessData = leadData.companyName ? {
-      id: leadData.apolloOrgId || "",
-      name: leadData.companyName,
-      industry: leadData.industry || leadData.apolloIndustry || "unknown",
-      revenue: leadData.apolloRevenue,
-      employees: leadData.apolloEmployeeCount,
-    } : undefined;
+    const businessData = leadData.companyName
+      ? {
+          id: leadData.apolloOrgId || "",
+          name: leadData.companyName,
+          industry: leadData.industry || leadData.apolloIndustry || "unknown",
+          revenue: leadData.apolloRevenue,
+          employees: leadData.apolloEmployeeCount,
+        }
+      : undefined;
 
     // Build seller info
     const seller = {
-      name: `${leadData.firstName || ""} ${leadData.lastName || ""}`.trim() || "Unknown",
+      name:
+        `${leadData.firstName || ""} ${leadData.lastName || ""}`.trim() ||
+        "Unknown",
       email: leadData.email,
       phone: leadData.phone,
       company: leadData.companyName,
@@ -157,7 +172,8 @@ export async function POST(request: NextRequest) {
       userId,
       leadId,
       name: dealName,
-      description: notes || `Deal created from ${source} - ${leadData.status} lead`,
+      description:
+        notes || `Deal created from ${source} - ${leadData.status} lead`,
       type: dealType,
       stage: "discovery",
       priority,
@@ -230,8 +246,11 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("[Machine] Promote error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to promote lead" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to promote lead",
+      },
+      { status: 500 },
     );
   }
 }
@@ -286,8 +305,12 @@ function determineDealType(leadData: Record<string, unknown>): string {
 }
 
 // Helper: Build deal name from lead data
-function buildDealName(leadData: Record<string, unknown>, dealType: string): string {
-  const ownerName = `${leadData.firstName || ""} ${leadData.lastName || ""}`.trim();
+function buildDealName(
+  leadData: Record<string, unknown>,
+  dealType: string,
+): string {
+  const ownerName =
+    `${leadData.firstName || ""} ${leadData.lastName || ""}`.trim();
 
   // For property deals
   if (leadData.propertyAddress) {
@@ -306,7 +329,10 @@ function buildDealName(leadData: Record<string, unknown>, dealType: string): str
 }
 
 // Helper: Build initial tags based on lead data
-function buildInitialTags(leadData: Record<string, unknown>, source: string): string[] {
+function buildInitialTags(
+  leadData: Record<string, unknown>,
+  source: string,
+): string[] {
   const tags: string[] = [source];
 
   // Add distress indicators

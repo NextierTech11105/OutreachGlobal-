@@ -18,7 +18,11 @@ import { sf, sfc } from "@/lib/utils/safe-format";
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
 
-const libraries: ("drawing" | "places" | "geometry")[] = ["drawing", "places", "geometry"];
+const libraries: ("drawing" | "places" | "geometry")[] = [
+  "drawing",
+  "places",
+  "geometry",
+];
 
 const mapContainerStyle = {
   width: "100%",
@@ -36,18 +40,66 @@ const darkMapStyles = [
   { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
   { elementType: "labels.text.fill", stylers: [{ color: "#757575" }] },
   { elementType: "labels.text.stroke", stylers: [{ color: "#212121" }] },
-  { featureType: "administrative", elementType: "geometry", stylers: [{ color: "#757575" }] },
-  { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#757575" }] },
-  { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#181818" }] },
-  { featureType: "poi.park", elementType: "labels.text.fill", stylers: [{ color: "#616161" }] },
-  { featureType: "road", elementType: "geometry.fill", stylers: [{ color: "#2c2c2c" }] },
-  { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#8a8a8a" }] },
-  { featureType: "road.arterial", elementType: "geometry", stylers: [{ color: "#373737" }] },
-  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#3c3c3c" }] },
-  { featureType: "road.local", elementType: "geometry", stylers: [{ color: "#2c2c2c" }] },
-  { featureType: "transit", elementType: "labels.text.fill", stylers: [{ color: "#757575" }] },
-  { featureType: "water", elementType: "geometry", stylers: [{ color: "#000000" }] },
-  { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#3d3d3d" }] },
+  {
+    featureType: "administrative",
+    elementType: "geometry",
+    stylers: [{ color: "#757575" }],
+  },
+  {
+    featureType: "poi",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#757575" }],
+  },
+  {
+    featureType: "poi.park",
+    elementType: "geometry",
+    stylers: [{ color: "#181818" }],
+  },
+  {
+    featureType: "poi.park",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#616161" }],
+  },
+  {
+    featureType: "road",
+    elementType: "geometry.fill",
+    stylers: [{ color: "#2c2c2c" }],
+  },
+  {
+    featureType: "road",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#8a8a8a" }],
+  },
+  {
+    featureType: "road.arterial",
+    elementType: "geometry",
+    stylers: [{ color: "#373737" }],
+  },
+  {
+    featureType: "road.highway",
+    elementType: "geometry",
+    stylers: [{ color: "#3c3c3c" }],
+  },
+  {
+    featureType: "road.local",
+    elementType: "geometry",
+    stylers: [{ color: "#2c2c2c" }],
+  },
+  {
+    featureType: "transit",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#757575" }],
+  },
+  {
+    featureType: "water",
+    elementType: "geometry",
+    stylers: [{ color: "#000000" }],
+  },
+  {
+    featureType: "water",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#3d3d3d" }],
+  },
 ];
 
 export interface PropertyMarker {
@@ -82,9 +134,15 @@ export function PropertyMap({
   onPropertiesInBounds,
   loading = false,
 }: PropertyMapProps) {
-  const [selectedProperty, setSelectedProperty] = useState<PropertyMarker | null>(null);
-  const [searchCircle, setSearchCircle] = useState<{ center: google.maps.LatLng; radius: number } | null>(null);
-  const [mapType, setMapType] = useState<"roadmap" | "satellite" | "hybrid">("roadmap");
+  const [selectedProperty, setSelectedProperty] =
+    useState<PropertyMarker | null>(null);
+  const [searchCircle, setSearchCircle] = useState<{
+    center: google.maps.LatLng;
+    radius: number;
+  } | null>(null);
+  const [mapType, setMapType] = useState<"roadmap" | "satellite" | "hybrid">(
+    "roadmap",
+  );
   const mapRef = useRef<google.maps.Map | null>(null);
 
   const { isLoaded, loadError } = useJsApiLoader({
@@ -122,7 +180,7 @@ export function PropertyMap({
       // Remove the drawn circle (we'll render our own controlled one)
       circle.setMap(null);
     },
-    [searchCircle, onSearchArea]
+    [searchCircle, onSearchArea],
   );
 
   const clearSearch = useCallback(() => {
@@ -134,7 +192,7 @@ export function PropertyMap({
       setSelectedProperty(property);
       onPropertyClick?.(property);
     },
-    [onPropertyClick]
+    [onPropertyClick],
   );
 
   const toggleMapType = useCallback(() => {
@@ -180,7 +238,11 @@ export function PropertyMap({
           className="bg-background/90 backdrop-blur"
         >
           <Layers className="h-4 w-4 mr-2" />
-          {mapType === "roadmap" ? "Satellite" : mapType === "satellite" ? "Hybrid" : "Map"}
+          {mapType === "roadmap"
+            ? "Satellite"
+            : mapType === "satellite"
+              ? "Hybrid"
+              : "Map"}
         </Button>
 
         {searchCircle && (
@@ -198,7 +260,10 @@ export function PropertyMap({
 
       {/* Property Count Badge */}
       <div className="absolute top-4 right-4 z-10">
-        <Badge variant="secondary" className="bg-background/90 backdrop-blur text-lg px-4 py-2">
+        <Badge
+          variant="secondary"
+          className="bg-background/90 backdrop-blur text-lg px-4 py-2"
+        >
           {loading ? (
             <Loader2 className="h-4 w-4 animate-spin mr-2" />
           ) : (
@@ -272,7 +337,8 @@ export function PropertyMap({
         {/* Property Markers with Clustering */}
         <MarkerClusterer
           options={{
-            imagePath: "https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m",
+            imagePath:
+              "https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m",
             maxZoom: 15,
             minimumClusterSize: 5,
           }}
@@ -285,14 +351,21 @@ export function PropertyMap({
                   position={{ lat: property.lat, lng: property.lng }}
                   clusterer={clusterer}
                   onClick={() => handleMarkerClick(property)}
-                  icon={typeof google !== "undefined" ? {
-                    path: google.maps.SymbolPath.CIRCLE,
-                    scale: 8,
-                    fillColor: property.equity && property.equity > 100000 ? "#22c55e" : "#3b82f6",
-                    fillOpacity: 1,
-                    strokeColor: "#fff",
-                    strokeWeight: 2,
-                  } : undefined}
+                  icon={
+                    typeof google !== "undefined"
+                      ? {
+                          path: google.maps.SymbolPath.CIRCLE,
+                          scale: 8,
+                          fillColor:
+                            property.equity && property.equity > 100000
+                              ? "#22c55e"
+                              : "#3b82f6",
+                          fillOpacity: 1,
+                          strokeColor: "#fff",
+                          strokeWeight: 2,
+                        }
+                      : undefined
+                  }
                 />
               ))}
             </>
@@ -308,7 +381,8 @@ export function PropertyMap({
             <div className="p-2 min-w-[200px] text-black">
               <h3 className="font-bold text-sm">{selectedProperty.address}</h3>
               <p className="text-xs text-gray-600">
-                {selectedProperty.city}, {selectedProperty.state} {selectedProperty.zip}
+                {selectedProperty.city}, {selectedProperty.state}{" "}
+                {selectedProperty.zip}
               </p>
               <div className="mt-2 grid grid-cols-2 gap-1 text-xs">
                 <span className="font-medium">Type:</span>

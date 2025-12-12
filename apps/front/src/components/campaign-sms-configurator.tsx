@@ -77,7 +77,8 @@ const CAMPAIGN_STAGES: CampaignStageConfig[] = [
       "Hello {name}, I'm {agent_name} with {company}. We've been active in your neighborhood and wanted to connect about your property at {address}.",
       "Hi there! I'm reaching out about your property on {street}. We've helped several owners in your area - is this something you'd consider discussing?",
     ],
-    context: "First touchpoint. Be warm, professional, and non-pushy. Goal is to open a dialogue.",
+    context:
+      "First touchpoint. Be warm, professional, and non-pushy. Goal is to open a dialogue.",
   },
   {
     id: "nc_retarget",
@@ -92,7 +93,8 @@ const CAMPAIGN_STAGES: CampaignStageConfig[] = [
       "{name}, I reached out recently and wanted to check in. Still interested in discussing your property? Just reply YES if you'd like to chat.",
       "Hey {name}! Not sure if my last message went through. I'm still interested in talking about opportunities for {address} whenever you're free.",
     ],
-    context: "Second or third attempt after no response. Acknowledge the follow-up, stay positive, provide easy response options.",
+    context:
+      "Second or third attempt after no response. Acknowledge the follow-up, stay positive, provide easy response options.",
   },
   {
     id: "nurture",
@@ -108,7 +110,8 @@ const CAMPAIGN_STAGES: CampaignStageConfig[] = [
       "Hey {name}! No pressure at all, just wanted to stay in touch. If anything changes with your plans for {address}, I'm here.",
       "Hi {name}, I recently helped a neighbor near {address} and thought you might find it interesting. Happy to share details if you're curious!",
     ],
-    context: "Long-term relationship building. Be helpful, share value, no hard sell. Content delivery and market updates work well here.",
+    context:
+      "Long-term relationship building. Be helpful, share value, no hard sell. Content delivery and market updates work well here.",
   },
   {
     id: "nudger",
@@ -124,7 +127,8 @@ const CAMPAIGN_STAGES: CampaignStageConfig[] = [
       "Hi {name}! Still thinking about you and {address}. Drop me a line when you're ready - I'm not going anywhere!",
       "{name}, gentle reminder that I'm still interested in connecting about your property. What would work for you?",
     ],
-    context: "Light touch reminders between major campaign stages. Keep it short, friendly, and easy to respond to.",
+    context:
+      "Light touch reminders between major campaign stages. Keep it short, friendly, and easy to respond to.",
   },
 ];
 
@@ -137,7 +141,12 @@ interface ToneSliders {
 }
 
 // Intent options
-type IntentType = "book_appointment" | "get_callback" | "qualify_lead" | "make_offer" | "soft_intro";
+type IntentType =
+  | "book_appointment"
+  | "get_callback"
+  | "qualify_lead"
+  | "make_offer"
+  | "soft_intro";
 
 const INTENT_OPTIONS: Array<{
   id: IntentType;
@@ -224,7 +233,9 @@ export function CampaignSmsConfigurator({
 }: CampaignSmsConfiguratorProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState("");
-  const [generatedMessages, setGeneratedMessages] = useState<GeneratedMessage[]>([]);
+  const [generatedMessages, setGeneratedMessages] = useState<
+    GeneratedMessage[]
+  >([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [provider, setProvider] = useState<"openai" | "anthropic">("openai");
 
@@ -233,7 +244,8 @@ export function CampaignSmsConfigurator({
   const [showTemplateLibrary, setShowTemplateLibrary] = useState(false);
 
   // Get current stage config
-  const currentStage = CAMPAIGN_STAGES.find((s) => s.id === campaignStage) || CAMPAIGN_STAGES[0];
+  const currentStage =
+    CAMPAIGN_STAGES.find((s) => s.id === campaignStage) || CAMPAIGN_STAGES[0];
 
   // Tone configuration
   const [sliders, setSliders] = useState<ToneSliders>({
@@ -280,7 +292,7 @@ export function CampaignSmsConfigurator({
   useEffect(() => {
     localStorage.setItem(
       "campaign_sms_settings",
-      JSON.stringify({ sliders, intent, provider })
+      JSON.stringify({ sliders, intent, provider }),
     );
   }, [sliders, intent, provider]);
 
@@ -328,7 +340,7 @@ export function CampaignSmsConfigurator({
   };
 
   // Apply preset
-  const applyPreset = (preset: typeof TONE_PRESETS[0]) => {
+  const applyPreset = (preset: (typeof TONE_PRESETS)[0]) => {
     setSliders(preset.sliders);
     setIntent(preset.intent);
     toast.info(`Applied "${preset.name}" preset`);
@@ -379,25 +391,34 @@ export function CampaignSmsConfigurator({
                 "flex flex-col items-start p-3 rounded-lg border-2 transition-all text-left",
                 campaignStage === stage.id
                   ? `${stage.bgColor} border-current`
-                  : "border-muted hover:border-muted-foreground/30"
+                  : "border-muted hover:border-muted-foreground/30",
               )}
             >
               <div className={cn("flex items-center gap-2 mb-1", stage.color)}>
                 {stage.icon}
                 <span className="font-medium text-sm">{stage.label}</span>
               </div>
-              <span className="text-xs text-muted-foreground">{stage.description}</span>
+              <span className="text-xs text-muted-foreground">
+                {stage.description}
+              </span>
             </button>
           ))}
         </div>
 
         {/* Stage Context Info */}
         <div className={cn("p-3 rounded-lg text-sm", currentStage.bgColor)}>
-          <div className={cn("flex items-center gap-2 font-medium mb-1", currentStage.color)}>
+          <div
+            className={cn(
+              "flex items-center gap-2 font-medium mb-1",
+              currentStage.color,
+            )}
+          >
             {currentStage.icon}
             {currentStage.label} Context
           </div>
-          <p className="text-xs text-muted-foreground">{currentStage.context}</p>
+          <p className="text-xs text-muted-foreground">
+            {currentStage.context}
+          </p>
         </div>
 
         {/* Template Library Button */}
@@ -408,7 +429,8 @@ export function CampaignSmsConfigurator({
           className="w-full"
         >
           <MessageCircle className="h-4 w-4 mr-2" />
-          {showTemplateLibrary ? "Hide" : "View"} {currentStage.label} Templates ({currentStage.templateLibrary.length})
+          {showTemplateLibrary ? "Hide" : "View"} {currentStage.label} Templates
+          ({currentStage.templateLibrary.length})
         </Button>
 
         {/* Template Library */}
@@ -444,7 +466,9 @@ export function CampaignSmsConfigurator({
 
       {/* Quick Presets */}
       <div className="space-y-2">
-        <Label className="text-sm text-muted-foreground">Quick Tone Presets</Label>
+        <Label className="text-sm text-muted-foreground">
+          Quick Tone Presets
+        </Label>
         <div className="flex flex-wrap gap-2">
           {TONE_PRESETS.map((preset) => (
             <Button
@@ -482,10 +506,17 @@ export function CampaignSmsConfigurator({
                 htmlFor={option.id}
                 className={cn(
                   "flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary cursor-pointer transition-all",
-                  intent === option.id && "border-primary bg-primary/5"
+                  intent === option.id && "border-primary bg-primary/5",
                 )}
               >
-                <div className={cn("mb-1", intent === option.id ? "text-primary" : "text-muted-foreground")}>
+                <div
+                  className={cn(
+                    "mb-1",
+                    intent === option.id
+                      ? "text-primary"
+                      : "text-muted-foreground",
+                  )}
+                >
                   {option.icon}
                 </div>
                 <span className="text-xs font-medium">{option.label}</span>
@@ -540,7 +571,9 @@ export function CampaignSmsConfigurator({
                 </div>
                 <Slider
                   value={[sliders.conversational]}
-                  onValueChange={([v]) => setSliders({ ...sliders, conversational: v })}
+                  onValueChange={([v]) =>
+                    setSliders({ ...sliders, conversational: v })
+                  }
                   max={100}
                   step={10}
                   className="[&_[role=slider]]:bg-purple-500"
@@ -582,7 +615,9 @@ export function CampaignSmsConfigurator({
                 </div>
                 <Slider
                   value={[sliders.urgency]}
-                  onValueChange={([v]) => setSliders({ ...sliders, urgency: v })}
+                  onValueChange={([v]) =>
+                    setSliders({ ...sliders, urgency: v })
+                  }
                   max={100}
                   step={10}
                   className="[&_[role=slider]]:bg-orange-500"
@@ -603,7 +638,9 @@ export function CampaignSmsConfigurator({
                 </div>
                 <Slider
                   value={[sliders.directness]}
-                  onValueChange={([v]) => setSliders({ ...sliders, directness: v })}
+                  onValueChange={([v]) =>
+                    setSliders({ ...sliders, directness: v })
+                  }
                   max={100}
                   step={10}
                   className="[&_[role=slider]]:bg-green-500"
@@ -613,7 +650,10 @@ export function CampaignSmsConfigurator({
               {/* Provider Selection */}
               <div className="flex items-center justify-between pt-2 border-t">
                 <Label className="text-sm">AI Provider</Label>
-                <Select value={provider} onValueChange={(v: "openai" | "anthropic") => setProvider(v)}>
+                <Select
+                  value={provider}
+                  onValueChange={(v: "openai" | "anthropic") => setProvider(v)}
+                >
                   <SelectTrigger className="w-32">
                     <SelectValue />
                   </SelectTrigger>
@@ -663,7 +703,7 @@ export function CampaignSmsConfigurator({
                   "p-3 rounded-lg border cursor-pointer transition-all",
                   selectedMessage === msg.message
                     ? "border-primary bg-primary/5 ring-1 ring-primary"
-                    : "border-muted hover:border-primary/50"
+                    : "border-muted hover:border-primary/50",
                 )}
               >
                 <div className="flex items-start justify-between gap-2">
@@ -688,8 +728,15 @@ export function CampaignSmsConfigurator({
           </div>
 
           {/* Regenerate button */}
-          <Button variant="outline" size="sm" onClick={handleGenerate} disabled={isGenerating}>
-            <RefreshCw className={cn("h-4 w-4 mr-2", isGenerating && "animate-spin")} />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleGenerate}
+            disabled={isGenerating}
+          >
+            <RefreshCw
+              className={cn("h-4 w-4 mr-2", isGenerating && "animate-spin")}
+            />
             Regenerate
           </Button>
         </div>
@@ -722,11 +769,15 @@ export function CampaignSmsConfigurator({
           </div>
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
-              <div className="text-2xl font-bold text-green-600">{sendProgress.sent}</div>
+              <div className="text-2xl font-bold text-green-600">
+                {sendProgress.sent}
+              </div>
               <div className="text-xs text-muted-foreground">Sent</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-red-600">{sendProgress.failed}</div>
+              <div className="text-2xl font-bold text-red-600">
+                {sendProgress.failed}
+              </div>
               <div className="text-xs text-muted-foreground">Failed</div>
             </div>
             <div>
@@ -739,7 +790,12 @@ export function CampaignSmsConfigurator({
 
       {/* Action Buttons */}
       <div className="flex gap-2">
-        <Button variant="outline" onClick={onClose} disabled={isSending} className="flex-1">
+        <Button
+          variant="outline"
+          onClick={onClose}
+          disabled={isSending}
+          className="flex-1"
+        >
           Cancel
         </Button>
         <Button

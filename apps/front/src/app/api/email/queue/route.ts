@@ -41,7 +41,10 @@ interface QueuedEmail {
 const emailQueue = new Map<string, QueuedEmail>();
 
 // Email templates
-const EMAIL_TEMPLATES: Record<string, { subject: string; html: (data: Record<string, unknown>) => string }> = {
+const EMAIL_TEMPLATES: Record<
+  string,
+  { subject: string; html: (data: Record<string, unknown>) => string }
+> = {
   valuation_report: {
     subject: "{firstName}, your property analysis is ready",
     html: (data) => `
@@ -87,7 +90,9 @@ const EMAIL_TEMPLATES: Record<string, { subject: string; html: (data: Record<str
 };
 
 // Send email via SendGrid
-async function sendEmailNow(email: QueuedEmail): Promise<{ success: boolean; messageId?: string; error?: string }> {
+async function sendEmailNow(
+  email: QueuedEmail,
+): Promise<{ success: boolean; messageId?: string; error?: string }> {
   if (!SENDGRID_API_KEY) {
     return { success: false, error: "SendGrid API key not configured" };
   }
@@ -126,7 +131,9 @@ async function sendEmailNow(email: QueuedEmail): Promise<{ success: boolean; mes
         from: { email: FROM_EMAIL, name: FROM_NAME },
         subject,
         content: [
-          ...(email.content.text ? [{ type: "text/plain", value: email.content.text }] : []),
+          ...(email.content.text
+            ? [{ type: "text/plain", value: email.content.text }]
+            : []),
           ...(htmlContent ? [{ type: "text/html", value: htmlContent }] : []),
         ],
       }),
@@ -134,19 +141,30 @@ async function sendEmailNow(email: QueuedEmail): Promise<{ success: boolean; mes
 
     if (!response.ok) {
       const errorText = await response.text();
-      return { success: false, error: `SendGrid error: ${response.status} - ${errorText}` };
+      return {
+        success: false,
+        error: `SendGrid error: ${response.status} - ${errorText}`,
+      };
     }
 
     // SendGrid returns message ID in header
-    const messageId = response.headers.get("X-Message-Id") || `msg-${Date.now()}`;
+    const messageId =
+      response.headers.get("X-Message-Id") || `msg-${Date.now()}`;
     return { success: true, messageId };
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : "Unknown error" };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
   }
 }
 
 // Process pending emails in queue
-async function processQueue(): Promise<{ processed: number; sent: number; failed: number }> {
+async function processQueue(): Promise<{
+  processed: number;
+  sent: number;
+  failed: number;
+}> {
   const now = new Date();
   const stats = { processed: 0, sent: 0, failed: 0 };
 
@@ -201,7 +219,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (!subject && !template) {
-      return NextResponse.json({ error: "subject or template required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "subject or template required" },
+        { status: 400 },
+      );
     }
 
     const id = `email-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -243,7 +264,9 @@ export async function POST(request: NextRequest) {
     // Otherwise add to queue
     emailQueue.set(id, email);
 
-    console.log(`[Email Queue] Added: ${id} scheduled for ${email.scheduledFor}`);
+    console.log(
+      `[Email Queue] Added: ${id} scheduled for ${email.scheduledFor}`,
+    );
 
     return NextResponse.json({
       success: true,
@@ -254,8 +277,10 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("[Email Queue] Error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to queue email" },
-      { status: 500 }
+      {
+        error: error instanceof Error ? error.message : "Failed to queue email",
+      },
+      { status: 500 },
     );
   }
 }
@@ -291,7 +316,10 @@ export async function GET(request: NextRequest) {
   }
 
   // Sort by scheduled time
-  emails.sort((a, b) => new Date(a.scheduledFor).getTime() - new Date(b.scheduledFor).getTime());
+  emails.sort(
+    (a, b) =>
+      new Date(a.scheduledFor).getTime() - new Date(b.scheduledFor).getTime(),
+  );
   emails = emails.slice(0, limit);
 
   // Stats
@@ -336,7 +364,10 @@ export async function PUT(request: NextRequest) {
     // Cancel
     if (action === "cancel") {
       if (email.status !== "pending") {
-        return NextResponse.json({ error: "Can only cancel pending emails" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Can only cancel pending emails" },
+          { status: 400 },
+        );
       }
       email.status = "cancelled";
       emailQueue.set(id, email);
@@ -346,7 +377,10 @@ export async function PUT(request: NextRequest) {
     // Retry failed
     if (action === "retry") {
       if (email.status !== "failed") {
-        return NextResponse.json({ error: "Can only retry failed emails" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Can only retry failed emails" },
+          { status: 400 },
+        );
       }
       email.status = "pending";
       email.scheduledFor = new Date().toISOString();

@@ -12,7 +12,10 @@ import {
 // GET - List brands or get specific brand
 export async function GET(request: NextRequest) {
   if (!isConfigured()) {
-    return NextResponse.json({ error: "SignalHouse not configured" }, { status: 503 });
+    return NextResponse.json(
+      { error: "SignalHouse not configured" },
+      { status: 503 },
+    );
   }
 
   const { searchParams } = new URL(request.url);
@@ -24,7 +27,10 @@ export async function GET(request: NextRequest) {
     if (brandId) {
       const result = await getBrand(brandId);
       if (!result.success) {
-        return NextResponse.json({ error: result.error }, { status: result.status || 400 });
+        return NextResponse.json(
+          { error: result.error },
+          { status: result.status || 400 },
+        );
       }
       return NextResponse.json({ success: true, brand: result.data });
     }
@@ -33,7 +39,10 @@ export async function GET(request: NextRequest) {
     if (brandName) {
       const result = await getBrandByName(brandName);
       if (!result.success) {
-        return NextResponse.json({ error: result.error }, { status: result.status || 400 });
+        return NextResponse.json(
+          { error: result.error },
+          { status: result.status || 400 },
+        );
       }
       return NextResponse.json({ success: true, brand: result.data });
     }
@@ -41,7 +50,10 @@ export async function GET(request: NextRequest) {
     // List all brands
     const result = await getBasicBrandDetails();
     if (!result.success) {
-      return NextResponse.json({ error: result.error }, { status: result.status || 400 });
+      return NextResponse.json(
+        { error: result.error },
+        { status: result.status || 400 },
+      );
     }
 
     return NextResponse.json({
@@ -51,8 +63,10 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("[SignalHouse Brand] Error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to get brands" },
-      { status: 500 }
+      {
+        error: error instanceof Error ? error.message : "Failed to get brands",
+      },
+      { status: 500 },
     );
   }
 }
@@ -60,7 +74,10 @@ export async function GET(request: NextRequest) {
 // POST - Create a new brand (10DLC registration)
 export async function POST(request: NextRequest) {
   if (!isConfigured()) {
-    return NextResponse.json({ error: "SignalHouse not configured" }, { status: 503 });
+    return NextResponse.json(
+      { error: "SignalHouse not configured" },
+      { status: 503 },
+    );
   }
 
   try {
@@ -70,7 +87,7 @@ export async function POST(request: NextRequest) {
     if (!body.legalCompanyName || !body.brandName) {
       return NextResponse.json(
         { error: "legalCompanyName and brandName are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -91,19 +108,26 @@ export async function POST(request: NextRequest) {
     const result = await createBrand(input);
 
     if (!result.success) {
-      return NextResponse.json({ error: result.error }, { status: result.status || 400 });
+      return NextResponse.json(
+        { error: result.error },
+        { status: result.status || 400 },
+      );
     }
 
     return NextResponse.json({
       success: true,
       brand: result.data,
-      message: "Brand registration submitted. Status will update once verified.",
+      message:
+        "Brand registration submitted. Status will update once verified.",
     });
   } catch (error) {
     console.error("[SignalHouse Brand] Create error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to create brand" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to create brand",
+      },
+      { status: 500 },
     );
   }
 }
@@ -111,7 +135,10 @@ export async function POST(request: NextRequest) {
 // DELETE - Delete a brand
 export async function DELETE(request: NextRequest) {
   if (!isConfigured()) {
-    return NextResponse.json({ error: "SignalHouse not configured" }, { status: 503 });
+    return NextResponse.json(
+      { error: "SignalHouse not configured" },
+      { status: 503 },
+    );
   }
 
   const { searchParams } = new URL(request.url);
@@ -125,15 +152,21 @@ export async function DELETE(request: NextRequest) {
     const result = await deleteBrand(brandId);
 
     if (!result.success) {
-      return NextResponse.json({ error: result.error }, { status: result.status || 400 });
+      return NextResponse.json(
+        { error: result.error },
+        { status: result.status || 400 },
+      );
     }
 
     return NextResponse.json({ success: true, message: "Brand deleted" });
   } catch (error) {
     console.error("[SignalHouse Brand] Delete error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to delete brand" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to delete brand",
+      },
+      { status: 500 },
     );
   }
 }

@@ -5,8 +5,11 @@ import { auth } from "@clerk/nextjs/server";
 // Connects to the original OutreachGlobal platform database at data.outreachglobal.io
 // This provides access to the content library, templates, and historical data
 
-const OUTREACHGLOBAL_API_URL = process.env.OUTREACHGLOBAL_API_URL || "https://data.outreachglobal.io";
-const OUTREACHGLOBAL_TOKEN = process.env.OUTREACHGLOBAL_TOKEN || "";
+// Legacy OutreachGlobal PHP Platform API
+// Primary: app.outreachglobal.io (143.198.9.190)
+const OUTREACHGLOBAL_API_URL =
+  process.env.OUTREACHGLOBAL_API_URL || "https://app.outreachglobal.io";
+const OUTREACHGLOBAL_TOKEN = process.env.OUTREACHGLOBAL_TOKEN || "jdfu88jf84jna02";
 
 interface OutreachGlobalQuery {
   endpoint: string; // e.g., "content", "templates", "leads", "campaigns"
@@ -29,7 +32,7 @@ async function fetchFromOutreachGlobal(query: OutreachGlobalQuery) {
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    "Authorization": `Bearer ${OUTREACHGLOBAL_TOKEN}`,
+    Authorization: `Bearer ${OUTREACHGLOBAL_TOKEN}`,
     "X-API-Token": OUTREACHGLOBAL_TOKEN,
   };
 
@@ -41,7 +44,9 @@ async function fetchFromOutreachGlobal(query: OutreachGlobalQuery) {
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`OutreachGlobal API error: ${response.status} - ${errorText}`);
+    throw new Error(
+      `OutreachGlobal API error: ${response.status} - ${errorText}`,
+    );
   }
 
   return response.json();
@@ -83,10 +88,10 @@ export async function GET(request: NextRequest) {
         apiUrl: OUTREACHGLOBAL_API_URL,
         endpoints: {
           "content-library": "Content templates and AI prompts",
-          "templates": "Email, SMS, and voice templates",
-          "leads": "Historical lead data",
-          "campaigns": "Campaign configurations",
-          "reports": "Saved reports and SQL queries",
+          templates: "Email, SMS, and voice templates",
+          leads: "Historical lead data",
+          campaigns: "Campaign configurations",
+          reports: "Saved reports and SQL queries",
           "buyer-personas": "Buyer persona templates",
           "company-personas": "Company persona templates",
           "lead-magnets": "Lead magnet templates",
@@ -117,7 +122,8 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("[OutreachGlobal API] Error:", error);
-    const message = error instanceof Error ? error.message : "API request failed";
+    const message =
+      error instanceof Error ? error.message : "API request failed";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
@@ -131,23 +137,29 @@ export async function POST(request: NextRequest) {
     }
 
     if (!OUTREACHGLOBAL_TOKEN) {
-      return NextResponse.json({
-        error: "OUTREACHGLOBAL_TOKEN not configured",
-      }, { status: 503 });
+      return NextResponse.json(
+        {
+          error: "OUTREACHGLOBAL_TOKEN not configured",
+        },
+        { status: 503 },
+      );
     }
 
     const body = await request.json();
     const { endpoint, action, data } = body;
 
     if (!endpoint) {
-      return NextResponse.json({
-        error: "endpoint required",
-        example: {
-          endpoint: "templates",
-          action: "create",
-          data: { name: "New Template", body: "Template content..." },
+      return NextResponse.json(
+        {
+          error: "endpoint required",
+          example: {
+            endpoint: "templates",
+            action: "create",
+            data: { name: "New Template", body: "Template content..." },
+          },
         },
-      }, { status: 400 });
+        { status: 400 },
+      );
     }
 
     // Handle different actions
@@ -203,7 +215,8 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("[OutreachGlobal API] Error:", error);
-    const message = error instanceof Error ? error.message : "API request failed";
+    const message =
+      error instanceof Error ? error.message : "API request failed";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

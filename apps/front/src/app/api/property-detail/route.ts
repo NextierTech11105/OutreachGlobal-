@@ -7,7 +7,10 @@ export async function GET(request: NextRequest) {
   const id = searchParams.get("id");
 
   if (!id) {
-    return NextResponse.json({ error: "Property ID required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Property ID required" },
+      { status: 400 },
+    );
   }
 
   try {
@@ -17,7 +20,7 @@ export async function GET(request: NextRequest) {
     console.error("Property detail error:", error);
     return NextResponse.json(
       { error: "Failed to get property detail", details: String(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -28,7 +31,10 @@ export async function POST(request: NextRequest) {
     const { ids } = await request.json();
 
     if (!ids || !Array.isArray(ids)) {
-      return NextResponse.json({ error: "Property IDs array required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Property IDs array required" },
+        { status: 400 },
+      );
     }
 
     const data = await realEstateApi.getPropertyDetailsBatch(ids);
@@ -37,7 +43,7 @@ export async function POST(request: NextRequest) {
     console.error("Property details batch error:", error);
     return NextResponse.json(
       { error: "Failed to get property details", details: String(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

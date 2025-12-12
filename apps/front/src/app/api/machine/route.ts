@@ -19,19 +19,19 @@ import { v4 as uuidv4 } from "uuid";
 
 // Machine states
 type MachineState =
-  | "initial_sms"      // Machine 1: Lead received first SMS
+  | "initial_sms" // Machine 1: Lead received first SMS
   | "awaiting_response" // Machine 1→2: Waiting for reply
   | "response_received" // Machine 2: Reply came in
-  | "in_conversation"   // Machine 3: Active conversation
-  | "qualified"         // Machine 3→4: Ready for appointment
+  | "in_conversation" // Machine 3: Active conversation
+  | "qualified" // Machine 3→4: Ready for appointment
   | "appointment_pending" // Machine 4: Appointment being scheduled
-  | "appointment_set"   // Machine 4: Meeting booked
-  | "deal_created"      // Machine 5: Deal in pipeline
-  | "deal_active"       // Machine 5: Deal being worked
-  | "closed_won"        // Machine 5: Success!
-  | "closed_lost"       // Machine 5: Did not close
-  | "nurturing"         // Long-term nurture sequence
-  | "suppressed";       // Do not contact
+  | "appointment_set" // Machine 4: Meeting booked
+  | "deal_created" // Machine 5: Deal in pipeline
+  | "deal_active" // Machine 5: Deal being worked
+  | "closed_won" // Machine 5: Success!
+  | "closed_lost" // Machine 5: Did not close
+  | "nurturing" // Long-term nurture sequence
+  | "suppressed"; // Do not contact
 
 // Event types that trigger state changes
 type MachineEvent =
@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
     if (!leadId || !teamId) {
       return NextResponse.json(
         { error: "leadId and teamId required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -107,8 +107,12 @@ export async function GET(request: NextRequest) {
     if (deal.length) {
       // In Deal Machine (5)
       currentMachine = 5;
-      currentState = deal[0].stage === "closed_won" ? "closed_won" :
-                     deal[0].stage === "closed_lost" ? "closed_lost" : "deal_active";
+      currentState =
+        deal[0].stage === "closed_won"
+          ? "closed_won"
+          : deal[0].stage === "closed_lost"
+            ? "closed_lost"
+            : "deal_active";
       nextActions = getNextActionsForDeal(deal[0].stage);
     } else {
       // Determine machine based on lead status
@@ -131,7 +135,11 @@ export async function GET(request: NextRequest) {
         case "qualified":
           currentMachine = 3;
           currentState = "qualified";
-          nextActions = ["Create deal", "Schedule appointment", "Continue nurturing"];
+          nextActions = [
+            "Create deal",
+            "Schedule appointment",
+            "Continue nurturing",
+          ];
           break;
         case "nurturing":
           currentMachine = 3;
@@ -168,18 +176,20 @@ export async function GET(request: NextRequest) {
         status: leadData.status,
         lastActivityAt: leadData.lastActivityAt,
       },
-      deal: deal.length ? {
-        id: deal[0].id,
-        stage: deal[0].stage,
-        type: deal[0].type,
-        estimatedValue: deal[0].estimatedValue,
-      } : null,
+      deal: deal.length
+        ? {
+            id: deal[0].id,
+            stage: deal[0].stage,
+            type: deal[0].type,
+            estimatedValue: deal[0].estimatedValue,
+          }
+        : null,
     });
   } catch (error) {
     console.error("[Machine] State query error:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to get state" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -193,7 +203,7 @@ export async function POST(request: NextRequest) {
     if (!teamId || !leadId || !event) {
       return NextResponse.json(
         { error: "teamId, leadId, and event required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -210,7 +220,7 @@ export async function POST(request: NextRequest) {
 
     const leadData = lead[0];
     let newStatus = leadData.status;
-    let actions: string[] = [];
+    const actions: string[] = [];
     let dealCreated = false;
     let newDeal = null;
 
@@ -303,7 +313,8 @@ export async function POST(request: NextRequest) {
 
     // Auto-create deal if qualified and requested
     if (event === "qualified_signal" && metadata.autoCreateDeal) {
-      const dealType = (metadata.dealType as string) || determineDealType(leadData);
+      const dealType =
+        (metadata.dealType as string) || determineDealType(leadData);
       const monetization = DEFAULT_MONETIZATION[dealType];
       const estimatedValue = leadData.estimatedValue || 0;
 
@@ -312,8 +323,10 @@ export async function POST(request: NextRequest) {
         teamId,
         userId: (metadata.userId as string) || "system",
         leadId,
-        name: leadData.propertyAddress || leadData.companyName ||
-              `Deal - ${leadData.firstName} ${leadData.lastName}`,
+        name:
+          leadData.propertyAddress ||
+          leadData.companyName ||
+          `Deal - ${leadData.firstName} ${leadData.lastName}`,
         type: dealType,
         stage: "discovery",
         priority: "medium",
@@ -378,8 +391,11 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("[Machine] Event processing error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to process event" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to process event",
+      },
+      { status: 500 },
     );
   }
 }
@@ -419,13 +435,25 @@ function getMachineName(machine: number): string {
 // Helper: Get next actions for a deal stage
 function getNextActionsForDeal(stage: string): string[] {
   const stageActions: Record<string, string[]> = {
-    discovery: ["Gather information", "Move to qualification", "Schedule discovery call"],
-    qualification: ["Verify financials", "Assess motivation", "Move to proposal"],
+    discovery: [
+      "Gather information",
+      "Move to qualification",
+      "Schedule discovery call",
+    ],
+    qualification: [
+      "Verify financials",
+      "Assess motivation",
+      "Move to proposal",
+    ],
     proposal: ["Prepare proposal", "Present to seller", "Move to negotiation"],
     negotiation: ["Counter-offer", "Finalize terms", "Move to contract"],
     contract: ["Draft contract", "Review with attorney", "Get signatures"],
     closing: ["Coordinate closing", "Final walkthrough", "Close deal"],
-    closed_won: ["Collect commission", "Request referral", "Add to testimonials"],
+    closed_won: [
+      "Collect commission",
+      "Request referral",
+      "Add to testimonials",
+    ],
     closed_lost: ["Document reason", "Move to nurture", "Schedule follow-up"],
   };
   return stageActions[stage] || [];
@@ -460,7 +488,11 @@ function determineDealType(leadData: Record<string, unknown>): string {
   // Property-based determination
   const propertyType = leadData.propertyType as string;
   if (propertyType) {
-    if (["commercial", "industrial", "retail", "office"].includes(propertyType.toLowerCase())) {
+    if (
+      ["commercial", "industrial", "retail", "office"].includes(
+        propertyType.toLowerCase(),
+      )
+    ) {
       return "commercial";
     }
     if (propertyType.toLowerCase().includes("land")) {

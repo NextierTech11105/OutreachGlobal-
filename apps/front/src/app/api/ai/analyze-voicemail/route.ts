@@ -7,7 +7,13 @@ const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || "";
 
 interface VoicemailAnalysis {
   summary: string;
-  intent: "interested" | "not_interested" | "callback_request" | "question" | "complaint" | "unknown";
+  intent:
+    | "interested"
+    | "not_interested"
+    | "callback_request"
+    | "question"
+    | "complaint"
+    | "unknown";
   sentiment: "positive" | "negative" | "neutral";
   priority: "high" | "medium" | "low";
   keyPoints: string[];
@@ -29,7 +35,10 @@ export async function POST(request: NextRequest) {
     const { transcription, from, to, callSid } = body;
 
     if (!transcription) {
-      return NextResponse.json({ error: "Transcription required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Transcription required" },
+        { status: 400 },
+      );
     }
 
     console.log("[AI Voicemail] Analyzing:", {
@@ -73,7 +82,10 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function analyzeWithAnthropic(transcription: string, from: string): Promise<VoicemailAnalysis> {
+async function analyzeWithAnthropic(
+  transcription: string,
+  from: string,
+): Promise<VoicemailAnalysis> {
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -131,7 +143,10 @@ Return ONLY valid JSON with this structure:
   throw new Error("Failed to parse Anthropic response");
 }
 
-async function analyzeWithOpenAI(transcription: string, from: string): Promise<VoicemailAnalysis> {
+async function analyzeWithOpenAI(
+  transcription: string,
+  from: string,
+): Promise<VoicemailAnalysis> {
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -233,7 +248,10 @@ function basicAnalysis(transcription: string): VoicemailAnalysis {
     sentiment,
     priority,
     keyPoints: ["Voicemail received", "Manual review recommended"],
-    suggestedAction: intent === "interested" ? "Call back within 1 hour" : "Review and respond appropriately",
+    suggestedAction:
+      intent === "interested"
+        ? "Call back within 1 hour"
+        : "Review and respond appropriately",
     leadScore,
     extractedInfo: {},
   };

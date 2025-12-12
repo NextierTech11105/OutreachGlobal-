@@ -47,12 +47,20 @@ const batchStatuses = new Map<string, BatchStatus>();
 export async function POST(request: NextRequest) {
   try {
     const body: BatchRequest = await request.json();
-    const { leadIds, campaignId, workspaceId, batchNumber, templateId, message, assignedAdvisor } = body;
+    const {
+      leadIds,
+      campaignId,
+      workspaceId,
+      batchNumber,
+      templateId,
+      message,
+      assignedAdvisor,
+    } = body;
 
     if (!leadIds || !Array.isArray(leadIds) || leadIds.length === 0) {
       return NextResponse.json(
         { error: "leadIds array is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -87,10 +95,11 @@ export async function POST(request: NextRequest) {
       .where(inArray(leads.id, batchLeadIds));
 
     // Filter leads with valid phones
-    const validLeads = leadsData.filter(l => l.phone && l.phone.length >= 10);
+    const validLeads = leadsData.filter((l) => l.phone && l.phone.length >= 10);
 
     // Get the sending number (from workspace/campaign config)
-    const sendingNumber = process.env.SIGNALHOUSE_PHONE_NUMBER || process.env.TWILIO_PHONE_NUMBER;
+    const sendingNumber =
+      process.env.SIGNALHOUSE_PHONE_NUMBER || process.env.TWILIO_PHONE_NUMBER;
 
     let sent = 0;
     let failed = 0;
@@ -111,7 +120,9 @@ export async function POST(request: NextRequest) {
             direction: "outbound",
             fromNumber: sendingNumber || "",
             toNumber: lead.phone,
-            body: message || `Hi ${lead.firstName}, this is your Homeowner Advisor reaching out...`,
+            body:
+              message ||
+              `Hi ${lead.firstName}, this is your Homeowner Advisor reaching out...`,
             status: "sent",
             campaignId,
             sentAt: new Date(),
@@ -136,7 +147,6 @@ export async function POST(request: NextRequest) {
         sent++;
 
         console.log(`[SMSBatch] Sent to ${lead.phone} (${lead.firstName})`);
-
       } catch (error) {
         console.error(`[SMSBatch] Failed for ${lead.phone}:`, error);
         failed++;
@@ -188,21 +198,24 @@ export async function GET(request: NextRequest) {
     if (batchId) {
       const status = batchStatuses.get(batchId);
       if (!status) {
-        return NextResponse.json(
-          { error: "Batch not found" },
-          { status: 404 }
-        );
+        return NextResponse.json({ error: "Batch not found" }, { status: 404 });
       }
       return NextResponse.json({ success: true, batch: status });
     }
 
     if (campaignId) {
       const campaignBatches = Array.from(batchStatuses.values())
-        .filter(b => b.campaignId === campaignId)
+        .filter((b) => b.campaignId === campaignId)
         .sort((a, b) => b.batchNumber - a.batchNumber);
 
-      const totalSent = campaignBatches.reduce((sum, b) => sum + b.totalSent, 0);
-      const totalFailed = campaignBatches.reduce((sum, b) => sum + b.totalFailed, 0);
+      const totalSent = campaignBatches.reduce(
+        (sum, b) => sum + b.totalSent,
+        0,
+      );
+      const totalFailed = campaignBatches.reduce(
+        (sum, b) => sum + b.totalFailed,
+        0,
+      );
 
       return NextResponse.json({
         success: true,
@@ -217,7 +230,10 @@ export async function GET(request: NextRequest) {
 
     // Return recent batches
     const recentBatches = Array.from(batchStatuses.values())
-      .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
+      .sort(
+        (a, b) =>
+          new Date(b.startTime).getTime() - new Date(a.startTime).getTime(),
+      )
       .slice(0, 20);
 
     return NextResponse.json({

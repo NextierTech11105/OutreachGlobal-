@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
     if (!apiKey) {
       return NextResponse.json(
         { error: "API key is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
       const errorData = await response.json().catch(() => ({}));
       return NextResponse.json(
         { error: errorData.message || "Invalid API key" },
-        { status: response.status }
+        { status: response.status },
       );
     }
 
@@ -39,7 +39,8 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: unknown) {
     console.error("Apollo configure error:", error);
-    const message = error instanceof Error ? error.message : "Configuration failed";
+    const message =
+      error instanceof Error ? error.message : "Configuration failed";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

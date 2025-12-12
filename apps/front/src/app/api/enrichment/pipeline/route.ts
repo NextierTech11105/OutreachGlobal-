@@ -19,7 +19,13 @@ import { eq, inArray } from "drizzle-orm";
 const LEAD_TYPES = {
   distressed: {
     label: "Distressed Property",
-    indicators: ["preforeclosure", "foreclosure", "tax_lien", "code_violation", "bankruptcy"],
+    indicators: [
+      "preforeclosure",
+      "foreclosure",
+      "tax_lien",
+      "code_violation",
+      "bankruptcy",
+    ],
     enrichPriority: ["skip_trace", "property", "owner"],
   },
   equity: {
@@ -86,8 +92,12 @@ interface EnrichmentResult {
 }
 
 // Detect lead type based on data indicators
-function detectLeadType(lead: Record<string, unknown>): { type: string; label: string; enrichPriority: string[] } {
-  const tags = (lead.tags as string[] || []).map(t => t.toLowerCase());
+function detectLeadType(lead: Record<string, unknown>): {
+  type: string;
+  label: string;
+  enrichPriority: string[];
+} {
+  const tags = ((lead.tags as string[]) || []).map((t) => t.toLowerCase());
   const source = ((lead.source as string) || "").toLowerCase();
   const propertyType = ((lead.propertyType as string) || "").toLowerCase();
   const notes = ((lead.notes as string) || "").toLowerCase();
@@ -95,16 +105,21 @@ function detectLeadType(lead: Record<string, unknown>): { type: string; label: s
 
   // Check each lead type
   for (const [typeKey, typeConfig] of Object.entries(LEAD_TYPES)) {
-    const matchScore = typeConfig.indicators.filter(indicator =>
-      tags.some(t => t.includes(indicator)) ||
-      source.includes(indicator) ||
-      propertyType.includes(indicator) ||
-      notes.includes(indicator) ||
-      (typeKey === "business" && companyName.length > 0)
+    const matchScore = typeConfig.indicators.filter(
+      (indicator) =>
+        tags.some((t) => t.includes(indicator)) ||
+        source.includes(indicator) ||
+        propertyType.includes(indicator) ||
+        notes.includes(indicator) ||
+        (typeKey === "business" && companyName.length > 0),
     ).length;
 
     if (matchScore > 0) {
-      return { type: typeKey, label: typeConfig.label, enrichPriority: typeConfig.enrichPriority };
+      return {
+        type: typeKey,
+        label: typeConfig.label,
+        enrichPriority: typeConfig.enrichPriority,
+      };
     }
   }
 
@@ -117,7 +132,9 @@ function detectLeadType(lead: Record<string, unknown>): { type: string; label: s
 }
 
 // Apollo company enrichment
-async function enrichCompany(lead: Record<string, unknown>): Promise<{ status: string; data?: Record<string, unknown> }> {
+async function enrichCompany(
+  lead: Record<string, unknown>,
+): Promise<{ status: string; data?: Record<string, unknown> }> {
   try {
     const companyName = lead.companyName || lead.ownerName;
     if (!companyName) {
@@ -125,14 +142,17 @@ async function enrichCompany(lead: Record<string, unknown>): Promise<{ status: s
     }
 
     // Call Apollo API
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || ""}/api/apollo/enrich`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        domain: lead.email ? (lead.email as string).split("@")[1] : undefined,
-        name: companyName,
-      }),
-    });
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_APP_URL || ""}/api/apollo/enrich`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          domain: lead.email ? (lead.email as string).split("@")[1] : undefined,
+          name: companyName,
+        }),
+      },
+    );
 
     if (!response.ok) {
       console.log("[EnrichPipeline] Apollo enrichment simulating...");
@@ -148,7 +168,9 @@ async function enrichCompany(lead: Record<string, unknown>): Promise<{ status: s
 }
 
 // Property enrichment from RealEstate API
-async function enrichProperty(lead: Record<string, unknown>): Promise<{ status: string; data?: Record<string, unknown> }> {
+async function enrichProperty(
+  lead: Record<string, unknown>,
+): Promise<{ status: string; data?: Record<string, unknown> }> {
   try {
     const address = lead.address || lead.propertyAddress;
     if (!address) {
@@ -156,16 +178,19 @@ async function enrichProperty(lead: Record<string, unknown>): Promise<{ status: 
     }
 
     // Call Property Detail API
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || ""}/api/property/detail`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        address,
-        city: lead.city,
-        state: lead.state,
-        zipCode: lead.zipCode,
-      }),
-    });
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_APP_URL || ""}/api/property/detail`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          address,
+          city: lead.city,
+          state: lead.state,
+          zipCode: lead.zipCode,
+        }),
+      },
+    );
 
     if (!response.ok) {
       console.log("[EnrichPipeline] Property enrichment simulating...");
@@ -181,9 +206,12 @@ async function enrichProperty(lead: Record<string, unknown>): Promise<{ status: 
 }
 
 // Owner detail enrichment
-async function enrichOwner(lead: Record<string, unknown>): Promise<{ status: string; data?: Record<string, unknown> }> {
+async function enrichOwner(
+  lead: Record<string, unknown>,
+): Promise<{ status: string; data?: Record<string, unknown> }> {
   try {
-    const ownerName = lead.ownerName || `${lead.firstName} ${lead.lastName}`.trim();
+    const ownerName =
+      lead.ownerName || `${lead.firstName} ${lead.lastName}`.trim();
     const address = lead.address || lead.propertyAddress;
 
     if (!ownerName && !address) {
@@ -208,28 +236,34 @@ async function enrichOwner(lead: Record<string, unknown>): Promise<{ status: str
 }
 
 // Skip trace enrichment
-async function enrichSkipTrace(lead: Record<string, unknown>): Promise<{ status: string; data?: Record<string, unknown> }> {
+async function enrichSkipTrace(
+  lead: Record<string, unknown>,
+): Promise<{ status: string; data?: Record<string, unknown> }> {
   try {
     const address = lead.address || lead.propertyAddress;
-    const ownerName = lead.ownerName || `${lead.firstName} ${lead.lastName}`.trim();
+    const ownerName =
+      lead.ownerName || `${lead.firstName} ${lead.lastName}`.trim();
 
     if (!address && !ownerName) {
       return { status: "skipped" };
     }
 
     // Call Skip Trace API
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || ""}/api/property/skip-trace`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        firstName: lead.firstName,
-        lastName: lead.lastName,
-        address,
-        city: lead.city,
-        state: lead.state,
-        zipCode: lead.zipCode,
-      }),
-    });
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_APP_URL || ""}/api/property/skip-trace`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          firstName: lead.firstName,
+          lastName: lead.lastName,
+          address,
+          city: lead.city,
+          state: lead.state,
+          zipCode: lead.zipCode,
+        }),
+      },
+    );
 
     if (!response.ok) {
       console.log("[EnrichPipeline] Skip trace simulating...");
@@ -255,12 +289,17 @@ async function enrichSkipTrace(lead: Record<string, unknown>): Promise<{ status:
 export async function POST(request: NextRequest) {
   try {
     const body: EnrichmentRequest = await request.json();
-    const { leadIds, enrichmentTypes, autoDetectType = true, priority = "normal" } = body;
+    const {
+      leadIds,
+      enrichmentTypes,
+      autoDetectType = true,
+      priority = "normal",
+    } = body;
 
     if (!leadIds || !Array.isArray(leadIds) || leadIds.length === 0) {
       return NextResponse.json(
         { error: "leadIds array is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -276,11 +315,17 @@ export async function POST(request: NextRequest) {
       const leadData = lead as unknown as Record<string, unknown>;
 
       // Detect lead type
-      const leadTypeInfo = autoDetectType ? detectLeadType(leadData) : {
-        type: "general",
-        label: "General Lead",
-        enrichPriority: enrichmentTypes || ["property", "owner", "skip_trace"],
-      };
+      const leadTypeInfo = autoDetectType
+        ? detectLeadType(leadData)
+        : {
+            type: "general",
+            label: "General Lead",
+            enrichPriority: enrichmentTypes || [
+              "property",
+              "owner",
+              "skip_trace",
+            ],
+          };
 
       const result: EnrichmentResult = {
         leadId: lead.id,
@@ -320,7 +365,8 @@ export async function POST(request: NextRequest) {
       // Apply enrichment results to lead
       if (result.enrichments.property?.data) {
         const propData = result.enrichments.property.data;
-        if (propData.estimatedValue) updateData.propertyValue = propData.estimatedValue;
+        if (propData.estimatedValue)
+          updateData.propertyValue = propData.estimatedValue;
         if (propData.bedrooms) updateData.bedrooms = propData.bedrooms;
         if (propData.bathrooms) updateData.bathrooms = propData.bathrooms;
         if (propData.squareFeet) updateData.squareFeet = propData.squareFeet;
@@ -345,10 +391,7 @@ export async function POST(request: NextRequest) {
         if (compData.employees) updateData.companySize = compData.employees;
       }
 
-      await db
-        .update(leads)
-        .set(updateData)
-        .where(eq(leads.id, lead.id));
+      await db.update(leads).set(updateData).where(eq(leads.id, lead.id));
 
       results.push(result);
     }
@@ -362,7 +405,8 @@ export async function POST(request: NextRequest) {
       leadTypes: LEAD_TYPES,
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Enrichment failed";
+    const message =
+      error instanceof Error ? error.message : "Enrichment failed";
     console.error("[EnrichPipeline] Error:", error);
     return NextResponse.json({ error: message }, { status: 500 });
   }
@@ -391,10 +435,7 @@ export async function GET(request: NextRequest) {
         .limit(1);
 
       if (!lead) {
-        return NextResponse.json(
-          { error: "Lead not found" },
-          { status: 404 }
-        );
+        return NextResponse.json({ error: "Lead not found" }, { status: 404 });
       }
 
       return NextResponse.json({

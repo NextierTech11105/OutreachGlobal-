@@ -14,7 +14,11 @@
  * - Apollo enrichment
  */
 
-import { S3Client, GetObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  GetObjectCommand,
+  ListObjectsV2Command,
+} from "@aws-sdk/client-s3";
 import {
   writeNode,
   writeEdge,
@@ -131,7 +135,8 @@ interface ETLResult {
 
 function getS3Client(): S3Client {
   return new S3Client({
-    endpoint: process.env.DO_SPACES_ENDPOINT || "https://nyc3.digitaloceanspaces.com",
+    endpoint:
+      process.env.DO_SPACES_ENDPOINT || "https://nyc3.digitaloceanspaces.com",
     region: process.env.DO_SPACES_REGION || "nyc3",
     credentials: {
       accessKeyId: process.env.DO_SPACES_KEY || "",
@@ -155,10 +160,12 @@ async function loadBucket(bucketId: string): Promise<Bucket | null> {
   const key = `buckets/${bucketId}/index.json`;
 
   try {
-    const response = await client.send(new GetObjectCommand({
-      Bucket: BUCKET_NAME,
-      Key: key,
-    }));
+    const response = await client.send(
+      new GetObjectCommand({
+        Bucket: BUCKET_NAME,
+        Key: key,
+      }),
+    );
     const body = await response.Body?.transformToString();
     return body ? JSON.parse(body) : null;
   } catch {
@@ -171,14 +178,16 @@ async function loadBucket(bucketId: string): Promise<Bucket | null> {
  */
 async function listBucketIds(): Promise<string[]> {
   const client = getS3Client();
-  const response = await client.send(new ListObjectsV2Command({
-    Bucket: BUCKET_NAME,
-    Prefix: "buckets/",
-    Delimiter: "/",
-  }));
+  const response = await client.send(
+    new ListObjectsV2Command({
+      Bucket: BUCKET_NAME,
+      Prefix: "buckets/",
+      Delimiter: "/",
+    }),
+  );
 
   return (response.CommonPrefixes || [])
-    .map(p => p.Prefix?.replace("buckets/", "").replace("/", "") || "")
+    .map((p) => p.Prefix?.replace("buckets/", "").replace("/", "") || "")
     .filter(Boolean);
 }
 
@@ -197,7 +206,9 @@ function extractCompanyName(record: BucketRecord): string | null {
 /**
  * Extract contact name from record
  */
-function extractContactName(record: BucketRecord): { first: string; last: string; full: string } | null {
+function extractContactName(
+  record: BucketRecord,
+): { first: string; last: string; full: string } | null {
   if (record.firstName && record.lastName) {
     return {
       first: normalizeName(record.firstName),
@@ -227,9 +238,10 @@ function extractPhones(record: BucketRecord): string[] {
   if (record.mobile) phones.push(normalizePhone(record.mobile));
   if (record.telephone) phones.push(normalizePhone(record.telephone));
   if (record.phones) phones.push(...record.phones.map(normalizePhone));
-  if (record.enrichedPhones) phones.push(...record.enrichedPhones.map(normalizePhone));
+  if (record.enrichedPhones)
+    phones.push(...record.enrichedPhones.map(normalizePhone));
 
-  return [...new Set(phones.filter(p => p.length >= 10))];
+  return [...new Set(phones.filter((p) => p.length >= 10))];
 }
 
 /**
@@ -240,9 +252,10 @@ function extractEmails(record: BucketRecord): string[] {
 
   if (record.email) emails.push(normalizeEmail(record.email));
   if (record.emails) emails.push(...record.emails.map(normalizeEmail));
-  if (record.enrichedEmails) emails.push(...record.enrichedEmails.map(normalizeEmail));
+  if (record.enrichedEmails)
+    emails.push(...record.enrichedEmails.map(normalizeEmail));
 
-  return [...new Set(emails.filter(e => e.includes("@")))];
+  return [...new Set(emails.filter((e) => e.includes("@")))];
 }
 
 /**
@@ -278,7 +291,8 @@ function extractOwner(record: BucketRecord): {
   name: string;
   mailingAddress?: string;
 } | null {
-  const ownerName = record.ownerName ||
+  const ownerName =
+    record.ownerName ||
     (record.ownerFirstName && record.ownerLastName
       ? `${record.ownerFirstName} ${record.ownerLastName}`
       : null);
@@ -305,7 +319,7 @@ function extractOwner(record: BucketRecord): {
 async function processRecord(
   record: BucketRecord,
   bucketId: string,
-  recordIndex: number
+  recordIndex: number,
 ): Promise<{
   nodes: { type: NodeType; id: string }[];
   edges: { type: EdgeType; source: string; target: string }[];
@@ -324,16 +338,23 @@ async function processRecord(
 
     if (companyName) {
       const sicCode = normalizeSIC(record.sicCode || record.sic);
-      const { nodeId } = await writeNode("business", companyName, {
-        name: companyName,
-        originalName: record.companyName || record.company || record.businessName,
-        sicCode,
-        industry: record.industry,
-        employees: record.employees,
-        revenue: record.revenue,
-        website: record.website,
-        sourceRecordId: recordId,
-      }, bucketId, 0.9);
+      const { nodeId } = await writeNode(
+        "business",
+        companyName,
+        {
+          name: companyName,
+          originalName:
+            record.companyName || record.company || record.businessName,
+          sicCode,
+          industry: record.industry,
+          employees: record.employees,
+          revenue: record.revenue,
+          website: record.website,
+          sourceRecordId: recordId,
+        },
+        bucketId,
+        0.9,
+      );
 
       businessNodeId = nodeId;
       nodes.push({ type: "business", id: nodeId });
@@ -345,62 +366,102 @@ async function processRecord(
 
     if (contactName) {
       const contactKey = `${contactName.full}|${companyName || ""}`;
-      const { nodeId } = await writeNode("contact", contactKey, {
-        firstName: contactName.first,
-        lastName: contactName.last,
-        fullName: contactName.full,
-        title: record.title,
-        company: companyName,
-        sourceRecordId: recordId,
-      }, bucketId, 0.85);
+      const { nodeId } = await writeNode(
+        "contact",
+        contactKey,
+        {
+          firstName: contactName.first,
+          lastName: contactName.last,
+          fullName: contactName.full,
+          title: record.title,
+          company: companyName,
+          sourceRecordId: recordId,
+        },
+        bucketId,
+        0.85,
+      );
 
       contactNodeId = nodeId;
       nodes.push({ type: "contact", id: nodeId });
 
       // Link contact to business
       if (businessNodeId) {
-        await writeEdge("works_at", contactNodeId, businessNodeId, 1.0, { title: record.title });
-        edges.push({ type: "works_at", source: contactNodeId, target: businessNodeId });
+        await writeEdge("works_at", contactNodeId, businessNodeId, 1.0, {
+          title: record.title,
+        });
+        edges.push({
+          type: "works_at",
+          source: contactNodeId,
+          target: businessNodeId,
+        });
       }
     }
 
     // 3. Extract and create PHONE nodes
     const phones = extractPhones(record);
     for (const phone of phones) {
-      const { nodeId: phoneNodeId } = await writeNode("phone", phone, {
-        number: phone,
-        formatted: phone.replace(/(\d{3})(\d{3})(\d{4})/, "($1) $2-$3"),
-      }, bucketId, 0.95);
+      const { nodeId: phoneNodeId } = await writeNode(
+        "phone",
+        phone,
+        {
+          number: phone,
+          formatted: phone.replace(/(\d{3})(\d{3})(\d{4})/, "($1) $2-$3"),
+        },
+        bucketId,
+        0.95,
+      );
 
       nodes.push({ type: "phone", id: phoneNodeId });
 
       // Link phone to contact or business
       if (contactNodeId) {
         await writeEdge("has_phone", contactNodeId, phoneNodeId);
-        edges.push({ type: "has_phone", source: contactNodeId, target: phoneNodeId });
+        edges.push({
+          type: "has_phone",
+          source: contactNodeId,
+          target: phoneNodeId,
+        });
       } else if (businessNodeId) {
         await writeEdge("has_phone", businessNodeId, phoneNodeId);
-        edges.push({ type: "has_phone", source: businessNodeId, target: phoneNodeId });
+        edges.push({
+          type: "has_phone",
+          source: businessNodeId,
+          target: phoneNodeId,
+        });
       }
     }
 
     // 4. Extract and create EMAIL nodes
     const emails = extractEmails(record);
     for (const email of emails) {
-      const { nodeId: emailNodeId } = await writeNode("email", email, {
-        address: email,
-        domain: email.split("@")[1],
-      }, bucketId, 0.95);
+      const { nodeId: emailNodeId } = await writeNode(
+        "email",
+        email,
+        {
+          address: email,
+          domain: email.split("@")[1],
+        },
+        bucketId,
+        0.95,
+      );
 
       nodes.push({ type: "email", id: emailNodeId });
 
       // Link email to contact or business
       if (contactNodeId) {
         await writeEdge("has_email", contactNodeId, emailNodeId);
-        edges.push({ type: "has_email", source: contactNodeId, target: emailNodeId });
+        edges.push({
+          type: "has_email",
+          source: contactNodeId,
+          target: emailNodeId,
+        });
       } else if (businessNodeId) {
         await writeEdge("has_email", businessNodeId, emailNodeId);
-        edges.push({ type: "has_email", source: businessNodeId, target: emailNodeId });
+        edges.push({
+          type: "has_email",
+          source: businessNodeId,
+          target: emailNodeId,
+        });
       }
     }
 
@@ -409,13 +470,19 @@ async function processRecord(
     let addressNodeId: string | null = null;
 
     if (address) {
-      const { nodeId } = await writeNode("address", address.normalized, {
-        street: address.street,
-        city: address.city,
-        state: address.state,
-        zip: address.zip,
-        full: `${address.street}, ${address.city}, ${address.state} ${address.zip}`,
-      }, bucketId, 0.9);
+      const { nodeId } = await writeNode(
+        "address",
+        address.normalized,
+        {
+          street: address.street,
+          city: address.city,
+          state: address.state,
+          zip: address.zip,
+          full: `${address.street}, ${address.city}, ${address.state} ${address.zip}`,
+        },
+        bucketId,
+        0.9,
+      );
 
       addressNodeId = nodeId;
       nodes.push({ type: "address", id: nodeId });
@@ -423,64 +490,97 @@ async function processRecord(
       // Link address to business
       if (businessNodeId) {
         await writeEdge("located_at", businessNodeId, addressNodeId);
-        edges.push({ type: "located_at", source: businessNodeId, target: addressNodeId });
+        edges.push({
+          type: "located_at",
+          source: businessNodeId,
+          target: addressNodeId,
+        });
       }
     }
 
     // 6. Extract and create PROPERTY node (if has property data)
     if (record.propertyType || record.estimatedValue || record.sqft) {
       const propertyKey = address?.normalized || `prop-${recordId}`;
-      const { nodeId: propertyNodeId } = await writeNode("property", propertyKey, {
-        type: record.propertyType,
-        bedrooms: record.bedrooms,
-        bathrooms: record.bathrooms,
-        sqft: record.sqft,
-        yearBuilt: record.yearBuilt,
-        estimatedValue: record.estimatedValue,
-        lastSaleAmount: record.lastSaleAmount,
-        addressId: addressNodeId,
-        sourceRecordId: recordId,
-      }, bucketId, 0.85);
+      const { nodeId: propertyNodeId } = await writeNode(
+        "property",
+        propertyKey,
+        {
+          type: record.propertyType,
+          bedrooms: record.bedrooms,
+          bathrooms: record.bathrooms,
+          sqft: record.sqft,
+          yearBuilt: record.yearBuilt,
+          estimatedValue: record.estimatedValue,
+          lastSaleAmount: record.lastSaleAmount,
+          addressId: addressNodeId,
+          sourceRecordId: recordId,
+        },
+        bucketId,
+        0.85,
+      );
 
       nodes.push({ type: "property", id: propertyNodeId });
 
       // Link property to address
       if (addressNodeId) {
         await writeEdge("located_at", propertyNodeId, addressNodeId);
-        edges.push({ type: "located_at", source: propertyNodeId, target: addressNodeId });
+        edges.push({
+          type: "located_at",
+          source: propertyNodeId,
+          target: addressNodeId,
+        });
       }
 
       // If business exists, link as occupies
       if (businessNodeId) {
         await writeEdge("occupies", businessNodeId, propertyNodeId);
-        edges.push({ type: "occupies", source: businessNodeId, target: propertyNodeId });
+        edges.push({
+          type: "occupies",
+          source: businessNodeId,
+          target: propertyNodeId,
+        });
       }
     }
 
     // 7. Extract and create OWNER node (from skip trace)
     const owner = extractOwner(record);
     if (owner) {
-      const { nodeId: ownerNodeId } = await writeNode("owner", owner.name, {
-        name: owner.name,
-        mailingAddress: owner.mailingAddress,
-        sourceRecordId: recordId,
-      }, bucketId, 0.8);
+      const { nodeId: ownerNodeId } = await writeNode(
+        "owner",
+        owner.name,
+        {
+          name: owner.name,
+          mailingAddress: owner.mailingAddress,
+          sourceRecordId: recordId,
+        },
+        bucketId,
+        0.8,
+      );
 
       nodes.push({ type: "owner", id: ownerNodeId });
 
       // Link owner to property
       if (addressNodeId) {
         // Find or create property for this address
-        const { nodeId: propertyNodeId } = await writeNode("property", address?.normalized || `prop-${recordId}`, {
-          addressId: addressNodeId,
-          sourceRecordId: recordId,
-        }, bucketId, 0.7);
+        const { nodeId: propertyNodeId } = await writeNode(
+          "property",
+          address?.normalized || `prop-${recordId}`,
+          {
+            addressId: addressNodeId,
+            sourceRecordId: recordId,
+          },
+          bucketId,
+          0.7,
+        );
 
         await writeEdge("owns", ownerNodeId, propertyNodeId);
-        edges.push({ type: "owns", source: ownerNodeId, target: propertyNodeId });
+        edges.push({
+          type: "owns",
+          source: ownerNodeId,
+          target: propertyNodeId,
+        });
       }
     }
-
   } catch (error) {
     errors.push(`Record ${recordIndex}: ${error}`);
   }
@@ -515,7 +615,9 @@ export async function processBucket(bucketId: string): Promise<ETLResult> {
   result.bucketName = bucket.name;
   const records = bucket.properties || [];
 
-  console.log(`[ETL] Processing bucket: ${bucket.name} (${records.length} records)`);
+  console.log(
+    `[ETL] Processing bucket: ${bucket.name} (${records.length} records)`,
+  );
 
   // Process records in batches
   const BATCH_SIZE = 50;
@@ -523,19 +625,21 @@ export async function processBucket(bucketId: string): Promise<ETLResult> {
     const batch = records.slice(i, i + BATCH_SIZE);
 
     const batchResults = await Promise.all(
-      batch.map((record, idx) => processRecord(record, bucketId, i + idx))
+      batch.map((record, idx) => processRecord(record, bucketId, i + idx)),
     );
 
     for (const r of batchResults) {
       result.recordsProcessed++;
-      result.nodesCreated += r.nodes.filter(n => n.id).length;
+      result.nodesCreated += r.nodes.filter((n) => n.id).length;
       result.edgesCreated += r.edges.length;
       result.errors.push(...r.errors);
     }
 
     // Progress log every 100 records
     if ((i + BATCH_SIZE) % 100 === 0 || i + BATCH_SIZE >= records.length) {
-      console.log(`[ETL] Processed ${Math.min(i + BATCH_SIZE, records.length)}/${records.length} records`);
+      console.log(
+        `[ETL] Processed ${Math.min(i + BATCH_SIZE, records.length)}/${records.length} records`,
+      );
     }
   }
 
@@ -583,7 +687,7 @@ export async function processAllBuckets(): Promise<ETLResult[]> {
  */
 export async function processIncrementalBucket(
   bucketId: string,
-  lastProcessedIndex: number
+  lastProcessedIndex: number,
 ): Promise<ETLResult & { lastIndex: number }> {
   const bucket = await loadBucket(bucketId);
   if (!bucket) {
@@ -617,7 +721,9 @@ export async function processIncrementalBucket(
     };
   }
 
-  console.log(`[ETL] Incremental: Processing ${newRecords.length} new records from ${bucket.name}`);
+  console.log(
+    `[ETL] Incremental: Processing ${newRecords.length} new records from ${bucket.name}`,
+  );
 
   const startTime = Date.now();
   let nodesCreated = 0;
@@ -625,7 +731,11 @@ export async function processIncrementalBucket(
   const errors: string[] = [];
 
   for (let i = 0; i < newRecords.length; i++) {
-    const r = await processRecord(newRecords[i], bucketId, lastProcessedIndex + i);
+    const r = await processRecord(
+      newRecords[i],
+      bucketId,
+      lastProcessedIndex + i,
+    );
     nodesCreated += r.nodes.length;
     edgesCreated += r.edges.length;
     errors.push(...r.errors);
@@ -651,7 +761,9 @@ export async function processIncrementalBucket(
 /**
  * Queue a bucket for ETL processing
  */
-export async function queueBucketForETL(bucketId: string): Promise<{ queued: boolean; message: string }> {
+export async function queueBucketForETL(
+  bucketId: string,
+): Promise<{ queued: boolean; message: string }> {
   // In a production system, this would push to a queue
   // For now, we process synchronously
   try {

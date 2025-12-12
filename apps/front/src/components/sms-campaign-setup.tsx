@@ -43,7 +43,8 @@ const AUDIENCE_PERSONAS = [
   {
     id: "distressed_seller",
     name: "Distressed Seller",
-    description: "Pre-foreclosure, tax delinquent, or high-equity owners who may need quick sale",
+    description:
+      "Pre-foreclosure, tax delinquent, or high-equity owners who may need quick sale",
     tone: "empathetic",
     urgency: "high",
     category: "residential",
@@ -51,7 +52,8 @@ const AUDIENCE_PERSONAS = [
   {
     id: "absentee_owner",
     name: "Absentee Owner",
-    description: "Property owners who don't live at the property - likely landlords or inherited",
+    description:
+      "Property owners who don't live at the property - likely landlords or inherited",
     tone: "professional",
     urgency: "medium",
     category: "residential",
@@ -59,7 +61,8 @@ const AUDIENCE_PERSONAS = [
   {
     id: "free_clear",
     name: "Free & Clear Owner",
-    description: "No mortgage - maximum equity, may be open to selling or cash-out",
+    description:
+      "No mortgage - maximum equity, may be open to selling or cash-out",
     tone: "respectful",
     urgency: "low",
     category: "residential",
@@ -241,43 +244,138 @@ const AUDIENCE_PERSONAS = [
 // Persona Categories for dropdown - Commercial & Business are PRIMARY for NEXTIER
 const PERSONA_CATEGORIES = [
   { id: "business", name: "Business Owners", icon: "💼", primary: true },
-  { id: "commercial", name: "Commercial Real Estate", icon: "🏢", primary: true },
-  { id: "residential", name: "Residential Property", icon: "🏠", primary: false },
+  {
+    id: "commercial",
+    name: "Commercial Real Estate",
+    icon: "🏢",
+    primary: true,
+  },
+  {
+    id: "residential",
+    name: "Residential Property",
+    icon: "🏠",
+    primary: false,
+  },
 ];
 
 // Available Variables
 const VARIABLES = [
   // Contact
-  { key: "{{firstName}}", label: "First Name", example: "John", category: "contact" },
-  { key: "{{lastName}}", label: "Last Name", example: "Smith", category: "contact" },
-  { key: "{{fullName}}", label: "Full Name", example: "John Smith", category: "contact" },
+  {
+    key: "{{firstName}}",
+    label: "First Name",
+    example: "John",
+    category: "contact",
+  },
+  {
+    key: "{{lastName}}",
+    label: "Last Name",
+    example: "Smith",
+    category: "contact",
+  },
+  {
+    key: "{{fullName}}",
+    label: "Full Name",
+    example: "John Smith",
+    category: "contact",
+  },
 
   // Property
-  { key: "{{propertyAddress}}", label: "Property Address", example: "123 Main St", category: "property" },
+  {
+    key: "{{propertyAddress}}",
+    label: "Property Address",
+    example: "123 Main St",
+    category: "property",
+  },
   { key: "{{city}}", label: "City", example: "Brooklyn", category: "property" },
   { key: "{{state}}", label: "State", example: "NY", category: "property" },
   { key: "{{beds}}", label: "Bedrooms", example: "3", category: "property" },
   { key: "{{baths}}", label: "Bathrooms", example: "2", category: "property" },
   { key: "{{sqft}}", label: "Sq Ft", example: "1,850", category: "property" },
-  { key: "{{yearBuilt}}", label: "Year Built", example: "1985", category: "property" },
-  { key: "{{propertyType}}", label: "Property Type", example: "Single Family", category: "property" },
+  {
+    key: "{{yearBuilt}}",
+    label: "Year Built",
+    example: "1985",
+    category: "property",
+  },
+  {
+    key: "{{propertyType}}",
+    label: "Property Type",
+    example: "Single Family",
+    category: "property",
+  },
   { key: "{{units}}", label: "# Units", example: "4", category: "property" },
 
   // Valuation
-  { key: "{{estimatedValue}}", label: "Est. Value", example: "$850,000", category: "valuation" },
-  { key: "{{equity}}", label: "Equity", example: "$450,000", category: "valuation" },
-  { key: "{{equityPercent}}", label: "Equity %", example: "53%", category: "valuation" },
-  { key: "{{capRate}}", label: "Cap Rate", example: "6.5%", category: "valuation" },
+  {
+    key: "{{estimatedValue}}",
+    label: "Est. Value",
+    example: "$850,000",
+    category: "valuation",
+  },
+  {
+    key: "{{equity}}",
+    label: "Equity",
+    example: "$450,000",
+    category: "valuation",
+  },
+  {
+    key: "{{equityPercent}}",
+    label: "Equity %",
+    example: "53%",
+    category: "valuation",
+  },
+  {
+    key: "{{capRate}}",
+    label: "Cap Rate",
+    example: "6.5%",
+    category: "valuation",
+  },
   { key: "{{noi}}", label: "NOI", example: "$55,000", category: "valuation" },
 
   // Business
-  { key: "{{companyName}}", label: "Company", example: "ABC Plumbing", category: "business" },
-  { key: "{{industry}}", label: "Industry", example: "Plumbing Services", category: "business" },
-  { key: "{{sicCode}}", label: "SIC Code", example: "1711", category: "business" },
-  { key: "{{revenue}}", label: "Revenue", example: "$2.5M", category: "business" },
-  { key: "{{employees}}", label: "Employees", example: "15", category: "business" },
-  { key: "{{yearsInBusiness}}", label: "Years in Business", example: "12", category: "business" },
-  { key: "{{businessValue}}", label: "Business Value", example: "$1.2M", category: "business" },
+  {
+    key: "{{companyName}}",
+    label: "Company",
+    example: "ABC Plumbing",
+    category: "business",
+  },
+  {
+    key: "{{industry}}",
+    label: "Industry",
+    example: "Plumbing Services",
+    category: "business",
+  },
+  {
+    key: "{{sicCode}}",
+    label: "SIC Code",
+    example: "1711",
+    category: "business",
+  },
+  {
+    key: "{{revenue}}",
+    label: "Revenue",
+    example: "$2.5M",
+    category: "business",
+  },
+  {
+    key: "{{employees}}",
+    label: "Employees",
+    example: "15",
+    category: "business",
+  },
+  {
+    key: "{{yearsInBusiness}}",
+    label: "Years in Business",
+    example: "12",
+    category: "business",
+  },
+  {
+    key: "{{businessValue}}",
+    label: "Business Value",
+    example: "$1.2M",
+    category: "business",
+  },
 ];
 
 // Gianna Initial Message Templates - Focus on CRE & Business Advisory
@@ -484,18 +582,19 @@ export function SMSCampaignSetup({
 
   // Filter personas by selected category
   const filteredPersonas = AUDIENCE_PERSONAS.filter(
-    (p) => p.category === selectedCategory
+    (p) => p.category === selectedCategory,
   );
 
   // Filter templates by category and persona
   const filteredTemplates = GIANNA_TEMPLATES.filter((t) => {
     const matchesCategory = t.category === selectedCategory;
-    const matchesPersona = !selectedPersona || t.persona === selectedPersona || t.persona === "any";
+    const matchesPersona =
+      !selectedPersona || t.persona === selectedPersona || t.persona === "any";
     return matchesCategory && matchesPersona;
   });
 
   // Handle template selection
-  const selectTemplate = (template: typeof GIANNA_TEMPLATES[0]) => {
+  const selectTemplate = (template: (typeof GIANNA_TEMPLATES)[0]) => {
     setSelectedTemplate(template.id);
     setCustomMessage(template.message);
   };
@@ -517,7 +616,8 @@ export function SMSCampaignSetup({
       persona: selectedPersona,
       template: selectedTemplate,
       customMessage,
-      campaignName: campaignName || `Campaign ${new Date().toLocaleDateString()}`,
+      campaignName:
+        campaignName || `Campaign ${new Date().toLocaleDateString()}`,
       audienceDescription,
     });
     onClose();
@@ -531,7 +631,9 @@ export function SMSCampaignSetup({
     setCustomMessage("");
   };
 
-  const selectedPersonaData = AUDIENCE_PERSONAS.find((p) => p.id === selectedPersona);
+  const selectedPersonaData = AUDIENCE_PERSONAS.find(
+    (p) => p.id === selectedPersona,
+  );
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -578,7 +680,9 @@ export function SMSCampaignSetup({
                     <div className="text-2xl mb-1">{cat.icon}</div>
                     <div className="font-medium text-sm">{cat.name}</div>
                     {!cat.primary && (
-                      <div className="text-xs text-muted-foreground">(Secondary)</div>
+                      <div className="text-xs text-muted-foreground">
+                        (Secondary)
+                      </div>
                     )}
                   </CardContent>
                 </Card>
@@ -600,7 +704,8 @@ export function SMSCampaignSetup({
               className="resize-none"
             />
             <p className="text-xs text-muted-foreground">
-              The more specific you are, the better Gianna can tailor her approach
+              The more specific you are, the better Gianna can tailor her
+              approach
             </p>
           </div>
 
@@ -641,8 +746,8 @@ export function SMSCampaignSetup({
                           persona.urgency === "high"
                             ? "bg-red-500/10 text-red-500"
                             : persona.urgency === "medium"
-                            ? "bg-yellow-500/10 text-yellow-600"
-                            : "bg-blue-500/10 text-blue-500"
+                              ? "bg-yellow-500/10 text-yellow-600"
+                              : "bg-blue-500/10 text-blue-500"
                         }`}
                       >
                         {persona.urgency} urgency
@@ -710,7 +815,7 @@ export function SMSCampaignSetup({
                   {VARIABLES.filter((v) =>
                     dataType === "business"
                       ? v.category === "contact" || v.category === "business"
-                      : v.category !== "business"
+                      : v.category !== "business",
                   ).map((variable) => (
                     <Badge
                       key={variable.key}
@@ -736,7 +841,11 @@ export function SMSCampaignSetup({
                 />
                 <div className="flex justify-between text-xs text-muted-foreground">
                   <span>{customMessage.length} characters</span>
-                  <span>{customMessage.length > 160 ? "2+ SMS segments" : "1 SMS segment"}</span>
+                  <span>
+                    {customMessage.length > 160
+                      ? "2+ SMS segments"
+                      : "1 SMS segment"}
+                  </span>
                 </div>
               </div>
             </TabsContent>
@@ -778,8 +887,12 @@ export function SMSCampaignSetup({
           {/* Audience Context Summary */}
           {audienceDescription && (
             <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-              <div className="text-xs font-medium text-blue-600 mb-1">Your Audience Context:</div>
-              <div className="text-sm text-muted-foreground">{audienceDescription}</div>
+              <div className="text-xs font-medium text-blue-600 mb-1">
+                Your Audience Context:
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {audienceDescription}
+              </div>
             </div>
           )}
         </div>

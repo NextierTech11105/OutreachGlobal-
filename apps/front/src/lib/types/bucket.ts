@@ -2,9 +2,21 @@
 
 export type BucketSource = "real-estate" | "apollo" | "mixed";
 
-export type EnrichmentStatus = "pending" | "queued" | "processing" | "completed" | "failed" | "partial";
+export type EnrichmentStatus =
+  | "pending"
+  | "queued"
+  | "processing"
+  | "completed"
+  | "failed"
+  | "partial";
 
-export type LeadStatus = "new" | "contacted" | "qualified" | "nurturing" | "closed" | "lost";
+export type LeadStatus =
+  | "new"
+  | "contacted"
+  | "qualified"
+  | "nurturing"
+  | "closed"
+  | "lost";
 
 // Auto-tagging rules
 export interface AutoTagRule {
@@ -27,25 +39,41 @@ export const AUTO_TAG_RULES: AutoTagRule[] = [
   },
   {
     id: "growth-signal",
-    condition: { field: "apolloData.signals", operator: "contains", value: "hiring" },
+    condition: {
+      field: "apolloData.signals",
+      operator: "contains",
+      value: "hiring",
+    },
     tag: "growth-signal",
     description: "Hiring activity indicates growth",
   },
   {
     id: "sfr",
-    condition: { field: "propertyData.propertyType", operator: "eq", value: "SFR" },
+    condition: {
+      field: "propertyData.propertyType",
+      operator: "eq",
+      value: "SFR",
+    },
     tag: "SFR",
     description: "Single Family Residence",
   },
   {
     id: "high-equity",
-    condition: { field: "propertyData.equityPercent", operator: "gte", value: 50 },
+    condition: {
+      field: "propertyData.equityPercent",
+      operator: "gte",
+      value: 50,
+    },
     tag: "high-equity",
     description: "50%+ equity in property",
   },
   {
     id: "absentee-owner",
-    condition: { field: "propertyData.absenteeOwner", operator: "eq", value: true },
+    condition: {
+      field: "propertyData.absenteeOwner",
+      operator: "eq",
+      value: true,
+    },
     tag: "absentee-owner",
     description: "Owner doesn't live at property",
   },
@@ -236,18 +264,24 @@ export function applyAutoTags(lead: Lead): string[] {
     let matches = false;
     switch (operator) {
       case "gte":
-        matches = typeof fieldValue === "number" && fieldValue >= (value as number);
+        matches =
+          typeof fieldValue === "number" && fieldValue >= (value as number);
         break;
       case "lte":
-        matches = typeof fieldValue === "number" && fieldValue <= (value as number);
+        matches =
+          typeof fieldValue === "number" && fieldValue <= (value as number);
         break;
       case "eq":
         matches = fieldValue === value;
         break;
       case "contains":
         matches = Array.isArray(fieldValue)
-          ? fieldValue.some((v) => String(v).toLowerCase().includes(String(value).toLowerCase()))
-          : String(fieldValue).toLowerCase().includes(String(value).toLowerCase());
+          ? fieldValue.some((v) =>
+              String(v).toLowerCase().includes(String(value).toLowerCase()),
+            )
+          : String(fieldValue)
+              .toLowerCase()
+              .includes(String(value).toLowerCase());
         break;
       case "exists":
         matches = fieldValue !== null && fieldValue !== undefined;

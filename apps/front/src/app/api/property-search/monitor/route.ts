@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const REALESTATE_API_KEY = process.env.REAL_ESTATE_API_KEY || process.env.REALESTATE_API_KEY || "";
+const REALESTATE_API_KEY =
+  process.env.REAL_ESTATE_API_KEY || process.env.REALESTATE_API_KEY || "";
 const REALESTATE_API_URL = "https://api.realestateapi.com/v2/PropertyDetail";
 
 // Event signals that affect campaign prioritization
@@ -57,12 +58,14 @@ const SIGNAL_RULES: Array<{
       if (drop > 10) return "ADVANCE"; // Value dropped >10%
       return null;
     },
-    reason: (prev, curr) => `Value dropped ${Math.round(((Number(prev) - Number(curr)) / Number(prev)) * 100)}%`,
+    reason: (prev, curr) =>
+      `Value dropped ${Math.round(((Number(prev) - Number(curr)) / Number(prev)) * 100)}%`,
     priority: 6,
   },
   {
     field: "daysOnMarket",
-    check: (prev, curr) => (Number(curr) > 90 && Number(prev) <= 90 ? "ADVANCE" : null),
+    check: (prev, curr) =>
+      Number(curr) > 90 && Number(prev) <= 90 ? "ADVANCE" : null,
     reason: () => "On market > 90 days (stale listing)",
     priority: 5,
   },
@@ -116,7 +119,7 @@ const SIGNAL_RULES: Array<{
 function detectSignals(
   propertyId: string,
   previous: Record<string, unknown>,
-  current: Record<string, unknown>
+  current: Record<string, unknown>,
 ): PropertySignal[] {
   const signals: PropertySignal[] = [];
 
@@ -149,12 +152,22 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { propertyIds, previousData } = body;
 
-    if (!propertyIds || !Array.isArray(propertyIds) || propertyIds.length === 0) {
-      return NextResponse.json({ error: "propertyIds array required" }, { status: 400 });
+    if (
+      !propertyIds ||
+      !Array.isArray(propertyIds) ||
+      propertyIds.length === 0
+    ) {
+      return NextResponse.json(
+        { error: "propertyIds array required" },
+        { status: 400 },
+      );
     }
 
     if (!previousData || typeof previousData !== "object") {
-      return NextResponse.json({ error: "previousData object required (propertyId -> data)" }, { status: 400 });
+      return NextResponse.json(
+        { error: "previousData object required (propertyId -> data)" },
+        { status: 400 },
+      );
     }
 
     // Limit batch size
@@ -163,7 +176,9 @@ export async function POST(request: NextRequest) {
     const advanceIds: string[] = [];
     const suppressIds: string[] = [];
 
-    console.log(`[Monitor] Checking ${batchIds.length} properties for changes...`);
+    console.log(
+      `[Monitor] Checking ${batchIds.length} properties for changes...`,
+    );
 
     // Fetch current data for each property
     const concurrency = 10;
@@ -189,7 +204,7 @@ export async function POST(request: NextRequest) {
           } catch {
             return null;
           }
-        })
+        }),
       );
 
       // Compare and detect signals
@@ -221,7 +236,7 @@ export async function POST(request: NextRequest) {
     allSignals.sort((a, b) => b.priority - a.priority);
 
     console.log(
-      `[Monitor] Complete: ${allSignals.length} signals detected, ${advanceIds.length} ADVANCE, ${suppressIds.length} SUPPRESS`
+      `[Monitor] Complete: ${allSignals.length} signals detected, ${advanceIds.length} ADVANCE, ${suppressIds.length} SUPPRESS`,
     );
 
     return NextResponse.json({

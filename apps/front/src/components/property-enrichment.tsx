@@ -1,6 +1,5 @@
 "use client";
 
-
 import { sf, sfd } from "@/lib/utils/safe-format";
 import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
@@ -68,10 +67,16 @@ const ADDRESS_COLUMNS = [
 const STREET_COLUMNS = ["street", "street_name", "address_line_1", "address1"];
 const CITY_COLUMNS = ["city", "property_city", "situs_city"];
 const STATE_COLUMNS = ["state", "property_state", "situs_state", "st"];
-const ZIP_COLUMNS = ["zip", "zipcode", "zip_code", "postal_code", "property_zip"];
+const ZIP_COLUMNS = [
+  "zip",
+  "zipcode",
+  "zip_code",
+  "postal_code",
+  "property_zip",
+];
 
 function autoDetectColumn(headers: string[], candidates: string[]): string {
-  const lowerHeaders = headers.map(h => h.toLowerCase().trim());
+  const lowerHeaders = headers.map((h) => h.toLowerCase().trim());
   for (const candidate of candidates) {
     const idx = lowerHeaders.indexOf(candidate.toLowerCase());
     if (idx !== -1) return headers[idx];
@@ -80,7 +85,9 @@ function autoDetectColumn(headers: string[], candidates: string[]): string {
 }
 
 export function PropertyEnrichment() {
-  const [step, setStep] = useState<"upload" | "map" | "enrich" | "results">("upload");
+  const [step, setStep] = useState<"upload" | "map" | "enrich" | "results">(
+    "upload",
+  );
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [headers, setHeaders] = useState<string[]>([]);
   const [records, setRecords] = useState<CSVRecord[]>([]);
@@ -101,15 +108,21 @@ export function PropertyEnrichment() {
     errors: number;
   } | null>(null);
 
-  const parseCSV = (text: string): { headers: string[]; records: CSVRecord[] } => {
-    const lines = text.split("\n").filter(l => l.trim());
+  const parseCSV = (
+    text: string,
+  ): { headers: string[]; records: CSVRecord[] } => {
+    const lines = text.split("\n").filter((l) => l.trim());
     if (lines.length < 2) return { headers: [], records: [] };
 
-    const headers = lines[0].split(",").map(h => h.trim().replace(/^"|"$/g, ""));
+    const headers = lines[0]
+      .split(",")
+      .map((h) => h.trim().replace(/^"|"$/g, ""));
     const records: CSVRecord[] = [];
 
     for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(",").map(v => v.trim().replace(/^"|"$/g, ""));
+      const values = lines[i]
+        .split(",")
+        .map((v) => v.trim().replace(/^"|"$/g, ""));
       const record: CSVRecord = {};
       headers.forEach((h, idx) => {
         record[h] = values[idx] || "";
@@ -157,8 +170,13 @@ export function PropertyEnrichment() {
   }, []);
 
   const handleEnrich = async () => {
-    if (!mapping.address && (!mapping.street || !mapping.city || !mapping.state)) {
-      toast.error("Please map at least the full address OR street + city + state");
+    if (
+      !mapping.address &&
+      (!mapping.street || !mapping.city || !mapping.state)
+    ) {
+      toast.error(
+        "Please map at least the full address OR street + city + state",
+      );
       return;
     }
 
@@ -197,12 +215,14 @@ export function PropertyEnrichment() {
       setResults(allResults);
       setSummary({
         total: allResults.length,
-        enriched: allResults.filter(r => r.status === "success").length,
-        notFound: allResults.filter(r => r.status === "not_found").length,
-        errors: allResults.filter(r => r.status === "error").length,
+        enriched: allResults.filter((r) => r.status === "success").length,
+        notFound: allResults.filter((r) => r.status === "not_found").length,
+        errors: allResults.filter((r) => r.status === "error").length,
       });
       setStep("results");
-      toast.success(`Enriched ${allResults.filter(r => r.status === "success").length}/${allResults.length} properties`);
+      toast.success(
+        `Enriched ${allResults.filter((r) => r.status === "success").length}/${allResults.length} properties`,
+      );
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Enrichment failed");
     } finally {
@@ -243,8 +263,10 @@ export function PropertyEnrichment() {
       "enrichment_status",
     ];
 
-    const rows = results.map(r => {
-      const originalValues = headers.map(h => `"${(r.original[h] || "").replace(/"/g, '""')}"`);
+    const rows = results.map((r) => {
+      const originalValues = headers.map(
+        (h) => `"${(r.original[h] || "").replace(/"/g, '""')}"`,
+      );
       const e = r.enriched as Record<string, unknown> | null;
       const addr = e?.address as Record<string, string> | undefined;
 
@@ -264,7 +286,9 @@ export function PropertyEnrichment() {
         e?.estimatedValue || "",
         e?.estimatedEquity || "",
         e?.equityPercent || "",
-        [e?.owner1FirstName, e?.owner1LastName].filter(Boolean).join(" ") || e?.companyName || "",
+        [e?.owner1FirstName, e?.owner1LastName].filter(Boolean).join(" ") ||
+          e?.companyName ||
+          "",
         e?.ownerOccupied ? "Yes" : "No",
         e?.absenteeOwner ? "Yes" : "No",
         e?.highEquity ? "Yes" : "No",
@@ -274,7 +298,7 @@ export function PropertyEnrichment() {
         e?.lastSaleDate || "",
         e?.lastSaleAmount || "",
         r.status,
-      ].map(v => `"${String(v || "").replace(/"/g, '""')}"`);
+      ].map((v) => `"${String(v || "").replace(/"/g, '""')}"`);
 
       return [...originalValues, ...enrichedValues].join(",");
     });
@@ -337,7 +361,9 @@ export function PropertyEnrichment() {
                 if (file) handleFileSelect(file);
               }}
             />
-            <Badge variant="secondary">Supports PropWire, ListSource, PropStream formats</Badge>
+            <Badge variant="secondary">
+              Supports PropWire, ListSource, PropStream formats
+            </Badge>
           </div>
         )}
 
@@ -359,20 +385,28 @@ export function PropertyEnrichment() {
             <div className="space-y-4">
               <h4 className="font-medium">Map Address Columns</h4>
               <p className="text-sm text-muted-foreground">
-                Map your CSV columns to address fields. Use either full address OR individual parts.
+                Map your CSV columns to address fields. Use either full address
+                OR individual parts.
               </p>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Full Address Column</Label>
-                  <Select value={mapping.address} onValueChange={(v) => setMapping(m => ({ ...m, address: v }))}>
+                  <Select
+                    value={mapping.address}
+                    onValueChange={(v) =>
+                      setMapping((m) => ({ ...m, address: v }))
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select column..." />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="">-- None --</SelectItem>
-                      {headers.map(h => (
-                        <SelectItem key={h} value={h}>{h}</SelectItem>
+                      {headers.map((h) => (
+                        <SelectItem key={h} value={h}>
+                          {h}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -380,14 +414,21 @@ export function PropertyEnrichment() {
 
                 <div className="space-y-2">
                   <Label>Street Column</Label>
-                  <Select value={mapping.street} onValueChange={(v) => setMapping(m => ({ ...m, street: v }))}>
+                  <Select
+                    value={mapping.street}
+                    onValueChange={(v) =>
+                      setMapping((m) => ({ ...m, street: v }))
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select column..." />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="">-- None --</SelectItem>
-                      {headers.map(h => (
-                        <SelectItem key={h} value={h}>{h}</SelectItem>
+                      {headers.map((h) => (
+                        <SelectItem key={h} value={h}>
+                          {h}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -395,14 +436,21 @@ export function PropertyEnrichment() {
 
                 <div className="space-y-2">
                   <Label>City Column</Label>
-                  <Select value={mapping.city} onValueChange={(v) => setMapping(m => ({ ...m, city: v }))}>
+                  <Select
+                    value={mapping.city}
+                    onValueChange={(v) =>
+                      setMapping((m) => ({ ...m, city: v }))
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select column..." />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="">-- None --</SelectItem>
-                      {headers.map(h => (
-                        <SelectItem key={h} value={h}>{h}</SelectItem>
+                      {headers.map((h) => (
+                        <SelectItem key={h} value={h}>
+                          {h}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -410,14 +458,21 @@ export function PropertyEnrichment() {
 
                 <div className="space-y-2">
                   <Label>State Column</Label>
-                  <Select value={mapping.state} onValueChange={(v) => setMapping(m => ({ ...m, state: v }))}>
+                  <Select
+                    value={mapping.state}
+                    onValueChange={(v) =>
+                      setMapping((m) => ({ ...m, state: v }))
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select column..." />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="">-- None --</SelectItem>
-                      {headers.map(h => (
-                        <SelectItem key={h} value={h}>{h}</SelectItem>
+                      {headers.map((h) => (
+                        <SelectItem key={h} value={h}>
+                          {h}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -425,14 +480,19 @@ export function PropertyEnrichment() {
 
                 <div className="space-y-2">
                   <Label>ZIP Column</Label>
-                  <Select value={mapping.zip} onValueChange={(v) => setMapping(m => ({ ...m, zip: v }))}>
+                  <Select
+                    value={mapping.zip}
+                    onValueChange={(v) => setMapping((m) => ({ ...m, zip: v }))}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select column..." />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="">-- None --</SelectItem>
-                      {headers.map(h => (
-                        <SelectItem key={h} value={h}>{h}</SelectItem>
+                      {headers.map((h) => (
+                        <SelectItem key={h} value={h}>
+                          {h}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -453,7 +513,12 @@ export function PropertyEnrichment() {
                       {records.slice(0, 3).map((r, i) => {
                         const addr = mapping.address
                           ? r[mapping.address]
-                          : [r[mapping.street], r[mapping.city], r[mapping.state], r[mapping.zip]]
+                          : [
+                              r[mapping.street],
+                              r[mapping.city],
+                              r[mapping.state],
+                              r[mapping.zip],
+                            ]
                               .filter(Boolean)
                               .join(", ");
                         return (
@@ -469,7 +534,9 @@ export function PropertyEnrichment() {
             </div>
 
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={reset}>Cancel</Button>
+              <Button variant="outline" onClick={reset}>
+                Cancel
+              </Button>
               <Button onClick={handleEnrich} disabled={isEnriching}>
                 <Sparkles className="mr-2 h-4 w-4" />
                 Enrich {records.length} Properties
@@ -487,7 +554,8 @@ export function PropertyEnrichment() {
             </div>
             <Progress value={progress} />
             <p className="text-sm text-muted-foreground">
-              {Math.round((progress / 100) * records.length)} of {records.length} processed
+              {Math.round((progress / 100) * records.length)} of{" "}
+              {records.length} processed
             </p>
           </div>
         )}
@@ -505,19 +573,25 @@ export function PropertyEnrichment() {
               </Card>
               <Card>
                 <CardContent className="pt-4">
-                  <div className="text-2xl font-bold text-green-500">{summary.enriched}</div>
+                  <div className="text-2xl font-bold text-green-500">
+                    {summary.enriched}
+                  </div>
                   <p className="text-sm text-muted-foreground">Enriched</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="pt-4">
-                  <div className="text-2xl font-bold text-yellow-500">{summary.notFound}</div>
+                  <div className="text-2xl font-bold text-yellow-500">
+                    {summary.notFound}
+                  </div>
                   <p className="text-sm text-muted-foreground">Not Found</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="pt-4">
-                  <div className="text-2xl font-bold text-red-500">{summary.errors}</div>
+                  <div className="text-2xl font-bold text-red-500">
+                    {summary.errors}
+                  </div>
                   <p className="text-sm text-muted-foreground">Errors</p>
                 </CardContent>
               </Card>
@@ -541,21 +615,32 @@ export function PropertyEnrichment() {
                   {results.slice(0, 50).map((r, i) => {
                     const orig = mapping.address
                       ? r.original[mapping.address]
-                      : [r.original[mapping.street], r.original[mapping.city], r.original[mapping.state]]
+                      : [
+                          r.original[mapping.street],
+                          r.original[mapping.city],
+                          r.original[mapping.state],
+                        ]
                           .filter(Boolean)
                           .join(", ");
                     const e = r.enriched as Record<string, unknown> | null;
-                    const addr = e?.address as Record<string, string> | undefined;
+                    const addr = e?.address as
+                      | Record<string, string>
+                      | undefined;
 
                     return (
                       <TableRow key={i}>
-                        <TableCell className="max-w-[200px] truncate">{orig}</TableCell>
+                        <TableCell className="max-w-[200px] truncate">
+                          {orig}
+                        </TableCell>
                         <TableCell className="max-w-[200px] truncate">
                           {addr?.address || addr?.street || "-"}
                         </TableCell>
                         <TableCell>
-                          {[e?.owner1FirstName, e?.owner1LastName].filter(Boolean).join(" ") ||
-                            (e?.companyName as string) || "-"}
+                          {[e?.owner1FirstName, e?.owner1LastName]
+                            .filter(Boolean)
+                            .join(" ") ||
+                            (e?.companyName as string) ||
+                            "-"}
                         </TableCell>
                         <TableCell>
                           {e?.estimatedValue
@@ -567,10 +652,26 @@ export function PropertyEnrichment() {
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-1 flex-wrap">
-                            {e?.highEquity && <Badge variant="secondary" className="text-xs">High Equity</Badge>}
-                            {e?.absenteeOwner && <Badge variant="secondary" className="text-xs">Absentee</Badge>}
-                            {e?.vacant && <Badge variant="secondary" className="text-xs">Vacant</Badge>}
-                            {e?.preForeclosure && <Badge variant="destructive" className="text-xs">Pre-FC</Badge>}
+                            {e?.highEquity && (
+                              <Badge variant="secondary" className="text-xs">
+                                High Equity
+                              </Badge>
+                            )}
+                            {e?.absenteeOwner && (
+                              <Badge variant="secondary" className="text-xs">
+                                Absentee
+                              </Badge>
+                            )}
+                            {e?.vacant && (
+                              <Badge variant="secondary" className="text-xs">
+                                Vacant
+                              </Badge>
+                            )}
+                            {e?.preForeclosure && (
+                              <Badge variant="destructive" className="text-xs">
+                                Pre-FC
+                              </Badge>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -590,7 +691,8 @@ export function PropertyEnrichment() {
             </div>
             {results.length > 50 && (
               <p className="text-sm text-muted-foreground text-center">
-                Showing first 50 of {results.length} results. Download CSV for full data.
+                Showing first 50 of {results.length} results. Download CSV for
+                full data.
               </p>
             )}
 

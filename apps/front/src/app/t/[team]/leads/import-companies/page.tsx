@@ -1081,9 +1081,9 @@ export default function ImportCompaniesPage() {
                       </TableCell>
 
                       {/* Contact Name */}
-                      <TableCell className="font-medium">
+                      <TableCell>
                         <div className="flex items-center gap-2">
-                          {company.name || "-"}
+                          <span className="font-semibold text-base">{company.name || "-"}</span>
                           {company.enriched ? (
                             <Badge
                               variant="outline"
@@ -1118,7 +1118,7 @@ export default function ImportCompaniesPage() {
 
                       {/* Title */}
                       <TableCell>
-                        <span className={`text-sm ${company.title || company.ownerTitle ? "font-medium text-green-700 dark:text-green-300" : "text-muted-foreground"}`}>
+                        <span className={`text-base font-medium ${company.title || company.ownerTitle ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`}>
                           {company.title || company.ownerTitle || "-"}
                         </span>
                       </TableCell>
@@ -1161,34 +1161,35 @@ export default function ImportCompaniesPage() {
                               .map((phone, i) => (
                                 <div
                                   key={i}
-                                  className="flex items-center gap-1 text-sm"
+                                  className="flex items-center gap-2"
                                 >
-                                  <Phone className="h-3 w-3 text-green-600" />
+                                  <Phone className="h-4 w-4 text-green-600" />
                                   <a
                                     href={`tel:${phone}`}
-                                    className="text-blue-600 hover:underline"
+                                    className="text-base font-medium text-blue-600 hover:underline"
                                   >
                                     {phone}
                                   </a>
                                 </div>
                               ))}
                             {company.enrichedPhones.length > 2 && (
-                              <span className="text-xs text-muted-foreground">
+                              <span className="text-sm text-muted-foreground">
                                 +{company.enrichedPhones.length - 2} more
                               </span>
                             )}
                           </div>
                         ) : company.phone ? (
-                          <div className="flex items-center gap-1 text-sm">
-                            <Phone className="h-3 w-3 text-muted-foreground" />
-                            <span>{company.phone}</span>
+                          <div className="flex items-center gap-2">
+                            <Phone className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-base">{company.phone}</span>
                           </div>
                         ) : (
-                          <span className="text-muted-foreground text-xs">
+                          <span className="text-muted-foreground">
                             -
                           </span>
                         )}
                       </TableCell>
+                      {/* Emails */}
                       <TableCell>
                         {company.enrichedEmails &&
                         company.enrichedEmails.length > 0 ? (
@@ -1198,25 +1199,25 @@ export default function ImportCompaniesPage() {
                               .map((email, i) => (
                                 <div
                                   key={i}
-                                  className="flex items-center gap-1 text-sm"
+                                  className="flex items-center gap-2"
                                 >
-                                  <Mail className="h-3 w-3 text-green-600" />
+                                  <Mail className="h-4 w-4 text-green-600" />
                                   <a
                                     href={`mailto:${email}`}
-                                    className="text-blue-600 hover:underline truncate max-w-[150px]"
+                                    className="text-base font-medium text-blue-600 hover:underline truncate max-w-[180px]"
                                   >
                                     {email}
                                   </a>
                                 </div>
                               ))}
                             {company.enrichedEmails.length > 2 && (
-                              <span className="text-xs text-muted-foreground">
+                              <span className="text-sm text-muted-foreground">
                                 +{company.enrichedEmails.length - 2} more
                               </span>
                             )}
                           </div>
                         ) : (
-                          <span className="text-muted-foreground text-xs">
+                          <span className="text-muted-foreground">
                             -
                           </span>
                         )}

@@ -133,7 +133,7 @@ export class SignalHouseService {
 
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
 
@@ -149,7 +149,7 @@ export class SignalHouseService {
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
       throw new Error(
-        error.message || `SignalHouse API error: ${response.status}`
+        error.message || `SignalHouse API error: ${response.status}`,
       );
     }
 
@@ -211,9 +211,11 @@ export class SignalHouseService {
   /**
    * Calculate message segments (for cost estimation)
    */
-  public async calculateSegments(message: string): Promise<{ segments: number; encoding: string }> {
+  public async calculateSegments(
+    message: string,
+  ): Promise<{ segments: number; encoding: string }> {
     return this.request<{ segments: number; encoding: string }>(
-      `/message/calculateSegments?message=${encodeURIComponent(message)}`
+      `/message/calculateSegments?message=${encodeURIComponent(message)}`,
     );
   }
 
@@ -236,7 +238,7 @@ export class SignalHouseService {
     });
 
     return this.request<{ logs: MessageLog[]; total: number }>(
-      `/message/logs?${queryParams.toString()}`
+      `/message/logs?${queryParams.toString()}`,
     );
   }
 
@@ -245,13 +247,13 @@ export class SignalHouseService {
    */
   public async getConversation(
     from: string,
-    to: string
+    to: string,
   ): Promise<ConversationMessage[]> {
     const formattedFrom = this.formatPhoneNumber(from);
     const formattedTo = this.formatPhoneNumber(to);
 
     return this.request<ConversationMessage[]>(
-      `/message/conversation/${encodeURIComponent(formattedFrom)}/${encodeURIComponent(formattedTo)}`
+      `/message/conversation/${encodeURIComponent(formattedFrom)}/${encodeURIComponent(formattedTo)}`,
     );
   }
 
@@ -267,7 +269,9 @@ export class SignalHouseService {
       unreadCount: number;
     }>;
   }> {
-    const params = phoneNumber ? `?phoneNumber=${encodeURIComponent(phoneNumber)}` : "";
+    const params = phoneNumber
+      ? `?phoneNumber=${encodeURIComponent(phoneNumber)}`
+      : "";
     return this.request(`/message/conversationList${params}`);
   }
 
@@ -280,7 +284,11 @@ export class SignalHouseService {
    * Implements the 250 batch / 2k daily limit logic
    */
   public async sendBatchSMS(
-    messages: Array<{ to: string; message: string; variables?: Record<string, string> }>,
+    messages: Array<{
+      to: string;
+      message: string;
+      variables?: Record<string, string>;
+    }>,
     options: {
       batchSize?: number;
       maxPerDay?: number;
@@ -289,7 +297,7 @@ export class SignalHouseService {
       fromNumber?: string;
       webhookUrl?: string;
       scheduledAt?: string;
-    } = {}
+    } = {},
   ): Promise<BatchSMSJob> {
     const {
       batchSize = 250,
@@ -304,7 +312,7 @@ export class SignalHouseService {
     const limitedMessages = messages.slice(0, maxPerDay);
 
     // Create batches
-    const batches: typeof messages[] = [];
+    const batches: (typeof messages)[] = [];
     for (let i = 0; i < limitedMessages.length; i += batchSize) {
       batches.push(limitedMessages.slice(i, i + batchSize));
     }
@@ -341,7 +349,9 @@ export class SignalHouseService {
 
       // Wait between batches (except for last batch)
       if (i < batches.length - 1) {
-        await new Promise((resolve) => setTimeout(resolve, delayBetweenBatches));
+        await new Promise((resolve) =>
+          setTimeout(resolve, delayBetweenBatches),
+        );
       }
     }
 
@@ -361,7 +371,7 @@ export class SignalHouseService {
    */
   private renderTemplate(
     template: string,
-    variables: Record<string, string>
+    variables: Record<string, string>,
   ): string {
     let rendered = template;
     Object.entries(variables).forEach(([key, value]) => {
@@ -402,7 +412,7 @@ export class SignalHouseService {
    */
   public async getTemplateDetails(templateId: string): Promise<Template> {
     return this.request<Template>(
-      `/message/getTemplateDetails?id=${encodeURIComponent(templateId)}`
+      `/message/getTemplateDetails?id=${encodeURIComponent(templateId)}`,
     );
   }
 
@@ -411,7 +421,7 @@ export class SignalHouseService {
    */
   public async updateTemplate(
     templateId: string,
-    updates: { name?: string; content?: string; category?: string }
+    updates: { name?: string; content?: string; category?: string },
   ): Promise<Template> {
     return this.request<Template>("/message/editTemplate", {
       method: "PUT",
@@ -423,9 +433,12 @@ export class SignalHouseService {
    * Delete a template
    */
   public async deleteTemplate(templateId: string): Promise<void> {
-    await this.request(`/message/deleteTemplate?id=${encodeURIComponent(templateId)}`, {
-      method: "DELETE",
-    });
+    await this.request(
+      `/message/deleteTemplate?id=${encodeURIComponent(templateId)}`,
+      {
+        method: "DELETE",
+      },
+    );
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -450,7 +463,7 @@ export class SignalHouseService {
     if (params.limit) queryParams.append("limit", String(params.limit));
 
     return this.request<PhoneNumber[]>(
-      `/phoneNumber/getPhoneNumber?${queryParams.toString()}`
+      `/phoneNumber/getPhoneNumber?${queryParams.toString()}`,
     );
   }
 
@@ -491,7 +504,7 @@ export class SignalHouseService {
    */
   public async addPhoneNumberTags(
     phoneNumber: string,
-    tags: string[]
+    tags: string[],
   ): Promise<void> {
     await this.request("/phoneNumber/addTags", {
       method: "POST",
@@ -525,7 +538,7 @@ export class SignalHouseService {
     if (params?.endDate) queryParams.append("endDate", params.endDate);
 
     return this.request<DashboardAnalytics>(
-      `/analytics/dashboardAnalytics?${queryParams.toString()}`
+      `/analytics/dashboardAnalytics?${queryParams.toString()}`,
     );
   }
 
@@ -536,13 +549,17 @@ export class SignalHouseService {
     startDate?: string;
     endDate?: string;
     groupBy?: "hour" | "day" | "week" | "month";
-  }): Promise<Array<{ period: string; sent: number; delivered: number; failed: number }>> {
+  }): Promise<
+    Array<{ period: string; sent: number; delivered: number; failed: number }>
+  > {
     const queryParams = new URLSearchParams();
     if (params?.startDate) queryParams.append("startDate", params.startDate);
     if (params?.endDate) queryParams.append("endDate", params.endDate);
     if (params?.groupBy) queryParams.append("groupBy", params.groupBy);
 
-    return this.request(`/analytics/analyticsOutbound?${queryParams.toString()}`);
+    return this.request(
+      `/analytics/analyticsOutbound?${queryParams.toString()}`,
+    );
   }
 
   /**
@@ -558,7 +575,9 @@ export class SignalHouseService {
     if (params?.endDate) queryParams.append("endDate", params.endDate);
     if (params?.groupBy) queryParams.append("groupBy", params.groupBy);
 
-    return this.request(`/analytics/analyticsInbound?${queryParams.toString()}`);
+    return this.request(
+      `/analytics/analyticsInbound?${queryParams.toString()}`,
+    );
   }
 
   /**
@@ -596,12 +615,14 @@ export class SignalHouseService {
   /**
    * Get all webhooks
    */
-  public async getWebhooks(): Promise<Array<{
-    webhookId: string;
-    url: string;
-    events: string[];
-    active: boolean;
-  }>> {
+  public async getWebhooks(): Promise<
+    Array<{
+      webhookId: string;
+      url: string;
+      events: string[];
+      active: boolean;
+    }>
+  > {
     return this.request("/webhook");
   }
 
@@ -610,7 +631,7 @@ export class SignalHouseService {
    */
   public async updateWebhook(
     webhookId: string,
-    updates: { url?: string; events?: string[]; active?: boolean }
+    updates: { url?: string; events?: string[]; active?: boolean },
   ): Promise<void> {
     await this.request(`/webhook/${webhookId}`, {
       method: "PATCH",
@@ -714,7 +735,7 @@ export class SignalHouseService {
    */
   public async attachPhoneNumbersToCampaign(
     campaignId: string,
-    phoneNumbers: string[]
+    phoneNumbers: string[],
   ): Promise<void> {
     await this.request("/phoneNumber/bulkTenDLCWhitelist", {
       method: "POST",
@@ -735,7 +756,7 @@ export class SignalHouseService {
     carrier?: string;
   }> {
     return this.request(
-      `/phoneNumber/numberValidation/${encodeURIComponent(this.formatPhoneNumber(phoneNumber))}`
+      `/phoneNumber/numberValidation/${encodeURIComponent(this.formatPhoneNumber(phoneNumber))}`,
     );
   }
 

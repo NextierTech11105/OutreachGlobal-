@@ -13,7 +13,10 @@ import {
 // GET - List campaigns or get specific campaign
 export async function GET(request: NextRequest) {
   if (!isConfigured()) {
-    return NextResponse.json({ error: "SignalHouse not configured" }, { status: 503 });
+    return NextResponse.json(
+      { error: "SignalHouse not configured" },
+      { status: 503 },
+    );
   }
 
   const { searchParams } = new URL(request.url);
@@ -26,7 +29,10 @@ export async function GET(request: NextRequest) {
     if (action === "qualify" && brandId) {
       const result = await qualifyBrandForUsecases(brandId);
       if (!result.success) {
-        return NextResponse.json({ error: result.error }, { status: result.status || 400 });
+        return NextResponse.json(
+          { error: result.error },
+          { status: result.status || 400 },
+        );
       }
       return NextResponse.json({
         success: true,
@@ -39,7 +45,10 @@ export async function GET(request: NextRequest) {
     if (campaignId) {
       const result = await getCampaign(campaignId);
       if (!result.success) {
-        return NextResponse.json({ error: result.error }, { status: result.status || 400 });
+        return NextResponse.json(
+          { error: result.error },
+          { status: result.status || 400 },
+        );
       }
       return NextResponse.json({ success: true, campaign: result.data });
     }
@@ -47,7 +56,10 @@ export async function GET(request: NextRequest) {
     // List all campaigns
     const result = await getCampaignBasicDetails();
     if (!result.success) {
-      return NextResponse.json({ error: result.error }, { status: result.status || 400 });
+      return NextResponse.json(
+        { error: result.error },
+        { status: result.status || 400 },
+      );
     }
 
     return NextResponse.json({
@@ -57,8 +69,11 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("[SignalHouse Campaign] Error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to get campaigns" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to get campaigns",
+      },
+      { status: 500 },
     );
   }
 }
@@ -66,7 +81,10 @@ export async function GET(request: NextRequest) {
 // POST - Create a new campaign (10DLC)
 export async function POST(request: NextRequest) {
   if (!isConfigured()) {
-    return NextResponse.json({ error: "SignalHouse not configured" }, { status: 503 });
+    return NextResponse.json(
+      { error: "SignalHouse not configured" },
+      { status: 503 },
+    );
   }
 
   try {
@@ -76,7 +94,7 @@ export async function POST(request: NextRequest) {
     if (!body.brandId || !body.usecase) {
       return NextResponse.json(
         { error: "brandId and usecase are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -85,7 +103,8 @@ export async function POST(request: NextRequest) {
       usecase: body.usecase, // MARKETING, LOW_VOLUME, MIXED, etc.
       description: body.description,
       sampleMessages: body.sampleMessages || [],
-      messageFlow: body.messageFlow || "User receives promotional messages after opt-in",
+      messageFlow:
+        body.messageFlow || "User receives promotional messages after opt-in",
       helpMessage: body.helpMessage || "Reply HELP for assistance",
       optoutMessage: body.optoutMessage || "Reply STOP to unsubscribe",
       isDirectLending: body.isDirectLending || false,
@@ -96,19 +115,26 @@ export async function POST(request: NextRequest) {
     const result = await createCampaign(input);
 
     if (!result.success) {
-      return NextResponse.json({ error: result.error }, { status: result.status || 400 });
+      return NextResponse.json(
+        { error: result.error },
+        { status: result.status || 400 },
+      );
     }
 
     return NextResponse.json({
       success: true,
       campaign: result.data,
-      message: "Campaign submitted for review. Status will update once approved.",
+      message:
+        "Campaign submitted for review. Status will update once approved.",
     });
   } catch (error) {
     console.error("[SignalHouse Campaign] Create error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to create campaign" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to create campaign",
+      },
+      { status: 500 },
     );
   }
 }
@@ -116,7 +142,10 @@ export async function POST(request: NextRequest) {
 // PUT - Update a campaign
 export async function PUT(request: NextRequest) {
   if (!isConfigured()) {
-    return NextResponse.json({ error: "SignalHouse not configured" }, { status: 503 });
+    return NextResponse.json(
+      { error: "SignalHouse not configured" },
+      { status: 503 },
+    );
   }
 
   try {
@@ -124,21 +153,30 @@ export async function PUT(request: NextRequest) {
     const { campaignId, ...updates } = body;
 
     if (!campaignId) {
-      return NextResponse.json({ error: "campaignId required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "campaignId required" },
+        { status: 400 },
+      );
     }
 
     const result = await updateCampaign(campaignId, updates);
 
     if (!result.success) {
-      return NextResponse.json({ error: result.error }, { status: result.status || 400 });
+      return NextResponse.json(
+        { error: result.error },
+        { status: result.status || 400 },
+      );
     }
 
     return NextResponse.json({ success: true, campaign: result.data });
   } catch (error) {
     console.error("[SignalHouse Campaign] Update error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to update campaign" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to update campaign",
+      },
+      { status: 500 },
     );
   }
 }
@@ -146,7 +184,10 @@ export async function PUT(request: NextRequest) {
 // DELETE - Deactivate a campaign
 export async function DELETE(request: NextRequest) {
   if (!isConfigured()) {
-    return NextResponse.json({ error: "SignalHouse not configured" }, { status: 503 });
+    return NextResponse.json(
+      { error: "SignalHouse not configured" },
+      { status: 503 },
+    );
   }
 
   const { searchParams } = new URL(request.url);
@@ -160,15 +201,24 @@ export async function DELETE(request: NextRequest) {
     const result = await deleteCampaign(campaignId);
 
     if (!result.success) {
-      return NextResponse.json({ error: result.error }, { status: result.status || 400 });
+      return NextResponse.json(
+        { error: result.error },
+        { status: result.status || 400 },
+      );
     }
 
-    return NextResponse.json({ success: true, message: "Campaign deactivated" });
+    return NextResponse.json({
+      success: true,
+      message: "Campaign deactivated",
+    });
   } catch (error) {
     console.error("[SignalHouse Campaign] Delete error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to delete campaign" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to delete campaign",
+      },
+      { status: 500 },
     );
   }
 }

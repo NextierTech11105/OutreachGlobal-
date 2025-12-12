@@ -148,7 +148,9 @@ const mockConferences: ConferenceDetails[] = [];
 // Twilio service implementation
 class TwilioService {
   // Get a token for Twilio Client - calls real API
-  async getToken(identity: string): Promise<{ token: string; configured?: boolean }> {
+  async getToken(
+    identity: string,
+  ): Promise<{ token: string; configured?: boolean }> {
     try {
       const response = await fetch("/api/twilio/token", {
         method: "POST",

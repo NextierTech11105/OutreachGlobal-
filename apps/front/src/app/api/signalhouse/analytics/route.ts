@@ -13,7 +13,10 @@ import {
 // GET - Get analytics and wallet data
 export async function GET(request: NextRequest) {
   if (!isConfigured()) {
-    return NextResponse.json({ error: "SignalHouse not configured" }, { status: 503 });
+    return NextResponse.json(
+      { error: "SignalHouse not configured" },
+      { status: 503 },
+    );
   }
 
   const { searchParams } = new URL(request.url);
@@ -51,7 +54,10 @@ export async function GET(request: NextRequest) {
       case "outbound": {
         const result = await getOutboundAnalytics({ startDate, endDate });
         if (!result.success) {
-          return NextResponse.json({ error: result.error }, { status: result.status || 400 });
+          return NextResponse.json(
+            { error: result.error },
+            { status: result.status || 400 },
+          );
         }
         return NextResponse.json({
           success: true,
@@ -63,7 +69,10 @@ export async function GET(request: NextRequest) {
       case "inbound": {
         const result = await getInboundAnalytics({ startDate, endDate });
         if (!result.success) {
-          return NextResponse.json({ error: result.error }, { status: result.status || 400 });
+          return NextResponse.json(
+            { error: result.error },
+            { status: result.status || 400 },
+          );
         }
         return NextResponse.json({
           success: true,
@@ -75,7 +84,10 @@ export async function GET(request: NextRequest) {
       case "optout": {
         const result = await getOptOutAnalytics();
         if (!result.success) {
-          return NextResponse.json({ error: result.error }, { status: result.status || 400 });
+          return NextResponse.json(
+            { error: result.error },
+            { status: result.status || 400 },
+          );
         }
         return NextResponse.json({
           success: true,
@@ -87,7 +99,10 @@ export async function GET(request: NextRequest) {
       case "wallet": {
         const result = await getWalletSummary();
         if (!result.success) {
-          return NextResponse.json({ error: result.error }, { status: result.status || 400 });
+          return NextResponse.json(
+            { error: result.error },
+            { status: result.status || 400 },
+          );
         }
         return NextResponse.json({
           success: true,
@@ -98,7 +113,10 @@ export async function GET(request: NextRequest) {
       case "usage": {
         const result = await getUsageSummary({ startDate, endDate });
         if (!result.success) {
-          return NextResponse.json({ error: result.error }, { status: result.status || 400 });
+          return NextResponse.json(
+            { error: result.error },
+            { status: result.status || 400 },
+          );
         }
         return NextResponse.json({
           success: true,
@@ -109,7 +127,10 @@ export async function GET(request: NextRequest) {
       case "pricing": {
         const result = await getPricing();
         if (!result.success) {
-          return NextResponse.json({ error: result.error }, { status: result.status || 400 });
+          return NextResponse.json(
+            { error: result.error },
+            { status: result.status || 400 },
+          );
         }
         return NextResponse.json({
           success: true,
@@ -119,15 +140,21 @@ export async function GET(request: NextRequest) {
 
       default:
         return NextResponse.json(
-          { error: "Invalid type. Use: dashboard, outbound, inbound, optout, wallet, usage, pricing" },
-          { status: 400 }
+          {
+            error:
+              "Invalid type. Use: dashboard, outbound, inbound, optout, wallet, usage, pricing",
+          },
+          { status: 400 },
         );
     }
   } catch (error) {
     console.error("[SignalHouse Analytics] Error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to get analytics" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to get analytics",
+      },
+      { status: 500 },
     );
   }
 }

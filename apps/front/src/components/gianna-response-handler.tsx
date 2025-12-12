@@ -104,7 +104,12 @@ interface GiannaResponseHandlerProps {
   leadPhone: string;
   propertyAddress?: string;
   businessName?: string;
-  campaignType?: "real_estate" | "b2b" | "financial" | "business_valuation" | "default";
+  campaignType?:
+    | "real_estate"
+    | "b2b"
+    | "financial"
+    | "business_valuation"
+    | "default";
   leadType?: string; // e.g., "pre_foreclosure", "absentee_owner", "tired_landlord"
   previousMessages?: Array<{ role: "user" | "assistant"; content: string }>;
   onSendReply: (message: string) => Promise<void>;
@@ -140,8 +145,11 @@ export function GiannaResponseHandler({
 
   // Personality controls
   const [showPersonality, setShowPersonality] = useState(false);
-  const [selectedPreset, setSelectedPreset] = useState<keyof typeof GIANNA_PRESETS>("balanced");
-  const [customPersonality, setCustomPersonality] = useState<Partial<GiannaPersonality>>({});
+  const [selectedPreset, setSelectedPreset] =
+    useState<keyof typeof GIANNA_PRESETS>("balanced");
+  const [customPersonality, setCustomPersonality] = useState<
+    Partial<GiannaPersonality>
+  >({});
 
   // Load Gianna settings
   const [settings, setSettings] = useState<GiannaSettings>(() => {
@@ -172,7 +180,9 @@ export function GiannaResponseHandler({
     const currentMinute = now.getMinutes();
     const currentTime = currentHour * 60 + currentMinute;
 
-    const [startHour, startMin] = settings.businessHoursStart.split(":").map(Number);
+    const [startHour, startMin] = settings.businessHoursStart
+      .split(":")
+      .map(Number);
     const [endHour, endMin] = settings.businessHoursEnd.split(":").map(Number);
     const startTime = startHour * 60 + startMin;
     const endTime = endHour * 60 + endMin;
@@ -185,7 +195,10 @@ export function GiannaResponseHandler({
     setIsLoading(true);
     try {
       // Load training data
-      let trainingData: Array<{ incomingMessage: string; idealResponse: string }> = [];
+      let trainingData: Array<{
+        incomingMessage: string;
+        idealResponse: string;
+      }> = [];
       const savedTraining = localStorage.getItem("gianna_training_data");
       if (savedTraining) {
         trainingData = JSON.parse(savedTraining);
@@ -241,7 +254,19 @@ export function GiannaResponseHandler({
     } finally {
       setIsLoading(false);
     }
-  }, [incomingMessage, leadName, propertyAddress, businessName, campaignType, leadType, previousMessages, settings, isWithinBusinessHours, selectedPreset, customPersonality]);
+  }, [
+    incomingMessage,
+    leadName,
+    propertyAddress,
+    businessName,
+    campaignType,
+    leadType,
+    previousMessages,
+    settings,
+    isWithinBusinessHours,
+    selectedPreset,
+    customPersonality,
+  ]);
 
   // Auto-countdown management
   const startAutoCountdown = useCallback(() => {
@@ -344,10 +369,13 @@ export function GiannaResponseHandler({
       unknown: "bg-zinc-500/20 text-zinc-400",
     };
 
-    const intent = suggestion.gianna?.detected?.intent || suggestion.classification.intent;
+    const intent =
+      suggestion.gianna?.detected?.intent || suggestion.classification.intent;
 
     return (
-      <Badge className={cn("text-xs", intentColors[intent] || intentColors.unknown)}>
+      <Badge
+        className={cn("text-xs", intentColors[intent] || intentColors.unknown)}
+      >
         {intent.replace(/_/g, " ")}
       </Badge>
     );
@@ -355,7 +383,9 @@ export function GiannaResponseHandler({
 
   // Get objection badge
   const getObjectionBadge = () => {
-    const objection = suggestion?.gianna?.detected?.objection || suggestion?.classification?.objection;
+    const objection =
+      suggestion?.gianna?.detected?.objection ||
+      suggestion?.classification?.objection;
     if (!objection) return null;
 
     return (
@@ -368,25 +398,57 @@ export function GiannaResponseHandler({
 
   // Get preset display info
   const getPresetInfo = (preset: keyof typeof GIANNA_PRESETS) => {
-    const presetInfo: Record<string, { icon: React.ReactNode; label: string; description: string }> = {
-      balanced: { icon: <Gauge className="w-4 h-4" />, label: "Balanced", description: "Friendly and professional" },
-      cold_outreach: { icon: <Target className="w-4 h-4" />, label: "Cold Outreach", description: "Curious and open" },
-      warm_lead: { icon: <Zap className="w-4 h-4" />, label: "Warm Lead", description: "Direct and closing-focused" },
-      objection_handler: { icon: <MessageCircle className="w-4 h-4" />, label: "Objection Handler", description: "Empathetic and understanding" },
-      ghost_revival: { icon: <RefreshCw className="w-4 h-4" />, label: "Ghost Revival", description: "Persistent pattern interrupt" },
-      sensitive: { icon: <Heart className="w-4 h-4" />, label: "Sensitive", description: "Compassionate and patient" },
+    const presetInfo: Record<
+      string,
+      { icon: React.ReactNode; label: string; description: string }
+    > = {
+      balanced: {
+        icon: <Gauge className="w-4 h-4" />,
+        label: "Balanced",
+        description: "Friendly and professional",
+      },
+      cold_outreach: {
+        icon: <Target className="w-4 h-4" />,
+        label: "Cold Outreach",
+        description: "Curious and open",
+      },
+      warm_lead: {
+        icon: <Zap className="w-4 h-4" />,
+        label: "Warm Lead",
+        description: "Direct and closing-focused",
+      },
+      objection_handler: {
+        icon: <MessageCircle className="w-4 h-4" />,
+        label: "Objection Handler",
+        description: "Empathetic and understanding",
+      },
+      ghost_revival: {
+        icon: <RefreshCw className="w-4 h-4" />,
+        label: "Ghost Revival",
+        description: "Persistent pattern interrupt",
+      },
+      sensitive: {
+        icon: <Heart className="w-4 h-4" />,
+        label: "Sensitive",
+        description: "Compassionate and patient",
+      },
     };
     return presetInfo[preset] || presetInfo.balanced;
   };
 
   // Toggle mode
   const toggleMode = () => {
-    const newMode = settings.mode === "human-in-loop" ? "full-auto" : "human-in-loop";
+    const newMode =
+      settings.mode === "human-in-loop" ? "full-auto" : "human-in-loop";
     const newSettings = { ...settings, mode: newMode };
     setSettings(newSettings);
     localStorage.setItem("gianna_settings", JSON.stringify(newSettings));
 
-    if (newMode === "full-auto" && suggestion && suggestion.confidence >= settings.minConfidence) {
+    if (
+      newMode === "full-auto" &&
+      suggestion &&
+      suggestion.confidence >= settings.minConfidence
+    ) {
       startAutoCountdown();
     } else {
       cancelCountdown();
@@ -411,7 +473,9 @@ export function GiannaResponseHandler({
               <Sparkles className="w-4 h-4 text-purple-400" />
             </h3>
             <p className="text-xs text-zinc-400">
-              {settings.mode === "human-in-loop" ? "Suggests • You Approve" : "Auto-Reply Active"}
+              {settings.mode === "human-in-loop"
+                ? "Suggests • You Approve"
+                : "Auto-Reply Active"}
             </p>
           </div>
         </div>
@@ -434,7 +498,14 @@ export function GiannaResponseHandler({
               checked={settings.mode === "full-auto"}
               onCheckedChange={toggleMode}
             />
-            <Zap className={cn("w-4 h-4", settings.mode === "full-auto" ? "text-yellow-400" : "text-zinc-400")} />
+            <Zap
+              className={cn(
+                "w-4 h-4",
+                settings.mode === "full-auto"
+                  ? "text-yellow-400"
+                  : "text-zinc-400",
+              )}
+            />
           </div>
         </div>
       </div>
@@ -450,16 +521,20 @@ export function GiannaResponseHandler({
                 Personality Preset
               </Label>
               <div className="grid grid-cols-3 gap-2">
-                {(Object.keys(GIANNA_PRESETS) as (keyof typeof GIANNA_PRESETS)[]).map((preset) => {
+                {(
+                  Object.keys(GIANNA_PRESETS) as (keyof typeof GIANNA_PRESETS)[]
+                ).map((preset) => {
                   const info = getPresetInfo(preset);
                   return (
                     <Button
                       key={preset}
-                      variant={selectedPreset === preset ? "secondary" : "outline"}
+                      variant={
+                        selectedPreset === preset ? "secondary" : "outline"
+                      }
                       size="sm"
                       className={cn(
                         "h-auto py-2 px-3 flex flex-col items-start gap-1",
-                        selectedPreset === preset && "border-purple-500"
+                        selectedPreset === preset && "border-purple-500",
                       )}
                       onClick={() => {
                         setSelectedPreset(preset);
@@ -468,9 +543,13 @@ export function GiannaResponseHandler({
                     >
                       <div className="flex items-center gap-2">
                         {info.icon}
-                        <span className="text-xs font-medium">{info.label}</span>
+                        <span className="text-xs font-medium">
+                          {info.label}
+                        </span>
                       </div>
-                      <span className="text-[10px] text-zinc-500">{info.description}</span>
+                      <span className="text-[10px] text-zinc-500">
+                        {info.description}
+                      </span>
                     </Button>
                   );
                 })}
@@ -479,7 +558,9 @@ export function GiannaResponseHandler({
 
             {/* Fine-tune Sliders */}
             <div className="space-y-3">
-              <Label className="text-xs text-zinc-400">Fine-tune (overrides preset)</Label>
+              <Label className="text-xs text-zinc-400">
+                Fine-tune (overrides preset)
+              </Label>
               <div className="grid grid-cols-2 gap-4">
                 {/* Warmth */}
                 <div className="space-y-1">
@@ -488,12 +569,18 @@ export function GiannaResponseHandler({
                       <Heart className="w-3 h-3" /> Warmth
                     </span>
                     <span className="text-xs text-zinc-500">
-                      {customPersonality.warmth ?? GIANNA_PRESETS[selectedPreset].warmth}
+                      {customPersonality.warmth ??
+                        GIANNA_PRESETS[selectedPreset].warmth}
                     </span>
                   </div>
                   <Slider
-                    value={[customPersonality.warmth ?? GIANNA_PRESETS[selectedPreset].warmth]}
-                    onValueChange={([v]) => setCustomPersonality({ ...customPersonality, warmth: v })}
+                    value={[
+                      customPersonality.warmth ??
+                        GIANNA_PRESETS[selectedPreset].warmth,
+                    ]}
+                    onValueChange={([v]) =>
+                      setCustomPersonality({ ...customPersonality, warmth: v })
+                    }
                     max={100}
                     step={5}
                     className="h-1"
@@ -507,12 +594,21 @@ export function GiannaResponseHandler({
                       <Target className="w-3 h-3" /> Directness
                     </span>
                     <span className="text-xs text-zinc-500">
-                      {customPersonality.directness ?? GIANNA_PRESETS[selectedPreset].directness}
+                      {customPersonality.directness ??
+                        GIANNA_PRESETS[selectedPreset].directness}
                     </span>
                   </div>
                   <Slider
-                    value={[customPersonality.directness ?? GIANNA_PRESETS[selectedPreset].directness]}
-                    onValueChange={([v]) => setCustomPersonality({ ...customPersonality, directness: v })}
+                    value={[
+                      customPersonality.directness ??
+                        GIANNA_PRESETS[selectedPreset].directness,
+                    ]}
+                    onValueChange={([v]) =>
+                      setCustomPersonality({
+                        ...customPersonality,
+                        directness: v,
+                      })
+                    }
                     max={100}
                     step={5}
                     className="h-1"
@@ -526,12 +622,18 @@ export function GiannaResponseHandler({
                       <Smile className="w-3 h-3" /> Humor
                     </span>
                     <span className="text-xs text-zinc-500">
-                      {customPersonality.humor ?? GIANNA_PRESETS[selectedPreset].humor}
+                      {customPersonality.humor ??
+                        GIANNA_PRESETS[selectedPreset].humor}
                     </span>
                   </div>
                   <Slider
-                    value={[customPersonality.humor ?? GIANNA_PRESETS[selectedPreset].humor]}
-                    onValueChange={([v]) => setCustomPersonality({ ...customPersonality, humor: v })}
+                    value={[
+                      customPersonality.humor ??
+                        GIANNA_PRESETS[selectedPreset].humor,
+                    ]}
+                    onValueChange={([v]) =>
+                      setCustomPersonality({ ...customPersonality, humor: v })
+                    }
                     max={100}
                     step={5}
                     className="h-1"
@@ -545,12 +647,18 @@ export function GiannaResponseHandler({
                       <Clock className="w-3 h-3" /> Urgency
                     </span>
                     <span className="text-xs text-zinc-500">
-                      {customPersonality.urgency ?? GIANNA_PRESETS[selectedPreset].urgency}
+                      {customPersonality.urgency ??
+                        GIANNA_PRESETS[selectedPreset].urgency}
                     </span>
                   </div>
                   <Slider
-                    value={[customPersonality.urgency ?? GIANNA_PRESETS[selectedPreset].urgency]}
-                    onValueChange={([v]) => setCustomPersonality({ ...customPersonality, urgency: v })}
+                    value={[
+                      customPersonality.urgency ??
+                        GIANNA_PRESETS[selectedPreset].urgency,
+                    ]}
+                    onValueChange={([v]) =>
+                      setCustomPersonality({ ...customPersonality, urgency: v })
+                    }
                     max={100}
                     step={5}
                     className="h-1"
@@ -564,12 +672,18 @@ export function GiannaResponseHandler({
                       <Heart className="w-3 h-3" /> Empathy
                     </span>
                     <span className="text-xs text-zinc-500">
-                      {customPersonality.empathy ?? GIANNA_PRESETS[selectedPreset].empathy}
+                      {customPersonality.empathy ??
+                        GIANNA_PRESETS[selectedPreset].empathy}
                     </span>
                   </div>
                   <Slider
-                    value={[customPersonality.empathy ?? GIANNA_PRESETS[selectedPreset].empathy]}
-                    onValueChange={([v]) => setCustomPersonality({ ...customPersonality, empathy: v })}
+                    value={[
+                      customPersonality.empathy ??
+                        GIANNA_PRESETS[selectedPreset].empathy,
+                    ]}
+                    onValueChange={([v]) =>
+                      setCustomPersonality({ ...customPersonality, empathy: v })
+                    }
                     max={100}
                     step={5}
                     className="h-1"
@@ -583,12 +697,21 @@ export function GiannaResponseHandler({
                       <Zap className="w-3 h-3" /> Closing Push
                     </span>
                     <span className="text-xs text-zinc-500">
-                      {customPersonality.closingPush ?? GIANNA_PRESETS[selectedPreset].closingPush}
+                      {customPersonality.closingPush ??
+                        GIANNA_PRESETS[selectedPreset].closingPush}
                     </span>
                   </div>
                   <Slider
-                    value={[customPersonality.closingPush ?? GIANNA_PRESETS[selectedPreset].closingPush]}
-                    onValueChange={([v]) => setCustomPersonality({ ...customPersonality, closingPush: v })}
+                    value={[
+                      customPersonality.closingPush ??
+                        GIANNA_PRESETS[selectedPreset].closingPush,
+                    ]}
+                    onValueChange={([v]) =>
+                      setCustomPersonality({
+                        ...customPersonality,
+                        closingPush: v,
+                      })
+                    }
                     max={100}
                     step={5}
                     className="h-1"
@@ -613,7 +736,9 @@ export function GiannaResponseHandler({
 
       {/* Incoming Message */}
       <div className="p-4 border-b border-purple-500/20 bg-black/20">
-        <p className="text-xs text-zinc-500 mb-1">From {leadName || leadPhone}</p>
+        <p className="text-xs text-zinc-500 mb-1">
+          From {leadName || leadPhone}
+        </p>
         <p className="text-zinc-200">{incomingMessage}</p>
       </div>
 
@@ -634,8 +759,8 @@ export function GiannaResponseHandler({
                   suggestion.confidence >= 85
                     ? "bg-green-500/20 text-green-400"
                     : suggestion.confidence >= 70
-                    ? "bg-yellow-500/20 text-yellow-400"
-                    : "bg-red-500/20 text-red-400"
+                      ? "bg-yellow-500/20 text-yellow-400"
+                      : "bg-red-500/20 text-red-400",
                 )}
               >
                 {suggestion.confidence}% confident
@@ -644,7 +769,10 @@ export function GiannaResponseHandler({
                 {suggestion.characterCount}/160 chars
               </span>
               {!suggestion.isShortEnough && (
-                <Badge variant="outline" className="text-xs text-yellow-400 border-yellow-400/50">
+                <Badge
+                  variant="outline"
+                  className="text-xs text-yellow-400 border-yellow-400/50"
+                >
                   <AlertCircle className="w-3 h-3 mr-1" />
                   Too long for SMS
                 </Badge>
@@ -681,10 +809,7 @@ export function GiannaResponseHandler({
                         <X className="w-4 h-4 mr-1" />
                         Cancel
                       </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => setIsEditing(false)}
-                      >
+                      <Button size="sm" onClick={() => setIsEditing(false)}>
                         <CheckCircle2 className="w-4 h-4 mr-1" />
                         Done
                       </Button>
@@ -772,8 +897,8 @@ export function GiannaResponseHandler({
               <div className="flex items-center gap-2 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
                 <AlertCircle className="w-4 h-4 text-yellow-400" />
                 <p className="text-sm text-yellow-400">
-                  Outside business hours ({settings.businessHoursStart} - {settings.businessHoursEnd}).
-                  Auto-reply paused.
+                  Outside business hours ({settings.businessHoursStart} -{" "}
+                  {settings.businessHoursEnd}). Auto-reply paused.
                 </p>
               </div>
             )}
@@ -790,7 +915,9 @@ export function GiannaResponseHandler({
                 ) : (
                   <Send className="w-4 h-4 mr-2" />
                 )}
-                {settings.mode === "human-in-loop" ? "Approve & Send" : "Send Now"}
+                {settings.mode === "human-in-loop"
+                  ? "Approve & Send"
+                  : "Send Now"}
               </Button>
 
               <Button
@@ -798,7 +925,9 @@ export function GiannaResponseHandler({
                 onClick={generateSuggestion}
                 disabled={isLoading}
               >
-                <RefreshCw className={cn("w-4 h-4 mr-2", isLoading && "animate-spin")} />
+                <RefreshCw
+                  className={cn("w-4 h-4 mr-2", isLoading && "animate-spin")}
+                />
                 Regenerate
               </Button>
 
@@ -814,44 +943,50 @@ export function GiannaResponseHandler({
               )}
 
               {suggestion.classification.action === "add_to_dnc" && (
-                <Button
-                  variant="destructive"
-                  onClick={onAddToDnc}
-                >
+                <Button variant="destructive" onClick={onAddToDnc}>
                   <Ban className="w-4 h-4 mr-2" />
                   Add to DNC
                 </Button>
               )}
 
               {suggestion.classification.action === "mark_cold" && (
-                <Button
-                  variant="outline"
-                  onClick={onMarkCold}
-                >
+                <Button variant="outline" onClick={onMarkCold}>
                   <ThumbsDown className="w-4 h-4 mr-2" />
                   Mark Cold
                 </Button>
               )}
 
-              {(suggestion.gianna?.suggestedAction === "schedule_follow_up" || suggestion.classification.action === "schedule_follow_up") && onScheduleFollowUp && (
-                <Button
-                  variant="outline"
-                  onClick={onScheduleFollowUp}
-                  className="border-yellow-500/50 text-yellow-400 hover:bg-yellow-500/20"
-                >
-                  <Clock className="w-4 h-4 mr-2" />
-                  Schedule Follow-up
-                </Button>
-              )}
+              {(suggestion.gianna?.suggestedAction === "schedule_follow_up" ||
+                suggestion.classification.action === "schedule_follow_up") &&
+                onScheduleFollowUp && (
+                  <Button
+                    variant="outline"
+                    onClick={onScheduleFollowUp}
+                    className="border-yellow-500/50 text-yellow-400 hover:bg-yellow-500/20"
+                  >
+                    <Clock className="w-4 h-4 mr-2" />
+                    Schedule Follow-up
+                  </Button>
+                )}
             </div>
 
             {/* Feedback */}
             <div className="flex items-center gap-2 pt-2 border-t border-purple-500/20">
-              <span className="text-xs text-zinc-500">Rate Gianna's response:</span>
-              <Button variant="ghost" size="sm" className="h-7 px-2 hover:bg-green-500/20">
+              <span className="text-xs text-zinc-500">
+                Rate Gianna's response:
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 hover:bg-green-500/20"
+              >
                 <ThumbsUp className="w-3 h-3" />
               </Button>
-              <Button variant="ghost" size="sm" className="h-7 px-2 hover:bg-red-500/20">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 hover:bg-red-500/20"
+              >
                 <ThumbsDown className="w-3 h-3" />
               </Button>
               <a

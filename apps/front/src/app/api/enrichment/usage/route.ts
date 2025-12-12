@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
-import { getDailyUsage, DAILY_LIMIT, BATCH_SIZE, isRedisAvailable } from "@/lib/redis";
+import {
+  getDailyUsage,
+  DAILY_LIMIT,
+  BATCH_SIZE,
+  isRedisAvailable,
+} from "@/lib/redis";
 
 // GET - Get daily usage stats
 export async function GET() {

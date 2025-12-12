@@ -50,7 +50,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     console.error("[Deals] Get error:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to get deal" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -81,7 +81,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     };
 
     if (updates.name !== undefined) updateData.name = updates.name;
-    if (updates.description !== undefined) updateData.description = updates.description;
+    if (updates.description !== undefined)
+      updateData.description = updates.description;
     if (updates.type !== undefined) updateData.type = updates.type;
     if (updates.priority !== undefined) updateData.priority = updates.priority;
     if (updates.estimatedValue !== undefined) {
@@ -93,10 +94,14 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         estimatedEarnings: (updates.estimatedValue * rate) / 100,
       };
     }
-    if (updates.askingPrice !== undefined) updateData.askingPrice = updates.askingPrice;
-    if (updates.offerPrice !== undefined) updateData.offerPrice = updates.offerPrice;
-    if (updates.expectedCloseDate !== undefined) updateData.expectedCloseDate = updates.expectedCloseDate;
-    if (updates.assignedTo !== undefined) updateData.assignedTo = updates.assignedTo;
+    if (updates.askingPrice !== undefined)
+      updateData.askingPrice = updates.askingPrice;
+    if (updates.offerPrice !== undefined)
+      updateData.offerPrice = updates.offerPrice;
+    if (updates.expectedCloseDate !== undefined)
+      updateData.expectedCloseDate = updates.expectedCloseDate;
+    if (updates.assignedTo !== undefined)
+      updateData.assignedTo = updates.assignedTo;
     if (updates.tags !== undefined) updateData.tags = updates.tags;
     if (updates.seller !== undefined) updateData.seller = updates.seller;
     if (updates.buyer !== undefined) updateData.buyer = updates.buyer;
@@ -111,10 +116,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     // Update deal
-    await db
-      .update(deals)
-      .set(updateData)
-      .where(eq(deals.id, dealId));
+    await db.update(deals).set(updateData).where(eq(deals.id, dealId));
 
     // Log activity
     const activity: DealActivity = {
@@ -143,8 +145,10 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     console.error("[Deals] Update error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to update deal" },
-      { status: 500 }
+      {
+        error: error instanceof Error ? error.message : "Failed to update deal",
+      },
+      { status: 500 },
     );
   }
 }
@@ -220,8 +224,10 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     console.error("[Deals] Delete error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to delete deal" },
-      { status: 500 }
+      {
+        error: error instanceof Error ? error.message : "Failed to delete deal",
+      },
+      { status: 500 },
     );
   }
 }

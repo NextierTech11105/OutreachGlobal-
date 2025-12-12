@@ -23,9 +23,10 @@ export default async function Page() {
           Instant clarity for your CRM operations
         </h1>
         <p className="text-lg text-white/70">
-          Push the actions that matter without scrolling through nested menus. Every interaction
-          stays in dark mode, feels like a trading desk, and routes deep workflows (2K campaign
-          blocks, research runs, routing) with one tap.
+          Push the actions that matter without scrolling through nested menus.
+          Every interaction stays in dark mode, feels like a trading desk, and
+          routes deep workflows (2K campaign blocks, research runs, routing)
+          with one tap.
         </p>
         <Link
           href="/t/test"
@@ -35,7 +36,11 @@ export default async function Page() {
         </Link>
       </div>
 
-      <Suspense fallback={<div className="animate-pulse h-64 bg-slate-800/50 rounded-3xl" />}>
+      <Suspense
+        fallback={
+          <div className="animate-pulse h-64 bg-slate-800/50 rounded-3xl" />
+        }
+      >
         <InstantActionPanel />
       </Suspense>
     </div>

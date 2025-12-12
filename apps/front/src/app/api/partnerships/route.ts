@@ -1,12 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import { S3Client, PutObjectCommand, GetObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  ListObjectsV2Command,
+} from "@aws-sdk/client-s3";
 
 // DigitalOcean Spaces configuration
-const SPACES_ENDPOINT = process.env.SPACES_ENDPOINT || "https://nyc3.digitaloceanspaces.com";
+const SPACES_ENDPOINT =
+  process.env.SPACES_ENDPOINT || "https://nyc3.digitaloceanspaces.com";
 const SPACES_REGION = process.env.SPACES_REGION || "nyc3";
 const SPACES_KEY = process.env.SPACES_KEY || process.env.DO_SPACES_KEY || "";
-const SPACES_SECRET = process.env.SPACES_SECRET || process.env.DO_SPACES_SECRET || "";
-const SPACES_BUCKET = process.env.SPACES_BUCKET || process.env.DO_SPACES_BUCKET || "nextier";
+const SPACES_SECRET =
+  process.env.SPACES_SECRET || process.env.DO_SPACES_SECRET || "";
+const SPACES_BUCKET =
+  process.env.SPACES_BUCKET || process.env.DO_SPACES_BUCKET || "nextier";
 
 const s3Client = new S3Client({
   endpoint: SPACES_ENDPOINT,
@@ -109,7 +117,7 @@ export interface PartnerOffer {
 }
 
 // In-memory partner offers (would be database in production)
-let partnerOffers: PartnerOffer[] = [
+const partnerOffers: PartnerOffer[] = [
   {
     id: "partner-1",
     businessName: "NYC Home Inspectors",
@@ -209,7 +217,7 @@ export async function GET(request: NextRequest) {
 
   // Get specific partner
   if (partnerId) {
-    const partner = partnerOffers.find(p => p.id === partnerId);
+    const partner = partnerOffers.find((p) => p.id === partnerId);
     if (!partner) {
       return NextResponse.json({ error: "Partner not found" }, { status: 404 });
     }
@@ -220,11 +228,13 @@ export async function GET(request: NextRequest) {
   let filtered = partnerOffers;
 
   if (category && category in PARTNER_CATEGORIES) {
-    filtered = filtered.filter(p => p.category === category);
+    filtered = filtered.filter((p) => p.category === category);
   }
 
   if (activeOnly) {
-    filtered = filtered.filter(p => p.isActive && new Date(p.expiresAt) > new Date());
+    filtered = filtered.filter(
+      (p) => p.isActive && new Date(p.expiresAt) > new Date(),
+    );
   }
 
   return NextResponse.json({
@@ -232,10 +242,11 @@ export async function GET(request: NextRequest) {
     categories: Object.entries(PARTNER_CATEGORIES).map(([key, cat]) => ({
       id: key,
       ...cat,
-      offerCount: partnerOffers.filter(p => p.category === key && p.isActive).length,
+      offerCount: partnerOffers.filter((p) => p.category === key && p.isActive)
+        .length,
     })),
     offers: filtered,
-    totalActive: partnerOffers.filter(p => p.isActive).length,
+    totalActive: partnerOffers.filter((p) => p.isActive).length,
   });
 }
 
@@ -266,9 +277,12 @@ export async function POST(request: NextRequest) {
       } = body;
 
       if (!businessName || !category || !offer || !discount) {
-        return NextResponse.json({
-          error: "Required: businessName, category, offer, discount",
-        }, { status: 400 });
+        return NextResponse.json(
+          {
+            error: "Required: businessName, category, offer, discount",
+          },
+          { status: 400 },
+        );
       }
 
       const newOffer: PartnerOffer = {
@@ -286,7 +300,11 @@ export async function POST(request: NextRequest) {
         discount,
         terms,
         couponCode,
-        expiresAt: expiresAt || new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+        expiresAt:
+          expiresAt ||
+          new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)
+            .toISOString()
+            .split("T")[0],
         isActive: true,
         redemptions: 0,
         maxRedemptions,
@@ -298,12 +316,14 @@ export async function POST(request: NextRequest) {
 
       // Save to Spaces
       try {
-        await s3Client.send(new PutObjectCommand({
-          Bucket: SPACES_BUCKET,
-          Key: `${PARTNERSHIPS_PREFIX}offers/${newOffer.id}.json`,
-          Body: JSON.stringify(newOffer),
-          ContentType: "application/json",
-        }));
+        await s3Client.send(
+          new PutObjectCommand({
+            Bucket: SPACES_BUCKET,
+            Key: `${PARTNERSHIPS_PREFIX}offers/${newOffer.id}.json`,
+            Body: JSON.stringify(newOffer),
+            ContentType: "application/json",
+          }),
+        );
       } catch (err) {
         console.log("[Partnerships] Spaces save skipped:", err);
       }
@@ -315,17 +335,29 @@ export async function POST(request: NextRequest) {
     if (action === "redeem") {
       const { partnerId, leadId, propertyAddress } = body;
 
-      const partner = partnerOffers.find(p => p.id === partnerId);
+      const partner = partnerOffers.find((p) => p.id === partnerId);
       if (!partner) {
-        return NextResponse.json({ error: "Partner not found" }, { status: 404 });
+        return NextResponse.json(
+          { error: "Partner not found" },
+          { status: 404 },
+        );
       }
 
       if (!partner.isActive) {
-        return NextResponse.json({ error: "Offer is no longer active" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Offer is no longer active" },
+          { status: 400 },
+        );
       }
 
-      if (partner.maxRedemptions && partner.redemptions >= partner.maxRedemptions) {
-        return NextResponse.json({ error: "Offer redemption limit reached" }, { status: 400 });
+      if (
+        partner.maxRedemptions &&
+        partner.redemptions >= partner.maxRedemptions
+      ) {
+        return NextResponse.json(
+          { error: "Offer redemption limit reached" },
+          { status: 400 },
+        );
       }
 
       partner.redemptions++;
@@ -342,12 +374,14 @@ export async function POST(request: NextRequest) {
       };
 
       try {
-        await s3Client.send(new PutObjectCommand({
-          Bucket: SPACES_BUCKET,
-          Key: `${PARTNERSHIPS_PREFIX}redemptions/${redemption.id}.json`,
-          Body: JSON.stringify(redemption),
-          ContentType: "application/json",
-        }));
+        await s3Client.send(
+          new PutObjectCommand({
+            Bucket: SPACES_BUCKET,
+            Key: `${PARTNERSHIPS_PREFIX}redemptions/${redemption.id}.json`,
+            Body: JSON.stringify(redemption),
+            ContentType: "application/json",
+          }),
+        );
       } catch (err) {
         console.log("[Partnerships] Redemption log skipped:", err);
       }
@@ -363,10 +397,13 @@ export async function POST(request: NextRequest) {
     // Toggle active status
     if (action === "toggle") {
       const { partnerId } = body;
-      const partner = partnerOffers.find(p => p.id === partnerId);
+      const partner = partnerOffers.find((p) => p.id === partnerId);
 
       if (!partner) {
-        return NextResponse.json({ error: "Partner not found" }, { status: 404 });
+        return NextResponse.json(
+          { error: "Partner not found" },
+          { status: 404 },
+        );
       }
 
       partner.isActive = !partner.isActive;
@@ -380,10 +417,14 @@ export async function POST(request: NextRequest) {
       const { category, city, zipCode } = body;
 
       if (!category || !(category in PARTNER_CATEGORIES)) {
-        return NextResponse.json({ error: "Valid category required" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Valid category required" },
+          { status: 400 },
+        );
       }
 
-      const cat = PARTNER_CATEGORIES[category as keyof typeof PARTNER_CATEGORIES];
+      const cat =
+        PARTNER_CATEGORIES[category as keyof typeof PARTNER_CATEGORIES];
 
       // This would query the NY Business data lake
       // For now, return a hint about how to query
@@ -424,7 +465,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: "ID required" }, { status: 400 });
   }
 
-  const index = partnerOffers.findIndex(p => p.id === id);
+  const index = partnerOffers.findIndex((p) => p.id === id);
   if (index === -1) {
     return NextResponse.json({ error: "Partner not found" }, { status: 404 });
   }

@@ -98,7 +98,9 @@ export function AiCopilotReply({
   const [isSending, setIsSending] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showRemix, setShowRemix] = useState(false);
-  const [autoReplyCountdown, setAutoReplyCountdown] = useState<number | null>(null);
+  const [autoReplyCountdown, setAutoReplyCountdown] = useState<number | null>(
+    null,
+  );
   const [remixCount, setRemixCount] = useState(0);
 
   // Magic Remix sliders
@@ -133,8 +135,10 @@ export function AiCopilotReply({
   const getSliderToneDescription = () => {
     const parts = [];
 
-    if (remixSliders.conversational > 70) parts.push("very casual and conversational");
-    else if (remixSliders.conversational > 40) parts.push("friendly and personable");
+    if (remixSliders.conversational > 70)
+      parts.push("very casual and conversational");
+    else if (remixSliders.conversational > 40)
+      parts.push("friendly and personable");
     else parts.push("professional and formal");
 
     if (remixSliders.humor > 60) parts.push("with playful humor");
@@ -143,8 +147,10 @@ export function AiCopilotReply({
     if (remixSliders.urgency > 70) parts.push("conveying urgency");
     else if (remixSliders.urgency > 40) parts.push("with purposeful energy");
 
-    if (remixSliders.directness > 70) parts.push("being very direct and to the point");
-    else if (remixSliders.directness < 30) parts.push("using a soft, gentle approach");
+    if (remixSliders.directness > 70)
+      parts.push("being very direct and to the point");
+    else if (remixSliders.directness < 30)
+      parts.push("using a soft, gentle approach");
 
     return parts.join(", ");
   };
@@ -192,7 +198,15 @@ export function AiCopilotReply({
     } finally {
       setIsLoading(false);
     }
-  }, [incomingMessage, leadName, propertyAddress, campaignType, previousMessages, settings, remixSliders]);
+  }, [
+    incomingMessage,
+    leadName,
+    propertyAddress,
+    campaignType,
+    previousMessages,
+    settings,
+    remixSliders,
+  ]);
 
   // Auto-generate on mount
   useEffect(() => {
@@ -263,20 +277,14 @@ export function AiCopilotReply({
         );
       case "add_to_dnc":
         return (
-          <Button
-            variant="destructive"
-            onClick={onAddToDnc}
-          >
+          <Button variant="destructive" onClick={onAddToDnc}>
             <Ban className="w-4 h-4 mr-2" />
             Add to DNC
           </Button>
         );
       case "mark_cold":
         return (
-          <Button
-            variant="outline"
-            onClick={onMarkCold}
-          >
+          <Button variant="outline" onClick={onMarkCold}>
             <ThumbsDown className="w-4 h-4 mr-2" />
             Mark Cold
           </Button>
@@ -300,7 +308,13 @@ export function AiCopilotReply({
     };
 
     return (
-      <Badge className={cn("text-xs", intentColors[suggestion.classification.intent] || intentColors.unknown)}>
+      <Badge
+        className={cn(
+          "text-xs",
+          intentColors[suggestion.classification.intent] ||
+            intentColors.unknown,
+        )}
+      >
         {suggestion.classification.intent.replace("_", " ")}
       </Badge>
     );
@@ -316,7 +330,12 @@ export function AiCopilotReply({
     };
 
     return (
-      <Badge className={cn("text-xs", sentimentColors[suggestion.classification.sentiment])}>
+      <Badge
+        className={cn(
+          "text-xs",
+          sentimentColors[suggestion.classification.sentiment],
+        )}
+      >
         {suggestion.classification.sentiment}
       </Badge>
     );
@@ -337,7 +356,9 @@ export function AiCopilotReply({
           <div>
             <h3 className="font-medium text-zinc-100">AI Co-Pilot</h3>
             <p className="text-xs text-zinc-500">
-              {suggestion?.provider ? `Powered by ${suggestion.provider}` : "Generating..."}
+              {suggestion?.provider
+                ? `Powered by ${suggestion.provider}`
+                : "Generating..."}
             </p>
           </div>
         </div>
@@ -376,7 +397,9 @@ export function AiCopilotReply({
                 </div>
                 <Switch
                   checked={settings.enabled}
-                  onCheckedChange={(enabled) => setSettings({ ...settings, enabled })}
+                  onCheckedChange={(enabled) =>
+                    setSettings({ ...settings, enabled })
+                  }
                 />
               </div>
 
@@ -384,10 +407,17 @@ export function AiCopilotReply({
                 <>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label className="text-xs text-zinc-400">Delay (seconds)</Label>
+                      <Label className="text-xs text-zinc-400">
+                        Delay (seconds)
+                      </Label>
                       <Select
                         value={String(settings.delaySeconds)}
-                        onValueChange={(v) => setSettings({ ...settings, delaySeconds: parseInt(v) })}
+                        onValueChange={(v) =>
+                          setSettings({
+                            ...settings,
+                            delaySeconds: parseInt(v),
+                          })
+                        }
                       >
                         <SelectTrigger className="bg-zinc-900 border-zinc-700">
                           <SelectValue />
@@ -402,10 +432,17 @@ export function AiCopilotReply({
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-xs text-zinc-400">Min Confidence</Label>
+                      <Label className="text-xs text-zinc-400">
+                        Min Confidence
+                      </Label>
                       <Select
                         value={String(settings.minConfidence)}
-                        onValueChange={(v) => setSettings({ ...settings, minConfidence: parseInt(v) })}
+                        onValueChange={(v) =>
+                          setSettings({
+                            ...settings,
+                            minConfidence: parseInt(v),
+                          })
+                        }
                       >
                         <SelectTrigger className="bg-zinc-900 border-zinc-700">
                           <SelectValue />
@@ -422,10 +459,14 @@ export function AiCopilotReply({
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label className="text-xs text-zinc-400">AI Provider</Label>
+                      <Label className="text-xs text-zinc-400">
+                        AI Provider
+                      </Label>
                       <Select
                         value={settings.provider}
-                        onValueChange={(v: "openai" | "anthropic") => setSettings({ ...settings, provider: v })}
+                        onValueChange={(v: "openai" | "anthropic") =>
+                          setSettings({ ...settings, provider: v })
+                        }
                       >
                         <SelectTrigger className="bg-zinc-900 border-zinc-700">
                           <SelectValue />
@@ -441,16 +482,18 @@ export function AiCopilotReply({
                       <Label className="text-xs text-zinc-400">Tone</Label>
                       <Select
                         value={settings.tone}
-                        onValueChange={(v: "friendly" | "professional" | "urgent" | "casual") =>
-                          setSettings({ ...settings, tone: v })
-                        }
+                        onValueChange={(
+                          v: "friendly" | "professional" | "urgent" | "casual",
+                        ) => setSettings({ ...settings, tone: v })}
                       >
                         <SelectTrigger className="bg-zinc-900 border-zinc-700">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="friendly">Friendly</SelectItem>
-                          <SelectItem value="professional">Professional</SelectItem>
+                          <SelectItem value="professional">
+                            Professional
+                          </SelectItem>
                           <SelectItem value="casual">Casual</SelectItem>
                           <SelectItem value="urgent">Urgent</SelectItem>
                         </SelectContent>
@@ -466,7 +509,9 @@ export function AiCopilotReply({
 
       {/* Incoming Message */}
       <div className="p-4 border-b border-zinc-800">
-        <p className="text-xs text-zinc-500 mb-1">Incoming from {leadName || leadPhone}</p>
+        <p className="text-xs text-zinc-500 mb-1">
+          Incoming from {leadName || leadPhone}
+        </p>
         <p className="text-zinc-200">{incomingMessage}</p>
       </div>
 
@@ -489,8 +534,8 @@ export function AiCopilotReply({
                   suggestion.confidence >= 85
                     ? "bg-green-500/20 text-green-400"
                     : suggestion.confidence >= 70
-                    ? "bg-yellow-500/20 text-yellow-400"
-                    : "bg-red-500/20 text-red-400"
+                      ? "bg-yellow-500/20 text-yellow-400"
+                      : "bg-red-500/20 text-red-400",
                 )}
               >
                 {suggestion.confidence}% confident
@@ -507,7 +552,9 @@ export function AiCopilotReply({
               animate={{ opacity: 1, y: 0 }}
               className="p-4 bg-zinc-800/50 rounded-lg border border-zinc-700"
             >
-              <p className="text-zinc-100 text-lg">{suggestion.suggestedReply}</p>
+              <p className="text-zinc-100 text-lg">
+                {suggestion.suggestedReply}
+              </p>
             </motion.div>
 
             {/* Magic Remix Panel */}
@@ -535,7 +582,9 @@ export function AiCopilotReply({
                     </div>
                     <Slider
                       value={[remixSliders.conversational]}
-                      onValueChange={([v]) => setRemixSliders({ ...remixSliders, conversational: v })}
+                      onValueChange={([v]) =>
+                        setRemixSliders({ ...remixSliders, conversational: v })
+                      }
                       max={100}
                       step={10}
                       className="[&_[role=slider]]:bg-purple-500"
@@ -553,7 +602,9 @@ export function AiCopilotReply({
                     </div>
                     <Slider
                       value={[remixSliders.humor]}
-                      onValueChange={([v]) => setRemixSliders({ ...remixSliders, humor: v })}
+                      onValueChange={([v]) =>
+                        setRemixSliders({ ...remixSliders, humor: v })
+                      }
                       max={100}
                       step={10}
                       className="[&_[role=slider]]:bg-yellow-500"
@@ -571,7 +622,9 @@ export function AiCopilotReply({
                     </div>
                     <Slider
                       value={[remixSliders.urgency]}
-                      onValueChange={([v]) => setRemixSliders({ ...remixSliders, urgency: v })}
+                      onValueChange={([v]) =>
+                        setRemixSliders({ ...remixSliders, urgency: v })
+                      }
                       max={100}
                       step={10}
                       className="[&_[role=slider]]:bg-orange-500"
@@ -589,7 +642,9 @@ export function AiCopilotReply({
                     </div>
                     <Slider
                       value={[remixSliders.directness]}
-                      onValueChange={([v]) => setRemixSliders({ ...remixSliders, directness: v })}
+                      onValueChange={([v]) =>
+                        setRemixSliders({ ...remixSliders, directness: v })
+                      }
                       max={100}
                       step={10}
                       className="[&_[role=slider]]:bg-green-500"
@@ -657,7 +712,9 @@ export function AiCopilotReply({
               <Button
                 variant="outline"
                 onClick={() => setShowRemix(!showRemix)}
-                className={cn(showRemix && "bg-purple-500/20 border-purple-500")}
+                className={cn(
+                  showRemix && "bg-purple-500/20 border-purple-500",
+                )}
               >
                 <Wand2 className="w-4 h-4 mr-2" />
                 {showRemix ? "Hide Remix" : "Magic Remix"}
@@ -668,7 +725,9 @@ export function AiCopilotReply({
                 onClick={handleRemix}
                 disabled={isLoading}
               >
-                <RefreshCw className={cn("w-4 h-4 mr-2", isLoading && "animate-spin")} />
+                <RefreshCw
+                  className={cn("w-4 h-4 mr-2", isLoading && "animate-spin")}
+                />
                 Quick Remix
               </Button>
 

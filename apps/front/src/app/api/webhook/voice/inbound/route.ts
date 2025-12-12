@@ -63,7 +63,9 @@ export async function POST(request: NextRequest) {
     const direction = payload.Direction || "inbound";
     const callerName = payload.CallerName;
 
-    console.log(`[Twilio Voice] Inbound call from ${from} to ${to} (${status})`);
+    console.log(
+      `[Twilio Voice] Inbound call from ${from} to ${to} (${status})`,
+    );
 
     // Store the call
     recentCalls.unshift({

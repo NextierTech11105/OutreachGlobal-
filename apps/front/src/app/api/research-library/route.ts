@@ -1,13 +1,22 @@
 import { sf, sfd } from "@/lib/utils/safe-format";
 import { NextRequest, NextResponse } from "next/server";
-import { S3Client, PutObjectCommand, ListObjectsV2Command, DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  PutObjectCommand,
+  ListObjectsV2Command,
+  DeleteObjectCommand,
+  GetObjectCommand,
+} from "@aws-sdk/client-s3";
 
 // DigitalOcean Spaces configuration
-const SPACES_ENDPOINT = process.env.SPACES_ENDPOINT || "https://nyc3.digitaloceanspaces.com";
+const SPACES_ENDPOINT =
+  process.env.SPACES_ENDPOINT || "https://nyc3.digitaloceanspaces.com";
 const SPACES_REGION = process.env.SPACES_REGION || "nyc3";
 const SPACES_KEY = process.env.SPACES_KEY || process.env.DO_SPACES_KEY || "";
-const SPACES_SECRET = process.env.SPACES_SECRET || process.env.DO_SPACES_SECRET || "";
-const SPACES_BUCKET = process.env.SPACES_BUCKET || process.env.DO_SPACES_BUCKET || "nextier";
+const SPACES_SECRET =
+  process.env.SPACES_SECRET || process.env.DO_SPACES_SECRET || "";
+const SPACES_BUCKET =
+  process.env.SPACES_BUCKET || process.env.DO_SPACES_BUCKET || "nextier";
 
 const s3Client = new S3Client({
   endpoint: SPACES_ENDPOINT,
@@ -22,9 +31,17 @@ const s3Client = new S3Client({
 const RESEARCH_PREFIX = "research-library/";
 
 // Generate a clean lead ID from address for bucket folder
-function generateLeadId(address: { address?: string; city?: string; state?: string; zipCode?: string }): string {
+function generateLeadId(address: {
+  address?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+}): string {
   const parts = [
-    address.address?.replace(/[^a-zA-Z0-9]/g, "-").toLowerCase().slice(0, 50),
+    address.address
+      ?.replace(/[^a-zA-Z0-9]/g, "-")
+      .toLowerCase()
+      .slice(0, 50),
     address.city?.replace(/[^a-zA-Z0-9]/g, "-").toLowerCase(),
     address.state?.toLowerCase(),
   ].filter(Boolean);
@@ -62,18 +79,58 @@ interface FolderItem {
 }
 
 // Report types supported
-type ReportType = "property-valuation" | "business-evaluation" | "ai-blueprint" | "generic";
+type ReportType =
+  | "property-valuation"
+  | "business-evaluation"
+  | "ai-blueprint"
+  | "generic";
 
 // In-memory folder structure (would be database in production)
 // This maps folder paths to their contents
-let folderStructure: Record<string, FolderItem[]> = {
+const folderStructure: Record<string, FolderItem[]> = {
   "/": [
-    { id: "default-1", name: "Active Deals", type: "folder", path: "/Active Deals", createdAt: new Date().toISOString() },
-    { id: "default-2", name: "Property Valuations", type: "folder", path: "/Property Valuations", createdAt: new Date().toISOString() },
-    { id: "default-3", name: "Business Evaluations", type: "folder", path: "/Business Evaluations", createdAt: new Date().toISOString() },
-    { id: "default-4", name: "AI Blueprints", type: "folder", path: "/AI Blueprints", createdAt: new Date().toISOString() },
-    { id: "default-5", name: "Research", type: "folder", path: "/Research", createdAt: new Date().toISOString() },
-    { id: "default-6", name: "Archived", type: "folder", path: "/Archived", createdAt: new Date().toISOString() },
+    {
+      id: "default-1",
+      name: "Active Deals",
+      type: "folder",
+      path: "/Active Deals",
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: "default-2",
+      name: "Property Valuations",
+      type: "folder",
+      path: "/Property Valuations",
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: "default-3",
+      name: "Business Evaluations",
+      type: "folder",
+      path: "/Business Evaluations",
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: "default-4",
+      name: "AI Blueprints",
+      type: "folder",
+      path: "/AI Blueprints",
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: "default-5",
+      name: "Research",
+      type: "folder",
+      path: "/Research",
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: "default-6",
+      name: "Archived",
+      type: "folder",
+      path: "/Archived",
+      createdAt: new Date().toISOString(),
+    },
   ],
   "/Active Deals": [],
   "/Property Valuations": [],
@@ -103,7 +160,10 @@ export async function GET(request: NextRequest) {
           return NextResponse.json({ success: true, report: JSON.parse(body) });
         }
       } catch {
-        return NextResponse.json({ error: "Report not found" }, { status: 404 });
+        return NextResponse.json(
+          { error: "Report not found" },
+          { status: 404 },
+        );
       }
     }
 
@@ -123,8 +183,14 @@ export async function GET(request: NextRequest) {
       // Add folders from Spaces
       if (response.CommonPrefixes) {
         for (const prefix of response.CommonPrefixes) {
-          const folderName = prefix.Prefix?.replace(RESEARCH_PREFIX, "").replace(/\/$/, "").split("/").pop();
-          if (folderName && !items.some(i => i.name === folderName && i.type === "folder")) {
+          const folderName = prefix.Prefix?.replace(RESEARCH_PREFIX, "")
+            .replace(/\/$/, "")
+            .split("/")
+            .pop();
+          if (
+            folderName &&
+            !items.some((i) => i.name === folderName && i.type === "folder")
+          ) {
             items.push({
               id: `spaces-${folderName}`,
               name: folderName,
@@ -141,13 +207,14 @@ export async function GET(request: NextRequest) {
         for (const obj of response.Contents) {
           if (obj.Key?.endsWith(".json") && obj.Key !== prefix) {
             const fileName = obj.Key.replace(prefix, "").replace(".json", "");
-            if (fileName && !items.some(i => i.name === fileName)) {
+            if (fileName && !items.some((i) => i.name === fileName)) {
               items.push({
                 id: obj.Key,
                 name: fileName,
                 type: "report",
                 path: `${path}${path === "/" ? "" : "/"}${fileName}`,
-                createdAt: obj.LastModified?.toISOString() || new Date().toISOString(),
+                createdAt:
+                  obj.LastModified?.toISOString() || new Date().toISOString(),
                 size: obj.Size,
               });
             }
@@ -155,7 +222,10 @@ export async function GET(request: NextRequest) {
         }
       }
     } catch (err) {
-      console.log("[Research Library] Spaces listing error (may not be configured):", err);
+      console.log(
+        "[Research Library] Spaces listing error (may not be configured):",
+        err,
+      );
     }
 
     return NextResponse.json({
@@ -166,7 +236,10 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("[Research Library] Error:", error);
-    return NextResponse.json({ error: "Failed to list items" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to list items" },
+      { status: 500 },
+    );
   }
 }
 
@@ -199,12 +272,14 @@ export async function POST(request: NextRequest) {
       // Also create in Spaces
       try {
         const spacesPath = `${RESEARCH_PREFIX}${folderPath.slice(1)}/.folder`;
-        await s3Client.send(new PutObjectCommand({
-          Bucket: SPACES_BUCKET,
-          Key: spacesPath,
-          Body: JSON.stringify({ created: new Date().toISOString() }),
-          ContentType: "application/json",
-        }));
+        await s3Client.send(
+          new PutObjectCommand({
+            Bucket: SPACES_BUCKET,
+            Key: spacesPath,
+            Body: JSON.stringify({ created: new Date().toISOString() }),
+            ContentType: "application/json",
+          }),
+        );
       } catch (err) {
         console.log("[Research Library] Spaces folder creation skipped:", err);
       }
@@ -216,10 +291,13 @@ export async function POST(request: NextRequest) {
       // Save a valuation report - each lead gets their own folder
       const targetPath = path || "/Research";
       const reportId = `report-${Date.now()}`;
-      const reportName = name || report?.property?.address?.address || `Report ${reportId}`;
+      const reportName =
+        name || report?.property?.address?.address || `Report ${reportId}`;
 
       // Generate lead folder ID from address or name (normalized for bucket path)
-      const leadId = generateLeadId(report?.property?.address || { address: reportName });
+      const leadId = generateLeadId(
+        report?.property?.address || { address: reportName },
+      );
 
       const reportData = {
         id: reportId,
@@ -237,41 +315,49 @@ export async function POST(request: NextRequest) {
       //   - inbound-sms/         <- SMS responses
       //   - shared/              <- public shareable versions
       //   - documents/           <- other files
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://monkfish-app-mb7h3.ondigitalocean.app";
+      const baseUrl =
+        process.env.NEXT_PUBLIC_APP_URL ||
+        "https://monkfish-app-mb7h3.ondigitalocean.app";
       const cdnUrl = `https://${SPACES_BUCKET}.${SPACES_REGION}.cdn.digitaloceanspaces.com`;
       let htmlUrl = null;
 
       try {
         // Save valuation report to lead's valuation-reports folder
         const spacesKey = `leads/${leadId}/valuation-reports/${reportId}.json`;
-        await s3Client.send(new PutObjectCommand({
-          Bucket: SPACES_BUCKET,
-          Key: spacesKey,
-          Body: JSON.stringify(reportData),
-          ContentType: "application/json",
-          ACL: "private",
-        }));
+        await s3Client.send(
+          new PutObjectCommand({
+            Bucket: SPACES_BUCKET,
+            Key: spacesKey,
+            Body: JSON.stringify(reportData),
+            ContentType: "application/json",
+            ACL: "private",
+          }),
+        );
 
         // Also save to research-library for backwards compatibility
         const legacyKey = `${RESEARCH_PREFIX}reports/${reportId}.json`;
-        await s3Client.send(new PutObjectCommand({
-          Bucket: SPACES_BUCKET,
-          Key: legacyKey,
-          Body: JSON.stringify(reportData),
-          ContentType: "application/json",
-          ACL: "private",
-        }));
+        await s3Client.send(
+          new PutObjectCommand({
+            Bucket: SPACES_BUCKET,
+            Key: legacyKey,
+            Body: JSON.stringify(reportData),
+            ContentType: "application/json",
+            ACL: "private",
+          }),
+        );
 
         // Generate shareable HTML version
         const htmlContent = generateShareableHTML(reportData);
         const htmlKey = `leads/${leadId}/shared/${reportId}.html`;
-        await s3Client.send(new PutObjectCommand({
-          Bucket: SPACES_BUCKET,
-          Key: htmlKey,
-          Body: htmlContent,
-          ContentType: "text/html",
-          ACL: "public-read",
-        }));
+        await s3Client.send(
+          new PutObjectCommand({
+            Bucket: SPACES_BUCKET,
+            Key: htmlKey,
+            Body: htmlContent,
+            ContentType: "text/html",
+            ACL: "public-read",
+          }),
+        );
         htmlUrl = `${cdnUrl}/${htmlKey}`;
       } catch (err) {
         console.log("[Research Library] Spaces save error:", err);
@@ -291,7 +377,9 @@ export async function POST(request: NextRequest) {
         metadata: {
           address: report?.property?.address?.address,
           propertyType: report?.property?.propertyType,
-          estimatedValue: report?.property?.estimatedValue || report?.valuation?.estimatedValue,
+          estimatedValue:
+            report?.property?.estimatedValue ||
+            report?.valuation?.estimatedValue,
           city: report?.property?.address?.city,
           state: report?.property?.address?.state,
         },
@@ -307,7 +395,8 @@ export async function POST(request: NextRequest) {
         shareableUrl: `${baseUrl}/report/${reportId}`,
         htmlUrl,
         status: "hot",
-        message: "HOT LEAD saved! Share the link directly via SMS or copy the URL.",
+        message:
+          "HOT LEAD saved! Share the link directly via SMS or copy the URL.",
       });
     }
 
@@ -325,7 +414,14 @@ function generateShareableHTML(data: {
   savedAt: string;
   report: {
     property?: {
-      address?: { address?: string; city?: string; state?: string; zipCode?: string; zip?: string; county?: string };
+      address?: {
+        address?: string;
+        city?: string;
+        state?: string;
+        zipCode?: string;
+        zip?: string;
+        county?: string;
+      };
       yearBuilt?: number;
       squareFeet?: number;
       bedrooms?: number;
@@ -410,19 +506,33 @@ function generateShareableHTML(data: {
   const demographics = property.demographics || {};
 
   // Primary estimated value
-  const estimatedValue = property.estimatedValue || valuation.estimatedValue || 0;
-  const pricePerSqFt = valuation.pricePerSqFt || (property.squareFeet ? Math.round(estimatedValue / property.squareFeet) : 0);
-  const confidence = typeof valuation.confidence === 'number' ? valuation.confidence : 94;
+  const estimatedValue =
+    property.estimatedValue || valuation.estimatedValue || 0;
+  const pricePerSqFt =
+    valuation.pricePerSqFt ||
+    (property.squareFeet
+      ? Math.round(estimatedValue / property.squareFeet)
+      : 0);
+  const confidence =
+    typeof valuation.confidence === "number" ? valuation.confidence : 94;
 
   // Equity calculations
   const openMortgage = property.openMortgageBalance || mortgage.amount || 0;
-  const estimatedEquity = property.estimatedEquity || (estimatedValue - openMortgage) || 0;
-  const equityPercent = property.equityPercent || (estimatedValue > 0 ? Math.round((estimatedEquity / estimatedValue) * 100) : 0);
+  const estimatedEquity =
+    property.estimatedEquity || estimatedValue - openMortgage || 0;
+  const equityPercent =
+    property.equityPercent ||
+    (estimatedValue > 0
+      ? Math.round((estimatedEquity / estimatedValue) * 100)
+      : 0);
 
   // Owner info
-  const ownerName = property.ownerFullName ||
-    [property.owner1FirstName, property.owner1LastName].filter(Boolean).join(' ') ||
-    'Property Owner';
+  const ownerName =
+    property.ownerFullName ||
+    [property.owner1FirstName, property.owner1LastName]
+      .filter(Boolean)
+      .join(" ") ||
+    "Property Owner";
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -433,7 +543,9 @@ function generateShareableHTML(data: {
   };
 
   const fullAddress = address.address || data.name;
-  const location = [address.city, address.state, address.zipCode].filter(Boolean).join(", ");
+  const location = [address.city, address.state, address.zipCode]
+    .filter(Boolean)
+    .join(", ");
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -725,13 +837,17 @@ function generateShareableHTML(data: {
           <div class="label">Per Sq Ft</div>
         </div>
       </div>
-      ${property.freeClear || property.highEquity || property.preForeclosure ? `
+      ${
+        property.freeClear || property.highEquity || property.preForeclosure
+          ? `
       <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
-        ${property.freeClear ? '<span style="background: #22c55e; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.8em; font-weight: 600;">🏠 FREE & CLEAR</span>' : ''}
-        ${property.highEquity ? '<span style="background: #3b82f6; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.8em; font-weight: 600;">💎 HIGH EQUITY</span>' : ''}
-        ${property.preForeclosure ? '<span style="background: #ef4444; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.8em; font-weight: 600;">⚠️ PRE-FORECLOSURE</span>' : ''}
+        ${property.freeClear ? '<span style="background: #22c55e; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.8em; font-weight: 600;">🏠 FREE & CLEAR</span>' : ""}
+        ${property.highEquity ? '<span style="background: #3b82f6; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.8em; font-weight: 600;">💎 HIGH EQUITY</span>' : ""}
+        ${property.preForeclosure ? '<span style="background: #ef4444; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.8em; font-weight: 600;">⚠️ PRE-FORECLOSURE</span>' : ""}
       </div>
-      ` : ''}
+      `
+          : ""
+      }
     </div>
 
     <div class="content">
@@ -740,27 +856,27 @@ function generateShareableHTML(data: {
         <div class="property-grid">
           <div class="property-card">
             <div class="label">Type</div>
-            <div class="value">${property.propertyType || 'Single Family'}</div>
+            <div class="value">${property.propertyType || "Single Family"}</div>
           </div>
           <div class="property-card">
             <div class="label">Bedrooms</div>
-            <div class="value">${property.bedrooms || '—'}</div>
+            <div class="value">${property.bedrooms || "—"}</div>
           </div>
           <div class="property-card">
             <div class="label">Bathrooms</div>
-            <div class="value">${property.bathrooms || '—'}</div>
+            <div class="value">${property.bathrooms || "—"}</div>
           </div>
           <div class="property-card">
             <div class="label">Sq Ft</div>
-            <div class="value">${property.squareFeet?.toLocaleString() || '—'}</div>
+            <div class="value">${property.squareFeet?.toLocaleString() || "—"}</div>
           </div>
           <div class="property-card">
             <div class="label">Year Built</div>
-            <div class="value">${property.yearBuilt || '—'}</div>
+            <div class="value">${property.yearBuilt || "—"}</div>
           </div>
           <div class="property-card">
             <div class="label">Lot Size</div>
-            <div class="value">${property.lotSize ? property.lotSize.toLocaleString() + ' sf' : '—'}</div>
+            <div class="value">${property.lotSize ? property.lotSize.toLocaleString() + " sf" : "—"}</div>
           </div>
         </div>
       </div>
@@ -774,71 +890,97 @@ function generateShareableHTML(data: {
               <div class="metric-title">Property Owner</div>
             </div>
             <div class="metric-value" style="font-size: 1.2em; color: #c0c5d8;">${ownerName}</div>
-            ${property.mailingAddress ? `<div style="font-size: 0.8em; color: #8a8f9e; margin-top: 8px;">${property.mailingAddress}</div>` : ''}
+            ${property.mailingAddress ? `<div style="font-size: 0.8em; color: #8a8f9e; margin-top: 8px;">${property.mailingAddress}</div>` : ""}
           </div>
-          ${mortgage.lenderName || openMortgage > 0 ? `
+          ${
+            mortgage.lenderName || openMortgage > 0
+              ? `
           <div class="metric-card">
             <div class="metric-header">
               <div class="metric-title">Current Mortgage</div>
-              ${property.freeClear ? '<div class="metric-badge green">FREE & CLEAR</div>' : ''}
+              ${property.freeClear ? '<div class="metric-badge green">FREE & CLEAR</div>' : ""}
             </div>
-            <div class="metric-value">${openMortgage > 0 ? formatCurrency(openMortgage) : 'None'}</div>
-            ${mortgage.lenderName ? `<div style="font-size: 0.85em; color: #8a8f9e; margin-top: 8px;">Lender: <strong style="color: #c0c5d8;">${mortgage.lenderName}</strong></div>` : ''}
+            <div class="metric-value">${openMortgage > 0 ? formatCurrency(openMortgage) : "None"}</div>
+            ${mortgage.lenderName ? `<div style="font-size: 0.85em; color: #8a8f9e; margin-top: 8px;">Lender: <strong style="color: #c0c5d8;">${mortgage.lenderName}</strong></div>` : ""}
           </div>
-          ` : ''}
-          ${mortgage.interestRate ? `
+          `
+              : ""
+          }
+          ${
+            mortgage.interestRate
+              ? `
           <div class="metric-card">
             <div class="metric-header">
               <div class="metric-title">Interest Rate</div>
-              <div class="metric-badge">${mortgage.interestRateType || 'FIXED'}</div>
+              <div class="metric-badge">${mortgage.interestRateType || "FIXED"}</div>
             </div>
             <div class="metric-value">${mortgage.interestRate}%</div>
-            ${mortgage.loanType ? `<div style="font-size: 0.85em; color: #8a8f9e; margin-top: 8px;">Type: ${mortgage.loanType}</div>` : ''}
+            ${mortgage.loanType ? `<div style="font-size: 0.85em; color: #8a8f9e; margin-top: 8px;">Type: ${mortgage.loanType}</div>` : ""}
           </div>
-          ` : ''}
+          `
+              : ""
+          }
           <div class="metric-card">
             <div class="metric-header">
               <div class="metric-title">Equity Position</div>
-              <div class="metric-badge ${equityPercent >= 50 ? 'green' : ''}">${equityPercent}% EQUITY</div>
+              <div class="metric-badge ${equityPercent >= 50 ? "green" : ""}">${equityPercent}% EQUITY</div>
             </div>
             <div class="metric-value green">${formatCurrency(estimatedEquity)}</div>
           </div>
         </div>
-        ${mortgages.length > 1 ? `
+        ${
+          mortgages.length > 1
+            ? `
         <div style="margin-top: 20px; background: #0f1424; padding: 15px; border-radius: 10px;">
           <div style="font-size: 0.85em; color: #7ab3ff; margin-bottom: 10px; font-weight: 600;">📋 All Mortgages (${mortgages.length})</div>
-          ${mortgages.map((m) => `
+          ${mortgages
+            .map(
+              (m) => `
           <div style="padding: 10px; border-bottom: 1px solid #2a2f4a; display: flex; justify-content: space-between; align-items: center;">
             <div>
-              <div style="color: #c0c5d8; font-weight: 500;">${m.lenderName || 'Unknown Lender'}</div>
-              <div style="font-size: 0.8em; color: #8a8f9e;">${m.loanType || 'Mortgage'} ${m.position ? `• Position: ${m.position}` : ''}</div>
+              <div style="color: #c0c5d8; font-weight: 500;">${m.lenderName || "Unknown Lender"}</div>
+              <div style="font-size: 0.8em; color: #8a8f9e;">${m.loanType || "Mortgage"} ${m.position ? `• Position: ${m.position}` : ""}</div>
             </div>
             <div style="text-align: right;">
-              <div style="color: #7ab3ff; font-weight: 600;">${m.amount ? formatCurrency(m.amount) : '—'}</div>
-              <div style="font-size: 0.8em; color: #8a8f9e;">${m.interestRate ? `${m.interestRate}% ${m.interestRateType || ''}` : ''}</div>
+              <div style="color: #7ab3ff; font-weight: 600;">${m.amount ? formatCurrency(m.amount) : "—"}</div>
+              <div style="font-size: 0.8em; color: #8a8f9e;">${m.interestRate ? `${m.interestRate}% ${m.interestRateType || ""}` : ""}</div>
             </div>
           </div>
-          `).join('')}
+          `,
+            )
+            .join("")}
         </div>
-        ` : ''}
+        `
+            : ""
+        }
       </div>
 
       <!-- Tax & Demographics -->
-      ${property.taxAmount || demographics.medianIncome || demographics.suggestedRent ? `
+      ${
+        property.taxAmount ||
+        demographics.medianIncome ||
+        demographics.suggestedRent
+          ? `
       <div class="section">
         <div class="section-title">📊 Tax & Market Data</div>
         <div class="metrics-grid">
-          ${property.taxAmount ? `
+          ${
+            property.taxAmount
+              ? `
           <div class="metric-card">
             <div class="metric-header">
               <div class="metric-title">Annual Property Tax</div>
-              ${property.taxYear ? `<div class="metric-badge">${property.taxYear}</div>` : ''}
+              ${property.taxYear ? `<div class="metric-badge">${property.taxYear}</div>` : ""}
             </div>
             <div class="metric-value">${formatCurrency(property.taxAmount)}</div>
-            ${property.taxAssessedValue ? `<div style="font-size: 0.8em; color: #8a8f9e; margin-top: 8px;">Assessed: ${formatCurrency(property.taxAssessedValue)}</div>` : ''}
+            ${property.taxAssessedValue ? `<div style="font-size: 0.8em; color: #8a8f9e; margin-top: 8px;">Assessed: ${formatCurrency(property.taxAssessedValue)}</div>` : ""}
           </div>
-          ` : ''}
-          ${demographics.medianIncome ? `
+          `
+              : ""
+          }
+          ${
+            demographics.medianIncome
+              ? `
           <div class="metric-card">
             <div class="metric-header">
               <div class="metric-title">Area Median Income</div>
@@ -846,28 +988,40 @@ function generateShareableHTML(data: {
             </div>
             <div class="metric-value">${formatCurrency(demographics.medianIncome)}</div>
           </div>
-          ` : ''}
-          ${demographics.suggestedRent ? `
+          `
+              : ""
+          }
+          ${
+            demographics.suggestedRent
+              ? `
           <div class="metric-card">
             <div class="metric-header">
               <div class="metric-title">Suggested Rent</div>
               <div class="metric-badge green">FMR</div>
             </div>
             <div class="metric-value green">${formatCurrency(demographics.suggestedRent)}/mo</div>
-            ${demographics.fmrThreeBedroom ? `<div style="font-size: 0.8em; color: #8a8f9e; margin-top: 8px;">3BR FMR: ${formatCurrency(demographics.fmrThreeBedroom)}</div>` : ''}
+            ${demographics.fmrThreeBedroom ? `<div style="font-size: 0.8em; color: #8a8f9e; margin-top: 8px;">3BR FMR: ${formatCurrency(demographics.fmrThreeBedroom)}</div>` : ""}
           </div>
-          ` : ''}
-          ${address.county ? `
+          `
+              : ""
+          }
+          ${
+            address.county
+              ? `
           <div class="metric-card">
             <div class="metric-header">
               <div class="metric-title">County</div>
             </div>
             <div class="metric-value" style="font-size: 1.1em; color: #c0c5d8;">${address.county}</div>
           </div>
-          ` : ''}
+          `
+              : ""
+          }
         </div>
       </div>
-      ` : ''}
+      `
+          : ""
+      }
 
       <div class="section">
         <div class="section-title">💰 Valuation Analysis</div>
@@ -886,7 +1040,9 @@ function generateShareableHTML(data: {
             </div>
             <div class="metric-value">$${pricePerSqFt}</div>
           </div>
-          ${openMortgage > 0 ? `
+          ${
+            openMortgage > 0
+              ? `
           <div class="metric-card">
             <div class="metric-header">
               <div class="metric-title">Mortgage Balance</div>
@@ -894,15 +1050,19 @@ function generateShareableHTML(data: {
             </div>
             <div class="metric-value" style="color: #f87171;">${formatCurrency(openMortgage)}</div>
           </div>
-          ` : ''}
+          `
+              : ""
+          }
           <div class="metric-card">
             <div class="metric-header">
               <div class="metric-title">Confidence Score</div>
-              <div class="metric-badge green">${confidence >= 80 ? 'HIGH' : confidence >= 60 ? 'MEDIUM' : 'LOW'}</div>
+              <div class="metric-badge green">${confidence >= 80 ? "HIGH" : confidence >= 60 ? "MEDIUM" : "LOW"}</div>
             </div>
             <div class="metric-value">${confidence}%</div>
           </div>
-          ${valuation.comparableAvg ? `
+          ${
+            valuation.comparableAvg
+              ? `
           <div class="metric-card">
             <div class="metric-header">
               <div class="metric-title">Comparable Avg</div>
@@ -910,28 +1070,50 @@ function generateShareableHTML(data: {
             </div>
             <div class="metric-value">${formatCurrency(valuation.comparableAvg)}</div>
           </div>
-          ` : ''}
+          `
+              : ""
+          }
         </div>
       </div>
 
-      ${aiAnalysis.summary ? `
+      ${
+        aiAnalysis.summary
+          ? `
       <div class="section">
         <div class="section-title">🤖 AI Analysis</div>
         <div class="ai-summary">${aiAnalysis.summary}</div>
-        ${aiAnalysis.strengths && aiAnalysis.strengths.length > 0 ? `
+        ${
+          aiAnalysis.strengths && aiAnalysis.strengths.length > 0
+            ? `
         <ul class="strengths-list">
-          ${aiAnalysis.strengths.slice(0, 4).map(s => `<li>${s}</li>`).join('')}
+          ${aiAnalysis.strengths
+            .slice(0, 4)
+            .map((s) => `<li>${s}</li>`)
+            .join("")}
         </ul>
-        ` : ''}
-        ${aiAnalysis.risks && aiAnalysis.risks.length > 0 ? `
+        `
+            : ""
+        }
+        ${
+          aiAnalysis.risks && aiAnalysis.risks.length > 0
+            ? `
         <ul class="risks-list">
-          ${aiAnalysis.risks.slice(0, 3).map(r => `<li>${r}</li>`).join('')}
+          ${aiAnalysis.risks
+            .slice(0, 3)
+            .map((r) => `<li>${r}</li>`)
+            .join("")}
         </ul>
-        ` : ''}
+        `
+            : ""
+        }
       </div>
-      ` : ''}
+      `
+          : ""
+      }
 
-      ${comparables.length > 0 ? `
+      ${
+        comparables.length > 0
+          ? `
       <div class="section">
         <div class="section-title">📊 Comparable Sales</div>
         <table class="comp-table">
@@ -944,27 +1126,40 @@ function generateShareableHTML(data: {
             </tr>
           </thead>
           <tbody>
-            ${comparables.slice(0, 5).map((comp: Record<string, unknown>) => {
-              // Handle both object and string address formats
-              const compAddress = typeof comp.address === 'object' && comp.address !== null
-                ? ((comp.address as Record<string, unknown>).address || (comp.address as Record<string, unknown>).street || '—')
-                : (comp.address || '—');
-              const compBeds = comp.beds || comp.bedrooms || '—';
-              const compBaths = comp.baths || comp.bathrooms || '—';
-              const compSqft = comp.sqft || comp.squareFeet || comp.buildingSize;
-              const compPrice = comp.price || comp.lastSaleAmount || comp.estimatedValue || comp.avm;
-              return `
+            ${comparables
+              .slice(0, 5)
+              .map((comp: Record<string, unknown>) => {
+                // Handle both object and string address formats
+                const compAddress =
+                  typeof comp.address === "object" && comp.address !== null
+                    ? (comp.address as Record<string, unknown>).address ||
+                      (comp.address as Record<string, unknown>).street ||
+                      "—"
+                    : comp.address || "—";
+                const compBeds = comp.beds || comp.bedrooms || "—";
+                const compBaths = comp.baths || comp.bathrooms || "—";
+                const compSqft =
+                  comp.sqft || comp.squareFeet || comp.buildingSize;
+                const compPrice =
+                  comp.price ||
+                  comp.lastSaleAmount ||
+                  comp.estimatedValue ||
+                  comp.avm;
+                return `
             <tr>
               <td>${compAddress}</td>
               <td>${compBeds}/${compBaths}</td>
-              <td>${compSqft ? Numbersf(compSqft) : '—'}</td>
-              <td class="price-highlight">${compPrice ? formatCurrency(Number(compPrice)) : '—'}</td>
+              <td>${compSqft ? Numbersf(compSqft) : "—"}</td>
+              <td class="price-highlight">${compPrice ? formatCurrency(Number(compPrice)) : "—"}</td>
             </tr>`;
-            }).join('')}
+              })
+              .join("")}
           </tbody>
         </table>
       </div>
-      ` : ''}
+      `
+          : ""
+      }
     </div>
 
     <div class="footer">
@@ -978,7 +1173,7 @@ function generateShareableHTML(data: {
         <strong>Disclaimer:</strong> This report is for informational purposes only. Values are estimates based on market data and should not be considered professional appraisal or investment advice. Consult licensed professionals before making decisions.
       </div>
       <div class="footer-text">
-        <strong>Report Generated:</strong> ${new Date(data.savedAt).toLocaleDateString("en-US", { weekday: 'long', month: "long", day: "numeric", year: "numeric" })}<br>
+        <strong>Report Generated:</strong> ${new Date(data.savedAt).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}<br>
         <strong>Report ID:</strong> ${data.id}
       </div>
       <a href="${process.env.NEXT_PUBLIC_APP_URL || "https://monkfish-app-mb7h3.ondigitalocean.app"}" class="cta">View Full Report on NexTier</a>
@@ -1034,22 +1229,29 @@ export async function DELETE(request: NextRequest) {
     const id = searchParams.get("id");
 
     if (!path || !id) {
-      return NextResponse.json({ error: "Path and ID required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Path and ID required" },
+        { status: 400 },
+      );
     }
 
     // Remove from folder structure
     const parentPath = path.split("/").slice(0, -1).join("/") || "/";
     if (folderStructure[parentPath]) {
-      folderStructure[parentPath] = folderStructure[parentPath].filter(item => item.id !== id);
+      folderStructure[parentPath] = folderStructure[parentPath].filter(
+        (item) => item.id !== id,
+      );
     }
 
     // Try to delete from Spaces
     try {
       if (id.startsWith("report-")) {
-        await s3Client.send(new DeleteObjectCommand({
-          Bucket: SPACES_BUCKET,
-          Key: `${RESEARCH_PREFIX}reports/${id}.json`,
-        }));
+        await s3Client.send(
+          new DeleteObjectCommand({
+            Bucket: SPACES_BUCKET,
+            Key: `${RESEARCH_PREFIX}reports/${id}.json`,
+          }),
+        );
       }
     } catch (err) {
       console.log("[Research Library] Spaces delete error:", err);

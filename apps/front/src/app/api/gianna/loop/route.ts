@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { giannaLoopEngine, LeadEscalationState } from "@/lib/engines/gianna-loop-engine";
+import {
+  giannaLoopEngine,
+  LeadEscalationState,
+} from "@/lib/engines/gianna-loop-engine";
 import smsGiannaLoop from "@/lib/templates/sms_gianna_loop.json";
 
 // In-memory store for demo - in production, use PostgreSQL
@@ -37,7 +40,7 @@ export async function GET(request: NextRequest) {
       if (!preview) {
         return NextResponse.json(
           { error: `No template for step ${step}` },
-          { status: 404 }
+          { status: 404 },
         );
       }
 
@@ -55,7 +58,7 @@ export async function GET(request: NextRequest) {
       if (!state) {
         return NextResponse.json(
           { error: `Lead not found: ${leadId}` },
-          { status: 404 }
+          { status: 404 },
         );
       }
 
@@ -86,7 +89,7 @@ export async function GET(request: NextRequest) {
     console.error("[Gianna Loop API] GET error:", error);
     return NextResponse.json(
       { error: "Failed to get loop data" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -95,7 +98,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { action, lead_id, campaign_id, phone, first_name, company_name } = body;
+    const { action, lead_id, campaign_id, phone, first_name, company_name } =
+      body;
 
     switch (action) {
       case "start": {
@@ -103,7 +107,7 @@ export async function POST(request: NextRequest) {
         if (!lead_id || !phone || !first_name) {
           return NextResponse.json(
             { error: "lead_id, phone, and first_name are required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -147,7 +151,7 @@ export async function POST(request: NextRequest) {
         if (!lead_id) {
           return NextResponse.json(
             { error: "lead_id is required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -155,7 +159,7 @@ export async function POST(request: NextRequest) {
         if (!state) {
           return NextResponse.json(
             { error: `Lead not found: ${lead_id}` },
-            { status: 404 }
+            { status: 404 },
           );
         }
 
@@ -186,7 +190,7 @@ export async function POST(request: NextRequest) {
         if (!lead_id) {
           return NextResponse.json(
             { error: "lead_id is required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -194,7 +198,7 @@ export async function POST(request: NextRequest) {
         if (!state) {
           return NextResponse.json(
             { error: `Lead not found: ${lead_id}` },
-            { status: 404 }
+            { status: 404 },
           );
         }
 
@@ -214,7 +218,7 @@ export async function POST(request: NextRequest) {
         if (!lead_id) {
           return NextResponse.json(
             { error: "lead_id is required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -222,7 +226,7 @@ export async function POST(request: NextRequest) {
         if (!state) {
           return NextResponse.json(
             { error: `Lead not found: ${lead_id}` },
-            { status: 404 }
+            { status: 404 },
           );
         }
 
@@ -242,7 +246,7 @@ export async function POST(request: NextRequest) {
         if (!lead_id) {
           return NextResponse.json(
             { error: "lead_id is required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -250,7 +254,7 @@ export async function POST(request: NextRequest) {
         if (!state) {
           return NextResponse.json(
             { error: `Lead not found: ${lead_id}` },
-            { status: 404 }
+            { status: 404 },
           );
         }
 
@@ -268,7 +272,7 @@ export async function POST(request: NextRequest) {
       case "process_batch": {
         // Process all active loops
         const activeStates = Array.from(leadStates.values()).filter(
-          (s) => !s.is_completed && !s.is_paused
+          (s) => !s.is_completed && !s.is_paused,
         );
 
         const results = await giannaLoopEngine.processLeadBatch(activeStates);
@@ -287,7 +291,9 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        const successCount = Array.from(results.values()).filter((r) => r.success).length;
+        const successCount = Array.from(results.values()).filter(
+          (r) => r.success,
+        ).length;
 
         return NextResponse.json({
           success: true,
@@ -301,14 +307,17 @@ export async function POST(request: NextRequest) {
       default:
         return NextResponse.json(
           { error: `Unknown action: ${action}` },
-          { status: 400 }
+          { status: 400 },
         );
     }
   } catch (error) {
     console.error("[Gianna Loop API] POST error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to process request" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to process request",
+      },
+      { status: 500 },
     );
   }
 }

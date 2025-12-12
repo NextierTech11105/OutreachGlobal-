@@ -34,7 +34,9 @@ const weeklySchedule = new Map<string, string[]>(); // weekKey -> content IDs
 
 function getWeekKey(date: Date): string {
   const year = date.getFullYear();
-  const week = Math.ceil((date.getDate() + new Date(year, date.getMonth(), 1).getDay()) / 7);
+  const week = Math.ceil(
+    (date.getDate() + new Date(year, date.getMonth(), 1).getDay()) / 7,
+  );
   return `${year}-W${week.toString().padStart(2, "0")}`;
 }
 
@@ -59,23 +61,29 @@ export async function POST(request: NextRequest) {
     } = body;
 
     if (!title || !url || !publishDate) {
-      return NextResponse.json({
-        error: "title, url, and publishDate required",
-        example: {
-          title: "5 Ways to Maximize Your Property Value",
-          url: "https://medium.com/@yourcompany/article-slug",
-          description: "Quick tips for homeowners",
-          publishDate: "2025-03-15",
-          channel: "sms",
-          targetAudience: "property",
+      return NextResponse.json(
+        {
+          error: "title, url, and publishDate required",
+          example: {
+            title: "5 Ways to Maximize Your Property Value",
+            url: "https://medium.com/@yourcompany/article-slug",
+            description: "Quick tips for homeowners",
+            publishDate: "2025-03-15",
+            channel: "sms",
+            targetAudience: "property",
+          },
         },
-      }, { status: 400 });
+        { status: 400 },
+      );
     }
 
     // Validate publish date is in the future
     const pubDate = new Date(publishDate);
     if (pubDate < new Date()) {
-      return NextResponse.json({ error: "publishDate must be in the future" }, { status: 400 });
+      return NextResponse.json(
+        { error: "publishDate must be in the future" },
+        { status: 400 },
+      );
     }
 
     const content: ScheduledContent = {
@@ -101,7 +109,9 @@ export async function POST(request: NextRequest) {
     weekContent.push(content.id);
     weeklySchedule.set(weekKey, weekContent);
 
-    console.log(`[Content Calendar] Scheduled "${title}" for ${publishDate} (${weekKey})`);
+    console.log(
+      `[Content Calendar] Scheduled "${title}" for ${publishDate} (${weekKey})`,
+    );
 
     return NextResponse.json({
       success: true,
@@ -110,7 +120,10 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("[Content Calendar] Error:", error);
-    return NextResponse.json({ error: "Failed to schedule content" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to schedule content" },
+      { status: 500 },
+    );
   }
 }
 
@@ -129,14 +142,17 @@ export async function GET(request: NextRequest) {
 
     // All content for this user
     const allContent = Array.from(contentCalendar.values())
-      .filter(c => c.createdBy === userId)
-      .sort((a, b) => new Date(a.publishDate).getTime() - new Date(b.publishDate).getTime());
+      .filter((c) => c.createdBy === userId)
+      .sort(
+        (a, b) =>
+          new Date(a.publishDate).getTime() - new Date(b.publishDate).getTime(),
+      );
 
     if (view === "week" && weekKey) {
       // Get content for specific week
       const weekContentIds = weeklySchedule.get(weekKey) || [];
       const weekContent = weekContentIds
-        .map(id => contentCalendar.get(id))
+        .map((id) => contentCalendar.get(id))
         .filter(Boolean) as ScheduledContent[];
 
       return NextResponse.json({
@@ -171,7 +187,7 @@ export async function GET(request: NextRequest) {
 
     // Default: upcoming content
     const now = new Date();
-    const upcoming = allContent.filter(c => new Date(c.publishDate) >= now);
+    const upcoming = allContent.filter((c) => new Date(c.publishDate) >= now);
 
     return NextResponse.json({
       upcoming: upcoming.slice(0, 20),
@@ -180,7 +196,10 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("[Content Calendar] Error:", error);
-    return NextResponse.json({ error: "Failed to get calendar" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to get calendar" },
+      { status: 500 },
+    );
   }
 }
 
@@ -225,7 +244,10 @@ export async function PATCH(request: NextRequest) {
     });
   } catch (error) {
     console.error("[Content Calendar] Error:", error);
-    return NextResponse.json({ error: "Failed to update content" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to update content" },
+      { status: 500 },
+    );
   }
 }
 
@@ -258,7 +280,10 @@ export async function DELETE(request: NextRequest) {
     // Remove from weekly schedule
     const weekKey = getWeekKey(new Date(content.publishDate));
     const weekContent = weeklySchedule.get(weekKey) || [];
-    weeklySchedule.set(weekKey, weekContent.filter(cid => cid !== id));
+    weeklySchedule.set(
+      weekKey,
+      weekContent.filter((cid) => cid !== id),
+    );
 
     return NextResponse.json({
       success: true,
@@ -266,6 +291,9 @@ export async function DELETE(request: NextRequest) {
     });
   } catch (error) {
     console.error("[Content Calendar] Error:", error);
-    return NextResponse.json({ error: "Failed to delete content" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to delete content" },
+      { status: 500 },
+    );
   }
 }
