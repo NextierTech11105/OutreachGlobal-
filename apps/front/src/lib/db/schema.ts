@@ -216,7 +216,7 @@ export const leads = pgTable(
     listedDate: date("listed_date"),
     listingPrice: integer("listing_price"),
     mlsNumber: text("mls_number"),
-    daysOnMarket: integer("dom"),
+    dom: integer("dom"),
     priceReduced: boolean("price_reduced").default(false),
     // === Quality Flags ===
     needsRepair: boolean("needs_repair").default(false),
