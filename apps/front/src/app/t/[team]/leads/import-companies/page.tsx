@@ -83,6 +83,52 @@ const revenuePresets = [
   { label: "$100M+", min: 100000000, max: 10000000000 },
 ];
 
+// Industries/SIC codes highly associated with property
+const PROPERTY_RELATED_INDUSTRIES = [
+  "real estate",
+  "property management",
+  "construction",
+  "contractor",
+  "roofing",
+  "plumbing",
+  "hvac",
+  "electrical",
+  "landscaping",
+  "home services",
+  "home improvement",
+  "mortgage",
+  "title",
+  "escrow",
+  "insurance",
+  "appraisal",
+  "inspection",
+  "moving",
+  "storage",
+  "cleaning",
+  "renovation",
+  "remodeling",
+  "flooring",
+  "painting",
+  "windows",
+  "doors",
+  "solar",
+  "pest control",
+  "security",
+  "interior design",
+  "architecture",
+  "engineering",
+];
+
+// Check if a company is property-related
+function isPropertyRelated(company: { industry?: string; name?: string }): boolean {
+  const industry = (company.industry || "").toLowerCase();
+  const name = (company.name || "").toLowerCase();
+
+  return PROPERTY_RELATED_INDUSTRIES.some(keyword =>
+    industry.includes(keyword) || name.includes(keyword)
+  );
+}
+
 interface Company {
   id: string;
   name: string;
@@ -97,6 +143,12 @@ interface Company {
   phone: string;
   linkedin_url: string;
   founded_year: number;
+  email?: string;
+  // Data source tracking
+  source?: "apollo" | "usbizdata";
+  sourceLabel?: string;
+  // Property association tag
+  propertyRelated?: boolean;
   // Business address (for cross-referencing with property data)
   address?: string;
   // Enrichment data
@@ -250,7 +302,12 @@ export default function ImportCompaniesPage() {
         return;
       }
       setEstimatedCount(data.estimatedTotalHits || 0);
-      setHits(data.hits || []);
+      // Tag property-related businesses
+      const taggedHits = (data.hits || []).map((company: Company) => ({
+        ...company,
+        propertyRelated: isPropertyRelated(company),
+      }));
+      setHits(taggedHits);
       setCurrentPage(data.page || page);
       setTotalPages(data.total_pages || 1);
     } catch (error) {
@@ -263,6 +320,125 @@ export default function ImportCompaniesPage() {
   const goToPage = (page: number) => {
     if (page >= 1 && page <= totalPages) {
       searchCompanies(page);
+    }
+  };
+
+  // Single company quick enrich
+  const enrichSingleCompany = async (companyId: string) => {
+    const company = hits.find((c) => c.id === companyId);
+    if (!company) return;
+
+    // Mark as enriching in UI
+    setHits((prev) =>
+      prev.map((c) =>
+        c.id === companyId ? { ...c, enriched: false } : c
+      )
+    );
+
+    const titlePriority = ["owner", "ceo", "partner", "sales manager", "founder", "president", "director", "vp", "general manager"];
+
+    try {
+      // Step 1: Apollo People Search
+      let ownerFirstName = "";
+      let ownerLastName = "";
+      let ownerTitle = "";
+      let apolloEmail = "";
+
+      const apolloResponse = await fetch("/api/people/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          company: company.name,
+          domain: company.domain,
+        }),
+      });
+
+      const apolloData = await apolloResponse.json();
+
+      if (apolloData.success && apolloData.data) {
+        const people = Array.isArray(apolloData.data) ? apolloData.data : [apolloData.data];
+        const scoredPeople = people.map((p: { title?: string; firstName?: string; lastName?: string; name?: string; email?: string }) => {
+          const title = (p.title || "").toLowerCase();
+          let score = 100;
+          for (let idx = 0; idx < titlePriority.length; idx++) {
+            if (title.includes(titlePriority[idx])) {
+              score = idx;
+              break;
+            }
+          }
+          return { ...p, score };
+        });
+
+        scoredPeople.sort((a: { score: number }, b: { score: number }) => a.score - b.score);
+        const bestPerson = scoredPeople[0];
+
+        if (bestPerson) {
+          ownerFirstName = bestPerson.firstName || "";
+          ownerLastName = bestPerson.lastName || "";
+          ownerTitle = bestPerson.title || "";
+          apolloEmail = bestPerson.email || "";
+
+          if (!ownerFirstName && !ownerLastName && bestPerson.name) {
+            const nameParts = bestPerson.name.split(" ");
+            ownerFirstName = nameParts[0] || "";
+            ownerLastName = nameParts.slice(1).join(" ") || "";
+          }
+        }
+      }
+
+      // Step 2: Skip trace if we have a name
+      let phones: string[] = [];
+      let emails: string[] = apolloEmail ? [apolloEmail] : [];
+      let propertyAddresses: Array<{ street: string; city: string; state: string; zip: string }> = [];
+
+      if (ownerFirstName || ownerLastName) {
+        const skipTraceResponse = await fetch("/api/skip-trace", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            firstName: ownerFirstName,
+            lastName: ownerLastName,
+            city: company.city,
+            state: company.state,
+          }),
+        });
+
+        const skipData = await skipTraceResponse.json();
+
+        if (skipData.success) {
+          phones = skipData.phones?.map((p: { number: string }) => p.number) || [];
+          emails = [...new Set([apolloEmail, ...(skipData.emails?.map((e: { email: string }) => e.email) || [])].filter(Boolean))];
+          propertyAddresses = skipData.addresses?.map((a: { street?: string; address?: string; city?: string; state?: string; zip?: string }) => ({
+            street: a.street || a.address || "",
+            city: a.city || "",
+            state: a.state || "",
+            zip: a.zip || "",
+          })).filter((a: { street: string }) => a.street) || [];
+        }
+      }
+
+      // Update the company with enrichment data
+      setHits((prev) =>
+        prev.map((c) =>
+          c.id === companyId
+            ? {
+                ...c,
+                enriched: true,
+                enrichedPhones: phones,
+                enrichedEmails: emails,
+                ownerName: `${ownerFirstName} ${ownerLastName}`.trim(),
+                ownerTitle,
+                propertyAddresses,
+                propertyCount: propertyAddresses.length,
+              }
+            : c
+        )
+      );
+
+      toast.success(`Enriched ${company.name} - ${phones.length} phones, ${emails.length} emails`);
+    } catch (error) {
+      console.error("Single enrich error:", error);
+      toast.error(`Failed to enrich ${company.name}`);
     }
   };
 
@@ -292,12 +468,13 @@ export default function ImportCompaniesPage() {
     let withProperties = 0;
     let totalProperties = 0;
 
-    // Decision maker title priority (in order)
+    // Decision maker title priority (in order of importance)
     const titlePriority = [
       "owner",
       "ceo",
-      "founder",
+      "partner",
       "sales manager",
+      "founder",
       "president",
       "director",
       "vp",
@@ -636,7 +813,7 @@ export default function ImportCompaniesPage() {
         <div className="mb-4">
           <TeamTitle>Company Search</TeamTitle>
           <p className="text-muted-foreground">
-            Search and build lists of companies using Apollo.io
+            Search 65M+ companies from Apollo.io (All US) + USBizData (5.5M NY businesses)
           </p>
         </div>
 
@@ -790,13 +967,14 @@ export default function ImportCompaniesPage() {
                     <TableHead>Phones</TableHead>
                     <TableHead>Emails</TableHead>
                     <TableHead>Website</TableHead>
+                    <TableHead className="w-[100px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
 
                 <TableBody>
                   {!loading && !hits?.length && (
                     <TableRow>
-                      <TableCell colSpan={10} className="text-center py-8">
+                      <TableCell colSpan={11} className="text-center py-8">
                         {totalFilters > 0 || debouncedQuery
                           ? "No companies found"
                           : "Enter a search term or select filters to find companies"}
@@ -822,20 +1000,49 @@ export default function ImportCompaniesPage() {
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
                           {company.name || "-"}
-                          {company.enriched && (
+                          {company.enriched ? (
                             <Badge
                               variant="outline"
                               className="text-xs bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
                             >
-                              Enriched
+                              ✓ Enriched
+                            </Badge>
+                          ) : (
+                            <Badge
+                              variant="outline"
+                              className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300"
+                            >
+                              Needs Enrichment
                             </Badge>
                           )}
                         </div>
-                        {company.ownerName && (
-                          <div className="text-xs text-muted-foreground mt-1">
-                            Owner: {company.ownerName}
-                          </div>
-                        )}
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                          {company.source && (
+                            <Badge
+                              variant="secondary"
+                              className={`text-xs ${
+                                company.source === "apollo"
+                                  ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+                                  : "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300"
+                              }`}
+                            >
+                              {company.source === "apollo" ? "Apollo" : "USBizData NY"}
+                            </Badge>
+                          )}
+                          {company.propertyRelated && (
+                            <Badge
+                              variant="secondary"
+                              className="text-xs bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300"
+                            >
+                              🏠 Property Related
+                            </Badge>
+                          )}
+                          {company.ownerName && (
+                            <span className="text-xs text-muted-foreground">
+                              Owner: {company.ownerName}
+                            </span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>{company.industry || "-"}</TableCell>
                       <TableCell>
@@ -979,6 +1186,24 @@ export default function ImportCompaniesPage() {
                           </a>
                         ) : (
                           "-"
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {company.enriched ? (
+                          <div className="flex items-center gap-1">
+                            <PhoneCall className="h-4 w-4 text-green-600" />
+                            <span className="text-xs text-green-600">Ready</span>
+                          </div>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs bg-purple-50 hover:bg-purple-100 border-purple-200"
+                            onClick={() => enrichSingleCompany(company.id)}
+                          >
+                            <Sparkles className="h-3 w-3 mr-1 text-purple-600" />
+                            Enrich
+                          </Button>
                         )}
                       </TableCell>
                     </TableRow>

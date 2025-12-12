@@ -7,11 +7,36 @@ import {
 } from "../types/business-list.type";
 import { SearchFacetsArgs } from "../args/facet.args";
 
+/**
+ * Business List Service
+ *
+ * Data Sources (in priority order):
+ * 1. Apollo.io API (275M+ contacts, 60M+ companies)
+ * 2. Fallback: Legacy Pushbutton API if configured
+ */
 @Injectable()
 export class BusinessListService {
   private http: AxiosInstance;
+  private apolloHttp: AxiosInstance;
+  private useApollo: boolean;
+
   constructor(private configService: ConfigService) {
     const API_URL = this.configService.get("BUSINESS_LIST_API_URL");
+    const APOLLO_KEY = this.configService.get("APOLLO_IO_API_KEY");
+
+    // Use Apollo if key is configured
+    this.useApollo = !!APOLLO_KEY;
+
+    // Apollo API client
+    this.apolloHttp = axios.create({
+      baseURL: "https://api.apollo.io/v1",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Api-Key": APOLLO_KEY || "",
+      },
+    });
+
+    // Legacy Pushbutton API client (fallback)
     this.http = axios.create({
       baseURL: API_URL,
       headers: {
