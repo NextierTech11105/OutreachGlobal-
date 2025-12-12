@@ -16,9 +16,15 @@ import { auth } from "@clerk/nextjs/server";
 // GET - List leads with filtering and pagination
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    let userId: string | null = null;
+    try {
+      const authResult = await auth();
+      userId = authResult.userId;
+    } catch {
+      // Auth not available
+    }
     if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized", message: "Please sign in to view leads" }, { status: 401 });
     }
 
     const { searchParams } = new URL(request.url);

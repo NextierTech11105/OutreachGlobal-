@@ -201,6 +201,10 @@ async function enrichSinglePerson(params: {
   revealEmails?: boolean;
   revealPhones?: boolean;
 }): Promise<ApolloPersonResult | null> {
+  if (!APOLLO_API_KEY) {
+    throw new Error("APOLLO_API_KEY not configured");
+  }
+
   const response = await fetch(APOLLO_PEOPLE_SINGLE_URL, {
     method: "POST",
     headers: {
@@ -219,7 +223,8 @@ async function enrichSinglePerson(params: {
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
-    throw new Error(error.message || "Enrichment failed");
+    const errorMsg = error.message || error.error || `Apollo API returned ${response.status}`;
+    throw new Error(errorMsg);
   }
 
   const data = await response.json();

@@ -134,7 +134,6 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const bucketId = searchParams.get("id");
-    const userId = "system"; // Placeholder
 
     if (bucketId) {
       // Get specific bucket with stats
@@ -150,13 +149,13 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      // Get lead stats
+      // Get lead stats with standard SQL (compatible with all PostgreSQL versions)
       const leadStats = await db
         .select({
           total: sql<number>`count(*)`,
-          enriched: sql<number>`count(*) filter (where enrichment_status = 'completed')`,
-          withPhones: sql<number>`count(*) filter (where phone is not null)`,
-          contacted: sql<number>`count(*) filter (where status != 'new')`,
+          enriched: sql<number>`sum(case when enrichment_status = 'completed' then 1 else 0 end)`,
+          withPhones: sql<number>`sum(case when phone is not null then 1 else 0 end)`,
+          contacted: sql<number>`sum(case when status != 'new' then 1 else 0 end)`,
         })
         .from(leads)
         .where(eq(leads.bucketId, bucketId));
@@ -165,7 +164,12 @@ export async function GET(request: NextRequest) {
         success: true,
         bucket: {
           ...bucket,
-          stats: leadStats[0],
+          stats: {
+            total: Number(leadStats[0]?.total) || 0,
+            enriched: Number(leadStats[0]?.enriched) || 0,
+            withPhones: Number(leadStats[0]?.withPhones) || 0,
+            contacted: Number(leadStats[0]?.contacted) || 0,
+          },
         },
       });
     }
@@ -197,7 +201,7 @@ export async function GET(request: NextRequest) {
   } catch (error: unknown) {
     const message =
       error instanceof Error ? error.message : "Failed to get buckets";
-    console.error("[Bucket] Get error:", error);
+    console.error("[Property Bucket] Get error:", error);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
