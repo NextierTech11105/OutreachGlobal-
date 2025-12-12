@@ -2,13 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { S3Client, ListObjectsV2Command, GetObjectCommand } from "@aws-sdk/client-s3";
 
 /**
- * Business List Companies Search
+ * Business List Search - CONTACTS with Company Data
  *
  * Data Sources:
- * 1. Apollo.io API - 60M+ companies across US
- * 2. USBizData NY Datalake - 5.5M NY businesses in DO Spaces
+ * 1. Apollo.io People API - 275M+ contacts with titles (Owner, CEO, etc.)
+ * 2. USBizData NY Datalake - 5.5M NY business contacts in DO Spaces
  *
- * When searching NY state, results are merged from both sources.
+ * Returns PEOPLE/CONTACTS (not just companies) - includes name, title, email, phone
  */
 
 const APOLLO_API_BASE = "https://api.apollo.io/v1";
@@ -31,9 +31,37 @@ const s3Client = new S3Client({
   forcePathStyle: false,
 });
 
-interface Company {
+// Decision maker titles to filter by (priority order)
+const DECISION_MAKER_TITLES = [
+  "Owner",
+  "CEO",
+  "Chief Executive Officer",
+  "Partner",
+  "Sales Manager",
+  "President",
+  "Founder",
+  "Co-Founder",
+  "Managing Director",
+  "Principal",
+  "VP",
+  "Vice President",
+  "Director",
+  "General Manager",
+];
+
+interface Contact {
   id: string;
+  // Contact info
+  firstName: string;
+  lastName: string;
   name: string;
+  title: string;
+  email: string;
+  phone: string;
+  mobile: string; // Mobile/cell phone
+  linkedin_url: string;
+  // Company info
+  company: string;
   domain: string;
   website: string;
   industry: string;
@@ -42,10 +70,7 @@ interface Company {
   city: string;
   state: string;
   country: string;
-  phone: string;
-  linkedin_url: string;
-  founded_year: number;
-  email?: string;
+  // Source tracking
   source: "apollo" | "usbizdata";
   sourceLabel: string;
 }
@@ -58,6 +83,7 @@ export async function POST(request: NextRequest) {
       state,
       industry,
       city,
+      title, // Filter by title (Owner, CEO, etc.)
       revenueMin,
       revenueMax,
       page = 1,
@@ -71,10 +97,10 @@ export async function POST(request: NextRequest) {
       (!state?.length || state.some((s: string) => s.toUpperCase() === "NY" || s.toLowerCase() === "new york"));
 
     // Run both queries in parallel
-    const promises: Promise<{ hits: Company[]; total: number }>[] = [];
+    const promises: Promise<{ hits: Contact[]; total: number }>[] = [];
 
     if (includeApollo && APOLLO_API_KEY) {
-      promises.push(searchApollo({ name, state, industry, city, revenueMin, revenueMax, page, per_page }));
+      promises.push(searchApolloPeople({ name, state, industry, city, title, revenueMin, revenueMax, page, per_page }));
     }
 
     if (includeUSBizData && SPACES_KEY && SPACES_SECRET) {
@@ -92,7 +118,7 @@ export async function POST(request: NextRequest) {
     const results = await Promise.allSettled(promises);
 
     // Merge results
-    let allHits: Company[] = [];
+    let allHits: Contact[] = [];
     let totalEstimate = 0;
 
     results.forEach((result) => {
@@ -102,8 +128,13 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    // Sort by name and dedupe by similar company names
-    allHits.sort((a, b) => a.name.localeCompare(b.name));
+    // Sort by title priority (Owner first, then CEO, etc.)
+    allHits.sort((a, b) => {
+      const aScore = getTitlePriority(a.title);
+      const bScore = getTitlePriority(b.title);
+      if (aScore !== bScore) return aScore - bScore;
+      return a.company.localeCompare(b.company);
+    });
 
     return NextResponse.json({
       hits: allHits.slice(0, per_page),
@@ -112,42 +143,63 @@ export async function POST(request: NextRequest) {
       per_page,
       total_pages: Math.ceil(totalEstimate / per_page),
       sources: {
-        apollo: includeApollo && APOLLO_API_KEY ? "enabled" : "disabled",
+        apollo: includeApollo && APOLLO_API_KEY ? "enabled (275M+ contacts)" : "disabled",
         usbizdata: includeUSBizData && SPACES_KEY ? "enabled (NY)" : "disabled",
       },
     });
   } catch (error: unknown) {
-    console.error("Business list companies search error:", error);
+    console.error("Business list search error:", error);
     return NextResponse.json(
-      { error: "Company search failed", hits: [], estimatedTotalHits: 0 },
+      { error: "Contact search failed", hits: [], estimatedTotalHits: 0 },
       { status: 200 },
     );
   }
 }
 
+// Get title priority (lower = higher priority)
+function getTitlePriority(title: string): number {
+  const t = (title || "").toLowerCase();
+  for (let i = 0; i < DECISION_MAKER_TITLES.length; i++) {
+    if (t.includes(DECISION_MAKER_TITLES[i].toLowerCase())) {
+      return i;
+    }
+  }
+  return 100;
+}
+
 /**
- * Search Apollo.io API
+ * Search Apollo.io People API - Returns CONTACTS with titles, emails, phones
  */
-async function searchApollo(params: {
+async function searchApolloPeople(params: {
   name?: string;
   state?: string[];
   industry?: string[];
   city?: string[];
+  title?: string[];
   revenueMin?: number;
   revenueMax?: number;
   page: number;
   per_page: number;
-}): Promise<{ hits: Company[]; total: number }> {
-  const { name, state, industry, city, revenueMin, revenueMax, page, per_page } = params;
+}): Promise<{ hits: Contact[]; total: number }> {
+  const { name, state, industry, city, title, revenueMin, revenueMax, page, per_page } = params;
 
-  // Build Apollo organization search parameters
+  // Build Apollo PEOPLE search parameters
   const searchParams: Record<string, unknown> = {
     page: Math.max(1, page),
     per_page: Math.min(per_page, 100),
   };
 
+  // Search by name or company
   if (name) {
     searchParams.q_organization_name = name;
+  }
+
+  // Filter by titles - default to decision makers
+  if (title?.length) {
+    searchParams.person_titles = title;
+  } else {
+    // Default: search for owners, CEOs, partners, sales managers
+    searchParams.person_titles = DECISION_MAKER_TITLES;
   }
 
   if (industry?.length) {
@@ -160,12 +212,13 @@ async function searchApollo(params: {
     searchParams.organization_revenue_in = [`${minRevenue},${maxRevenue}`];
   }
 
+  // Location filter
   if (state?.length) {
-    searchParams.organization_locations = state.map(
+    searchParams.person_locations = state.map(
       (s: string) => `United States, ${s}`,
     );
   } else if (name || industry?.length || revenueMin || revenueMax) {
-    searchParams.organization_locations = ["United States"];
+    searchParams.person_locations = ["United States"];
   }
 
   if (city?.length) {
@@ -175,13 +228,14 @@ async function searchApollo(params: {
       }
       return `${c}, United States`;
     });
-    searchParams.organization_locations = [
-      ...((searchParams.organization_locations as string[]) || []),
+    searchParams.person_locations = [
+      ...((searchParams.person_locations as string[]) || []),
       ...cityLocations,
     ];
   }
 
-  const response = await fetch(`${APOLLO_API_BASE}/mixed_companies/search`, {
+  // Use mixed_people/search to get CONTACTS with emails, phones, titles
+  const response = await fetch(`${APOLLO_API_BASE}/mixed_people/search`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -191,44 +245,63 @@ async function searchApollo(params: {
   });
 
   if (!response.ok) {
-    console.error("Apollo company search error:", await response.text());
+    console.error("Apollo people search error:", await response.text());
     return { hits: [], total: 0 };
   }
 
   const data = await response.json();
 
-  const hits: Company[] = (data.organizations || data.accounts || []).map(
-    (org: {
+  // Transform Apollo people results to Contact format
+  const hits: Contact[] = (data.people || []).map(
+    (person: {
       id: string;
+      first_name?: string;
+      last_name?: string;
       name?: string;
-      website_url?: string;
-      primary_domain?: string;
-      industry?: string;
-      estimated_num_employees?: number;
-      annual_revenue?: number;
+      title?: string;
+      email?: string;
+      phone_numbers?: Array<{ sanitized_number?: string; type?: string }>;
       city?: string;
       state?: string;
       country?: string;
-      phone?: string;
       linkedin_url?: string;
-      founded_year?: number;
-    }) => ({
-      id: org.id,
-      name: org.name || "",
-      domain: org.primary_domain || org.website_url?.replace(/^https?:\/\//, "").replace(/\/$/, "") || "",
-      website: org.website_url || "",
-      industry: org.industry || "",
-      employees: org.estimated_num_employees || 0,
-      revenue: org.annual_revenue ? org.annual_revenue * 100 : 0,
-      city: org.city || "",
-      state: org.state || "",
-      country: org.country || "United States",
-      phone: org.phone || "",
-      linkedin_url: org.linkedin_url || "",
-      founded_year: org.founded_year || 0,
-      source: "apollo" as const,
-      sourceLabel: "Apollo.io (60M+)",
-    }),
+      organization?: {
+        name?: string;
+        website_url?: string;
+        primary_domain?: string;
+        industry?: string;
+        estimated_num_employees?: number;
+        annual_revenue?: number;
+      };
+    }) => {
+      // Extract phones - separate direct and mobile
+      const phones = person.phone_numbers || [];
+      const directPhone = phones.find(p => p.type === "work" || p.type === "direct")?.sanitized_number || phones[0]?.sanitized_number || "";
+      const mobilePhone = phones.find(p => p.type === "mobile" || p.type === "cell")?.sanitized_number || "";
+
+      return {
+        id: person.id,
+        firstName: person.first_name || "",
+        lastName: person.last_name || "",
+        name: person.name || `${person.first_name || ""} ${person.last_name || ""}`.trim(),
+        title: person.title || "",
+        email: person.email || "",
+        phone: directPhone,
+        mobile: mobilePhone,
+        linkedin_url: person.linkedin_url || "",
+        company: person.organization?.name || "",
+        domain: person.organization?.primary_domain || person.organization?.website_url?.replace(/^https?:\/\//, "").replace(/\/$/, "") || "",
+        website: person.organization?.website_url || "",
+        industry: person.organization?.industry || "",
+        employees: person.organization?.estimated_num_employees || 0,
+        revenue: person.organization?.annual_revenue ? person.organization.annual_revenue * 100 : 0,
+        city: person.city || "",
+        state: person.state || "",
+        country: person.country || "United States",
+        source: "apollo" as const,
+        sourceLabel: "Apollo.io (275M+)",
+      };
+    },
   );
 
   return {
@@ -238,7 +311,8 @@ async function searchApollo(params: {
 }
 
 /**
- * Search USBizData NY Datalake (5.5M NY businesses)
+ * Search USBizData NY Datalake (5.5M NY business contacts)
+ * Returns CONTACTS (not just companies) with names, titles, phones
  * Stored in DO Spaces: datalake/business/ny/
  */
 async function searchUSBizDataNY(params: {
@@ -247,7 +321,7 @@ async function searchUSBizDataNY(params: {
   industry?: string[];
   page: number;
   per_page: number;
-}): Promise<{ hits: Company[]; total: number }> {
+}): Promise<{ hits: Contact[]; total: number }> {
   const { name, city, industry, page, per_page } = params;
 
   try {
@@ -263,10 +337,10 @@ async function searchUSBizDataNY(params: {
 
     if (files.length === 0) {
       console.log("[USBizData] No NY business files found in datalake");
-      return { hits: [], total: 5514091 }; // Return known total for estimate
+      return { hits: [], total: 5514091 };
     }
 
-    const hits: Company[] = [];
+    const hits: Contact[] = [];
     const maxResults = per_page;
     const skipRecords = (page - 1) * per_page;
     let recordsFound = 0;
@@ -275,10 +349,10 @@ async function searchUSBizDataNY(params: {
       if (hits.length >= maxResults) break;
 
       try {
-        const data = await fetchAndParseBusiness(file.Key!, {
+        const data = await fetchAndParseContacts(file.Key!, {
           companyName: name,
           city: city?.[0],
-          sicCode: industry?.[0], // Map industry to SIC code if possible
+          sicCode: industry?.[0],
         }, maxResults - hits.length, skipRecords - recordsFound);
 
         hits.push(...data.records);
@@ -291,7 +365,7 @@ async function searchUSBizDataNY(params: {
 
     return {
       hits,
-      total: 5514091, // Known total from schema
+      total: 5514091,
     };
   } catch (error) {
     console.error("[USBizData] Search error:", error);
@@ -320,14 +394,15 @@ async function listCsvFiles(prefix: string) {
 }
 
 /**
- * Fetch and parse business CSV from DO Spaces
+ * Fetch and parse business contacts from DO Spaces CSV
+ * Returns Contact format with firstName, lastName, title, etc.
  */
-async function fetchAndParseBusiness(
+async function fetchAndParseContacts(
   key: string,
   filters: { companyName?: string; city?: string; sicCode?: string },
   maxResults: number,
   skipRecords: number,
-): Promise<{ records: Company[]; totalMatched: number }> {
+): Promise<{ records: Contact[]; totalMatched: number }> {
   const response = await s3Client.send(
     new GetObjectCommand({
       Bucket: SPACES_BUCKET,
@@ -342,7 +417,7 @@ async function fetchAndParseBusiness(
   if (lines.length < 2) return { records: [], totalMatched: 0 };
 
   const headers = parseCsvLine(lines[0]);
-  const records: Company[] = [];
+  const records: Contact[] = [];
   let totalMatched = 0;
   let skipped = 0;
 
@@ -372,28 +447,37 @@ async function fetchAndParseBusiness(
 
     totalMatched++;
 
-    // Handle pagination skip
     if (skipped < skipRecords) {
       skipped++;
       continue;
     }
 
-    // Transform to Company format
+    // Extract contact name parts
+    const fullName = row["Contact Name"] || row["Owner Name"] || row["contactName"] || "";
+    const nameParts = fullName.split(" ");
+    const firstName = row["First Name"] || row["firstName"] || nameParts[0] || "";
+    const lastName = row["Last Name"] || row["lastName"] || nameParts.slice(1).join(" ") || "";
+
+    // Transform to Contact format
     records.push({
       id: `usbiz-${i}-${Date.now()}`,
-      name: row["Company Name"] || row["companyName"] || "",
+      firstName,
+      lastName,
+      name: fullName || `${firstName} ${lastName}`.trim(),
+      title: row["Title"] || row["title"] || row["Job Title"] || "Owner",
+      email: row["Email Address"] || row["email"] || row["Email"] || "",
+      phone: row["Phone Number"] || row["phone"] || row["Direct Phone"] || "",
+      mobile: row["Mobile"] || row["Cell Phone"] || row["cell"] || "",
+      linkedin_url: row["LinkedIn URL"] || row["linkedin"] || "",
+      company: row["Company Name"] || row["companyName"] || "",
       domain: (row["Website URL"] || row["website"] || "").replace(/^https?:\/\//, "").replace(/\/$/, ""),
       website: row["Website URL"] || row["website"] || "",
-      industry: row["SIC Description"] || row["sicDescription"] || "",
+      industry: row["SIC Description"] || row["sicDescription"] || row["Industry"] || "",
       employees: parseInt(row["Number of Employees"] || row["employeeCount"] || "0") || 0,
       revenue: parseInt(row["Annual Revenue"] || row["annualRevenue"] || "0") || 0,
       city: row["City"] || row["city"] || "",
       state: row["State"] || row["state"] || "NY",
       country: "United States",
-      phone: row["Phone Number"] || row["phone"] || "",
-      email: row["Email Address"] || row["email"] || "",
-      linkedin_url: "",
-      founded_year: 0,
       source: "usbizdata" as const,
       sourceLabel: "USBizData NY (5.5M)",
     });
