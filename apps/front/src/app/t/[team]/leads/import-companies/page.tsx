@@ -36,6 +36,7 @@ import {
   Send,
   CalendarPlus,
   MessageSquare,
+  ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatNumber } from "@/lib/formatter";
@@ -128,6 +129,13 @@ function isPropertyRelated(company: { industry?: string; name?: string }): boole
   );
 }
 
+interface PhoneInfo {
+  number: string;
+  type?: string; // 'mobile' | 'landline' | 'voip' | 'unknown'
+  verified?: boolean;
+  carrier?: string;
+}
+
 interface Company {
   id: string;
   name: string; // Contact name (person)
@@ -145,6 +153,7 @@ interface Company {
   zip?: string;
   country: string;
   phone: string;
+  phoneType?: string; // 'mobile' | 'landline' | 'voip' | 'unknown'
   mobile?: string; // Cell/mobile phone
   linkedin_url: string;
   founded_year: number;
@@ -158,7 +167,7 @@ interface Company {
   address?: string;
   // Enrichment data
   enriched?: boolean;
-  enrichedPhones?: string[];
+  enrichedPhones?: PhoneInfo[];
   enrichedEmails?: string[];
   ownerName?: string;
   ownerTitle?: string;
@@ -226,6 +235,9 @@ export default function ImportCompaniesPage() {
     failed: number;
     total: number;
   } | null>(null);
+
+  // Phone validation state
+  const [validatingPhones, setValidatingPhones] = useState(false);
 
   const searchParams = useMemo(() => {
     return {
@@ -441,7 +453,7 @@ export default function ImportCompaniesPage() {
       }
 
       // Step 3: Skip trace if we have a name (for personal cell + property portfolio)
-      let phones: string[] = companyPhone ? [companyPhone] : [];
+      let phones: PhoneInfo[] = companyPhone ? [{ number: companyPhone, type: "unknown" }] : [];
       let emails: string[] = apolloEmail ? [apolloEmail] : [];
       let propertyAddresses: Array<{ street: string; city: string; state: string; zip: string }> = [];
 
@@ -464,8 +476,21 @@ export default function ImportCompaniesPage() {
         const skipData = await skipTraceResponse.json();
 
         if (skipData.success) {
-          const skipPhones = skipData.phones?.map((p: { number: string }) => p.number) || [];
-          phones = [...new Set([...phones, ...skipPhones])];
+          // RealEstateAPI returns phones with type info: { phone, phoneType, isConnected, doNotCall }
+          const skipPhones: PhoneInfo[] = skipData.phones?.map((p: { number: string; type?: string }) => ({
+            number: p.number,
+            type: p.type?.toLowerCase() || "unknown",
+          })) || [];
+
+          // Merge phones, avoiding duplicates
+          const existingNumbers = new Set(phones.map(p => p.number));
+          for (const sp of skipPhones) {
+            if (!existingNumbers.has(sp.number)) {
+              phones.push(sp);
+              existingNumbers.add(sp.number);
+            }
+          }
+
           const skipEmails = skipData.emails?.map((e: { email: string }) => e.email) || [];
           emails = [...new Set([...emails, ...skipEmails].filter(Boolean))];
           propertyAddresses = skipData.addresses?.map((a: { street?: string; address?: string; city?: string; state?: string; zip?: string }) => ({
@@ -637,7 +662,7 @@ export default function ImportCompaniesPage() {
 
           // STEP 3: RealEstateAPI Skip Trace to get cell phone + property data
           // This costs $0.05 per record but gives us cell + property portfolio!
-          let phones: string[] = companyPhone ? [companyPhone] : [];
+          let phones: PhoneInfo[] = companyPhone ? [{ number: companyPhone, type: "unknown" }] : [];
           let emails: string[] = apolloEmail ? [apolloEmail] : [];
 
           if (ownerFirstName || ownerLastName) {
@@ -659,10 +684,20 @@ export default function ImportCompaniesPage() {
             const skipData = await skipTraceResponse.json();
 
             if (skipData.success) {
-              // Combine Apollo data with skip trace phones
-              const skipPhones =
-                skipData.phones?.map((p: { number: string }) => p.number) || [];
-              phones = [...new Set([...phones, ...skipPhones])];
+              // RealEstateAPI returns phones with type info: { phone, phoneType, isConnected, doNotCall }
+              const skipPhones: PhoneInfo[] = skipData.phones?.map((p: { number: string; type?: string }) => ({
+                number: p.number,
+                type: p.type?.toLowerCase() || "unknown",
+              })) || [];
+
+              // Merge phones, avoiding duplicates
+              const existingNumbers = new Set(phones.map(p => p.number));
+              for (const sp of skipPhones) {
+                if (!existingNumbers.has(sp.number)) {
+                  phones.push(sp);
+                  existingNumbers.add(sp.number);
+                }
+              }
 
               const skipEmails =
                 skipData.emails?.map((e: { email: string }) => e.email) || [];
@@ -811,22 +846,44 @@ export default function ImportCompaniesPage() {
   // Send SMS via SignalHouse
   const sendSmsToSelected = async () => {
     // Get phones from selected companies (both Apollo phone and enriched phones)
-    const phonesToSms: string[] = [];
+    // Filter out landlines - they can't receive SMS
+    const phonesToSms: PhoneInfo[] = [];
     hits
       .filter((c) => selectedCompanies.has(c.id))
       .forEach((company) => {
-        if (company.phone) phonesToSms.push(company.phone);
-        if (company.enrichedPhones) phonesToSms.push(...company.enrichedPhones);
+        if (company.phone) {
+          phonesToSms.push({ number: company.phone, type: company.phoneType || "unknown" });
+        }
+        if (company.enrichedPhones) {
+          phonesToSms.push(...company.enrichedPhones);
+        }
       });
 
-    const uniquePhones = [...new Set(phonesToSms)].filter(
-      (p) => p && p.length > 5,
-    );
+    // Deduplicate and filter out landlines
+    const uniquePhonesMap = new Map<string, PhoneInfo>();
+    for (const p of phonesToSms) {
+      if (p.number && p.number.length > 5 && !uniquePhonesMap.has(p.number)) {
+        uniquePhonesMap.set(p.number, p);
+      }
+    }
 
-    if (uniquePhones.length === 0) {
-      toast.error("No phone numbers found in selected companies");
+    // Separate by type for reporting
+    const allPhones = Array.from(uniquePhonesMap.values());
+    const landlines = allPhones.filter(p => p.type === "landline");
+    const smsablePhones = allPhones.filter(p => p.type !== "landline");
+
+    if (smsablePhones.length === 0) {
+      toast.error(landlines.length > 0
+        ? `All ${landlines.length} phone numbers are landlines (cannot receive SMS)`
+        : "No phone numbers found in selected companies");
       return;
     }
+
+    if (landlines.length > 0) {
+      toast.info(`Skipping ${landlines.length} landline number${landlines.length > 1 ? "s" : ""}`);
+    }
+
+    const uniquePhones = smsablePhones.map(p => p.number);
 
     if (!smsMessage.trim()) {
       toast.error("Enter a message to send");
@@ -877,16 +934,100 @@ export default function ImportCompaniesPage() {
     }
   };
 
-  // Get phone count for selected companies
-  const getSelectedPhoneCount = () => {
-    const phones: string[] = [];
+  // Get phone counts for selected companies (with type breakdown)
+  const getSelectedPhoneStats = () => {
+    const phones: PhoneInfo[] = [];
     hits
       .filter((c) => selectedCompanies.has(c.id))
       .forEach((company) => {
-        if (company.phone) phones.push(company.phone);
+        if (company.phone) phones.push({ number: company.phone, type: company.phoneType || "unknown" });
         if (company.enrichedPhones) phones.push(...company.enrichedPhones);
       });
-    return new Set(phones.filter((p) => p && p.length > 5)).size;
+
+    // Deduplicate by number
+    const uniquePhones = Array.from(
+      new Map(phones.filter(p => p.number && p.number.length > 5).map(p => [p.number, p])).values()
+    );
+
+    const mobile = uniquePhones.filter(p => p.type === "mobile" || p.type === "cell").length;
+    const voip = uniquePhones.filter(p => p.type === "voip").length;
+    const landline = uniquePhones.filter(p => p.type === "landline").length;
+    const unknown = uniquePhones.filter(p => !p.type || p.type === "unknown").length;
+
+    return { total: uniquePhones.length, mobile, voip, landline, unknown, phones: uniquePhones };
+  };
+
+  // Legacy helper
+  const getSelectedPhoneCount = () => getSelectedPhoneStats().total;
+
+  // Validate phone types using SignalHouse carrier lookup
+  const validateSelectedPhones = async () => {
+    const stats = getSelectedPhoneStats();
+    if (stats.total === 0) {
+      toast.error("No phone numbers to validate");
+      return;
+    }
+
+    setValidatingPhones(true);
+
+    try {
+      const response = await fetch("/api/signalhouse", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "batch_verify",
+          phones: stats.phones.map(p => p.number),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      // Update company records with validated phone types
+      const validatedMap = new Map<string, { type: string; valid: boolean }>();
+      for (const result of data.results || []) {
+        validatedMap.set(result.phone, {
+          type: result.type || "unknown",
+          valid: result.valid,
+        });
+      }
+
+      // Update hits with validated phone types
+      setHits((prev) =>
+        prev.map((company) => {
+          // Update phone if matched
+          if (company.phone && validatedMap.has(company.phone)) {
+            company.phoneType = validatedMap.get(company.phone)?.type;
+          }
+
+          // Update enriched phones
+          if (company.enrichedPhones?.length) {
+            company.enrichedPhones = company.enrichedPhones.map((p) => {
+              const validated = validatedMap.get(p.number);
+              if (validated) {
+                return { ...p, type: validated.type, verified: validated.valid };
+              }
+              return p;
+            });
+          }
+
+          return company;
+        })
+      );
+
+      toast.success(
+        `Validated ${data.verified} phones: ${data.mobile} mobile, ${data.valid - data.mobile} other`
+      );
+    } catch (error) {
+      console.error("Phone validation error:", error);
+      toast.error("Failed to validate phones");
+    } finally {
+      setValidatingPhones(false);
+    }
   };
 
   // Search when filters change (reset to page 1)
@@ -1030,6 +1171,19 @@ export default function ImportCompaniesPage() {
                 <Send size={18} className="mr-2" />
                 SMS ({getSelectedPhoneCount()})
               </Button>
+              <Button
+                onClick={validateSelectedPhones}
+                disabled={validatingPhones || selectedCompanies.size === 0}
+                variant="outline"
+                title="Validate phone line types (mobile/landline/VOIP)"
+              >
+                {validatingPhones ? (
+                  <Loader2 size={18} className="mr-2 animate-spin" />
+                ) : (
+                  <ShieldCheck size={18} className="mr-2" />
+                )}
+                Validate
+              </Button>
             </div>
 
             <Card className="relative overflow-hidden">
@@ -1106,10 +1260,30 @@ export default function ImportCompaniesPage() {
                         </div>
                       </TableCell>
 
-                      {/* Phone */}
+                      {/* Phone + Type */}
                       <TableCell>
                         {company.enrichedPhones?.length > 0 ? (
-                          <span className="text-green-600 font-medium">{company.enrichedPhones[0]}</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-green-600 font-medium">{company.enrichedPhones[0].number}</span>
+                            {company.enrichedPhones[0].type && (
+                              <Badge
+                                variant="outline"
+                                className={`text-[10px] px-1 py-0 ${
+                                  company.enrichedPhones[0].type === "mobile"
+                                    ? "bg-green-50 text-green-700 border-green-300"
+                                    : company.enrichedPhones[0].type === "voip"
+                                    ? "bg-yellow-50 text-yellow-700 border-yellow-300"
+                                    : company.enrichedPhones[0].type === "landline"
+                                    ? "bg-red-50 text-red-700 border-red-300"
+                                    : "bg-gray-50 text-gray-500 border-gray-300"
+                                }`}
+                              >
+                                {company.enrichedPhones[0].type === "mobile" ? "M" :
+                                 company.enrichedPhones[0].type === "voip" ? "V" :
+                                 company.enrichedPhones[0].type === "landline" ? "L" : "?"}
+                              </Badge>
+                            )}
+                          </div>
                         ) : company.phone ? (
                           <span>{company.phone}</span>
                         ) : (
@@ -1427,13 +1601,61 @@ export default function ImportCompaniesPage() {
           </DialogHeader>
 
           <div className="space-y-4 py-4">
-            <div className="text-sm text-muted-foreground">
-              Sending to{" "}
-              <span className="font-bold text-foreground">
-                {getSelectedPhoneCount()}
-              </span>{" "}
-              phone numbers from {selectedCompanies.size} companies
-            </div>
+            {/* Phone Type Breakdown */}
+            {(() => {
+              const stats = getSelectedPhoneStats();
+              return (
+                <div className="space-y-2">
+                  <div className="text-sm text-muted-foreground">
+                    Sending to{" "}
+                    <span className="font-bold text-foreground">
+                      {stats.total}
+                    </span>{" "}
+                    phone numbers from {selectedCompanies.size} companies
+                  </div>
+
+                  {/* Type breakdown badges */}
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    {stats.mobile > 0 && (
+                      <Badge className="bg-green-100 text-green-700 border-green-300">
+                        {stats.mobile} Mobile
+                      </Badge>
+                    )}
+                    {stats.voip > 0 && (
+                      <Badge className="bg-yellow-100 text-yellow-700 border-yellow-300">
+                        {stats.voip} VOIP
+                      </Badge>
+                    )}
+                    {stats.landline > 0 && (
+                      <Badge className="bg-red-100 text-red-700 border-red-300">
+                        {stats.landline} Landline
+                      </Badge>
+                    )}
+                    {stats.unknown > 0 && (
+                      <Badge variant="outline" className="text-gray-500">
+                        {stats.unknown} Unknown
+                      </Badge>
+                    )}
+                  </div>
+
+                  {/* Warning for landlines */}
+                  {stats.landline > 0 && (
+                    <div className="rounded-md bg-red-50 border border-red-200 p-2 text-xs text-red-700">
+                      <strong>Warning:</strong> {stats.landline} landline number{stats.landline > 1 ? "s" : ""} detected.
+                      SMS to landlines will fail. Consider removing landlines or enriching for mobile numbers.
+                    </div>
+                  )}
+
+                  {/* Warning for unknown types */}
+                  {stats.unknown > 0 && stats.landline === 0 && (
+                    <div className="rounded-md bg-yellow-50 border border-yellow-200 p-2 text-xs text-yellow-700">
+                      <strong>Note:</strong> {stats.unknown} phone{stats.unknown > 1 ? "s" : ""} with unknown line type.
+                      Consider validating phone types before sending.
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Quick B2B Templates */}
             <div className="space-y-2">
