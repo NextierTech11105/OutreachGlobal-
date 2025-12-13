@@ -316,18 +316,25 @@ export function TeamMainNav() {
   return (
     <div className="flex flex-col gap-1">
       {navGroups.map((group, groupIndex) => (
-        <SidebarGroup key={groupIndex} className="py-0">
-          <SidebarGroupLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-2 py-1.5">
-            {group.label}
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {group.items.map((item, itemIndex) =>
-                renderNavItem(item, itemIndex),
-              )}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        <Collapsible key={groupIndex} defaultOpen={false} className="group/nav-section">
+          <SidebarGroup className="py-0">
+            <CollapsibleTrigger asChild>
+              <SidebarGroupLabel className="text-sm font-semibold text-foreground px-3 py-2.5 cursor-pointer hover:bg-muted/50 rounded-md transition-colors flex items-center justify-between w-full">
+                <span>{group.label}</span>
+                <ChevronRightIcon className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]/nav-section:rotate-90" />
+              </SidebarGroupLabel>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <SidebarGroupContent className="pl-2">
+                <SidebarMenu>
+                  {group.items.map((item, itemIndex) =>
+                    renderNavItem(item, itemIndex),
+                  )}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </CollapsibleContent>
+          </SidebarGroup>
+        </Collapsible>
       ))}
     </div>
   );
