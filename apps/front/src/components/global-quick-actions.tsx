@@ -250,7 +250,7 @@ export function GlobalQuickActions() {
       <CalendarDashboard />
 
       {/* Floating Action Button */}
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col-reverse items-end gap-2">
+      <div className="fixed bottom-32 right-6 z-50 flex flex-col-reverse items-end gap-2">
         {/* Expanded Actions */}
         {isExpanded && (
           <div className="flex flex-col gap-2 mb-2 animate-in slide-in-from-bottom-2 fade-in duration-200">
