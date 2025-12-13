@@ -264,12 +264,15 @@ export default function DataHubPage() {
                 </Button>
               </Link>
               <Link href={`/t/${params.team}/campaigns`} className="block">
-                <Button className="w-full h-24 text-lg bg-green-600 hover:bg-green-700 text-white flex flex-col gap-2">
-                  <Mail className="h-8 w-8" />
-                  EMAIL
+                <Button className="w-full h-24 text-lg bg-purple-600 hover:bg-purple-700 text-white flex flex-col gap-2">
+                  <Zap className="h-8 w-8" />
+                  SEQUENCES
                 </Button>
               </Link>
             </div>
+            <p className="text-xs text-zinc-500 text-center mt-2">
+              Sequences = automated multi-step campaigns (SMS + Email + Call)
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -400,8 +403,8 @@ export default function DataHubPage() {
           </Link>
           <Link href={`/t/${params.team}/campaigns`}>
             <Button size="sm" variant="ghost" className="w-full justify-start text-zinc-400 hover:text-white hover:bg-zinc-800">
-              <Mail className="h-4 w-4 mr-2 text-purple-400" />
-              Campaigns
+              <Zap className="h-4 w-4 mr-2 text-purple-400" />
+              Sequences
             </Button>
           </Link>
           <Link href={`/t/${params.team}/leads`}>
