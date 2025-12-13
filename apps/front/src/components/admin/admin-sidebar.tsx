@@ -7,20 +7,13 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   BarChart3,
-  Users,
   Settings,
   Database,
-  Workflow,
-  Clock,
   Bot,
   Zap,
   LayoutGrid,
   Megaphone,
   ChevronRight,
-  Cable,
-  Target,
-  CreditCard,
-  Building2,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -38,13 +31,10 @@ type NavItem = {
 
 export function AdminSidebar() {
   const pathname = usePathname();
+  // Start all sections collapsed for cleaner look
   const [expandedSections, setExpandedSections] = useState<
     Record<string, boolean>
-  >({
-    "Campaign Management": true,
-    "Data Management": true,
-    Integrations: true,
-  });
+  >({});
 
   const toggleSection = (label: string) => {
     setExpandedSections((prev) => ({
@@ -61,36 +51,46 @@ export function AdminSidebar() {
       active: pathname === "/admin",
     },
     {
-      href: "/admin/billing",
-      label: "Billing & Revenue",
-      icon: <CreditCard className="h-4 w-4 text-green-400" />,
-      active: pathname === "/admin/billing",
+      label: "Data Sources",
+      icon: <Database className="h-4 w-4" />,
+      active:
+        pathname.startsWith("/admin/data") ||
+        pathname === "/admin/b2b" ||
+        pathname === "/admin/mcp",
+      children: [
+        {
+          href: "/admin/b2b",
+          label: "B2B Lead Search",
+          active: pathname === "/admin/b2b",
+        },
+        {
+          href: "/admin/mcp",
+          label: "MCP Lead Tracker",
+          active: pathname === "/admin/mcp",
+        },
+        {
+          href: "/admin/data/import",
+          label: "Data Import",
+          active: pathname === "/admin/data/import",
+        },
+        {
+          href: "/admin/data/schema",
+          label: "Data Schema",
+          active: pathname === "/admin/data/schema",
+        },
+        {
+          href: "/admin/data/verification",
+          label: "Verification",
+          active: pathname === "/admin/data/verification",
+        },
+      ],
     },
     {
-      href: "/admin/mcp",
-      label: "MCP Lead Tracker",
-      icon: <Target className="h-4 w-4 text-purple-400" />,
-      active: pathname === "/admin/mcp",
-    },
-    {
-      href: "/admin/b2b",
-      label: "B2B Lead Search",
-      icon: <Building2 className="h-4 w-4 text-blue-400" />,
-      active: pathname === "/admin/b2b",
-    },
-    {
-      href: "/admin/users",
-      label: "User Management",
-      icon: <Users className="h-4 w-4" />,
-      active: pathname === "/admin/users",
-    },
-    {
-      label: "Campaign Management",
+      label: "Campaigns",
       icon: <Megaphone className="h-4 w-4" />,
       active:
         pathname.startsWith("/admin/campaigns") ||
-        pathname === "/admin/message-templates" ||
-        pathname === "/admin/prompt-library",
+        pathname === "/admin/message-templates",
       children: [
         {
           href: "/admin/campaigns/scoring",
@@ -112,32 +112,36 @@ export function AdminSidebar() {
           label: "Message Templates",
           active: pathname === "/admin/message-templates",
         },
+      ],
+    },
+    {
+      label: "AI & Automation",
+      icon: <Bot className="h-4 w-4" />,
+      active:
+        pathname === "/admin/ai-sdr" ||
+        pathname === "/admin/prompt-library" ||
+        pathname === "/admin/workflows" ||
+        pathname === "/admin/batch-jobs",
+      children: [
+        {
+          href: "/admin/ai-sdr",
+          label: "AI SDR Avatars",
+          active: pathname === "/admin/ai-sdr",
+        },
         {
           href: "/admin/prompt-library",
           label: "Prompt Library",
           active: pathname === "/admin/prompt-library",
         },
-      ],
-    },
-    {
-      label: "Data Management",
-      icon: <Database className="h-4 w-4" />,
-      active: pathname.startsWith("/admin/data"),
-      children: [
         {
-          href: "/admin/data/import",
-          label: "Data Import",
-          active: pathname === "/admin/data/import",
+          href: "/admin/workflows",
+          label: "Workflows",
+          active: pathname === "/admin/workflows",
         },
         {
-          href: "/admin/data/schema",
-          label: "Data Schema",
-          active: pathname === "/admin/data/schema",
-        },
-        {
-          href: "/admin/data/verification",
-          label: "Verification Settings",
-          active: pathname === "/admin/data/verification",
+          href: "/admin/batch-jobs",
+          label: "Batch Jobs",
+          active: pathname === "/admin/batch-jobs",
         },
       ],
     },
@@ -147,24 +151,19 @@ export function AdminSidebar() {
       active: pathname.startsWith("/admin/integrations"),
       children: [
         {
-          href: "/admin/integrations/api",
-          label: "API Settings",
-          active: pathname === "/admin/integrations/api",
+          href: "/admin/integrations/signalhouse",
+          label: "SignalHouse SMS",
+          active: pathname === "/admin/integrations/signalhouse",
         },
         {
           href: "/admin/integrations/twilio",
-          label: "Twilio Settings",
+          label: "Twilio",
           active: pathname === "/admin/integrations/twilio",
         },
         {
           href: "/admin/integrations/sendgrid",
           label: "SendGrid Email",
           active: pathname === "/admin/integrations/sendgrid",
-        },
-        {
-          href: "/admin/integrations/signalhouse",
-          label: "SignalHouse SMS",
-          active: pathname === "/admin/integrations/signalhouse",
         },
         {
           href: "/admin/integrations/apollo",
@@ -176,31 +175,37 @@ export function AdminSidebar() {
           label: "LLM Settings",
           active: pathname === "/admin/integrations/llm-settings",
         },
+        {
+          href: "/admin/integrations/api",
+          label: "API Keys",
+          active: pathname === "/admin/integrations/api",
+        },
       ],
     },
     {
-      href: "/admin/workflows",
-      label: "Workflows",
-      icon: <Workflow className="h-4 w-4" />,
-      active: pathname === "/admin/workflows",
-    },
-    {
-      href: "/admin/batch-jobs",
-      label: "Batch Jobs",
-      icon: <Clock className="h-4 w-4" />,
-      active: pathname === "/admin/batch-jobs",
-    },
-    {
-      href: "/admin/ai-sdr",
-      label: "AI SDR Avatars",
-      icon: <Bot className="h-4 w-4" />,
-      active: pathname === "/admin/ai-sdr",
-    },
-    {
-      href: "/admin/system",
-      label: "System Settings",
+      label: "Settings",
       icon: <Settings className="h-4 w-4" />,
-      active: pathname === "/admin/system",
+      active:
+        pathname === "/admin/users" ||
+        pathname === "/admin/billing" ||
+        pathname === "/admin/system",
+      children: [
+        {
+          href: "/admin/users",
+          label: "Users",
+          active: pathname === "/admin/users",
+        },
+        {
+          href: "/admin/billing",
+          label: "Billing & Revenue",
+          active: pathname === "/admin/billing",
+        },
+        {
+          href: "/admin/system",
+          label: "System",
+          active: pathname === "/admin/system",
+        },
+      ],
     },
   ];
 
