@@ -1,77 +1,65 @@
 # DO Functions Project Configuration
 # Namespace: sea-turtle-fn-namespace (NYC1)
+# NOTE: Configure environment variables in DO Dashboard after deployment
 
 packages:
   - name: enrichment
-    environment:
-      APOLLO_API_KEY: ${APOLLO_API_KEY}
-      REALESTATE_API_KEY: ${REALESTATE_API_KEY}
-      DO_SPACES_KEY: ${DO_SPACES_KEY}
-      DO_SPACES_SECRET: ${DO_SPACES_SECRET}
-      DO_SPACES_ENDPOINT: ${DO_SPACES_ENDPOINT}
-      DO_SPACES_BUCKET: ${DO_SPACES_BUCKET}
     functions:
       - name: enrich-lead
         runtime: nodejs:18
         main: index.js
-        timeout: 30000
-        memory: 256
         web: true
+        limits:
+          timeout: 30000
+          memory: 256
       - name: batch-enrich
         runtime: nodejs:18
         main: index.js
-        timeout: 300000
-        memory: 512
         web: true
+        limits:
+          timeout: 300000
+          memory: 512
 
   - name: data
-    environment:
-      DO_SPACES_KEY: ${DO_SPACES_KEY}
-      DO_SPACES_SECRET: ${DO_SPACES_SECRET}
-      DO_SPACES_ENDPOINT: ${DO_SPACES_ENDPOINT}
-      DO_SPACES_BUCKET: ${DO_SPACES_BUCKET}
     functions:
       - name: csv-processor
         runtime: nodejs:18
         main: index.js
-        timeout: 300000
-        memory: 1024
         web: true
+        limits:
+          timeout: 300000
+          memory: 1024
       - name: export-csv
         runtime: nodejs:18
         main: index.js
-        timeout: 120000
-        memory: 512
         web: true
+        limits:
+          timeout: 120000
+          memory: 512
 
   - name: webhooks
-    environment:
-      SIGNALHOUSE_API_KEY: ${SIGNALHOUSE_API_KEY}
-      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID}
-      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN}
-      DATABASE_URL: ${DATABASE_URL}
     functions:
       - name: sms-inbound
         runtime: nodejs:18
         main: index.js
-        timeout: 10000
-        memory: 256
         web: true
+        limits:
+          timeout: 10000
+          memory: 256
       - name: voice-inbound
         runtime: nodejs:18
         main: index.js
-        timeout: 10000
-        memory: 256
         web: true
+        limits:
+          timeout: 10000
+          memory: 256
 
   - name: ai
-    environment:
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
     functions:
       - name: generate-sms
         runtime: nodejs:18
         main: index.js
-        timeout: 60000
-        memory: 256
         web: true
+        limits:
+          timeout: 60000
+          memory: 256

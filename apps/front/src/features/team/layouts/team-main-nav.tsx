@@ -9,14 +9,11 @@ import {
   ChevronRightIcon,
   FileTextIcon,
   FolderOpenIcon,
-  GiftIcon,
   HomeIcon,
   LayersIcon,
-  ListTodoIcon,
   MailIcon,
   MegaphoneIcon,
   PhoneIcon,
-  SearchIcon,
   SendIcon,
   ShieldIcon,
   SparkleIcon,
@@ -26,6 +23,7 @@ import {
 import {
   SidebarGroup,
   SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -36,7 +34,6 @@ import {
 import { useActivePath } from "@/hooks/use-active-path";
 import { useParams, usePathname } from "next/navigation";
 import { TeamLink } from "../components/team-link";
-import { Fragment } from "react";
 import Link from "next/link";
 import {
   Collapsible,
@@ -44,169 +41,190 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 
-const items = [
+// Organized navigation groups
+const navGroups = [
   {
-    title: "Dashboard",
-    path: "/",
-    icon: HomeIcon,
-    exact: true,
-  },
-  {
-    title: "Data Hub",
-    path: "/data-hub",
-    icon: ZapIcon,
-  },
-  {
-    title: "Properties",
-    path: "/properties",
-    icon: BuildingIcon,
-  },
-  {
-    title: "Sectors",
-    path: "/sectors",
-    icon: LayersIcon,
-  },
-  // {
-  //   title: "Search",
-  //   path: "/search",
-  //   icon: SearchIcon,
-  // },
-  {
-    title: "Campaigns",
-    path: "/campaigns",
-    icon: MegaphoneIcon,
-    items: [
-      {
-        title: "All Campaigns",
-        path: "/campaigns",
-        exact: true,
-      },
-      {
-        title: "Automation Rules",
-        path: "/automation-rules",
-      },
-      {
-        title: "Message Templates",
-        path: "/message-templates",
-      },
-    ],
-  },
-  {
-    title: "Leads",
-    path: "/leads",
-    icon: UsersIcon,
-  },
-  // {
-  //   title: "Power Dialers",
-  //   path: "/power-dialers",
-  //   icon: PhoneIcon,
-  // },
-  {
-    title: "Analytics",
-    path: "/analytics",
-    icon: BarChartIcon,
-  },
-  {
-    title: "Call Center",
-    path: "/call-center",
-    icon: PhoneIcon,
-  },
-  {
-    title: "Inbox",
-    path: "/inbox",
-    icon: MailIcon,
-  },
-  {
-    title: "Calendar",
-    path: "/calendar",
-    icon: CalendarIcon,
-  },
-  {
-    title: "SMS Queue",
-    path: "/sms-queue",
-    icon: SendIcon,
-  },
-  {
-    title: "Gianna AI",
-    path: "/ai-training",
-    icon: BrainIcon,
-  },
-  {
-    title: "Prompt Library",
-    path: "/prompts",
-    icon: SparkleIcon,
-  },
-  {
-    title: "AI SDR Avatars",
-    path: "/ai-sdr",
-    icon: BotIcon,
-  },
-  {
-    title: "Admin",
-    path: "/admin",
-    icon: ShieldIcon,
-    isAbsolute: true,
+    label: "Home",
     items: [
       {
         title: "Dashboard",
-        path: "/admin",
+        path: "/",
+        icon: HomeIcon,
         exact: true,
-        isAbsolute: true,
       },
       {
-        title: "MCP Configuration",
-        path: "/admin/mcp",
-        isAbsolute: true,
-      },
-      {
-        title: "Apollo Settings",
-        path: "/admin/integrations/apollo",
-        isAbsolute: true,
-      },
-      {
-        title: "Users",
-        path: "/admin/users",
-        isAbsolute: true,
+        title: "Analytics",
+        path: "/analytics",
+        icon: BarChartIcon,
       },
     ],
   },
   {
-    title: "Valuation",
-    path: "/valuation",
-    icon: FileTextIcon,
+    label: "Data",
     items: [
       {
-        title: "New Valuation",
-        path: "/valuation",
-        exact: true,
+        title: "Leads",
+        path: "/leads",
+        icon: UsersIcon,
       },
       {
-        title: "Valuation Queue",
-        path: "/valuation-queue",
+        title: "Data Hub",
+        path: "/data-hub",
+        icon: ZapIcon,
+      },
+      {
+        title: "Properties",
+        path: "/properties",
+        icon: BuildingIcon,
+      },
+      {
+        title: "Sectors",
+        path: "/sectors",
+        icon: LayersIcon,
       },
     ],
   },
   {
-    title: "Research Library",
-    path: "/research-library",
-    icon: FolderOpenIcon,
+    label: "Outreach",
+    items: [
+      {
+        title: "Campaigns",
+        path: "/campaigns",
+        icon: MegaphoneIcon,
+        items: [
+          {
+            title: "All Campaigns",
+            path: "/campaigns",
+            exact: true,
+          },
+          {
+            title: "Automation Rules",
+            path: "/automation-rules",
+          },
+          {
+            title: "Message Templates",
+            path: "/message-templates",
+          },
+        ],
+      },
+      {
+        title: "Call Center",
+        path: "/call-center",
+        icon: PhoneIcon,
+      },
+      {
+        title: "SMS Queue",
+        path: "/sms-queue",
+        icon: SendIcon,
+      },
+      {
+        title: "Inbox",
+        path: "/inbox",
+        icon: MailIcon,
+      },
+      {
+        title: "Calendar",
+        path: "/calendar",
+        icon: CalendarIcon,
+      },
+    ],
   },
   {
-    title: "Partnerships",
-    path: "/partnerships",
-    icon: GiftIcon,
+    label: "AI",
+    items: [
+      {
+        title: "Gianna AI",
+        path: "/ai-training",
+        icon: BrainIcon,
+      },
+      {
+        title: "AI SDR Avatars",
+        path: "/ai-sdr",
+        icon: BotIcon,
+      },
+      {
+        title: "Prompt Library",
+        path: "/prompts",
+        icon: SparkleIcon,
+      },
+    ],
+  },
+  {
+    label: "Real Estate",
+    items: [
+      {
+        title: "Valuation",
+        path: "/valuation",
+        icon: FileTextIcon,
+        items: [
+          {
+            title: "New Valuation",
+            path: "/valuation",
+            exact: true,
+          },
+          {
+            title: "Valuation Queue",
+            path: "/valuation-queue",
+          },
+        ],
+      },
+      {
+        title: "Research Library",
+        path: "/research-library",
+        icon: FolderOpenIcon,
+      },
+    ],
+  },
+  {
+    label: "Settings",
+    items: [
+      {
+        title: "Admin",
+        path: "/admin",
+        icon: ShieldIcon,
+        isAbsolute: true,
+        items: [
+          {
+            title: "Dashboard",
+            path: "/admin",
+            exact: true,
+            isAbsolute: true,
+          },
+          {
+            title: "MCP Configuration",
+            path: "/admin/mcp",
+            isAbsolute: true,
+          },
+          {
+            title: "Apollo Settings",
+            path: "/admin/integrations/apollo",
+            isAbsolute: true,
+          },
+          {
+            title: "Users",
+            path: "/admin/users",
+            isAbsolute: true,
+          },
+        ],
+      },
+    ],
   },
 ];
+
+// Type for nav items
+type NavItem = (typeof navGroups)[number]["items"][number];
 
 export function TeamMainNav() {
   const params = useParams<{ team: string }>();
   const pathname = usePathname();
   const [isActive] = useActivePath({ baseUri: `/${params.team}` });
-  const isPathActive = (
-    item: Omit<(typeof items)[number], "icon"> & { isAbsolute?: boolean },
-  ) => {
+
+  const isPathActive = (item: {
+    path: string;
+    exact?: boolean;
+    isAbsolute?: boolean;
+  }) => {
     if (item.isAbsolute) {
-      // For absolute paths, check if current pathname starts with or matches the item path
       if (item.exact) {
         return pathname === item.path;
       }
@@ -221,75 +239,96 @@ export function TeamMainNav() {
     });
   };
 
-  return (
-    <SidebarGroup>
-      <SidebarGroupContent className="flex flex-col gap-2">
-        <SidebarMenu>
-          {items.map((item, index) => {
-            const ItemLink = item.isAbsolute ? Link : TeamLink;
-            return (
-              <Fragment key={index}>
-                {!item.items?.length ? (
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      tooltip={item.title}
-                      asChild
-                      isActive={isPathActive(item)}
-                    >
-                      <ItemLink href={item.path}>
-                        {item.icon && <item.icon />}
-                        <span>{item.title}</span>
-                      </ItemLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ) : (
-                  <Collapsible
-                    asChild
-                    className="group/collapsible"
-                    defaultOpen={item.items.some((subItem) =>
-                      isPathActive(subItem),
-                    )}
-                  >
-                    <SidebarMenuItem>
-                      <CollapsibleTrigger asChild>
-                        <SidebarMenuButton tooltip={item.title}>
-                          {item.icon && <item.icon />}
-                          <span>{item.title}</span>
-                          <ChevronRightIcon className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                        </SidebarMenuButton>
-                      </CollapsibleTrigger>
+  const renderNavItem = (item: NavItem, index: number) => {
+    const ItemLink = (item as { isAbsolute?: boolean }).isAbsolute
+      ? Link
+      : TeamLink;
+    const hasSubItems = "items" in item && item.items && item.items.length > 0;
 
-                      <CollapsibleContent>
-                        <SidebarMenuSub>
-                          {item.items?.map((subItem) => {
-                            const SubItemLink = (
-                              subItem as { isAbsolute?: boolean }
-                            ).isAbsolute
-                              ? Link
-                              : TeamLink;
-                            return (
-                              <SidebarMenuSubItem key={subItem.title}>
-                                <SidebarMenuSubButton
-                                  asChild
-                                  isActive={isPathActive(subItem)}
-                                >
-                                  <SubItemLink href={subItem.path}>
-                                    <span>{subItem.title}</span>
-                                  </SubItemLink>
-                                </SidebarMenuSubButton>
-                              </SidebarMenuSubItem>
-                            );
-                          })}
-                        </SidebarMenuSub>
-                      </CollapsibleContent>
-                    </SidebarMenuItem>
-                  </Collapsible>
-                )}
-              </Fragment>
-            );
-          })}
-        </SidebarMenu>
-      </SidebarGroupContent>
-    </SidebarGroup>
+    if (!hasSubItems) {
+      return (
+        <SidebarMenuItem key={index}>
+          <SidebarMenuButton
+            tooltip={item.title}
+            asChild
+            isActive={isPathActive(item)}
+          >
+            <ItemLink href={item.path}>
+              {item.icon && <item.icon />}
+              <span>{item.title}</span>
+            </ItemLink>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      );
+    }
+
+    const subItems = (
+      item as {
+        items: Array<{
+          title: string;
+          path: string;
+          exact?: boolean;
+          isAbsolute?: boolean;
+        }>;
+      }
+    ).items;
+
+    return (
+      <Collapsible
+        key={index}
+        asChild
+        className="group/collapsible"
+        defaultOpen={subItems.some((subItem) => isPathActive(subItem))}
+      >
+        <SidebarMenuItem>
+          <CollapsibleTrigger asChild>
+            <SidebarMenuButton tooltip={item.title}>
+              {item.icon && <item.icon />}
+              <span>{item.title}</span>
+              <ChevronRightIcon className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+            </SidebarMenuButton>
+          </CollapsibleTrigger>
+
+          <CollapsibleContent>
+            <SidebarMenuSub>
+              {subItems.map((subItem) => {
+                const SubItemLink = subItem.isAbsolute ? Link : TeamLink;
+                return (
+                  <SidebarMenuSubItem key={subItem.title}>
+                    <SidebarMenuSubButton
+                      asChild
+                      isActive={isPathActive(subItem)}
+                    >
+                      <SubItemLink href={subItem.path}>
+                        <span>{subItem.title}</span>
+                      </SubItemLink>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                );
+              })}
+            </SidebarMenuSub>
+          </CollapsibleContent>
+        </SidebarMenuItem>
+      </Collapsible>
+    );
+  };
+
+  return (
+    <div className="flex flex-col gap-1">
+      {navGroups.map((group, groupIndex) => (
+        <SidebarGroup key={groupIndex} className="py-0">
+          <SidebarGroupLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-2 py-1.5">
+            {group.label}
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {group.items.map((item, itemIndex) =>
+                renderNavItem(item, itemIndex),
+              )}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      ))}
+    </div>
   );
 }

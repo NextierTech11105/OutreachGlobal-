@@ -37,6 +37,9 @@ import {
   CalendarPlus,
   MessageSquare,
   ShieldCheck,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatNumber } from "@/lib/formatter";
@@ -208,6 +211,12 @@ export default function ImportCompaniesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
+  // Sorting state
+  type SortColumn = "name" | "companyName" | "state" | "city" | "industry" | "title";
+  type SortDirection = "asc" | "desc";
+  const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+
   // Revenue filter state
   const [revenueMin, setRevenueMin] = useState<number | undefined>(undefined);
   const [revenueMax, setRevenueMax] = useState<number | undefined>(undefined);
@@ -304,6 +313,89 @@ export default function ImportCompaniesPage() {
       setSelectedCompanies(new Set(hits.map((c) => c.id)));
     }
   };
+
+  // Sorting handler
+  const handleSort = (column: SortColumn) => {
+    if (sortColumn === column) {
+      // Toggle direction
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+  };
+
+  // Get sorted hits (client-side sorting for current page)
+  const sortedHits = useMemo(() => {
+    if (!sortColumn) return hits;
+
+    return [...hits].sort((a, b) => {
+      let aVal: string | number | undefined;
+      let bVal: string | number | undefined;
+
+      switch (sortColumn) {
+        case "name":
+          aVal = a.name || "";
+          bVal = b.name || "";
+          break;
+        case "companyName":
+          aVal = a.companyName || "";
+          bVal = b.companyName || "";
+          break;
+        case "state":
+          aVal = a.state || "";
+          bVal = b.state || "";
+          break;
+        case "city":
+          aVal = a.city || "";
+          bVal = b.city || "";
+          break;
+        case "industry":
+          aVal = a.industry || "";
+          bVal = b.industry || "";
+          break;
+        case "title":
+          aVal = a.title || "";
+          bVal = b.title || "";
+          break;
+        default:
+          return 0;
+      }
+
+      if (typeof aVal === "string" && typeof bVal === "string") {
+        const comparison = aVal.toLowerCase().localeCompare(bVal.toLowerCase());
+        return sortDirection === "asc" ? comparison : -comparison;
+      }
+      return 0;
+    });
+  }, [hits, sortColumn, sortDirection]);
+
+  // Sortable header component
+  const SortableHeader = ({
+    column,
+    children,
+  }: {
+    column: SortColumn;
+    children: React.ReactNode;
+  }) => (
+    <TableHead
+      className="cursor-pointer hover:bg-muted/50 select-none"
+      onClick={() => handleSort(column)}
+    >
+      <div className="flex items-center gap-1">
+        {children}
+        {sortColumn === column ? (
+          sortDirection === "asc" ? (
+            <ArrowUp className="h-3 w-3" />
+          ) : (
+            <ArrowDown className="h-3 w-3" />
+          )
+        ) : (
+          <ArrowUpDown className="h-3 w-3 opacity-30" />
+        )}
+      </div>
+    </TableHead>
+  );
 
   const searchCompanies = async (page = 1) => {
     setLoading(true);
@@ -1198,29 +1290,29 @@ export default function ImportCompaniesPage() {
                     <TableHead className="w-10">
                       <Checkbox
                         checked={
-                          hits.length > 0 &&
-                          selectedCompanies.size === hits.length
+                          sortedHits.length > 0 &&
+                          selectedCompanies.size === sortedHits.length
                         }
                         onCheckedChange={toggleAll}
                       />
                     </TableHead>
-                    <TableHead>Company</TableHead>
-                    <TableHead>Contact</TableHead>
+                    <SortableHeader column="companyName">Company</SortableHeader>
+                    <SortableHeader column="name">Contact</SortableHeader>
                     <TableHead>Phone</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Address</TableHead>
-                    <TableHead>City</TableHead>
-                    <TableHead>State</TableHead>
+                    <SortableHeader column="city">City</SortableHeader>
+                    <SortableHeader column="state">State</SortableHeader>
                     <TableHead>Zip</TableHead>
-                    <TableHead>Industry</TableHead>
+                    <SortableHeader column="industry">Industry</SortableHeader>
                     <TableHead className="w-[140px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
 
                 <TableBody>
-                  {!loading && !hits?.length && (
+                  {!loading && !sortedHits?.length && (
                     <TableRow>
-                      <TableCell colSpan={10} className="text-center py-8">
+                      <TableCell colSpan={11} className="text-center py-8">
                         {totalFilters > 0 || debouncedQuery
                           ? "No companies found"
                           : "Enter a search term or select filters to find companies"}
@@ -1228,7 +1320,7 @@ export default function ImportCompaniesPage() {
                     </TableRow>
                   )}
 
-                  {hits?.map((company) => (
+                  {sortedHits?.map((company) => (
                     <TableRow
                       key={company.id}
                       className={
@@ -1457,14 +1549,37 @@ export default function ImportCompaniesPage() {
                       <Button
                         variant="outline"
                         size="sm"
+                        onClick={() => goToPage(1)}
+                        disabled={currentPage <= 1}
+                        title="First page"
+                      >
+                        ««
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => goToPage(currentPage - 1)}
                         disabled={currentPage <= 1}
                       >
                         <ChevronLeft className="h-4 w-4" />
                       </Button>
-                      <span className="text-sm">
-                        Page {currentPage} of {totalPages}
-                      </span>
+                      <div className="flex items-center gap-1">
+                        <span className="text-sm">Page</span>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={totalPages}
+                          value={currentPage}
+                          onChange={(e) => {
+                            const page = parseInt(e.target.value, 10);
+                            if (page >= 1 && page <= totalPages) {
+                              goToPage(page);
+                            }
+                          }}
+                          className="w-16 h-8 text-center"
+                        />
+                        <span className="text-sm">of {formatNumber(totalPages)}</span>
+                      </div>
                       <Button
                         variant="outline"
                         size="sm"
@@ -1472,6 +1587,15 @@ export default function ImportCompaniesPage() {
                         disabled={currentPage >= totalPages}
                       >
                         <ChevronRight className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => goToPage(totalPages)}
+                        disabled={currentPage >= totalPages}
+                        title="Last page"
+                      >
+                        »»
                       </Button>
                     </div>
                   )}
