@@ -17,14 +17,20 @@ const WEBHOOK_BASE_URL =
   process.env.NEXT_PUBLIC_APP_URL ||
   "https://monkfish-app-mb7h3.ondigitalocean.app";
 
+interface PhoneWithType {
+  number: string;
+  type?: string; // 'mobile' | 'landline' | 'voip' | 'unknown'
+}
+
 interface BulkSmsRequest {
-  to: string[]; // Array of E.164 phone numbers
+  to: string[] | PhoneWithType[]; // Array of E.164 phone numbers OR objects with type
   message: string; // Message content (160 chars for SMS)
   from?: string; // Your 10DLC number
   mediaUrl?: string; // Optional MMS image URL
   campaignId?: string; // For tracking
   shortLink?: boolean; // Enable link shortening
   statusCallbackUrl?: string; // Override default webhook
+  skipLandlineValidation?: boolean; // Override landline check (not recommended)
 }
 
 interface SignalHouseResponse {
@@ -93,6 +99,7 @@ export async function POST(request: NextRequest) {
       campaignId,
       shortLink = false,
       statusCallbackUrl,
+      skipLandlineValidation = false,
     } = body;
 
     // Validation
@@ -125,15 +132,48 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Normalize input - accept both string[] and PhoneWithType[]
+    const phoneList: PhoneWithType[] = to.map((item) => {
+      if (typeof item === "string") {
+        return { number: item, type: "unknown" };
+      }
+      return item;
+    });
+
+    // Filter out landlines - they cannot receive SMS
+    const landlineNumbers: string[] = [];
+    const smsablePhones: PhoneWithType[] = [];
+
+    for (const phone of phoneList) {
+      const phoneType = phone.type?.toLowerCase() || "unknown";
+      if (phoneType === "landline" && !skipLandlineValidation) {
+        landlineNumbers.push(phone.number);
+      } else {
+        smsablePhones.push(phone);
+      }
+    }
+
     // Validate E.164 format (+1XXXXXXXXXX for US)
-    const validNumbers = to.filter((num) =>
-      /^\+?1?\d{10,11}$/.test(num.replace(/\D/g, "")),
-    );
-    const invalidNumbers = to.filter(
-      (num) => !/^\+?1?\d{10,11}$/.test(num.replace(/\D/g, "")),
-    );
+    const validNumbers = smsablePhones
+      .filter((p) => /^\+?1?\d{10,11}$/.test(p.number.replace(/\D/g, "")))
+      .map((p) => p.number);
+    const invalidNumbers = smsablePhones
+      .filter((p) => !/^\+?1?\d{10,11}$/.test(p.number.replace(/\D/g, "")))
+      .map((p) => p.number);
 
     if (validNumbers.length === 0) {
+      // Check if all numbers were landlines
+      if (landlineNumbers.length > 0 && smsablePhones.length === 0) {
+        return NextResponse.json(
+          {
+            error: "All phone numbers are landlines (cannot receive SMS)",
+            landlineCount: landlineNumbers.length,
+            landlineNumbers: landlineNumbers.slice(0, 10), // Show first 10
+          },
+          { status: 400 },
+        );
+      }
+
       return NextResponse.json(
         {
           error:
@@ -141,6 +181,13 @@ export async function POST(request: NextRequest) {
           invalidNumbers,
         },
         { status: 400 },
+      );
+    }
+
+    // Log landline skip if any
+    if (landlineNumbers.length > 0) {
+      console.log(
+        `[SignalHouse Bulk] Skipping ${landlineNumbers.length} landline numbers (cannot receive SMS)`,
       );
     }
 
@@ -258,9 +305,11 @@ export async function POST(request: NextRequest) {
       success: failedCount === 0,
       sent: successCount,
       failed: failedCount,
-      skipped: invalidNumbers.length,
+      skippedInvalid: invalidNumbers.length,
+      skippedLandlines: landlineNumbers.length,
       results,
       invalidNumbers: invalidNumbers.length > 0 ? invalidNumbers : undefined,
+      landlineNumbers: landlineNumbers.length > 0 ? landlineNumbers.slice(0, 10) : undefined,
       campaignId,
       dailyUsed: dailySendCount,
       dailyRemaining: DAILY_LIMIT - dailySendCount,

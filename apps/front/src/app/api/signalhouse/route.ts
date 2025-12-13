@@ -105,10 +105,23 @@ export async function POST(request: NextRequest) {
     switch (action) {
       case "send_sms": {
         // Send SMS message
-        const { to, from, message, campaignId } = body;
+        const { to, from, message, campaignId, phoneType, skipLandlineValidation } = body;
         if (!to || !message) {
           return NextResponse.json(
             { error: "to and message required" },
+            { status: 400 },
+          );
+        }
+
+        // Block landlines - they cannot receive SMS
+        const normalizedType = (phoneType || "").toLowerCase();
+        if (normalizedType === "landline" && !skipLandlineValidation) {
+          return NextResponse.json(
+            {
+              error: "Cannot send SMS to landline numbers",
+              phoneType: "landline",
+              suggestion: "Use voice calls for landline numbers",
+            },
             { status: 400 },
           );
         }

@@ -16,7 +16,7 @@ function getAuthHeaders(): Record<string, string> {
 
 export async function POST(request: NextRequest) {
   try {
-    const { to, from, message, mediaUrl } = await request.json();
+    const { to, from, message, mediaUrl, phoneType, skipLandlineValidation } = await request.json();
 
     if (!SIGNALHOUSE_API_KEY && !SIGNALHOUSE_AUTH_TOKEN) {
       return NextResponse.json(
@@ -31,6 +31,19 @@ export async function POST(request: NextRequest) {
     if (!to || !from || !message) {
       return NextResponse.json(
         { error: "to, from, and message are required" },
+        { status: 400 },
+      );
+    }
+
+    // Block landlines - they cannot receive SMS
+    const normalizedType = (phoneType || "").toLowerCase();
+    if (normalizedType === "landline" && !skipLandlineValidation) {
+      return NextResponse.json(
+        {
+          error: "Cannot send SMS to landline numbers",
+          phoneType: "landline",
+          suggestion: "Use voice calls for landline numbers",
+        },
         { status: 400 },
       );
     }
