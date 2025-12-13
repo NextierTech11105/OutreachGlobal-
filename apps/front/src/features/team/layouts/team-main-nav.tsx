@@ -52,6 +52,11 @@ const items = [
     exact: true,
   },
   {
+    title: "Data Hub",
+    path: "/data-hub",
+    icon: ZapIcon,
+  },
+  {
     title: "Properties",
     path: "/properties",
     icon: BuildingIcon,
