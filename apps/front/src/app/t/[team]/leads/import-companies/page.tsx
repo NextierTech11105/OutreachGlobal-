@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Card,
-  CardContent,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -21,7 +20,6 @@ import {
   TableRow,
   TableCell,
 } from "@/components/ui/table";
-import { currencyFormat } from "@/lib/currency-format";
 import { useDebounceValue } from "usehooks-ts";
 import {
   SearchIcon,
@@ -34,9 +32,10 @@ import {
   MapPin,
   ExternalLink,
   Loader2,
-  DollarSign,
   PhoneCall,
   Send,
+  CalendarPlus,
+  MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatNumber } from "@/lib/formatter";
@@ -143,6 +142,7 @@ interface Company {
   revenue: number;
   city: string;
   state: string;
+  zip?: string;
   country: string;
   phone: string;
   mobile?: string; // Cell/mobile phone
@@ -186,7 +186,7 @@ interface EnrichmentProgress {
 }
 
 export default function ImportCompaniesPage() {
-  const { team } = useCurrentTeam();
+  useCurrentTeam(); // Ensures team context is available
   const [filters, setFilters] = useState<Filters>(defaultFilters);
   const [loading, setLoading] = useState(false);
   const [estimatedCount, setEstimatedCount] = useState(0);
@@ -320,8 +320,10 @@ export default function ImportCompaniesPage() {
         industry?: string;
         employees?: number;
         revenue?: number;
+        address?: string; // Street address for skip trace
         city?: string;
         state?: string;
+        zip?: string; // Zip code for skip trace
         country?: string;
         phone?: string;
         mobile?: string;
@@ -444,14 +446,18 @@ export default function ImportCompaniesPage() {
       let propertyAddresses: Array<{ street: string; city: string; state: string; zip: string }> = [];
 
       if (ownerFirstName || ownerLastName) {
+        // Skip trace with contact name + business property address for best results
+        // RealEstateAPI expects: first_name, last_name, address, city, state, zip
         const skipTraceResponse = await fetch("/api/skip-trace", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             firstName: ownerFirstName,
             lastName: ownerLastName,
+            address: company.address, // Street address
             city: company.city,
             state: company.state,
+            zip: company.zip,
           }),
         });
 
@@ -635,14 +641,18 @@ export default function ImportCompaniesPage() {
           let emails: string[] = apolloEmail ? [apolloEmail] : [];
 
           if (ownerFirstName || ownerLastName) {
+            // Skip trace with contact name + business property address for best results
+            // RealEstateAPI expects: first_name, last_name, address, city, state, zip
             const skipTraceResponse = await fetch("/api/skip-trace", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 firstName: ownerFirstName,
                 lastName: ownerLastName,
+                address: company.address, // Street address
                 city: company.city,
                 state: company.state,
+                zip: company.zip,
               }),
             });
 
@@ -1040,15 +1050,16 @@ export default function ImportCompaniesPage() {
                         onCheckedChange={toggleAll}
                       />
                     </TableHead>
-                    <TableHead>Contact Name</TableHead>
-                    <TableHead>Title</TableHead>
                     <TableHead>Company</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead>Phones</TableHead>
-                    <TableHead>Emails</TableHead>
+                    <TableHead>Contact</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Address</TableHead>
+                    <TableHead>City</TableHead>
+                    <TableHead>State</TableHead>
+                    <TableHead>Zip</TableHead>
                     <TableHead>Industry</TableHead>
-                    <TableHead>Website</TableHead>
-                    <TableHead className="w-[100px]">Actions</TableHead>
+                    <TableHead className="w-[140px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
 
@@ -1080,147 +1091,61 @@ export default function ImportCompaniesPage() {
                         />
                       </TableCell>
 
-                      {/* Contact Name */}
+                      {/* Company */}
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-base">{company.name || "-"}</span>
-                          {company.enriched ? (
-                            <Badge
-                              variant="outline"
-                              className="text-xs bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-                            >
-                              Enriched
-                            </Badge>
-                          ) : (
-                            <Badge
-                              variant="outline"
-                              className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300"
-                            >
-                              Needs Enrichment
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1 mt-1">
-                          {company.source && (
-                            <Badge
-                              variant="secondary"
-                              className={`text-xs ${
-                                company.source === "apollo"
-                                  ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
-                                  : "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300"
-                              }`}
-                            >
-                              {company.source === "apollo" ? "Apollo" : "USBiz"}
-                            </Badge>
+                        <span className="font-medium">{company.companyName || company.domain?.split('.')[0] || "-"}</span>
+                      </TableCell>
+
+                      {/* Contact */}
+                      <TableCell>
+                        <div>
+                          <span className="font-medium">{company.name || "-"}</span>
+                          {company.title && (
+                            <span className="text-xs text-muted-foreground block">{company.title}</span>
                           )}
                         </div>
                       </TableCell>
 
-                      {/* Title */}
+                      {/* Phone */}
                       <TableCell>
-                        <span className={`text-base font-medium ${company.title || company.ownerTitle ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`}>
-                          {company.title || company.ownerTitle || "-"}
-                        </span>
-                      </TableCell>
-
-                      {/* Company Name */}
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Building className="h-3 w-3 text-muted-foreground" />
-                          <span>{company.companyName || company.domain?.split('.')[0] || "-"}</span>
-                        </div>
-                        {company.propertyRelated && (
-                          <Badge
-                            variant="secondary"
-                            className="text-xs bg-orange-100 text-orange-700 mt-1"
-                          >
-                            Property Related
-                          </Badge>
-                        )}
-                      </TableCell>
-
-                      {/* Location */}
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <MapPin className="h-3 w-3 text-muted-foreground" />
-                          <span>
-                            {company.city && company.state
-                              ? `${company.city}, ${company.state}`
-                              : company.state || "-"}
-                          </span>
-                        </div>
-                      </TableCell>
-
-                      {/* Phones */}
-                      <TableCell>
-                        {company.enrichedPhones &&
-                        company.enrichedPhones.length > 0 ? (
-                          <div className="space-y-1">
-                            {company.enrichedPhones
-                              .slice(0, 2)
-                              .map((phone, i) => (
-                                <div
-                                  key={i}
-                                  className="flex items-center gap-2"
-                                >
-                                  <Phone className="h-4 w-4 text-green-600" />
-                                  <a
-                                    href={`tel:${phone}`}
-                                    className="text-base font-medium text-blue-600 hover:underline"
-                                  >
-                                    {phone}
-                                  </a>
-                                </div>
-                              ))}
-                            {company.enrichedPhones.length > 2 && (
-                              <span className="text-sm text-muted-foreground">
-                                +{company.enrichedPhones.length - 2} more
-                              </span>
-                            )}
-                          </div>
+                        {company.enrichedPhones?.length > 0 ? (
+                          <span className="text-green-600 font-medium">{company.enrichedPhones[0]}</span>
                         ) : company.phone ? (
-                          <div className="flex items-center gap-2">
-                            <Phone className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-base">{company.phone}</span>
-                          </div>
+                          <span>{company.phone}</span>
                         ) : (
-                          <span className="text-muted-foreground">
-                            -
-                          </span>
+                          <span className="text-muted-foreground">-</span>
                         )}
                       </TableCell>
-                      {/* Emails */}
+
+                      {/* Email */}
                       <TableCell>
-                        {company.enrichedEmails &&
-                        company.enrichedEmails.length > 0 ? (
-                          <div className="space-y-1">
-                            {company.enrichedEmails
-                              .slice(0, 2)
-                              .map((email, i) => (
-                                <div
-                                  key={i}
-                                  className="flex items-center gap-2"
-                                >
-                                  <Mail className="h-4 w-4 text-green-600" />
-                                  <a
-                                    href={`mailto:${email}`}
-                                    className="text-base font-medium text-blue-600 hover:underline truncate max-w-[180px]"
-                                  >
-                                    {email}
-                                  </a>
-                                </div>
-                              ))}
-                            {company.enrichedEmails.length > 2 && (
-                              <span className="text-sm text-muted-foreground">
-                                +{company.enrichedEmails.length - 2} more
-                              </span>
-                            )}
-                          </div>
+                        {company.enrichedEmails?.length > 0 ? (
+                          <span className="text-green-600 text-sm">{company.enrichedEmails[0]}</span>
+                        ) : company.email ? (
+                          <span className="text-sm">{company.email}</span>
                         ) : (
-                          <span className="text-muted-foreground">
-                            -
-                          </span>
+                          <span className="text-muted-foreground">-</span>
                         )}
+                      </TableCell>
+
+                      {/* Address */}
+                      <TableCell>
+                        <span className="text-sm">{company.address || "-"}</span>
+                      </TableCell>
+
+                      {/* City */}
+                      <TableCell>
+                        <span>{company.city || "-"}</span>
+                      </TableCell>
+
+                      {/* State */}
+                      <TableCell>
+                        <span>{company.state || "-"}</span>
+                      </TableCell>
+
+                      {/* Zip */}
+                      <TableCell>
+                        <span>{company.zip || "-"}</span>
                       </TableCell>
 
                       {/* Industry */}
@@ -1228,43 +1153,120 @@ export default function ImportCompaniesPage() {
                         <span className="text-xs">{company.industry || "-"}</span>
                       </TableCell>
 
-                      {/* Website */}
-                      <TableCell>
-                        {company.domain ? (
-                          <a
-                            href={
-                              company.website || `https://${company.domain}`
-                            }
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1 text-blue-500 hover:underline text-xs"
-                          >
-                            <ExternalLink className="h-3 w-3" />
-                            {company.domain}
-                          </a>
-                        ) : (
-                          "-"
-                        )}
-                      </TableCell>
-
                       {/* Actions */}
                       <TableCell>
-                        {company.enriched ? (
-                          <div className="flex items-center gap-1">
-                            <PhoneCall className="h-4 w-4 text-green-600" />
-                            <span className="text-xs text-green-600">Ready</span>
-                          </div>
-                        ) : (
+                        <div className="flex items-center gap-1">
+                          {/* SMS Button */}
                           <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-7 text-xs bg-purple-50 hover:bg-purple-100 border-purple-200"
-                            onClick={() => enrichSingleCompany(company.id)}
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+                            title="Send SMS"
+                            disabled={!company.phone && (!company.enrichedPhones || company.enrichedPhones.length === 0)}
+                            onClick={() => {
+                              const phone = company.enrichedPhones?.[0] || company.phone;
+                              if (phone) {
+                                setSelectedCompanies(new Set([company.id]));
+                                setShowSmsDialog(true);
+                              } else {
+                                toast.error("No phone number available. Enrich first.");
+                              }
+                            }}
                           >
-                            <Sparkles className="h-3 w-3 mr-1 text-purple-600" />
-                            Enrich
+                            <MessageSquare className="h-4 w-4" />
                           </Button>
-                        )}
+
+                          {/* Call Button */}
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 text-green-600 hover:bg-green-50 hover:text-green-700"
+                            title="Call"
+                            disabled={!company.phone && (!company.enrichedPhones || company.enrichedPhones.length === 0)}
+                            onClick={() => {
+                              const phone = company.enrichedPhones?.[0] || company.phone;
+                              if (phone) {
+                                window.open(`tel:${phone}`, "_self");
+                              } else {
+                                toast.error("No phone number available. Enrich first.");
+                              }
+                            }}
+                          >
+                            <PhoneCall className="h-4 w-4" />
+                          </Button>
+
+                          {/* Email Button (for SendGrid) */}
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 text-purple-600 hover:bg-purple-50 hover:text-purple-700"
+                            title="Send Email"
+                            disabled={!company.email && (!company.enrichedEmails || company.enrichedEmails.length === 0)}
+                            onClick={() => {
+                              const email = company.enrichedEmails?.[0] || company.email;
+                              if (email) {
+                                window.open(`mailto:${email}`, "_blank");
+                              } else {
+                                toast.error("No email available. Enrich first.");
+                              }
+                            }}
+                          >
+                            <Mail className="h-4 w-4" />
+                          </Button>
+
+                          {/* Calendar Button */}
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 text-orange-600 hover:bg-orange-50 hover:text-orange-700"
+                            title="Add to Calendar"
+                            onClick={async () => {
+                              try {
+                                const response = await fetch("/api/calendar/leads", {
+                                  method: "POST",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({
+                                    action: "schedule_to_calendar",
+                                    leads: [{
+                                      id: company.id,
+                                      name: company.name || company.ownerName || "Unknown",
+                                      phone: company.enrichedPhones?.[0] || company.phone,
+                                      email: company.enrichedEmails?.[0] || company.email,
+                                      address: company.address,
+                                      city: company.city,
+                                      state: company.state,
+                                      company: company.companyName,
+                                    }],
+                                    scheduledDate: new Date().toISOString().split("T")[0],
+                                  }),
+                                });
+                                const data = await response.json();
+                                if (data.success) {
+                                  toast.success(`${company.name || company.companyName} added to calendar`);
+                                } else {
+                                  throw new Error(data.error);
+                                }
+                              } catch (error) {
+                                toast.error("Failed to add to calendar");
+                              }
+                            }}
+                          >
+                            <CalendarPlus className="h-4 w-4" />
+                          </Button>
+
+                          {/* Enrich Button */}
+                          {!company.enriched && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 text-amber-600 hover:bg-amber-50 hover:text-amber-700"
+                              title="Enrich Contact"
+                              onClick={() => enrichSingleCompany(company.id)}
+                            >
+                              <Sparkles className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
