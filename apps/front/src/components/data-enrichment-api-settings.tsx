@@ -35,6 +35,7 @@ export function DataEnrichmentApiSettings({
 
   // Simplified provider lists
   const skipTraceProviders = [
+    { id: "realestateapi", name: "RealEstateAPI (Primary)" },
     { id: "tlo", name: "TLO" },
     { id: "lexisnexis", name: "LexisNexis" },
     { id: "melissa", name: "Melissa Data" },

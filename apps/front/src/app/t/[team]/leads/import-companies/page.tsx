@@ -75,6 +75,7 @@ const defaultFilters: Filters = {
   state: { value: [] },
   industry: { value: [] },
   city: { value: [] },
+  autoTag: { value: [] }, // Filter by auto-tags: blue-collar, motel-hotel, property-related
 };
 
 // Revenue range presets (in dollars)
@@ -122,6 +123,178 @@ const PROPERTY_RELATED_INDUSTRIES = [
   "engineering",
 ];
 
+// Blue collar / trades industries - auto-tag these
+const BLUE_COLLAR_INDUSTRIES = [
+  // Construction & trades
+  "construction",
+  "contractor",
+  "general contractor",
+  "subcontractor",
+  "builder",
+  "home builder",
+  "roofing",
+  "roofer",
+  "plumbing",
+  "plumber",
+  "hvac",
+  "heating",
+  "air conditioning",
+  "electrical",
+  "electrician",
+  "carpentry",
+  "carpenter",
+  "masonry",
+  "mason",
+  "concrete",
+  "paving",
+  "asphalt",
+  "excavation",
+  "demolition",
+  "framing",
+  "drywall",
+  "insulation",
+  "siding",
+  "gutters",
+  "fencing",
+  "decking",
+  "deck builder",
+  // Home services
+  "landscaping",
+  "lawn care",
+  "tree service",
+  "tree removal",
+  "irrigation",
+  "sprinkler",
+  "pool service",
+  "pool maintenance",
+  "pest control",
+  "exterminator",
+  "cleaning service",
+  "janitorial",
+  "pressure washing",
+  "window cleaning",
+  "carpet cleaning",
+  "maid service",
+  "handyman",
+  "home repair",
+  "appliance repair",
+  "garage door",
+  "locksmith",
+  // Automotive & mechanical
+  "auto repair",
+  "auto body",
+  "mechanic",
+  "automotive",
+  "car wash",
+  "oil change",
+  "tire",
+  "towing",
+  "tow truck",
+  "auto parts",
+  "transmission",
+  "muffler",
+  "brake",
+  // Manufacturing & industrial
+  "manufacturing",
+  "fabrication",
+  "welding",
+  "welder",
+  "machining",
+  "machine shop",
+  "metalwork",
+  "sheet metal",
+  "steel",
+  "ironwork",
+  "foundry",
+  "assembly",
+  "warehouse",
+  "forklift",
+  "industrial",
+  // Transportation & logistics
+  "trucking",
+  "freight",
+  "hauling",
+  "delivery",
+  "courier",
+  "moving company",
+  "movers",
+  "storage",
+  "logistics",
+  // Utilities & infrastructure
+  "utility",
+  "water treatment",
+  "septic",
+  "sewer",
+  "plumbing supply",
+  "electrical supply",
+  // Flooring & surfaces
+  "flooring",
+  "tile",
+  "hardwood",
+  "carpet",
+  "countertop",
+  "granite",
+  "marble",
+  // Painting & finishing
+  "painting",
+  "painter",
+  "coatings",
+  "stucco",
+  "plastering",
+  // Windows, doors, glass
+  "windows",
+  "doors",
+  "glass",
+  "glazing",
+  "mirror",
+  // Specialty trades
+  "solar",
+  "solar installation",
+  "renewable energy",
+  "fire protection",
+  "sprinkler system",
+  "alarm",
+  "security system",
+  "elevator",
+  "crane",
+  "scaffolding",
+  "insulation",
+  // Agriculture & outdoor
+  "farming",
+  "agriculture",
+  "nursery",
+  "greenhouse",
+  "equipment rental",
+];
+
+// Motel/Hotel/Lodging industries
+const MOTEL_HOTEL_INDUSTRIES = [
+  "motel",
+  "motels",
+  "hotel",
+  "hotels",
+  "inn",
+  "lodge",
+  "lodging",
+  "hospitality",
+  "bed and breakfast",
+  "b&b",
+  "resort",
+  "extended stay",
+  "suites",
+  "accommodation",
+  "guest house",
+  "hostel",
+  "campground",
+  "rv park",
+  "vacation rental",
+  "airbnb",
+  "short term rental",
+];
+
+// Auto-tag types
+type AutoTag = "blue-collar" | "motel-hotel" | "property-related";
+
 // Check if a company is property-related
 function isPropertyRelated(company: { industry?: string; name?: string }): boolean {
   const industry = (company.industry || "").toLowerCase();
@@ -130,6 +303,35 @@ function isPropertyRelated(company: { industry?: string; name?: string }): boole
   return PROPERTY_RELATED_INDUSTRIES.some(keyword =>
     industry.includes(keyword) || name.includes(keyword)
   );
+}
+
+// Check if a company is blue collar
+function isBlueCollar(company: { industry?: string; name?: string }): boolean {
+  const industry = (company.industry || "").toLowerCase();
+  const name = (company.name || "").toLowerCase();
+
+  return BLUE_COLLAR_INDUSTRIES.some(keyword =>
+    industry.includes(keyword) || name.includes(keyword)
+  );
+}
+
+// Check if a company is motel/hotel
+function isMotelHotel(company: { industry?: string; name?: string }): boolean {
+  const industry = (company.industry || "").toLowerCase();
+  const name = (company.name || "").toLowerCase();
+
+  return MOTEL_HOTEL_INDUSTRIES.some(keyword =>
+    industry.includes(keyword) || name.includes(keyword)
+  );
+}
+
+// Get all auto-tags for a company
+function getAutoTags(company: { industry?: string; name?: string }): AutoTag[] {
+  const tags: AutoTag[] = [];
+  if (isBlueCollar(company)) tags.push("blue-collar");
+  if (isMotelHotel(company)) tags.push("motel-hotel");
+  if (isPropertyRelated(company)) tags.push("property-related");
+  return tags;
 }
 
 interface PhoneInfo {
@@ -166,6 +368,8 @@ interface Company {
   sourceLabel?: string;
   // Property association tag
   propertyRelated?: boolean;
+  // Auto-tags based on industry
+  autoTags?: AutoTag[];
   // Business address (for cross-referencing with property data)
   address?: string;
   // Enrichment data
@@ -325,11 +529,20 @@ export default function ImportCompaniesPage() {
     }
   };
 
-  // Get sorted hits (client-side sorting for current page)
+  // Get sorted and filtered hits (client-side sorting + autoTag filtering)
   const sortedHits = useMemo(() => {
-    if (!sortColumn) return hits;
+    // First filter by autoTags if any selected
+    let filtered = hits;
+    if (filters.autoTag.value.length > 0) {
+      filtered = hits.filter(company => {
+        const companyTags = company.autoTags || [];
+        return filters.autoTag.value.some(tag => companyTags.includes(tag as AutoTag));
+      });
+    }
 
-    return [...hits].sort((a, b) => {
+    if (!sortColumn) return filtered;
+
+    return [...filtered].sort((a, b) => {
       let aVal: string | number | undefined;
       let bVal: string | number | undefined;
 
@@ -368,7 +581,7 @@ export default function ImportCompaniesPage() {
       }
       return 0;
     });
-  }, [hits, sortColumn, sortDirection]);
+  }, [hits, sortColumn, sortDirection, filters.autoTag.value]);
 
   // Sortable header component
   const SortableHeader = ({
@@ -440,6 +653,7 @@ export default function ImportCompaniesPage() {
         ...contact,
         companyName: contact.company || "", // Map company to companyName
         propertyRelated: isPropertyRelated({ industry: contact.industry, name: contact.company }),
+        autoTags: getAutoTags({ industry: contact.industry, name: contact.company }),
       }));
       setHits(taggedHits);
       setCurrentPage(data.page || page);
@@ -1219,6 +1433,86 @@ export default function ImportCompaniesPage() {
                   </p>
                 )}
               </div>
+
+              {/* Auto-Tag Filter - Blue Collar, Motel/Hotel */}
+              <div className="px-4 py-3 border-t">
+                <div className="flex justify-between items-center mb-2">
+                  <h4 className="font-medium text-sm">Business Type</h4>
+                  {filters.autoTag.value.length > 0 && (
+                    <button
+                      type="button"
+                      className="text-xs text-muted-foreground hover:text-foreground"
+                      onClick={() => handleFilterChange("autoTag", [])}
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors flex items-center gap-2 ${
+                      filters.autoTag.value.includes("blue-collar")
+                        ? "bg-blue-600 text-white"
+                        : "bg-muted hover:bg-muted/80"
+                    }`}
+                    onClick={() => {
+                      const current = filters.autoTag.value;
+                      if (current.includes("blue-collar")) {
+                        handleFilterChange("autoTag", current.filter(t => t !== "blue-collar"));
+                      } else {
+                        handleFilterChange("autoTag", [...current, "blue-collar"]);
+                      }
+                    }}
+                  >
+                    <span className="text-lg">🔧</span>
+                    Blue Collar / Trades
+                  </button>
+                  <button
+                    type="button"
+                    className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors flex items-center gap-2 ${
+                      filters.autoTag.value.includes("motel-hotel")
+                        ? "bg-purple-600 text-white"
+                        : "bg-muted hover:bg-muted/80"
+                    }`}
+                    onClick={() => {
+                      const current = filters.autoTag.value;
+                      if (current.includes("motel-hotel")) {
+                        handleFilterChange("autoTag", current.filter(t => t !== "motel-hotel"));
+                      } else {
+                        handleFilterChange("autoTag", [...current, "motel-hotel"]);
+                      }
+                    }}
+                  >
+                    <span className="text-lg">🏨</span>
+                    Motel / Hotel
+                  </button>
+                  <button
+                    type="button"
+                    className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors flex items-center gap-2 ${
+                      filters.autoTag.value.includes("property-related")
+                        ? "bg-green-600 text-white"
+                        : "bg-muted hover:bg-muted/80"
+                    }`}
+                    onClick={() => {
+                      const current = filters.autoTag.value;
+                      if (current.includes("property-related")) {
+                        handleFilterChange("autoTag", current.filter(t => t !== "property-related"));
+                      } else {
+                        handleFilterChange("autoTag", [...current, "property-related"]);
+                      }
+                    }}
+                  >
+                    <span className="text-lg">🏠</span>
+                    Property Related
+                  </button>
+                </div>
+                {filters.autoTag.value.length > 0 && (
+                  <p className="mt-2 text-xs text-green-600 font-medium">
+                    Filtering: {filters.autoTag.value.join(", ")}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 
@@ -1305,6 +1599,7 @@ export default function ImportCompaniesPage() {
                     <SortableHeader column="state">State</SortableHeader>
                     <TableHead>Zip</TableHead>
                     <SortableHeader column="industry">Industry</SortableHeader>
+                    <TableHead>Tags</TableHead>
                     <TableHead className="w-[140px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -1312,7 +1607,7 @@ export default function ImportCompaniesPage() {
                 <TableBody>
                   {!loading && !sortedHits?.length && (
                     <TableRow>
-                      <TableCell colSpan={11} className="text-center py-8">
+                      <TableCell colSpan={12} className="text-center py-8">
                         {totalFilters > 0 || debouncedQuery
                           ? "No companies found"
                           : "Enter a search term or select filters to find companies"}
@@ -1417,6 +1712,30 @@ export default function ImportCompaniesPage() {
                       {/* Industry */}
                       <TableCell>
                         <span className="text-xs">{company.industry || "-"}</span>
+                      </TableCell>
+
+                      {/* Auto-Tags */}
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {company.autoTags?.includes("blue-collar") && (
+                            <Badge className="bg-blue-100 text-blue-700 border-blue-300 text-[10px] px-1.5 py-0">
+                              🔧 Blue Collar
+                            </Badge>
+                          )}
+                          {company.autoTags?.includes("motel-hotel") && (
+                            <Badge className="bg-purple-100 text-purple-700 border-purple-300 text-[10px] px-1.5 py-0">
+                              🏨 Motel/Hotel
+                            </Badge>
+                          )}
+                          {company.autoTags?.includes("property-related") && (
+                            <Badge className="bg-green-100 text-green-700 border-green-300 text-[10px] px-1.5 py-0">
+                              🏠 Property
+                            </Badge>
+                          )}
+                          {(!company.autoTags || company.autoTags.length === 0) && (
+                            <span className="text-muted-foreground text-xs">-</span>
+                          )}
+                        </div>
                       </TableCell>
 
                       {/* Actions */}

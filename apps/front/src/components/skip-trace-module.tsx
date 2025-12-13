@@ -50,12 +50,15 @@ interface UsageInfo {
   used: number;
   limit: number;
   remaining: number;
+  configured?: boolean;
+  configError?: string;
 }
 
 export function SkipTraceModule() {
   const [provider, setProvider] = useState("realestateapi");
   const [isProcessing, setIsProcessing] = useState(false);
   const [usage, setUsage] = useState<UsageInfo | null>(null);
+  const [configError, setConfigError] = useState<string | null>(null);
   const [results, setResults] = useState<SkipTraceResult[]>([]);
   const [manualEntry, setManualEntry] = useState({
     firstName: "",
@@ -84,14 +87,18 @@ export function SkipTraceModule() {
     fetch("/api/skip-trace")
       .then((r) => r.json())
       .then((data) => {
+        if (data.configError) {
+          setConfigError(data.configError);
+        }
         setUsage({
           used: data.used || 0,
-          limit: data.limit || 5000,
-          remaining: data.remaining || 5000,
+          limit: data.limit || 2000,
+          remaining: data.remaining || 2000,
+          configured: data.configured,
         });
       })
       .catch(() => {
-        setUsage({ used: 0, limit: 5000, remaining: 5000 });
+        setUsage({ used: 0, limit: 2000, remaining: 2000 });
       });
   }, []);
 
@@ -153,13 +160,35 @@ export function SkipTraceModule() {
             </div>
             <Badge
               variant="outline"
-              className="bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
+              className={configError ? "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300" : "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300"}
             >
-              {usage
-                ? `${sf(usage.remaining)} / ${sf(usage.limit)} remaining`
-                : "Loading..."}
+              {configError
+                ? "Not Configured"
+                : usage
+                  ? `${sf(usage.remaining)} / ${sf(usage.limit)} remaining`
+                  : "Loading..."}
             </Badge>
           </div>
+
+          {configError && (
+            <div className="rounded-md border border-red-200 bg-red-50 dark:bg-red-950/50 dark:border-red-800 p-4">
+              <div className="flex items-start gap-3">
+                <XCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-medium text-red-800 dark:text-red-300">Skip Trace Not Configured</h4>
+                  <p className="text-sm text-red-700 dark:text-red-400 mt-1">{configError}</p>
+                  <a
+                    href="https://realestateapi.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-red-600 hover:text-red-800 underline mt-2 inline-block"
+                  >
+                    Get your RealEstateAPI key →
+                  </a>
+                </div>
+              </div>
+            </div>
+          )}
 
           <Tabs defaultValue="file">
             <TabsList className="grid w-full grid-cols-3">

@@ -221,3 +221,14 @@ functions/.deployed/
 functions/packages/**/__deployer__.zip
 functions/packages/**/package-lock.json
 
+# DigitalOcean App Spec files (contain secrets)
+*-spec.yaml
+temp_spec*.yaml
+fdaily-pro-spec.yaml
+
+# Claude Code local settings (may contain secrets)
+.claude/
+
+# Temporary files
+tmp-*.json
+

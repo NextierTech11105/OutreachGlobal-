@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Card,
@@ -21,8 +21,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Sparkles, Save, Check, Info } from "lucide-react";
+import { Sparkles, Save, Check, Info, XCircle, Loader2, CheckCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { toast } from "sonner";
 
 type LlmProvider = {
   id: string;
@@ -46,6 +47,48 @@ export function LlmSettingsManager() {
   const [activeProvider, setActiveProvider] = useState("openai");
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [configStatus, setConfigStatus] = useState<Record<string, boolean>>({});
+  const [isLoading, setIsLoading] = useState(true);
+  const [isTesting, setIsTesting] = useState<string | null>(null);
+
+  // Fetch real configuration status on mount
+  useEffect(() => {
+    fetch("/api/admin/settings")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success && data.status) {
+          const status: Record<string, boolean> = {};
+          for (const item of data.status) {
+            status[item.id] = item.configured;
+          }
+          setConfigStatus(status);
+        }
+      })
+      .catch(console.error)
+      .finally(() => setIsLoading(false));
+  }, []);
+
+  // Test API connection
+  const testConnection = async (providerId: string) => {
+    setIsTesting(providerId);
+    try {
+      const res = await fetch("/api/admin/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ provider: providerId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(data.message);
+      } else {
+        toast.error(data.error || data.message || "Connection test failed");
+      }
+    } catch {
+      toast.error("Failed to test connection");
+    } finally {
+      setIsTesting(null);
+    }
+  };
 
   const providers: LlmProvider[] = [
     {
@@ -275,8 +318,12 @@ export function LlmSettingsManager() {
               className="flex items-center gap-2"
             >
               <span>{provider.name}</span>
-              {settings[provider.id]?.enabled && (
-                <Check className="h-3 w-3 text-green-500" />
+              {isLoading ? (
+                <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+              ) : configStatus[provider.id] ? (
+                <CheckCircle className="h-3 w-3 text-green-500" />
+              ) : (
+                <XCircle className="h-3 w-3 text-red-500" />
               )}
             </TabsTrigger>
           ))}
@@ -475,18 +522,31 @@ export function LlmSettingsManager() {
                 </div>
               </CardContent>
               <CardFooter className="flex justify-between">
-                <div className="flex items-center">
-                  {saveSuccess && (
-                    <span className="text-sm text-green-500 flex items-center">
-                      <Check className="mr-1 h-4 w-4" /> Settings saved
-                      successfully
+                <div className="flex items-center gap-2">
+                  {configStatus[provider.id] ? (
+                    <span className="text-sm text-green-600 flex items-center">
+                      <CheckCircle className="mr-1 h-4 w-4" /> API Key Configured
+                    </span>
+                  ) : (
+                    <span className="text-sm text-red-600 flex items-center">
+                      <XCircle className="mr-1 h-4 w-4" /> Set {provider.apiKeyName} in env
                     </span>
                   )}
                 </div>
-                <Button onClick={handleSaveSettings} disabled={isSaving}>
-                  <Save className="mr-2 h-4 w-4" />
-                  {isSaving ? "Saving..." : "Save Settings"}
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => testConnection(provider.id)}
+                    disabled={isTesting === provider.id || !configStatus[provider.id]}
+                  >
+                    {isTesting === provider.id ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="mr-2 h-4 w-4" />
+                    )}
+                    Test Connection
+                  </Button>
+                </div>
               </CardFooter>
             </Card>
 

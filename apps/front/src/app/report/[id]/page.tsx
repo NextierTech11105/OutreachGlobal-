@@ -46,7 +46,9 @@ export async function generateMetadata({
     console.log("Metadata fetch error:", e);
   }
 
-  const ogImageUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://monkfish-app-mb7h3.ondigitalocean.app"}/api/og/report?address=${encodeURIComponent(address)}&value=${encodeURIComponent(estimatedValue)}`;
+  // OG image URL - requires NEXT_PUBLIC_APP_URL to be set for proper social sharing
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "";
+  const ogImageUrl = appUrl ? `${appUrl}/api/og/report?address=${encodeURIComponent(address)}&value=${encodeURIComponent(estimatedValue)}` : "";
 
   return {
     title,

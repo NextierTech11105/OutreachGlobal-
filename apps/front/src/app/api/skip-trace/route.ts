@@ -724,6 +724,19 @@ async function bulkSkipTrace(propertyIds: string[]): Promise<{
 // Supports: single, batch (sequential), and bulk (SkipTraceBatchAwait)
 export async function POST(request: NextRequest) {
   try {
+    // Check if API key is configured
+    if (!REALESTATE_API_KEY) {
+      return NextResponse.json(
+        {
+          error: "Skip Trace not configured",
+          message: "RealEstateAPI key not set. Add REAL_ESTATE_API_KEY to your environment variables.",
+          configUrl: "https://realestateapi.com",
+          success: false,
+        },
+        { status: 503 }
+      );
+    }
+
     const body = await request.json();
 
     // Check for bulk mode flag
@@ -1078,10 +1091,16 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET - Check daily usage
+// GET - Check daily usage and API configuration status
 export async function GET() {
   const usage = getDailyUsage();
+  const isConfigured = !!REALESTATE_API_KEY;
+
   return NextResponse.json({
+    configured: isConfigured,
+    configError: !isConfigured
+      ? "RealEstateAPI key not configured. Set REAL_ESTATE_API_KEY in environment variables. Get your key at https://realestateapi.com"
+      : undefined,
     date: usage.date,
     used: usage.count,
     limit: DAILY_LIMIT,

@@ -2,11 +2,12 @@ import { ApolloClient, InMemoryCache, createHttpLink } from "@apollo/client";
 import { setContext } from "@apollo/client/link/context";
 import { onError } from "@apollo/client/link/error";
 
+// GraphQL endpoint - requires NEXT_PUBLIC_GRAPHQL_URL or NEXT_PUBLIC_API_URL to be set
 const graphqlUrl =
   process.env.NEXT_PUBLIC_GRAPHQL_URL ||
   (process.env.NEXT_PUBLIC_API_URL
     ? `${process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, "")}/graphql`
-    : "https://monkfish-app-mb7h3.ondigitalocean.app/graphql");
+    : "/graphql"); // Fallback to relative path for same-origin requests
 
 const httpLink = createHttpLink({
   uri: graphqlUrl,
