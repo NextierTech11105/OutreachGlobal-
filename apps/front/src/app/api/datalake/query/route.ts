@@ -33,7 +33,7 @@ const s3Client = new S3Client({
 });
 
 interface QueryParams {
-  schemaId: string;
+  schemaId?: string;
   // Address matching
   address?: string;
   city?: string;
@@ -174,8 +174,69 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET - Get query options
-export async function GET() {
+// GET - Query by folder prefix (simple mode) or get query options
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const prefix = searchParams.get("prefix");
+  const limit = parseInt(searchParams.get("limit") || "100");
+
+  // If prefix is provided, fetch records from that folder
+  if (prefix) {
+    if (!SPACES_KEY || !SPACES_SECRET) {
+      return NextResponse.json(
+        { error: "DigitalOcean Spaces credentials not configured", success: false },
+        { status: 503 },
+      );
+    }
+
+    try {
+      // List CSV files in the folder
+      const files = await listCsvFiles(prefix);
+
+      if (files.length === 0) {
+        return NextResponse.json({
+          success: true,
+          records: [],
+          message: "No CSV files found in this folder",
+          prefix,
+        });
+      }
+
+      // Fetch and parse records from all CSV files
+      const allRecords: Record<string, unknown>[] = [];
+
+      for (const file of files) {
+        if (allRecords.length >= limit) break;
+
+        try {
+          const data = await fetchAndParseCsv(
+            file.Key!,
+            {}, // No filters for simple mode
+            limit - allRecords.length,
+          );
+          allRecords.push(...data.records);
+        } catch (err) {
+          console.warn(`[Datalake Query] Error reading ${file.Key}:`, err);
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        records: allRecords,
+        count: allRecords.length,
+        filesSearched: files.length,
+        prefix,
+      });
+    } catch (error) {
+      console.error("[Datalake Query] GET error:", error);
+      return NextResponse.json(
+        { error: "Failed to fetch records", success: false },
+        { status: 500 },
+      );
+    }
+  }
+
+  // No prefix - return schema documentation
   const schemas = Object.entries(DATA_LAKE_SCHEMAS).map(([id, schema]) => ({
     id,
     name: schema.name,
@@ -192,6 +253,7 @@ export async function GET() {
     success: true,
     message: "Query datalake records",
     endpoint: "POST /api/datalake/query",
+    simpleMode: "GET /api/datalake/query?prefix=datalake/folder/",
     queryParams: {
       required: {
         schemaId: "One of: " + Object.keys(DATA_LAKE_SCHEMAS).join(", "),

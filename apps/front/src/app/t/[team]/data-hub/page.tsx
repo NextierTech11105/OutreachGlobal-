@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -22,9 +22,46 @@ import {
   Filter,
   Download,
   Settings,
+  HardDrive,
+  ChevronDown,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Checkbox } from "@/components/ui/checkbox";
+
+// Lead type for display
+interface Lead {
+  id: string;
+  name: string;
+  company?: string;
+  phone?: string;
+  email?: string;
+  city?: string;
+  state?: string;
+  industry?: string;
+  source?: string;
+}
+
+// Datalake folder type
+interface DatalakeFolder {
+  type: string;
+  path: string;
+}
 
 export default function DataHubPage() {
   const params = useParams();
@@ -34,11 +71,101 @@ export default function DataHubPage() {
   const [viewMode, setViewMode] = useState<"simple" | "pro">("simple");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Datalake state
+  const [datalakeFolders, setDatalakeFolders] = useState<DatalakeFolder[]>([]);
+  const [isLoadingDatalake, setIsLoadingDatalake] = useState(false);
+  const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
+
+  // Leads list state
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [selectedLeads, setSelectedLeads] = useState<Set<string>>(new Set());
+  const [isLoadingLeads, setIsLoadingLeads] = useState(false);
+
+  // Calculate stats from leads
   const stats = {
-    totalRecords: 0,
-    enriched: 0,
-    withPhone: 0,
-    withEmail: 0,
+    totalRecords: leads.length,
+    enriched: leads.filter((l) => l.phone || l.email).length,
+    withPhone: leads.filter((l) => l.phone).length,
+    withEmail: leads.filter((l) => l.email).length,
+  };
+
+  // Load datalake folders on mount
+  useEffect(() => {
+    loadDatalakeFolders();
+  }, []);
+
+  const loadDatalakeFolders = async () => {
+    setIsLoadingDatalake(true);
+    try {
+      const response = await fetch("/api/datalake/list?prefix=datalake/");
+      const data = await response.json();
+      if (data.success) {
+        setDatalakeFolders(data.folders || []);
+      }
+    } catch (error) {
+      console.error("Failed to load datalake folders:", error);
+    } finally {
+      setIsLoadingDatalake(false);
+    }
+  };
+
+  const pullFromDatalake = async (folder: string) => {
+    setIsLoadingLeads(true);
+    setSelectedFolder(folder);
+    try {
+      const response = await fetch(`/api/datalake/query?prefix=${encodeURIComponent(folder)}`);
+      const data = await response.json();
+
+      if (data.success && data.records) {
+        // Map datalake records to leads
+        const mappedLeads: Lead[] = data.records.map((r: Record<string, string>, i: number) => ({
+          id: r.id || `dl-${i}`,
+          name: r.name || r.contact_name || r.owner_name || [r.first_name, r.last_name].filter(Boolean).join(" ") || "Unknown",
+          company: r.company || r.company_name || r.business_name,
+          phone: r.phone || r.phone_number || r.mobile,
+          email: r.email || r.email_address,
+          city: r.city || r.property_city,
+          state: r.state || r.property_state,
+          industry: r.industry || r.sector,
+          source: "datalake",
+        }));
+        setLeads(mappedLeads);
+        toast.success(`Loaded ${mappedLeads.length} records from datalake`);
+      } else {
+        toast.error(data.error || "No records found");
+      }
+    } catch (error) {
+      toast.error("Failed to pull from datalake");
+      console.error(error);
+    } finally {
+      setIsLoadingLeads(false);
+    }
+  };
+
+  const toggleLeadSelection = (id: string) => {
+    setSelectedLeads((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const toggleAllLeads = () => {
+    if (selectedLeads.size === leads.length) {
+      setSelectedLeads(new Set());
+    } else {
+      setSelectedLeads(new Set(leads.map((l) => l.id)));
+    }
+  };
+
+  const clearLeads = () => {
+    setLeads([]);
+    setSelectedLeads(new Set());
+    setSelectedFolder(null);
   };
 
   const handleQuickSearch = async () => {
@@ -149,13 +276,13 @@ export default function DataHubPage() {
               </div>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid md:grid-cols-3 gap-4">
               <Button
                 className="h-24 text-lg bg-blue-600 hover:bg-blue-700 text-white"
                 onClick={handleFileUpload}
               >
                 <Upload className="h-8 w-8 mr-3" />
-                UPLOAD CSV FILE
+                UPLOAD CSV
               </Button>
               <input
                 ref={fileInputRef}
@@ -166,9 +293,51 @@ export default function DataHubPage() {
                 aria-label="Upload CSV file"
               />
 
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    className="h-24 text-lg bg-purple-600 hover:bg-purple-700 text-white"
+                    disabled={isLoadingDatalake}
+                  >
+                    {isLoadingDatalake ? (
+                      <Loader2 className="h-8 w-8 animate-spin mr-3" />
+                    ) : (
+                      <HardDrive className="h-8 w-8 mr-3" />
+                    )}
+                    DATALAKE
+                    <ChevronDown className="h-5 w-5 ml-2" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-64 bg-zinc-900 border-zinc-700">
+                  {datalakeFolders.length === 0 ? (
+                    <DropdownMenuItem disabled className="text-zinc-500">
+                      No folders found
+                    </DropdownMenuItem>
+                  ) : (
+                    datalakeFolders.map((folder) => (
+                      <DropdownMenuItem
+                        key={folder.path}
+                        onClick={() => pullFromDatalake(folder.path)}
+                        className="text-white hover:bg-zinc-800 cursor-pointer"
+                      >
+                        <Database className="h-4 w-4 mr-2 text-purple-400" />
+                        {folder.path.replace("datalake/", "").replace("/", "") || "Root"}
+                      </DropdownMenuItem>
+                    ))
+                  )}
+                  <DropdownMenuItem
+                    onClick={loadDatalakeFolders}
+                    className="text-zinc-400 hover:bg-zinc-800 cursor-pointer border-t border-zinc-700 mt-1"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Refresh folders
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
               <div className="flex gap-2">
                 <Input
-                  placeholder="Search (e.g., 'hotels NYC')"
+                  placeholder="Search Apollo..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleQuickSearch()}
@@ -275,6 +444,127 @@ export default function DataHubPage() {
             </p>
           </CardContent>
         </Card>
+
+        {/* LEADS TABLE - Shows after data is loaded */}
+        {leads.length > 0 && (
+          <Card className="bg-zinc-900 border border-zinc-700">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <h3 className="text-lg font-bold text-white">
+                    Loaded Data
+                    {selectedFolder && (
+                      <span className="text-sm font-normal text-zinc-400 ml-2">
+                        from {selectedFolder.replace("datalake/", "")}
+                      </span>
+                    )}
+                  </h3>
+                  <span className="text-sm text-zinc-500">
+                    {leads.length} records
+                    {selectedLeads.size > 0 && ` (${selectedLeads.size} selected)`}
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  {selectedLeads.size > 0 && (
+                    <>
+                      <Link href={`/t/${params.team}/sms-queue`}>
+                        <Button size="sm" className="bg-green-600 hover:bg-green-700">
+                          <MessageSquare className="h-4 w-4 mr-1" />
+                          SMS ({selectedLeads.size})
+                        </Button>
+                      </Link>
+                      <Link href={`/t/${params.team}/call-center`}>
+                        <Button size="sm" variant="outline" className="border-zinc-600">
+                          <Phone className="h-4 w-4 mr-1" />
+                          Call
+                        </Button>
+                      </Link>
+                    </>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={clearLeads}
+                    className="text-zinc-400 hover:text-red-400"
+                  >
+                    <X className="h-4 w-4 mr-1" />
+                    Clear
+                  </Button>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-zinc-800 overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-zinc-800 hover:bg-zinc-800">
+                      <TableHead className="w-10">
+                        <Checkbox
+                          checked={leads.length > 0 && selectedLeads.size === leads.length}
+                          onCheckedChange={toggleAllLeads}
+                        />
+                      </TableHead>
+                      <TableHead className="text-zinc-300">Name</TableHead>
+                      <TableHead className="text-zinc-300">Company</TableHead>
+                      <TableHead className="text-zinc-300">Phone</TableHead>
+                      <TableHead className="text-zinc-300">Email</TableHead>
+                      <TableHead className="text-zinc-300">City</TableHead>
+                      <TableHead className="text-zinc-300">State</TableHead>
+                      <TableHead className="text-zinc-300">Industry</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {isLoadingLeads ? (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center py-8">
+                          <Loader2 className="h-6 w-6 animate-spin mx-auto text-blue-400" />
+                          <p className="text-zinc-500 mt-2">Loading data...</p>
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      leads.slice(0, 100).map((lead) => (
+                        <TableRow
+                          key={lead.id}
+                          className={`hover:bg-zinc-800 ${selectedLeads.has(lead.id) ? "bg-blue-900/20" : ""}`}
+                        >
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedLeads.has(lead.id)}
+                              onCheckedChange={() => toggleLeadSelection(lead.id)}
+                            />
+                          </TableCell>
+                          <TableCell className="text-white font-medium">{lead.name}</TableCell>
+                          <TableCell className="text-zinc-300">{lead.company || "-"}</TableCell>
+                          <TableCell>
+                            {lead.phone ? (
+                              <span className="text-green-400">{lead.phone}</span>
+                            ) : (
+                              <span className="text-zinc-600">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {lead.email ? (
+                              <span className="text-blue-400">{lead.email}</span>
+                            ) : (
+                              <span className="text-zinc-600">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-zinc-300">{lead.city || "-"}</TableCell>
+                          <TableCell className="text-zinc-300">{lead.state || "-"}</TableCell>
+                          <TableCell className="text-zinc-400">{lead.industry || "-"}</TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+              {leads.length > 100 && (
+                <p className="text-xs text-zinc-500 text-center mt-2">
+                  Showing first 100 of {leads.length} records
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
