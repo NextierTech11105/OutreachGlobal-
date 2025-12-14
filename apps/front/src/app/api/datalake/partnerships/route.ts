@@ -10,7 +10,7 @@ import {
   ListObjectsV2Command,
   GetObjectCommand,
 } from "@aws-sdk/client-s3";
-import { PARTNERSHIP_CATEGORIES } from "../schemas/route";
+import { PARTNERSHIP_CATEGORIES } from "@/lib/datalake/schemas";
 
 // DO Spaces configuration
 const SPACES_ENDPOINT =

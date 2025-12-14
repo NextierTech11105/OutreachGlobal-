@@ -12,7 +12,7 @@ import {
   UploadPartCommand,
   CompleteMultipartUploadCommand,
 } from "@aws-sdk/client-s3";
-import { DATA_LAKE_SCHEMAS } from "../schemas/route";
+import { DATA_LAKE_SCHEMAS } from "@/lib/datalake/schemas";
 
 // DO Spaces configuration
 const SPACES_ENDPOINT =
