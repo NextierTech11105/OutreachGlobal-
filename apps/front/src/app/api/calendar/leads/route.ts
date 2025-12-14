@@ -117,9 +117,26 @@ export async function GET(request: NextRequest) {
       conditions.push(eq(leads.status, status));
     }
 
-    // Fetch leads from database
+    // Fetch leads from database - explicitly select only columns we need
     const results = await db
-      .select()
+      .select({
+        id: leads.id,
+        firstName: leads.firstName,
+        lastName: leads.lastName,
+        phone: leads.phone,
+        email: leads.email,
+        propertyAddress: leads.propertyAddress,
+        propertyCity: leads.propertyCity,
+        propertyState: leads.propertyState,
+        estimatedValue: leads.estimatedValue,
+        estimatedEquity: leads.estimatedEquity,
+        leadType: leads.leadType,
+        propertyType: leads.propertyType,
+        status: leads.status,
+        createdAt: leads.createdAt,
+        lastActivityAt: leads.lastActivityAt,
+        source: leads.source,
+      })
       .from(leads)
       .where(and(...conditions))
       .orderBy(desc(leads.createdAt))
@@ -130,7 +147,6 @@ export async function GET(request: NextRequest) {
       id: lead.id,
       name:
         [lead.firstName, lead.lastName].filter(Boolean).join(" ") ||
-        lead.name ||
         "Unknown",
       phone: lead.phone || undefined,
       email: lead.email || undefined,
