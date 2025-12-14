@@ -299,7 +299,7 @@ export function LuciDataAgent() {
           <div>
             <h2 className="text-2xl font-bold text-white flex items-center gap-2">
               Luci
-              <Badge className="bg-red-600">数据工程师</Badge>
+              <Badge className="bg-red-600">DATA ENGINEER</Badge>
             </h2>
             <p className="text-zinc-400">
               ETL • Cross-Reference • Data Quality • Pattern Recognition
@@ -835,8 +835,8 @@ export function LuciDataAgent() {
 
                 <div className="pt-2 border-t border-zinc-700">
                   <p className="text-xs text-zinc-500 mb-2">Opening Theory</p>
-                  <p className="text-sm text-zinc-300 italic">"每天都是找数据的一天"</p>
-                  <p className="text-xs text-zinc-500">Every day is a day to find data</p>
+                  <p className="text-sm text-zinc-300 italic">"Every day is a day to find data."</p>
+                  <p className="text-xs text-zinc-500">- Luci, Data Engineer</p>
                 </div>
               </CardContent>
             </Card>
