@@ -138,7 +138,7 @@ export async function GET(request: NextRequest) {
       city: lead.propertyCity || undefined,
       state: lead.propertyState || undefined,
       propertyValue: lead.estimatedValue ? Number(lead.estimatedValue) : undefined,
-      equity: lead.equity ? Number(lead.equity) : undefined,
+      equity: lead.estimatedEquity ? Number(lead.estimatedEquity) : undefined,
       leadType: lead.leadType || lead.propertyType || undefined,
       status: mapDbStatus(lead.status || "new"),
       createdAt: lead.createdAt
@@ -354,7 +354,7 @@ export async function POST(request: NextRequest) {
           db
             .update(leads)
             .set({
-              scheduledFollowUp: new Date(scheduleDate),
+              lastActivityAt: new Date(scheduleDate),
               updatedAt: new Date(),
             })
             .where(and(eq(leads.id, id), eq(leads.userId, userId))),
