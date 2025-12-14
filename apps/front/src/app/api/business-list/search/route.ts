@@ -58,18 +58,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Apollo.io requires api_key in the request body, NOT in headers
     const response = await fetch(`${APOLLO_API_BASE}/mixed_people/search`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-Api-Key": APOLLO_API_KEY,
       },
-      body: JSON.stringify(searchParams),
+      body: JSON.stringify({
+        ...searchParams,
+        api_key: APOLLO_API_KEY,
+      }),
     });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error("Apollo search error:", errorData);
+      console.error("Apollo search error:", response.status, errorData);
       return NextResponse.json(
         {
           error: errorData.message || "Search failed",
@@ -83,50 +86,75 @@ export async function POST(request: NextRequest) {
     const data = await response.json();
 
     // Transform Apollo results to match expected format
-    const hits = (data.people || []).map(
-      (person: {
-        id: string;
-        first_name?: string;
-        last_name?: string;
+    interface ApolloPerson {
+      id: string;
+      first_name?: string;
+      last_name?: string;
+      name?: string;
+      title?: string;
+      email?: string;
+      phone_numbers?: Array<{ sanitized_number?: string; raw_number?: string; type?: string }>;
+      city?: string;
+      state?: string;
+      country?: string;
+      organization?: {
         name?: string;
-        title?: string;
-        email?: string;
-        phone_numbers?: Array<{ sanitized_number?: string }>;
+        website_url?: string;
+        primary_domain?: string;
+        estimated_num_employees?: number;
+        industry?: string;
+        industries?: string[];
+        annual_revenue?: number;
+        street_address?: string;
         city?: string;
         state?: string;
+        postal_code?: string;
         country?: string;
-        organization?: {
-          name?: string;
-          website_url?: string;
-          estimated_num_employees?: number;
-          industry?: string;
-          annual_revenue?: number;
-        };
-        linkedin_url?: string;
-      }) => ({
+        raw_address?: string;
+        phone?: string;
+        sanitized_phone?: string;
+      };
+      linkedin_url?: string;
+    }
+
+    const hits = (data.people || []).map((person: ApolloPerson) => {
+      const org = person.organization;
+      // Get phone - try org phone first, then person phones
+      const phones = person.phone_numbers || [];
+      const phone = phones.find(p => p.type === "work_direct" || p.type === "work")?.sanitized_number
+        || org?.sanitized_phone
+        || org?.phone
+        || phones[0]?.sanitized_number
+        || phones[0]?.raw_number
+        || null;
+
+      // Get address from organization
+      const address = org?.street_address || org?.raw_address || null;
+      const city = org?.city || person.city || null;
+      const state = org?.state || person.state || null;
+      const zip = org?.postal_code || null;
+
+      // Get industry
+      const industry = org?.industry || (org?.industries && org.industries[0]) || null;
+
+      return {
         id: person.id,
-        name:
-          person.name ||
-          `${person.first_name || ""} ${person.last_name || ""}`.trim(),
+        name: person.name || `${person.first_name || ""} ${person.last_name || ""}`.trim(),
         title: person.title || null,
         email: person.email || null,
-        phone: person.phone_numbers?.[0]?.sanitized_number || null,
-        address: null,
-        city: person.city || null,
-        state: person.state || null,
-        company_name: person.organization?.name || null,
-        company_domain:
-          person.organization?.website_url
-            ?.replace(/^https?:\/\//, "")
-            .replace(/\/$/, "") || null,
-        employees: person.organization?.estimated_num_employees || null,
-        industry: person.organization?.industry || null,
-        revenue: person.organization?.annual_revenue
-          ? person.organization.annual_revenue * 100
-          : null,
+        phone,
+        address,
+        city,
+        state,
+        zip,
+        company_name: org?.name || null,
+        company_domain: org?.primary_domain || org?.website_url?.replace(/^https?:\/\//, "").replace(/\/$/, "") || null,
+        employees: org?.estimated_num_employees || null,
+        industry,
+        revenue: org?.annual_revenue ? org.annual_revenue * 100 : null,
         linkedin_url: person.linkedin_url || null,
-      }),
-    );
+      };
+    });
 
     return NextResponse.json({
       hits,

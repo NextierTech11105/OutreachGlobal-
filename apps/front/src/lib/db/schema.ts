@@ -1742,3 +1742,56 @@ export type DealActivity = typeof dealActivities.$inferSelect;
 export type NewDealActivity = typeof dealActivities.$inferInsert;
 export type DealDocument = typeof dealDocuments.$inferSelect;
 export type NewDealDocument = typeof dealDocuments.$inferInsert;
+
+// ============================================================
+// DATA SCHEMAS - Per-team schema definitions for custom fields
+// ============================================================
+
+/**
+ * DATA_SCHEMAS - Store custom schema definitions per team
+ * Supports versioning and rollback
+ */
+export const dataSchemas = pgTable(
+  "data_schemas",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+
+    // === Scope ===
+    scope: text("scope").notNull().default("team"), // 'global' | 'team'
+    teamId: text("team_id"), // null for global schemas
+
+    // === Schema Identity ===
+    key: text("key").notNull(), // 'leads' | 'contacts' | 'companies' | 'real-estate' | etc
+    name: text("name").notNull(), // Display name
+    description: text("description"),
+
+    // === Schema Definition ===
+    schemaJson: jsonb("schema_json").notNull().default({}), // { fields: [], settings: {} }
+
+    // === Versioning ===
+    version: integer("version").notNull().default(1),
+    previousVersionId: uuid("previous_version_id"), // Links to prior version for rollback
+
+    // === Status ===
+    isActive: boolean("is_active").default(true),
+    isDefault: boolean("is_default").default(false), // Only one default per key
+
+    // === Audit ===
+    createdBy: text("created_by"),
+    updatedBy: text("updated_by"),
+
+    // === Timestamps ===
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    teamIdIdx: index("data_schemas_team_id_idx").on(table.teamId),
+    keyIdx: index("data_schemas_key_idx").on(table.key),
+    scopeKeyIdx: index("data_schemas_scope_key_idx").on(table.scope, table.key),
+    activeIdx: index("data_schemas_active_idx").on(table.isActive),
+  }),
+);
+
+// Type exports
+export type DataSchema = typeof dataSchemas.$inferSelect;
+export type NewDataSchema = typeof dataSchemas.$inferInsert;

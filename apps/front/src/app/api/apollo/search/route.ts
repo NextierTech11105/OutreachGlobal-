@@ -38,13 +38,16 @@ export async function POST(request: NextRequest) {
       searchParams.person_titles = [title];
     }
 
+    // Apollo.io requires api_key in body, NOT in headers
     const response = await fetch(`${APOLLO_API_BASE}/mixed_people/search`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-Api-Key": APOLLO_API_KEY,
       },
-      body: JSON.stringify(searchParams),
+      body: JSON.stringify({
+        ...searchParams,
+        api_key: APOLLO_API_KEY,
+      }),
     });
 
     if (!response.ok) {

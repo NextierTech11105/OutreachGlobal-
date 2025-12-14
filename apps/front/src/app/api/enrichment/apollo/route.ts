@@ -123,15 +123,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (companyName) matchRequest.organization_name = companyName;
     if (domain) matchRequest.domain = domain;
 
-    // Call Apollo API
+    // Call Apollo API - api_key goes in body, NOT in headers
     const response = await fetch(APOLLO_API_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Cache-Control": "no-cache",
-        "X-Api-Key": APOLLO_API_KEY,
       },
-      body: JSON.stringify(matchRequest),
+      body: JSON.stringify({
+        ...matchRequest,
+        api_key: APOLLO_API_KEY,
+      }),
     });
 
     if (!response.ok) {

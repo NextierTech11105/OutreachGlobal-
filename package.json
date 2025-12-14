@@ -12,6 +12,7 @@
     "api": "pnpm --filter api",
     "api:build": "nx run-many --target=build --exclude=front",
     "lint": "nx run-many -t lint",
+    "precheck": "pnpm build && pnpm lint",
     "codegen": "pnpm --filter front codegen",
     "artisan": "pnpm --filter api artisan",
     "artisan:dev": "pnpm --filter api artisan:dev",

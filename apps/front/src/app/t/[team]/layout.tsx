@@ -10,6 +10,7 @@ import { TeamProvider } from "@/features/team/team-provider";
 import { getTeam } from "@/features/team/team.data";
 import { LayoutProps } from "@/types/route.type";
 import { Metadata } from "next";
+import { LuciFloatingAssistant } from "@/components/luci-floating-assistant";
 
 export const generateMetadata = async ({
   params,
@@ -46,6 +47,8 @@ export default async function Layout({
             </div>
           </header>
           {children}
+          {/* Luci Data Copilot - Available on every page */}
+          <LuciFloatingAssistant />
         </SidebarInset>
       </TeamProvider>
     </SidebarProvider>

@@ -67,8 +67,11 @@ interface Contact {
   industry: string;
   employees: number;
   revenue: number;
+  // Address - from company/organization
+  address: string;
   city: string;
   state: string;
+  zip: string;
   country: string;
   // Source tracking
   source: "apollo" | "usbizdata";
@@ -238,74 +241,109 @@ async function searchApolloPeople(params: {
   }
 
   // Use mixed_people/search to get CONTACTS with emails, phones, titles
+  // Apollo.io requires api_key in the request body, NOT in headers
   const response = await fetch(`${APOLLO_API_BASE}/mixed_people/search`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-Api-Key": APOLLO_API_KEY,
     },
-    body: JSON.stringify(searchParams),
+    body: JSON.stringify({
+      ...searchParams,
+      api_key: APOLLO_API_KEY,
+    }),
   });
 
   if (!response.ok) {
-    console.error("Apollo people search error:", await response.text());
+    const errorText = await response.text();
+    console.error("Apollo people search error:", response.status, errorText);
     return { hits: [], total: 0 };
   }
 
   const data = await response.json();
 
   // Transform Apollo people results to Contact format
-  const hits: Contact[] = (data.people || []).map(
-    (person: {
-      id: string;
-      first_name?: string;
-      last_name?: string;
+  interface ApolloPerson {
+    id: string;
+    first_name?: string;
+    last_name?: string;
+    name?: string;
+    title?: string;
+    email?: string;
+    phone_numbers?: Array<{ sanitized_number?: string; raw_number?: string; type?: string }>;
+    city?: string;
+    state?: string;
+    country?: string;
+    linkedin_url?: string;
+    organization?: {
       name?: string;
-      title?: string;
-      email?: string;
-      phone_numbers?: Array<{ sanitized_number?: string; type?: string }>;
+      website_url?: string;
+      primary_domain?: string;
+      industry?: string;
+      industries?: string[];
+      estimated_num_employees?: number;
+      annual_revenue?: number;
+      // Organization address fields
+      street_address?: string;
       city?: string;
       state?: string;
+      postal_code?: string;
       country?: string;
-      linkedin_url?: string;
-      organization?: {
-        name?: string;
-        website_url?: string;
-        primary_domain?: string;
-        industry?: string;
-        estimated_num_employees?: number;
-        annual_revenue?: number;
-      };
-    }) => {
-      // Extract phones - separate direct and mobile
-      const phones = person.phone_numbers || [];
-      const directPhone = phones.find(p => p.type === "work" || p.type === "direct")?.sanitized_number || phones[0]?.sanitized_number || "";
-      const mobilePhone = phones.find(p => p.type === "mobile" || p.type === "cell")?.sanitized_number || "";
+      raw_address?: string;
+      phone?: string;
+      sanitized_phone?: string;
+    };
+  }
 
-      return {
-        id: person.id,
-        firstName: person.first_name || "",
-        lastName: person.last_name || "",
-        name: person.name || `${person.first_name || ""} ${person.last_name || ""}`.trim(),
-        title: person.title || "",
-        email: person.email || "",
-        phone: directPhone,
-        mobile: mobilePhone,
-        linkedin_url: person.linkedin_url || "",
-        company: person.organization?.name || "",
-        domain: person.organization?.primary_domain || person.organization?.website_url?.replace(/^https?:\/\//, "").replace(/\/$/, "") || "",
-        website: person.organization?.website_url || "",
-        industry: person.organization?.industry || "",
-        employees: person.organization?.estimated_num_employees || 0,
-        revenue: person.organization?.annual_revenue ? person.organization.annual_revenue * 100 : 0,
-        city: person.city || "",
-        state: person.state || "",
-        country: person.country || "United States",
-        source: "apollo" as const,
-        sourceLabel: "Apollo.io (275M+)",
-      };
-    },
-  );
+  const hits: Contact[] = (data.people || []).map((person: ApolloPerson) => {
+    // Extract phones - separate direct and mobile
+    const phones = person.phone_numbers || [];
+    const directPhone = phones.find(p => p.type === "work_direct" || p.type === "work" || p.type === "direct")?.sanitized_number
+      || phones.find(p => p.type === "work_hq")?.sanitized_number
+      || person.organization?.sanitized_phone
+      || person.organization?.phone
+      || phones[0]?.sanitized_number
+      || phones[0]?.raw_number
+      || "";
+    const mobilePhone = phones.find(p => p.type === "mobile" || p.type === "personal")?.sanitized_number
+      || phones.find(p => p.type === "mobile" || p.type === "personal")?.raw_number
+      || "";
+
+    // Get company address (from organization, not person)
+    const org = person.organization;
+    const companyAddress = org?.street_address || org?.raw_address || "";
+    const companyCity = org?.city || person.city || "";
+    const companyState = org?.state || person.state || "";
+    const companyZip = org?.postal_code || "";
+    const companyCountry = org?.country || person.country || "United States";
+
+    // Get industry - use first from industries array or fallback
+    const industry = org?.industry || (org?.industries && org.industries[0]) || "";
+
+    return {
+      id: person.id,
+      firstName: person.first_name || "",
+      lastName: person.last_name || "",
+      name: person.name || `${person.first_name || ""} ${person.last_name || ""}`.trim(),
+      title: person.title || "",
+      email: person.email || "",
+      phone: directPhone,
+      mobile: mobilePhone,
+      linkedin_url: person.linkedin_url || "",
+      company: org?.name || "",
+      domain: org?.primary_domain || org?.website_url?.replace(/^https?:\/\//, "").replace(/\/$/, "") || "",
+      website: org?.website_url || "",
+      industry,
+      employees: org?.estimated_num_employees || 0,
+      revenue: org?.annual_revenue ? org.annual_revenue * 100 : 0,
+      address: companyAddress,
+      city: companyCity,
+      state: companyState,
+      zip: companyZip,
+      country: companyCountry,
+      source: "apollo" as const,
+      sourceLabel: "Apollo.io (275M+)",
+    };
+  });
 
   return {
     hits,
@@ -420,6 +458,10 @@ async function fetchAndParseContacts(
   if (lines.length < 2) return { records: [], totalMatched: 0 };
 
   const headers = parseCsvLine(lines[0]);
+
+  // Debug: Log CSV headers to identify address column name (only first time per file)
+  console.log(`[USBizData] CSV ${key} - Headers:`, headers.slice(0, 15).join(", "), headers.length > 15 ? `... (${headers.length} total)` : "");
+
   const records: Contact[] = [];
   let totalMatched = 0;
   let skipped = 0;
@@ -461,6 +503,18 @@ async function fetchAndParseContacts(
     const firstName = row["First Name"] || row["firstName"] || nameParts[0] || "";
     const lastName = row["Last Name"] || row["lastName"] || nameParts.slice(1).join(" ") || "";
 
+    // Debug: Log first record's address fields to verify extraction
+    if (records.length === 0) {
+      console.log(`[USBizData] First record address check:`, {
+        "Street Address": row["Street Address"],
+        "Address": row["Address"],
+        "Business Address": row["Business Address"],
+        "City": row["City"],
+        "State": row["State"],
+        "Zip": row["Zip"] || row["Zip Code"],
+      });
+    }
+
     // Transform to Contact format
     records.push({
       id: `usbiz-${i}-${Date.now()}`,
@@ -478,8 +532,14 @@ async function fetchAndParseContacts(
       industry: row["SIC Description"] || row["sicDescription"] || row["Industry"] || "",
       employees: parseInt(row["Number of Employees"] || row["employeeCount"] || "0") || 0,
       revenue: parseInt(row["Annual Revenue"] || row["annualRevenue"] || "0") || 0,
-      city: row["City"] || row["city"] || "",
-      state: row["State"] || row["state"] || "NY",
+      // Address field - check ALL possible column name variations from USBizData CSVs
+      address: row["Street Address"] || row["StreetAddress"] || row["street_address"] ||
+               row["Address"] || row["address"] || row["STREET ADDRESS"] || row["ADDRESS"] ||
+               row["Business Address"] || row["Mailing Address"] || row["Physical Address"] || "",
+      city: row["City"] || row["city"] || row["CITY"] || "",
+      state: row["State"] || row["state"] || row["STATE"] || "NY",
+      zip: row["Zip"] || row["Zip Code"] || row["zip"] || row["ZIP"] || row["ZIP CODE"] ||
+           row["zipCode"] || row["ZipCode"] || row["Postal Code"] || row["postal_code"] || "",
       country: "United States",
       source: "usbizdata" as const,
       sourceLabel: "USBizData NY (5.5M)",

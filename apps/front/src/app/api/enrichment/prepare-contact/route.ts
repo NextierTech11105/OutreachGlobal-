@@ -212,13 +212,13 @@ async function enrichB2BLead(
     }
 
     // If we have a person ID, get their details
+    // Apollo requires api_key in body for POST, but for GET we use query params
     if (personId) {
       const personResponse = await fetch(
-        `https://api.apollo.io/v1/people/${personId}`,
+        `https://api.apollo.io/v1/people/${personId}?api_key=${APOLLO_API_KEY}`,
         {
           headers: {
             "Content-Type": "application/json",
-            "X-Api-Key": APOLLO_API_KEY,
           },
         },
       );
@@ -251,12 +251,12 @@ async function enrichB2BLead(
     }
 
     // Otherwise, get company info and find contacts
+    // Apollo requires api_key as query param for GET requests
     const companyResponse = await fetch(
-      `https://api.apollo.io/v1/organizations/${companyId}`,
+      `https://api.apollo.io/v1/organizations/${companyId}?api_key=${APOLLO_API_KEY}`,
       {
         headers: {
           "Content-Type": "application/json",
-          "X-Api-Key": APOLLO_API_KEY,
         },
       },
     );

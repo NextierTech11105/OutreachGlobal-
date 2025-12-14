@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Card,
@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { PlusCircle, Save, Trash2, ArrowDownUp, FileJson } from "lucide-react";
+import { PlusCircle, Save, Trash2, ArrowDownUp, FileJson, Loader2, Users } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -795,6 +795,14 @@ const initialSchemaData: SchemaData = {
   },
 };
 
+// Available teams (in production, fetch from API)
+const availableTeams = [
+  { id: "default", name: "Default Team" },
+  { id: "test", name: "Test Team" },
+  { id: "sales", name: "Sales Team" },
+  { id: "marketing", name: "Marketing Team" },
+];
+
 export function SchemaManager() {
   const [activeTab, setActiveTab] = useState("leads");
   const [schemaData, setSchemaData] = useState(initialSchemaData);
@@ -815,6 +823,65 @@ export function SchemaManager() {
   const [optionInput, setOptionInput] = useState("");
   const [showJsonEditor, setShowJsonEditor] = useState(false);
   const [jsonEditorContent, setJsonEditorContent] = useState("");
+
+  // API persistence state
+  const [selectedTeam, setSelectedTeam] = useState("default");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [schemaVersion, setSchemaVersion] = useState<number | null>(null);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  // Load schemas from API
+  const loadSchemas = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`/api/admin/data-schema?teamId=${selectedTeam}`);
+      if (!response.ok) throw new Error("Failed to load schemas");
+
+      const data = await response.json();
+
+      if (data.schemas && data.schemas.length > 0) {
+        // Merge loaded schemas with defaults
+        const loadedSchemaData = { ...initialSchemaData };
+
+        for (const schema of data.schemas) {
+          if (schema.schemaJson && loadedSchemaData[schema.key]) {
+            loadedSchemaData[schema.key] = {
+              name: schema.name,
+              description: schema.description || loadedSchemaData[schema.key].description,
+              fields: schema.schemaJson.fields || loadedSchemaData[schema.key].fields,
+            };
+          }
+        }
+
+        setSchemaData(loadedSchemaData);
+
+        // Get highest version
+        const maxVersion = Math.max(...data.schemas.map((s: { version: number }) => s.version));
+        setSchemaVersion(maxVersion);
+      }
+
+      setHasUnsavedChanges(false);
+    } catch (error) {
+      console.error("Error loading schemas:", error);
+      // Keep default schemas on error
+    } finally {
+      setIsLoading(false);
+    }
+  }, [selectedTeam]);
+
+  // Load schemas when team changes
+  useEffect(() => {
+    loadSchemas();
+  }, [loadSchemas]);
+
+  // Track unsaved changes
+  useEffect(() => {
+    if (schemaVersion !== null) {
+      setHasUnsavedChanges(true);
+    }
+  }, [schemaData]);
 
   // Handle tab change
   const handleTabChange = (value: string) => {
@@ -949,11 +1016,46 @@ export function SchemaManager() {
     }
   };
 
-  // Save schema to database (mock function)
-  const handleSaveSchema = () => {
-    // In a real implementation, this would save to your database
-    console.log("Saving schema to database:", schemaData);
-    alert("Schema saved successfully!");
+  // Save schema to database
+  const handleSaveSchema = async () => {
+    setIsSaving(true);
+    try {
+      // Save each schema entity
+      const savePromises = Object.entries(schemaData).map(async ([key, entity]) => {
+        const response = await fetch("/api/admin/data-schema", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            teamId: selectedTeam,
+            key,
+            name: entity.name,
+            description: entity.description,
+            schemaJson: { fields: entity.fields },
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to save schema: ${key}`);
+        }
+
+        return response.json();
+      });
+
+      const results = await Promise.all(savePromises);
+
+      // Get the latest version from results
+      const maxVersion = Math.max(...results.map((r) => r.version || 1));
+      setSchemaVersion(maxVersion);
+      setLastSaved(new Date());
+      setHasUnsavedChanges(false);
+
+      console.log("All schemas saved successfully");
+    } catch (error) {
+      console.error("Error saving schemas:", error);
+      alert("Failed to save schema. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -966,8 +1068,47 @@ export function SchemaManager() {
           <p className="text-muted-foreground">
             Define and manage your application's data structure
           </p>
+          {schemaVersion && (
+            <div className="flex items-center gap-2 mt-1">
+              <Badge variant="outline">v{schemaVersion}</Badge>
+              {lastSaved && (
+                <span className="text-xs text-muted-foreground">
+                  Last saved: {lastSaved.toLocaleTimeString()}
+                </span>
+              )}
+              {hasUnsavedChanges && (
+                <Badge variant="destructive" className="text-xs">Unsaved changes</Badge>
+              )}
+            </div>
+          )}
         </div>
-        <div className="flex space-x-2">
+        <div className="flex items-center space-x-2">
+          {/* Team Selector */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <Select value={selectedTeam} onValueChange={setSelectedTeam}>
+                    <SelectTrigger className="w-[160px]">
+                      <SelectValue placeholder="Select team" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableTeams.map((team) => (
+                        <SelectItem key={team.id} value={team.id}>
+                          {team.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Schema scope: per-team isolation</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -996,13 +1137,26 @@ export function SchemaManager() {
             </Tooltip>
           </TooltipProvider>
 
-          <Button onClick={handleSaveSchema}>
-            <Save className="h-4 w-4 mr-2" />
-            Save Schema
+          <Button onClick={handleSaveSchema} disabled={isSaving || isLoading}>
+            {isSaving ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4 mr-2" />
+            )}
+            {isSaving ? "Saving..." : "Save Schema"}
           </Button>
         </div>
       </div>
 
+      {/* Loading state */}
+      {isLoading && (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <span className="ml-2 text-muted-foreground">Loading schemas...</span>
+        </div>
+      )}
+
+      {!isLoading && (
       <Tabs
         value={activeTab}
         onValueChange={handleTabChange}
@@ -1114,6 +1268,7 @@ export function SchemaManager() {
           </TabsContent>
         ))}
       </Tabs>
+      )}
 
       {/* Add/Edit Field Dialog */}
       <Dialog

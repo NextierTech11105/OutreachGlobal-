@@ -24,6 +24,14 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -51,6 +59,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
+  Shuffle,
+  Layers,
 } from "lucide-react";
 import { UniversalDetailModal } from "@/components/universal-detail-modal";
 import { toast } from "sonner";
@@ -85,6 +95,17 @@ interface Lead {
   ownerName?: string;
   skipTraceData?: Record<string, unknown>;
   apolloData?: Record<string, unknown>;
+  // CONTACT TRACKING
+  contactAttempts?: number;
+  lastContactDate?: string;
+  lastContactChannel?: "sms" | "call" | "email" | null;
+  contactHistory?: Array<{
+    date: string;
+    channel: "sms" | "call" | "email";
+    direction: "outbound" | "inbound";
+    message?: string;
+    status?: string;
+  }>;
 }
 
 interface DataLake {
@@ -117,9 +138,22 @@ export default function SectorDetailPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 100; // 100 per page
+
+  // Server-side pagination state
+  const [pagination, setPagination] = useState<{
+    totalRecords: number;
+    filteredTotal: number;
+    totalPages: number;
+    hasMore: boolean;
+  } | null>(null);
+
+  // Batch loading mode
+  const [batchSize, setBatchSize] = useState(100); // 100, 500, 1000, 2000
+  const [shuffleMode, setShuffleMode] = useState(false);
 
   // Daily skip trace limit (2000/day)
   const DAILY_SKIP_TRACE_LIMIT = 2000;
@@ -200,12 +234,33 @@ export default function SectorDetailPage() {
     setSelectedIds(new Set(enrichable.map((l) => l.id)));
   };
 
-  // Fetch data lake
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setCurrentPage(1); // Reset to page 1 on new search
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Fetch data lake with server-side pagination
   useEffect(() => {
     async function fetchDataLake() {
       setIsLoading(true);
       try {
-        const response = await fetch(`/api/buckets/${sectorId}`);
+        // Build URL with pagination params
+        const params = new URLSearchParams({
+          page: String(currentPage),
+          limit: String(batchSize),
+        });
+        if (debouncedSearch) {
+          params.set("search", debouncedSearch);
+        }
+        if (shuffleMode) {
+          params.set("shuffle", "true");
+        }
+
+        const response = await fetch(`/api/buckets/${sectorId}?${params}`);
         const data = await response.json();
 
         if (data.error) {
@@ -214,6 +269,12 @@ export default function SectorDetailPage() {
         }
 
         setDataLake(data);
+
+        // Store pagination info
+        if (data.pagination) {
+          setPagination(data.pagination);
+        }
+
         // Support both records (new format) and properties (legacy format)
         // Records have data in _original field, need to map them
         const rawLeads = data.records || data.properties || [];
@@ -270,7 +331,7 @@ export default function SectorDetailPage() {
     if (sectorId) {
       fetchDataLake();
     }
-  }, [sectorId]);
+  }, [sectorId, currentPage, batchSize, debouncedSearch, shuffleMode]);
 
   // Filter leads by search
   const filteredLeads = leads.filter((lead) => {
@@ -745,12 +806,45 @@ export default function SectorDetailPage() {
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search records..."
+              placeholder="Search by company, contact, city, phone..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
             />
           </div>
+
+          {/* BATCH SIZE SELECTOR */}
+          <div className="flex items-center gap-2">
+            <Layers className="h-4 w-4 text-muted-foreground" />
+            <Select value={String(batchSize)} onValueChange={(v) => { setBatchSize(parseInt(v)); setCurrentPage(1); }}>
+              <SelectTrigger className="w-[120px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="100">100 / page</SelectItem>
+                <SelectItem value="500">500 / page</SelectItem>
+                <SelectItem value="1000">1,000 / page</SelectItem>
+                <SelectItem value="2000">2,000 / page</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* SHUFFLE TOGGLE */}
+          <div className="flex items-center gap-2 border rounded-lg px-3 py-1.5">
+            <Shuffle className={`h-4 w-4 ${shuffleMode ? "text-purple-600" : "text-muted-foreground"}`} />
+            <span className="text-sm">Shuffle</span>
+            <Switch
+              checked={shuffleMode}
+              onCheckedChange={setShuffleMode}
+            />
+          </div>
+
+          {/* SERVER PAGINATION INFO */}
+          {pagination && (
+            <Badge variant="outline" className="px-3 py-1">
+              {sf(pagination.filteredTotal)} of {sf(pagination.totalRecords)} records
+            </Badge>
+          )}
 
           {/* BULK SELECTION */}
           <div className="flex items-center gap-2">
@@ -862,7 +956,7 @@ export default function SectorDetailPage() {
                 <TableHead>Phone</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Location</TableHead>
-                <TableHead>Industry</TableHead>
+                <TableHead className="text-center">Attempts</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
@@ -977,10 +1071,29 @@ export default function SectorDetailPage() {
                         <span className="text-muted-foreground">-</span>
                       )}
                     </TableCell>
-                    <TableCell>
-                      <span className="text-sm">
-                        {lead.industry || lead.sicCode || "-"}
-                      </span>
+                    {/* CONTACT ATTEMPTS */}
+                    <TableCell className="text-center">
+                      <div className="flex flex-col items-center gap-0.5">
+                        <span className={cn(
+                          "text-lg font-bold",
+                          !lead.contactAttempts ? "text-zinc-500" :
+                          lead.contactAttempts >= 5 ? "text-red-500" :
+                          lead.contactAttempts >= 3 ? "text-orange-500" :
+                          lead.contactAttempts >= 1 ? "text-blue-500" : "text-zinc-500"
+                        )}>
+                          #{lead.contactAttempts || 0}
+                        </span>
+                        {lead.lastContactDate && (
+                          <span className="text-[10px] text-muted-foreground">
+                            {new Date(lead.lastContactDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                          </span>
+                        )}
+                        {lead.lastContactChannel && (
+                          <Badge variant="outline" className="text-[9px] px-1 py-0">
+                            {lead.lastContactChannel.toUpperCase()}
+                          </Badge>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>
                       {lead.enriched ? (
@@ -997,15 +1110,24 @@ export default function SectorDetailPage() {
             </TableBody>
           </Table>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between p-4 border-t">
+          {/* Pagination - Server-side */}
+          {pagination && pagination.totalPages > 1 && (
+            <div className="flex items-center justify-between p-4 border-t bg-muted/30">
               <p className="text-sm text-muted-foreground">
-                Showing {(currentPage - 1) * pageSize + 1} to{" "}
-                {Math.min(currentPage * pageSize, filteredLeads.length)} of{" "}
-                {filteredLeads.length}
+                Showing <span className="font-semibold text-foreground">{sf((currentPage - 1) * batchSize + 1)}</span> to{" "}
+                <span className="font-semibold text-foreground">{sf(Math.min(currentPage * batchSize, pagination.filteredTotal))}</span> of{" "}
+                <span className="font-semibold text-foreground">{sf(pagination.filteredTotal)}</span>
+                {pagination.search && <span className="text-purple-600 ml-2">(filtered from {sf(pagination.totalRecords)})</span>}
               </p>
               <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                >
+                  First
+                </Button>
                 <Button
                   variant="outline"
                   size="sm"
@@ -1014,18 +1136,24 @@ export default function SectorDetailPage() {
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <span className="text-sm">
-                  Page {currentPage} of {totalPages}
+                <span className="text-sm font-medium px-2">
+                  Page {currentPage} of {pagination.totalPages}
                 </span>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() =>
-                    setCurrentPage((p) => Math.min(totalPages, p + 1))
-                  }
-                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage((p) => Math.min(pagination.totalPages, p + 1))}
+                  disabled={!pagination.hasMore}
                 >
                   <ChevronRight className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(pagination.totalPages)}
+                  disabled={currentPage === pagination.totalPages}
+                >
+                  Last
                 </Button>
               </div>
             </div>

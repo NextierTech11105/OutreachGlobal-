@@ -1266,7 +1266,8 @@ export default function ImportCompaniesPage() {
   // Legacy helper
   const getSelectedPhoneCount = () => getSelectedPhoneStats().total;
 
-  // Validate phone types using SignalHouse carrier lookup
+  // Validate phone types using Twilio Line Type Intelligence
+  // Routes: MOBILE → SMS Queue, LANDLINE/VOIP → Call Queue
   const validateSelectedPhones = async () => {
     const stats = getSelectedPhoneStats();
     if (stats.total === 0) {
@@ -1277,12 +1278,31 @@ export default function ImportCompaniesPage() {
     setValidatingPhones(true);
 
     try {
-      const response = await fetch("/api/signalhouse", {
+      // Build lead data for queue routing
+      const selectedHits = hits.filter((c) => selectedCompanies.has(c.id));
+      const leadData = selectedHits.flatMap((company) => {
+        const phones: string[] = [];
+        if (company.phone) phones.push(company.phone);
+        if (company.enrichedPhones) phones.push(...company.enrichedPhones.map(p => p.number));
+
+        return phones.map(phone => ({
+          phone,
+          leadId: company.id,
+          firstName: company.ownerName?.split(" ")[0] || company.name?.split(" ")[0] || "",
+          lastName: company.ownerName?.split(" ").slice(1).join(" ") || "",
+          companyName: company.companyName || company.company || "",
+          address: company.address,
+        }));
+      });
+
+      // Use Twilio Line Type Validation API
+      const response = await fetch("/api/validate-line-type", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          action: "batch_verify",
           phones: stats.phones.map(p => p.number),
+          addToQueue: false, // Don't auto-add yet, just validate
+          leadData,
         }),
       });
 
@@ -1294,11 +1314,11 @@ export default function ImportCompaniesPage() {
       }
 
       // Update company records with validated phone types
-      const validatedMap = new Map<string, { type: string; valid: boolean }>();
+      const validatedMap = new Map<string, { type: string; routeTo: string }>();
       for (const result of data.results || []) {
-        validatedMap.set(result.phone, {
-          type: result.type || "unknown",
-          valid: result.valid,
+        validatedMap.set(result.phone.replace(/\D/g, "").slice(-10), {
+          type: result.lineType || "unknown",
+          routeTo: result.routeTo,
         });
       }
 
@@ -1306,16 +1326,22 @@ export default function ImportCompaniesPage() {
       setHits((prev) =>
         prev.map((company) => {
           // Update phone if matched
-          if (company.phone && validatedMap.has(company.phone)) {
-            company.phoneType = validatedMap.get(company.phone)?.type;
+          if (company.phone) {
+            const normalized = company.phone.replace(/\D/g, "").slice(-10);
+            const validated = validatedMap.get(normalized);
+            if (validated) {
+              company.phoneType = validated.type;
+              company.phoneRouteTo = validated.routeTo;
+            }
           }
 
           // Update enriched phones
           if (company.enrichedPhones?.length) {
             company.enrichedPhones = company.enrichedPhones.map((p) => {
-              const validated = validatedMap.get(p.number);
+              const normalized = p.number.replace(/\D/g, "").slice(-10);
+              const validated = validatedMap.get(normalized);
               if (validated) {
-                return { ...p, type: validated.type, verified: validated.valid };
+                return { ...p, type: validated.type, routeTo: validated.routeTo, verified: true };
               }
               return p;
             });
@@ -1325,8 +1351,9 @@ export default function ImportCompaniesPage() {
         })
       );
 
+      const statsMsg = data.stats;
       toast.success(
-        `Validated ${data.verified} phones: ${data.mobile} mobile, ${data.valid - data.mobile} other`
+        `Validated ${stats.total} phones: ${statsMsg.mobile} mobile → SMS, ${statsMsg.landline + statsMsg.voip} landline/voip → Call, ${statsMsg.skipped} skipped`
       );
     } catch (error) {
       console.error("Phone validation error:", error);
@@ -1334,6 +1361,100 @@ export default function ImportCompaniesPage() {
     } finally {
       setValidatingPhones(false);
     }
+  };
+
+  // Route validated phones to appropriate queues
+  // Mobile → SMS Queue, Landline/VoIP → Call Queue
+  const routeToQueues = async () => {
+    const selectedHits = hits.filter((c) => selectedCompanies.has(c.id) && c.enriched);
+
+    if (selectedHits.length === 0) {
+      toast.error("Select enriched companies first");
+      return;
+    }
+
+    // Separate phones by type
+    const smsLeads: Array<{ leadId: string; phone: string; firstName: string; lastName?: string; companyName?: string }> = [];
+    const callLeads: Array<{ id: string; name: string; phone: string; address?: string }> = [];
+
+    for (const company of selectedHits) {
+      const ownerName = company.ownerName || company.name || "";
+      const firstName = ownerName.split(" ")[0] || "";
+      const lastName = ownerName.split(" ").slice(1).join(" ") || "";
+
+      // Check all phones
+      const allPhones: PhoneInfo[] = [];
+      if (company.phone) allPhones.push({ number: company.phone, type: company.phoneType || "unknown" });
+      if (company.enrichedPhones) allPhones.push(...company.enrichedPhones);
+
+      for (const phone of allPhones) {
+        const type = phone.type?.toLowerCase() || "unknown";
+
+        if (type === "mobile" || type === "cell") {
+          // Mobile goes to SMS queue
+          smsLeads.push({
+            leadId: company.id,
+            phone: phone.number,
+            firstName,
+            lastName,
+            companyName: company.companyName || company.company || "",
+          });
+        } else if (type === "landline" || type === "voip" || type === "unknown") {
+          // Landline/VoIP/Unknown goes to call queue
+          callLeads.push({
+            id: company.id,
+            name: ownerName,
+            phone: phone.number,
+            address: company.address,
+          });
+        }
+        // Skip toll_free and premium
+      }
+    }
+
+    let smsAdded = 0;
+    let callAdded = 0;
+
+    // Add to SMS queue
+    if (smsLeads.length > 0) {
+      try {
+        const smsResponse = await fetch("/api/sms-queue", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "add_batch_draft",
+            leads: smsLeads,
+            templateMessage: "Hi {{firstName}}, this is regarding {{companyName}}...",
+            templateCategory: "b2b-outreach",
+          }),
+        });
+        const smsData = await smsResponse.json();
+        smsAdded = smsData.added || 0;
+      } catch (err) {
+        console.error("SMS queue error:", err);
+      }
+    }
+
+    // Add to Call queue
+    if (callLeads.length > 0) {
+      try {
+        const callResponse = await fetch("/api/call-center/queue", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "add_batch",
+            leads: callLeads,
+            priority: 5,
+          }),
+        });
+        const callData = await callResponse.json();
+        callAdded = callData.added || 0;
+      } catch (err) {
+        console.error("Call queue error:", err);
+      }
+    }
+
+    toast.success(`Routed: ${smsAdded} to SMS queue, ${callAdded} to Call queue`);
   };
 
   // Search when filters change (reset to page 1)
@@ -1561,7 +1682,7 @@ export default function ImportCompaniesPage() {
                 onClick={validateSelectedPhones}
                 disabled={validatingPhones || selectedCompanies.size === 0}
                 variant="outline"
-                title="Validate phone line types (mobile/landline/VOIP)"
+                title="Validate phone line types using Twilio (mobile/landline/VOIP)"
               >
                 {validatingPhones ? (
                   <Loader2 size={18} className="mr-2 animate-spin" />
@@ -1569,6 +1690,16 @@ export default function ImportCompaniesPage() {
                   <ShieldCheck size={18} className="mr-2" />
                 )}
                 Validate
+              </Button>
+              <Button
+                onClick={routeToQueues}
+                disabled={selectedCompanies.size === 0}
+                variant="outline"
+                className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                title="Route mobiles to SMS queue, landlines/VOIP to call queue"
+              >
+                <ArrowUpDown size={18} className="mr-2" />
+                Route to Queues
               </Button>
             </div>
 

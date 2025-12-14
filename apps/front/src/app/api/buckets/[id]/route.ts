@@ -91,7 +91,12 @@ async function deleteBucketFile(id: string): Promise<boolean> {
   }
 }
 
-// GET /api/buckets/:id - Get bucket details with all properties
+// GET /api/buckets/:id - Get bucket details with paginated records
+// Query params:
+//   page: page number (default 1)
+//   limit: records per page (default 100, max 500)
+//   search: search query (searches company, contact, email, phone, city)
+//   all: if "true", returns all records (use with caution for large datasets)
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -99,6 +104,14 @@ export async function GET(
   try {
     const { id } = await params;
     const client = getS3Client();
+    const { searchParams } = new URL(request.url);
+
+    // Pagination params
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
+    const limit = Math.min(2000, Math.max(1, parseInt(searchParams.get("limit") || "100"))); // Max 2000 per batch
+    const search = searchParams.get("search")?.toLowerCase() || "";
+    const returnAll = searchParams.get("all") === "true";
+    const shuffle = searchParams.get("shuffle") === "true";
 
     if (!client) {
       return NextResponse.json(
@@ -122,9 +135,72 @@ export async function GET(
 
     const data = JSON.parse(bodyContents);
 
-    // Return the full bucket data directly (not wrapped)
-    // This includes: id, name, description, source, properties[], metadata, etc.
-    return NextResponse.json(data);
+    // Get records array
+    let records = data.records || data.properties || [];
+    const totalRecords = records.length;
+
+    // Apply search filter if provided
+    if (search) {
+      records = records.filter((r: Record<string, unknown>) => {
+        const matchingKeys = (r.matchingKeys || {}) as Record<string, unknown>;
+        const original = (r._original || {}) as Record<string, unknown>;
+
+        // Search in normalized fields
+        const companyName = String(matchingKeys.companyName || original["Company Name"] || "").toLowerCase();
+        const contactName = String(matchingKeys.contactName || original["Contact Name"] || "").toLowerCase();
+        const firstName = String(matchingKeys.firstName || original["Contact First"] || "").toLowerCase();
+        const lastName = String(matchingKeys.lastName || original["Contact Last"] || "").toLowerCase();
+        const email = String(matchingKeys.email || original["Email"] || "").toLowerCase();
+        const phone = String(matchingKeys.phone || original["Phone"] || "").toLowerCase();
+        const city = String(matchingKeys.city || original["City"] || "").toLowerCase();
+        const state = String(matchingKeys.state || original["State"] || "").toLowerCase();
+        const industry = String(original["Industry"] || original["SIC Description"] || "").toLowerCase();
+
+        return (
+          companyName.includes(search) ||
+          contactName.includes(search) ||
+          firstName.includes(search) ||
+          lastName.includes(search) ||
+          email.includes(search) ||
+          phone.includes(search) ||
+          city.includes(search) ||
+          state.includes(search) ||
+          industry.includes(search)
+        );
+      });
+    }
+
+    const filteredTotal = records.length;
+
+    // Shuffle records if requested (Fisher-Yates shuffle)
+    if (shuffle) {
+      for (let i = records.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [records[i], records[j]] = [records[j], records[i]];
+      }
+    }
+
+    // Apply pagination unless returning all
+    let paginatedRecords = records;
+    if (!returnAll) {
+      const startIndex = (page - 1) * limit;
+      paginatedRecords = records.slice(startIndex, startIndex + limit);
+    }
+
+    // Return paginated response with metadata
+    return NextResponse.json({
+      ...data,
+      records: paginatedRecords,
+      pagination: {
+        page,
+        limit,
+        totalRecords,
+        filteredTotal,
+        totalPages: Math.ceil(filteredTotal / limit),
+        hasMore: page * limit < filteredTotal,
+        search: search || null,
+      },
+    });
   } catch (error) {
     console.error("[Bucket API] GET error:", error);
     return NextResponse.json({ error: "Bucket not found" }, { status: 404 });
