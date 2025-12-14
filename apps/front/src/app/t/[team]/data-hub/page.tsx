@@ -12,6 +12,7 @@ import {
   Database,
   CheckCircle2,
   Phone,
+  PhoneCall,
   Mail,
   Loader2,
   Zap,
@@ -29,6 +30,9 @@ import {
   Send,
   Activity,
   Keyboard,
+  CalendarPlus,
+  ArrowRight,
+  Target,
 } from "lucide-react";
 import {
   Dialog,
@@ -607,10 +611,44 @@ export default function DataHubPage() {
   // ========== SIMPLE MODE ==========
   const SimpleView = () => (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="text-center">
-        <h1 className="text-4xl font-bold text-white mb-2">Data Hub</h1>
-        <p className="text-xl text-zinc-400">3 Simple Steps</p>
+      {/* Header + End-to-End Guide */}
+      <div className="text-center mb-8">
+        <h1 className="text-5xl font-black text-white mb-3">DATA HUB</h1>
+        <p className="text-2xl text-zinc-400 mb-6">Your Lead Generation Command Center</p>
+
+        {/* END TO END WORKFLOW GUIDE */}
+        <div className="max-w-4xl mx-auto bg-gradient-to-r from-zinc-900 to-zinc-800 rounded-2xl p-6 border-2 border-zinc-700">
+          <h2 className="text-xl font-bold text-white mb-4 flex items-center justify-center gap-2">
+            <Target className="h-6 w-6 text-green-400" />
+            HOW TO MAKE MONEY - END TO END
+          </h2>
+          <div className="grid grid-cols-5 gap-2 text-center">
+            <div className="p-3 bg-blue-600/20 rounded-lg border border-blue-500/50">
+              <div className="text-3xl mb-1">1️⃣</div>
+              <p className="text-blue-400 font-bold text-sm">GET DATA</p>
+              <p className="text-xs text-zinc-500">Upload CSV or pull from Datalake</p>
+            </div>
+            <div className="flex items-center justify-center">
+              <ArrowRight className="h-8 w-8 text-zinc-600" />
+            </div>
+            <div className="p-3 bg-amber-600/20 rounded-lg border border-amber-500/50">
+              <div className="text-3xl mb-1">2️⃣</div>
+              <p className="text-amber-400 font-bold text-sm">SKIP TRACE</p>
+              <p className="text-xs text-zinc-500">Get personal phones & emails</p>
+            </div>
+            <div className="flex items-center justify-center">
+              <ArrowRight className="h-8 w-8 text-zinc-600" />
+            </div>
+            <div className="p-3 bg-green-600/20 rounded-lg border border-green-500/50">
+              <div className="text-3xl mb-1">3️⃣</div>
+              <p className="text-green-400 font-bold text-sm">EXECUTE</p>
+              <p className="text-xs text-zinc-500">SMS, Call, or Sequence</p>
+            </div>
+          </div>
+          <p className="text-zinc-500 text-sm mt-4">
+            💡 Pro tip: Use the <span className="text-purple-400 font-semibold">10-Touch Sequence</span> for automated 30-day outreach
+          </p>
+        </div>
       </div>
 
       {/* Stats - Compact Row */}
@@ -639,26 +677,27 @@ export default function DataHubPage() {
 
       {/* 3 BIG STEPS */}
       <div className="max-w-5xl mx-auto space-y-6">
-        {/* STEP 1 */}
-        <Card className="bg-zinc-900 border-2 border-blue-500">
-          <CardContent className="p-8">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="h-16 w-16 rounded-full bg-blue-600 flex items-center justify-center text-3xl font-bold text-white">
+        {/* STEP 1 - GET DATA - BIG */}
+        <Card className="bg-zinc-900 border-4 border-blue-500">
+          <CardContent className="p-10">
+            <div className="flex items-center gap-4 mb-8">
+              <div className="h-20 w-20 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-4xl font-black text-white shadow-lg shadow-blue-500/30">
                 1
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-white">GET YOUR DATA</h2>
-                <p className="text-zinc-400">Upload a CSV file or search Apollo</p>
+                <h2 className="text-3xl font-black text-white">GET YOUR DATA</h2>
+                <p className="text-xl text-zinc-400">Upload CSV, Pull from Datalake, or Search Apollo</p>
               </div>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-4">
+            <div className="grid md:grid-cols-3 gap-6">
               <Button
-                className="h-24 text-lg bg-blue-600 hover:bg-blue-700 text-white"
+                className="h-32 text-xl bg-gradient-to-br from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white flex flex-col gap-3 shadow-xl shadow-blue-500/20 border-2 border-blue-400"
                 onClick={handleFileUpload}
               >
-                <Upload className="h-8 w-8 mr-3" />
+                <Upload className="h-12 w-12" />
                 UPLOAD CSV
+                <span className="text-sm font-normal opacity-80">Any CSV file</span>
               </Button>
               <input
                 ref={fileInputRef}
@@ -672,16 +711,16 @@ export default function DataHubPage() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
-                    className="h-24 text-lg bg-purple-600 hover:bg-purple-700 text-white"
+                    className="h-32 text-xl bg-gradient-to-br from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 text-white flex flex-col gap-3 shadow-xl shadow-purple-500/20 border-2 border-purple-400"
                     disabled={isLoadingDatalake}
                   >
                     {isLoadingDatalake ? (
-                      <Loader2 className="h-8 w-8 animate-spin mr-3" />
+                      <Loader2 className="h-12 w-12 animate-spin" />
                     ) : (
-                      <HardDrive className="h-8 w-8 mr-3" />
+                      <HardDrive className="h-12 w-12" />
                     )}
                     DATALAKE
-                    <ChevronDown className="h-5 w-5 ml-2" />
+                    <span className="text-sm font-normal opacity-80 flex items-center gap-1">Pull stored data <ChevronDown className="h-4 w-4" /></span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-64 bg-zinc-900 border-zinc-700">
@@ -711,70 +750,83 @@ export default function DataHubPage() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Search Apollo..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleQuickSearch()}
-                  className="h-24 text-lg bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
-                />
-                <Button
-                  onClick={handleQuickSearch}
-                  disabled={isSearching}
-                  className="h-24 w-24 bg-blue-600 hover:bg-blue-700"
-                >
-                  {isSearching ? (
-                    <Loader2 className="h-8 w-8 animate-spin" />
-                  ) : (
-                    <Search className="h-8 w-8" />
-                  )}
-                </Button>
+              <div className="flex flex-col gap-2">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Search Apollo for B2B contacts..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleQuickSearch()}
+                    className="h-20 text-lg bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
+                  />
+                  <Button
+                    onClick={handleQuickSearch}
+                    disabled={isSearching}
+                    className="h-20 w-24 bg-gradient-to-br from-cyan-500 to-cyan-700 hover:from-cyan-600 hover:to-cyan-800 shadow-lg"
+                  >
+                    {isSearching ? (
+                      <Loader2 className="h-10 w-10 animate-spin" />
+                    ) : (
+                      <Search className="h-10 w-10" />
+                    )}
+                  </Button>
+                </div>
+                <span className="text-sm text-zinc-500 text-center">Search 200M+ Apollo contacts</span>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* STEP 2 */}
-        <Card className="bg-zinc-900 border-2 border-amber-500">
-          <CardContent className="p-8">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="h-16 w-16 rounded-full bg-amber-600 flex items-center justify-center text-3xl font-bold text-white">
+        {/* STEP 2 - ENRICH - BIG */}
+        <Card className="bg-zinc-900 border-4 border-amber-500">
+          <CardContent className="p-10">
+            <div className="flex items-center gap-4 mb-8">
+              <div className="h-20 w-20 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-4xl font-black text-white shadow-lg shadow-amber-500/30">
                 2
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-white">ENRICH (SKIP TRACE)</h2>
-                <p className="text-zinc-400">Get personal cell phones & emails - $0.05/record</p>
+                <h2 className="text-3xl font-black text-white">ENRICH (SKIP TRACE)</h2>
+                <p className="text-xl text-zinc-400">Get personal cell phones & emails - $0.05/record</p>
               </div>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4 items-center">
-              <div className="bg-zinc-800 p-6 rounded-lg border border-amber-900">
-                <div className="flex items-center gap-2 text-amber-400 mb-3">
-                  <Sparkles className="h-6 w-6" />
-                  <span className="text-lg font-bold">What You Get:</span>
+            <div className="grid md:grid-cols-2 gap-6 items-center">
+              <div className="bg-zinc-800/50 p-8 rounded-xl border-2 border-amber-900/50">
+                <div className="flex items-center gap-2 text-amber-400 mb-4">
+                  <Sparkles className="h-8 w-8" />
+                  <span className="text-2xl font-bold">What You Get:</span>
                 </div>
-                <ul className="text-zinc-300 space-y-2 text-lg">
-                  <li>Personal cell phone</li>
-                  <li>Personal email</li>
-                  <li>Property portfolio</li>
+                <ul className="text-zinc-300 space-y-3 text-xl">
+                  <li className="flex items-center gap-3">
+                    <CheckCircle2 className="h-6 w-6 text-green-400" />
+                    Personal cell phones
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <CheckCircle2 className="h-6 w-6 text-green-400" />
+                    Personal emails
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <CheckCircle2 className="h-6 w-6 text-green-400" />
+                    Property portfolio data
+                  </li>
                 </ul>
               </div>
 
               <Button
-                className="h-32 text-xl bg-amber-600 hover:bg-amber-700 text-white"
+                className="h-40 text-2xl bg-gradient-to-br from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white flex flex-col gap-3 shadow-xl shadow-amber-500/20 border-2 border-amber-400"
                 onClick={handleTestSkipTrace}
                 disabled={isEnriching}
               >
                 {isEnriching ? (
                   <>
-                    <Loader2 className="h-8 w-8 animate-spin mr-3" />
+                    <Loader2 className="h-14 w-14 animate-spin" />
                     TESTING...
                   </>
                 ) : (
                   <>
-                    <Zap className="h-8 w-8 mr-3" />
+                    <Zap className="h-14 w-14" />
                     TEST SKIP TRACE
+                    <span className="text-sm font-normal opacity-80">Try it with sample data</span>
                   </>
                 )}
               </Button>
@@ -782,42 +834,70 @@ export default function DataHubPage() {
           </CardContent>
         </Card>
 
-        {/* STEP 3 */}
-        <Card className="bg-zinc-900 border-2 border-green-500">
-          <CardContent className="p-8">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="h-16 w-16 rounded-full bg-green-600 flex items-center justify-center text-3xl font-bold text-white">
+        {/* STEP 3 - EXECUTE - MASSIVE BUTTONS */}
+        <Card className="bg-zinc-900 border-4 border-green-500">
+          <CardContent className="p-10">
+            <div className="flex items-center gap-4 mb-8">
+              <div className="h-20 w-20 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-4xl font-black text-white shadow-lg shadow-green-500/30">
                 3
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-white">EXECUTE</h2>
-                <p className="text-zinc-400">Reach out via SMS, Call, or Email</p>
+                <h2 className="text-3xl font-black text-white">EXECUTE - MAKE MONEY</h2>
+                <p className="text-xl text-zinc-400">Send SMS, Schedule Calls, Push to Sequences</p>
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            {/* ROW 1 - Primary Actions */}
+            <div className="grid grid-cols-2 gap-6 mb-6">
               <Link href={`/t/${params.team}/sms-queue`} className="block">
-                <Button className="w-full h-24 text-lg bg-green-600 hover:bg-green-700 text-white flex flex-col gap-2">
-                  <MessageSquare className="h-8 w-8" />
-                  SMS
+                <Button className="w-full h-32 text-2xl bg-gradient-to-br from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 text-white flex flex-col gap-3 shadow-xl shadow-green-500/20 border-2 border-green-400">
+                  <MessageSquare className="h-12 w-12" />
+                  SEND SMS
+                  <span className="text-sm font-normal opacity-80">Blast to all phones</span>
                 </Button>
               </Link>
-              <Link href={`/t/${params.team}/call-center`} className="block">
-                <Button className="w-full h-24 text-lg bg-green-600 hover:bg-green-700 text-white flex flex-col gap-2">
-                  <Phone className="h-8 w-8" />
-                  CALL
-                </Button>
-              </Link>
-              <Link href={`/t/${params.team}/campaigns`} className="block">
-                <Button className="w-full h-24 text-lg bg-purple-600 hover:bg-purple-700 text-white flex flex-col gap-2">
-                  <Zap className="h-8 w-8" />
-                  SEQUENCES
+              <Link href={`/t/${params.team}/calendar`} className="block">
+                <Button className="w-full h-32 text-2xl bg-gradient-to-br from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white flex flex-col gap-3 shadow-xl shadow-blue-500/20 border-2 border-blue-400">
+                  <CalendarPlus className="h-12 w-12" />
+                  SCHEDULE CALLS
+                  <span className="text-sm font-normal opacity-80">Push to Calendar</span>
                 </Button>
               </Link>
             </div>
-            <p className="text-xs text-zinc-500 text-center mt-2">
-              Sequences = automated multi-step campaigns (SMS + Email + Call)
-            </p>
+
+            {/* ROW 2 - Secondary Actions */}
+            <div className="grid grid-cols-3 gap-4">
+              <Link href={`/t/${params.team}/call-center`} className="block">
+                <Button className="w-full h-24 text-xl bg-gradient-to-br from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white flex flex-col gap-2 shadow-lg">
+                  <PhoneCall className="h-10 w-10" />
+                  POWER DIALER
+                </Button>
+              </Link>
+              <Link href={`/t/${params.team}/campaigns`} className="block">
+                <Button className="w-full h-24 text-xl bg-gradient-to-br from-purple-600 to-violet-700 hover:from-purple-700 hover:to-violet-800 text-white flex flex-col gap-2 shadow-lg shadow-purple-500/20">
+                  <Zap className="h-10 w-10" />
+                  10-TOUCH SEQUENCE
+                </Button>
+              </Link>
+              <Link href={`/t/${params.team}/inbox`} className="block">
+                <Button className="w-full h-24 text-xl bg-gradient-to-br from-amber-600 to-orange-700 hover:from-amber-700 hover:to-orange-800 text-white flex flex-col gap-2 shadow-lg">
+                  <Inbox className="h-10 w-10" />
+                  INBOX
+                </Button>
+              </Link>
+            </div>
+
+            {/* Quick tip */}
+            <div className="mt-6 p-4 bg-zinc-800/50 rounded-xl border border-zinc-700">
+              <div className="flex items-center gap-3">
+                <Target className="h-6 w-6 text-green-400" />
+                <div>
+                  <p className="text-white font-semibold">Pro Tip: The 10-Touch Sequence</p>
+                  <p className="text-zinc-400 text-sm">Automated 30-day outreach: SMS → Call → Email → Repeat. Set it and forget it.</p>
+                </div>
+                <ArrowRight className="h-5 w-5 text-zinc-500 ml-auto" />
+              </div>
+            </div>
           </CardContent>
         </Card>
 
