@@ -114,7 +114,8 @@ build/Release
 .lock-wscript
 
 # IDEs and editors (shim)
-.vscode
+.vscode/*
+!.vscode/settings.json
 .idea
 *.swp
 *.swo
@@ -215,6 +216,8 @@ temp.txt
 nul
 *.py
 *.js
+!jest.config.js
+!apps/*/jest.config.js
 postman/
 scripts/
 functions/.deployed/

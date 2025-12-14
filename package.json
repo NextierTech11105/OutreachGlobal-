@@ -12,6 +12,11 @@
     "api": "pnpm --filter api",
     "api:build": "nx run-many --target=build --exclude=front",
     "lint": "nx run-many -t lint",
+    "test": "nx run-many -t test --outputStyle stream",
+    "test:jest": "jest -c jest.config.js",
+    "test:api": "pnpm --filter api jest",
+    "test:front": "pnpm --filter front test",
+    "test:coverage": "nx run-many -t test --coverage --outputStyle stream",
     "precheck": "pnpm build && pnpm lint",
     "codegen": "pnpm --filter front codegen",
     "artisan": "pnpm --filter api artisan",
@@ -29,6 +34,7 @@
     "neon"
   ],
   "devDependencies": {
+    "jest": "^29.7.0",
     "next": "^15.3.3",
     "nx": "^21.1.2",
     "nx-cloud": "^19.1.0",

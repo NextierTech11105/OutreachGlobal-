@@ -11,6 +11,7 @@ import { useState } from "react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -100,13 +101,21 @@ export function LeadCard({ lead }: LeadCardProps) {
 
               <Dialog open={showDetails} onOpenChange={setShowDetails}>
                 <DialogTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-7 w-7">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    aria-label="Open lead details"
+                  >
                     <MoreHorizontal className="h-3.5 w-3.5" />
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-[600px]">
                   <DialogHeader>
                     <DialogTitle>Lead Details</DialogTitle>
+                    <DialogDescription className="sr-only">
+                      Details for {lead.name}.
+                    </DialogDescription>
                   </DialogHeader>
                   <div className="grid gap-4 py-4">
                     <div className="grid grid-cols-2 gap-4">
@@ -259,6 +268,7 @@ export function LeadCard({ lead }: LeadCardProps) {
                     <Button
                       variant="outline"
                       onClick={() => setShowDetails(false)}
+                      aria-label="Close lead details"
                     >
                       Close
                     </Button>

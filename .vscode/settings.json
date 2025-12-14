@@ -1,0 +1,7 @@
+{
+  "compile-hero.disable-compile-files-on-did-save-code": false,
+  "jest.enable": true,
+  "jest.rootPath": ".",
+  "jest.jestCommandLine": "pnpm -w exec -- jest -c jest.config.js",
+  "jest.runMode": "on-save"
+}

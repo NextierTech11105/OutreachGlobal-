@@ -1,4 +1,5 @@
 module.exports = {
+  displayName: 'api',
   moduleFileExtensions: ['js', 'json', 'ts'],
   rootDir: 'src',
   testRegex: '.*\\.spec\\.ts$',
@@ -13,7 +14,8 @@ module.exports = {
   ],
   coverageDirectory: '../coverage',
   testEnvironment: 'node',
-  moduleNameMapping: {
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/$1',
     '^src/(.*)$': '<rootDir>/$1',
   },
 };
