@@ -856,6 +856,46 @@ export default function LeadCalendarWorkspace() {
       <div className="flex-1 flex overflow-hidden">
         {/* Calendar Section */}
         <div className="flex-1 p-6 overflow-auto">
+          {/* Month Stats - TOP */}
+          <div className="grid grid-cols-6 gap-4 mb-6">
+            <Card className="p-4 text-center">
+              <p className="text-2xl font-bold text-blue-600">
+                {monthStats.total}
+              </p>
+              <p className="text-xs text-muted-foreground">Total Leads</p>
+            </Card>
+            <Card className="p-4 text-center">
+              <p className="text-2xl font-bold text-green-600">
+                {monthStats.new}
+              </p>
+              <p className="text-xs text-muted-foreground">New</p>
+            </Card>
+            <Card className="p-4 text-center">
+              <p className="text-2xl font-bold text-yellow-600">
+                {monthStats.contacted}
+              </p>
+              <p className="text-xs text-muted-foreground">Contacted</p>
+            </Card>
+            <Card className="p-4 text-center">
+              <p className="text-2xl font-bold text-purple-600">
+                {monthStats.qualified}
+              </p>
+              <p className="text-xs text-muted-foreground">Qualified</p>
+            </Card>
+            <Card className="p-4 text-center">
+              <p className="text-2xl font-bold text-emerald-600">
+                {monthStats.withPhone}
+              </p>
+              <p className="text-xs text-muted-foreground">With Phone</p>
+            </Card>
+            <Card className="p-4 text-center">
+              <p className="text-2xl font-bold text-indigo-600">
+                {monthStats.withEmail}
+              </p>
+              <p className="text-xs text-muted-foreground">With Email</p>
+            </Card>
+          </div>
+
           {/* Month Navigation */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
@@ -975,45 +1015,6 @@ export default function LeadCalendarWorkspace() {
             </div>
           </div>
 
-          {/* Month Stats */}
-          <div className="grid grid-cols-6 gap-4 mt-6">
-            <Card className="p-4 text-center">
-              <p className="text-2xl font-bold text-blue-600">
-                {monthStats.total}
-              </p>
-              <p className="text-xs text-muted-foreground">Total Leads</p>
-            </Card>
-            <Card className="p-4 text-center">
-              <p className="text-2xl font-bold text-green-600">
-                {monthStats.new}
-              </p>
-              <p className="text-xs text-muted-foreground">New</p>
-            </Card>
-            <Card className="p-4 text-center">
-              <p className="text-2xl font-bold text-yellow-600">
-                {monthStats.contacted}
-              </p>
-              <p className="text-xs text-muted-foreground">Contacted</p>
-            </Card>
-            <Card className="p-4 text-center">
-              <p className="text-2xl font-bold text-purple-600">
-                {monthStats.qualified}
-              </p>
-              <p className="text-xs text-muted-foreground">Qualified</p>
-            </Card>
-            <Card className="p-4 text-center">
-              <p className="text-2xl font-bold text-emerald-600">
-                {monthStats.withPhone}
-              </p>
-              <p className="text-xs text-muted-foreground">With Phone</p>
-            </Card>
-            <Card className="p-4 text-center">
-              <p className="text-2xl font-bold text-indigo-600">
-                {monthStats.withEmail}
-              </p>
-              <p className="text-xs text-muted-foreground">With Email</p>
-            </Card>
-          </div>
         </div>
 
         {/* Day Detail Sidebar */}
