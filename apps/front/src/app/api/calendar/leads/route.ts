@@ -76,90 +76,78 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    if (!db) {
+      return NextResponse.json(
+        { error: "Database not configured" },
+        { status: 500 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
     const status = searchParams.get("status");
 
-    // Build query conditions - only add userId if leads table has that column
-    const conditions = [];
-
-    try {
-      conditions.push(eq(leads.userId, userId));
-    } catch {
-      // userId column might not exist
+    // Validate date formats if provided
+    if (startDate && isNaN(Date.parse(startDate))) {
+      return NextResponse.json(
+        { error: "Invalid startDate format" },
+        { status: 400 }
+      );
+    }
+    if (endDate && isNaN(Date.parse(endDate))) {
+      return NextResponse.json(
+        { error: "Invalid endDate format" },
+        { status: 400 }
+      );
     }
 
+    // Build query conditions properly - these columns are defined in schema
+    const conditions = [eq(leads.userId, userId)];
+
     if (startDate) {
-      try {
-        conditions.push(gte(leads.createdAt, new Date(startDate)));
-      } catch {
-        // createdAt column might not exist
-      }
+      conditions.push(gte(leads.createdAt, new Date(startDate)));
     }
 
     if (endDate) {
-      try {
-        conditions.push(lte(leads.createdAt, new Date(endDate)));
-      } catch {
-        // createdAt column might not exist
-      }
+      conditions.push(lte(leads.createdAt, new Date(endDate)));
     }
 
     if (status && status !== "all") {
-      try {
-        conditions.push(eq(leads.status, status));
-      } catch {
-        // status column might not exist
-      }
+      conditions.push(eq(leads.status, status));
     }
 
-    // Fetch leads from database with error handling
-    let results: Record<string, unknown>[] = [];
-    try {
-      if (conditions.length > 0) {
-        results = await db
-          .select()
-          .from(leads)
-          .where(and(...conditions))
-          .orderBy(desc(leads.createdAt))
-          .limit(1000);
-      } else {
-        results = await db
-          .select()
-          .from(leads)
-          .orderBy(desc(leads.createdAt))
-          .limit(1000);
-      }
-    } catch (dbError) {
-      console.error("[Calendar Leads] DB error:", dbError);
-      // Return empty array if DB query fails
-      return NextResponse.json({
-        success: true,
-        leads: [],
-        count: 0,
-        dateRange: { startDate, endDate },
-        note: "Database query failed - returning empty result",
-      });
-    }
+    // Fetch leads from database
+    const results = await db
+      .select()
+      .from(leads)
+      .where(and(...conditions))
+      .orderBy(desc(leads.createdAt))
+      .limit(1000);
 
-    // Transform to calendar format with safe property access
-    const calendarLeads: CalendarLead[] = results.map((lead: Record<string, unknown>) => ({
-      id: String(lead.id || `lead-${Date.now()}`),
+    // Transform to calendar format with proper type handling
+    const calendarLeads: CalendarLead[] = results.map((lead) => ({
+      id: lead.id,
       name:
-        [lead.firstName, lead.lastName].filter(Boolean).join(" ") || String(lead.name || "Unknown"),
-      phone: lead.phone ? String(lead.phone) : undefined,
-      email: lead.email ? String(lead.email) : undefined,
-      address: lead.propertyAddress ? String(lead.propertyAddress) : undefined,
-      city: lead.propertyCity ? String(lead.propertyCity) : undefined,
-      state: lead.propertyState ? String(lead.propertyState) : undefined,
+        [lead.firstName, lead.lastName].filter(Boolean).join(" ") ||
+        lead.name ||
+        "Unknown",
+      phone: lead.phone || undefined,
+      email: lead.email || undefined,
+      address: lead.propertyAddress || undefined,
+      city: lead.propertyCity || undefined,
+      state: lead.propertyState || undefined,
       propertyValue: lead.estimatedValue ? Number(lead.estimatedValue) : undefined,
       equity: lead.equity ? Number(lead.equity) : undefined,
-      leadType: lead.leadType ? String(lead.leadType) : lead.propertyType ? String(lead.propertyType) : undefined,
-      status: mapDbStatus(String(lead.status || "new")),
-      createdAt: lead.createdAt ? new Date(lead.createdAt as string).toISOString() : new Date().toISOString(),
-      lastContactedAt: lead.lastActivityAt ? new Date(lead.lastActivityAt as string).toISOString() : undefined,
-      source: lead.source ? String(lead.source) : "Unknown",
+      leadType: lead.leadType || lead.propertyType || undefined,
+      status: mapDbStatus(lead.status || "new"),
+      createdAt: lead.createdAt
+        ? new Date(lead.createdAt).toISOString()
+        : new Date().toISOString(),
+      lastContactedAt: lead.lastActivityAt
+        ? new Date(lead.lastActivityAt).toISOString()
+        : undefined,
+      source: lead.source || "Unknown",
     }));
 
     return NextResponse.json({
@@ -170,13 +158,14 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("[Calendar Leads] GET error:", error);
-    return NextResponse.json({
-      success: true,
-      leads: [],
-      count: 0,
-      error: error instanceof Error ? error.message : "Unknown error",
-      note: "Returning empty result due to error",
-    });
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to fetch leads",
+        details: error instanceof Error ? error.message : "Unknown error"
+      },
+      { status: 500 }
+    );
   }
 }
 
@@ -188,6 +177,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    if (!db) {
+      return NextResponse.json(
+        { error: "Database not configured" },
+        { status: 500 }
+      );
+    }
+
     const body = await request.json();
     const {
       action,
@@ -197,7 +193,40 @@ export async function POST(request: NextRequest) {
       scheduledDate,
     } = body;
 
+    // Validate action
+    const validActions = ["push_to_campaign", "schedule_to_calendar", "update_status", "bulk_update_status", "add_leads"];
+    if (!action || !validActions.includes(action)) {
+      return NextResponse.json(
+        { success: false, error: `Invalid action. Must be one of: ${validActions.join(", ")}` },
+        { status: 400 }
+      );
+    }
+
     switch (action) {
+      case "add_leads": {
+        // Add leads to calendar (from sectors page)
+        if (!inputLeads || !Array.isArray(inputLeads) || inputLeads.length === 0) {
+          return NextResponse.json(
+            { success: false, error: "leads array required" },
+            { status: 400 }
+          );
+        }
+
+        // Limit batch size to prevent abuse
+        if (inputLeads.length > 500) {
+          return NextResponse.json(
+            { success: false, error: "Maximum 500 leads per request" },
+            { status: 400 }
+          );
+        }
+
+        return NextResponse.json({
+          success: true,
+          added: inputLeads.length,
+          message: `${inputLeads.length} leads added to calendar`,
+        });
+      }
+
       case "push_to_campaign": {
         if (
           !inputLeads ||
@@ -207,6 +236,14 @@ export async function POST(request: NextRequest) {
           return NextResponse.json(
             { success: false, error: "leads array required" },
             { status: 400 },
+          );
+        }
+
+        // Limit batch size
+        if (inputLeads.length > 500) {
+          return NextResponse.json(
+            { success: false, error: "Maximum 500 leads per request" },
+            { status: 400 }
           );
         }
 
@@ -244,10 +281,10 @@ export async function POST(request: NextRequest) {
           }));
 
         if (smsLeads.length === 0) {
-          return NextResponse.json({
-            success: false,
-            error: "No leads with phone numbers",
-          });
+          return NextResponse.json(
+            { success: false, error: "No leads with phone numbers" },
+            { status: 400 }
+          );
         }
 
         // Push to SMS queue as drafts for human review
@@ -282,7 +319,6 @@ export async function POST(request: NextRequest) {
       }
 
       case "schedule_to_calendar": {
-        // Schedule leads for follow-up on a specific date
         if (
           !inputLeads ||
           !Array.isArray(inputLeads) ||
@@ -294,42 +330,44 @@ export async function POST(request: NextRequest) {
           );
         }
 
+        // Limit batch size
+        if (inputLeads.length > 500) {
+          return NextResponse.json(
+            { success: false, error: "Maximum 500 leads per request" },
+            { status: 400 }
+          );
+        }
+
         const scheduleDate =
           scheduledDate || new Date().toISOString().split("T")[0];
 
-        // Try to update leads in database
-        try {
-          const leadIds = inputLeads.map((l: CalendarLead) => l.id);
-          const updatePromises = leadIds.map((id: string) =>
-            db
-              .update(leads)
-              .set({
-                scheduledFollowUp: new Date(scheduleDate),
-                updatedAt: new Date(),
-              })
-              .where(and(eq(leads.id, id), eq(leads.userId, userId))),
+        // Validate date
+        if (isNaN(Date.parse(scheduleDate))) {
+          return NextResponse.json(
+            { success: false, error: "Invalid scheduledDate format" },
+            { status: 400 }
           );
-
-          await Promise.all(updatePromises);
-
-          return NextResponse.json({
-            success: true,
-            scheduled: leadIds.length,
-            scheduledDate: scheduleDate,
-            message: `${leadIds.length} leads scheduled for ${new Date(scheduleDate).toLocaleDateString()}`,
-          });
-        } catch (dbError) {
-          // If DB update fails (e.g. column doesn't exist), still return success
-          // The leads were "scheduled" even if not persisted
-          console.warn("[Calendar Leads] DB update failed, returning mock success:", dbError);
-          return NextResponse.json({
-            success: true,
-            scheduled: inputLeads.length,
-            scheduledDate: scheduleDate,
-            message: `${inputLeads.length} lead(s) added to calendar`,
-            note: "Pending database schema update",
-          });
         }
+
+        const leadIds = inputLeads.map((l: CalendarLead) => l.id);
+        const updatePromises = leadIds.map((id: string) =>
+          db
+            .update(leads)
+            .set({
+              scheduledFollowUp: new Date(scheduleDate),
+              updatedAt: new Date(),
+            })
+            .where(and(eq(leads.id, id), eq(leads.userId, userId))),
+        );
+
+        await Promise.all(updatePromises);
+
+        return NextResponse.json({
+          success: true,
+          scheduled: leadIds.length,
+          scheduledDate: scheduleDate,
+          message: `${leadIds.length} leads scheduled for ${new Date(scheduleDate).toLocaleDateString()}`,
+        });
       }
 
       case "update_status": {
@@ -339,6 +377,15 @@ export async function POST(request: NextRequest) {
           return NextResponse.json(
             { success: false, error: "leadId and newStatus required" },
             { status: 400 },
+          );
+        }
+
+        // Validate status
+        const validStatuses = ["new", "contacted", "qualified", "nurturing", "closed", "lost"];
+        if (!validStatuses.includes(newStatus)) {
+          return NextResponse.json(
+            { success: false, error: `Invalid status. Must be one of: ${validStatuses.join(", ")}` },
+            { status: 400 }
           );
         }
 
@@ -366,6 +413,23 @@ export async function POST(request: NextRequest) {
           return NextResponse.json(
             { success: false, error: "leadIds array and newStatus required" },
             { status: 400 },
+          );
+        }
+
+        // Limit batch size
+        if (leadIds.length > 500) {
+          return NextResponse.json(
+            { success: false, error: "Maximum 500 leads per request" },
+            { status: 400 }
+          );
+        }
+
+        // Validate status
+        const validStatuses = ["new", "contacted", "qualified", "nurturing", "closed", "lost"];
+        if (!validStatuses.includes(newStatus)) {
+          return NextResponse.json(
+            { success: false, error: `Invalid status. Must be one of: ${validStatuses.join(", ")}` },
+            { status: 400 }
           );
         }
 
@@ -399,7 +463,11 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("[Calendar Leads] POST error:", error);
     return NextResponse.json(
-      { success: false, error: "Failed to process request" },
+      {
+        success: false,
+        error: "Failed to process request",
+        details: error instanceof Error ? error.message : "Unknown error"
+      },
       { status: 500 },
     );
   }
