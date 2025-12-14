@@ -16,7 +16,13 @@ const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || "";
 const TWILIO_LOOKUP_URL = "https://lookups.twilio.com/v2/PhoneNumbers";
 
 // Line types
-export type LineType = "mobile" | "landline" | "voip" | "toll_free" | "premium" | "unknown";
+export type LineType =
+  | "mobile"
+  | "landline"
+  | "voip"
+  | "toll_free"
+  | "premium"
+  | "unknown";
 
 export interface LineTypeResult {
   phone: string;
@@ -78,7 +84,7 @@ async function validateLineType(phone: string): Promise<LineTypeResult> {
           Authorization: `Basic ${Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString("base64")}`,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
 
     if (!response.ok) {
@@ -132,7 +138,10 @@ function mapTwilioLineType(twilioType: string | undefined): LineType {
 /**
  * Determine which queue to route based on line type
  */
-function determineRoute(lineType: LineType): { routeTo: "sms" | "call" | "skip"; reason: string } {
+function determineRoute(lineType: LineType): {
+  routeTo: "sms" | "call" | "skip";
+  reason: string;
+} {
   switch (lineType) {
     case "mobile":
       return { routeTo: "sms", reason: "Mobile - SMS enabled" };
@@ -167,7 +176,8 @@ function heuristicLineType(phone: string, normalized: string): LineTypeResult {
   // - 900, 976 = premium
   // - Most others default to unknown (route to call for safety)
 
-  const areaCode = normalized.length === 11 ? normalized.slice(1, 4) : normalized.slice(0, 3);
+  const areaCode =
+    normalized.length === 11 ? normalized.slice(1, 4) : normalized.slice(0, 3);
 
   const tollFreeCodes = ["800", "888", "877", "866", "855", "844", "833"];
   const premiumCodes = ["900", "976"];
@@ -206,19 +216,25 @@ function heuristicLineType(phone: string, normalized: string): LineTypeResult {
 export async function POST(request: NextRequest) {
   try {
     const body: ValidationRequest = await request.json();
-    const { phones, addToQueue = false, leadData, smsTemplate, smsCampaignId } = body;
+    const {
+      phones,
+      addToQueue = false,
+      leadData,
+      smsTemplate,
+      smsCampaignId,
+    } = body;
 
     if (!phones || !Array.isArray(phones) || phones.length === 0) {
       return NextResponse.json(
         { error: "phones array required", success: false },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (phones.length > 100) {
       return NextResponse.json(
         { error: "Maximum 100 phones per request", success: false },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -255,7 +271,12 @@ export async function POST(request: NextRequest) {
     // If addToQueue is true, add to appropriate queues
     let queueResults = null;
     if (addToQueue && leadData) {
-      queueResults = await routeToQueues(results, leadData, smsTemplate, smsCampaignId);
+      queueResults = await routeToQueues(
+        results,
+        leadData,
+        smsTemplate,
+        smsCampaignId,
+      );
     }
 
     return NextResponse.json({
@@ -269,7 +290,7 @@ export async function POST(request: NextRequest) {
     console.error("[Line Type] Validation error:", error);
     return NextResponse.json(
       { error: "Validation failed", success: false },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -281,7 +302,7 @@ async function routeToQueues(
   results: LineTypeResult[],
   leadData: ValidationRequest["leadData"],
   smsTemplate?: string,
-  campaignId?: string
+  campaignId?: string,
 ) {
   const smsLeads: Array<{
     leadId: string;
@@ -349,7 +370,7 @@ async function routeToQueues(
             templateCategory: "line-validated",
             campaignId,
           }),
-        }
+        },
       );
 
       if (smsResponse.ok) {
@@ -375,7 +396,7 @@ async function routeToQueues(
             leads: callLeads,
             priority: 5,
           }),
-        }
+        },
       );
 
       if (callResponse.ok) {

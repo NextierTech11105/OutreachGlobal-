@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { S3Client, GetObjectCommand, PutObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  GetObjectCommand,
+  PutObjectCommand,
+  ListObjectsV2Command,
+} from "@aws-sdk/client-s3";
 
 /**
  * FDAILY Property Monitor - Daily Cron Job
@@ -26,7 +31,8 @@ const SPACES_BUCKET = "nextier";
 const SPACES_KEY = process.env.DO_SPACES_KEY || "";
 const SPACES_SECRET = process.env.DO_SPACES_SECRET || "";
 
-const REALESTATE_API_KEY = process.env.REAL_ESTATE_API_KEY || process.env.REALESTATE_API_KEY || "";
+const REALESTATE_API_KEY =
+  process.env.REAL_ESTATE_API_KEY || process.env.REALESTATE_API_KEY || "";
 const REALESTATE_API_V1 = "https://api.realestateapi.com/v1";
 const REALESTATE_API_V2 = "https://api.realestateapi.com/v2";
 
@@ -155,7 +161,8 @@ function detectChanges(lead: StoredLead, current: any): PropertyChange[] {
       },
       detectedAt: now,
       priority: "critical",
-      actionRequired: "HOT LEAD: Property just listed! Contact immediately - owner may be motivated.",
+      actionRequired:
+        "HOT LEAD: Property just listed! Contact immediately - owner may be motivated.",
       leadId: lead.id,
       caseNumber: lead.caseNumber,
     });
@@ -177,7 +184,8 @@ function detectChanges(lead: StoredLead, current: any): PropertyChange[] {
       },
       detectedAt: now,
       priority: "high",
-      actionRequired: "Listing expired - owner may be frustrated. Good time to reach out with cash offer.",
+      actionRequired:
+        "Listing expired - owner may be frustrated. Good time to reach out with cash offer.",
       leadId: lead.id,
       caseNumber: lead.caseNumber,
     });
@@ -191,7 +199,11 @@ function detectChanges(lead: StoredLead, current: any): PropertyChange[] {
     current.mlsListingPrice &&
     current.mlsListingPrice < baseline.mlsListingPrice
   ) {
-    const dropPercent = ((baseline.mlsListingPrice - current.mlsListingPrice) / baseline.mlsListingPrice * 100).toFixed(1);
+    const dropPercent = (
+      ((baseline.mlsListingPrice - current.mlsListingPrice) /
+        baseline.mlsListingPrice) *
+      100
+    ).toFixed(1);
     changes.push({
       propertyId,
       address,
@@ -219,11 +231,14 @@ function detectChanges(lead: StoredLead, current: any): PropertyChange[] {
       newValue: {
         lastSaleDate: current.lastSaleDate,
         lastSaleAmount: current.lastSaleAmount,
-        buyer: current.owner1FirstName ? `${current.owner1FirstName} ${current.owner1LastName}` : "Unknown",
+        buyer: current.owner1FirstName
+          ? `${current.owner1FirstName} ${current.owner1LastName}`
+          : "Unknown",
       },
       detectedAt: now,
       priority: "medium",
-      actionRequired: "Property sold - update records and remove from active campaigns.",
+      actionRequired:
+        "Property sold - update records and remove from active campaigns.",
       leadId: lead.id,
       caseNumber: lead.caseNumber,
     });
@@ -235,11 +250,15 @@ function detectChanges(lead: StoredLead, current: any): PropertyChange[] {
       propertyId,
       address,
       changeType: "ADDITIONAL_NOTICE",
-      previousValue: { preForeclosure: baseline.preForeclosure, foreclosure: false },
+      previousValue: {
+        preForeclosure: baseline.preForeclosure,
+        foreclosure: false,
+      },
       newValue: { preForeclosure: current.preForeclosure, foreclosure: true },
       detectedAt: now,
       priority: "critical",
-      actionRequired: "Foreclosure filed! Owner under pressure - urgent outreach recommended.",
+      actionRequired:
+        "Foreclosure filed! Owner under pressure - urgent outreach recommended.",
       leadId: lead.id,
       caseNumber: lead.caseNumber,
     });
@@ -274,7 +293,8 @@ function detectChanges(lead: StoredLead, current: any): PropertyChange[] {
       newValue: { ownerOccupied: false, vacant: current.vacant },
       detectedAt: now,
       priority: "high",
-      actionRequired: "Owner moved out - property may be abandoned. Good time to make cash offer.",
+      actionRequired:
+        "Owner moved out - property may be abandoned. Good time to make cash offer.",
       leadId: lead.id,
       caseNumber: lead.caseNumber,
     });
@@ -290,7 +310,8 @@ function detectChanges(lead: StoredLead, current: any): PropertyChange[] {
       newValue: true,
       detectedAt: now,
       priority: "high",
-      actionRequired: "Tax lien added - owner has financial distress. Motivated seller opportunity.",
+      actionRequired:
+        "Tax lien added - owner has financial distress. Motivated seller opportunity.",
       leadId: lead.id,
       caseNumber: lead.caseNumber,
     });
@@ -328,21 +349,30 @@ export async function GET(request: NextRequest) {
   try {
     const client = getS3Client();
     if (!client) {
-      return NextResponse.json({ error: "Storage not configured" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Storage not configured" },
+        { status: 500 },
+      );
     }
 
     if (!REALESTATE_API_KEY) {
-      return NextResponse.json({ error: "RealEstateAPI key not configured" }, { status: 500 });
+      return NextResponse.json(
+        { error: "RealEstateAPI key not configured" },
+        { status: 500 },
+      );
     }
 
     // List all FDAILY import batches
-    const listResponse = await client.send(new ListObjectsV2Command({
-      Bucket: SPACES_BUCKET,
-      Prefix: "fdaily/",
-      MaxKeys: 100,
-    }));
+    const listResponse = await client.send(
+      new ListObjectsV2Command({
+        Bucket: SPACES_BUCKET,
+        Prefix: "fdaily/",
+        MaxKeys: 100,
+      }),
+    );
 
-    const batches = listResponse.Contents?.filter(obj => obj.Key?.endsWith(".json")) || [];
+    const batches =
+      listResponse.Contents?.filter((obj) => obj.Key?.endsWith(".json")) || [];
     console.log(`[FDAILY Monitor] Found ${batches.length} import batches`);
 
     // Process each batch
@@ -350,10 +380,12 @@ export async function GET(request: NextRequest) {
       if (!batch.Key) continue;
 
       try {
-        const getResponse = await client.send(new GetObjectCommand({
-          Bucket: SPACES_BUCKET,
-          Key: batch.Key,
-        }));
+        const getResponse = await client.send(
+          new GetObjectCommand({
+            Bucket: SPACES_BUCKET,
+            Key: batch.Key,
+          }),
+        );
 
         const content = await getResponse.Body?.transformToString();
         if (!content) continue;
@@ -362,13 +394,16 @@ export async function GET(request: NextRequest) {
         const leads: StoredLead[] = batchData.leads || [];
 
         // Filter leads that have RealEstateAPI IDs for monitoring
-        const monitorableLeads = leads.filter(l =>
-          l.realEstateApiId &&
-          l.status !== "converted" &&
-          l.status !== "removed"
+        const monitorableLeads = leads.filter(
+          (l) =>
+            l.realEstateApiId &&
+            l.status !== "converted" &&
+            l.status !== "removed",
         );
 
-        console.log(`[FDAILY Monitor] Checking ${monitorableLeads.length} leads from ${batch.Key}`);
+        console.log(
+          `[FDAILY Monitor] Checking ${monitorableLeads.length} leads from ${batch.Key}`,
+        );
 
         // Check each lead for changes
         for (const lead of monitorableLeads) {
@@ -429,20 +464,21 @@ export async function GET(request: NextRequest) {
           };
 
           // Rate limiting - brief pause between API calls
-          await new Promise(r => setTimeout(r, 100));
+          await new Promise((r) => setTimeout(r, 100));
         }
 
         // Save updated batch with new baselines
         batchData.leads = leads;
         batchData.lastMonitorRun = new Date().toISOString();
 
-        await client.send(new PutObjectCommand({
-          Bucket: SPACES_BUCKET,
-          Key: batch.Key,
-          Body: JSON.stringify(batchData, null, 2),
-          ContentType: "application/json",
-        }));
-
+        await client.send(
+          new PutObjectCommand({
+            Bucket: SPACES_BUCKET,
+            Key: batch.Key,
+            Body: JSON.stringify(batchData, null, 2),
+            ContentType: "application/json",
+          }),
+        );
       } catch (batchError: any) {
         errors.push(`Error processing ${batch.Key}: ${batchError.message}`);
       }
@@ -453,12 +489,14 @@ export async function GET(request: NextRequest) {
 
     // Save monitor run results
     const resultKey = `fdaily/monitor-runs/${runId}.json`;
-    await client.send(new PutObjectCommand({
-      Bucket: SPACES_BUCKET,
-      Key: resultKey,
-      Body: JSON.stringify(result, null, 2),
-      ContentType: "application/json",
-    }));
+    await client.send(
+      new PutObjectCommand({
+        Bucket: SPACES_BUCKET,
+        Key: resultKey,
+        Body: JSON.stringify(result, null, 2),
+        ContentType: "application/json",
+      }),
+    );
 
     // Log summary
     console.log(`[FDAILY Monitor] Completed run ${runId}`);
@@ -467,9 +505,13 @@ export async function GET(request: NextRequest) {
     console.log(`  Summary:`, result.summary);
 
     // If there are critical changes, we could trigger webhooks here
-    const criticalChanges = result.changesDetected.filter(c => c.priority === "critical");
+    const criticalChanges = result.changesDetected.filter(
+      (c) => c.priority === "critical",
+    );
     if (criticalChanges.length > 0) {
-      console.log(`[FDAILY Monitor] ${criticalChanges.length} CRITICAL changes require immediate action!`);
+      console.log(
+        `[FDAILY Monitor] ${criticalChanges.length} CRITICAL changes require immediate action!`,
+      );
       // TODO: Trigger webhook/SMS/email notifications
     }
 
@@ -478,12 +520,11 @@ export async function GET(request: NextRequest) {
       ...result,
       message: `Checked ${result.propertiesChecked} properties, found ${result.changesDetected.length} changes`,
     });
-
   } catch (error: any) {
     console.error("[FDAILY Monitor] Error:", error);
     return NextResponse.json(
       { error: error.message || "Monitor run failed" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -496,7 +537,7 @@ export async function POST(request: NextRequest) {
     if (!leadIds?.length && !propertyIds?.length) {
       return NextResponse.json(
         { error: "leadIds or propertyIds required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -509,11 +550,10 @@ export async function POST(request: NextRequest) {
       leadIds,
       propertyIds,
     });
-
   } catch (error: any) {
     return NextResponse.json(
       { error: error.message || "Failed to trigger monitor" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

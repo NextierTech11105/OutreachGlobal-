@@ -160,7 +160,11 @@ export function SkipTraceModule() {
             </div>
             <Badge
               variant="outline"
-              className={configError ? "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300" : "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300"}
+              className={
+                configError
+                  ? "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300"
+                  : "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
+              }
             >
               {configError
                 ? "Not Configured"
@@ -175,8 +179,12 @@ export function SkipTraceModule() {
               <div className="flex items-start gap-3">
                 <XCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
                 <div>
-                  <h4 className="font-medium text-red-800 dark:text-red-300">Skip Trace Not Configured</h4>
-                  <p className="text-sm text-red-700 dark:text-red-400 mt-1">{configError}</p>
+                  <h4 className="font-medium text-red-800 dark:text-red-300">
+                    Skip Trace Not Configured
+                  </h4>
+                  <p className="text-sm text-red-700 dark:text-red-400 mt-1">
+                    {configError}
+                  </p>
                   <a
                     href="https://realestateapi.com"
                     target="_blank"

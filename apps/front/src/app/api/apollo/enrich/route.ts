@@ -15,7 +15,11 @@ import { eq, inArray } from "drizzle-orm";
  * - reveal_phone_number: true - Get phone numbers
  */
 
-const APOLLO_API_KEY = process.env.APOLLO_IO_API_KEY || process.env.NEXT_PUBLIC_APOLLO_IO_API_KEY || process.env.APOLLO_API_KEY || "";
+const APOLLO_API_KEY =
+  process.env.APOLLO_IO_API_KEY ||
+  process.env.NEXT_PUBLIC_APOLLO_IO_API_KEY ||
+  process.env.APOLLO_API_KEY ||
+  "";
 const APOLLO_PEOPLE_URL = "https://api.apollo.io/api/v1/people/bulk_match";
 const APOLLO_PEOPLE_SINGLE_URL = "https://api.apollo.io/api/v1/people/match";
 const APOLLO_ORG_URL = "https://api.apollo.io/api/v1/organizations/bulk_enrich";
@@ -223,7 +227,8 @@ async function enrichSinglePerson(params: {
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
-    const errorMsg = error.message || error.error || `Apollo API returned ${response.status}`;
+    const errorMsg =
+      error.message || error.error || `Apollo API returned ${response.status}`;
     throw new Error(errorMsg);
   }
 

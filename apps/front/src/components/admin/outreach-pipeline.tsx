@@ -58,7 +58,18 @@ const ChannelIcon = ({ channel }: { channel: string }) => {
 // Mock data for visualization
 const MOCK_STATS: SequenceStats = {
   totalActive: 847,
-  byTouch: { 1: 234, 2: 156, 3: 142, 4: 98, 5: 87, 6: 54, 7: 38, 8: 22, 9: 12, 10: 4 },
+  byTouch: {
+    1: 234,
+    2: 156,
+    3: 142,
+    4: 98,
+    5: 87,
+    6: 54,
+    7: 38,
+    8: 22,
+    9: 12,
+    10: 4,
+  },
   completedThisWeek: 23,
   convertedThisWeek: 8,
   responseRate: 34.2,
@@ -80,7 +91,10 @@ export function OutreachPipeline() {
   const [isRunning, setIsRunning] = useState(true);
 
   // Calculate total in pipeline
-  const totalInPipeline = Object.values(stats.byTouch).reduce((a, b) => a + b, 0);
+  const totalInPipeline = Object.values(stats.byTouch).reduce(
+    (a, b) => a + b,
+    0,
+  );
 
   return (
     <div className="space-y-6">
@@ -93,8 +107,12 @@ export function OutreachPipeline() {
                 <Users className="h-5 w-5 text-blue-400" />
               </div>
               <div>
-                <div className="text-2xl font-black text-blue-400">{totalInPipeline}</div>
-                <div className="text-xs text-blue-300/70 uppercase tracking-wide">In Pipeline</div>
+                <div className="text-2xl font-black text-blue-400">
+                  {totalInPipeline}
+                </div>
+                <div className="text-xs text-blue-300/70 uppercase tracking-wide">
+                  In Pipeline
+                </div>
               </div>
             </div>
           </CardContent>
@@ -107,8 +125,12 @@ export function OutreachPipeline() {
                 <TrendingUp className="h-5 w-5 text-green-400" />
               </div>
               <div>
-                <div className="text-2xl font-black text-green-400">{stats.responseRate}%</div>
-                <div className="text-xs text-green-300/70 uppercase tracking-wide">Response Rate</div>
+                <div className="text-2xl font-black text-green-400">
+                  {stats.responseRate}%
+                </div>
+                <div className="text-xs text-green-300/70 uppercase tracking-wide">
+                  Response Rate
+                </div>
               </div>
             </div>
           </CardContent>
@@ -121,8 +143,12 @@ export function OutreachPipeline() {
                 <Target className="h-5 w-5 text-purple-400" />
               </div>
               <div>
-                <div className="text-2xl font-black text-purple-400">{stats.avgTouchesToResponse}</div>
-                <div className="text-xs text-purple-300/70 uppercase tracking-wide">Avg Touches</div>
+                <div className="text-2xl font-black text-purple-400">
+                  {stats.avgTouchesToResponse}
+                </div>
+                <div className="text-xs text-purple-300/70 uppercase tracking-wide">
+                  Avg Touches
+                </div>
               </div>
             </div>
           </CardContent>
@@ -135,8 +161,12 @@ export function OutreachPipeline() {
                 <CheckCircle className="h-5 w-5 text-cyan-400" />
               </div>
               <div>
-                <div className="text-2xl font-black text-cyan-400">{stats.convertedThisWeek}</div>
-                <div className="text-xs text-cyan-300/70 uppercase tracking-wide">Converted</div>
+                <div className="text-2xl font-black text-cyan-400">
+                  {stats.convertedThisWeek}
+                </div>
+                <div className="text-xs text-cyan-300/70 uppercase tracking-wide">
+                  Converted
+                </div>
               </div>
             </div>
           </CardContent>
@@ -149,8 +179,12 @@ export function OutreachPipeline() {
                 <Clock className="h-5 w-5 text-orange-400" />
               </div>
               <div>
-                <div className="text-2xl font-black text-orange-400">{stats.completedThisWeek}</div>
-                <div className="text-xs text-orange-300/70 uppercase tracking-wide">Completed</div>
+                <div className="text-2xl font-black text-orange-400">
+                  {stats.completedThisWeek}
+                </div>
+                <div className="text-xs text-orange-300/70 uppercase tracking-wide">
+                  Completed
+                </div>
               </div>
             </div>
           </CardContent>
@@ -163,8 +197,12 @@ export function OutreachPipeline() {
                 <XCircle className="h-5 w-5 text-red-400" />
               </div>
               <div>
-                <div className="text-2xl font-black text-red-400">{stats.optOutRate}%</div>
-                <div className="text-xs text-red-300/70 uppercase tracking-wide">Opt-Out Rate</div>
+                <div className="text-2xl font-black text-red-400">
+                  {stats.optOutRate}%
+                </div>
+                <div className="text-xs text-red-300/70 uppercase tracking-wide">
+                  Opt-Out Rate
+                </div>
               </div>
             </div>
           </CardContent>
@@ -176,17 +214,27 @@ export function OutreachPipeline() {
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <CardTitle className="text-xl font-black">10-TOUCH 30-DAY PIPELINE</CardTitle>
-              <Badge className={cn(
-                "font-bold",
-                isRunning
-                  ? "bg-green-500/20 text-green-400 border-green-500/30"
-                  : "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
-              )}>
+              <CardTitle className="text-xl font-black">
+                10-TOUCH 30-DAY PIPELINE
+              </CardTitle>
+              <Badge
+                className={cn(
+                  "font-bold",
+                  isRunning
+                    ? "bg-green-500/20 text-green-400 border-green-500/30"
+                    : "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
+                )}
+              >
                 {isRunning ? (
-                  <><span className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse" />RUNNING</>
+                  <>
+                    <span className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse" />
+                    RUNNING
+                  </>
                 ) : (
-                  <><Pause className="h-3 w-3 mr-1" />PAUSED</>
+                  <>
+                    <Pause className="h-3 w-3 mr-1" />
+                    PAUSED
+                  </>
                 )}
               </Badge>
             </div>
@@ -197,13 +245,23 @@ export function OutreachPipeline() {
                 onClick={() => setIsRunning(!isRunning)}
                 className={cn(
                   "border-2",
-                  isRunning ? "border-yellow-500/50 text-yellow-400" : "border-green-500/50 text-green-400"
+                  isRunning
+                    ? "border-yellow-500/50 text-yellow-400"
+                    : "border-green-500/50 text-green-400",
                 )}
               >
-                {isRunning ? <Pause className="h-4 w-4 mr-1" /> : <Play className="h-4 w-4 mr-1" />}
+                {isRunning ? (
+                  <Pause className="h-4 w-4 mr-1" />
+                ) : (
+                  <Play className="h-4 w-4 mr-1" />
+                )}
                 {isRunning ? "PAUSE" : "RESUME"}
               </Button>
-              <Button variant="outline" size="sm" className="border-purple-500/50 text-purple-400">
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-purple-500/50 text-purple-400"
+              >
                 <RotateCcw className="h-4 w-4 mr-1" />
                 RESET
               </Button>
@@ -228,31 +286,48 @@ export function OutreachPipeline() {
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <button
-                          onClick={() => setSelectedTouch(isSelected ? null : touch.position)}
+                          onClick={() =>
+                            setSelectedTouch(isSelected ? null : touch.position)
+                          }
                           className={cn(
                             "relative flex flex-col items-center p-2 rounded-xl transition-all",
-                            isSelected ? `${colors.bg} ${colors.border} border-2 scale-110` : "hover:bg-zinc-800/50"
+                            isSelected
+                              ? `${colors.bg} ${colors.border} border-2 scale-110`
+                              : "hover:bg-zinc-800/50",
                           )}
                         >
                           {/* Touch number badge */}
-                          <div className={cn(
-                            "w-12 h-12 rounded-full flex items-center justify-center border-2 mb-2",
-                            colors.bg, colors.border
-                          )}>
-                            <span className={cn("text-lg font-black", colors.text)}>
+                          <div
+                            className={cn(
+                              "w-12 h-12 rounded-full flex items-center justify-center border-2 mb-2",
+                              colors.bg,
+                              colors.border,
+                            )}
+                          >
+                            <span
+                              className={cn("text-lg font-black", colors.text)}
+                            >
                               {touch.position}
                             </span>
                           </div>
 
                           {/* Channel icon */}
-                          <div className={cn("p-1.5 rounded-lg mb-1", colors.bg)}>
+                          <div
+                            className={cn("p-1.5 rounded-lg mb-1", colors.bg)}
+                          >
                             <ChannelIcon channel={touch.channel} />
                           </div>
 
                           {/* Lead count */}
                           <div className="text-center">
-                            <div className={cn("text-lg font-bold", colors.text)}>{count}</div>
-                            <div className="text-[10px] text-zinc-500 uppercase">leads</div>
+                            <div
+                              className={cn("text-lg font-bold", colors.text)}
+                            >
+                              {count}
+                            </div>
+                            <div className="text-[10px] text-zinc-500 uppercase">
+                              leads
+                            </div>
                           </div>
 
                           {/* Day indicator */}
@@ -269,14 +344,19 @@ export function OutreachPipeline() {
                       <TooltipContent side="bottom" className="max-w-xs">
                         <div className="space-y-1">
                           <div className="font-bold">{touch.name}</div>
-                          <div className="text-sm text-muted-foreground">{touch.purpose}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {touch.purpose}
+                          </div>
                           <div className="text-xs text-muted-foreground">
                             {touch.timeOfDay === "morning" && "9:00 - 11:00 AM"}
-                            {touch.timeOfDay === "afternoon" && "1:00 - 3:00 PM"}
+                            {touch.timeOfDay === "afternoon" &&
+                              "1:00 - 3:00 PM"}
                             {touch.timeOfDay === "evening" && "5:00 - 7:00 PM"}
                           </div>
                           {touch.escalation && (
-                            <div className="text-xs text-yellow-400 mt-1">{touch.escalation}</div>
+                            <div className="text-xs text-yellow-400 mt-1">
+                              {touch.escalation}
+                            </div>
                           )}
                         </div>
                       </TooltipContent>
@@ -290,16 +370,24 @@ export function OutreachPipeline() {
           {/* WEEK LABELS */}
           <div className="flex justify-between mt-4 px-4">
             <div className="text-center flex-1">
-              <Badge variant="outline" className="text-xs">WEEK 1: INITIAL</Badge>
+              <Badge variant="outline" className="text-xs">
+                WEEK 1: INITIAL
+              </Badge>
             </div>
             <div className="text-center flex-1">
-              <Badge variant="outline" className="text-xs">WEEK 2: ENGAGE</Badge>
+              <Badge variant="outline" className="text-xs">
+                WEEK 2: ENGAGE
+              </Badge>
             </div>
             <div className="text-center flex-1">
-              <Badge variant="outline" className="text-xs">WEEK 3: PERSIST</Badge>
+              <Badge variant="outline" className="text-xs">
+                WEEK 3: PERSIST
+              </Badge>
             </div>
             <div className="text-center flex-1">
-              <Badge variant="outline" className="text-xs">WEEK 4: FINAL</Badge>
+              <Badge variant="outline" className="text-xs">
+                WEEK 4: FINAL
+              </Badge>
             </div>
           </div>
         </CardContent>
@@ -318,7 +406,9 @@ export function OutreachPipeline() {
             <ScrollArea className="h-[200px]">
               <div className="space-y-3">
                 {MOCK_QUEUE.map((item, i) => {
-                  const touch = OUTREACH_SEQUENCE.find(t => t.position === item.touch);
+                  const touch = OUTREACH_SEQUENCE.find(
+                    (t) => t.position === item.touch,
+                  );
                   const colors = TOUCH_COLORS[item.touch];
 
                   return (
@@ -326,12 +416,22 @@ export function OutreachPipeline() {
                       key={i}
                       className={cn(
                         "flex items-center justify-between p-3 rounded-lg border",
-                        colors.bg, colors.border
+                        colors.bg,
+                        colors.border,
                       )}
                     >
                       <div className="flex items-center gap-3">
-                        <div className={cn("w-8 h-8 rounded-full flex items-center justify-center", colors.bg)}>
-                          <span className={cn("text-sm font-bold", colors.text)}>#{item.touch}</span>
+                        <div
+                          className={cn(
+                            "w-8 h-8 rounded-full flex items-center justify-center",
+                            colors.bg,
+                          )}
+                        >
+                          <span
+                            className={cn("text-sm font-bold", colors.text)}
+                          >
+                            #{item.touch}
+                          </span>
                         </div>
                         <div>
                           <div className="font-semibold">{touch?.name}</div>
@@ -342,8 +442,12 @@ export function OutreachPipeline() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className={cn("text-lg font-bold", colors.text)}>{item.count}</div>
-                        <div className="text-xs text-muted-foreground">{item.nextBatch}</div>
+                        <div className={cn("text-lg font-bold", colors.text)}>
+                          {item.count}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {item.nextBatch}
+                        </div>
                       </div>
                     </div>
                   );
@@ -356,7 +460,9 @@ export function OutreachPipeline() {
         {/* CHANNEL BREAKDOWN */}
         <Card className="bg-zinc-900/50 border-zinc-800">
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg font-bold">CHANNEL BREAKDOWN</CardTitle>
+            <CardTitle className="text-lg font-bold">
+              CHANNEL BREAKDOWN
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-3">
@@ -367,7 +473,9 @@ export function OutreachPipeline() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Progress value={60} className="w-32 h-2" />
-                  <span className="text-sm font-bold text-blue-400">6 touches</span>
+                  <span className="text-sm font-bold text-blue-400">
+                    6 touches
+                  </span>
                 </div>
               </div>
 
@@ -378,7 +486,9 @@ export function OutreachPipeline() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Progress value={30} className="w-32 h-2" />
-                  <span className="text-sm font-bold text-green-400">3 touches</span>
+                  <span className="text-sm font-bold text-green-400">
+                    3 touches
+                  </span>
                 </div>
               </div>
 
@@ -389,21 +499,33 @@ export function OutreachPipeline() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Progress value={20} className="w-32 h-2" />
-                  <span className="text-sm font-bold text-purple-400">2 touches</span>
+                  <span className="text-sm font-bold text-purple-400">
+                    2 touches
+                  </span>
                 </div>
               </div>
             </div>
 
             <div className="pt-4 border-t border-zinc-800">
-              <div className="text-sm text-muted-foreground mb-2">TYPICAL SEQUENCE FLOW</div>
+              <div className="text-sm text-muted-foreground mb-2">
+                TYPICAL SEQUENCE FLOW
+              </div>
               <div className="flex items-center gap-1 text-xs">
-                <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">SMS</Badge>
+                <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">
+                  SMS
+                </Badge>
                 <ArrowRight className="h-3 w-3 text-zinc-600" />
-                <Badge className="bg-green-500/20 text-green-400 border-green-500/30">CALL</Badge>
+                <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                  CALL
+                </Badge>
                 <ArrowRight className="h-3 w-3 text-zinc-600" />
-                <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">SMS</Badge>
+                <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">
+                  SMS
+                </Badge>
                 <ArrowRight className="h-3 w-3 text-zinc-600" />
-                <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">EMAIL</Badge>
+                <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">
+                  EMAIL
+                </Badge>
                 <span className="text-zinc-500">... x10</span>
               </div>
             </div>
@@ -416,16 +538,21 @@ export function OutreachPipeline() {
         <Card className="bg-zinc-900/50 border-zinc-800">
           <CardContent className="p-6">
             {(() => {
-              const touch = OUTREACH_SEQUENCE.find(t => t.position === selectedTouch);
+              const touch = OUTREACH_SEQUENCE.find(
+                (t) => t.position === selectedTouch,
+              );
               const colors = TOUCH_COLORS[selectedTouch];
               if (!touch) return null;
 
               return (
                 <div className="flex items-start gap-6">
-                  <div className={cn(
-                    "w-20 h-20 rounded-2xl flex items-center justify-center border-2",
-                    colors.bg, colors.border
-                  )}>
+                  <div
+                    className={cn(
+                      "w-20 h-20 rounded-2xl flex items-center justify-center border-2",
+                      colors.bg,
+                      colors.border,
+                    )}
+                  >
                     <span className={cn("text-3xl font-black", colors.text)}>
                       {touch.position}
                     </span>
@@ -434,28 +561,30 @@ export function OutreachPipeline() {
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
                       <h3 className="text-xl font-bold">{touch.name}</h3>
-                      <Badge className={cn(colors.bg, colors.text, colors.border)}>
+                      <Badge
+                        className={cn(colors.bg, colors.text, colors.border)}
+                      >
                         DAY {touch.dayOffset}
                       </Badge>
                       <Badge variant="outline">
                         <ChannelIcon channel={touch.channel} />
-                        <span className="ml-1">{touch.channel.toUpperCase()}</span>
+                        <span className="ml-1">
+                          {touch.channel.toUpperCase()}
+                        </span>
                       </Badge>
                     </div>
 
-                    <p className="text-muted-foreground mb-4">{touch.purpose}</p>
+                    <p className="text-muted-foreground mb-4">
+                      {touch.purpose}
+                    </p>
 
                     <div className="flex items-center gap-4">
                       <Button className="bg-gradient-to-r from-green-600 to-emerald-600">
                         <Play className="h-4 w-4 mr-2" />
                         EXECUTE NOW ({stats.byTouch[selectedTouch]} leads)
                       </Button>
-                      <Button variant="outline">
-                        VIEW LEADS
-                      </Button>
-                      <Button variant="outline">
-                        EDIT TEMPLATE
-                      </Button>
+                      <Button variant="outline">VIEW LEADS</Button>
+                      <Button variant="outline">EDIT TEMPLATE</Button>
                     </div>
                   </div>
                 </div>

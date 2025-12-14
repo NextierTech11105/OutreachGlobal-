@@ -316,7 +316,11 @@ export function TeamMainNav() {
   return (
     <div className="flex flex-col gap-1">
       {navGroups.map((group, groupIndex) => (
-        <Collapsible key={groupIndex} defaultOpen={false} className="group/nav-section">
+        <Collapsible
+          key={groupIndex}
+          defaultOpen={false}
+          className="group/nav-section"
+        >
           <SidebarGroup className="py-0">
             <CollapsibleTrigger asChild>
               <SidebarGroupLabel className="text-sm font-semibold text-foreground px-3 py-2.5 cursor-pointer hover:bg-muted/50 rounded-md transition-colors flex items-center justify-between w-full">

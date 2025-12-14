@@ -1,12 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import {
-  Card,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useCurrentTeam } from "@/features/team/team.context";
@@ -296,12 +291,15 @@ const MOTEL_HOTEL_INDUSTRIES = [
 type AutoTag = "blue-collar" | "motel-hotel" | "property-related";
 
 // Check if a company is property-related
-function isPropertyRelated(company: { industry?: string; name?: string }): boolean {
+function isPropertyRelated(company: {
+  industry?: string;
+  name?: string;
+}): boolean {
   const industry = (company.industry || "").toLowerCase();
   const name = (company.name || "").toLowerCase();
 
-  return PROPERTY_RELATED_INDUSTRIES.some(keyword =>
-    industry.includes(keyword) || name.includes(keyword)
+  return PROPERTY_RELATED_INDUSTRIES.some(
+    (keyword) => industry.includes(keyword) || name.includes(keyword),
   );
 }
 
@@ -310,8 +308,8 @@ function isBlueCollar(company: { industry?: string; name?: string }): boolean {
   const industry = (company.industry || "").toLowerCase();
   const name = (company.name || "").toLowerCase();
 
-  return BLUE_COLLAR_INDUSTRIES.some(keyword =>
-    industry.includes(keyword) || name.includes(keyword)
+  return BLUE_COLLAR_INDUSTRIES.some(
+    (keyword) => industry.includes(keyword) || name.includes(keyword),
   );
 }
 
@@ -320,8 +318,8 @@ function isMotelHotel(company: { industry?: string; name?: string }): boolean {
   const industry = (company.industry || "").toLowerCase();
   const name = (company.name || "").toLowerCase();
 
-  return MOTEL_HOTEL_INDUSTRIES.some(keyword =>
-    industry.includes(keyword) || name.includes(keyword)
+  return MOTEL_HOTEL_INDUSTRIES.some(
+    (keyword) => industry.includes(keyword) || name.includes(keyword),
   );
 }
 
@@ -416,7 +414,13 @@ export default function ImportCompaniesPage() {
   const [totalPages, setTotalPages] = useState(1);
 
   // Sorting state
-  type SortColumn = "name" | "companyName" | "state" | "city" | "industry" | "title";
+  type SortColumn =
+    | "name"
+    | "companyName"
+    | "state"
+    | "city"
+    | "industry"
+    | "title";
   type SortDirection = "asc" | "desc";
   const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
@@ -534,9 +538,11 @@ export default function ImportCompaniesPage() {
     // First filter by autoTags if any selected
     let filtered = hits;
     if (filters.autoTag.value.length > 0) {
-      filtered = hits.filter(company => {
+      filtered = hits.filter((company) => {
         const companyTags = company.autoTags || [];
-        return filters.autoTag.value.some(tag => companyTags.includes(tag as AutoTag));
+        return filters.autoTag.value.some((tag) =>
+          companyTags.includes(tag as AutoTag),
+        );
       });
     }
 
@@ -652,8 +658,14 @@ export default function ImportCompaniesPage() {
       const taggedHits = (data.hits || []).map((contact: ApiContact) => ({
         ...contact,
         companyName: contact.company || "", // Map company to companyName
-        propertyRelated: isPropertyRelated({ industry: contact.industry, name: contact.company }),
-        autoTags: getAutoTags({ industry: contact.industry, name: contact.company }),
+        propertyRelated: isPropertyRelated({
+          industry: contact.industry,
+          name: contact.company,
+        }),
+        autoTags: getAutoTags({
+          industry: contact.industry,
+          name: contact.company,
+        }),
       }));
       setHits(taggedHits);
       setCurrentPage(data.page || page);
@@ -678,12 +690,20 @@ export default function ImportCompaniesPage() {
 
     // Mark as enriching in UI
     setHits((prev) =>
-      prev.map((c) =>
-        c.id === companyId ? { ...c, enriched: false } : c
-      )
+      prev.map((c) => (c.id === companyId ? { ...c, enriched: false } : c)),
     );
 
-    const titlePriority = ["owner", "ceo", "partner", "sales manager", "founder", "president", "director", "vp", "general manager"];
+    const titlePriority = [
+      "owner",
+      "ceo",
+      "partner",
+      "sales manager",
+      "founder",
+      "president",
+      "director",
+      "vp",
+      "general manager",
+    ];
 
     try {
       // Step 1: Apollo People Search (FREE - to find decision maker name)
@@ -705,20 +725,32 @@ export default function ImportCompaniesPage() {
       const apolloData = await apolloResponse.json();
 
       if (apolloData.success && apolloData.data) {
-        const people = Array.isArray(apolloData.data) ? apolloData.data : [apolloData.data];
-        const scoredPeople = people.map((p: { title?: string; firstName?: string; lastName?: string; name?: string; email?: string }) => {
-          const title = (p.title || "").toLowerCase();
-          let score = 100;
-          for (let idx = 0; idx < titlePriority.length; idx++) {
-            if (title.includes(titlePriority[idx])) {
-              score = idx;
-              break;
+        const people = Array.isArray(apolloData.data)
+          ? apolloData.data
+          : [apolloData.data];
+        const scoredPeople = people.map(
+          (p: {
+            title?: string;
+            firstName?: string;
+            lastName?: string;
+            name?: string;
+            email?: string;
+          }) => {
+            const title = (p.title || "").toLowerCase();
+            let score = 100;
+            for (let idx = 0; idx < titlePriority.length; idx++) {
+              if (title.includes(titlePriority[idx])) {
+                score = idx;
+                break;
+              }
             }
-          }
-          return { ...p, score };
-        });
+            return { ...p, score };
+          },
+        );
 
-        scoredPeople.sort((a: { score: number }, b: { score: number }) => a.score - b.score);
+        scoredPeople.sort(
+          (a: { score: number }, b: { score: number }) => a.score - b.score,
+        );
         const bestPerson = scoredPeople[0];
 
         if (bestPerson) {
@@ -759,9 +791,16 @@ export default function ImportCompaniesPage() {
       }
 
       // Step 3: Skip trace if we have a name (for personal cell + property portfolio)
-      let phones: PhoneInfo[] = companyPhone ? [{ number: companyPhone, type: "unknown" }] : [];
+      const phones: PhoneInfo[] = companyPhone
+        ? [{ number: companyPhone, type: "unknown" }]
+        : [];
       let emails: string[] = apolloEmail ? [apolloEmail] : [];
-      let propertyAddresses: Array<{ street: string; city: string; state: string; zip: string }> = [];
+      let propertyAddresses: Array<{
+        street: string;
+        city: string;
+        state: string;
+        zip: string;
+      }> = [];
 
       if (ownerFirstName || ownerLastName) {
         // Skip trace with contact name + business property address for best results
@@ -783,13 +822,14 @@ export default function ImportCompaniesPage() {
 
         if (skipData.success) {
           // RealEstateAPI returns phones with type info: { phone, phoneType, isConnected, doNotCall }
-          const skipPhones: PhoneInfo[] = skipData.phones?.map((p: { number: string; type?: string }) => ({
-            number: p.number,
-            type: p.type?.toLowerCase() || "unknown",
-          })) || [];
+          const skipPhones: PhoneInfo[] =
+            skipData.phones?.map((p: { number: string; type?: string }) => ({
+              number: p.number,
+              type: p.type?.toLowerCase() || "unknown",
+            })) || [];
 
           // Merge phones, avoiding duplicates
-          const existingNumbers = new Set(phones.map(p => p.number));
+          const existingNumbers = new Set(phones.map((p) => p.number));
           for (const sp of skipPhones) {
             if (!existingNumbers.has(sp.number)) {
               phones.push(sp);
@@ -797,14 +837,26 @@ export default function ImportCompaniesPage() {
             }
           }
 
-          const skipEmails = skipData.emails?.map((e: { email: string }) => e.email) || [];
+          const skipEmails =
+            skipData.emails?.map((e: { email: string }) => e.email) || [];
           emails = [...new Set([...emails, ...skipEmails].filter(Boolean))];
-          propertyAddresses = skipData.addresses?.map((a: { street?: string; address?: string; city?: string; state?: string; zip?: string }) => ({
-            street: a.street || a.address || "",
-            city: a.city || "",
-            state: a.state || "",
-            zip: a.zip || "",
-          })).filter((a: { street: string }) => a.street) || [];
+          propertyAddresses =
+            skipData.addresses
+              ?.map(
+                (a: {
+                  street?: string;
+                  address?: string;
+                  city?: string;
+                  state?: string;
+                  zip?: string;
+                }) => ({
+                  street: a.street || a.address || "",
+                  city: a.city || "",
+                  state: a.state || "",
+                  zip: a.zip || "",
+                }),
+              )
+              .filter((a: { street: string }) => a.street) || [];
         }
       }
 
@@ -822,11 +874,13 @@ export default function ImportCompaniesPage() {
                 propertyAddresses,
                 propertyCount: propertyAddresses.length,
               }
-            : c
-        )
+            : c,
+        ),
       );
 
-      toast.success(`Enriched ${company.name} - ${phones.length} phones, ${emails.length} emails`);
+      toast.success(
+        `Enriched ${company.name} - ${phones.length} phones, ${emails.length} emails`,
+      );
     } catch (error) {
       console.error("Single enrich error:", error);
       toast.error(`Failed to enrich ${company.name}`);
@@ -968,7 +1022,9 @@ export default function ImportCompaniesPage() {
 
           // STEP 3: RealEstateAPI Skip Trace to get cell phone + property data
           // This costs $0.05 per record but gives us cell + property portfolio!
-          let phones: PhoneInfo[] = companyPhone ? [{ number: companyPhone, type: "unknown" }] : [];
+          const phones: PhoneInfo[] = companyPhone
+            ? [{ number: companyPhone, type: "unknown" }]
+            : [];
           let emails: string[] = apolloEmail ? [apolloEmail] : [];
 
           if (ownerFirstName || ownerLastName) {
@@ -991,13 +1047,16 @@ export default function ImportCompaniesPage() {
 
             if (skipData.success) {
               // RealEstateAPI returns phones with type info: { phone, phoneType, isConnected, doNotCall }
-              const skipPhones: PhoneInfo[] = skipData.phones?.map((p: { number: string; type?: string }) => ({
-                number: p.number,
-                type: p.type?.toLowerCase() || "unknown",
-              })) || [];
+              const skipPhones: PhoneInfo[] =
+                skipData.phones?.map(
+                  (p: { number: string; type?: string }) => ({
+                    number: p.number,
+                    type: p.type?.toLowerCase() || "unknown",
+                  }),
+                ) || [];
 
               // Merge phones, avoiding duplicates
-              const existingNumbers = new Set(phones.map(p => p.number));
+              const existingNumbers = new Set(phones.map((p) => p.number));
               for (const sp of skipPhones) {
                 if (!existingNumbers.has(sp.number)) {
                   phones.push(sp);
@@ -1158,7 +1217,10 @@ export default function ImportCompaniesPage() {
       .filter((c) => selectedCompanies.has(c.id))
       .forEach((company) => {
         if (company.phone) {
-          phonesToSms.push({ number: company.phone, type: company.phoneType || "unknown" });
+          phonesToSms.push({
+            number: company.phone,
+            type: company.phoneType || "unknown",
+          });
         }
         if (company.enrichedPhones) {
           phonesToSms.push(...company.enrichedPhones);
@@ -1175,21 +1237,25 @@ export default function ImportCompaniesPage() {
 
     // Separate by type for reporting
     const allPhones = Array.from(uniquePhonesMap.values());
-    const landlines = allPhones.filter(p => p.type === "landline");
-    const smsablePhones = allPhones.filter(p => p.type !== "landline");
+    const landlines = allPhones.filter((p) => p.type === "landline");
+    const smsablePhones = allPhones.filter((p) => p.type !== "landline");
 
     if (smsablePhones.length === 0) {
-      toast.error(landlines.length > 0
-        ? `All ${landlines.length} phone numbers are landlines (cannot receive SMS)`
-        : "No phone numbers found in selected companies");
+      toast.error(
+        landlines.length > 0
+          ? `All ${landlines.length} phone numbers are landlines (cannot receive SMS)`
+          : "No phone numbers found in selected companies",
+      );
       return;
     }
 
     if (landlines.length > 0) {
-      toast.info(`Skipping ${landlines.length} landline number${landlines.length > 1 ? "s" : ""}`);
+      toast.info(
+        `Skipping ${landlines.length} landline number${landlines.length > 1 ? "s" : ""}`,
+      );
     }
 
-    const uniquePhones = smsablePhones.map(p => p.number);
+    const uniquePhones = smsablePhones.map((p) => p.number);
 
     if (!smsMessage.trim()) {
       toast.error("Enter a message to send");
@@ -1246,21 +1312,40 @@ export default function ImportCompaniesPage() {
     hits
       .filter((c) => selectedCompanies.has(c.id))
       .forEach((company) => {
-        if (company.phone) phones.push({ number: company.phone, type: company.phoneType || "unknown" });
+        if (company.phone)
+          phones.push({
+            number: company.phone,
+            type: company.phoneType || "unknown",
+          });
         if (company.enrichedPhones) phones.push(...company.enrichedPhones);
       });
 
     // Deduplicate by number
     const uniquePhones = Array.from(
-      new Map(phones.filter(p => p.number && p.number.length > 5).map(p => [p.number, p])).values()
+      new Map(
+        phones
+          .filter((p) => p.number && p.number.length > 5)
+          .map((p) => [p.number, p]),
+      ).values(),
     );
 
-    const mobile = uniquePhones.filter(p => p.type === "mobile" || p.type === "cell").length;
-    const voip = uniquePhones.filter(p => p.type === "voip").length;
-    const landline = uniquePhones.filter(p => p.type === "landline").length;
-    const unknown = uniquePhones.filter(p => !p.type || p.type === "unknown").length;
+    const mobile = uniquePhones.filter(
+      (p) => p.type === "mobile" || p.type === "cell",
+    ).length;
+    const voip = uniquePhones.filter((p) => p.type === "voip").length;
+    const landline = uniquePhones.filter((p) => p.type === "landline").length;
+    const unknown = uniquePhones.filter(
+      (p) => !p.type || p.type === "unknown",
+    ).length;
 
-    return { total: uniquePhones.length, mobile, voip, landline, unknown, phones: uniquePhones };
+    return {
+      total: uniquePhones.length,
+      mobile,
+      voip,
+      landline,
+      unknown,
+      phones: uniquePhones,
+    };
   };
 
   // Legacy helper
@@ -1283,12 +1368,16 @@ export default function ImportCompaniesPage() {
       const leadData = selectedHits.flatMap((company) => {
         const phones: string[] = [];
         if (company.phone) phones.push(company.phone);
-        if (company.enrichedPhones) phones.push(...company.enrichedPhones.map(p => p.number));
+        if (company.enrichedPhones)
+          phones.push(...company.enrichedPhones.map((p) => p.number));
 
-        return phones.map(phone => ({
+        return phones.map((phone) => ({
           phone,
           leadId: company.id,
-          firstName: company.ownerName?.split(" ")[0] || company.name?.split(" ")[0] || "",
+          firstName:
+            company.ownerName?.split(" ")[0] ||
+            company.name?.split(" ")[0] ||
+            "",
           lastName: company.ownerName?.split(" ").slice(1).join(" ") || "",
           companyName: company.companyName || company.company || "",
           address: company.address,
@@ -1300,7 +1389,7 @@ export default function ImportCompaniesPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          phones: stats.phones.map(p => p.number),
+          phones: stats.phones.map((p) => p.number),
           addToQueue: false, // Don't auto-add yet, just validate
           leadData,
         }),
@@ -1341,19 +1430,24 @@ export default function ImportCompaniesPage() {
               const normalized = p.number.replace(/\D/g, "").slice(-10);
               const validated = validatedMap.get(normalized);
               if (validated) {
-                return { ...p, type: validated.type, routeTo: validated.routeTo, verified: true };
+                return {
+                  ...p,
+                  type: validated.type,
+                  routeTo: validated.routeTo,
+                  verified: true,
+                };
               }
               return p;
             });
           }
 
           return company;
-        })
+        }),
       );
 
       const statsMsg = data.stats;
       toast.success(
-        `Validated ${stats.total} phones: ${statsMsg.mobile} mobile → SMS, ${statsMsg.landline + statsMsg.voip} landline/voip → Call, ${statsMsg.skipped} skipped`
+        `Validated ${stats.total} phones: ${statsMsg.mobile} mobile → SMS, ${statsMsg.landline + statsMsg.voip} landline/voip → Call, ${statsMsg.skipped} skipped`,
       );
     } catch (error) {
       console.error("Phone validation error:", error);
@@ -1366,7 +1460,9 @@ export default function ImportCompaniesPage() {
   // Route validated phones to appropriate queues
   // Mobile → SMS Queue, Landline/VoIP → Call Queue
   const routeToQueues = async () => {
-    const selectedHits = hits.filter((c) => selectedCompanies.has(c.id) && c.enriched);
+    const selectedHits = hits.filter(
+      (c) => selectedCompanies.has(c.id) && c.enriched,
+    );
 
     if (selectedHits.length === 0) {
       toast.error("Select enriched companies first");
@@ -1374,8 +1470,19 @@ export default function ImportCompaniesPage() {
     }
 
     // Separate phones by type
-    const smsLeads: Array<{ leadId: string; phone: string; firstName: string; lastName?: string; companyName?: string }> = [];
-    const callLeads: Array<{ id: string; name: string; phone: string; address?: string }> = [];
+    const smsLeads: Array<{
+      leadId: string;
+      phone: string;
+      firstName: string;
+      lastName?: string;
+      companyName?: string;
+    }> = [];
+    const callLeads: Array<{
+      id: string;
+      name: string;
+      phone: string;
+      address?: string;
+    }> = [];
 
     for (const company of selectedHits) {
       const ownerName = company.ownerName || company.name || "";
@@ -1384,7 +1491,11 @@ export default function ImportCompaniesPage() {
 
       // Check all phones
       const allPhones: PhoneInfo[] = [];
-      if (company.phone) allPhones.push({ number: company.phone, type: company.phoneType || "unknown" });
+      if (company.phone)
+        allPhones.push({
+          number: company.phone,
+          type: company.phoneType || "unknown",
+        });
       if (company.enrichedPhones) allPhones.push(...company.enrichedPhones);
 
       for (const phone of allPhones) {
@@ -1399,7 +1510,11 @@ export default function ImportCompaniesPage() {
             lastName,
             companyName: company.companyName || company.company || "",
           });
-        } else if (type === "landline" || type === "voip" || type === "unknown") {
+        } else if (
+          type === "landline" ||
+          type === "voip" ||
+          type === "unknown"
+        ) {
           // Landline/VoIP/Unknown goes to call queue
           callLeads.push({
             id: company.id,
@@ -1424,7 +1539,8 @@ export default function ImportCompaniesPage() {
           body: JSON.stringify({
             action: "add_batch_draft",
             leads: smsLeads,
-            templateMessage: "Hi {{firstName}}, this is regarding {{companyName}}...",
+            templateMessage:
+              "Hi {{firstName}}, this is regarding {{companyName}}...",
             templateCategory: "b2b-outreach",
           }),
         });
@@ -1454,7 +1570,9 @@ export default function ImportCompaniesPage() {
       }
     }
 
-    toast.success(`Routed: ${smsAdded} to SMS queue, ${callAdded} to Call queue`);
+    toast.success(
+      `Routed: ${smsAdded} to SMS queue, ${callAdded} to Call queue`,
+    );
   };
 
   // Search when filters change (reset to page 1)
@@ -1473,7 +1591,8 @@ export default function ImportCompaniesPage() {
         <div className="mb-4">
           <TeamTitle>B2B Contact Search</TeamTitle>
           <p className="text-muted-foreground">
-            Search 275M+ decision makers (Owners, CEOs, Partners) from Apollo.io + USBizData
+            Search 275M+ decision makers (Owners, CEOs, Partners) from Apollo.io
+            + USBizData
           </p>
         </div>
 
@@ -1580,9 +1699,15 @@ export default function ImportCompaniesPage() {
                     onClick={() => {
                       const current = filters.autoTag.value;
                       if (current.includes("blue-collar")) {
-                        handleFilterChange("autoTag", current.filter(t => t !== "blue-collar"));
+                        handleFilterChange(
+                          "autoTag",
+                          current.filter((t) => t !== "blue-collar"),
+                        );
                       } else {
-                        handleFilterChange("autoTag", [...current, "blue-collar"]);
+                        handleFilterChange("autoTag", [
+                          ...current,
+                          "blue-collar",
+                        ]);
                       }
                     }}
                   >
@@ -1599,9 +1724,15 @@ export default function ImportCompaniesPage() {
                     onClick={() => {
                       const current = filters.autoTag.value;
                       if (current.includes("motel-hotel")) {
-                        handleFilterChange("autoTag", current.filter(t => t !== "motel-hotel"));
+                        handleFilterChange(
+                          "autoTag",
+                          current.filter((t) => t !== "motel-hotel"),
+                        );
                       } else {
-                        handleFilterChange("autoTag", [...current, "motel-hotel"]);
+                        handleFilterChange("autoTag", [
+                          ...current,
+                          "motel-hotel",
+                        ]);
                       }
                     }}
                   >
@@ -1618,9 +1749,15 @@ export default function ImportCompaniesPage() {
                     onClick={() => {
                       const current = filters.autoTag.value;
                       if (current.includes("property-related")) {
-                        handleFilterChange("autoTag", current.filter(t => t !== "property-related"));
+                        handleFilterChange(
+                          "autoTag",
+                          current.filter((t) => t !== "property-related"),
+                        );
                       } else {
-                        handleFilterChange("autoTag", [...current, "property-related"]);
+                        handleFilterChange("autoTag", [
+                          ...current,
+                          "property-related",
+                        ]);
                       }
                     }}
                   >
@@ -1721,7 +1858,9 @@ export default function ImportCompaniesPage() {
                         onCheckedChange={toggleAll}
                       />
                     </TableHead>
-                    <SortableHeader column="companyName">Company</SortableHeader>
+                    <SortableHeader column="companyName">
+                      Company
+                    </SortableHeader>
                     <SortableHeader column="name">Contact</SortableHeader>
                     <TableHead>Phone</TableHead>
                     <TableHead>Email</TableHead>
@@ -1765,15 +1904,23 @@ export default function ImportCompaniesPage() {
 
                       {/* Company */}
                       <TableCell>
-                        <span className="font-medium">{company.companyName || company.domain?.split('.')[0] || "-"}</span>
+                        <span className="font-medium">
+                          {company.companyName ||
+                            company.domain?.split(".")[0] ||
+                            "-"}
+                        </span>
                       </TableCell>
 
                       {/* Contact */}
                       <TableCell>
                         <div>
-                          <span className="font-medium">{company.name || "-"}</span>
+                          <span className="font-medium">
+                            {company.name || "-"}
+                          </span>
                           {company.title && (
-                            <span className="text-xs text-muted-foreground block">{company.title}</span>
+                            <span className="text-xs text-muted-foreground block">
+                              {company.title}
+                            </span>
                           )}
                         </div>
                       </TableCell>
@@ -1782,7 +1929,9 @@ export default function ImportCompaniesPage() {
                       <TableCell>
                         {company.enrichedPhones?.length > 0 ? (
                           <div className="flex items-center gap-1.5">
-                            <span className="text-green-600 font-medium">{company.enrichedPhones[0].number}</span>
+                            <span className="text-green-600 font-medium">
+                              {company.enrichedPhones[0].number}
+                            </span>
                             {company.enrichedPhones[0].type && (
                               <Badge
                                 variant="outline"
@@ -1790,15 +1939,21 @@ export default function ImportCompaniesPage() {
                                   company.enrichedPhones[0].type === "mobile"
                                     ? "bg-green-50 text-green-700 border-green-300"
                                     : company.enrichedPhones[0].type === "voip"
-                                    ? "bg-yellow-50 text-yellow-700 border-yellow-300"
-                                    : company.enrichedPhones[0].type === "landline"
-                                    ? "bg-red-50 text-red-700 border-red-300"
-                                    : "bg-gray-50 text-gray-500 border-gray-300"
+                                      ? "bg-yellow-50 text-yellow-700 border-yellow-300"
+                                      : company.enrichedPhones[0].type ===
+                                          "landline"
+                                        ? "bg-red-50 text-red-700 border-red-300"
+                                        : "bg-gray-50 text-gray-500 border-gray-300"
                                 }`}
                               >
-                                {company.enrichedPhones[0].type === "mobile" ? "M" :
-                                 company.enrichedPhones[0].type === "voip" ? "V" :
-                                 company.enrichedPhones[0].type === "landline" ? "L" : "?"}
+                                {company.enrichedPhones[0].type === "mobile"
+                                  ? "M"
+                                  : company.enrichedPhones[0].type === "voip"
+                                    ? "V"
+                                    : company.enrichedPhones[0].type ===
+                                        "landline"
+                                      ? "L"
+                                      : "?"}
                               </Badge>
                             )}
                           </div>
@@ -1812,7 +1967,9 @@ export default function ImportCompaniesPage() {
                       {/* Email */}
                       <TableCell>
                         {company.enrichedEmails?.length > 0 ? (
-                          <span className="text-green-600 text-sm">{company.enrichedEmails[0]}</span>
+                          <span className="text-green-600 text-sm">
+                            {company.enrichedEmails[0]}
+                          </span>
                         ) : company.email ? (
                           <span className="text-sm">{company.email}</span>
                         ) : (
@@ -1822,7 +1979,9 @@ export default function ImportCompaniesPage() {
 
                       {/* Address */}
                       <TableCell>
-                        <span className="text-sm">{company.address || "-"}</span>
+                        <span className="text-sm">
+                          {company.address || "-"}
+                        </span>
                       </TableCell>
 
                       {/* City */}
@@ -1842,7 +2001,9 @@ export default function ImportCompaniesPage() {
 
                       {/* Industry */}
                       <TableCell>
-                        <span className="text-xs">{company.industry || "-"}</span>
+                        <span className="text-xs">
+                          {company.industry || "-"}
+                        </span>
                       </TableCell>
 
                       {/* Auto-Tags */}
@@ -1863,8 +2024,11 @@ export default function ImportCompaniesPage() {
                               🏠 Property
                             </Badge>
                           )}
-                          {(!company.autoTags || company.autoTags.length === 0) && (
-                            <span className="text-muted-foreground text-xs">-</span>
+                          {(!company.autoTags ||
+                            company.autoTags.length === 0) && (
+                            <span className="text-muted-foreground text-xs">
+                              -
+                            </span>
                           )}
                         </div>
                       </TableCell>
@@ -1878,14 +2042,21 @@ export default function ImportCompaniesPage() {
                             variant="ghost"
                             className="h-8 w-8 text-blue-600 hover:bg-blue-50 hover:text-blue-700"
                             title="Send SMS"
-                            disabled={!company.phone && (!company.enrichedPhones || company.enrichedPhones.length === 0)}
+                            disabled={
+                              !company.phone &&
+                              (!company.enrichedPhones ||
+                                company.enrichedPhones.length === 0)
+                            }
                             onClick={() => {
-                              const phone = company.enrichedPhones?.[0] || company.phone;
+                              const phone =
+                                company.enrichedPhones?.[0] || company.phone;
                               if (phone) {
                                 setSelectedCompanies(new Set([company.id]));
                                 setShowSmsDialog(true);
                               } else {
-                                toast.error("No phone number available. Enrich first.");
+                                toast.error(
+                                  "No phone number available. Enrich first.",
+                                );
                               }
                             }}
                           >
@@ -1898,13 +2069,20 @@ export default function ImportCompaniesPage() {
                             variant="ghost"
                             className="h-8 w-8 text-green-600 hover:bg-green-50 hover:text-green-700"
                             title="Call"
-                            disabled={!company.phone && (!company.enrichedPhones || company.enrichedPhones.length === 0)}
+                            disabled={
+                              !company.phone &&
+                              (!company.enrichedPhones ||
+                                company.enrichedPhones.length === 0)
+                            }
                             onClick={() => {
-                              const phone = company.enrichedPhones?.[0] || company.phone;
+                              const phone =
+                                company.enrichedPhones?.[0] || company.phone;
                               if (phone) {
                                 window.open(`tel:${phone}`, "_self");
                               } else {
-                                toast.error("No phone number available. Enrich first.");
+                                toast.error(
+                                  "No phone number available. Enrich first.",
+                                );
                               }
                             }}
                           >
@@ -1917,13 +2095,20 @@ export default function ImportCompaniesPage() {
                             variant="ghost"
                             className="h-8 w-8 text-purple-600 hover:bg-purple-50 hover:text-purple-700"
                             title="Send Email"
-                            disabled={!company.email && (!company.enrichedEmails || company.enrichedEmails.length === 0)}
+                            disabled={
+                              !company.email &&
+                              (!company.enrichedEmails ||
+                                company.enrichedEmails.length === 0)
+                            }
                             onClick={() => {
-                              const email = company.enrichedEmails?.[0] || company.email;
+                              const email =
+                                company.enrichedEmails?.[0] || company.email;
                               if (email) {
                                 window.open(`mailto:${email}`, "_blank");
                               } else {
-                                toast.error("No email available. Enrich first.");
+                                toast.error(
+                                  "No email available. Enrich first.",
+                                );
                               }
                             }}
                           >
@@ -1938,27 +2123,45 @@ export default function ImportCompaniesPage() {
                             title="Add to Calendar"
                             onClick={async () => {
                               try {
-                                const response = await fetch("/api/calendar/leads", {
-                                  method: "POST",
-                                  headers: { "Content-Type": "application/json" },
-                                  body: JSON.stringify({
-                                    action: "schedule_to_calendar",
-                                    leads: [{
-                                      id: company.id,
-                                      name: company.name || company.ownerName || "Unknown",
-                                      phone: company.enrichedPhones?.[0] || company.phone,
-                                      email: company.enrichedEmails?.[0] || company.email,
-                                      address: company.address,
-                                      city: company.city,
-                                      state: company.state,
-                                      company: company.companyName,
-                                    }],
-                                    scheduledDate: new Date().toISOString().split("T")[0],
-                                  }),
-                                });
+                                const response = await fetch(
+                                  "/api/calendar/leads",
+                                  {
+                                    method: "POST",
+                                    headers: {
+                                      "Content-Type": "application/json",
+                                    },
+                                    body: JSON.stringify({
+                                      action: "schedule_to_calendar",
+                                      leads: [
+                                        {
+                                          id: company.id,
+                                          name:
+                                            company.name ||
+                                            company.ownerName ||
+                                            "Unknown",
+                                          phone:
+                                            company.enrichedPhones?.[0] ||
+                                            company.phone,
+                                          email:
+                                            company.enrichedEmails?.[0] ||
+                                            company.email,
+                                          address: company.address,
+                                          city: company.city,
+                                          state: company.state,
+                                          company: company.companyName,
+                                        },
+                                      ],
+                                      scheduledDate: new Date()
+                                        .toISOString()
+                                        .split("T")[0],
+                                    }),
+                                  },
+                                );
                                 const data = await response.json();
                                 if (data.success) {
-                                  toast.success(`${company.name || company.companyName} added to calendar`);
+                                  toast.success(
+                                    `${company.name || company.companyName} added to calendar`,
+                                  );
                                 } else {
                                   throw new Error(data.error);
                                 }
@@ -2028,7 +2231,9 @@ export default function ImportCompaniesPage() {
                           }}
                           className="w-16 h-8 text-center"
                         />
-                        <span className="text-sm">of {formatNumber(totalPages)}</span>
+                        <span className="text-sm">
+                          of {formatNumber(totalPages)}
+                        </span>
                       </div>
                       <Button
                         variant="outline"
@@ -2215,15 +2420,18 @@ export default function ImportCompaniesPage() {
                   {/* Warning for landlines */}
                   {stats.landline > 0 && (
                     <div className="rounded-md bg-red-50 border border-red-200 p-2 text-xs text-red-700">
-                      <strong>Warning:</strong> {stats.landline} landline number{stats.landline > 1 ? "s" : ""} detected.
-                      SMS to landlines will fail. Consider removing landlines or enriching for mobile numbers.
+                      <strong>Warning:</strong> {stats.landline} landline number
+                      {stats.landline > 1 ? "s" : ""} detected. SMS to landlines
+                      will fail. Consider removing landlines or enriching for
+                      mobile numbers.
                     </div>
                   )}
 
                   {/* Warning for unknown types */}
                   {stats.unknown > 0 && stats.landline === 0 && (
                     <div className="rounded-md bg-yellow-50 border border-yellow-200 p-2 text-xs text-yellow-700">
-                      <strong>Note:</strong> {stats.unknown} phone{stats.unknown > 1 ? "s" : ""} with unknown line type.
+                      <strong>Note:</strong> {stats.unknown} phone
+                      {stats.unknown > 1 ? "s" : ""} with unknown line type.
                       Consider validating phone types before sending.
                     </div>
                   )}

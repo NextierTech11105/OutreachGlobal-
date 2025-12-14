@@ -28,10 +28,10 @@ const MAX_BATCH_SIZE = 50;
 
 // Match scoring weights
 const SCORE_WEIGHTS = {
-  phoneMatch: 40,        // Same phone = strong signal
-  emailMatch: 30,        // Same email = strong signal
-  addressMatch: 20,      // Associated address match
-  nameMatch: 10,         // Name similarity
+  phoneMatch: 40, // Same phone = strong signal
+  emailMatch: 30, // Same email = strong signal
+  addressMatch: 20, // Associated address match
+  nameMatch: 10, // Name similarity
 };
 
 interface SkipTraceOutput {
@@ -71,12 +71,12 @@ interface CrossReferenceInput {
 
 interface CrossReferenceResult {
   matched: boolean;
-  matchScore: number;         // 0-100
+  matchScore: number; // 0-100
   matchDetails: {
-    phoneMatches: number;     // Count of matched phones (not the actual numbers for privacy)
-    emailMatches: number;     // Count of matched emails
-    addressMatches: number;   // Count of matched addresses
-    nameMatch: boolean;       // Names are similar
+    phoneMatches: number; // Count of matched phones (not the actual numbers for privacy)
+    emailMatches: number; // Count of matched emails
+    addressMatches: number; // Count of matched addresses
+    nameMatch: boolean; // Names are similar
   };
   businessOwner: {
     name: string;
@@ -91,14 +91,14 @@ interface CrossReferenceResult {
     emailCount: number;
   };
   recommendation: "HIGH_VALUE" | "LIKELY_MATCH" | "POSSIBLE" | "NO_MATCH";
-  dealSignals: string[];      // Why this is a good deal (no PII)
+  dealSignals: string[]; // Why this is a good deal (no PII)
 }
 
 // Helper to fetch with timeout
 async function fetchWithTimeout(
   url: string,
   options: RequestInit,
-  timeout: number = API_TIMEOUT
+  timeout: number = API_TIMEOUT,
 ): Promise<Response> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeout);
@@ -121,7 +121,7 @@ async function skipTracePerson(
   address?: string,
   city?: string,
   state?: string,
-  zip?: string
+  zip?: string,
 ): Promise<SkipTraceOutput> {
   try {
     const body: Record<string, unknown> = {};
@@ -198,7 +198,9 @@ async function skipTracePerson(
       addresses,
       name:
         primaryName?.fullName ||
-        [primaryName?.firstName, primaryName?.lastName].filter(Boolean).join(" ") ||
+        [primaryName?.firstName, primaryName?.lastName]
+          .filter(Boolean)
+          .join(" ") ||
         [firstName, lastName].filter(Boolean).join(" "),
       firstName: primaryName?.firstName || firstName,
       lastName: primaryName?.lastName || lastName,
@@ -206,7 +208,10 @@ async function skipTracePerson(
     };
   } catch (err) {
     // Log error without PII
-    console.error("[CrossRef] Skip trace error:", err instanceof Error ? err.message : "Unknown error");
+    console.error(
+      "[CrossRef] Skip trace error:",
+      err instanceof Error ? err.message : "Unknown error",
+    );
     return {
       phones: [],
       emails: [],
@@ -225,7 +230,7 @@ async function skipTracePropertyOwner(
   address?: string,
   city?: string,
   state?: string,
-  zip?: string
+  zip?: string,
 ): Promise<SkipTraceOutput> {
   try {
     // First get property details to get owner info
@@ -254,10 +259,21 @@ async function skipTracePropertyOwner(
         const addrInfo = propInfo.address || prop.address || {};
 
         ownerFirstName =
-          ownerInfo.owner1FirstName || prop.owner1FirstName || prop.ownerFirstName || "";
+          ownerInfo.owner1FirstName ||
+          prop.owner1FirstName ||
+          prop.ownerFirstName ||
+          "";
         ownerLastName =
-          ownerInfo.owner1LastName || prop.owner1LastName || prop.ownerLastName || "";
-        propAddress = addrInfo.address || addrInfo.street || addrInfo.label || address || "";
+          ownerInfo.owner1LastName ||
+          prop.owner1LastName ||
+          prop.ownerLastName ||
+          "";
+        propAddress =
+          addrInfo.address ||
+          addrInfo.street ||
+          addrInfo.label ||
+          address ||
+          "";
         propCity = addrInfo.city || city || "";
         propState = addrInfo.state || state || "";
         propZip = addrInfo.zip || zip || "";
@@ -281,10 +297,13 @@ async function skipTracePropertyOwner(
       propAddress,
       propCity,
       propState,
-      propZip
+      propZip,
     );
   } catch (err) {
-    console.error("[CrossRef] Property skip trace error:", err instanceof Error ? err.message : "Unknown error");
+    console.error(
+      "[CrossRef] Property skip trace error:",
+      err instanceof Error ? err.message : "Unknown error",
+    );
     return {
       phones: [],
       emails: [],
@@ -299,26 +318,36 @@ async function skipTracePropertyOwner(
 function crossReference(
   business: SkipTraceOutput,
   property: SkipTraceOutput,
-  businessInput: CrossReferenceInput["business"]
+  businessInput: CrossReferenceInput["business"],
 ): CrossReferenceResult {
   // Find phone matches
-  const bizPhones = new Set([...business.phones, businessInput.phone?.replace(/\D/g, "") || ""].filter(Boolean));
+  const bizPhones = new Set(
+    [...business.phones, businessInput.phone?.replace(/\D/g, "") || ""].filter(
+      Boolean,
+    ),
+  );
   const propPhones = new Set(property.phones);
   const phoneMatches = [...bizPhones].filter((p) => propPhones.has(p));
 
   // Find email matches
-  const bizEmails = new Set([...business.emails, businessInput.email?.toLowerCase() || ""].filter(Boolean));
+  const bizEmails = new Set(
+    [...business.emails, businessInput.email?.toLowerCase() || ""].filter(
+      Boolean,
+    ),
+  );
   const propEmails = new Set(property.emails);
   const emailMatches = [...bizEmails].filter((e) => propEmails.has(e));
 
   // Find address matches (fuzzy)
-  const bizAddresses = new Set([
-    ...business.addresses,
-    [businessInput.address, businessInput.city, businessInput.state]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase(),
-  ].filter(Boolean));
+  const bizAddresses = new Set(
+    [
+      ...business.addresses,
+      [businessInput.address, businessInput.city, businessInput.state]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase(),
+    ].filter(Boolean),
+  );
   const propAddresses = new Set(property.addresses);
   const addressMatches: string[] = [];
   for (const bizAddr of bizAddresses) {
@@ -334,7 +363,10 @@ function crossReference(
   }
 
   // Name match (fuzzy)
-  const bizName = (businessInput.name || [businessInput.firstName, businessInput.lastName].filter(Boolean).join(" ")).toLowerCase();
+  const bizName = (
+    businessInput.name ||
+    [businessInput.firstName, businessInput.lastName].filter(Boolean).join(" ")
+  ).toLowerCase();
   const propName = property.name.toLowerCase();
   const nameMatch =
     bizName &&
@@ -415,7 +447,7 @@ export async function POST(request: NextRequest) {
           error: "RealEstateAPI not configured",
           message: "Set REAL_ESTATE_API_KEY in environment variables",
         },
-        { status: 503 }
+        { status: 503 },
       );
     }
 
@@ -431,7 +463,7 @@ export async function POST(request: NextRequest) {
           error: `Batch size exceeds maximum of ${MAX_BATCH_SIZE} records`,
           provided: inputs.length,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -460,7 +492,7 @@ export async function POST(request: NextRequest) {
           },
           maxBatchSize: MAX_BATCH_SIZE,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -487,7 +519,7 @@ export async function POST(request: NextRequest) {
         business.address,
         business.city,
         business.state,
-        business.zip
+        business.zip,
       );
 
       // Skip trace property owner (log without PII)
@@ -497,11 +529,15 @@ export async function POST(request: NextRequest) {
         property.address,
         property.city,
         property.state,
-        property.zip
+        property.zip,
       );
 
       // Cross-reference
-      const crossRefResult = crossReference(businessResult, propertyResult, business);
+      const crossRefResult = crossReference(
+        businessResult,
+        propertyResult,
+        business,
+      );
       results.push(crossRefResult);
 
       // Brief delay between records
@@ -521,8 +557,12 @@ export async function POST(request: NextRequest) {
 
     // Return batch results with stats
     const matched = results.filter((r) => r.matched).length;
-    const highValue = results.filter((r) => r.recommendation === "HIGH_VALUE").length;
-    const likelyMatch = results.filter((r) => r.recommendation === "LIKELY_MATCH").length;
+    const highValue = results.filter(
+      (r) => r.recommendation === "HIGH_VALUE",
+    ).length;
+    const likelyMatch = results.filter(
+      (r) => r.recommendation === "LIKELY_MATCH",
+    ).length;
 
     return NextResponse.json({
       success: true,
@@ -537,10 +577,13 @@ export async function POST(request: NextRequest) {
       summary: `Found ${matched} matches (${highValue} high-value, ${likelyMatch} likely) out of ${results.length} records`,
     });
   } catch (error: unknown) {
-    console.error("[CrossRef] Error:", error instanceof Error ? error.message : "Unknown error");
+    console.error(
+      "[CrossRef] Error:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
     return NextResponse.json(
       { error: "Cross-reference failed" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -551,7 +594,8 @@ export async function GET() {
 
   return NextResponse.json({
     name: "Cross-Reference API",
-    description: "Match business owners with property owners to find bundled deals",
+    description:
+      "Match business owners with property owners to find bundled deals",
     configured: isConfigured,
     workflow: [
       "1. Skip trace business owner (from Apollo/business database)",

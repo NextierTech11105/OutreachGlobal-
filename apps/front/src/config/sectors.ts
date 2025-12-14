@@ -377,7 +377,8 @@ export const BUSINESS_SECTORS: Sector[] = [
     id: "trucking",
     name: "Trucking Companies",
     shortName: "Trucking",
-    description: "Trucking, freight, hauling companies - blue collar acquisition targets",
+    description:
+      "Trucking, freight, hauling companies - blue collar acquisition targets",
     category: "business",
     icon: Truck,
     color: "text-blue-600",

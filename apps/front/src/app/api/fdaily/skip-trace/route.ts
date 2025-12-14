@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { S3Client, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  GetObjectCommand,
+  PutObjectCommand,
+} from "@aws-sdk/client-s3";
 
 /**
  * FDAILY Skip Trace Pipeline
@@ -23,7 +27,8 @@ const SPACES_KEY = process.env.DO_SPACES_KEY || "";
 const SPACES_SECRET = process.env.DO_SPACES_SECRET || "";
 
 // RealEstateAPI for Skip Trace
-const REALESTATE_API_KEY = process.env.REAL_ESTATE_API_KEY || process.env.REALESTATE_API_KEY || "";
+const REALESTATE_API_KEY =
+  process.env.REAL_ESTATE_API_KEY || process.env.REALESTATE_API_KEY || "";
 const SKIP_TRACE_URL = "https://api.realestateapi.com/v1/SkipTrace";
 const PROPERTY_DETAIL_URL = "https://api.realestateapi.com/v2/PropertyDetail";
 
@@ -135,7 +140,7 @@ async function skipTracePerson(
   address: string,
   city: string,
   state: string,
-  zip: string
+  zip: string,
 ): Promise<{ phones: PhoneNumber[]; emails: string[] }> {
   if (!REALESTATE_API_KEY) {
     return { phones: [], emails: [] };
@@ -172,11 +177,23 @@ async function skipTracePerson(
 
         // Determine type based on carrier info or line type
         let phoneType: "mobile" | "landline" | "unknown" = "unknown";
-        const lineType = (phoneObj.line_type || phoneObj.type || "").toLowerCase();
+        const lineType = (
+          phoneObj.line_type ||
+          phoneObj.type ||
+          ""
+        ).toLowerCase();
 
-        if (lineType.includes("mobile") || lineType.includes("cell") || lineType.includes("wireless")) {
+        if (
+          lineType.includes("mobile") ||
+          lineType.includes("cell") ||
+          lineType.includes("wireless")
+        ) {
           phoneType = "mobile";
-        } else if (lineType.includes("land") || lineType.includes("voip") || lineType.includes("fixed")) {
+        } else if (
+          lineType.includes("land") ||
+          lineType.includes("voip") ||
+          lineType.includes("fixed")
+        ) {
           phoneType = "landline";
         }
 
@@ -194,7 +211,9 @@ async function skipTracePerson(
 
       return {
         phones,
-        emails: emails.map((e: any) => typeof e === "string" ? e : e.email || e.address),
+        emails: emails.map((e: any) =>
+          typeof e === "string" ? e : e.email || e.address,
+        ),
       };
     }
   } catch (error) {
@@ -228,65 +247,74 @@ async function getPropertyDetail(address: string): Promise<any> {
   return null;
 }
 
-async function syncToZoho(lead: SkipTracedLead, accessToken: string): Promise<string | null> {
+async function syncToZoho(
+  lead: SkipTracedLead,
+  accessToken: string,
+): Promise<string | null> {
   try {
     // Format phone numbers for Zoho
-    const mobilePhone = lead.phones.find(p => p.type === "mobile")?.number || "";
-    const homePhone = lead.phones.find(p => p.type === "landline")?.number || "";
+    const mobilePhone =
+      lead.phones.find((p) => p.type === "mobile")?.number || "";
+    const homePhone =
+      lead.phones.find((p) => p.type === "landline")?.number || "";
     const primaryEmail = lead.emails[0] || "";
 
     const zohoLead = {
-      data: [{
-        // Basic info
-        First_Name: lead.ownerFirstName,
-        Last_Name: lead.ownerLastName || "Unknown",
-        Email: primaryEmail,
-        Mobile: mobilePhone,
-        Phone: homePhone,
+      data: [
+        {
+          // Basic info
+          First_Name: lead.ownerFirstName,
+          Last_Name: lead.ownerLastName || "Unknown",
+          Email: primaryEmail,
+          Mobile: mobilePhone,
+          Phone: homePhone,
 
-        // Property address
-        Street: lead.propertyAddress,
-        City: lead.city,
-        State: lead.state,
-        Zip_Code: lead.zip,
+          // Property address
+          Street: lead.propertyAddress,
+          City: lead.city,
+          State: lead.state,
+          Zip_Code: lead.zip,
 
-        // Mailing address
-        Mailing_Street: lead.mailingAddress,
+          // Mailing address
+          Mailing_Street: lead.mailingAddress,
 
-        // Custom fields - Property Details
-        Property_ID: lead.propertyId,
-        Folio_Number: lead.folio,
-        Estimated_Value: lead.estimatedValue,
-        Estimated_Equity: lead.estimatedEquity,
-        Equity_Percent: lead.equityPercent,
-        Bedrooms: lead.bedrooms,
-        Bathrooms: lead.bathrooms,
-        Square_Feet: lead.sqft,
-        Year_Built: lead.yearBuilt,
-        Property_Type: lead.propertyType,
+          // Custom fields - Property Details
+          Property_ID: lead.propertyId,
+          Folio_Number: lead.folio,
+          Estimated_Value: lead.estimatedValue,
+          Estimated_Equity: lead.estimatedEquity,
+          Equity_Percent: lead.equityPercent,
+          Bedrooms: lead.bedrooms,
+          Bathrooms: lead.bathrooms,
+          Square_Feet: lead.sqft,
+          Year_Built: lead.yearBuilt,
+          Property_Type: lead.propertyType,
 
-        // Case info
-        Case_Number: lead.caseNumber,
-        Filing_Date: lead.filedDate,
+          // Case info
+          Case_Number: lead.caseNumber,
+          Filing_Date: lead.filedDate,
 
-        // Status flags
-        Pre_Foreclosure: lead.preForeclosure,
-        Foreclosure: lead.foreclosure,
+          // Status flags
+          Pre_Foreclosure: lead.preForeclosure,
+          Foreclosure: lead.foreclosure,
 
-        // Campaign tracking
-        Campaign_ID: lead.campaignId,
-        Initial_Message_IDs: lead.initialMessageIds.join(","),
-        Retarget_Message_IDs: lead.retargetMessageIds.join(","),
+          // Campaign tracking
+          Campaign_ID: lead.campaignId,
+          Initial_Message_IDs: lead.initialMessageIds.join(","),
+          Retarget_Message_IDs: lead.retargetMessageIds.join(","),
 
-        // Source tracking
-        Lead_Source: "FDAILY",
-        FDAILY_Lead_ID: lead.id,
+          // Source tracking
+          Lead_Source: "FDAILY",
+          FDAILY_Lead_ID: lead.id,
 
-        // Skip trace info
-        Skip_Traced: lead.skipTraced,
-        Skip_Trace_Date: lead.skipTracedAt,
-        Phone_Type: lead.phones.map(p => `${p.number}:${p.type}`).join("; "),
-      }],
+          // Skip trace info
+          Skip_Traced: lead.skipTraced,
+          Skip_Trace_Date: lead.skipTracedAt,
+          Phone_Type: lead.phones
+            .map((p) => `${p.number}:${p.type}`)
+            .join("; "),
+        },
+      ],
       trigger: ["workflow"],
     };
 
@@ -294,7 +322,7 @@ async function syncToZoho(lead: SkipTracedLead, accessToken: string): Promise<st
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Zoho-oauthtoken ${accessToken}`,
+        Authorization: `Zoho-oauthtoken ${accessToken}`,
       },
       body: JSON.stringify(zohoLead),
     });
@@ -328,19 +356,27 @@ export async function POST(request: NextRequest) {
     } = body;
 
     if (!batchName) {
-      return NextResponse.json({ error: "batchName required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "batchName required" },
+        { status: 400 },
+      );
     }
 
     const client = getS3Client();
     if (!client) {
-      return NextResponse.json({ error: "Storage not configured" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Storage not configured" },
+        { status: 500 },
+      );
     }
 
     // Load batch
-    const getResponse = await client.send(new GetObjectCommand({
-      Bucket: SPACES_BUCKET,
-      Key: `fdaily/${batchName}.json`,
-    }));
+    const getResponse = await client.send(
+      new GetObjectCommand({
+        Bucket: SPACES_BUCKET,
+        Key: `fdaily/${batchName}.json`,
+      }),
+    );
 
     const content = await getResponse.Body?.transformToString();
     if (!content) {
@@ -355,7 +391,9 @@ export async function POST(request: NextRequest) {
       leads = leads.filter((l: any) => leadIds.includes(l.id));
     }
 
-    console.log(`[Skip Trace] Processing ${leads.length} leads from ${batchName}`);
+    console.log(
+      `[Skip Trace] Processing ${leads.length} leads from ${batchName}`,
+    );
 
     const results = {
       total: leads.length,
@@ -392,7 +430,7 @@ export async function POST(request: NextRequest) {
           lead.propertyAddress || "",
           lead.city || "",
           lead.state || "",
-          lead.zip || ""
+          lead.zip || "",
         );
 
         // Get full property detail
@@ -427,7 +465,8 @@ export async function POST(request: NextRequest) {
           bathrooms: propertyDetail?.bathrooms || lead.bathrooms,
           sqft: propertyDetail?.squareFeet || lead.sqft,
           yearBuilt: propertyDetail?.yearBuilt || lead.yearBuilt,
-          propertyType: propertyDetail?.propertyType || lead.propertyType || "Residential",
+          propertyType:
+            propertyDetail?.propertyType || lead.propertyType || "Residential",
           preForeclosure: propertyDetail?.preForeclosure || true,
           foreclosure: propertyDetail?.foreclosure || false,
 
@@ -445,8 +484,12 @@ export async function POST(request: NextRequest) {
         // Update stats
         results.skipTraced++;
         results.phonesFound += enrichedLead.phones.length;
-        results.mobilePhones += enrichedLead.phones.filter(p => p.type === "mobile").length;
-        results.landlinePhones += enrichedLead.phones.filter(p => p.type === "landline").length;
+        results.mobilePhones += enrichedLead.phones.filter(
+          (p) => p.type === "mobile",
+        ).length;
+        results.landlinePhones += enrichedLead.phones.filter(
+          (p) => p.type === "landline",
+        ).length;
         results.emailsFound += enrichedLead.emails.length;
 
         // Sync to Zoho
@@ -461,7 +504,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Mark campaign ready if has mobile phone
-        if (enrichedLead.phones.some(p => p.type === "mobile" && !p.dnc)) {
+        if (enrichedLead.phones.some((p) => p.type === "mobile" && !p.dnc)) {
           enrichedLead.campaignReady = true;
           results.campaignReady++;
         }
@@ -469,8 +512,7 @@ export async function POST(request: NextRequest) {
         processedLeads.push(enrichedLead);
 
         // Rate limiting
-        await new Promise(r => setTimeout(r, 200));
-
+        await new Promise((r) => setTimeout(r, 200));
       } catch (error: any) {
         results.errors.push(`Lead ${lead.id}: ${error.message}`);
       }
@@ -478,17 +520,23 @@ export async function POST(request: NextRequest) {
 
     // Save updated batch
     const outputKey = `fdaily/${batchName}-skip-traced.json`;
-    await client.send(new PutObjectCommand({
-      Bucket: SPACES_BUCKET,
-      Key: outputKey,
-      Body: JSON.stringify({
-        batchName,
-        processedAt: new Date().toISOString(),
-        stats: results,
-        leads: processedLeads,
-      }, null, 2),
-      ContentType: "application/json",
-    }));
+    await client.send(
+      new PutObjectCommand({
+        Bucket: SPACES_BUCKET,
+        Key: outputKey,
+        Body: JSON.stringify(
+          {
+            batchName,
+            processedAt: new Date().toISOString(),
+            stats: results,
+            leads: processedLeads,
+          },
+          null,
+          2,
+        ),
+        ContentType: "application/json",
+      }),
+    );
 
     console.log(`[Skip Trace] Completed. Results:`, results);
 
@@ -498,7 +546,7 @@ export async function POST(request: NextRequest) {
       stats: results,
       message: `Skip traced ${results.skipTraced} leads: ${results.mobilePhones} mobile, ${results.landlinePhones} landline phones found`,
       // Preview first 3 for verification
-      preview: processedLeads.slice(0, 3).map(l => ({
+      preview: processedLeads.slice(0, 3).map((l) => ({
         id: l.id,
         ownerName: l.ownerName,
         address: l.propertyAddress,
@@ -507,12 +555,11 @@ export async function POST(request: NextRequest) {
         campaignReady: l.campaignReady,
       })),
     });
-
   } catch (error: any) {
     console.error("[Skip Trace] Error:", error);
     return NextResponse.json(
       { error: error.message || "Skip trace failed" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -528,19 +575,25 @@ export async function GET(request: NextRequest) {
     if (!batchName) {
       return NextResponse.json({
         message: "Use ?batch=<name> to retrieve skip traced data",
-        example: "/api/fdaily/skip-trace?batch=fdaily-import-2024-12-11-skip-traced",
+        example:
+          "/api/fdaily/skip-trace?batch=fdaily-import-2024-12-11-skip-traced",
       });
     }
 
     const client = getS3Client();
     if (!client) {
-      return NextResponse.json({ error: "Storage not configured" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Storage not configured" },
+        { status: 500 },
+      );
     }
 
-    const response = await client.send(new GetObjectCommand({
-      Bucket: SPACES_BUCKET,
-      Key: `fdaily/${batchName}.json`,
-    }));
+    const response = await client.send(
+      new GetObjectCommand({
+        Bucket: SPACES_BUCKET,
+        Key: `fdaily/${batchName}.json`,
+      }),
+    );
 
     const content = await response.Body?.transformToString();
     if (!content) {
@@ -558,11 +611,23 @@ export async function GET(request: NextRequest) {
     // Return as CSV for agent download
     if (format === "csv") {
       const headers = [
-        "id", "folio", "propertyId", "zohoId",
-        "ownerName", "mobilePhone", "landlinePhone", "email",
-        "propertyAddress", "city", "state", "zip",
-        "estimatedValue", "caseNumber", "filedDate",
-        "campaignId", "campaignReady"
+        "id",
+        "folio",
+        "propertyId",
+        "zohoId",
+        "ownerName",
+        "mobilePhone",
+        "landlinePhone",
+        "email",
+        "propertyAddress",
+        "city",
+        "state",
+        "zip",
+        "estimatedValue",
+        "caseNumber",
+        "filedDate",
+        "campaignId",
+        "campaignReady",
       ];
 
       const rows = leads.map((l: SkipTracedLead) => [
@@ -571,8 +636,8 @@ export async function GET(request: NextRequest) {
         l.propertyId,
         l.zohoId,
         l.ownerName,
-        l.phones.find(p => p.type === "mobile")?.number || "",
-        l.phones.find(p => p.type === "landline")?.number || "",
+        l.phones.find((p) => p.type === "mobile")?.number || "",
+        l.phones.find((p) => p.type === "landline")?.number || "",
         l.emails[0] || "",
         l.propertyAddress,
         l.city,
@@ -585,7 +650,10 @@ export async function GET(request: NextRequest) {
         l.campaignReady,
       ]);
 
-      const csv = [headers.join(","), ...rows.map(r => r.map(v => `"${v || ""}"`).join(","))].join("\n");
+      const csv = [
+        headers.join(","),
+        ...rows.map((r) => r.map((v) => `"${v || ""}"`).join(",")),
+      ].join("\n");
 
       return new NextResponse(csv, {
         headers: {
@@ -598,14 +666,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       batchName,
       totalLeads: leads.length,
-      campaignReady: leads.filter((l: SkipTracedLead) => l.campaignReady).length,
+      campaignReady: leads.filter((l: SkipTracedLead) => l.campaignReady)
+        .length,
       leads,
     });
-
   } catch (error: any) {
     return NextResponse.json(
       { error: error.message || "Failed to retrieve data" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

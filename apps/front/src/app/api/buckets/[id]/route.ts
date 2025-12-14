@@ -108,7 +108,10 @@ export async function GET(
 
     // Pagination params
     const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
-    const limit = Math.min(2000, Math.max(1, parseInt(searchParams.get("limit") || "100"))); // Max 2000 per batch
+    const limit = Math.min(
+      2000,
+      Math.max(1, parseInt(searchParams.get("limit") || "100")),
+    ); // Max 2000 per batch
     const search = searchParams.get("search")?.toLowerCase() || "";
     const returnAll = searchParams.get("all") === "true";
     const shuffle = searchParams.get("shuffle") === "true";
@@ -146,15 +149,33 @@ export async function GET(
         const original = (r._original || {}) as Record<string, unknown>;
 
         // Search in normalized fields
-        const companyName = String(matchingKeys.companyName || original["Company Name"] || "").toLowerCase();
-        const contactName = String(matchingKeys.contactName || original["Contact Name"] || "").toLowerCase();
-        const firstName = String(matchingKeys.firstName || original["Contact First"] || "").toLowerCase();
-        const lastName = String(matchingKeys.lastName || original["Contact Last"] || "").toLowerCase();
-        const email = String(matchingKeys.email || original["Email"] || "").toLowerCase();
-        const phone = String(matchingKeys.phone || original["Phone"] || "").toLowerCase();
-        const city = String(matchingKeys.city || original["City"] || "").toLowerCase();
-        const state = String(matchingKeys.state || original["State"] || "").toLowerCase();
-        const industry = String(original["Industry"] || original["SIC Description"] || "").toLowerCase();
+        const companyName = String(
+          matchingKeys.companyName || original["Company Name"] || "",
+        ).toLowerCase();
+        const contactName = String(
+          matchingKeys.contactName || original["Contact Name"] || "",
+        ).toLowerCase();
+        const firstName = String(
+          matchingKeys.firstName || original["Contact First"] || "",
+        ).toLowerCase();
+        const lastName = String(
+          matchingKeys.lastName || original["Contact Last"] || "",
+        ).toLowerCase();
+        const email = String(
+          matchingKeys.email || original["Email"] || "",
+        ).toLowerCase();
+        const phone = String(
+          matchingKeys.phone || original["Phone"] || "",
+        ).toLowerCase();
+        const city = String(
+          matchingKeys.city || original["City"] || "",
+        ).toLowerCase();
+        const state = String(
+          matchingKeys.state || original["State"] || "",
+        ).toLowerCase();
+        const industry = String(
+          original["Industry"] || original["SIC Description"] || "",
+        ).toLowerCase();
 
         return (
           companyName.includes(search) ||

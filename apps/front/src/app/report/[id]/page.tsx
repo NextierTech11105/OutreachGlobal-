@@ -48,7 +48,9 @@ export async function generateMetadata({
 
   // OG image URL - requires NEXT_PUBLIC_APP_URL to be set for proper social sharing
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "";
-  const ogImageUrl = appUrl ? `${appUrl}/api/og/report?address=${encodeURIComponent(address)}&value=${encodeURIComponent(estimatedValue)}` : "";
+  const ogImageUrl = appUrl
+    ? `${appUrl}/api/og/report?address=${encodeURIComponent(address)}&value=${encodeURIComponent(estimatedValue)}`
+    : "";
 
   return {
     title,

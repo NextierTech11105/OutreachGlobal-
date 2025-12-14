@@ -309,7 +309,8 @@ export async function POST(request: NextRequest) {
       skippedLandlines: landlineNumbers.length,
       results,
       invalidNumbers: invalidNumbers.length > 0 ? invalidNumbers : undefined,
-      landlineNumbers: landlineNumbers.length > 0 ? landlineNumbers.slice(0, 10) : undefined,
+      landlineNumbers:
+        landlineNumbers.length > 0 ? landlineNumbers.slice(0, 10) : undefined,
       campaignId,
       dailyUsed: dailySendCount,
       dailyRemaining: DAILY_LIMIT - dailySendCount,

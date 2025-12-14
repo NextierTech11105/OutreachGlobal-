@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     console.error("[Airflow Metrics] Error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -48,9 +48,7 @@ export async function GET(request: NextRequest) {
 
     const since = new Date(Date.now() - sinceHours * 60 * 60 * 1000);
 
-    let results = metricsLog.filter(
-      (m) => new Date(m.logged_at) >= since
-    );
+    let results = metricsLog.filter((m) => new Date(m.logged_at) >= since);
 
     if (dagId) {
       results = results.filter((m) => m.dag_id === dagId);
@@ -58,7 +56,8 @@ export async function GET(request: NextRequest) {
 
     // Sort by logged_at descending
     results.sort(
-      (a, b) => new Date(b.logged_at).getTime() - new Date(a.logged_at).getTime()
+      (a, b) =>
+        new Date(b.logged_at).getTime() - new Date(a.logged_at).getTime(),
     );
 
     // Aggregate stats by DAG
@@ -89,7 +88,7 @@ export async function GET(request: NextRequest) {
     console.error("[Airflow Metrics] Error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -111,7 +110,9 @@ async function handleLog(body: Record<string, any>) {
     metricsLog.shift();
   }
 
-  console.log(`[Airflow Metrics] Logged: ${entry.dag_id} - ${JSON.stringify(body)}`);
+  console.log(
+    `[Airflow Metrics] Logged: ${entry.dag_id} - ${JSON.stringify(body)}`,
+  );
 
   return NextResponse.json({
     success: true,

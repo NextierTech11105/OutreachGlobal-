@@ -80,7 +80,8 @@ export function CathyNudger() {
     {
       id: "1",
       name: "Gentle Reminder",
-      message: "Hey {firstName}, just circling back on my last message. Still interested in chatting about {topic}?",
+      message:
+        "Hey {firstName}, just circling back on my last message. Still interested in chatting about {topic}?",
       delay: 24,
       isActive: true,
       sendCount: 1234,
@@ -89,7 +90,8 @@ export function CathyNudger() {
     {
       id: "2",
       name: "Value Add",
-      message: "Hi {firstName}, I found some info that might be helpful for your {businessType}. Want me to share?",
+      message:
+        "Hi {firstName}, I found some info that might be helpful for your {businessType}. Want me to share?",
       delay: 48,
       isActive: true,
       sendCount: 892,
@@ -98,7 +100,8 @@ export function CathyNudger() {
     {
       id: "3",
       name: "Final Check",
-      message: "{firstName}, I don't want to be a pest! Should I close your file, or is there a better time to connect?",
+      message:
+        "{firstName}, I don't want to be a pest! Should I close your file, or is there a better time to connect?",
       delay: 72,
       isActive: true,
       sendCount: 456,
@@ -107,7 +110,8 @@ export function CathyNudger() {
     {
       id: "4",
       name: "Breakup Message",
-      message: "Hey {firstName}, I'll assume the timing isn't right. Feel free to reach out if things change. Best of luck!",
+      message:
+        "Hey {firstName}, I'll assume the timing isn't right. Feel free to reach out if things change. Best of luck!",
       delay: 120,
       isActive: false,
       sendCount: 234,
@@ -167,13 +171,15 @@ export function CathyNudger() {
   });
 
   // Edit state
-  const [editingTemplate, setEditingTemplate] = useState<NudgeTemplate | null>(null);
+  const [editingTemplate, setEditingTemplate] = useState<NudgeTemplate | null>(
+    null,
+  );
 
   const toggleSequence = (id: string) => {
     setSequences((prev) =>
       prev.map((seq) =>
-        seq.id === id ? { ...seq, isActive: !seq.isActive } : seq
-      )
+        seq.id === id ? { ...seq, isActive: !seq.isActive } : seq,
+      ),
     );
     toast.success("Sequence updated");
   };
@@ -181,8 +187,8 @@ export function CathyNudger() {
   const toggleTemplate = (id: string) => {
     setTemplates((prev) =>
       prev.map((tpl) =>
-        tpl.id === id ? { ...tpl, isActive: !tpl.isActive } : tpl
-      )
+        tpl.id === id ? { ...tpl, isActive: !tpl.isActive } : tpl,
+      ),
     );
   };
 
@@ -190,7 +196,8 @@ export function CathyNudger() {
   const totalInQueue = sequences.reduce((sum, s) => sum + s.leadsInQueue, 0);
   const totalNudgesSent = sequences.reduce((sum, s) => sum + s.nudgesSent, 0);
   const totalResponses = sequences.reduce((sum, s) => sum + s.responses, 0);
-  const avgResponseRate = totalNudgesSent > 0 ? (totalResponses / totalNudgesSent) * 100 : 0;
+  const avgResponseRate =
+    totalNudgesSent > 0 ? (totalResponses / totalNudgesSent) * 100 : 0;
 
   return (
     <div className="space-y-6">
@@ -235,7 +242,9 @@ export function CathyNudger() {
             <div className="flex items-center gap-3">
               <Users className="h-5 w-5 text-blue-400" />
               <div>
-                <p className="text-2xl font-bold text-white">{totalInQueue.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-white">
+                  {totalInQueue.toLocaleString()}
+                </p>
                 <p className="text-xs text-zinc-500">In Nudge Queue</p>
               </div>
             </div>
@@ -246,7 +255,9 @@ export function CathyNudger() {
             <div className="flex items-center gap-3">
               <MessageSquare className="h-5 w-5 text-amber-400" />
               <div>
-                <p className="text-2xl font-bold text-white">{totalNudgesSent.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-white">
+                  {totalNudgesSent.toLocaleString()}
+                </p>
                 <p className="text-xs text-zinc-500">Nudges Sent</p>
               </div>
             </div>
@@ -257,7 +268,9 @@ export function CathyNudger() {
             <div className="flex items-center gap-3">
               <CheckCircle className="h-5 w-5 text-green-400" />
               <div>
-                <p className="text-2xl font-bold text-white">{totalResponses.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-white">
+                  {totalResponses.toLocaleString()}
+                </p>
                 <p className="text-xs text-zinc-500">Responses</p>
               </div>
             </div>
@@ -268,7 +281,9 @@ export function CathyNudger() {
             <div className="flex items-center gap-3">
               <TrendingUp className="h-5 w-5 text-purple-400" />
               <div>
-                <p className="text-2xl font-bold text-white">{avgResponseRate.toFixed(1)}%</p>
+                <p className="text-2xl font-bold text-white">
+                  {avgResponseRate.toFixed(1)}%
+                </p>
                 <p className="text-xs text-zinc-500">Response Rate</p>
               </div>
             </div>
@@ -279,7 +294,9 @@ export function CathyNudger() {
             <div className="flex items-center gap-3">
               <Timer className="h-5 w-5 text-cyan-400" />
               <div>
-                <p className="text-2xl font-bold text-white">{settings.defaultThresholdHours}h</p>
+                <p className="text-2xl font-bold text-white">
+                  {settings.defaultThresholdHours}h
+                </p>
                 <p className="text-xs text-zinc-500">Default Threshold</p>
               </div>
             </div>
@@ -290,15 +307,24 @@ export function CathyNudger() {
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="bg-zinc-900 border border-zinc-800">
-          <TabsTrigger value="dashboard" className="data-[state=active]:bg-amber-600">
+          <TabsTrigger
+            value="dashboard"
+            className="data-[state=active]:bg-amber-600"
+          >
             <Target className="h-4 w-4 mr-2" />
             Sequences
           </TabsTrigger>
-          <TabsTrigger value="templates" className="data-[state=active]:bg-orange-600">
+          <TabsTrigger
+            value="templates"
+            className="data-[state=active]:bg-orange-600"
+          >
             <MessageSquare className="h-4 w-4 mr-2" />
             Templates
           </TabsTrigger>
-          <TabsTrigger value="settings" className="data-[state=active]:bg-zinc-600">
+          <TabsTrigger
+            value="settings"
+            className="data-[state=active]:bg-zinc-600"
+          >
             <Settings className="h-4 w-4 mr-2" />
             Settings
           </TabsTrigger>
@@ -345,15 +371,23 @@ export function CathyNudger() {
                         </div>
                         <div>
                           <h4 className="font-medium text-white">{seq.name}</h4>
-                          <p className="text-sm text-zinc-500">{seq.description}</p>
+                          <p className="text-sm text-zinc-500">
+                            {seq.description}
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="border-zinc-700 text-zinc-400">
+                        <Badge
+                          variant="outline"
+                          className="border-zinc-700 text-zinc-400"
+                        >
                           <Clock className="h-3 w-3 mr-1" />
                           {seq.thresholdHours}h threshold
                         </Badge>
-                        <Badge variant="outline" className="border-zinc-700 text-zinc-400">
+                        <Badge
+                          variant="outline"
+                          className="border-zinc-700 text-zinc-400"
+                        >
                           {seq.maxNudges} max nudges
                         </Badge>
                         <Switch
@@ -365,21 +399,29 @@ export function CathyNudger() {
 
                     <div className="grid grid-cols-4 gap-4 mt-3">
                       <div className="text-center p-2 bg-zinc-800 rounded">
-                        <p className="text-lg font-semibold text-white">{seq.leadsInQueue}</p>
+                        <p className="text-lg font-semibold text-white">
+                          {seq.leadsInQueue}
+                        </p>
                         <p className="text-xs text-zinc-500">In Queue</p>
                       </div>
                       <div className="text-center p-2 bg-zinc-800 rounded">
-                        <p className="text-lg font-semibold text-white">{seq.nudgesSent}</p>
+                        <p className="text-lg font-semibold text-white">
+                          {seq.nudgesSent}
+                        </p>
                         <p className="text-xs text-zinc-500">Sent</p>
                       </div>
                       <div className="text-center p-2 bg-zinc-800 rounded">
-                        <p className="text-lg font-semibold text-white">{seq.responses}</p>
+                        <p className="text-lg font-semibold text-white">
+                          {seq.responses}
+                        </p>
                         <p className="text-xs text-zinc-500">Responses</p>
                       </div>
                       <div className="text-center p-2 bg-zinc-800 rounded">
                         <p className="text-lg font-semibold text-green-400">
                           {seq.nudgesSent > 0
-                            ? ((seq.responses / seq.nudgesSent) * 100).toFixed(1)
+                            ? ((seq.responses / seq.nudgesSent) * 100).toFixed(
+                                1,
+                              )
                             : 0}
                           %
                         </p>
@@ -429,7 +471,8 @@ export function CathyNudger() {
                 </Button>
               </div>
               <CardDescription className="text-zinc-500">
-                Variables: {"{firstName}"}, {"{lastName}"}, {"{company}"}, {"{topic}"}, {"{businessType}"}
+                Variables: {"{firstName}"}, {"{lastName}"}, {"{company}"},{" "}
+                {"{topic}"}, {"{businessType}"}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -455,7 +498,11 @@ export function CathyNudger() {
                         </Badge>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="sm" className="h-8 text-zinc-400">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 text-zinc-400"
+                        >
                           <Edit className="h-3 w-3" />
                         </Button>
                         <Switch
@@ -491,16 +538,23 @@ export function CathyNudger() {
           <div className="grid grid-cols-2 gap-4">
             <Card className="bg-zinc-900 border-zinc-800">
               <CardHeader>
-                <CardTitle className="text-white text-lg">Timing Settings</CardTitle>
+                <CardTitle className="text-white text-lg">
+                  Timing Settings
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label className="text-zinc-400">Default Threshold (hours)</Label>
+                  <Label className="text-zinc-400">
+                    Default Threshold (hours)
+                  </Label>
                   <Input
                     type="number"
                     value={settings.defaultThresholdHours}
                     onChange={(e) =>
-                      setSettings({ ...settings, defaultThresholdHours: parseInt(e.target.value) })
+                      setSettings({
+                        ...settings,
+                        defaultThresholdHours: parseInt(e.target.value),
+                      })
                     }
                     className="bg-zinc-800 border-zinc-700 text-white mt-1"
                   />
@@ -516,7 +570,10 @@ export function CathyNudger() {
                       type="time"
                       value={settings.quietHoursStart}
                       onChange={(e) =>
-                        setSettings({ ...settings, quietHoursStart: e.target.value })
+                        setSettings({
+                          ...settings,
+                          quietHoursStart: e.target.value,
+                        })
                       }
                       className="bg-zinc-800 border-zinc-700 text-white mt-1"
                     />
@@ -527,7 +584,10 @@ export function CathyNudger() {
                       type="time"
                       value={settings.quietHoursEnd}
                       onChange={(e) =>
-                        setSettings({ ...settings, quietHoursEnd: e.target.value })
+                        setSettings({
+                          ...settings,
+                          quietHoursEnd: e.target.value,
+                        })
                       }
                       className="bg-zinc-800 border-zinc-700 text-white mt-1"
                     />
@@ -540,7 +600,10 @@ export function CathyNudger() {
                     type="number"
                     value={settings.maxDailyNudges}
                     onChange={(e) =>
-                      setSettings({ ...settings, maxDailyNudges: parseInt(e.target.value) })
+                      setSettings({
+                        ...settings,
+                        maxDailyNudges: parseInt(e.target.value),
+                      })
                     }
                     className="bg-zinc-800 border-zinc-700 text-white mt-1"
                   />
@@ -550,13 +613,17 @@ export function CathyNudger() {
 
             <Card className="bg-zinc-900 border-zinc-800">
               <CardHeader>
-                <CardTitle className="text-white text-lg">Behavior Settings</CardTitle>
+                <CardTitle className="text-white text-lg">
+                  Behavior Settings
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between p-3 bg-zinc-800 rounded-lg">
                   <div>
                     <p className="text-white font-medium">Respect Opt-Outs</p>
-                    <p className="text-xs text-zinc-500">Never nudge opted-out contacts</p>
+                    <p className="text-xs text-zinc-500">
+                      Never nudge opted-out contacts
+                    </p>
                   </div>
                   <Switch
                     checked={settings.respectOptOut}
@@ -569,7 +636,9 @@ export function CathyNudger() {
                 <div className="flex items-center justify-between p-3 bg-zinc-800 rounded-lg">
                   <div>
                     <p className="text-white font-medium">Pause on Response</p>
-                    <p className="text-xs text-zinc-500">Stop sequence when contact replies</p>
+                    <p className="text-xs text-zinc-500">
+                      Stop sequence when contact replies
+                    </p>
                   </div>
                   <Switch
                     checked={settings.pauseOnResponse}
@@ -585,7 +654,10 @@ export function CathyNudger() {
                     type="number"
                     value={settings.resumeAfterDays}
                     onChange={(e) =>
-                      setSettings({ ...settings, resumeAfterDays: parseInt(e.target.value) })
+                      setSettings({
+                        ...settings,
+                        resumeAfterDays: parseInt(e.target.value),
+                      })
                     }
                     className="bg-zinc-800 border-zinc-700 text-white mt-1"
                   />

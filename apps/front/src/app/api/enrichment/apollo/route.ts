@@ -14,7 +14,11 @@ import { NextRequest, NextResponse } from "next/server";
  */
 
 const APOLLO_API_URL = "https://api.apollo.io/v1/people/match";
-const APOLLO_API_KEY = process.env.APOLLO_IO_API_KEY || process.env.NEXT_PUBLIC_APOLLO_IO_API_KEY || process.env.APOLLO_API_KEY || "";
+const APOLLO_API_KEY =
+  process.env.APOLLO_IO_API_KEY ||
+  process.env.NEXT_PUBLIC_APOLLO_IO_API_KEY ||
+  process.env.APOLLO_API_KEY ||
+  "";
 
 interface ApolloEnrichRequest {
   recordId: string;

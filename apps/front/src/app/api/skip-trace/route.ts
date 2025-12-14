@@ -729,11 +729,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error: "Skip Trace not configured",
-          message: "RealEstateAPI key not set. Add REAL_ESTATE_API_KEY to your environment variables.",
+          message:
+            "RealEstateAPI key not set. Add REAL_ESTATE_API_KEY to your environment variables.",
           configUrl: "https://realestateapi.com",
           success: false,
         },
-        { status: 503 }
+        { status: 503 },
       );
     }
 

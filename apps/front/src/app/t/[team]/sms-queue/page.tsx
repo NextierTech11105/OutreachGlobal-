@@ -81,7 +81,9 @@ export default function SMSQueuePage() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [activeTab, setActiveTab] = useState<"sms" | "calls" | "schedule">("schedule");
+  const [activeTab, setActiveTab] = useState<"sms" | "calls" | "schedule">(
+    "schedule",
+  );
   const [isCampaignSetupOpen, setIsCampaignSetupOpen] = useState(false);
   const [selectedDay, setSelectedDay] = useState(new Date());
 
@@ -145,9 +147,9 @@ export default function SMSQueuePage() {
 
   // Get items for selected day
   const selectedDayItems = useMemo(() => {
-    return weekSchedule.filter(
-      (item) => item.time.toDateString() === selectedDay.toDateString()
-    ).sort((a, b) => a.time.getTime() - b.time.getTime());
+    return weekSchedule
+      .filter((item) => item.time.toDateString() === selectedDay.toDateString())
+      .sort((a, b) => a.time.getTime() - b.time.getTime());
   }, [weekSchedule, selectedDay]);
 
   // Get week days for navigation
@@ -446,10 +448,12 @@ export default function SMSQueuePage() {
               </Button>
               <div className="flex-1 grid grid-cols-7 gap-1">
                 {weekDays.map((day) => {
-                  const isSelected = day.toDateString() === selectedDay.toDateString();
-                  const isToday = day.toDateString() === new Date().toDateString();
+                  const isSelected =
+                    day.toDateString() === selectedDay.toDateString();
+                  const isToday =
+                    day.toDateString() === new Date().toDateString();
                   const dayItems = weekSchedule.filter(
-                    (item) => item.time.toDateString() === day.toDateString()
+                    (item) => item.time.toDateString() === day.toDateString(),
                   );
                   return (
                     <button
@@ -460,14 +464,19 @@ export default function SMSQueuePage() {
                         isSelected
                           ? "bg-primary text-primary-foreground"
                           : isToday
-                          ? "bg-primary/10"
-                          : "hover:bg-muted-foreground/10"
+                            ? "bg-primary/10"
+                            : "hover:bg-muted-foreground/10",
                       )}
                     >
                       <p className="text-xs font-medium">
                         {day.toLocaleDateString("en-US", { weekday: "short" })}
                       </p>
-                      <p className={cn("text-lg font-bold", isToday && !isSelected && "text-primary")}>
+                      <p
+                        className={cn(
+                          "text-lg font-bold",
+                          isToday && !isSelected && "text-primary",
+                        )}
+                      >
                         {day.getDate()}
                       </p>
                       <div className="flex justify-center gap-0.5 mt-1">
@@ -479,7 +488,7 @@ export default function SMSQueuePage() {
                               item.type === "blast" && "bg-purple-500",
                               item.type === "call" && "bg-green-500",
                               item.type === "sequence" && "bg-blue-500",
-                              item.type === "sms" && "bg-orange-500"
+                              item.type === "sms" && "bg-orange-500",
                             )}
                           />
                         ))}
@@ -531,7 +540,8 @@ export default function SMSQueuePage() {
                         key={item.id}
                         className={cn(
                           "flex items-center gap-4 p-4 rounded-lg border",
-                          item.status === "active" && "bg-primary/5 border-primary"
+                          item.status === "active" &&
+                            "bg-primary/5 border-primary",
                         )}
                       >
                         {/* Time */}
@@ -549,33 +559,46 @@ export default function SMSQueuePage() {
                         <div
                           className={cn(
                             "h-10 w-10 rounded-lg flex items-center justify-center",
-                            item.type === "blast" && "bg-purple-500/10 text-purple-500",
-                            item.type === "call" && "bg-green-500/10 text-green-500",
-                            item.type === "sequence" && "bg-blue-500/10 text-blue-500",
-                            item.type === "sms" && "bg-orange-500/10 text-orange-500"
+                            item.type === "blast" &&
+                              "bg-purple-500/10 text-purple-500",
+                            item.type === "call" &&
+                              "bg-green-500/10 text-green-500",
+                            item.type === "sequence" &&
+                              "bg-blue-500/10 text-blue-500",
+                            item.type === "sms" &&
+                              "bg-orange-500/10 text-orange-500",
                           )}
                         >
                           {item.type === "blast" && <Zap className="h-5 w-5" />}
-                          {item.type === "call" && <PhoneCall className="h-5 w-5" />}
-                          {item.type === "sequence" && <Send className="h-5 w-5" />}
-                          {item.type === "sms" && <MessageSquare className="h-5 w-5" />}
+                          {item.type === "call" && (
+                            <PhoneCall className="h-5 w-5" />
+                          )}
+                          {item.type === "sequence" && (
+                            <Send className="h-5 w-5" />
+                          )}
+                          {item.type === "sms" && (
+                            <MessageSquare className="h-5 w-5" />
+                          )}
                         </div>
 
                         {/* Details */}
                         <div className="flex-1">
                           <p className="font-medium">{item.name}</p>
                           <p className="text-sm text-muted-foreground">
-                            {item.count} {item.type === "call" ? "calls" : "recipients"}
+                            {item.count}{" "}
+                            {item.type === "call" ? "calls" : "recipients"}
                           </p>
                         </div>
 
                         {/* Status */}
                         <div className="flex items-center gap-2">
                           <Badge
-                            variant={item.status === "active" ? "default" : "outline"}
+                            variant={
+                              item.status === "active" ? "default" : "outline"
+                            }
                             className={cn(
                               item.status === "active" && "bg-green-500",
-                              item.status === "completed" && "bg-gray-500"
+                              item.status === "completed" && "bg-gray-500",
                             )}
                           >
                             {item.status === "active" && (
@@ -583,7 +606,11 @@ export default function SMSQueuePage() {
                             )}
                             {item.status}
                           </Badge>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                          >
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </div>
@@ -606,7 +633,9 @@ export default function SMSQueuePage() {
                       <p className="text-2xl font-bold">
                         {weekSchedule.filter((i) => i.type === "blast").length}
                       </p>
-                      <p className="text-xs text-muted-foreground">Blasts This Week</p>
+                      <p className="text-xs text-muted-foreground">
+                        Blasts This Week
+                      </p>
                     </div>
                   </div>
                 </CardContent>
@@ -619,9 +648,13 @@ export default function SMSQueuePage() {
                     </div>
                     <div>
                       <p className="text-2xl font-bold">
-                        {weekSchedule.filter((i) => i.type === "call").reduce((sum, i) => sum + (i.count || 0), 0)}
+                        {weekSchedule
+                          .filter((i) => i.type === "call")
+                          .reduce((sum, i) => sum + (i.count || 0), 0)}
                       </p>
-                      <p className="text-xs text-muted-foreground">Scheduled Calls</p>
+                      <p className="text-xs text-muted-foreground">
+                        Scheduled Calls
+                      </p>
                     </div>
                   </div>
                 </CardContent>
@@ -634,9 +667,14 @@ export default function SMSQueuePage() {
                     </div>
                     <div>
                       <p className="text-2xl font-bold">
-                        {weekSchedule.filter((i) => i.type === "sequence").length}
+                        {
+                          weekSchedule.filter((i) => i.type === "sequence")
+                            .length
+                        }
                       </p>
-                      <p className="text-xs text-muted-foreground">Active Sequences</p>
+                      <p className="text-xs text-muted-foreground">
+                        Active Sequences
+                      </p>
                     </div>
                   </div>
                 </CardContent>
@@ -649,9 +687,14 @@ export default function SMSQueuePage() {
                     </div>
                     <div>
                       <p className="text-2xl font-bold">
-                        {weekSchedule.reduce((sum, i) => sum + (i.count || 0), 0)}
+                        {weekSchedule.reduce(
+                          (sum, i) => sum + (i.count || 0),
+                          0,
+                        )}
                       </p>
-                      <p className="text-xs text-muted-foreground">Total Outreach</p>
+                      <p className="text-xs text-muted-foreground">
+                        Total Outreach
+                      </p>
                     </div>
                   </div>
                 </CardContent>

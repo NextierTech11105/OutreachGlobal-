@@ -10,8 +10,19 @@
  */
 
 export type TouchChannel = "sms" | "call" | "email" | "voicemail";
-export type TouchStatus = "pending" | "sent" | "responded" | "skipped" | "failed";
-export type ResponseType = "positive" | "negative" | "neutral" | "opt_out" | "wrong_number" | "none";
+export type TouchStatus =
+  | "pending"
+  | "sent"
+  | "responded"
+  | "skipped"
+  | "failed";
+export type ResponseType =
+  | "positive"
+  | "negative"
+  | "neutral"
+  | "opt_out"
+  | "wrong_number"
+  | "none";
 
 export interface TouchPoint {
   id: string;
@@ -30,7 +41,13 @@ export interface LeadTouchProgress {
   campaignId: string;
   sequenceId: string;
   currentTouch: number; // 0 = not started, 1-10 = current position
-  status: "active" | "paused" | "completed" | "converted" | "opted_out" | "dead";
+  status:
+    | "active"
+    | "paused"
+    | "completed"
+    | "converted"
+    | "opted_out"
+    | "dead";
   startedAt: string;
   lastTouchAt?: string;
   nextTouchAt?: string;
@@ -171,38 +188,51 @@ export const OUTREACH_SEQUENCE: TouchPoint[] = [
 ];
 
 // TOUCH TEMPLATES
-export const TOUCH_TEMPLATES: Record<string, { subject?: string; message: string }> = {
+export const TOUCH_TEMPLATES: Record<
+  string,
+  { subject?: string; message: string }
+> = {
   initial_intro: {
-    message: "Hi {firstName}! This is {agentName} with {company}. I noticed your property at {address} and wanted to reach out about opportunities in {city}. Would you be open to a quick chat?",
+    message:
+      "Hi {firstName}! This is {agentName} with {company}. I noticed your property at {address} and wanted to reach out about opportunities in {city}. Would you be open to a quick chat?",
   },
   call_script_1: {
-    message: "[CALL SCRIPT] Hi {firstName}, this is {agentName} calling about your property at {address}. I sent you a text a couple days ago - just wanted to introduce myself and see if you had any questions about the market in your area.",
+    message:
+      "[CALL SCRIPT] Hi {firstName}, this is {agentName} calling about your property at {address}. I sent you a text a couple days ago - just wanted to introduce myself and see if you had any questions about the market in your area.",
   },
   value_prop: {
-    message: "Hey {firstName}! Quick market update: Properties in {city} are seeing {marketTrend}. Your property at {address} could be well-positioned. Interested in a free analysis?",
+    message:
+      "Hey {firstName}! Quick market update: Properties in {city} are seeing {marketTrend}. Your property at {address} could be well-positioned. Interested in a free analysis?",
   },
   email_intro: {
     subject: "Re: Your property at {address}",
-    message: "Hi {firstName},\n\nI've tried reaching out via text - wanted to follow up with more details about who we are.\n\n{company} specializes in helping property owners explore their options. Whether you're considering selling, refinancing, or just curious about your property's value, we're here to help.\n\nWould you have 15 minutes this week for a quick call?\n\nBest,\n{agentName}\n{agentPhone}",
+    message:
+      "Hi {firstName},\n\nI've tried reaching out via text - wanted to follow up with more details about who we are.\n\n{company} specializes in helping property owners explore their options. Whether you're considering selling, refinancing, or just curious about your property's value, we're here to help.\n\nWould you have 15 minutes this week for a quick call?\n\nBest,\n{agentName}\n{agentPhone}",
   },
   check_in: {
-    message: "Hi {firstName}, just checking in! I know timing is everything - whenever you're ready to chat about {address}, I'm here. No pressure at all.",
+    message:
+      "Hi {firstName}, just checking in! I know timing is everything - whenever you're ready to chat about {address}, I'm here. No pressure at all.",
   },
   call_script_2: {
-    message: "[CALL SCRIPT] Hi {firstName}, {agentName} again from {company}. I've reached out a few times about your property - wanted to try you at a different time. Is now okay for a quick chat?",
+    message:
+      "[CALL SCRIPT] Hi {firstName}, {agentName} again from {company}. I've reached out a few times about your property - wanted to try you at a different time. Is now okay for a quick chat?",
   },
   urgency_soft: {
-    message: "{firstName}, quick heads up - market conditions in {city} are shifting. If you've been thinking about exploring options for {address}, now might be a good time. Happy to share what we're seeing.",
+    message:
+      "{firstName}, quick heads up - market conditions in {city} are shifting. If you've been thinking about exploring options for {address}, now might be a good time. Happy to share what we're seeing.",
   },
   email_value: {
     subject: "Free Market Report for {address}",
-    message: "Hi {firstName},\n\nI put together a quick market analysis for your area. Properties like yours at {address} are currently valued at {estimatedValue}.\n\nAttached is a brief report with:\n- Current market trends in {city}\n- Recent comparable sales\n- Equity position estimates\n\nLet me know if you'd like to discuss!\n\n{agentName}",
+    message:
+      "Hi {firstName},\n\nI put together a quick market analysis for your area. Properties like yours at {address} are currently valued at {estimatedValue}.\n\nAttached is a brief report with:\n- Current market trends in {city}\n- Recent comparable sales\n- Equity position estimates\n\nLet me know if you'd like to discuss!\n\n{agentName}",
   },
   breakup_soft: {
-    message: "Hey {firstName} - I've reached out a few times and haven't heard back, so I'll take the hint! If timing changes or you ever want to chat about {address}, my door's always open. Take care!",
+    message:
+      "Hey {firstName} - I've reached out a few times and haven't heard back, so I'll take the hint! If timing changes or you ever want to chat about {address}, my door's always open. Take care!",
   },
   call_final: {
-    message: "[CALL SCRIPT] Hi {firstName}, {agentName} one last time. I'm closing out your file for now, but wanted to offer - if things change in the future, feel free to reach out. We're always here to help.",
+    message:
+      "[CALL SCRIPT] Hi {firstName}, {agentName} one last time. I'm closing out your file for now, but wanted to offer - if things change in the future, feel free to reach out. We're always here to help.",
   },
 };
 
@@ -219,7 +249,7 @@ export interface SequenceStats {
 
 // HELPER FUNCTIONS
 export function getNextTouchDate(currentTouch: number, startDate: Date): Date {
-  const touch = OUTREACH_SEQUENCE.find(t => t.position === currentTouch + 1);
+  const touch = OUTREACH_SEQUENCE.find((t) => t.position === currentTouch + 1);
   if (!touch) return new Date(); // No more touches
 
   const nextDate = new Date(startDate);
@@ -242,10 +272,12 @@ export function getNextTouchDate(currentTouch: number, startDate: Date): Date {
 }
 
 export function getTouchByPosition(position: number): TouchPoint | undefined {
-  return OUTREACH_SEQUENCE.find(t => t.position === position);
+  return OUTREACH_SEQUENCE.find((t) => t.position === position);
 }
 
-export function getTemplate(templateId: string): { subject?: string; message: string } | undefined {
+export function getTemplate(
+  templateId: string,
+): { subject?: string; message: string } | undefined {
   return TOUCH_TEMPLATES[templateId];
 }
 
@@ -253,30 +285,75 @@ export function calculateSequenceProgress(progress: LeadTouchProgress): number {
   return (progress.currentTouch / OUTREACH_SEQUENCE.length) * 100;
 }
 
-export function shouldEscalate(lastTouchAt: Date, currentTouch: number): boolean {
+export function shouldEscalate(
+  lastTouchAt: Date,
+  currentTouch: number,
+): boolean {
   const nextTouch = getTouchByPosition(currentTouch + 1);
   if (!nextTouch) return false;
 
   const daysSinceLastTouch = Math.floor(
-    (Date.now() - lastTouchAt.getTime()) / (1000 * 60 * 60 * 24)
+    (Date.now() - lastTouchAt.getTime()) / (1000 * 60 * 60 * 24),
   );
 
   // Allow for touch if we're past the scheduled day
-  return daysSinceLastTouch >= (nextTouch.dayOffset - getTouchByPosition(currentTouch)!.dayOffset);
+  return (
+    daysSinceLastTouch >=
+    nextTouch.dayOffset - getTouchByPosition(currentTouch)!.dayOffset
+  );
 }
 
 // COLOR CODING FOR UI
-export const TOUCH_COLORS: Record<number, { bg: string; text: string; border: string }> = {
-  1: { bg: "bg-blue-500/20", text: "text-blue-400", border: "border-blue-500/50" },
-  2: { bg: "bg-blue-500/20", text: "text-blue-400", border: "border-blue-500/50" },
-  3: { bg: "bg-cyan-500/20", text: "text-cyan-400", border: "border-cyan-500/50" },
-  4: { bg: "bg-cyan-500/20", text: "text-cyan-400", border: "border-cyan-500/50" },
-  5: { bg: "bg-green-500/20", text: "text-green-400", border: "border-green-500/50" },
-  6: { bg: "bg-green-500/20", text: "text-green-400", border: "border-green-500/50" },
-  7: { bg: "bg-yellow-500/20", text: "text-yellow-400", border: "border-yellow-500/50" },
-  8: { bg: "bg-orange-500/20", text: "text-orange-400", border: "border-orange-500/50" },
+export const TOUCH_COLORS: Record<
+  number,
+  { bg: string; text: string; border: string }
+> = {
+  1: {
+    bg: "bg-blue-500/20",
+    text: "text-blue-400",
+    border: "border-blue-500/50",
+  },
+  2: {
+    bg: "bg-blue-500/20",
+    text: "text-blue-400",
+    border: "border-blue-500/50",
+  },
+  3: {
+    bg: "bg-cyan-500/20",
+    text: "text-cyan-400",
+    border: "border-cyan-500/50",
+  },
+  4: {
+    bg: "bg-cyan-500/20",
+    text: "text-cyan-400",
+    border: "border-cyan-500/50",
+  },
+  5: {
+    bg: "bg-green-500/20",
+    text: "text-green-400",
+    border: "border-green-500/50",
+  },
+  6: {
+    bg: "bg-green-500/20",
+    text: "text-green-400",
+    border: "border-green-500/50",
+  },
+  7: {
+    bg: "bg-yellow-500/20",
+    text: "text-yellow-400",
+    border: "border-yellow-500/50",
+  },
+  8: {
+    bg: "bg-orange-500/20",
+    text: "text-orange-400",
+    border: "border-orange-500/50",
+  },
   9: { bg: "bg-red-500/20", text: "text-red-400", border: "border-red-500/50" },
-  10: { bg: "bg-red-500/20", text: "text-red-400", border: "border-red-500/50" },
+  10: {
+    bg: "bg-red-500/20",
+    text: "text-red-400",
+    border: "border-red-500/50",
+  },
 };
 
 export const CHANNEL_ICONS: Record<TouchChannel, string> = {

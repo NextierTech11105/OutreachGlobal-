@@ -30,7 +30,9 @@ const DEFAULT_USAGE_RESPONSE = {
     plan: "Professional",
     status: "active",
     currentPeriodStart: new Date().toISOString(),
-    currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    currentPeriodEnd: new Date(
+      Date.now() + 30 * 24 * 60 * 60 * 1000,
+    ).toISOString(),
   },
   usage: {
     leads: { used: 0, limit: 10000, percentage: 0, overage: 0 },
@@ -81,7 +83,10 @@ export async function GET(request: NextRequest) {
         });
       }
     } catch (dbError) {
-      console.warn("[Billing] Database query failed, returning default usage:", dbError);
+      console.warn(
+        "[Billing] Database query failed, returning default usage:",
+        dbError,
+      );
       return NextResponse.json(DEFAULT_USAGE_RESPONSE);
     }
 

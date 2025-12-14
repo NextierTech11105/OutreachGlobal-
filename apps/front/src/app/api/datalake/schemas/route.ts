@@ -1,6 +1,9 @@
 import { sf } from "@/lib/utils/safe-format";
 import { NextResponse } from "next/server";
-import { DATA_LAKE_SCHEMAS, PARTNERSHIP_CATEGORIES } from "@/lib/datalake/schemas";
+import {
+  DATA_LAKE_SCHEMAS,
+  PARTNERSHIP_CATEGORIES,
+} from "@/lib/datalake/schemas";
 
 // GET - List all schemas and stats
 export async function GET() {

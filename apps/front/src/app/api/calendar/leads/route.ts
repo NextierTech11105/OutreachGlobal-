@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
     if (!db) {
       return NextResponse.json(
         { error: "Database not configured" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -92,13 +92,13 @@ export async function GET(request: NextRequest) {
     if (startDate && isNaN(Date.parse(startDate))) {
       return NextResponse.json(
         { error: "Invalid startDate format" },
-        { status: 400 }
+        { status: 400 },
       );
     }
     if (endDate && isNaN(Date.parse(endDate))) {
       return NextResponse.json(
         { error: "Invalid endDate format" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -146,14 +146,15 @@ export async function GET(request: NextRequest) {
     const calendarLeads: CalendarLead[] = results.map((lead) => ({
       id: lead.id,
       name:
-        [lead.firstName, lead.lastName].filter(Boolean).join(" ") ||
-        "Unknown",
+        [lead.firstName, lead.lastName].filter(Boolean).join(" ") || "Unknown",
       phone: lead.phone || undefined,
       email: lead.email || undefined,
       address: lead.propertyAddress || undefined,
       city: lead.propertyCity || undefined,
       state: lead.propertyState || undefined,
-      propertyValue: lead.estimatedValue ? Number(lead.estimatedValue) : undefined,
+      propertyValue: lead.estimatedValue
+        ? Number(lead.estimatedValue)
+        : undefined,
       equity: lead.estimatedEquity ? Number(lead.estimatedEquity) : undefined,
       leadType: lead.leadType || lead.propertyType || undefined,
       status: mapDbStatus(lead.status || "new"),
@@ -178,9 +179,9 @@ export async function GET(request: NextRequest) {
       {
         success: false,
         error: "Failed to fetch leads",
-        details: error instanceof Error ? error.message : "Unknown error"
+        details: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -196,7 +197,7 @@ export async function POST(request: NextRequest) {
     if (!db) {
       return NextResponse.json(
         { error: "Database not configured" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -210,21 +211,34 @@ export async function POST(request: NextRequest) {
     } = body;
 
     // Validate action
-    const validActions = ["push_to_campaign", "schedule_to_calendar", "update_status", "bulk_update_status", "add_leads"];
+    const validActions = [
+      "push_to_campaign",
+      "schedule_to_calendar",
+      "update_status",
+      "bulk_update_status",
+      "add_leads",
+    ];
     if (!action || !validActions.includes(action)) {
       return NextResponse.json(
-        { success: false, error: `Invalid action. Must be one of: ${validActions.join(", ")}` },
-        { status: 400 }
+        {
+          success: false,
+          error: `Invalid action. Must be one of: ${validActions.join(", ")}`,
+        },
+        { status: 400 },
       );
     }
 
     switch (action) {
       case "add_leads": {
         // Add leads to calendar (from sectors page)
-        if (!inputLeads || !Array.isArray(inputLeads) || inputLeads.length === 0) {
+        if (
+          !inputLeads ||
+          !Array.isArray(inputLeads) ||
+          inputLeads.length === 0
+        ) {
           return NextResponse.json(
             { success: false, error: "leads array required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -232,7 +246,7 @@ export async function POST(request: NextRequest) {
         if (inputLeads.length > 500) {
           return NextResponse.json(
             { success: false, error: "Maximum 500 leads per request" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -259,7 +273,7 @@ export async function POST(request: NextRequest) {
         if (inputLeads.length > 500) {
           return NextResponse.json(
             { success: false, error: "Maximum 500 leads per request" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -299,7 +313,7 @@ export async function POST(request: NextRequest) {
         if (smsLeads.length === 0) {
           return NextResponse.json(
             { success: false, error: "No leads with phone numbers" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -350,7 +364,7 @@ export async function POST(request: NextRequest) {
         if (inputLeads.length > 500) {
           return NextResponse.json(
             { success: false, error: "Maximum 500 leads per request" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -361,7 +375,7 @@ export async function POST(request: NextRequest) {
         if (isNaN(Date.parse(scheduleDate))) {
           return NextResponse.json(
             { success: false, error: "Invalid scheduledDate format" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -397,11 +411,21 @@ export async function POST(request: NextRequest) {
         }
 
         // Validate status
-        const validStatuses = ["new", "contacted", "qualified", "nurturing", "closed", "lost"];
+        const validStatuses = [
+          "new",
+          "contacted",
+          "qualified",
+          "nurturing",
+          "closed",
+          "lost",
+        ];
         if (!validStatuses.includes(newStatus)) {
           return NextResponse.json(
-            { success: false, error: `Invalid status. Must be one of: ${validStatuses.join(", ")}` },
-            { status: 400 }
+            {
+              success: false,
+              error: `Invalid status. Must be one of: ${validStatuses.join(", ")}`,
+            },
+            { status: 400 },
           );
         }
 
@@ -436,16 +460,26 @@ export async function POST(request: NextRequest) {
         if (leadIds.length > 500) {
           return NextResponse.json(
             { success: false, error: "Maximum 500 leads per request" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
         // Validate status
-        const validStatuses = ["new", "contacted", "qualified", "nurturing", "closed", "lost"];
+        const validStatuses = [
+          "new",
+          "contacted",
+          "qualified",
+          "nurturing",
+          "closed",
+          "lost",
+        ];
         if (!validStatuses.includes(newStatus)) {
           return NextResponse.json(
-            { success: false, error: `Invalid status. Must be one of: ${validStatuses.join(", ")}` },
-            { status: 400 }
+            {
+              success: false,
+              error: `Invalid status. Must be one of: ${validStatuses.join(", ")}`,
+            },
+            { status: 400 },
           );
         }
 
@@ -482,7 +516,7 @@ export async function POST(request: NextRequest) {
       {
         success: false,
         error: "Failed to process request",
-        details: error instanceof Error ? error.message : "Unknown error"
+        details: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 },
     );

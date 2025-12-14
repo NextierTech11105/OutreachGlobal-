@@ -118,8 +118,34 @@ function generateMessageTemplateId(type: CampaignType): string {
 }
 
 // Auto-tagging logic
-const BLUE_COLLAR_SIC = ["15", "16", "17", "07", "34", "35", "36", "37", "38", "39", "42", "49", "75", "76"];
-const TECH_INTEGRATION_SIC = ["50", "51", "60", "61", "63", "64", "73", "80", "82", "87"];
+const BLUE_COLLAR_SIC = [
+  "15",
+  "16",
+  "17",
+  "07",
+  "34",
+  "35",
+  "36",
+  "37",
+  "38",
+  "39",
+  "42",
+  "49",
+  "75",
+  "76",
+];
+const TECH_INTEGRATION_SIC = [
+  "50",
+  "51",
+  "60",
+  "61",
+  "63",
+  "64",
+  "73",
+  "80",
+  "82",
+  "87",
+];
 
 function generateTags(biz: {
   sicCode: string | null;
@@ -136,11 +162,19 @@ function generateTags(biz: {
   if (BLUE_COLLAR_SIC.includes(sicPrefix)) {
     tags.push("blue-collar");
     score += 1;
-    if (biz.employeeCount && biz.employeeCount >= 5 && biz.employeeCount <= 50) {
+    if (
+      biz.employeeCount &&
+      biz.employeeCount >= 5 &&
+      biz.employeeCount <= 50
+    ) {
       tags.push("acquisition-target");
       score += 2;
     }
-    if (biz.annualRevenue && biz.annualRevenue >= 500000 && biz.annualRevenue <= 10000000) {
+    if (
+      biz.annualRevenue &&
+      biz.annualRevenue >= 500000 &&
+      biz.annualRevenue <= 10000000
+    ) {
       tags.push("sweet-spot-revenue");
       score += 2;
     }
@@ -181,14 +215,21 @@ export async function POST(request: NextRequest) {
     }
 
     if (!db) {
-      return NextResponse.json({ error: "Database not configured" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Database not configured" },
+        { status: 500 },
+      );
     }
 
     const body = await request.json();
     const {
       action,
       // Campaign generation options
-      campaignTypes = ["CALL", "SMS_INITIAL", "SMS_RETARGET_NC"] as CampaignType[],
+      campaignTypes = [
+        "CALL",
+        "SMS_INITIAL",
+        "SMS_RETARGET_NC",
+      ] as CampaignType[],
       maxPerCampaign = MAX_PER_CAMPAIGN,
       tagFilter, // Only include targets with these tags
       priorityFilter, // Only include these priorities
@@ -231,7 +272,9 @@ export async function POST(request: NextRequest) {
       }
 
       // Get more than needed for filtering
-      const allBusinesses = await query.limit(maxPerCampaign * campaignTypes.length * 2);
+      const allBusinesses = await query.limit(
+        maxPerCampaign * campaignTypes.length * 2,
+      );
 
       // Tag and filter all businesses
       const taggedBusinesses = allBusinesses.map((biz) => {
@@ -255,16 +298,22 @@ export async function POST(request: NextRequest) {
       let filtered = taggedBusinesses;
 
       if (tagFilter && Array.isArray(tagFilter) && tagFilter.length > 0) {
-        filtered = filtered.filter((b) => tagFilter.some((t: string) => b.tags.includes(t)));
+        filtered = filtered.filter((b) =>
+          tagFilter.some((t: string) => b.tags.includes(t)),
+        );
       }
 
-      if (priorityFilter && Array.isArray(priorityFilter) && priorityFilter.length > 0) {
+      if (
+        priorityFilter &&
+        Array.isArray(priorityFilter) &&
+        priorityFilter.length > 0
+      ) {
         filtered = filtered.filter((b) => priorityFilter.includes(b.priority));
       }
 
       // Generate campaigns for each type
       const campaigns: Campaign[] = [];
-      let usedIds = new Set<string>(); // Track used business IDs to avoid duplicates
+      const usedIds = new Set<string>(); // Track used business IDs to avoid duplicates
 
       for (const campaignType of campaignTypes) {
         const campaignId = generateCampaignId(campaignType);
@@ -307,9 +356,16 @@ export async function POST(request: NextRequest) {
           messageTemplateId,
 
           // Contact info
-          ownerName: biz.ownerName || `${biz.ownerFirstName || ""} ${biz.ownerLastName || ""}`.trim() || "Unknown",
-          ownerFirstName: biz.ownerFirstName || biz.ownerName?.split(" ")[0] || "",
-          ownerLastName: biz.ownerLastName || biz.ownerName?.split(" ").slice(1).join(" ") || "",
+          ownerName:
+            biz.ownerName ||
+            `${biz.ownerFirstName || ""} ${biz.ownerLastName || ""}`.trim() ||
+            "Unknown",
+          ownerFirstName:
+            biz.ownerFirstName || biz.ownerName?.split(" ")[0] || "",
+          ownerLastName:
+            biz.ownerLastName ||
+            biz.ownerName?.split(" ").slice(1).join(" ") ||
+            "",
           companyName: biz.companyName,
           phone: biz.ownerPhone || undefined,
           phoneType: "unknown" as const,
@@ -335,8 +391,12 @@ export async function POST(request: NextRequest) {
         }));
 
         // Count priorities
-        const highPriorityCount = targets.filter((t) => t.priority === "high").length;
-        const mediumPriorityCount = targets.filter((t) => t.priority === "medium").length;
+        const highPriorityCount = targets.filter(
+          (t) => t.priority === "high",
+        ).length;
+        const mediumPriorityCount = targets.filter(
+          (t) => t.priority === "medium",
+        ).length;
 
         // Campaign name
         const campaignNames: Record<CampaignType, string> = {
@@ -386,10 +446,14 @@ export async function POST(request: NextRequest) {
         uniqueIds: {
           description: "Each record has unique IDs for tracking",
           example: {
-            targetId: campaigns[0]?.targets[0]?.targetId || "CALL-20241214-ABC123-T00001",
+            targetId:
+              campaigns[0]?.targets[0]?.targetId ||
+              "CALL-20241214-ABC123-T00001",
             leadId: campaigns[0]?.targets[0]?.leadId || "uuid-of-business",
             campaignId: campaigns[0]?.campaignId || "CALL-20241214-ABC123",
-            messageTemplateId: campaigns[0]?.messageTemplateId || "CALL-SCRIPT-001-1734123456789",
+            messageTemplateId:
+              campaigns[0]?.messageTemplateId ||
+              "CALL-SCRIPT-001-1734123456789",
           },
         },
       });
@@ -408,10 +472,12 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({
-      error: "Invalid action. Use: generate, get-campaign",
-    }, { status: 400 });
-
+    return NextResponse.json(
+      {
+        error: "Invalid action. Use: generate, get-campaign",
+      },
+      { status: 400 },
+    );
   } catch (error: any) {
     console.error("[LUCI Campaigns] Error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -424,22 +490,49 @@ export async function GET(request: NextRequest) {
     endpoint: "Campaign Generator",
     maxPerCampaign: MAX_PER_CAMPAIGN,
     campaignTypes: [
-      { type: "CALL", description: "2K calls scheduled on calendar", requirement: "phone" },
-      { type: "SMS_INITIAL", description: "2K initial SMS outreach", requirement: "phone" },
-      { type: "SMS_RETARGET_NC", description: "2K retarget (No Contact)", requirement: "phone" },
-      { type: "SMS_NURTURE", description: "Nurture sequence", requirement: "phone" },
+      {
+        type: "CALL",
+        description: "2K calls scheduled on calendar",
+        requirement: "phone",
+      },
+      {
+        type: "SMS_INITIAL",
+        description: "2K initial SMS outreach",
+        requirement: "phone",
+      },
+      {
+        type: "SMS_RETARGET_NC",
+        description: "2K retarget (No Contact)",
+        requirement: "phone",
+      },
+      {
+        type: "SMS_NURTURE",
+        description: "Nurture sequence",
+        requirement: "phone",
+      },
       { type: "SMS_NUDGE", description: "Final nudge", requirement: "phone" },
-      { type: "EMAIL_INITIAL", description: "Initial email", requirement: "email" },
-      { type: "EMAIL_FOLLOWUP", description: "Follow-up email", requirement: "email" },
+      {
+        type: "EMAIL_INITIAL",
+        description: "Initial email",
+        requirement: "email",
+      },
+      {
+        type: "EMAIL_FOLLOWUP",
+        description: "Follow-up email",
+        requirement: "email",
+      },
     ],
     uniqueIds: {
-      targetId: "Unique ID for each target in campaign (e.g., CALL-20241214-ABC123-T00001)",
+      targetId:
+        "Unique ID for each target in campaign (e.g., CALL-20241214-ABC123-T00001)",
       leadId: "Business/Lead UUID from database",
       campaignId: "Unique campaign ID (e.g., CALL-20241214-ABC123)",
-      messageTemplateId: "Message template ID (e.g., CALL-SCRIPT-001-1734123456789)",
+      messageTemplateId:
+        "Message template ID (e.g., CALL-SCRIPT-001-1734123456789)",
     },
     usage: {
-      generate: "POST { action: 'generate', campaignTypes: ['CALL', 'SMS_INITIAL'], maxPerCampaign: 2000 }",
+      generate:
+        "POST { action: 'generate', campaignTypes: ['CALL', 'SMS_INITIAL'], maxPerCampaign: 2000 }",
     },
   });
 }

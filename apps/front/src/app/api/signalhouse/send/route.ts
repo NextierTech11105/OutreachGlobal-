@@ -16,7 +16,8 @@ function getAuthHeaders(): Record<string, string> {
 
 export async function POST(request: NextRequest) {
   try {
-    const { to, from, message, mediaUrl, phoneType, skipLandlineValidation } = await request.json();
+    const { to, from, message, mediaUrl, phoneType, skipLandlineValidation } =
+      await request.json();
 
     if (!SIGNALHOUSE_API_KEY && !SIGNALHOUSE_AUTH_TOKEN) {
       return NextResponse.json(

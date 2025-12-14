@@ -113,7 +113,7 @@ export function extractStreetParts(address: string): {
 
   // Match: NUMBER STREET [APT/STE/UNIT #]
   const match = normalized.match(
-    /^(\d+)\s+(.+?)(?:\s+(?:APT|STE|UNIT|FL)\s*(\S+))?$/
+    /^(\d+)\s+(.+?)(?:\s+(?:APT|STE|UNIT|FL)\s*(\S+))?$/,
   );
 
   if (match) {
@@ -193,7 +193,7 @@ function levenshteinSimilarity(str1: string, str2: string): number {
  */
 export function calculateAddressSimilarity(
   addr1: string,
-  addr2: string
+  addr2: string,
 ): number {
   const n1 = normalizeAddress(addr1);
   const n2 = normalizeAddress(addr2);
@@ -304,16 +304,19 @@ export function scoreMatches(
     phone?: string;
     email?: string;
   }>,
-  threshold = 0.6
+  threshold = 0.6,
 ): PropertyMatch[] {
   const matches: PropertyMatch[] = [];
 
   for (const biz of businesses) {
     const addressScore = calculateAddressSimilarity(
       property.address,
-      biz.address
+      biz.address,
     );
-    const nameScore = calculateNameSimilarity(property.ownerName, biz.contactName);
+    const nameScore = calculateNameSimilarity(
+      property.ownerName,
+      biz.contactName,
+    );
 
     // Combined score (address primary, name secondary)
     const combinedScore = addressScore * 0.6 + nameScore * 0.4;

@@ -24,42 +24,141 @@ import {
 
 // Sector configuration for the copilot
 const SECTORS = {
-  "hotel-motel": { label: "Hotel & Motel", keywords: ["hotel", "motel", "lodging", "inn"] },
-  "campgrounds-rv": { label: "Campgrounds & RV", keywords: ["campground", "rv", "camping", "trailer"] },
-  "restaurants": { label: "Restaurants", keywords: ["restaurant", "food", "dining", "cafe", "bar"] },
-  "trucking": { label: "Trucking", keywords: ["trucking", "truck", "freight", "hauling", "transport"] },
-  "logistics": { label: "Logistics", keywords: ["logistics", "warehouse", "shipping", "distribution"] },
-  "aircraft-parts": { label: "Aircraft Parts", keywords: ["aircraft", "aviation", "airplane", "plane", "jet"] },
-  "auto-parts": { label: "Auto Parts", keywords: ["auto parts", "car parts", "automotive parts"] },
-  "auto-dealers": { label: "Auto Dealers", keywords: ["dealer", "dealership", "car dealer", "auto dealer"] },
-  "auto-repair": { label: "Auto Repair", keywords: ["repair", "mechanic", "auto shop", "garage", "service"] },
-  "medical": { label: "Medical", keywords: ["medical", "doctor", "physician", "clinic", "healthcare"] },
-  "dental": { label: "Dental", keywords: ["dental", "dentist", "orthodontist"] },
-  "nursing-homes": { label: "Nursing Homes", keywords: ["nursing", "care facility", "senior", "elderly"] },
-  "construction": { label: "Construction", keywords: ["construction", "contractor", "builder", "building"] },
-  "plumbing-hvac": { label: "Plumbing/HVAC", keywords: ["plumbing", "hvac", "heating", "cooling", "plumber"] },
-  "electrical": { label: "Electrical", keywords: ["electrical", "electrician", "wiring"] },
-  "roofing": { label: "Roofing", keywords: ["roofing", "roofer", "shingles", "roof"] },
-  "legal": { label: "Legal", keywords: ["law", "lawyer", "attorney", "legal"] },
-  "accounting": { label: "Accounting", keywords: ["accounting", "accountant", "cpa", "tax", "bookkeeping"] },
-  "insurance": { label: "Insurance", keywords: ["insurance", "agent", "broker"] },
-  "real-estate": { label: "Real Estate", keywords: ["real estate", "realtor", "property", "realty"] },
-  "ny-business": { label: "NY Business", keywords: ["new york", "ny", "nyc", "manhattan", "brooklyn"] },
+  "hotel-motel": {
+    label: "Hotel & Motel",
+    keywords: ["hotel", "motel", "lodging", "inn"],
+  },
+  "campgrounds-rv": {
+    label: "Campgrounds & RV",
+    keywords: ["campground", "rv", "camping", "trailer"],
+  },
+  restaurants: {
+    label: "Restaurants",
+    keywords: ["restaurant", "food", "dining", "cafe", "bar"],
+  },
+  trucking: {
+    label: "Trucking",
+    keywords: ["trucking", "truck", "freight", "hauling", "transport"],
+  },
+  logistics: {
+    label: "Logistics",
+    keywords: ["logistics", "warehouse", "shipping", "distribution"],
+  },
+  "aircraft-parts": {
+    label: "Aircraft Parts",
+    keywords: ["aircraft", "aviation", "airplane", "plane", "jet"],
+  },
+  "auto-parts": {
+    label: "Auto Parts",
+    keywords: ["auto parts", "car parts", "automotive parts"],
+  },
+  "auto-dealers": {
+    label: "Auto Dealers",
+    keywords: ["dealer", "dealership", "car dealer", "auto dealer"],
+  },
+  "auto-repair": {
+    label: "Auto Repair",
+    keywords: ["repair", "mechanic", "auto shop", "garage", "service"],
+  },
+  medical: {
+    label: "Medical",
+    keywords: ["medical", "doctor", "physician", "clinic", "healthcare"],
+  },
+  dental: { label: "Dental", keywords: ["dental", "dentist", "orthodontist"] },
+  "nursing-homes": {
+    label: "Nursing Homes",
+    keywords: ["nursing", "care facility", "senior", "elderly"],
+  },
+  construction: {
+    label: "Construction",
+    keywords: ["construction", "contractor", "builder", "building"],
+  },
+  "plumbing-hvac": {
+    label: "Plumbing/HVAC",
+    keywords: ["plumbing", "hvac", "heating", "cooling", "plumber"],
+  },
+  electrical: {
+    label: "Electrical",
+    keywords: ["electrical", "electrician", "wiring"],
+  },
+  roofing: {
+    label: "Roofing",
+    keywords: ["roofing", "roofer", "shingles", "roof"],
+  },
+  legal: { label: "Legal", keywords: ["law", "lawyer", "attorney", "legal"] },
+  accounting: {
+    label: "Accounting",
+    keywords: ["accounting", "accountant", "cpa", "tax", "bookkeeping"],
+  },
+  insurance: { label: "Insurance", keywords: ["insurance", "agent", "broker"] },
+  "real-estate": {
+    label: "Real Estate",
+    keywords: ["real estate", "realtor", "property", "realty"],
+  },
+  "ny-business": {
+    label: "NY Business",
+    keywords: ["new york", "ny", "nyc", "manhattan", "brooklyn"],
+  },
 };
 
 // States mapping
 const STATES: Record<string, string> = {
-  "alabama": "AL", "alaska": "AK", "arizona": "AZ", "arkansas": "AR", "california": "CA",
-  "colorado": "CO", "connecticut": "CT", "delaware": "DE", "florida": "FL", "georgia": "GA",
-  "hawaii": "HI", "idaho": "ID", "illinois": "IL", "indiana": "IN", "iowa": "IA",
-  "kansas": "KS", "kentucky": "KY", "louisiana": "LA", "maine": "ME", "maryland": "MD",
-  "massachusetts": "MA", "michigan": "MI", "minnesota": "MN", "mississippi": "MS", "missouri": "MO",
-  "montana": "MT", "nebraska": "NE", "nevada": "NV", "new hampshire": "NH", "new jersey": "NJ",
-  "new mexico": "NM", "new york": "NY", "north carolina": "NC", "north dakota": "ND", "ohio": "OH",
-  "oklahoma": "OK", "oregon": "OR", "pennsylvania": "PA", "rhode island": "RI", "south carolina": "SC",
-  "south dakota": "SD", "tennessee": "TN", "texas": "TX", "utah": "UT", "vermont": "VT",
-  "virginia": "VA", "washington": "WA", "west virginia": "WV", "wisconsin": "WI", "wyoming": "WY",
-  "ny": "NY", "nj": "NJ", "ct": "CT", "fl": "FL", "tx": "TX", "ca": "CA",
+  alabama: "AL",
+  alaska: "AK",
+  arizona: "AZ",
+  arkansas: "AR",
+  california: "CA",
+  colorado: "CO",
+  connecticut: "CT",
+  delaware: "DE",
+  florida: "FL",
+  georgia: "GA",
+  hawaii: "HI",
+  idaho: "ID",
+  illinois: "IL",
+  indiana: "IN",
+  iowa: "IA",
+  kansas: "KS",
+  kentucky: "KY",
+  louisiana: "LA",
+  maine: "ME",
+  maryland: "MD",
+  massachusetts: "MA",
+  michigan: "MI",
+  minnesota: "MN",
+  mississippi: "MS",
+  missouri: "MO",
+  montana: "MT",
+  nebraska: "NE",
+  nevada: "NV",
+  "new hampshire": "NH",
+  "new jersey": "NJ",
+  "new mexico": "NM",
+  "new york": "NY",
+  "north carolina": "NC",
+  "north dakota": "ND",
+  ohio: "OH",
+  oklahoma: "OK",
+  oregon: "OR",
+  pennsylvania: "PA",
+  "rhode island": "RI",
+  "south carolina": "SC",
+  "south dakota": "SD",
+  tennessee: "TN",
+  texas: "TX",
+  utah: "UT",
+  vermont: "VT",
+  virginia: "VA",
+  washington: "WA",
+  "west virginia": "WV",
+  wisconsin: "WI",
+  wyoming: "WY",
+  ny: "NY",
+  nj: "NJ",
+  ct: "CT",
+  fl: "FL",
+  tx: "TX",
+  ca: "CA",
 };
 
 interface Lead {
@@ -119,7 +218,9 @@ function parseQuery(input: string): ParsedQuery {
   }
 
   // Detect limit/count
-  const countMatch = lower.match(/(\d+)\s*(leads?|contacts?|businesses?|companies?|records?)?/);
+  const countMatch = lower.match(
+    /(\d+)\s*(leads?|contacts?|businesses?|companies?|records?)?/,
+  );
   if (countMatch) {
     result.limit = Math.min(parseInt(countMatch[1]), 100);
   } else {
@@ -127,10 +228,24 @@ function parseQuery(input: string): ParsedQuery {
   }
 
   // Extract remaining keywords
-  const words = lower.split(/\s+/).filter(w =>
-    w.length > 2 &&
-    !["the", "and", "for", "get", "me", "find", "show", "from", "with", "in"].includes(w)
-  );
+  const words = lower
+    .split(/\s+/)
+    .filter(
+      (w) =>
+        w.length > 2 &&
+        ![
+          "the",
+          "and",
+          "for",
+          "get",
+          "me",
+          "find",
+          "show",
+          "from",
+          "with",
+          "in",
+        ].includes(w),
+    );
   result.keywords = words;
 
   return result;
@@ -147,7 +262,8 @@ function generateResponse(query: ParsedQuery, leads: Lead[]): string {
   parts.push(`Found **${leads.length} leads**`);
 
   if (query.sector) {
-    const sectorLabel = SECTORS[query.sector as keyof typeof SECTORS]?.label || query.sector;
+    const sectorLabel =
+      SECTORS[query.sector as keyof typeof SECTORS]?.label || query.sector;
     parts.push(`in the **${sectorLabel}** sector`);
   }
 
@@ -163,7 +279,8 @@ export function DatalakeCopilot() {
     {
       id: "welcome",
       role: "assistant",
-      content: "Hey! I'm your Datalake Copilot. Ask me to fetch leads from your uploaded databases.\n\n**Try:**\n- \"Get me 50 hotel owners in Florida\"\n- \"Find trucking companies in New Jersey\"\n- \"Show auto dealers in NY\"",
+      content:
+        'Hey! I\'m your Datalake Copilot. Ask me to fetch leads from your uploaded databases.\n\n**Try:**\n- "Get me 50 hotel owners in Florida"\n- "Find trucking companies in New Jersey"\n- "Show auto dealers in NY"',
       timestamp: new Date(),
     },
   ]);
@@ -178,31 +295,34 @@ export function DatalakeCopilot() {
   }, [messages]);
 
   // Fetch leads from datalake
-  const fetchLeads = useCallback(async (query: ParsedQuery): Promise<Lead[]> => {
-    try {
-      const params = new URLSearchParams({ action: "search" });
-      if (query.sector) params.append("sector", query.sector);
-      if (query.limit) params.append("limit", query.limit.toString());
+  const fetchLeads = useCallback(
+    async (query: ParsedQuery): Promise<Lead[]> => {
+      try {
+        const params = new URLSearchParams({ action: "search" });
+        if (query.sector) params.append("sector", query.sector);
+        if (query.limit) params.append("limit", query.limit.toString());
 
-      const response = await fetch(`/api/airflow/datalake?${params}`);
-      if (!response.ok) throw new Error("Failed to fetch");
+        const response = await fetch(`/api/airflow/datalake?${params}`);
+        if (!response.ok) throw new Error("Failed to fetch");
 
-      const data = await response.json();
-      let leads = data.businesses || [];
+        const data = await response.json();
+        let leads = data.businesses || [];
 
-      // Filter by state if specified
-      if (query.state) {
-        leads = leads.filter((l: Lead) =>
-          l.address?.toUpperCase().includes(query.state!)
-        );
+        // Filter by state if specified
+        if (query.state) {
+          leads = leads.filter((l: Lead) =>
+            l.address?.toUpperCase().includes(query.state!),
+          );
+        }
+
+        return leads.slice(0, query.limit || 25);
+      } catch (error) {
+        console.error("Fetch error:", error);
+        return [];
       }
-
-      return leads.slice(0, query.limit || 25);
-    } catch (error) {
-      console.error("Fetch error:", error);
-      return [];
-    }
-  }, []);
+    },
+    [],
+  );
 
   // Handle send message
   const handleSend = useCallback(async () => {
@@ -215,7 +335,7 @@ export function DatalakeCopilot() {
       timestamp: new Date(),
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setLoading(true);
 
@@ -237,13 +357,13 @@ export function DatalakeCopilot() {
       timestamp: new Date(),
     };
 
-    setMessages(prev => [...prev, assistantMessage]);
+    setMessages((prev) => [...prev, assistantMessage]);
     setLoading(false);
   }, [input, loading, fetchLeads]);
 
   // Toggle lead selection
   const toggleLead = (id: number) => {
-    setSelectedLeads(prev => {
+    setSelectedLeads((prev) => {
       const next = new Set(prev);
       if (next.has(id)) {
         next.delete(id);
@@ -256,20 +376,26 @@ export function DatalakeCopilot() {
 
   // Export selected leads
   const exportLeads = (leads: Lead[]) => {
-    const selected = leads.filter(l => selectedLeads.has(l.id));
+    const selected = leads.filter((l) => selectedLeads.has(l.id));
     const toExport = selected.length > 0 ? selected : leads;
 
     const csv = [
-      ["Name", "Contact", "Title", "Phone", "Email", "Address", "Sector"].join(","),
-      ...toExport.map(l => [
-        l.name,
-        l.contact_name || "",
-        l.contact_title || "",
-        l.phone || "",
-        l.email || "",
-        l.address || "",
-        l.sector_label || "",
-      ].map(v => `"${v}"`).join(","))
+      ["Name", "Contact", "Title", "Phone", "Email", "Address", "Sector"].join(
+        ",",
+      ),
+      ...toExport.map((l) =>
+        [
+          l.name,
+          l.contact_name || "",
+          l.contact_title || "",
+          l.phone || "",
+          l.email || "",
+          l.address || "",
+          l.sector_label || "",
+        ]
+          .map((v) => `"${v}"`)
+          .join(","),
+      ),
     ].join("\n");
 
     const blob = new Blob([csv], { type: "text/csv" });
@@ -303,7 +429,9 @@ export function DatalakeCopilot() {
                 Datalake Copilot
                 <Badge className="bg-cyan-600 text-xs">AI Agent</Badge>
               </CardTitle>
-              <p className="text-zinc-400 text-sm">Natural language lead fetching</p>
+              <p className="text-zinc-400 text-sm">
+                Natural language lead fetching
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -321,7 +449,9 @@ export function DatalakeCopilot() {
               key={sector}
               size="sm"
               variant="outline"
-              onClick={() => setInput(`Get me 25 ${label.split(" ")[1]} owners`)}
+              onClick={() =>
+                setInput(`Get me 25 ${label.split(" ")[1]} owners`)
+              }
               className="text-xs border-zinc-700 text-zinc-400 hover:border-cyan-600 hover:text-cyan-400"
             >
               {label}
@@ -358,7 +488,10 @@ export function DatalakeCopilot() {
                   {message.query.sector && (
                     <Badge className="bg-cyan-600/30 text-cyan-400 text-xs">
                       <Tag className="h-3 w-3 mr-1" />
-                      {SECTORS[message.query.sector as keyof typeof SECTORS]?.label}
+                      {
+                        SECTORS[message.query.sector as keyof typeof SECTORS]
+                          ?.label
+                      }
                     </Badge>
                   )}
                   {message.query.state && (
@@ -380,7 +513,9 @@ export function DatalakeCopilot() {
                 <div className="mt-3 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-zinc-500">
-                      {selectedLeads.size > 0 ? `${selectedLeads.size} selected` : `${message.leads.length} leads`}
+                      {selectedLeads.size > 0
+                        ? `${selectedLeads.size} selected`
+                        : `${message.leads.length} leads`}
                     </span>
                     <Button
                       size="sm"
@@ -414,7 +549,8 @@ export function DatalakeCopilot() {
                               <p className="text-xs text-zinc-400 flex items-center gap-1">
                                 <User className="h-3 w-3" />
                                 {lead.contact_name}
-                                {lead.contact_title && ` - ${lead.contact_title}`}
+                                {lead.contact_title &&
+                                  ` - ${lead.contact_title}`}
                               </p>
                             )}
                           </div>
@@ -448,7 +584,8 @@ export function DatalakeCopilot() {
                     ))}
                     {message.leads.length > 10 && (
                       <p className="text-xs text-zinc-500 text-center py-2">
-                        + {message.leads.length - 10} more leads (export to see all)
+                        + {message.leads.length - 10} more leads (export to see
+                        all)
                       </p>
                     )}
                   </div>
@@ -509,7 +646,8 @@ export function DatalakeCopilot() {
         </div>
         <p className="text-xs text-zinc-500 mt-2">
           <Sparkles className="h-3 w-3 inline mr-1" />
-          Natural language queries supported • Sectors auto-detected from your uploads
+          Natural language queries supported • Sectors auto-detected from your
+          uploads
         </p>
       </div>
     </Card>

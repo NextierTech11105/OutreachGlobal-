@@ -77,7 +77,10 @@ export async function GET(request: NextRequest) {
           if (defaultPlan) {
             return NextResponse.json({ plan: defaultPlan });
           }
-          return NextResponse.json({ error: "Plan not found" }, { status: 404 });
+          return NextResponse.json(
+            { error: "Plan not found" },
+            { status: 404 },
+          );
         }
 
         return NextResponse.json({ plan });

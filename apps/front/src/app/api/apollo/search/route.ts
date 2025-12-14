@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const APOLLO_API_BASE = "https://api.apollo.io/v1";
-const APOLLO_API_KEY = process.env.APOLLO_IO_API_KEY || process.env.NEXT_PUBLIC_APOLLO_IO_API_KEY || process.env.APOLLO_API_KEY || "";
+const APOLLO_API_KEY =
+  process.env.APOLLO_IO_API_KEY ||
+  process.env.NEXT_PUBLIC_APOLLO_IO_API_KEY ||
+  process.env.APOLLO_API_KEY ||
+  "";
 
 export async function POST(request: NextRequest) {
   try {

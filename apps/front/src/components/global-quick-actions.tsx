@@ -185,7 +185,8 @@ export function GlobalQuickActions() {
   // Skip Trace submit handler
   const handleSkipTraceSubmit = async () => {
     if (!skipTraceForm.firstName && !skipTraceForm.lastName) return;
-    if (!skipTraceForm.address || !skipTraceForm.city || !skipTraceForm.state) return;
+    if (!skipTraceForm.address || !skipTraceForm.city || !skipTraceForm.state)
+      return;
 
     setIsSkipTracing(true);
     setSkipTraceResult(null);
@@ -303,7 +304,9 @@ export function GlobalQuickActions() {
                   <UserSearch className="h-5 w-5" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="left">Skip Trace (RealEstateAPI)</TooltipContent>
+              <TooltipContent side="left">
+                Skip Trace (RealEstateAPI)
+              </TooltipContent>
             </Tooltip>
           </div>
         )}
@@ -537,14 +540,17 @@ export function GlobalQuickActions() {
               Skip Trace - Find Phone & Email
             </DialogTitle>
             <DialogDescription>
-              Enter name and address to find contact information via RealEstateAPI
+              Enter name and address to find contact information via
+              RealEstateAPI
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm">
               <div className="flex items-start gap-2">
                 <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5" />
-                <span className="text-amber-800">Cost: ~$0.10-0.25 per lookup</span>
+                <span className="text-amber-800">
+                  Cost: ~$0.10-0.25 per lookup
+                </span>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -554,7 +560,10 @@ export function GlobalQuickActions() {
                   id="skip-first"
                   value={skipTraceForm.firstName}
                   onChange={(e) =>
-                    setSkipTraceForm({ ...skipTraceForm, firstName: e.target.value })
+                    setSkipTraceForm({
+                      ...skipTraceForm,
+                      firstName: e.target.value,
+                    })
                   }
                   placeholder="John"
                 />
@@ -565,7 +574,10 @@ export function GlobalQuickActions() {
                   id="skip-last"
                   value={skipTraceForm.lastName}
                   onChange={(e) =>
-                    setSkipTraceForm({ ...skipTraceForm, lastName: e.target.value })
+                    setSkipTraceForm({
+                      ...skipTraceForm,
+                      lastName: e.target.value,
+                    })
                   }
                   placeholder="Smith"
                 />
@@ -577,7 +589,10 @@ export function GlobalQuickActions() {
                 id="skip-address"
                 value={skipTraceForm.address}
                 onChange={(e) =>
-                  setSkipTraceForm({ ...skipTraceForm, address: e.target.value })
+                  setSkipTraceForm({
+                    ...skipTraceForm,
+                    address: e.target.value,
+                  })
                 }
                 placeholder="123 Main St"
               />
@@ -634,30 +649,39 @@ export function GlobalQuickActions() {
 
             {/* Results */}
             {skipTraceResult && (
-              <div className={`p-4 rounded-lg border ${skipTraceResult.success ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+              <div
+                className={`p-4 rounded-lg border ${skipTraceResult.success ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"}`}
+              >
                 {skipTraceResult.success ? (
                   <div className="space-y-2">
                     <p className="font-medium text-green-800">Contact Found!</p>
                     {skipTraceResult.phone && (
                       <p className="text-sm">
                         <span className="text-muted-foreground">Phone:</span>{" "}
-                        <span className="font-mono">{skipTraceResult.phone}</span>
+                        <span className="font-mono">
+                          {skipTraceResult.phone}
+                        </span>
                       </p>
                     )}
                     {skipTraceResult.email && (
                       <p className="text-sm">
                         <span className="text-muted-foreground">Email:</span>{" "}
-                        <span className="font-mono">{skipTraceResult.email}</span>
+                        <span className="font-mono">
+                          {skipTraceResult.email}
+                        </span>
                       </p>
                     )}
-                    {skipTraceResult.allPhones && skipTraceResult.allPhones.length > 1 && (
-                      <p className="text-xs text-muted-foreground">
-                        +{skipTraceResult.allPhones.length - 1} more phone(s)
-                      </p>
-                    )}
+                    {skipTraceResult.allPhones &&
+                      skipTraceResult.allPhones.length > 1 && (
+                        <p className="text-xs text-muted-foreground">
+                          +{skipTraceResult.allPhones.length - 1} more phone(s)
+                        </p>
+                      )}
                   </div>
                 ) : (
-                  <p className="text-red-800">No results found. Try different address details.</p>
+                  <p className="text-red-800">
+                    No results found. Try different address details.
+                  </p>
                 )}
               </div>
             )}

@@ -6,7 +6,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
 // In-memory store for demo - replace with actual DB
-const processedManifest = new Map<string, { processedAt: string; recordCount: number }>();
+const processedManifest = new Map<
+  string,
+  { processedAt: string; recordCount: number }
+>();
 const datalakeRecords: any[] = [];
 
 // USBizData exact column structure (NY 5.5M, Hotel-Motel 433K, etc.)
@@ -21,13 +24,13 @@ interface DatalakeRecord {
   city: string;
   state: string;
   zip: string;
-  county: string;           // USBizData field
-  area_code: string;        // USBizData field
-  website: string;          // USBizData field (Website URL)
+  county: string; // USBizData field
+  area_code: string; // USBizData field
+  website: string; // USBizData field (Website URL)
   sic_code: string;
-  sic_description: string;  // USBizData field
-  employee_count: string;   // Number of Employees
-  revenue_range: string;    // Annual Revenue
+  sic_description: string; // USBizData field
+  employee_count: string; // Number of Employees
+  revenue_range: string; // Annual Revenue
   normalized_address: string;
 }
 
@@ -36,35 +39,53 @@ const DATALAKE_SECTORS = {
   // Hospitality & Recreation
   "hotel-motel": { sic: ["7011"], label: "Hotel & Motel" },
   "campgrounds-rv": { sic: ["7033"], label: "Campgrounds & RV Parks" },
-  "restaurants": { sic: ["5812", "5813"], label: "Restaurants & Bars" },
+  restaurants: { sic: ["5812", "5813"], label: "Restaurants & Bars" },
 
   // Transportation
-  "trucking": { sic: ["4213", "4214", "4215"], label: "Trucking & Freight" },
-  "logistics": { sic: ["4731", "4783"], label: "Logistics & Warehousing" },
+  trucking: { sic: ["4213", "4214", "4215"], label: "Trucking & Freight" },
+  logistics: { sic: ["4731", "4783"], label: "Logistics & Warehousing" },
 
   // Aviation
-  "aircraft-parts": { sic: ["3721", "3724", "3728"], label: "Aircraft Parts & Services" },
+  "aircraft-parts": {
+    sic: ["3721", "3724", "3728"],
+    label: "Aircraft Parts & Services",
+  },
 
   // Automotive
-  "auto-parts": { sic: ["5013", "5531", "5571"], label: "Auto Parts & Accessories" },
+  "auto-parts": {
+    sic: ["5013", "5531", "5571"],
+    label: "Auto Parts & Accessories",
+  },
   "auto-dealers": { sic: ["5511", "5521"], label: "Auto Dealers" },
-  "auto-repair": { sic: ["7538", "7539", "7549", "7537"], label: "Auto Repair & Service" },
+  "auto-repair": {
+    sic: ["7538", "7539", "7549", "7537"],
+    label: "Auto Repair & Service",
+  },
 
   // Healthcare
-  "medical": { sic: ["8011", "8021", "8031", "8041", "8042", "8049"], label: "Medical Practices" },
-  "dental": { sic: ["8021"], label: "Dental Offices" },
-  "nursing-homes": { sic: ["8051", "8052"], label: "Nursing & Care Facilities" },
+  medical: {
+    sic: ["8011", "8021", "8031", "8041", "8042", "8049"],
+    label: "Medical Practices",
+  },
+  dental: { sic: ["8021"], label: "Dental Offices" },
+  "nursing-homes": {
+    sic: ["8051", "8052"],
+    label: "Nursing & Care Facilities",
+  },
 
   // Construction & Trades
-  "construction": { sic: ["1521", "1522", "1531", "1541", "1542"], label: "Construction" },
+  construction: {
+    sic: ["1521", "1522", "1531", "1541", "1542"],
+    label: "Construction",
+  },
   "plumbing-hvac": { sic: ["1711"], label: "Plumbing & HVAC" },
-  "electrical": { sic: ["1731"], label: "Electrical Contractors" },
-  "roofing": { sic: ["1761"], label: "Roofing & Siding" },
+  electrical: { sic: ["1731"], label: "Electrical Contractors" },
+  roofing: { sic: ["1761"], label: "Roofing & Siding" },
 
   // Professional Services
-  "legal": { sic: ["8111"], label: "Law Firms" },
-  "accounting": { sic: ["8721"], label: "Accounting & Tax" },
-  "insurance": { sic: ["6411"], label: "Insurance Agencies" },
+  legal: { sic: ["8111"], label: "Law Firms" },
+  accounting: { sic: ["8721"], label: "Accounting & Tax" },
+  insurance: { sic: ["6411"], label: "Insurance Agencies" },
 
   // Real Estate
   "real-estate": { sic: ["6531", "6512", "6519"], label: "Real Estate" },
@@ -72,7 +93,7 @@ const DATALAKE_SECTORS = {
 
   // Retail
   "retail-general": { sic: ["5311", "5331"], label: "General Retail" },
-  "convenience": { sic: ["5411", "5412"], label: "Convenience & Grocery" },
+  convenience: { sic: ["5411", "5412"], label: "Convenience & Grocery" },
 
   // NY Business (general)
   "ny-business": { sic: [], label: "New York Businesses" },
@@ -82,11 +103,11 @@ type DatalakeSector = keyof typeof DATALAKE_SECTORS;
 
 // Map to your existing Companies schema + USBizData extensions
 interface CompanySchemaRecord {
-  name: string;           // Company Name (Required, Searchable)
-  website: string;        // Website (URL, Searchable)
-  industry: string;       // Industry (Dropdown, Searchable)
-  size: string;           // Company Size (Dropdown, Searchable)
-  address: string;        // Address (Address, Searchable)
+  name: string; // Company Name (Required, Searchable)
+  website: string; // Website (URL, Searchable)
+  industry: string; // Industry (Dropdown, Searchable)
+  size: string; // Company Size (Dropdown, Searchable)
+  address: string; // Address (Address, Searchable)
   // Extended fields for cross-referencing
   contact_name?: string;
   contact_title?: string;
@@ -100,16 +121,19 @@ interface CompanySchemaRecord {
   sic_description?: string;
   revenue_range?: string;
   // Sector labeling
-  sector?: string;        // e.g., "hotel-motel", "trucking", "auto-parts"
-  sector_label?: string;  // e.g., "Hotel & Motel", "Trucking & Freight"
+  sector?: string; // e.g., "hotel-motel", "trucking", "auto-parts"
+  sector_label?: string; // e.g., "Hotel & Motel", "Trucking & Freight"
 }
 
 // Auto-detect sector from SIC code
-function detectSectorFromSic(sicCode: string): { sector: string; label: string } {
+function detectSectorFromSic(sicCode: string): {
+  sector: string;
+  label: string;
+} {
   if (!sicCode) return { sector: "other", label: "Other" };
 
   for (const [sectorKey, config] of Object.entries(DATALAKE_SECTORS)) {
-    if (config.sic.some(sic => sicCode.startsWith(sic))) {
+    if (config.sic.some((sic) => sicCode.startsWith(sic))) {
       return { sector: sectorKey, label: config.label };
     }
   }
@@ -120,21 +144,52 @@ function detectSectorFromSic(sicCode: string): { sector: string; label: string }
 // SIC code to industry mapping
 const SIC_TO_INDUSTRY: Record<string, string> = {
   // Technology
-  "35": "technology", "36": "technology", "37": "technology",
-  "48": "technology", "73": "technology", "87": "technology",
+  "35": "technology",
+  "36": "technology",
+  "37": "technology",
+  "48": "technology",
+  "73": "technology",
+  "87": "technology",
   // Healthcare
-  "80": "healthcare", "83": "healthcare",
+  "80": "healthcare",
+  "83": "healthcare",
   // Finance
-  "60": "finance", "61": "finance", "62": "finance", "63": "finance", "64": "finance", "65": "finance", "67": "finance",
+  "60": "finance",
+  "61": "finance",
+  "62": "finance",
+  "63": "finance",
+  "64": "finance",
+  "65": "finance",
+  "67": "finance",
   // Education
   "82": "education",
   // Retail
-  "52": "retail", "53": "retail", "54": "retail", "55": "retail", "56": "retail", "57": "retail", "58": "retail", "59": "retail",
+  "52": "retail",
+  "53": "retail",
+  "54": "retail",
+  "55": "retail",
+  "56": "retail",
+  "57": "retail",
+  "58": "retail",
+  "59": "retail",
   // Manufacturing
-  "20": "manufacturing", "21": "manufacturing", "22": "manufacturing", "23": "manufacturing", "24": "manufacturing",
-  "25": "manufacturing", "26": "manufacturing", "27": "manufacturing", "28": "manufacturing", "29": "manufacturing",
-  "30": "manufacturing", "31": "manufacturing", "32": "manufacturing", "33": "manufacturing", "34": "manufacturing",
-  "38": "manufacturing", "39": "manufacturing",
+  "20": "manufacturing",
+  "21": "manufacturing",
+  "22": "manufacturing",
+  "23": "manufacturing",
+  "24": "manufacturing",
+  "25": "manufacturing",
+  "26": "manufacturing",
+  "27": "manufacturing",
+  "28": "manufacturing",
+  "29": "manufacturing",
+  "30": "manufacturing",
+  "31": "manufacturing",
+  "32": "manufacturing",
+  "33": "manufacturing",
+  "34": "manufacturing",
+  "38": "manufacturing",
+  "39": "manufacturing",
 };
 
 function mapSicToIndustry(sicCode: string): string {
@@ -153,17 +208,25 @@ function mapEmployeeCountToSize(count: string): string {
   return "1000+";
 }
 
-function transformToCompanySchema(record: DatalakeRecord, overrideSector?: DatalakeSector): CompanySchemaRecord {
+function transformToCompanySchema(
+  record: DatalakeRecord,
+  overrideSector?: DatalakeSector,
+): CompanySchemaRecord {
   const fullAddress = [
     record.street_address,
     record.city,
     record.state,
-    record.zip
-  ].filter(Boolean).join(", ");
+    record.zip,
+  ]
+    .filter(Boolean)
+    .join(", ");
 
   // Auto-detect sector from SIC or use override
   const { sector, label } = overrideSector
-    ? { sector: overrideSector, label: DATALAKE_SECTORS[overrideSector]?.label || overrideSector }
+    ? {
+        sector: overrideSector,
+        label: DATALAKE_SECTORS[overrideSector]?.label || overrideSector,
+      }
     : detectSectorFromSic(record.sic_code);
 
   return {
@@ -208,7 +271,7 @@ export async function POST(request: NextRequest) {
     console.error("[Airflow Datalake] Error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -233,20 +296,30 @@ export async function GET(request: NextRequest) {
     console.error("[Airflow Datalake] Error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
-async function handleUpsert(body: { records: DatalakeRecord[]; sector?: DatalakeSector }) {
+async function handleUpsert(body: {
+  records: DatalakeRecord[];
+  sector?: DatalakeSector;
+}) {
   const { records, sector } = body;
 
   if (!records || !Array.isArray(records)) {
-    return NextResponse.json({ error: "Records array required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Records array required" },
+      { status: 400 },
+    );
   }
 
-  const sectorLabel = sector ? DATALAKE_SECTORS[sector]?.label || sector : "auto-detect";
-  console.log(`[Airflow Datalake] Upserting ${records.length} records | Sector: ${sectorLabel}`);
+  const sectorLabel = sector
+    ? DATALAKE_SECTORS[sector]?.label || sector
+    : "auto-detect";
+  console.log(
+    `[Airflow Datalake] Upserting ${records.length} records | Sector: ${sectorLabel}`,
+  );
 
   // In production: batch upsert to PostgreSQL
   // For now, store in memory
@@ -266,7 +339,7 @@ async function handleUpsert(body: { records: DatalakeRecord[]; sector?: Datalake
     const existingIndex = datalakeRecords.findIndex(
       (r) =>
         r.normalized_address === schemaRecord.normalized_address &&
-        r.name === schemaRecord.name
+        r.name === schemaRecord.name,
     );
 
     if (existingIndex >= 0) {
@@ -317,7 +390,9 @@ async function handleComplete(body: {
     });
   }
 
-  console.log(`[Airflow Datalake] ETL Complete - ${total_records} records from ${processed_files?.length} files`);
+  console.log(
+    `[Airflow Datalake] ETL Complete - ${total_records} records from ${processed_files?.length} files`,
+  );
 
   return NextResponse.json({
     success: true,
@@ -355,7 +430,10 @@ async function handleSearch(params: URLSearchParams) {
   const limit = parseInt(params.get("limit") || "10");
 
   if (!address && !name && !sector) {
-    return NextResponse.json({ error: "Address, name, or sector required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Address, name, or sector required" },
+      { status: 400 },
+    );
   }
 
   // Normalize search address

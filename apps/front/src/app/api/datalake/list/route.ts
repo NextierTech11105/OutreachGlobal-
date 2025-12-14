@@ -6,11 +6,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { S3Client, ListObjectsV2Command } from "@aws-sdk/client-s3";
 
-const SPACES_ENDPOINT = process.env.SPACES_ENDPOINT || "https://nyc3.digitaloceanspaces.com";
+const SPACES_ENDPOINT =
+  process.env.SPACES_ENDPOINT || "https://nyc3.digitaloceanspaces.com";
 const SPACES_REGION = process.env.SPACES_REGION || "nyc3";
 const SPACES_KEY = process.env.SPACES_KEY || process.env.DO_SPACES_KEY || "";
-const SPACES_SECRET = process.env.SPACES_SECRET || process.env.DO_SPACES_SECRET || "";
-const SPACES_BUCKET = process.env.SPACES_BUCKET || process.env.DO_SPACES_BUCKET || "nextier";
+const SPACES_SECRET =
+  process.env.SPACES_SECRET || process.env.DO_SPACES_SECRET || "";
+const SPACES_BUCKET =
+  process.env.SPACES_BUCKET || process.env.DO_SPACES_BUCKET || "nextier";
 
 const s3Client = new S3Client({
   endpoint: SPACES_ENDPOINT,
@@ -37,10 +40,13 @@ export async function GET(request: NextRequest) {
   const maxKeys = parseInt(searchParams.get("limit") || "100");
 
   if (!SPACES_KEY || !SPACES_SECRET) {
-    return NextResponse.json({
-      error: "DO Spaces credentials not configured",
-      configured: false,
-    }, { status: 503 });
+    return NextResponse.json(
+      {
+        error: "DO Spaces credentials not configured",
+        configured: false,
+      },
+      { status: 503 },
+    );
   }
 
   try {
@@ -50,17 +56,17 @@ export async function GET(request: NextRequest) {
         Prefix: prefix || undefined,
         MaxKeys: maxKeys,
         Delimiter: prefix ? undefined : "/", // Show top-level folders if no prefix
-      })
+      }),
     );
 
     // Get folders (CommonPrefixes)
-    const folders = (response.CommonPrefixes || []).map(p => ({
+    const folders = (response.CommonPrefixes || []).map((p) => ({
       type: "folder",
       path: p.Prefix,
     }));
 
     // Get files
-    const files = (response.Contents || []).map(obj => ({
+    const files = (response.Contents || []).map((obj) => ({
       type: "file",
       path: obj.Key,
       size: obj.Size,
@@ -89,9 +95,12 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("[Datalake List] Error:", error);
-    return NextResponse.json({
-      error: "Failed to list bucket",
-      details: String(error),
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: "Failed to list bucket",
+        details: String(error),
+      },
+      { status: 500 },
+    );
   }
 }

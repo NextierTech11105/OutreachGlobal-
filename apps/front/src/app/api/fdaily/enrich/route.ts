@@ -10,7 +10,8 @@ import { NextRequest, NextResponse } from "next/server";
  *                     ownerInfo (mailing address), absentee/vacant flags
  */
 
-const REALESTATE_API_KEY = process.env.REALESTATE_API_KEY ||
+const REALESTATE_API_KEY =
+  process.env.REALESTATE_API_KEY ||
   process.env.REAL_ESTATE_API_KEY ||
   "ELITEHOMEOWNERADVISORSPRDATAPRODUCTION-d13b-7e8f-953a-f32241302891";
 
@@ -29,8 +30,8 @@ interface FDAILYLead {
   city: string;
   state: string;
   zip: string;
-  defendant: string;        // Owner name
-  plaintiff: string;        // Lender/HOA
+  defendant: string; // Owner name
+  plaintiff: string; // Lender/HOA
   filedDate: string;
   attorney: string;
 
@@ -43,10 +44,10 @@ interface FDAILYLead {
   lastSalePrice: number | null;
 
   // === FROM REALESTATE API (ENRICHMENT) ===
-  estimatedValue: number | null;        // CURRENT value
-  estimatedEquity: number | null;       // Value - mortgage
-  equityPercent: number | null;         // % equity
-  openMortgageBalance: number | null;   // What they owe
+  estimatedValue: number | null; // CURRENT value
+  estimatedEquity: number | null; // Value - mortgage
+  equityPercent: number | null; // % equity
+  openMortgageBalance: number | null; // What they owe
 
   // Owner mailing (for absentee detection + direct mail)
   ownerMailingAddress: string | null;
@@ -74,7 +75,10 @@ interface FDAILYLead {
 }
 
 // Storage
-const batches: Map<string, { leads: FDAILYLead[]; createdAt: string; stats: any }> = new Map();
+const batches: Map<
+  string,
+  { leads: FDAILYLead[]; createdAt: string; stats: any }
+> = new Map();
 
 export async function POST(request: NextRequest) {
   try {
@@ -187,7 +191,8 @@ export async function POST(request: NextRequest) {
               // Owner mailing address
               if (d.ownerInfo?.mailAddress) {
                 const ma = d.ownerInfo.mailAddress;
-                lead.ownerMailingAddress = ma.label ||
+                lead.ownerMailingAddress =
+                  ma.label ||
                   `${ma.address || ""}, ${ma.city || ""}, ${ma.state || ""} ${ma.zip || ""}`.trim();
                 lead.owner1FirstName = d.ownerInfo.owner1FirstName || null;
                 lead.owner1LastName = d.ownerInfo.owner1LastName || null;
@@ -208,12 +213,21 @@ export async function POST(request: NextRequest) {
               lead.taxAmount = d.taxInfo?.taxAmount || null;
 
               // Fill property info if ClerkData didn't have it
-              if (!lead.bedrooms && d.propertyInfo?.bedrooms) lead.bedrooms = d.propertyInfo.bedrooms;
-              if (!lead.bathrooms && d.propertyInfo?.bathrooms) lead.bathrooms = d.propertyInfo.bathrooms;
-              if (!lead.sqft) lead.sqft = d.propertyInfo?.livingSquareFeet || d.propertyInfo?.buildingSquareFeet || null;
-              if (!lead.yearBuilt && d.propertyInfo?.yearBuilt) lead.yearBuilt = d.propertyInfo.yearBuilt;
-              if (!lead.lastSaleDate) lead.lastSaleDate = d.lastSaleDate || null;
-              if (!lead.lastSalePrice) lead.lastSalePrice = d.lastSalePrice || null;
+              if (!lead.bedrooms && d.propertyInfo?.bedrooms)
+                lead.bedrooms = d.propertyInfo.bedrooms;
+              if (!lead.bathrooms && d.propertyInfo?.bathrooms)
+                lead.bathrooms = d.propertyInfo.bathrooms;
+              if (!lead.sqft)
+                lead.sqft =
+                  d.propertyInfo?.livingSquareFeet ||
+                  d.propertyInfo?.buildingSquareFeet ||
+                  null;
+              if (!lead.yearBuilt && d.propertyInfo?.yearBuilt)
+                lead.yearBuilt = d.propertyInfo.yearBuilt;
+              if (!lead.lastSaleDate)
+                lead.lastSaleDate = d.lastSaleDate || null;
+              if (!lead.lastSalePrice)
+                lead.lastSalePrice = d.lastSalePrice || null;
 
               // Auto-tag
               if (lead.highEquity) lead.tags.push("high_equity");
@@ -229,7 +243,8 @@ export async function POST(request: NextRequest) {
         }
 
         // Rate limit
-        if (i < records.length - 1) await new Promise(r => setTimeout(r, 100));
+        if (i < records.length - 1)
+          await new Promise((r) => setTimeout(r, 100));
       }
 
       leads.push(lead);
@@ -238,11 +253,11 @@ export async function POST(request: NextRequest) {
     const stats = {
       total: leads.length,
       enriched,
-      highEquity: leads.filter(l => l.highEquity).length,
-      absentee: leads.filter(l => l.absenteeOwner).length,
-      vacant: leads.filter(l => l.vacant).length,
-      auction: leads.filter(l => l.auction).length,
-      hot: leads.filter(l => l.priority === "hot").length,
+      highEquity: leads.filter((l) => l.highEquity).length,
+      absentee: leads.filter((l) => l.absenteeOwner).length,
+      vacant: leads.filter((l) => l.vacant).length,
+      auction: leads.filter((l) => l.auction).length,
+      hot: leads.filter((l) => l.priority === "hot").length,
     };
 
     batches.set(batchId, { leads, createdAt: new Date().toISOString(), stats });
@@ -253,7 +268,6 @@ export async function POST(request: NextRequest) {
       stats,
       message: `Enriched ${enriched}/${leads.length} leads`,
     });
-
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -268,8 +282,10 @@ export async function GET(request: NextRequest) {
   if (!batchId) {
     return NextResponse.json({
       batches: Array.from(batches.entries()).map(([id, b]) => ({
-        id, createdAt: b.createdAt, stats: b.stats
-      }))
+        id,
+        createdAt: b.createdAt,
+        stats: b.stats,
+      })),
     });
   }
 
@@ -294,39 +310,94 @@ export async function GET(request: NextRequest) {
 
 function toZohoCSV(leads: FDAILYLead[]): string {
   const h = [
-    "Lead_ID", "RealEstateAPI_ID", "Case_Number", "Folio",
-    "First_Name", "Last_Name",
-    "Property_Address", "City", "State", "Zip",
+    "Lead_ID",
+    "RealEstateAPI_ID",
+    "Case_Number",
+    "Folio",
+    "First_Name",
+    "Last_Name",
+    "Property_Address",
+    "City",
+    "State",
+    "Zip",
     "Mailing_Address",
-    "Plaintiff", "Filed_Date", "Attorney",
-    "Estimated_Value", "Estimated_Equity", "Equity_Percent", "Mortgage_Balance",
-    "Assessed_Value", "Tax_Amount",
-    "Bedrooms", "Bathrooms", "Sqft", "Year_Built",
-    "Last_Sale_Date", "Last_Sale_Price",
-    "Ownership_Years", "Priority",
-    "Absentee", "Out_Of_State", "Vacant", "High_Equity", "Free_Clear", "Auction", "Auction_Date",
-    "Tags", "Lead_Source"
+    "Plaintiff",
+    "Filed_Date",
+    "Attorney",
+    "Estimated_Value",
+    "Estimated_Equity",
+    "Equity_Percent",
+    "Mortgage_Balance",
+    "Assessed_Value",
+    "Tax_Amount",
+    "Bedrooms",
+    "Bathrooms",
+    "Sqft",
+    "Year_Built",
+    "Last_Sale_Date",
+    "Last_Sale_Price",
+    "Ownership_Years",
+    "Priority",
+    "Absentee",
+    "Out_Of_State",
+    "Vacant",
+    "High_Equity",
+    "Free_Clear",
+    "Auction",
+    "Auction_Date",
+    "Tags",
+    "Lead_Source",
   ];
 
-  const rows = leads.map(l => {
+  const rows = leads.map((l) => {
     const parts = (l.defendant || "").split(" ");
     return [
-      l.id, l.realEstateApiId || "", l.caseNumber, l.folio,
-      l.owner1FirstName || parts[0] || "", l.owner1LastName || parts.slice(1).join(" ") || "",
-      l.propertyAddress, l.city, l.state, l.zip,
+      l.id,
+      l.realEstateApiId || "",
+      l.caseNumber,
+      l.folio,
+      l.owner1FirstName || parts[0] || "",
+      l.owner1LastName || parts.slice(1).join(" ") || "",
+      l.propertyAddress,
+      l.city,
+      l.state,
+      l.zip,
       l.ownerMailingAddress || "",
-      l.plaintiff, l.filedDate, l.attorney,
-      l.estimatedValue || "", l.estimatedEquity || "", l.equityPercent || "", l.openMortgageBalance || "",
-      l.assessedValue || "", l.taxAmount || "",
-      l.bedrooms || "", l.bathrooms || "", l.sqft || "", l.yearBuilt || "",
-      l.lastSaleDate || "", l.lastSalePrice || "",
-      l.ownershipLengthYears || "", l.priority,
-      l.absenteeOwner, l.outOfStateOwner, l.vacant, l.highEquity, l.freeClear, l.auction, l.auctionDate || "",
-      l.tags.join("; "), "FDAILY"
+      l.plaintiff,
+      l.filedDate,
+      l.attorney,
+      l.estimatedValue || "",
+      l.estimatedEquity || "",
+      l.equityPercent || "",
+      l.openMortgageBalance || "",
+      l.assessedValue || "",
+      l.taxAmount || "",
+      l.bedrooms || "",
+      l.bathrooms || "",
+      l.sqft || "",
+      l.yearBuilt || "",
+      l.lastSaleDate || "",
+      l.lastSalePrice || "",
+      l.ownershipLengthYears || "",
+      l.priority,
+      l.absenteeOwner,
+      l.outOfStateOwner,
+      l.vacant,
+      l.highEquity,
+      l.freeClear,
+      l.auction,
+      l.auctionDate || "",
+      l.tags.join("; "),
+      "FDAILY",
     ];
   });
 
-  return [h.join(","), ...rows.map(r => r.map(v => `"${String(v ?? "").replace(/"/g, '""')}"`).join(","))].join("\n");
+  return [
+    h.join(","),
+    ...rows.map((r) =>
+      r.map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(","),
+    ),
+  ].join("\n");
 }
 
 function parseNum(v: any): number | null {
@@ -342,24 +413,32 @@ function getPriority(d: string): "hot" | "warm" | "cold" {
 }
 
 function parseCSV(text: string): any[] {
-  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  const lines = text.split(/\r?\n/).filter((l) => l.trim());
   if (lines.length < 2) return [];
-  const headers = lines[0].split(",").map(h => h.trim().toLowerCase().replace(/[^a-z0-9]/g, "_"));
-  return lines.slice(1).map(line => {
+  const headers = lines[0].split(",").map((h) =>
+    h
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "_"),
+  );
+  return lines.slice(1).map((line) => {
     const vals = parseCSVLine(line);
     const rec: any = {};
-    headers.forEach((h, i) => rec[h] = vals[i]?.trim() || "");
+    headers.forEach((h, i) => (rec[h] = vals[i]?.trim() || ""));
     return rec;
   });
 }
 
 function parseCSVLine(line: string): string[] {
   const result: string[] = [];
-  let curr = "", inQ = false;
+  let curr = "",
+    inQ = false;
   for (const c of line) {
     if (c === '"') inQ = !inQ;
-    else if (c === "," && !inQ) { result.push(curr); curr = ""; }
-    else curr += c;
+    else if (c === "," && !inQ) {
+      result.push(curr);
+      curr = "";
+    } else curr += c;
   }
   result.push(curr);
   return result;

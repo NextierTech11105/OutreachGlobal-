@@ -16,7 +16,8 @@ import { eq, and, gte, lte, desc, asc, isNull, or, sql, ne } from "drizzle-orm";
 import { auth } from "@clerk/nextjs/server";
 
 // RealEstateAPI for Skip Trace & Property Lookup
-const REALESTATE_API_KEY = process.env.REAL_ESTATE_API_KEY || process.env.REALESTATE_API_KEY || "";
+const REALESTATE_API_KEY =
+  process.env.REAL_ESTATE_API_KEY || process.env.REALESTATE_API_KEY || "";
 const SKIP_TRACE_URL = "https://api.realestateapi.com/v1/SkipTrace";
 const PROPERTY_SEARCH_URL = "https://api.realestateapi.com/v2/PropertySearch";
 
@@ -25,17 +26,29 @@ const PROPERTY_SEARCH_URL = "https://api.realestateapi.com/v2/PropertySearch";
 // ============================================================
 
 const BLUE_COLLAR_SIC_PREFIXES = [
-  "15", "16", "17", // Construction
+  "15",
+  "16",
+  "17", // Construction
   "07", // Agricultural services
-  "34", "35", "36", "37", "38", "39", // Manufacturing
+  "34",
+  "35",
+  "36",
+  "37",
+  "38",
+  "39", // Manufacturing
   "42", // Trucking/freight
   "49", // Utilities
-  "75", "76", // Repair services
+  "75",
+  "76", // Repair services
 ];
 
 const TECH_INTEGRATION_SIC_PREFIXES = [
-  "50", "51", // Wholesale
-  "60", "61", "63", "64", // Finance/Insurance
+  "50",
+  "51", // Wholesale
+  "60",
+  "61",
+  "63",
+  "64", // Finance/Insurance
   "73", // Business services
   "80", // Healthcare
   "82", // Education
@@ -116,11 +129,19 @@ function generateAutoTags(biz: {
     priorityScore += 1;
 
     // Acquisition sweet spot: 5-50 employees, $500K-$10M revenue
-    if (biz.employeeCount && biz.employeeCount >= 5 && biz.employeeCount <= 50) {
+    if (
+      biz.employeeCount &&
+      biz.employeeCount >= 5 &&
+      biz.employeeCount <= 50
+    ) {
       tags.push("acquisition-target");
       priorityScore += 2;
     }
-    if (biz.annualRevenue && biz.annualRevenue >= 500000 && biz.annualRevenue <= 10000000) {
+    if (
+      biz.annualRevenue &&
+      biz.annualRevenue >= 500000 &&
+      biz.annualRevenue <= 10000000
+    ) {
       tags.push("sweet-spot-revenue");
       priorityScore += 2;
     }
@@ -138,7 +159,11 @@ function generateAutoTags(biz: {
   }
 
   // Exit prep timing (5-15 years = prime exit window)
-  if (biz.yearsInBusiness && biz.yearsInBusiness >= 5 && biz.yearsInBusiness <= 15) {
+  if (
+    biz.yearsInBusiness &&
+    biz.yearsInBusiness >= 5 &&
+    biz.yearsInBusiness <= 15
+  ) {
     tags.push("exit-prep-timing");
     priorityScore += 1;
   }
@@ -158,7 +183,11 @@ function generateAutoTags(biz: {
   }
 
   // Expansion candidate
-  if (biz.employeeCount && biz.employeeCount >= 10 && biz.employeeCount <= 100) {
+  if (
+    biz.employeeCount &&
+    biz.employeeCount >= 10 &&
+    biz.employeeCount <= 100
+  ) {
     if (biz.annualRevenue && biz.annualRevenue >= 1000000) {
       tags.push("expansion-candidate");
       priorityScore += 1;
@@ -211,7 +240,7 @@ async function skipTraceOwner(
   address: string,
   city: string,
   state: string,
-  zip: string
+  zip: string,
 ): Promise<{
   phones: { number: string; type: "mobile" | "landline" | "unknown" }[];
   emails: string[];
@@ -244,17 +273,32 @@ async function skipTraceOwner(
       const result = data.data || data;
 
       // Extract phones with type labeling
-      const phones: { number: string; type: "mobile" | "landline" | "unknown" }[] = [];
+      const phones: {
+        number: string;
+        type: "mobile" | "landline" | "unknown";
+      }[] = [];
       const rawPhones = result.phones || result.phone_numbers || [];
 
       for (const phone of rawPhones) {
         const phoneObj = typeof phone === "string" ? { number: phone } : phone;
-        const lineType = (phoneObj.line_type || phoneObj.type || "").toLowerCase();
+        const lineType = (
+          phoneObj.line_type ||
+          phoneObj.type ||
+          ""
+        ).toLowerCase();
 
         let phoneType: "mobile" | "landline" | "unknown" = "unknown";
-        if (lineType.includes("mobile") || lineType.includes("cell") || lineType.includes("wireless")) {
+        if (
+          lineType.includes("mobile") ||
+          lineType.includes("cell") ||
+          lineType.includes("wireless")
+        ) {
           phoneType = "mobile";
-        } else if (lineType.includes("land") || lineType.includes("voip") || lineType.includes("fixed")) {
+        } else if (
+          lineType.includes("land") ||
+          lineType.includes("voip") ||
+          lineType.includes("fixed")
+        ) {
           phoneType = "landline";
         }
 
@@ -266,11 +310,12 @@ async function skipTraceOwner(
 
       // Extract emails
       const emails = (result.emails || result.email_addresses || []).map(
-        (e: any) => typeof e === "string" ? e : e.email || e.address
+        (e: any) => (typeof e === "string" ? e : e.email || e.address),
       );
 
       // Extract mailing address
-      const mailingAddress = result.mailing_address || result.current_address || null;
+      const mailingAddress =
+        result.mailing_address || result.current_address || null;
 
       return { phones, emails, mailingAddress };
     }
@@ -288,15 +333,17 @@ async function skipTraceOwner(
 async function findPropertiesOwnedBy(
   firstName: string,
   lastName: string,
-  state?: string
-): Promise<{
-  address: string;
-  city: string;
-  state: string;
-  estimatedValue: number | null;
-  estimatedEquity: number | null;
-  propertyType: string;
-}[]> {
+  state?: string,
+): Promise<
+  {
+    address: string;
+    city: string;
+    state: string;
+    estimatedValue: number | null;
+    estimatedEquity: number | null;
+    propertyType: string;
+  }[]
+> {
   if (!REALESTATE_API_KEY) {
     return [];
   }
@@ -349,7 +396,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (!db) {
-      return NextResponse.json({ error: "Database not configured" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Database not configured" },
+        { status: 500 },
+      );
     }
 
     const body = await request.json();
@@ -429,7 +479,7 @@ export async function POST(request: NextRequest) {
       let filtered = taggedBusinesses;
       if (tagFilter && Array.isArray(tagFilter) && tagFilter.length > 0) {
         filtered = taggedBusinesses.filter((biz) =>
-          tagFilter.some((tag: string) => biz.autoTags.includes(tag))
+          tagFilter.some((tag: string) => biz.autoTags.includes(tag)),
         );
       }
 
@@ -461,12 +511,22 @@ export async function POST(request: NextRequest) {
     if (action === "enrich") {
       const { businessIds } = body;
 
-      if (!businessIds || !Array.isArray(businessIds) || businessIds.length === 0) {
-        return NextResponse.json({ error: "businessIds array required" }, { status: 400 });
+      if (
+        !businessIds ||
+        !Array.isArray(businessIds) ||
+        businessIds.length === 0
+      ) {
+        return NextResponse.json(
+          { error: "businessIds array required" },
+          { status: 400 },
+        );
       }
 
       if (businessIds.length > 50) {
-        return NextResponse.json({ error: "Max 50 businesses per request" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Max 50 businesses per request" },
+          { status: 400 },
+        );
       }
 
       // Fetch businesses
@@ -491,8 +551,11 @@ export async function POST(request: NextRequest) {
         .where(
           and(
             eq(businesses.userId, userId),
-            sql`${businesses.id} IN (${sql.join(businessIds.map(id => sql`${id}`), sql`, `)})`
-          )
+            sql`${businesses.id} IN (${sql.join(
+              businessIds.map((id) => sql`${id}`),
+              sql`, `,
+            )})`,
+          ),
         );
 
       const enrichedOwners: SkipTracedOwner[] = [];
@@ -511,8 +574,12 @@ export async function POST(request: NextRequest) {
           stats.processed++;
 
           // Parse owner name
-          const firstName = biz.ownerFirstName || biz.ownerName?.split(" ")[0] || "";
-          const lastName = biz.ownerLastName || biz.ownerName?.split(" ").slice(1).join(" ") || "";
+          const firstName =
+            biz.ownerFirstName || biz.ownerName?.split(" ")[0] || "";
+          const lastName =
+            biz.ownerLastName ||
+            biz.ownerName?.split(" ").slice(1).join(" ") ||
+            "";
 
           if (!firstName) {
             stats.errors.push(`${biz.id}: No owner name`);
@@ -530,7 +597,11 @@ export async function POST(request: NextRequest) {
           });
 
           // SKIP TRACE THE OWNER (person, not company!)
-          let skipResult = { phones: [] as any[], emails: [] as string[], mailingAddress: null as string | null };
+          let skipResult = {
+            phones: [] as any[],
+            emails: [] as string[],
+            mailingAddress: null as string | null,
+          };
           if (skipTraceEnabled && biz.address) {
             skipResult = await skipTraceOwner(
               firstName,
@@ -538,18 +609,24 @@ export async function POST(request: NextRequest) {
               biz.address,
               biz.city || "",
               biz.state || "",
-              biz.zip || ""
+              biz.zip || "",
             );
             stats.skipTraced++;
             stats.phonesFound += skipResult.phones.length;
-            stats.mobilePhones += skipResult.phones.filter((p: any) => p.type === "mobile").length;
+            stats.mobilePhones += skipResult.phones.filter(
+              (p: any) => p.type === "mobile",
+            ).length;
             stats.emailsFound += skipResult.emails.length;
           }
 
           // CROSS-REFERENCE: Find properties owned by this person
           let ownedProperties: any[] = [];
           if (crossReferenceProperties) {
-            ownedProperties = await findPropertiesOwnedBy(firstName, lastName, biz.state || undefined);
+            ownedProperties = await findPropertiesOwnedBy(
+              firstName,
+              lastName,
+              biz.state || undefined,
+            );
             stats.propertiesFound += ownedProperties.length;
 
             // Add special tag if owner has real estate
@@ -560,7 +637,7 @@ export async function POST(request: NextRequest) {
               }
               // Check for high equity properties
               const highEquityProps = ownedProperties.filter(
-                (p) => p.estimatedEquity && p.estimatedEquity > 100000
+                (p) => p.estimatedEquity && p.estimatedEquity > 100000,
               );
               if (highEquityProps.length > 0) {
                 tags.push("high-equity-property-owner");
@@ -601,7 +678,9 @@ export async function POST(request: NextRequest) {
     // ACTION: GENERATE-CAMPAIGNS - Create daily campaigns per channel
     // ============================================================
     if (action === "generate-campaigns") {
-      const { targetTags = ["acquisition-target", "potential-exit", "property-owner"] } = body;
+      const {
+        targetTags = ["acquisition-target", "potential-exit", "property-owner"],
+      } = body;
 
       // First scan and enrich to get targets
       // For demo, we'll just scan and tag
@@ -642,7 +721,9 @@ export async function POST(request: NextRequest) {
           });
           return { ...biz, autoTags: tags, priority };
         })
-        .filter((biz) => targetTags.some((tag: string) => biz.autoTags.includes(tag)));
+        .filter((biz) =>
+          targetTags.some((tag: string) => biz.autoTags.includes(tag)),
+        );
 
       // Generate campaigns per channel
       const campaigns: DailyCampaign[] = [];
@@ -669,10 +750,17 @@ export async function POST(request: NextRequest) {
           targets: targets.map((t) => ({
             businessId: t.id,
             companyName: t.companyName,
-            ownerFirstName: t.ownerFirstName || t.ownerName?.split(" ")[0] || "",
-            ownerLastName: t.ownerLastName || t.ownerName?.split(" ").slice(1).join(" ") || "",
-            ownerFullName: t.ownerName || `${t.ownerFirstName} ${t.ownerLastName}`.trim(),
-            phones: t.ownerPhone ? [{ number: t.ownerPhone, type: "unknown" as const }] : [],
+            ownerFirstName:
+              t.ownerFirstName || t.ownerName?.split(" ")[0] || "",
+            ownerLastName:
+              t.ownerLastName ||
+              t.ownerName?.split(" ").slice(1).join(" ") ||
+              "",
+            ownerFullName:
+              t.ownerName || `${t.ownerFirstName} ${t.ownerLastName}`.trim(),
+            phones: t.ownerPhone
+              ? [{ number: t.ownerPhone, type: "unknown" as const }]
+              : [],
             emails: t.ownerEmail ? [t.ownerEmail] : [],
             mailingAddress: t.address,
             propertiesOwned: [], // Would be populated by enrich action
@@ -700,12 +788,15 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({ error: "Invalid action. Use: scan, enrich, generate-campaigns" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid action. Use: scan, enrich, generate-campaigns" },
+      { status: 400 },
+    );
   } catch (error: any) {
     console.error("[LUCI Pipeline] Error:", error);
     return NextResponse.json(
       { error: error.message || "Pipeline failed", details: error.stack },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -722,7 +813,10 @@ export async function GET(request: NextRequest) {
     }
 
     if (!db) {
-      return NextResponse.json({ error: "Database not configured" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Database not configured" },
+        { status: 500 },
+      );
     }
 
     // Get counts
@@ -743,11 +837,24 @@ export async function GET(request: NextRequest) {
         businesses: businessCount?.count || 0,
       },
       autoTags: {
-        acquisition: ["blue-collar", "acquisition-target", "sweet-spot-revenue"],
+        acquisition: [
+          "blue-collar",
+          "acquisition-target",
+          "sweet-spot-revenue",
+        ],
         techIntegration: ["tech-integration", "scale-ready"],
-        exit: ["exit-prep-timing", "mature-ownership", "potential-exit", "succession-planning"],
+        exit: [
+          "exit-prep-timing",
+          "mature-ownership",
+          "potential-exit",
+          "succession-planning",
+        ],
         expansion: ["expansion-candidate"],
-        property: ["property-owner", "multi-property-owner", "high-equity-property-owner"],
+        property: [
+          "property-owner",
+          "multi-property-owner",
+          "high-equity-property-owner",
+        ],
       },
       channels: ["sms", "email", "call"],
       skipTraceEnabled: !!REALESTATE_API_KEY,

@@ -53,7 +53,9 @@ const MAX_BATCH_SIZE = 100;
 
 // Input validation helpers
 function validateAddress(address: string): boolean {
-  return typeof address === "string" && address.length > 0 && address.length <= 500;
+  return (
+    typeof address === "string" && address.length > 0 && address.length <= 500
+  );
 }
 
 function validateOwnerName(name: string): boolean {
@@ -81,7 +83,7 @@ export async function GET(request: NextRequest) {
     if (!validActions.includes(action)) {
       return NextResponse.json(
         { error: `Invalid action. Must be one of: ${validActions.join(", ")}` },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -94,10 +96,13 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: "Unknown action" }, { status: 400 });
     }
   } catch (error) {
-    console.error("[Airflow CrossRef] GET error:", error instanceof Error ? error.message : "Unknown error");
+    console.error(
+      "[Airflow CrossRef] GET error:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -119,7 +124,7 @@ export async function POST(request: NextRequest) {
     if (!validActions.includes(action)) {
       return NextResponse.json(
         { error: `Invalid action. Must be one of: ${validActions.join(", ")}` },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -134,10 +139,13 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Unknown action" }, { status: 400 });
     }
   } catch (error) {
-    console.error("[Airflow CrossRef] POST error:", error instanceof Error ? error.message : "Unknown error");
+    console.error(
+      "[Airflow CrossRef] POST error:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -152,7 +160,7 @@ async function handlePendingProperties(params: URLSearchParams) {
     if (isNaN(parsed) || parsed < 1) {
       return NextResponse.json(
         { error: "since_hours must be a positive integer" },
-        { status: 400 }
+        { status: 400 },
       );
     }
     sinceHours = Math.min(parsed, MAX_SINCE_HOURS);
@@ -191,7 +199,7 @@ async function handleGetMatches(params: URLSearchParams) {
     if (isNaN(parsed) || parsed < 1) {
       return NextResponse.json(
         { error: "limit must be a positive integer" },
-        { status: 400 }
+        { status: 400 },
       );
     }
     limit = Math.min(parsed, MAX_LIMIT);
@@ -222,7 +230,7 @@ async function handleCreateLeads(body: { matches: CrossReferenceMatch[] }) {
   if (!matches || !Array.isArray(matches)) {
     return NextResponse.json(
       { error: "matches array required" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -230,7 +238,7 @@ async function handleCreateLeads(body: { matches: CrossReferenceMatch[] }) {
   if (matches.length > MAX_BATCH_SIZE) {
     return NextResponse.json(
       { error: `Maximum batch size is ${MAX_BATCH_SIZE} matches` },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -297,7 +305,9 @@ async function handleCreateLeads(body: { matches: CrossReferenceMatch[] }) {
     created++;
   }
 
-  console.log(`[Airflow CrossRef] Created ${created} leads, skipped ${skipped} duplicates`);
+  console.log(
+    `[Airflow CrossRef] Created ${created} leads, skipped ${skipped} duplicates`,
+  );
 
   return NextResponse.json({
     success: true,
@@ -315,16 +325,13 @@ async function handleAddProperty(body: {
 }) {
   // Validate required fields
   if (!body.address) {
-    return NextResponse.json(
-      { error: "address is required" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "address is required" }, { status: 400 });
   }
 
   if (!body.owner_name) {
     return NextResponse.json(
       { error: "owner_name is required" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -332,14 +339,14 @@ async function handleAddProperty(body: {
   if (!validateAddress(body.address)) {
     return NextResponse.json(
       { error: "Invalid address format (1-500 characters)" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
   if (!validateOwnerName(body.owner_name)) {
     return NextResponse.json(
       { error: "Invalid owner_name format (1-200 characters)" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -348,8 +355,11 @@ async function handleAddProperty(body: {
   if (body.id) {
     if (!validateId(body.id)) {
       return NextResponse.json(
-        { error: "Invalid id format (alphanumeric, underscores, hyphens, max 100 chars)" },
-        { status: 400 }
+        {
+          error:
+            "Invalid id format (alphanumeric, underscores, hyphens, max 100 chars)",
+        },
+        { status: 400 },
       );
     }
     id = body.id;
@@ -361,7 +371,7 @@ async function handleAddProperty(body: {
   if (pendingProperties.has(id)) {
     return NextResponse.json(
       { error: "Property with this ID already exists" },
-      { status: 409 }
+      { status: 409 },
     );
   }
 

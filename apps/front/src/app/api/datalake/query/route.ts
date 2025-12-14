@@ -184,7 +184,10 @@ export async function GET(request: NextRequest) {
   if (prefix) {
     if (!SPACES_KEY || !SPACES_SECRET) {
       return NextResponse.json(
-        { error: "DigitalOcean Spaces credentials not configured", success: false },
+        {
+          error: "DigitalOcean Spaces credentials not configured",
+          success: false,
+        },
         { status: 503 },
       );
     }

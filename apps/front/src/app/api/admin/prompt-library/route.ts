@@ -6,7 +6,8 @@ const DEFAULT_PROMPTS = [
     id: "sms-initial",
     name: "Initial SMS Outreach",
     category: "sms",
-    template: "Hi {{firstName}}, this is {{agentName}} with {{company}}. I noticed you own {{propertyAddress}} and wanted to reach out about a potential opportunity. Is now a good time to chat?",
+    template:
+      "Hi {{firstName}}, this is {{agentName}} with {{company}}. I noticed you own {{propertyAddress}} and wanted to reach out about a potential opportunity. Is now a good time to chat?",
     variables: ["firstName", "agentName", "company", "propertyAddress"],
     active: true,
   },
@@ -14,7 +15,8 @@ const DEFAULT_PROMPTS = [
     id: "sms-followup",
     name: "Follow-up SMS",
     category: "sms",
-    template: "Hi {{firstName}}, following up on my previous message. I have some information about {{topic}} that might interest you. Would you like to hear more?",
+    template:
+      "Hi {{firstName}}, following up on my previous message. I have some information about {{topic}} that might interest you. Would you like to hear more?",
     variables: ["firstName", "topic"],
     active: true,
   },
@@ -22,7 +24,8 @@ const DEFAULT_PROMPTS = [
     id: "email-intro",
     name: "Introduction Email",
     category: "email",
-    template: "Subject: Quick question about {{propertyAddress}}\n\nHi {{firstName}},\n\nI hope this email finds you well. My name is {{agentName}} and I'm reaching out because...",
+    template:
+      "Subject: Quick question about {{propertyAddress}}\n\nHi {{firstName}},\n\nI hope this email finds you well. My name is {{agentName}} and I'm reaching out because...",
     variables: ["firstName", "agentName", "propertyAddress"],
     active: true,
   },
@@ -30,7 +33,8 @@ const DEFAULT_PROMPTS = [
     id: "voicemail-script",
     name: "Voicemail Script",
     category: "voice",
-    template: "Hi {{firstName}}, this is {{agentName}} calling from {{company}}. I'm reaching out regarding {{topic}}. Please give me a call back at {{callback}} when you have a moment. Thanks!",
+    template:
+      "Hi {{firstName}}, this is {{agentName}} calling from {{company}}. I'm reaching out regarding {{topic}}. Please give me a call back at {{callback}} when you have a moment. Thanks!",
     variables: ["firstName", "agentName", "company", "topic", "callback"],
     active: true,
   },
@@ -38,7 +42,8 @@ const DEFAULT_PROMPTS = [
     id: "b2b-intro",
     name: "B2B Introduction",
     category: "b2b",
-    template: "Hi {{firstName}}, I noticed {{companyName}} has been doing great work in the {{industry}} space. I'd love to discuss how we can help grow your business. Are you available for a quick call?",
+    template:
+      "Hi {{firstName}}, I noticed {{companyName}} has been doing great work in the {{industry}} space. I'd love to discuss how we can help grow your business. Are you available for a quick call?",
     variables: ["firstName", "companyName", "industry"],
     active: true,
   },
@@ -53,7 +58,7 @@ export async function GET(request: NextRequest) {
     let prompts = DEFAULT_PROMPTS;
 
     if (category) {
-      prompts = prompts.filter(p => p.category === category);
+      prompts = prompts.filter((p) => p.category === category);
     }
 
     return NextResponse.json({
@@ -65,7 +70,7 @@ export async function GET(request: NextRequest) {
     console.error("[Prompt Library] Error:", error);
     return NextResponse.json(
       { error: error.message || "Failed to fetch prompts" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -79,7 +84,7 @@ export async function POST(request: NextRequest) {
     if (!name || !category || !template) {
       return NextResponse.json(
         { error: "name, category, and template are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -102,7 +107,7 @@ export async function POST(request: NextRequest) {
     console.error("[Prompt Library] Error creating prompt:", error);
     return NextResponse.json(
       { error: error.message || "Failed to create prompt" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -116,7 +121,7 @@ export async function DELETE(request: NextRequest) {
     if (!promptId) {
       return NextResponse.json(
         { error: "Prompt ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -129,7 +134,7 @@ export async function DELETE(request: NextRequest) {
     console.error("[Prompt Library] Error deleting prompt:", error);
     return NextResponse.json(
       { error: error.message || "Failed to delete prompt" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

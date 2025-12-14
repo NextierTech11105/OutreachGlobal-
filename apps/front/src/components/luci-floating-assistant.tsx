@@ -75,11 +75,56 @@ export function LuciFloatingAssistant() {
   ];
 
   const STATES = [
-    "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
-    "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
-    "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
-    "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
-    "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY",
+    "AL",
+    "AK",
+    "AZ",
+    "AR",
+    "CA",
+    "CO",
+    "CT",
+    "DE",
+    "FL",
+    "GA",
+    "HI",
+    "ID",
+    "IL",
+    "IN",
+    "IA",
+    "KS",
+    "KY",
+    "LA",
+    "ME",
+    "MD",
+    "MA",
+    "MI",
+    "MN",
+    "MS",
+    "MO",
+    "MT",
+    "NE",
+    "NV",
+    "NH",
+    "NJ",
+    "NM",
+    "NY",
+    "NC",
+    "ND",
+    "OH",
+    "OK",
+    "OR",
+    "PA",
+    "RI",
+    "SC",
+    "SD",
+    "TN",
+    "TX",
+    "UT",
+    "VT",
+    "VA",
+    "WA",
+    "WV",
+    "WI",
+    "WY",
   ];
 
   const handleFetchLeads = useCallback(async () => {
@@ -108,15 +153,19 @@ export function LuciFloatingAssistant() {
       if (data.success && data.leads) {
         setFetchedLeads(
           data.leads.map((lead: Record<string, unknown>) => ({
-            id: lead.id || `lead-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            name: `${lead.first_name || ""} ${lead.last_name || ""}`.trim() || "Unknown",
+            id:
+              lead.id ||
+              `lead-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            name:
+              `${lead.first_name || ""} ${lead.last_name || ""}`.trim() ||
+              "Unknown",
             company: lead.company as string,
             phone: lead.phone as string,
             email: lead.email as string,
             city: lead.city as string,
             state: lead.state as string,
             sector: sector,
-          }))
+          })),
         );
         toast.success(`Found ${data.leads.length} leads`, {
           description: "Ready to push to campaigns",
@@ -184,7 +233,7 @@ export function LuciFloatingAssistant() {
               opacity: 1,
               y: 0,
               scale: 1,
-              height: isMinimized ? "auto" : "500px"
+              height: isMinimized ? "auto" : "500px",
             }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             className="fixed bottom-6 right-6 w-[380px] bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl z-50 overflow-hidden flex flex-col"
@@ -201,9 +250,13 @@ export function LuciFloatingAssistant() {
                 <div>
                   <h3 className="font-bold text-white flex items-center gap-2">
                     Luci
-                    <Badge className="bg-white/20 text-white text-[10px]">DATA ENGINEER</Badge>
+                    <Badge className="bg-white/20 text-white text-[10px]">
+                      DATA ENGINEER
+                    </Badge>
                   </h3>
-                  <p className="text-white/70 text-xs">Your lead sourcing specialist</p>
+                  <p className="text-white/70 text-xs">
+                    Your lead sourcing specialist
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-1">
@@ -213,7 +266,11 @@ export function LuciFloatingAssistant() {
                   className="h-8 w-8 text-white/70 hover:text-white hover:bg-white/10"
                   onClick={() => setIsMinimized(!isMinimized)}
                 >
-                  {isMinimized ? <Zap className="h-4 w-4" /> : <span className="text-lg">−</span>}
+                  {isMinimized ? (
+                    <Zap className="h-4 w-4" />
+                  ) : (
+                    <span className="text-lg">−</span>
+                  )}
                 </Button>
                 <Button
                   variant="ghost"
@@ -243,14 +300,20 @@ export function LuciFloatingAssistant() {
 
                       {/* Sector Select */}
                       <div>
-                        <label className="text-xs text-zinc-400 mb-1 block">SECTOR</label>
+                        <label className="text-xs text-zinc-400 mb-1 block">
+                          SECTOR
+                        </label>
                         <Select value={sector} onValueChange={setSector}>
                           <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
                             <SelectValue placeholder="Select sector..." />
                           </SelectTrigger>
                           <SelectContent className="bg-zinc-900 border-zinc-700">
                             {SECTORS.map((s) => (
-                              <SelectItem key={s.value} value={s.value} className="text-white">
+                              <SelectItem
+                                key={s.value}
+                                value={s.value}
+                                className="text-white"
+                              >
                                 {s.label}
                               </SelectItem>
                             ))}
@@ -260,14 +323,20 @@ export function LuciFloatingAssistant() {
 
                       {/* State Select */}
                       <div>
-                        <label className="text-xs text-zinc-400 mb-1 block">STATE</label>
+                        <label className="text-xs text-zinc-400 mb-1 block">
+                          STATE
+                        </label>
                         <Select value={state} onValueChange={setState}>
                           <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="bg-zinc-900 border-zinc-700 max-h-[200px]">
                             {STATES.map((s) => (
-                              <SelectItem key={s} value={s} className="text-white">
+                              <SelectItem
+                                key={s}
+                                value={s}
+                                className="text-white"
+                              >
                                 {s}
                               </SelectItem>
                             ))}
@@ -277,18 +346,35 @@ export function LuciFloatingAssistant() {
 
                       {/* Limit */}
                       <div>
-                        <label className="text-xs text-zinc-400 mb-1 block">QUANTITY</label>
-                        <Select value={String(limit)} onValueChange={(v) => setLimit(parseInt(v))}>
+                        <label className="text-xs text-zinc-400 mb-1 block">
+                          QUANTITY
+                        </label>
+                        <Select
+                          value={String(limit)}
+                          onValueChange={(v) => setLimit(parseInt(v))}
+                        >
                           <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="bg-zinc-900 border-zinc-700">
-                            <SelectItem value="50" className="text-white">50 leads</SelectItem>
-                            <SelectItem value="100" className="text-white">100 leads</SelectItem>
-                            <SelectItem value="250" className="text-white">250 leads</SelectItem>
-                            <SelectItem value="500" className="text-white">500 leads</SelectItem>
-                            <SelectItem value="1000" className="text-white">1,000 leads</SelectItem>
-                            <SelectItem value="2000" className="text-white">2,000 leads (MAX)</SelectItem>
+                            <SelectItem value="50" className="text-white">
+                              50 leads
+                            </SelectItem>
+                            <SelectItem value="100" className="text-white">
+                              100 leads
+                            </SelectItem>
+                            <SelectItem value="250" className="text-white">
+                              250 leads
+                            </SelectItem>
+                            <SelectItem value="500" className="text-white">
+                              500 leads
+                            </SelectItem>
+                            <SelectItem value="1000" className="text-white">
+                              1,000 leads
+                            </SelectItem>
+                            <SelectItem value="2000" className="text-white">
+                              2,000 leads (MAX)
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -336,7 +422,10 @@ export function LuciFloatingAssistant() {
                       <ScrollArea className="flex-1 -mx-4 px-4">
                         <div className="space-y-2">
                           {fetchedLeads.slice(0, 10).map((lead) => (
-                            <Card key={lead.id} className="bg-zinc-900 border-zinc-800">
+                            <Card
+                              key={lead.id}
+                              className="bg-zinc-900 border-zinc-800"
+                            >
                               <CardContent className="p-3">
                                 <div className="flex items-start justify-between">
                                   <div className="min-w-0">

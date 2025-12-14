@@ -154,16 +154,21 @@ export default function SectorsPage() {
 
         // Add B2B sector stats from SIC code aggregation
         if (sectorData.sectors) {
-          Object.entries(sectorData.sectors).forEach(([sectorId, sectorStat]: [string, unknown]) => {
-            const s = sectorStat as { totalRecords: number; enriched: number };
-            stats[sectorId] = {
-              sectorId,
-              totalRecords: s.totalRecords || 0,
-              enrichedRecords: s.enriched || 0,
-              contactedRecords: 0,
-              lastUpdated: new Date(),
-            };
-          });
+          Object.entries(sectorData.sectors).forEach(
+            ([sectorId, sectorStat]: [string, unknown]) => {
+              const s = sectorStat as {
+                totalRecords: number;
+                enriched: number;
+              };
+              stats[sectorId] = {
+                sectorId,
+                totalRecords: s.totalRecords || 0,
+                enrichedRecords: s.enriched || 0,
+                contactedRecords: 0,
+                lastUpdated: new Date(),
+              };
+            },
+          );
         }
 
         if (data.buckets && data.buckets.length > 0) {
@@ -568,16 +573,18 @@ export default function SectorsPage() {
                   // Build query params from sector filters
                   const params = new URLSearchParams();
                   if (selectedSector.sicCodes?.length) {
-                    params.set('sicCodes', selectedSector.sicCodes.join(','));
+                    params.set("sicCodes", selectedSector.sicCodes.join(","));
                   }
                   if (selectedSector.filters) {
                     Object.entries(selectedSector.filters).forEach(([k, v]) => {
                       params.set(k, String(v));
                     });
                   }
-                  params.set('sectorId', selectedSector.id);
-                  params.set('sectorName', selectedSector.name);
-                  router.push(`/t/${window.location.pathname.split("/")[2]}/leads/import-companies?${params.toString()}`);
+                  params.set("sectorId", selectedSector.id);
+                  params.set("sectorName", selectedSector.name);
+                  router.push(
+                    `/t/${window.location.pathname.split("/")[2]}/leads/import-companies?${params.toString()}`,
+                  );
                 }}
               >
                 <ArrowRight className="h-4 w-4 mr-2" />
@@ -1112,41 +1119,39 @@ export default function SectorsPage() {
                   {uploadResult.message}
                 </p>
                 {uploadResult.stats && (
-                    <div className="grid grid-cols-4 gap-2 mt-3">
-                      <div className="text-center">
-                        <div className="text-lg font-bold">
-                          {sf(uploadResult.stats.total)}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Total
-                        </div>
+                  <div className="grid grid-cols-4 gap-2 mt-3">
+                    <div className="text-center">
+                      <div className="text-lg font-bold">
+                        {sf(uploadResult.stats.total)}
                       </div>
-                      <div className="text-center">
-                        <div className="text-lg font-bold text-green-600">
-                          {sf(uploadResult.stats.withPhone)}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Phones
-                        </div>
+                      <div className="text-xs text-muted-foreground">Total</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-green-600">
+                        {sf(uploadResult.stats.withPhone)}
                       </div>
-                      <div className="text-center">
-                        <div className="text-lg font-bold text-blue-600">
-                          {sf(uploadResult.stats.withEmail)}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Emails
-                        </div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-lg font-bold text-purple-600">
-                          {sf(uploadResult.stats.withAddress)}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Enrichable
-                        </div>
+                      <div className="text-xs text-muted-foreground">
+                        Phones
                       </div>
                     </div>
-                  )}
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-blue-600">
+                        {sf(uploadResult.stats.withEmail)}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Emails
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-purple-600">
+                        {sf(uploadResult.stats.withAddress)}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Enrichable
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

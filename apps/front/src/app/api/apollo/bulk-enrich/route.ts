@@ -12,7 +12,10 @@ interface ContactToEnrich {
 
 export async function POST(request: NextRequest) {
   try {
-    const apiKey = process.env.APOLLO_IO_API_KEY || process.env.NEXT_PUBLIC_APOLLO_IO_API_KEY || process.env.APOLLO_API_KEY;
+    const apiKey =
+      process.env.APOLLO_IO_API_KEY ||
+      process.env.NEXT_PUBLIC_APOLLO_IO_API_KEY ||
+      process.env.APOLLO_API_KEY;
 
     if (!apiKey) {
       return NextResponse.json(

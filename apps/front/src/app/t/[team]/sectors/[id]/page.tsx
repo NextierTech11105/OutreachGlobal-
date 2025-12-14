@@ -197,7 +197,9 @@ export default function SectorDetailPage() {
   // Push to Sequence state
   const [showSequenceDialog, setShowSequenceDialog] = useState(false);
   const [pushingToSequence, setPushingToSequence] = useState(false);
-  const [selectedSequence, setSelectedSequence] = useState<"10-touch" | "nurture" | "re-engage">("10-touch");
+  const [selectedSequence, setSelectedSequence] = useState<
+    "10-touch" | "nurture" | "re-engage"
+  >("10-touch");
 
   // Load daily skip trace count from localStorage
   useEffect(() => {
@@ -293,25 +295,37 @@ export default function SectorDetailPage() {
         const rawLeads = data.records || data.properties || [];
         const mappedLeads = rawLeads.map((r: Record<string, unknown>) => {
           // Extract data from both matchingKeys (normalized) and _original (raw CSV)
-          const original = r._original as Record<string, unknown> || {};
-          const matchingKeys = r.matchingKeys as Record<string, unknown> || {};
+          const original = (r._original as Record<string, unknown>) || {};
+          const matchingKeys =
+            (r.matchingKeys as Record<string, unknown>) || {};
 
           // matchingKeys has normalized names, _original has raw CSV headers
           return {
             id: r.id,
             // Company name from normalized or raw CSV
-            companyName: matchingKeys.companyName || original["Company Name"] || original.companyName,
+            companyName:
+              matchingKeys.companyName ||
+              original["Company Name"] ||
+              original.companyName,
             // Contact name from normalized or raw CSV (Contact First + Contact Last)
-            contactName: matchingKeys.contactName ||
-                         [matchingKeys.firstName, matchingKeys.lastName].filter(Boolean).join(' ') ||
-                         [original["Contact First"], original["Contact Last"]].filter(Boolean).join(' ') ||
-                         original["Contact Name"],
+            contactName:
+              matchingKeys.contactName ||
+              [matchingKeys.firstName, matchingKeys.lastName]
+                .filter(Boolean)
+                .join(" ") ||
+              [original["Contact First"], original["Contact Last"]]
+                .filter(Boolean)
+                .join(" ") ||
+              original["Contact Name"],
             // Email from raw CSV
             email: original["Email"] || original.email || matchingKeys.email,
             // Phone from raw CSV
             phone: original["Phone"] || original.phone || matchingKeys.phone,
             // Address from normalized or raw CSV
-            address: matchingKeys.address || original["Address"] || original["Street Address"],
+            address:
+              matchingKeys.address ||
+              original["Address"] ||
+              original["Street Address"],
             city: matchingKeys.city || original["City"],
             state: matchingKeys.state || original["State"],
             zip: matchingKeys.zip || original["Zip"] || original["Zip Code"],
@@ -319,16 +333,27 @@ export default function SectorDetailPage() {
             // Website from raw CSV
             website: original["Website"] || original.website,
             // Industry from raw CSV (SIC Description)
-            industry: original["Industry"] || original["SIC Description"] || matchingKeys.sicDescription,
+            industry:
+              original["Industry"] ||
+              original["SIC Description"] ||
+              matchingKeys.sicDescription,
             sicCode: matchingKeys.sicCode || original["SIC Code"],
-            employees: original["Employee Range"] || original["Number of Employees"] || original.employees,
-            revenue: original["Annual Sales"] || original["Annual Revenue"] || original.revenue,
+            employees:
+              original["Employee Range"] ||
+              original["Number of Employees"] ||
+              original.employees,
+            revenue:
+              original["Annual Sales"] ||
+              original["Annual Revenue"] ||
+              original.revenue,
             title: original["Title"],
             directPhone: original["Direct Phone"],
-            enriched: (r.enrichment as Record<string, unknown>)?.status === 'success',
+            enriched:
+              (r.enrichment as Record<string, unknown>)?.status === "success",
             propertyScore: r.propertyScore,
             propertyLikelihood: r.propertyLikelihood,
-            isDecisionMaker: (r.flags as Record<string, boolean>)?.isDecisionMaker,
+            isDecisionMaker: (r.flags as Record<string, boolean>)
+              ?.isDecisionMaker,
             ...r, // Keep original data too
           };
         });
@@ -510,7 +535,8 @@ export default function SectorDetailPage() {
   // Apollo Enrichment - Decision Makers Only (Owner, CRO, Partner, VP, Sales Manager)
   const handleApolloEnrich = async () => {
     const selected = leads.filter(
-      (l) => selectedIds.has(l.id) && (l.email || (l.contactName && l.companyName)),
+      (l) =>
+        selectedIds.has(l.id) && (l.email || (l.contactName && l.companyName)),
     );
     if (selected.length === 0) {
       toast.error(
@@ -554,7 +580,10 @@ export default function SectorDetailPage() {
                 firstName,
                 lastName,
                 companyName: lead.companyName || undefined,
-                domain: lead.website?.replace(/^https?:\/\//, "").replace(/\/.*$/, "") || undefined,
+                domain:
+                  lead.website
+                    ?.replace(/^https?:\/\//, "")
+                    .replace(/\/.*$/, "") || undefined,
               }),
             });
 
@@ -611,9 +640,8 @@ export default function SectorDetailPage() {
               isDecisionMaker: result.isDecisionMaker,
               apolloData: result.apolloData,
               title: result.title || lead.title,
-              enrichedPhones: result.phones?.length > 0
-                ? result.phones
-                : lead.enrichedPhones,
+              enrichedPhones:
+                result.phones?.length > 0 ? result.phones : lead.enrichedPhones,
               enrichedEmails: result.email
                 ? [result.email]
                 : lead.enrichedEmails,
@@ -725,7 +753,9 @@ export default function SectorDetailPage() {
   // Schedule Calls - Push to Calendar
   const handleScheduleCalls = async () => {
     const selected = leads.filter((l) => selectedIds.has(l.id));
-    const withPhones = selected.filter((l) => l.phone || (l.enrichedPhones && l.enrichedPhones.length > 0));
+    const withPhones = selected.filter(
+      (l) => l.phone || (l.enrichedPhones && l.enrichedPhones.length > 0),
+    );
 
     if (withPhones.length === 0) {
       toast.error("No selected records have phone numbers");
@@ -776,7 +806,9 @@ export default function SectorDetailPage() {
   // Push to Sequence - 10-Touch Outreach
   const handlePushToSequence = async () => {
     const selected = leads.filter((l) => selectedIds.has(l.id));
-    const withPhones = selected.filter((l) => l.phone || (l.enrichedPhones && l.enrichedPhones.length > 0));
+    const withPhones = selected.filter(
+      (l) => l.phone || (l.enrichedPhones && l.enrichedPhones.length > 0),
+    );
 
     if (withPhones.length === 0) {
       toast.error("No selected records have phone numbers for outreach");
@@ -808,12 +840,15 @@ export default function SectorDetailPage() {
       if (result.success || result.enrolled) {
         const sequenceNames = {
           "10-touch": "10-Touch 30-Day Outreach",
-          "nurture": "Nurture Sequence",
+          nurture: "Nurture Sequence",
           "re-engage": "Re-engagement Sequence",
         };
-        toast.success(`${withPhones.length} leads enrolled in ${sequenceNames[selectedSequence]}`, {
-          description: "Automated outreach will begin shortly",
-        });
+        toast.success(
+          `${withPhones.length} leads enrolled in ${sequenceNames[selectedSequence]}`,
+          {
+            description: "Automated outreach will begin shortly",
+          },
+        );
         setShowSequenceDialog(false);
         setSelectedIds(new Set());
       } else {
@@ -823,12 +858,15 @@ export default function SectorDetailPage() {
       // Simulate success for demo purposes
       const sequenceNames = {
         "10-touch": "10-Touch 30-Day Outreach",
-        "nurture": "Nurture Sequence",
+        nurture: "Nurture Sequence",
         "re-engage": "Re-engagement Sequence",
       };
-      toast.success(`${withPhones.length} leads enrolled in ${sequenceNames[selectedSequence]}`, {
-        description: "Automated outreach will begin shortly",
-      });
+      toast.success(
+        `${withPhones.length} leads enrolled in ${sequenceNames[selectedSequence]}`,
+        {
+          description: "Automated outreach will begin shortly",
+        },
+      );
       setShowSequenceDialog(false);
       setSelectedIds(new Set());
     } finally {
@@ -943,7 +981,13 @@ export default function SectorDetailPage() {
           {/* BATCH SIZE SELECTOR */}
           <div className="flex items-center gap-2">
             <Layers className="h-4 w-4 text-muted-foreground" />
-            <Select value={String(batchSize)} onValueChange={(v) => { setBatchSize(parseInt(v)); setCurrentPage(1); }}>
+            <Select
+              value={String(batchSize)}
+              onValueChange={(v) => {
+                setBatchSize(parseInt(v));
+                setCurrentPage(1);
+              }}
+            >
               <SelectTrigger className="w-[120px]">
                 <SelectValue />
               </SelectTrigger>
@@ -958,18 +1002,18 @@ export default function SectorDetailPage() {
 
           {/* SHUFFLE TOGGLE */}
           <div className="flex items-center gap-2 border rounded-lg px-3 py-1.5">
-            <Shuffle className={`h-4 w-4 ${shuffleMode ? "text-purple-600" : "text-muted-foreground"}`} />
-            <span className="text-sm">Shuffle</span>
-            <Switch
-              checked={shuffleMode}
-              onCheckedChange={setShuffleMode}
+            <Shuffle
+              className={`h-4 w-4 ${shuffleMode ? "text-purple-600" : "text-muted-foreground"}`}
             />
+            <span className="text-sm">Shuffle</span>
+            <Switch checked={shuffleMode} onCheckedChange={setShuffleMode} />
           </div>
 
           {/* SERVER PAGINATION INFO */}
           {pagination && (
             <Badge variant="outline" className="px-3 py-1">
-              {sf(pagination.filteredTotal)} of {sf(pagination.totalRecords)} records
+              {sf(pagination.filteredTotal)} of {sf(pagination.totalRecords)}{" "}
+              records
             </Badge>
           )}
 
@@ -1201,22 +1245,35 @@ export default function SectorDetailPage() {
                     {/* CONTACT ATTEMPTS */}
                     <TableCell className="text-center">
                       <div className="flex flex-col items-center gap-0.5">
-                        <span className={cn(
-                          "text-lg font-bold",
-                          !lead.contactAttempts ? "text-zinc-500" :
-                          lead.contactAttempts >= 5 ? "text-red-500" :
-                          lead.contactAttempts >= 3 ? "text-orange-500" :
-                          lead.contactAttempts >= 1 ? "text-blue-500" : "text-zinc-500"
-                        )}>
+                        <span
+                          className={cn(
+                            "text-lg font-bold",
+                            !lead.contactAttempts
+                              ? "text-zinc-500"
+                              : lead.contactAttempts >= 5
+                                ? "text-red-500"
+                                : lead.contactAttempts >= 3
+                                  ? "text-orange-500"
+                                  : lead.contactAttempts >= 1
+                                    ? "text-blue-500"
+                                    : "text-zinc-500",
+                          )}
+                        >
                           #{lead.contactAttempts || 0}
                         </span>
                         {lead.lastContactDate && (
                           <span className="text-[10px] text-muted-foreground">
-                            {new Date(lead.lastContactDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                            {new Date(lead.lastContactDate).toLocaleDateString(
+                              "en-US",
+                              { month: "short", day: "numeric" },
+                            )}
                           </span>
                         )}
                         {lead.lastContactChannel && (
-                          <Badge variant="outline" className="text-[9px] px-1 py-0">
+                          <Badge
+                            variant="outline"
+                            className="text-[9px] px-1 py-0"
+                          >
                             {lead.lastContactChannel.toUpperCase()}
                           </Badge>
                         )}
@@ -1241,10 +1298,25 @@ export default function SectorDetailPage() {
           {pagination && pagination.totalPages > 1 && (
             <div className="flex items-center justify-between p-4 border-t bg-muted/30">
               <p className="text-sm text-muted-foreground">
-                Showing <span className="font-semibold text-foreground">{sf((currentPage - 1) * batchSize + 1)}</span> to{" "}
-                <span className="font-semibold text-foreground">{sf(Math.min(currentPage * batchSize, pagination.filteredTotal))}</span> of{" "}
-                <span className="font-semibold text-foreground">{sf(pagination.filteredTotal)}</span>
-                {pagination.search && <span className="text-purple-600 ml-2">(filtered from {sf(pagination.totalRecords)})</span>}
+                Showing{" "}
+                <span className="font-semibold text-foreground">
+                  {sf((currentPage - 1) * batchSize + 1)}
+                </span>{" "}
+                to{" "}
+                <span className="font-semibold text-foreground">
+                  {sf(
+                    Math.min(currentPage * batchSize, pagination.filteredTotal),
+                  )}
+                </span>{" "}
+                of{" "}
+                <span className="font-semibold text-foreground">
+                  {sf(pagination.filteredTotal)}
+                </span>
+                {pagination.search && (
+                  <span className="text-purple-600 ml-2">
+                    (filtered from {sf(pagination.totalRecords)})
+                  </span>
+                )}
               </p>
               <div className="flex items-center gap-2">
                 <Button
@@ -1269,7 +1341,11 @@ export default function SectorDetailPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setCurrentPage((p) => Math.min(pagination.totalPages, p + 1))}
+                  onClick={() =>
+                    setCurrentPage((p) =>
+                      Math.min(pagination.totalPages, p + 1),
+                    )
+                  }
                   disabled={!pagination.hasMore}
                 >
                   <ChevronRight className="h-4 w-4" />

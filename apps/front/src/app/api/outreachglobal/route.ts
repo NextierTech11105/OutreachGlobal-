@@ -9,7 +9,8 @@ import { auth } from "@clerk/nextjs/server";
 // Primary: app.outreachglobal.io (143.198.9.190)
 const OUTREACHGLOBAL_API_URL =
   process.env.OUTREACHGLOBAL_API_URL || "https://app.outreachglobal.io";
-const OUTREACHGLOBAL_TOKEN = process.env.OUTREACHGLOBAL_TOKEN || "jdfu88jf84jna02";
+const OUTREACHGLOBAL_TOKEN =
+  process.env.OUTREACHGLOBAL_TOKEN || "jdfu88jf84jna02";
 
 interface OutreachGlobalQuery {
   endpoint: string; // e.g., "content", "templates", "leads", "campaigns"

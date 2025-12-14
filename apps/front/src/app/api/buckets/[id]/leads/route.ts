@@ -192,15 +192,36 @@ function csvRecordToLead(
   const original = record._original || {};
 
   // Get phone/email from _original CSV data (try multiple column name variations)
-  const phone = original["Phone"] || original["phone"] || original["Phone Number"] ||
-                original["Direct Phone"] || original["Cell Phone"] || original["cell"] ||
-                original["PHONE"] || original["Telephone"] || "";
-  const email = original["Email"] || original["email"] || original["Email Address"] ||
-                original["EMAIL"] || original["E-mail"] || "";
+  const phone =
+    original["Phone"] ||
+    original["phone"] ||
+    original["Phone Number"] ||
+    original["Direct Phone"] ||
+    original["Cell Phone"] ||
+    original["cell"] ||
+    original["PHONE"] ||
+    original["Telephone"] ||
+    "";
+  const email =
+    original["Email"] ||
+    original["email"] ||
+    original["Email Address"] ||
+    original["EMAIL"] ||
+    original["E-mail"] ||
+    "";
 
   // Parse revenue/employees strings
-  const revenueStr = original["Revenue"] || original["revenue"] || original["Annual Revenue"] || original["Sales"] || "";
-  const employeesStr = original["Employees"] || original["employees"] || original["Number of Employees"] || "";
+  const revenueStr =
+    original["Revenue"] ||
+    original["revenue"] ||
+    original["Annual Revenue"] ||
+    original["Sales"] ||
+    "";
+  const employeesStr =
+    original["Employees"] ||
+    original["employees"] ||
+    original["Number of Employees"] ||
+    "";
 
   const lead: Lead = {
     id: record.id,
@@ -216,7 +237,8 @@ function csvRecordToLead(
     lastName: keys.lastName || "",
     email: email,
     phone: phone,
-    enrichmentStatus: (record.enrichment?.status as Lead["enrichmentStatus"]) || "pending",
+    enrichmentStatus:
+      (record.enrichment?.status as Lead["enrichmentStatus"]) || "pending",
     activityCount: 0,
     // Address/location in propertyData
     propertyData: {
@@ -300,9 +322,7 @@ export async function GET(
       leads = bucketData.leads;
     } else if (bucketData.records && bucketData.records.length > 0) {
       // USBizData CSV records format - convert to leads
-      leads = bucketData.records.map((record) =>
-        csvRecordToLead(record, id),
-      );
+      leads = bucketData.records.map((record) => csvRecordToLead(record, id));
     } else if (bucketData.properties && bucketData.properties.length > 0) {
       // Property records format - convert to leads
       leads = bucketData.properties.map((prop, index) =>

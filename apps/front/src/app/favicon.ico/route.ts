@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 // Simple 1x1 transparent PNG as favicon fallback
 const TRANSPARENT_ICO = Buffer.from(
   "AAABAAEAAQEAAAEAGAAwAAAAFgAAACgAAAABAAAAAgAAAAEAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP8AAAA=",
-  "base64"
+  "base64",
 );
 
 export async function GET() {

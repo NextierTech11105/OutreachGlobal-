@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     console.error("[Airflow Notify] Error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
 
     // Sort by sent_at descending
     results.sort(
-      (a, b) => new Date(b.sent_at).getTime() - new Date(a.sent_at).getTime()
+      (a, b) => new Date(b.sent_at).getTime() - new Date(a.sent_at).getTime(),
     );
 
     return NextResponse.json({
@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
     console.error("[Airflow Notify] Error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -131,7 +131,7 @@ async function handleNotify(body: Record<string, any>) {
                   text: data.top_matches
                     .map(
                       (m: any) =>
-                        `• ${m.property_owner} - ${m.business_name} (Score: ${m.deal_score})`
+                        `• ${m.property_owner} - ${m.business_name} (Score: ${m.deal_score})`,
                     )
                     .join("\n"),
                 },

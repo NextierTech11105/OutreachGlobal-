@@ -121,10 +121,18 @@ function generateAutoTags(business: {
     tags.push("blue-collar");
 
     // Good acquisition indicators
-    if (business.employeeCount && business.employeeCount >= 5 && business.employeeCount <= 50) {
+    if (
+      business.employeeCount &&
+      business.employeeCount >= 5 &&
+      business.employeeCount <= 50
+    ) {
       tags.push("acquisition-target");
     }
-    if (business.annualRevenue && business.annualRevenue >= 500000 && business.annualRevenue <= 10000000) {
+    if (
+      business.annualRevenue &&
+      business.annualRevenue >= 500000 &&
+      business.annualRevenue <= 10000000
+    ) {
       tags.push("sweet-spot-revenue");
     }
     if (business.yearsInBusiness && business.yearsInBusiness >= 10) {
@@ -142,13 +150,21 @@ function generateAutoTags(business: {
     if (business.employeeCount && business.employeeCount >= 20) {
       tags.push("scale-ready");
     }
-    if (business.yearsInBusiness && business.yearsInBusiness >= 5 && business.yearsInBusiness <= 15) {
+    if (
+      business.yearsInBusiness &&
+      business.yearsInBusiness >= 5 &&
+      business.yearsInBusiness <= 15
+    ) {
       tags.push("exit-prep-timing");
     }
   }
 
   // Expansion Opportunity Tags
-  if (business.employeeCount && business.employeeCount >= 10 && business.employeeCount <= 100) {
+  if (
+    business.employeeCount &&
+    business.employeeCount >= 10 &&
+    business.employeeCount <= 100
+  ) {
     if (business.annualRevenue && business.annualRevenue >= 1000000) {
       tags.push("expansion-candidate");
     }
@@ -197,7 +213,7 @@ export async function GET(request: NextRequest) {
     if (!db) {
       return NextResponse.json(
         { error: "Database not configured" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -356,7 +372,7 @@ export async function GET(request: NextRequest) {
     // Filter by auto-tag if specified
     if (tag) {
       calendarBusinesses = calendarBusinesses.filter((biz) =>
-        biz.autoTags.includes(tag)
+        biz.autoTags.includes(tag),
       );
     }
 
@@ -383,7 +399,7 @@ export async function GET(request: NextRequest) {
         error: "Failed to fetch businesses",
         details: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -399,7 +415,7 @@ export async function POST(request: NextRequest) {
     if (!db) {
       return NextResponse.json(
         { error: "Database not configured" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -410,14 +426,14 @@ export async function POST(request: NextRequest) {
       if (!businessIds || !Array.isArray(businessIds) || !newStatus) {
         return NextResponse.json(
           { success: false, error: "businessIds array and newStatus required" },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
       if (businessIds.length > 500) {
         return NextResponse.json(
           { success: false, error: "Maximum 500 businesses per request" },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -428,7 +444,7 @@ export async function POST(request: NextRequest) {
             status: newStatus,
             updatedAt: new Date(),
           })
-          .where(and(eq(businesses.id, id), eq(businesses.userId, userId)))
+          .where(and(eq(businesses.id, id), eq(businesses.userId, userId))),
       );
 
       await Promise.all(updatePromises);
@@ -442,7 +458,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       { success: false, error: "Invalid action" },
-      { status: 400 }
+      { status: 400 },
     );
   } catch (error) {
     console.error("[Calendar Businesses] POST error:", error);
@@ -452,7 +468,7 @@ export async function POST(request: NextRequest) {
         error: "Failed to process request",
         details: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

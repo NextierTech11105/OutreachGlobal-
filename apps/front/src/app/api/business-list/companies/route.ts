@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { S3Client, ListObjectsV2Command, GetObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  ListObjectsV2Command,
+  GetObjectCommand,
+} from "@aws-sdk/client-s3";
 
 /**
  * Business List Search - CONTACTS with Company Data
@@ -12,14 +16,21 @@ import { S3Client, ListObjectsV2Command, GetObjectCommand } from "@aws-sdk/clien
  */
 
 const APOLLO_API_BASE = "https://api.apollo.io/v1";
-const APOLLO_API_KEY = process.env.APOLLO_IO_API_KEY || process.env.NEXT_PUBLIC_APOLLO_IO_API_KEY || process.env.APOLLO_API_KEY || "";
+const APOLLO_API_KEY =
+  process.env.APOLLO_IO_API_KEY ||
+  process.env.NEXT_PUBLIC_APOLLO_IO_API_KEY ||
+  process.env.APOLLO_API_KEY ||
+  "";
 
 // DO Spaces for USBizData NY datalake
-const SPACES_ENDPOINT = process.env.SPACES_ENDPOINT || "https://nyc3.digitaloceanspaces.com";
+const SPACES_ENDPOINT =
+  process.env.SPACES_ENDPOINT || "https://nyc3.digitaloceanspaces.com";
 const SPACES_REGION = process.env.SPACES_REGION || "nyc3";
 const SPACES_KEY = process.env.SPACES_KEY || process.env.DO_SPACES_KEY || "";
-const SPACES_SECRET = process.env.SPACES_SECRET || process.env.DO_SPACES_SECRET || "";
-const SPACES_BUCKET = process.env.SPACES_BUCKET || process.env.DO_SPACES_BUCKET || "nextier";
+const SPACES_SECRET =
+  process.env.SPACES_SECRET || process.env.DO_SPACES_SECRET || "";
+const SPACES_BUCKET =
+  process.env.SPACES_BUCKET || process.env.DO_SPACES_BUCKET || "nextier";
 
 const s3Client = new S3Client({
   endpoint: SPACES_ENDPOINT,
@@ -96,26 +107,49 @@ export async function POST(request: NextRequest) {
 
     // Determine which sources to query
     const includeApollo = source === "all" || source === "apollo";
-    const includeUSBizData = (source === "all" || source === "usbizdata") &&
-      (!state?.length || state.some((s: string) => s.toUpperCase() === "NY" || s.toLowerCase() === "new york"));
+    const includeUSBizData =
+      (source === "all" || source === "usbizdata") &&
+      (!state?.length ||
+        state.some(
+          (s: string) =>
+            s.toUpperCase() === "NY" || s.toLowerCase() === "new york",
+        ));
 
     // Run both queries in parallel
     const promises: Promise<{ hits: Contact[]; total: number }>[] = [];
 
     if (includeApollo && APOLLO_API_KEY) {
-      promises.push(searchApolloPeople({ name, state, industry, city, title, revenueMin, revenueMax, page, per_page }));
+      promises.push(
+        searchApolloPeople({
+          name,
+          state,
+          industry,
+          city,
+          title,
+          revenueMin,
+          revenueMax,
+          page,
+          per_page,
+        }),
+      );
     }
 
     if (includeUSBizData && SPACES_KEY && SPACES_SECRET) {
-      promises.push(searchUSBizDataNY({ name, city, industry, page, per_page }));
+      promises.push(
+        searchUSBizDataNY({ name, city, industry, page, per_page }),
+      );
     }
 
     if (promises.length === 0) {
-      return NextResponse.json({
-        error: "No data sources available. Configure APOLLO_IO_API_KEY or DO_SPACES credentials.",
-        hits: [],
-        estimatedTotalHits: 0,
-      }, { status: 200 });
+      return NextResponse.json(
+        {
+          error:
+            "No data sources available. Configure APOLLO_IO_API_KEY or DO_SPACES credentials.",
+          hits: [],
+          estimatedTotalHits: 0,
+        },
+        { status: 200 },
+      );
     }
 
     const results = await Promise.allSettled(promises);
@@ -146,7 +180,10 @@ export async function POST(request: NextRequest) {
       per_page,
       total_pages: Math.ceil(totalEstimate / per_page),
       sources: {
-        apollo: includeApollo && APOLLO_API_KEY ? "enabled (275M+ contacts)" : "disabled",
+        apollo:
+          includeApollo && APOLLO_API_KEY
+            ? "enabled (275M+ contacts)"
+            : "disabled",
         usbizdata: includeUSBizData && SPACES_KEY ? "enabled (NY)" : "disabled",
       },
     });
@@ -184,7 +221,17 @@ async function searchApolloPeople(params: {
   page: number;
   per_page: number;
 }): Promise<{ hits: Contact[]; total: number }> {
-  const { name, state, industry, city, title, revenueMin, revenueMax, page, per_page } = params;
+  const {
+    name,
+    state,
+    industry,
+    city,
+    title,
+    revenueMin,
+    revenueMax,
+    page,
+    per_page,
+  } = params;
 
   // Build Apollo PEOPLE search parameters
   // Include reveal flags to get actual emails/phones (costs credits but returns real data)
@@ -269,7 +316,11 @@ async function searchApolloPeople(params: {
     name?: string;
     title?: string;
     email?: string;
-    phone_numbers?: Array<{ sanitized_number?: string; raw_number?: string; type?: string }>;
+    phone_numbers?: Array<{
+      sanitized_number?: string;
+      raw_number?: string;
+      type?: string;
+    }>;
     city?: string;
     state?: string;
     country?: string;
@@ -297,16 +348,23 @@ async function searchApolloPeople(params: {
   const hits: Contact[] = (data.people || []).map((person: ApolloPerson) => {
     // Extract phones - separate direct and mobile
     const phones = person.phone_numbers || [];
-    const directPhone = phones.find(p => p.type === "work_direct" || p.type === "work" || p.type === "direct")?.sanitized_number
-      || phones.find(p => p.type === "work_hq")?.sanitized_number
-      || person.organization?.sanitized_phone
-      || person.organization?.phone
-      || phones[0]?.sanitized_number
-      || phones[0]?.raw_number
-      || "";
-    const mobilePhone = phones.find(p => p.type === "mobile" || p.type === "personal")?.sanitized_number
-      || phones.find(p => p.type === "mobile" || p.type === "personal")?.raw_number
-      || "";
+    const directPhone =
+      phones.find(
+        (p) =>
+          p.type === "work_direct" || p.type === "work" || p.type === "direct",
+      )?.sanitized_number ||
+      phones.find((p) => p.type === "work_hq")?.sanitized_number ||
+      person.organization?.sanitized_phone ||
+      person.organization?.phone ||
+      phones[0]?.sanitized_number ||
+      phones[0]?.raw_number ||
+      "";
+    const mobilePhone =
+      phones.find((p) => p.type === "mobile" || p.type === "personal")
+        ?.sanitized_number ||
+      phones.find((p) => p.type === "mobile" || p.type === "personal")
+        ?.raw_number ||
+      "";
 
     // Get company address (from organization, not person)
     const org = person.organization;
@@ -317,20 +375,26 @@ async function searchApolloPeople(params: {
     const companyCountry = org?.country || person.country || "United States";
 
     // Get industry - use first from industries array or fallback
-    const industry = org?.industry || (org?.industries && org.industries[0]) || "";
+    const industry =
+      org?.industry || (org?.industries && org.industries[0]) || "";
 
     return {
       id: person.id,
       firstName: person.first_name || "",
       lastName: person.last_name || "",
-      name: person.name || `${person.first_name || ""} ${person.last_name || ""}`.trim(),
+      name:
+        person.name ||
+        `${person.first_name || ""} ${person.last_name || ""}`.trim(),
       title: person.title || "",
       email: person.email || "",
       phone: directPhone,
       mobile: mobilePhone,
       linkedin_url: person.linkedin_url || "",
       company: org?.name || "",
-      domain: org?.primary_domain || org?.website_url?.replace(/^https?:\/\//, "").replace(/\/$/, "") || "",
+      domain:
+        org?.primary_domain ||
+        org?.website_url?.replace(/^https?:\/\//, "").replace(/\/$/, "") ||
+        "",
       website: org?.website_url || "",
       industry,
       employees: org?.estimated_num_employees || 0,
@@ -390,11 +454,16 @@ async function searchUSBizDataNY(params: {
       if (hits.length >= maxResults) break;
 
       try {
-        const data = await fetchAndParseContacts(file.Key!, {
-          companyName: name,
-          city: city?.[0],
-          sicCode: industry?.[0],
-        }, maxResults - hits.length, skipRecords - recordsFound);
+        const data = await fetchAndParseContacts(
+          file.Key!,
+          {
+            companyName: name,
+            city: city?.[0],
+            sicCode: industry?.[0],
+          },
+          maxResults - hits.length,
+          skipRecords - recordsFound,
+        );
 
         hits.push(...data.records);
         recordsFound += data.totalMatched;
@@ -460,7 +529,11 @@ async function fetchAndParseContacts(
   const headers = parseCsvLine(lines[0]);
 
   // Debug: Log CSV headers to identify address column name (only first time per file)
-  console.log(`[USBizData] CSV ${key} - Headers:`, headers.slice(0, 15).join(", "), headers.length > 15 ? `... (${headers.length} total)` : "");
+  console.log(
+    `[USBizData] CSV ${key} - Headers:`,
+    headers.slice(0, 15).join(", "),
+    headers.length > 15 ? `... (${headers.length} total)` : "",
+  );
 
   const records: Contact[] = [];
   let totalMatched = 0;
@@ -476,7 +549,11 @@ async function fetchAndParseContacts(
 
     // Apply filters
     if (filters.companyName) {
-      const companyName = (row["Company Name"] || row["companyName"] || "").toLowerCase();
+      const companyName = (
+        row["Company Name"] ||
+        row["companyName"] ||
+        ""
+      ).toLowerCase();
       if (!companyName.includes(filters.companyName.toLowerCase())) continue;
     }
 
@@ -498,20 +575,23 @@ async function fetchAndParseContacts(
     }
 
     // Extract contact name parts
-    const fullName = row["Contact Name"] || row["Owner Name"] || row["contactName"] || "";
+    const fullName =
+      row["Contact Name"] || row["Owner Name"] || row["contactName"] || "";
     const nameParts = fullName.split(" ");
-    const firstName = row["First Name"] || row["firstName"] || nameParts[0] || "";
-    const lastName = row["Last Name"] || row["lastName"] || nameParts.slice(1).join(" ") || "";
+    const firstName =
+      row["First Name"] || row["firstName"] || nameParts[0] || "";
+    const lastName =
+      row["Last Name"] || row["lastName"] || nameParts.slice(1).join(" ") || "";
 
     // Debug: Log first record's address fields to verify extraction
     if (records.length === 0) {
       console.log(`[USBizData] First record address check:`, {
         "Street Address": row["Street Address"],
-        "Address": row["Address"],
+        Address: row["Address"],
         "Business Address": row["Business Address"],
-        "City": row["City"],
-        "State": row["State"],
-        "Zip": row["Zip"] || row["Zip Code"],
+        City: row["City"],
+        State: row["State"],
+        Zip: row["Zip"] || row["Zip Code"],
       });
     }
 
@@ -527,19 +607,46 @@ async function fetchAndParseContacts(
       mobile: row["Mobile"] || row["Cell Phone"] || row["cell"] || "",
       linkedin_url: row["LinkedIn URL"] || row["linkedin"] || "",
       company: row["Company Name"] || row["companyName"] || "",
-      domain: (row["Website URL"] || row["website"] || "").replace(/^https?:\/\//, "").replace(/\/$/, ""),
+      domain: (row["Website URL"] || row["website"] || "")
+        .replace(/^https?:\/\//, "")
+        .replace(/\/$/, ""),
       website: row["Website URL"] || row["website"] || "",
-      industry: row["SIC Description"] || row["sicDescription"] || row["Industry"] || "",
-      employees: parseInt(row["Number of Employees"] || row["employeeCount"] || "0") || 0,
-      revenue: parseInt(row["Annual Revenue"] || row["annualRevenue"] || "0") || 0,
+      industry:
+        row["SIC Description"] ||
+        row["sicDescription"] ||
+        row["Industry"] ||
+        "",
+      employees:
+        parseInt(row["Number of Employees"] || row["employeeCount"] || "0") ||
+        0,
+      revenue:
+        parseInt(row["Annual Revenue"] || row["annualRevenue"] || "0") || 0,
       // Address field - check ALL possible column name variations from USBizData CSVs
-      address: row["Street Address"] || row["StreetAddress"] || row["street_address"] ||
-               row["Address"] || row["address"] || row["STREET ADDRESS"] || row["ADDRESS"] ||
-               row["Business Address"] || row["Mailing Address"] || row["Physical Address"] || "",
+      address:
+        row["Street Address"] ||
+        row["StreetAddress"] ||
+        row["street_address"] ||
+        row["Address"] ||
+        row["address"] ||
+        row["STREET ADDRESS"] ||
+        row["ADDRESS"] ||
+        row["Business Address"] ||
+        row["Mailing Address"] ||
+        row["Physical Address"] ||
+        "",
       city: row["City"] || row["city"] || row["CITY"] || "",
       state: row["State"] || row["state"] || row["STATE"] || "NY",
-      zip: row["Zip"] || row["Zip Code"] || row["zip"] || row["ZIP"] || row["ZIP CODE"] ||
-           row["zipCode"] || row["ZipCode"] || row["Postal Code"] || row["postal_code"] || "",
+      zip:
+        row["Zip"] ||
+        row["Zip Code"] ||
+        row["zip"] ||
+        row["ZIP"] ||
+        row["ZIP CODE"] ||
+        row["zipCode"] ||
+        row["ZipCode"] ||
+        row["Postal Code"] ||
+        row["postal_code"] ||
+        "",
       country: "United States",
       source: "usbizdata" as const,
       sourceLabel: "USBizData NY (5.5M)",

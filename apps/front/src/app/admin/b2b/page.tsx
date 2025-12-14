@@ -64,21 +64,21 @@ interface Lead {
 
 // Industry tag colors
 const INDUSTRY_COLORS: Record<string, string> = {
-  "consultants": "bg-purple-600",
-  "telephone": "bg-blue-600",
-  "stereo": "bg-pink-600",
-  "personnel": "bg-green-600",
+  consultants: "bg-purple-600",
+  telephone: "bg-blue-600",
+  stereo: "bg-pink-600",
+  personnel: "bg-green-600",
   "real estate": "bg-amber-600",
-  "insurance": "bg-cyan-600",
-  "restaurant": "bg-red-600",
-  "construction": "bg-orange-600",
-  "healthcare": "bg-emerald-600",
-  "legal": "bg-indigo-600",
-  "retail": "bg-rose-600",
-  "technology": "bg-violet-600",
-  "manufacturing": "bg-slate-600",
-  "finance": "bg-yellow-600",
-  "default": "bg-zinc-600",
+  insurance: "bg-cyan-600",
+  restaurant: "bg-red-600",
+  construction: "bg-orange-600",
+  healthcare: "bg-emerald-600",
+  legal: "bg-indigo-600",
+  retail: "bg-rose-600",
+  technology: "bg-violet-600",
+  manufacturing: "bg-slate-600",
+  finance: "bg-yellow-600",
+  default: "bg-zinc-600",
 };
 
 // Get industry color
@@ -95,10 +95,18 @@ const getIndustryColor = (industry: string | undefined): string => {
 const getTitleIcon = (title: string | undefined) => {
   if (!title) return <Briefcase className="h-3 w-3" />;
   const lower = title.toLowerCase();
-  if (lower.includes("owner") || lower.includes("ceo") || lower.includes("founder")) {
+  if (
+    lower.includes("owner") ||
+    lower.includes("ceo") ||
+    lower.includes("founder")
+  ) {
     return <Crown className="h-3 w-3 text-yellow-400" />;
   }
-  if (lower.includes("president") || lower.includes("director") || lower.includes("vp")) {
+  if (
+    lower.includes("president") ||
+    lower.includes("director") ||
+    lower.includes("vp")
+  ) {
     return <Building className="h-3 w-3 text-blue-400" />;
   }
   if (lower.includes("manager") || lower.includes("partner")) {
@@ -174,7 +182,7 @@ export default function B2BPage() {
 
   // Selection helpers
   const toggleSelect = (id: string) => {
-    setSelectedIds(prev => {
+    setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -186,12 +194,12 @@ export default function B2BPage() {
     if (selectedIds.size === sortedLeads.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(sortedLeads.map(l => l.id)));
+      setSelectedIds(new Set(sortedLeads.map((l) => l.id)));
     }
   };
 
   const selectedLeads = useMemo(() => {
-    return leads.filter(l => selectedIds.has(l.id));
+    return leads.filter((l) => selectedIds.has(l.id));
   }, [leads, selectedIds]);
 
   // Sorted leads
@@ -253,7 +261,7 @@ export default function B2BPage() {
             company,
             title: titleFilter,
             decisionMakersOnly,
-            limit: 100
+            limit: 100,
           }),
         });
 
@@ -262,7 +270,9 @@ export default function B2BPage() {
 
         setLeads(data.leads);
         setTotal(data.total);
-        toast.success(`Found ${data.total} B2B leads from USBizData${decisionMakersOnly ? " (decision makers)" : ""}`);
+        toast.success(
+          `Found ${data.total} B2B leads from USBizData${decisionMakersOnly ? " (decision makers)" : ""}`,
+        );
       } else {
         // Apollo API (all US states - 34M+ records)
         const res = await fetch("/api/business-list/companies", {
@@ -281,38 +291,44 @@ export default function B2BPage() {
         if (data.error && data.hits?.length === 0) throw new Error(data.error);
 
         // Transform Apollo results to Lead format
-        const apolloLeads: Lead[] = (data.hits || []).map((hit: {
-          id: string;
-          name?: string;
-          domain?: string;
-          industry?: string;
-          city?: string;
-          state?: string;
-          phone?: string;
-          employees?: number;
-          revenue?: number;
-        }) => ({
-          id: hit.id || `apollo-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-          first_name: "",
-          last_name: "",
-          title: "",
-          company: hit.name || "",
-          email: hit.domain ? `info@${hit.domain}` : "",
-          phone: hit.phone || "",
-          address: "",
-          city: hit.city || "",
-          state: hit.state || "",
-          zip_code: "",
-          sic_code: "",
-          sic_description: "",
-          industry: hit.industry || "",
-          revenue: hit.revenue ? `$${(hit.revenue / 100).toLocaleString()}` : "",
-          employees: hit.employees?.toString() || "",
-          is_decision_maker: false, // Will be enriched later
-          property_id: null,
-          metadata: { source: "apollo", domain: hit.domain },
-          created_at: new Date().toISOString(),
-        }));
+        const apolloLeads: Lead[] = (data.hits || []).map(
+          (hit: {
+            id: string;
+            name?: string;
+            domain?: string;
+            industry?: string;
+            city?: string;
+            state?: string;
+            phone?: string;
+            employees?: number;
+            revenue?: number;
+          }) => ({
+            id:
+              hit.id ||
+              `apollo-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+            first_name: "",
+            last_name: "",
+            title: "",
+            company: hit.name || "",
+            email: hit.domain ? `info@${hit.domain}` : "",
+            phone: hit.phone || "",
+            address: "",
+            city: hit.city || "",
+            state: hit.state || "",
+            zip_code: "",
+            sic_code: "",
+            sic_description: "",
+            industry: hit.industry || "",
+            revenue: hit.revenue
+              ? `$${(hit.revenue / 100).toLocaleString()}`
+              : "",
+            employees: hit.employees?.toString() || "",
+            is_decision_maker: false, // Will be enriched later
+            property_id: null,
+            metadata: { source: "apollo", domain: hit.domain },
+            created_at: new Date().toISOString(),
+          }),
+        );
 
         // If decision makers filter is on, we need to search for people at these companies
         if (decisionMakersOnly && apolloLeads.length > 0) {
@@ -326,7 +342,9 @@ export default function B2BPage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                   company_name: lead.company ? [lead.company] : undefined,
-                  title: titleFilter ? [titleFilter] : ["owner", "ceo", "founder", "president", "director"],
+                  title: titleFilter
+                    ? [titleFilter]
+                    : ["owner", "ceo", "founder", "president", "director"],
                 }),
               });
 
@@ -356,7 +374,9 @@ export default function B2BPage() {
         }
 
         setTotal(data.estimatedTotalHits || apolloLeads.length);
-        toast.success(`Found ${data.estimatedTotalHits || apolloLeads.length} companies from Apollo API`);
+        toast.success(
+          `Found ${data.estimatedTotalHits || apolloLeads.length} companies from Apollo API`,
+        );
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Search failed");
@@ -435,13 +455,19 @@ export default function B2BPage() {
 
   // Batch Skip Trace (RealEstateAPI)
   const batchSkipTrace = async () => {
-    const toProcess = selectedLeads.filter(l => l.first_name && l.last_name);
+    const toProcess = selectedLeads.filter((l) => l.first_name && l.last_name);
     if (toProcess.length === 0) {
       toast.error("No leads selected with names for skip trace");
       return;
     }
 
-    setBatchOperation({ type: "skip-trace", current: 0, total: toProcess.length, success: 0, failed: 0 });
+    setBatchOperation({
+      type: "skip-trace",
+      current: 0,
+      total: toProcess.length,
+      success: 0,
+      failed: 0,
+    });
 
     let success = 0;
     let failed = 0;
@@ -465,11 +491,21 @@ export default function B2BPage() {
         if (res.ok) {
           const data = await res.json();
           // Update lead with skip trace data
-          setLeads(prev => prev.map(l =>
-            l.id === lead.id
-              ? { ...l, phone: data.phone || l.phone, metadata: { ...l.metadata, skipTraced: true, skipTraceData: data } }
-              : l
-          ));
+          setLeads((prev) =>
+            prev.map((l) =>
+              l.id === lead.id
+                ? {
+                    ...l,
+                    phone: data.phone || l.phone,
+                    metadata: {
+                      ...l.metadata,
+                      skipTraced: true,
+                      skipTraceData: data,
+                    },
+                  }
+                : l,
+            ),
+          );
           success++;
         } else {
           failed++;
@@ -478,23 +514,44 @@ export default function B2BPage() {
         failed++;
       }
 
-      setBatchOperation(prev => ({ ...prev, current: i + 1, success, failed }));
-      await new Promise(r => setTimeout(r, 300)); // Rate limit
+      setBatchOperation((prev) => ({
+        ...prev,
+        current: i + 1,
+        success,
+        failed,
+      }));
+      await new Promise((r) => setTimeout(r, 300)); // Rate limit
     }
 
-    setBatchOperation({ type: null, current: 0, total: 0, success: 0, failed: 0 });
+    setBatchOperation({
+      type: null,
+      current: 0,
+      total: 0,
+      success: 0,
+      failed: 0,
+    });
     toast.success(`Skip trace complete: ${success} success, ${failed} failed`);
   };
 
   // Batch Apollo Enrich
   const batchApolloEnrich = async () => {
-    const toProcess = selectedLeads.filter(l => l.first_name && l.last_name && (l.company || l.email));
+    const toProcess = selectedLeads.filter(
+      (l) => l.first_name && l.last_name && (l.company || l.email),
+    );
     if (toProcess.length === 0) {
-      toast.error("No leads selected with sufficient data for Apollo enrichment");
+      toast.error(
+        "No leads selected with sufficient data for Apollo enrichment",
+      );
       return;
     }
 
-    setBatchOperation({ type: "apollo", current: 0, total: toProcess.length, success: 0, failed: 0 });
+    setBatchOperation({
+      type: "apollo",
+      current: 0,
+      total: toProcess.length,
+      success: 0,
+      failed: 0,
+    });
 
     let success = 0;
     let failed = 0;
@@ -518,16 +575,22 @@ export default function B2BPage() {
         if (res.ok) {
           const data = await res.json();
           if (data.success && data.enrichedData) {
-            setLeads(prev => prev.map(l =>
-              l.id === lead.id
-                ? {
-                    ...l,
-                    email: data.enrichedData.email || l.email,
-                    title: data.enrichedData.title || l.title,
-                    metadata: { ...l.metadata, apolloEnriched: true, apolloData: data.enrichedData }
-                  }
-                : l
-            ));
+            setLeads((prev) =>
+              prev.map((l) =>
+                l.id === lead.id
+                  ? {
+                      ...l,
+                      email: data.enrichedData.email || l.email,
+                      title: data.enrichedData.title || l.title,
+                      metadata: {
+                        ...l.metadata,
+                        apolloEnriched: true,
+                        apolloData: data.enrichedData,
+                      },
+                    }
+                  : l,
+              ),
+            );
             success++;
           } else {
             failed++;
@@ -539,23 +602,42 @@ export default function B2BPage() {
         failed++;
       }
 
-      setBatchOperation(prev => ({ ...prev, current: i + 1, success, failed }));
-      await new Promise(r => setTimeout(r, 500)); // Rate limit
+      setBatchOperation((prev) => ({
+        ...prev,
+        current: i + 1,
+        success,
+        failed,
+      }));
+      await new Promise((r) => setTimeout(r, 500)); // Rate limit
     }
 
-    setBatchOperation({ type: null, current: 0, total: 0, success: 0, failed: 0 });
-    toast.success(`Apollo enrichment complete: ${success} success, ${failed} failed`);
+    setBatchOperation({
+      type: null,
+      current: 0,
+      total: 0,
+      success: 0,
+      failed: 0,
+    });
+    toast.success(
+      `Apollo enrichment complete: ${success} success, ${failed} failed`,
+    );
   };
 
   // Full Pipeline: Skip Trace → Apollo
   const runFullPipeline = async () => {
-    const toProcess = selectedLeads.filter(l => l.first_name && l.last_name);
+    const toProcess = selectedLeads.filter((l) => l.first_name && l.last_name);
     if (toProcess.length === 0) {
       toast.error("No leads selected for pipeline");
       return;
     }
 
-    setBatchOperation({ type: "pipeline", current: 0, total: toProcess.length * 2, success: 0, failed: 0 });
+    setBatchOperation({
+      type: "pipeline",
+      current: 0,
+      total: toProcess.length * 2,
+      success: 0,
+      failed: 0,
+    });
 
     let success = 0;
     let failed = 0;
@@ -580,17 +662,30 @@ export default function B2BPage() {
 
         if (skipRes.ok) {
           const skipData = await skipRes.json();
-          setLeads(prev => prev.map(l =>
-            l.id === lead.id
-              ? { ...l, phone: skipData.phone || l.phone, metadata: { ...l.metadata, skipTraced: true } }
-              : l
-          ));
+          setLeads((prev) =>
+            prev.map((l) =>
+              l.id === lead.id
+                ? {
+                    ...l,
+                    phone: skipData.phone || l.phone,
+                    metadata: { ...l.metadata, skipTraced: true },
+                  }
+                : l,
+            ),
+          );
           success++;
         }
-      } catch { /* continue */ }
+      } catch {
+        /* continue */
+      }
 
-      setBatchOperation(prev => ({ ...prev, current: i * 2 + 1, success, failed }));
-      await new Promise(r => setTimeout(r, 300));
+      setBatchOperation((prev) => ({
+        ...prev,
+        current: i * 2 + 1,
+        success,
+        failed,
+      }));
+      await new Promise((r) => setTimeout(r, 300));
 
       // Step 2: Apollo Enrich
       if (lead.company || lead.email) {
@@ -611,11 +706,16 @@ export default function B2BPage() {
           if (apolloRes.ok) {
             const apolloData = await apolloRes.json();
             if (apolloData.success) {
-              setLeads(prev => prev.map(l =>
-                l.id === lead.id
-                  ? { ...l, metadata: { ...l.metadata, apolloEnriched: true } }
-                  : l
-              ));
+              setLeads((prev) =>
+                prev.map((l) =>
+                  l.id === lead.id
+                    ? {
+                        ...l,
+                        metadata: { ...l.metadata, apolloEnriched: true },
+                      }
+                    : l,
+                ),
+              );
               success++;
             } else {
               failed++;
@@ -628,12 +728,25 @@ export default function B2BPage() {
         }
       }
 
-      setBatchOperation(prev => ({ ...prev, current: i * 2 + 2, success, failed }));
-      await new Promise(r => setTimeout(r, 500));
+      setBatchOperation((prev) => ({
+        ...prev,
+        current: i * 2 + 2,
+        success,
+        failed,
+      }));
+      await new Promise((r) => setTimeout(r, 500));
     }
 
-    setBatchOperation({ type: null, current: 0, total: 0, success: 0, failed: 0 });
-    toast.success(`Pipeline complete: ${success} enrichments, ${failed} failed`);
+    setBatchOperation({
+      type: null,
+      current: 0,
+      total: 0,
+      success: 0,
+      failed: 0,
+    });
+    toast.success(
+      `Pipeline complete: ${success} enrichments, ${failed} failed`,
+    );
   };
 
   // Export to DO Spaces
@@ -644,15 +757,36 @@ export default function B2BPage() {
       return;
     }
 
-    setBatchOperation({ type: "export", current: 0, total: 1, success: 0, failed: 0 });
+    setBatchOperation({
+      type: "export",
+      current: 0,
+      total: 1,
+      success: 0,
+      failed: 0,
+    });
 
     try {
       // Generate CSV content
-      const headers = ["id", "first_name", "last_name", "title", "company", "email", "phone", "address", "city", "state", "zip_code", "industry", "sic_code", "is_decision_maker"];
+      const headers = [
+        "id",
+        "first_name",
+        "last_name",
+        "title",
+        "company",
+        "email",
+        "phone",
+        "address",
+        "city",
+        "state",
+        "zip_code",
+        "industry",
+        "sic_code",
+        "is_decision_maker",
+      ];
       const csvRows = [headers.join(",")];
 
       for (const lead of toExport) {
-        const row = headers.map(h => {
+        const row = headers.map((h) => {
           const val = lead[h as keyof Lead];
           if (val === null || val === undefined) return "";
           const str = String(val).replace(/"/g, '""');
@@ -685,17 +819,31 @@ export default function B2BPage() {
         a.click();
         URL.revokeObjectURL(url);
 
-        setBatchOperation(prev => ({ ...prev, current: 1, success: 1 }));
+        setBatchOperation((prev) => ({ ...prev, current: 1, success: 1 }));
       } else {
         throw new Error("Upload failed");
       }
     } catch (error) {
       toast.error("Export failed - downloading locally instead");
       // Fallback: local download only
-      const headers = ["id", "first_name", "last_name", "title", "company", "email", "phone", "address", "city", "state", "zip_code", "industry", "sic_code"];
+      const headers = [
+        "id",
+        "first_name",
+        "last_name",
+        "title",
+        "company",
+        "email",
+        "phone",
+        "address",
+        "city",
+        "state",
+        "zip_code",
+        "industry",
+        "sic_code",
+      ];
       const csvRows = [headers.join(",")];
       for (const lead of toExport) {
-        const row = headers.map(h => {
+        const row = headers.map((h) => {
           const val = lead[h as keyof Lead];
           if (val === null || val === undefined) return "";
           const str = String(val).replace(/"/g, '""');
@@ -712,7 +860,13 @@ export default function B2BPage() {
       URL.revokeObjectURL(url);
     }
 
-    setBatchOperation({ type: null, current: 0, total: 0, success: 0, failed: 0 });
+    setBatchOperation({
+      type: null,
+      current: 0,
+      total: 0,
+      success: 0,
+      failed: 0,
+    });
   };
 
   return (
@@ -721,13 +875,16 @@ export default function B2BPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className={`p-2.5 rounded-lg ${dataSource === "ny-usbiz" ? "bg-blue-600" : "bg-purple-600"}`}>
+            <div
+              className={`p-2.5 rounded-lg ${dataSource === "ny-usbiz" ? "bg-blue-600" : "bg-purple-600"}`}
+            >
               <Building2 className="h-6 w-6 text-white" />
             </div>
             <div>
               <h1 className="text-2xl font-bold">B2B Lead Enrichment</h1>
               <p className="text-zinc-400 text-sm">
-                Search B2B leads → Enrich with Apollo + RealEstateAPI → Get contact + property details
+                Search B2B leads → Enrich with Apollo + RealEstateAPI → Get
+                contact + property details
               </p>
             </div>
           </div>
@@ -787,7 +944,9 @@ export default function B2BPage() {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-5 gap-4">
               <div>
-                <Label className="text-zinc-400 text-xs" htmlFor="state-select">State</Label>
+                <Label className="text-zinc-400 text-xs" htmlFor="state-select">
+                  State
+                </Label>
                 <select
                   id="state-select"
                   title="Select state"
@@ -863,7 +1022,9 @@ export default function B2BPage() {
                   </Label>
                 </div>
                 <div className="text-xs text-zinc-500">
-                  {decisionMakersOnly ? "Owner, CEO, VP, Director, Partner, Manager" : "All contacts"}
+                  {decisionMakersOnly
+                    ? "Owner, CEO, VP, Director, Partner, Manager"
+                    : "All contacts"}
                 </div>
               </div>
               <Button
@@ -873,7 +1034,8 @@ export default function B2BPage() {
                 className="bg-purple-600 hover:bg-purple-700"
               >
                 <Zap className="h-4 w-4 mr-2" />
-                Enrich All ({leads.filter(l => !l.property_id && l.address).length})
+                Enrich All (
+                {leads.filter((l) => !l.property_id && l.address).length})
               </Button>
             </div>
           </CardContent>
@@ -895,20 +1057,32 @@ export default function B2BPage() {
                       <div className="flex-1">
                         <div className="flex justify-between text-xs text-zinc-400 mb-1">
                           <span>
-                            {batchOperation.type === "skip-trace" && "Skip Tracing..."}
-                            {batchOperation.type === "apollo" && "Apollo Enriching..."}
-                            {batchOperation.type === "pipeline" && "Running Pipeline..."}
+                            {batchOperation.type === "skip-trace" &&
+                              "Skip Tracing..."}
+                            {batchOperation.type === "apollo" &&
+                              "Apollo Enriching..."}
+                            {batchOperation.type === "pipeline" &&
+                              "Running Pipeline..."}
                             {batchOperation.type === "export" && "Exporting..."}
                           </span>
-                          <span>{batchOperation.current}/{batchOperation.total}</span>
+                          <span>
+                            {batchOperation.current}/{batchOperation.total}
+                          </span>
                         </div>
                         <Progress
-                          value={(batchOperation.current / batchOperation.total) * 100}
+                          value={
+                            (batchOperation.current / batchOperation.total) *
+                            100
+                          }
                           className="h-2"
                         />
                         <div className="flex gap-3 text-xs mt-1">
-                          <span className="text-green-400">{batchOperation.success} success</span>
-                          <span className="text-red-400">{batchOperation.failed} failed</span>
+                          <span className="text-green-400">
+                            {batchOperation.success} success
+                          </span>
+                          <span className="text-red-400">
+                            {batchOperation.failed} failed
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -979,9 +1153,13 @@ export default function B2BPage() {
                   className="ml-2 h-6 px-2 text-xs text-zinc-400 hover:text-white"
                 >
                   {selectedIds.size === sortedLeads.length ? (
-                    <><CheckSquare className="h-3 w-3 mr-1" /> Deselect All</>
+                    <>
+                      <CheckSquare className="h-3 w-3 mr-1" /> Deselect All
+                    </>
                   ) : (
-                    <><Square className="h-3 w-3 mr-1" /> Select All</>
+                    <>
+                      <Square className="h-3 w-3 mr-1" /> Select All
+                    </>
                   )}
                 </Button>
               )}
@@ -990,20 +1168,22 @@ export default function B2BPage() {
               {/* Sort Buttons */}
               <div className="flex items-center gap-1 text-xs">
                 <span className="text-zinc-500 mr-1">Sort:</span>
-                {(["company", "name", "city", "title"] as SortField[]).map((field) => (
-                  <Button
-                    key={field}
-                    size="sm"
-                    variant={sortField === field ? "default" : "ghost"}
-                    onClick={() => toggleSort(field)}
-                    className={`h-7 px-2 text-xs ${sortField === field ? "bg-blue-600" : "text-zinc-400"}`}
-                  >
-                    {field.charAt(0).toUpperCase() + field.slice(1)}
-                    {sortField === field && (
-                      <ArrowUpDown className="h-3 w-3 ml-1" />
-                    )}
-                  </Button>
-                ))}
+                {(["company", "name", "city", "title"] as SortField[]).map(
+                  (field) => (
+                    <Button
+                      key={field}
+                      size="sm"
+                      variant={sortField === field ? "default" : "ghost"}
+                      onClick={() => toggleSort(field)}
+                      className={`h-7 px-2 text-xs ${sortField === field ? "bg-blue-600" : "text-zinc-400"}`}
+                    >
+                      {field.charAt(0).toUpperCase() + field.slice(1)}
+                      {sortField === field && (
+                        <ArrowUpDown className="h-3 w-3 ml-1" />
+                      )}
+                    </Button>
+                  ),
+                )}
               </div>
               {/* View Toggle */}
               <div className="flex items-center gap-1 border border-zinc-700 rounded p-0.5">
@@ -1062,13 +1242,19 @@ export default function B2BPage() {
                         <Crown className="h-4 w-4 text-yellow-400 flex-shrink-0" />
                       )}
                     </div>
-                    <p className="text-zinc-300 text-sm">{lead.first_name} {lead.last_name}</p>
+                    <p className="text-zinc-300 text-sm">
+                      {lead.first_name} {lead.last_name}
+                    </p>
                     {lead.title && (
-                      <p className="text-zinc-500 text-xs truncate">{lead.title}</p>
+                      <p className="text-zinc-500 text-xs truncate">
+                        {lead.title}
+                      </p>
                     )}
                     <div className="flex flex-wrap gap-1 mt-2">
                       {lead.industry && (
-                        <Badge className={`${getIndustryColor(lead.industry)} text-white text-[10px] px-1.5 py-0`}>
+                        <Badge
+                          className={`${getIndustryColor(lead.industry)} text-white text-[10px] px-1.5 py-0`}
+                        >
                           <Tag className="h-2.5 w-2.5 mr-0.5" />
                           {lead.industry.split(" ").slice(0, 2).join(" ")}
                         </Badge>
@@ -1079,13 +1265,28 @@ export default function B2BPage() {
                           Enriched
                         </Badge>
                       ) : lead.address ? (
-                        <Badge className="bg-yellow-600 text-white text-[10px] px-1.5 py-0">Ready</Badge>
+                        <Badge className="bg-yellow-600 text-white text-[10px] px-1.5 py-0">
+                          Ready
+                        </Badge>
                       ) : null}
                     </div>
                     <div className="mt-3 pt-2 border-t border-zinc-700 text-xs text-zinc-500 space-y-1">
-                      {lead.email && <p className="flex items-center gap-1 truncate"><Mail className="h-3 w-3" />{lead.email}</p>}
-                      {lead.phone && <p className="flex items-center gap-1"><Phone className="h-3 w-3" />{lead.phone}</p>}
-                      <p className="flex items-center gap-1"><MapPin className="h-3 w-3" />{lead.city}, {lead.state}</p>
+                      {lead.email && (
+                        <p className="flex items-center gap-1 truncate">
+                          <Mail className="h-3 w-3" />
+                          {lead.email}
+                        </p>
+                      )}
+                      {lead.phone && (
+                        <p className="flex items-center gap-1">
+                          <Phone className="h-3 w-3" />
+                          {lead.phone}
+                        </p>
+                      )}
+                      <p className="flex items-center gap-1">
+                        <MapPin className="h-3 w-3" />
+                        {lead.city}, {lead.state}
+                      </p>
                     </div>
                     <Button
                       onClick={() => enrichLead(lead)}
@@ -1093,7 +1294,11 @@ export default function B2BPage() {
                       size="sm"
                       className={`w-full mt-3 h-7 text-xs ${lead.property_id ? "bg-zinc-700" : "bg-purple-600 hover:bg-purple-700"}`}
                     >
-                      {enrichingId === lead.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Zap className="h-3 w-3 mr-1" />}
+                      {enrichingId === lead.id ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Zap className="h-3 w-3 mr-1" />
+                      )}
                       {lead.property_id ? "Re-Enrich" : "Enrich"}
                     </Button>
                   </div>
@@ -1135,7 +1340,9 @@ export default function B2BPage() {
                               </Badge>
                             )}
                             {lead.industry && (
-                              <Badge className={`${getIndustryColor(lead.industry)} text-white`}>
+                              <Badge
+                                className={`${getIndustryColor(lead.industry)} text-white`}
+                              >
                                 <Tag className="h-3 w-3 mr-1" />
                                 {lead.industry.split(" ").slice(0, 2).join(" ")}
                               </Badge>
@@ -1157,15 +1364,25 @@ export default function B2BPage() {
                             )}
                           </div>
                           <Button
-                            onClick={(e) => { e.stopPropagation(); enrichLead(lead); }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              enrichLead(lead);
+                            }}
                             disabled={enrichingId === lead.id || !lead.address}
                             size="sm"
-                            className={lead.property_id ? "bg-zinc-700 hover:bg-zinc-600" : "bg-purple-600 hover:bg-purple-700"}
+                            className={
+                              lead.property_id
+                                ? "bg-zinc-700 hover:bg-zinc-600"
+                                : "bg-purple-600 hover:bg-purple-700"
+                            }
                           >
                             {enrichingId === lead.id ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
-                              <><Zap className="h-4 w-4 mr-1" />{lead.property_id ? "Re-Enrich" : "Enrich"}</>
+                              <>
+                                <Zap className="h-4 w-4 mr-1" />
+                                {lead.property_id ? "Re-Enrich" : "Enrich"}
+                              </>
                             )}
                           </Button>
                         </div>
@@ -1176,29 +1393,79 @@ export default function B2BPage() {
                               <UserSearch className="h-3 w-3 text-zinc-500" />
                               {lead.first_name} {lead.last_name}
                             </p>
-                            {lead.title && <p className="text-zinc-500 text-xs ml-4">{lead.title}</p>}
-                            {lead.email && <p className="text-zinc-500 flex items-center gap-1"><Mail className="h-3 w-3" /> {lead.email}</p>}
-                            {lead.phone && <p className="text-zinc-500 flex items-center gap-1"><Phone className="h-3 w-3" /> {lead.phone}</p>}
+                            {lead.title && (
+                              <p className="text-zinc-500 text-xs ml-4">
+                                {lead.title}
+                              </p>
+                            )}
+                            {lead.email && (
+                              <p className="text-zinc-500 flex items-center gap-1">
+                                <Mail className="h-3 w-3" /> {lead.email}
+                              </p>
+                            )}
+                            {lead.phone && (
+                              <p className="text-zinc-500 flex items-center gap-1">
+                                <Phone className="h-3 w-3" /> {lead.phone}
+                              </p>
+                            )}
                           </div>
                           <div>
-                            {lead.address && <p className="text-zinc-400 flex items-center gap-1"><MapPin className="h-3 w-3" />{lead.address}</p>}
-                            <p className="text-zinc-500">{lead.city}, {lead.state} {lead.zip_code}</p>
+                            {lead.address && (
+                              <p className="text-zinc-400 flex items-center gap-1">
+                                <MapPin className="h-3 w-3" />
+                                {lead.address}
+                              </p>
+                            )}
+                            <p className="text-zinc-500">
+                              {lead.city}, {lead.state} {lead.zip_code}
+                            </p>
                           </div>
                           <div className="text-xs text-zinc-500">
                             {lead.sic_code && <p>SIC: {lead.sic_code}</p>}
-                            {lead.employees && <p className="flex items-center gap-1"><Users className="h-3 w-3" /> {lead.employees} employees</p>}
-                            {lead.revenue && <p className="flex items-center gap-1"><DollarSign className="h-3 w-3" /> {lead.revenue}</p>}
+                            {lead.employees && (
+                              <p className="flex items-center gap-1">
+                                <Users className="h-3 w-3" /> {lead.employees}{" "}
+                                employees
+                              </p>
+                            )}
+                            {lead.revenue && (
+                              <p className="flex items-center gap-1">
+                                <DollarSign className="h-3 w-3" />{" "}
+                                {lead.revenue}
+                              </p>
+                            )}
                           </div>
                         </div>
 
                         {enrichedProperties[lead.id] && (
                           <div className="mt-3 p-3 bg-zinc-700/50 rounded-lg">
-                            <p className="text-xs text-zinc-400 mb-2">Property Details:</p>
+                            <p className="text-xs text-zinc-400 mb-2">
+                              Property Details:
+                            </p>
                             <div className="flex gap-4 text-sm flex-wrap">
-                              <span className="text-green-400">Value: ${sf(enrichedProperties[lead.id].estimated_value) || "N/A"}</span>
-                              <span className="text-cyan-400">Equity: {enrichedProperties[lead.id].equity_percent || 0}%</span>
-                              <span className="text-purple-400">${sf(enrichedProperties[lead.id].equity_amount) || "N/A"}</span>
-                              <span className="text-zinc-400">Owner: {enrichedProperties[lead.id].owner_first_name} {enrichedProperties[lead.id].owner_last_name}</span>
+                              <span className="text-green-400">
+                                Value: $
+                                {sf(
+                                  enrichedProperties[lead.id].estimated_value,
+                                ) || "N/A"}
+                              </span>
+                              <span className="text-cyan-400">
+                                Equity:{" "}
+                                {enrichedProperties[lead.id].equity_percent ||
+                                  0}
+                                %
+                              </span>
+                              <span className="text-purple-400">
+                                $
+                                {sf(
+                                  enrichedProperties[lead.id].equity_amount,
+                                ) || "N/A"}
+                              </span>
+                              <span className="text-zinc-400">
+                                Owner:{" "}
+                                {enrichedProperties[lead.id].owner_first_name}{" "}
+                                {enrichedProperties[lead.id].owner_last_name}
+                              </span>
                             </div>
                           </div>
                         )}

@@ -10,7 +10,10 @@ import { auth } from "@clerk/nextjs/server";
  */
 
 // B2B Sectors with SIC code prefixes
-const BUSINESS_SECTORS: Record<string, { name: string; sicPrefixes: string[] }> = {
+const BUSINESS_SECTORS: Record<
+  string,
+  { name: string; sicPrefixes: string[] }
+> = {
   // Your exact lists
   hotels_motels: {
     name: "Hotels & Motels",
@@ -35,7 +38,20 @@ const BUSINESS_SECTORS: Record<string, { name: string; sicPrefixes: string[] }> 
   },
   healthcare: {
     name: "Healthcare & Medical",
-    sicPrefixes: ["8011", "8021", "8031", "8041", "8042", "8049", "8051", "8052", "8059", "8062", "8063", "8069"],
+    sicPrefixes: [
+      "8011",
+      "8021",
+      "8031",
+      "8041",
+      "8042",
+      "8049",
+      "8051",
+      "8052",
+      "8059",
+      "8062",
+      "8063",
+      "8069",
+    ],
   },
   restaurants_food: {
     name: "Restaurants & Food Service",
@@ -47,7 +63,28 @@ const BUSINESS_SECTORS: Record<string, { name: string; sicPrefixes: string[] }> 
   },
   manufacturing: {
     name: "Manufacturing",
-    sicPrefixes: ["20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33", "34", "35", "36", "37", "38", "39"],
+    sicPrefixes: [
+      "20",
+      "21",
+      "22",
+      "23",
+      "24",
+      "25",
+      "26",
+      "27",
+      "28",
+      "29",
+      "30",
+      "31",
+      "32",
+      "33",
+      "34",
+      "35",
+      "36",
+      "37",
+      "38",
+      "39",
+    ],
   },
   transportation: {
     name: "Transportation & Logistics",
@@ -59,7 +96,24 @@ const BUSINESS_SECTORS: Record<string, { name: string; sicPrefixes: string[] }> 
   },
   automotive: {
     name: "Automotive",
-    sicPrefixes: ["5511", "5521", "5531", "5541", "5551", "5561", "5571", "5599", "7532", "7533", "7534", "7535", "7536", "7537", "7538", "7539"],
+    sicPrefixes: [
+      "5511",
+      "5521",
+      "5531",
+      "5541",
+      "5551",
+      "5561",
+      "5571",
+      "5599",
+      "7532",
+      "7533",
+      "7534",
+      "7535",
+      "7536",
+      "7537",
+      "7538",
+      "7539",
+    ],
   },
   financial_services: {
     name: "Financial Services",
@@ -67,7 +121,18 @@ const BUSINESS_SECTORS: Record<string, { name: string; sicPrefixes: string[] }> 
   },
   real_estate_biz: {
     name: "Real Estate Businesses",
-    sicPrefixes: ["6512", "6513", "6514", "6515", "6517", "6519", "6531", "6541", "6552", "6553"],
+    sicPrefixes: [
+      "6512",
+      "6513",
+      "6514",
+      "6515",
+      "6517",
+      "6519",
+      "6531",
+      "6541",
+      "6552",
+      "6553",
+    ],
   },
   construction: {
     name: "Construction & Contractors",
@@ -80,7 +145,10 @@ export async function GET(): Promise<NextResponse> {
     const { userId } = await auth();
 
     if (!db) {
-      return NextResponse.json({ error: "Database not configured" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Database not configured" },
+        { status: 500 },
+      );
     }
 
     // Get total count from businesses table
@@ -92,21 +160,24 @@ export async function GET(): Promise<NextResponse> {
     const totalRecords = totalResult?.count || 0;
 
     // Get counts by SIC code prefix for each sector
-    const sectorStats: Record<string, {
-      sectorId: string;
-      name: string;
-      totalRecords: number;
-      withPhone: number;
-      withEmail: number;
-      withOwner: number;
-      enriched: number;
-    }> = {};
+    const sectorStats: Record<
+      string,
+      {
+        sectorId: string;
+        name: string;
+        totalRecords: number;
+        withPhone: number;
+        withEmail: number;
+        withOwner: number;
+        enriched: number;
+      }
+    > = {};
 
     // Query each sector's counts
     for (const [sectorId, sector] of Object.entries(BUSINESS_SECTORS)) {
       // Build OR conditions for all SIC prefixes
-      const sicConditions = sector.sicPrefixes.map(prefix =>
-        sql`${businesses.sicCode} LIKE ${prefix + '%'}`
+      const sicConditions = sector.sicPrefixes.map(
+        (prefix) => sql`${businesses.sicCode} LIKE ${prefix + "%"}`,
       );
 
       const userCondition = userId ? eq(businesses.userId, userId) : sql`1=1`;
@@ -121,7 +192,9 @@ export async function GET(): Promise<NextResponse> {
           enriched: sql<number>`count(CASE WHEN ${businesses.apolloMatched} = true OR ${businesses.skipTraced} = true THEN 1 END)`,
         })
         .from(businesses)
-        .where(sql`(${sql.join(sicConditions, sql` OR `)}) AND ${userCondition}`);
+        .where(
+          sql`(${sql.join(sicConditions, sql` OR `)}) AND ${userCondition}`,
+        );
 
       sectorStats[sectorId] = {
         sectorId,
@@ -149,22 +222,27 @@ export async function GET(): Promise<NextResponse> {
 
     return NextResponse.json({
       sectors: sectorStats,
-      topSicCodes: topSicCodes.map(s => ({
+      topSicCodes: topSicCodes.map((s) => ({
         sicCode: s.sicCode,
         sicDescription: s.sicDescription,
         count: s.count,
       })),
       totals: {
         totalRecords,
-        sectorsWithData: Object.values(sectorStats).filter(s => s.totalRecords > 0).length,
+        sectorsWithData: Object.values(sectorStats).filter(
+          (s) => s.totalRecords > 0,
+        ).length,
         source: "database",
       },
     });
   } catch (error) {
     console.error("[Sector Stats] Error:", error);
-    return NextResponse.json({
-      error: "Failed to compute sector stats",
-      details: error instanceof Error ? error.message : "Unknown error",
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: "Failed to compute sector stats",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
   }
 }

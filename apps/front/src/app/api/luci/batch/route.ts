@@ -22,30 +22,60 @@ const MAX_PER_CAMPAIGN = 1000; // Max 1,000 per campaign
 const PAUSE_BETWEEN_BATCHES_MS = 2000; // 2 second pause between batches
 
 // RealEstateAPI
-const REALESTATE_API_KEY = process.env.REAL_ESTATE_API_KEY || process.env.REALESTATE_API_KEY || "";
+const REALESTATE_API_KEY =
+  process.env.REAL_ESTATE_API_KEY || process.env.REALESTATE_API_KEY || "";
 const SKIP_TRACE_URL = "https://api.realestateapi.com/v1/SkipTrace";
 const PROPERTY_SEARCH_URL = "https://api.realestateapi.com/v2/PropertySearch";
 
 // Job status tracking (in production, use Redis or DB)
-const jobStatus: Record<string, {
-  status: "running" | "paused" | "completed" | "error";
-  totalProcessed: number;
-  totalBatches: number;
-  currentBatch: number;
-  lastProcessedId: string | null;
-  results: any;
-  startedAt: string;
-  pausedAt?: string;
-  completedAt?: string;
-  error?: string;
-}> = {};
+const jobStatus: Record<
+  string,
+  {
+    status: "running" | "paused" | "completed" | "error";
+    totalProcessed: number;
+    totalBatches: number;
+    currentBatch: number;
+    lastProcessedId: string | null;
+    results: any;
+    startedAt: string;
+    pausedAt?: string;
+    completedAt?: string;
+    error?: string;
+  }
+> = {};
 
 // ============================================================
 // AUTO-TAGGING (same as pipeline)
 // ============================================================
 
-const BLUE_COLLAR_SIC = ["15", "16", "17", "07", "34", "35", "36", "37", "38", "39", "42", "49", "75", "76"];
-const TECH_INTEGRATION_SIC = ["50", "51", "60", "61", "63", "64", "73", "80", "82", "87"];
+const BLUE_COLLAR_SIC = [
+  "15",
+  "16",
+  "17",
+  "07",
+  "34",
+  "35",
+  "36",
+  "37",
+  "38",
+  "39",
+  "42",
+  "49",
+  "75",
+  "76",
+];
+const TECH_INTEGRATION_SIC = [
+  "50",
+  "51",
+  "60",
+  "61",
+  "63",
+  "64",
+  "73",
+  "80",
+  "82",
+  "87",
+];
 
 function generateTags(biz: {
   sicCode: string | null;
@@ -62,11 +92,19 @@ function generateTags(biz: {
   if (BLUE_COLLAR_SIC.includes(sicPrefix)) {
     tags.push("blue-collar");
     score += 1;
-    if (biz.employeeCount && biz.employeeCount >= 5 && biz.employeeCount <= 50) {
+    if (
+      biz.employeeCount &&
+      biz.employeeCount >= 5 &&
+      biz.employeeCount <= 50
+    ) {
       tags.push("acquisition-target");
       score += 2;
     }
-    if (biz.annualRevenue && biz.annualRevenue >= 500000 && biz.annualRevenue <= 10000000) {
+    if (
+      biz.annualRevenue &&
+      biz.annualRevenue >= 500000 &&
+      biz.annualRevenue <= 10000000
+    ) {
       tags.push("sweet-spot-revenue");
       score += 2;
     }
@@ -81,7 +119,11 @@ function generateTags(biz: {
     }
   }
 
-  if (biz.yearsInBusiness && biz.yearsInBusiness >= 5 && biz.yearsInBusiness <= 15) {
+  if (
+    biz.yearsInBusiness &&
+    biz.yearsInBusiness >= 5 &&
+    biz.yearsInBusiness <= 15
+  ) {
     tags.push("exit-prep-timing");
     score += 1;
   }
@@ -99,7 +141,13 @@ function generateTags(biz: {
     }
   }
 
-  if (biz.employeeCount && biz.employeeCount >= 10 && biz.employeeCount <= 100 && biz.annualRevenue && biz.annualRevenue >= 1000000) {
+  if (
+    biz.employeeCount &&
+    biz.employeeCount >= 10 &&
+    biz.employeeCount <= 100 &&
+    biz.annualRevenue &&
+    biz.annualRevenue >= 1000000
+  ) {
     tags.push("expansion-candidate");
     score += 1;
   }
@@ -120,30 +168,58 @@ function generateTags(biz: {
 // SKIP TRACE
 // ============================================================
 
-async function skipTraceOwner(firstName: string, lastName: string, address: string, city: string, state: string, zip: string) {
-  if (!REALESTATE_API_KEY) return { phones: [], emails: [], mailingAddress: null };
+async function skipTraceOwner(
+  firstName: string,
+  lastName: string,
+  address: string,
+  city: string,
+  state: string,
+  zip: string,
+) {
+  if (!REALESTATE_API_KEY)
+    return { phones: [], emails: [], mailingAddress: null };
 
   try {
     const response = await fetch(SKIP_TRACE_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-api-key": REALESTATE_API_KEY },
-      body: JSON.stringify({ first_name: firstName, last_name: lastName, address, city, state, zip }),
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": REALESTATE_API_KEY,
+      },
+      body: JSON.stringify({
+        first_name: firstName,
+        last_name: lastName,
+        address,
+        city,
+        state,
+        zip,
+      }),
     });
 
     if (response.ok) {
       const data = await response.json();
       const result = data.data || data;
 
-      const phones = (result.phones || result.phone_numbers || []).map((p: any) => {
-        const phoneObj = typeof p === "string" ? { number: p } : p;
-        const lineType = (phoneObj.line_type || phoneObj.type || "").toLowerCase();
-        let type: "mobile" | "landline" | "unknown" = "unknown";
-        if (lineType.includes("mobile") || lineType.includes("cell")) type = "mobile";
-        else if (lineType.includes("land") || lineType.includes("voip")) type = "landline";
-        return { number: phoneObj.number || phoneObj.phone || p, type };
-      });
+      const phones = (result.phones || result.phone_numbers || []).map(
+        (p: any) => {
+          const phoneObj = typeof p === "string" ? { number: p } : p;
+          const lineType = (
+            phoneObj.line_type ||
+            phoneObj.type ||
+            ""
+          ).toLowerCase();
+          let type: "mobile" | "landline" | "unknown" = "unknown";
+          if (lineType.includes("mobile") || lineType.includes("cell"))
+            type = "mobile";
+          else if (lineType.includes("land") || lineType.includes("voip"))
+            type = "landline";
+          return { number: phoneObj.number || phoneObj.phone || p, type };
+        },
+      );
 
-      const emails = (result.emails || []).map((e: any) => typeof e === "string" ? e : e.email);
+      const emails = (result.emails || []).map((e: any) =>
+        typeof e === "string" ? e : e.email,
+      );
 
       return { phones, emails, mailingAddress: result.mailing_address || null };
     }
@@ -158,14 +234,26 @@ async function skipTraceOwner(firstName: string, lastName: string, address: stri
 // FIND PROPERTIES OWNED BY PERSON
 // ============================================================
 
-async function findPropertiesOwned(firstName: string, lastName: string, state?: string) {
+async function findPropertiesOwned(
+  firstName: string,
+  lastName: string,
+  state?: string,
+) {
   if (!REALESTATE_API_KEY) return [];
 
   try {
     const response = await fetch(PROPERTY_SEARCH_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-api-key": REALESTATE_API_KEY },
-      body: JSON.stringify({ owner_first_name: firstName, owner_last_name: lastName, state, limit: 10 }),
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": REALESTATE_API_KEY,
+      },
+      body: JSON.stringify({
+        owner_first_name: firstName,
+        owner_last_name: lastName,
+        state,
+        limit: 10,
+      }),
     });
 
     if (response.ok) {
@@ -198,7 +286,7 @@ async function processBatch(
     crossReference: boolean;
     tagFilter?: string[];
     lastId?: string;
-  }
+  },
 ): Promise<{
   processed: number;
   results: any[];
@@ -206,7 +294,7 @@ async function processBatch(
   hasMore: boolean;
 }> {
   // Build query for next batch
-  let conditions = [eq(businesses.userId, userId)];
+  const conditions = [eq(businesses.userId, userId)];
 
   // Resume from last processed ID
   if (options.lastId) {
@@ -256,15 +344,17 @@ async function processBatch(
 
     // Filter by tags if specified
     if (options.tagFilter && options.tagFilter.length > 0) {
-      if (!options.tagFilter.some(t => tags.includes(t))) {
+      if (!options.tagFilter.some((t) => tags.includes(t))) {
         continue; // Skip this business
       }
     }
 
-    let enrichedData: any = {
+    const enrichedData: any = {
       businessId: biz.id,
       companyName: biz.companyName,
-      ownerName: biz.ownerName || `${biz.ownerFirstName || ""} ${biz.ownerLastName || ""}`.trim(),
+      ownerName:
+        biz.ownerName ||
+        `${biz.ownerFirstName || ""} ${biz.ownerLastName || ""}`.trim(),
       tags,
       priority,
       score,
@@ -273,25 +363,39 @@ async function processBatch(
     // Skip trace the owner (person, not company!)
     if (options.skipTrace && biz.ownerName) {
       const firstName = biz.ownerFirstName || biz.ownerName.split(" ")[0] || "";
-      const lastName = biz.ownerLastName || biz.ownerName.split(" ").slice(1).join(" ") || "";
+      const lastName =
+        biz.ownerLastName || biz.ownerName.split(" ").slice(1).join(" ") || "";
 
       if (firstName) {
         const skipResult = await skipTraceOwner(
-          firstName, lastName,
-          biz.address || "", biz.city || "", biz.state || "", biz.zip || ""
+          firstName,
+          lastName,
+          biz.address || "",
+          biz.city || "",
+          biz.state || "",
+          biz.zip || "",
         );
         enrichedData.phones = skipResult.phones;
         enrichedData.emails = skipResult.emails;
         enrichedData.mailingAddress = skipResult.mailingAddress;
-        enrichedData.mobilePhone = skipResult.phones.find(p => p.type === "mobile")?.number;
+        enrichedData.mobilePhone = skipResult.phones.find(
+          (p) => p.type === "mobile",
+        )?.number;
         enrichedData.skipTraced = true;
 
         // Cross-reference properties
         if (options.crossReference) {
-          const properties = await findPropertiesOwned(firstName, lastName, biz.state || undefined);
+          const properties = await findPropertiesOwned(
+            firstName,
+            lastName,
+            biz.state || undefined,
+          );
           enrichedData.propertiesOwned = properties;
           enrichedData.propertyCount = properties.length;
-          enrichedData.totalPropertyValue = properties.reduce((sum, p) => sum + (p.estimatedValue || 0), 0);
+          enrichedData.totalPropertyValue = properties.reduce(
+            (sum, p) => sum + (p.estimatedValue || 0),
+            0,
+          );
 
           if (properties.length > 0) {
             tags.push("property-owner");
@@ -300,7 +404,7 @@ async function processBatch(
         }
 
         // Rate limiting
-        await new Promise(r => setTimeout(r, 200));
+        await new Promise((r) => setTimeout(r, 200));
       }
     }
 
@@ -329,7 +433,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (!db) {
-      return NextResponse.json({ error: "Database not configured" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Database not configured" },
+        { status: 500 },
+      );
     }
 
     const body = await request.json();
@@ -391,15 +498,20 @@ export async function POST(request: NextRequest) {
       jobStatus[newJobId].results.processed = firstBatch.results.length;
 
       // Count priorities
-      firstBatch.results.forEach(r => {
+      firstBatch.results.forEach((r) => {
         if (r.priority === "high") jobStatus[newJobId].results.highPriority++;
-        else if (r.priority === "medium") jobStatus[newJobId].results.mediumPriority++;
+        else if (r.priority === "medium")
+          jobStatus[newJobId].results.mediumPriority++;
         else jobStatus[newJobId].results.lowPriority++;
         if (r.skipTraced) jobStatus[newJobId].results.skipTraced++;
-        if (r.propertyCount) jobStatus[newJobId].results.propertiesFound += r.propertyCount;
+        if (r.propertyCount)
+          jobStatus[newJobId].results.propertiesFound += r.propertyCount;
       });
 
-      if (!firstBatch.hasMore || jobStatus[newJobId].totalProcessed >= maxRecords) {
+      if (
+        !firstBatch.hasMore ||
+        jobStatus[newJobId].totalProcessed >= maxRecords
+      ) {
         jobStatus[newJobId].status = "completed";
         jobStatus[newJobId].completedAt = new Date().toISOString();
       } else {
@@ -434,7 +546,10 @@ export async function POST(request: NextRequest) {
     // ============================================================
     if (action === "continue") {
       if (!jobId || !jobStatus[jobId]) {
-        return NextResponse.json({ error: "Invalid or expired jobId" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Invalid or expired jobId" },
+          { status: 400 },
+        );
       }
 
       const job = jobStatus[jobId];
@@ -450,7 +565,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Pause between batches
-      await new Promise(r => setTimeout(r, PAUSE_BETWEEN_BATCHES_MS));
+      await new Promise((r) => setTimeout(r, PAUSE_BETWEEN_BATCHES_MS));
 
       job.status = "running";
 
@@ -467,7 +582,7 @@ export async function POST(request: NextRequest) {
       job.results.records.push(...batch.results);
       job.results.processed += batch.results.length;
 
-      batch.results.forEach(r => {
+      batch.results.forEach((r) => {
         if (r.priority === "high") job.results.highPriority++;
         else if (r.priority === "medium") job.results.mediumPriority++;
         else job.results.lowPriority++;
@@ -501,9 +616,10 @@ export async function POST(request: NextRequest) {
           skipTraced: job.results.skipTraced,
           propertiesFound: job.results.propertiesFound,
         },
-        message: job.status === "completed"
-          ? `Job complete! Processed ${job.totalProcessed} records.`
-          : `Batch ${job.currentBatch}/${job.totalBatches} complete. Call 'continue' for next batch.`,
+        message:
+          job.status === "completed"
+            ? `Job complete! Processed ${job.totalProcessed} records.`
+            : `Batch ${job.currentBatch}/${job.totalBatches} complete. Call 'continue' for next batch.`,
       });
     }
 
@@ -512,7 +628,10 @@ export async function POST(request: NextRequest) {
     // ============================================================
     if (action === "status") {
       if (!jobId || !jobStatus[jobId]) {
-        return NextResponse.json({ error: "Invalid or expired jobId" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Invalid or expired jobId" },
+          { status: 400 },
+        );
       }
 
       const job = jobStatus[jobId];
@@ -548,7 +667,10 @@ export async function POST(request: NextRequest) {
     // ============================================================
     if (action === "results") {
       if (!jobId || !jobStatus[jobId]) {
-        return NextResponse.json({ error: "Invalid or expired jobId" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Invalid or expired jobId" },
+          { status: 400 },
+        );
       }
 
       const job = jobStatus[jobId];
@@ -569,8 +691,10 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({ error: "Invalid action. Use: start, continue, status, results" }, { status: 400 });
-
+    return NextResponse.json(
+      { error: "Invalid action. Use: start, continue, status, results" },
+      { status: 400 },
+    );
   } catch (error: any) {
     console.error("[LUCI Batch] Error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -585,7 +709,8 @@ export async function GET(request: NextRequest) {
     maxPerCampaign: MAX_PER_CAMPAIGN,
     pauseBetweenBatches: `${PAUSE_BETWEEN_BATCHES_MS}ms`,
     actions: {
-      start: "POST { action: 'start', skipTrace, crossReference, tagFilter, maxRecords }",
+      start:
+        "POST { action: 'start', skipTrace, crossReference, tagFilter, maxRecords }",
       continue: "POST { action: 'continue', jobId }",
       status: "POST { action: 'status', jobId }",
       results: "POST { action: 'results', jobId }",

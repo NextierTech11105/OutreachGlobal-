@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { S3Client, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  GetObjectCommand,
+  PutObjectCommand,
+} from "@aws-sdk/client-s3";
 
 /**
  * Agent HQ Skip Trace Integration
@@ -32,7 +36,8 @@ const SPACES_KEY = process.env.DO_SPACES_KEY || "";
 const SPACES_SECRET = process.env.DO_SPACES_SECRET || "";
 
 // RealEstateAPI for property detail enrichment
-const REALESTATE_API_KEY = process.env.REAL_ESTATE_API_KEY || process.env.REALESTATE_API_KEY || "";
+const REALESTATE_API_KEY =
+  process.env.REAL_ESTATE_API_KEY || process.env.REALESTATE_API_KEY || "";
 const PROPERTY_DETAIL_URL = "https://api.realestateapi.com/v2/PropertyDetail";
 
 // Zoho CRM
@@ -142,11 +147,23 @@ function getS3Client(): S3Client | null {
   });
 }
 
-function normalizePhoneType(type: string | undefined): "mobile" | "landline" | "voip" | "unknown" {
+function normalizePhoneType(
+  type: string | undefined,
+): "mobile" | "landline" | "voip" | "unknown" {
   if (!type) return "unknown";
   const lower = type.toLowerCase();
-  if (lower.includes("mobile") || lower.includes("cell") || lower.includes("wireless")) return "mobile";
-  if (lower.includes("land") || lower.includes("home") || lower.includes("fixed")) return "landline";
+  if (
+    lower.includes("mobile") ||
+    lower.includes("cell") ||
+    lower.includes("wireless")
+  )
+    return "mobile";
+  if (
+    lower.includes("land") ||
+    lower.includes("home") ||
+    lower.includes("fixed")
+  )
+    return "landline";
   if (lower.includes("voip") || lower.includes("virtual")) return "voip";
   return "unknown";
 }
@@ -170,14 +187,24 @@ function extractPhones(record: AgentHQRecord): PhoneNumber[] {
   }
 
   // Check explicit mobile/landline fields
-  if (record.mobile_phone && !phones.some(p => p.number === record.mobile_phone?.replace(/\D/g, "").slice(-10))) {
+  if (
+    record.mobile_phone &&
+    !phones.some(
+      (p) => p.number === record.mobile_phone?.replace(/\D/g, "").slice(-10),
+    )
+  ) {
     phones.push({
       number: record.mobile_phone.replace(/\D/g, "").slice(-10),
       type: "mobile",
     });
   }
 
-  if (record.landline_phone && !phones.some(p => p.number === record.landline_phone?.replace(/\D/g, "").slice(-10))) {
+  if (
+    record.landline_phone &&
+    !phones.some(
+      (p) => p.number === record.landline_phone?.replace(/\D/g, "").slice(-10),
+    )
+  ) {
     phones.push({
       number: record.landline_phone.replace(/\D/g, "").slice(-10),
       type: "landline",
@@ -191,10 +218,12 @@ function extractEmails(record: AgentHQRecord): string[] {
   const emails: string[] = [];
 
   if (record.email) emails.push(record.email);
-  if (record.email_1 && !emails.includes(record.email_1)) emails.push(record.email_1);
-  if (record.email_2 && !emails.includes(record.email_2)) emails.push(record.email_2);
+  if (record.email_1 && !emails.includes(record.email_1))
+    emails.push(record.email_1);
+  if (record.email_2 && !emails.includes(record.email_2))
+    emails.push(record.email_2);
 
-  return emails.filter(e => e && e.includes("@"));
+  return emails.filter((e) => e && e.includes("@"));
 }
 
 async function getPropertyDetail(address: string): Promise<any> {
@@ -222,7 +251,8 @@ async function getPropertyDetail(address: string): Promise<any> {
 }
 
 async function getZohoAccessToken(): Promise<string | null> {
-  if (!ZOHO_CLIENT_ID || !ZOHO_CLIENT_SECRET || !ZOHO_REFRESH_TOKEN) return null;
+  if (!ZOHO_CLIENT_ID || !ZOHO_CLIENT_SECRET || !ZOHO_REFRESH_TOKEN)
+    return null;
 
   try {
     const response = await fetch("https://accounts.zoho.com/oauth/v2/token", {
@@ -247,44 +277,51 @@ async function getZohoAccessToken(): Promise<string | null> {
   return null;
 }
 
-async function syncToZoho(lead: ProcessedLead, accessToken: string): Promise<string | null> {
+async function syncToZoho(
+  lead: ProcessedLead,
+  accessToken: string,
+): Promise<string | null> {
   try {
-    const mobilePhone = lead.phones.find(p => p.type === "mobile")?.number || "";
-    const landlinePhone = lead.phones.find(p => p.type === "landline")?.number || "";
+    const mobilePhone =
+      lead.phones.find((p) => p.type === "mobile")?.number || "";
+    const landlinePhone =
+      lead.phones.find((p) => p.type === "landline")?.number || "";
 
     const zohoLead = {
-      data: [{
-        First_Name: lead.ownerFirstName,
-        Last_Name: lead.ownerLastName || "Unknown",
-        Email: lead.emails[0] || "",
-        Mobile: mobilePhone,
-        Phone: landlinePhone,
+      data: [
+        {
+          First_Name: lead.ownerFirstName,
+          Last_Name: lead.ownerLastName || "Unknown",
+          Email: lead.emails[0] || "",
+          Mobile: mobilePhone,
+          Phone: landlinePhone,
 
-        Street: lead.propertyAddress,
-        City: lead.city,
-        State: lead.state,
-        Zip_Code: lead.zip,
+          Street: lead.propertyAddress,
+          City: lead.city,
+          State: lead.state,
+          Zip_Code: lead.zip,
 
-        Property_ID: lead.propertyId,
-        Folio_Number: lead.folio,
-        Estimated_Value: lead.estimatedValue,
-        Estimated_Equity: lead.estimatedEquity,
+          Property_ID: lead.propertyId,
+          Folio_Number: lead.folio,
+          Estimated_Value: lead.estimatedValue,
+          Estimated_Equity: lead.estimatedEquity,
 
-        Case_Number: lead.caseNumber,
-        Filing_Date: lead.filedDate,
+          Case_Number: lead.caseNumber,
+          Filing_Date: lead.filedDate,
 
-        Campaign_ID: lead.campaignId,
-        Initial_Message_IDs: lead.initialMessageIds.join(","),
-        Retarget_Message_IDs: lead.retargetMessageIds.join(","),
+          Campaign_ID: lead.campaignId,
+          Initial_Message_IDs: lead.initialMessageIds.join(","),
+          Retarget_Message_IDs: lead.retargetMessageIds.join(","),
 
-        Lead_Source: "FDAILY",
-        FDAILY_Lead_ID: lead.id,
-        Skip_Traced: true,
-        Skip_Trace_Source: "Agent_HQ",
-        Has_Mobile: lead.hasMobile,
-        Has_Landline: lead.hasLandline,
-        Campaign_Ready: lead.campaignReady,
-      }],
+          Lead_Source: "FDAILY",
+          FDAILY_Lead_ID: lead.id,
+          Skip_Traced: true,
+          Skip_Trace_Source: "Agent_HQ",
+          Has_Mobile: lead.hasMobile,
+          Has_Landline: lead.hasLandline,
+          Campaign_Ready: lead.campaignReady,
+        },
+      ],
       trigger: ["workflow"],
     };
 
@@ -292,7 +329,7 @@ async function syncToZoho(lead: ProcessedLead, accessToken: string): Promise<str
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Zoho-oauthtoken ${accessToken}`,
+        Authorization: `Zoho-oauthtoken ${accessToken}`,
       },
       body: JSON.stringify(zohoLead),
     });
@@ -318,20 +355,26 @@ export async function GET(request: NextRequest) {
     if (!batchName) {
       return NextResponse.json({
         message: "Export list to send to Agent HQ for skip tracing",
-        usage: "GET /api/fdaily/agent-hq?batch=fdaily-import-2024-12-11&format=csv",
+        usage:
+          "GET /api/fdaily/agent-hq?batch=fdaily-import-2024-12-11&format=csv",
         note: "Download CSV, upload to Agent HQ, then POST the results back here",
       });
     }
 
     const client = getS3Client();
     if (!client) {
-      return NextResponse.json({ error: "Storage not configured" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Storage not configured" },
+        { status: 500 },
+      );
     }
 
-    const response = await client.send(new GetObjectCommand({
-      Bucket: SPACES_BUCKET,
-      Key: `fdaily/${batchName}.json`,
-    }));
+    const response = await client.send(
+      new GetObjectCommand({
+        Bucket: SPACES_BUCKET,
+        Key: `fdaily/${batchName}.json`,
+      }),
+    );
 
     const content = await response.Body?.transformToString();
     if (!content) {
@@ -379,7 +422,11 @@ export async function GET(request: NextRequest) {
     if (format === "csv") {
       const csv = [
         headers.join(","),
-        ...rows.map(r => r.map(v => `"${(v || "").toString().replace(/"/g, '""')}"`).join(","))
+        ...rows.map((r) =>
+          r
+            .map((v) => `"${(v || "").toString().replace(/"/g, '""')}"`)
+            .join(","),
+        ),
       ].join("\n");
 
       return new NextResponse(csv, {
@@ -405,7 +452,6 @@ export async function GET(request: NextRequest) {
         zip: r[7],
       })),
     });
-
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -430,13 +476,17 @@ export async function POST(request: NextRequest) {
       assignCampaign = (formData.get("campaignId") as string) || null;
 
       const msgIds = formData.get("initialMessageIds") as string;
-      if (msgIds) initialMessageIds = msgIds.split(",").map(s => s.trim());
+      if (msgIds) initialMessageIds = msgIds.split(",").map((s) => s.trim());
 
       const retargetIds = formData.get("retargetMessageIds") as string;
-      if (retargetIds) retargetMessageIds = retargetIds.split(",").map(s => s.trim());
+      if (retargetIds)
+        retargetMessageIds = retargetIds.split(",").map((s) => s.trim());
 
       if (!file) {
-        return NextResponse.json({ error: "No file provided" }, { status: 400 });
+        return NextResponse.json(
+          { error: "No file provided" },
+          { status: 400 },
+        );
       }
 
       const text = await file.text();
@@ -452,7 +502,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (!records.length) {
-      return NextResponse.json({ error: "No records to process" }, { status: 400 });
+      return NextResponse.json(
+        { error: "No records to process" },
+        { status: 400 },
+      );
     }
 
     console.log(`[Agent HQ] Processing ${records.length} skip traced records`);
@@ -478,17 +531,22 @@ export async function POST(request: NextRequest) {
         const phones = extractPhones(record);
         const emails = extractEmails(record);
 
-        const ownerName = record.full_name || `${record.first_name || ""} ${record.last_name || ""}`.trim();
+        const ownerName =
+          record.full_name ||
+          `${record.first_name || ""} ${record.last_name || ""}`.trim();
         const address = record.property_address || record.address || "";
 
         // Get RealEstateAPI detail for property
         const propertyDetail = await getPropertyDetail(address);
 
-        const hasMobile = phones.some(p => p.type === "mobile");
-        const hasLandline = phones.some(p => p.type === "landline");
+        const hasMobile = phones.some((p) => p.type === "mobile");
+        const hasLandline = phones.some((p) => p.type === "landline");
 
         const lead: ProcessedLead = {
-          id: record.lead_id || record.record_id || `agenthq-${Date.now()}-${results.processed}`,
+          id:
+            record.lead_id ||
+            record.record_id ||
+            `agenthq-${Date.now()}-${results.processed}`,
           folio: record.folio || "",
           propertyId: propertyDetail?.id || null,
           zohoId: null,
@@ -500,7 +558,8 @@ export async function POST(request: NextRequest) {
 
           ownerName,
           ownerFirstName: record.first_name || ownerName.split(" ")[0] || "",
-          ownerLastName: record.last_name || ownerName.split(" ").slice(1).join(" ") || "",
+          ownerLastName:
+            record.last_name || ownerName.split(" ").slice(1).join(" ") || "",
           phones,
           emails,
 
@@ -547,10 +606,11 @@ export async function POST(request: NextRequest) {
         processedLeads.push(lead);
 
         // Rate limit API calls
-        if (propertyDetail) await new Promise(r => setTimeout(r, 100));
-
+        if (propertyDetail) await new Promise((r) => setTimeout(r, 100));
       } catch (error: any) {
-        results.errors.push(`Record ${record.lead_id || record.record_id}: ${error.message}`);
+        results.errors.push(
+          `Record ${record.lead_id || record.record_id}: ${error.message}`,
+        );
       }
     }
 
@@ -558,18 +618,24 @@ export async function POST(request: NextRequest) {
     if (client) {
       const outputKey = `fdaily/${originalBatchName || "agenthq"}-skip-traced-${Date.now()}.json`;
 
-      await client.send(new PutObjectCommand({
-        Bucket: SPACES_BUCKET,
-        Key: outputKey,
-        Body: JSON.stringify({
-          source: "agent_hq",
-          originalBatch: originalBatchName,
-          processedAt: new Date().toISOString(),
-          stats: results,
-          leads: processedLeads,
-        }, null, 2),
-        ContentType: "application/json",
-      }));
+      await client.send(
+        new PutObjectCommand({
+          Bucket: SPACES_BUCKET,
+          Key: outputKey,
+          Body: JSON.stringify(
+            {
+              source: "agent_hq",
+              originalBatch: originalBatchName,
+              processedAt: new Date().toISOString(),
+              stats: results,
+              leads: processedLeads,
+            },
+            null,
+            2,
+          ),
+          ContentType: "application/json",
+        }),
+      );
 
       console.log(`[Agent HQ] Saved to ${outputKey}`);
     }
@@ -585,7 +651,7 @@ export async function POST(request: NextRequest) {
         campaignReady: results.campaignReady,
         syncedToZoho: results.zohoSynced,
       },
-      preview: processedLeads.slice(0, 3).map(l => ({
+      preview: processedLeads.slice(0, 3).map((l) => ({
         id: l.id,
         ownerName: l.ownerName,
         phones: l.phones,
@@ -593,7 +659,6 @@ export async function POST(request: NextRequest) {
         zohoId: l.zohoId,
       })),
     });
-
   } catch (error: any) {
     console.error("[Agent HQ] Error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -602,11 +667,15 @@ export async function POST(request: NextRequest) {
 
 // Simple CSV parser
 function parseCSV(text: string): AgentHQRecord[] {
-  const lines = text.split(/\r?\n/).filter(line => line.trim());
+  const lines = text.split(/\r?\n/).filter((line) => line.trim());
   if (lines.length < 2) return [];
 
-  const headers = lines[0].split(",").map(h =>
-    h.trim().toLowerCase().replace(/[^a-z0-9]/g, "_").replace(/_+/g, "_")
+  const headers = lines[0].split(",").map((h) =>
+    h
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "_")
+      .replace(/_+/g, "_"),
   );
 
   const records: AgentHQRecord[] = [];

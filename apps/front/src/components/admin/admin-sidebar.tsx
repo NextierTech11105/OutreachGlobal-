@@ -72,7 +72,9 @@ export function AdminSidebar() {
         {
           href: "/admin/data/import",
           label: "Data Import",
-          active: pathname === "/admin/data/import" || pathname === "/admin/data/schema",
+          active:
+            pathname === "/admin/data/import" ||
+            pathname === "/admin/data/schema",
         },
       ],
     },
@@ -92,12 +94,16 @@ export function AdminSidebar() {
         {
           href: "/admin/campaigns/automation",
           label: "Campaign Rules",
-          active: pathname === "/admin/campaigns/automation" || pathname === "/admin/campaigns/scoring",
+          active:
+            pathname === "/admin/campaigns/automation" ||
+            pathname === "/admin/campaigns/scoring",
         },
         {
           href: "/admin/message-templates",
           label: "Templates",
-          active: pathname === "/admin/message-templates" || pathname === "/admin/prompt-library",
+          active:
+            pathname === "/admin/message-templates" ||
+            pathname === "/admin/prompt-library",
         },
       ],
     },
@@ -110,6 +116,16 @@ export function AdminSidebar() {
           href: "/admin/integrations/api",
           label: "API Keys & Status",
           active: pathname === "/admin/integrations/api",
+        },
+        {
+          href: "/admin/integrations/apollo",
+          label: "Apollo Enrichment",
+          active: pathname === "/admin/integrations/apollo",
+        },
+        {
+          href: "/admin/integrations/realestate",
+          label: "Property Lookup",
+          active: pathname === "/admin/integrations/realestate",
         },
         {
           href: "/admin/integrations/signalhouse",

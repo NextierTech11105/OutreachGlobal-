@@ -550,8 +550,12 @@ export default function AdminDashboard() {
                 <div className="p-3 rounded-full bg-blue-500/20 mb-2">
                   <Search className="h-6 w-6 text-blue-400" />
                 </div>
-                <span className="text-sm font-medium text-center">Pull Data</span>
-                <span className="text-xs text-zinc-500 text-center mt-1">5.5M NY + All US</span>
+                <span className="text-sm font-medium text-center">
+                  Pull Data
+                </span>
+                <span className="text-xs text-zinc-500 text-center mt-1">
+                  5.5M NY + All US
+                </span>
               </div>
 
               <ArrowRight className="h-5 w-5 text-zinc-600 hidden md:block mx-auto" />
@@ -561,8 +565,12 @@ export default function AdminDashboard() {
                 <div className="p-3 rounded-full bg-amber-500/20 mb-2">
                   <Briefcase className="h-6 w-6 text-amber-400" />
                 </div>
-                <span className="text-sm font-medium text-center">Enrich Business</span>
-                <span className="text-xs text-zinc-500 text-center mt-1">Apollo + Property</span>
+                <span className="text-sm font-medium text-center">
+                  Enrich Business
+                </span>
+                <span className="text-xs text-zinc-500 text-center mt-1">
+                  Apollo + Property
+                </span>
               </div>
 
               <ArrowRight className="h-5 w-5 text-zinc-600 hidden md:block mx-auto" />
@@ -572,8 +580,12 @@ export default function AdminDashboard() {
                 <div className="p-3 rounded-full bg-purple-500/20 mb-2">
                   <UserCheck className="h-6 w-6 text-purple-400" />
                 </div>
-                <span className="text-sm font-medium text-center">Decision Makers</span>
-                <span className="text-xs text-zinc-500 text-center mt-1">CEO, Owner, VP</span>
+                <span className="text-sm font-medium text-center">
+                  Decision Makers
+                </span>
+                <span className="text-xs text-zinc-500 text-center mt-1">
+                  CEO, Owner, VP
+                </span>
               </div>
 
               <ArrowRight className="h-5 w-5 text-zinc-600 hidden md:block mx-auto" />
@@ -583,8 +595,12 @@ export default function AdminDashboard() {
                 <div className="p-3 rounded-full bg-cyan-500/20 mb-2">
                   <Send className="h-6 w-6 text-cyan-400" />
                 </div>
-                <span className="text-sm font-medium text-center">AI Outreach</span>
-                <span className="text-xs text-zinc-500 text-center mt-1">SMS, Call, Email</span>
+                <span className="text-sm font-medium text-center">
+                  AI Outreach
+                </span>
+                <span className="text-xs text-zinc-500 text-center mt-1">
+                  SMS, Call, Email
+                </span>
               </div>
 
               <ArrowRight className="h-5 w-5 text-zinc-600 hidden md:block mx-auto" />
@@ -594,8 +610,12 @@ export default function AdminDashboard() {
                 <div className="p-3 rounded-full bg-emerald-500/20 mb-2">
                   <Handshake className="h-6 w-6 text-emerald-400" />
                 </div>
-                <span className="text-sm font-medium text-center">Win-Win Deal</span>
-                <span className="text-xs text-zinc-500 text-center mt-1">Context-Aware</span>
+                <span className="text-sm font-medium text-center">
+                  Win-Win Deal
+                </span>
+                <span className="text-xs text-zinc-500 text-center mt-1">
+                  Context-Aware
+                </span>
               </div>
             </div>
 
@@ -608,19 +628,31 @@ export default function AdminDashboard() {
                 </Button>
               </Link>
               <Link href="/admin/integrations/apollo">
-                <Button size="sm" variant="outline" className="border-amber-600 text-amber-400 hover:bg-amber-900/20">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-amber-600 text-amber-400 hover:bg-amber-900/20"
+                >
                   <Sparkles className="mr-2 h-4 w-4" />
                   Enrich with Apollo
                 </Button>
               </Link>
               <Link href="/admin/integrations/realestate">
-                <Button size="sm" variant="outline" className="border-purple-600 text-purple-400 hover:bg-purple-900/20">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-purple-600 text-purple-400 hover:bg-purple-900/20"
+                >
                   <Home className="mr-2 h-4 w-4" />
                   Property Lookup
                 </Button>
               </Link>
               <Link href="/admin/campaigns/automation">
-                <Button size="sm" variant="outline" className="border-cyan-600 text-cyan-400 hover:bg-cyan-900/20">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-cyan-600 text-cyan-400 hover:bg-cyan-900/20"
+                >
                   <Bot className="mr-2 h-4 w-4" />
                   AI Campaign Setup
                 </Button>

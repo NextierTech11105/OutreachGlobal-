@@ -105,7 +105,14 @@ export async function POST(request: NextRequest) {
     switch (action) {
       case "send_sms": {
         // Send SMS message
-        const { to, from, message, campaignId, phoneType, skipLandlineValidation } = body;
+        const {
+          to,
+          from,
+          message,
+          campaignId,
+          phoneType,
+          skipLandlineValidation,
+        } = body;
         if (!to || !message) {
           return NextResponse.json(
             { error: "to and message required" },

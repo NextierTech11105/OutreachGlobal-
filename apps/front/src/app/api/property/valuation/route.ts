@@ -683,7 +683,9 @@ function normalizePropertyDetail(
     // ═════════════════════════════════════════════════════════════════════════
     // SALE HISTORY - Full historical sales
     // ═════════════════════════════════════════════════════════════════════════
-    saleHistory: ((rawProperty.saleHistory as Array<Record<string, unknown>>) || []).map(s => ({
+    saleHistory: (
+      (rawProperty.saleHistory as Array<Record<string, unknown>>) || []
+    ).map((s) => ({
       saleDate: s.saleDate as string,
       saleAmount: Number(s.saleAmount) || undefined,
       buyerNames: s.buyerNames as string,
@@ -696,7 +698,9 @@ function normalizePropertyDetail(
     // ═════════════════════════════════════════════════════════════════════════
     // MORTGAGE HISTORY - Full mortgage history
     // ═════════════════════════════════════════════════════════════════════════
-    mortgageHistory: ((rawProperty.mortgageHistory as Array<Record<string, unknown>>) || []).map(m => ({
+    mortgageHistory: (
+      (rawProperty.mortgageHistory as Array<Record<string, unknown>>) || []
+    ).map((m) => ({
       documentDate: m.documentDate as string,
       amount: Number(m.amount) || undefined,
       lenderName: m.lenderName as string,
@@ -710,7 +714,9 @@ function normalizePropertyDetail(
     // ═════════════════════════════════════════════════════════════════════════
     // SCHOOLS - Nearby schools with ratings
     // ═════════════════════════════════════════════════════════════════════════
-    schools: ((rawProperty.schools as Array<Record<string, unknown>>) || []).map(s => ({
+    schools: (
+      (rawProperty.schools as Array<Record<string, unknown>>) || []
+    ).map((s) => ({
       name: s.name as string,
       type: s.type as string,
       grades: s.grades as string,
@@ -725,38 +731,64 @@ function normalizePropertyDetail(
     // ═════════════════════════════════════════════════════════════════════════
     linkedProperties: (rawProperty.linkedProperties as Record<string, unknown>)
       ? {
-          ids: (rawProperty.linkedProperties as Record<string, unknown>).ids as string[],
-          totalOwned: Number((rawProperty.linkedProperties as Record<string, unknown>).totalOwned) || undefined,
-          totalValue: Number((rawProperty.linkedProperties as Record<string, unknown>).totalValue) || undefined,
-          totalEquity: Number((rawProperty.linkedProperties as Record<string, unknown>).totalEquity) || undefined,
+          ids: (rawProperty.linkedProperties as Record<string, unknown>)
+            .ids as string[],
+          totalOwned:
+            Number(
+              (rawProperty.linkedProperties as Record<string, unknown>)
+                .totalOwned,
+            ) || undefined,
+          totalValue:
+            Number(
+              (rawProperty.linkedProperties as Record<string, unknown>)
+                .totalValue,
+            ) || undefined,
+          totalEquity:
+            Number(
+              (rawProperty.linkedProperties as Record<string, unknown>)
+                .totalEquity,
+            ) || undefined,
         }
       : undefined,
     // ═════════════════════════════════════════════════════════════════════════
     // LOT INFO - Parcel details
     // ═════════════════════════════════════════════════════════════════════════
-    lotInfo: Object.keys(lotInfo).length > 0
-      ? {
-          apn: lotInfo.apn as string,
-          legalDescription: lotInfo.legalDescription as string,
-          landUse: lotInfo.landUse as string,
-          propertyClass: lotInfo.propertyClass as string,
-          zoning: lotInfo.zoning as string,
-          lotAcres: Number(lotInfo.lotAcres) || undefined,
-          subdivision: lotInfo.subdivision as string,
-        }
-      : undefined,
+    lotInfo:
+      Object.keys(lotInfo).length > 0
+        ? {
+            apn: lotInfo.apn as string,
+            legalDescription: lotInfo.legalDescription as string,
+            landUse: lotInfo.landUse as string,
+            propertyClass: lotInfo.propertyClass as string,
+            zoning: lotInfo.zoning as string,
+            lotAcres: Number(lotInfo.lotAcres) || undefined,
+            subdivision: lotInfo.subdivision as string,
+          }
+        : undefined,
     // ═════════════════════════════════════════════════════════════════════════
     // AUCTION INFO - If in foreclosure
     // ═════════════════════════════════════════════════════════════════════════
     auctionInfo: (rawProperty.auctionInfo as Record<string, unknown>)
       ? {
-          active: (rawProperty.auctionInfo as Record<string, unknown>).active as boolean,
-          auctionDate: (rawProperty.auctionInfo as Record<string, unknown>).auctionDate as string,
-          openingBid: Number((rawProperty.auctionInfo as Record<string, unknown>).openingBid) || undefined,
-          judgmentAmount: Number((rawProperty.auctionInfo as Record<string, unknown>).judgmentAmount) || undefined,
-          lenderName: (rawProperty.auctionInfo as Record<string, unknown>).lenderName as string,
-          trusteeName: (rawProperty.auctionInfo as Record<string, unknown>).trusteeFullName as string,
-          caseNumber: (rawProperty.auctionInfo as Record<string, unknown>).caseNumber as string,
+          active: (rawProperty.auctionInfo as Record<string, unknown>)
+            .active as boolean,
+          auctionDate: (rawProperty.auctionInfo as Record<string, unknown>)
+            .auctionDate as string,
+          openingBid:
+            Number(
+              (rawProperty.auctionInfo as Record<string, unknown>).openingBid,
+            ) || undefined,
+          judgmentAmount:
+            Number(
+              (rawProperty.auctionInfo as Record<string, unknown>)
+                .judgmentAmount,
+            ) || undefined,
+          lenderName: (rawProperty.auctionInfo as Record<string, unknown>)
+            .lenderName as string,
+          trusteeName: (rawProperty.auctionInfo as Record<string, unknown>)
+            .trusteeFullName as string,
+          caseNumber: (rawProperty.auctionInfo as Record<string, unknown>)
+            .caseNumber as string,
         }
       : undefined,
     // ═════════════════════════════════════════════════════════════════════════
@@ -764,9 +796,12 @@ function normalizePropertyDetail(
     // ═════════════════════════════════════════════════════════════════════════
     neighborhoodData: (rawProperty.neighborhood as Record<string, unknown>)
       ? {
-          id: (rawProperty.neighborhood as Record<string, unknown>).id as string,
-          name: (rawProperty.neighborhood as Record<string, unknown>).name as string,
-          type: (rawProperty.neighborhood as Record<string, unknown>).type as string,
+          id: (rawProperty.neighborhood as Record<string, unknown>)
+            .id as string,
+          name: (rawProperty.neighborhood as Record<string, unknown>)
+            .name as string,
+          type: (rawProperty.neighborhood as Record<string, unknown>)
+            .type as string,
         }
       : undefined,
   };

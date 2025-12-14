@@ -79,28 +79,72 @@ function getScoreLabel(score: number): string {
 // Industry presets aligned with datalake sectors
 const INDUSTRY_PRESETS = [
   // Hospitality & Recreation (matches datalake: hotel-motel, campgrounds-rv, restaurants)
-  { label: "🏨 Hotels/Motels", query: "hotel motel owner", sector: "hotel-motel" },
-  { label: "🏕️ Campgrounds/RV", query: "campground rv park owner", sector: "campgrounds-rv" },
+  {
+    label: "🏨 Hotels/Motels",
+    query: "hotel motel owner",
+    sector: "hotel-motel",
+  },
+  {
+    label: "🏕️ Campgrounds/RV",
+    query: "campground rv park owner",
+    sector: "campgrounds-rv",
+  },
   { label: "🍕 Restaurants", query: "restaurant owner", sector: "restaurants" },
   // Transportation (matches datalake: trucking, logistics)
   { label: "🚛 Trucking", query: "trucking company owner", sector: "trucking" },
-  { label: "📦 Logistics", query: "logistics freight owner", sector: "logistics" },
+  {
+    label: "📦 Logistics",
+    query: "logistics freight owner",
+    sector: "logistics",
+  },
   // Aviation
-  { label: "✈️ Aircraft Parts", query: "aircraft parts service owner", sector: "aircraft-parts" },
+  {
+    label: "✈️ Aircraft Parts",
+    query: "aircraft parts service owner",
+    sector: "aircraft-parts",
+  },
   // Automotive (matches datalake: auto-parts, auto-repair, auto-dealers)
-  { label: "🔧 Auto Parts", query: "auto parts store owner", sector: "auto-parts" },
-  { label: "🚗 Auto Repair", query: "auto repair shop owner", sector: "auto-repair" },
-  { label: "🚙 Auto Dealers", query: "car dealership owner", sector: "auto-dealers" },
+  {
+    label: "🔧 Auto Parts",
+    query: "auto parts store owner",
+    sector: "auto-parts",
+  },
+  {
+    label: "🚗 Auto Repair",
+    query: "auto repair shop owner",
+    sector: "auto-repair",
+  },
+  {
+    label: "🚙 Auto Dealers",
+    query: "car dealership owner",
+    sector: "auto-dealers",
+  },
   // Construction & Trades (matches datalake sectors)
-  { label: "🏗️ Construction", query: "general contractor owner", sector: "construction" },
-  { label: "🔌 Electrical", query: "electrical contractor owner", sector: "electrical" },
-  { label: "🪠 Plumbing/HVAC", query: "plumbing HVAC owner", sector: "plumbing-hvac" },
+  {
+    label: "🏗️ Construction",
+    query: "general contractor owner",
+    sector: "construction",
+  },
+  {
+    label: "🔌 Electrical",
+    query: "electrical contractor owner",
+    sector: "electrical",
+  },
+  {
+    label: "🪠 Plumbing/HVAC",
+    query: "plumbing HVAC owner",
+    sector: "plumbing-hvac",
+  },
   { label: "🏠 Roofing", query: "roofing contractor owner", sector: "roofing" },
   // Healthcare (matches datalake: medical, dental, nursing-homes)
   { label: "🏥 Medical", query: "medical practice owner", sector: "medical" },
   { label: "🦷 Dental", query: "dental office owner", sector: "dental" },
   // NY Business (general datalake)
-  { label: "🗽 NY Business", query: "business owner new york", sector: "ny-business" },
+  {
+    label: "🗽 NY Business",
+    query: "business owner new york",
+    sector: "ny-business",
+  },
 ];
 
 function getStatusBadge(status: OpportunityLead["status"]) {
@@ -233,19 +277,22 @@ export function OpportunityPulse({
 
       // Transform datalake records to OpportunityLead format
       const newLeads: OpportunityLead[] = businesses.map(
-        (b: {
-          id?: number;
-          name: string;
-          contact_name?: string;
-          contact_title?: string;
-          address?: string;
-          phone?: string;
-          email?: string;
-          industry?: string;
-          size?: string;
-          sector_label?: string;
-          revenue_range?: string;
-        }, index: number) => ({
+        (
+          b: {
+            id?: number;
+            name: string;
+            contact_name?: string;
+            contact_title?: string;
+            address?: string;
+            phone?: string;
+            email?: string;
+            industry?: string;
+            size?: string;
+            sector_label?: string;
+            revenue_range?: string;
+          },
+          index: number,
+        ) => ({
           id: b.id?.toString() || `dl_${index}`,
           name: b.contact_name || b.name,
           title: b.contact_title || "Business Owner",
@@ -457,19 +504,29 @@ export function OpportunityPulse({
           {/* Source Indicator */}
           {leads.length > 0 && (
             <div className="flex items-center gap-2 mb-4 text-sm">
-              <Badge variant="outline" className={
-                source === "apollo"
-                  ? "border-purple-600 text-purple-400"
-                  : "border-orange-600 text-orange-400"
-              }>
+              <Badge
+                variant="outline"
+                className={
+                  source === "apollo"
+                    ? "border-purple-600 text-purple-400"
+                    : "border-orange-600 text-orange-400"
+                }
+              >
                 {source === "apollo" ? (
-                  <><Zap className="h-3 w-3 mr-1" />Apollo</>
+                  <>
+                    <Zap className="h-3 w-3 mr-1" />
+                    Apollo
+                  </>
                 ) : (
-                  <><Database className="h-3 w-3 mr-1" />Datalake: {activeSector}</>
+                  <>
+                    <Database className="h-3 w-3 mr-1" />
+                    Datalake: {activeSector}
+                  </>
                 )}
               </Badge>
               <span className="text-zinc-500">
-                {totalRecords} total records | Page {currentPage} of {Math.ceil(filteredLeads.length / PAGE_SIZE)}
+                {totalRecords} total records | Page {currentPage} of{" "}
+                {Math.ceil(filteredLeads.length / PAGE_SIZE)}
               </span>
             </div>
           )}
@@ -497,175 +554,175 @@ export function OpportunityPulse({
           filteredLeads
             .slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
             .map((lead) => (
-            <Card
-              key={lead.id}
-              className="bg-zinc-900 border-zinc-800 hover:border-purple-600/50 transition-colors"
-            >
-              <CardContent className="p-4">
-                <div className="flex items-start gap-4">
-                  {/* Apollo Score Indicator */}
-                  <div className="flex flex-col items-center gap-1">
-                    <div
-                      className={`w-12 h-12 rounded-full ${getScoreColor(lead.apolloScore)} flex items-center justify-center`}
-                    >
-                      <span className="text-white font-bold">
-                        {lead.apolloScore}
+              <Card
+                key={lead.id}
+                className="bg-zinc-900 border-zinc-800 hover:border-purple-600/50 transition-colors"
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-4">
+                    {/* Apollo Score Indicator */}
+                    <div className="flex flex-col items-center gap-1">
+                      <div
+                        className={`w-12 h-12 rounded-full ${getScoreColor(lead.apolloScore)} flex items-center justify-center`}
+                      >
+                        <span className="text-white font-bold">
+                          {lead.apolloScore}
+                        </span>
+                      </div>
+                      <span className="text-xs text-zinc-500">
+                        {getScoreLabel(lead.apolloScore)}
                       </span>
                     </div>
-                    <span className="text-xs text-zinc-500">
-                      {getScoreLabel(lead.apolloScore)}
-                    </span>
-                  </div>
 
-                  {/* Lead Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <h3 className="text-white font-semibold flex items-center gap-2">
-                          <User className="h-4 w-4 text-zinc-500" />
-                          {lead.name}
-                        </h3>
-                        <p className="text-zinc-400 text-sm flex items-center gap-1">
-                          <Building2 className="h-3 w-3" />
-                          {lead.title} at {lead.company}
-                        </p>
-                        {lead.location && (
-                          <p className="text-zinc-500 text-sm flex items-center gap-1">
-                            <MapPin className="h-3 w-3" />
-                            {lead.location}
+                    {/* Lead Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <h3 className="text-white font-semibold flex items-center gap-2">
+                            <User className="h-4 w-4 text-zinc-500" />
+                            {lead.name}
+                          </h3>
+                          <p className="text-zinc-400 text-sm flex items-center gap-1">
+                            <Building2 className="h-3 w-3" />
+                            {lead.title} at {lead.company}
                           </p>
+                          {lead.location && (
+                            <p className="text-zinc-500 text-sm flex items-center gap-1">
+                              <MapPin className="h-3 w-3" />
+                              {lead.location}
+                            </p>
+                          )}
+                        </div>
+                        <Badge className={getStatusBadge(lead.status)}>
+                          {lead.status}
+                        </Badge>
+                      </div>
+
+                      {/* Signals */}
+                      <div className="flex flex-wrap gap-1 mb-3">
+                        {lead.signals.map((signal, i) => (
+                          <Badge
+                            key={i}
+                            variant="outline"
+                            className="border-purple-600 text-purple-400 text-xs"
+                          >
+                            {signal}
+                          </Badge>
+                        ))}
+                        {lead.revenueRange && (
+                          <Badge
+                            variant="outline"
+                            className="border-green-600 text-green-400 text-xs"
+                          >
+                            <DollarSign className="h-3 w-3 mr-1" />
+                            {lead.revenueRange}
+                          </Badge>
+                        )}
+                        {lead.employeeCount && (
+                          <Badge
+                            variant="outline"
+                            className="border-blue-600 text-blue-400 text-xs"
+                          >
+                            <Users className="h-3 w-3 mr-1" />
+                            {lead.employeeCount} employees
+                          </Badge>
                         )}
                       </div>
-                      <Badge className={getStatusBadge(lead.status)}>
-                        {lead.status}
-                      </Badge>
-                    </div>
 
-                    {/* Signals */}
-                    <div className="flex flex-wrap gap-1 mb-3">
-                      {lead.signals.map((signal, i) => (
-                        <Badge
-                          key={i}
-                          variant="outline"
-                          className="border-purple-600 text-purple-400 text-xs"
-                        >
-                          {signal}
-                        </Badge>
-                      ))}
-                      {lead.revenueRange && (
-                        <Badge
-                          variant="outline"
-                          className="border-green-600 text-green-400 text-xs"
-                        >
-                          <DollarSign className="h-3 w-3 mr-1" />
-                          {lead.revenueRange}
-                        </Badge>
-                      )}
-                      {lead.employeeCount && (
-                        <Badge
-                          variant="outline"
-                          className="border-blue-600 text-blue-400 text-xs"
-                        >
-                          <Users className="h-3 w-3 mr-1" />
-                          {lead.employeeCount} employees
-                        </Badge>
-                      )}
-                    </div>
-
-                    {/* Contact Info & Last Touched */}
-                    <div className="flex items-center gap-4 text-sm text-zinc-400 mb-3">
-                      {lead.email && (
-                        <span className="flex items-center gap-1">
-                          <Mail className="h-3 w-3" />
-                          {lead.email}
+                      {/* Contact Info & Last Touched */}
+                      <div className="flex items-center gap-4 text-sm text-zinc-400 mb-3">
+                        {lead.email && (
+                          <span className="flex items-center gap-1">
+                            <Mail className="h-3 w-3" />
+                            {lead.email}
+                          </span>
+                        )}
+                        {lead.phone && (
+                          <span className="flex items-center gap-1">
+                            <Phone className="h-3 w-3" />
+                            {lead.phone}
+                          </span>
+                        )}
+                        <span className="flex items-center gap-1 text-zinc-500">
+                          <Clock className="h-3 w-3" />
+                          Last: {formatLastOutreach(lead.lastOutreach)}
                         </span>
-                      )}
-                      {lead.phone && (
-                        <span className="flex items-center gap-1">
-                          <Phone className="h-3 w-3" />
-                          {lead.phone}
-                        </span>
-                      )}
-                      <span className="flex items-center gap-1 text-zinc-500">
-                        <Clock className="h-3 w-3" />
-                        Last: {formatLastOutreach(lead.lastOutreach)}
-                      </span>
-                    </div>
-
-                    {/* Next Action */}
-                    {lead.nextAction && (
-                      <div className="flex items-center gap-2 text-sm text-amber-400 mb-3">
-                        <TrendingUp className="h-4 w-4" />
-                        <span>Next: {lead.nextAction}</span>
                       </div>
-                    )}
 
-                    {/* Quick Actions */}
-                    <div className="flex items-center gap-2">
-                      {lead.phone && (
+                      {/* Next Action */}
+                      {lead.nextAction && (
+                        <div className="flex items-center gap-2 text-sm text-amber-400 mb-3">
+                          <TrendingUp className="h-4 w-4" />
+                          <span>Next: {lead.nextAction}</span>
+                        </div>
+                      )}
+
+                      {/* Quick Actions */}
+                      <div className="flex items-center gap-2">
+                        {lead.phone && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              onCall?.(lead);
+                              window.open(`tel:${lead.phone}`);
+                            }}
+                            className="border-green-600 text-green-400 hover:bg-green-600/20"
+                          >
+                            <Phone className="h-3 w-3 mr-1" />
+                            Call
+                          </Button>
+                        )}
+                        {lead.email && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              onEmail?.(lead);
+                              window.open(`mailto:${lead.email}`);
+                            }}
+                            className="border-blue-600 text-blue-400 hover:bg-blue-600/20"
+                          >
+                            <Mail className="h-3 w-3 mr-1" />
+                            Email
+                          </Button>
+                        )}
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => {
-                            onCall?.(lead);
-                            window.open(`tel:${lead.phone}`);
-                          }}
-                          className="border-green-600 text-green-400 hover:bg-green-600/20"
+                          onClick={() => onSchedule?.(lead)}
+                          className="border-purple-600 text-purple-400 hover:bg-purple-600/20"
                         >
-                          <Phone className="h-3 w-3 mr-1" />
-                          Call
+                          <Calendar className="h-3 w-3 mr-1" />
+                          Schedule
                         </Button>
-                      )}
-                      {lead.email && (
+                        {lead.linkedinUrl && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              window.open(lead.linkedinUrl, "_blank")
+                            }
+                            className="border-cyan-600 text-cyan-400 hover:bg-cyan-600/20"
+                          >
+                            <ExternalLink className="h-3 w-3 mr-1" />
+                            LinkedIn
+                          </Button>
+                        )}
                         <Button
                           size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            onEmail?.(lead);
-                            window.open(`mailto:${lead.email}`);
-                          }}
-                          className="border-blue-600 text-blue-400 hover:bg-blue-600/20"
+                          onClick={() => handleMarkContacted(lead)}
+                          className="bg-purple-600 hover:bg-purple-700 ml-auto"
                         >
-                          <Mail className="h-3 w-3 mr-1" />
-                          Email
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          Mark Contacted
                         </Button>
-                      )}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => onSchedule?.(lead)}
-                        className="border-purple-600 text-purple-400 hover:bg-purple-600/20"
-                      >
-                        <Calendar className="h-3 w-3 mr-1" />
-                        Schedule
-                      </Button>
-                      {lead.linkedinUrl && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() =>
-                            window.open(lead.linkedinUrl, "_blank")
-                          }
-                          className="border-cyan-600 text-cyan-400 hover:bg-cyan-600/20"
-                        >
-                          <ExternalLink className="h-3 w-3 mr-1" />
-                          LinkedIn
-                        </Button>
-                      )}
-                      <Button
-                        size="sm"
-                        onClick={() => handleMarkContacted(lead)}
-                        className="bg-purple-600 hover:bg-purple-700 ml-auto"
-                      >
-                        <CheckCircle className="h-3 w-3 mr-1" />
-                        Mark Contacted
-                      </Button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))
+                </CardContent>
+              </Card>
+            ))
         )}
       </div>
 
@@ -673,14 +730,16 @@ export function OpportunityPulse({
       {filteredLeads.length > PAGE_SIZE && (
         <div className="flex items-center justify-between mt-6 p-4 bg-zinc-900 rounded-lg border border-zinc-800">
           <div className="text-sm text-zinc-400">
-            Showing {Math.min((currentPage - 1) * PAGE_SIZE + 1, filteredLeads.length)}-
-            {Math.min(currentPage * PAGE_SIZE, filteredLeads.length)} of {filteredLeads.length} leads
+            Showing{" "}
+            {Math.min((currentPage - 1) * PAGE_SIZE + 1, filteredLeads.length)}-
+            {Math.min(currentPage * PAGE_SIZE, filteredLeads.length)} of{" "}
+            {filteredLeads.length} leads
           </div>
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
               className="border-zinc-700 text-zinc-400 hover:text-white disabled:opacity-50"
             >
@@ -688,41 +747,58 @@ export function OpportunityPulse({
               Previous
             </Button>
             <div className="flex items-center gap-1">
-              {Array.from({ length: Math.min(5, Math.ceil(filteredLeads.length / PAGE_SIZE)) }, (_, i) => {
-                const totalPages = Math.ceil(filteredLeads.length / PAGE_SIZE);
-                let pageNum: number;
+              {Array.from(
+                {
+                  length: Math.min(
+                    5,
+                    Math.ceil(filteredLeads.length / PAGE_SIZE),
+                  ),
+                },
+                (_, i) => {
+                  const totalPages = Math.ceil(
+                    filteredLeads.length / PAGE_SIZE,
+                  );
+                  let pageNum: number;
 
-                if (totalPages <= 5) {
-                  pageNum = i + 1;
-                } else if (currentPage <= 3) {
-                  pageNum = i + 1;
-                } else if (currentPage >= totalPages - 2) {
-                  pageNum = totalPages - 4 + i;
-                } else {
-                  pageNum = currentPage - 2 + i;
-                }
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
 
-                return (
-                  <Button
-                    key={pageNum}
-                    size="sm"
-                    variant={currentPage === pageNum ? "default" : "outline"}
-                    onClick={() => setCurrentPage(pageNum)}
-                    className={currentPage === pageNum
-                      ? "bg-purple-600 min-w-[36px]"
-                      : "border-zinc-700 text-zinc-400 min-w-[36px]"
-                    }
-                  >
-                    {pageNum}
-                  </Button>
-                );
-              })}
+                  return (
+                    <Button
+                      key={pageNum}
+                      size="sm"
+                      variant={currentPage === pageNum ? "default" : "outline"}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={
+                        currentPage === pageNum
+                          ? "bg-purple-600 min-w-[36px]"
+                          : "border-zinc-700 text-zinc-400 min-w-[36px]"
+                      }
+                    >
+                      {pageNum}
+                    </Button>
+                  );
+                },
+              )}
             </div>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setCurrentPage(p => Math.min(Math.ceil(filteredLeads.length / PAGE_SIZE), p + 1))}
-              disabled={currentPage >= Math.ceil(filteredLeads.length / PAGE_SIZE)}
+              onClick={() =>
+                setCurrentPage((p) =>
+                  Math.min(Math.ceil(filteredLeads.length / PAGE_SIZE), p + 1),
+                )
+              }
+              disabled={
+                currentPage >= Math.ceil(filteredLeads.length / PAGE_SIZE)
+              }
               className="border-zinc-700 text-zinc-400 hover:text-white disabled:opacity-50"
             >
               Next

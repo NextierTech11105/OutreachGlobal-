@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     console.error("[Airflow SMS] Error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
     console.error("[Airflow SMS] Error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -78,7 +78,7 @@ async function handleSend(body: {
   if (!to || !message) {
     return NextResponse.json(
       { error: "Phone number and message required" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -87,7 +87,7 @@ async function handleSend(body: {
   if (cleanPhone.length < 10) {
     return NextResponse.json(
       { error: "Invalid phone number" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -101,7 +101,7 @@ async function handleSend(body: {
   if (dailySendCount.count >= 2000) {
     return NextResponse.json(
       { error: "Daily SMS limit reached" },
-      { status: 429 }
+      { status: 429 },
     );
   }
 
@@ -147,7 +147,9 @@ async function handleSend(body: {
     dailySendCount.count++;
     smsLog.set(smsId, record);
 
-    console.log(`[Airflow SMS] Sent to ${cleanPhone.slice(-4)}: Step ${escalation_step}`);
+    console.log(
+      `[Airflow SMS] Sent to ${cleanPhone.slice(-4)}: Step ${escalation_step}`,
+    );
 
     return NextResponse.json({
       success: true,
@@ -159,12 +161,11 @@ async function handleSend(body: {
     record.error = error instanceof Error ? error.message : "Unknown error";
     smsLog.set(smsId, record);
 
-    console.error(`[Airflow SMS] Failed to send to ${cleanPhone}: ${record.error}`);
-
-    return NextResponse.json(
-      { error: record.error },
-      { status: 500 }
+    console.error(
+      `[Airflow SMS] Failed to send to ${cleanPhone}: ${record.error}`,
     );
+
+    return NextResponse.json({ error: record.error }, { status: 500 });
   }
 }
 
@@ -204,7 +205,9 @@ async function handleLog(params: URLSearchParams) {
   }
 
   // Sort by sent_at descending
-  records.sort((a, b) => new Date(b.sent_at).getTime() - new Date(a.sent_at).getTime());
+  records.sort(
+    (a, b) => new Date(b.sent_at).getTime() - new Date(a.sent_at).getTime(),
+  );
 
   return NextResponse.json({
     records: records.slice(0, limit),

@@ -20,7 +20,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { PlusCircle, Save, Trash2, ArrowDownUp, FileJson, Loader2, Users } from "lucide-react";
+import {
+  PlusCircle,
+  Save,
+  Trash2,
+  ArrowDownUp,
+  FileJson,
+  Loader2,
+  Users,
+} from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -836,7 +844,9 @@ export function SchemaManager() {
   const loadSchemas = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/admin/data-schema?teamId=${selectedTeam}`);
+      const response = await fetch(
+        `/api/admin/data-schema?teamId=${selectedTeam}`,
+      );
       if (!response.ok) throw new Error("Failed to load schemas");
 
       const data = await response.json();
@@ -849,8 +859,10 @@ export function SchemaManager() {
           if (schema.schemaJson && loadedSchemaData[schema.key]) {
             loadedSchemaData[schema.key] = {
               name: schema.name,
-              description: schema.description || loadedSchemaData[schema.key].description,
-              fields: schema.schemaJson.fields || loadedSchemaData[schema.key].fields,
+              description:
+                schema.description || loadedSchemaData[schema.key].description,
+              fields:
+                schema.schemaJson.fields || loadedSchemaData[schema.key].fields,
             };
           }
         }
@@ -858,7 +870,9 @@ export function SchemaManager() {
         setSchemaData(loadedSchemaData);
 
         // Get highest version
-        const maxVersion = Math.max(...data.schemas.map((s: { version: number }) => s.version));
+        const maxVersion = Math.max(
+          ...data.schemas.map((s: { version: number }) => s.version),
+        );
         setSchemaVersion(maxVersion);
       }
 
@@ -1021,25 +1035,27 @@ export function SchemaManager() {
     setIsSaving(true);
     try {
       // Save each schema entity
-      const savePromises = Object.entries(schemaData).map(async ([key, entity]) => {
-        const response = await fetch("/api/admin/data-schema", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            teamId: selectedTeam,
-            key,
-            name: entity.name,
-            description: entity.description,
-            schemaJson: { fields: entity.fields },
-          }),
-        });
+      const savePromises = Object.entries(schemaData).map(
+        async ([key, entity]) => {
+          const response = await fetch("/api/admin/data-schema", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              teamId: selectedTeam,
+              key,
+              name: entity.name,
+              description: entity.description,
+              schemaJson: { fields: entity.fields },
+            }),
+          });
 
-        if (!response.ok) {
-          throw new Error(`Failed to save schema: ${key}`);
-        }
+          if (!response.ok) {
+            throw new Error(`Failed to save schema: ${key}`);
+          }
 
-        return response.json();
-      });
+          return response.json();
+        },
+      );
 
       const results = await Promise.all(savePromises);
 
@@ -1077,7 +1093,9 @@ export function SchemaManager() {
                 </span>
               )}
               {hasUnsavedChanges && (
-                <Badge variant="destructive" className="text-xs">Unsaved changes</Badge>
+                <Badge variant="destructive" className="text-xs">
+                  Unsaved changes
+                </Badge>
               )}
             </div>
           )}
@@ -1157,117 +1175,126 @@ export function SchemaManager() {
       )}
 
       {!isLoading && (
-      <Tabs
-        value={activeTab}
-        onValueChange={handleTabChange}
-        className="w-full"
-      >
-        <TabsList className="grid grid-cols-7">
-          <TabsTrigger value="leads">Leads</TabsTrigger>
-          <TabsTrigger value="contacts">Contacts</TabsTrigger>
-          <TabsTrigger value="companies">Companies</TabsTrigger>
-          <TabsTrigger value="campaigns">Campaigns</TabsTrigger>
-          <TabsTrigger value="realEstateProperties">Real Estate</TabsTrigger>
-          <TabsTrigger value="zohoCRM">Zoho CRM</TabsTrigger>
-          <TabsTrigger value="segments">Segments</TabsTrigger>
-        </TabsList>
+        <Tabs
+          value={activeTab}
+          onValueChange={handleTabChange}
+          className="w-full"
+        >
+          <TabsList className="grid grid-cols-7">
+            <TabsTrigger value="leads">Leads</TabsTrigger>
+            <TabsTrigger value="contacts">Contacts</TabsTrigger>
+            <TabsTrigger value="companies">Companies</TabsTrigger>
+            <TabsTrigger value="campaigns">Campaigns</TabsTrigger>
+            <TabsTrigger value="realEstateProperties">Real Estate</TabsTrigger>
+            <TabsTrigger value="zohoCRM">Zoho CRM</TabsTrigger>
+            <TabsTrigger value="segments">Segments</TabsTrigger>
+          </TabsList>
 
-        {Object.keys(schemaData).map((entityKey) => (
-          <TabsContent key={entityKey} value={entityKey} className="space-y-4">
-            <Card>
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <CardTitle>{schemaData[entityKey].name}</CardTitle>
-                    <CardDescription>
-                      {schemaData[entityKey].description}
-                    </CardDescription>
+          {Object.keys(schemaData).map((entityKey) => (
+            <TabsContent
+              key={entityKey}
+              value={entityKey}
+              className="space-y-4"
+            >
+              <Card>
+                <CardHeader>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <CardTitle>{schemaData[entityKey].name}</CardTitle>
+                      <CardDescription>
+                        {schemaData[entityKey].description}
+                      </CardDescription>
+                    </div>
+                    <Button onClick={handleAddField}>
+                      <PlusCircle className="h-4 w-4 mr-2" />
+                      Add Field
+                    </Button>
                   </div>
-                  <Button onClick={handleAddField}>
-                    <PlusCircle className="h-4 w-4 mr-2" />
-                    Add Field
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-[60vh]">
-                  <div className="space-y-2">
-                    {schemaData[entityKey].fields.map((field) => (
-                      <Card key={field.id} className="p-4">
-                        <div className="flex justify-between items-start">
-                          <div className="space-y-1">
-                            <div className="flex items-center space-x-2">
-                              <h4 className="font-medium">{field.label}</h4>
-                              <Badge variant="outline">{field.name}</Badge>
-                              <Badge>
-                                {fieldTypes.find((t) => t.value === field.type)
-                                  ?.label || field.type}
-                              </Badge>
-                              {field.required && (
-                                <Badge variant="secondary">Required</Badge>
-                              )}
-                              {field.searchable && (
-                                <Badge variant="outline">Searchable</Badge>
-                              )}
-                            </div>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="h-[60vh]">
+                    <div className="space-y-2">
+                      {schemaData[entityKey].fields.map((field) => (
+                        <Card key={field.id} className="p-4">
+                          <div className="flex justify-between items-start">
+                            <div className="space-y-1">
+                              <div className="flex items-center space-x-2">
+                                <h4 className="font-medium">{field.label}</h4>
+                                <Badge variant="outline">{field.name}</Badge>
+                                <Badge>
+                                  {fieldTypes.find(
+                                    (t) => t.value === field.type,
+                                  )?.label || field.type}
+                                </Badge>
+                                {field.required && (
+                                  <Badge variant="secondary">Required</Badge>
+                                )}
+                                {field.searchable && (
+                                  <Badge variant="outline">Searchable</Badge>
+                                )}
+                              </div>
 
-                            {field.type === "enum" &&
-                              field.options.length > 0 && (
-                                <div className="flex flex-wrap gap-1 mt-2">
-                                  {field.options.map((option) => (
+                              {field.type === "enum" &&
+                                field.options.length > 0 && (
+                                  <div className="flex flex-wrap gap-1 mt-2">
+                                    {field.options.map((option) => (
+                                      <Badge
+                                        key={option}
+                                        variant="outline"
+                                        className="text-xs"
+                                      >
+                                        {option}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                )}
+
+                              {field.type === "reference" &&
+                                field.reference && (
+                                  <div className="mt-1">
                                     <Badge
-                                      key={option}
                                       variant="outline"
                                       className="text-xs"
                                     >
-                                      {option}
+                                      References: {field.reference}
                                     </Badge>
-                                  ))}
+                                  </div>
+                                )}
+
+                              {field.defaultValue && (
+                                <div className="mt-1 text-sm text-muted-foreground">
+                                  Default: {field.defaultValue}
                                 </div>
                               )}
+                            </div>
 
-                            {field.type === "reference" && field.reference && (
-                              <div className="mt-1">
-                                <Badge variant="outline" className="text-xs">
-                                  References: {field.reference}
-                                </Badge>
-                              </div>
-                            )}
-
-                            {field.defaultValue && (
-                              <div className="mt-1 text-sm text-muted-foreground">
-                                Default: {field.defaultValue}
-                              </div>
-                            )}
+                            <div className="flex space-x-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEditField(field)}
+                              >
+                                Edit
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-destructive"
+                                onClick={() => handleDeleteField(field.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
-
-                          <div className="flex space-x-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEditField(field)}
-                            >
-                              Edit
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-destructive"
-                              onClick={() => handleDeleteField(field.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        ))}
-      </Tabs>
+                        </Card>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          ))}
+        </Tabs>
       )}
 
       {/* Add/Edit Field Dialog */}

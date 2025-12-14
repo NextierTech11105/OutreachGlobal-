@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const APOLLO_API_BASE = "https://api.apollo.io/v1";
-const APOLLO_API_KEY = process.env.APOLLO_IO_API_KEY || process.env.NEXT_PUBLIC_APOLLO_IO_API_KEY || process.env.APOLLO_API_KEY || "";
+const APOLLO_API_KEY =
+  process.env.APOLLO_IO_API_KEY ||
+  process.env.NEXT_PUBLIC_APOLLO_IO_API_KEY ||
+  process.env.APOLLO_API_KEY ||
+  "";
 
 export async function POST(request: NextRequest) {
   try {
@@ -93,7 +97,11 @@ export async function POST(request: NextRequest) {
       name?: string;
       title?: string;
       email?: string;
-      phone_numbers?: Array<{ sanitized_number?: string; raw_number?: string; type?: string }>;
+      phone_numbers?: Array<{
+        sanitized_number?: string;
+        raw_number?: string;
+        type?: string;
+      }>;
       city?: string;
       state?: string;
       country?: string;
@@ -121,12 +129,14 @@ export async function POST(request: NextRequest) {
       const org = person.organization;
       // Get phone - try org phone first, then person phones
       const phones = person.phone_numbers || [];
-      const phone = phones.find(p => p.type === "work_direct" || p.type === "work")?.sanitized_number
-        || org?.sanitized_phone
-        || org?.phone
-        || phones[0]?.sanitized_number
-        || phones[0]?.raw_number
-        || null;
+      const phone =
+        phones.find((p) => p.type === "work_direct" || p.type === "work")
+          ?.sanitized_number ||
+        org?.sanitized_phone ||
+        org?.phone ||
+        phones[0]?.sanitized_number ||
+        phones[0]?.raw_number ||
+        null;
 
       // Get address from organization
       const address = org?.street_address || org?.raw_address || null;
@@ -135,11 +145,14 @@ export async function POST(request: NextRequest) {
       const zip = org?.postal_code || null;
 
       // Get industry
-      const industry = org?.industry || (org?.industries && org.industries[0]) || null;
+      const industry =
+        org?.industry || (org?.industries && org.industries[0]) || null;
 
       return {
         id: person.id,
-        name: person.name || `${person.first_name || ""} ${person.last_name || ""}`.trim(),
+        name:
+          person.name ||
+          `${person.first_name || ""} ${person.last_name || ""}`.trim(),
         title: person.title || null,
         email: person.email || null,
         phone,
@@ -148,7 +161,10 @@ export async function POST(request: NextRequest) {
         state,
         zip,
         company_name: org?.name || null,
-        company_domain: org?.primary_domain || org?.website_url?.replace(/^https?:\/\//, "").replace(/\/$/, "") || null,
+        company_domain:
+          org?.primary_domain ||
+          org?.website_url?.replace(/^https?:\/\//, "").replace(/\/$/, "") ||
+          null,
         employees: org?.estimated_num_employees || null,
         industry,
         revenue: org?.annual_revenue ? org.annual_revenue * 100 : null,

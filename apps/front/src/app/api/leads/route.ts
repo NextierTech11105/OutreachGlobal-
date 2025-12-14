@@ -24,7 +24,10 @@ export async function GET(request: NextRequest) {
       // Auth not available
     }
     if (!userId) {
-      return NextResponse.json({ error: "Unauthorized", message: "Please sign in to view leads" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Unauthorized", message: "Please sign in to view leads" },
+        { status: 401 },
+      );
     }
 
     const { searchParams } = new URL(request.url);

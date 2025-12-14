@@ -77,9 +77,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
           demographics: r.demographics || null,
           aiAnalysis: r.aiAnalysis || null,
           // Include lead name for personalization but not contact info
-          leadInfo: r.leadInfo
-            ? { name: r.leadInfo.name }
-            : null,
+          leadInfo: r.leadInfo ? { name: r.leadInfo.name } : null,
           // Include partner offer if present
           partnerOffer: r.partnerOffer || null,
           // Company and agent branding for white-label reports

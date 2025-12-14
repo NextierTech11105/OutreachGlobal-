@@ -226,7 +226,12 @@ export default function LeadCalendarWorkspace() {
   // Skip Trace State
   const [showSkipTraceDialog, setShowSkipTraceDialog] = useState(false);
   const [isSkipTracing, setIsSkipTracing] = useState(false);
-  const [skipTraceProgress, setSkipTraceProgress] = useState({ done: 0, total: 0, success: 0, failed: 0 });
+  const [skipTraceProgress, setSkipTraceProgress] = useState({
+    done: 0,
+    total: 0,
+    success: 0,
+    failed: 0,
+  });
 
   // Calculate date range for current view
   const dateRange = useMemo(() => {
@@ -527,29 +532,38 @@ export default function LeadCalendarWorkspace() {
 
       if (data.leads && data.leads.length > 0) {
         // Transform B2B leads to calendar leads
-        const newLeads: Lead[] = data.leads.map((lead: Record<string, unknown>) => ({
-          id: lead.id || `lead-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          name: `${lead.first_name || ""} ${lead.last_name || ""}`.trim() || (lead.company as string) || "Unknown",
-          phone: lead.phone as string || undefined,
-          email: lead.email as string || undefined,
-          address: lead.address as string || undefined,
-          city: lead.city as string || undefined,
-          state: lead.state as string || "NY",
-          propertyValue: undefined,
-          equity: undefined,
-          leadType: "B2B",
-          status: "new" as const,
-          createdAt: new Date().toISOString(),
-          source: "b2b_search",
-          notes: `Company: ${lead.company || "N/A"}, Title: ${lead.title || "N/A"}`,
-        }));
+        const newLeads: Lead[] = data.leads.map(
+          (lead: Record<string, unknown>) => ({
+            id:
+              lead.id ||
+              `lead-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            name:
+              `${lead.first_name || ""} ${lead.last_name || ""}`.trim() ||
+              (lead.company as string) ||
+              "Unknown",
+            phone: (lead.phone as string) || undefined,
+            email: (lead.email as string) || undefined,
+            address: (lead.address as string) || undefined,
+            city: (lead.city as string) || undefined,
+            state: (lead.state as string) || "NY",
+            propertyValue: undefined,
+            equity: undefined,
+            leadType: "B2B",
+            status: "new" as const,
+            createdAt: new Date().toISOString(),
+            source: "b2b_search",
+            notes: `Company: ${lead.company || "N/A"}, Title: ${lead.title || "N/A"}`,
+          }),
+        );
 
         setAllLeads((prev) => [...newLeads, ...prev]);
         toast.success(`Pulled ${newLeads.length} leads`, {
           description: `${data.filters?.decisionMakersOnly ? "Decision makers only" : "All contacts"} from ${pullLeadsFilter.state}`,
         });
       } else {
-        toast.info("No leads found", { description: "Try adjusting your filters" });
+        toast.info("No leads found", {
+          description: "Try adjusting your filters",
+        });
       }
     } catch (error) {
       toast.error("Failed to pull leads", {
@@ -578,7 +592,12 @@ export default function LeadCalendarWorkspace() {
     }
 
     setIsSkipTracing(true);
-    setSkipTraceProgress({ done: 0, total: leadsToTrace.length, success: 0, failed: 0 });
+    setSkipTraceProgress({
+      done: 0,
+      total: leadsToTrace.length,
+      success: 0,
+      failed: 0,
+    });
 
     let successCount = 0;
     let failedCount = 0;
@@ -628,7 +647,12 @@ export default function LeadCalendarWorkspace() {
         failedCount++;
       }
 
-      setSkipTraceProgress({ done: i + 1, total: leadsToTrace.length, success: successCount, failed: failedCount });
+      setSkipTraceProgress({
+        done: i + 1,
+        total: leadsToTrace.length,
+        success: successCount,
+        failed: failedCount,
+      });
     }
 
     setIsSkipTracing(false);
@@ -637,7 +661,10 @@ export default function LeadCalendarWorkspace() {
 
     if (successCount > 0) {
       toast.success(`Skip traced ${successCount} leads`, {
-        description: failedCount > 0 ? `${failedCount} failed` : "Phone numbers and emails updated",
+        description:
+          failedCount > 0
+            ? `${failedCount} failed`
+            : "Phone numbers and emails updated",
       });
     } else {
       toast.error("Skip trace failed", {
@@ -1014,7 +1041,6 @@ export default function LeadCalendarWorkspace() {
               ))}
             </div>
           </div>
-
         </div>
 
         {/* Day Detail Sidebar */}
@@ -1365,7 +1391,9 @@ export default function LeadCalendarWorkspace() {
               <Label>State</Label>
               <Select
                 value={pullLeadsFilter.state}
-                onValueChange={(v) => setPullLeadsFilter({ ...pullLeadsFilter, state: v })}
+                onValueChange={(v) =>
+                  setPullLeadsFilter({ ...pullLeadsFilter, state: v })
+                }
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -1388,12 +1416,17 @@ export default function LeadCalendarWorkspace() {
             <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
               <div>
                 <p className="font-medium text-sm">Decision Makers Only</p>
-                <p className="text-xs text-muted-foreground">Owner, CEO, VP, Director, Partner</p>
+                <p className="text-xs text-muted-foreground">
+                  Owner, CEO, VP, Director, Partner
+                </p>
               </div>
               <Checkbox
                 checked={pullLeadsFilter.decisionMakersOnly}
                 onCheckedChange={(checked) =>
-                  setPullLeadsFilter({ ...pullLeadsFilter, decisionMakersOnly: checked === true })
+                  setPullLeadsFilter({
+                    ...pullLeadsFilter,
+                    decisionMakersOnly: checked === true,
+                  })
                 }
               />
             </div>
@@ -1402,7 +1435,9 @@ export default function LeadCalendarWorkspace() {
               <Label>Number of Leads</Label>
               <Select
                 value={String(pullLeadsFilter.limit)}
-                onValueChange={(v) => setPullLeadsFilter({ ...pullLeadsFilter, limit: parseInt(v) })}
+                onValueChange={(v) =>
+                  setPullLeadsFilter({ ...pullLeadsFilter, limit: parseInt(v) })
+                }
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -1419,7 +1454,10 @@ export default function LeadCalendarWorkspace() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowPullLeadsDialog(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowPullLeadsDialog(false)}
+            >
               Cancel
             </Button>
             <Button
@@ -1461,7 +1499,9 @@ export default function LeadCalendarWorkspace() {
               <div className="flex items-start gap-3">
                 <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5" />
                 <div>
-                  <p className="font-medium text-amber-800">Cost: ~$0.10-0.25 per lead</p>
+                  <p className="font-medium text-amber-800">
+                    Cost: ~$0.10-0.25 per lead
+                  </p>
                   <p className="text-sm text-amber-700">
                     Skip trace returns mobile phones, emails, address history
                   </p>
@@ -1477,7 +1517,11 @@ export default function LeadCalendarWorkspace() {
               <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                 <span className="text-sm">With addresses:</span>
                 <Badge variant="outline">
-                  {getSelectedLeadsList().filter((l) => l.address && l.city && l.state).length}
+                  {
+                    getSelectedLeadsList().filter(
+                      (l) => l.address && l.city && l.state,
+                    ).length
+                  }
                 </Badge>
               </div>
             </div>
@@ -1486,19 +1530,33 @@ export default function LeadCalendarWorkspace() {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>Progress</span>
-                  <span>{skipTraceProgress.done} / {skipTraceProgress.total}</span>
+                  <span>
+                    {skipTraceProgress.done} / {skipTraceProgress.total}
+                  </span>
                 </div>
-                <Progress value={(skipTraceProgress.done / skipTraceProgress.total) * 100} />
+                <Progress
+                  value={
+                    (skipTraceProgress.done / skipTraceProgress.total) * 100
+                  }
+                />
                 <div className="flex justify-between text-xs text-muted-foreground">
-                  <span className="text-green-600">{skipTraceProgress.success} success</span>
-                  <span className="text-red-600">{skipTraceProgress.failed} failed</span>
+                  <span className="text-green-600">
+                    {skipTraceProgress.success} success
+                  </span>
+                  <span className="text-red-600">
+                    {skipTraceProgress.failed} failed
+                  </span>
                 </div>
               </div>
             )}
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowSkipTraceDialog(false)} disabled={isSkipTracing}>
+            <Button
+              variant="outline"
+              onClick={() => setShowSkipTraceDialog(false)}
+              disabled={isSkipTracing}
+            >
               Cancel
             </Button>
             <Button

@@ -21,7 +21,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Sparkles, Save, Check, Info, XCircle, Loader2, CheckCircle } from "lucide-react";
+import {
+  Sparkles,
+  Save,
+  Check,
+  Info,
+  XCircle,
+  Loader2,
+  CheckCircle,
+} from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
 
@@ -525,11 +533,13 @@ export function LlmSettingsManager() {
                 <div className="flex items-center gap-2">
                   {configStatus[provider.id] ? (
                     <span className="text-sm text-green-600 flex items-center">
-                      <CheckCircle className="mr-1 h-4 w-4" /> API Key Configured
+                      <CheckCircle className="mr-1 h-4 w-4" /> API Key
+                      Configured
                     </span>
                   ) : (
                     <span className="text-sm text-red-600 flex items-center">
-                      <XCircle className="mr-1 h-4 w-4" /> Set {provider.apiKeyName} in env
+                      <XCircle className="mr-1 h-4 w-4" /> Set{" "}
+                      {provider.apiKeyName} in env
                     </span>
                   )}
                 </div>
@@ -537,7 +547,9 @@ export function LlmSettingsManager() {
                   <Button
                     variant="outline"
                     onClick={() => testConnection(provider.id)}
-                    disabled={isTesting === provider.id || !configStatus[provider.id]}
+                    disabled={
+                      isTesting === provider.id || !configStatus[provider.id]
+                    }
                   >
                     {isTesting === provider.id ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />

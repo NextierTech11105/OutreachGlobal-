@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
     console.error("[Airflow Gianna] Error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -87,7 +87,7 @@ async function handleGenerate(body: { context: GiannaContext; step: number }) {
   if (!context || !step) {
     return NextResponse.json(
       { error: "Context and step required" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -110,12 +110,19 @@ async function handleGenerate(body: { context: GiannaContext; step: number }) {
       "Appreciate the response. ",
       "Good to hear from you! ",
     ];
-    const ack = acknowledgments[Math.floor(Math.random() * acknowledgments.length)];
+    const ack =
+      acknowledgments[Math.floor(Math.random() * acknowledgments.length)];
 
     // For positive responses, adjust message
-    const positiveKeywords = ["yes", "interested", "tell me more", "sure", "okay"];
+    const positiveKeywords = [
+      "yes",
+      "interested",
+      "tell me more",
+      "sure",
+      "okay",
+    ];
     const isPositive = positiveKeywords.some((kw) =>
-      context.last_response?.toLowerCase().includes(kw)
+      context.last_response?.toLowerCase().includes(kw),
     );
 
     if (isPositive) {
@@ -123,7 +130,9 @@ async function handleGenerate(body: { context: GiannaContext; step: number }) {
     }
   }
 
-  console.log(`[Airflow Gianna] Generated step ${step} message for ${context.name}`);
+  console.log(
+    `[Airflow Gianna] Generated step ${step} message for ${context.name}`,
+  );
 
   return NextResponse.json({
     message,

@@ -4,7 +4,10 @@ const APOLLO_API_BASE = "https://api.apollo.io/v1";
 
 // Check if Apollo is configured via env vars
 export async function GET() {
-  const apiKey = process.env.APOLLO_IO_API_KEY || process.env.NEXT_PUBLIC_APOLLO_IO_API_KEY || process.env.APOLLO_API_KEY;
+  const apiKey =
+    process.env.APOLLO_IO_API_KEY ||
+    process.env.NEXT_PUBLIC_APOLLO_IO_API_KEY ||
+    process.env.APOLLO_API_KEY;
   const configured = !!apiKey;
 
   if (!configured) {

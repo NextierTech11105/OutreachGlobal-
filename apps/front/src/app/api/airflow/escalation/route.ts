@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
     console.error("[Airflow Escalation] Error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
     console.error("[Airflow Escalation] Error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -137,7 +137,9 @@ async function handleGetDue(params: URLSearchParams) {
   dueLeads.sort((a, b) => a.escalation_step - b.escalation_step);
   const limited = dueLeads.slice(0, limit);
 
-  console.log(`[Airflow Escalation] Found ${limited.length} leads due (of ${dueLeads.length} total)`);
+  console.log(
+    `[Airflow Escalation] Found ${limited.length} leads due (of ${dueLeads.length} total)`,
+  );
 
   return NextResponse.json({
     leads: limited,
@@ -175,7 +177,10 @@ async function handleUpdateStates(body: {
   const { updates } = body;
 
   if (!updates || !Array.isArray(updates)) {
-    return NextResponse.json({ error: "Updates array required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Updates array required" },
+      { status: 400 },
+    );
   }
 
   let updated = 0;

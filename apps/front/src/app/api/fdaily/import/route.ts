@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+} from "@aws-sdk/client-s3";
 
 /**
  * FDAILY (ForeclosuresDaily.com) Lis Pendens Import API
@@ -23,7 +27,8 @@ const SPACES_KEY = process.env.DO_SPACES_KEY || "";
 const SPACES_SECRET = process.env.DO_SPACES_SECRET || "";
 
 // RealEstateAPI for enrichment
-const REALESTATE_API_KEY = process.env.REAL_ESTATE_API_KEY || process.env.REALESTATE_API_KEY || "";
+const REALESTATE_API_KEY =
+  process.env.REAL_ESTATE_API_KEY || process.env.REALESTATE_API_KEY || "";
 const REALESTATE_API_URL = "https://api.realestateapi.com/v2";
 
 interface FDAILYRecord {
@@ -119,7 +124,13 @@ interface ProcessedLead {
   realEstateApiId: string | null;
 
   // Campaign status
-  status: "new" | "enriched" | "skip_traced" | "contacted" | "responded" | "converted";
+  status:
+    | "new"
+    | "enriched"
+    | "skip_traced"
+    | "contacted"
+    | "responded"
+    | "converted";
   priority: "hot" | "warm" | "cold";
   tags: string[];
 }
@@ -164,15 +175,19 @@ function normalizeRecord(raw: FDAILYRecord, index: number): ProcessedLead {
     raw.mailing_address,
     raw.mailing_city,
     raw.mailing_state,
-    raw.mailing_zip
+    raw.mailing_zip,
   ].filter(Boolean);
-  const mailingAddress = mailingParts.length > 0 ? mailingParts.join(", ") : fullAddress;
+  const mailingAddress =
+    mailingParts.length > 0 ? mailingParts.join(", ") : fullAddress;
 
   // Determine priority based on property value and recency
   const value = parseNumber(raw.property_value || raw.estimated_value);
   const filedDate = raw.filed_date || raw.filing_date || "";
-  const daysSinceFiled = filedDate ?
-    Math.floor((Date.now() - new Date(filedDate).getTime()) / (1000 * 60 * 60 * 24)) : 999;
+  const daysSinceFiled = filedDate
+    ? Math.floor(
+        (Date.now() - new Date(filedDate).getTime()) / (1000 * 60 * 60 * 24),
+      )
+    : 999;
 
   let priority: "hot" | "warm" | "cold" = "warm";
   if (daysSinceFiled <= 7) priority = "hot";
@@ -182,7 +197,8 @@ function normalizeRecord(raw: FDAILYRecord, index: number): ProcessedLead {
   const tags: string[] = ["lis_pendens", "fdaily"];
   if (value && value > 500000) tags.push("high_value");
   if (daysSinceFiled <= 7) tags.push("fresh_filing");
-  if (raw.case_type?.toLowerCase().includes("foreclosure")) tags.push("foreclosure");
+  if (raw.case_type?.toLowerCase().includes("foreclosure"))
+    tags.push("foreclosure");
 
   return {
     id: `fdaily-${raw.case_number || raw.case_id || index}-${Date.now()}`,
@@ -226,7 +242,9 @@ function normalizeRecord(raw: FDAILYRecord, index: number): ProcessedLead {
   };
 }
 
-async function enrichWithRealEstateAPI(lead: ProcessedLead): Promise<ProcessedLead> {
+async function enrichWithRealEstateAPI(
+  lead: ProcessedLead,
+): Promise<ProcessedLead> {
   if (!REALESTATE_API_KEY || !lead.propertyAddress) {
     return lead;
   }
@@ -270,7 +288,10 @@ async function enrichWithRealEstateAPI(lead: ProcessedLead): Promise<ProcessedLe
       }
     }
   } catch (error) {
-    console.error(`[FDAILY] Enrichment failed for ${lead.propertyAddress}:`, error);
+    console.error(
+      `[FDAILY] Enrichment failed for ${lead.propertyAddress}:`,
+      error,
+    );
   }
 
   return lead;
@@ -292,7 +313,10 @@ export async function POST(request: NextRequest) {
       enrichAfterImport = formData.get("enrich") === "true";
 
       if (!file) {
-        return NextResponse.json({ error: "No file provided" }, { status: 400 });
+        return NextResponse.json(
+          { error: "No file provided" },
+          { status: 400 },
+        );
       }
 
       const text = await file.text();
@@ -306,7 +330,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (!records.length) {
-      return NextResponse.json({ error: "No records to import" }, { status: 400 });
+      return NextResponse.json(
+        { error: "No records to import" },
+        { status: 400 },
+      );
     }
 
     console.log(`[FDAILY Import] Processing ${records.length} records...`);
@@ -316,18 +343,22 @@ export async function POST(request: NextRequest) {
 
     // Optional: Enrich with RealEstateAPI
     if (enrichAfterImport && REALESTATE_API_KEY) {
-      console.log(`[FDAILY Import] Enriching ${processedLeads.length} leads...`);
+      console.log(
+        `[FDAILY Import] Enriching ${processedLeads.length} leads...`,
+      );
       const enrichedLeads: ProcessedLead[] = [];
 
       // Process in batches of 10 to avoid rate limits
       for (let i = 0; i < processedLeads.length; i += 10) {
         const batch = processedLeads.slice(i, i + 10);
-        const enrichedBatch = await Promise.all(batch.map(enrichWithRealEstateAPI));
+        const enrichedBatch = await Promise.all(
+          batch.map(enrichWithRealEstateAPI),
+        );
         enrichedLeads.push(...enrichedBatch);
 
         // Brief pause between batches
         if (i + 10 < processedLeads.length) {
-          await new Promise(r => setTimeout(r, 500));
+          await new Promise((r) => setTimeout(r, 500));
         }
       }
 
@@ -349,12 +380,14 @@ export async function POST(request: NextRequest) {
         leads: processedLeads,
       };
 
-      await client.send(new PutObjectCommand({
-        Bucket: SPACES_BUCKET,
-        Key: key,
-        Body: JSON.stringify(importRecord, null, 2),
-        ContentType: "application/json",
-      }));
+      await client.send(
+        new PutObjectCommand({
+          Bucket: SPACES_BUCKET,
+          Key: key,
+          Body: JSON.stringify(importRecord, null, 2),
+          ContentType: "application/json",
+        }),
+      );
 
       savedTo = key;
       console.log(`[FDAILY Import] Saved to DO Spaces: ${key}`);
@@ -363,11 +396,12 @@ export async function POST(request: NextRequest) {
     // Summary stats
     const stats = {
       total: processedLeads.length,
-      hot: processedLeads.filter(l => l.priority === "hot").length,
-      warm: processedLeads.filter(l => l.priority === "warm").length,
-      cold: processedLeads.filter(l => l.priority === "cold").length,
-      enriched: processedLeads.filter(l => l.enriched).length,
-      highValue: processedLeads.filter(l => (l.estimatedValue || 0) > 500000).length,
+      hot: processedLeads.filter((l) => l.priority === "hot").length,
+      warm: processedLeads.filter((l) => l.priority === "warm").length,
+      cold: processedLeads.filter((l) => l.priority === "cold").length,
+      enriched: processedLeads.filter((l) => l.enriched).length,
+      highValue: processedLeads.filter((l) => (l.estimatedValue || 0) > 500000)
+        .length,
     };
 
     return NextResponse.json({
@@ -379,12 +413,11 @@ export async function POST(request: NextRequest) {
       // Return first 5 leads as preview
       preview: processedLeads.slice(0, 5),
     });
-
   } catch (error: any) {
     console.error("[FDAILY Import] Error:", error);
     return NextResponse.json(
       { error: error.message || "Import failed" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -394,7 +427,10 @@ export async function GET(request: NextRequest) {
   try {
     const client = getS3Client();
     if (!client) {
-      return NextResponse.json({ error: "Storage not configured" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Storage not configured" },
+        { status: 500 },
+      );
     }
 
     const { searchParams } = new URL(request.url);
@@ -402,10 +438,12 @@ export async function GET(request: NextRequest) {
 
     if (batchName) {
       // Get specific batch
-      const response = await client.send(new GetObjectCommand({
-        Bucket: SPACES_BUCKET,
-        Key: `fdaily/${batchName}.json`,
-      }));
+      const response = await client.send(
+        new GetObjectCommand({
+          Bucket: SPACES_BUCKET,
+          Key: `fdaily/${batchName}.json`,
+        }),
+      );
 
       const content = await response.Body?.transformToString();
       if (!content) {
@@ -420,28 +458,28 @@ export async function GET(request: NextRequest) {
       message: "Use ?batch=<name> to retrieve a specific import batch",
       endpoint: "/api/fdaily/import?batch=fdaily-import-2024-12-11",
     });
-
   } catch (error: any) {
     console.error("[FDAILY Import] Error:", error);
     return NextResponse.json(
       { error: error.message || "Failed to retrieve data" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 // Simple CSV parser
 function parseCSV(text: string): FDAILYRecord[] {
-  const lines = text.split(/\r?\n/).filter(line => line.trim());
+  const lines = text.split(/\r?\n/).filter((line) => line.trim());
   if (lines.length < 2) return [];
 
   // Parse header - normalize column names
-  const headers = lines[0].split(",").map(h =>
-    h.trim()
+  const headers = lines[0].split(",").map((h) =>
+    h
+      .trim()
       .toLowerCase()
       .replace(/[^a-z0-9]/g, "_")
       .replace(/_+/g, "_")
-      .replace(/^_|_$/g, "")
+      .replace(/^_|_$/g, ""),
   );
 
   const records: FDAILYRecord[] = [];

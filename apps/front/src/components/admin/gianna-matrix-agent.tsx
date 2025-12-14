@@ -50,7 +50,12 @@ interface Lead {
   priority_score: number;
   signals: string[];
   // Contact tracking
-  contact_status: "no_contact" | "attempted" | "contacted" | "responded" | "converted";
+  contact_status:
+    | "no_contact"
+    | "attempted"
+    | "contacted"
+    | "responded"
+    | "converted";
   attempts: number;
   last_attempt?: Date;
   // Campaign
@@ -120,18 +125,26 @@ const DEFAULT_WEIGHTS: PriorityWeights = {
   owner_title: 5,
 };
 
-function calculatePriorityScore(lead: Partial<Lead>, weights: PriorityWeights): number {
+function calculatePriorityScore(
+  lead: Partial<Lead>,
+  weights: PriorityWeights,
+): number {
   let score = 0;
 
   if (lead.phone) score += weights.has_phone;
   if (lead.email) score += weights.has_email;
   if (lead.contact_name) score += weights.has_contact_name;
   if (lead.sector) score += weights.sector_match;
-  if (!lead.attempts || lead.attempts === 0) score += weights.no_previous_attempts;
+  if (!lead.attempts || lead.attempts === 0)
+    score += weights.no_previous_attempts;
 
   // Title signals
   const title = lead.contact_name?.toLowerCase() || "";
-  if (title.includes("owner") || title.includes("ceo") || title.includes("president")) {
+  if (
+    title.includes("owner") ||
+    title.includes("ceo") ||
+    title.includes("president")
+  ) {
     score += weights.owner_title;
   }
 
@@ -145,14 +158,14 @@ function calculatePriorityScore(lead: Partial<Lead>, weights: PriorityWeights): 
 const SECTOR_CONFIG: Record<string, { label: string; color: string }> = {
   "hotel-motel": { label: "Hotels & Motels", color: "bg-blue-500" },
   "campgrounds-rv": { label: "Campgrounds & RV", color: "bg-green-500" },
-  "trucking": { label: "Trucking", color: "bg-orange-500" },
+  trucking: { label: "Trucking", color: "bg-orange-500" },
   "auto-dealers": { label: "Auto Dealers", color: "bg-purple-500" },
   "auto-repair": { label: "Auto Repair", color: "bg-red-500" },
   "aircraft-parts": { label: "Aircraft Parts", color: "bg-cyan-500" },
-  "restaurants": { label: "Restaurants", color: "bg-yellow-500" },
-  "construction": { label: "Construction", color: "bg-amber-500" },
-  "medical": { label: "Medical", color: "bg-pink-500" },
-  "dental": { label: "Dental", color: "bg-indigo-500" },
+  restaurants: { label: "Restaurants", color: "bg-yellow-500" },
+  construction: { label: "Construction", color: "bg-amber-500" },
+  medical: { label: "Medical", color: "bg-pink-500" },
+  dental: { label: "Dental", color: "bg-indigo-500" },
 };
 
 function generateMockQueues(): SectorQueue[] {
@@ -197,7 +210,9 @@ export function GiannaMatrixAgent() {
   });
   const [weights, setWeights] = useState<PriorityWeights>(DEFAULT_WEIGHTS);
   const [isRunning, setIsRunning] = useState(false);
-  const [selectedSectors, setSelectedSectors] = useState<Set<string>>(new Set());
+  const [selectedSectors, setSelectedSectors] = useState<Set<string>>(
+    new Set(),
+  );
   const [batchSize] = useState(2000);
   const [processingSpeed, setProcessingSpeed] = useState(0);
 
@@ -225,7 +240,7 @@ export function GiannaMatrixAgent() {
 
   // Toggle sector selection
   const toggleSector = (sector: string) => {
-    setSelectedSectors(prev => {
+    setSelectedSectors((prev) => {
       const next = new Set(prev);
       if (next.has(sector)) {
         next.delete(sector);
@@ -238,7 +253,7 @@ export function GiannaMatrixAgent() {
 
   // Select all sectors
   const selectAllSectors = () => {
-    setSelectedSectors(new Set(queues.map(q => q.sector)));
+    setSelectedSectors(new Set(queues.map((q) => q.sector)));
   };
 
   // Launch campaign
@@ -248,7 +263,7 @@ export function GiannaMatrixAgent() {
       return;
     }
 
-    const selectedQueues = queues.filter(q => selectedSectors.has(q.sector));
+    const selectedQueues = queues.filter((q) => selectedSectors.has(q.sector));
     const totalLeads = selectedQueues.reduce((sum, q) => sum + q.no_contact, 0);
     const batches = Math.ceil(totalLeads / batchSize);
 
@@ -265,11 +280,16 @@ export function GiannaMatrixAgent() {
       created_at: new Date(),
     };
 
-    setCampaigns(prev => [newCampaign, ...prev]);
+    setCampaigns((prev) => [newCampaign, ...prev]);
     setIsRunning(true);
-    setStats(prev => ({ ...prev, active_campaigns: prev.active_campaigns + 1 }));
+    setStats((prev) => ({
+      ...prev,
+      active_campaigns: prev.active_campaigns + 1,
+    }));
 
-    toast.success(`Campaign launched: ${totalLeads.toLocaleString()} leads across ${selectedSectors.size} sectors (${batches} batches of ${batchSize})`);
+    toast.success(
+      `Campaign launched: ${totalLeads.toLocaleString()} leads across ${selectedSectors.size} sectors (${batches} batches of ${batchSize})`,
+    );
 
     // Simulate processing
     simulateProcessing(newCampaign.id, totalLeads);
@@ -279,41 +299,48 @@ export function GiannaMatrixAgent() {
   const simulateProcessing = (campaignId: string, totalLeads: number) => {
     let processed = 0;
     const interval = setInterval(() => {
-      const batch = Math.min(Math.floor(Math.random() * 50) + 20, totalLeads - processed);
+      const batch = Math.min(
+        Math.floor(Math.random() * 50) + 20,
+        totalLeads - processed,
+      );
       processed += batch;
 
       setProcessingSpeed(batch * 60); // leads per minute extrapolated
 
-      setCampaigns(prev => prev.map(c => {
-        if (c.id === campaignId) {
-          const contacted = Math.floor(processed * 0.3);
-          const responded = Math.floor(contacted * 0.15);
-          return {
-            ...c,
-            processed,
-            contacted,
-            responded,
-            status: processed >= totalLeads ? "completed" : "running",
-          };
-        }
-        return c;
-      }));
+      setCampaigns((prev) =>
+        prev.map((c) => {
+          if (c.id === campaignId) {
+            const contacted = Math.floor(processed * 0.3);
+            const responded = Math.floor(contacted * 0.15);
+            return {
+              ...c,
+              processed,
+              contacted,
+              responded,
+              status: processed >= totalLeads ? "completed" : "running",
+            };
+          }
+          return c;
+        }),
+      );
 
       // Update queues
-      setQueues(prev => prev.map(q => {
-        if (selectedSectors.has(q.sector)) {
-          const reduction = Math.floor(batch / selectedSectors.size);
-          return {
-            ...q,
-            no_contact: Math.max(0, q.no_contact - reduction),
-            attempted: q.attempted + Math.floor(reduction * 0.7),
-            contacted: q.contacted + Math.floor(reduction * 0.2),
-            responded: q.responded + Math.floor(reduction * 0.08),
-            converted: q.converted + Math.floor(reduction * 0.02),
-          };
-        }
-        return q;
-      }));
+      setQueues((prev) =>
+        prev.map((q) => {
+          if (selectedSectors.has(q.sector)) {
+            const reduction = Math.floor(batch / selectedSectors.size);
+            return {
+              ...q,
+              no_contact: Math.max(0, q.no_contact - reduction),
+              attempted: q.attempted + Math.floor(reduction * 0.7),
+              contacted: q.contacted + Math.floor(reduction * 0.2),
+              responded: q.responded + Math.floor(reduction * 0.08),
+              converted: q.converted + Math.floor(reduction * 0.02),
+            };
+          }
+          return q;
+        }),
+      );
 
       if (processed >= totalLeads) {
         clearInterval(interval);
@@ -333,12 +360,18 @@ export function GiannaMatrixAgent() {
   // Get status color
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "no_contact": return "text-zinc-400";
-      case "attempted": return "text-yellow-400";
-      case "contacted": return "text-blue-400";
-      case "responded": return "text-green-400";
-      case "converted": return "text-purple-400";
-      default: return "text-zinc-400";
+      case "no_contact":
+        return "text-zinc-400";
+      case "attempted":
+        return "text-yellow-400";
+      case "contacted":
+        return "text-blue-400";
+      case "responded":
+        return "text-green-400";
+      case "converted":
+        return "text-purple-400";
+      default:
+        return "text-zinc-400";
     }
   };
 
@@ -390,7 +423,9 @@ export function GiannaMatrixAgent() {
               <Database className="h-4 w-4" />
               <span className="text-xs">Total Leads</span>
             </div>
-            <p className="text-2xl font-bold text-white">{stats.total_leads.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-white">
+              {stats.total_leads.toLocaleString()}
+            </p>
           </CardContent>
         </Card>
         <Card className="bg-zinc-900 border-zinc-800">
@@ -399,7 +434,9 @@ export function GiannaMatrixAgent() {
               <Clock className="h-4 w-4" />
               <span className="text-xs">No Contact</span>
             </div>
-            <p className="text-2xl font-bold text-yellow-400">{stats.no_contact.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-yellow-400">
+              {stats.no_contact.toLocaleString()}
+            </p>
           </CardContent>
         </Card>
         <Card className="bg-zinc-900 border-zinc-800">
@@ -408,7 +445,9 @@ export function GiannaMatrixAgent() {
               <Phone className="h-4 w-4" />
               <span className="text-xs">Contacted</span>
             </div>
-            <p className="text-2xl font-bold text-blue-400">{stats.contacted.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-blue-400">
+              {stats.contacted.toLocaleString()}
+            </p>
           </CardContent>
         </Card>
         <Card className="bg-zinc-900 border-zinc-800">
@@ -417,7 +456,9 @@ export function GiannaMatrixAgent() {
               <MessageSquare className="h-4 w-4" />
               <span className="text-xs">Responded</span>
             </div>
-            <p className="text-2xl font-bold text-green-400">{stats.responded.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-green-400">
+              {stats.responded.toLocaleString()}
+            </p>
           </CardContent>
         </Card>
         <Card className="bg-zinc-900 border-zinc-800">
@@ -426,7 +467,9 @@ export function GiannaMatrixAgent() {
               <TrendingUp className="h-4 w-4" />
               <span className="text-xs">Conversion</span>
             </div>
-            <p className="text-2xl font-bold text-purple-400">{stats.conversion_rate.toFixed(1)}%</p>
+            <p className="text-2xl font-bold text-purple-400">
+              {stats.conversion_rate.toFixed(1)}%
+            </p>
           </CardContent>
         </Card>
         <Card className="bg-zinc-900 border-zinc-800">
@@ -451,7 +494,15 @@ export function GiannaMatrixAgent() {
               Sector Matrix
             </CardTitle>
             <Badge variant="outline" className="border-zinc-700 text-zinc-400">
-              {selectedSectors.size} selected • {queues.reduce((sum, q) => selectedSectors.has(q.sector) ? sum + q.no_contact : sum, 0).toLocaleString()} leads queued
+              {selectedSectors.size} selected •{" "}
+              {queues
+                .reduce(
+                  (sum, q) =>
+                    selectedSectors.has(q.sector) ? sum + q.no_contact : sum,
+                  0,
+                )
+                .toLocaleString()}{" "}
+              leads queued
             </Badge>
           </div>
         </CardHeader>
@@ -459,7 +510,12 @@ export function GiannaMatrixAgent() {
           <div className="grid grid-cols-2 gap-3">
             {queues.map((queue) => {
               const isSelected = selectedSectors.has(queue.sector);
-              const contactRate = queue.total > 0 ? ((queue.contacted + queue.responded + queue.converted) / queue.total) * 100 : 0;
+              const contactRate =
+                queue.total > 0
+                  ? ((queue.contacted + queue.responded + queue.converted) /
+                      queue.total) *
+                    100
+                  : 0;
 
               return (
                 <div
@@ -473,8 +529,12 @@ export function GiannaMatrixAgent() {
                 >
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <div className={`w-3 h-3 rounded-full ${SECTOR_CONFIG[queue.sector]?.color || "bg-zinc-500"}`} />
-                      <span className="font-medium text-white">{queue.label}</span>
+                      <div
+                        className={`w-3 h-3 rounded-full ${SECTOR_CONFIG[queue.sector]?.color || "bg-zinc-500"}`}
+                      />
+                      <span className="font-medium text-white">
+                        {queue.label}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge className="bg-zinc-700 text-zinc-300 text-xs">
@@ -491,27 +551,37 @@ export function GiannaMatrixAgent() {
                     <div className="flex gap-1 h-2 rounded-full overflow-hidden bg-zinc-700">
                       <div
                         className="bg-zinc-500 transition-all"
-                        style={{ width: `${(queue.no_contact / queue.total) * 100}%` }}
+                        style={{
+                          width: `${(queue.no_contact / queue.total) * 100}%`,
+                        }}
                         title="No Contact"
                       />
                       <div
                         className="bg-yellow-500 transition-all"
-                        style={{ width: `${(queue.attempted / queue.total) * 100}%` }}
+                        style={{
+                          width: `${(queue.attempted / queue.total) * 100}%`,
+                        }}
                         title="Attempted"
                       />
                       <div
                         className="bg-blue-500 transition-all"
-                        style={{ width: `${(queue.contacted / queue.total) * 100}%` }}
+                        style={{
+                          width: `${(queue.contacted / queue.total) * 100}%`,
+                        }}
                         title="Contacted"
                       />
                       <div
                         className="bg-green-500 transition-all"
-                        style={{ width: `${(queue.responded / queue.total) * 100}%` }}
+                        style={{
+                          width: `${(queue.responded / queue.total) * 100}%`,
+                        }}
                         title="Responded"
                       />
                       <div
                         className="bg-purple-500 transition-all"
-                        style={{ width: `${(queue.converted / queue.total) * 100}%` }}
+                        style={{
+                          width: `${(queue.converted / queue.total) * 100}%`,
+                        }}
                         title="Converted"
                       />
                     </div>
@@ -521,8 +591,12 @@ export function GiannaMatrixAgent() {
                         {queue.total.toLocaleString()} total
                       </span>
                       <div className="flex gap-3">
-                        <span className="text-zinc-400">{queue.no_contact.toLocaleString()} pending</span>
-                        <span className="text-green-400">{contactRate.toFixed(1)}% contacted</span>
+                        <span className="text-zinc-400">
+                          {queue.no_contact.toLocaleString()} pending
+                        </span>
+                        <span className="text-green-400">
+                          {contactRate.toFixed(1)}% contacted
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -545,18 +619,27 @@ export function GiannaMatrixAgent() {
           <CardContent>
             <div className="space-y-3">
               {campaigns.map((campaign) => {
-                const progress = campaign.total_leads > 0 ? (campaign.processed / campaign.total_leads) * 100 : 0;
+                const progress =
+                  campaign.total_leads > 0
+                    ? (campaign.processed / campaign.total_leads) * 100
+                    : 0;
 
                 return (
                   <div key={campaign.id} className="p-4 bg-zinc-800 rounded-lg">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-white">{campaign.name}</span>
-                        <Badge className={
-                          campaign.status === "running" ? "bg-green-600" :
-                          campaign.status === "completed" ? "bg-purple-600" :
-                          "bg-yellow-600"
-                        }>
+                        <span className="font-medium text-white">
+                          {campaign.name}
+                        </span>
+                        <Badge
+                          className={
+                            campaign.status === "running"
+                              ? "bg-green-600"
+                              : campaign.status === "completed"
+                                ? "bg-purple-600"
+                                : "bg-yellow-600"
+                          }
+                        >
                           {campaign.status}
                         </Badge>
                       </div>
@@ -568,7 +651,11 @@ export function GiannaMatrixAgent() {
                             onClick={togglePause}
                             className="h-7 border-zinc-700"
                           >
-                            {isRunning ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
+                            {isRunning ? (
+                              <Pause className="h-3 w-3" />
+                            ) : (
+                              <Play className="h-3 w-3" />
+                            )}
                           </Button>
                         )}
                       </div>
@@ -577,16 +664,27 @@ export function GiannaMatrixAgent() {
                     <Progress value={progress} className="h-2 mb-2" />
 
                     <div className="flex justify-between text-xs text-zinc-400">
-                      <span>{campaign.processed.toLocaleString()} / {campaign.total_leads.toLocaleString()} processed</span>
+                      <span>
+                        {campaign.processed.toLocaleString()} /{" "}
+                        {campaign.total_leads.toLocaleString()} processed
+                      </span>
                       <div className="flex gap-4">
-                        <span className="text-blue-400">{campaign.contacted.toLocaleString()} contacted</span>
-                        <span className="text-green-400">{campaign.responded.toLocaleString()} responded</span>
+                        <span className="text-blue-400">
+                          {campaign.contacted.toLocaleString()} contacted
+                        </span>
+                        <span className="text-green-400">
+                          {campaign.responded.toLocaleString()} responded
+                        </span>
                       </div>
                     </div>
 
                     <div className="flex gap-1 mt-2">
-                      {campaign.sectors.map(s => (
-                        <Badge key={s} variant="outline" className="text-xs border-zinc-700 text-zinc-500">
+                      {campaign.sectors.map((s) => (
+                        <Badge
+                          key={s}
+                          variant="outline"
+                          className="text-xs border-zinc-700 text-zinc-500"
+                        >
                           {SECTOR_CONFIG[s]?.label || s}
                         </Badge>
                       ))}
@@ -612,7 +710,9 @@ export function GiannaMatrixAgent() {
             {Object.entries(weights).map(([key, value]) => (
               <div key={key} className="space-y-1">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-zinc-400 capitalize">{key.replace(/_/g, " ")}</span>
+                  <span className="text-xs text-zinc-400 capitalize">
+                    {key.replace(/_/g, " ")}
+                  </span>
                   <span className="text-xs font-mono text-white">{value}</span>
                 </div>
                 <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
@@ -625,7 +725,8 @@ export function GiannaMatrixAgent() {
             ))}
           </div>
           <p className="text-xs text-zinc-500 mt-4">
-            Weights determine lead priority score. Higher priority leads are processed first in each batch.
+            Weights determine lead priority score. Higher priority leads are
+            processed first in each batch.
           </p>
         </CardContent>
       </Card>

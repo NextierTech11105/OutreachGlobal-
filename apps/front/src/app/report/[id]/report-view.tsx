@@ -1386,41 +1386,59 @@ export function ReportView({ reportId }: ReportViewProps) {
                 {property?.stories && (
                   <div className="bg-slate-900/40 rounded-xl p-4 flex items-center justify-between">
                     <span className="text-slate-400">Stories</span>
-                    <span className="text-white font-semibold">{property.stories}</span>
+                    <span className="text-white font-semibold">
+                      {property.stories}
+                    </span>
                   </div>
                 )}
                 {property?.construction && (
                   <div className="bg-slate-900/40 rounded-xl p-4 flex items-center justify-between">
                     <span className="text-slate-400">Construction</span>
-                    <span className="text-white font-semibold">{property.construction}</span>
+                    <span className="text-white font-semibold">
+                      {property.construction}
+                    </span>
                   </div>
                 )}
                 {property?.zoning && (
                   <div className="bg-slate-900/40 rounded-xl p-4 flex items-center justify-between">
                     <span className="text-slate-400">Zoning</span>
-                    <span className="text-white font-semibold">{property.zoning}</span>
+                    <span className="text-white font-semibold">
+                      {property.zoning}
+                    </span>
                   </div>
                 )}
               </div>
 
               {/* Features */}
-              {(property?.pool || property?.garage || property?.fireplace || property?.basement) && (
+              {(property?.pool ||
+                property?.garage ||
+                property?.fireplace ||
+                property?.basement) && (
                 <div className="mt-6">
                   <p className="text-slate-400 text-sm mb-3">Features</p>
                   <div className="flex flex-wrap gap-2">
                     {property?.pool && (
-                      <span className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full text-sm">Pool</span>
+                      <span className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full text-sm">
+                        Pool
+                      </span>
                     )}
                     {property?.garage && (
                       <span className="px-3 py-1 bg-slate-700 text-slate-300 rounded-full text-sm">
-                        Garage {property.garageSpaces ? `(${property.garageSpaces} spaces)` : ""}
+                        Garage{" "}
+                        {property.garageSpaces
+                          ? `(${property.garageSpaces} spaces)`
+                          : ""}
                       </span>
                     )}
                     {property?.fireplace && (
-                      <span className="px-3 py-1 bg-orange-500/20 text-orange-400 rounded-full text-sm">Fireplace</span>
+                      <span className="px-3 py-1 bg-orange-500/20 text-orange-400 rounded-full text-sm">
+                        Fireplace
+                      </span>
                     )}
                     {property?.basement && (
-                      <span className="px-3 py-1 bg-slate-700 text-slate-300 rounded-full text-sm">Basement</span>
+                      <span className="px-3 py-1 bg-slate-700 text-slate-300 rounded-full text-sm">
+                        Basement
+                      </span>
                     )}
                   </div>
                 </div>
@@ -1438,19 +1456,29 @@ export function ReportView({ reportId }: ReportViewProps) {
                   {property?.ownerFullName && (
                     <div className="bg-slate-900/40 rounded-xl p-4">
                       <p className="text-slate-500 text-xs mb-1">Owner Name</p>
-                      <p className="text-white font-semibold">{property.ownerFullName}</p>
+                      <p className="text-white font-semibold">
+                        {property.ownerFullName}
+                      </p>
                     </div>
                   )}
                   {property?.mailingAddress && (
                     <div className="bg-slate-900/40 rounded-xl p-4">
-                      <p className="text-slate-500 text-xs mb-1">Mailing Address</p>
-                      <p className="text-white font-semibold">{property.mailingAddress}</p>
+                      <p className="text-slate-500 text-xs mb-1">
+                        Mailing Address
+                      </p>
+                      <p className="text-white font-semibold">
+                        {property.mailingAddress}
+                      </p>
                     </div>
                   )}
                   <div className="bg-slate-900/40 rounded-xl p-4">
-                    <p className="text-slate-500 text-xs mb-1">Occupancy Status</p>
+                    <p className="text-slate-500 text-xs mb-1">
+                      Occupancy Status
+                    </p>
                     <p className="text-white font-semibold">
-                      {property?.ownerOccupied ? "Owner Occupied" : "Non-Owner Occupied (Absentee)"}
+                      {property?.ownerOccupied
+                        ? "Owner Occupied"
+                        : "Non-Owner Occupied (Absentee)"}
                     </p>
                   </div>
                 </div>
@@ -1458,13 +1486,21 @@ export function ReportView({ reportId }: ReportViewProps) {
             )}
 
             {/* Motivated Seller Signals */}
-            {(property?.freeClear || property?.highEquity || property?.absenteeOwner || property?.preForeclosure || property?.taxDelinquent || property?.isVacant || property?.corporateOwned) && (
+            {(property?.freeClear ||
+              property?.highEquity ||
+              property?.absenteeOwner ||
+              property?.preForeclosure ||
+              property?.taxDelinquent ||
+              property?.isVacant ||
+              property?.corporateOwned) && (
               <section className="bg-gradient-to-br from-amber-900/20 to-orange-900/20 rounded-3xl p-8 border border-amber-500/30">
                 <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
                   <Target className="h-6 w-6 text-amber-400" />
                   Seller Signals
                 </h3>
-                <p className="text-slate-400 text-sm mb-4">Key indicators that may indicate seller motivation</p>
+                <p className="text-slate-400 text-sm mb-4">
+                  Key indicators that may indicate seller motivation
+                </p>
                 <div className="flex flex-wrap gap-3">
                   {property?.freeClear && (
                     <span className="px-4 py-2 bg-emerald-500/20 text-emerald-400 rounded-xl text-sm font-semibold flex items-center gap-2">
@@ -1506,7 +1542,9 @@ export function ReportView({ reportId }: ReportViewProps) {
             )}
 
             {/* Equity & Mortgage Information */}
-            {(property?.estimatedEquity || property?.openMortgageBalance || property?.currentMortgages?.length) && (
+            {(property?.estimatedEquity ||
+              property?.openMortgageBalance ||
+              property?.currentMortgages?.length) && (
               <section className="bg-slate-800/50 rounded-3xl p-8 border border-slate-700/50">
                 <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
                   <DollarSign className="h-6 w-6 text-emerald-400" />
@@ -1515,60 +1553,91 @@ export function ReportView({ reportId }: ReportViewProps) {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                   {property?.estimatedEquity !== undefined && (
                     <div className="bg-emerald-500/10 rounded-2xl p-5 text-center border border-emerald-500/30">
-                      <p className="text-slate-400 text-sm mb-1">Estimated Equity</p>
-                      <p className="text-3xl font-bold text-emerald-400">{formatCurrency(property.estimatedEquity)}</p>
+                      <p className="text-slate-400 text-sm mb-1">
+                        Estimated Equity
+                      </p>
+                      <p className="text-3xl font-bold text-emerald-400">
+                        {formatCurrency(property.estimatedEquity)}
+                      </p>
                       {property?.equityPercent && (
-                        <p className="text-emerald-300/60 text-sm mt-1">{property.equityPercent}% of value</p>
+                        <p className="text-emerald-300/60 text-sm mt-1">
+                          {property.equityPercent}% of value
+                        </p>
                       )}
                     </div>
                   )}
                   {property?.openMortgageBalance !== undefined && (
                     <div className="bg-slate-900/40 rounded-2xl p-5 text-center">
-                      <p className="text-slate-400 text-sm mb-1">Open Mortgage Balance</p>
-                      <p className="text-3xl font-bold text-white">{formatCurrency(property.openMortgageBalance)}</p>
+                      <p className="text-slate-400 text-sm mb-1">
+                        Open Mortgage Balance
+                      </p>
+                      <p className="text-3xl font-bold text-white">
+                        {formatCurrency(property.openMortgageBalance)}
+                      </p>
                     </div>
                   )}
                   {estimatedValue > 0 && property?.openMortgageBalance && (
                     <div className="bg-slate-900/40 rounded-2xl p-5 text-center">
-                      <p className="text-slate-400 text-sm mb-1">Loan-to-Value</p>
+                      <p className="text-slate-400 text-sm mb-1">
+                        Loan-to-Value
+                      </p>
                       <p className="text-3xl font-bold text-white">
-                        {Math.round((property.openMortgageBalance / estimatedValue) * 100)}%
+                        {Math.round(
+                          (property.openMortgageBalance / estimatedValue) * 100,
+                        )}
+                        %
                       </p>
                     </div>
                   )}
                 </div>
 
                 {/* Current Mortgages */}
-                {property?.currentMortgages && property.currentMortgages.length > 0 && (
-                  <div className="mt-6">
-                    <h4 className="text-white font-semibold mb-4">Current Mortgages</h4>
-                    <div className="space-y-3">
-                      {property.currentMortgages.map((mortgage, i) => (
-                        <div key={i} className="bg-slate-900/40 rounded-xl p-4 flex items-center justify-between">
-                          <div>
-                            <p className="text-white font-medium">{mortgage.lenderName || `Mortgage ${i + 1}`}</p>
-                            <p className="text-slate-500 text-sm">
-                              {mortgage.loanType || "Loan"} {mortgage.position ? `(${mortgage.position})` : ""}
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-white font-bold">{formatCurrency(mortgage.amount)}</p>
-                            {mortgage.interestRate && (
-                              <p className="text-slate-500 text-sm">
-                                {mortgage.interestRate}% {mortgage.interestRateType || ""}
+                {property?.currentMortgages &&
+                  property.currentMortgages.length > 0 && (
+                    <div className="mt-6">
+                      <h4 className="text-white font-semibold mb-4">
+                        Current Mortgages
+                      </h4>
+                      <div className="space-y-3">
+                        {property.currentMortgages.map((mortgage, i) => (
+                          <div
+                            key={i}
+                            className="bg-slate-900/40 rounded-xl p-4 flex items-center justify-between"
+                          >
+                            <div>
+                              <p className="text-white font-medium">
+                                {mortgage.lenderName || `Mortgage ${i + 1}`}
                               </p>
-                            )}
+                              <p className="text-slate-500 text-sm">
+                                {mortgage.loanType || "Loan"}{" "}
+                                {mortgage.position
+                                  ? `(${mortgage.position})`
+                                  : ""}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-white font-bold">
+                                {formatCurrency(mortgage.amount)}
+                              </p>
+                              {mortgage.interestRate && (
+                                <p className="text-slate-500 text-sm">
+                                  {mortgage.interestRate}%{" "}
+                                  {mortgage.interestRateType || ""}
+                                </p>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
               </section>
             )}
 
             {/* Tax Information */}
-            {(property?.taxAmount || property?.taxAssessedValue || property?.taxMarketValue) && (
+            {(property?.taxAmount ||
+              property?.taxAssessedValue ||
+              property?.taxMarketValue) && (
               <section className="bg-slate-800/50 rounded-3xl p-8 border border-slate-700/50">
                 <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
                   <Percent className="h-6 w-6 text-blue-400" />
@@ -1577,21 +1646,37 @@ export function ReportView({ reportId }: ReportViewProps) {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {property?.taxAmount && (
                     <div className="bg-slate-900/40 rounded-2xl p-5 text-center">
-                      <p className="text-slate-400 text-sm mb-1">Annual Tax Amount</p>
-                      <p className="text-3xl font-bold text-white">{formatCurrency(property.taxAmount)}</p>
-                      {property?.taxYear && <p className="text-slate-500 text-sm mt-1">Year {property.taxYear}</p>}
+                      <p className="text-slate-400 text-sm mb-1">
+                        Annual Tax Amount
+                      </p>
+                      <p className="text-3xl font-bold text-white">
+                        {formatCurrency(property.taxAmount)}
+                      </p>
+                      {property?.taxYear && (
+                        <p className="text-slate-500 text-sm mt-1">
+                          Year {property.taxYear}
+                        </p>
+                      )}
                     </div>
                   )}
                   {property?.taxAssessedValue && (
                     <div className="bg-slate-900/40 rounded-2xl p-5 text-center">
-                      <p className="text-slate-400 text-sm mb-1">Assessed Value</p>
-                      <p className="text-3xl font-bold text-white">{formatCurrency(property.taxAssessedValue)}</p>
+                      <p className="text-slate-400 text-sm mb-1">
+                        Assessed Value
+                      </p>
+                      <p className="text-3xl font-bold text-white">
+                        {formatCurrency(property.taxAssessedValue)}
+                      </p>
                     </div>
                   )}
                   {property?.taxMarketValue && (
                     <div className="bg-slate-900/40 rounded-2xl p-5 text-center">
-                      <p className="text-slate-400 text-sm mb-1">Tax Market Value</p>
-                      <p className="text-3xl font-bold text-white">{formatCurrency(property.taxMarketValue)}</p>
+                      <p className="text-slate-400 text-sm mb-1">
+                        Tax Market Value
+                      </p>
+                      <p className="text-3xl font-bold text-white">
+                        {formatCurrency(property.taxMarketValue)}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -1607,19 +1692,41 @@ export function ReportView({ reportId }: ReportViewProps) {
                 </h3>
                 <div className="space-y-3">
                   {property.saleHistory.map((sale, i) => (
-                    <div key={i} className="bg-slate-900/40 rounded-xl p-4 flex items-center justify-between">
+                    <div
+                      key={i}
+                      className="bg-slate-900/40 rounded-xl p-4 flex items-center justify-between"
+                    >
                       <div>
                         <p className="text-white font-medium">
-                          {sale.saleDate ? new Date(sale.saleDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "Unknown Date"}
+                          {sale.saleDate
+                            ? new Date(sale.saleDate).toLocaleDateString(
+                                "en-US",
+                                {
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric",
+                                },
+                              )
+                            : "Unknown Date"}
                         </p>
                         <p className="text-slate-500 text-sm">
                           {sale.documentType || sale.transactionType || "Sale"}
                         </p>
-                        {sale.buyerNames && <p className="text-slate-400 text-xs mt-1">Buyer: {sale.buyerNames}</p>}
-                        {sale.sellerNames && <p className="text-slate-400 text-xs">Seller: {sale.sellerNames}</p>}
+                        {sale.buyerNames && (
+                          <p className="text-slate-400 text-xs mt-1">
+                            Buyer: {sale.buyerNames}
+                          </p>
+                        )}
+                        {sale.sellerNames && (
+                          <p className="text-slate-400 text-xs">
+                            Seller: {sale.sellerNames}
+                          </p>
+                        )}
                       </div>
                       <div className="text-right">
-                        <p className="text-emerald-400 font-bold text-lg">{formatCurrency(sale.saleAmount)}</p>
+                        <p className="text-emerald-400 font-bold text-lg">
+                          {formatCurrency(sale.saleAmount)}
+                        </p>
                       </div>
                     </div>
                   ))}
@@ -1628,35 +1735,52 @@ export function ReportView({ reportId }: ReportViewProps) {
             )}
 
             {/* Mortgage History */}
-            {property?.mortgageHistory && property.mortgageHistory.length > 0 && (
-              <section className="bg-slate-800/50 rounded-3xl p-8 border border-slate-700/50">
-                <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
-                  <Building className="h-6 w-6 text-cyan-400" />
-                  Mortgage History
-                </h3>
-                <div className="space-y-3">
-                  {property.mortgageHistory.map((mortgage, i) => (
-                    <div key={i} className="bg-slate-900/40 rounded-xl p-4 flex items-center justify-between">
-                      <div>
-                        <p className="text-white font-medium">{mortgage.lenderName || "Mortgage"}</p>
-                        <p className="text-slate-500 text-sm">
-                          {mortgage.documentDate ? new Date(mortgage.documentDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : ""}
-                          {mortgage.loanType ? ` • ${mortgage.loanType}` : ""}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-white font-bold">{formatCurrency(mortgage.amount)}</p>
-                        {mortgage.interestRate && (
-                          <p className="text-slate-500 text-sm">
-                            {mortgage.interestRate}% {mortgage.interestRateType || ""}
+            {property?.mortgageHistory &&
+              property.mortgageHistory.length > 0 && (
+                <section className="bg-slate-800/50 rounded-3xl p-8 border border-slate-700/50">
+                  <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
+                    <Building className="h-6 w-6 text-cyan-400" />
+                    Mortgage History
+                  </h3>
+                  <div className="space-y-3">
+                    {property.mortgageHistory.map((mortgage, i) => (
+                      <div
+                        key={i}
+                        className="bg-slate-900/40 rounded-xl p-4 flex items-center justify-between"
+                      >
+                        <div>
+                          <p className="text-white font-medium">
+                            {mortgage.lenderName || "Mortgage"}
                           </p>
-                        )}
+                          <p className="text-slate-500 text-sm">
+                            {mortgage.documentDate
+                              ? new Date(
+                                  mortgage.documentDate,
+                                ).toLocaleDateString("en-US", {
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric",
+                                })
+                              : ""}
+                            {mortgage.loanType ? ` • ${mortgage.loanType}` : ""}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-white font-bold">
+                            {formatCurrency(mortgage.amount)}
+                          </p>
+                          {mortgage.interestRate && (
+                            <p className="text-slate-500 text-sm">
+                              {mortgage.interestRate}%{" "}
+                              {mortgage.interestRateType || ""}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
+                    ))}
+                  </div>
+                </section>
+              )}
 
             {/* Lot Information */}
             {property?.lotInfo && (
@@ -1668,32 +1792,46 @@ export function ReportView({ reportId }: ReportViewProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {property.lotInfo.apn && (
                     <div className="bg-slate-900/40 rounded-xl p-4">
-                      <p className="text-slate-500 text-xs mb-1">APN (Parcel Number)</p>
-                      <p className="text-white font-mono">{property.lotInfo.apn}</p>
+                      <p className="text-slate-500 text-xs mb-1">
+                        APN (Parcel Number)
+                      </p>
+                      <p className="text-white font-mono">
+                        {property.lotInfo.apn}
+                      </p>
                     </div>
                   )}
                   {property.lotInfo.lotAcres && (
                     <div className="bg-slate-900/40 rounded-xl p-4">
                       <p className="text-slate-500 text-xs mb-1">Lot Size</p>
-                      <p className="text-white font-semibold">{property.lotInfo.lotAcres} acres</p>
+                      <p className="text-white font-semibold">
+                        {property.lotInfo.lotAcres} acres
+                      </p>
                     </div>
                   )}
                   {property.lotInfo.zoning && (
                     <div className="bg-slate-900/40 rounded-xl p-4">
                       <p className="text-slate-500 text-xs mb-1">Zoning</p>
-                      <p className="text-white font-semibold">{property.lotInfo.zoning}</p>
+                      <p className="text-white font-semibold">
+                        {property.lotInfo.zoning}
+                      </p>
                     </div>
                   )}
                   {property.lotInfo.landUse && (
                     <div className="bg-slate-900/40 rounded-xl p-4">
                       <p className="text-slate-500 text-xs mb-1">Land Use</p>
-                      <p className="text-white font-semibold">{property.lotInfo.landUse}</p>
+                      <p className="text-white font-semibold">
+                        {property.lotInfo.landUse}
+                      </p>
                     </div>
                   )}
                   {property.lotInfo.legalDescription && (
                     <div className="bg-slate-900/40 rounded-xl p-4 md:col-span-2">
-                      <p className="text-slate-500 text-xs mb-1">Legal Description</p>
-                      <p className="text-white text-sm">{property.lotInfo.legalDescription}</p>
+                      <p className="text-slate-500 text-xs mb-1">
+                        Legal Description
+                      </p>
+                      <p className="text-white text-sm">
+                        {property.lotInfo.legalDescription}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -1709,22 +1847,30 @@ export function ReportView({ reportId }: ReportViewProps) {
                 </h3>
                 <div className="space-y-3">
                   {property.schools.map((school, i) => (
-                    <div key={i} className="bg-slate-900/40 rounded-xl p-4 flex items-center justify-between">
+                    <div
+                      key={i}
+                      className="bg-slate-900/40 rounded-xl p-4 flex items-center justify-between"
+                    >
                       <div>
                         <p className="text-white font-medium">{school.name}</p>
                         <p className="text-slate-500 text-sm">
-                          {school.type} {school.grades ? `• Grades ${school.grades}` : ""}
+                          {school.type}{" "}
+                          {school.grades ? `• Grades ${school.grades}` : ""}
                         </p>
                       </div>
                       <div className="text-right">
                         {school.rating && (
                           <div className="flex items-center gap-1">
                             <Star className="h-4 w-4 text-amber-400 fill-current" />
-                            <span className="text-white font-bold">{school.rating}/10</span>
+                            <span className="text-white font-bold">
+                              {school.rating}/10
+                            </span>
                           </div>
                         )}
                         {school.parentRating && (
-                          <p className="text-slate-500 text-xs">Parent: {school.parentRating}</p>
+                          <p className="text-slate-500 text-xs">
+                            Parent: {school.parentRating}
+                          </p>
                         )}
                       </div>
                     </div>
@@ -1734,33 +1880,51 @@ export function ReportView({ reportId }: ReportViewProps) {
             )}
 
             {/* Linked Properties (Other properties owned by same owner) */}
-            {property?.linkedProperties && property.linkedProperties.totalOwned && property.linkedProperties.totalOwned > 1 && (
-              <section className="bg-gradient-to-br from-violet-900/20 to-purple-900/20 rounded-3xl p-8 border border-violet-500/30">
-                <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
-                  <Building2 className="h-6 w-6 text-violet-400" />
-                  Owner's Portfolio
-                </h3>
-                <p className="text-slate-400 text-sm mb-4">This owner has multiple properties</p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-slate-900/40 rounded-2xl p-5 text-center">
-                    <p className="text-slate-400 text-sm mb-1">Properties Owned</p>
-                    <p className="text-3xl font-bold text-white">{property.linkedProperties.totalOwned}</p>
+            {property?.linkedProperties &&
+              property.linkedProperties.totalOwned &&
+              property.linkedProperties.totalOwned > 1 && (
+                <section className="bg-gradient-to-br from-violet-900/20 to-purple-900/20 rounded-3xl p-8 border border-violet-500/30">
+                  <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
+                    <Building2 className="h-6 w-6 text-violet-400" />
+                    Owner's Portfolio
+                  </h3>
+                  <p className="text-slate-400 text-sm mb-4">
+                    This owner has multiple properties
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-slate-900/40 rounded-2xl p-5 text-center">
+                      <p className="text-slate-400 text-sm mb-1">
+                        Properties Owned
+                      </p>
+                      <p className="text-3xl font-bold text-white">
+                        {property.linkedProperties.totalOwned}
+                      </p>
+                    </div>
+                    {property.linkedProperties.totalValue && (
+                      <div className="bg-slate-900/40 rounded-2xl p-5 text-center">
+                        <p className="text-slate-400 text-sm mb-1">
+                          Total Portfolio Value
+                        </p>
+                        <p className="text-3xl font-bold text-emerald-400">
+                          {formatCurrency(property.linkedProperties.totalValue)}
+                        </p>
+                      </div>
+                    )}
+                    {property.linkedProperties.totalEquity && (
+                      <div className="bg-slate-900/40 rounded-2xl p-5 text-center">
+                        <p className="text-slate-400 text-sm mb-1">
+                          Total Equity
+                        </p>
+                        <p className="text-3xl font-bold text-emerald-400">
+                          {formatCurrency(
+                            property.linkedProperties.totalEquity,
+                          )}
+                        </p>
+                      </div>
+                    )}
                   </div>
-                  {property.linkedProperties.totalValue && (
-                    <div className="bg-slate-900/40 rounded-2xl p-5 text-center">
-                      <p className="text-slate-400 text-sm mb-1">Total Portfolio Value</p>
-                      <p className="text-3xl font-bold text-emerald-400">{formatCurrency(property.linkedProperties.totalValue)}</p>
-                    </div>
-                  )}
-                  {property.linkedProperties.totalEquity && (
-                    <div className="bg-slate-900/40 rounded-2xl p-5 text-center">
-                      <p className="text-slate-400 text-sm mb-1">Total Equity</p>
-                      <p className="text-3xl font-bold text-emerald-400">{formatCurrency(property.linkedProperties.totalEquity)}</p>
-                    </div>
-                  )}
-                </div>
-              </section>
-            )}
+                </section>
+              )}
 
             {/* Auction/Foreclosure Info */}
             {property?.auctionInfo?.active && (
@@ -1772,28 +1936,46 @@ export function ReportView({ reportId }: ReportViewProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {property.auctionInfo.auctionDate && (
                     <div className="bg-slate-900/40 rounded-xl p-4">
-                      <p className="text-slate-500 text-xs mb-1">Auction Date</p>
+                      <p className="text-slate-500 text-xs mb-1">
+                        Auction Date
+                      </p>
                       <p className="text-white font-semibold">
-                        {new Date(property.auctionInfo.auctionDate).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+                        {new Date(
+                          property.auctionInfo.auctionDate,
+                        ).toLocaleDateString("en-US", {
+                          month: "long",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
                       </p>
                     </div>
                   )}
                   {property.auctionInfo.openingBid && (
                     <div className="bg-slate-900/40 rounded-xl p-4">
                       <p className="text-slate-500 text-xs mb-1">Opening Bid</p>
-                      <p className="text-emerald-400 font-bold">{formatCurrency(property.auctionInfo.openingBid)}</p>
+                      <p className="text-emerald-400 font-bold">
+                        {formatCurrency(property.auctionInfo.openingBid)}
+                      </p>
                     </div>
                   )}
                   {property.auctionInfo.judgmentAmount && (
                     <div className="bg-slate-900/40 rounded-xl p-4">
-                      <p className="text-slate-500 text-xs mb-1">Judgment Amount</p>
-                      <p className="text-white font-semibold">{formatCurrency(property.auctionInfo.judgmentAmount)}</p>
+                      <p className="text-slate-500 text-xs mb-1">
+                        Judgment Amount
+                      </p>
+                      <p className="text-white font-semibold">
+                        {formatCurrency(property.auctionInfo.judgmentAmount)}
+                      </p>
                     </div>
                   )}
                   {property.auctionInfo.lenderName && (
                     <div className="bg-slate-900/40 rounded-xl p-4">
-                      <p className="text-slate-500 text-xs mb-1">Foreclosing Lender</p>
-                      <p className="text-white font-semibold">{property.auctionInfo.lenderName}</p>
+                      <p className="text-slate-500 text-xs mb-1">
+                        Foreclosing Lender
+                      </p>
+                      <p className="text-white font-semibold">
+                        {property.auctionInfo.lenderName}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -1801,31 +1983,44 @@ export function ReportView({ reportId }: ReportViewProps) {
             )}
 
             {/* Rental Estimates */}
-            {(property?.rentEstimate || property?.demographics?.suggestedRent) && (
+            {(property?.rentEstimate ||
+              property?.demographics?.suggestedRent) && (
               <section className="bg-slate-800/50 rounded-3xl p-8 border border-slate-700/50">
                 <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
                   <Key className="h-6 w-6 text-emerald-400" />
                   Rental Estimates
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {(property?.rentEstimate || property?.demographics?.suggestedRent) && (
+                  {(property?.rentEstimate ||
+                    property?.demographics?.suggestedRent) && (
                     <div className="bg-emerald-500/10 rounded-2xl p-5 text-center border border-emerald-500/30">
-                      <p className="text-slate-400 text-sm mb-1">Estimated Monthly Rent</p>
+                      <p className="text-slate-400 text-sm mb-1">
+                        Estimated Monthly Rent
+                      </p>
                       <p className="text-3xl font-bold text-emerald-400">
-                        {formatCurrency(property.rentEstimate || property.demographics?.suggestedRent)}
+                        {formatCurrency(
+                          property.rentEstimate ||
+                            property.demographics?.suggestedRent,
+                        )}
                       </p>
                     </div>
                   )}
                   {property?.demographics?.fmrTwoBedroom && (
                     <div className="bg-slate-900/40 rounded-2xl p-5 text-center">
-                      <p className="text-slate-400 text-sm mb-1">FMR (2 Bedroom)</p>
-                      <p className="text-3xl font-bold text-white">{formatCurrency(property.demographics.fmrTwoBedroom)}</p>
+                      <p className="text-slate-400 text-sm mb-1">
+                        FMR (2 Bedroom)
+                      </p>
+                      <p className="text-3xl font-bold text-white">
+                        {formatCurrency(property.demographics.fmrTwoBedroom)}
+                      </p>
                     </div>
                   )}
                   {property?.grossYield && (
                     <div className="bg-slate-900/40 rounded-2xl p-5 text-center">
                       <p className="text-slate-400 text-sm mb-1">Gross Yield</p>
-                      <p className="text-3xl font-bold text-white">{property.grossYield}%</p>
+                      <p className="text-3xl font-bold text-white">
+                        {property.grossYield}%
+                      </p>
                     </div>
                   )}
                 </div>

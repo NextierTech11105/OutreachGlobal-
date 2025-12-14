@@ -123,7 +123,9 @@ export default function DataHubPage() {
     failed: number;
     total: number;
   } | null>(null);
-  const [scheduleMode, setScheduleMode] = useState<"instant" | "scheduled">("instant");
+  const [scheduleMode, setScheduleMode] = useState<"instant" | "scheduled">(
+    "instant",
+  );
   const [scheduledTime, setScheduledTime] = useState("");
   const [showHelpModal, setShowHelpModal] = useState(false);
 
@@ -133,43 +135,50 @@ export default function DataHubPage() {
       id: "intro-soft",
       name: "Soft Intro",
       category: "opener",
-      message: "Hi {{name}}! Quick question - are you still running {{company}}? Would love to connect briefly.",
+      message:
+        "Hi {{name}}! Quick question - are you still running {{company}}? Would love to connect briefly.",
     },
     {
       id: "value-prop",
       name: "Value Prop",
       category: "opener",
-      message: "Hey {{name}}, I help {{industry}} businesses increase revenue 20-30%. Worth a 5-min call? Reply YES.",
+      message:
+        "Hey {{name}}, I help {{industry}} businesses increase revenue 20-30%. Worth a 5-min call? Reply YES.",
     },
     {
       id: "tired-state",
       name: "Tired State Owner",
       category: "retirement",
-      message: "{{name}}, many {{state}} business owners are exploring exit options. Open to a confidential chat about yours?",
+      message:
+        "{{name}}, many {{state}} business owners are exploring exit options. Open to a confidential chat about yours?",
     },
     {
       id: "successor",
       name: "Succession Planning",
       category: "retirement",
-      message: "Hi {{name}}, have you thought about your succession plan for {{company}}? I help owners transition smoothly.",
+      message:
+        "Hi {{name}}, have you thought about your succession plan for {{company}}? I help owners transition smoothly.",
     },
     {
       id: "followup-1",
       name: "Follow Up #1",
       category: "followup",
-      message: "{{name}}, just following up on my last message. Still interested in chatting? No pressure either way.",
+      message:
+        "{{name}}, just following up on my last message. Still interested in chatting? No pressure either way.",
     },
     {
       id: "followup-value",
       name: "Value Followup",
       category: "followup",
-      message: "Hey {{name}}, quick thought: Similar {{industry}} businesses are seeing 3x ROI. Want the playbook?",
+      message:
+        "Hey {{name}}, quick thought: Similar {{industry}} businesses are seeing 3x ROI. Want the playbook?",
     },
     {
       id: "break-pattern",
       name: "Pattern Interrupt",
       category: "creative",
-      message: "{{name}}, I know you're busy - this isn't a sales pitch. Just curious: what's your biggest challenge with {{company}} right now?",
+      message:
+        "{{name}}, I know you're busy - this isn't a sales pitch. Just curious: what's your biggest challenge with {{company}} right now?",
     },
   ];
 
@@ -182,8 +191,11 @@ export default function DataHubPage() {
       return;
     }
 
-    let msg = template
-      .replace(/\{\{name\}\}/g, sampleLead.firstName || sampleLead.name?.split(" ")[0] || "there")
+    const msg = template
+      .replace(
+        /\{\{name\}\}/g,
+        sampleLead.firstName || sampleLead.name?.split(" ")[0] || "there",
+      )
       .replace(/\{\{company\}\}/g, sampleLead.company || "your business")
       .replace(/\{\{industry\}\}/g, sampleLead.industry || "your industry")
       .replace(/\{\{state\}\}/g, sampleLead.state || "your state")
@@ -210,7 +222,11 @@ export default function DataHubPage() {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't trigger shortcuts when typing in inputs
       const target = e.target as HTMLElement;
-      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) {
+      if (
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.isContentEditable
+      ) {
         return;
       }
 
@@ -274,7 +290,14 @@ export default function DataHubPage() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [viewMode, selectedLeads, isEnriching, showSmsDialog, showEnrichDialog, showHelpModal]);
+  }, [
+    viewMode,
+    selectedLeads,
+    isEnriching,
+    showSmsDialog,
+    showEnrichDialog,
+    showHelpModal,
+  ]);
 
   const loadDatalakeFolders = async () => {
     setIsLoadingDatalake(true);
@@ -295,31 +318,40 @@ export default function DataHubPage() {
     setIsLoadingLeads(true);
     setSelectedFolder(folder);
     try {
-      const response = await fetch(`/api/datalake/query?prefix=${encodeURIComponent(folder)}`);
+      const response = await fetch(
+        `/api/datalake/query?prefix=${encodeURIComponent(folder)}`,
+      );
       const data = await response.json();
 
       if (data.success && data.records) {
         // Map datalake records to leads with all enrichment-ready fields
-        const mappedLeads: Lead[] = data.records.map((r: Record<string, string>, i: number) => {
-          const firstName = r.first_name || r.firstName || "";
-          const lastName = r.last_name || r.lastName || "";
-          return {
-            id: r.id || `dl-${i}`,
-            name: r.name || r.contact_name || r.owner_name || [firstName, lastName].filter(Boolean).join(" ") || "Unknown",
-            firstName,
-            lastName,
-            company: r.company || r.company_name || r.business_name,
-            phone: r.phone || r.phone_number || r.mobile,
-            email: r.email || r.email_address,
-            address: r.address || r.street_address || r.property_address,
-            city: r.city || r.property_city,
-            state: r.state || r.property_state,
-            zip: r.zip || r.postal_code || r.zipcode,
-            industry: r.industry || r.sector,
-            source: "datalake",
-            enriched: false,
-          };
-        });
+        const mappedLeads: Lead[] = data.records.map(
+          (r: Record<string, string>, i: number) => {
+            const firstName = r.first_name || r.firstName || "";
+            const lastName = r.last_name || r.lastName || "";
+            return {
+              id: r.id || `dl-${i}`,
+              name:
+                r.name ||
+                r.contact_name ||
+                r.owner_name ||
+                [firstName, lastName].filter(Boolean).join(" ") ||
+                "Unknown",
+              firstName,
+              lastName,
+              company: r.company || r.company_name || r.business_name,
+              phone: r.phone || r.phone_number || r.mobile,
+              email: r.email || r.email_address,
+              address: r.address || r.street_address || r.property_address,
+              city: r.city || r.property_city,
+              state: r.state || r.property_state,
+              zip: r.zip || r.postal_code || r.zipcode,
+              industry: r.industry || r.sector,
+              source: "datalake",
+              enriched: false,
+            };
+          },
+        );
         setLeads(mappedLeads);
         toast.success(`Loaded ${mappedLeads.length} records from datalake`);
       } else {
@@ -362,10 +394,12 @@ export default function DataHubPage() {
   // Get phone count for selected leads
   const getSelectedPhoneCount = () => {
     let count = 0;
-    leads.filter((l) => selectedLeads.has(l.id)).forEach((lead) => {
-      if (lead.phone) count++;
-      if (lead.enrichedPhones?.length) count += lead.enrichedPhones.length;
-    });
+    leads
+      .filter((l) => selectedLeads.has(l.id))
+      .forEach((lead) => {
+        if (lead.phone) count++;
+        if (lead.enrichedPhones?.length) count += lead.enrichedPhones.length;
+      });
     return count;
   };
 
@@ -376,7 +410,9 @@ export default function DataHubPage() {
       return;
     }
 
-    const leadsToEnrich = leads.filter((l) => selectedLeads.has(l.id) && !l.enriched);
+    const leadsToEnrich = leads.filter(
+      (l) => selectedLeads.has(l.id) && !l.enriched,
+    );
     if (leadsToEnrich.length === 0) {
       toast.info("All selected leads are already enriched");
       return;
@@ -384,7 +420,12 @@ export default function DataHubPage() {
 
     setIsEnriching(true);
     setShowEnrichDialog(true);
-    setEnrichProgress({ total: leadsToEnrich.length, processed: 0, successful: 0, withPhones: 0 });
+    setEnrichProgress({
+      total: leadsToEnrich.length,
+      processed: 0,
+      successful: 0,
+      withPhones: 0,
+    });
 
     let successful = 0;
     let withPhones = 0;
@@ -424,11 +465,13 @@ export default function DataHubPage() {
           const data = await response.json();
 
           if (data.success) {
-            const phones = data.phones?.map((p: { number: string; type?: string }) => ({
-              number: p.number,
-              type: p.type || "unknown",
-            })) || [];
-            const emails = data.emails?.map((e: { email: string }) => e.email) || [];
+            const phones =
+              data.phones?.map((p: { number: string; type?: string }) => ({
+                number: p.number,
+                type: p.type || "unknown",
+              })) || [];
+            const emails =
+              data.emails?.map((e: { email: string }) => e.email) || [];
 
             return {
               leadId: lead.id,
@@ -463,17 +506,26 @@ export default function DataHubPage() {
             };
           }
           return lead;
-        })
+        }),
       );
 
       // Update progress
       const batchSuccessful = batchResults.filter((r) => r.success).length;
-      const batchWithPhones = batchResults.filter((r) => r.phones.length > 0).length;
+      const batchWithPhones = batchResults.filter(
+        (r) => r.phones.length > 0,
+      ).length;
       successful += batchSuccessful;
       withPhones += batchWithPhones;
 
       setEnrichProgress((prev) =>
-        prev ? { ...prev, processed: prev.processed + batch.length, successful, withPhones } : null
+        prev
+          ? {
+              ...prev,
+              processed: prev.processed + batch.length,
+              successful,
+              withPhones,
+            }
+          : null,
       );
 
       // Rate limit delay
@@ -489,14 +541,16 @@ export default function DataHubPage() {
   // Send SMS to selected leads
   const sendSmsToSelected = async () => {
     const phones: string[] = [];
-    leads.filter((l) => selectedLeads.has(l.id)).forEach((lead) => {
-      if (lead.phone) phones.push(lead.phone);
-      if (lead.enrichedPhones) {
-        lead.enrichedPhones.forEach((p) => {
-          if (p.number && !phones.includes(p.number)) phones.push(p.number);
-        });
-      }
-    });
+    leads
+      .filter((l) => selectedLeads.has(l.id))
+      .forEach((lead) => {
+        if (lead.phone) phones.push(lead.phone);
+        if (lead.enrichedPhones) {
+          lead.enrichedPhones.forEach((p) => {
+            if (p.number && !phones.includes(p.number)) phones.push(p.number);
+          });
+        }
+      });
 
     const uniquePhones = [...new Set(phones.filter((p) => p && p.length > 5))];
 
@@ -532,7 +586,11 @@ export default function DataHubPage() {
         return;
       }
 
-      setSmsProgress({ sent: data.sent || 0, failed: data.failed || 0, total: uniquePhones.length });
+      setSmsProgress({
+        sent: data.sent || 0,
+        failed: data.failed || 0,
+        total: uniquePhones.length,
+      });
       toast.success(`SMS sent! ${data.sent} delivered, ${data.failed} failed`);
 
       setTimeout(() => {
@@ -594,7 +652,7 @@ export default function DataHubPage() {
 
       if (data.success) {
         toast.success(
-          `Skip trace working! Found ${data.phones?.length || 0} phones, ${data.emails?.length || 0} emails`
+          `Skip trace working! Found ${data.phones?.length || 0} phones, ${data.emails?.length || 0} emails`,
         );
       } else if (data.error) {
         toast.error(`Skip trace error: ${data.error}`);
@@ -614,7 +672,9 @@ export default function DataHubPage() {
       {/* Header + End-to-End Guide */}
       <div className="text-center mb-8">
         <h1 className="text-5xl font-black text-white mb-3">DATA HUB</h1>
-        <p className="text-2xl text-zinc-400 mb-6">Your Lead Generation Command Center</p>
+        <p className="text-2xl text-zinc-400 mb-6">
+          Your Lead Generation Command Center
+        </p>
 
         {/* END TO END WORKFLOW GUIDE */}
         <div className="max-w-4xl mx-auto bg-gradient-to-r from-zinc-900 to-zinc-800 rounded-2xl p-6 border-2 border-zinc-700">
@@ -626,7 +686,9 @@ export default function DataHubPage() {
             <div className="p-3 bg-blue-600/20 rounded-lg border border-blue-500/50">
               <div className="text-3xl mb-1">1️⃣</div>
               <p className="text-blue-400 font-bold text-sm">GET DATA</p>
-              <p className="text-xs text-zinc-500">Upload CSV or pull from Datalake</p>
+              <p className="text-xs text-zinc-500">
+                Upload CSV or pull from Datalake
+              </p>
             </div>
             <div className="flex items-center justify-center">
               <ArrowRight className="h-8 w-8 text-zinc-600" />
@@ -634,7 +696,9 @@ export default function DataHubPage() {
             <div className="p-3 bg-amber-600/20 rounded-lg border border-amber-500/50">
               <div className="text-3xl mb-1">2️⃣</div>
               <p className="text-amber-400 font-bold text-sm">SKIP TRACE</p>
-              <p className="text-xs text-zinc-500">Get personal phones & emails</p>
+              <p className="text-xs text-zinc-500">
+                Get personal phones & emails
+              </p>
             </div>
             <div className="flex items-center justify-center">
               <ArrowRight className="h-8 w-8 text-zinc-600" />
@@ -646,7 +710,11 @@ export default function DataHubPage() {
             </div>
           </div>
           <p className="text-zinc-500 text-sm mt-4">
-            💡 Pro tip: Use the <span className="text-purple-400 font-semibold">10-Touch Sequence</span> for automated 30-day outreach
+            💡 Pro tip: Use the{" "}
+            <span className="text-purple-400 font-semibold">
+              10-Touch Sequence
+            </span>{" "}
+            for automated 30-day outreach
           </p>
         </div>
       </div>
@@ -655,22 +723,30 @@ export default function DataHubPage() {
       <div className="grid grid-cols-4 gap-3 max-w-4xl mx-auto">
         <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-3 text-center">
           <Database className="h-5 w-5 text-blue-400 mx-auto mb-1" />
-          <p className="text-xl font-bold text-white">{stats.totalRecords.toLocaleString()}</p>
+          <p className="text-xl font-bold text-white">
+            {stats.totalRecords.toLocaleString()}
+          </p>
           <p className="text-xs text-zinc-500">Records</p>
         </div>
         <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-3 text-center">
           <CheckCircle2 className="h-5 w-5 text-green-400 mx-auto mb-1" />
-          <p className="text-xl font-bold text-white">{stats.enriched.toLocaleString()}</p>
+          <p className="text-xl font-bold text-white">
+            {stats.enriched.toLocaleString()}
+          </p>
           <p className="text-xs text-zinc-500">Enriched</p>
         </div>
         <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-3 text-center">
           <Phone className="h-5 w-5 text-purple-400 mx-auto mb-1" />
-          <p className="text-xl font-bold text-white">{stats.withPhone.toLocaleString()}</p>
+          <p className="text-xl font-bold text-white">
+            {stats.withPhone.toLocaleString()}
+          </p>
           <p className="text-xs text-zinc-500">Phones</p>
         </div>
         <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-3 text-center">
           <Mail className="h-5 w-5 text-orange-400 mx-auto mb-1" />
-          <p className="text-xl font-bold text-white">{stats.withEmail.toLocaleString()}</p>
+          <p className="text-xl font-bold text-white">
+            {stats.withEmail.toLocaleString()}
+          </p>
           <p className="text-xs text-zinc-500">Emails</p>
         </div>
       </div>
@@ -685,8 +761,12 @@ export default function DataHubPage() {
                 1
               </div>
               <div>
-                <h2 className="text-3xl font-black text-white">GET YOUR DATA</h2>
-                <p className="text-xl text-zinc-400">Upload CSV, Pull from Datalake, or Search Apollo</p>
+                <h2 className="text-3xl font-black text-white">
+                  GET YOUR DATA
+                </h2>
+                <p className="text-xl text-zinc-400">
+                  Upload CSV, Pull from Datalake, or Search Apollo
+                </p>
               </div>
             </div>
 
@@ -697,7 +777,9 @@ export default function DataHubPage() {
               >
                 <Upload className="h-12 w-12" />
                 UPLOAD CSV
-                <span className="text-sm font-normal opacity-80">Any CSV file</span>
+                <span className="text-sm font-normal opacity-80">
+                  Any CSV file
+                </span>
               </Button>
               <input
                 ref={fileInputRef}
@@ -720,7 +802,9 @@ export default function DataHubPage() {
                       <HardDrive className="h-12 w-12" />
                     )}
                     DATALAKE
-                    <span className="text-sm font-normal opacity-80 flex items-center gap-1">Pull stored data <ChevronDown className="h-4 w-4" /></span>
+                    <span className="text-sm font-normal opacity-80 flex items-center gap-1">
+                      Pull stored data <ChevronDown className="h-4 w-4" />
+                    </span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-64 bg-zinc-900 border-zinc-700">
@@ -736,7 +820,9 @@ export default function DataHubPage() {
                         className="text-white hover:bg-zinc-800 cursor-pointer"
                       >
                         <Database className="h-4 w-4 mr-2 text-purple-400" />
-                        {folder.path.replace("datalake/", "").replace("/", "") || "Root"}
+                        {folder.path
+                          .replace("datalake/", "")
+                          .replace("/", "") || "Root"}
                       </DropdownMenuItem>
                     ))
                   )}
@@ -771,7 +857,9 @@ export default function DataHubPage() {
                     )}
                   </Button>
                 </div>
-                <span className="text-sm text-zinc-500 text-center">Search 200M+ Apollo contacts</span>
+                <span className="text-sm text-zinc-500 text-center">
+                  Search 200M+ Apollo contacts
+                </span>
               </div>
             </div>
           </CardContent>
@@ -785,8 +873,12 @@ export default function DataHubPage() {
                 2
               </div>
               <div>
-                <h2 className="text-3xl font-black text-white">ENRICH (SKIP TRACE)</h2>
-                <p className="text-xl text-zinc-400">Get personal cell phones & emails - $0.05/record</p>
+                <h2 className="text-3xl font-black text-white">
+                  ENRICH (SKIP TRACE)
+                </h2>
+                <p className="text-xl text-zinc-400">
+                  Get personal cell phones & emails - $0.05/record
+                </p>
               </div>
             </div>
 
@@ -826,7 +918,9 @@ export default function DataHubPage() {
                   <>
                     <Zap className="h-14 w-14" />
                     TEST SKIP TRACE
-                    <span className="text-sm font-normal opacity-80">Try it with sample data</span>
+                    <span className="text-sm font-normal opacity-80">
+                      Try it with sample data
+                    </span>
                   </>
                 )}
               </Button>
@@ -842,8 +936,12 @@ export default function DataHubPage() {
                 3
               </div>
               <div>
-                <h2 className="text-3xl font-black text-white">EXECUTE - MAKE MONEY</h2>
-                <p className="text-xl text-zinc-400">Send SMS, Schedule Calls, Push to Sequences</p>
+                <h2 className="text-3xl font-black text-white">
+                  EXECUTE - MAKE MONEY
+                </h2>
+                <p className="text-xl text-zinc-400">
+                  Send SMS, Schedule Calls, Push to Sequences
+                </p>
               </div>
             </div>
 
@@ -853,14 +951,18 @@ export default function DataHubPage() {
                 <Button className="w-full h-32 text-2xl bg-gradient-to-br from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 text-white flex flex-col gap-3 shadow-xl shadow-green-500/20 border-2 border-green-400">
                   <MessageSquare className="h-12 w-12" />
                   SEND SMS
-                  <span className="text-sm font-normal opacity-80">Blast to all phones</span>
+                  <span className="text-sm font-normal opacity-80">
+                    Blast to all phones
+                  </span>
                 </Button>
               </Link>
               <Link href={`/t/${params.team}/calendar`} className="block">
                 <Button className="w-full h-32 text-2xl bg-gradient-to-br from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white flex flex-col gap-3 shadow-xl shadow-blue-500/20 border-2 border-blue-400">
                   <CalendarPlus className="h-12 w-12" />
                   SCHEDULE CALLS
-                  <span className="text-sm font-normal opacity-80">Push to Calendar</span>
+                  <span className="text-sm font-normal opacity-80">
+                    Push to Calendar
+                  </span>
                 </Button>
               </Link>
             </div>
@@ -892,8 +994,13 @@ export default function DataHubPage() {
               <div className="flex items-center gap-3">
                 <Target className="h-6 w-6 text-green-400" />
                 <div>
-                  <p className="text-white font-semibold">Pro Tip: The 10-Touch Sequence</p>
-                  <p className="text-zinc-400 text-sm">Automated 30-day outreach: SMS → Call → Email → Repeat. Set it and forget it.</p>
+                  <p className="text-white font-semibold">
+                    Pro Tip: The 10-Touch Sequence
+                  </p>
+                  <p className="text-zinc-400 text-sm">
+                    Automated 30-day outreach: SMS → Call → Email → Repeat. Set
+                    it and forget it.
+                  </p>
                 </div>
                 <ArrowRight className="h-5 w-5 text-zinc-500 ml-auto" />
               </div>
@@ -917,7 +1024,8 @@ export default function DataHubPage() {
                   </h3>
                   <span className="text-sm text-zinc-500">
                     {leads.length} records
-                    {selectedLeads.size > 0 && ` (${selectedLeads.size} selected)`}
+                    {selectedLeads.size > 0 &&
+                      ` (${selectedLeads.size} selected)`}
                   </span>
                 </div>
                 <div className="flex gap-2">
@@ -941,7 +1049,9 @@ export default function DataHubPage() {
                         className="bg-green-600 hover:bg-green-700"
                         onClick={() => {
                           if (getSelectedPhoneCount() === 0) {
-                            toast.error("No phones in selected leads. Enrich first!");
+                            toast.error(
+                              "No phones in selected leads. Enrich first!",
+                            );
                             return;
                           }
                           setShowSmsDialog(true);
@@ -951,7 +1061,11 @@ export default function DataHubPage() {
                         SMS ({getSelectedPhoneCount()})
                       </Button>
                       <Link href={`/t/${params.team}/call-center`}>
-                        <Button size="sm" variant="outline" className="border-zinc-600">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-zinc-600"
+                        >
                           <Phone className="h-4 w-4 mr-1" />
                           Call
                         </Button>
@@ -959,7 +1073,11 @@ export default function DataHubPage() {
                     </>
                   )}
                   <Link href={`/t/${params.team}/inbox`}>
-                    <Button size="sm" variant="ghost" className="text-blue-400 hover:text-blue-300">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-blue-400 hover:text-blue-300"
+                    >
                       <Inbox className="h-4 w-4 mr-1" />
                       Inbox
                     </Button>
@@ -982,7 +1100,10 @@ export default function DataHubPage() {
                     <TableRow className="bg-zinc-800 hover:bg-zinc-800">
                       <TableHead className="w-10">
                         <Checkbox
-                          checked={leads.length > 0 && selectedLeads.size === leads.length}
+                          checked={
+                            leads.length > 0 &&
+                            selectedLeads.size === leads.length
+                          }
                           onCheckedChange={toggleAllLeads}
                         />
                       </TableHead>
@@ -1012,28 +1133,44 @@ export default function DataHubPage() {
                           <TableCell>
                             <Checkbox
                               checked={selectedLeads.has(lead.id)}
-                              onCheckedChange={() => toggleLeadSelection(lead.id)}
+                              onCheckedChange={() =>
+                                toggleLeadSelection(lead.id)
+                              }
                             />
                           </TableCell>
-                          <TableCell className="text-white font-medium">{lead.name}</TableCell>
-                          <TableCell className="text-zinc-300">{lead.company || "-"}</TableCell>
+                          <TableCell className="text-white font-medium">
+                            {lead.name}
+                          </TableCell>
+                          <TableCell className="text-zinc-300">
+                            {lead.company || "-"}
+                          </TableCell>
                           <TableCell>
                             {lead.phone ? (
-                              <span className="text-green-400">{lead.phone}</span>
+                              <span className="text-green-400">
+                                {lead.phone}
+                              </span>
                             ) : (
                               <span className="text-zinc-600">-</span>
                             )}
                           </TableCell>
                           <TableCell>
                             {lead.email ? (
-                              <span className="text-blue-400">{lead.email}</span>
+                              <span className="text-blue-400">
+                                {lead.email}
+                              </span>
                             ) : (
                               <span className="text-zinc-600">-</span>
                             )}
                           </TableCell>
-                          <TableCell className="text-zinc-300">{lead.city || "-"}</TableCell>
-                          <TableCell className="text-zinc-300">{lead.state || "-"}</TableCell>
-                          <TableCell className="text-zinc-400">{lead.industry || "-"}</TableCell>
+                          <TableCell className="text-zinc-300">
+                            {lead.city || "-"}
+                          </TableCell>
+                          <TableCell className="text-zinc-300">
+                            {lead.state || "-"}
+                          </TableCell>
+                          <TableCell className="text-zinc-400">
+                            {lead.industry || "-"}
+                          </TableCell>
                         </TableRow>
                       ))
                     )}
@@ -1074,7 +1211,11 @@ export default function DataHubPage() {
           onChange={handleFileChange}
           aria-label="Upload CSV file"
         />
-        <Button size="sm" variant="ghost" className="text-zinc-400 hover:text-white hover:bg-zinc-800">
+        <Button
+          size="sm"
+          variant="ghost"
+          className="text-zinc-400 hover:text-white hover:bg-zinc-800"
+        >
           <Download className="h-4 w-4 mr-1" />
           Export
         </Button>
@@ -1086,14 +1227,26 @@ export default function DataHubPage() {
           onClick={handleTestSkipTrace}
           disabled={isEnriching}
         >
-          {isEnriching ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Zap className="h-4 w-4 mr-1" />}
+          {isEnriching ? (
+            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+          ) : (
+            <Zap className="h-4 w-4 mr-1" />
+          )}
           Enrich
         </Button>
-        <Button size="sm" variant="ghost" className="text-zinc-400 hover:text-white hover:bg-zinc-800">
+        <Button
+          size="sm"
+          variant="ghost"
+          className="text-zinc-400 hover:text-white hover:bg-zinc-800"
+        >
           <Filter className="h-4 w-4 mr-1" />
           Filter
         </Button>
-        <Button size="sm" variant="ghost" className="text-zinc-400 hover:text-white hover:bg-zinc-800">
+        <Button
+          size="sm"
+          variant="ghost"
+          className="text-zinc-400 hover:text-white hover:bg-zinc-800"
+        >
           <RefreshCw className="h-4 w-4 mr-1" />
           Refresh
         </Button>
@@ -1115,7 +1268,11 @@ export default function DataHubPage() {
             <Search className="h-4 w-4" />
           </Button>
         </div>
-        <Button size="sm" variant="ghost" className="text-zinc-400 hover:text-white hover:bg-zinc-800">
+        <Button
+          size="sm"
+          variant="ghost"
+          className="text-zinc-400 hover:text-white hover:bg-zinc-800"
+        >
           <Settings className="h-4 w-4" />
         </Button>
       </div>
@@ -1138,7 +1295,9 @@ export default function DataHubPage() {
               </div>
               <span className="text-xs font-mono text-zinc-600">100%</span>
             </div>
-            <p className="text-2xl font-mono font-bold text-white">{stats.totalRecords.toLocaleString()}</p>
+            <p className="text-2xl font-mono font-bold text-white">
+              {stats.totalRecords.toLocaleString()}
+            </p>
           </div>
 
           <div className="bg-zinc-900 rounded p-2 border border-zinc-800">
@@ -1148,14 +1307,21 @@ export default function DataHubPage() {
                 <span className="text-xs text-zinc-500">ENRICHED</span>
               </div>
               <span className="text-xs font-mono text-green-400">
-                {stats.totalRecords > 0 ? Math.round((stats.enriched / stats.totalRecords) * 100) : 0}%
+                {stats.totalRecords > 0
+                  ? Math.round((stats.enriched / stats.totalRecords) * 100)
+                  : 0}
+                %
               </span>
             </div>
-            <p className="text-2xl font-mono font-bold text-green-400">{stats.enriched.toLocaleString()}</p>
+            <p className="text-2xl font-mono font-bold text-green-400">
+              {stats.enriched.toLocaleString()}
+            </p>
             <div className="mt-1 h-1 bg-zinc-800 rounded-full overflow-hidden">
               <div
                 className="h-full bg-green-500 transition-all duration-300"
-                style={{ width: `${stats.totalRecords > 0 ? (stats.enriched / stats.totalRecords) * 100 : 0}%` }}
+                style={{
+                  width: `${stats.totalRecords > 0 ? (stats.enriched / stats.totalRecords) * 100 : 0}%`,
+                }}
               />
             </div>
           </div>
@@ -1167,14 +1333,21 @@ export default function DataHubPage() {
                 <span className="text-xs text-zinc-500">PHONES</span>
               </div>
               <span className="text-xs font-mono text-purple-400">
-                {stats.totalRecords > 0 ? Math.round((stats.withPhone / stats.totalRecords) * 100) : 0}%
+                {stats.totalRecords > 0
+                  ? Math.round((stats.withPhone / stats.totalRecords) * 100)
+                  : 0}
+                %
               </span>
             </div>
-            <p className="text-2xl font-mono font-bold text-purple-400">{stats.withPhone.toLocaleString()}</p>
+            <p className="text-2xl font-mono font-bold text-purple-400">
+              {stats.withPhone.toLocaleString()}
+            </p>
             <div className="mt-1 h-1 bg-zinc-800 rounded-full overflow-hidden">
               <div
                 className="h-full bg-purple-500 transition-all duration-300"
-                style={{ width: `${stats.totalRecords > 0 ? (stats.withPhone / stats.totalRecords) * 100 : 0}%` }}
+                style={{
+                  width: `${stats.totalRecords > 0 ? (stats.withPhone / stats.totalRecords) * 100 : 0}%`,
+                }}
               />
             </div>
           </div>
@@ -1186,14 +1359,21 @@ export default function DataHubPage() {
                 <span className="text-xs text-zinc-500">EMAILS</span>
               </div>
               <span className="text-xs font-mono text-orange-400">
-                {stats.totalRecords > 0 ? Math.round((stats.withEmail / stats.totalRecords) * 100) : 0}%
+                {stats.totalRecords > 0
+                  ? Math.round((stats.withEmail / stats.totalRecords) * 100)
+                  : 0}
+                %
               </span>
             </div>
-            <p className="text-2xl font-mono font-bold text-orange-400">{stats.withEmail.toLocaleString()}</p>
+            <p className="text-2xl font-mono font-bold text-orange-400">
+              {stats.withEmail.toLocaleString()}
+            </p>
             <div className="mt-1 h-1 bg-zinc-800 rounded-full overflow-hidden">
               <div
                 className="h-full bg-orange-500 transition-all duration-300"
-                style={{ width: `${stats.totalRecords > 0 ? (stats.withEmail / stats.totalRecords) * 100 : 0}%` }}
+                style={{
+                  width: `${stats.totalRecords > 0 ? (stats.withEmail / stats.totalRecords) * 100 : 0}%`,
+                }}
               />
             </div>
           </div>
@@ -1201,58 +1381,90 @@ export default function DataHubPage() {
           <div className="h-px bg-zinc-800 my-2" />
 
           {/* Hotkeys Panel - TradingView Style */}
-          <div className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Hotkeys</div>
+          <div className="text-xs text-zinc-500 uppercase tracking-wider mb-2">
+            Hotkeys
+          </div>
           <div className="space-y-1 text-xs font-mono">
             <div className="flex justify-between text-zinc-400">
-              <span className="px-1.5 py-0.5 bg-amber-900/50 rounded text-amber-400 border border-amber-800">E</span>
+              <span className="px-1.5 py-0.5 bg-amber-900/50 rounded text-amber-400 border border-amber-800">
+                E
+              </span>
               <span>Enrich</span>
             </div>
             <div className="flex justify-between text-zinc-400">
-              <span className="px-1.5 py-0.5 bg-green-900/50 rounded text-green-400 border border-green-800">S</span>
+              <span className="px-1.5 py-0.5 bg-green-900/50 rounded text-green-400 border border-green-800">
+                S
+              </span>
               <span>SMS</span>
             </div>
             <div className="flex justify-between text-zinc-400">
-              <span className="px-1.5 py-0.5 bg-blue-900/50 rounded text-blue-400 border border-blue-800">A</span>
+              <span className="px-1.5 py-0.5 bg-blue-900/50 rounded text-blue-400 border border-blue-800">
+                A
+              </span>
               <span>Select All</span>
             </div>
             <div className="flex justify-between text-zinc-400">
-              <span className="px-1.5 py-0.5 bg-zinc-800 rounded text-zinc-300">I</span>
+              <span className="px-1.5 py-0.5 bg-zinc-800 rounded text-zinc-300">
+                I
+              </span>
               <span>Import</span>
             </div>
             <div className="flex justify-between text-zinc-400">
-              <span className="px-1.5 py-0.5 bg-zinc-800 rounded text-zinc-300">R</span>
+              <span className="px-1.5 py-0.5 bg-zinc-800 rounded text-zinc-300">
+                R
+              </span>
               <span>Refresh</span>
             </div>
             <div className="flex justify-between text-zinc-400">
-              <span className="px-1.5 py-0.5 bg-zinc-800 rounded text-zinc-300">?</span>
+              <span className="px-1.5 py-0.5 bg-zinc-800 rounded text-zinc-300">
+                ?
+              </span>
               <span>Help</span>
             </div>
           </div>
 
           <div className="h-px bg-zinc-800 my-2" />
 
-          <div className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Quick Actions</div>
+          <div className="text-xs text-zinc-500 uppercase tracking-wider mb-2">
+            Quick Actions
+          </div>
 
           <Link href={`/t/${params.team}/sms-queue`}>
-            <Button size="sm" variant="ghost" className="w-full justify-start text-zinc-400 hover:text-white hover:bg-zinc-800">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="w-full justify-start text-zinc-400 hover:text-white hover:bg-zinc-800"
+            >
               <MessageSquare className="h-4 w-4 mr-2 text-blue-400" />
               SMS Queue
             </Button>
           </Link>
           <Link href={`/t/${params.team}/call-center`}>
-            <Button size="sm" variant="ghost" className="w-full justify-start text-zinc-400 hover:text-white hover:bg-zinc-800">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="w-full justify-start text-zinc-400 hover:text-white hover:bg-zinc-800"
+            >
               <Phone className="h-4 w-4 mr-2 text-green-400" />
               Call Center
             </Button>
           </Link>
           <Link href={`/t/${params.team}/campaigns`}>
-            <Button size="sm" variant="ghost" className="w-full justify-start text-zinc-400 hover:text-white hover:bg-zinc-800">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="w-full justify-start text-zinc-400 hover:text-white hover:bg-zinc-800"
+            >
               <Zap className="h-4 w-4 mr-2 text-purple-400" />
               Sequences
             </Button>
           </Link>
           <Link href={`/t/${params.team}/leads`}>
-            <Button size="sm" variant="ghost" className="w-full justify-start text-zinc-400 hover:text-white hover:bg-zinc-800">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="w-full justify-start text-zinc-400 hover:text-white hover:bg-zinc-800"
+            >
               <Database className="h-4 w-4 mr-2 text-amber-400" />
               All Leads
             </Button>
@@ -1266,7 +1478,9 @@ export default function DataHubPage() {
               <div className="text-center">
                 <Terminal className="h-16 w-16 text-zinc-700 mx-auto mb-4" />
                 <p className="text-zinc-500 text-lg mb-2">No data loaded</p>
-                <p className="text-zinc-600 text-sm mb-4">Import a CSV, pull from datalake, or search Apollo</p>
+                <p className="text-zinc-600 text-sm mb-4">
+                  Import a CSV, pull from datalake, or search Apollo
+                </p>
                 <div className="flex gap-2 justify-center flex-wrap">
                   <Button
                     size="sm"
@@ -1305,14 +1519,20 @@ export default function DataHubPage() {
                             className="text-white hover:bg-zinc-800 cursor-pointer"
                           >
                             <Database className="h-4 w-4 mr-2 text-purple-400" />
-                            {folder.path.replace("datalake/", "").replace("/", "") || "Root"}
+                            {folder.path
+                              .replace("datalake/", "")
+                              .replace("/", "") || "Root"}
                           </DropdownMenuItem>
                         ))
                       )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                   <Link href={`/t/${params.team}/leads/import-companies`}>
-                    <Button size="sm" variant="outline" className="border-zinc-700 text-zinc-300 hover:bg-zinc-800">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+                    >
                       <Search className="h-4 w-4 mr-2" />
                       Search Apollo
                     </Button>
@@ -1334,7 +1554,9 @@ export default function DataHubPage() {
                     )}
                   </span>
                   {selectedLeads.size > 0 && (
-                    <span className="text-sm text-blue-400">({selectedLeads.size} selected)</span>
+                    <span className="text-sm text-blue-400">
+                      ({selectedLeads.size} selected)
+                    </span>
                   )}
                 </div>
                 <div className="flex gap-2">
@@ -1358,7 +1580,9 @@ export default function DataHubPage() {
                         className="bg-green-600 hover:bg-green-700"
                         onClick={() => {
                           if (getSelectedPhoneCount() === 0) {
-                            toast.error("No phones in selected leads. Enrich first!");
+                            toast.error(
+                              "No phones in selected leads. Enrich first!",
+                            );
                             return;
                           }
                           setShowSmsDialog(true);
@@ -1368,7 +1592,11 @@ export default function DataHubPage() {
                         SMS ({getSelectedPhoneCount()})
                       </Button>
                       <Link href={`/t/${params.team}/call-center`}>
-                        <Button size="sm" variant="outline" className="border-zinc-600">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-zinc-600"
+                        >
                           <Phone className="h-4 w-4 mr-1" />
                           Call
                         </Button>
@@ -1376,7 +1604,11 @@ export default function DataHubPage() {
                     </>
                   )}
                   <Link href={`/t/${params.team}/inbox`}>
-                    <Button size="sm" variant="ghost" className="text-blue-400 hover:text-blue-300">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-blue-400 hover:text-blue-300"
+                    >
                       <Inbox className="h-4 w-4 mr-1" />
                       Inbox
                     </Button>
@@ -1400,17 +1632,34 @@ export default function DataHubPage() {
                     <TableRow className="hover:bg-zinc-800">
                       <TableHead className="w-10">
                         <Checkbox
-                          checked={leads.length > 0 && selectedLeads.size === leads.length}
+                          checked={
+                            leads.length > 0 &&
+                            selectedLeads.size === leads.length
+                          }
                           onCheckedChange={toggleAllLeads}
                         />
                       </TableHead>
-                      <TableHead className="text-zinc-300 font-mono text-xs">NAME</TableHead>
-                      <TableHead className="text-zinc-300 font-mono text-xs">COMPANY</TableHead>
-                      <TableHead className="text-zinc-300 font-mono text-xs">PHONE</TableHead>
-                      <TableHead className="text-zinc-300 font-mono text-xs">EMAIL</TableHead>
-                      <TableHead className="text-zinc-300 font-mono text-xs">CITY</TableHead>
-                      <TableHead className="text-zinc-300 font-mono text-xs">STATE</TableHead>
-                      <TableHead className="text-zinc-300 font-mono text-xs">INDUSTRY</TableHead>
+                      <TableHead className="text-zinc-300 font-mono text-xs">
+                        NAME
+                      </TableHead>
+                      <TableHead className="text-zinc-300 font-mono text-xs">
+                        COMPANY
+                      </TableHead>
+                      <TableHead className="text-zinc-300 font-mono text-xs">
+                        PHONE
+                      </TableHead>
+                      <TableHead className="text-zinc-300 font-mono text-xs">
+                        EMAIL
+                      </TableHead>
+                      <TableHead className="text-zinc-300 font-mono text-xs">
+                        CITY
+                      </TableHead>
+                      <TableHead className="text-zinc-300 font-mono text-xs">
+                        STATE
+                      </TableHead>
+                      <TableHead className="text-zinc-300 font-mono text-xs">
+                        INDUSTRY
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1430,28 +1679,44 @@ export default function DataHubPage() {
                           <TableCell>
                             <Checkbox
                               checked={selectedLeads.has(lead.id)}
-                              onCheckedChange={() => toggleLeadSelection(lead.id)}
+                              onCheckedChange={() =>
+                                toggleLeadSelection(lead.id)
+                              }
                             />
                           </TableCell>
-                          <TableCell className="text-white">{lead.name}</TableCell>
-                          <TableCell className="text-zinc-300">{lead.company || "-"}</TableCell>
+                          <TableCell className="text-white">
+                            {lead.name}
+                          </TableCell>
+                          <TableCell className="text-zinc-300">
+                            {lead.company || "-"}
+                          </TableCell>
                           <TableCell>
                             {lead.phone ? (
-                              <span className="text-green-400">{lead.phone}</span>
+                              <span className="text-green-400">
+                                {lead.phone}
+                              </span>
                             ) : (
                               <span className="text-zinc-600">-</span>
                             )}
                           </TableCell>
                           <TableCell>
                             {lead.email ? (
-                              <span className="text-blue-400 truncate max-w-[200px] inline-block">{lead.email}</span>
+                              <span className="text-blue-400 truncate max-w-[200px] inline-block">
+                                {lead.email}
+                              </span>
                             ) : (
                               <span className="text-zinc-600">-</span>
                             )}
                           </TableCell>
-                          <TableCell className="text-zinc-300">{lead.city || "-"}</TableCell>
-                          <TableCell className="text-zinc-300">{lead.state || "-"}</TableCell>
-                          <TableCell className="text-zinc-400">{lead.industry || "-"}</TableCell>
+                          <TableCell className="text-zinc-300">
+                            {lead.city || "-"}
+                          </TableCell>
+                          <TableCell className="text-zinc-300">
+                            {lead.state || "-"}
+                          </TableCell>
+                          <TableCell className="text-zinc-400">
+                            {lead.industry || "-"}
+                          </TableCell>
                         </TableRow>
                       ))
                     )}
@@ -1472,7 +1737,11 @@ export default function DataHubPage() {
         <span className="mx-2">|</span>
         <span>Daily Limit: 2,000</span>
         <span className="mx-2">|</span>
-        <span className="text-blue-400">{selectedLeads.size > 0 ? `${selectedLeads.size} selected` : "No selection"}</span>
+        <span className="text-blue-400">
+          {selectedLeads.size > 0
+            ? `${selectedLeads.size} selected`
+            : "No selection"}
+        </span>
         <div className="flex-1" />
         <button
           onClick={() => setShowHelpModal(true)}
@@ -1493,7 +1762,11 @@ export default function DataHubPage() {
           size="sm"
           variant={viewMode === "simple" ? "default" : "ghost"}
           onClick={() => setViewMode("simple")}
-          className={viewMode === "simple" ? "bg-blue-600" : "text-zinc-400 hover:text-white"}
+          className={
+            viewMode === "simple"
+              ? "bg-blue-600"
+              : "text-zinc-400 hover:text-white"
+          }
         >
           <LayoutGrid className="h-4 w-4 mr-1" />
           Simple
@@ -1502,7 +1775,11 @@ export default function DataHubPage() {
           size="sm"
           variant={viewMode === "pro" ? "default" : "ghost"}
           onClick={() => setViewMode("pro")}
-          className={viewMode === "pro" ? "bg-blue-600" : "text-zinc-400 hover:text-white"}
+          className={
+            viewMode === "pro"
+              ? "bg-blue-600"
+              : "text-zinc-400 hover:text-white"
+          }
         >
           <Terminal className="h-4 w-4 mr-1" />
           Pro
@@ -1535,18 +1812,24 @@ export default function DataHubPage() {
                     </span>
                   </div>
                   <Progress
-                    value={(enrichProgress.processed / enrichProgress.total) * 100}
+                    value={
+                      (enrichProgress.processed / enrichProgress.total) * 100
+                    }
                     className="h-2"
                   />
                 </div>
 
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div className="p-3 bg-zinc-800 rounded-lg">
-                    <div className="text-2xl font-bold text-green-400">{enrichProgress.successful}</div>
+                    <div className="text-2xl font-bold text-green-400">
+                      {enrichProgress.successful}
+                    </div>
                     <div className="text-xs text-zinc-500">Successful</div>
                   </div>
                   <div className="p-3 bg-zinc-800 rounded-lg">
-                    <div className="text-2xl font-bold text-purple-400">{enrichProgress.withPhones}</div>
+                    <div className="text-2xl font-bold text-purple-400">
+                      {enrichProgress.withPhones}
+                    </div>
                     <div className="text-xs text-zinc-500">With Phones</div>
                   </div>
                   <div className="p-3 bg-zinc-800 rounded-lg">
@@ -1593,11 +1876,15 @@ export default function DataHubPage() {
             {/* Stats Row */}
             <div className="grid grid-cols-3 gap-3">
               <div className="bg-zinc-800 p-3 rounded-lg text-center">
-                <div className="text-2xl font-bold text-green-400">{getSelectedPhoneCount()}</div>
+                <div className="text-2xl font-bold text-green-400">
+                  {getSelectedPhoneCount()}
+                </div>
                 <div className="text-xs text-zinc-500">Phones</div>
               </div>
               <div className="bg-zinc-800 p-3 rounded-lg text-center">
-                <div className="text-2xl font-bold text-blue-400">{selectedLeads.size}</div>
+                <div className="text-2xl font-bold text-blue-400">
+                  {selectedLeads.size}
+                </div>
                 <div className="text-xs text-zinc-500">Leads</div>
               </div>
               <div className="bg-zinc-800 p-3 rounded-lg text-center">
@@ -1610,13 +1897,19 @@ export default function DataHubPage() {
 
             {/* Execution Mode Toggle */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-300">Execution Mode</label>
+              <label className="text-sm font-medium text-zinc-300">
+                Execution Mode
+              </label>
               <div className="flex gap-2">
                 <Button
                   variant={scheduleMode === "instant" ? "default" : "outline"}
                   size="sm"
                   onClick={() => setScheduleMode("instant")}
-                  className={scheduleMode === "instant" ? "bg-green-600" : "border-zinc-600 text-zinc-300"}
+                  className={
+                    scheduleMode === "instant"
+                      ? "bg-green-600"
+                      : "border-zinc-600 text-zinc-300"
+                  }
                 >
                   <Zap className="h-4 w-4 mr-1" />
                   Instant
@@ -1625,7 +1918,11 @@ export default function DataHubPage() {
                   variant={scheduleMode === "scheduled" ? "default" : "outline"}
                   size="sm"
                   onClick={() => setScheduleMode("scheduled")}
-                  className={scheduleMode === "scheduled" ? "bg-blue-600" : "border-zinc-600 text-zinc-300"}
+                  className={
+                    scheduleMode === "scheduled"
+                      ? "bg-blue-600"
+                      : "border-zinc-600 text-zinc-300"
+                  }
                 >
                   <Activity className="h-4 w-4 mr-1" />
                   Scheduled
@@ -1643,84 +1940,104 @@ export default function DataHubPage() {
 
             {/* Template Categories */}
             <div className="space-y-3">
-              <label className="text-sm font-medium text-zinc-300">Contextual Templates</label>
+              <label className="text-sm font-medium text-zinc-300">
+                Contextual Templates
+              </label>
 
               {/* Openers */}
               <div className="space-y-1">
-                <div className="text-xs text-blue-400 uppercase tracking-wider">Openers</div>
+                <div className="text-xs text-blue-400 uppercase tracking-wider">
+                  Openers
+                </div>
                 <div className="flex flex-wrap gap-2">
-                  {smsTemplates.filter(t => t.category === "opener").map((t) => (
-                    <Button
-                      key={t.id}
-                      variant="outline"
-                      size="sm"
-                      className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:border-blue-500 text-xs"
-                      onClick={() => applyTemplate(t.message)}
-                    >
-                      {t.name}
-                    </Button>
-                  ))}
+                  {smsTemplates
+                    .filter((t) => t.category === "opener")
+                    .map((t) => (
+                      <Button
+                        key={t.id}
+                        variant="outline"
+                        size="sm"
+                        className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:border-blue-500 text-xs"
+                        onClick={() => applyTemplate(t.message)}
+                      >
+                        {t.name}
+                      </Button>
+                    ))}
                 </div>
               </div>
 
               {/* Retirement/Exit */}
               <div className="space-y-1">
-                <div className="text-xs text-amber-400 uppercase tracking-wider">Exit/Succession</div>
+                <div className="text-xs text-amber-400 uppercase tracking-wider">
+                  Exit/Succession
+                </div>
                 <div className="flex flex-wrap gap-2">
-                  {smsTemplates.filter(t => t.category === "retirement").map((t) => (
-                    <Button
-                      key={t.id}
-                      variant="outline"
-                      size="sm"
-                      className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:border-amber-500 text-xs"
-                      onClick={() => applyTemplate(t.message)}
-                    >
-                      {t.name}
-                    </Button>
-                  ))}
+                  {smsTemplates
+                    .filter((t) => t.category === "retirement")
+                    .map((t) => (
+                      <Button
+                        key={t.id}
+                        variant="outline"
+                        size="sm"
+                        className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:border-amber-500 text-xs"
+                        onClick={() => applyTemplate(t.message)}
+                      >
+                        {t.name}
+                      </Button>
+                    ))}
                 </div>
               </div>
 
               {/* Followups */}
               <div className="space-y-1">
-                <div className="text-xs text-purple-400 uppercase tracking-wider">Follow-Ups</div>
+                <div className="text-xs text-purple-400 uppercase tracking-wider">
+                  Follow-Ups
+                </div>
                 <div className="flex flex-wrap gap-2">
-                  {smsTemplates.filter(t => t.category === "followup").map((t) => (
-                    <Button
-                      key={t.id}
-                      variant="outline"
-                      size="sm"
-                      className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:border-purple-500 text-xs"
-                      onClick={() => applyTemplate(t.message)}
-                    >
-                      {t.name}
-                    </Button>
-                  ))}
+                  {smsTemplates
+                    .filter((t) => t.category === "followup")
+                    .map((t) => (
+                      <Button
+                        key={t.id}
+                        variant="outline"
+                        size="sm"
+                        className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:border-purple-500 text-xs"
+                        onClick={() => applyTemplate(t.message)}
+                      >
+                        {t.name}
+                      </Button>
+                    ))}
                 </div>
               </div>
 
               {/* Creative */}
               <div className="space-y-1">
-                <div className="text-xs text-green-400 uppercase tracking-wider">Pattern Breakers</div>
+                <div className="text-xs text-green-400 uppercase tracking-wider">
+                  Pattern Breakers
+                </div>
                 <div className="flex flex-wrap gap-2">
-                  {smsTemplates.filter(t => t.category === "creative").map((t) => (
-                    <Button
-                      key={t.id}
-                      variant="outline"
-                      size="sm"
-                      className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:border-green-500 text-xs"
-                      onClick={() => applyTemplate(t.message)}
-                    >
-                      {t.name}
-                    </Button>
-                  ))}
+                  {smsTemplates
+                    .filter((t) => t.category === "creative")
+                    .map((t) => (
+                      <Button
+                        key={t.id}
+                        variant="outline"
+                        size="sm"
+                        className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:border-green-500 text-xs"
+                        onClick={() => applyTemplate(t.message)}
+                      >
+                        {t.name}
+                      </Button>
+                    ))}
                 </div>
               </div>
             </div>
 
             {/* Message Input */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-300">Message Preview</label>
+              <label className="text-sm font-medium text-zinc-300">
+                Message Preview
+              </label>
               <textarea
                 value={smsMessage}
                 onChange={(e) => setSmsMessage(e.target.value)}
@@ -1729,10 +2046,16 @@ export default function DataHubPage() {
                 maxLength={160}
               />
               <div className="flex justify-between text-xs">
-                <span className={smsMessage.length > 140 ? "text-amber-400" : "text-zinc-500"}>
+                <span
+                  className={
+                    smsMessage.length > 140 ? "text-amber-400" : "text-zinc-500"
+                  }
+                >
                   {smsMessage.length}/160 chars
                 </span>
-                <span className="text-zinc-600">Variables: {"{{name}}, {{company}}, {{industry}}, {{state}}"}</span>
+                <span className="text-zinc-600">
+                  Variables: {"{{name}}, {{company}}, {{industry}}, {{state}}"}
+                </span>
               </div>
             </div>
 
@@ -1741,15 +2064,21 @@ export default function DataHubPage() {
               <div className="rounded-lg border border-zinc-700 bg-zinc-800 p-4">
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div>
-                    <div className="text-2xl font-bold text-green-400">{smsProgress.sent}</div>
+                    <div className="text-2xl font-bold text-green-400">
+                      {smsProgress.sent}
+                    </div>
                     <div className="text-xs text-zinc-500">Sent</div>
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-red-400">{smsProgress.failed}</div>
+                    <div className="text-2xl font-bold text-red-400">
+                      {smsProgress.failed}
+                    </div>
                     <div className="text-xs text-zinc-500">Failed</div>
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-zinc-400">{smsProgress.total}</div>
+                    <div className="text-2xl font-bold text-zinc-400">
+                      {smsProgress.total}
+                    </div>
                     <div className="text-xs text-zinc-500">Total</div>
                   </div>
                 </div>
@@ -1768,8 +2097,16 @@ export default function DataHubPage() {
             </Button>
             <Button
               onClick={sendSmsToSelected}
-              disabled={sendingSms || !smsMessage.trim() || (scheduleMode === "scheduled" && !scheduledTime)}
-              className={scheduleMode === "instant" ? "bg-green-600 hover:bg-green-700" : "bg-blue-600 hover:bg-blue-700"}
+              disabled={
+                sendingSms ||
+                !smsMessage.trim() ||
+                (scheduleMode === "scheduled" && !scheduledTime)
+              }
+              className={
+                scheduleMode === "instant"
+                  ? "bg-green-600 hover:bg-green-700"
+                  : "bg-blue-600 hover:bg-blue-700"
+              }
             >
               {sendingSms ? (
                 <>
@@ -1805,49 +2142,79 @@ export default function DataHubPage() {
           <div className="space-y-4 py-4">
             {/* Actions */}
             <div className="space-y-2">
-              <div className="text-xs text-zinc-500 uppercase tracking-wider">Actions</div>
+              <div className="text-xs text-zinc-500 uppercase tracking-wider">
+                Actions
+              </div>
               <div className="grid gap-2">
                 <div className="flex items-center justify-between py-1.5 px-2 bg-zinc-800 rounded">
-                  <span className="text-sm text-zinc-300">Enrich selected leads</span>
-                  <kbd className="px-2 py-1 text-xs font-mono bg-amber-900/50 text-amber-400 border border-amber-800 rounded">E</kbd>
+                  <span className="text-sm text-zinc-300">
+                    Enrich selected leads
+                  </span>
+                  <kbd className="px-2 py-1 text-xs font-mono bg-amber-900/50 text-amber-400 border border-amber-800 rounded">
+                    E
+                  </kbd>
                 </div>
                 <div className="flex items-center justify-between py-1.5 px-2 bg-zinc-800 rounded">
-                  <span className="text-sm text-zinc-300">Open SMS Command Center</span>
-                  <kbd className="px-2 py-1 text-xs font-mono bg-green-900/50 text-green-400 border border-green-800 rounded">S</kbd>
+                  <span className="text-sm text-zinc-300">
+                    Open SMS Command Center
+                  </span>
+                  <kbd className="px-2 py-1 text-xs font-mono bg-green-900/50 text-green-400 border border-green-800 rounded">
+                    S
+                  </kbd>
                 </div>
                 <div className="flex items-center justify-between py-1.5 px-2 bg-zinc-800 rounded">
-                  <span className="text-sm text-zinc-300">Select / Deselect all</span>
-                  <kbd className="px-2 py-1 text-xs font-mono bg-blue-900/50 text-blue-400 border border-blue-800 rounded">A</kbd>
+                  <span className="text-sm text-zinc-300">
+                    Select / Deselect all
+                  </span>
+                  <kbd className="px-2 py-1 text-xs font-mono bg-blue-900/50 text-blue-400 border border-blue-800 rounded">
+                    A
+                  </kbd>
                 </div>
               </div>
             </div>
 
             {/* Navigation */}
             <div className="space-y-2">
-              <div className="text-xs text-zinc-500 uppercase tracking-wider">Navigation</div>
+              <div className="text-xs text-zinc-500 uppercase tracking-wider">
+                Navigation
+              </div>
               <div className="grid gap-2">
                 <div className="flex items-center justify-between py-1.5 px-2 bg-zinc-800 rounded">
                   <span className="text-sm text-zinc-300">Import CSV file</span>
-                  <kbd className="px-2 py-1 text-xs font-mono bg-zinc-700 text-zinc-300 border border-zinc-600 rounded">I</kbd>
+                  <kbd className="px-2 py-1 text-xs font-mono bg-zinc-700 text-zinc-300 border border-zinc-600 rounded">
+                    I
+                  </kbd>
                 </div>
                 <div className="flex items-center justify-between py-1.5 px-2 bg-zinc-800 rounded">
-                  <span className="text-sm text-zinc-300">Refresh datalake</span>
-                  <kbd className="px-2 py-1 text-xs font-mono bg-zinc-700 text-zinc-300 border border-zinc-600 rounded">R</kbd>
+                  <span className="text-sm text-zinc-300">
+                    Refresh datalake
+                  </span>
+                  <kbd className="px-2 py-1 text-xs font-mono bg-zinc-700 text-zinc-300 border border-zinc-600 rounded">
+                    R
+                  </kbd>
                 </div>
               </div>
             </div>
 
             {/* General */}
             <div className="space-y-2">
-              <div className="text-xs text-zinc-500 uppercase tracking-wider">General</div>
+              <div className="text-xs text-zinc-500 uppercase tracking-wider">
+                General
+              </div>
               <div className="grid gap-2">
                 <div className="flex items-center justify-between py-1.5 px-2 bg-zinc-800 rounded">
-                  <span className="text-sm text-zinc-300">Close dialog / Clear selection</span>
-                  <kbd className="px-2 py-1 text-xs font-mono bg-zinc-700 text-zinc-300 border border-zinc-600 rounded">Esc</kbd>
+                  <span className="text-sm text-zinc-300">
+                    Close dialog / Clear selection
+                  </span>
+                  <kbd className="px-2 py-1 text-xs font-mono bg-zinc-700 text-zinc-300 border border-zinc-600 rounded">
+                    Esc
+                  </kbd>
                 </div>
                 <div className="flex items-center justify-between py-1.5 px-2 bg-zinc-800 rounded">
                   <span className="text-sm text-zinc-300">Show this help</span>
-                  <kbd className="px-2 py-1 text-xs font-mono bg-zinc-700 text-zinc-300 border border-zinc-600 rounded">?</kbd>
+                  <kbd className="px-2 py-1 text-xs font-mono bg-zinc-700 text-zinc-300 border border-zinc-600 rounded">
+                    ?
+                  </kbd>
                 </div>
               </div>
             </div>

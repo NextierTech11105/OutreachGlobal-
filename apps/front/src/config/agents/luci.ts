@@ -61,7 +61,13 @@ export const LUCI_AGENT = {
     description: "LUCI understands the entire lead generation machine",
     components: {
       dataLake: {
-        tables: ["businesses", "properties", "leads", "contacts", "dataSources"],
+        tables: [
+          "businesses",
+          "properties",
+          "leads",
+          "contacts",
+          "dataSources",
+        ],
         purpose: "Raw data ingestion from USBizData, RealEstateAPI, Apollo",
       },
       buckets: {
@@ -83,8 +89,21 @@ export const LUCI_AGENT = {
         agents: ["Gianna (SMS/Voice)", "Sabrina (Email)", "LUCI (Data)"],
       },
       deals: {
-        pipeline: ["Discovery", "Qualification", "Proposal", "Negotiation", "Contract", "Closing"],
-        types: ["B2B Exit", "Commercial", "Assemblage", "Blue Collar Exit", "Development"],
+        pipeline: [
+          "Discovery",
+          "Qualification",
+          "Proposal",
+          "Negotiation",
+          "Contract",
+          "Closing",
+        ],
+        types: [
+          "B2B Exit",
+          "Commercial",
+          "Assemblage",
+          "Blue Collar Exit",
+          "Development",
+        ],
       },
     },
     databases: {
@@ -119,7 +138,12 @@ export const LUCI_AGENT = {
         "Label phones as MOBILE vs LANDLINE",
         "Capture emails and mailing address",
       ],
-      outputs: ["Mobile phones", "Landline phones", "Emails", "Mailing address"],
+      outputs: [
+        "Mobile phones",
+        "Landline phones",
+        "Emails",
+        "Mailing address",
+      ],
     },
 
     // SKILL 3: Property Cross-Reference
@@ -143,23 +167,35 @@ export const LUCI_AGENT = {
       categories: {
         acquisition: {
           tags: ["blue-collar", "acquisition-target", "sweet-spot-revenue"],
-          criteria: "SIC 15-17, 34-39, 42, 49, 75-76 + 5-50 employees + $500K-$10M revenue",
+          criteria:
+            "SIC 15-17, 34-39, 42, 49, 75-76 + 5-50 employees + $500K-$10M revenue",
         },
         techIntegration: {
           tags: ["tech-integration", "scale-ready"],
           criteria: "SIC 50-51, 60-64, 73, 80, 82, 87 + 20+ employees",
         },
         exit: {
-          tags: ["exit-prep-timing", "mature-ownership", "potential-exit", "succession-planning"],
-          criteria: "5-15 years old (exit timing) OR 20+ years old (mature/succession)",
+          tags: [
+            "exit-prep-timing",
+            "mature-ownership",
+            "potential-exit",
+            "succession-planning",
+          ],
+          criteria:
+            "5-15 years old (exit timing) OR 20+ years old (mature/succession)",
         },
         expansion: {
           tags: ["expansion-candidate"],
           criteria: "10-100 employees + $1M+ revenue",
         },
         propertyOwner: {
-          tags: ["property-owner", "multi-property-owner", "high-equity-property-owner"],
-          criteria: "Owns real estate, owns 3+ properties, or has >$100K equity",
+          tags: [
+            "property-owner",
+            "multi-property-owner",
+            "high-equity-property-owner",
+          ],
+          criteria:
+            "Owns real estate, owns 3+ properties, or has >$100K equity",
         },
       },
     },
@@ -191,12 +227,29 @@ export const LUCI_AGENT = {
   // Auto-Tagging Rules (SIC Code based)
   tagRules: {
     blueCollar: {
-      sicPrefixes: ["15", "16", "17", "07", "34", "35", "36", "37", "38", "39", "42", "49", "75", "76"],
-      description: "Construction, Manufacturing, Trucking, Utilities, Repair Services",
+      sicPrefixes: [
+        "15",
+        "16",
+        "17",
+        "07",
+        "34",
+        "35",
+        "36",
+        "37",
+        "38",
+        "39",
+        "42",
+        "49",
+        "75",
+        "76",
+      ],
+      description:
+        "Construction, Manufacturing, Trucking, Utilities, Repair Services",
     },
     techIntegration: {
       sicPrefixes: ["50", "51", "60", "61", "63", "64", "73", "80", "82", "87"],
-      description: "Wholesale, Finance, Insurance, Business Services, Healthcare, Education, Consulting",
+      description:
+        "Wholesale, Finance, Insurance, Business Services, Healthcare, Education, Consulting",
     },
   },
 
@@ -226,8 +279,10 @@ export const LUCI_AGENT = {
     pipeline: "/api/luci/pipeline",
     actions: {
       scan: "POST /api/luci/pipeline { action: 'scan', scanMode, limit, tagFilter }",
-      enrich: "POST /api/luci/pipeline { action: 'enrich', businessIds, skipTraceEnabled, crossReferenceProperties }",
-      generateCampaigns: "POST /api/luci/pipeline { action: 'generate-campaigns', channels, targetTags, campaignsPerChannel }",
+      enrich:
+        "POST /api/luci/pipeline { action: 'enrich', businessIds, skipTraceEnabled, crossReferenceProperties }",
+      generateCampaigns:
+        "POST /api/luci/pipeline { action: 'generate-campaigns', channels, targetTags, campaignsPerChannel }",
     },
   },
 
@@ -324,13 +379,21 @@ export function evaluateBusinessForLuci(business: {
     reasons.push("Blue collar industry (SIC " + sicPrefix + ")");
     score += 1;
 
-    if (business.employeeCount && business.employeeCount >= 5 && business.employeeCount <= 50) {
+    if (
+      business.employeeCount &&
+      business.employeeCount >= 5 &&
+      business.employeeCount <= 50
+    ) {
       tags.push("acquisition-target");
       reasons.push("Acquisition sweet spot: 5-50 employees");
       score += 2;
     }
 
-    if (business.annualRevenue && business.annualRevenue >= 500000 && business.annualRevenue <= 10000000) {
+    if (
+      business.annualRevenue &&
+      business.annualRevenue >= 500000 &&
+      business.annualRevenue <= 10000000
+    ) {
       tags.push("sweet-spot-revenue");
       reasons.push("Sweet spot revenue: $500K-$10M");
       score += 2;
@@ -351,7 +414,11 @@ export function evaluateBusinessForLuci(business: {
   }
 
   // Exit timing
-  if (business.yearsInBusiness && business.yearsInBusiness >= 5 && business.yearsInBusiness <= 15) {
+  if (
+    business.yearsInBusiness &&
+    business.yearsInBusiness >= 5 &&
+    business.yearsInBusiness <= 15
+  ) {
     tags.push("exit-prep-timing");
     reasons.push("Prime exit window: 5-15 years old");
     score += 1;
@@ -374,7 +441,11 @@ export function evaluateBusinessForLuci(business: {
   }
 
   // Expansion candidate
-  if (business.employeeCount && business.employeeCount >= 10 && business.employeeCount <= 100) {
+  if (
+    business.employeeCount &&
+    business.employeeCount >= 10 &&
+    business.employeeCount <= 100
+  ) {
     if (business.annualRevenue && business.annualRevenue >= 1000000) {
       tags.push("expansion-candidate");
       reasons.push("Expansion candidate: $1M+ revenue, 10-100 employees");

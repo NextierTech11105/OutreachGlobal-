@@ -115,8 +115,9 @@ function leadToZohoRow(lead: any): Record<string, string> {
     mobilePhone,
     landlinePhone,
     // Parse owner name if not already split
-    ownerFirstName: lead.ownerFirstName || (lead.ownerName?.split(" ")[0] || ""),
-    ownerLastName: lead.ownerLastName || (lead.ownerName?.split(" ").slice(1).join(" ") || ""),
+    ownerFirstName: lead.ownerFirstName || lead.ownerName?.split(" ")[0] || "",
+    ownerLastName:
+      lead.ownerLastName || lead.ownerName?.split(" ").slice(1).join(" ") || "",
   };
 
   for (const field of ZOHO_FIELDS) {
@@ -134,10 +135,10 @@ function escapeCSV(value: string): string {
 }
 
 function leadsToCSV(leads: any[]): string {
-  const headers = ZOHO_FIELDS.map(f => f.csv);
-  const rows = leads.map(lead => {
+  const headers = ZOHO_FIELDS.map((f) => f.csv);
+  const rows = leads.map((lead) => {
     const row = leadToZohoRow(lead);
-    return headers.map(h => escapeCSV(row[h] || "")).join(",");
+    return headers.map((h) => escapeCSV(row[h] || "")).join(",");
   });
 
   return [headers.join(","), ...rows].join("\n");
@@ -158,14 +159,17 @@ export async function GET(request: NextRequest) {
           "/api/fdaily/export-zoho?batch=fdaily-import-2024-12-11",
           "/api/fdaily/export-zoho?batch=fdaily-import-2024-12-11-skip-traced-1734000000000",
         ],
-        zohoFields: ZOHO_FIELDS.map(f => f.csv),
+        zohoFields: ZOHO_FIELDS.map((f) => f.csv),
         note: "Create custom fields in Zoho Leads module before importing",
       });
     }
 
     const client = getS3Client();
     if (!client) {
-      return NextResponse.json({ error: "Storage not configured" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Storage not configured" },
+        { status: 500 },
+      );
     }
 
     // Try to find the batch file
@@ -173,24 +177,34 @@ export async function GET(request: NextRequest) {
     let response;
 
     try {
-      response = await client.send(new GetObjectCommand({
-        Bucket: SPACES_BUCKET,
-        Key: key,
-      }));
+      response = await client.send(
+        new GetObjectCommand({
+          Bucket: SPACES_BUCKET,
+          Key: key,
+        }),
+      );
     } catch (e) {
       // Try without .json extension
       if (!batchName.endsWith(".json")) {
         try {
           key = `fdaily/${batchName}`;
-          response = await client.send(new GetObjectCommand({
-            Bucket: SPACES_BUCKET,
-            Key: key,
-          }));
+          response = await client.send(
+            new GetObjectCommand({
+              Bucket: SPACES_BUCKET,
+              Key: key,
+            }),
+          );
         } catch (e2) {
-          return NextResponse.json({ error: `Batch not found: ${batchName}` }, { status: 404 });
+          return NextResponse.json(
+            { error: `Batch not found: ${batchName}` },
+            { status: 404 },
+          );
         }
       } else {
-        return NextResponse.json({ error: `Batch not found: ${batchName}` }, { status: 404 });
+        return NextResponse.json(
+          { error: `Batch not found: ${batchName}` },
+          { status: 404 },
+        );
       }
     }
 
@@ -214,7 +228,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         batchName,
         totalLeads: leads.length,
-        zohoFields: ZOHO_FIELDS.map(f => f.csv),
+        zohoFields: ZOHO_FIELDS.map((f) => f.csv),
         preview: leads.slice(0, 3).map(leadToZohoRow),
         downloadUrl: `/api/fdaily/export-zoho?batch=${batchName}&format=csv`,
       });
@@ -228,7 +242,6 @@ export async function GET(request: NextRequest) {
         "Content-Disposition": `attachment; filename="${filename}"`,
       },
     });
-
   } catch (error: any) {
     console.error("[FDAILY Export Zoho] Error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });

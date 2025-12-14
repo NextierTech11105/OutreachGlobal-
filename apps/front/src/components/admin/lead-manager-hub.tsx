@@ -122,23 +122,38 @@ interface AgentMetrics {
 const SECTOR_COLORS: Record<string, string> = {
   "hotel-motel": "bg-blue-500",
   "campgrounds-rv": "bg-green-500",
-  "trucking": "bg-orange-500",
+  trucking: "bg-orange-500",
   "auto-dealers": "bg-purple-500",
   "auto-repair": "bg-red-500",
   "aircraft-parts": "bg-cyan-500",
-  "restaurants": "bg-yellow-500",
-  "construction": "bg-amber-500",
-  "medical": "bg-pink-500",
-  "dental": "bg-indigo-500",
+  restaurants: "bg-yellow-500",
+  construction: "bg-amber-500",
+  medical: "bg-pink-500",
+  dental: "bg-indigo-500",
   "real-estate": "bg-emerald-500",
-  "logistics": "bg-violet-500",
+  logistics: "bg-violet-500",
 };
 
 const ENRICHMENT_TYPES = [
   { id: "skip_trace", label: "Skip Trace", icon: Search, cost: "$0.02/record" },
-  { id: "apollo", label: "Apollo Enrich", icon: Sparkles, cost: "$0.10/record" },
-  { id: "email_verify", label: "Email Verify", icon: Mail, cost: "$0.005/record" },
-  { id: "phone_verify", label: "Phone Verify", icon: Phone, cost: "$0.01/record" },
+  {
+    id: "apollo",
+    label: "Apollo Enrich",
+    icon: Sparkles,
+    cost: "$0.10/record",
+  },
+  {
+    id: "email_verify",
+    label: "Email Verify",
+    icon: Mail,
+    cost: "$0.005/record",
+  },
+  {
+    id: "phone_verify",
+    label: "Phone Verify",
+    icon: Phone,
+    cost: "$0.01/record",
+  },
 ];
 
 const WORKFLOW_TRIGGERS = [
@@ -155,21 +170,122 @@ const WORKFLOW_TRIGGERS = [
 
 function generateMockSectors(): DatalakeSector[] {
   return [
-    { id: "hotel-motel", name: "hotel-motel", label: "Hotels & Motels", sic_codes: ["7011"], record_count: 433000, enriched_count: 125000, last_upload: new Date("2024-12-10"), status: "active", color: "bg-blue-500" },
-    { id: "campgrounds-rv", name: "campgrounds-rv", label: "Campgrounds & RV", sic_codes: ["7033"], record_count: 16366, enriched_count: 8200, last_upload: new Date("2024-12-08"), status: "active", color: "bg-green-500" },
-    { id: "trucking", name: "trucking", label: "Trucking & Freight", sic_codes: ["4213", "4214", "4215"], record_count: 285000, enriched_count: 95000, last_upload: new Date("2024-12-05"), status: "active", color: "bg-orange-500" },
-    { id: "auto-dealers", name: "auto-dealers", label: "Auto Dealers", sic_codes: ["5511", "5521"], record_count: 409121, enriched_count: 180000, last_upload: new Date("2024-12-12"), status: "active", color: "bg-purple-500" },
-    { id: "auto-repair", name: "auto-repair", label: "Auto Repair", sic_codes: ["7538", "7539", "7549", "7537"], record_count: 197414, enriched_count: 75000, last_upload: new Date("2024-12-11"), status: "active", color: "bg-red-500" },
-    { id: "aircraft-parts", name: "aircraft-parts", label: "Aircraft Parts", sic_codes: ["3721", "3724", "3728"], record_count: 106625, enriched_count: 42000, last_upload: new Date("2024-12-09"), status: "pending", color: "bg-cyan-500" },
-    { id: "ny-business", name: "ny-business", label: "NY Businesses", sic_codes: [], record_count: 5500000, enriched_count: 250000, last_upload: new Date("2024-12-01"), status: "paused", color: "bg-zinc-500" },
+    {
+      id: "hotel-motel",
+      name: "hotel-motel",
+      label: "Hotels & Motels",
+      sic_codes: ["7011"],
+      record_count: 433000,
+      enriched_count: 125000,
+      last_upload: new Date("2024-12-10"),
+      status: "active",
+      color: "bg-blue-500",
+    },
+    {
+      id: "campgrounds-rv",
+      name: "campgrounds-rv",
+      label: "Campgrounds & RV",
+      sic_codes: ["7033"],
+      record_count: 16366,
+      enriched_count: 8200,
+      last_upload: new Date("2024-12-08"),
+      status: "active",
+      color: "bg-green-500",
+    },
+    {
+      id: "trucking",
+      name: "trucking",
+      label: "Trucking & Freight",
+      sic_codes: ["4213", "4214", "4215"],
+      record_count: 285000,
+      enriched_count: 95000,
+      last_upload: new Date("2024-12-05"),
+      status: "active",
+      color: "bg-orange-500",
+    },
+    {
+      id: "auto-dealers",
+      name: "auto-dealers",
+      label: "Auto Dealers",
+      sic_codes: ["5511", "5521"],
+      record_count: 409121,
+      enriched_count: 180000,
+      last_upload: new Date("2024-12-12"),
+      status: "active",
+      color: "bg-purple-500",
+    },
+    {
+      id: "auto-repair",
+      name: "auto-repair",
+      label: "Auto Repair",
+      sic_codes: ["7538", "7539", "7549", "7537"],
+      record_count: 197414,
+      enriched_count: 75000,
+      last_upload: new Date("2024-12-11"),
+      status: "active",
+      color: "bg-red-500",
+    },
+    {
+      id: "aircraft-parts",
+      name: "aircraft-parts",
+      label: "Aircraft Parts",
+      sic_codes: ["3721", "3724", "3728"],
+      record_count: 106625,
+      enriched_count: 42000,
+      last_upload: new Date("2024-12-09"),
+      status: "pending",
+      color: "bg-cyan-500",
+    },
+    {
+      id: "ny-business",
+      name: "ny-business",
+      label: "NY Businesses",
+      sic_codes: [],
+      record_count: 5500000,
+      enriched_count: 250000,
+      last_upload: new Date("2024-12-01"),
+      status: "paused",
+      color: "bg-zinc-500",
+    },
   ];
 }
 
 function generateMockJobs(): EnrichmentJob[] {
   return [
-    { id: "job_1", sector_id: "hotel-motel", type: "skip_trace", status: "running", total: 5000, processed: 2340, enriched: 1890, started_at: new Date(), cost_estimate: "$100" },
-    { id: "job_2", sector_id: "auto-dealers", type: "apollo", status: "queued", total: 10000, processed: 0, enriched: 0, started_at: new Date(), cost_estimate: "$1,000" },
-    { id: "job_3", sector_id: "campgrounds-rv", type: "email_verify", status: "completed", total: 8200, processed: 8200, enriched: 7650, started_at: new Date(Date.now() - 3600000), completed_at: new Date(), cost_estimate: "$41" },
+    {
+      id: "job_1",
+      sector_id: "hotel-motel",
+      type: "skip_trace",
+      status: "running",
+      total: 5000,
+      processed: 2340,
+      enriched: 1890,
+      started_at: new Date(),
+      cost_estimate: "$100",
+    },
+    {
+      id: "job_2",
+      sector_id: "auto-dealers",
+      type: "apollo",
+      status: "queued",
+      total: 10000,
+      processed: 0,
+      enriched: 0,
+      started_at: new Date(),
+      cost_estimate: "$1,000",
+    },
+    {
+      id: "job_3",
+      sector_id: "campgrounds-rv",
+      type: "email_verify",
+      status: "completed",
+      total: 8200,
+      processed: 8200,
+      enriched: 7650,
+      started_at: new Date(Date.now() - 3600000),
+      completed_at: new Date(),
+      cost_estimate: "$41",
+    },
   ];
 }
 
@@ -267,10 +383,15 @@ export function LeadManagerHub() {
 
     // Calculate metrics
     setMetrics({
-      total_datalake_records: mockSectors.reduce((sum, s) => sum + s.record_count, 0),
-      sectors_active: mockSectors.filter(s => s.status === "active").length,
-      pending_enrichment: mockJobs.filter(j => j.status === "queued" || j.status === "running").length,
-      workflows_running: mockWorkflows.filter(w => w.enabled).length,
+      total_datalake_records: mockSectors.reduce(
+        (sum, s) => sum + s.record_count,
+        0,
+      ),
+      sectors_active: mockSectors.filter((s) => s.status === "active").length,
+      pending_enrichment: mockJobs.filter(
+        (j) => j.status === "queued" || j.status === "running",
+      ).length,
+      workflows_running: mockWorkflows.filter((w) => w.enabled).length,
       leads_assigned_today: 2847,
       response_rate: 4.2,
       avg_response_time: "18m",
@@ -280,21 +401,23 @@ export function LeadManagerHub() {
   // Simulate job progress
   useEffect(() => {
     const interval = setInterval(() => {
-      setEnrichmentJobs(prev => prev.map(job => {
-        if (job.status === "running" && job.processed < job.total) {
-          const increment = Math.floor(Math.random() * 50) + 10;
-          const newProcessed = Math.min(job.processed + increment, job.total);
-          const newEnriched = Math.floor(newProcessed * 0.81);
-          return {
-            ...job,
-            processed: newProcessed,
-            enriched: newEnriched,
-            status: newProcessed >= job.total ? "completed" : "running",
-            completed_at: newProcessed >= job.total ? new Date() : undefined,
-          };
-        }
-        return job;
-      }));
+      setEnrichmentJobs((prev) =>
+        prev.map((job) => {
+          if (job.status === "running" && job.processed < job.total) {
+            const increment = Math.floor(Math.random() * 50) + 10;
+            const newProcessed = Math.min(job.processed + increment, job.total);
+            const newEnriched = Math.floor(newProcessed * 0.81);
+            return {
+              ...job,
+              processed: newProcessed,
+              enriched: newEnriched,
+              status: newProcessed >= job.total ? "completed" : "running",
+              completed_at: newProcessed >= job.total ? new Date() : undefined,
+            };
+          }
+          return job;
+        }),
+      );
     }, 1000);
 
     return () => clearInterval(interval);
@@ -302,12 +425,19 @@ export function LeadManagerHub() {
 
   // Launch enrichment job
   const launchEnrichment = (sectorId: string, type: EnrichmentJob["type"]) => {
-    const sector = sectors.find(s => s.id === sectorId);
+    const sector = sectors.find((s) => s.id === sectorId);
     if (!sector) return;
 
     const unenriched = sector.record_count - sector.enriched_count;
     const batchSize = Math.min(unenriched, 5000);
-    const costPerRecord = type === "apollo" ? 0.10 : type === "skip_trace" ? 0.02 : type === "email_verify" ? 0.005 : 0.01;
+    const costPerRecord =
+      type === "apollo"
+        ? 0.1
+        : type === "skip_trace"
+          ? 0.02
+          : type === "email_verify"
+            ? 0.005
+            : 0.01;
     const cost = `$${(batchSize * costPerRecord).toFixed(2)}`;
 
     const newJob: EnrichmentJob = {
@@ -322,31 +452,43 @@ export function LeadManagerHub() {
       cost_estimate: cost,
     };
 
-    setEnrichmentJobs(prev => [newJob, ...prev]);
-    toast.success(`Started ${type} enrichment for ${sector.label} (${batchSize.toLocaleString()} records)`);
+    setEnrichmentJobs((prev) => [newJob, ...prev]);
+    toast.success(
+      `Started ${type} enrichment for ${sector.label} (${batchSize.toLocaleString()} records)`,
+    );
   };
 
   // Toggle workflow
   const toggleWorkflow = (workflowId: string) => {
-    setWorkflows(prev => prev.map(wf => {
-      if (wf.id === workflowId) {
-        const newEnabled = !wf.enabled;
-        toast.info(`Workflow "${wf.name}" ${newEnabled ? "enabled" : "disabled"}`);
-        return { ...wf, enabled: newEnabled };
-      }
-      return wf;
-    }));
+    setWorkflows((prev) =>
+      prev.map((wf) => {
+        if (wf.id === workflowId) {
+          const newEnabled = !wf.enabled;
+          toast.info(
+            `Workflow "${wf.name}" ${newEnabled ? "enabled" : "disabled"}`,
+          );
+          return { ...wf, enabled: newEnabled };
+        }
+        return wf;
+      }),
+    );
   };
 
   // Assign leads to Gianna
-  const assignToGianna = (sectorId: string, count: number, type: "outreach" | "inbound") => {
+  const assignToGianna = (
+    sectorId: string,
+    count: number,
+    type: "outreach" | "inbound",
+  ) => {
     setIsProcessing(true);
 
     setTimeout(() => {
-      toast.success(`Assigned ${count.toLocaleString()} leads from ${sectorId} to Gianna ${type === "outreach" ? "Outreach" : "Inbound Handler"}`);
+      toast.success(
+        `Assigned ${count.toLocaleString()} leads from ${sectorId} to Gianna ${type === "outreach" ? "Outreach" : "Inbound Handler"}`,
+      );
       setIsProcessing(false);
 
-      setMetrics(prev => ({
+      setMetrics((prev) => ({
         ...prev,
         leads_assigned_today: prev.leads_assigned_today + count,
       }));
@@ -395,7 +537,9 @@ export function LeadManagerHub() {
               <Database className="h-4 w-4" />
               <span className="text-xs">Datalake</span>
             </div>
-            <p className="text-xl font-bold text-white">{(metrics.total_datalake_records / 1000000).toFixed(1)}M</p>
+            <p className="text-xl font-bold text-white">
+              {(metrics.total_datalake_records / 1000000).toFixed(1)}M
+            </p>
           </CardContent>
         </Card>
         <Card className="bg-zinc-900 border-zinc-800">
@@ -404,7 +548,9 @@ export function LeadManagerHub() {
               <Layers className="h-4 w-4" />
               <span className="text-xs">Sectors</span>
             </div>
-            <p className="text-xl font-bold text-green-400">{metrics.sectors_active} active</p>
+            <p className="text-xl font-bold text-green-400">
+              {metrics.sectors_active} active
+            </p>
           </CardContent>
         </Card>
         <Card className="bg-zinc-900 border-zinc-800">
@@ -413,7 +559,9 @@ export function LeadManagerHub() {
               <Sparkles className="h-4 w-4" />
               <span className="text-xs">Enriching</span>
             </div>
-            <p className="text-xl font-bold text-cyan-400">{metrics.pending_enrichment} jobs</p>
+            <p className="text-xl font-bold text-cyan-400">
+              {metrics.pending_enrichment} jobs
+            </p>
           </CardContent>
         </Card>
         <Card className="bg-zinc-900 border-zinc-800">
@@ -422,7 +570,9 @@ export function LeadManagerHub() {
               <GitBranch className="h-4 w-4" />
               <span className="text-xs">Workflows</span>
             </div>
-            <p className="text-xl font-bold text-purple-400">{metrics.workflows_running} running</p>
+            <p className="text-xl font-bold text-purple-400">
+              {metrics.workflows_running} running
+            </p>
           </CardContent>
         </Card>
         <Card className="bg-zinc-900 border-zinc-800">
@@ -431,7 +581,9 @@ export function LeadManagerHub() {
               <Send className="h-4 w-4" />
               <span className="text-xs">Assigned Today</span>
             </div>
-            <p className="text-xl font-bold text-blue-400">{metrics.leads_assigned_today.toLocaleString()}</p>
+            <p className="text-xl font-bold text-blue-400">
+              {metrics.leads_assigned_today.toLocaleString()}
+            </p>
           </CardContent>
         </Card>
         <Card className="bg-zinc-900 border-zinc-800">
@@ -440,7 +592,9 @@ export function LeadManagerHub() {
               <MessageSquare className="h-4 w-4" />
               <span className="text-xs">Response Rate</span>
             </div>
-            <p className="text-xl font-bold text-green-400">{metrics.response_rate}%</p>
+            <p className="text-xl font-bold text-green-400">
+              {metrics.response_rate}%
+            </p>
           </CardContent>
         </Card>
         <Card className="bg-zinc-900 border-zinc-800">
@@ -449,7 +603,9 @@ export function LeadManagerHub() {
               <Clock className="h-4 w-4" />
               <span className="text-xs">Avg Response</span>
             </div>
-            <p className="text-xl font-bold text-yellow-400">{metrics.avg_response_time}</p>
+            <p className="text-xl font-bold text-yellow-400">
+              {metrics.avg_response_time}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -457,19 +613,31 @@ export function LeadManagerHub() {
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="bg-zinc-900 border border-zinc-800">
-          <TabsTrigger value="datalake" className="data-[state=active]:bg-emerald-600">
+          <TabsTrigger
+            value="datalake"
+            className="data-[state=active]:bg-emerald-600"
+          >
             <Database className="h-4 w-4 mr-2" />
             Datalake Sectors
           </TabsTrigger>
-          <TabsTrigger value="enrichment" className="data-[state=active]:bg-cyan-600">
+          <TabsTrigger
+            value="enrichment"
+            className="data-[state=active]:bg-cyan-600"
+          >
             <Sparkles className="h-4 w-4 mr-2" />
             Enrichment Queue
           </TabsTrigger>
-          <TabsTrigger value="workflows" className="data-[state=active]:bg-purple-600">
+          <TabsTrigger
+            value="workflows"
+            className="data-[state=active]:bg-purple-600"
+          >
             <GitBranch className="h-4 w-4 mr-2" />
             Workflows
           </TabsTrigger>
-          <TabsTrigger value="assignments" className="data-[state=active]:bg-green-600">
+          <TabsTrigger
+            value="assignments"
+            className="data-[state=active]:bg-green-600"
+          >
             <Send className="h-4 w-4 mr-2" />
             Lead Routing
           </TabsTrigger>
@@ -484,7 +652,10 @@ export function LeadManagerHub() {
                   <Database className="h-5 w-5" />
                   Managed Datalake Sectors
                 </CardTitle>
-                <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700">
+                <Button
+                  size="sm"
+                  className="bg-emerald-600 hover:bg-emerald-700"
+                >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Sector
                 </Button>
@@ -493,10 +664,15 @@ export function LeadManagerHub() {
             <CardContent>
               <div className="space-y-3">
                 {sectors.map((sector) => {
-                  const enrichmentRate = sector.record_count > 0
-                    ? ((sector.enriched_count / sector.record_count) * 100).toFixed(1)
-                    : "0";
-                  const unenriched = sector.record_count - sector.enriched_count;
+                  const enrichmentRate =
+                    sector.record_count > 0
+                      ? (
+                          (sector.enriched_count / sector.record_count) *
+                          100
+                        ).toFixed(1)
+                      : "0";
+                  const unenriched =
+                    sector.record_count - sector.enriched_count;
 
                   return (
                     <div
@@ -509,12 +685,20 @@ export function LeadManagerHub() {
                     >
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-3">
-                          <div className={`w-3 h-3 rounded-full ${sector.color}`} />
+                          <div
+                            className={`w-3 h-3 rounded-full ${sector.color}`}
+                          />
                           <div>
-                            <span className="font-medium text-white">{sector.label}</span>
+                            <span className="font-medium text-white">
+                              {sector.label}
+                            </span>
                             <div className="flex items-center gap-2 mt-0.5">
-                              {sector.sic_codes.map(sic => (
-                                <Badge key={sic} variant="outline" className="text-xs border-zinc-600 text-zinc-400">
+                              {sector.sic_codes.map((sic) => (
+                                <Badge
+                                  key={sic}
+                                  variant="outline"
+                                  className="text-xs border-zinc-600 text-zinc-400"
+                                >
                                   SIC {sic}
                                 </Badge>
                               ))}
@@ -522,20 +706,32 @@ export function LeadManagerHub() {
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Badge className={
-                            sector.status === "active" ? "bg-green-600" :
-                            sector.status === "paused" ? "bg-yellow-600" :
-                            "bg-zinc-600"
-                          }>
+                          <Badge
+                            className={
+                              sector.status === "active"
+                                ? "bg-green-600"
+                                : sector.status === "paused"
+                                  ? "bg-yellow-600"
+                                  : "bg-zinc-600"
+                            }
+                          >
                             {sector.status}
                           </Badge>
                           <Button
                             variant="outline"
                             size="sm"
                             className="h-7 border-zinc-700"
-                            onClick={() => setSelectedSector(selectedSector === sector.id ? null : sector.id)}
+                            onClick={() =>
+                              setSelectedSector(
+                                selectedSector === sector.id ? null : sector.id,
+                              )
+                            }
                           >
-                            {selectedSector === sector.id ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                            {selectedSector === sector.id ? (
+                              <ChevronDown className="h-3 w-3" />
+                            ) : (
+                              <ChevronRight className="h-3 w-3" />
+                            )}
                           </Button>
                         </div>
                       </div>
@@ -543,21 +739,37 @@ export function LeadManagerHub() {
                       {/* Stats Row */}
                       <div className="grid grid-cols-4 gap-4 mb-3">
                         <div>
-                          <span className="text-xs text-zinc-500">Total Records</span>
-                          <p className="text-lg font-semibold text-white">{sector.record_count.toLocaleString()}</p>
+                          <span className="text-xs text-zinc-500">
+                            Total Records
+                          </span>
+                          <p className="text-lg font-semibold text-white">
+                            {sector.record_count.toLocaleString()}
+                          </p>
                         </div>
                         <div>
-                          <span className="text-xs text-zinc-500">Enriched</span>
-                          <p className="text-lg font-semibold text-cyan-400">{sector.enriched_count.toLocaleString()}</p>
+                          <span className="text-xs text-zinc-500">
+                            Enriched
+                          </span>
+                          <p className="text-lg font-semibold text-cyan-400">
+                            {sector.enriched_count.toLocaleString()}
+                          </p>
                         </div>
                         <div>
-                          <span className="text-xs text-zinc-500">Unenriched</span>
-                          <p className="text-lg font-semibold text-yellow-400">{unenriched.toLocaleString()}</p>
+                          <span className="text-xs text-zinc-500">
+                            Unenriched
+                          </span>
+                          <p className="text-lg font-semibold text-yellow-400">
+                            {unenriched.toLocaleString()}
+                          </p>
                         </div>
                         <div>
-                          <span className="text-xs text-zinc-500">Last Upload</span>
+                          <span className="text-xs text-zinc-500">
+                            Last Upload
+                          </span>
                           <p className="text-sm text-zinc-300">
-                            {sector.last_upload ? sector.last_upload.toLocaleDateString() : "Never"}
+                            {sector.last_upload
+                              ? sector.last_upload.toLocaleDateString()
+                              : "Never"}
                           </p>
                         </div>
                       </div>
@@ -565,10 +777,17 @@ export function LeadManagerHub() {
                       {/* Enrichment Progress */}
                       <div className="mb-3">
                         <div className="flex justify-between text-xs mb-1">
-                          <span className="text-zinc-500">Enrichment Coverage</span>
-                          <span className="text-cyan-400">{enrichmentRate}%</span>
+                          <span className="text-zinc-500">
+                            Enrichment Coverage
+                          </span>
+                          <span className="text-cyan-400">
+                            {enrichmentRate}%
+                          </span>
                         </div>
-                        <Progress value={parseFloat(enrichmentRate)} className="h-2" />
+                        <Progress
+                          value={parseFloat(enrichmentRate)}
+                          className="h-2"
+                        />
                       </div>
 
                       {/* Expanded Actions */}
@@ -576,32 +795,52 @@ export function LeadManagerHub() {
                         <div className="pt-3 border-t border-zinc-700 space-y-3">
                           {/* Enrichment Actions */}
                           <div>
-                            <Label className="text-xs text-zinc-400 mb-2 block">Quick Enrich ({unenriched.toLocaleString()} unenriched)</Label>
+                            <Label className="text-xs text-zinc-400 mb-2 block">
+                              Quick Enrich ({unenriched.toLocaleString()}{" "}
+                              unenriched)
+                            </Label>
                             <div className="flex gap-2">
-                              {ENRICHMENT_TYPES.map(({ id, label, icon: Icon, cost }) => (
-                                <Button
-                                  key={id}
-                                  variant="outline"
-                                  size="sm"
-                                  className="border-zinc-700 text-zinc-300 hover:bg-cyan-600/20 hover:border-cyan-500"
-                                  onClick={() => launchEnrichment(sector.id, id as EnrichmentJob["type"])}
-                                >
-                                  <Icon className="h-3 w-3 mr-1" />
-                                  {label}
-                                  <span className="text-xs text-zinc-500 ml-1">({cost})</span>
-                                </Button>
-                              ))}
+                              {ENRICHMENT_TYPES.map(
+                                ({ id, label, icon: Icon, cost }) => (
+                                  <Button
+                                    key={id}
+                                    variant="outline"
+                                    size="sm"
+                                    className="border-zinc-700 text-zinc-300 hover:bg-cyan-600/20 hover:border-cyan-500"
+                                    onClick={() =>
+                                      launchEnrichment(
+                                        sector.id,
+                                        id as EnrichmentJob["type"],
+                                      )
+                                    }
+                                  >
+                                    <Icon className="h-3 w-3 mr-1" />
+                                    {label}
+                                    <span className="text-xs text-zinc-500 ml-1">
+                                      ({cost})
+                                    </span>
+                                  </Button>
+                                ),
+                              )}
                             </div>
                           </div>
 
                           {/* Assignment Actions */}
                           <div>
-                            <Label className="text-xs text-zinc-400 mb-2 block">Assign to Gianna</Label>
+                            <Label className="text-xs text-zinc-400 mb-2 block">
+                              Assign to Gianna
+                            </Label>
                             <div className="flex gap-2">
                               <Button
                                 size="sm"
                                 className="bg-pink-600 hover:bg-pink-700"
-                                onClick={() => assignToGianna(sector.id, Math.min(2000, unenriched), "outreach")}
+                                onClick={() =>
+                                  assignToGianna(
+                                    sector.id,
+                                    Math.min(2000, unenriched),
+                                    "outreach",
+                                  )
+                                }
                                 disabled={isProcessing}
                               >
                                 <Send className="h-3 w-3 mr-1" />
@@ -611,7 +850,13 @@ export function LeadManagerHub() {
                                 size="sm"
                                 variant="outline"
                                 className="border-green-600 text-green-400 hover:bg-green-600/20"
-                                onClick={() => assignToGianna(sector.id, Math.min(500, sector.enriched_count), "inbound")}
+                                onClick={() =>
+                                  assignToGianna(
+                                    sector.id,
+                                    Math.min(500, sector.enriched_count),
+                                    "inbound",
+                                  )
+                                }
                                 disabled={isProcessing}
                               >
                                 <MessageSquare className="h-3 w-3 mr-1" />
@@ -630,25 +875,45 @@ export function LeadManagerHub() {
 
                           {/* Management Actions */}
                           <div className="flex gap-2 pt-2">
-                            <Button variant="outline" size="sm" className="border-zinc-700 text-zinc-400">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="border-zinc-700 text-zinc-400"
+                            >
                               <Upload className="h-3 w-3 mr-2" />
                               Upload CSV
                             </Button>
-                            <Button variant="outline" size="sm" className="border-zinc-700 text-zinc-400">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="border-zinc-700 text-zinc-400"
+                            >
                               <Download className="h-3 w-3 mr-2" />
                               Export
                             </Button>
-                            <Button variant="outline" size="sm" className="border-zinc-700 text-zinc-400">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="border-zinc-700 text-zinc-400"
+                            >
                               <Edit className="h-3 w-3 mr-2" />
                               Edit Sector
                             </Button>
                             {sector.status === "active" ? (
-                              <Button variant="outline" size="sm" className="border-yellow-600 text-yellow-400">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="border-yellow-600 text-yellow-400"
+                              >
                                 <Pause className="h-3 w-3 mr-2" />
                                 Pause
                               </Button>
                             ) : (
-                              <Button variant="outline" size="sm" className="border-green-600 text-green-400">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="border-green-600 text-green-400"
+                              >
                                 <Play className="h-3 w-3 mr-2" />
                                 Activate
                               </Button>
@@ -674,11 +939,22 @@ export function LeadManagerHub() {
                   Enrichment Jobs
                 </CardTitle>
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="border-cyan-600 text-cyan-400">
-                    {enrichmentJobs.filter(j => j.status === "running").length} running
+                  <Badge
+                    variant="outline"
+                    className="border-cyan-600 text-cyan-400"
+                  >
+                    {
+                      enrichmentJobs.filter((j) => j.status === "running")
+                        .length
+                    }{" "}
+                    running
                   </Badge>
-                  <Badge variant="outline" className="border-yellow-600 text-yellow-400">
-                    {enrichmentJobs.filter(j => j.status === "queued").length} queued
+                  <Badge
+                    variant="outline"
+                    className="border-yellow-600 text-yellow-400"
+                  >
+                    {enrichmentJobs.filter((j) => j.status === "queued").length}{" "}
+                    queued
                   </Badge>
                 </div>
               </div>
@@ -686,35 +962,53 @@ export function LeadManagerHub() {
             <CardContent>
               <div className="space-y-3">
                 {enrichmentJobs.map((job) => {
-                  const sector = sectors.find(s => s.id === job.sector_id);
-                  const progress = job.total > 0 ? (job.processed / job.total) * 100 : 0;
-                  const enrichmentRate = job.processed > 0 ? ((job.enriched / job.processed) * 100).toFixed(1) : "0";
+                  const sector = sectors.find((s) => s.id === job.sector_id);
+                  const progress =
+                    job.total > 0 ? (job.processed / job.total) * 100 : 0;
+                  const enrichmentRate =
+                    job.processed > 0
+                      ? ((job.enriched / job.processed) * 100).toFixed(1)
+                      : "0";
 
                   return (
                     <div key={job.id} className="p-4 bg-zinc-800 rounded-lg">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-3">
-                          <div className={`w-2 h-2 rounded-full ${
-                            job.status === "running" ? "bg-cyan-400 animate-pulse" :
-                            job.status === "completed" ? "bg-green-400" :
-                            job.status === "failed" ? "bg-red-400" :
-                            "bg-yellow-400"
-                          }`} />
+                          <div
+                            className={`w-2 h-2 rounded-full ${
+                              job.status === "running"
+                                ? "bg-cyan-400 animate-pulse"
+                                : job.status === "completed"
+                                  ? "bg-green-400"
+                                  : job.status === "failed"
+                                    ? "bg-red-400"
+                                    : "bg-yellow-400"
+                            }`}
+                          />
                           <div>
-                            <span className="font-medium text-white">{sector?.label || job.sector_id}</span>
+                            <span className="font-medium text-white">
+                              {sector?.label || job.sector_id}
+                            </span>
                             <Badge className="ml-2 bg-zinc-700 text-zinc-300 text-xs">
                               {job.type.replace("_", " ")}
                             </Badge>
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
-                          <span className="text-xs text-zinc-500">{job.cost_estimate}</span>
-                          <Badge className={
-                            job.status === "running" ? "bg-cyan-600" :
-                            job.status === "completed" ? "bg-green-600" :
-                            job.status === "failed" ? "bg-red-600" :
-                            "bg-yellow-600"
-                          }>
+                          <span className="text-xs text-zinc-500">
+                            {job.cost_estimate}
+                          </span>
+                          <Badge
+                            className={
+                              job.status === "running"
+                                ? "bg-cyan-600"
+                                : job.status === "completed"
+                                  ? "bg-green-600"
+                                  : job.status === "failed"
+                                    ? "bg-red-600"
+                                    : "bg-yellow-600"
+                            }
+                          >
                             {job.status}
                           </Badge>
                         </div>
@@ -723,11 +1017,19 @@ export function LeadManagerHub() {
                       <Progress value={progress} className="h-2 mb-2" />
 
                       <div className="flex justify-between text-xs text-zinc-400">
-                        <span>{job.processed.toLocaleString()} / {job.total.toLocaleString()} processed</span>
+                        <span>
+                          {job.processed.toLocaleString()} /{" "}
+                          {job.total.toLocaleString()} processed
+                        </span>
                         <div className="flex gap-4">
-                          <span className="text-cyan-400">{job.enriched.toLocaleString()} enriched ({enrichmentRate}%)</span>
+                          <span className="text-cyan-400">
+                            {job.enriched.toLocaleString()} enriched (
+                            {enrichmentRate}%)
+                          </span>
                           {job.completed_at && (
-                            <span className="text-green-400">Completed {job.completed_at.toLocaleTimeString()}</span>
+                            <span className="text-green-400">
+                              Completed {job.completed_at.toLocaleTimeString()}
+                            </span>
                           )}
                         </div>
                       </div>
@@ -739,7 +1041,9 @@ export function LeadManagerHub() {
                   <div className="text-center py-8 text-zinc-500">
                     <Sparkles className="h-8 w-8 mx-auto mb-2 opacity-50" />
                     <p>No enrichment jobs running</p>
-                    <p className="text-xs">Select a sector and start enriching</p>
+                    <p className="text-xs">
+                      Select a sector and start enriching
+                    </p>
                   </div>
                 )}
               </div>
@@ -765,23 +1069,41 @@ export function LeadManagerHub() {
             <CardContent>
               <div className="space-y-3">
                 {workflows.map((workflow) => {
-                  const conversionRate = workflow.leads_processed > 0
-                    ? ((workflow.conversions / workflow.leads_processed) * 100).toFixed(1)
-                    : "0";
-                  const trigger = WORKFLOW_TRIGGERS.find(t => t.id === workflow.trigger);
+                  const conversionRate =
+                    workflow.leads_processed > 0
+                      ? (
+                          (workflow.conversions / workflow.leads_processed) *
+                          100
+                        ).toFixed(1)
+                      : "0";
+                  const trigger = WORKFLOW_TRIGGERS.find(
+                    (t) => t.id === workflow.trigger,
+                  );
                   const TriggerIcon = trigger?.icon || CircleDot;
 
                   return (
-                    <div key={workflow.id} className="p-4 bg-zinc-800 rounded-lg">
+                    <div
+                      key={workflow.id}
+                      className="p-4 bg-zinc-800 rounded-lg"
+                    >
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-3">
-                          <div className={`p-2 rounded-lg ${workflow.enabled ? "bg-purple-600/20" : "bg-zinc-700"}`}>
-                            <TriggerIcon className={`h-4 w-4 ${workflow.enabled ? "text-purple-400" : "text-zinc-500"}`} />
+                          <div
+                            className={`p-2 rounded-lg ${workflow.enabled ? "bg-purple-600/20" : "bg-zinc-700"}`}
+                          >
+                            <TriggerIcon
+                              className={`h-4 w-4 ${workflow.enabled ? "text-purple-400" : "text-zinc-500"}`}
+                            />
                           </div>
                           <div>
-                            <span className="font-medium text-white">{workflow.name}</span>
+                            <span className="font-medium text-white">
+                              {workflow.name}
+                            </span>
                             <div className="flex items-center gap-2 mt-0.5">
-                              <Badge variant="outline" className="text-xs border-zinc-600 text-zinc-400">
+                              <Badge
+                                variant="outline"
+                                className="text-xs border-zinc-600 text-zinc-400"
+                              >
                                 {workflow.workspace}
                               </Badge>
                               <span className="text-xs text-zinc-500">
@@ -809,7 +1131,11 @@ export function LeadManagerHub() {
                               </>
                             )}
                           </Button>
-                          <Button variant="outline" size="sm" className="h-7 border-zinc-700">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 border-zinc-700"
+                          >
                             <Edit className="h-3 w-3" />
                           </Button>
                         </div>
@@ -820,13 +1146,27 @@ export function LeadManagerHub() {
                         {workflow.actions.map((action, idx) => (
                           <div key={idx} className="flex items-center gap-1">
                             <Badge className="bg-zinc-700 text-zinc-300 text-xs shrink-0">
-                              {action.type === "sms" && <MessageSquare className="h-3 w-3 mr-1" />}
-                              {action.type === "email" && <Mail className="h-3 w-3 mr-1" />}
-                              {action.type === "call" && <Phone className="h-3 w-3 mr-1" />}
-                              {action.type === "enrich" && <Sparkles className="h-3 w-3 mr-1" />}
-                              {action.type === "wait" && <Clock className="h-3 w-3 mr-1" />}
-                              {action.type === "tag" && <Target className="h-3 w-3 mr-1" />}
-                              {action.type === "assign" && <Send className="h-3 w-3 mr-1" />}
+                              {action.type === "sms" && (
+                                <MessageSquare className="h-3 w-3 mr-1" />
+                              )}
+                              {action.type === "email" && (
+                                <Mail className="h-3 w-3 mr-1" />
+                              )}
+                              {action.type === "call" && (
+                                <Phone className="h-3 w-3 mr-1" />
+                              )}
+                              {action.type === "enrich" && (
+                                <Sparkles className="h-3 w-3 mr-1" />
+                              )}
+                              {action.type === "wait" && (
+                                <Clock className="h-3 w-3 mr-1" />
+                              )}
+                              {action.type === "tag" && (
+                                <Target className="h-3 w-3 mr-1" />
+                              )}
+                              {action.type === "assign" && (
+                                <Send className="h-3 w-3 mr-1" />
+                              )}
                               {action.type}
                             </Badge>
                             {idx < workflow.actions.length - 1 && (
@@ -838,8 +1178,14 @@ export function LeadManagerHub() {
 
                       {/* Stats */}
                       <div className="flex justify-between text-xs text-zinc-400">
-                        <span>{workflow.leads_processed.toLocaleString()} leads processed</span>
-                        <span className="text-green-400">{workflow.conversions.toLocaleString()} conversions ({conversionRate}%)</span>
+                        <span>
+                          {workflow.leads_processed.toLocaleString()} leads
+                          processed
+                        </span>
+                        <span className="text-green-400">
+                          {workflow.conversions.toLocaleString()} conversions (
+                          {conversionRate}%)
+                        </span>
                       </div>
                     </div>
                   );
@@ -868,24 +1214,36 @@ export function LeadManagerHub() {
                       <p className="text-xs text-zinc-500">Leads in queue</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-lg font-semibold text-green-400">2,000/batch</p>
-                      <p className="text-xs text-zinc-500">Omni campaign size</p>
+                      <p className="text-lg font-semibold text-green-400">
+                        2,000/batch
+                      </p>
+                      <p className="text-xs text-zinc-500">
+                        Omni campaign size
+                      </p>
                     </div>
                   </div>
 
                   <div className="p-3 bg-zinc-800 rounded-lg">
-                    <p className="text-xs text-zinc-500 mb-2">Today's Execution</p>
+                    <p className="text-xs text-zinc-500 mb-2">
+                      Today's Execution
+                    </p>
                     <div className="grid grid-cols-3 gap-2">
                       <div>
-                        <p className="text-lg font-semibold text-white">8,500</p>
+                        <p className="text-lg font-semibold text-white">
+                          8,500
+                        </p>
                         <p className="text-xs text-zinc-500">SMS Sent</p>
                       </div>
                       <div>
-                        <p className="text-lg font-semibold text-blue-400">357</p>
+                        <p className="text-lg font-semibold text-blue-400">
+                          357
+                        </p>
                         <p className="text-xs text-zinc-500">Responses</p>
                       </div>
                       <div>
-                        <p className="text-lg font-semibold text-green-400">4.2%</p>
+                        <p className="text-lg font-semibold text-green-400">
+                          4.2%
+                        </p>
                         <p className="text-xs text-zinc-500">Rate</p>
                       </div>
                     </div>
@@ -915,20 +1273,28 @@ export function LeadManagerHub() {
                       <p className="text-xs text-zinc-500">Pending responses</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-lg font-semibold text-yellow-400">18m</p>
+                      <p className="text-lg font-semibold text-yellow-400">
+                        18m
+                      </p>
                       <p className="text-xs text-zinc-500">Avg response time</p>
                     </div>
                   </div>
 
                   <div className="p-3 bg-zinc-800 rounded-lg">
-                    <p className="text-xs text-zinc-500 mb-2">Response Categories</p>
+                    <p className="text-xs text-zinc-500 mb-2">
+                      Response Categories
+                    </p>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-zinc-400">Email Capture</span>
+                        <span className="text-sm text-zinc-400">
+                          Email Capture
+                        </span>
                         <Badge className="bg-green-600">142</Badge>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-zinc-400">Interest Signal</span>
+                        <span className="text-sm text-zinc-400">
+                          Interest Signal
+                        </span>
                         <Badge className="bg-blue-600">89</Badge>
                       </div>
                       <div className="flex items-center justify-between">
@@ -936,13 +1302,18 @@ export function LeadManagerHub() {
                         <Badge className="bg-yellow-600">76</Badge>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-zinc-400">Not Interested</span>
+                        <span className="text-sm text-zinc-400">
+                          Not Interested
+                        </span>
                         <Badge className="bg-zinc-600">50</Badge>
                       </div>
                     </div>
                   </div>
 
-                  <Button variant="outline" className="w-full border-green-600 text-green-400 hover:bg-green-600/20">
+                  <Button
+                    variant="outline"
+                    className="w-full border-green-600 text-green-400 hover:bg-green-600/20"
+                  >
                     <MessageSquare className="h-4 w-4 mr-2" />
                     View Conversation Queue
                   </Button>
@@ -962,7 +1333,9 @@ export function LeadManagerHub() {
                 <div className="space-y-3">
                   <div className="p-3 bg-zinc-800 rounded-lg">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-zinc-400">Today's Follow-ups</span>
+                      <span className="text-sm text-zinc-400">
+                        Today's Follow-ups
+                      </span>
                       <Badge className="bg-yellow-600">23</Badge>
                     </div>
                     <div className="flex items-center justify-between mb-2">
@@ -975,7 +1348,10 @@ export function LeadManagerHub() {
                     </div>
                   </div>
 
-                  <Button variant="outline" className="w-full border-yellow-600 text-yellow-400 hover:bg-yellow-600/20">
+                  <Button
+                    variant="outline"
+                    className="w-full border-yellow-600 text-yellow-400 hover:bg-yellow-600/20"
+                  >
                     <Calendar className="h-4 w-4 mr-2" />
                     Open Calendar View
                   </Button>
@@ -994,24 +1370,35 @@ export function LeadManagerHub() {
               <CardContent>
                 <div className="space-y-3">
                   <div className="p-3 bg-zinc-800 rounded-lg">
-                    <p className="text-xs text-zinc-500 mb-2">Active Campaigns</p>
+                    <p className="text-xs text-zinc-500 mb-2">
+                      Active Campaigns
+                    </p>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-zinc-400">Hotel Outreach Q4</span>
+                        <span className="text-sm text-zinc-400">
+                          Hotel Outreach Q4
+                        </span>
                         <Badge className="bg-purple-600">4,200</Badge>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-zinc-400">Auto Dealers Winter</span>
+                        <span className="text-sm text-zinc-400">
+                          Auto Dealers Winter
+                        </span>
                         <Badge className="bg-purple-600">6,800</Badge>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-zinc-400">RV Parks 2025</span>
+                        <span className="text-sm text-zinc-400">
+                          RV Parks 2025
+                        </span>
                         <Badge className="bg-purple-600">1,600</Badge>
                       </div>
                     </div>
                   </div>
 
-                  <Button variant="outline" className="w-full border-purple-600 text-purple-400 hover:bg-purple-600/20">
+                  <Button
+                    variant="outline"
+                    className="w-full border-purple-600 text-purple-400 hover:bg-purple-600/20"
+                  >
                     <Plus className="h-4 w-4 mr-2" />
                     Create New Campaign
                   </Button>
