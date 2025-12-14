@@ -59,7 +59,7 @@ export function LuciFloatingAssistant() {
   // Search state
   const [sector, setSector] = useState("");
   const [state, setState] = useState("NY");
-  const [limit, setLimit] = useState(25);
+  const [limit, setLimit] = useState(100);
 
   const SECTORS = [
     { value: "hotel-motel", label: "Hotels/Motels" },
@@ -84,7 +84,7 @@ export function LuciFloatingAssistant() {
 
   const handleFetchLeads = useCallback(async () => {
     if (!sector) {
-      toast.error("请选择一个行业 (Please select a sector)");
+      toast.error("Please select a sector");
       return;
     }
 
@@ -118,18 +118,18 @@ export function LuciFloatingAssistant() {
             sector: sector,
           }))
         );
-        toast.success(`找到 ${data.leads.length} 条线索 (Found ${data.leads.length} leads)`, {
+        toast.success(`Found ${data.leads.length} leads`, {
           description: "Ready to push to campaigns",
         });
       } else {
-        toast.error("未找到线索 (No leads found)", {
+        toast.error("No leads found", {
           description: "Try different filters",
         });
         setFetchedLeads([]);
       }
     } catch (error) {
       console.error("Fetch error:", error);
-      toast.error("获取失败 (Fetch failed)");
+      toast.error("Fetch failed - check your connection");
       setFetchedLeads([]);
     } finally {
       setIsLoading(false);
@@ -139,7 +139,7 @@ export function LuciFloatingAssistant() {
   const handlePushToCalendar = useCallback(() => {
     if (fetchedLeads.length === 0) return;
 
-    toast.success(`推送 ${fetchedLeads.length} 条线索到日历 (Pushed to Calendar)`, {
+    toast.success(`Pushed ${fetchedLeads.length} leads to Calendar`, {
       description: "Leads are now available in Calendar Workspace",
     });
 
@@ -169,7 +169,7 @@ export function LuciFloatingAssistant() {
               </div>
             </Button>
             <div className="absolute -top-8 right-0 bg-zinc-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
-              Luci 数据助手
+              Luci Data Agent
             </div>
           </motion.div>
         )}
@@ -201,9 +201,9 @@ export function LuciFloatingAssistant() {
                 <div>
                   <h3 className="font-bold text-white flex items-center gap-2">
                     Luci
-                    <Badge className="bg-white/20 text-white text-[10px]">数据工程师</Badge>
+                    <Badge className="bg-white/20 text-white text-[10px]">DATA ENGINEER</Badge>
                   </h3>
-                  <p className="text-white/70 text-xs">每天都是找数据的一天</p>
+                  <p className="text-white/70 text-xs">Your lead sourcing specialist</p>
                 </div>
               </div>
               <div className="flex items-center gap-1">
@@ -234,19 +234,19 @@ export function LuciFloatingAssistant() {
                     <div className="space-y-4">
                       <div className="text-center mb-4">
                         <p className="text-zinc-400 text-sm">
-                          告诉我你想要什么类型的线索
+                          Tell me what leads you need
                         </p>
                         <p className="text-zinc-500 text-xs">
-                          Tell me what leads you need
+                          Select sector, state, and quantity
                         </p>
                       </div>
 
                       {/* Sector Select */}
                       <div>
-                        <label className="text-xs text-zinc-400 mb-1 block">行业 Sector</label>
+                        <label className="text-xs text-zinc-400 mb-1 block">SECTOR</label>
                         <Select value={sector} onValueChange={setSector}>
                           <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
-                            <SelectValue placeholder="选择行业..." />
+                            <SelectValue placeholder="Select sector..." />
                           </SelectTrigger>
                           <SelectContent className="bg-zinc-900 border-zinc-700">
                             {SECTORS.map((s) => (
@@ -260,7 +260,7 @@ export function LuciFloatingAssistant() {
 
                       {/* State Select */}
                       <div>
-                        <label className="text-xs text-zinc-400 mb-1 block">州 State</label>
+                        <label className="text-xs text-zinc-400 mb-1 block">STATE</label>
                         <Select value={state} onValueChange={setState}>
                           <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
                             <SelectValue />
@@ -277,16 +277,18 @@ export function LuciFloatingAssistant() {
 
                       {/* Limit */}
                       <div>
-                        <label className="text-xs text-zinc-400 mb-1 block">数量 Quantity</label>
+                        <label className="text-xs text-zinc-400 mb-1 block">QUANTITY</label>
                         <Select value={String(limit)} onValueChange={(v) => setLimit(parseInt(v))}>
                           <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="bg-zinc-900 border-zinc-700">
-                            <SelectItem value="10" className="text-white">10 leads</SelectItem>
-                            <SelectItem value="25" className="text-white">25 leads</SelectItem>
                             <SelectItem value="50" className="text-white">50 leads</SelectItem>
                             <SelectItem value="100" className="text-white">100 leads</SelectItem>
+                            <SelectItem value="250" className="text-white">250 leads</SelectItem>
+                            <SelectItem value="500" className="text-white">500 leads</SelectItem>
+                            <SelectItem value="1000" className="text-white">1,000 leads</SelectItem>
+                            <SelectItem value="2000" className="text-white">2,000 leads (MAX)</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -299,12 +301,12 @@ export function LuciFloatingAssistant() {
                         {isLoading ? (
                           <>
                             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            搜索中...
+                            Searching...
                           </>
                         ) : (
                           <>
                             <Search className="h-4 w-4 mr-2" />
-                            开始搜索 Fetch Leads
+                            FETCH LEADS
                           </>
                         )}
                       </Button>
@@ -316,7 +318,7 @@ export function LuciFloatingAssistant() {
                         <div className="flex items-center gap-2">
                           <CheckCircle className="h-4 w-4 text-green-400" />
                           <span className="text-sm text-white font-medium">
-                            找到 {fetchedLeads.length} 条线索
+                            Found {fetchedLeads.length} leads
                           </span>
                         </div>
                         <Button
@@ -326,7 +328,7 @@ export function LuciFloatingAssistant() {
                           className="text-zinc-400 hover:text-white"
                         >
                           <RefreshCw className="h-3 w-3 mr-1" />
-                          重新搜索
+                          NEW SEARCH
                         </Button>
                       </div>
 
@@ -351,13 +353,13 @@ export function LuciFloatingAssistant() {
                                       {lead.phone && (
                                         <span className="text-[10px] text-green-400 flex items-center gap-0.5">
                                           <Phone className="h-2.5 w-2.5" />
-                                          有电话
+                                          PHONE
                                         </span>
                                       )}
                                       {lead.email && (
                                         <span className="text-[10px] text-blue-400 flex items-center gap-0.5">
                                           <Mail className="h-2.5 w-2.5" />
-                                          有邮箱
+                                          EMAIL
                                         </span>
                                       )}
                                       {lead.city && (
@@ -387,7 +389,7 @@ export function LuciFloatingAssistant() {
                           className="w-full bg-green-600 hover:bg-green-700"
                         >
                           <Target className="h-4 w-4 mr-2" />
-                          推送到日历 Push to Calendar
+                          PUSH TO CALENDAR
                           <ArrowRight className="h-4 w-4 ml-2" />
                         </Button>
                       </div>
@@ -398,7 +400,7 @@ export function LuciFloatingAssistant() {
                 {/* Footer */}
                 <div className="px-4 py-2 bg-zinc-900/50 border-t border-zinc-800">
                   <p className="text-[10px] text-zinc-500 text-center">
-                    ♛ 数据即力量 • Data is Power • 2.8M+ B2B Records
+                    DATA IS POWER • 2.8M+ B2B Records
                   </p>
                 </div>
               </>
