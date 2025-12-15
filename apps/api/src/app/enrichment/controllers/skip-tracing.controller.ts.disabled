@@ -28,7 +28,7 @@ export class SkipTracingController {
         results.push(result);
       } catch (error) {
         // Log error but continue with other targets
-        console.error(`Failed to skip trace ${target.fullName}:`, error);
+        console.error(`Failed to skip trace ${target.businessName}:`, error);
       }
     }
 

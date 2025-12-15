@@ -16,6 +16,10 @@ import {
   leadPhoneNumbers,
   leads,
 } from "./schema/leads.schema";
+import { businessOwners, businesses } from "./schema/business-owner.schema";
+import { propertyOwners } from "./schema/property-owner.schema";
+import { skiptraceResults } from "./schema/skiptrace-result.schema";
+import { unifiedLeadCards } from "./schema/unified-lead-card.schema";
 import { messageTemplates } from "./schema/message-templates.schema";
 import {
   messageLabelLinks,
@@ -65,6 +69,7 @@ export const integrationTasksTable = integrationTasks;
 
 export const leadsTable = leads;
 export const leadPhoneNumbersTable = leadPhoneNumbers;
+export const leadPhoneNumberTable = leadPhoneNumbers; // Singular alias for backward compatibility
 export const importLeadPresetsTable = importLeadPresets;
 
 export const aiSdrAvatarsTable = aiSdrAvatars;
@@ -81,6 +86,15 @@ export const propertyDistressScoresTable = propertyDistressScores;
 export const propertiesTable = properties;
 export const propertySearchesTable = propertySearches;
 export const propertySearchBlocksTable = propertySearchBlocks;
+
+export const businessesTable = businesses;
+export const businessOwnersTable = businessOwners;
+export const propertyOwnersTable = propertyOwners;
+export const skiptraceResultTable = skiptraceResults;
+export const unifiedLeadCardTable = unifiedLeadCards;
+
+export const businessOwnerTable = businessOwners;
+export const propertyOwnerTable = propertyOwners;
 
 export const powerDialersTable = powerDialers;
 export const dialerContactsTable = dialerContacts;

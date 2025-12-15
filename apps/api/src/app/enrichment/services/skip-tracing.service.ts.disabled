@@ -182,7 +182,7 @@ export class SkipTracingService {
       }
 
       // Find properties associated with this business
-      const properties = await this.findPropertiesByBusiness(entity.entity.name, entity.entity.address);
+      const properties = await this.findPropertiesByBusiness(entity.entity.name, entity.entity.address || '');
 
       for (const property of properties) {
         if (!visitedEntities.has(this.createEntityKey('property', property.address))) {
@@ -222,7 +222,7 @@ export class SkipTracingService {
 
     } else if (entity.entity.type === 'property') {
       // Find businesses at this property
-      const businesses = await this.findBusinessesByProperty(entity.entity.address);
+      const businesses = await this.findBusinessesByProperty(entity.entity.address || '');
 
       for (const business of businesses) {
         if (!visitedEntities.has(this.createEntityKey('business', business.name, business.address))) {
@@ -285,7 +285,7 @@ export class SkipTracingService {
    */
   private async findBusinessesByOwner(ownerName: string): Promise<any[]> {
     // Query business owner table
-    const businesses = await this.db.query.businessOwner.findMany({
+    const businesses = await this.db.query.businessOwners.findMany({
       where: sql`${businessOwnerTable.fullName} ILIKE ${`%${ownerName}%`}`,
     });
 
@@ -301,7 +301,7 @@ export class SkipTracingService {
    */
   private async findPropertiesByOwner(ownerName: string): Promise<any[]> {
     // Query property owner table
-    const properties = await this.db.query.propertyOwner.findMany({
+    const properties = await this.db.query.propertyOwners.findMany({
       where: sql`${propertyOwnerTable.fullName} ILIKE ${`%${ownerName}%`}`,
     });
 
@@ -315,7 +315,7 @@ export class SkipTracingService {
    */
   private async findOwnersByBusiness(businessName: string, businessAddress?: string): Promise<any[]> {
     // Query from business owner table (populated from USBizData CSV uploads)
-    const owners = await this.db.query.businessOwner.findMany({
+    const owners = await this.db.query.businessOwners.findMany({
       where: and(
         sql`${businessOwnerTable.businessName} ILIKE ${`%${businessName}%`}`,
         businessAddress ? sql`${businessOwnerTable.businessAddress} ILIKE ${`%${businessAddress}%`}` : undefined
@@ -335,7 +335,7 @@ export class SkipTracingService {
    */
   private async findBusinessesByProperty(propertyAddress: string): Promise<any[]> {
     // Query leads and unified lead cards for businesses at this address
-    const businesses = await this.db.query.unifiedLeadCard.findMany({
+    const businesses = await this.db.query.unifiedLeadCards.findMany({
       where: sql`${unifiedLeadCardTable.businessAddress} ILIKE ${`%${propertyAddress}%`}`,
     });
 
@@ -350,7 +350,7 @@ export class SkipTracingService {
    */
   private async findPropertiesByBusiness(businessName: string, businessAddress: string): Promise<any[]> {
     // Look for properties that match the business address
-    const properties = await this.db.query.propertiesTable.findMany({
+    const properties = await this.db.query.properties.findMany({
       where: sql`${propertiesTable.address} ILIKE ${`%${businessAddress}%`}`,
     });
 
@@ -371,7 +371,7 @@ export class SkipTracingService {
       const lastName = nameParts[nameParts.length - 1];
 
       // Find other individuals with same last name
-      const familyMembers = await this.db.query.businessOwner.findMany({
+      const familyMembers = await this.db.query.businessOwners.findMany({
         where: sql`${businessOwnerTable.fullName} ILIKE ${`%${lastName}%`}`,
         limit: 5,
       });
@@ -482,7 +482,7 @@ export class SkipTracingService {
    */
   private async storeSkipTraceResult(result: SkipTraceResult): Promise<void> {
     await this.db.insert(skiptraceResultTable).values({
-      targetName: result.target.fullName,
+      targetName: result.target.businessName,
       targetBusinessAddress: result.target.businessAddress,
       targetBusinessName: result.target.businessName,
       resultData: result,
@@ -502,7 +502,7 @@ export class SkipTracingService {
    * Get existing skip trace results
    */
   async getSkipTraceResults(targetName?: string, businessAddress?: string): Promise<SkipTraceResult[]> {
-    const whereConditions = [];
+    const whereConditions: ReturnType<typeof sql>[] = [];
 
     if (targetName) {
       whereConditions.push(sql`${skiptraceResultTable.targetName} ILIKE ${`%${targetName}%`}`);
@@ -512,7 +512,7 @@ export class SkipTracingService {
       whereConditions.push(sql`${skiptraceResultTable.targetBusinessAddress} ILIKE ${`%${businessAddress}%`}`);
     }
 
-    const results = await this.db.query.skiptraceResult.findMany({
+    const results = await this.db.query.skiptraceResults.findMany({
       where: whereConditions.length > 0 ? and(...whereConditions) : undefined,
       orderBy: sql`${skiptraceResultTable.createdAt} DESC`,
     });
@@ -563,14 +563,14 @@ export class SkipTracingService {
 
     try {
       // Query lead phone numbers table
-      const leadPhones = await this.db.query.leadPhoneNumber.findMany({
+      const leadPhones = await this.db.query.leadPhoneNumbers.findMany({
         where: sql`${leadPhoneNumberTable.leadName} ILIKE ${`%${name}%`}`,
       });
 
       for (const phone of leadPhones) {
         // Use Twilio lookup to get carrier info
         try {
-          const lookupResult = await this.twilioLookupService.lookupPhoneNumber(phone.phoneNumber);
+          const lookupResult = await this.twilioLookupService.lookupLineType(phone.phoneNumber);
           phoneNumbers.push({
             number: phone.phoneNumber,
             type: lookupResult?.lineType === "mobile" ? "mobile" : "landline",
@@ -598,7 +598,7 @@ export class SkipTracingService {
    */
   private async verifyPropertyOwnership(propertyAddress: string, ownerName: string): Promise<boolean> {
     try {
-      const propertyOwner = await this.db.query.propertyOwner.findFirst({
+      const propertyOwner = await this.db.query.propertyOwners.findFirst({
         where: and(
           sql`${propertyOwnerTable.propertyAddress} ILIKE ${`%${propertyAddress}%`}`,
           sql`${propertyOwnerTable.fullName} ILIKE ${`%${ownerName}%`}`

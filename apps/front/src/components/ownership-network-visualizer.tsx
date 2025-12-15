@@ -298,4 +298,4 @@ export const OwnershipNetworkVisualizer: React.FC<OwnershipNetworkVisualizerProp
       )}
     </div>
   );
-};
+};ats it

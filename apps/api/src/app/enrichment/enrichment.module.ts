@@ -10,7 +10,8 @@ import { BullModule } from "@nestjs/bullmq";
 import { B2BIngestionService } from "./services/b2b-ingestion.service";
 import { RealEstateApiService } from "./services/realestate-api.service";
 import { SkipTraceService } from "./services/skiptrace.service";
-import { SkipTracingService } from "./services/skip-tracing.service";
+// TODO: SkipTracingService needs rewrite to match current schema (businessOwners is junction table, not flat owner table)
+// import { SkipTracingService } from "./services/skip-tracing.service";
 import { ApolloEnrichmentService } from "./services/apollo-enrichment.service";
 import { TwilioLookupService } from "./services/twilio-lookup.service";
 import { IdentityGraphService } from "./services/identity-graph.service";
@@ -23,7 +24,8 @@ import { SkipTraceConsumer } from "./consumers/skiptrace.consumer";
 import { LeadCardConsumer } from "./consumers/lead-card.consumer";
 
 // Controllers
-import { SkipTracingController } from "./controllers/skip-tracing.controller";
+// TODO: SkipTracingController depends on SkipTracingService - needs schema alignment
+// import { SkipTracingController } from "./controllers/skip-tracing.controller";
 import { BusinessSearchController } from "./controllers/business-search.controller";
 
 // Repositories
@@ -45,7 +47,7 @@ import { LeadCardRepository } from "./repositories/lead-card.repository";
     B2BIngestionService,
     RealEstateApiService,
     SkipTraceService,
-    SkipTracingService,
+    // SkipTracingService, // Disabled: needs schema alignment
     ApolloEnrichmentService,
     TwilioLookupService,
     IdentityGraphService,
@@ -56,7 +58,7 @@ import { LeadCardRepository } from "./repositories/lead-card.repository";
     SkipTraceConsumer,
     LeadCardConsumer,
     // Controllers
-    SkipTracingController,
+    // SkipTracingController, // Disabled: needs schema alignment
     BusinessSearchController,
     // Repositories
     PersonaRepository,
@@ -67,7 +69,7 @@ import { LeadCardRepository } from "./repositories/lead-card.repository";
     B2BIngestionService,
     RealEstateApiService,
     SkipTraceService,
-    SkipTracingService,
+    // SkipTracingService, // Disabled: needs schema alignment
     ApolloEnrichmentService,
     TwilioLookupService,
     IdentityGraphService,
