@@ -52,10 +52,13 @@ export interface B2BRecord {
   phone_number?: string;
   address?: string;
   street?: string;
+  street2?: string;
+  street_2?: string;
   city?: string;
   state?: string;
   zip?: string;
   zip_code?: string;
+  county?: string;
   website?: string;
   employees?: string | number;
   employee_count?: string | number;
@@ -63,8 +66,11 @@ export interface B2BRecord {
   annual_revenue?: string | number;
   year_founded?: string | number;
   sic_code?: string;
+  sic_description?: string;
   naics_code?: string;
+  naics_description?: string;
   industry?: string;
+  area_code?: string;
   [key: string]: unknown;
 }
 
@@ -313,16 +319,20 @@ export class B2BIngestionService {
         normalizedName,
         dba: record.dba as string,
         sicCode: config.sicCode || (record.sic_code as string),
+        sicDescription: record.sic_description as string,
         naicsCode: record.naics_code as string,
+        naicsDescription: record.naics_description as string,
         sector: config.sector,
         subSector: config.subSector,
         phone: record.phone || (record.phone_number as string),
         email: record.email as string,
         website: record.website as string,
         street: record.street || (record.address as string),
+        street2: (record.street2 || record.street_2) as string,
         city: record.city as string,
         state: record.state as string,
         zip: (record.zip || record.zip_code) as string,
+        county: record.county as string,
         employeeCount: this.parseNumber(
           record.employees || record.employee_count,
         ),

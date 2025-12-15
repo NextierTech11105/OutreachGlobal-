@@ -178,7 +178,10 @@ const FIELD_MAPPINGS: Record<string, string[]> = {
   website: ["Website", "website", "Website URL", "website_url", "URL", "Web"],
   industry: ["Industry", "industry", "INDUSTRY", "Business Type"],
   sicCode: ["SIC Code", "sic_code", "SIC", "SIC_CODE"],
-  sicDescription: ["SIC Description", "sic_description", "SIC_DESCRIPTION"],
+  sicDescription: ["SIC Description", "sic_description", "SIC_DESCRIPTION", "SIC Desc"],
+  naicsCode: ["NAICS Code", "naics_code", "NAICS", "NAICS_CODE"],
+  naicsDescription: ["NAICS Description", "naics_description", "NAICS_DESCRIPTION", "NAICS Desc"],
+  street2: ["Street 2", "street_2", "Street2", "STREET 2", "Address 2", "address_2", "Suite", "Unit", "Apt"],
   employees: [
     "Employees",
     "employees",
@@ -1080,10 +1083,15 @@ export async function POST(request: NextRequest) {
             lastName: record.lastName || null,
             title: record.title || null,
             address: record.address || null,
+            street2: record.street2 || null,
             city: record.city || null,
             state: record.state || null,
             zip: record.zip || null,
+            county: record.county || null,
             sicCode: record.sicCode || null,
+            sicDescription: record.sicDescription || null,
+            naicsCode: record.naicsCode || null,
+            naicsDescription: record.naicsDescription || null,
           },
 
           // === SENIORITY (for decision-maker targeting) ===
