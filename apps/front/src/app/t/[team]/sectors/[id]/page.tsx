@@ -1224,16 +1224,27 @@ export default function SectorDetailPage() {
                         <span className="text-muted-foreground">-</span>
                       )}
                     </TableCell>
-                    {/* PHONE */}
+                    {/* PHONES - Up to 3 (Skip Traced from Owner + Company Address) */}
                     <TableCell>
                       {lead.enrichedPhones && lead.enrichedPhones.length > 0 ? (
-                        <a
-                          href={`tel:${lead.enrichedPhones[0]}`}
-                          className="text-sm text-blue-600 hover:underline flex items-center gap-1"
-                        >
-                          <Phone className="h-3 w-3 text-green-600" />
-                          {lead.enrichedPhones[0]}
-                        </a>
+                        <div className="space-y-1">
+                          {lead.enrichedPhones.slice(0, 3).map((phone, idx) => (
+                            <a
+                              key={idx}
+                              href={`tel:${phone}`}
+                              className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+                            >
+                              <Phone className={`h-3 w-3 ${idx === 0 ? 'text-green-600' : 'text-muted-foreground'}`} />
+                              {phone}
+                              {idx === 0 && <span className="text-[10px] text-green-600 ml-1">1st</span>}
+                            </a>
+                          ))}
+                          {lead.enrichedPhones.length > 3 && (
+                            <span className="text-[10px] text-muted-foreground">
+                              +{lead.enrichedPhones.length - 3} more
+                            </span>
+                          )}
+                        </div>
                       ) : lead.phone ? (
                         <a
                           href={`tel:${lead.phone}`}
