@@ -30,10 +30,10 @@ export default async function Page() {
           with one tap.
         </p>
         <Link
-          href="/t/test"
+          href="/admin"
           className="text-sm font-semibold uppercase tracking-[0.3em] text-primary underline-offset-4 transition hover:text-primary-foreground"
         >
-          Go to dashboard
+          Go to admin dashboard
         </Link>
       </div>
 

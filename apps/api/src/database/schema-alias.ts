@@ -19,7 +19,19 @@ import {
 import { businessOwners, businesses } from "./schema/business-owner.schema";
 import { propertyOwners } from "./schema/property-owner.schema";
 import { skiptraceResults } from "./schema/skiptrace-result.schema";
-import { unifiedLeadCards } from "./schema/unified-lead-card.schema";
+import {
+  unifiedLeadCards,
+  unifiedLeadCardsRef,
+  leadActivities,
+  campaignQueue,
+} from "./schema/unified-lead-card.schema";
+import { personas, personasRef, personaMergeHistory } from "./schema/persona.schema";
+import { personaPhones, personaPhonesRef } from "./schema/phone.schema";
+import { personaEmails, personaEmailsRef } from "./schema/email.schema";
+import { personaSocials, personaSocialsRef } from "./schema/social.schema";
+import { personaAddresses, personaAddressesRef } from "./schema/address-history.schema";
+import { personaDemographics, personaDemographicsRef } from "./schema/demographics.schema";
+import { teamSettings } from "./schema/team-settings.schema";
 import { messageTemplates } from "./schema/message-templates.schema";
 import {
   messageLabelLinks,
@@ -90,11 +102,11 @@ export const propertySearchBlocksTable = propertySearchBlocks;
 export const businessesTable = businesses;
 export const businessOwnersTable = businessOwners;
 export const propertyOwnersTable = propertyOwners;
-export const skiptraceResultTable = skiptraceResults;
-export const unifiedLeadCardTable = unifiedLeadCards;
+export const skiptraceResultsTable = skiptraceResults;
+export const skiptraceResultTable = skiptraceResults; // Singular alias for backward compatibility
 
-export const businessOwnerTable = businessOwners;
-export const propertyOwnerTable = propertyOwners;
+export const businessOwnerTable = businessOwners; // Singular alias for backward compatibility
+export const propertyOwnerTable = propertyOwners; // Singular alias for backward compatibility
 
 export const powerDialersTable = powerDialers;
 export const dialerContactsTable = dialerContacts;
@@ -150,3 +162,29 @@ import {
 export const contentCategoriesTable = contentCategories;
 export const contentItemsTable = contentItems;
 export const contentUsageLogsTable = contentUsageLogs;
+
+// Persona & Identity Graph
+export const personasTable = personas;
+export const personasRefTable = personasRef;
+export const personaMergeHistoryTable = personaMergeHistory;
+
+// Persona Contact Info
+export const personaPhonesTable = personaPhones;
+export const personaPhonesRefFn = personaPhonesRef;
+export const personaEmailsTable = personaEmails;
+export const personaEmailsRefFn = personaEmailsRef;
+export const personaSocialsTable = personaSocials;
+export const personaSocialsRefFn = personaSocialsRef;
+export const personaAddressesTable = personaAddresses;
+export const personaAddressesRefFn = personaAddressesRef;
+export const personaDemographicsTable = personaDemographics;
+export const personaDemographicsRefFn = personaDemographicsRef;
+
+// Team Settings
+export const teamSettingsTable = teamSettings;
+
+// Unified Lead Cards & Campaign Queue
+export const unifiedLeadCardsTable = unifiedLeadCards;
+export const unifiedLeadCardsRefTable = unifiedLeadCardsRef;
+export const leadActivitiesTable = leadActivities;
+export const campaignQueueTable = campaignQueue;

@@ -5,7 +5,7 @@ const REALESTATE_API_KEY =
 const MAPBOX_ACCESS_TOKEN =
   process.env.MAPBOX_ACCESS_TOKEN ||
   process.env.NEXT_PUBLIC_MAPBOX_TOKEN ||
-  "pk.eyJ1IjoibmV4dGllcjExMTA1IiwiYSI6ImNtaXVrbmRodTFrY3YzanEwamFoZG44dWQifQ.EGNVQPofUwZm60KP6iID_g";
+  "";
 
 // Normalize NYC hyphenated addresses like "2158 36th" -> "21-58 36th"
 // or "1234 Main" -> "12-34 Main" (Queens/Bronx style)

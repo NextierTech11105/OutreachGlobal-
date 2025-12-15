@@ -1,8 +1,7 @@
 import "./globals.css";
 import type React from "react";
 import { ThemeProvider } from "@/components/theme-provider";
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as ToasterProvider } from "@/components/ui/sonner";
+import { Toaster } from "@/components/ui/sonner";
 import { Geist, Geist_Mono } from "next/font/google";
 import { CallStateProvider } from "@/lib/providers/call-state-provider";
 import { GlobalActionsProvider } from "@/lib/providers/global-actions-provider";
@@ -54,9 +53,7 @@ export default async function RootLayout({
                 <GlobalQuickActions />
               </CallStateProvider>
             </GlobalActionsProvider>
-            {/* @deprecated */}
             <Toaster />
-            <ToasterProvider />
           </ThemeProvider>
         </AppProviders>
       </body>

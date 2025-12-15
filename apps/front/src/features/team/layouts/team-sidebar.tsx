@@ -42,9 +42,18 @@ export function TeamSidebar({
               asChild
               className="data-[slot=sidebar-menu-button]:!p-1.5"
             >
-              <Link href={`/t/${params.team}`} className="flex items-center gap-2">
+              <Link
+                href={`/t/${params.team}`}
+                className="flex items-center gap-2"
+              >
                 {LOGO_URL ? (
-                  <Image src={LOGO_URL} alt={APP_NAME} width={120} height={32} className="h-8 w-auto" />
+                  <Image
+                    src={LOGO_URL}
+                    alt={APP_NAME}
+                    width={120}
+                    height={32}
+                    className="h-8 w-auto"
+                  />
                 ) : (
                   <>
                     <ArrowUpCircleIcon className="h-5 w-5" />

@@ -34,6 +34,7 @@ import { AchievementsModule } from "./achievements/achievements.module";
 import { InitialMessagesModule } from "./initial-messages/initial-messages.module";
 import { VoiceModule } from "./voice/voice.module";
 import { ContentLibraryModule } from "./content-library/content-library.module";
+import { EnrichmentModule } from "./enrichment/enrichment.module";
 
 @Module({
   imports: [
@@ -79,6 +80,7 @@ import { ContentLibraryModule } from "./content-library/content-library.module";
     InitialMessagesModule,
     VoiceModule,
     ContentLibraryModule,
+    EnrichmentModule,
   ],
   providers: [AppRunner],
   controllers: [AppController],
