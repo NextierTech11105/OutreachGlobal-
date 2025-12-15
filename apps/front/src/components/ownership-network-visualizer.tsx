@@ -4,7 +4,14 @@ import React, { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Phone, MapPin, Building, Users, CheckCircle, XCircle } from "lucide-react";
+import {
+  Phone,
+  MapPin,
+  Building,
+  Users,
+  CheckCircle,
+  XCircle,
+} from "lucide-react";
 
 interface PhoneNumber {
   number: string;
@@ -22,7 +29,13 @@ interface OwnershipEntity {
 }
 
 interface OwnershipRelationship {
-  type: "owner" | "beneficial_owner" | "family_member" | "trust_beneficiary" | "related_entity" | "investment_vehicle";
+  type:
+    | "owner"
+    | "beneficial_owner"
+    | "family_member"
+    | "trust_beneficiary"
+    | "related_entity"
+    | "investment_vehicle";
   targetEntity: {
     type: string;
     name: string;
@@ -67,16 +80,15 @@ interface OwnershipNetworkVisualizerProps {
   onEntityClick?: (entity: OwnershipEntity) => void;
 }
 
-export const OwnershipNetworkVisualizer: React.FC<OwnershipNetworkVisualizerProps> = ({
-  data,
-  onEntityClick,
-}) => {
+export const OwnershipNetworkVisualizer: React.FC<
+  OwnershipNetworkVisualizerProps
+> = ({ data, onEntityClick }) => {
   const { layers, autoTags } = data;
 
   // Group layers by depth for visualization
   const layersByDepth = useMemo(() => {
     const grouped: Record<number, OwnershipLayer[]> = {};
-    layers.forEach(layer => {
+    layers.forEach((layer) => {
       if (!grouped[layer.layer]) {
         grouped[layer.layer] = [];
       }
@@ -128,7 +140,11 @@ export const OwnershipNetworkVisualizer: React.FC<OwnershipNetworkVisualizerProp
 
   const renderEntityCard = (layer: OwnershipLayer) => {
     const { entity } = layer;
-    const entityTags = autoTags.filter(tag => tag.entityId === `${entity.type}:${entity.name}:${entity.address || ""}`);
+    const entityTags = autoTags.filter(
+      (tag) =>
+        tag.entityId ===
+        `${entity.type}:${entity.name}:${entity.address || ""}`,
+    );
 
     return (
       <Card
@@ -140,13 +156,12 @@ export const OwnershipNetworkVisualizer: React.FC<OwnershipNetworkVisualizerProp
           <CardTitle className="flex items-center gap-2 text-sm">
             {getEntityIcon(entity.type)}
             <span className="truncate">{entity.name}</span>
-            {entity.ownedByOwner !== undefined && (
-              entity.ownedByOwner ? (
+            {entity.ownedByOwner !== undefined &&
+              (entity.ownedByOwner ? (
                 <CheckCircle className="h-4 w-4 text-green-600" />
               ) : (
                 <XCircle className="h-4 w-4 text-red-600" />
-              )
-            )}
+              ))}
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
@@ -161,7 +176,10 @@ export const OwnershipNetworkVisualizer: React.FC<OwnershipNetworkVisualizerProp
             {entity.phoneNumbers && entity.phoneNumbers.length > 0 && (
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <Phone className="h-3 w-3" />
-                <span>{entity.phoneNumbers.length} phone{entity.phoneNumbers.length !== 1 ? 's' : ''}</span>
+                <span>
+                  {entity.phoneNumbers.length} phone
+                  {entity.phoneNumbers.length !== 1 ? "s" : ""}
+                </span>
               </div>
             )}
 
@@ -198,7 +216,7 @@ export const OwnershipNetworkVisualizer: React.FC<OwnershipNetworkVisualizerProp
         {layer.relationships.slice(0, 3).map((rel, index) => (
           <div key={index} className="flex items-center gap-2 text-xs">
             <span className={`font-medium ${getRelationshipColor(rel.type)}`}>
-              {rel.type.replace('_', ' ')}
+              {rel.type.replace("_", " ")}
             </span>
             <span className="text-muted-foreground">→</span>
             <span className="truncate">{rel.targetEntity.name}</span>
@@ -231,19 +249,27 @@ export const OwnershipNetworkVisualizer: React.FC<OwnershipNetworkVisualizerProp
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{layers.filter(l => l.entity.type === 'individual').length}</div>
+              <div className="text-2xl font-bold text-blue-600">
+                {layers.filter((l) => l.entity.type === "individual").length}
+              </div>
               <div className="text-sm text-muted-foreground">Individuals</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">{layers.filter(l => l.entity.type === 'business').length}</div>
+              <div className="text-2xl font-bold text-green-600">
+                {layers.filter((l) => l.entity.type === "business").length}
+              </div>
               <div className="text-sm text-muted-foreground">Businesses</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">{layers.filter(l => l.entity.type === 'property').length}</div>
+              <div className="text-2xl font-bold text-purple-600">
+                {layers.filter((l) => l.entity.type === "property").length}
+              </div>
               <div className="text-sm text-muted-foreground">Properties</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-orange-600">{autoTags.length}</div>
+              <div className="text-2xl font-bold text-orange-600">
+                {autoTags.length}
+              </div>
               <div className="text-sm text-muted-foreground">Auto Tags</div>
             </div>
           </div>
@@ -261,12 +287,15 @@ export const OwnershipNetworkVisualizer: React.FC<OwnershipNetworkVisualizerProp
                   {depth}
                 </div>
                 Layer {depth}
-                {depth === '0' && <Badge variant="default">Target</Badge>}
+                {depth === "0" && <Badge variant="default">Target</Badge>}
               </h3>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {layerEntities.map(layer => (
-                  <div key={`${layer.entity.type}-${layer.entity.name}`} className="space-y-2">
+                {layerEntities.map((layer) => (
+                  <div
+                    key={`${layer.entity.type}-${layer.entity.name}`}
+                    className="space-y-2"
+                  >
                     {renderEntityCard(layer)}
                     {renderRelationships(layer)}
                   </div>
@@ -285,7 +314,11 @@ export const OwnershipNetworkVisualizer: React.FC<OwnershipNetworkVisualizerProp
           <CardContent>
             <div className="flex flex-wrap gap-2">
               {autoTags.map((tag, index) => (
-                <Badge key={index} variant="outline" className="flex items-center gap-1">
+                <Badge
+                  key={index}
+                  variant="outline"
+                  className="flex items-center gap-1"
+                >
                   <span>{tag.tag}</span>
                   <span className="text-xs opacity-70">
                     {(tag.confidence * 100).toFixed(0)}%
@@ -298,4 +331,4 @@ export const OwnershipNetworkVisualizer: React.FC<OwnershipNetworkVisualizerProp
       )}
     </div>
   );
-}
+};

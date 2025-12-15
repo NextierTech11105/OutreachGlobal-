@@ -3,9 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 const REALESTATE_API_KEY =
   process.env.REALESTATE_API_KEY || process.env.REAL_ESTATE_API_KEY || "";
 const MAPBOX_ACCESS_TOKEN =
-  process.env.MAPBOX_ACCESS_TOKEN ||
-  process.env.NEXT_PUBLIC_MAPBOX_TOKEN ||
-  "";
+  process.env.MAPBOX_ACCESS_TOKEN || process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
 
 // Normalize NYC hyphenated addresses like "2158 36th" -> "21-58 36th"
 // or "1234 Main" -> "12-34 Main" (Queens/Bronx style)
