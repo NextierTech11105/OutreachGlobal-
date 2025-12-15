@@ -24,7 +24,18 @@ import {
 } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { PropertySearchResult } from "@/lib/services/real-estate-api";
-import { Database, List, Copy, Download, Loader2, Building, User, Phone, Mail, MapPin } from "lucide-react";
+import {
+  Database,
+  List,
+  Copy,
+  Download,
+  Loader2,
+  Building,
+  User,
+  Phone,
+  Mail,
+  MapPin,
+} from "lucide-react";
 import { toast } from "sonner";
 import { sf, sfc } from "@/lib/utils/safe-format";
 
@@ -50,7 +61,7 @@ interface SearchResultsProps {
   propertyIds?: string[];
   resultCount?: number;
   idsOnly?: boolean;
-  searchType?: 'property' | 'business';
+  searchType?: "property" | "business";
 }
 
 const PROPERTY_TYPE_LABELS: Record<string, string> = {
@@ -69,7 +80,7 @@ export function SearchResults({
   propertyIds = [],
   resultCount = 0,
   idsOnly = false,
-  searchType = 'property',
+  searchType = "property",
 }: SearchResultsProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState("");
@@ -339,7 +350,7 @@ export function SearchResults({
   }
 
   // Business results view
-  if (searchType === 'business' && businessResults.length > 0) {
+  if (searchType === "business" && businessResults.length > 0) {
     const filteredBusinessResults = filter
       ? businessResults.filter(
           (r) =>
@@ -362,7 +373,8 @@ export function SearchResults({
             <div>
               <h3 className="text-lg font-medium">Business Search Results</h3>
               <p className="text-sm text-muted-foreground">
-                {sf(resultCount)} businesses found, showing {sf(businessResults.length)} detailed
+                {sf(resultCount)} businesses found, showing{" "}
+                {sf(businessResults.length)} detailed
               </p>
             </div>
           </div>
@@ -391,7 +403,9 @@ export function SearchResults({
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
           />
-          <Badge variant="secondary">{sf(filteredBusinessResults.length)} businesses</Badge>
+          <Badge variant="secondary">
+            {sf(filteredBusinessResults.length)} businesses
+          </Badge>
         </div>
 
         <Card className="py-0">
@@ -401,7 +415,8 @@ export function SearchResults({
                 <TableHead className="w-12">
                   <Checkbox
                     checked={
-                      selectedIds.size > 0 && selectedIds.size === businessResults.length
+                      selectedIds.size > 0 &&
+                      selectedIds.size === businessResults.length
                     }
                     onCheckedChange={toggleSelectAll}
                   />
@@ -446,7 +461,9 @@ export function SearchResults({
                     {result.phone && (
                       <div className="flex items-center gap-2">
                         <Phone className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-mono text-sm">{result.phone}</span>
+                        <span className="font-mono text-sm">
+                          {result.phone}
+                        </span>
                       </div>
                     )}
                   </TableCell>
@@ -459,11 +476,9 @@ export function SearchResults({
                     )}
                   </TableCell>
                   <TableCell>
-                    {result.revenue ? `$${sf(result.revenue)}` : '-'}
+                    {result.revenue ? `$${sf(result.revenue)}` : "-"}
                   </TableCell>
-                  <TableCell>
-                    {result.employeeCount || '-'}
-                  </TableCell>
+                  <TableCell>{result.employeeCount || "-"}</TableCell>
                 </TableRow>
               ))}
               {paginatedBusinessResults.length === 0 && (
@@ -496,13 +511,26 @@ export function SearchResults({
               Previous
             </Button>
             <span className="text-sm text-muted-foreground">
-              Page {page + 1} of {Math.max(1, Math.ceil(filteredBusinessResults.length / pageSize))}
+              Page {page + 1} of{" "}
+              {Math.max(
+                1,
+                Math.ceil(filteredBusinessResults.length / pageSize),
+              )}
             </span>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setPage((p) => Math.min(Math.ceil(filteredBusinessResults.length / pageSize) - 1, p + 1))}
-              disabled={page >= Math.ceil(filteredBusinessResults.length / pageSize) - 1}
+              onClick={() =>
+                setPage((p) =>
+                  Math.min(
+                    Math.ceil(filteredBusinessResults.length / pageSize) - 1,
+                    p + 1,
+                  ),
+                )
+              }
+              disabled={
+                page >= Math.ceil(filteredBusinessResults.length / pageSize) - 1
+              }
             >
               Next
             </Button>
