@@ -247,15 +247,68 @@ export async function GET(): Promise<NextResponse> {
     const { userId } = await auth();
     const s3 = getS3Client();
 
+    // Get bucket stats first (works without DB)
+    const bucketStats = await getBucketGeographicStats(s3);
+
+    // If no DB, return bucket-only stats
     if (!db) {
-      return NextResponse.json(
-        { error: "Database not configured" },
-        { status: 500 },
-      );
+      console.log("[Sector Stats] No database - returning bucket-only stats");
+
+      // Calculate geographic sector stats from bucket data only
+      const geoSectorStats: Record<string, {
+        sectorId: string;
+        name: string;
+        totalRecords: number;
+        enriched: number;
+      }> = {};
+
+      const metroCounties = ["New York", "Kings", "Queens", "Bronx", "Richmond", "Nassau", "Suffolk", "Westchester"];
+
+      for (const [sectorId, sector] of Object.entries(GEOGRAPHIC_SECTORS)) {
+        let count = 0;
+        if (sector.counties) {
+          for (const county of sector.counties) {
+            count += bucketStats.byCounty[county] || 0;
+            count += bucketStats.byCounty[`${county} County`] || 0;
+          }
+        } else if (sectorId === "ny_upstate") {
+          const nyTotal = bucketStats.byState["NY"] || 0;
+          let metroTotal = 0;
+          for (const county of metroCounties) {
+            metroTotal += bucketStats.byCounty[county] || 0;
+            metroTotal += bucketStats.byCounty[`${county} County`] || 0;
+          }
+          count = Math.max(0, nyTotal - metroTotal);
+        }
+
+        geoSectorStats[sectorId] = {
+          sectorId,
+          name: sector.name,
+          totalRecords: count,
+          enriched: 0,
+        };
+      }
+
+      return NextResponse.json({
+        sectors: geoSectorStats,
+        geoSectors: geoSectorStats,
+        topSicCodes: [],
+        bucketStats: {
+          byState: bucketStats.byState,
+          byCounty: bucketStats.byCounty,
+          totalFromBuckets: bucketStats.totalFromBuckets,
+        },
+        totals: {
+          totalRecords: bucketStats.totalFromBuckets,
+          totalFromDB: 0,
+          totalFromBuckets: bucketStats.totalFromBuckets,
+          sectorsWithData: Object.values(geoSectorStats).filter(s => s.totalRecords > 0).length,
+          source: "buckets_only",
+        },
+      });
     }
 
-    // Get geographic stats from DO Spaces buckets in parallel with DB queries
-    const bucketStatsPromise = getBucketGeographicStats(s3);
+    // bucketStats already fetched above, reuse it for the DB-present case
 
     // Get total count from businesses table
     const [totalResult] = await db
@@ -326,10 +379,7 @@ export async function GET(): Promise<NextResponse> {
       .orderBy(sql`count(*) DESC`)
       .limit(50);
 
-    // Wait for bucket stats
-    const bucketStats = await bucketStatsPromise;
-
-    // Calculate geographic sector stats from bucket data
+    // Calculate geographic sector stats from bucket data (using bucketStats from above)
     const geoSectorStats: Record<string, {
       sectorId: string;
       name: string;

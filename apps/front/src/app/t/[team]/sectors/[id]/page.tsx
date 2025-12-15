@@ -65,10 +65,96 @@ import {
   CalendarPlus,
   Zap,
   ArrowRight,
+  Crown,
+  Target,
+  ArrowUpDown,
 } from "lucide-react";
 import { UniversalDetailModal } from "@/components/universal-detail-modal";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+
+// ==================== DECISION MAKER DETECTION ====================
+// Detect if contact is likely a decision maker based on name/title patterns
+const DECISION_MAKER_TITLES = [
+  "owner", "president", "ceo", "chief", "founder", "partner", "principal",
+  "director", "vp", "vice president", "general manager", "gm", "managing",
+  "chairman", "executive", "proprietor", "operator", "franchisee"
+];
+
+const DECISION_MAKER_NAME_PATTERNS = [
+  // Last name matches company name (likely owner)
+  (contactName: string, companyName: string) => {
+    if (!contactName || !companyName) return false;
+    const lastName = contactName.split(" ").pop()?.toLowerCase() || "";
+    const companyWords = companyName.toLowerCase().split(/[\s,.-]+/);
+    return companyWords.some(w => w.length > 2 && lastName.includes(w) || w.includes(lastName));
+  }
+];
+
+function detectDecisionMaker(lead: { contactName?: string | null; title?: string | null; companyName?: string | null }): boolean {
+  // Check title
+  const title = (lead.title || "").toLowerCase();
+  if (DECISION_MAKER_TITLES.some(t => title.includes(t))) return true;
+
+  // Check name patterns (owner name in company name)
+  for (const pattern of DECISION_MAKER_NAME_PATTERNS) {
+    if (pattern(lead.contactName || "", lead.companyName || "")) return true;
+  }
+
+  return false;
+}
+
+// ==================== PROPERTY OWNERSHIP LIKELIHOOD ====================
+// Score industries by likelihood of owning commercial property
+const PROPERTY_OWNER_SIC_PREFIXES: Record<string, { likelihood: "high" | "medium" | "low"; reason: string }> = {
+  // HIGH - Very likely to own property
+  "15": { likelihood: "high", reason: "General Contractors - often own offices/yards" },
+  "16": { likelihood: "high", reason: "Heavy Construction - equipment yards" },
+  "17": { likelihood: "high", reason: "Special Trade Contractors - own facilities" },
+  "55": { likelihood: "high", reason: "Auto Dealers - own dealerships" },
+  "54": { likelihood: "high", reason: "Food Stores - may own locations" },
+  "58": { likelihood: "high", reason: "Restaurants - may own buildings" },
+  "70": { likelihood: "high", reason: "Hotels & Lodging - own properties" },
+  "65": { likelihood: "high", reason: "Real Estate - own properties" },
+  // MEDIUM - Likely to own property
+  "20": { likelihood: "medium", reason: "Food Manufacturing - own plants" },
+  "35": { likelihood: "medium", reason: "Industrial Machinery - own facilities" },
+  "36": { likelihood: "medium", reason: "Electronics Mfg - own facilities" },
+  "37": { likelihood: "medium", reason: "Transportation Equipment - own facilities" },
+  "38": { likelihood: "medium", reason: "Instruments/Optical - own facilities" },
+  "39": { likelihood: "medium", reason: "Misc Manufacturing - own facilities" },
+  "50": { likelihood: "medium", reason: "Wholesale Durable - warehouses" },
+  "51": { likelihood: "medium", reason: "Wholesale Nondurable - warehouses" },
+  "42": { likelihood: "medium", reason: "Trucking/Warehousing - own facilities" },
+  "75": { likelihood: "medium", reason: "Auto Repair/Services - own shops" },
+  // LOW but some ownership
+  "73": { likelihood: "low", reason: "Business Services - usually lease" },
+  "87": { likelihood: "low", reason: "Engineering Services - usually lease" },
+};
+
+function getPropertyOwnershipLikelihood(sicCode?: string | null): { likelihood: "high" | "medium" | "low" | "unknown"; reason: string; score: number } {
+  if (!sicCode) return { likelihood: "unknown", reason: "No SIC code", score: 0 };
+
+  // Check first 2 digits
+  const prefix2 = sicCode.slice(0, 2);
+  if (PROPERTY_OWNER_SIC_PREFIXES[prefix2]) {
+    const { likelihood, reason } = PROPERTY_OWNER_SIC_PREFIXES[prefix2];
+    return { likelihood, reason, score: likelihood === "high" ? 80 : likelihood === "medium" ? 50 : 20 };
+  }
+
+  return { likelihood: "unknown", reason: "Industry not categorized", score: 0 };
+}
+
+// Calculate priority score for sorting (higher = more important)
+function calculatePriorityScore(lead: { isDecisionMaker?: boolean; propertyScore?: number; enriched?: boolean; phone?: string | null; email?: string | null }): number {
+  let score = 0;
+  if (lead.isDecisionMaker) score += 50;
+  if (lead.propertyScore) score += lead.propertyScore * 0.3;
+  if (lead.enriched) score += 20;
+  if (lead.phone) score += 10;
+  if (lead.email) score += 5;
+  return score;
+}
 
 interface Lead {
   id: string;
@@ -91,7 +177,9 @@ interface Lead {
   // Scoring fields
   propertyScore?: number;
   propertyLikelihood?: string;
+  propertyReason?: string;
   isDecisionMaker?: boolean;
+  priorityScore?: number;
   // Enrichment fields
   enriched?: boolean;
   enrichedPhones?: string[];
@@ -158,6 +246,9 @@ export default function SectorDetailPage() {
   // Batch loading mode
   const [batchSize, setBatchSize] = useState(100); // 100, 500, 1000, 2000
   const [shuffleMode, setShuffleMode] = useState(false);
+
+  // Sorting state for prioritization
+  const [sortBy, setSortBy] = useState<"default" | "priority" | "decisionMaker" | "propertyScore">("default");
 
   // Daily skip trace limit (2000/day)
   const DAILY_SKIP_TRACE_LIMIT = 2000;
@@ -299,24 +390,37 @@ export default function SectorDetailPage() {
           const matchingKeys =
             (r.matchingKeys as Record<string, unknown>) || {};
 
+          // Get SIC code for property scoring
+          const sicCode = (matchingKeys.sicCode || original["SIC Code"]) as string | undefined;
+
+          // Get company name and contact name for decision maker detection
+          const companyName = (matchingKeys.companyName ||
+            original["Company Name"] ||
+            original.companyName) as string | undefined;
+          const contactName = (matchingKeys.contactName ||
+            [matchingKeys.firstName, matchingKeys.lastName]
+              .filter(Boolean)
+              .join(" ") ||
+            [original["Contact First"], original["Contact Last"]]
+              .filter(Boolean)
+              .join(" ") ||
+            original["Contact Name"]) as string | undefined;
+          const title = original["Title"] as string | undefined;
+
+          // Detect decision maker status
+          const isDecisionMaker = (r.flags as Record<string, boolean>)?.isDecisionMaker
+            || detectDecisionMaker({ contactName, title, companyName });
+
+          // Calculate property ownership likelihood
+          const propertyOwnership = getPropertyOwnershipLikelihood(sicCode);
+
           // matchingKeys has normalized names, _original has raw CSV headers
-          return {
+          const lead = {
             id: r.id,
             // Company name from normalized or raw CSV
-            companyName:
-              matchingKeys.companyName ||
-              original["Company Name"] ||
-              original.companyName,
+            companyName,
             // Contact name from normalized or raw CSV (Contact First + Contact Last)
-            contactName:
-              matchingKeys.contactName ||
-              [matchingKeys.firstName, matchingKeys.lastName]
-                .filter(Boolean)
-                .join(" ") ||
-              [original["Contact First"], original["Contact Last"]]
-                .filter(Boolean)
-                .join(" ") ||
-              original["Contact Name"],
+            contactName,
             // Email from raw CSV
             email: original["Email"] || original.email || matchingKeys.email,
             // Phone from raw CSV
@@ -337,7 +441,7 @@ export default function SectorDetailPage() {
               original["Industry"] ||
               original["SIC Description"] ||
               matchingKeys.sicDescription,
-            sicCode: matchingKeys.sicCode || original["SIC Code"],
+            sicCode,
             employees:
               original["Employee Range"] ||
               original["Number of Employees"] ||
@@ -346,18 +450,30 @@ export default function SectorDetailPage() {
               original["Annual Sales"] ||
               original["Annual Revenue"] ||
               original.revenue,
-            title: original["Title"],
+            title,
             directPhone: original["Direct Phone"],
             enriched:
               (r.enrichment as Record<string, unknown>)?.status === "success",
-            propertyScore: r.propertyScore,
-            propertyLikelihood: r.propertyLikelihood,
-            isDecisionMaker: (r.flags as Record<string, boolean>)
-              ?.isDecisionMaker,
+            // Prioritization fields
+            propertyScore: (r.propertyScore as number) || propertyOwnership.score,
+            propertyLikelihood: (r.propertyLikelihood as string) || propertyOwnership.likelihood,
+            propertyReason: propertyOwnership.reason,
+            isDecisionMaker,
             ...r, // Keep original data too
           };
+
+          // Calculate overall priority score
+          (lead as Lead & { priorityScore: number }).priorityScore = calculatePriorityScore({
+            isDecisionMaker,
+            propertyScore: lead.propertyScore,
+            enriched: lead.enriched,
+            phone: lead.phone as string | null,
+            email: lead.email as string | null,
+          });
+
+          return lead;
         });
-        setLeads(mappedLeads);
+        setLeads(mappedLeads as Lead[]);
       } catch (error) {
         console.error("Failed to fetch data lake:", error);
         toast.error("Failed to load data lake");
@@ -385,9 +501,26 @@ export default function SectorDetailPage() {
     );
   });
 
-  // Pagination
-  const totalPages = Math.ceil(filteredLeads.length / pageSize);
-  const paginatedLeads = filteredLeads.slice(
+  // Sort leads based on selected sort mode
+  const sortedLeads = [...filteredLeads].sort((a, b) => {
+    switch (sortBy) {
+      case "priority":
+        return (b.priorityScore || 0) - (a.priorityScore || 0);
+      case "decisionMaker":
+        // Decision makers first, then by property score
+        if (a.isDecisionMaker && !b.isDecisionMaker) return -1;
+        if (!a.isDecisionMaker && b.isDecisionMaker) return 1;
+        return (b.propertyScore || 0) - (a.propertyScore || 0);
+      case "propertyScore":
+        return (b.propertyScore || 0) - (a.propertyScore || 0);
+      default:
+        return 0;
+    }
+  });
+
+  // Pagination (use sorted leads)
+  const totalPages = Math.ceil(sortedLeads.length / pageSize);
+  const paginatedLeads = sortedLeads.slice(
     (currentPage - 1) * pageSize,
     currentPage * pageSize,
   );
@@ -923,7 +1056,7 @@ export default function SectorDetailPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-7 gap-4">
           <Card>
             <CardContent className="pt-4">
               <div className="text-2xl font-bold">
@@ -962,6 +1095,30 @@ export default function SectorDetailPage() {
                 {sf(leads.filter((l) => l.enriched).length)}
               </div>
               <p className="text-xs text-muted-foreground">Enriched</p>
+            </CardContent>
+          </Card>
+          {/* DECISION MAKER STATS */}
+          <Card className="border-amber-200 bg-amber-50/50">
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-1.5">
+                <Crown className="h-5 w-5 text-amber-500" />
+                <div className="text-2xl font-bold text-amber-600">
+                  {sf(leads.filter((l) => l.isDecisionMaker).length)}
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">Decision Makers</p>
+            </CardContent>
+          </Card>
+          {/* PROPERTY OWNER STATS */}
+          <Card className="border-green-200 bg-green-50/50">
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-1.5">
+                <Target className="h-5 w-5 text-green-500" />
+                <div className="text-2xl font-bold text-green-600">
+                  {sf(leads.filter((l) => l.propertyLikelihood === "high").length)}
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">Likely Owners</p>
             </CardContent>
           </Card>
         </div>
@@ -1007,6 +1164,40 @@ export default function SectorDetailPage() {
             />
             <span className="text-sm">Shuffle</span>
             <Switch checked={shuffleMode} onCheckedChange={setShuffleMode} />
+          </div>
+
+          {/* SORT BY PRIORITY */}
+          <div className="flex items-center gap-2">
+            <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+            <Select
+              value={sortBy}
+              onValueChange={(v) => setSortBy(v as typeof sortBy)}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Sort by..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="default">Default Order</SelectItem>
+                <SelectItem value="priority">
+                  <div className="flex items-center gap-2">
+                    <Zap className="h-3 w-3 text-yellow-500" />
+                    Priority Score
+                  </div>
+                </SelectItem>
+                <SelectItem value="decisionMaker">
+                  <div className="flex items-center gap-2">
+                    <Crown className="h-3 w-3 text-amber-500" />
+                    Decision Makers First
+                  </div>
+                </SelectItem>
+                <SelectItem value="propertyScore">
+                  <div className="flex items-center gap-2">
+                    <Target className="h-3 w-3 text-blue-500" />
+                    Property Ownership
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* SERVER PAGINATION INFO */}
@@ -1193,8 +1384,16 @@ export default function SectorDetailPage() {
                     </TableCell>
                     {/* CONTACT NAME - FULL NAME */}
                     <TableCell>
-                      <div className="font-medium text-blue-600">
-                        {lead.contactName || "-"}
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-medium text-blue-600">
+                          {lead.contactName || "-"}
+                        </span>
+                        {lead.isDecisionMaker && (
+                          <Badge variant="secondary" className="bg-amber-100 text-amber-700 text-[10px] px-1 py-0 h-4">
+                            <Crown className="h-2.5 w-2.5 mr-0.5" />
+                            DM
+                          </Badge>
+                        )}
                       </div>
                       {lead.title && (
                         <div className="text-xs text-muted-foreground">
@@ -1330,7 +1529,24 @@ export default function SectorDetailPage() {
                     </TableCell>
                     {/* SIC DESCRIPTION / INDUSTRY */}
                     <TableCell>
-                      <span className="text-sm">{lead.industry || "-"}</span>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-sm">{lead.industry || "-"}</span>
+                        {lead.propertyLikelihood && lead.propertyLikelihood !== "unknown" && (
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "text-[9px] px-1 py-0 w-fit",
+                              lead.propertyLikelihood === "high" && "border-green-500 text-green-600 bg-green-50",
+                              lead.propertyLikelihood === "medium" && "border-blue-500 text-blue-600 bg-blue-50",
+                              lead.propertyLikelihood === "low" && "border-gray-400 text-gray-500"
+                            )}
+                          >
+                            <Target className="h-2 w-2 mr-0.5" />
+                            {lead.propertyLikelihood === "high" ? "Likely Owner" :
+                             lead.propertyLikelihood === "medium" ? "May Own" : "Unlikely"}
+                          </Badge>
+                        )}
+                      </div>
                     </TableCell>
                     {/* CONTACT ATTEMPTS */}
                     <TableCell className="text-center">
