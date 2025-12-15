@@ -1113,7 +1113,7 @@ export default function SectorDetailPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-10 sticky left-0 bg-background z-10">
+                <TableHead className="w-[50px] min-w-[50px] sticky left-0 bg-background z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                   <Checkbox
                     checked={
                       paginatedLeads.length > 0 &&
@@ -1122,7 +1122,7 @@ export default function SectorDetailPage() {
                     onCheckedChange={toggleSelectAll}
                   />
                 </TableHead>
-                <TableHead className="w-12 sticky left-10 bg-background z-10"></TableHead>
+                <TableHead className="w-[50px] min-w-[50px] sticky left-[50px] bg-background z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]"></TableHead>
                 <TableHead className="min-w-[200px]">Company Name</TableHead>
                 <TableHead className="min-w-[180px]">Contact Name</TableHead>
                 <TableHead className="min-w-[200px]">Email</TableHead>
@@ -1161,13 +1161,13 @@ export default function SectorDetailPage() {
                       lead.enriched ? "bg-green-50 dark:bg-green-900/10" : ""
                     }
                   >
-                    <TableCell className="sticky left-0 bg-background z-10">
+                    <TableCell className="w-[50px] min-w-[50px] sticky left-0 bg-background z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                       <Checkbox
                         checked={selectedIds.has(lead.id)}
                         onCheckedChange={() => toggleSelect(lead.id)}
                       />
                     </TableCell>
-                    <TableCell className="sticky left-10 bg-background z-10">
+                    <TableCell className="w-[50px] min-w-[50px] sticky left-[50px] bg-background z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                       <Button
                         variant="ghost"
                         size="icon"

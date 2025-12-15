@@ -3,11 +3,50 @@ import { db } from "@/lib/db";
 import { businesses } from "@/lib/db/schema";
 import { sql, eq, like, or } from "drizzle-orm";
 import { auth } from "@clerk/nextjs/server";
+import { S3Client, GetObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
 
 /**
  * Sector Stats API
- * Returns REAL counts from the businesses table by SIC code
+ * Returns REAL counts from:
+ * 1. businesses table by SIC code
+ * 2. DO Spaces buckets for geographic breakdowns
  */
+
+// DO Spaces configuration
+const SPACES_ENDPOINT = "https://nyc3.digitaloceanspaces.com";
+const SPACES_BUCKET = "nextier";
+const SPACES_KEY = process.env.DO_SPACES_KEY || "";
+const SPACES_SECRET = process.env.DO_SPACES_SECRET || "";
+
+function getS3Client(): S3Client | null {
+  if (!SPACES_KEY || !SPACES_SECRET) {
+    return null;
+  }
+  return new S3Client({
+    endpoint: SPACES_ENDPOINT,
+    region: "nyc3",
+    credentials: { accessKeyId: SPACES_KEY, secretAccessKey: SPACES_SECRET },
+  });
+}
+
+// Geographic sector definitions for NY
+const GEOGRAPHIC_SECTORS: Record<string, { name: string; state: string; counties?: string[] }> = {
+  ny_metro: {
+    name: "NYC Metro Area",
+    state: "NY",
+    counties: ["New York", "Kings", "Queens", "Bronx", "Richmond", "Nassau", "Suffolk", "Westchester"],
+  },
+  ny_upstate: {
+    name: "Upstate New York",
+    state: "NY",
+    // Exclude metro counties
+  },
+  bronx: { name: "Bronx County", state: "NY", counties: ["Bronx"] },
+  brooklyn: { name: "Brooklyn (Kings County)", state: "NY", counties: ["Kings"] },
+  manhattan: { name: "Manhattan (New York County)", state: "NY", counties: ["New York"] },
+  queens: { name: "Queens County", state: "NY", counties: ["Queens"] },
+  staten_island: { name: "Staten Island (Richmond County)", state: "NY", counties: ["Richmond"] },
+};
 
 // B2B Sectors with SIC code prefixes
 const BUSINESS_SECTORS: Record<
@@ -140,9 +179,73 @@ const BUSINESS_SECTORS: Record<
   },
 };
 
+// Helper to read bucket index from DO Spaces
+async function getBucketGeographicStats(s3: S3Client | null): Promise<{
+  byCounty: Record<string, number>;
+  byState: Record<string, number>;
+  totalFromBuckets: number;
+}> {
+  const result = { byCounty: {} as Record<string, number>, byState: {} as Record<string, number>, totalFromBuckets: 0 };
+
+  if (!s3) return result;
+
+  try {
+    // List all bucket indexes
+    const listCommand = new ListObjectsV2Command({
+      Bucket: SPACES_BUCKET,
+      Prefix: "buckets/",
+      Delimiter: "/",
+    });
+    const listResult = await s3.send(listCommand);
+    const bucketPrefixes = listResult.CommonPrefixes || [];
+
+    // Read each bucket's index.json
+    for (const prefix of bucketPrefixes) {
+      if (!prefix.Prefix) continue;
+
+      try {
+        const indexCommand = new GetObjectCommand({
+          Bucket: SPACES_BUCKET,
+          Key: `${prefix.Prefix}index.json`,
+        });
+        const indexResult = await s3.send(indexCommand);
+        const indexBody = await indexResult.Body?.transformToString();
+        if (!indexBody) continue;
+
+        const index = JSON.parse(indexBody);
+        result.totalFromBuckets += index.totalLeads || 0;
+
+        // Aggregate by state
+        if (index.indexes?.byState) {
+          for (const [state, ids] of Object.entries(index.indexes.byState)) {
+            const count = Array.isArray(ids) ? ids.length : 0;
+            result.byState[state] = (result.byState[state] || 0) + count;
+          }
+        }
+
+        // Aggregate by county (if available) or by city fallback
+        if (index.indexes?.byCounty) {
+          for (const [county, ids] of Object.entries(index.indexes.byCounty)) {
+            const count = Array.isArray(ids) ? ids.length : 0;
+            result.byCounty[county] = (result.byCounty[county] || 0) + count;
+          }
+        }
+      } catch (bucketError) {
+        // Skip buckets without index.json
+        continue;
+      }
+    }
+  } catch (error) {
+    console.error("[Sector Stats] Error reading bucket stats:", error);
+  }
+
+  return result;
+}
+
 export async function GET(): Promise<NextResponse> {
   try {
     const { userId } = await auth();
+    const s3 = getS3Client();
 
     if (!db) {
       return NextResponse.json(
@@ -150,6 +253,9 @@ export async function GET(): Promise<NextResponse> {
         { status: 500 },
       );
     }
+
+    // Get geographic stats from DO Spaces buckets in parallel with DB queries
+    const bucketStatsPromise = getBucketGeographicStats(s3);
 
     // Get total count from businesses table
     const [totalResult] = await db
@@ -220,19 +326,73 @@ export async function GET(): Promise<NextResponse> {
       .orderBy(sql`count(*) DESC`)
       .limit(50);
 
+    // Wait for bucket stats
+    const bucketStats = await bucketStatsPromise;
+
+    // Calculate geographic sector stats from bucket data
+    const geoSectorStats: Record<string, {
+      sectorId: string;
+      name: string;
+      totalRecords: number;
+      enriched: number;
+    }> = {};
+
+    // NY Metro counties for exclusion in upstate
+    const metroCounties = ["New York", "Kings", "Queens", "Bronx", "Richmond", "Nassau", "Suffolk", "Westchester"];
+
+    for (const [sectorId, sector] of Object.entries(GEOGRAPHIC_SECTORS)) {
+      let count = 0;
+
+      if (sector.counties) {
+        // Sum counts for specific counties
+        for (const county of sector.counties) {
+          count += bucketStats.byCounty[county] || 0;
+          // Also check variations
+          count += bucketStats.byCounty[`${county} County`] || 0;
+        }
+      } else if (sectorId === "ny_upstate") {
+        // Upstate = NY total minus metro counties
+        const nyTotal = bucketStats.byState["NY"] || 0;
+        let metroTotal = 0;
+        for (const county of metroCounties) {
+          metroTotal += bucketStats.byCounty[county] || 0;
+          metroTotal += bucketStats.byCounty[`${county} County`] || 0;
+        }
+        count = Math.max(0, nyTotal - metroTotal);
+      }
+
+      geoSectorStats[sectorId] = {
+        sectorId,
+        name: sector.name,
+        totalRecords: count,
+        enriched: 0, // Would need to track enrichment in bucket index
+      };
+    }
+
+    // Merge geo stats into sector stats
+    const allSectorStats = { ...sectorStats, ...geoSectorStats };
+
     return NextResponse.json({
-      sectors: sectorStats,
+      sectors: allSectorStats,
+      geoSectors: geoSectorStats,
       topSicCodes: topSicCodes.map((s) => ({
         sicCode: s.sicCode,
         sicDescription: s.sicDescription,
         count: s.count,
       })),
+      bucketStats: {
+        byState: bucketStats.byState,
+        byCounty: bucketStats.byCounty,
+        totalFromBuckets: bucketStats.totalFromBuckets,
+      },
       totals: {
-        totalRecords,
-        sectorsWithData: Object.values(sectorStats).filter(
+        totalRecords: totalRecords + bucketStats.totalFromBuckets,
+        totalFromDB: totalRecords,
+        totalFromBuckets: bucketStats.totalFromBuckets,
+        sectorsWithData: Object.values(allSectorStats).filter(
           (s) => s.totalRecords > 0,
         ).length,
-        source: "database",
+        source: "database+buckets",
       },
     });
   } catch (error) {

@@ -1211,6 +1211,20 @@ export async function POST(request: NextRequest) {
           },
           {} as Record<string, number[]>,
         ),
+        // Index by county for geographic sectors (USBizData NY)
+        byCounty: normalizedRecords.reduce(
+          (acc, record, index) => {
+            const county = record.county as string;
+            if (county) {
+              // Normalize county name - remove " County" suffix if present
+              const normalizedCounty = county.replace(/ County$/i, "").trim();
+              if (!acc[normalizedCounty]) acc[normalizedCounty] = [];
+              acc[normalizedCounty].push(index);
+            }
+            return acc;
+          },
+          {} as Record<string, number[]>,
+        ),
         // Index of likely property owners (score >= 50)
         likelyPropertyOwners: normalizedRecords.reduce((acc, record, index) => {
           const linkage = calculatePropertyLinkageScore(record);
