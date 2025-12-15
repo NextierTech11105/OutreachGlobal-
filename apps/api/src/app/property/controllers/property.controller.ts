@@ -14,7 +14,9 @@ const INVALID_PARAMS = [
 ];
 
 // Validate and sanitize property search body
-function sanitizeSearchBody(body: Record<string, unknown>): Record<string, unknown> {
+function sanitizeSearchBody(
+  body: Record<string, unknown>,
+): Record<string, unknown> {
   const sanitized: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(body)) {
@@ -72,17 +74,24 @@ export class PropertySearchController {
       if (query.beds_max) body.beds_max = parseInt(query.beds_max);
       if (query.baths_min) body.baths_min = parseInt(query.baths_min);
       if (query.baths_max) body.baths_max = parseInt(query.baths_max);
-      if (query.year_built_min) body.year_built_min = parseInt(query.year_built_min);
-      if (query.year_built_max) body.year_built_max = parseInt(query.year_built_max);
+      if (query.year_built_min)
+        body.year_built_min = parseInt(query.year_built_min);
+      if (query.year_built_max)
+        body.year_built_max = parseInt(query.year_built_max);
       if (query.sqft_min) body.sqft_min = parseInt(query.sqft_min);
       if (query.sqft_max) body.sqft_max = parseInt(query.sqft_max);
 
       // Value filters
-      if (query.estimated_value_min) body.estimated_value_min = parseInt(query.estimated_value_min);
-      if (query.estimated_value_max) body.estimated_value_max = parseInt(query.estimated_value_max);
-      if (query.estimated_equity_min) body.estimated_equity_min = parseInt(query.estimated_equity_min);
-      if (query.estimated_equity_max) body.estimated_equity_max = parseInt(query.estimated_equity_max);
-      if (query.equity_percent_min) body.equity_percent_min = parseInt(query.equity_percent_min);
+      if (query.estimated_value_min)
+        body.estimated_value_min = parseInt(query.estimated_value_min);
+      if (query.estimated_value_max)
+        body.estimated_value_max = parseInt(query.estimated_value_max);
+      if (query.estimated_equity_min)
+        body.estimated_equity_min = parseInt(query.estimated_equity_min);
+      if (query.estimated_equity_max)
+        body.estimated_equity_max = parseInt(query.estimated_equity_max);
+      if (query.equity_percent_min)
+        body.equity_percent_min = parseInt(query.equity_percent_min);
 
       // Boolean filters
       if (query.absentee_owner === "true") body.absentee_owner = true;
@@ -110,7 +119,10 @@ export class PropertySearchController {
       if (query.count === "true") body.count = true;
       if (query.ids_only === "true") body.ids_only = true;
 
-      const response = await this.realEstateService.client.post("/PropertySearch", body);
+      const response = await this.realEstateService.client.post(
+        "/PropertySearch",
+        body,
+      );
       return response.data;
     } catch (error: any) {
       return {
@@ -126,7 +138,10 @@ export class PropertySearchController {
     try {
       // Sanitize body to remove invalid parameters
       const sanitizedBody = sanitizeSearchBody(body);
-      const response = await this.realEstateService.client.post("/PropertySearch", sanitizedBody);
+      const response = await this.realEstateService.client.post(
+        "/PropertySearch",
+        sanitizedBody,
+      );
       return response.data;
     } catch (error: any) {
       return {
@@ -182,7 +197,11 @@ export class PropertyController {
           }
         }),
       );
-      return { results, total: results.length, successful: results.filter((r) => r.success).length };
+      return {
+        results,
+        total: results.length,
+        successful: results.filter((r) => r.success).length,
+      };
     } catch (error: any) {
       return {
         error: true,
@@ -269,55 +288,396 @@ export class PropertyController {
 
   // US Counties by state (fallback data)
   private static readonly COUNTY_DATA: Record<string, string[]> = {
-    AL: ["Jefferson", "Mobile", "Madison", "Montgomery", "Shelby", "Baldwin", "Tuscaloosa", "Lee"],
-    AK: ["Anchorage", "Fairbanks North Star", "Matanuska-Susitna", "Kenai Peninsula"],
-    AZ: ["Maricopa", "Pima", "Pinal", "Yavapai", "Mohave", "Yuma", "Coconino", "Cochise"],
-    AR: ["Pulaski", "Benton", "Washington", "Sebastian", "Faulkner", "Saline", "Craighead"],
-    CA: ["Los Angeles", "San Diego", "Orange", "Riverside", "San Bernardino", "Santa Clara", "Alameda", "Sacramento", "Contra Costa", "Fresno", "Ventura", "San Francisco", "San Mateo", "Kern", "San Joaquin"],
-    CO: ["Denver", "El Paso", "Arapahoe", "Jefferson", "Adams", "Larimer", "Douglas", "Boulder", "Weld"],
-    CT: ["Fairfield", "Hartford", "New Haven", "New London", "Litchfield", "Middlesex", "Tolland", "Windham"],
+    AL: [
+      "Jefferson",
+      "Mobile",
+      "Madison",
+      "Montgomery",
+      "Shelby",
+      "Baldwin",
+      "Tuscaloosa",
+      "Lee",
+    ],
+    AK: [
+      "Anchorage",
+      "Fairbanks North Star",
+      "Matanuska-Susitna",
+      "Kenai Peninsula",
+    ],
+    AZ: [
+      "Maricopa",
+      "Pima",
+      "Pinal",
+      "Yavapai",
+      "Mohave",
+      "Yuma",
+      "Coconino",
+      "Cochise",
+    ],
+    AR: [
+      "Pulaski",
+      "Benton",
+      "Washington",
+      "Sebastian",
+      "Faulkner",
+      "Saline",
+      "Craighead",
+    ],
+    CA: [
+      "Los Angeles",
+      "San Diego",
+      "Orange",
+      "Riverside",
+      "San Bernardino",
+      "Santa Clara",
+      "Alameda",
+      "Sacramento",
+      "Contra Costa",
+      "Fresno",
+      "Ventura",
+      "San Francisco",
+      "San Mateo",
+      "Kern",
+      "San Joaquin",
+    ],
+    CO: [
+      "Denver",
+      "El Paso",
+      "Arapahoe",
+      "Jefferson",
+      "Adams",
+      "Larimer",
+      "Douglas",
+      "Boulder",
+      "Weld",
+    ],
+    CT: [
+      "Fairfield",
+      "Hartford",
+      "New Haven",
+      "New London",
+      "Litchfield",
+      "Middlesex",
+      "Tolland",
+      "Windham",
+    ],
     DE: ["New Castle", "Sussex", "Kent"],
-    FL: ["Miami-Dade", "Broward", "Palm Beach", "Hillsborough", "Orange", "Pinellas", "Duval", "Lee", "Polk", "Brevard", "Volusia", "Pasco", "Seminole", "Sarasota", "Manatee", "Collier"],
-    GA: ["Fulton", "Gwinnett", "Cobb", "DeKalb", "Chatham", "Clayton", "Cherokee", "Forsyth", "Henry", "Richmond"],
+    FL: [
+      "Miami-Dade",
+      "Broward",
+      "Palm Beach",
+      "Hillsborough",
+      "Orange",
+      "Pinellas",
+      "Duval",
+      "Lee",
+      "Polk",
+      "Brevard",
+      "Volusia",
+      "Pasco",
+      "Seminole",
+      "Sarasota",
+      "Manatee",
+      "Collier",
+    ],
+    GA: [
+      "Fulton",
+      "Gwinnett",
+      "Cobb",
+      "DeKalb",
+      "Chatham",
+      "Clayton",
+      "Cherokee",
+      "Forsyth",
+      "Henry",
+      "Richmond",
+    ],
     HI: ["Honolulu", "Hawaii", "Maui", "Kauai"],
     ID: ["Ada", "Canyon", "Kootenai", "Bonneville", "Bannock", "Twin Falls"],
-    IL: ["Cook", "DuPage", "Lake", "Will", "Kane", "McHenry", "Winnebago", "Madison", "St. Clair"],
-    IN: ["Marion", "Lake", "Allen", "Hamilton", "St. Joseph", "Elkhart", "Tippecanoe", "Vanderburgh", "Porter"],
-    IA: ["Polk", "Linn", "Scott", "Johnson", "Black Hawk", "Woodbury", "Dubuque", "Story"],
-    KS: ["Johnson", "Sedgwick", "Shawnee", "Wyandotte", "Douglas", "Leavenworth"],
-    KY: ["Jefferson", "Fayette", "Kenton", "Boone", "Warren", "Hardin", "Daviess"],
-    LA: ["East Baton Rouge", "Jefferson", "Orleans", "St. Tammany", "Caddo", "Calcasieu", "Lafayette"],
+    IL: [
+      "Cook",
+      "DuPage",
+      "Lake",
+      "Will",
+      "Kane",
+      "McHenry",
+      "Winnebago",
+      "Madison",
+      "St. Clair",
+    ],
+    IN: [
+      "Marion",
+      "Lake",
+      "Allen",
+      "Hamilton",
+      "St. Joseph",
+      "Elkhart",
+      "Tippecanoe",
+      "Vanderburgh",
+      "Porter",
+    ],
+    IA: [
+      "Polk",
+      "Linn",
+      "Scott",
+      "Johnson",
+      "Black Hawk",
+      "Woodbury",
+      "Dubuque",
+      "Story",
+    ],
+    KS: [
+      "Johnson",
+      "Sedgwick",
+      "Shawnee",
+      "Wyandotte",
+      "Douglas",
+      "Leavenworth",
+    ],
+    KY: [
+      "Jefferson",
+      "Fayette",
+      "Kenton",
+      "Boone",
+      "Warren",
+      "Hardin",
+      "Daviess",
+    ],
+    LA: [
+      "East Baton Rouge",
+      "Jefferson",
+      "Orleans",
+      "St. Tammany",
+      "Caddo",
+      "Calcasieu",
+      "Lafayette",
+    ],
     ME: ["Cumberland", "York", "Penobscot", "Kennebec", "Androscoggin"],
-    MD: ["Montgomery", "Prince Georges", "Baltimore", "Anne Arundel", "Howard", "Baltimore City", "Harford", "Frederick"],
-    MA: ["Middlesex", "Worcester", "Suffolk", "Essex", "Norfolk", "Bristol", "Plymouth", "Hampden"],
-    MI: ["Wayne", "Oakland", "Macomb", "Kent", "Genesee", "Washtenaw", "Ingham", "Ottawa", "Kalamazoo"],
-    MN: ["Hennepin", "Ramsey", "Dakota", "Anoka", "Washington", "St. Louis", "Olmsted", "Scott", "Wright"],
+    MD: [
+      "Montgomery",
+      "Prince Georges",
+      "Baltimore",
+      "Anne Arundel",
+      "Howard",
+      "Baltimore City",
+      "Harford",
+      "Frederick",
+    ],
+    MA: [
+      "Middlesex",
+      "Worcester",
+      "Suffolk",
+      "Essex",
+      "Norfolk",
+      "Bristol",
+      "Plymouth",
+      "Hampden",
+    ],
+    MI: [
+      "Wayne",
+      "Oakland",
+      "Macomb",
+      "Kent",
+      "Genesee",
+      "Washtenaw",
+      "Ingham",
+      "Ottawa",
+      "Kalamazoo",
+    ],
+    MN: [
+      "Hennepin",
+      "Ramsey",
+      "Dakota",
+      "Anoka",
+      "Washington",
+      "St. Louis",
+      "Olmsted",
+      "Scott",
+      "Wright",
+    ],
     MS: ["Hinds", "Harrison", "DeSoto", "Rankin", "Jackson", "Madison", "Lee"],
-    MO: ["St. Louis", "Jackson", "St. Charles", "St. Louis City", "Greene", "Clay", "Jefferson", "Boone"],
-    MT: ["Yellowstone", "Missoula", "Gallatin", "Flathead", "Cascade", "Lewis and Clark"],
+    MO: [
+      "St. Louis",
+      "Jackson",
+      "St. Charles",
+      "St. Louis City",
+      "Greene",
+      "Clay",
+      "Jefferson",
+      "Boone",
+    ],
+    MT: [
+      "Yellowstone",
+      "Missoula",
+      "Gallatin",
+      "Flathead",
+      "Cascade",
+      "Lewis and Clark",
+    ],
     NE: ["Douglas", "Lancaster", "Sarpy", "Hall", "Buffalo", "Scotts Bluff"],
     NV: ["Clark", "Washoe", "Carson City", "Elko", "Douglas", "Lyon"],
     NH: ["Hillsborough", "Rockingham", "Merrimack", "Strafford", "Grafton"],
-    NJ: ["Bergen", "Middlesex", "Essex", "Hudson", "Monmouth", "Ocean", "Union", "Passaic", "Camden", "Morris", "Burlington"],
-    NM: ["Bernalillo", "Dona Ana", "Santa Fe", "Sandoval", "San Juan", "Valencia"],
-    NY: ["Kings", "Queens", "New York", "Suffolk", "Bronx", "Nassau", "Westchester", "Erie", "Monroe", "Richmond", "Onondaga", "Albany"],
-    NC: ["Mecklenburg", "Wake", "Guilford", "Forsyth", "Cumberland", "Durham", "Buncombe", "Gaston", "New Hanover", "Cabarrus", "Union"],
+    NJ: [
+      "Bergen",
+      "Middlesex",
+      "Essex",
+      "Hudson",
+      "Monmouth",
+      "Ocean",
+      "Union",
+      "Passaic",
+      "Camden",
+      "Morris",
+      "Burlington",
+    ],
+    NM: [
+      "Bernalillo",
+      "Dona Ana",
+      "Santa Fe",
+      "Sandoval",
+      "San Juan",
+      "Valencia",
+    ],
+    NY: [
+      "Kings",
+      "Queens",
+      "New York",
+      "Suffolk",
+      "Bronx",
+      "Nassau",
+      "Westchester",
+      "Erie",
+      "Monroe",
+      "Richmond",
+      "Onondaga",
+      "Albany",
+    ],
+    NC: [
+      "Mecklenburg",
+      "Wake",
+      "Guilford",
+      "Forsyth",
+      "Cumberland",
+      "Durham",
+      "Buncombe",
+      "Gaston",
+      "New Hanover",
+      "Cabarrus",
+      "Union",
+    ],
     ND: ["Cass", "Burleigh", "Grand Forks", "Ward", "Williams", "Stark"],
-    OH: ["Cuyahoga", "Franklin", "Hamilton", "Summit", "Montgomery", "Lucas", "Butler", "Stark", "Lorain", "Warren"],
+    OH: [
+      "Cuyahoga",
+      "Franklin",
+      "Hamilton",
+      "Summit",
+      "Montgomery",
+      "Lucas",
+      "Butler",
+      "Stark",
+      "Lorain",
+      "Warren",
+    ],
     OK: ["Oklahoma", "Tulsa", "Cleveland", "Canadian", "Comanche", "Rogers"],
-    OR: ["Multnomah", "Washington", "Clackamas", "Lane", "Marion", "Jackson", "Deschutes"],
-    PA: ["Philadelphia", "Allegheny", "Montgomery", "Bucks", "Delaware", "Lancaster", "Chester", "York", "Berks", "Lehigh"],
+    OR: [
+      "Multnomah",
+      "Washington",
+      "Clackamas",
+      "Lane",
+      "Marion",
+      "Jackson",
+      "Deschutes",
+    ],
+    PA: [
+      "Philadelphia",
+      "Allegheny",
+      "Montgomery",
+      "Bucks",
+      "Delaware",
+      "Lancaster",
+      "Chester",
+      "York",
+      "Berks",
+      "Lehigh",
+    ],
     RI: ["Providence", "Kent", "Washington", "Newport", "Bristol"],
-    SC: ["Greenville", "Richland", "Charleston", "Horry", "Spartanburg", "Lexington", "York"],
-    SD: ["Minnehaha", "Pennington", "Lincoln", "Brown", "Brookings", "Codington"],
-    TN: ["Shelby", "Davidson", "Knox", "Hamilton", "Rutherford", "Williamson", "Sumner", "Montgomery"],
-    TX: ["Harris", "Dallas", "Tarrant", "Bexar", "Travis", "Collin", "Hidalgo", "El Paso", "Denton", "Fort Bend", "Montgomery", "Williamson", "Cameron"],
+    SC: [
+      "Greenville",
+      "Richland",
+      "Charleston",
+      "Horry",
+      "Spartanburg",
+      "Lexington",
+      "York",
+    ],
+    SD: [
+      "Minnehaha",
+      "Pennington",
+      "Lincoln",
+      "Brown",
+      "Brookings",
+      "Codington",
+    ],
+    TN: [
+      "Shelby",
+      "Davidson",
+      "Knox",
+      "Hamilton",
+      "Rutherford",
+      "Williamson",
+      "Sumner",
+      "Montgomery",
+    ],
+    TX: [
+      "Harris",
+      "Dallas",
+      "Tarrant",
+      "Bexar",
+      "Travis",
+      "Collin",
+      "Hidalgo",
+      "El Paso",
+      "Denton",
+      "Fort Bend",
+      "Montgomery",
+      "Williamson",
+      "Cameron",
+    ],
     UT: ["Salt Lake", "Utah", "Davis", "Weber", "Washington", "Cache"],
     VT: ["Chittenden", "Rutland", "Washington", "Windsor", "Windham"],
-    VA: ["Fairfax", "Prince William", "Virginia Beach City", "Loudoun", "Chesterfield", "Henrico", "Arlington", "Norfolk City", "Richmond City"],
-    WA: ["King", "Pierce", "Snohomish", "Spokane", "Clark", "Thurston", "Kitsap", "Yakima", "Whatcom"],
+    VA: [
+      "Fairfax",
+      "Prince William",
+      "Virginia Beach City",
+      "Loudoun",
+      "Chesterfield",
+      "Henrico",
+      "Arlington",
+      "Norfolk City",
+      "Richmond City",
+    ],
+    WA: [
+      "King",
+      "Pierce",
+      "Snohomish",
+      "Spokane",
+      "Clark",
+      "Thurston",
+      "Kitsap",
+      "Yakima",
+      "Whatcom",
+    ],
     WV: ["Kanawha", "Berkeley", "Cabell", "Monongalia", "Wood", "Raleigh"],
-    WI: ["Milwaukee", "Dane", "Waukesha", "Brown", "Racine", "Outagamie", "Winnebago", "Kenosha"],
+    WI: [
+      "Milwaukee",
+      "Dane",
+      "Waukesha",
+      "Brown",
+      "Racine",
+      "Outagamie",
+      "Winnebago",
+      "Kenosha",
+    ],
     WY: ["Laramie", "Natrona", "Campbell", "Sweetwater", "Fremont", "Albany"],
   };
 
@@ -337,9 +697,16 @@ export class PropertyController {
           { search: "", state, type: "county" },
         );
 
-        if (response.data?.data && Array.isArray(response.data.data) && response.data.data.length > 0) {
+        if (
+          response.data?.data &&
+          Array.isArray(response.data.data) &&
+          response.data.data.length > 0
+        ) {
           const counties = response.data.data
-            .map((item: { county?: string; name?: string }) => item.county || item.name || item)
+            .map(
+              (item: { county?: string; name?: string }) =>
+                item.county || item.name || item,
+            )
             .filter(Boolean);
           return { counties };
         }
@@ -348,7 +715,8 @@ export class PropertyController {
       }
 
       // Fallback to static data
-      const counties = PropertyController.COUNTY_DATA[state.toUpperCase()] || [];
+      const counties =
+        PropertyController.COUNTY_DATA[state.toUpperCase()] || [];
       return { counties: counties.sort() };
     }
 

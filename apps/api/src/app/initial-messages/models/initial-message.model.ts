@@ -4,13 +4,20 @@ import { WithConnection, WithEdge } from "@/app/apollo/graphql-relay";
 import { Maybe, MaybeString } from "@/app/apollo/types/maybe.type";
 import { initialMessagesTable } from "@/database/schema-alias";
 import { Field, ObjectType } from "@nestjs/graphql";
-import { AnyObject, InitialMessageCategory, MessageTone } from "@nextier/common";
+import {
+  AnyObject,
+  InitialMessageCategory,
+  MessageTone,
+} from "@nextier/common";
 
 export type InitialMessageSelect = typeof initialMessagesTable.$inferSelect;
 export type InitialMessageInsert = typeof initialMessagesTable.$inferInsert;
 
 @ObjectType()
-export class InitialMessage extends TimestampModel implements InitialMessageSelect {
+export class InitialMessage
+  extends TimestampModel
+  implements InitialMessageSelect
+{
   teamId: string;
 
   @StringField()
@@ -71,4 +78,6 @@ export class InitialMessage extends TimestampModel implements InitialMessageSele
 export class InitialMessageEdge extends WithEdge(InitialMessage) {}
 
 @ObjectType()
-export class InitialMessageConnection extends WithConnection(InitialMessageEdge) {}
+export class InitialMessageConnection extends WithConnection(
+  InitialMessageEdge,
+) {}

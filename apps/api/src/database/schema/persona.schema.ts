@@ -60,7 +60,7 @@ export const personas = pgTable(
     index().on(t.primarySource),
     index().on(t.skipTraceCompleted),
     index().on(t.apolloCompleted),
-  ]
+  ],
 );
 
 export const personasRef = (config?: { onDelete?: "cascade" | "set null" }) =>
@@ -79,8 +79,5 @@ export const personaMergeHistory = pgTable(
     mergedBy: varchar(), // 'auto' | 'manual' | user ID
     createdAt,
   },
-  (t) => [
-    index().on(t.teamId),
-    index().on(t.survivorId),
-  ]
+  (t) => [index().on(t.teamId), index().on(t.survivorId)],
 );

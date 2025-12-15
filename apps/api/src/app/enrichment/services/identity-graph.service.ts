@@ -47,7 +47,10 @@ export class IdentityGraphService {
   /**
    * Find potential matches for a persona
    */
-  async findPotentialMatches(teamId: string, personaId: string): Promise<IdentityMatchResult[]> {
+  async findPotentialMatches(
+    teamId: string,
+    personaId: string,
+  ): Promise<IdentityMatchResult[]> {
     this.logger.log(`Finding potential matches for persona ${personaId}`);
 
     // Get source persona with all contact info
@@ -58,7 +61,11 @@ export class IdentityGraphService {
     }
 
     // Find candidates with matching phone, email, or similar name
-    const candidates = await this.findCandidates(teamId, personaId, sourceRecord);
+    const candidates = await this.findCandidates(
+      teamId,
+      personaId,
+      sourceRecord,
+    );
     if (candidates.length === 0) {
       return [];
     }
@@ -66,19 +73,24 @@ export class IdentityGraphService {
     // Score matches
     const matches = findMatches(sourceRecord, candidates, DEFAULT_MERGE_CONFIG);
 
-    this.logger.log(`Found ${matches.length} potential matches for persona ${personaId}`);
+    this.logger.log(
+      `Found ${matches.length} potential matches for persona ${personaId}`,
+    );
     return matches;
   }
 
   /**
    * Auto-merge personas that exceed threshold
    */
-  async autoMergePersona(teamId: string, personaId: string): Promise<IdentityMergeResult | null> {
+  async autoMergePersona(
+    teamId: string,
+    personaId: string,
+  ): Promise<IdentityMergeResult | null> {
     const matches = await this.findPotentialMatches(teamId, personaId);
 
     // Filter to high-confidence matches
     const autoMergeMatches = matches.filter(
-      (m) => m.shouldMerge && m.confidence === "high"
+      (m) => m.shouldMerge && m.confidence === "high",
     );
 
     if (autoMergeMatches.length === 0) {
@@ -93,7 +105,13 @@ export class IdentityGraphService {
       const targetId = match.targetId;
 
       // Merge target into source
-      await this.mergePersonas(teamId, personaId, targetId, match.overallScore, "auto");
+      await this.mergePersonas(
+        teamId,
+        personaId,
+        targetId,
+        match.overallScore,
+        "auto",
+      );
 
       mergedIds.push(targetId);
       matchScores.push(match.overallScore);
@@ -108,7 +126,7 @@ export class IdentityGraphService {
     });
 
     this.logger.log(
-      `Auto-merged ${mergedIds.length} personas into ${personaId}`
+      `Auto-merged ${mergedIds.length} personas into ${personaId}`,
     );
 
     return {
@@ -128,7 +146,7 @@ export class IdentityGraphService {
     survivorId: string,
     mergedId: string,
     matchScore: number,
-    mergedBy: string
+    mergedBy: string,
   ): Promise<void> {
     this.logger.log(`Merging persona ${mergedId} into ${survivorId}`);
 
@@ -181,7 +199,10 @@ export class IdentityGraphService {
         .update(personas)
         .set({
           mergedFromIds,
-          confidenceScore: Math.min(1.0, (survivor.confidenceScore || 1) + 0.05),
+          confidenceScore: Math.min(
+            1.0,
+            (survivor.confidenceScore || 1) + 0.05,
+          ),
         })
         .where(eq(personas.id, survivorId));
     }
@@ -207,7 +228,8 @@ export class IdentityGraphService {
 
     // Get all active personas
     const allPersonas = await this.db.query.personas.findMany({
-      where: (t, { eq, and }) => and(eq(t.teamId, teamId), eq(t.isActive, true)),
+      where: (t, { eq, and }) =>
+        and(eq(t.teamId, teamId), eq(t.isActive, true)),
     });
 
     if (allPersonas.length === 0) {
@@ -233,14 +255,20 @@ export class IdentityGraphService {
         const [primary, ...others] = cluster.recordIds;
 
         for (const otherId of others) {
-          await this.mergePersonas(teamId, primary, otherId, cluster.confidence, "auto_cluster");
+          await this.mergePersonas(
+            teamId,
+            primary,
+            otherId,
+            cluster.confidence,
+            "auto_cluster",
+          );
           autoMerged++;
         }
       }
     }
 
     this.logger.log(
-      `Clustering complete: ${allPersonas.length} personas -> ${clusters.length} clusters, ${autoMerged} auto-merged`
+      `Clustering complete: ${allPersonas.length} personas -> ${clusters.length} clusters, ${autoMerged} auto-merged`,
     );
 
     return {
@@ -255,7 +283,7 @@ export class IdentityGraphService {
    */
   private async buildIdentityRecord(
     teamId: string,
-    personaId: string
+    personaId: string,
   ): Promise<IdentityRecord | null> {
     const persona = await this.db.query.personas.findFirst({
       where: (t, { eq, and }) => and(eq(t.id, personaId), eq(t.teamId, teamId)),
@@ -277,7 +305,13 @@ export class IdentityGraphService {
 
     return {
       id: persona.id,
-      sourceType: (persona.primarySource as 'business' | 'property' | 'consumer' | 'skiptrace' | 'apollo') || "skiptrace",
+      sourceType:
+        (persona.primarySource as
+          | "business"
+          | "property"
+          | "consumer"
+          | "skiptrace"
+          | "apollo") || "skiptrace",
       sourceId: persona.id,
       firstName: persona.firstName,
       lastName: persona.lastName,
@@ -315,7 +349,7 @@ export class IdentityGraphService {
   private async findCandidates(
     teamId: string,
     excludeId: string,
-    source: IdentityRecord
+    source: IdentityRecord,
   ): Promise<IdentityRecord[]> {
     const candidateIds = new Set<string>();
 
@@ -339,7 +373,10 @@ export class IdentityGraphService {
       const emailAddresses = source.emails.map((e) => e.address);
       const emailMatches = await this.db.query.personaEmails.findMany({
         where: (t, { and, eq, inArray }) =>
-          and(eq(t.teamId, teamId), inArray(t.normalizedAddress, emailAddresses)),
+          and(
+            eq(t.teamId, teamId),
+            inArray(t.normalizedAddress, emailAddresses),
+          ),
       });
 
       emailMatches.forEach((m) => {
@@ -357,7 +394,7 @@ export class IdentityGraphService {
           eq(t.teamId, teamId),
           eq(t.isActive, true),
           ne(t.id, excludeId),
-          like(t.normalizedLastName, `${lastNamePrefix}%`)
+          like(t.normalizedLastName, `${lastNamePrefix}%`),
         ),
       limit: 50,
     });

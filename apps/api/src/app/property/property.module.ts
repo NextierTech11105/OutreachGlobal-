@@ -4,7 +4,10 @@ import { RealEstateService } from "./services/real-estate.service";
 import { RealEstateSearchService } from "./services/real-estate-search.service";
 import { TeamModule } from "../team/team.module";
 import { PropertyResolver } from "./resolvers/property.resolver";
-import { PropertyController, PropertySearchController } from "./controllers/property.controller";
+import {
+  PropertyController,
+  PropertySearchController,
+} from "./controllers/property.controller";
 
 @CustomModule({
   imports: [ConfigModule, TeamModule],

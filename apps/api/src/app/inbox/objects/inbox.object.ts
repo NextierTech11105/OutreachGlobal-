@@ -1,7 +1,13 @@
 import { ObjectType, Field, Int } from "@nestjs/graphql";
 import { InboxItem, InboxItemSelect } from "../models/inbox-item.model";
-import { ResponseBucket, ResponseBucketSelect } from "../models/response-bucket.model";
-import { SuppressionEntry, SuppressionEntrySelect } from "../models/suppression-entry.model";
+import {
+  ResponseBucket,
+  ResponseBucketSelect,
+} from "../models/response-bucket.model";
+import {
+  SuppressionEntry,
+  SuppressionEntrySelect,
+} from "../models/suppression-entry.model";
 import { StringField, IntField } from "@/app/apollo/decorators";
 import { BucketType } from "@nextier/common";
 

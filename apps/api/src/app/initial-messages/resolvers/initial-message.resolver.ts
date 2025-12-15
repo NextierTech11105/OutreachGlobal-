@@ -7,7 +7,10 @@ import {
   ResolveField,
   Resolver,
 } from "@nestjs/graphql";
-import { InitialMessage, InitialMessageConnection } from "../models/initial-message.model";
+import {
+  InitialMessage,
+  InitialMessageConnection,
+} from "../models/initial-message.model";
 import { CampaignInitialMessage } from "../models/campaign-initial-message.model";
 import { SdrCampaignConfig } from "../models/sdr-campaign-config.model";
 import { Auth, UseAuthGuard } from "@/app/auth/decorators";
@@ -56,7 +59,10 @@ export class InitialMessageResolver extends BaseResolver(InitialMessage) {
   }
 
   @Query(() => InitialMessageConnection)
-  async initialMessages(@Auth() user: User, @Args() args: InitialMessageConnectionArgs) {
+  async initialMessages(
+    @Auth() user: User,
+    @Args() args: InitialMessageConnectionArgs,
+  ) {
     const team = await this.teamService.findById(args.teamId);
     await this.teamPolicy.can().read(user, team);
     return this.service.paginate({
@@ -67,35 +73,54 @@ export class InitialMessageResolver extends BaseResolver(InitialMessage) {
   }
 
   @Query(() => InitialMessage)
-  async initialMessage(@Auth() user: User, @Args() args: FindOneInitialMessageArgs) {
+  async initialMessage(
+    @Auth() user: User,
+    @Args() args: FindOneInitialMessageArgs,
+  ) {
     const team = await this.teamService.findById(args.teamId);
     await this.teamPolicy.can().read(user, team);
     return this.service.findOneOrFail(team.id, args.id);
   }
 
   @Query(() => [CampaignInitialMessage])
-  async campaignInitialMessages(@Auth() user: User, @Args() args: CampaignMessagesArgs) {
+  async campaignInitialMessages(
+    @Auth() user: User,
+    @Args() args: CampaignMessagesArgs,
+  ) {
     const team = await this.teamService.findById(args.teamId);
     await this.teamPolicy.can().read(user, team);
     return this.service.getCampaignMessages(args.campaignId);
   }
 
   @Query(() => SdrCampaignConfig)
-  async sdrCampaignConfig(@Auth() user: User, @Args() args: SdrCampaignConfigArgs) {
+  async sdrCampaignConfig(
+    @Auth() user: User,
+    @Args() args: SdrCampaignConfigArgs,
+  ) {
     const team = await this.teamService.findById(args.teamId);
     await this.teamPolicy.can().read(user, team);
-    return this.service.getOrCreateSdrConfig(team.id, args.sdrId, args.campaignId);
+    return this.service.getOrCreateSdrConfig(
+      team.id,
+      args.sdrId,
+      args.campaignId,
+    );
   }
 
   @Query(() => [MessageCategoryStats])
-  async messageCategoryStats(@Auth() user: User, @Args() args: MessageCategoriesArgs) {
+  async messageCategoryStats(
+    @Auth() user: User,
+    @Args() args: MessageCategoriesArgs,
+  ) {
     const team = await this.teamService.findById(args.teamId);
     await this.teamPolicy.can().read(user, team);
     return this.service.getCategoryStats(team.id);
   }
 
   @Query(() => [MessagePerformance])
-  async topPerformingMessages(@Auth() user: User, @Args() args: TopPerformingMessagesArgs) {
+  async topPerformingMessages(
+    @Auth() user: User,
+    @Args() args: TopPerformingMessagesArgs,
+  ) {
     const team = await this.teamService.findById(args.teamId);
     await this.teamPolicy.can().read(user, team);
     return this.service.getTopPerforming(team.id, args.category);
@@ -109,7 +134,7 @@ export class InitialMessageResolver extends BaseResolver(InitialMessage) {
   @Mutation(() => CreateInitialMessagePayload)
   async createInitialMessage(
     @Auth() user: User,
-    @Args() args: CreateInitialMessageArgs
+    @Args() args: CreateInitialMessageArgs,
   ): Promise<CreateInitialMessagePayload> {
     const team = await this.teamService.findById(args.teamId);
     await this.teamPolicy.can().read(user, team);
@@ -123,7 +148,7 @@ export class InitialMessageResolver extends BaseResolver(InitialMessage) {
   @Mutation(() => UpdateInitialMessagePayload)
   async updateInitialMessage(
     @Auth() user: User,
-    @Args() args: UpdateInitialMessageArgs
+    @Args() args: UpdateInitialMessageArgs,
   ): Promise<UpdateInitialMessagePayload> {
     const team = await this.teamService.findById(args.teamId);
     await this.teamPolicy.can().read(user, team);
@@ -133,7 +158,7 @@ export class InitialMessageResolver extends BaseResolver(InitialMessage) {
   @Mutation(() => DeleteInitialMessagePayload)
   async deleteInitialMessage(
     @Auth() user: User,
-    @Args() args: DeleteInitialMessageArgs
+    @Args() args: DeleteInitialMessageArgs,
   ): Promise<DeleteInitialMessagePayload> {
     const team = await this.teamService.findById(args.teamId);
     await this.teamPolicy.can().read(user, team);
@@ -143,7 +168,7 @@ export class InitialMessageResolver extends BaseResolver(InitialMessage) {
   @Mutation(() => CreateInitialMessagePayload)
   async createMessageVariant(
     @Auth() user: User,
-    @Args() args: CreateMessageVariantArgs
+    @Args() args: CreateMessageVariantArgs,
   ): Promise<CreateInitialMessagePayload> {
     const team = await this.teamService.findById(args.teamId);
     await this.teamPolicy.can().read(user, team);
@@ -151,14 +176,14 @@ export class InitialMessageResolver extends BaseResolver(InitialMessage) {
       team.id,
       args.input.parentMessageId,
       args.input.variantName,
-      args.input.content
+      args.input.content,
     );
   }
 
   @Mutation(() => AssignMessageToCampaignPayload)
   async assignMessageToCampaign(
     @Auth() user: User,
-    @Args() args: AssignMessageToCampaignArgs
+    @Args() args: AssignMessageToCampaignArgs,
   ): Promise<AssignMessageToCampaignPayload> {
     const team = await this.teamService.findById(args.teamId);
     await this.teamPolicy.can().read(user, team);
@@ -170,28 +195,36 @@ export class InitialMessageResolver extends BaseResolver(InitialMessage) {
         assignedSdrId: args.input.assignedSdrId || undefined,
         position: args.input.position,
         weight: args.input.weight,
-      }
+      },
     );
   }
 
   @Mutation(() => RemoveMessageFromCampaignPayload)
   async removeMessageFromCampaign(
     @Auth() user: User,
-    @Args() args: RemoveMessageFromCampaignArgs
+    @Args() args: RemoveMessageFromCampaignArgs,
   ): Promise<RemoveMessageFromCampaignPayload> {
     const team = await this.teamService.findById(args.teamId);
     await this.teamPolicy.can().read(user, team);
-    return this.service.removeFromCampaign(args.campaignId, args.initialMessageId);
+    return this.service.removeFromCampaign(
+      args.campaignId,
+      args.initialMessageId,
+    );
   }
 
   @Mutation(() => UpdateSdrCampaignConfigPayload)
   async updateSdrCampaignConfig(
     @Auth() user: User,
-    @Args() args: UpdateSdrCampaignConfigArgs
+    @Args() args: UpdateSdrCampaignConfigArgs,
   ): Promise<UpdateSdrCampaignConfigPayload> {
     const team = await this.teamService.findById(args.teamId);
     await this.teamPolicy.can().read(user, team);
-    return this.service.updateSdrConfig(team.id, args.sdrId, args.campaignId, args.input);
+    return this.service.updateSdrConfig(
+      team.id,
+      args.sdrId,
+      args.campaignId,
+      args.input,
+    );
   }
 
   @ResolveField(() => [InitialMessage])

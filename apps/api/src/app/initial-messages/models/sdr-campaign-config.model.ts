@@ -5,11 +5,16 @@ import { sdrCampaignConfigsTable } from "@/database/schema-alias";
 import { Field, ObjectType } from "@nestjs/graphql";
 import { AnyObject } from "@nextier/common";
 
-export type SdrCampaignConfigSelect = typeof sdrCampaignConfigsTable.$inferSelect;
-export type SdrCampaignConfigInsert = typeof sdrCampaignConfigsTable.$inferInsert;
+export type SdrCampaignConfigSelect =
+  typeof sdrCampaignConfigsTable.$inferSelect;
+export type SdrCampaignConfigInsert =
+  typeof sdrCampaignConfigsTable.$inferInsert;
 
 @ObjectType()
-export class SdrCampaignConfig extends TimestampModel implements SdrCampaignConfigSelect {
+export class SdrCampaignConfig
+  extends TimestampModel
+  implements SdrCampaignConfigSelect
+{
   teamId: string;
 
   @StringField()

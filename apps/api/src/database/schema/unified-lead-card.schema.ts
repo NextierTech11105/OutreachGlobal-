@@ -30,7 +30,9 @@ export const unifiedLeadCards = pgTable(
     personaId: personasRef({ onDelete: "cascade" }).notNull(),
     // Associated entities
     businessId: businessesRef({ onDelete: "set null" }),
-    propertyId: ulidColumn().references(() => properties.id, { onDelete: "set null" }),
+    propertyId: ulidColumn().references(() => properties.id, {
+      onDelete: "set null",
+    }),
     // Denormalized identity (for quick access)
     firstName: varchar().notNull(),
     lastName: varchar().notNull(),
@@ -118,11 +120,12 @@ export const unifiedLeadCards = pgTable(
     index().on(t.isDecisionMaker),
     index().on(t.createdAt),
     index().on(t.lastActivityAt),
-  ]
+  ],
 );
 
-export const unifiedLeadCardsRef = (config?: { onDelete?: "cascade" | "set null" }) =>
-  ulidColumn().references(() => unifiedLeadCards.id, config);
+export const unifiedLeadCardsRef = (config?: {
+  onDelete?: "cascade" | "set null";
+}) => ulidColumn().references(() => unifiedLeadCards.id, config);
 
 // Lead activity tracking
 export const leadActivities = pgTable(
@@ -150,7 +153,7 @@ export const leadActivities = pgTable(
     index().on(t.leadCardId),
     index().on(t.activityType),
     index().on(t.createdAt),
-  ]
+  ],
 );
 
 // Campaign queue for scheduled outreach
@@ -191,5 +194,5 @@ export const campaignQueue = pgTable(
     index().on(t.priority),
     index().on(t.scheduledAt),
     index().on(t.processAfter),
-  ]
+  ],
 );

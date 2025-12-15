@@ -97,7 +97,7 @@ export class PersonaRepository {
   async findByName(
     teamId: string,
     firstName: string,
-    lastName: string
+    lastName: string,
   ): Promise<typeof personas.$inferSelect | null> {
     const normalizedFirst = firstName.toLowerCase().trim();
     const normalizedLast = lastName.toLowerCase().trim();
@@ -108,7 +108,7 @@ export class PersonaRepository {
           eq(t.teamId, teamId),
           eq(t.normalizedFirstName, normalizedFirst),
           eq(t.normalizedLastName, normalizedLast),
-          eq(t.isActive, true)
+          eq(t.isActive, true),
         ),
     });
     return result || null;
@@ -145,7 +145,9 @@ export class PersonaRepository {
   /**
    * Get persona with all contacts
    */
-  async getWithContacts(personaId: string): Promise<PersonaWithContacts | null> {
+  async getWithContacts(
+    personaId: string,
+  ): Promise<PersonaWithContacts | null> {
     const persona = await this.db.query.personas.findFirst({
       where: (t, { eq }) => eq(t.id, personaId),
     });
@@ -197,9 +199,12 @@ export class PersonaRepository {
    */
   async listNeedingEnrichment(
     teamId: string,
-    options: { skipTrace?: boolean; apollo?: boolean; limit?: number } = {}
+    options: { skipTrace?: boolean; apollo?: boolean; limit?: number } = {},
   ): Promise<Array<typeof personas.$inferSelect>> {
-    const conditions = [eq(personas.teamId, teamId), eq(personas.isActive, true)];
+    const conditions = [
+      eq(personas.teamId, teamId),
+      eq(personas.isActive, true),
+    ];
 
     if (options.skipTrace) {
       conditions.push(eq(personas.skipTraceCompleted, false));
@@ -229,13 +234,16 @@ export class PersonaRepository {
     needsEnrichment: number;
   }> {
     const all = await this.db.query.personas.findMany({
-      where: (t, { eq, and }) => and(eq(t.teamId, teamId), eq(t.isActive, true)),
+      where: (t, { eq, and }) =>
+        and(eq(t.teamId, teamId), eq(t.isActive, true)),
     });
 
     const total = all.length;
     const skipTraceComplete = all.filter((p) => p.skipTraceCompleted).length;
     const apolloComplete = all.filter((p) => p.apolloCompleted).length;
-    const fullyEnriched = all.filter((p) => p.skipTraceCompleted && p.apolloCompleted).length;
+    const fullyEnriched = all.filter(
+      (p) => p.skipTraceCompleted && p.apolloCompleted,
+    ).length;
     const needsEnrichment = total - fullyEnriched;
 
     return {

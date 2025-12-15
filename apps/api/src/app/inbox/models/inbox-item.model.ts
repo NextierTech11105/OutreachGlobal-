@@ -4,7 +4,12 @@ import { WithConnection, WithEdge } from "@/app/apollo/graphql-relay";
 import { Maybe, MaybeString } from "@/app/apollo/types/maybe.type";
 import { inboxItemsTable } from "@/database/schema-alias";
 import { Field, ObjectType } from "@nestjs/graphql";
-import { AnyObject, BucketType, InboxPriority, ResponseClassification } from "@nextier/common";
+import {
+  AnyObject,
+  BucketType,
+  InboxPriority,
+  ResponseClassification,
+} from "@nextier/common";
 
 export type InboxItemSelect = typeof inboxItemsTable.$inferSelect;
 export type InboxItemInsert = typeof inboxItemsTable.$inferInsert;

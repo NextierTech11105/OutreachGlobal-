@@ -20,14 +20,17 @@ export class InitialMessageService {
   /**
    * Paginate initial messages
    */
-  async paginate(args: InitialMessageFilter & { first?: number; after?: string }) {
+  async paginate(
+    args: InitialMessageFilter & { first?: number; after?: string },
+  ) {
     const { teamId, category, tone, isActive, sdrId, searchQuery } = args;
 
     const conditions = [eq(initialMessagesTable.teamId, teamId)];
 
     if (category) conditions.push(eq(initialMessagesTable.category, category));
     if (tone) conditions.push(eq(initialMessagesTable.tone, tone));
-    if (isActive !== undefined) conditions.push(eq(initialMessagesTable.isActive, isActive));
+    if (isActive !== undefined)
+      conditions.push(eq(initialMessagesTable.isActive, isActive));
     if (sdrId) conditions.push(eq(initialMessagesTable.defaultSdrId, sdrId));
     if (searchQuery) {
       conditions.push(ilike(initialMessagesTable.name, `%${searchQuery}%`));
@@ -35,7 +38,10 @@ export class InitialMessageService {
 
     const messages = await this.db.query.initialMessages.findMany({
       where: and(...conditions),
-      orderBy: [desc(initialMessagesTable.positiveResponseRate), desc(initialMessagesTable.timesUsed)],
+      orderBy: [
+        desc(initialMessagesTable.positiveResponseRate),
+        desc(initialMessagesTable.timesUsed),
+      ],
       limit: args.first ?? 50,
     });
 
@@ -55,7 +61,10 @@ export class InitialMessageService {
    */
   async findOne(teamId: string, id: string) {
     return this.db.query.initialMessages.findFirst({
-      where: and(eq(initialMessagesTable.teamId, teamId), eq(initialMessagesTable.id, id)),
+      where: and(
+        eq(initialMessagesTable.teamId, teamId),
+        eq(initialMessagesTable.id, id),
+      ),
     });
   }
 
@@ -81,7 +90,7 @@ export class InitialMessageService {
       tone?: MessageTone;
       tags?: string[];
       defaultSdrId?: string;
-    }
+    },
   ) {
     const [message] = await this.db
       .insert(initialMessagesTable)
@@ -105,11 +114,20 @@ export class InitialMessageService {
   /**
    * Update initial message
    */
-  async update(teamId: string, id: string, data: Partial<typeof initialMessagesTable.$inferInsert>) {
+  async update(
+    teamId: string,
+    id: string,
+    data: Partial<typeof initialMessagesTable.$inferInsert>,
+  ) {
     const [message] = await this.db
       .update(initialMessagesTable)
       .set({ ...data, updatedAt: new Date() })
-      .where(and(eq(initialMessagesTable.teamId, teamId), eq(initialMessagesTable.id, id)))
+      .where(
+        and(
+          eq(initialMessagesTable.teamId, teamId),
+          eq(initialMessagesTable.id, id),
+        ),
+      )
       .returning();
 
     if (!message) throw new ModelNotFoundError("Initial message not found");
@@ -122,7 +140,12 @@ export class InitialMessageService {
   async delete(teamId: string, id: string) {
     const [deleted] = await this.db
       .delete(initialMessagesTable)
-      .where(and(eq(initialMessagesTable.teamId, teamId), eq(initialMessagesTable.id, id)))
+      .where(
+        and(
+          eq(initialMessagesTable.teamId, teamId),
+          eq(initialMessagesTable.id, id),
+        ),
+      )
       .returning();
 
     if (!deleted) throw new ModelNotFoundError("Initial message not found");
@@ -132,7 +155,12 @@ export class InitialMessageService {
   /**
    * Create message variant for A/B testing
    */
-  async createVariant(teamId: string, parentMessageId: string, variantName: string, content: string) {
+  async createVariant(
+    teamId: string,
+    parentMessageId: string,
+    variantName: string,
+    content: string,
+  ) {
     const parent = await this.findOneOrFail(teamId, parentMessageId);
 
     const [variant] = await this.db
@@ -162,7 +190,7 @@ export class InitialMessageService {
     teamId: string,
     campaignId: string,
     initialMessageId: string,
-    options?: { assignedSdrId?: string; position?: number; weight?: number }
+    options?: { assignedSdrId?: string; position?: number; weight?: number },
   ) {
     // Verify message exists
     await this.findOneOrFail(teamId, initialMessageId);
@@ -193,12 +221,13 @@ export class InitialMessageService {
       .where(
         and(
           eq(campaignInitialMessagesTable.campaignId, campaignId),
-          eq(campaignInitialMessagesTable.initialMessageId, initialMessageId)
-        )
+          eq(campaignInitialMessagesTable.initialMessageId, initialMessageId),
+        ),
       )
       .returning();
 
-    if (!deleted) throw new ModelNotFoundError("Campaign message assignment not found");
+    if (!deleted)
+      throw new ModelNotFoundError("Campaign message assignment not found");
     return { removedAssignmentId: deleted.id };
   }
 
@@ -215,11 +244,15 @@ export class InitialMessageService {
   /**
    * Get or create SDR campaign config
    */
-  async getOrCreateSdrConfig(teamId: string, sdrId: string, campaignId: string) {
+  async getOrCreateSdrConfig(
+    teamId: string,
+    sdrId: string,
+    campaignId: string,
+  ) {
     let config = await this.db.query.sdrCampaignConfigs.findFirst({
       where: and(
         eq(sdrCampaignConfigsTable.sdrId, sdrId),
-        eq(sdrCampaignConfigsTable.campaignId, campaignId)
+        eq(sdrCampaignConfigsTable.campaignId, campaignId),
       ),
     });
 
@@ -244,7 +277,7 @@ export class InitialMessageService {
     teamId: string,
     sdrId: string,
     campaignId: string,
-    data: Partial<typeof sdrCampaignConfigsTable.$inferInsert>
+    data: Partial<typeof sdrCampaignConfigsTable.$inferInsert>,
   ) {
     // Get or create config first
     await this.getOrCreateSdrConfig(teamId, sdrId, campaignId);
@@ -255,8 +288,8 @@ export class InitialMessageService {
       .where(
         and(
           eq(sdrCampaignConfigsTable.sdrId, sdrId),
-          eq(sdrCampaignConfigsTable.campaignId, campaignId)
-        )
+          eq(sdrCampaignConfigsTable.campaignId, campaignId),
+        ),
       )
       .returning();
 
@@ -271,10 +304,17 @@ export class InitialMessageService {
       where: eq(initialMessagesTable.teamId, teamId),
     });
 
-    const categoryMap = new Map<string, { count: number; activeCount: number; totalResponseRate: number }>();
+    const categoryMap = new Map<
+      string,
+      { count: number; activeCount: number; totalResponseRate: number }
+    >();
 
     for (const msg of messages) {
-      const existing = categoryMap.get(msg.category) || { count: 0, activeCount: 0, totalResponseRate: 0 };
+      const existing = categoryMap.get(msg.category) || {
+        count: 0,
+        activeCount: 0,
+        totalResponseRate: 0,
+      };
       existing.count++;
       if (msg.isActive) existing.activeCount++;
       existing.totalResponseRate += msg.responseRate || 0;
@@ -285,14 +325,19 @@ export class InitialMessageService {
       category,
       count: stats.count,
       activeCount: stats.activeCount,
-      avgResponseRate: stats.count > 0 ? Math.round(stats.totalResponseRate / stats.count) : 0,
+      avgResponseRate:
+        stats.count > 0 ? Math.round(stats.totalResponseRate / stats.count) : 0,
     }));
   }
 
   /**
    * Get top performing messages
    */
-  async getTopPerforming(teamId: string, category?: InitialMessageCategory, limit = 10) {
+  async getTopPerforming(
+    teamId: string,
+    category?: InitialMessageCategory,
+    limit = 10,
+  ) {
     const conditions = [
       eq(initialMessagesTable.teamId, teamId),
       eq(initialMessagesTable.isActive, true),
@@ -319,7 +364,11 @@ export class InitialMessageService {
   /**
    * Update message metrics after use
    */
-  async recordMessageUsage(messageId: string, hadResponse: boolean, wasPositive: boolean) {
+  async recordMessageUsage(
+    messageId: string,
+    hadResponse: boolean,
+    wasPositive: boolean,
+  ) {
     const message = await this.db.query.initialMessages.findFirst({
       where: eq(initialMessagesTable.id, messageId),
     });
@@ -327,11 +376,15 @@ export class InitialMessageService {
     if (!message) return;
 
     const newTimesUsed = message.timesUsed + 1;
-    const oldResponseCount = Math.round((message.responseRate || 0) * message.timesUsed / 100);
+    const oldResponseCount = Math.round(
+      ((message.responseRate || 0) * message.timesUsed) / 100,
+    );
     const newResponseCount = oldResponseCount + (hadResponse ? 1 : 0);
     const newResponseRate = Math.round((newResponseCount / newTimesUsed) * 100);
 
-    const oldPositiveCount = Math.round((message.positiveResponseRate || 0) * message.timesUsed / 100);
+    const oldPositiveCount = Math.round(
+      ((message.positiveResponseRate || 0) * message.timesUsed) / 100,
+    );
     const newPositiveCount = oldPositiveCount + (wasPositive ? 1 : 0);
     const newPositiveRate = Math.round((newPositiveCount / newTimesUsed) * 100);
 
@@ -350,13 +403,33 @@ export class InitialMessageService {
    */
   getPersonalizationTokens() {
     return [
-      { token: "{{firstName}}", description: "Lead's first name", example: "John" },
-      { token: "{{lastName}}", description: "Lead's last name", example: "Smith" },
-      { token: "{{propertyAddress}}", description: "Property street address", example: "123 Main St" },
+      {
+        token: "{{firstName}}",
+        description: "Lead's first name",
+        example: "John",
+      },
+      {
+        token: "{{lastName}}",
+        description: "Lead's last name",
+        example: "Smith",
+      },
+      {
+        token: "{{propertyAddress}}",
+        description: "Property street address",
+        example: "123 Main St",
+      },
       { token: "{{city}}", description: "Property city", example: "Austin" },
       { token: "{{state}}", description: "Property state", example: "TX" },
-      { token: "{{equity}}", description: "Estimated equity amount", example: "$150,000" },
-      { token: "{{sdrName}}", description: "Assigned SDR name", example: "Sarah" },
+      {
+        token: "{{equity}}",
+        description: "Estimated equity amount",
+        example: "$150,000",
+      },
+      {
+        token: "{{sdrName}}",
+        description: "Assigned SDR name",
+        example: "Sarah",
+      },
     ];
   }
 

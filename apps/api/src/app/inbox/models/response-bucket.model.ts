@@ -1,5 +1,10 @@
 import { TimestampModel } from "@/app/apollo/base-model";
-import { IntField, StringField, BooleanField, JSONField } from "@/app/apollo/decorators";
+import {
+  IntField,
+  StringField,
+  BooleanField,
+  JSONField,
+} from "@/app/apollo/decorators";
 import { Maybe, MaybeString } from "@/app/apollo/types/maybe.type";
 import { responseBucketsTable } from "@/database/schema-alias";
 import { ObjectType } from "@nestjs/graphql";

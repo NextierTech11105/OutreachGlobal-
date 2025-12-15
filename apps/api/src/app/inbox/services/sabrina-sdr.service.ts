@@ -127,7 +127,7 @@ export class SabrinaSdrService {
     messageId: string,
     responseText: string,
     fromPhone: string,
-    campaignId?: string
+    campaignId?: string,
   ): Promise<InboxTriggerResult> {
     // 1. Classify the response
     const classification = await this.classifyResponse(responseText);
@@ -174,10 +174,7 @@ export class SabrinaSdrService {
     let autoRespond = false;
     let suggestedResponse: string | undefined;
 
-    if (
-      classification.type === ResponseClassification.POSITIVE &&
-      campaignId
-    ) {
+    if (classification.type === ResponseClassification.POSITIVE && campaignId) {
       assignment = await this.assignSabrina(teamId, campaignId, inboxItem.id);
 
       if (assignment) {
@@ -188,7 +185,7 @@ export class SabrinaSdrService {
           suggestedResponse = await this.generateResponse(
             assignment,
             responseText,
-            lead?.firstName
+            lead?.firstName,
           );
         }
 
@@ -200,7 +197,7 @@ export class SabrinaSdrService {
     }
 
     this.logger.log(
-      `Processed response: ${classification.type} (${classification.confidence}%) -> ${priority} (score: ${score})`
+      `Processed response: ${classification.type} (${classification.confidence}%) -> ${priority} (score: ${score})`,
     );
 
     return {
@@ -219,7 +216,7 @@ export class SabrinaSdrService {
   async assignSabrina(
     teamId: string,
     campaignId: string,
-    inboxItemId: string
+    inboxItemId: string,
   ): Promise<SabrinaAssignment | undefined> {
     // 1. Get campaign with SDR
     const campaign = await this.db.query.campaigns.findFirst({
@@ -235,7 +232,7 @@ export class SabrinaSdrService {
     const sdr = await this.db.query.aiSdrAvatars.findFirst({
       where: and(
         eq(aiSdrAvatarsTable.id, campaign.sdrId),
-        eq(aiSdrAvatarsTable.active, true)
+        eq(aiSdrAvatarsTable.active, true),
       ),
     });
 
@@ -245,15 +242,18 @@ export class SabrinaSdrService {
     }
 
     // 3. Get initial message for this campaign
-    const campaignMessage = await this.db.query.campaignInitialMessages.findFirst({
-      where: and(
-        eq(campaignInitialMessagesTable.campaignId, campaignId),
-        eq(campaignInitialMessagesTable.isActive, true)
-      ),
-    });
+    const campaignMessage =
+      await this.db.query.campaignInitialMessages.findFirst({
+        where: and(
+          eq(campaignInitialMessagesTable.campaignId, campaignId),
+          eq(campaignInitialMessagesTable.isActive, true),
+        ),
+      });
 
     if (!campaignMessage) {
-      this.logger.warn(`No initial message configured for campaign ${campaignId}`);
+      this.logger.warn(
+        `No initial message configured for campaign ${campaignId}`,
+      );
       return undefined;
     }
 
@@ -275,7 +275,7 @@ export class SabrinaSdrService {
       Math.floor(Math.random() * (maxDelay - minDelay)) + minDelay;
 
     this.logger.log(
-      `Assigned ${sdr.name} to inbox item ${inboxItemId}, response in ${responseDelay}s`
+      `Assigned ${sdr.name} to inbox item ${inboxItemId}, response in ${responseDelay}s`,
     );
 
     return {
@@ -296,7 +296,7 @@ export class SabrinaSdrService {
     return this.db.query.sdrCampaignConfigs.findFirst({
       where: and(
         eq(sdrCampaignConfigsTable.sdrId, sdrId),
-        eq(sdrCampaignConfigsTable.campaignId, campaignId)
+        eq(sdrCampaignConfigsTable.campaignId, campaignId),
       ),
     });
   }
@@ -307,7 +307,7 @@ export class SabrinaSdrService {
   async generateResponse(
     assignment: SabrinaAssignment,
     incomingMessage: string,
-    leadFirstName?: string | null
+    leadFirstName?: string | null,
   ): Promise<string> {
     const greeting = leadFirstName ? `Hi ${leadFirstName}!` : "Hi there!";
     return `${greeting} Thanks for getting back to me! I'd love to help you explore your options. What questions do you have?`;
@@ -395,7 +395,7 @@ export class SabrinaSdrService {
    * Get bucket based on classification
    */
   private getBucketForClassification(
-    classification: ResponseClassification
+    classification: ResponseClassification,
   ): BucketType {
     const bucketMap: Record<ResponseClassification, BucketType> = {
       [ResponseClassification.POSITIVE]: BucketType.POSITIVE_RESPONSES,
@@ -415,7 +415,7 @@ export class SabrinaSdrService {
     inboxItemId: string,
     targetBucket: BucketType,
     movedBy: string,
-    reason?: string
+    reason?: string,
   ) {
     const item = await this.db.query.inboxItems.findFirst({
       where: eq(inboxItemsTable.id, inboxItemId),
@@ -449,7 +449,7 @@ export class SabrinaSdrService {
           ? SuppressionType.BLACKLIST
           : SuppressionType.LEGAL_DNC,
         reason,
-        inboxItemId
+        inboxItemId,
       );
     }
   }
@@ -462,7 +462,7 @@ export class SabrinaSdrService {
     phoneNumber: string,
     type: SuppressionType,
     reason?: string,
-    sourceInboxItemId?: string
+    sourceInboxItemId?: string,
   ) {
     await this.db.insert(suppressionListTable).values({
       teamId,

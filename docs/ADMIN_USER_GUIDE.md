@@ -46,6 +46,20 @@ CATHY nudges anyone who doesn't respond
 
 ---
 
+## INTEGRATIONS
+
+### Apollo Enrichment
+**Where:** Admin > Lead Generation > Apollo Enrichment
+
+**What it does:** Connects to Apollo.io to enrich business leads with contact information.
+
+### Property Lookup
+**Where:** Admin > Lead Generation > Property Lookup
+
+**What it does:** Connects to real estate data providers to lookup property details and owners.
+
+---
+
 ## STEP 2: LUCI (Search, Enrich, Push to Campaigns)
 
 **Where:** Admin > Lead Generation > Property Pipeline > Step 2 (LUCI)

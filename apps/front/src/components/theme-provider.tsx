@@ -9,7 +9,7 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
       defaultTheme="system"
       enableSystem
       disableTransitionOnChange
-      storageKey="nextier-theme"
+      storageKey={process.env.NEXT_PUBLIC_THEME_KEY || "nextier-theme"}
       {...props}
     >
       {children}

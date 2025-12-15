@@ -209,7 +209,10 @@ export class RealEstateApiService {
   private apiKey: string;
 
   constructor(private configService: ConfigService) {
-    this.apiKey = this.configService.get("REAL_ESTATE_API_KEY") || this.configService.get("REALESTATE_API_KEY") || "";
+    this.apiKey =
+      this.configService.get("REAL_ESTATE_API_KEY") ||
+      this.configService.get("REALESTATE_API_KEY") ||
+      "";
 
     this.http = axios.create({
       baseURL: "https://api.realestateapi.com/v2",
@@ -224,7 +227,9 @@ export class RealEstateApiService {
   /**
    * Get property details by address
    */
-  async getPropertyDetail(request: PropertyDetailRequest): Promise<PropertyDetailResponse> {
+  async getPropertyDetail(
+    request: PropertyDetailRequest,
+  ): Promise<PropertyDetailResponse> {
     try {
       const { data } = await this.http.post("/PropertyDetail", {
         address: request.address,
@@ -267,7 +272,9 @@ export class RealEstateApiService {
   /**
    * Submit bulk skip trace job
    */
-  async bulkSkipTrace(request: BulkSkipTraceRequest): Promise<BulkSkipTraceResponse> {
+  async bulkSkipTrace(
+    request: BulkSkipTraceRequest,
+  ): Promise<BulkSkipTraceResponse> {
     try {
       const inputs = request.inputs.map((input) => ({
         first_name: input.firstName,
@@ -324,7 +331,7 @@ export class RealEstateApiService {
    */
   async awaitBulkSkipTrace(
     jobId: string,
-    options: { pollIntervalMs?: number; maxWaitMs?: number } = {}
+    options: { pollIntervalMs?: number; maxWaitMs?: number } = {},
   ): Promise<BulkSkipTraceResponse> {
     const pollInterval = options.pollIntervalMs || 5000;
     const maxWait = options.maxWaitMs || 300000; // 5 minutes default
@@ -338,7 +345,7 @@ export class RealEstateApiService {
       }
 
       this.logger.log(
-        `Bulk SkipTrace ${jobId}: ${status.completedRequests}/${status.totalRequests} complete`
+        `Bulk SkipTrace ${jobId}: ${status.completedRequests}/${status.totalRequests} complete`,
       );
 
       await new Promise((resolve) => setTimeout(resolve, pollInterval));
@@ -372,73 +379,94 @@ export class RealEstateApiService {
   /**
    * Map raw property detail to typed response
    */
-  private mapPropertyDetail(raw: Record<string, unknown>): PropertyDetailResponse["data"] {
+  private mapPropertyDetail(
+    raw: Record<string, unknown>,
+  ): PropertyDetailResponse["data"] {
     return {
-      id: raw.id as string || raw.propertyId as string || "",
+      id: (raw.id as string) || (raw.propertyId as string) || "",
       address: {
-        address: (raw.address as Record<string, string>)?.address || raw.streetAddress as string || "",
-        city: (raw.address as Record<string, string>)?.city || raw.city as string || "",
-        state: (raw.address as Record<string, string>)?.state || raw.state as string || "",
-        zip: (raw.address as Record<string, string>)?.zip || raw.zip as string || "",
-        county: (raw.address as Record<string, string>)?.county || raw.county as string || "",
-        lat: raw.latitude as number || 0,
-        lng: raw.longitude as number || 0,
+        address:
+          (raw.address as Record<string, string>)?.address ||
+          (raw.streetAddress as string) ||
+          "",
+        city:
+          (raw.address as Record<string, string>)?.city ||
+          (raw.city as string) ||
+          "",
+        state:
+          (raw.address as Record<string, string>)?.state ||
+          (raw.state as string) ||
+          "",
+        zip:
+          (raw.address as Record<string, string>)?.zip ||
+          (raw.zip as string) ||
+          "",
+        county:
+          (raw.address as Record<string, string>)?.county ||
+          (raw.county as string) ||
+          "",
+        lat: (raw.latitude as number) || 0,
+        lng: (raw.longitude as number) || 0,
       },
       characteristics: {
-        propertyType: raw.propertyType as string || "",
-        yearBuilt: raw.yearBuilt as number || 0,
-        bedrooms: raw.bedrooms as number || 0,
-        bathrooms: raw.bathrooms as number || 0,
-        squareFeet: raw.squareFeet as number || raw.sqft as number || 0,
-        lotSizeAcres: raw.lotAcres as number || 0,
-        lotSizeSqFt: raw.lotSqFt as number || 0,
-        stories: raw.stories as number || 1,
-        units: raw.units as number || 1,
+        propertyType: (raw.propertyType as string) || "",
+        yearBuilt: (raw.yearBuilt as number) || 0,
+        bedrooms: (raw.bedrooms as number) || 0,
+        bathrooms: (raw.bathrooms as number) || 0,
+        squareFeet: (raw.squareFeet as number) || (raw.sqft as number) || 0,
+        lotSizeAcres: (raw.lotAcres as number) || 0,
+        lotSizeSqFt: (raw.lotSqFt as number) || 0,
+        stories: (raw.stories as number) || 1,
+        units: (raw.units as number) || 1,
       },
       valuation: {
-        estimatedValue: raw.estimatedValue as number || 0,
-        estimatedEquity: raw.estimatedEquity as number || 0,
-        equityPercent: raw.equityPercent as number || 0,
-        assessedValue: raw.assessedValue as number || 0,
-        assessedYear: raw.assessedYear as number || 0,
+        estimatedValue: (raw.estimatedValue as number) || 0,
+        estimatedEquity: (raw.estimatedEquity as number) || 0,
+        equityPercent: (raw.equityPercent as number) || 0,
+        assessedValue: (raw.assessedValue as number) || 0,
+        assessedYear: (raw.assessedYear as number) || 0,
       },
       mortgage: {
-        loanAmount: raw.loanAmount as number || 0,
-        loanType: raw.loanType as string || "",
-        loanDate: raw.loanDate as string || "",
-        interestRate: raw.interestRate as number || 0,
-        maturityDate: raw.loanMaturityDate as string || "",
-        isAdjustable: raw.adjustableRate as boolean || false,
-        lender: raw.lender as string || "",
+        loanAmount: (raw.loanAmount as number) || 0,
+        loanType: (raw.loanType as string) || "",
+        loanDate: (raw.loanDate as string) || "",
+        interestRate: (raw.interestRate as number) || 0,
+        maturityDate: (raw.loanMaturityDate as string) || "",
+        isAdjustable: (raw.adjustableRate as boolean) || false,
+        lender: (raw.lender as string) || "",
       },
       owner: {
-        name: raw.owner1FullName as string || `${raw.owner1FirstName || ""} ${raw.owner1LastName || ""}`.trim(),
-        ownerType: raw.ownerType as string || "individual",
-        mailingAddress: raw.mailingAddress as string || "",
-        isAbsentee: raw.absenteeOwner as boolean || false,
-        isOutOfState: raw.outOfState as boolean || false,
-        yearsOwned: raw.yearsOwned as number || 0,
-        acquisitionDate: raw.lastSaleDate as string || "",
-        acquisitionPrice: raw.lastSalePrice as number || 0,
+        name:
+          (raw.owner1FullName as string) ||
+          `${raw.owner1FirstName || ""} ${raw.owner1LastName || ""}`.trim(),
+        ownerType: (raw.ownerType as string) || "individual",
+        mailingAddress: (raw.mailingAddress as string) || "",
+        isAbsentee: (raw.absenteeOwner as boolean) || false,
+        isOutOfState: (raw.outOfState as boolean) || false,
+        yearsOwned: (raw.yearsOwned as number) || 0,
+        acquisitionDate: (raw.lastSaleDate as string) || "",
+        acquisitionPrice: (raw.lastSalePrice as number) || 0,
       },
       distress: {
-        preForeclosure: raw.preForeclosure as boolean || false,
-        foreclosure: raw.foreclosure as boolean || false,
-        taxLien: raw.taxLien as boolean || false,
-        vacant: raw.vacant as boolean || false,
-        inherited: raw.inherited as boolean || false,
-        divorce: raw.divorce as boolean || false,
-        probate: raw.probate as boolean || false,
-        bankruptcy: raw.bankruptcy as boolean || false,
+        preForeclosure: (raw.preForeclosure as boolean) || false,
+        foreclosure: (raw.foreclosure as boolean) || false,
+        taxLien: (raw.taxLien as boolean) || false,
+        vacant: (raw.vacant as boolean) || false,
+        inherited: (raw.inherited as boolean) || false,
+        divorce: (raw.divorce as boolean) || false,
+        probate: (raw.probate as boolean) || false,
+        bankruptcy: (raw.bankruptcy as boolean) || false,
       },
-      mls: raw.listed ? {
-        listed: raw.listed as boolean || false,
-        listingPrice: raw.listingPrice as number || 0,
-        daysOnMarket: raw.daysOnMarket as number || 0,
-        priceReduction: raw.priceReduction as boolean || false,
-        expired: raw.listingExpired as boolean || false,
-        agent: raw.listingAgent as string || "",
-      } : undefined,
+      mls: raw.listed
+        ? {
+            listed: (raw.listed as boolean) || false,
+            listingPrice: (raw.listingPrice as number) || 0,
+            daysOnMarket: (raw.daysOnMarket as number) || 0,
+            priceReduction: (raw.priceReduction as boolean) || false,
+            expired: (raw.listingExpired as boolean) || false,
+            agent: (raw.listingAgent as string) || "",
+          }
+        : undefined,
     };
   }
 

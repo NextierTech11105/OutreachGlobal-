@@ -1,6 +1,12 @@
 import { ObjectType, Field, Int } from "@nestjs/graphql";
-import { AchievementDefinition, AchievementDefinitionSelect } from "../models/achievement-definition.model";
-import { UserAchievement, UserAchievementSelect } from "../models/user-achievement.model";
+import {
+  AchievementDefinition,
+  AchievementDefinitionSelect,
+} from "../models/achievement-definition.model";
+import {
+  UserAchievement,
+  UserAchievementSelect,
+} from "../models/user-achievement.model";
 import { UserStats, UserStatsSelect } from "../models/user-stats.model";
 import { StringField, IntField, BooleanField } from "@/app/apollo/decorators";
 

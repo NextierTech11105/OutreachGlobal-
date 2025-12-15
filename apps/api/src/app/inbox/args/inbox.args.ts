@@ -3,7 +3,12 @@ import { BooleanField, IdField, StringField } from "@/app/apollo/decorators";
 import { MaybeString } from "@/app/apollo/types/maybe.type";
 import { BaseTeamArgs } from "@/app/team/args/team.args";
 import { ArgsType, Field, ID } from "@nestjs/graphql";
-import { BucketType, InboxPriority, ResponseClassification, SuppressionType } from "@nextier/common";
+import {
+  BucketType,
+  InboxPriority,
+  ResponseClassification,
+  SuppressionType,
+} from "@nextier/common";
 import {
   ProcessInboxItemInput,
   MoveInboxItemInput,

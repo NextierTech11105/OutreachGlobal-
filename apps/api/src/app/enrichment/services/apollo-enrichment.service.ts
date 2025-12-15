@@ -8,7 +8,13 @@ import axios, { AxiosInstance, AxiosError } from "axios";
 import { InjectDB } from "@/database/decorators";
 import { DrizzleClient } from "@/database/types";
 import { generateUlid } from "@/database/columns/ulid";
-import { businesses, businessOwners, personas, personaEmails, personaPhones } from "@/database/schema";
+import {
+  businesses,
+  businessOwners,
+  personas,
+  personaEmails,
+  personaPhones,
+} from "@/database/schema";
 import { eq, and } from "drizzle-orm";
 import { InjectQueue } from "@nestjs/bullmq";
 import { Queue } from "bullmq";
@@ -124,7 +130,9 @@ export class ApolloEnrichmentService {
   /**
    * Enrich a business with Apollo company and people data
    */
-  async enrichBusiness(job: ApolloEnrichmentJob): Promise<ApolloEnrichmentResult> {
+  async enrichBusiness(
+    job: ApolloEnrichmentJob,
+  ): Promise<ApolloEnrichmentResult> {
     const { teamId, businessId, domain, companyName } = job;
 
     this.logger.log(`Starting Apollo enrichment for business ${businessId}`);
@@ -163,7 +171,11 @@ export class ApolloEnrichmentService {
 
         // Step 3: Create personas for each executive
         for (const person of people) {
-          const created = await this.createExecutivePersona(teamId, businessId, person);
+          const created = await this.createExecutivePersona(
+            teamId,
+            businessId,
+            person,
+          );
           if (created) personasCreated++;
         }
       }
@@ -178,7 +190,7 @@ export class ApolloEnrichmentService {
         .where(eq(businesses.id, businessId));
 
       this.logger.log(
-        `Apollo enrichment complete for ${businessId}: company=${companyUpdated}, executives=${executivesFound}, personas=${personasCreated}`
+        `Apollo enrichment complete for ${businessId}: company=${companyUpdated}, executives=${executivesFound}, personas=${personasCreated}`,
       );
 
       return {
@@ -190,7 +202,9 @@ export class ApolloEnrichmentService {
       };
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : "Unknown error";
-      this.logger.error(`Apollo enrichment failed for ${businessId}: ${errorMsg}`);
+      this.logger.error(
+        `Apollo enrichment failed for ${businessId}: ${errorMsg}`,
+      );
 
       return {
         success: false,
@@ -206,7 +220,10 @@ export class ApolloEnrichmentService {
   /**
    * Enrich company from Apollo
    */
-  private async enrichCompany(domain?: string, name?: string): Promise<ApolloCompanyResponse["organization"] | null> {
+  private async enrichCompany(
+    domain?: string,
+    name?: string,
+  ): Promise<ApolloCompanyResponse["organization"] | null> {
     try {
       const { data } = await this.http.post("/organizations/enrich", {
         domain,
@@ -227,12 +244,20 @@ export class ApolloEnrichmentService {
    */
   private async findExecutives(
     organizationId?: string,
-    domain?: string
+    domain?: string,
   ): Promise<ApolloPersonResult[]> {
     try {
       const request: ApolloPeopleSearchRequest = {
         per_page: 25,
-        seniority: ["owner", "founder", "c_suite", "partner", "vp", "director", "manager"],
+        seniority: [
+          "owner",
+          "founder",
+          "c_suite",
+          "partner",
+          "vp",
+          "director",
+          "manager",
+        ],
       };
 
       if (organizationId) {
@@ -256,7 +281,7 @@ export class ApolloEnrichmentService {
    */
   private async updateBusinessWithApolloData(
     businessId: string,
-    company: NonNullable<ApolloCompanyResponse["organization"]>
+    company: NonNullable<ApolloCompanyResponse["organization"]>,
   ): Promise<void> {
     await this.db
       .update(businesses)
@@ -281,7 +306,7 @@ export class ApolloEnrichmentService {
   private async createExecutivePersona(
     teamId: string,
     businessId: string,
-    person: ApolloPersonResult
+    person: ApolloPersonResult,
   ): Promise<boolean> {
     const firstName = person.first_name;
     const lastName = person.last_name;
@@ -298,7 +323,7 @@ export class ApolloEnrichmentService {
         and(
           eq(t.teamId, teamId),
           eq(t.normalizedFirstName, normalizedFirst),
-          eq(t.normalizedLastName, normalizedLast)
+          eq(t.normalizedLastName, normalizedLast),
         ),
     });
 
@@ -354,7 +379,7 @@ export class ApolloEnrichmentService {
         {
           attempts: 3,
           backoff: { type: "exponential", delay: 10000 },
-        }
+        },
       );
     }
 
@@ -380,7 +405,9 @@ export class ApolloEnrichmentService {
 
     // Add phone numbers
     for (const phone of person.phone_numbers || []) {
-      const normalizedNumber = phone.sanitized_number?.replace(/\D/g, "") || phone.raw_number?.replace(/\D/g, "");
+      const normalizedNumber =
+        phone.sanitized_number?.replace(/\D/g, "") ||
+        phone.raw_number?.replace(/\D/g, "");
       if (normalizedNumber && normalizedNumber.length >= 10) {
         await this.db
           .insert(personaPhones)
@@ -438,7 +465,7 @@ export class ApolloEnrichmentService {
       {
         attempts: 2,
         backoff: { type: "exponential", delay: 5000 },
-      }
+      },
     );
 
     return true;
@@ -447,7 +474,10 @@ export class ApolloEnrichmentService {
   /**
    * Classify role from title and seniority
    */
-  private classifyRole(title?: string, seniority?: string): {
+  private classifyRole(
+    title?: string,
+    seniority?: string,
+  ): {
     roleType: string;
     confidence: number;
     isDecisionMaker: boolean;
@@ -461,8 +491,13 @@ export class ApolloEnrichmentService {
     const lowerSeniority = (seniority || "").toLowerCase();
 
     // Owner/Founder
-    if (lowerSeniority.includes("owner") || lowerSeniority.includes("founder") ||
-        lowerTitle.includes("owner") || lowerTitle.includes("founder") || lowerTitle.includes("principal")) {
+    if (
+      lowerSeniority.includes("owner") ||
+      lowerSeniority.includes("founder") ||
+      lowerTitle.includes("owner") ||
+      lowerTitle.includes("founder") ||
+      lowerTitle.includes("principal")
+    ) {
       return {
         roleType: "owner",
         confidence: 0.95,
@@ -476,8 +511,11 @@ export class ApolloEnrichmentService {
     }
 
     // C-Suite
-    if (lowerSeniority.includes("c_suite") || /\bceo|cfo|coo|cto|cmo|cro\b/i.test(lowerTitle) ||
-        lowerTitle.includes("chief")) {
+    if (
+      lowerSeniority.includes("c_suite") ||
+      /\bceo|cfo|coo|cto|cmo|cro\b/i.test(lowerTitle) ||
+      lowerTitle.includes("chief")
+    ) {
       return {
         roleType: "ceo",
         confidence: 0.9,
@@ -505,8 +543,13 @@ export class ApolloEnrichmentService {
     }
 
     // VP/Director
-    if (lowerSeniority.includes("vp") || lowerSeniority.includes("director") ||
-        lowerTitle.includes("vp") || lowerTitle.includes("vice president") || lowerTitle.includes("director")) {
+    if (
+      lowerSeniority.includes("vp") ||
+      lowerSeniority.includes("director") ||
+      lowerTitle.includes("vp") ||
+      lowerTitle.includes("vice president") ||
+      lowerTitle.includes("director")
+    ) {
       return {
         roleType: "executive",
         confidence: 0.8,

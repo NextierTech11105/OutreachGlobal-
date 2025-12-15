@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || "";
 const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || "gianna@nextier.app";
-const FROM_NAME = "Gianna | NexTier";
+const FROM_NAME = process.env.EMAIL_SENDER_NAME || "Gianna | NexTier";
 
 interface QueuedEmail {
   id: string;

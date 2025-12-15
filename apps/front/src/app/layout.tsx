@@ -44,7 +44,7 @@ export default async function RootLayout({
             defaultTheme="system"
             enableSystem
             disableTransitionOnChange
-            storageKey="nextier-theme"
+            storageKey={process.env.NEXT_PUBLIC_THEME_KEY || "nextier-theme"}
           >
             <GlobalActionsProvider>
               <CallStateProvider>

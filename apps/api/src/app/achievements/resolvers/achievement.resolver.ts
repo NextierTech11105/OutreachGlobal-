@@ -1,11 +1,9 @@
-import {
-  Args,
-  Mutation,
-  Query,
-  Resolver,
-} from "@nestjs/graphql";
+import { Args, Mutation, Query, Resolver } from "@nestjs/graphql";
 import { AchievementDefinition } from "../models/achievement-definition.model";
-import { UserAchievement, UserAchievementConnection } from "../models/user-achievement.model";
+import {
+  UserAchievement,
+  UserAchievementConnection,
+} from "../models/user-achievement.model";
 import { UserStats } from "../models/user-stats.model";
 import { Auth, UseAuthGuard } from "@/app/auth/decorators";
 import { BaseResolver } from "@/app/apollo/base.resolver";
@@ -48,7 +46,10 @@ export class AchievementResolver extends BaseResolver(AchievementDefinition) {
   }
 
   @Query(() => UserAchievementConnection)
-  async userAchievements(@Auth() user: User, @Args() args: UserAchievementsArgs) {
+  async userAchievements(
+    @Auth() user: User,
+    @Args() args: UserAchievementsArgs,
+  ) {
     const team = await this.teamService.findById(args.teamId);
     await this.teamPolicy.can().read(user, team);
     const userId = args.userId || user.id;
@@ -73,7 +74,7 @@ export class AchievementResolver extends BaseResolver(AchievementDefinition) {
   @Query(() => [AchievementNotification])
   async pendingAchievementNotifications(
     @Auth() user: User,
-    @Args() args: PendingNotificationsArgs
+    @Args() args: PendingNotificationsArgs,
   ) {
     const team = await this.teamService.findById(args.teamId);
     await this.teamPolicy.can().read(user, team);
@@ -118,9 +119,12 @@ export class AchievementResolver extends BaseResolver(AchievementDefinition) {
     const userId = args.userId || user.id;
     const stats = await this.service.getOrCreateUserStats(team.id, userId);
 
-    const LEVEL_THRESHOLDS = [0, 100, 250, 500, 1000, 2000, 4000, 8000, 16000, 32000, 64000];
+    const LEVEL_THRESHOLDS = [
+      0, 100, 250, 500, 1000, 2000, 4000, 8000, 16000, 32000, 64000,
+    ];
     const currentThreshold = LEVEL_THRESHOLDS[stats.currentLevel - 1] || 0;
-    const nextThreshold = LEVEL_THRESHOLDS[stats.currentLevel] || currentThreshold * 2;
+    const nextThreshold =
+      LEVEL_THRESHOLDS[stats.currentLevel] || currentThreshold * 2;
     const pointsInLevel = stats.totalPoints - currentThreshold;
     const pointsNeeded = nextThreshold - currentThreshold;
     const progressPercent = Math.floor((pointsInLevel / pointsNeeded) * 100);
@@ -136,7 +140,7 @@ export class AchievementResolver extends BaseResolver(AchievementDefinition) {
   @Mutation(() => TriggerAchievementPayload)
   async triggerAchievement(
     @Auth() user: User,
-    @Args() args: TriggerAchievementArgs
+    @Args() args: TriggerAchievementArgs,
   ): Promise<TriggerAchievementPayload> {
     const team = await this.teamService.findById(args.teamId);
     await this.teamPolicy.can().read(user, team);
@@ -145,14 +149,14 @@ export class AchievementResolver extends BaseResolver(AchievementDefinition) {
       team.id,
       userId,
       args.input.type,
-      args.input.incrementBy
+      args.input.incrementBy,
     );
   }
 
   @Mutation(() => MarkNotificationDisplayedPayload)
   async markAchievementNotificationDisplayed(
     @Auth() user: User,
-    @Args() args: MarkNotificationDisplayedArgs
+    @Args() args: MarkNotificationDisplayedArgs,
   ): Promise<MarkNotificationDisplayedPayload> {
     const team = await this.teamService.findById(args.teamId);
     await this.teamPolicy.can().read(user, team);

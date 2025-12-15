@@ -5,11 +5,16 @@ import { campaignInitialMessagesTable } from "@/database/schema-alias";
 import { ObjectType } from "@nestjs/graphql";
 import { AnyObject } from "@nextier/common";
 
-export type CampaignInitialMessageSelect = typeof campaignInitialMessagesTable.$inferSelect;
-export type CampaignInitialMessageInsert = typeof campaignInitialMessagesTable.$inferInsert;
+export type CampaignInitialMessageSelect =
+  typeof campaignInitialMessagesTable.$inferSelect;
+export type CampaignInitialMessageInsert =
+  typeof campaignInitialMessagesTable.$inferInsert;
 
 @ObjectType()
-export class CampaignInitialMessage extends TimestampModel implements CampaignInitialMessageSelect {
+export class CampaignInitialMessage
+  extends TimestampModel
+  implements CampaignInitialMessageSelect
+{
   @StringField()
   campaignId: string;
 

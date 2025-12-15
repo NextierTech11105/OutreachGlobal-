@@ -11,6 +11,7 @@ import {
   FolderOpenIcon,
   HomeIcon,
   LayersIcon,
+  LibraryIcon,
   MailIcon,
   MegaphoneIcon,
   PhoneIcon,
@@ -98,6 +99,11 @@ const navGroups = [
             exact: true,
           },
           {
+            title: "Content Library",
+            path: "/library",
+            icon: LibraryIcon,
+          },
+          {
             title: "Automation Rules",
             path: "/automation-rules",
           },
@@ -143,9 +149,9 @@ const navGroups = [
         icon: BotIcon,
       },
       {
-        title: "Prompt Library",
-        path: "/prompts",
-        icon: SparkleIcon,
+        title: "Content Library",
+        path: "/library",
+        icon: LibraryIcon,
       },
     ],
   },

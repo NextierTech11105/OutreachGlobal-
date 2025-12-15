@@ -41,7 +41,37 @@ import {
   Gift,
   Zap,
   AlertTriangle,
+  Library,
+  Search,
+  FileText,
+  X,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { gql, useQuery } from "@apollo/client";
+import { useCurrentTeam } from "@/features/team/team.context";
+
+const CONTENT_ITEMS_QUERY = gql`
+  query ContentItems($teamId: ID!, $searchQuery: String, $first: Int) {
+    contentItems(teamId: $teamId, searchQuery: $searchQuery, first: $first) {
+      edges {
+        node {
+          id
+          title
+          content
+          description
+          contentType
+        }
+      }
+    }
+  }
+`;
 
 interface QueueItem {
   id: string;
@@ -93,6 +123,22 @@ export default function ValuationQueuePage() {
   >("sms");
   const [includePartnerOffer, setIncludePartnerOffer] = useState(true);
   const [selectedPartner, setSelectedPartner] = useState<string>("");
+  const [isContentDialogOpen, setIsContentDialogOpen] = useState(false);
+  const [attachedContent, setAttachedContent] = useState<{
+    id: string;
+    title: string;
+  } | null>(null);
+  const [contentSearch, setContentSearch] = useState("");
+  const { team } = useCurrentTeam();
+
+  const { data: contentData } = useQuery(CONTENT_ITEMS_QUERY, {
+    variables: {
+      teamId: team?.id,
+      searchQuery: contentSearch,
+      first: 10,
+    },
+    skip: !team?.id,
+  });
 
   // Sample partner offers (would come from API)
   const [partnerOffers] = useState<PartnerOffer[]>([
@@ -595,6 +641,47 @@ export default function ValuationQueuePage() {
             </CardContent>
           </Card>
 
+          {/* Content Library Integration */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Library className="h-5 w-5 text-blue-500" />
+                Content Library
+              </CardTitle>
+              <CardDescription>
+                Attach templates or resources to the message
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {attachedContent ? (
+                <div className="flex items-center justify-between p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-blue-500" />
+                    <span className="font-medium text-sm">
+                      {attachedContent.title}
+                    </span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setAttachedContent(null)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => setIsContentDialogOpen(true)}
+                >
+                  <Library className="h-4 w-4 mr-2" />
+                  Attach Content
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Add to Queue */}
           <Card>
             <CardHeader>
@@ -651,6 +738,63 @@ export default function ValuationQueuePage() {
           </Card>
         </div>
       </div>
+
+      <Dialog open={isContentDialogOpen} onOpenChange={setIsContentDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Select Content</DialogTitle>
+            <DialogDescription>
+              Choose a template or resource to attach to the valuation message.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="relative">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search content..."
+                className="pl-8"
+                value={contentSearch}
+                onChange={(e) => setContentSearch(e.target.value)}
+              />
+            </div>
+            <ScrollArea className="h-[300px]">
+              <div className="space-y-2">
+                {contentData?.contentItems?.edges.map(({ node }: any) => (
+                  <div
+                    key={node.id}
+                    className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 cursor-pointer transition-colors"
+                    onClick={() => {
+                      setAttachedContent({ id: node.id, title: node.title });
+                      setIsContentDialogOpen(false);
+                    }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-primary/10 rounded-md">
+                        <FileText className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <div className="font-medium text-sm">{node.title}</div>
+                        <div className="text-xs text-muted-foreground line-clamp-1">
+                          {node.description || "No description"}
+                        </div>
+                      </div>
+                    </div>
+                    <Badge variant="secondary" className="text-xs">
+                      {node.contentType}
+                    </Badge>
+                  </div>
+                ))}
+                {(!contentData?.contentItems?.edges ||
+                  contentData.contentItems.edges.length === 0) && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No content found
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

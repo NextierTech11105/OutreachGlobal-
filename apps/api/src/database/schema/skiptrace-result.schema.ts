@@ -66,11 +66,12 @@ export const skiptraceResults = pgTable(
     index().on(t.sourceType, t.sourceId),
     index().on(t.success),
     index().on(t.createdAt),
-  ]
+  ],
 );
 
-export const skiptraceResultsRef = (config?: { onDelete?: "cascade" | "set null" }) =>
-  ulidColumn().references(() => skiptraceResults.id, config);
+export const skiptraceResultsRef = (config?: {
+  onDelete?: "cascade" | "set null";
+}) => ulidColumn().references(() => skiptraceResults.id, config);
 
 // SkipTrace job tracking for bulk operations
 export const skiptraceJobs = pgTable(
@@ -97,9 +98,5 @@ export const skiptraceJobs = pgTable(
     createdAt,
     updatedAt,
   },
-  (t) => [
-    index().on(t.teamId),
-    index().on(t.status),
-    index().on(t.jobId),
-  ]
+  (t) => [index().on(t.teamId), index().on(t.status), index().on(t.jobId)],
 );

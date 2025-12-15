@@ -47,8 +47,9 @@ export const personaSocials = pgTable(
     index().on(t.personaId),
     index().on(t.platform),
     uniqueIndex().on(t.personaId, t.platform, t.profileUrl),
-  ]
+  ],
 );
 
-export const personaSocialsRef = (config?: { onDelete?: "cascade" | "set null" }) =>
-  ulidColumn().references(() => personaSocials.id, config);
+export const personaSocialsRef = (config?: {
+  onDelete?: "cascade" | "set null";
+}) => ulidColumn().references(() => personaSocials.id, config);

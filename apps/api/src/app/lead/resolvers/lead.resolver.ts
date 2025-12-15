@@ -74,11 +74,18 @@ export class LeadResolver extends BaseResolver(Lead) {
       ...args,
       teamId: team.id,
     });
-    console.log('LeadConnection result:', JSON.stringify({
-      edgesCount: result.edges?.length,
-      pageInfo: result.pageInfo,
-      hasTotalCount: 'totalCount' in result
-    }, null, 2));
+    console.log(
+      "LeadConnection result:",
+      JSON.stringify(
+        {
+          edgesCount: result.edges?.length,
+          pageInfo: result.pageInfo,
+          hasTotalCount: "totalCount" in result,
+        },
+        null,
+        2,
+      ),
+    );
     return result;
   }
 

@@ -7,7 +7,11 @@ import { InjectDB } from "@/database/decorators";
 import { DrizzleClient } from "@/database/types";
 import { generateUlid } from "@/database/columns/ulid";
 import { eq, and, lte, or, isNull, desc, asc } from "drizzle-orm";
-import { unifiedLeadCards, campaignQueue, leadActivities } from "@/database/schema";
+import {
+  unifiedLeadCards,
+  campaignQueue,
+  leadActivities,
+} from "@/database/schema";
 import { InjectQueue } from "@nestjs/bullmq";
 import { Queue } from "bullmq";
 
@@ -44,7 +48,16 @@ export class CampaignTriggerService {
    * Queue a lead for campaign outreach
    */
   async queueForCampaign(job: TriggerCampaignJob): Promise<string> {
-    const { teamId, leadCardId, agent, channel, priority = 50, templateId, templateOverride, scheduledAt } = job;
+    const {
+      teamId,
+      leadCardId,
+      agent,
+      channel,
+      priority = 50,
+      templateId,
+      templateOverride,
+      scheduledAt,
+    } = job;
 
     this.logger.log(`Queuing lead ${leadCardId} for ${agent} via ${channel}`);
 
@@ -60,10 +73,7 @@ export class CampaignTriggerService {
     // Check if already queued
     const existing = await this.db.query.campaignQueue.findFirst({
       where: (t, { eq, and }) =>
-        and(
-          eq(t.leadCardId, leadCardId),
-          eq(t.status, "pending")
-        ),
+        and(eq(t.leadCardId, leadCardId), eq(t.status, "pending")),
     });
 
     if (existing) {
@@ -107,17 +117,19 @@ export class CampaignTriggerService {
   async getNextBatch(
     agent: "sabrina" | "gianna",
     channel: "sms" | "email",
-    limit = 10
-  ): Promise<Array<{
-    queueId: string;
-    leadCardId: string;
-    templateId?: string;
-    templateOverride?: string;
-    phone?: string;
-    email?: string;
-    firstName?: string;
-    lastName?: string;
-  }>> {
+    limit = 10,
+  ): Promise<
+    Array<{
+      queueId: string;
+      leadCardId: string;
+      templateId?: string;
+      templateOverride?: string;
+      phone?: string;
+      email?: string;
+      firstName?: string;
+      lastName?: string;
+    }>
+  > {
     const now = new Date();
 
     // Get pending items ready to process
@@ -128,7 +140,7 @@ export class CampaignTriggerService {
           eq(t.channel, channel),
           eq(t.status, "pending"),
           or(isNull(t.scheduledAt), lte(t.scheduledAt, now)),
-          or(isNull(t.processAfter), lte(t.processAfter, now))
+          or(isNull(t.processAfter), lte(t.processAfter, now)),
         ),
       orderBy: (t) => [desc(t.priority), asc(t.createdAt)],
       limit,
@@ -184,10 +196,7 @@ export class CampaignTriggerService {
   /**
    * Mark campaign item as sent
    */
-  async markSent(
-    queueId: string,
-    externalId: string
-  ): Promise<void> {
+  async markSent(queueId: string, externalId: string): Promise<void> {
     const item = await this.db.query.campaignQueue.findFirst({
       where: (t, { eq }) => eq(t.id, queueId),
     });
@@ -228,10 +237,7 @@ export class CampaignTriggerService {
   /**
    * Mark campaign item as failed
    */
-  async markFailed(
-    queueId: string,
-    error: string
-  ): Promise<void> {
+  async markFailed(queueId: string, error: string): Promise<void> {
     const item = await this.db.query.campaignQueue.findFirst({
       where: (t, { eq }) => eq(t.id, queueId),
     });
@@ -282,8 +288,12 @@ export class CampaignTriggerService {
       processing: items.filter((i) => i.status === "processing").length,
       sent: items.filter((i) => i.status === "sent").length,
       failed: items.filter((i) => i.status === "failed").length,
-      sabrinaPending: items.filter((i) => i.status === "pending" && i.agent === "sabrina").length,
-      giannaPending: items.filter((i) => i.status === "pending" && i.agent === "gianna").length,
+      sabrinaPending: items.filter(
+        (i) => i.status === "pending" && i.agent === "sabrina",
+      ).length,
+      giannaPending: items.filter(
+        (i) => i.status === "pending" && i.agent === "gianna",
+      ).length,
     };
   }
 
@@ -297,7 +307,7 @@ export class CampaignTriggerService {
       agent?: "sabrina" | "gianna";
       channel?: "sms" | "email";
       templateId?: string;
-    } = {}
+    } = {},
   ): Promise<{ queued: number; skipped: number }> {
     let queued = 0;
     let skipped = 0;
@@ -314,8 +324,14 @@ export class CampaignTriggerService {
         }
 
         // Use lead card assignment or provided options
-        const agent = options.agent || (leadCard.assignedAgent as "sabrina" | "gianna") || "gianna";
-        const channel = options.channel || (leadCard.assignedChannel as "sms" | "email") || "email";
+        const agent =
+          options.agent ||
+          (leadCard.assignedAgent as "sabrina" | "gianna") ||
+          "gianna";
+        const channel =
+          options.channel ||
+          (leadCard.assignedChannel as "sms" | "email") ||
+          "email";
 
         await this.queueForCampaign({
           teamId,
@@ -332,7 +348,9 @@ export class CampaignTriggerService {
       }
     }
 
-    this.logger.log(`Bulk queue complete: ${queued} queued, ${skipped} skipped`);
+    this.logger.log(
+      `Bulk queue complete: ${queued} queued, ${skipped} skipped`,
+    );
     return { queued, skipped };
   }
 }

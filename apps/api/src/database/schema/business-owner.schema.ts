@@ -80,7 +80,7 @@ export const businesses = pgTable(
     index().on(t.sector),
     index().on(t.state),
     index().on(t.zip),
-  ]
+  ],
 );
 
 export const businessesRef = (config?: { onDelete?: "cascade" | "set null" }) =>
@@ -129,8 +129,9 @@ export const businessOwners = pgTable(
     index().on(t.roleType),
     index().on(t.isDecisionMaker),
     index().on(t.isCurrent),
-  ]
+  ],
 );
 
-export const businessOwnersRef = (config?: { onDelete?: "cascade" | "set null" }) =>
-  ulidColumn().references(() => businessOwners.id, config);
+export const businessOwnersRef = (config?: {
+  onDelete?: "cascade" | "set null";
+}) => ulidColumn().references(() => businessOwners.id, config);

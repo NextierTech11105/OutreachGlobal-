@@ -6,3 +6,4 @@ export * from "./team.enum";
 export * from "./power-dialer.enum";
 export * from "./message.enum";
 export * from "./inbox.enum";
+export * from "./content-library.enum";

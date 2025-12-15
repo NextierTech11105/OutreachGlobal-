@@ -65,8 +65,9 @@ export const personaDemographics = pgTable(
     index().on(t.personaId),
     index().on(t.homeOwnerStatus),
     index().on(t.incomeRange),
-  ]
+  ],
 );
 
-export const personaDemographicsRef = (config?: { onDelete?: "cascade" | "set null" }) =>
-  ulidColumn().references(() => personaDemographics.id, config);
+export const personaDemographicsRef = (config?: {
+  onDelete?: "cascade" | "set null";
+}) => ulidColumn().references(() => personaDemographics.id, config);

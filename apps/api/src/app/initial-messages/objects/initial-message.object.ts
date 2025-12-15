@@ -1,7 +1,16 @@
 import { ObjectType, Field, Int } from "@nestjs/graphql";
-import { InitialMessage, InitialMessageSelect } from "../models/initial-message.model";
-import { CampaignInitialMessage, CampaignInitialMessageSelect } from "../models/campaign-initial-message.model";
-import { SdrCampaignConfig, SdrCampaignConfigSelect } from "../models/sdr-campaign-config.model";
+import {
+  InitialMessage,
+  InitialMessageSelect,
+} from "../models/initial-message.model";
+import {
+  CampaignInitialMessage,
+  CampaignInitialMessageSelect,
+} from "../models/campaign-initial-message.model";
+import {
+  SdrCampaignConfig,
+  SdrCampaignConfigSelect,
+} from "../models/sdr-campaign-config.model";
 import { StringField, IntField } from "@/app/apollo/decorators";
 
 @ObjectType()

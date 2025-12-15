@@ -1,19 +1,19 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { UserService } from './user.service';
-import { AuthService } from '@/app/auth/services/auth.service';
-import { DEFAULT_DB_PROVIDER_NAME } from '@haorama/drizzle-postgres-nestjs';
+import { Test, TestingModule } from "@nestjs/testing";
+import { UserService } from "./user.service";
+import { AuthService } from "@/app/auth/services/auth.service";
+import { DEFAULT_DB_PROVIDER_NAME } from "@haorama/drizzle-postgres-nestjs";
 
-describe('UserService', () => {
+describe("UserService", () => {
   let service: UserService;
   let authService: AuthService;
   let mockDb: any;
 
   const mockUser = {
-    id: 'user-123',
-    email: 'test@example.com',
-    name: 'Test User',
-    password: 'hashed-password',
-    role: 'user',
+    id: "user-123",
+    email: "test@example.com",
+    name: "Test User",
+    password: "hashed-password",
+    role: "user",
     emailVerifiedAt: null,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -46,7 +46,7 @@ describe('UserService', () => {
           provide: AuthService,
           useValue: {
             attempt: jest.fn().mockResolvedValue({ user: mockUser }),
-            accessToken: jest.fn().mockResolvedValue({ token: 'mock-token' }),
+            accessToken: jest.fn().mockResolvedValue({ token: "mock-token" }),
           },
         },
       ],
@@ -60,49 +60,49 @@ describe('UserService', () => {
     jest.clearAllMocks();
   });
 
-  describe('login', () => {
-    it('should authenticate user and return token', async () => {
+  describe("login", () => {
+    it("should authenticate user and return token", async () => {
       const result = await service.login({
-        email: 'test@example.com',
-        password: 'password123',
+        email: "test@example.com",
+        password: "password123",
       });
 
       expect(result.user).toEqual(mockUser);
-      expect(result.token).toBe('mock-token');
+      expect(result.token).toBe("mock-token");
       expect(authService.attempt).toHaveBeenCalledWith({
-        email: 'test@example.com',
-        password: 'password123',
+        email: "test@example.com",
+        password: "password123",
       });
       expect(authService.accessToken).toHaveBeenCalledWith(mockUser);
     });
 
-    it('should propagate auth service errors', async () => {
+    it("should propagate auth service errors", async () => {
       (authService.attempt as jest.Mock).mockRejectedValue(
-        new Error('Invalid credentials'),
+        new Error("Invalid credentials"),
       );
 
       await expect(
         service.login({
-          email: 'test@example.com',
-          password: 'wrong-password',
+          email: "test@example.com",
+          password: "wrong-password",
         }),
-      ).rejects.toThrow('Invalid credentials');
+      ).rejects.toThrow("Invalid credentials");
     });
   });
 
-  describe('create', () => {
-    it('should create a new user', async () => {
+  describe("create", () => {
+    it("should create a new user", async () => {
       const result = await service.create({
-        email: 'new@example.com',
-        password: 'password123',
-        name: 'New User',
+        email: "new@example.com",
+        password: "password123",
+        name: "New User",
       });
 
       expect(result).toEqual([mockUser]);
       expect(mockDb.insert).toHaveBeenCalled();
     });
 
-    it('should create user within a transaction session', async () => {
+    it("should create user within a transaction session", async () => {
       const mockSession = {
         insert: jest.fn().mockReturnValue({
           values: jest.fn().mockReturnValue({
@@ -113,9 +113,9 @@ describe('UserService', () => {
 
       const result = await service.create(
         {
-          email: 'new@example.com',
-          password: 'password123',
-          name: 'New User',
+          email: "new@example.com",
+          password: "password123",
+          name: "New User",
         },
         mockSession as any,
       );
@@ -124,19 +124,19 @@ describe('UserService', () => {
     });
   });
 
-  describe('updateProfile', () => {
-    it('should update user profile', async () => {
-      const result = await service.updateProfile('user-123', {
-        name: 'Updated Name',
+  describe("updateProfile", () => {
+    it("should update user profile", async () => {
+      const result = await service.updateProfile("user-123", {
+        name: "Updated Name",
       });
 
       expect(result.user).toEqual(mockUser);
       expect(mockDb.update).toHaveBeenCalled();
     });
 
-    it('should handle name updates', async () => {
-      const result = await service.updateProfile('user-123', {
-        name: 'New Full Name',
+    it("should handle name updates", async () => {
+      const result = await service.updateProfile("user-123", {
+        name: "New Full Name",
       });
 
       expect(result.user).toEqual(mockUser);

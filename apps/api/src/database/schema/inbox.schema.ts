@@ -59,7 +59,9 @@ export const inboxItems = pgTable(
     priorityScore: integer().notNull().default(50),
 
     // Current bucket
-    currentBucket: varchar().$type<BucketType>().default(BucketType.UNIVERSAL_INBOX),
+    currentBucket: varchar()
+      .$type<BucketType>()
+      .default(BucketType.UNIVERSAL_INBOX),
 
     // Content
     responseText: text(),
@@ -91,7 +93,7 @@ export const inboxItems = pgTable(
     index().on(t.priority),
     index().on(t.classification),
     index().on(t.isProcessed),
-  ]
+  ],
 );
 
 // Response Buckets (Kanban columns)
@@ -105,10 +107,12 @@ export const responseBuckets = pgTable("response_buckets", {
   icon: varchar().default("inbox"),
   position: integer().notNull().default(0),
   isSystem: boolean().default(false),
-  autoMoveRules: jsonb().$type<{
-    conditions: { field: string; operator: string; value: string }[];
-    targetBucket: BucketType;
-  }[]>(),
+  autoMoveRules: jsonb().$type<
+    {
+      conditions: { field: string; operator: string; value: string }[];
+      targetBucket: BucketType;
+    }[]
+  >(),
   createdAt,
   updatedAt,
 });
@@ -128,7 +132,7 @@ export const bucketMovements = pgTable(
     reason: text(),
     createdAt,
   },
-  (t) => [index().on(t.inboxItemId), index().on(t.teamId)]
+  (t) => [index().on(t.inboxItemId), index().on(t.teamId)],
 );
 
 // Suppression/Blacklist entries
@@ -150,9 +154,5 @@ export const suppressionList = pgTable(
     createdAt,
     updatedAt,
   },
-  (t) => [
-    index().on(t.teamId),
-    index().on(t.phoneNumber),
-    index().on(t.type),
-  ]
+  (t) => [index().on(t.teamId), index().on(t.phoneNumber), index().on(t.type)],
 );

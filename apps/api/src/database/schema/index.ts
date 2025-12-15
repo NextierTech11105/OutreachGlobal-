@@ -16,6 +16,9 @@ export * from "./achievements.schema";
 export * from "./initial-messages.schema";
 export * from "./property-searches.schema";
 
+// ===== CONTENT LIBRARY =====
+export * from "./content-library.schema";
+
 // ===== ENRICHMENT PIPELINE SCHEMAS =====
 export * from "./persona.schema";
 export * from "./phone.schema";

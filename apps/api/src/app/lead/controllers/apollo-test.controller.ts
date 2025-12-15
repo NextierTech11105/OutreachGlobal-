@@ -22,7 +22,7 @@ export class ApolloTestController {
             "Content-Type": "application/json",
             "X-Api-Key": apiKey,
           },
-        }
+        },
       );
 
       return {
@@ -61,7 +61,7 @@ export class ApolloTestController {
             "Content-Type": "application/json",
             "X-Api-Key": apiKey,
           },
-        }
+        },
       );
 
       if (response.status === 200) {

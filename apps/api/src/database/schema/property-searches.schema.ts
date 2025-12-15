@@ -47,8 +47,5 @@ export const propertySearchBlocks = pgTable(
     createdAt,
     updatedAt,
   },
-  (t) => [
-    uniqueIndex().on(t.searchId, t.blockIndex),
-    index().on(t.searchId),
-  ],
+  (t) => [uniqueIndex().on(t.searchId, t.blockIndex), index().on(t.searchId)],
 );

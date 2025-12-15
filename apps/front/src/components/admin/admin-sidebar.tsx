@@ -47,7 +47,7 @@ export function AdminSidebar() {
   const routes: NavItem[] = [
     {
       href: "/admin",
-      label: "Dashboard",
+      label: "Home Dashboards",
       icon: <BarChart3 className="h-4 w-4" />,
       active: pathname === "/admin",
     },

@@ -82,7 +82,7 @@ export class InboxResolver extends BaseResolver(InboxItem) {
   @Mutation(() => ProcessInboxItemPayload)
   async processInboxItem(
     @Auth() user: User,
-    @Args() args: ProcessInboxItemArgs
+    @Args() args: ProcessInboxItemArgs,
   ): Promise<ProcessInboxItemPayload> {
     const team = await this.teamService.findById(args.teamId);
     await this.teamPolicy.can().read(user, team);
@@ -95,7 +95,7 @@ export class InboxResolver extends BaseResolver(InboxItem) {
   @Mutation(() => MoveInboxItemPayload)
   async moveInboxItem(
     @Auth() user: User,
-    @Args() args: MoveInboxItemArgs
+    @Args() args: MoveInboxItemArgs,
   ): Promise<MoveInboxItemPayload> {
     const team = await this.teamService.findById(args.teamId);
     await this.teamPolicy.can().read(user, team);
@@ -104,14 +104,14 @@ export class InboxResolver extends BaseResolver(InboxItem) {
       args.id,
       args.input.targetBucket,
       user.id,
-      args.input.reason ?? undefined
+      args.input.reason ?? undefined,
     );
   }
 
   @Mutation(() => UpdateInboxItemPayload)
   async updateInboxItem(
     @Auth() user: User,
-    @Args() args: UpdateInboxItemArgs
+    @Args() args: UpdateInboxItemArgs,
   ): Promise<UpdateInboxItemPayload> {
     const team = await this.teamService.findById(args.teamId);
     await this.teamPolicy.can().read(user, team);
@@ -121,7 +121,7 @@ export class InboxResolver extends BaseResolver(InboxItem) {
   @Mutation(() => BulkMoveInboxItemsPayload)
   async bulkMoveInboxItems(
     @Auth() user: User,
-    @Args() args: BulkMoveInboxItemsArgs
+    @Args() args: BulkMoveInboxItemsArgs,
   ): Promise<BulkMoveInboxItemsPayload> {
     const team = await this.teamService.findById(args.teamId);
     await this.teamPolicy.can().read(user, team);
@@ -130,12 +130,15 @@ export class InboxResolver extends BaseResolver(InboxItem) {
       args.itemIds,
       args.input.targetBucket,
       user.id,
-      args.input.reason ?? undefined
+      args.input.reason ?? undefined,
     );
   }
 
   @Mutation(() => [ResponseBucket])
-  async initializeResponseBuckets(@Auth() user: User, @Args() args: BucketStatsArgs) {
+  async initializeResponseBuckets(
+    @Auth() user: User,
+    @Args() args: BucketStatsArgs,
+  ) {
     const team = await this.teamService.findById(args.teamId);
     await this.teamPolicy.can().read(user, team);
     return this.service.initializeDefaultBuckets(team.id);

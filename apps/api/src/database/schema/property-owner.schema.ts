@@ -26,7 +26,9 @@ export const propertyOwners = pgTable(
     id: primaryUlid(PROPERTY_OWNER_PK),
     teamId: teamsRef({ onDelete: "cascade" }).notNull(),
     personaId: personasRef({ onDelete: "cascade" }).notNull(),
-    propertyId: ulidColumn().references(() => properties.id, { onDelete: "cascade" }).notNull(),
+    propertyId: ulidColumn()
+      .references(() => properties.id, { onDelete: "cascade" })
+      .notNull(),
     // Ownership details
     ownershipType: varchar().notNull().default("individual"), // 'individual' | 'corporate' | 'trust' | 'estate' | 'joint'
     ownershipPercent: real(),
@@ -63,8 +65,9 @@ export const propertyOwners = pgTable(
     uniqueIndex().on(t.personaId, t.propertyId),
     index().on(t.isCurrentOwner),
     index().on(t.ownershipType),
-  ]
+  ],
 );
 
-export const propertyOwnersRef = (config?: { onDelete?: "cascade" | "set null" }) =>
-  ulidColumn().references(() => propertyOwners.id, config);
+export const propertyOwnersRef = (config?: {
+  onDelete?: "cascade" | "set null";
+}) => ulidColumn().references(() => propertyOwners.id, config);

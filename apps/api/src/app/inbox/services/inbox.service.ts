@@ -8,7 +8,12 @@ import {
   bucketMovementsTable,
   suppressionListTable,
 } from "@/database/schema-alias";
-import { BucketType, InboxPriority, ResponseClassification, SuppressionType } from "@nextier/common";
+import {
+  BucketType,
+  InboxPriority,
+  ResponseClassification,
+  SuppressionType,
+} from "@nextier/common";
 import { InboxFilter } from "../types/inbox.type";
 import { ModelNotFoundError } from "@/database/exceptions";
 
@@ -22,22 +27,36 @@ export class InboxService {
    * Paginate inbox items with filters
    */
   async paginate(args: InboxFilter & { first?: number; after?: string }) {
-    const { teamId, bucket, priority, classification, isProcessed, isRead, searchQuery } = args;
+    const {
+      teamId,
+      bucket,
+      priority,
+      classification,
+      isProcessed,
+      isRead,
+      searchQuery,
+    } = args;
 
     const conditions = [eq(inboxItemsTable.teamId, teamId)];
 
     if (bucket) conditions.push(eq(inboxItemsTable.currentBucket, bucket));
     if (priority) conditions.push(eq(inboxItemsTable.priority, priority));
-    if (classification) conditions.push(eq(inboxItemsTable.classification, classification));
-    if (isProcessed !== undefined) conditions.push(eq(inboxItemsTable.isProcessed, isProcessed));
-    if (isRead !== undefined) conditions.push(eq(inboxItemsTable.isRead, isRead));
+    if (classification)
+      conditions.push(eq(inboxItemsTable.classification, classification));
+    if (isProcessed !== undefined)
+      conditions.push(eq(inboxItemsTable.isProcessed, isProcessed));
+    if (isRead !== undefined)
+      conditions.push(eq(inboxItemsTable.isRead, isRead));
     if (searchQuery) {
       conditions.push(ilike(inboxItemsTable.responseText, `%${searchQuery}%`));
     }
 
     const items = await this.db.query.inboxItems.findMany({
       where: and(...conditions),
-      orderBy: [desc(inboxItemsTable.priorityScore), desc(inboxItemsTable.createdAt)],
+      orderBy: [
+        desc(inboxItemsTable.priorityScore),
+        desc(inboxItemsTable.createdAt),
+      ],
       limit: args.first ?? 50,
     });
 
@@ -57,7 +76,10 @@ export class InboxService {
    */
   async findOne(teamId: string, id: string) {
     return this.db.query.inboxItems.findFirst({
-      where: and(eq(inboxItemsTable.teamId, teamId), eq(inboxItemsTable.id, id)),
+      where: and(
+        eq(inboxItemsTable.teamId, teamId),
+        eq(inboxItemsTable.id, id),
+      ),
     });
   }
 
@@ -73,11 +95,17 @@ export class InboxService {
   /**
    * Update inbox item
    */
-  async update(teamId: string, id: string, data: Partial<typeof inboxItemsTable.$inferInsert>) {
+  async update(
+    teamId: string,
+    id: string,
+    data: Partial<typeof inboxItemsTable.$inferInsert>,
+  ) {
     const [item] = await this.db
       .update(inboxItemsTable)
       .set({ ...data, updatedAt: new Date() })
-      .where(and(eq(inboxItemsTable.teamId, teamId), eq(inboxItemsTable.id, id)))
+      .where(
+        and(eq(inboxItemsTable.teamId, teamId), eq(inboxItemsTable.id, id)),
+      )
       .returning();
 
     if (!item) throw new ModelNotFoundError("Inbox item not found");
@@ -92,7 +120,7 @@ export class InboxService {
     id: string,
     targetBucket: BucketType,
     movedBy: string,
-    reason?: string
+    reason?: string,
   ) {
     const item = await this.findOneOrFail(teamId, id);
 
@@ -112,17 +140,24 @@ export class InboxService {
     });
 
     // Handle suppression for blacklist/DNC buckets
-    if (targetBucket === BucketType.BLACKLIST || targetBucket === BucketType.LEGAL_DNC) {
+    if (
+      targetBucket === BucketType.BLACKLIST ||
+      targetBucket === BucketType.LEGAL_DNC
+    ) {
       await this.addToSuppressionList(
         teamId,
         item.phoneNumber!,
-        targetBucket === BucketType.BLACKLIST ? SuppressionType.BLACKLIST : SuppressionType.LEGAL_DNC,
+        targetBucket === BucketType.BLACKLIST
+          ? SuppressionType.BLACKLIST
+          : SuppressionType.LEGAL_DNC,
         reason,
-        id
+        id,
       );
     }
 
-    this.logger.log(`Moved item ${id} from ${item.currentBucket} to ${targetBucket}`);
+    this.logger.log(
+      `Moved item ${id} from ${item.currentBucket} to ${targetBucket}`,
+    );
     return { inboxItem: updated };
   }
 
@@ -134,7 +169,7 @@ export class InboxService {
     itemIds: string[],
     targetBucket: BucketType,
     movedBy: string,
-    reason?: string
+    reason?: string,
   ) {
     let movedCount = 0;
 
@@ -162,7 +197,7 @@ export class InboxService {
       targetBucket?: BucketType;
       notes?: string;
       markAsProcessed?: boolean;
-    }
+    },
   ) {
     const updates: Partial<typeof inboxItemsTable.$inferInsert> = {
       processedBy,
@@ -187,14 +222,22 @@ export class InboxService {
     const [item] = await this.db
       .update(inboxItemsTable)
       .set(updates)
-      .where(and(eq(inboxItemsTable.teamId, teamId), eq(inboxItemsTable.id, id)))
+      .where(
+        and(eq(inboxItemsTable.teamId, teamId), eq(inboxItemsTable.id, id)),
+      )
       .returning();
 
     if (!item) throw new ModelNotFoundError("Inbox item not found");
 
     // Move to target bucket if specified
     if (data.targetBucket && data.targetBucket !== item.currentBucket) {
-      return this.moveToBucket(teamId, id, data.targetBucket, processedBy, data.notes);
+      return this.moveToBucket(
+        teamId,
+        id,
+        data.targetBucket,
+        processedBy,
+        data.notes,
+      );
     }
 
     return { inboxItem: item };
@@ -216,8 +259,8 @@ export class InboxService {
           .where(
             and(
               eq(inboxItemsTable.teamId, teamId),
-              eq(inboxItemsTable.currentBucket, bucket.type)
-            )
+              eq(inboxItemsTable.currentBucket, bucket.type),
+            ),
           );
 
         const [unreadResult] = await this.db
@@ -227,8 +270,8 @@ export class InboxService {
             and(
               eq(inboxItemsTable.teamId, teamId),
               eq(inboxItemsTable.currentBucket, bucket.type),
-              eq(inboxItemsTable.isRead, false)
-            )
+              eq(inboxItemsTable.isRead, false),
+            ),
           );
 
         return {
@@ -239,7 +282,7 @@ export class InboxService {
           color: bucket.color,
           icon: bucket.icon,
         };
-      })
+      }),
     );
 
     return stats;
@@ -257,12 +300,22 @@ export class InboxService {
     const [unread] = await this.db
       .select({ count: count() })
       .from(inboxItemsTable)
-      .where(and(eq(inboxItemsTable.teamId, teamId), eq(inboxItemsTable.isRead, false)));
+      .where(
+        and(
+          eq(inboxItemsTable.teamId, teamId),
+          eq(inboxItemsTable.isRead, false),
+        ),
+      );
 
     const [needsReview] = await this.db
       .select({ count: count() })
       .from(inboxItemsTable)
-      .where(and(eq(inboxItemsTable.teamId, teamId), eq(inboxItemsTable.requiresReview, true)));
+      .where(
+        and(
+          eq(inboxItemsTable.teamId, teamId),
+          eq(inboxItemsTable.requiresReview, true),
+        ),
+      );
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -286,7 +339,7 @@ export class InboxService {
     phoneNumber: string,
     type: SuppressionType,
     reason?: string,
-    sourceInboxItemId?: string
+    sourceInboxItemId?: string,
   ) {
     const [entry] = await this.db
       .insert(suppressionListTable)
@@ -311,7 +364,12 @@ export class InboxService {
   async removeFromSuppressionList(teamId: string, id: string) {
     const [deleted] = await this.db
       .delete(suppressionListTable)
-      .where(and(eq(suppressionListTable.teamId, teamId), eq(suppressionListTable.id, id)))
+      .where(
+        and(
+          eq(suppressionListTable.teamId, teamId),
+          eq(suppressionListTable.id, id),
+        ),
+      )
       .returning();
 
     if (!deleted) throw new ModelNotFoundError("Suppression entry not found");
@@ -321,12 +379,18 @@ export class InboxService {
   /**
    * Get suppression list
    */
-  async getSuppressionList(teamId: string, type?: SuppressionType, searchQuery?: string) {
+  async getSuppressionList(
+    teamId: string,
+    type?: SuppressionType,
+    searchQuery?: string,
+  ) {
     const conditions = [eq(suppressionListTable.teamId, teamId)];
 
     if (type) conditions.push(eq(suppressionListTable.type, type));
     if (searchQuery) {
-      conditions.push(ilike(suppressionListTable.phoneNumber, `%${searchQuery}%`));
+      conditions.push(
+        ilike(suppressionListTable.phoneNumber, `%${searchQuery}%`),
+      );
     }
 
     const entries = await this.db.query.suppressionList.findMany({
@@ -360,13 +424,55 @@ export class InboxService {
    */
   async initializeDefaultBuckets(teamId: string) {
     const defaultBuckets = [
-      { type: BucketType.UNIVERSAL_INBOX, name: "Universal Inbox", icon: "inbox", color: "#6366f1", position: 0 },
-      { type: BucketType.POSITIVE_RESPONSES, name: "Positive Responses", icon: "thumbs-up", color: "#22c55e", position: 1 },
-      { type: BucketType.NEUTRAL_REVIEW, name: "Neutral Review", icon: "meh", color: "#f59e0b", position: 2 },
-      { type: BucketType.WRONG_NUMBER, name: "Wrong Number", icon: "phone-off", color: "#ef4444", position: 3 },
-      { type: BucketType.PROFANITY_REVIEW, name: "Profanity Review", icon: "alert-triangle", color: "#f97316", position: 4 },
-      { type: BucketType.BLACKLIST, name: "Blacklist", icon: "ban", color: "#1f2937", position: 5 },
-      { type: BucketType.LEGAL_DNC, name: "Legal DNC", icon: "shield", color: "#dc2626", position: 6 },
+      {
+        type: BucketType.UNIVERSAL_INBOX,
+        name: "Universal Inbox",
+        icon: "inbox",
+        color: "#6366f1",
+        position: 0,
+      },
+      {
+        type: BucketType.POSITIVE_RESPONSES,
+        name: "Positive Responses",
+        icon: "thumbs-up",
+        color: "#22c55e",
+        position: 1,
+      },
+      {
+        type: BucketType.NEUTRAL_REVIEW,
+        name: "Neutral Review",
+        icon: "meh",
+        color: "#f59e0b",
+        position: 2,
+      },
+      {
+        type: BucketType.WRONG_NUMBER,
+        name: "Wrong Number",
+        icon: "phone-off",
+        color: "#ef4444",
+        position: 3,
+      },
+      {
+        type: BucketType.PROFANITY_REVIEW,
+        name: "Profanity Review",
+        icon: "alert-triangle",
+        color: "#f97316",
+        position: 4,
+      },
+      {
+        type: BucketType.BLACKLIST,
+        name: "Blacklist",
+        icon: "ban",
+        color: "#1f2937",
+        position: 5,
+      },
+      {
+        type: BucketType.LEGAL_DNC,
+        name: "Legal DNC",
+        icon: "shield",
+        color: "#dc2626",
+        position: 6,
+      },
     ];
 
     for (const bucket of defaultBuckets) {

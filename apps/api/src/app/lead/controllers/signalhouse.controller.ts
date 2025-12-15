@@ -79,12 +79,16 @@ export class SignalHouseController {
 
     try {
       const [analyticsRes, walletRes] = await Promise.all([
-        axios.get(`${this.apiBase}/analytics/dashboardAnalytics`, {
-          headers: { "x-api-key": this.apiKey },
-        }).catch(() => null),
-        axios.get(`${this.apiBase}/wallet/summary`, {
-          headers: { "x-api-key": this.apiKey },
-        }).catch(() => null),
+        axios
+          .get(`${this.apiBase}/analytics/dashboardAnalytics`, {
+            headers: { "x-api-key": this.apiKey },
+          })
+          .catch(() => null),
+        axios
+          .get(`${this.apiBase}/wallet/summary`, {
+            headers: { "x-api-key": this.apiKey },
+          })
+          .catch(() => null),
       ]);
 
       return {
@@ -98,7 +102,15 @@ export class SignalHouseController {
   }
 
   @Post("send")
-  async send(@Body() body: { to: string; from: string; message: string; mediaUrl?: string }) {
+  async send(
+    @Body()
+    body: {
+      to: string;
+      from: string;
+      message: string;
+      mediaUrl?: string;
+    },
+  ) {
     if (!this.apiKey) {
       return { error: "SignalHouse API key not configured" };
     }
@@ -128,7 +140,9 @@ export class SignalHouseController {
       };
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        return { error: error.response?.data?.message || "Failed to send message" };
+        return {
+          error: error.response?.data?.message || "Failed to send message",
+        };
       }
       return { error: "Failed to send message" };
     }

@@ -233,7 +233,7 @@ export default function SystemSettingsPage() {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="companyName">Company Name</Label>
-                  <Input id="companyName" defaultValue="OutreachGlobal" />
+                  <Input id="companyName" defaultValue="Nextier" />
                 </div>
 
                 <div className="space-y-2">
@@ -460,7 +460,7 @@ export default function SystemSettingsPage() {
                   <Label htmlFor="smtpUsername">SMTP Username</Label>
                   <Input
                     id="smtpUsername"
-                    defaultValue="notifications@outreachglobal.com"
+                    defaultValue="notifications@nextier.app"
                   />
                 </div>
 
@@ -489,7 +489,7 @@ export default function SystemSettingsPage() {
                   <Label htmlFor="defaultFromEmail">Default From Email</Label>
                   <Input
                     id="defaultFromEmail"
-                    defaultValue="notifications@outreachglobal.com"
+                    defaultValue="notifications@nextier.app"
                   />
                 </div>
 
@@ -497,7 +497,7 @@ export default function SystemSettingsPage() {
                   <Label htmlFor="defaultFromName">Default From Name</Label>
                   <Input
                     id="defaultFromName"
-                    defaultValue="OutreachGlobal Notifications"
+                    defaultValue="Nextier Notifications"
                   />
                 </div>
 

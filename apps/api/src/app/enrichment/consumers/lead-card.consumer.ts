@@ -5,7 +5,10 @@
 import { OnWorkerEvent, Processor, WorkerHost } from "@nestjs/bullmq";
 import { Job } from "bullmq";
 import { Logger } from "@nestjs/common";
-import { LeadCardService, CreateLeadCardJob } from "../services/lead-card.service";
+import {
+  LeadCardService,
+  CreateLeadCardJob,
+} from "../services/lead-card.service";
 import { IdentityGraphService } from "../services/identity-graph.service";
 import { CampaignTriggerService } from "../services/campaign-trigger.service";
 
@@ -86,16 +89,18 @@ export class LeadCardConsumer extends WorkerHost {
 
     // Only run identity match if significant data was added
     const significantData =
-      skipTraceResult.phonesAdded > 0 ||
-      skipTraceResult.emailsAdded > 0;
+      skipTraceResult.phonesAdded > 0 || skipTraceResult.emailsAdded > 0;
 
     if (significantData) {
       // Try to merge with existing personas
-      const mergeResult = await this.identityGraphService.autoMergePersona(teamId, personaId);
+      const mergeResult = await this.identityGraphService.autoMergePersona(
+        teamId,
+        personaId,
+      );
 
       if (mergeResult && mergeResult.mergedIds.length > 0) {
         this.logger.log(
-          `Merged ${mergeResult.mergedIds.length} personas after SkipTrace`
+          `Merged ${mergeResult.mergedIds.length} personas after SkipTrace`,
         );
       }
     }
@@ -116,7 +121,10 @@ export class LeadCardConsumer extends WorkerHost {
     const { teamId, personaId, businessId } = data;
 
     // Try to merge with existing personas
-    const mergeResult = await this.identityGraphService.autoMergePersona(teamId, personaId);
+    const mergeResult = await this.identityGraphService.autoMergePersona(
+      teamId,
+      personaId,
+    );
 
     // Update/create lead card
     const leadCardId = await this.leadCardService.createOrUpdateLeadCard({
@@ -139,13 +147,13 @@ export class LeadCardConsumer extends WorkerHost {
 
     const matches = await this.identityGraphService.findPotentialMatches(
       teamId,
-      personaId
+      personaId,
     );
 
     // Auto-merge high confidence matches
     const mergeResult = await this.identityGraphService.autoMergePersona(
       teamId,
-      personaId
+      personaId,
     );
 
     return {
@@ -177,6 +185,9 @@ export class LeadCardConsumer extends WorkerHost {
 
   @OnWorkerEvent("failed")
   async onFailed(job: Job, error: Error) {
-    this.logger.error(`Lead card job ${job.id} failed: ${error.message}`, error.stack);
+    this.logger.error(
+      `Lead card job ${job.id} failed: ${error.message}`,
+      error.stack,
+    );
   }
 }

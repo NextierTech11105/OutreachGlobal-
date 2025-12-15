@@ -57,8 +57,9 @@ export const personaEmails = pgTable(
     index().on(t.emailType),
     index().on(t.isUnsubscribed),
     index().on(t.domain),
-  ]
+  ],
 );
 
-export const personaEmailsRef = (config?: { onDelete?: "cascade" | "set null" }) =>
-  ulidColumn().references(() => personaEmails.id, config);
+export const personaEmailsRef = (config?: {
+  onDelete?: "cascade" | "set null";
+}) => ulidColumn().references(() => personaEmails.id, config);

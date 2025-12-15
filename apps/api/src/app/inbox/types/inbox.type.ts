@@ -1,4 +1,8 @@
-import { BucketType, InboxPriority, ResponseClassification } from "@nextier/common";
+import {
+  BucketType,
+  InboxPriority,
+  ResponseClassification,
+} from "@nextier/common";
 
 export interface InboxFilter {
   teamId: string;

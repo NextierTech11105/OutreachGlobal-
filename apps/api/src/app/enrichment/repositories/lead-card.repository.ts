@@ -5,8 +5,23 @@
 import { Injectable } from "@nestjs/common";
 import { InjectDB } from "@/database/decorators";
 import { DrizzleClient } from "@/database/types";
-import { eq, and, or, desc, asc, gte, lte, like, inArray, sql } from "drizzle-orm";
-import { unifiedLeadCards, leadActivities, campaignQueue } from "@/database/schema";
+import {
+  eq,
+  and,
+  or,
+  desc,
+  asc,
+  gte,
+  lte,
+  like,
+  inArray,
+  sql,
+} from "drizzle-orm";
+import {
+  unifiedLeadCards,
+  leadActivities,
+  campaignQueue,
+} from "@/database/schema";
 import { generateUlid } from "@/database/columns/ulid";
 
 export interface LeadCardQuery {
@@ -44,7 +59,9 @@ export class LeadCardRepository {
   /**
    * Find by ID
    */
-  async findById(id: string): Promise<typeof unifiedLeadCards.$inferSelect | null> {
+  async findById(
+    id: string,
+  ): Promise<typeof unifiedLeadCards.$inferSelect | null> {
     const result = await this.db.query.unifiedLeadCards.findFirst({
       where: (t, { eq }) => eq(t.id, id),
     });
@@ -56,7 +73,7 @@ export class LeadCardRepository {
    */
   async findByPersonaId(
     teamId: string,
-    personaId: string
+    personaId: string,
   ): Promise<typeof unifiedLeadCards.$inferSelect | null> {
     const result = await this.db.query.unifiedLeadCards.findFirst({
       where: (t, { eq, and }) =>
@@ -68,7 +85,9 @@ export class LeadCardRepository {
   /**
    * Query lead cards with filters
    */
-  async query(query: LeadCardQuery): Promise<Array<typeof unifiedLeadCards.$inferSelect>> {
+  async query(
+    query: LeadCardQuery,
+  ): Promise<Array<typeof unifiedLeadCards.$inferSelect>> {
     const conditions = [eq(unifiedLeadCards.teamId, query.teamId)];
 
     if (query.status && query.status.length > 0) {
@@ -100,11 +119,15 @@ export class LeadCardRepository {
     }
 
     if (query.isDecisionMaker !== undefined) {
-      conditions.push(eq(unifiedLeadCards.isDecisionMaker, query.isDecisionMaker));
+      conditions.push(
+        eq(unifiedLeadCards.isDecisionMaker, query.isDecisionMaker),
+      );
     }
 
     if (query.enrichmentStatus) {
-      conditions.push(eq(unifiedLeadCards.enrichmentStatus, query.enrichmentStatus));
+      conditions.push(
+        eq(unifiedLeadCards.enrichmentStatus, query.enrichmentStatus),
+      );
     }
 
     if (query.searchQuery) {
@@ -112,8 +135,8 @@ export class LeadCardRepository {
         or(
           like(unifiedLeadCards.fullName, `%${query.searchQuery}%`),
           like(unifiedLeadCards.primaryEmail, `%${query.searchQuery}%`),
-          like(unifiedLeadCards.primaryPhone, `%${query.searchQuery}%`)
-        )!
+          like(unifiedLeadCards.primaryPhone, `%${query.searchQuery}%`),
+        )!,
       );
     }
 
@@ -130,7 +153,8 @@ export class LeadCardRepository {
         orderColumn = unifiedLeadCards.createdAt;
     }
 
-    const order = query.orderDir === "asc" ? asc(orderColumn) : desc(orderColumn);
+    const order =
+      query.orderDir === "asc" ? asc(orderColumn) : desc(orderColumn);
 
     const results = await this.db.query.unifiedLeadCards.findMany({
       where: and(...conditions),
@@ -168,7 +192,8 @@ export class LeadCardRepository {
       }
 
       if (card.assignedPriority) {
-        byPriority[card.assignedPriority] = (byPriority[card.assignedPriority] || 0) + 1;
+        byPriority[card.assignedPriority] =
+          (byPriority[card.assignedPriority] || 0) + 1;
       }
 
       byEnrichmentStatus[card.enrichmentStatus] =
@@ -198,7 +223,7 @@ export class LeadCardRepository {
   async getTopLeads(
     teamId: string,
     limit = 10,
-    options: { agent?: string; status?: string } = {}
+    options: { agent?: string; status?: string } = {},
   ): Promise<Array<typeof unifiedLeadCards.$inferSelect>> {
     const conditions = [eq(unifiedLeadCards.teamId, teamId)];
 
@@ -225,14 +250,14 @@ export class LeadCardRepository {
   async getReadyForCampaign(
     teamId: string,
     agent: "sabrina" | "gianna",
-    limit = 50
+    limit = 50,
   ): Promise<Array<typeof unifiedLeadCards.$inferSelect>> {
     const results = await this.db.query.unifiedLeadCards.findMany({
       where: (t, { eq, and, or }) =>
         and(
           eq(t.teamId, teamId),
           eq(t.assignedAgent, agent),
-          or(eq(t.status, "new"), eq(t.status, "ready"))
+          or(eq(t.status, "new"), eq(t.status, "ready")),
         ),
       orderBy: (t) => [desc(t.totalScore), asc(t.createdAt)],
       limit,
@@ -259,7 +284,7 @@ export class LeadCardRepository {
    */
   async getActivities(
     leadCardId: string,
-    limit = 50
+    limit = 50,
   ): Promise<Array<typeof leadActivities.$inferSelect>> {
     const results = await this.db.query.leadActivities.findMany({
       where: (t, { eq }) => eq(t.leadCardId, leadCardId),
@@ -274,7 +299,7 @@ export class LeadCardRepository {
    * Get campaign queue status for a lead
    */
   async getCampaignQueueStatus(
-    leadCardId: string
+    leadCardId: string,
   ): Promise<Array<typeof campaignQueue.$inferSelect>> {
     const results = await this.db.query.campaignQueue.findMany({
       where: (t, { eq }) => eq(t.leadCardId, leadCardId),

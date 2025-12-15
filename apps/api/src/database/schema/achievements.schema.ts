@@ -64,7 +64,7 @@ export const userAchievements = pgTable(
     index().on(t.userId),
     index().on(t.teamId),
     index().on(t.achievementId),
-  ]
+  ],
 );
 
 // User stats for gamification
@@ -110,7 +110,7 @@ export const userStats = pgTable(
     createdAt,
     updatedAt,
   },
-  (t) => [index().on(t.userId), index().on(t.teamId)]
+  (t) => [index().on(t.userId), index().on(t.teamId)],
 );
 
 // Achievement notifications queue
@@ -129,7 +129,7 @@ export const achievementNotifications = pgTable(
     displayedAt: timestamp(),
     createdAt,
   },
-  (t) => [index().on(t.userId), index().on(t.isDisplayed)]
+  (t) => [index().on(t.userId), index().on(t.isDisplayed)],
 );
 
 // Leaderboard snapshots
@@ -141,17 +141,15 @@ export const leaderboardSnapshots = pgTable(
     period: varchar().notNull(),
     periodStart: timestamp().notNull(),
     periodEnd: timestamp().notNull(),
-    rankings: jsonb()
-      .notNull()
-      .$type<
-        {
-          userId: string;
-          rank: number;
-          points: number;
-          achievements: number;
-        }[]
-      >(),
+    rankings: jsonb().notNull().$type<
+      {
+        userId: string;
+        rank: number;
+        points: number;
+        achievements: number;
+      }[]
+    >(),
     createdAt,
   },
-  (t) => [index().on(t.teamId), index().on(t.period)]
+  (t) => [index().on(t.teamId), index().on(t.period)],
 );

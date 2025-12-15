@@ -126,3 +126,13 @@ import {
 export const initialMessagesTable = initialMessages;
 export const campaignInitialMessagesTable = campaignInitialMessages;
 export const sdrCampaignConfigsTable = sdrCampaignConfigs;
+
+// Content Library
+import {
+  contentCategories,
+  contentItems,
+  contentUsageLogs,
+} from "./schema/content-library.schema";
+export const contentCategoriesTable = contentCategories;
+export const contentItemsTable = contentItems;
+export const contentUsageLogsTable = contentUsageLogs;

@@ -6,12 +6,21 @@ import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { InjectQueue } from "@nestjs/bullmq";
 import { Queue } from "bullmq";
-import { S3Client, GetObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  GetObjectCommand,
+  ListObjectsV2Command,
+} from "@aws-sdk/client-s3";
 import { InjectDB } from "@/database/decorators";
 import { DrizzleClient } from "@/database/types";
 import { generateUlid } from "@/database/columns/ulid";
 import { businesses, businessOwners, personas } from "@/database/schema";
-import { normalizeName, normalizePhone, normalizeEmail, normalizeAddress } from "@nextier/common";
+import {
+  normalizeName,
+  normalizePhone,
+  normalizeEmail,
+  normalizeAddress,
+} from "@nextier/common";
 
 export interface B2BSectorConfig {
   sector: string;
@@ -71,10 +80,13 @@ export class B2BIngestionService {
     @InjectQueue("b2b-ingestion") private ingestionQueue: Queue,
     @InjectQueue("skiptrace") private skipTraceQueue: Queue,
   ) {
-    this.bucketName = this.configService.get("SPACES_BUCKET") || "nextier-datalake";
+    this.bucketName =
+      this.configService.get("SPACES_BUCKET") || "nextier-datalake";
 
     this.s3Client = new S3Client({
-      endpoint: this.configService.get("SPACES_ENDPOINT") || "https://nyc3.digitaloceanspaces.com",
+      endpoint:
+        this.configService.get("SPACES_ENDPOINT") ||
+        "https://nyc3.digitaloceanspaces.com",
       region: this.configService.get("SPACES_REGION") || "nyc3",
       credentials: {
         accessKeyId: this.configService.get("SPACES_KEY") || "",
@@ -86,7 +98,10 @@ export class B2BIngestionService {
   /**
    * Queue a B2B sector file for ingestion
    */
-  async queueSectorIngestion(teamId: string, config: B2BSectorConfig): Promise<string> {
+  async queueSectorIngestion(
+    teamId: string,
+    config: B2BSectorConfig,
+  ): Promise<string> {
     const jobId = generateUlid("b2b");
 
     await this.ingestionQueue.add(
@@ -100,10 +115,12 @@ export class B2BIngestionService {
         jobId,
         attempts: 3,
         backoff: { type: "exponential", delay: 5000 },
-      }
+      },
     );
 
-    this.logger.log(`Queued B2B ingestion job ${jobId} for ${config.sector}/${config.subSector}`);
+    this.logger.log(
+      `Queued B2B ingestion job ${jobId} for ${config.sector}/${config.subSector}`,
+    );
     return jobId;
   }
 
@@ -118,9 +135,10 @@ export class B2BIngestionService {
       });
 
       const response = await this.s3Client.send(command);
-      const files = response.Contents?.map((obj) => obj.Key || "").filter(
-        (key) => key.endsWith(".csv") || key.endsWith(".json")
-      ) || [];
+      const files =
+        response.Contents?.map((obj) => obj.Key || "").filter(
+          (key) => key.endsWith(".csv") || key.endsWith(".json"),
+        ) || [];
 
       return files;
     } catch (error) {
@@ -148,7 +166,9 @@ export class B2BIngestionService {
 
       if (filePath.endsWith(".json")) {
         const parsed = JSON.parse(content);
-        return Array.isArray(parsed) ? parsed : parsed.data || parsed.records || [];
+        return Array.isArray(parsed)
+          ? parsed
+          : parsed.data || parsed.records || [];
       }
 
       // Parse CSV
@@ -166,7 +186,11 @@ export class B2BIngestionService {
     const lines = content.split("\n").filter((line) => line.trim());
     if (lines.length < 2) return [];
 
-    const headers = lines[0].split(",").map((h) => h.trim().replace(/^"|"$/g, "").toLowerCase().replace(/\s+/g, "_"));
+    const headers = lines[0]
+      .split(",")
+      .map((h) =>
+        h.trim().replace(/^"|"$/g, "").toLowerCase().replace(/\s+/g, "_"),
+      );
     const records: B2BRecord[] = [];
 
     for (let i = 1; i < lines.length; i++) {
@@ -212,7 +236,7 @@ export class B2BIngestionService {
   async processRecords(
     teamId: string,
     records: B2BRecord[],
-    config: B2BSectorConfig
+    config: B2BSectorConfig,
   ): Promise<{
     businessesCreated: number;
     personasCreated: number;
@@ -230,7 +254,8 @@ export class B2BIngestionService {
       try {
         await this.processRecord(teamId, record, config, results);
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : "Unknown error";
+        const errorMsg =
+          error instanceof Error ? error.message : "Unknown error";
         results.errors.push(`Record error: ${errorMsg}`);
       }
     }
@@ -245,17 +270,24 @@ export class B2BIngestionService {
     teamId: string,
     record: B2BRecord,
     config: B2BSectorConfig,
-    results: { businessesCreated: number; personasCreated: number; linksCreated: number; errors: string[] }
+    results: {
+      businessesCreated: number;
+      personasCreated: number;
+      linksCreated: number;
+      errors: string[];
+    },
   ): Promise<void> {
     // Extract company info
-    const companyName = record.company_name || record.company || record.name || "";
+    const companyName =
+      record.company_name || record.company || record.name || "";
     if (!companyName) {
       results.errors.push("Skipped record: no company name");
       return;
     }
 
     // Normalize company name
-    const normalizedName = companyName.toLowerCase()
+    const normalizedName = companyName
+      .toLowerCase()
       .replace(/[^\w\s&-]/g, "")
       .replace(/\s+(inc|llc|ltd|corp|corporation|company|co)\.?$/i, "")
       .trim();
@@ -284,15 +316,19 @@ export class B2BIngestionService {
         naicsCode: record.naics_code as string,
         sector: config.sector,
         subSector: config.subSector,
-        phone: record.phone || record.phone_number as string,
+        phone: record.phone || (record.phone_number as string),
         email: record.email as string,
         website: record.website as string,
-        street: record.street || record.address as string,
+        street: record.street || (record.address as string),
         city: record.city as string,
         state: record.state as string,
         zip: (record.zip || record.zip_code) as string,
-        employeeCount: this.parseNumber(record.employees || record.employee_count),
-        annualRevenue: this.parseNumber(record.revenue || record.annual_revenue),
+        employeeCount: this.parseNumber(
+          record.employees || record.employee_count,
+        ),
+        annualRevenue: this.parseNumber(
+          record.revenue || record.annual_revenue,
+        ),
         yearFounded: this.parseNumber(record.year_founded),
         sourceFile: config.bucketPath,
         isActive: true,
@@ -306,7 +342,14 @@ export class B2BIngestionService {
     const lastName = record.last_name || record.lastName || "";
 
     if (firstName && lastName) {
-      await this.createPersonaLink(teamId, businessId, record, firstName, lastName, results);
+      await this.createPersonaLink(
+        teamId,
+        businessId,
+        record,
+        firstName,
+        lastName,
+        results,
+      );
     }
   }
 
@@ -319,7 +362,12 @@ export class B2BIngestionService {
     record: B2BRecord,
     firstName: string,
     lastName: string,
-    results: { businessesCreated: number; personasCreated: number; linksCreated: number; errors: string[] }
+    results: {
+      businessesCreated: number;
+      personasCreated: number;
+      linksCreated: number;
+      errors: string[];
+    },
   ): Promise<void> {
     // Normalize name
     const nameInfo = normalizeName(`${firstName} ${lastName}`);
@@ -330,7 +378,7 @@ export class B2BIngestionService {
         and(
           eq(t.teamId, teamId),
           eq(t.normalizedFirstName, nameInfo.firstName),
-          eq(t.normalizedLastName, nameInfo.lastName)
+          eq(t.normalizedLastName, nameInfo.lastName),
         ),
     });
 
@@ -377,7 +425,7 @@ export class B2BIngestionService {
         {
           attempts: 3,
           backoff: { type: "exponential", delay: 10000 },
-        }
+        },
       );
     }
 
@@ -386,23 +434,26 @@ export class B2BIngestionService {
     const roleInfo = this.classifyRole(title);
 
     // Create business-persona link
-    await this.db.insert(businessOwners).values({
-      id: generateUlid("bowner"),
-      teamId,
-      personaId,
-      businessId,
-      title,
-      roleType: roleInfo.roleType,
-      roleConfidence: roleInfo.confidence,
-      isDecisionMaker: roleInfo.isDecisionMaker,
-      isOwner: roleInfo.isOwner,
-      isCLevel: roleInfo.isCLevel,
-      isPartner: roleInfo.isPartner,
-      isInvestor: roleInfo.isInvestor,
-      isSalesLead: roleInfo.isSalesLead,
-      source: "b2b_upload",
-      isCurrent: true,
-    }).onConflictDoNothing();
+    await this.db
+      .insert(businessOwners)
+      .values({
+        id: generateUlid("bowner"),
+        teamId,
+        personaId,
+        businessId,
+        title,
+        roleType: roleInfo.roleType,
+        roleConfidence: roleInfo.confidence,
+        isDecisionMaker: roleInfo.isDecisionMaker,
+        isOwner: roleInfo.isOwner,
+        isCLevel: roleInfo.isCLevel,
+        isPartner: roleInfo.isPartner,
+        isInvestor: roleInfo.isInvestor,
+        isSalesLead: roleInfo.isSalesLead,
+        source: "b2b_upload",
+        isCurrent: true,
+      })
+      .onConflictDoNothing();
 
     results.linksCreated++;
   }

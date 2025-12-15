@@ -53,8 +53,9 @@ export const personaPhones = pgTable(
     uniqueIndex().on(t.personaId, t.normalizedNumber),
     index().on(t.phoneType),
     index().on(t.isDoNotCall),
-  ]
+  ],
 );
 
-export const personaPhonesRef = (config?: { onDelete?: "cascade" | "set null" }) =>
-  ulidColumn().references(() => personaPhones.id, config);
+export const personaPhonesRef = (config?: {
+  onDelete?: "cascade" | "set null";
+}) => ulidColumn().references(() => personaPhones.id, config);

@@ -58,8 +58,9 @@ export const personaAddresses = pgTable(
     index().on(t.state),
     index().on(t.isCurrent),
     index().on(t.addressType),
-  ]
+  ],
 );
 
-export const personaAddressesRef = (config?: { onDelete?: "cascade" | "set null" }) =>
-  ulidColumn().references(() => personaAddresses.id, config);
+export const personaAddressesRef = (config?: {
+  onDelete?: "cascade" | "set null";
+}) => ulidColumn().references(() => personaAddresses.id, config);

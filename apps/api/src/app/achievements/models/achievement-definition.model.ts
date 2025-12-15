@@ -5,11 +5,16 @@ import { achievementDefinitionsTable } from "@/database/schema-alias";
 import { ObjectType } from "@nestjs/graphql";
 import { AnyObject, AchievementType, BadgeTier } from "@nextier/common";
 
-export type AchievementDefinitionSelect = typeof achievementDefinitionsTable.$inferSelect;
-export type AchievementDefinitionInsert = typeof achievementDefinitionsTable.$inferInsert;
+export type AchievementDefinitionSelect =
+  typeof achievementDefinitionsTable.$inferSelect;
+export type AchievementDefinitionInsert =
+  typeof achievementDefinitionsTable.$inferInsert;
 
 @ObjectType()
-export class AchievementDefinition extends TimestampModel implements AchievementDefinitionSelect {
+export class AchievementDefinition
+  extends TimestampModel
+  implements AchievementDefinitionSelect
+{
   @StringField()
   type: AchievementType;
 

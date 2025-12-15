@@ -10,7 +10,11 @@ import {
   campaignsTable,
   aiSdrAvatarsTable,
 } from "@/database/schema-alias";
-import { ResponseClassification, InboxPriority, BucketType } from "@nextier/common";
+import {
+  ResponseClassification,
+  InboxPriority,
+  BucketType,
+} from "@nextier/common";
 
 interface InboundCallResult {
   leadId?: string;
@@ -39,7 +43,7 @@ export class VoiceService {
 
   constructor(
     private configService: ConfigService,
-    @InjectDB() private db: DrizzleClient
+    @InjectDB() private db: DrizzleClient,
   ) {}
 
   /**
@@ -49,7 +53,7 @@ export class VoiceService {
   async handleInboundCall(
     fromPhone: string,
     toPhone: string,
-    callSid: string
+    callSid: string,
   ): Promise<InboundCallResult> {
     this.logger.log(`Inbound call from ${fromPhone} to ${toPhone}`);
 
@@ -98,11 +102,17 @@ export class VoiceService {
     await this.logCallAttempt(fromPhone, lead?.id, teamId, callSid);
 
     // 5. Send follow-up SMS with calendar link
-    const smsSent = await this.sendCalendarSms(fromPhone, calendarUrl, lead?.firstName);
+    const smsSent = await this.sendCalendarSms(
+      fromPhone,
+      calendarUrl,
+      lead?.firstName,
+    );
 
     return {
       leadId: lead?.id,
-      leadName: lead?.firstName ? `${lead.firstName} ${lead.lastName || ''}`.trim() : undefined,
+      leadName: lead?.firstName
+        ? `${lead.firstName} ${lead.lastName || ""}`.trim()
+        : undefined,
       teamId,
       calendarUrl,
       voicemailPlayed: true,
@@ -119,7 +129,9 @@ export class VoiceService {
   generateVoicemailTwiml(config: VoicemailConfig): string {
     // If SDR has a custom recording, play it instead of TTS
     if (config.recordingUrl) {
-      this.logger.log(`Playing custom recording from ${config.sdrName || 'SDR'}: ${config.recordingUrl}`);
+      this.logger.log(
+        `Playing custom recording from ${config.sdrName || "SDR"}: ${config.recordingUrl}`,
+      );
       return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Play>${config.recordingUrl}</Play>
@@ -128,10 +140,11 @@ export class VoiceService {
     }
 
     // Fallback to TTS with Silvana (Italian accent)
-    const greeting = config.greeting ||
+    const greeting =
+      config.greeting ||
       "Thanks for calling back! We'd love to connect with you. " +
-      "Check your text messages for a link to schedule a time that works best for you. " +
-      "We look forward to speaking with you soon!";
+        "Check your text messages for a link to schedule a time that works best for you. " +
+        "We look forward to speaking with you soon!";
 
     // Silvana - Italian female voice (Polly.Carla) for warm Italian accent
     return `<?xml version="1.0" encoding="UTF-8"?>
@@ -154,7 +167,7 @@ export class VoiceService {
     fromPhone: string,
     leadId?: string,
     teamId?: string,
-    callSid?: string
+    callSid?: string,
   ) {
     if (!teamId) {
       this.logger.warn(`No team found for call from ${fromPhone}`);
@@ -192,12 +205,14 @@ export class VoiceService {
   private async sendCalendarSms(
     toPhone: string,
     calendarUrl: string,
-    firstName?: string | null
+    firstName?: string | null,
   ): Promise<boolean> {
-    const accountSid = this.configService.get("SIGNALHOUSE_ACCOUNT_SID") ||
-                       this.configService.get("TWILIO_ACCOUNT_SID");
-    const authToken = this.configService.get("SIGNALHOUSE_AUTH_TOKEN") ||
-                      this.configService.get("TWILIO_AUTH_TOKEN");
+    const accountSid =
+      this.configService.get("SIGNALHOUSE_ACCOUNT_SID") ||
+      this.configService.get("TWILIO_ACCOUNT_SID");
+    const authToken =
+      this.configService.get("SIGNALHOUSE_AUTH_TOKEN") ||
+      this.configService.get("TWILIO_AUTH_TOKEN");
     const fromPhone = this.configService.get("TWILIO_PHONE_NUMBER");
 
     if (!accountSid || !authToken || !fromPhone) {
@@ -223,7 +238,7 @@ export class VoiceService {
             From: fromPhone,
             Body: message,
           }),
-        }
+        },
       );
 
       if (response.ok) {

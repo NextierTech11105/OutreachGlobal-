@@ -98,7 +98,7 @@ export class BusinessRepository {
    */
   async findByName(
     teamId: string,
-    name: string
+    name: string,
   ): Promise<typeof businesses.$inferSelect | null> {
     const normalizedName = name
       .toLowerCase()
@@ -117,7 +117,10 @@ export class BusinessRepository {
   /**
    * Find by website domain
    */
-  async findByDomain(teamId: string, domain: string): Promise<typeof businesses.$inferSelect | null> {
+  async findByDomain(
+    teamId: string,
+    domain: string,
+  ): Promise<typeof businesses.$inferSelect | null> {
     // Normalize domain
     const normalizedDomain = domain
       .toLowerCase()
@@ -137,7 +140,7 @@ export class BusinessRepository {
   async listBySector(
     teamId: string,
     sector: string,
-    options: { subSector?: string; limit?: number; offset?: number } = {}
+    options: { subSector?: string; limit?: number; offset?: number } = {},
   ): Promise<Array<typeof businesses.$inferSelect>> {
     const conditions = [
       eq(businesses.teamId, teamId),
@@ -164,14 +167,14 @@ export class BusinessRepository {
    */
   async listNeedingApolloEnrichment(
     teamId: string,
-    limit = 100
+    limit = 100,
   ): Promise<Array<typeof businesses.$inferSelect>> {
     const results = await this.db.query.businesses.findMany({
       where: (t, { eq, and }) =>
         and(
           eq(t.teamId, teamId),
           eq(t.isActive, true),
-          eq(t.apolloEnriched, false)
+          eq(t.apolloEnriched, false),
         ),
       orderBy: (t) => [asc(t.createdAt)],
       limit,
@@ -222,7 +225,7 @@ export class BusinessRepository {
       roleType?: string;
       isDecisionMaker?: boolean;
       source?: string;
-    } = {}
+    } = {},
   ): Promise<string> {
     const id = generateUlid("bowner");
 
@@ -250,7 +253,8 @@ export class BusinessRepository {
    */
   async countBySector(teamId: string): Promise<Record<string, number>> {
     const all = await this.db.query.businesses.findMany({
-      where: (t, { eq, and }) => and(eq(t.teamId, teamId), eq(t.isActive, true)),
+      where: (t, { eq, and }) =>
+        and(eq(t.teamId, teamId), eq(t.isActive, true)),
     });
 
     const counts: Record<string, number> = {};
@@ -272,7 +276,8 @@ export class BusinessRepository {
     withDecisionMakers: number;
   }> {
     const allBusinesses = await this.db.query.businesses.findMany({
-      where: (t, { eq, and }) => and(eq(t.teamId, teamId), eq(t.isActive, true)),
+      where: (t, { eq, and }) =>
+        and(eq(t.teamId, teamId), eq(t.isActive, true)),
     });
 
     const total = allBusinesses.length;
@@ -280,14 +285,20 @@ export class BusinessRepository {
 
     // Count businesses with at least one decision maker
     const businessIds = allBusinesses.map((b) => b.id);
-    const decisionMakerLinks = businessIds.length > 0
-      ? await this.db.query.businessOwners.findMany({
-          where: (t, { and, eq, inArray }) =>
-            and(inArray(t.businessId, businessIds), eq(t.isDecisionMaker, true)),
-        })
-      : [];
+    const decisionMakerLinks =
+      businessIds.length > 0
+        ? await this.db.query.businessOwners.findMany({
+            where: (t, { and, eq, inArray }) =>
+              and(
+                inArray(t.businessId, businessIds),
+                eq(t.isDecisionMaker, true),
+              ),
+          })
+        : [];
 
-    const businessesWithDm = new Set(decisionMakerLinks.map((l) => l.businessId)).size;
+    const businessesWithDm = new Set(
+      decisionMakerLinks.map((l) => l.businessId),
+    ).size;
 
     return {
       total,

@@ -33,7 +33,10 @@ export const initialMessages = pgTable(
 
     // Categorization
     category: varchar().notNull().$type<InitialMessageCategory>(),
-    tone: varchar().notNull().$type<MessageTone>().default(MessageTone.PROFESSIONAL),
+    tone: varchar()
+      .notNull()
+      .$type<MessageTone>()
+      .default(MessageTone.PROFESSIONAL),
     tags: text().array().default([]),
 
     // SDR Assignment
@@ -48,13 +51,15 @@ export const initialMessages = pgTable(
     avgResponseTime: integer(),
 
     // Personalization tokens
-    availableTokens: text().array().default([
-      "{{firstName}}",
-      "{{lastName}}",
-      "{{propertyAddress}}",
-      "{{city}}",
-      "{{equity}}",
-    ]),
+    availableTokens: text()
+      .array()
+      .default([
+        "{{firstName}}",
+        "{{lastName}}",
+        "{{propertyAddress}}",
+        "{{city}}",
+        "{{equity}}",
+      ]),
 
     // A/B testing
     isVariant: boolean().default(false),
@@ -74,7 +79,7 @@ export const initialMessages = pgTable(
     index().on(t.category),
     index().on(t.defaultSdrId),
     index().on(t.isActive),
-  ]
+  ],
 );
 
 // Campaign Initial Message assignments
@@ -108,7 +113,7 @@ export const campaignInitialMessages = pgTable(
     index().on(t.campaignId),
     index().on(t.initialMessageId),
     index().on(t.assignedSdrId),
-  ]
+  ],
 );
 
 // Sabrina AI SDR specific configurations
@@ -149,9 +154,5 @@ export const sdrCampaignConfigs = pgTable(
     createdAt,
     updatedAt,
   },
-  (t) => [
-    index().on(t.sdrId),
-    index().on(t.campaignId),
-    index().on(t.teamId),
-  ]
+  (t) => [index().on(t.sdrId), index().on(t.campaignId), index().on(t.teamId)],
 );

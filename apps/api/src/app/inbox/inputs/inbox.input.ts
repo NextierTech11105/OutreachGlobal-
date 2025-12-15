@@ -1,7 +1,12 @@
 import { IntField, StringField, BooleanField } from "@/app/apollo/decorators";
 import { MaybeString } from "@/app/apollo/types/maybe.type";
 import { InputType, registerEnumType } from "@nestjs/graphql";
-import { BucketType, InboxPriority, ResponseClassification, SuppressionType } from "@nextier/common";
+import {
+  BucketType,
+  InboxPriority,
+  ResponseClassification,
+  SuppressionType,
+} from "@nextier/common";
 
 // Register enums for GraphQL
 registerEnumType(ResponseClassification, { name: "ResponseClassification" });

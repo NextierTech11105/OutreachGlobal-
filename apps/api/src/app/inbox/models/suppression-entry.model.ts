@@ -10,7 +10,10 @@ export type SuppressionEntrySelect = typeof suppressionListTable.$inferSelect;
 export type SuppressionEntryInsert = typeof suppressionListTable.$inferInsert;
 
 @ObjectType()
-export class SuppressionEntry extends TimestampModel implements SuppressionEntrySelect {
+export class SuppressionEntry
+  extends TimestampModel
+  implements SuppressionEntrySelect
+{
   teamId: string;
 
   @StringField()
@@ -41,4 +44,6 @@ export class SuppressionEntry extends TimestampModel implements SuppressionEntry
 export class SuppressionEntryEdge extends WithEdge(SuppressionEntry) {}
 
 @ObjectType()
-export class SuppressionEntryConnection extends WithConnection(SuppressionEntryEdge) {}
+export class SuppressionEntryConnection extends WithConnection(
+  SuppressionEntryEdge,
+) {}

@@ -5,7 +5,10 @@
 import { OnWorkerEvent, Processor, WorkerHost } from "@nestjs/bullmq";
 import { Job } from "bullmq";
 import { Logger } from "@nestjs/common";
-import { SkipTraceService, SkipTraceEnrichmentJob } from "../services/skiptrace.service";
+import {
+  SkipTraceService,
+  SkipTraceEnrichmentJob,
+} from "../services/skiptrace.service";
 
 @Processor("skiptrace")
 export class SkipTraceConsumer extends WorkerHost {
@@ -47,6 +50,9 @@ export class SkipTraceConsumer extends WorkerHost {
 
   @OnWorkerEvent("failed")
   async onFailed(job: Job, error: Error) {
-    this.logger.error(`SkipTrace job ${job.id} failed: ${error.message}`, error.stack);
+    this.logger.error(
+      `SkipTrace job ${job.id} failed: ${error.message}`,
+      error.stack,
+    );
   }
 }

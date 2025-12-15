@@ -34,6 +34,11 @@ import { LeadConsumer } from "./consumers/lead.consumer";
   repositories: [LeadRepository],
   schedules: [LeadSchedule],
   exports: [LeadService],
-  controllers: [BusinessListController, ApolloSearchController, ApolloTestController, SignalHouseController],
+  controllers: [
+    BusinessListController,
+    ApolloSearchController,
+    ApolloTestController,
+    SignalHouseController,
+  ],
 })
 export class LeadModule {}

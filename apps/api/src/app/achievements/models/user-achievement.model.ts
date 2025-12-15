@@ -38,4 +38,6 @@ export class UserAchievement extends Model implements UserAchievementSelect {
 export class UserAchievementEdge extends WithEdge(UserAchievement) {}
 
 @ObjectType()
-export class UserAchievementConnection extends WithConnection(UserAchievementEdge) {}
+export class UserAchievementConnection extends WithConnection(
+  UserAchievementEdge,
+) {}

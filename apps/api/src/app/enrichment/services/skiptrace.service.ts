@@ -18,7 +18,11 @@ import {
   skiptraceResults,
 } from "@/database/schema";
 import { eq } from "drizzle-orm";
-import { RealEstateApiService, SkipTraceRequest, SkipTraceResponse } from "./realestate-api.service";
+import {
+  RealEstateApiService,
+  SkipTraceRequest,
+  SkipTraceResponse,
+} from "./realestate-api.service";
 
 export interface SkipTraceEnrichmentJob {
   teamId: string;
@@ -64,24 +68,24 @@ export class SkipTraceService {
   async queueEnrichment(job: SkipTraceEnrichmentJob): Promise<string> {
     const jobId = generateUlid("strace");
 
-    await this.skipTraceQueue.add(
-      "ENRICH_PERSONA",
-      job,
-      {
-        jobId,
-        attempts: 3,
-        backoff: { type: "exponential", delay: 10000 },
-      }
-    );
+    await this.skipTraceQueue.add("ENRICH_PERSONA", job, {
+      jobId,
+      attempts: 3,
+      backoff: { type: "exponential", delay: 10000 },
+    });
 
-    this.logger.log(`Queued SkipTrace enrichment ${jobId} for persona ${job.personaId}`);
+    this.logger.log(
+      `Queued SkipTrace enrichment ${jobId} for persona ${job.personaId}`,
+    );
     return jobId;
   }
 
   /**
    * Perform skip trace enrichment for a persona
    */
-  async enrichPersona(job: SkipTraceEnrichmentJob): Promise<SkipTraceEnrichmentResult> {
+  async enrichPersona(
+    job: SkipTraceEnrichmentJob,
+  ): Promise<SkipTraceEnrichmentResult> {
     const { teamId, personaId, sourceType, sourceId } = job;
 
     this.logger.log(`Starting SkipTrace enrichment for persona ${personaId}`);
@@ -102,10 +106,19 @@ export class SkipTraceService {
     const response = await this.realEstateApi.skipTrace(request);
 
     // Store raw result
-    await this.storeSkipTraceResult(teamId, personaId, sourceType, sourceId, request, response);
+    await this.storeSkipTraceResult(
+      teamId,
+      personaId,
+      sourceType,
+      sourceId,
+      request,
+      response,
+    );
 
     if (!response.success || !response.output) {
-      this.logger.warn(`SkipTrace failed for persona ${personaId}: ${response.error?.message}`);
+      this.logger.warn(
+        `SkipTrace failed for persona ${personaId}: ${response.error?.message}`,
+      );
 
       return {
         success: false,
@@ -120,7 +133,11 @@ export class SkipTraceService {
     }
 
     // Process results
-    const result = await this.processSkipTraceOutput(teamId, personaId, response);
+    const result = await this.processSkipTraceOutput(
+      teamId,
+      personaId,
+      response,
+    );
 
     // Update persona enrichment status
     await this.db
@@ -143,11 +160,11 @@ export class SkipTraceService {
       {
         attempts: 2,
         backoff: { type: "exponential", delay: 5000 },
-      }
+      },
     );
 
     this.logger.log(
-      `SkipTrace complete for ${personaId}: ${result.phonesAdded} phones, ${result.emailsAdded} emails`
+      `SkipTrace complete for ${personaId}: ${result.phonesAdded} phones, ${result.emailsAdded} emails`,
     );
 
     return result;
@@ -162,7 +179,7 @@ export class SkipTraceService {
     sourceType: string,
     sourceId: string,
     request: SkipTraceRequest,
-    response: SkipTraceResponse
+    response: SkipTraceResponse,
   ): Promise<void> {
     await this.db.insert(skiptraceResults).values({
       id: generateUlid("strace"),
@@ -199,7 +216,7 @@ export class SkipTraceService {
   private async processSkipTraceOutput(
     teamId: string,
     personaId: string,
-    response: SkipTraceResponse
+    response: SkipTraceResponse,
   ): Promise<SkipTraceEnrichmentResult> {
     const output = response.output!;
     let phonesAdded = 0;
@@ -284,8 +301,12 @@ export class SkipTraceService {
               addressType: this.mapAddressType(addr.address_type),
               isCurrent: addr.is_current || false,
               isPrimary: false,
-              moveInDate: addr.move_in_date ? new Date(addr.move_in_date) : undefined,
-              moveOutDate: addr.move_out_date ? new Date(addr.move_out_date) : undefined,
+              moveInDate: addr.move_in_date
+                ? new Date(addr.move_in_date)
+                : undefined,
+              moveOutDate: addr.move_out_date
+                ? new Date(addr.move_out_date)
+                : undefined,
               latitude: addr.lat,
               longitude: addr.lng,
               source: "skiptrace",
@@ -360,7 +381,9 @@ export class SkipTraceService {
   /**
    * Map phone type from API response
    */
-  private mapPhoneType(type?: string): "mobile" | "landline" | "voip" | "unknown" {
+  private mapPhoneType(
+    type?: string,
+  ): "mobile" | "landline" | "voip" | "unknown" {
     if (!type) return "unknown";
     const lower = type.toLowerCase();
     if (lower.includes("mobile") || lower.includes("cell")) return "mobile";
@@ -383,11 +406,15 @@ export class SkipTraceService {
   /**
    * Map address type from API response
    */
-  private mapAddressType(type?: string): "residential" | "commercial" | "mailing" | "po_box" | "unknown" {
+  private mapAddressType(
+    type?: string,
+  ): "residential" | "commercial" | "mailing" | "po_box" | "unknown" {
     if (!type) return "unknown";
     const lower = type.toLowerCase();
-    if (lower.includes("residential") || lower.includes("home")) return "residential";
-    if (lower.includes("commercial") || lower.includes("business")) return "commercial";
+    if (lower.includes("residential") || lower.includes("home"))
+      return "residential";
+    if (lower.includes("commercial") || lower.includes("business"))
+      return "commercial";
     if (lower.includes("mailing")) return "mailing";
     if (lower.includes("po") || lower.includes("box")) return "po_box";
     return "unknown";
@@ -396,7 +423,9 @@ export class SkipTraceService {
   /**
    * Map social platform from API response
    */
-  private mapPlatform(platform: string): "linkedin" | "facebook" | "twitter" | "instagram" | "other" {
+  private mapPlatform(
+    platform: string,
+  ): "linkedin" | "facebook" | "twitter" | "instagram" | "other" {
     const lower = platform.toLowerCase();
     if (lower.includes("linkedin")) return "linkedin";
     if (lower.includes("facebook")) return "facebook";

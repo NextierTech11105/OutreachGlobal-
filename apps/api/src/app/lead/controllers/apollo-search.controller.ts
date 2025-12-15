@@ -1,4 +1,10 @@
-import { Controller, Post, Body, HttpException, HttpStatus } from "@nestjs/common";
+import {
+  Controller,
+  Post,
+  Body,
+  HttpException,
+  HttpStatus,
+} from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import axios from "axios";
 
@@ -52,7 +58,14 @@ export class ApolloSearchController {
     }
 
     try {
-      const { searchQuery, state, title, company_name, company_domain, industry } = body;
+      const {
+        searchQuery,
+        state,
+        title,
+        company_name,
+        company_domain,
+        industry,
+      } = body;
 
       // Build Apollo search parameters
       const searchParams: Record<string, unknown> = {
@@ -96,7 +109,9 @@ export class ApolloSearchController {
       }
 
       if (state?.length) {
-        searchParams.person_locations = state.map((s: string) => `United States, ${s}`);
+        searchParams.person_locations = state.map(
+          (s: string) => `United States, ${s}`,
+        );
       }
 
       const response = await axios.post(
@@ -107,7 +122,7 @@ export class ApolloSearchController {
             "Content-Type": "application/json",
             "X-Api-Key": this.apolloApiKey,
           },
-        }
+        },
       );
 
       const data = response.data;
@@ -115,7 +130,9 @@ export class ApolloSearchController {
       // Transform Apollo results to match expected format
       const hits = (data.people || []).map((person: ApolloPerson) => ({
         id: person.id,
-        name: person.name || `${person.first_name || ""} ${person.last_name || ""}`.trim(),
+        name:
+          person.name ||
+          `${person.first_name || ""} ${person.last_name || ""}`.trim(),
         title: person.title || null,
         email: person.email || null,
         phone: person.phone_numbers?.[0]?.sanitized_number || null,
@@ -123,10 +140,15 @@ export class ApolloSearchController {
         city: person.city || null,
         state: person.state || null,
         company_name: person.organization?.name || null,
-        company_domain: person.organization?.website_url?.replace(/^https?:\/\//, "").replace(/\/$/, "") || null,
+        company_domain:
+          person.organization?.website_url
+            ?.replace(/^https?:\/\//, "")
+            .replace(/\/$/, "") || null,
         employees: person.organization?.estimated_num_employees || null,
         industry: person.organization?.industry || null,
-        revenue: person.organization?.annual_revenue ? person.organization.annual_revenue * 100 : null,
+        revenue: person.organization?.annual_revenue
+          ? person.organization.annual_revenue * 100
+          : null,
         linkedin_url: person.linkedin_url || null,
       }));
 
@@ -139,24 +161,30 @@ export class ApolloSearchController {
       if (axios.isAxiosError(error)) {
         throw new HttpException(
           error.response?.data?.message || "Apollo search failed",
-          error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR
+          error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }
-      throw new HttpException("Search failed", HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        "Search failed",
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
   @Post("companies")
-  async searchCompanies(@Body() body: {
-    name?: string;
-    industry?: string[];
-    state?: string[];
-    city?: string[];
-    employees_min?: number;
-    employees_max?: number;
-    revenue_min?: number;
-    revenue_max?: number;
-  }) {
+  async searchCompanies(
+    @Body()
+    body: {
+      name?: string;
+      industry?: string[];
+      state?: string[];
+      city?: string[];
+      employees_min?: number;
+      employees_max?: number;
+      revenue_min?: number;
+      revenue_max?: number;
+    },
+  ) {
     if (!this.apolloApiKey) {
       return {
         hits: [],
@@ -166,7 +194,16 @@ export class ApolloSearchController {
     }
 
     try {
-      const { name, industry, state, city, employees_min, employees_max, revenue_min, revenue_max } = body;
+      const {
+        name,
+        industry,
+        state,
+        city,
+        employees_min,
+        employees_max,
+        revenue_min,
+        revenue_max,
+      } = body;
 
       // Build Apollo organization search parameters
       const searchParams: Record<string, unknown> = {
@@ -183,7 +220,9 @@ export class ApolloSearchController {
       }
 
       if (state?.length) {
-        searchParams.organization_locations = state.map((s: string) => `United States, ${s}`);
+        searchParams.organization_locations = state.map(
+          (s: string) => `United States, ${s}`,
+        );
       }
 
       if (city?.length) {
@@ -193,11 +232,17 @@ export class ApolloSearchController {
       if (employees_min || employees_max) {
         searchParams.organization_num_employees_ranges = [];
         if (employees_min && employees_max) {
-          (searchParams.organization_num_employees_ranges as string[]).push(`${employees_min},${employees_max}`);
+          (searchParams.organization_num_employees_ranges as string[]).push(
+            `${employees_min},${employees_max}`,
+          );
         } else if (employees_min) {
-          (searchParams.organization_num_employees_ranges as string[]).push(`${employees_min},`);
+          (searchParams.organization_num_employees_ranges as string[]).push(
+            `${employees_min},`,
+          );
         } else if (employees_max) {
-          (searchParams.organization_num_employees_ranges as string[]).push(`,${employees_max}`);
+          (searchParams.organization_num_employees_ranges as string[]).push(
+            `,${employees_max}`,
+          );
         }
       }
 
@@ -209,40 +254,44 @@ export class ApolloSearchController {
             "Content-Type": "application/json",
             "X-Api-Key": this.apolloApiKey,
           },
-        }
+        },
       );
 
       const data = response.data;
 
       // Transform Apollo organization results
-      const hits = (data.organizations || data.accounts || []).map((org: {
-        id: string;
-        name?: string;
-        website_url?: string;
-        industry?: string;
-        estimated_num_employees?: number;
-        annual_revenue?: number;
-        city?: string;
-        state?: string;
-        country?: string;
-        phone?: string;
-        linkedin_url?: string;
-        founded_year?: number;
-      }) => ({
-        id: org.id,
-        name: org.name || null,
-        domain: org.website_url?.replace(/^https?:\/\//, "").replace(/\/$/, "") || null,
-        website: org.website_url || null,
-        industry: org.industry || null,
-        employees: org.estimated_num_employees || null,
-        revenue: org.annual_revenue || null,
-        city: org.city || null,
-        state: org.state || null,
-        country: org.country || null,
-        phone: org.phone || null,
-        linkedin_url: org.linkedin_url || null,
-        founded_year: org.founded_year || null,
-      }));
+      const hits = (data.organizations || data.accounts || []).map(
+        (org: {
+          id: string;
+          name?: string;
+          website_url?: string;
+          industry?: string;
+          estimated_num_employees?: number;
+          annual_revenue?: number;
+          city?: string;
+          state?: string;
+          country?: string;
+          phone?: string;
+          linkedin_url?: string;
+          founded_year?: number;
+        }) => ({
+          id: org.id,
+          name: org.name || null,
+          domain:
+            org.website_url?.replace(/^https?:\/\//, "").replace(/\/$/, "") ||
+            null,
+          website: org.website_url || null,
+          industry: org.industry || null,
+          employees: org.estimated_num_employees || null,
+          revenue: org.annual_revenue || null,
+          city: org.city || null,
+          state: org.state || null,
+          country: org.country || null,
+          phone: org.phone || null,
+          linkedin_url: org.linkedin_url || null,
+          founded_year: org.founded_year || null,
+        }),
+      );
 
       return {
         hits,
@@ -253,10 +302,13 @@ export class ApolloSearchController {
       if (axios.isAxiosError(error)) {
         throw new HttpException(
           error.response?.data?.message || "Company search failed",
-          error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR
+          error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }
-      throw new HttpException("Company search failed", HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        "Company search failed",
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 }

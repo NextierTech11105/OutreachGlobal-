@@ -1,5 +1,8 @@
 import { Args, Mutation, Query, Resolver } from "@nestjs/graphql";
-import { SuppressionEntry, SuppressionEntryConnection } from "../models/suppression-entry.model";
+import {
+  SuppressionEntry,
+  SuppressionEntryConnection,
+} from "../models/suppression-entry.model";
 import { Auth, UseAuthGuard } from "@/app/auth/decorators";
 import { BaseResolver } from "@/app/apollo/base.resolver";
 import { TeamService } from "@/app/team/services/team.service";
@@ -28,16 +31,23 @@ export class SuppressionResolver extends BaseResolver(SuppressionEntry) {
   }
 
   @Query(() => SuppressionEntryConnection)
-  async suppressionList(@Auth() user: User, @Args() args: SuppressionConnectionArgs) {
+  async suppressionList(
+    @Auth() user: User,
+    @Args() args: SuppressionConnectionArgs,
+  ) {
     const team = await this.teamService.findById(args.teamId);
     await this.teamPolicy.can().read(user, team);
-    return this.service.getSuppressionList(team.id, args.type, args.searchQuery ?? undefined);
+    return this.service.getSuppressionList(
+      team.id,
+      args.type,
+      args.searchQuery ?? undefined,
+    );
   }
 
   @Mutation(() => CreateSuppressionPayload)
   async createSuppressionEntry(
     @Auth() user: User,
-    @Args() args: CreateSuppressionArgs
+    @Args() args: CreateSuppressionArgs,
   ): Promise<CreateSuppressionPayload> {
     const team = await this.teamService.findById(args.teamId);
     await this.teamPolicy.can().read(user, team);
@@ -46,14 +56,14 @@ export class SuppressionResolver extends BaseResolver(SuppressionEntry) {
       args.input.phoneNumber,
       args.input.type,
       args.input.reason ?? undefined,
-      args.input.sourceInboxItemId ?? undefined
+      args.input.sourceInboxItemId ?? undefined,
     );
   }
 
   @Mutation(() => RemoveSuppressionPayload)
   async removeSuppressionEntry(
     @Auth() user: User,
-    @Args() args: RemoveSuppressionArgs
+    @Args() args: RemoveSuppressionArgs,
   ): Promise<RemoveSuppressionPayload> {
     const team = await this.teamService.findById(args.teamId);
     await this.teamPolicy.can().read(user, team);

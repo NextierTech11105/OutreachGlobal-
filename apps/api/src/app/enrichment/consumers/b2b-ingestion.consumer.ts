@@ -5,7 +5,10 @@
 import { OnWorkerEvent, Processor, WorkerHost } from "@nestjs/bullmq";
 import { Job } from "bullmq";
 import { Logger } from "@nestjs/common";
-import { B2BIngestionService, B2BIngestionJob } from "../services/b2b-ingestion.service";
+import {
+  B2BIngestionService,
+  B2BIngestionJob,
+} from "../services/b2b-ingestion.service";
 
 @Processor("b2b-ingestion")
 export class B2BIngestionConsumer extends WorkerHost {
@@ -34,10 +37,14 @@ export class B2BIngestionConsumer extends WorkerHost {
   private async ingestSector(data: B2BIngestionJob) {
     const { teamId, config } = data;
 
-    this.logger.log(`Starting sector ingestion: ${config.sector}/${config.subSector}`);
+    this.logger.log(
+      `Starting sector ingestion: ${config.sector}/${config.subSector}`,
+    );
 
     // List all files in the sector path
-    const files = await this.b2bIngestionService.listSectorFiles(config.bucketPath);
+    const files = await this.b2bIngestionService.listSectorFiles(
+      config.bucketPath,
+    );
 
     if (files.length === 0) {
       this.logger.warn(`No files found in ${config.bucketPath}`);
@@ -59,7 +66,7 @@ export class B2BIngestionConsumer extends WorkerHost {
         const result = await this.b2bIngestionService.processRecords(
           teamId,
           records,
-          { ...config, bucketPath: filePath }
+          { ...config, bucketPath: filePath },
         );
 
         totalRecords += records.length;
@@ -68,7 +75,7 @@ export class B2BIngestionConsumer extends WorkerHost {
         totalErrors += result.errors.length;
 
         this.logger.log(
-          `File ${filePath}: ${result.businessesCreated} businesses, ${result.personasCreated} personas, ${result.errors.length} errors`
+          `File ${filePath}: ${result.businessesCreated} businesses, ${result.personasCreated} personas, ${result.errors.length} errors`,
         );
       } catch (error) {
         this.logger.error(`Failed to process file ${filePath}:`, error);
@@ -77,7 +84,7 @@ export class B2BIngestionConsumer extends WorkerHost {
     }
 
     this.logger.log(
-      `Sector ingestion complete: ${files.length} files, ${totalRecords} records, ${totalBusinesses} businesses, ${totalPersonas} personas, ${totalErrors} errors`
+      `Sector ingestion complete: ${files.length} files, ${totalRecords} records, ${totalBusinesses} businesses, ${totalPersonas} personas, ${totalErrors} errors`,
     );
 
     return {
@@ -100,10 +107,14 @@ export class B2BIngestionConsumer extends WorkerHost {
     const records = await this.b2bIngestionService.readBucketFile(bucketPath);
     this.logger.log(`Read ${records.length} records`);
 
-    const result = await this.b2bIngestionService.processRecords(teamId, records, config);
+    const result = await this.b2bIngestionService.processRecords(
+      teamId,
+      records,
+      config,
+    );
 
     this.logger.log(
-      `File complete: ${result.businessesCreated} businesses, ${result.personasCreated} personas, ${result.errors.length} errors`
+      `File complete: ${result.businessesCreated} businesses, ${result.personasCreated} personas, ${result.errors.length} errors`,
     );
 
     return result;

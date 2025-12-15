@@ -934,7 +934,11 @@ export default function SectorsPage() {
                   Imported files and connected APIs
                 </CardDescription>
               </div>
-              <Button variant="outline" size="sm">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => toast.info("Sync started for all sources")}
+              >
                 <RefreshCcw className="h-4 w-4 mr-2" />
                 Sync All
               </Button>
@@ -948,7 +952,11 @@ export default function SectorsPage() {
                 <p className="text-sm">
                   Import a CSV or connect an API to get started
                 </p>
-                <Button variant="outline" className="mt-4">
+                <Button
+                  variant="outline"
+                  className="mt-4"
+                  onClick={() => setShowUploadDialog(true)}
+                >
                   <Upload className="h-4 w-4 mr-2" />
                   Import Data
                 </Button>

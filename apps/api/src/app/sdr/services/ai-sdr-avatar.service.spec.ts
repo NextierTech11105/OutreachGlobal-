@@ -1,21 +1,21 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { AiSdrAvatarService } from './ai-sdr-avatar.service';
-import { DatabaseService } from '@/database/services/database.service';
-import { DEFAULT_DB_PROVIDER_NAME } from '@haorama/drizzle-postgres-nestjs';
+import { Test, TestingModule } from "@nestjs/testing";
+import { AiSdrAvatarService } from "./ai-sdr-avatar.service";
+import { DatabaseService } from "@/database/services/database.service";
+import { DEFAULT_DB_PROVIDER_NAME } from "@haorama/drizzle-postgres-nestjs";
 
-describe('AiSdrAvatarService', () => {
+describe("AiSdrAvatarService", () => {
   let service: AiSdrAvatarService;
   let mockDb: any;
   let mockDbService: any;
 
   const mockAvatar = {
-    id: 'avatar-123',
-    teamId: 'team-123',
-    name: 'Sales Pro',
-    description: 'A professional sales assistant',
-    industry: 'Technology',
-    tone: 'professional',
-    personality: 'friendly',
+    id: "avatar-123",
+    teamId: "team-123",
+    name: "Sales Pro",
+    description: "A professional sales assistant",
+    industry: "Technology",
+    tone: "professional",
+    personality: "friendly",
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -50,12 +50,12 @@ describe('AiSdrAvatarService', () => {
 
     mockDbService = {
       withCursorPagination: jest.fn().mockResolvedValue({
-        edges: [{ node: mockAvatar, cursor: 'cursor-1' }],
+        edges: [{ node: mockAvatar, cursor: "cursor-1" }],
         pageInfo: {
           hasNextPage: false,
           hasPreviousPage: false,
-          startCursor: 'cursor-1',
-          endCursor: 'cursor-1',
+          startCursor: "cursor-1",
+          endCursor: "cursor-1",
         },
       }),
     };
@@ -81,10 +81,10 @@ describe('AiSdrAvatarService', () => {
     jest.clearAllMocks();
   });
 
-  describe('paginate', () => {
-    it('should return paginated avatars', async () => {
+  describe("paginate", () => {
+    it("should return paginated avatars", async () => {
       const options = {
-        teamId: 'team-123',
+        teamId: "team-123",
         first: 10,
       };
 
@@ -96,11 +96,11 @@ describe('AiSdrAvatarService', () => {
       expect(result.pageInfo).toBeDefined();
     });
 
-    it('should filter by search query when provided', async () => {
+    it("should filter by search query when provided", async () => {
       const options = {
-        teamId: 'team-123',
+        teamId: "team-123",
         first: 10,
-        searchQuery: 'Sales',
+        searchQuery: "Sales",
       };
 
       await service.paginate(options);
@@ -109,42 +109,42 @@ describe('AiSdrAvatarService', () => {
     });
   });
 
-  describe('findOneOrFail', () => {
-    it('should return avatar when found', async () => {
+  describe("findOneOrFail", () => {
+    it("should return avatar when found", async () => {
       const result = await service.findOneOrFail({
-        id: 'avatar-123',
-        teamId: 'team-123',
+        id: "avatar-123",
+        teamId: "team-123",
       });
 
       expect(result).toEqual(mockAvatar);
       expect(mockDb.query.aiSdrAvatars.findFirst).toHaveBeenCalled();
     });
 
-    it('should throw when avatar not found', async () => {
+    it("should throw when avatar not found", async () => {
       mockDb.query.aiSdrAvatars.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.findOneOrFail({ id: 'nonexistent', teamId: 'team-123' }),
+        service.findOneOrFail({ id: "nonexistent", teamId: "team-123" }),
       ).rejects.toThrow();
     });
   });
 
-  describe('create', () => {
-    it('should create a new AI SDR avatar', async () => {
+  describe("create", () => {
+    it("should create a new AI SDR avatar", async () => {
       const result = await service.create({
-        teamId: 'team-123',
+        teamId: "team-123",
         input: {
-          name: 'New Avatar',
-          description: 'A new sales avatar',
-          personality: 'friendly',
-          voiceType: 'professional',
+          name: "New Avatar",
+          description: "A new sales avatar",
+          personality: "friendly",
+          voiceType: "professional",
           active: true,
-          industry: 'Healthcare',
-          mission: 'Help customers find solutions',
-          goal: 'Increase conversions',
-          roles: ['Sales', 'Support'],
-          faqs: [{ question: 'What do you do?', answer: 'I help with sales.' }],
-          tags: ['healthcare', 'sales'],
+          industry: "Healthcare",
+          mission: "Help customers find solutions",
+          goal: "Increase conversions",
+          roles: ["Sales", "Support"],
+          faqs: [{ question: "What do you do?", answer: "I help with sales." }],
+          tags: ["healthcare", "sales"],
         },
       });
 
@@ -153,23 +153,23 @@ describe('AiSdrAvatarService', () => {
     });
   });
 
-  describe('update', () => {
-    it('should update an existing avatar', async () => {
+  describe("update", () => {
+    it("should update an existing avatar", async () => {
       const result = await service.update({
-        id: 'avatar-123',
-        teamId: 'team-123',
+        id: "avatar-123",
+        teamId: "team-123",
         input: {
-          name: 'Updated Avatar',
-          description: 'Updated description',
-          personality: 'professional',
-          voiceType: 'warm',
+          name: "Updated Avatar",
+          description: "Updated description",
+          personality: "professional",
+          voiceType: "warm",
           active: true,
-          industry: 'Technology',
-          mission: 'Updated mission',
-          goal: 'Updated goal',
-          roles: ['Sales'],
-          faqs: [{ question: 'Updated Q', answer: 'Updated A' }],
-          tags: ['updated'],
+          industry: "Technology",
+          mission: "Updated mission",
+          goal: "Updated goal",
+          roles: ["Sales"],
+          faqs: [{ question: "Updated Q", answer: "Updated A" }],
+          tags: ["updated"],
         },
       });
 
@@ -178,22 +178,22 @@ describe('AiSdrAvatarService', () => {
       expect(mockDb.update).toHaveBeenCalled();
     });
 
-    it('should throw when avatar not found for update', async () => {
+    it("should throw when avatar not found for update", async () => {
       mockDb.query.aiSdrAvatars.findFirst.mockResolvedValue(null);
 
       await expect(
         service.update({
-          id: 'nonexistent',
-          teamId: 'team-123',
+          id: "nonexistent",
+          teamId: "team-123",
           input: {
-            name: 'Updated',
-            personality: 'friendly',
-            voiceType: 'casual',
+            name: "Updated",
+            personality: "friendly",
+            voiceType: "casual",
             active: true,
-            industry: 'Tech',
-            mission: 'Test mission',
-            goal: 'Test goal',
-            roles: ['Test'],
+            industry: "Tech",
+            mission: "Test mission",
+            goal: "Test goal",
+            roles: ["Test"],
             faqs: [],
             tags: [],
           },
@@ -202,23 +202,23 @@ describe('AiSdrAvatarService', () => {
     });
   });
 
-  describe('remove', () => {
-    it('should delete an avatar', async () => {
+  describe("remove", () => {
+    it("should delete an avatar", async () => {
       const result = await service.remove({
-        id: 'avatar-123',
-        teamId: 'team-123',
+        id: "avatar-123",
+        teamId: "team-123",
       });
 
-      expect(result.id).toBe('avatar-123');
+      expect(result.id).toBe("avatar-123");
       expect(mockDb.query.aiSdrAvatars.findFirst).toHaveBeenCalled();
       expect(mockDb.delete).toHaveBeenCalled();
     });
 
-    it('should throw when avatar not found for deletion', async () => {
+    it("should throw when avatar not found for deletion", async () => {
       mockDb.query.aiSdrAvatars.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.remove({ id: 'nonexistent', teamId: 'team-123' }),
+        service.remove({ id: "nonexistent", teamId: "team-123" }),
       ).rejects.toThrow();
     });
   });

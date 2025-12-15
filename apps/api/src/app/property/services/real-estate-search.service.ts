@@ -126,15 +126,18 @@ export class RealEstateSearchService {
       while (fetched < cappedTotal) {
         const remaining = cappedTotal - fetched;
         const pageLimit = Math.min(pageSize, remaining);
-        const { records } = await this.fetchPage(endpoint, request, page, pageLimit);
+        const { records } = await this.fetchPage(
+          endpoint,
+          request,
+          page,
+          pageLimit,
+        );
 
         if (!records.length) {
           break;
         }
 
-        buffer.push(
-          ...records.map((record) => this.normalizeRecord(record)),
-        );
+        buffer.push(...records.map((record) => this.normalizeRecord(record)));
         fetched += records.length;
         page += 1;
 
@@ -196,7 +199,8 @@ export class RealEstateSearchService {
         status: "completed",
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       this.logger.error(
         `RealEstate search failed for ${endpoint}: ${errorMessage}`,
       );
@@ -227,12 +231,7 @@ export class RealEstateSearchService {
     endpoint: string,
     request: RealEstatePaginatedSearchRequest,
   ) {
-    const { total, records } = await this.fetchPage(
-      endpoint,
-      request,
-      1,
-      1,
-    );
+    const { total, records } = await this.fetchPage(endpoint, request, 1, 1);
 
     return total || records.length;
   }

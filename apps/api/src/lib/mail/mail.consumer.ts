@@ -16,8 +16,11 @@ export class MailConsumer extends WorkerHost {
 
   async process(job: Job<SendMailOptions>) {
     const options = job.data;
-    const fromEmail = this.configService.get<string>("SENDGRID_FROM_EMAIL") || "noreply@outreachglobal.io";
-    const fromName = this.configService.get<string>("SENDGRID_FROM_NAME") || "Outreach Global";
+    const fromEmail =
+      this.configService.get<string>("SENDGRID_FROM_EMAIL") ||
+      "noreply@outreachglobal.io";
+    const fromName =
+      this.configService.get<string>("SENDGRID_FROM_NAME") || "Outreach Global";
 
     const msg = {
       to: options.to,
@@ -35,6 +38,9 @@ export class MailConsumer extends WorkerHost {
 
   @OnWorkerEvent("failed")
   onFailed(job: Job, error: any) {
-    console.error("Failed to send email:", error?.response?.body || error.message);
+    console.error(
+      "Failed to send email:",
+      error?.response?.body || error.message,
+    );
   }
 }

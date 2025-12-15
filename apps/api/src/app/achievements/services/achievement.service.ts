@@ -28,7 +28,8 @@ export class AchievementService {
    */
   async getDefinitions(category?: string, tier?: BadgeTier) {
     const conditions: SQL[] = [];
-    if (category) conditions.push(eq(achievementDefinitionsTable.category, category));
+    if (category)
+      conditions.push(eq(achievementDefinitionsTable.category, category));
     if (tier) conditions.push(eq(achievementDefinitionsTable.tier, tier));
 
     return this.db.query.achievementDefinitions.findMany({
@@ -43,7 +44,7 @@ export class AchievementService {
     const achievements = await this.db.query.userAchievements.findMany({
       where: and(
         eq(userAchievementsTable.teamId, teamId),
-        eq(userAchievementsTable.userId, userId)
+        eq(userAchievementsTable.userId, userId),
       ),
       orderBy: [desc(userAchievementsTable.earnedAt)],
     });
@@ -66,7 +67,7 @@ export class AchievementService {
     let stats = await this.db.query.userStats.findFirst({
       where: and(
         eq(userStatsTable.teamId, teamId),
-        eq(userStatsTable.userId, userId)
+        eq(userStatsTable.userId, userId),
       ),
     });
 
@@ -101,7 +102,7 @@ export class AchievementService {
     teamId: string,
     userId: string,
     type: AchievementType,
-    incrementBy: number = 1
+    incrementBy: number = 1,
   ) {
     // Get achievement definition
     const definition = await this.db.query.achievementDefinitions.findFirst({
@@ -138,7 +139,7 @@ export class AchievementService {
         where: and(
           eq(userAchievementsTable.teamId, teamId),
           eq(userAchievementsTable.userId, userId),
-          eq(userAchievementsTable.achievementId, definition.id)
+          eq(userAchievementsTable.achievementId, definition.id),
         ),
       });
 
@@ -175,12 +176,15 @@ export class AchievementService {
         .set({
           totalPoints: newTotalPoints,
           currentLevel: newLevel,
-          pointsToNextLevel: this.getPointsToNextLevel(newLevel, newTotalPoints),
+          pointsToNextLevel: this.getPointsToNextLevel(
+            newLevel,
+            newTotalPoints,
+          ),
         })
         .where(eq(userStatsTable.id, stats.id));
 
       this.logger.log(
-        `User ${userId} earned ${definition.name} (+${pointsEarned} points)`
+        `User ${userId} earned ${definition.name} (+${pointsEarned} points)`,
       );
 
       return {
@@ -199,13 +203,15 @@ export class AchievementService {
    * Get pending achievement notifications
    */
   async getPendingNotifications(teamId: string, userId: string) {
-    const notifications = await this.db.query.achievementNotifications.findMany({
-      where: and(
-        eq(achievementNotificationsTable.teamId, teamId),
-        eq(achievementNotificationsTable.userId, userId),
-        eq(achievementNotificationsTable.isDisplayed, false)
-      ),
-    });
+    const notifications = await this.db.query.achievementNotifications.findMany(
+      {
+        where: and(
+          eq(achievementNotificationsTable.teamId, teamId),
+          eq(achievementNotificationsTable.userId, userId),
+          eq(achievementNotificationsTable.isDisplayed, false),
+        ),
+      },
+    );
 
     const result: Array<{
       id: string;
@@ -240,8 +246,8 @@ export class AchievementService {
       .where(
         and(
           eq(achievementNotificationsTable.teamId, teamId),
-          eq(achievementNotificationsTable.id, notificationId)
-        )
+          eq(achievementNotificationsTable.id, notificationId),
+        ),
       );
 
     return { success: true };
@@ -262,7 +268,7 @@ export class AchievementService {
     if (lastActivity) {
       lastActivity.setHours(0, 0, 0, 0);
       const diffDays = Math.floor(
-        (today.getTime() - lastActivity.getTime()) / (1000 * 60 * 60 * 24)
+        (today.getTime() - lastActivity.getTime()) / (1000 * 60 * 60 * 24),
       );
 
       if (diffDays === 1) {
@@ -297,7 +303,11 @@ export class AchievementService {
       // First activity
       await this.db
         .update(userStatsTable)
-        .set({ currentStreak: 1, longestStreak: 1, lastActivityDate: new Date() })
+        .set({
+          currentStreak: 1,
+          longestStreak: 1,
+          lastActivityDate: new Date(),
+        })
         .where(eq(userStatsTable.id, stats.id));
 
       return { currentStreak: 1, longestStreak: 1, isActiveToday: true };
@@ -465,8 +475,13 @@ export class AchievementService {
     return { newLevel, leveledUp: true };
   }
 
-  private getPointsToNextLevel(currentLevel: number, totalPoints: number): number {
-    const nextThreshold = LEVEL_THRESHOLDS[currentLevel] || LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1] * 2;
+  private getPointsToNextLevel(
+    currentLevel: number,
+    totalPoints: number,
+  ): number {
+    const nextThreshold =
+      LEVEL_THRESHOLDS[currentLevel] ||
+      LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1] * 2;
     return nextThreshold - totalPoints;
   }
 }

@@ -89,7 +89,8 @@ export class LeadCardService {
     });
 
     const addresses = await this.db.query.personaAddresses.findMany({
-      where: (t, { eq, and }) => and(eq(t.personaId, personaId), eq(t.isCurrent, true)),
+      where: (t, { eq, and }) =>
+        and(eq(t.personaId, personaId), eq(t.isCurrent, true)),
       orderBy: (t) => [desc(t.isPrimary)],
     });
 
@@ -123,20 +124,33 @@ export class LeadCardService {
         });
 
     const property = propertyLink
-      ? (await this.db.query.properties.findFirst({
+      ? ((await this.db.query.properties.findFirst({
           where: (t, { eq }) => eq(t.id, propertyLink.propertyId),
-        })) ?? null
+        })) ?? null)
       : null;
 
     // Calculate score - extract property fields from metadata if available
-    const propertyMetadata = property?.metadata as Record<string, unknown> | null;
-    const propertyForScore = property ? {
-      equityPercent: propertyMetadata?.equityPercent as number | null ?? null,
-      preForeclosure: propertyMetadata?.preForeclosure as boolean | null ?? null,
-      taxLien: propertyMetadata?.taxLien as boolean | null ?? null,
-      vacant: propertyMetadata?.vacant as boolean | null ?? null,
-    } : null;
-    const score = this.calculateScore(phones, emails, addresses, businessLink, propertyForScore);
+    const propertyMetadata = property?.metadata as Record<
+      string,
+      unknown
+    > | null;
+    const propertyForScore = property
+      ? {
+          equityPercent:
+            (propertyMetadata?.equityPercent as number | null) ?? null,
+          preForeclosure:
+            (propertyMetadata?.preForeclosure as boolean | null) ?? null,
+          taxLien: (propertyMetadata?.taxLien as boolean | null) ?? null,
+          vacant: (propertyMetadata?.vacant as boolean | null) ?? null,
+        }
+      : null;
+    const score = this.calculateScore(
+      phones,
+      emails,
+      addresses,
+      businessLink,
+      propertyForScore,
+    );
 
     // Determine primary contact info
     const primaryPhone = phones.find((p) => p.isPrimary) || phones[0];
@@ -144,14 +158,13 @@ export class LeadCardService {
     const currentAddress = addresses[0];
 
     // Determine campaign assignment
-    const { agent, channel, priority, reason } = this.determineCampaignAssignment(
-      businessLink,
-      score.totalScore
-    );
+    const { agent, channel, priority, reason } =
+      this.determineCampaignAssignment(businessLink, score.totalScore);
 
     // Check for existing lead card
     const existingCard = await this.db.query.unifiedLeadCards.findFirst({
-      where: (t, { eq, and }) => and(eq(t.teamId, teamId), eq(t.personaId, personaId)),
+      where: (t, { eq, and }) =>
+        and(eq(t.teamId, teamId), eq(t.personaId, personaId)),
     });
 
     const leadCardData = {
@@ -230,11 +243,27 @@ export class LeadCardService {
    * Calculate lead card score
    */
   private calculateScore(
-    phones: Array<{ phoneType: string; isValid: boolean; isDoNotCall: boolean }>,
-    emails: Array<{ emailType: string; isValid: boolean; isUnsubscribed: boolean }>,
+    phones: Array<{
+      phoneType: string;
+      isValid: boolean;
+      isDoNotCall: boolean;
+    }>,
+    emails: Array<{
+      emailType: string;
+      isValid: boolean;
+      isUnsubscribed: boolean;
+    }>,
     addresses: Array<{ isCurrent: boolean }>,
-    businessLink: { roleType: string; isDecisionMaker: boolean } | null | undefined,
-    property: { equityPercent?: number | null; preForeclosure?: boolean | null; taxLien?: boolean | null; vacant?: boolean | null } | null
+    businessLink:
+      | { roleType: string; isDecisionMaker: boolean }
+      | null
+      | undefined,
+    property: {
+      equityPercent?: number | null;
+      preForeclosure?: boolean | null;
+      taxLien?: boolean | null;
+      vacant?: boolean | null;
+    } | null,
   ): LeadCardScore {
     const hasPhone = phones.length > 0;
     const hasMobilePhone = phones.some((p) => p.phoneType === "mobile");
@@ -259,7 +288,8 @@ export class LeadCardService {
     let contactReachabilityScore = 0;
     contactReachabilityScore += Math.min(validPhones.length * 20, 50);
     contactReachabilityScore += Math.min(validEmails.length * 15, 30);
-    if (validPhones.some((p) => p.phoneType === "mobile")) contactReachabilityScore += 20;
+    if (validPhones.some((p) => p.phoneType === "mobile"))
+      contactReachabilityScore += 20;
 
     // Role value score (0-100)
     const roleWeights: Record<string, number> = {
@@ -275,7 +305,8 @@ export class LeadCardService {
     };
     const roleWeight = roleWeights[businessLink?.roleType || "unknown"] || 10;
     let roleValueScore = roleWeight;
-    if (businessLink?.isDecisionMaker) roleValueScore = Math.min(roleValueScore + 15, 100);
+    if (businessLink?.isDecisionMaker)
+      roleValueScore = Math.min(roleValueScore + 15, 100);
 
     // Property opportunity score (0-100)
     let propertyOpportunityScore = 0;
@@ -313,7 +344,7 @@ export class LeadCardService {
         contactReachabilityScore * 0.25 +
         roleValueScore * 0.2 +
         propertyOpportunityScore * 0.15 +
-        businessFitScore * 0.15
+        businessFitScore * 0.15,
     );
 
     return {
@@ -345,8 +376,11 @@ export class LeadCardService {
    * Sabrina = Email for Residential Real Estate
    */
   private determineCampaignAssignment(
-    businessLink: { isDecisionMaker: boolean; roleType: string; isSalesLead?: boolean } | null | undefined,
-    totalScore: number
+    businessLink:
+      | { isDecisionMaker: boolean; roleType: string; isSalesLead?: boolean }
+      | null
+      | undefined,
+    totalScore: number,
   ): {
     agent: "sabrina" | "gianna";
     channel: "sms" | "email";
@@ -406,7 +440,7 @@ export class LeadCardService {
       content?: string;
       metadata?: Record<string, unknown>;
       externalId?: string;
-    } = {}
+    } = {},
   ): Promise<void> {
     await this.db.insert(leadActivities).values({
       id: generateUlid("lact"),

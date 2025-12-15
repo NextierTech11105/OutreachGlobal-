@@ -22,8 +22,11 @@ export class MailService implements OnModuleInit {
   }
 
   async sendNow(options: SendMailOptions) {
-    const fromEmail = this.configService.get<string>("SENDGRID_FROM_EMAIL") || "noreply@outreachglobal.io";
-    const fromName = this.configService.get<string>("SENDGRID_FROM_NAME") || "Outreach Global";
+    const fromEmail =
+      this.configService.get<string>("SENDGRID_FROM_EMAIL") ||
+      "noreply@outreachglobal.io";
+    const fromName =
+      this.configService.get<string>("SENDGRID_FROM_NAME") || "Outreach Global";
 
     const msg = {
       to: options.to,
@@ -38,7 +41,10 @@ export class MailService implements OnModuleInit {
 
     try {
       const response = await sgMail.send(msg);
-      return { success: true, messageId: response[0]?.headers?.["x-message-id"] };
+      return {
+        success: true,
+        messageId: response[0]?.headers?.["x-message-id"],
+      };
     } catch (error: any) {
       console.error("SendGrid error:", error?.response?.body || error.message);
       throw error;
@@ -53,7 +59,12 @@ export class MailService implements OnModuleInit {
   }
 
   // Convenience methods for common emails
-  async sendInvite(email: string, inviterName: string, teamName: string, inviteUrl: string) {
+  async sendInvite(
+    email: string,
+    inviterName: string,
+    teamName: string,
+    inviteUrl: string,
+  ) {
     return this.send({
       to: email,
       subject: `${inviterName} invited you to join ${teamName} on Outreach Global`,

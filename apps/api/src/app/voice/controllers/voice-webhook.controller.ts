@@ -1,4 +1,12 @@
-import { Controller, Post, Body, Res, Header, Get, Query } from "@nestjs/common";
+import {
+  Controller,
+  Post,
+  Body,
+  Res,
+  Header,
+  Get,
+  Query,
+} from "@nestjs/common";
 import { FastifyReply } from "fastify";
 import { VoiceService } from "../services/voice.service";
 import { ConfigService } from "@nestjs/config";
@@ -19,7 +27,7 @@ interface TwilioVoiceWebhook {
 export class VoiceWebhookController {
   constructor(
     private voiceService: VoiceService,
-    private configService: ConfigService
+    private configService: ConfigService,
   ) {}
 
   /**
@@ -37,11 +45,13 @@ export class VoiceWebhookController {
   @Header("Content-Type", "application/xml")
   async handleInboundCall(
     @Body() body: TwilioVoiceWebhook,
-    @Res() res: FastifyReply
+    @Res() res: FastifyReply,
   ) {
     const { CallSid, From, To, CallStatus, Direction } = body;
 
-    console.log(`[INBOUND CALL] From: ${From}, To: ${To}, Status: ${CallStatus}`);
+    console.log(
+      `[INBOUND CALL] From: ${From}, To: ${To}, Status: ${CallStatus}`,
+    );
 
     // Only handle incoming calls
     if (Direction !== "inbound") {
@@ -53,14 +63,17 @@ export class VoiceWebhookController {
       const result = await this.voiceService.handleInboundCall(
         From,
         To,
-        CallSid
+        CallSid,
       );
 
-      console.log(`[CALL PROCESSED] Lead: ${result.leadName || "Unknown"}, SDR: ${result.sdrName || "Default"}, SMS Sent: ${result.smsSent}`);
+      console.log(
+        `[CALL PROCESSED] Lead: ${result.leadName || "Unknown"}, SDR: ${result.sdrName || "Default"}, SMS Sent: ${result.smsSent}`,
+      );
 
       // Get custom greeting from config or use default
-      const calendarUrl = this.configService.get("CALENDAR_URL") ||
-                          "https://calendly.com/your-team";
+      const calendarUrl =
+        this.configService.get("CALENDAR_URL") ||
+        "https://calendly.com/your-team";
 
       // If SDR has custom recording, use it - otherwise fall back to TTS
       const greeting = result.sdrName
@@ -79,7 +92,6 @@ export class VoiceWebhookController {
       });
 
       return res.status(200).send(voicemailTwiml);
-
     } catch (error) {
       console.error("[CALL ERROR]", error);
       return res.status(200).send(this.getErrorTwiml());
@@ -101,8 +113,9 @@ export class VoiceWebhookController {
    */
   @Get("test")
   async testVoicemail(@Query("name") name?: string) {
-    const calendarUrl = this.configService.get("CALENDAR_URL") ||
-                        "https://calendly.com/your-team";
+    const calendarUrl =
+      this.configService.get("CALENDAR_URL") ||
+      "https://calendly.com/your-team";
 
     const greeting = name
       ? `Hi ${name}! Thanks for calling back.`
