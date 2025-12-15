@@ -1,6 +1,7 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { SkipTraceService, SkipTraceEnrichmentJob } from "./skiptrace.service";
 import { RealEstateApiService } from "./realestate-api.service";
+import { TwilioLookupService } from "./twilio-lookup.service";
 import { getQueueToken } from "@nestjs/bullmq";
 import { DEFAULT_DB_PROVIDER_NAME } from "@haorama/drizzle-postgres-nestjs";
 
@@ -10,6 +11,7 @@ describe("SkipTraceService", () => {
   let mockRealEstateApi: any;
   let mockSkipTraceQueue: any;
   let mockLeadCardQueue: any;
+  let mockTwilioLookupService: any;
 
   const mockSkipTraceResponse = {
     success: true,
@@ -90,6 +92,7 @@ describe("SkipTraceService", () => {
       insert: jest.fn().mockReturnValue({
         values: jest.fn().mockReturnValue({
           onConflictDoNothing: jest.fn().mockResolvedValue(undefined),
+          onConflictDoUpdate: jest.fn().mockResolvedValue(undefined),
           returning: jest.fn().mockResolvedValue([{}]),
         }),
       }),
@@ -102,6 +105,18 @@ describe("SkipTraceService", () => {
 
     mockRealEstateApi = {
       skipTrace: jest.fn().mockResolvedValue(mockSkipTraceResponse),
+    };
+
+    mockTwilioLookupService = {
+      lookupLineType: jest.fn().mockResolvedValue({
+        input: "+1234567890",
+        e164: "+1234567890",
+        normalized10: "1234567890",
+        verified: true,
+        lineType: "mobile",
+        carrier: "Verizon Wireless",
+        rawType: "mobile",
+      }),
     };
 
     mockSkipTraceQueue = {
@@ -122,6 +137,10 @@ describe("SkipTraceService", () => {
         {
           provide: RealEstateApiService,
           useValue: mockRealEstateApi,
+        },
+        {
+          provide: TwilioLookupService,
+          useValue: mockTwilioLookupService,
         },
         {
           provide: getQueueToken("skiptrace"),
@@ -171,6 +190,9 @@ describe("SkipTraceService", () => {
       expect(result.matchConfidence).toBe(0.95);
 
       expect(mockRealEstateApi.skipTrace).toHaveBeenCalled();
+      expect(mockTwilioLookupService.lookupLineType).toHaveBeenCalledWith(
+        "+1234567890",
+      );
       expect(mockDb.insert).toHaveBeenCalled();
       expect(mockDb.update).toHaveBeenCalled();
       expect(mockLeadCardQueue.add).toHaveBeenCalledWith(

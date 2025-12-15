@@ -641,14 +641,14 @@ export default function LibraryPage() {
             </div>
 
             <Select
-              value={selectedType || ""}
-              onValueChange={(v) => setSelectedType(v || null)}
+              value={selectedType || "all"}
+              onValueChange={(v) => setSelectedType(v === "all" ? null : v)}
             >
               <SelectTrigger className="w-40">
                 <SelectValue placeholder="All Types" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Types</SelectItem>
+                <SelectItem value="all">All Types</SelectItem>
                 <SelectItem value="PROMPT">Prompts</SelectItem>
                 <SelectItem value="TEMPLATE">Templates</SelectItem>
                 <SelectItem value="SCRIPT">Scripts</SelectItem>

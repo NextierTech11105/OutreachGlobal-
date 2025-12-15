@@ -71,7 +71,13 @@ function mapDbStatus(status: string): CalendarLead["status"] {
 // GET - Fetch leads for calendar view by date range
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    let userId: string | null = null;
+    try {
+      const authResult = await auth();
+      userId = authResult.userId;
+    } catch {
+      // Auth not available
+    }
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -189,7 +195,13 @@ export async function GET(request: NextRequest) {
 // POST - Push leads to SMS campaign stage or schedule to calendar
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    let userId: string | null = null;
+    try {
+      const authResult = await auth();
+      userId = authResult.userId;
+    } catch {
+      // Auth not available
+    }
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

@@ -17,12 +17,13 @@ import {
   personaDemographics,
   skiptraceResults,
 } from "@/database/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import {
   RealEstateApiService,
   SkipTraceRequest,
   SkipTraceResponse,
 } from "./realestate-api.service";
+import { TwilioLookupService } from "./twilio-lookup.service";
 
 export interface SkipTraceEnrichmentJob {
   teamId: string;
@@ -57,6 +58,7 @@ export class SkipTraceService {
 
   constructor(
     private realEstateApi: RealEstateApiService,
+    private twilioLookupService: TwilioLookupService,
     @InjectDB() private db: DrizzleClient,
     @InjectQueue("skiptrace") private skipTraceQueue: Queue,
     @InjectQueue("lead-card") private leadCardQueue: Queue,
@@ -230,6 +232,23 @@ export class SkipTraceService {
       for (const phone of output.phones) {
         const normalizedNumber = phone.phone_number.replace(/\D/g, "");
         if (normalizedNumber.length >= 10) {
+          const twilioLookup = await this.twilioLookupService.lookupLineType(
+            phone.phone_number,
+          );
+
+          const verifiedPhoneType: "mobile" | "landline" | "voip" | "unknown" =
+            twilioLookup.verified &&
+            (twilioLookup.lineType === "mobile" ||
+              twilioLookup.lineType === "landline" ||
+              twilioLookup.lineType === "voip")
+              ? twilioLookup.lineType
+              : this.mapPhoneType(phone.phone_type);
+
+          const carrier = twilioLookup.carrier || phone.carrier;
+          const lineType = twilioLookup.verified
+            ? twilioLookup.lineType
+            : phone.line_type;
+
           await this.db
             .insert(personaPhones)
             .values({
@@ -238,17 +257,36 @@ export class SkipTraceService {
               personaId,
               phoneNumber: phone.phone_number,
               normalizedNumber: normalizedNumber.slice(-10),
-              phoneType: this.mapPhoneType(phone.phone_type),
-              carrier: phone.carrier,
-              lineType: phone.line_type,
+              phoneType: verifiedPhoneType,
+              carrier,
+              lineType,
               isValid: true,
               isConnected: phone.is_connected,
               isDoNotCall: false,
               isPrimary: phone.is_primary || false,
               source: "skiptrace",
               score: phone.score || 0.7,
+              lastVerifiedAt: twilioLookup.verified ? new Date() : undefined,
+              verificationSource: twilioLookup.verified
+                ? "twilio_lookup_v2"
+                : undefined,
             })
-            .onConflictDoNothing();
+            .onConflictDoUpdate({
+              target: [personaPhones.personaId, personaPhones.normalizedNumber],
+              set: {
+                phoneType: sql`excluded.phone_type`,
+                carrier: sql`excluded.carrier`,
+                lineType: sql`excluded.line_type`,
+                isValid: sql`excluded.is_valid`,
+                isConnected: sql`excluded.is_connected`,
+                isDoNotCall: sql`excluded.is_do_not_call`,
+                isPrimary: sql`excluded.is_primary`,
+                score: sql`GREATEST(${personaPhones.score}, excluded.score)`,
+                lastVerifiedAt: sql`COALESCE(excluded.last_verified_at, ${personaPhones.lastVerifiedAt})`,
+                verificationSource: sql`COALESCE(excluded.verification_source, ${personaPhones.verificationSource})`,
+                updatedAt: new Date(),
+              },
+            });
 
           phonesAdded++;
         }

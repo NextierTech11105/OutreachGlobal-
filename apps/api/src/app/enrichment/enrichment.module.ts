@@ -11,6 +11,7 @@ import { B2BIngestionService } from "./services/b2b-ingestion.service";
 import { RealEstateApiService } from "./services/realestate-api.service";
 import { SkipTraceService } from "./services/skiptrace.service";
 import { ApolloEnrichmentService } from "./services/apollo-enrichment.service";
+import { TwilioLookupService } from "./services/twilio-lookup.service";
 import { IdentityGraphService } from "./services/identity-graph.service";
 import { LeadCardService } from "./services/lead-card.service";
 import { CampaignTriggerService } from "./services/campaign-trigger.service";
@@ -40,6 +41,7 @@ import { LeadCardRepository } from "./repositories/lead-card.repository";
     RealEstateApiService,
     SkipTraceService,
     ApolloEnrichmentService,
+    TwilioLookupService,
     IdentityGraphService,
     LeadCardService,
     CampaignTriggerService,
@@ -57,6 +59,7 @@ import { LeadCardRepository } from "./repositories/lead-card.repository";
     RealEstateApiService,
     SkipTraceService,
     ApolloEnrichmentService,
+    TwilioLookupService,
     IdentityGraphService,
     LeadCardService,
     CampaignTriggerService,

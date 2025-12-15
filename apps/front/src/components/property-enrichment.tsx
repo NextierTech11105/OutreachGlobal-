@@ -393,16 +393,19 @@ export function PropertyEnrichment() {
                 <div className="space-y-2">
                   <Label>Full Address Column</Label>
                   <Select
-                    value={mapping.address}
+                    value={mapping.address || "__none__"}
                     onValueChange={(v) =>
-                      setMapping((m) => ({ ...m, address: v }))
+                      setMapping((m) => ({
+                        ...m,
+                        address: v === "__none__" ? "" : v,
+                      }))
                     }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select column..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">-- None --</SelectItem>
+                      <SelectItem value="__none__">-- None --</SelectItem>
                       {headers.map((h) => (
                         <SelectItem key={h} value={h}>
                           {h}
@@ -415,16 +418,19 @@ export function PropertyEnrichment() {
                 <div className="space-y-2">
                   <Label>Street Column</Label>
                   <Select
-                    value={mapping.street}
+                    value={mapping.street || "__none__"}
                     onValueChange={(v) =>
-                      setMapping((m) => ({ ...m, street: v }))
+                      setMapping((m) => ({
+                        ...m,
+                        street: v === "__none__" ? "" : v,
+                      }))
                     }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select column..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">-- None --</SelectItem>
+                      <SelectItem value="__none__">-- None --</SelectItem>
                       {headers.map((h) => (
                         <SelectItem key={h} value={h}>
                           {h}
@@ -437,16 +443,19 @@ export function PropertyEnrichment() {
                 <div className="space-y-2">
                   <Label>City Column</Label>
                   <Select
-                    value={mapping.city}
+                    value={mapping.city || "__none__"}
                     onValueChange={(v) =>
-                      setMapping((m) => ({ ...m, city: v }))
+                      setMapping((m) => ({
+                        ...m,
+                        city: v === "__none__" ? "" : v,
+                      }))
                     }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select column..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">-- None --</SelectItem>
+                      <SelectItem value="__none__">-- None --</SelectItem>
                       {headers.map((h) => (
                         <SelectItem key={h} value={h}>
                           {h}
@@ -459,16 +468,19 @@ export function PropertyEnrichment() {
                 <div className="space-y-2">
                   <Label>State Column</Label>
                   <Select
-                    value={mapping.state}
+                    value={mapping.state || "__none__"}
                     onValueChange={(v) =>
-                      setMapping((m) => ({ ...m, state: v }))
+                      setMapping((m) => ({
+                        ...m,
+                        state: v === "__none__" ? "" : v,
+                      }))
                     }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select column..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">-- None --</SelectItem>
+                      <SelectItem value="__none__">-- None --</SelectItem>
                       {headers.map((h) => (
                         <SelectItem key={h} value={h}>
                           {h}
@@ -481,14 +493,19 @@ export function PropertyEnrichment() {
                 <div className="space-y-2">
                   <Label>ZIP Column</Label>
                   <Select
-                    value={mapping.zip}
-                    onValueChange={(v) => setMapping((m) => ({ ...m, zip: v }))}
+                    value={mapping.zip || "__none__"}
+                    onValueChange={(v) =>
+                      setMapping((m) => ({
+                        ...m,
+                        zip: v === "__none__" ? "" : v,
+                      }))
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select column..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">-- None --</SelectItem>
+                      <SelectItem value="__none__">-- None --</SelectItem>
                       {headers.map((h) => (
                         <SelectItem key={h} value={h}>
                           {h}
