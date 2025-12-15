@@ -1108,12 +1108,12 @@ export default function SectorDetailPage() {
           </Button>
         </div>
 
-        {/* Table */}
-        <Card>
+        {/* Table - FULL DATA VIEW */}
+        <Card className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-10">
+                <TableHead className="w-10 sticky left-0 bg-background z-10">
                   <Checkbox
                     checked={
                       paginatedLeads.length > 0 &&
@@ -1122,20 +1122,30 @@ export default function SectorDetailPage() {
                     onCheckedChange={toggleSelectAll}
                   />
                 </TableHead>
-                <TableHead className="w-12"></TableHead>
-                <TableHead>Company / Contact</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Location</TableHead>
-                <TableHead className="text-center">Attempts</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead className="w-12 sticky left-10 bg-background z-10"></TableHead>
+                <TableHead className="min-w-[200px]">Company Name</TableHead>
+                <TableHead className="min-w-[180px]">Contact Name</TableHead>
+                <TableHead className="min-w-[200px]">Email</TableHead>
+                <TableHead className="min-w-[140px]">Phone</TableHead>
+                <TableHead className="min-w-[250px]">Full Address</TableHead>
+                <TableHead className="min-w-[120px]">City</TableHead>
+                <TableHead className="w-[60px]">State</TableHead>
+                <TableHead className="w-[80px]">Zip</TableHead>
+                <TableHead className="min-w-[120px]">County</TableHead>
+                <TableHead className="min-w-[150px]">Website</TableHead>
+                <TableHead className="min-w-[100px]">Employees</TableHead>
+                <TableHead className="min-w-[120px]">Revenue</TableHead>
+                <TableHead className="w-[80px]">SIC Code</TableHead>
+                <TableHead className="min-w-[200px]">SIC Description</TableHead>
+                <TableHead className="text-center w-[80px]">Attempts</TableHead>
+                <TableHead className="w-[100px]">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginatedLeads.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={8}
+                    colSpan={18}
                     className="text-center py-8 text-muted-foreground"
                   >
                     {searchQuery
@@ -1151,13 +1161,13 @@ export default function SectorDetailPage() {
                       lead.enriched ? "bg-green-50 dark:bg-green-900/10" : ""
                     }
                   >
-                    <TableCell>
+                    <TableCell className="sticky left-0 bg-background z-10">
                       <Checkbox
                         checked={selectedIds.has(lead.id)}
                         onCheckedChange={() => toggleSelect(lead.id)}
                       />
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="sticky left-10 bg-background z-10">
                       <Button
                         variant="ghost"
                         size="icon"
@@ -1170,77 +1180,146 @@ export default function SectorDetailPage() {
                         <Eye className="h-4 w-4" />
                       </Button>
                     </TableCell>
+                    {/* COMPANY NAME */}
                     <TableCell>
                       <div className="font-medium">
                         {lead.companyName || "-"}
                       </div>
-                      {lead.contactName && (
-                        <div className="text-sm text-muted-foreground">
-                          {lead.contactName}
-                        </div>
-                      )}
                       {lead.ownerName && (
                         <div className="text-xs text-purple-600">
                           Owner: {lead.ownerName}
                         </div>
                       )}
                     </TableCell>
+                    {/* CONTACT NAME - FULL NAME */}
                     <TableCell>
-                      {lead.enrichedPhones && lead.enrichedPhones.length > 0 ? (
-                        <div className="space-y-1">
-                          {lead.enrichedPhones.slice(0, 2).map((p, i) => (
-                            <div
-                              key={i}
-                              className="flex items-center gap-1 text-sm"
-                            >
-                              <Phone className="h-3 w-3 text-green-600" />
-                              <a
-                                href={`tel:${p}`}
-                                className="text-blue-600 hover:underline"
-                              >
-                                {p}
-                              </a>
-                            </div>
-                          ))}
+                      <div className="font-medium text-blue-600">
+                        {lead.contactName || "-"}
+                      </div>
+                      {lead.title && (
+                        <div className="text-xs text-muted-foreground">
+                          {lead.title}
                         </div>
-                      ) : lead.phone ? (
-                        <div className="flex items-center gap-1 text-sm">
-                          <Phone className="h-3 w-3 text-muted-foreground" />
-                          <span>{lead.phone}</span>
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
                       )}
                     </TableCell>
+                    {/* EMAIL */}
                     <TableCell>
                       {lead.enrichedEmails && lead.enrichedEmails.length > 0 ? (
-                        <div className="text-sm">
-                          <Mail className="h-3 w-3 text-green-600 inline mr-1" />
-                          <a
-                            href={`mailto:${lead.enrichedEmails[0]}`}
-                            className="text-blue-600 hover:underline"
-                          >
-                            {lead.enrichedEmails[0]}
-                          </a>
-                        </div>
+                        <a
+                          href={`mailto:${lead.enrichedEmails[0]}`}
+                          className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+                        >
+                          <Mail className="h-3 w-3 text-green-600" />
+                          {lead.enrichedEmails[0]}
+                        </a>
                       ) : lead.email ? (
-                        <div className="text-sm">
-                          <Mail className="h-3 w-3 text-muted-foreground inline mr-1" />
+                        <a
+                          href={`mailto:${lead.email}`}
+                          className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+                        >
+                          <Mail className="h-3 w-3" />
                           {lead.email}
+                        </a>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    {/* PHONE */}
+                    <TableCell>
+                      {lead.enrichedPhones && lead.enrichedPhones.length > 0 ? (
+                        <a
+                          href={`tel:${lead.enrichedPhones[0]}`}
+                          className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+                        >
+                          <Phone className="h-3 w-3 text-green-600" />
+                          {lead.enrichedPhones[0]}
+                        </a>
+                      ) : lead.phone ? (
+                        <a
+                          href={`tel:${lead.phone}`}
+                          className="text-sm flex items-center gap-1"
+                        >
+                          <Phone className="h-3 w-3" />
+                          {lead.phone}
+                        </a>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    {/* FULL ADDRESS */}
+                    <TableCell>
+                      {lead.address ? (
+                        <div className="text-sm">
+                          <div className="flex items-start gap-1">
+                            <MapPin className="h-3 w-3 mt-0.5 text-muted-foreground flex-shrink-0" />
+                            <span>{lead.address}</span>
+                          </div>
                         </div>
                       ) : (
                         <span className="text-muted-foreground">-</span>
                       )}
                     </TableCell>
+                    {/* CITY */}
                     <TableCell>
-                      {lead.city && lead.state ? (
+                      <span className="text-sm">{lead.city || "-"}</span>
+                    </TableCell>
+                    {/* STATE */}
+                    <TableCell>
+                      <span className="text-sm font-medium">{lead.state || "-"}</span>
+                    </TableCell>
+                    {/* ZIP */}
+                    <TableCell>
+                      <span className="text-sm">{lead.zip || "-"}</span>
+                    </TableCell>
+                    {/* COUNTY */}
+                    <TableCell>
+                      <span className="text-sm">{lead.county || "-"}</span>
+                    </TableCell>
+                    {/* WEBSITE */}
+                    <TableCell>
+                      {lead.website ? (
+                        <a
+                          href={lead.website.startsWith("http") ? lead.website : `https://${lead.website}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+                        >
+                          <Globe className="h-3 w-3" />
+                          {lead.website.replace(/^https?:\/\//, "").slice(0, 25)}
+                        </a>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    {/* EMPLOYEES */}
+                    <TableCell>
+                      {lead.employees ? (
                         <div className="flex items-center gap-1 text-sm">
-                          <MapPin className="h-3 w-3 text-muted-foreground" />
-                          {lead.city}, {lead.state}
+                          <Users className="h-3 w-3 text-muted-foreground" />
+                          {lead.employees}
                         </div>
                       ) : (
                         <span className="text-muted-foreground">-</span>
                       )}
+                    </TableCell>
+                    {/* REVENUE */}
+                    <TableCell>
+                      {lead.revenue ? (
+                        <div className="flex items-center gap-1 text-sm text-green-600">
+                          <DollarSign className="h-3 w-3" />
+                          {lead.revenue}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    {/* SIC CODE */}
+                    <TableCell>
+                      <span className="text-sm font-mono">{lead.sicCode || "-"}</span>
+                    </TableCell>
+                    {/* SIC DESCRIPTION / INDUSTRY */}
+                    <TableCell>
+                      <span className="text-sm">{lead.industry || "-"}</span>
                     </TableCell>
                     {/* CONTACT ATTEMPTS */}
                     <TableCell className="text-center">
@@ -1279,13 +1358,14 @@ export default function SectorDetailPage() {
                         )}
                       </div>
                     </TableCell>
+                    {/* STATUS */}
                     <TableCell>
                       {lead.enriched ? (
                         <Badge className="bg-green-600">Enriched</Badge>
                       ) : lead.address ? (
                         <Badge variant="outline">Pending</Badge>
                       ) : (
-                        <Badge variant="secondary">No Address</Badge>
+                        <Badge variant="secondary">No Addr</Badge>
                       )}
                     </TableCell>
                   </TableRow>
