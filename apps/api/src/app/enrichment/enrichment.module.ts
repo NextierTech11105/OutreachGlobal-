@@ -24,6 +24,7 @@ import { LeadCardConsumer } from "./consumers/lead-card.consumer";
 
 // Controllers
 import { SkipTracingController } from "./controllers/skip-tracing.controller";
+import { BusinessSearchController } from "./controllers/business-search.controller";
 
 // Repositories
 import { PersonaRepository } from "./repositories/persona.repository";
@@ -56,6 +57,7 @@ import { LeadCardRepository } from "./repositories/lead-card.repository";
     LeadCardConsumer,
     // Controllers
     SkipTracingController,
+    BusinessSearchController,
     // Repositories
     PersonaRepository,
     BusinessRepository,

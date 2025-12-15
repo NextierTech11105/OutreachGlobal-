@@ -41,13 +41,34 @@ export function AdvancedSearch() {
   const [equityRange, setEquityRange] = useState([30, 80]);
   const [filingDate, setFilingDate] = useState<Date | undefined>(undefined);
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     setIsSearching(true);
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      // Make actual API call to search business data
+      const response = await fetch('/api/business/search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          businessType: activeTab === 'owner' ? 'owner' : 'business',
+          // Add search parameters based on form state
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Store results for SearchResults component
+        localStorage.setItem('searchResults', JSON.stringify(data));
+        setSearchComplete(true);
+      } else {
+        console.error('Search failed');
+      }
+    } catch (error) {
+      console.error('Search error:', error);
+    } finally {
       setIsSearching(false);
-      setSearchComplete(true);
-    }, 2000);
+    }
   };
 
   return (

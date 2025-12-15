@@ -24,15 +24,33 @@ import {
 } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { PropertySearchResult } from "@/lib/services/real-estate-api";
-import { Database, List, Copy, Download, Loader2 } from "lucide-react";
+import { Database, List, Copy, Download, Loader2, Building, User, Phone, Mail, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { sf, sfc } from "@/lib/utils/safe-format";
 
+interface BusinessSearchResult {
+  id: string;
+  businessName: string;
+  businessAddress: string;
+  ownerName: string;
+  ownerType: string;
+  ownershipPercentage?: number;
+  revenue?: number;
+  employeeCount?: number;
+  phone?: string;
+  email?: string;
+  website?: string;
+  sicCode?: string;
+  sicDescription?: string;
+}
+
 interface SearchResultsProps {
   results?: PropertySearchResult[];
+  businessResults?: BusinessSearchResult[];
   propertyIds?: string[];
   resultCount?: number;
   idsOnly?: boolean;
+  searchType?: 'property' | 'business';
 }
 
 const PROPERTY_TYPE_LABELS: Record<string, string> = {
@@ -47,9 +65,11 @@ const PROPERTY_TYPE_LABELS: Record<string, string> = {
 
 export function SearchResults({
   results = [],
+  businessResults = [],
   propertyIds = [],
   resultCount = 0,
   idsOnly = false,
+  searchType = 'property',
 }: SearchResultsProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState("");
@@ -313,6 +333,180 @@ export function SearchResults({
               ? `${selectedIds.size} Selected`
               : `Top ${enrichCount}`}
           </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Business results view
+  if (searchType === 'business' && businessResults.length > 0) {
+    const filteredBusinessResults = filter
+      ? businessResults.filter(
+          (r) =>
+            r.businessName.toLowerCase().includes(filter.toLowerCase()) ||
+            r.ownerName.toLowerCase().includes(filter.toLowerCase()) ||
+            r.businessAddress.toLowerCase().includes(filter.toLowerCase()),
+        )
+      : businessResults;
+
+    const paginatedBusinessResults = filteredBusinessResults.slice(
+      page * pageSize,
+      (page + 1) * pageSize,
+    );
+
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Building className="h-5 w-5 text-muted-foreground" />
+            <div>
+              <h3 className="text-lg font-medium">Business Search Results</h3>
+              <p className="text-sm text-muted-foreground">
+                {sf(resultCount)} businesses found, showing {sf(businessResults.length)} detailed
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportCSV}
+              disabled={isExporting}
+            >
+              {isExporting ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4 mr-2" />
+              )}
+              Export CSV
+            </Button>
+            <Button>Skip Trace Selected</Button>
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <Input
+            className="max-w-sm"
+            placeholder="Filter businesses..."
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+          />
+          <Badge variant="secondary">{sf(filteredBusinessResults.length)} businesses</Badge>
+        </div>
+
+        <Card className="py-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={
+                      selectedIds.size > 0 && selectedIds.size === businessResults.length
+                    }
+                    onCheckedChange={toggleSelectAll}
+                  />
+                </TableHead>
+                <TableHead>Business Name</TableHead>
+                <TableHead>Owner Name</TableHead>
+                <TableHead>Full Address</TableHead>
+                <TableHead>Phone</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Revenue</TableHead>
+                <TableHead>Employees</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedBusinessResults.map((result) => (
+                <TableRow key={result.id}>
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedIds.has(result.id)}
+                      onCheckedChange={() => toggleSelect(result.id)}
+                    />
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      <Building className="h-4 w-4 text-muted-foreground" />
+                      {result.businessName}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                      {result.ownerName}
+                    </div>
+                  </TableCell>
+                  <TableCell className="max-w-[300px]">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <span className="text-sm">{result.businessAddress}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {result.phone && (
+                      <div className="flex items-center gap-2">
+                        <Phone className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-mono text-sm">{result.phone}</span>
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {result.email && (
+                      <div className="flex items-center gap-2">
+                        <Mail className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">{result.email}</span>
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {result.revenue ? `$${sf(result.revenue)}` : '-'}
+                  </TableCell>
+                  <TableCell>
+                    {result.employeeCount || '-'}
+                  </TableCell>
+                </TableRow>
+              ))}
+              {paginatedBusinessResults.length === 0 && (
+                <TableRow>
+                  <TableCell
+                    colSpan={8}
+                    className="text-center text-muted-foreground py-8"
+                  >
+                    No businesses found
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </Card>
+
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            Showing {page * pageSize + 1}-
+            {Math.min((page + 1) * pageSize, filteredBusinessResults.length)} of{" "}
+            {sf(filteredBusinessResults.length)} results
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              disabled={page === 0}
+            >
+              Previous
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              Page {page + 1} of {Math.max(1, Math.ceil(filteredBusinessResults.length / pageSize))}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.min(Math.ceil(filteredBusinessResults.length / pageSize) - 1, p + 1))}
+              disabled={page >= Math.ceil(filteredBusinessResults.length / pageSize) - 1}
+            >
+              Next
+            </Button>
+          </div>
         </div>
       </div>
     );
