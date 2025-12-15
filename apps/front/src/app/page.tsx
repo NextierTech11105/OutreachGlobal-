@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { InstantActionPanel } from "@/components/command-center/instant-action-panel";
+import { APP_NAME } from "@/config/title";
 
 export default async function Page() {
   const { team, user } = await getAuthUser();
@@ -17,7 +18,7 @@ export default async function Page() {
     <div className="flex min-h-[70vh] w-full flex-col gap-10 py-16 px-4 lg:px-8">
       <div className="max-w-3xl space-y-4">
         <p className="text-xs font-semibold uppercase tracking-[0.5em] text-muted-foreground">
-          Nextier
+          {APP_NAME}
         </p>
         <h1 className="text-4xl font-semibold leading-tight text-white">
           Instant clarity for your CRM operations

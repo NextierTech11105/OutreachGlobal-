@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { APP_NAME } from "@/config/title";
 import {
   Card,
   CardContent,
@@ -233,7 +234,7 @@ export default function SystemSettingsPage() {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="companyName">Company Name</Label>
-                  <Input id="companyName" defaultValue="Nextier" />
+                  <Input id="companyName" defaultValue={APP_NAME} />
                 </div>
 
                 <div className="space-y-2">
@@ -497,7 +498,7 @@ export default function SystemSettingsPage() {
                   <Label htmlFor="defaultFromName">Default From Name</Label>
                   <Input
                     id="defaultFromName"
-                    defaultValue="Nextier Notifications"
+                    defaultValue={`${APP_NAME} Notifications`}
                   />
                 </div>
 

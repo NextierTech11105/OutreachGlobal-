@@ -1,6 +1,7 @@
 "use client";
 
 import { sf, sfd } from "@/lib/utils/safe-format";
+import { APP_NAME } from "@/config/title";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -369,7 +370,7 @@ export default function PricingPage() {
               Ready to Transform Your Real Estate Business?
             </h2>
             <p className="text-primary-foreground/80 mb-6 max-w-xl mx-auto">
-              Join hundreds of agents and brokerages already using Nextier to
+              Join hundreds of agents and brokerages already using {APP_NAME} to
               find more deals, close faster, and grow their business.
             </p>
             <div className="flex gap-4 justify-center">
