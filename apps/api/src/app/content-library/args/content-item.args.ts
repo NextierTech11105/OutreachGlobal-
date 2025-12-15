@@ -2,12 +2,17 @@ import { PageInfoArgs } from "@/app/apollo/args/page-info.args";
 import { IdField, StringField, BooleanField } from "@/app/apollo/decorators";
 import { MaybeString } from "@/app/apollo/types/maybe.type";
 import { BaseTeamArgs } from "@/app/team/args/team.args";
-import { ArgsType, Field } from "@nestjs/graphql";
-import { ContentItemType, ContentUsedIn } from "@nextier/common";
+import { ArgsType, Field, registerEnumType } from "@nestjs/graphql";
+import { ContentItemType, ContentUsedIn, ContentVisibility } from "@nextier/common";
 import {
   CreateContentItemInput,
   UpdateContentItemInput,
 } from "../inputs/content-item.input";
+
+// Register enums for GraphQL
+registerEnumType(ContentItemType, { name: "ContentItemType" });
+registerEnumType(ContentUsedIn, { name: "ContentUsedIn" });
+registerEnumType(ContentVisibility, { name: "ContentVisibility" });
 
 @ArgsType()
 export class ContentItemConnectionArgs extends PageInfoArgs {
