@@ -1,10 +1,8 @@
-import { Controller, Post, Body, UseGuards } from "@nestjs/common";
-import { ApiTags, ApiOperation, ApiResponse } from "@nestjs/swagger";
+import { Controller, Post, Body } from "@nestjs/common";
 import { InjectDB } from "@/database/decorators";
 import { DrizzleClient } from "@/database/types";
 import { eq, and, sql, or, ilike } from "drizzle-orm";
 import { businesses } from "@/database/schema/business-owner.schema";
-import { AuthGuard } from "@/auth/guards/auth.guard";
 
 interface BusinessSearchRequest {
   businessType?: string;
@@ -39,19 +37,11 @@ interface BusinessSearchResult {
   sicDescription?: string;
 }
 
-@ApiTags("Business Search")
 @Controller("business")
-@UseGuards(AuthGuard)
 export class BusinessSearchController {
   constructor(@InjectDB() private db: DrizzleClient) {}
 
   @Post("search")
-  @ApiOperation({ summary: "Search businesses from uploaded data" })
-  @ApiResponse({
-    status: 200,
-    description: "Business search results",
-    type: [Object],
-  })
   async searchBusinesses(@Body() searchRequest: BusinessSearchRequest): Promise<{
     results: BusinessSearchResult[];
     total: number;
