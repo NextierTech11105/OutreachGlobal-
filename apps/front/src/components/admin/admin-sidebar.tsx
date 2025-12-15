@@ -142,6 +142,11 @@ export function AdminSidebar() {
           label: "Email (SendGrid)",
           active: pathname === "/admin/integrations/sendgrid",
         },
+        {
+          href: "/admin/integrations/stripe",
+          label: "Payments (Stripe)",
+          active: pathname === "/admin/integrations/stripe",
+        },
       ],
     },
     {
