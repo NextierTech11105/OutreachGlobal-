@@ -1,0 +1,614 @@
+import { Injectable, Logger } from "@nestjs/common";
+import { InjectDB } from "@/database/decorators";
+import { DrizzleClient } from "@/database/types";
+import { eq, and, sql } from "drizzle-orm";
+import { TwilioLookupService } from "./twilio-lookup.service";
+import {
+  leadsTable,
+  propertiesTable,
+  businessOwnerTable,
+  propertyOwnerTable,
+  skiptraceResultTable,
+  unifiedLeadCardTable,
+  leadPhoneNumberTable,
+} from "@/database/schema-alias";
+
+export interface SkipTraceTarget {
+  businessName: string;
+  businessAddress: string;
+  targetBusinessType?: 'motel' | 'hotel' | 'car_dealership' | 'campground' | 'rv_park' | 'auto' | 'motor';
+}
+
+export interface OwnershipLayer {
+  layer: number;
+  entity: {
+    type: "individual" | "business" | "property" | "trust";
+    name: string;
+    address?: string;
+    phoneNumbers?: PhoneNumber[];
+    ownedByOwner?: boolean; // Checkbox: Is this property owned by the business owner?
+  };
+  relationships: OwnershipRelationship[];
+  confidence: number;
+  source: string;
+  discoveredAt: Date;
+}
+
+export interface PhoneNumber {
+  number: string;
+  type: 'mobile' | 'landline' | 'business' | 'unknown';
+  carrier?: string;
+  isValid: boolean;
+}
+
+export interface OwnershipRelationship {
+  type: 'owner' | 'beneficial_owner' | 'family_member' | 'trust_beneficiary' | 'related_entity' | 'investment_vehicle';
+  targetEntity: {
+    type: string;
+    name: string;
+    address?: string;
+  };
+  percentage?: number;
+  relationship: string;
+}
+
+export interface SkipTraceResult {
+  target: SkipTraceTarget;
+  layers: OwnershipLayer[];
+  networkSize: number;
+  lastUpdated: Date;
+  autoTags: AutoTag[];
+}
+
+export interface AutoTag {
+  entityId: string;
+  entityType: string;
+  tag: string;
+  confidence: number;
+  source: string;
+  relationshipPath: string[];
+}
+
+@Injectable()
+export class SkipTracingService {
+  private readonly logger = new Logger(SkipTracingService.name);
+  private readonly maxLayers = 3; // How deep to peel the onion
+
+  constructor(
+    @InjectDB() private db: DrizzleClient,
+    private twilioLookupService: TwilioLookupService,
+  ) {}
+
+  /**
+   * Main skip tracing method - peels back the onion iteratively
+   */
+  async performSkipTrace(target: SkipTraceTarget): Promise<SkipTraceResult> {
+    this.logger.log(`Starting skip trace for ${target.businessName} at ${target.businessAddress}`);
+
+    const layers: OwnershipLayer[] = [];
+    const visitedEntities = new Set<string>();
+    let currentLayer = 0;
+
+    // Start with the target business
+    const initialLayer: OwnershipLayer = {
+      layer: 0,
+      entity: {
+        type: 'business',
+        name: target.businessName,
+        address: target.businessAddress,
+      },
+      relationships: [],
+      confidence: 1.0,
+      source: 'target_business',
+      discoveredAt: new Date(),
+    };
+
+    layers.push(initialLayer);
+    visitedEntities.add(this.createEntityKey('business', target.businessName, target.businessAddress));
+
+    // Iteratively peel back layers
+    while (currentLayer < this.maxLayers) {
+      const currentLayerEntities = layers.filter(l => l.layer === currentLayer);
+
+      for (const entity of currentLayerEntities) {
+        const newRelationships = await this.discoverRelationships(entity, visitedEntities);
+
+        if (newRelationships.length > 0) {
+          // Create new layer entities
+          const newLayerEntities = await this.createLayerEntities(newRelationships, currentLayer + 1, visitedEntities);
+
+          // Add relationships to current entity
+          entity.relationships.push(...newRelationships);
+
+          // Add new entities to layers
+          layers.push(...newLayerEntities);
+        }
+      }
+
+      currentLayer++;
+
+      // Break if no new entities found
+      if (!layers.some(l => l.layer === currentLayer)) {
+        break;
+      }
+    }
+
+    // Generate auto tags
+    const autoTags = await this.generateAutoTags(layers);
+
+    const result: SkipTraceResult = {
+      target,
+      layers,
+      networkSize: layers.length,
+      lastUpdated: new Date(),
+      autoTags,
+    };
+
+    // Enrich with phone numbers and ownership verification
+    await this.enrichEntitiesWithPhoneNumbers(result.layers);
+    await this.verifyOwnershipRelationships(result.layers);
+
+    // Store result
+    await this.storeSkipTraceResult(result);
+
+    return result;
+  }
+
+  /**
+   * Discover relationships for an entity
+   */
+  private async discoverRelationships(
+    entity: OwnershipLayer,
+    visitedEntities: Set<string>
+  ): Promise<OwnershipRelationship[]> {
+    const relationships: OwnershipRelationship[] = [];
+
+    if (entity.entity.type === 'business') {
+      // Find owners of this business (PRIMARY TARGET)
+      const owners = await this.findOwnersByBusiness(entity.entity.name, entity.entity.address);
+
+      for (const owner of owners) {
+        if (!visitedEntities.has(this.createEntityKey('individual', owner.name))) {
+          relationships.push({
+            type: owner.type === 'beneficial' ? 'beneficial_owner' : 'owner',
+            targetEntity: {
+              type: 'individual',
+              name: owner.name,
+            },
+            percentage: owner.percentage,
+            relationship: 'Business Owner',
+          });
+        }
+      }
+
+      // Find properties associated with this business
+      const properties = await this.findPropertiesByBusiness(entity.entity.name, entity.entity.address);
+
+      for (const property of properties) {
+        if (!visitedEntities.has(this.createEntityKey('property', property.address))) {
+          relationships.push({
+            type: 'related_entity',
+            targetEntity: {
+              type: 'property',
+              name: property.address,
+              address: property.address,
+            },
+            relationship: 'Business Property',
+          });
+        }
+      }
+
+    } else if (entity.entity.type === 'individual') {
+      // Find owners of this business
+      const owners = await this.findOwnersByBusiness(entity.entity.name, entity.entity.address);
+
+      for (const owner of owners) {
+        if (!visitedEntities.has(this.createEntityKey('individual', owner.name))) {
+          relationships.push({
+            type: owner.type === 'beneficial' ? 'beneficial_owner' : 'owner',
+            targetEntity: {
+              type: 'individual',
+              name: owner.name,
+            },
+            percentage: owner.percentage,
+            relationship: owner.relationship || 'Business Owner',
+          });
+        }
+      }
+
+      // Find related businesses
+      const relatedBusinesses = await this.findRelatedBusinesses(entity.entity.name);
+      relationships.push(...relatedBusinesses);
+
+    } else if (entity.entity.type === 'property') {
+      // Find businesses at this property
+      const businesses = await this.findBusinessesByProperty(entity.entity.address);
+
+      for (const business of businesses) {
+        if (!visitedEntities.has(this.createEntityKey('business', business.name, business.address))) {
+          relationships.push({
+            type: 'related_entity',
+            targetEntity: {
+              type: 'business',
+              name: business.name,
+              address: business.address,
+            },
+            relationship: 'Business Tenant',
+          });
+        }
+      }
+    }
+
+    return relationships;
+  }
+
+  /**
+   * Create layer entities from relationships
+   */
+  private async createLayerEntities(
+    relationships: OwnershipRelationship[],
+    layerNumber: number,
+    visitedEntities: Set<string>
+  ): Promise<OwnershipLayer[]> {
+    const entities: OwnershipLayer[] = [];
+
+    for (const relationship of relationships) {
+      const entityKey = this.createEntityKey(
+        relationship.targetEntity.type as any,
+        relationship.targetEntity.name,
+        relationship.targetEntity.address
+      );
+
+      if (!visitedEntities.has(entityKey)) {
+        visitedEntities.add(entityKey);
+
+        entities.push({
+          layer: layerNumber,
+          entity: {
+            type: relationship.targetEntity.type as any,
+            name: relationship.targetEntity.name,
+            address: relationship.targetEntity.address,
+          },
+          relationships: [],
+          confidence: 0.8, // Default confidence for discovered entities
+          source: 'skip_trace_discovery',
+          discoveredAt: new Date(),
+        });
+      }
+    }
+
+    return entities;
+  }
+
+  /**
+   * Find businesses owned by an individual
+   */
+  private async findBusinessesByOwner(ownerName: string): Promise<any[]> {
+    // Query business owner table
+    const businesses = await this.db.query.businessOwner.findMany({
+      where: sql`${businessOwnerTable.fullName} ILIKE ${`%${ownerName}%`}`,
+    });
+
+    return businesses.map(b => ({
+      name: b.businessName,
+      address: b.businessAddress,
+      ownershipPercentage: b.ownershipPercentage,
+    }));
+  }
+
+  /**
+   * Find properties owned by an individual
+   */
+  private async findPropertiesByOwner(ownerName: string): Promise<any[]> {
+    // Query property owner table
+    const properties = await this.db.query.propertyOwner.findMany({
+      where: sql`${propertyOwnerTable.fullName} ILIKE ${`%${ownerName}%`}`,
+    });
+
+    return properties.map(p => ({
+      address: p.propertyAddress,
+    }));
+  }
+
+  /**
+   * Find owners of a business from uploaded data lake
+   */
+  private async findOwnersByBusiness(businessName: string, businessAddress?: string): Promise<any[]> {
+    // Query from business owner table (populated from USBizData CSV uploads)
+    const owners = await this.db.query.businessOwner.findMany({
+      where: and(
+        sql`${businessOwnerTable.businessName} ILIKE ${`%${businessName}%`}`,
+        businessAddress ? sql`${businessOwnerTable.businessAddress} ILIKE ${`%${businessAddress}%`}` : undefined
+      ),
+    });
+
+    return owners.map(o => ({
+      name: o.fullName,
+      type: o.ownerType || 'direct',
+      percentage: o.ownershipPercentage,
+      relationship: o.relationship,
+    }));
+  }
+
+  /**
+   * Find businesses at a property address
+   */
+  private async findBusinessesByProperty(propertyAddress: string): Promise<any[]> {
+    // Query leads and unified lead cards for businesses at this address
+    const businesses = await this.db.query.unifiedLeadCard.findMany({
+      where: sql`${unifiedLeadCardTable.businessAddress} ILIKE ${`%${propertyAddress}%`}`,
+    });
+
+    return businesses.map(b => ({
+      name: b.businessName,
+      address: b.businessAddress,
+    }));
+  }
+
+  /**
+   * Find properties associated with a business
+   */
+  private async findPropertiesByBusiness(businessName: string, businessAddress: string): Promise<any[]> {
+    // Look for properties that match the business address
+    const properties = await this.db.query.propertiesTable.findMany({
+      where: sql`${propertiesTable.address} ILIKE ${`%${businessAddress}%`}`,
+    });
+
+    return properties.map(p => ({
+      address: p.address,
+    }));
+  }
+
+  /**
+   * Find family relationships (simplified)
+   */
+  private async findFamilyRelationships(name: string): Promise<OwnershipRelationship[]> {
+    const relationships: OwnershipRelationship[] = [];
+
+    // Simple name matching for family detection
+    const nameParts = name.split(' ');
+    if (nameParts.length >= 2) {
+      const lastName = nameParts[nameParts.length - 1];
+
+      // Find other individuals with same last name
+      const familyMembers = await this.db.query.businessOwner.findMany({
+        where: sql`${businessOwnerTable.fullName} ILIKE ${`%${lastName}%`}`,
+        limit: 5,
+      });
+
+      for (const member of familyMembers) {
+        if (member.fullName !== name) {
+          relationships.push({
+            type: 'family_member',
+            targetEntity: {
+              type: 'individual',
+              name: member.fullName,
+            },
+            relationship: 'Possible Family Member',
+          });
+        }
+      }
+    }
+
+    return relationships;
+  }
+
+  /**
+   * Find related businesses (simplified)
+   */
+  private async findRelatedBusinesses(businessName: string): Promise<OwnershipRelationship[]> {
+    const relationships: OwnershipRelationship[] = [];
+
+    // Find businesses with same owner
+    const related = await this.db
+      .select()
+      .from(businessOwnerTable)
+      .where(sql`${businessOwnerTable.businessName} != ${businessName}`)
+      .limit(10);
+
+    for (const rel of related) {
+      relationships.push({
+        type: 'related_entity',
+        targetEntity: {
+          type: 'business',
+          name: rel.businessName,
+          address: rel.businessAddress,
+        },
+        relationship: 'Related Business Entity',
+      });
+    }
+
+    return relationships;
+  }
+
+  /**
+   * Generate auto tags based on discovered relationships
+   */
+  private async generateAutoTags(layers: OwnershipLayer[]): Promise<AutoTag[]> {
+    const tags: AutoTag[] = [];
+
+    for (const layer of layers) {
+      const entityId = this.createEntityKey(layer.entity.type, layer.entity.name, layer.entity.address);
+
+      // Tag based on entity type and relationships
+      if (layer.entity.type === 'business') {
+        // Check for target business types
+        const businessTypes = ['motel', 'hotel', 'car dealership', 'campground', 'rv park', 'auto', 'motor'];
+        const businessName = layer.entity.name.toLowerCase();
+
+        if (businessTypes.some(type => businessName.includes(type))) {
+          tags.push({
+            entityId,
+            entityType: 'business',
+            tag: 'target_business_type',
+            confidence: 0.9,
+            source: 'business_name_analysis',
+            relationshipPath: [layer.entity.name],
+          });
+        }
+      }
+
+      // Tag based on relationship patterns
+      if (layer.relationships.length > 3) {
+        tags.push({
+          entityId,
+          entityType: layer.entity.type,
+          tag: 'complex_ownership',
+          confidence: 0.8,
+          source: 'relationship_analysis',
+          relationshipPath: layer.relationships.map(r => r.targetEntity.name),
+        });
+      }
+
+      // Tag family-owned businesses
+      const familyRelationships = layer.relationships.filter(r => r.type === 'family_member');
+      if (familyRelationships.length > 0) {
+        tags.push({
+          entityId,
+          entityType: layer.entity.type,
+          tag: 'family_owned',
+          confidence: 0.85,
+          source: 'family_relationship_analysis',
+          relationshipPath: familyRelationships.map(r => r.targetEntity.name),
+        });
+      }
+    }
+
+    return tags;
+  }
+
+  /**
+   * Store skip trace results
+   */
+  private async storeSkipTraceResult(result: SkipTraceResult): Promise<void> {
+    await this.db.insert(skiptraceResultTable).values({
+      targetName: result.target.fullName,
+      targetBusinessAddress: result.target.businessAddress,
+      targetBusinessName: result.target.businessName,
+      resultData: result,
+      networkSize: result.networkSize,
+      autoTags: result.autoTags,
+    });
+  }
+
+  /**
+   * Create unique entity key for tracking visited entities
+   */
+  private createEntityKey(type: string, name: string, address?: string): string {
+    return `${type}:${name}:${address || ''}`;
+  }
+
+  /**
+   * Get existing skip trace results
+   */
+  async getSkipTraceResults(targetName?: string, businessAddress?: string): Promise<SkipTraceResult[]> {
+    const whereConditions = [];
+
+    if (targetName) {
+      whereConditions.push(sql`${skiptraceResultTable.targetName} ILIKE ${`%${targetName}%`}`);
+    }
+
+    if (businessAddress) {
+      whereConditions.push(sql`${skiptraceResultTable.targetBusinessAddress} ILIKE ${`%${businessAddress}%`}`);
+    }
+
+    const results = await this.db.query.skiptraceResult.findMany({
+      where: whereConditions.length > 0 ? and(...whereConditions) : undefined,
+      orderBy: sql`${skiptraceResultTable.createdAt} DESC`,
+    });
+
+    return results.map(r => r.resultData as SkipTraceResult);
+  }
+
+  /**
+   * Enrich entities with phone numbers using Twilio lookup
+   */
+  private async enrichEntitiesWithPhoneNumbers(layers: OwnershipLayer[]): Promise<void> {
+    for (const layer of layers) {
+      if (layer.entity.type === "individual") {
+        // Find phone numbers from various sources
+        const phoneNumbers = await this.findPhoneNumbersForIndividual(layer.entity.name);
+
+        if (phoneNumbers.length > 0) {
+          layer.entity.phoneNumbers = phoneNumbers;
+        }
+      }
+    }
+  }
+
+  /**
+   * Verify ownership relationships and set ownedByOwner checkbox
+   */
+  private async verifyOwnershipRelationships(layers: OwnershipLayer[]): Promise<void> {
+    for (const layer of layers) {
+      if (layer.entity.type === "property") {
+        // Check if this property is owned by the original target individual
+        const originalTarget = layers.find(l => l.layer === 0)?.entity;
+        if (originalTarget?.type === "individual") {
+          const isOwnedByTarget = await this.verifyPropertyOwnership(
+            layer.entity.address!,
+            originalTarget.name
+          );
+          layer.entity.ownedByOwner = isOwnedByTarget;
+        }
+      }
+    }
+  }
+
+  /**
+   * Find phone numbers for an individual from various sources
+   */
+  private async findPhoneNumbersForIndividual(name: string): Promise<PhoneNumber[]> {
+    const phoneNumbers: PhoneNumber[] = [];
+
+    try {
+      // Query lead phone numbers table
+      const leadPhones = await this.db.query.leadPhoneNumber.findMany({
+        where: sql`${leadPhoneNumberTable.leadName} ILIKE ${`%${name}%`}`,
+      });
+
+      for (const phone of leadPhones) {
+        // Use Twilio lookup to get carrier info
+        try {
+          const lookupResult = await this.twilioLookupService.lookupPhoneNumber(phone.phoneNumber);
+          phoneNumbers.push({
+            number: phone.phoneNumber,
+            type: lookupResult?.lineType === "mobile" ? "mobile" : "landline",
+            carrier: lookupResult?.carrier,
+            isValid: true,
+          });
+        } catch (error) {
+          // If lookup fails, add basic info
+          phoneNumbers.push({
+            number: phone.phoneNumber,
+            type: "unknown",
+            isValid: false,
+          });
+        }
+      }
+    } catch (error) {
+      this.logger.error(`Error finding phone numbers for ${name}:`, error);
+    }
+
+    return phoneNumbers;
+  }
+
+  /**
+   * Verify if a property is owned by a specific individual
+   */
+  private async verifyPropertyOwnership(propertyAddress: string, ownerName: string): Promise<boolean> {
+    try {
+      const propertyOwner = await this.db.query.propertyOwner.findFirst({
+        where: and(
+          sql`${propertyOwnerTable.propertyAddress} ILIKE ${`%${propertyAddress}%`}`,
+          sql`${propertyOwnerTable.fullName} ILIKE ${`%${ownerName}%`}`
+        ),
+      });
+
+      return !!propertyOwner;
+    } catch (error) {
+      this.logger.error(`Error verifying property ownership for ${propertyAddress}:`, error);
+      return false;
+    }
+  }
+}
