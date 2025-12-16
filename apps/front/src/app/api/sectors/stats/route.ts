@@ -317,13 +317,19 @@ export async function GET(): Promise<NextResponse> {
 
     // bucketStats already fetched above, reuse it for the DB-present case
 
-    // Get total count from businesses table
-    const [totalResult] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(businesses)
-      .where(userId ? eq(businesses.userId, userId) : sql`1=1`);
-
-    const totalRecords = totalResult?.count || 0;
+    // Get total count from businesses table - wrap in try-catch for missing table
+    let totalRecords = 0;
+    let dbQueryFailed = false;
+    try {
+      const [totalResult] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(businesses)
+        .where(userId ? eq(businesses.userId, userId) : sql`1=1`);
+      totalRecords = totalResult?.count || 0;
+    } catch (dbError) {
+      console.log("[Sector Stats] DB query failed, using buckets only:", dbError);
+      dbQueryFailed = true;
+    }
 
     // Get counts by SIC code prefix for each sector
     const sectorStats: Record<
@@ -339,52 +345,74 @@ export async function GET(): Promise<NextResponse> {
       }
     > = {};
 
-    // Query each sector's counts
-    for (const [sectorId, sector] of Object.entries(BUSINESS_SECTORS)) {
-      // Build OR conditions for all SIC prefixes
-      const sicConditions = sector.sicPrefixes.map(
-        (prefix) => sql`${businesses.sicCode} LIKE ${prefix + "%"}`,
-      );
+    // Only query sectors if DB is working
+    let topSicCodes: Array<{ sicCode: string | null; sicDescription: string | null; count: number }> = [];
 
-      const userCondition = userId ? eq(businesses.userId, userId) : sql`1=1`;
+    if (!dbQueryFailed) {
+      // Query each sector's counts
+      for (const [sectorId, sector] of Object.entries(BUSINESS_SECTORS)) {
+        try {
+          // Build OR conditions for all SIC prefixes
+          const sicConditions = sector.sicPrefixes.map(
+            (prefix) => sql`${businesses.sicCode} LIKE ${prefix + "%"}`,
+          );
 
-      // Get count for this sector
-      const [countResult] = await db
-        .select({
-          total: sql<number>`count(*)`,
-          withPhone: sql<number>`count(CASE WHEN ${businesses.phone} IS NOT NULL AND ${businesses.phone} != '' THEN 1 END)`,
-          withEmail: sql<number>`count(CASE WHEN ${businesses.email} IS NOT NULL AND ${businesses.email} != '' THEN 1 END)`,
-          withOwner: sql<number>`count(CASE WHEN ${businesses.ownerName} IS NOT NULL AND ${businesses.ownerName} != '' THEN 1 END)`,
-          enriched: sql<number>`count(CASE WHEN ${businesses.apolloMatched} = true OR ${businesses.skipTraced} = true THEN 1 END)`,
-        })
-        .from(businesses)
-        .where(
-          sql`(${sql.join(sicConditions, sql` OR `)}) AND ${userCondition}`,
-        );
+          const userCondition = userId ? eq(businesses.userId, userId) : sql`1=1`;
 
-      sectorStats[sectorId] = {
-        sectorId,
-        name: sector.name,
-        totalRecords: countResult?.total || 0,
-        withPhone: countResult?.withPhone || 0,
-        withEmail: countResult?.withEmail || 0,
-        withOwner: countResult?.withOwner || 0,
-        enriched: countResult?.enriched || 0,
-      };
+          // Get count for this sector
+          const [countResult] = await db
+            .select({
+              total: sql<number>`count(*)`,
+              withPhone: sql<number>`count(CASE WHEN ${businesses.phone} IS NOT NULL AND ${businesses.phone} != '' THEN 1 END)`,
+              withEmail: sql<number>`count(CASE WHEN ${businesses.email} IS NOT NULL AND ${businesses.email} != '' THEN 1 END)`,
+              withOwner: sql<number>`count(CASE WHEN ${businesses.ownerName} IS NOT NULL AND ${businesses.ownerName} != '' THEN 1 END)`,
+              enriched: sql<number>`count(CASE WHEN ${businesses.apolloMatched} = true OR ${businesses.skipTraced} = true THEN 1 END)`,
+            })
+            .from(businesses)
+            .where(
+              sql`(${sql.join(sicConditions, sql` OR `)}) AND ${userCondition}`,
+            );
+
+          sectorStats[sectorId] = {
+            sectorId,
+            name: sector.name,
+            totalRecords: countResult?.total || 0,
+            withPhone: countResult?.withPhone || 0,
+            withEmail: countResult?.withEmail || 0,
+            withOwner: countResult?.withOwner || 0,
+            enriched: countResult?.enriched || 0,
+          };
+        } catch {
+          // Skip this sector if query fails
+          sectorStats[sectorId] = {
+            sectorId,
+            name: sector.name,
+            totalRecords: 0,
+            withPhone: 0,
+            withEmail: 0,
+            withOwner: 0,
+            enriched: 0,
+          };
+        }
+      }
+
+      // Also get top SIC codes with counts
+      try {
+        topSicCodes = await db
+          .select({
+            sicCode: businesses.sicCode,
+            sicDescription: businesses.sicDescription,
+            count: sql<number>`count(*)`,
+          })
+          .from(businesses)
+          .where(userId ? eq(businesses.userId, userId) : sql`1=1`)
+          .groupBy(businesses.sicCode, businesses.sicDescription)
+          .orderBy(sql`count(*) DESC`)
+          .limit(50);
+      } catch {
+        topSicCodes = [];
+      }
     }
-
-    // Also get top SIC codes with counts
-    const topSicCodes = await db
-      .select({
-        sicCode: businesses.sicCode,
-        sicDescription: businesses.sicDescription,
-        count: sql<number>`count(*)`,
-      })
-      .from(businesses)
-      .where(userId ? eq(businesses.userId, userId) : sql`1=1`)
-      .groupBy(businesses.sicCode, businesses.sicDescription)
-      .orderBy(sql`count(*) DESC`)
-      .limit(50);
 
     // Calculate geographic sector stats from bucket data (using bucketStats from above)
     const geoSectorStats: Record<string, {
@@ -449,7 +477,7 @@ export async function GET(): Promise<NextResponse> {
         sectorsWithData: Object.values(allSectorStats).filter(
           (s) => s.totalRecords > 0,
         ).length,
-        source: "database+buckets",
+        source: dbQueryFailed ? "buckets_only" : "database+buckets",
       },
     });
   } catch (error) {
