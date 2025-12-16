@@ -1,5 +1,6 @@
 import { OnWorkerEvent, Processor, WorkerHost } from "@nestjs/bullmq";
 import { Job } from "bullmq";
+import { Logger } from "@nestjs/common";
 import {
   INTEGRATION_TASK_QUEUE,
   IntegrationTaskJob,
@@ -23,6 +24,8 @@ type JobData = Job<{ task: IntegrationTaskSelect }>;
 
 @Processor(INTEGRATION_TASK_QUEUE, { concurrency: 5 })
 export class IntegrationTaskConsumer extends WorkerHost {
+  private readonly logger = new Logger(IntegrationTaskConsumer.name);
+
   constructor(
     @InjectDB() private db: DrizzleClient,
     private service: IntegrationTaskService,
@@ -164,7 +167,10 @@ export class IntegrationTaskConsumer extends WorkerHost {
 
   @OnWorkerEvent("failed")
   async handleFailed(job: JobData, error: any) {
-    console.log("failed task queue", error);
+    this.logger.error(
+      `Integration task job ${job.id} failed: ${error?.message || "Unknown error"}`,
+      error?.stack,
+    );
     if (job.data.task.id) {
       await this.service.setStatus({ id: job.data.task.id, status: "FAILED" });
     }

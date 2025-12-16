@@ -36,13 +36,13 @@ export function AiSdrForm({ initialData, onSave, onCancel }: AiSdrFormProps) {
     description: "",
     personality: "",
     voiceType: "Professional Female",
-    avatarUrl: "/stylized-letters-sj.png",
-    isActive: true,
+    avatarUri: "/stylized-letters-sj.png",
+    active: true,
     industry: "",
     mission: "",
     goal: "",
-    role: [""],
-    faqs: [{ question: "", answer: "", category: "" }],
+    roles: [""],
+    faqs: [{ question: "", answer: "" }],
     tags: [],
   });
 
@@ -56,13 +56,13 @@ export function AiSdrForm({ initialData, onSave, onCancel }: AiSdrFormProps) {
         description: initialData.description,
         personality: initialData.personality,
         voiceType: initialData.voiceType,
-        avatarUrl: initialData.avatarUrl,
-        isActive: initialData.isActive,
+        avatarUri: initialData.avatarUri,
+        active: initialData.active,
         industry: initialData.industry,
         mission: initialData.mission,
         goal: initialData.goal,
-        role: initialData.role,
-        faqs: initialData.faqs,
+        roles: initialData.roles ?? [""],
+        faqs: initialData.faqs ?? [{ question: "", answer: "" }],
         tags: initialData.tags,
       });
     }
@@ -76,7 +76,7 @@ export function AiSdrForm({ initialData, onSave, onCancel }: AiSdrFormProps) {
   };
 
   const handleSwitchChange = (checked: boolean) => {
-    setFormData((prev) => ({ ...prev, isActive: checked }));
+    setFormData((prev) => ({ ...prev, active: checked }));
   };
 
   const handleSelectChange = (value: string, field: string) => {
@@ -84,27 +84,27 @@ export function AiSdrForm({ initialData, onSave, onCancel }: AiSdrFormProps) {
   };
 
   const handleRoleChange = (index: number, value: string) => {
-    const updatedRoles = [...formData.role];
+    const updatedRoles = [...(formData.roles ?? [])];
     updatedRoles[index] = value;
-    setFormData((prev) => ({ ...prev, role: updatedRoles }));
+    setFormData((prev) => ({ ...prev, roles: updatedRoles }));
   };
 
   const addRoleItem = () => {
-    setFormData((prev) => ({ ...prev, role: [...prev.role, ""] }));
+    setFormData((prev) => ({ ...prev, roles: [...(prev.roles ?? []), ""] }));
   };
 
   const removeRoleItem = (index: number) => {
-    const updatedRoles = [...formData.role];
+    const updatedRoles = [...(formData.roles ?? [])];
     updatedRoles.splice(index, 1);
-    setFormData((prev) => ({ ...prev, role: updatedRoles }));
+    setFormData((prev) => ({ ...prev, roles: updatedRoles }));
   };
 
   const handleFaqChange = (
     index: number,
-    field: "question" | "answer" | "category",
+    field: "question" | "answer",
     value: string,
   ) => {
-    const updatedFaqs = [...formData.faqs];
+    const updatedFaqs = [...(formData.faqs ?? [])];
     updatedFaqs[index] = { ...updatedFaqs[index], [field]: value };
     setFormData((prev) => ({ ...prev, faqs: updatedFaqs }));
   };
@@ -112,12 +112,12 @@ export function AiSdrForm({ initialData, onSave, onCancel }: AiSdrFormProps) {
   const addFaqItem = () => {
     setFormData((prev) => ({
       ...prev,
-      faqs: [...prev.faqs, { question: "", answer: "", category: "" }],
+      faqs: [...(prev.faqs ?? []), { question: "", answer: "" }],
     }));
   };
 
   const removeFaqItem = (index: number) => {
-    const updatedFaqs = [...formData.faqs];
+    const updatedFaqs = [...(formData.faqs ?? [])];
     updatedFaqs.splice(index, 1);
     setFormData((prev) => ({ ...prev, faqs: updatedFaqs }));
   };
@@ -232,11 +232,11 @@ export function AiSdrForm({ initialData, onSave, onCancel }: AiSdrFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="avatarUrl">Avatar Image URL</Label>
+              <Label htmlFor="avatarUri">Avatar Image URL</Label>
               <Input
-                id="avatarUrl"
-                name="avatarUrl"
-                value={formData.avatarUrl}
+                id="avatarUri"
+                name="avatarUri"
+                value={formData.avatarUri ?? ""}
                 onChange={handleInputChange}
                 placeholder="/path/to/avatar.png"
               />
@@ -279,15 +279,15 @@ export function AiSdrForm({ initialData, onSave, onCancel }: AiSdrFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="isActive">Status</Label>
+              <Label htmlFor="active">Status</Label>
               <div className="flex items-center space-x-2">
                 <Switch
-                  id="isActive"
-                  checked={formData.isActive}
+                  id="active"
+                  checked={formData.active}
                   onCheckedChange={handleSwitchChange}
                 />
-                <Label htmlFor="isActive">
-                  {formData.isActive ? "Active" : "Inactive"}
+                <Label htmlFor="active">
+                  {formData.active ? "Active" : "Inactive"}
                 </Label>
               </div>
             </div>
@@ -335,7 +335,7 @@ export function AiSdrForm({ initialData, onSave, onCancel }: AiSdrFormProps) {
               </Button>
             </div>
 
-            {formData.role.map((item, index) => (
+            {(formData.roles ?? []).map((item, index) => (
               <div key={index} className="flex items-center space-x-2">
                 <Input
                   value={item}
@@ -348,7 +348,7 @@ export function AiSdrForm({ initialData, onSave, onCancel }: AiSdrFormProps) {
                   onClick={() => removeRoleItem(index)}
                   size="icon"
                   variant="ghost"
-                  disabled={formData.role.length <= 1}
+                  disabled={(formData.roles?.length ?? 0) <= 1}
                 >
                   <Trash2 className="h-4 w-4 text-red-500" />
                 </Button>
@@ -371,7 +371,7 @@ export function AiSdrForm({ initialData, onSave, onCancel }: AiSdrFormProps) {
             </Button>
           </div>
 
-          {formData.faqs.map((faq, index) => (
+          {(formData.faqs ?? []).map((faq, index) => (
             <Card key={index} className="relative">
               <Button
                 type="button"
@@ -379,7 +379,7 @@ export function AiSdrForm({ initialData, onSave, onCancel }: AiSdrFormProps) {
                 size="icon"
                 variant="ghost"
                 className="absolute top-2 right-2"
-                disabled={formData.faqs.length <= 1}
+                disabled={(formData.faqs?.length ?? 0) <= 1}
               >
                 <Trash2 className="h-4 w-4 text-red-500" />
               </Button>
@@ -409,20 +409,6 @@ export function AiSdrForm({ initialData, onSave, onCancel }: AiSdrFormProps) {
                     placeholder="e.g., We provide free advisory services to help homeowners understand their situation, while attorneys charge substantial legal fees."
                     rows={3}
                     required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor={`faq-category-${index}`}>
-                    Category (Optional)
-                  </Label>
-                  <Input
-                    id={`faq-category-${index}`}
-                    value={faq.category || ""}
-                    onChange={(e) =>
-                      handleFaqChange(index, "category", e.target.value)
-                    }
-                    placeholder="e.g., services, legal, pricing"
                   />
                 </div>
               </CardContent>

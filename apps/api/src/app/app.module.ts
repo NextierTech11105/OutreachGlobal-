@@ -35,6 +35,8 @@ import { InitialMessagesModule } from "./initial-messages/initial-messages.modul
 import { VoiceModule } from "./voice/voice.module";
 import { ContentLibraryModule } from "./content-library/content-library.module";
 import { EnrichmentModule } from "./enrichment/enrichment.module";
+import { BillingModule } from "./billing/billing.module";
+import { WhiteLabelModule } from "./white-label/white-label.module";
 
 @Module({
   imports: [
@@ -81,6 +83,8 @@ import { EnrichmentModule } from "./enrichment/enrichment.module";
     VoiceModule,
     ContentLibraryModule,
     EnrichmentModule,
+    BillingModule,
+    WhiteLabelModule,
   ],
   providers: [AppRunner],
   controllers: [AppController],

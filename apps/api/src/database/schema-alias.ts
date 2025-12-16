@@ -188,3 +188,27 @@ export const unifiedLeadCardsTable = unifiedLeadCards;
 export const unifiedLeadCardsRefTable = unifiedLeadCardsRef;
 export const leadActivitiesTable = leadActivities;
 export const campaignQueueTable = campaignQueue;
+
+// Billing & Subscriptions
+import {
+  plans,
+  subscriptions,
+  creditBalances,
+  creditTransactions,
+  apiUsage,
+  creditPacks,
+} from "./schema/billing.schema";
+export const plansTable = plans;
+export const subscriptionsTable = subscriptions;
+export const creditBalancesTable = creditBalances;
+export const creditTransactionsTable = creditTransactions;
+export const apiUsageTable = apiUsage;
+export const creditPacksTable = creditPacks;
+
+// White Labels
+import {
+  whiteLabels,
+  whiteLabelSettings,
+} from "./schema/white-labels.schema";
+export const whiteLabelsTable = whiteLabels;
+export const whiteLabelSettingsTable = whiteLabelSettings;

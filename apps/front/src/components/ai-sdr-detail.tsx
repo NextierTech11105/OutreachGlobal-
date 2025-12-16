@@ -35,16 +35,8 @@ interface AiSdrDetailProps {
 }
 
 export function AiSdrDetail({ sdr, onEdit, onBack }: AiSdrDetailProps) {
-  // Group FAQs by category
-  const faqsByCategory: Record<string, typeof sdr.faqs> = {};
-
-  sdr.faqs.forEach((faq) => {
-    const category = faq.category || "General";
-    if (!faqsByCategory[category]) {
-      faqsByCategory[category] = [];
-    }
-    faqsByCategory[category].push(faq);
-  });
+  // Get FAQs as a simple list (API doesn't have categories)
+  const faqs = sdr.faqs ?? [];
 
   return (
     <div className="space-y-6">
@@ -66,7 +58,7 @@ export function AiSdrDetail({ sdr, onEdit, onBack }: AiSdrDetailProps) {
               <div className="flex justify-center">
                 <div className="h-24 w-24 rounded-full overflow-hidden">
                   <img
-                    src={sdr.avatarUrl || "/placeholder.svg"}
+                    src={sdr.avatarUri || "/placeholder.svg"}
                     alt={sdr.name}
                     className="h-full w-full object-cover"
                   />
@@ -78,7 +70,7 @@ export function AiSdrDetail({ sdr, onEdit, onBack }: AiSdrDetailProps) {
               <p className="text-muted-foreground">{sdr.description}</p>
 
               <div className="mt-4 flex justify-center">
-                {sdr.isActive ? (
+                {sdr.active ? (
                   <Badge className="bg-green-100 text-green-800 hover:bg-green-200">
                     <CheckCircle className="mr-1 h-4 w-4" />
                     Active
@@ -175,7 +167,7 @@ export function AiSdrDetail({ sdr, onEdit, onBack }: AiSdrDetailProps) {
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2 list-disc pl-5">
-                    {sdr.role.map((item, index) => (
+                    {(sdr.roles ?? []).map((item, index) => (
                       <li key={index}>{item}</li>
                     ))}
                   </ul>
@@ -193,30 +185,22 @@ export function AiSdrDetail({ sdr, onEdit, onBack }: AiSdrDetailProps) {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Accordion type="single" collapsible className="w-full">
-                    {Object.entries(faqsByCategory).map(([category, faqs]) => (
-                      <AccordionItem key={category} value={category}>
-                        <AccordionTrigger>
-                          {category} ({faqs.length})
-                        </AccordionTrigger>
-                        <AccordionContent>
-                          <div className="space-y-4">
-                            {faqs.map((faq, index) => (
-                              <div
-                                key={index}
-                                className="border-b pb-4 last:border-0"
-                              >
-                                <h4 className="font-medium">{faq.question}</h4>
-                                <p className="text-muted-foreground mt-1">
-                                  {faq.answer}
-                                </p>
-                              </div>
-                            ))}
-                          </div>
-                        </AccordionContent>
-                      </AccordionItem>
-                    ))}
-                  </Accordion>
+                  {faqs.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-4">
+                      No FAQs configured yet.
+                    </p>
+                  ) : (
+                    <Accordion type="single" collapsible className="w-full">
+                      {faqs.map((faq, index) => (
+                        <AccordionItem key={index} value={`faq-${index}`}>
+                          <AccordionTrigger>{faq.question}</AccordionTrigger>
+                          <AccordionContent>
+                            <p className="text-muted-foreground">{faq.answer}</p>
+                          </AccordionContent>
+                        </AccordionItem>
+                      ))}
+                    </Accordion>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>

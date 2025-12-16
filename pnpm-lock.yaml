@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      ulid:
+        specifier: ^3.0.2
+        version: 3.0.2
     devDependencies:
       jest:
         specifier: ^29.7.0
@@ -128,6 +132,9 @@ importers:
       bullmq:
         specifier: ^5.53.3
         version: 5.56.0
+      csv-parse:
+        specifier: ^6.1.0
+        version: 6.1.0
       dataloader:
         specifier: ^2.2.3
         version: 2.2.3
@@ -176,6 +183,9 @@ importers:
       rxjs:
         specifier: ^7.8.2
         version: 7.8.2
+      stripe:
+        specifier: ^17.5.0
+        version: 17.7.0
       twilio:
         specifier: ^5.7.1
         version: 5.7.1
@@ -9430,6 +9440,10 @@ packages:
   uint8array-extras@1.4.0:
     resolution: {integrity: sha512-ZPtzy0hu4cZjv3z5NW9gfKnNLjoz4y6uv4HlelAjDK7sY/xOkKZv9xK/WQpcsBB3jEybChz9DPC2U/+cusjJVQ==}
     engines: {node: '>=18'}
+
+  ulid@3.0.2:
+    resolution: {integrity: sha512-yu26mwteFYzBAot7KVMqFGCVpsF6g8wXfJzQUHvu1no3+rRRSFcSV2nKeYvNPLD2J4b08jYBDhHUjeH0ygIl9w==}
+    hasBin: true
 
   ulidx@2.4.1:
     resolution: {integrity: sha512-xY7c8LPyzvhvew0Fn+Ek3wBC9STZAuDI/Y5andCKi9AX6/jvfaX45PhsDX8oxgPL0YFp0Jhr8qWMbS/p9375Xg==}
@@ -19736,6 +19750,8 @@ snapshots:
       '@lukeed/csprng': 1.1.0
 
   uint8array-extras@1.4.0: {}
+
+  ulid@3.0.2: {}
 
   ulidx@2.4.1:
     dependencies:

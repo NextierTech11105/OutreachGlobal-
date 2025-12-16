@@ -297,6 +297,9 @@ export class CampaignSequenceConsumer extends WorkerHost {
 
   @OnWorkerEvent("failed")
   async handleFailed(job: Job, error: any) {
-    console.log("FAILED", job, error);
+    this.logger.error(
+      `Campaign sequence job ${job.id} failed: ${error?.message || "Unknown error"}`,
+      error?.stack,
+    );
   }
 }

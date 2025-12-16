@@ -45,7 +45,7 @@ interface AiSdrListProps {
   onView: (sdr: AiSdr) => void;
   onEdit: (sdr: AiSdr) => void;
   onDuplicate: (sdr: AiSdr) => void;
-  onDelete: (id: number) => void;
+  onDelete: (id: string) => void;
 }
 
 export function AiSdrList({
@@ -56,19 +56,19 @@ export function AiSdrList({
   onDelete,
 }: AiSdrListProps) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const filteredSdrs = sdrs.filter(
     (sdr) =>
       sdr.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      sdr.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      sdr.industry.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (sdr.description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
+      (sdr.industry?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
       sdr.tags.some((tag) =>
         tag.toLowerCase().includes(searchTerm.toLowerCase()),
       ),
   );
 
-  const handleDeleteClick = (id: number) => {
+  const handleDeleteClick = (id: string) => {
     setDeleteId(id);
   };
 
@@ -118,10 +118,10 @@ export function AiSdrList({
                 <TableRow key={sdr.id}>
                   <TableCell className="font-medium">
                     <div className="flex items-center space-x-3">
-                      {sdr.avatarUrl && (
+                      {sdr.avatarUri && (
                         <div className="h-10 w-10 rounded-full overflow-hidden">
                           <img
-                            src={sdr.avatarUrl || "/placeholder.svg"}
+                            src={sdr.avatarUri || "/placeholder.svg"}
                             alt={sdr.name}
                             className="h-full w-full object-cover"
                           />
@@ -149,7 +149,7 @@ export function AiSdrList({
                     </div>
                   </TableCell>
                   <TableCell>
-                    {sdr.isActive ? (
+                    {sdr.active ? (
                       <div className="flex items-center">
                         <CheckCircle className="mr-1 h-4 w-4 text-green-500" />
                         <span>Active</span>

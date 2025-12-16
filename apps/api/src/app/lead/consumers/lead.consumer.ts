@@ -1,5 +1,6 @@
 import { OnWorkerEvent, Processor, WorkerHost } from "@nestjs/bullmq";
 import { Job } from "bullmq";
+import { Logger } from "@nestjs/common";
 import { BusinessListService } from "../services/business-list.service";
 import { LeadInsert } from "../models/lead.model";
 import { and } from "drizzle-orm";
@@ -20,6 +21,8 @@ interface ImportBusinessListData {
 
 @Processor("lead")
 export class LeadConsumer extends WorkerHost {
+  private readonly logger = new Logger(LeadConsumer.name);
+
   constructor(
     private businessListService: BusinessListService,
     @InjectDB() private db: DrizzleClient,
@@ -84,6 +87,9 @@ export class LeadConsumer extends WorkerHost {
 
   @OnWorkerEvent("failed")
   async onFailed(job: Job, error: any) {
-    console.log("Job failed", job, error);
+    this.logger.error(
+      `Lead job ${job.id} failed: ${error?.message || "Unknown error"}`,
+      error?.stack,
+    );
   }
 }

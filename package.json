@@ -42,5 +42,8 @@
   },
   "pnpm": {
     "neverBuiltDependencies": []
+  },
+  "dependencies": {
+    "ulid": "^3.0.2"
   }
 }
