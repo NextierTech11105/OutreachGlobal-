@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import {
+  AI_ASSISTANT_NAME,
+  COMPANY_NAME,
+  getAISystemPrompt,
+} from "@/config/branding";
 
-// Gianna AI Chat API - General purpose assistant for the platform
+// AI Chat API - General purpose assistant for the platform
 // Powered by OpenAI or Anthropic
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
@@ -18,7 +23,7 @@ interface ChatRequest {
   };
 }
 
-const GIANNA_SYSTEM_PROMPT = `You are Gianna, an AI Sales Development Representative (SDR) assistant for Nextier, a powerful outreach platform.
+const GIANNA_SYSTEM_PROMPT = `You are ${AI_ASSISTANT_NAME}, an AI Sales Development Representative (SDR) assistant for ${COMPANY_NAME}, a powerful outreach platform.
 
 Your personality:
 - Friendly, confident, and helpful

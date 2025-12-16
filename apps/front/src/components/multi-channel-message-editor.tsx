@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Mail, MessageSquare, Phone, Sparkles } from "lucide-react";
 import { AiMessageGenerator } from "./ai-message-generator";
+import { COMPANY_NAME } from "@/config/branding";
 
 interface Template {
   id: string;
@@ -55,7 +56,7 @@ const mockTemplates: Template[] = [
     name: "Quick Introduction",
     type: "sms",
     smsText:
-      "Hi {{first_name}}, this is {{user_name}} from NextierData. We help businesses like {{company_name}} improve lead generation. Would you be interested in learning more?",
+      `Hi {{first_name}}, this is {{user_name}} from ${COMPANY_NAME}. We help businesses like {{company_name}} improve lead generation. Would you be interested in learning more?`,
   },
   {
     id: "sms-template-2",
@@ -69,14 +70,14 @@ const mockTemplates: Template[] = [
     name: "Introduction Call Script",
     type: "voice",
     voiceScript:
-      "Hello {{first_name}}, this is {{user_name}} from NextierData. I'm calling to introduce our lead generation platform that has helped companies like yours increase qualified leads by 40%. Do you have a few minutes to discuss how this might benefit {{company_name}}?",
+      `Hello {{first_name}}, this is {{user_name}} from ${COMPANY_NAME}. I'm calling to introduce our lead generation platform that has helped companies like yours increase qualified leads by 40%. Do you have a few minutes to discuss how this might benefit {{company_name}}?`,
   },
   {
     id: "voice-template-2",
     name: "Follow-up Call Script",
     type: "voice",
     voiceScript:
-      "Hi {{first_name}}, this is {{user_name}} following up on our previous conversation about NextierData's services. I wanted to see if you had any questions about the information I sent over and if you'd like to schedule a demo.",
+      `Hi {{first_name}}, this is {{user_name}} following up on our previous conversation about ${COMPANY_NAME}'s services. I wanted to see if you had any questions about the information I sent over and if you'd like to schedule a demo.`,
   },
 ];
 

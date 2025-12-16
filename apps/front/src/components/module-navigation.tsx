@@ -17,6 +17,7 @@ import {
   Search,
   Send,
 } from "lucide-react";
+import { PLATFORM_NAME } from "@/config/branding";
 
 interface ModuleNavigationProps extends React.HTMLAttributes<HTMLDivElement> {}
 
@@ -62,7 +63,7 @@ export function ModuleNavigation({
       <CardHeader>
         <CardTitle>Data Engine Modules</CardTitle>
         <CardDescription>
-          Access the core modules of the Nextier Data Engine
+          Access the core modules of the {PLATFORM_NAME}
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">

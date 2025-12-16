@@ -20,6 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { X, Plus, Trash2 } from "lucide-react";
 import type { AiSdr } from "./ai-sdr-manager";
+import { AI_ASSISTANT_NAME, APP_NAME } from "@/config/branding";
 
 interface AiSdrFormProps {
   initialData?: AiSdr;
@@ -161,7 +162,7 @@ export function AiSdrForm({ initialData, onSave, onCancel }: AiSdrFormProps) {
                 name="name"
                 value={formData.name}
                 onChange={handleInputChange}
-                placeholder="e.g., Gianna for Nextier Business Broker"
+                placeholder={`e.g., ${AI_ASSISTANT_NAME} for ${APP_NAME} Business Broker`}
                 required
               />
             </div>

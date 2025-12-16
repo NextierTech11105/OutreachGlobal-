@@ -17,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { COMPANY_NAME } from "@/config/branding";
 import {
   Table,
   TableBody,
@@ -121,7 +122,7 @@ export function UserProfile() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="company">Company</Label>
-                  <Input id="company" defaultValue="Nextier Real Estate" />
+                  <Input id="company" defaultValue={COMPANY_NAME} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="job-title">Job Title</Label>
@@ -132,7 +133,7 @@ export function UserProfile() {
                   <Textarea
                     id="bio"
                     rows={3}
-                    defaultValue="Lead developer at Nextier Real Estate, focused on building data-driven real estate solutions."
+                    defaultValue={`Lead developer at ${COMPANY_NAME}, focused on building data-driven solutions.`}
                   />
                 </div>
               </div>

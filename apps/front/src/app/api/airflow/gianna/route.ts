@@ -1,15 +1,16 @@
 /**
- * Airflow Gianna AI API Routes
+ * Airflow AI SDR API Routes
  * Called by gianna_escalation_dag.py for message generation
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { AI_ASSISTANT_NAME, COMPANY_NAME } from "@/config/branding";
 
-// Gianna escalation message templates by step
+// Escalation message templates by step - uses branding config
 const ESCALATION_TEMPLATES: Record<number, string[]> = {
   1: [
-    "Hi {name}, this is Gianna from Outreach Global. I noticed you own {company} at {address}. Are you open to exploring opportunities to grow or sell your business?",
-    "Hey {name}! I'm Gianna, reaching out about {company}. Business owners in your area have been seeing great results. Mind if I share some info?",
+    `Hi {name}, this is ${AI_ASSISTANT_NAME} from ${COMPANY_NAME}. I noticed you own {company} at {address}. Are you open to exploring opportunities to grow or sell your business?`,
+    `Hey {name}! I'm ${AI_ASSISTANT_NAME}, reaching out about {company}. Business owners in your area have been seeing great results. Mind if I share some info?`,
   ],
   2: [
     "Hi {name}, following up on my earlier message. I work with business owners like yourself to connect them with qualified buyers and growth opportunities. 2 min to chat?",
@@ -21,7 +22,7 @@ const ESCALATION_TEMPLATES: Record<number, string[]> = {
   ],
   4: [
     "{name}, I respect you're busy. Here's the quick pitch: free business valuation, no strings attached. If it's not for you, no worries. Interested?",
-    "Hey {name}, Gianna here again. I'll keep this short - do you have 5 minutes this week to discuss options for {company}?",
+    `Hey {name}, ${AI_ASSISTANT_NAME} here again. I'll keep this short - do you have 5 minutes this week to discuss options for {company}?`,
   ],
   5: [
     "{name}, halfway through my follow-ups. I typically only reach out this many times when I genuinely see potential. Let's connect?",
@@ -37,14 +38,14 @@ const ESCALATION_TEMPLATES: Record<number, string[]> = {
   ],
   8: [
     "{name}, I'll be wrapping up my outreach soon. Before I do, I wanted to make sure you know about the buyers interested in your area.",
-    "Hey {name}, Gianna here. I've helped owners like you find the right opportunities. Would hate for you to miss out. Last few attempts - interested?",
+    `Hey {name}, ${AI_ASSISTANT_NAME} here. I've helped owners like you find the right opportunities. Would hate for you to miss out. Last few attempts - interested?`,
   ],
   9: [
     "{name}, second to last message from me. If you're ever curious about what {company} could be worth, I'm here. Just reply 'valuation'.",
     "Hi {name}! Almost done reaching out. Quick yes or no - would you ever consider selling {company} for the right price?",
   ],
   10: [
-    "{name}, final follow-up from Gianna. If you ever want to chat about {company}, my door's always open. Wishing you continued success!",
+    `{name}, final follow-up from ${AI_ASSISTANT_NAME}. If you ever want to chat about {company}, my door's always open. Wishing you continued success!`,
     "Hey {name}, this is my last message. I wish you all the best with {company}. If things change, you know where to find me. Take care!",
   ],
 };

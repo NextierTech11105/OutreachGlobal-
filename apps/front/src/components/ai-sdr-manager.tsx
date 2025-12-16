@@ -15,6 +15,7 @@ import { AiSdrForm } from "@/components/ai-sdr-form";
 import { AiSdrList } from "@/components/ai-sdr-list";
 import { AiSdrDetail } from "@/components/ai-sdr-detail";
 import { useToast } from "@/hooks/use-toast";
+import { AI_ASSISTANT_NAME, APP_NAME } from "@/config/branding";
 
 export type AiSdr = {
   id: number;
@@ -44,11 +45,11 @@ export function AiSdrManager() {
   const [isEditing, setIsEditing] = useState(false);
   const { toast } = useToast();
 
-  // Mock data for demonstration
+  // Mock data for demonstration - uses branding config
   const [sdrs, setSdrs] = useState<AiSdr[]>([
     {
       id: 1,
-      name: "Gianna for Nextier Business Broker",
+      name: `${AI_ASSISTANT_NAME} for ${APP_NAME} Business Broker`,
       description: "AI-Powered Deal Sourcing & Business Valuation Specialist",
       personality: "Empathetic, knowledgeable, and solution-oriented",
       voiceType: "Professional Female",
@@ -103,7 +104,7 @@ export function AiSdrManager() {
     },
     {
       id: 2,
-      name: "Gianna for Nextier M&A Advisory",
+      name: `${AI_ASSISTANT_NAME} for ${APP_NAME} M&A Advisory`,
       description:
         "AI-Powered Consultant for Development, Buyouts & Complex Real Estate Strategies",
       personality: "Strategic, analytical, and business-focused",

@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Phone, Save, Key, Clock, Bot, MessageSquare } from "lucide-react";
+import { PLATFORM_NAME } from "@/config/branding";
 
 export function CallCenterSettings() {
   const [activeTab, setActiveTab] = useState("twilio");
@@ -511,7 +512,7 @@ export function CallCenterSettings() {
                   <Textarea
                     id="welcome-message"
                     placeholder="Enter welcome message"
-                    defaultValue="Thank you for contacting Nextier Data Engine. How can we help you today?"
+                    defaultValue={`Thank you for contacting ${PLATFORM_NAME}. How can we help you today?`}
                   />
                   <p className="text-sm text-muted-foreground">
                     Message sent when a conversation starts

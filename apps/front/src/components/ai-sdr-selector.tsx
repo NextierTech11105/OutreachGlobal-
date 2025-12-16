@@ -24,13 +24,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { APP_NAME, AI_ASSISTANT_NAME } from "@/config/branding";
 
-// Mock AI SDR data
+// Mock AI SDR data - uses branding config for model names
 const aiSdrs = [
   {
     id: "1",
-    name: "Gianna",
-    model: "Nextier Business Broker",
+    name: AI_ASSISTANT_NAME,
+    model: `${APP_NAME} Business Broker`,
     description: "AI-Powered Deal Sourcing & Business Valuation Specialist",
     industry: "real-estate",
     tags: ["foreclosure", "homeowner", "advocate"],
@@ -64,8 +65,8 @@ const aiSdrs = [
   },
   {
     id: "2",
-    name: "Gianna",
-    model: "Nextier M&A Advisory",
+    name: AI_ASSISTANT_NAME,
+    model: `${APP_NAME} M&A Advisory`,
     description: "AI-Powered M&A Advisory for Business Owners & Exit Planning",
     industry: "real-estate",
     tags: ["development", "buyouts", "consulting"],
