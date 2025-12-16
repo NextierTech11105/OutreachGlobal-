@@ -244,7 +244,14 @@ async function getBucketGeographicStats(s3: S3Client | null): Promise<{
 
 export async function GET(): Promise<NextResponse> {
   try {
-    const { userId } = await auth();
+    // Try to get userId but don't fail if Clerk middleware isn't configured
+    let userId: string | null = null;
+    try {
+      const authResult = await auth();
+      userId = authResult.userId;
+    } catch (authError) {
+      console.log("[Sector Stats] Auth not available, proceeding without user filter");
+    }
     const s3 = getS3Client();
 
     // Get bucket stats first (works without DB)
