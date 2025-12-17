@@ -2,7 +2,7 @@ import { Controller, Get, Post } from "@nestjs/common";
 import { InjectDB } from "@/database/decorators";
 import { DrizzleClient } from "@/database/types";
 import { teamsTable, teamMembersTable, usersTable } from "@/database/schema-alias";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { slugify, TeamMemberRole, TeamMemberStatus } from "@nextier/common";
 
 @Controller()
@@ -14,6 +14,33 @@ export class AppController {
     return {
       version: "0.1.0",
     };
+  }
+
+  @Post("migrate")
+  async runMigrations() {
+    const results: string[] = [];
+
+    // Add branding column to teams if it doesn't exist
+    try {
+      await this.db.execute(sql`
+        ALTER TABLE teams ADD COLUMN IF NOT EXISTS branding JSONB
+      `);
+      results.push("Added branding column to teams");
+    } catch (e: any) {
+      results.push(`branding column: ${e.message}`);
+    }
+
+    // Add description column to teams if it doesn't exist
+    try {
+      await this.db.execute(sql`
+        ALTER TABLE teams ADD COLUMN IF NOT EXISTS description TEXT
+      `);
+      results.push("Added description column to teams");
+    } catch (e: any) {
+      results.push(`description column: ${e.message}`);
+    }
+
+    return { success: true, results };
   }
 
   @Post("setupdb")
