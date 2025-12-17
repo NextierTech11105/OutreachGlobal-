@@ -35,7 +35,7 @@ export class DefaultAdminBootstrap implements OnApplicationBootstrap {
       where: (t, { eq }) => eq(t.email, email),
     });
 
-    // If user exists, update the password to the one from env
+    // If user exists, update the password and ensure team exists
     if (existing) {
       const passwordHash = await hashMake(password);
       await this.db
@@ -43,6 +43,43 @@ export class DefaultAdminBootstrap implements OnApplicationBootstrap {
         .set({ password: passwordHash, updatedAt: new Date() })
         .where(eq(usersTable.email, email));
       this.logger.log(`Default admin password updated for ${email}`);
+
+      // Check if user has a team, create one if not
+      const existingTeam = await this.db.query.teams.findFirst({
+        where: (t, { eq }) => eq(t.ownerId, existing.id),
+      });
+
+      if (!existingTeam) {
+        const now = new Date();
+        const teamName = `${existing.name || name}'s Team`;
+        const slug =
+          slugify(teamName) +
+          "-" +
+          Math.random().toString(16).slice(2, 8).toLowerCase();
+
+        const [team] = await this.db
+          .insert(teamsTable)
+          .values({
+            ownerId: existing.id,
+            name: teamName,
+            slug,
+            createdAt: now,
+            updatedAt: now,
+          })
+          .returning();
+
+        await this.db.insert(teamMembersTable).values({
+          teamId: team.id,
+          userId: existing.id,
+          role: TeamMemberRole.OWNER,
+          status: TeamMemberStatus.APPROVED,
+          createdAt: now,
+          updatedAt: now,
+        });
+
+        this.logger.log(`Created team for existing admin: ${email}`);
+      }
+
       return;
     }
 
