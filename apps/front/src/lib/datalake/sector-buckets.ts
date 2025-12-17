@@ -118,6 +118,42 @@ export const DEFAULT_FAVORITE_GROUPS: FavoriteGroup[] = [
       "us-prof-legal-services",
     ],
   },
+  {
+    id: "deal-sourcing-ecbb",
+    name: "Deal Sourcing - ECBB Targets",
+    description: "Businesses to source for East Coast Business Brokers | NY, NJ, FL, CT | Revenue: $500K-$10M | Filter by Annual Revenue in uploads",
+    color: "#14B8A6",
+    icon: "handshake",
+    bucketIds: [
+      // Service businesses - high broker demand
+      "ny-personal-laundromats",
+      "ny-personal-dry-cleaners",
+      "ny-personal-salons",
+      "ny-auto-car-wash",
+      "ny-auto-repair-shops",
+      // Food & hospitality
+      "ny-food-restaurants",
+      "ny-food-pizzerias",
+      "ny-food-delis",
+      "ny-food-bakeries",
+      "ny-food-bars-taverns",
+      // Construction & trades
+      "ny-construction-plumbers",
+      "ny-construction-electricians",
+      "ny-construction-hvac",
+      // Retail
+      "ny-retail-convenience",
+      "ny-retail-grocery",
+      // Healthcare
+      "ny-health-physicians",
+      "ny-health-dentists",
+      // Professional
+      "ny-prof-accounting",
+      // Property-associated (ECBB does commercial RE too)
+      "ny-realestate-agents-brokers",
+      "ny-realestate-property-mgmt",
+    ],
+  },
 ];
 
 // ===== CONSTRUCTION & CONTRACTORS (SIC 15xx-17xx) =====
