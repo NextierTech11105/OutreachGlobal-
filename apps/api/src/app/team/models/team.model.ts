@@ -7,6 +7,24 @@ export type TeamSelect = typeof teamsTable.$inferSelect;
 export type TeamInsert = typeof teamsTable.$inferInsert;
 
 @ObjectType()
+export class TeamBranding {
+  @StringField({ nullable: true })
+  appName?: string;
+
+  @StringField({ nullable: true })
+  companyName?: string;
+
+  @StringField({ nullable: true })
+  logoUrl?: string;
+
+  @StringField({ nullable: true })
+  aiAssistantName?: string;
+
+  @StringField({ nullable: true })
+  themeKey?: string;
+}
+
+@ObjectType()
 export class Team extends TimestampModel implements TeamSelect {
   ownerId: string;
 
@@ -18,4 +36,13 @@ export class Team extends TimestampModel implements TeamSelect {
 
   @StringField({ nullable: true })
   description: string | null;
+
+  @Field(() => TeamBranding, { nullable: true })
+  branding: {
+    appName?: string;
+    companyName?: string;
+    logoUrl?: string;
+    aiAssistantName?: string;
+    themeKey?: string;
+  } | null;
 }

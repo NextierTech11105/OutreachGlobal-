@@ -1,5 +1,6 @@
 import {
   index,
+  jsonb,
   pgTable,
   text,
   timestamp,
@@ -24,6 +25,13 @@ export const teams = pgTable(
     name: varchar().notNull(),
     slug: varchar().notNull().unique(),
     description: text(),
+    branding: jsonb().$type<{
+      appName?: string;
+      companyName?: string;
+      logoUrl?: string;
+      aiAssistantName?: string;
+      themeKey?: string;
+    }>(),
     createdAt,
     updatedAt,
   },
