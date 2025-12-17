@@ -176,7 +176,7 @@ export const SIC_CODES: Record<string, SICCode> = {
   "8733": { code: "8733", description: "Noncommercial Research Organizations", count: 166866, sector: "professional-services", subsector: "research" },
   "8734": { code: "8734", description: "Testing Laboratories", count: 63577, sector: "professional-services", subsector: "testing" },
   "8741": { code: "8741", description: "Management Services", count: 276825, sector: "professional-services", subsector: "management" },
-  "8742": { code: "8742", description: "Management Consulting Services", count: 987465, sector: "professional-services", subsector: "consulting" },
+  "8742": { code: "8742", description: "Management Consulting Services", count: 1393898, sector: "professional-services", subsector: "consulting", bucketId: "us-prof-consulting" },
   "8743": { code: "8743", description: "Public Relations Services", count: 87667, sector: "professional-services", subsector: "pr" },
   "8744": { code: "8744", description: "Facilities Support Management Services", count: 21075, sector: "professional-services", subsector: "facilities" },
   "8748": { code: "8748", description: "Business Consulting Services, Not Elsewhere Classified", count: 428094, sector: "professional-services", subsector: "consulting" },
