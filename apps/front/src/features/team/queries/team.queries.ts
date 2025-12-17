@@ -20,7 +20,6 @@ export const TEAM_QUERY: TypedDocumentNode<TeamQuery, TeamQueryVariables> = gql`
       id
       name
       slug
-      description
     }
   }
 `;

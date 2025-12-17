@@ -1547,7 +1547,6 @@ export type SyncIntegrationLeadPayload = {
 export type Team = {
   __typename?: 'Team';
   createdAt: Scalars['DateTime']['output'];
-  description?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
   name: Scalars['String']['output'];
   slug: Scalars['String']['output'];
@@ -2524,7 +2523,7 @@ export type TeamQueryVariables = Exact<{
 }>;
 
 
-export type TeamQuery = { __typename?: 'Query', team: { __typename?: 'Team', id: string, name: string, slug: string, description?: string | null } };
+export type TeamQuery = { __typename?: 'Query', team: { __typename?: 'Team', id: string, name: string, slug: string } };
 
 export type UpdateTwilioSettingsMutationVariables = Exact<{
   teamId: Scalars['ID']['input'];
