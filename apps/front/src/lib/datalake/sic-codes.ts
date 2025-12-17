@@ -186,10 +186,11 @@ export const SIC_CODES: Record<string, SICCode> = {
   "6513": { code: "6513", description: "Operators of Apartment Buildings", count: 149039, sector: "real-estate", subsector: "property-mgmt" },
   "6514": { code: "6514", description: "Operators of Dwellings Other Than Apartment Buildings", count: 2857, sector: "real-estate", subsector: "property-mgmt" },
   "6515": { code: "6515", description: "Operators of Residential Mobile Home Sites", count: 7845, sector: "real-estate", subsector: "property-mgmt" },
-  "6531": { code: "6531", description: "Real Estate Agents and Managers", count: 1888435, sector: "real-estate", subsector: "agents-brokers", bucketId: "us-realestate-agents-brokers" },
+  "6531": { code: "6531", description: "Real Estate Agents and Managers", count: 2184724, sector: "real-estate", subsector: "agents-brokers", bucketId: "us-realestate-agents-brokers" },
   "6541": { code: "6541", description: "Title Abstract Offices", count: 65937, sector: "real-estate", subsector: "title-companies" },
   "6552": { code: "6552", description: "Land Subdividers and Developers, Except Cemeteries", count: 81016, sector: "real-estate", subsector: "developers" },
   "6553": { code: "6553", description: "Cemetery Subdividers and Developers", count: 9780, sector: "real-estate", subsector: "cemeteries" },
+  "6798": { code: "6798", description: "Real Estate Investment Trusts", count: 27987, sector: "real-estate", subsector: "reits", bucketId: "us-realestate-reits" },
 
   // ===== FINANCIAL SERVICES (60xx-67xx) =====
   "6021": { code: "6021", description: "National Commercial Banks", count: 930648, sector: "financial-services", subsector: "banks" },

@@ -48,6 +48,7 @@ export const DEFAULT_FAVORITE_GROUPS: FavoriteGroup[] = [
       "ny-realestate-appraisers",
       "ny-realestate-title-companies",
       "us-realestate-agents-brokers",
+      "us-realestate-reits",
       "ny-finance-mortgage-brokers",
       "ny-construction-general-contractors",
       "us-hospitality-campgrounds-rv",
@@ -960,8 +961,10 @@ export const NATIONAL_BUCKETS: SectorBucket[] = [
     subsector: "agents-brokers",
     sicCodes: ["6531"],
     storagePath: "datalake/business/us/sectors/real-estate/agents-brokers/",
-    description: "US Real estate agents & brokers - nationwide",
+    description: "US Real estate agents & brokers - 2,184,724 nationwide (SIC 6531)",
     state: "US",
+    propertyAssociated: true,
+    tags: ["real-estate", "agents", "brokers"],
   },
   {
     id: "us-finance-insurance-agents",
@@ -972,6 +975,18 @@ export const NATIONAL_BUCKETS: SectorBucket[] = [
     storagePath: "datalake/business/us/sectors/financial-services/insurance-agents/",
     description: "US Insurance agents & brokers - nationwide",
     state: "US",
+  },
+  {
+    id: "us-realestate-reits",
+    name: "US Real Estate Investment Trusts",
+    sector: "real-estate",
+    subsector: "reits",
+    sicCodes: ["6798"],
+    storagePath: "datalake/business/us/sectors/real-estate/reits/",
+    description: "US REITs - 27,987 nationwide (SIC 6798)",
+    state: "US",
+    propertyAssociated: true,
+    tags: ["investors", "real-estate", "institutional"],
   },
 ];
 
