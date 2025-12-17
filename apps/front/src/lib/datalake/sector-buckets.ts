@@ -16,7 +16,93 @@ export interface SectorBucket {
   storagePath: string;
   description: string;
   state: string;
+  tags?: string[]; // For favorites grouping
+  propertyAssociated?: boolean; // Businesses tied to real estate
 }
+
+// ===== FAVORITES / STAR GROUPING =====
+// Group buckets together for quick access and batch operations
+export interface FavoriteGroup {
+  id: string;
+  name: string;
+  description: string;
+  bucketIds: string[];
+  color?: string; // For UI display
+  icon?: string; // Star, heart, flag, etc.
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// Pre-defined favorite groups for common use cases
+export const DEFAULT_FAVORITE_GROUPS: FavoriteGroup[] = [
+  {
+    id: "property-associated",
+    name: "Property-Associated Businesses",
+    description: "Businesses directly tied to real estate - good for property data enrichment",
+    color: "#10B981",
+    icon: "building",
+    bucketIds: [
+      "ny-realestate-agents-brokers",
+      "ny-realestate-property-mgmt",
+      "ny-realestate-developers",
+      "ny-realestate-appraisers",
+      "ny-realestate-title-companies",
+      "us-realestate-agents-brokers",
+      "ny-finance-mortgage-brokers",
+      "ny-construction-general-contractors",
+      "us-hospitality-campgrounds-rv",
+      "ny-hospitality-hotels",
+      "us-transport-warehousing",
+    ],
+  },
+  {
+    id: "high-value-targets",
+    name: "High-Value Acquisition Targets",
+    description: "Businesses commonly acquired by PE/strategic buyers",
+    color: "#8B5CF6",
+    icon: "star",
+    bucketIds: [
+      "us-auto-car-wash",
+      "us-personal-laundromats",
+      "us-personal-funeral-homes",
+      "us-transport-warehousing",
+      "us-health-dentists",
+      "us-construction-plumbers-hvac",
+      "us-biz-janitorial",
+    ],
+  },
+  {
+    id: "skip-trace-priority",
+    name: "Skip Trace Priority",
+    description: "Sectors where skip tracing has highest ROI for outreach",
+    color: "#F59E0B",
+    icon: "phone",
+    bucketIds: [
+      "ny-construction-plumbers",
+      "ny-construction-electricians",
+      "ny-construction-roofers",
+      "ny-auto-repair-shops",
+      "ny-food-restaurants",
+      "us-construction-plumbers-hvac",
+    ],
+  },
+  {
+    id: "local-services",
+    name: "Local Services",
+    description: "Hyper-local service businesses for geographic targeting",
+    color: "#3B82F6",
+    icon: "map-pin",
+    bucketIds: [
+      "ny-personal-salons",
+      "ny-personal-barbershops",
+      "ny-personal-dry-cleaners",
+      "ny-personal-laundromats",
+      "ny-food-pizzerias",
+      "ny-food-delis",
+      "ny-auto-car-wash",
+    ],
+  },
+];
 
 // ===== CONSTRUCTION & CONTRACTORS (SIC 15xx-17xx) =====
 export const CONSTRUCTION_BUCKETS: SectorBucket[] = [
@@ -1243,6 +1329,179 @@ export const RECREATION_BUCKETS: SectorBucket[] = [
   },
 ];
 
+// ===== BUSINESS BROKERS & PRIVATE EQUITY (SIC 67xx, 6282) =====
+// Property-associated and M&A focused businesses
+export const BUSINESS_BROKERS_PE_BUCKETS: SectorBucket[] = [
+  {
+    id: "us-biz-brokers",
+    name: "US Business Brokers",
+    sector: "business-brokers-pe",
+    subsector: "business-brokers",
+    sicCodes: ["6531", "6282"],
+    storagePath: "datalake/business/us/sectors/business-brokers-pe/business-brokers/",
+    description: "Business brokers & M&A intermediaries - nationwide",
+    state: "US",
+    propertyAssociated: true,
+    tags: ["m&a", "acquisitions", "deal-flow"],
+  },
+  {
+    id: "us-private-equity",
+    name: "US Private Equity Firms",
+    sector: "business-brokers-pe",
+    subsector: "private-equity",
+    sicCodes: ["6282", "6722"],
+    storagePath: "datalake/business/us/sectors/business-brokers-pe/private-equity/",
+    description: "Private equity & investment firms - nationwide",
+    state: "US",
+    tags: ["investors", "acquisitions", "capital"],
+  },
+  {
+    id: "us-venture-capital",
+    name: "US Venture Capital",
+    sector: "business-brokers-pe",
+    subsector: "venture-capital",
+    sicCodes: ["6282", "6722"],
+    storagePath: "datalake/business/us/sectors/business-brokers-pe/venture-capital/",
+    description: "Venture capital firms - nationwide",
+    state: "US",
+    tags: ["investors", "startups", "capital"],
+  },
+  {
+    id: "us-mna-advisors",
+    name: "US M&A Advisory",
+    sector: "business-brokers-pe",
+    subsector: "mna-advisors",
+    sicCodes: ["6282", "8742"],
+    storagePath: "datalake/business/us/sectors/business-brokers-pe/mna-advisors/",
+    description: "M&A advisors & investment bankers - nationwide",
+    state: "US",
+    tags: ["m&a", "investment-banking", "deals"],
+  },
+  {
+    id: "us-family-offices",
+    name: "US Family Offices",
+    sector: "business-brokers-pe",
+    subsector: "family-offices",
+    sicCodes: ["6282", "6722"],
+    storagePath: "datalake/business/us/sectors/business-brokers-pe/family-offices/",
+    description: "Family offices & wealth management - nationwide",
+    state: "US",
+    tags: ["investors", "capital", "wealth"],
+  },
+  {
+    id: "ny-biz-brokers",
+    name: "NY Business Brokers",
+    sector: "business-brokers-pe",
+    subsector: "business-brokers",
+    sicCodes: ["6531", "6282"],
+    storagePath: "datalake/business/ny/sectors/business-brokers-pe/business-brokers/",
+    description: "NY Business brokers & M&A intermediaries",
+    state: "NY",
+    propertyAssociated: true,
+    tags: ["m&a", "acquisitions", "deal-flow"],
+  },
+  {
+    id: "ny-private-equity",
+    name: "NY Private Equity Firms",
+    sector: "business-brokers-pe",
+    subsector: "private-equity",
+    sicCodes: ["6282", "6722"],
+    storagePath: "datalake/business/ny/sectors/business-brokers-pe/private-equity/",
+    description: "NY Private equity & investment firms",
+    state: "NY",
+    tags: ["investors", "acquisitions", "capital"],
+  },
+];
+
+// ===== PROPERTY-ASSOCIATED BUSINESSES =====
+// Businesses tied to real estate for RealEstateAPI enrichment
+export const PROPERTY_ASSOCIATED_BUCKETS: SectorBucket[] = [
+  {
+    id: "us-commercial-landlords",
+    name: "US Commercial Landlords",
+    sector: "property-associated",
+    subsector: "commercial-landlords",
+    sicCodes: ["6512"],
+    storagePath: "datalake/business/us/sectors/property-associated/commercial-landlords/",
+    description: "Commercial building operators & landlords - nationwide",
+    state: "US",
+    propertyAssociated: true,
+    tags: ["real-estate", "landlords", "commercial"],
+  },
+  {
+    id: "us-residential-landlords",
+    name: "US Residential Landlords",
+    sector: "property-associated",
+    subsector: "residential-landlords",
+    sicCodes: ["6513"],
+    storagePath: "datalake/business/us/sectors/property-associated/residential-landlords/",
+    description: "Apartment building operators - nationwide",
+    state: "US",
+    propertyAssociated: true,
+    tags: ["real-estate", "landlords", "residential", "multifamily"],
+  },
+  {
+    id: "us-self-storage",
+    name: "US Self Storage Facilities",
+    sector: "property-associated",
+    subsector: "self-storage",
+    sicCodes: ["4225"],
+    storagePath: "datalake/business/us/sectors/property-associated/self-storage/",
+    description: "Self storage facilities - nationwide",
+    state: "US",
+    propertyAssociated: true,
+    tags: ["real-estate", "storage", "property"],
+  },
+  {
+    id: "us-mobile-home-parks",
+    name: "US Mobile Home Parks",
+    sector: "property-associated",
+    subsector: "mobile-home-parks",
+    sicCodes: ["6515"],
+    storagePath: "datalake/business/us/sectors/property-associated/mobile-home-parks/",
+    description: "Mobile home parks & manufactured housing - nationwide",
+    state: "US",
+    propertyAssociated: true,
+    tags: ["real-estate", "housing", "property"],
+  },
+  {
+    id: "us-parking-facilities",
+    name: "US Parking Facilities",
+    sector: "property-associated",
+    subsector: "parking",
+    sicCodes: ["7521"],
+    storagePath: "datalake/business/us/sectors/property-associated/parking/",
+    description: "Parking lots & garages - nationwide",
+    state: "US",
+    propertyAssociated: true,
+    tags: ["real-estate", "parking", "property"],
+  },
+  {
+    id: "us-shopping-centers",
+    name: "US Shopping Centers",
+    sector: "property-associated",
+    subsector: "shopping-centers",
+    sicCodes: ["6512"],
+    storagePath: "datalake/business/us/sectors/property-associated/shopping-centers/",
+    description: "Shopping centers & retail property operators - nationwide",
+    state: "US",
+    propertyAssociated: true,
+    tags: ["real-estate", "retail", "commercial"],
+  },
+  {
+    id: "us-industrial-parks",
+    name: "US Industrial Parks",
+    sector: "property-associated",
+    subsector: "industrial-parks",
+    sicCodes: ["6512", "6552"],
+    storagePath: "datalake/business/us/sectors/property-associated/industrial-parks/",
+    description: "Industrial park operators & developers - nationwide",
+    state: "US",
+    propertyAssociated: true,
+    tags: ["real-estate", "industrial", "property"],
+  },
+];
+
 // ===== ALL BUCKETS COMBINED =====
 export const ALL_SECTOR_BUCKETS: SectorBucket[] = [
   ...CONSTRUCTION_BUCKETS,
@@ -1260,6 +1519,8 @@ export const ALL_SECTOR_BUCKETS: SectorBucket[] = [
   ...BUSINESS_SERVICES_BUCKETS,
   ...EDUCATION_BUCKETS,
   ...RECREATION_BUCKETS,
+  ...BUSINESS_BROKERS_PE_BUCKETS,
+  ...PROPERTY_ASSOCIATED_BUCKETS,
   ...NATIONAL_BUCKETS,
 ];
 
@@ -1326,8 +1587,56 @@ export const SECTOR_SUMMARY = {
     "business-services": BUSINESS_SERVICES_BUCKETS.length,
     "education-training": EDUCATION_BUCKETS.length,
     "recreation-entertainment": RECREATION_BUCKETS.length,
+    "business-brokers-pe": BUSINESS_BROKERS_PE_BUCKETS.length,
+    "property-associated": PROPERTY_ASSOCIATED_BUCKETS.length,
   },
 };
 
+// ===== FAVORITES HELPERS =====
+
+// Get all buckets in a favorite group
+export function getBucketsInGroup(groupId: string): SectorBucket[] {
+  const group = DEFAULT_FAVORITE_GROUPS.find((g) => g.id === groupId);
+  if (!group) return [];
+  return group.bucketIds.map((id) => BUCKET_BY_ID[id]).filter(Boolean);
+}
+
+// Get all property-associated buckets
+export function getPropertyAssociatedBuckets(): SectorBucket[] {
+  return ALL_SECTOR_BUCKETS.filter((b) => b.propertyAssociated);
+}
+
+// Get buckets by tag
+export function getBucketsByTag(tag: string): SectorBucket[] {
+  return ALL_SECTOR_BUCKETS.filter((b) => b.tags?.includes(tag));
+}
+
+// Get all available tags
+export function getAllTags(): string[] {
+  const tags = new Set<string>();
+  ALL_SECTOR_BUCKETS.forEach((b) => {
+    b.tags?.forEach((t) => tags.add(t));
+  });
+  return Array.from(tags).sort();
+}
+
+// Create a custom favorite group (returns the group object for storage)
+export function createFavoriteGroup(
+  name: string,
+  bucketIds: string[],
+  options?: { description?: string; color?: string; icon?: string }
+): FavoriteGroup {
+  return {
+    id: `custom-${Date.now()}`,
+    name,
+    description: options?.description || `Custom group: ${name}`,
+    bucketIds,
+    color: options?.color || "#6366F1",
+    icon: options?.icon || "star",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+}
+
 // Log summary on import (for debugging)
-console.log(`[Sector Buckets] Loaded ${ALL_SECTOR_BUCKETS.length} bucket definitions across 15 sectors`);
+console.log(`[Sector Buckets] Loaded ${ALL_SECTOR_BUCKETS.length} bucket definitions across 17 sectors`);
