@@ -1,6 +1,7 @@
 import { ApolloClient, InMemoryCache, createHttpLink } from "@apollo/client";
 import { setContext } from "@apollo/client/link/context";
 import { onError } from "@apollo/client/link/error";
+import Cookies from "js-cookie";
 
 // GraphQL endpoint - requires NEXT_PUBLIC_GRAPHQL_URL or NEXT_PUBLIC_API_URL to be set
 const graphqlUrl =
@@ -13,10 +14,10 @@ const httpLink = createHttpLink({
   uri: graphqlUrl,
 });
 
-// Auth link using setContext helper
+// Auth link using setContext helper - reads from cookie (nextier_session)
 const authLink = setContext((_, { headers }) => {
   const token =
-    typeof window !== "undefined" ? localStorage.getItem("auth-token") : null;
+    typeof window !== "undefined" ? Cookies.get("nextier_session") : null;
   return {
     headers: {
       ...headers,
