@@ -9,19 +9,16 @@ import { CampaignSequenceStatus, CampaignStatus } from "@nextier/common";
 import { campaignLeadsTable, campaignsTable } from "@/database/schema-alias";
 import { CampaignLeadInsert } from "../models/campaign-lead.model";
 import { CampaignService } from "../services/campaign.service";
-import { Logger } from "@nestjs/common";
 
 @Processor(CAMPAIGN_QUEUE)
 export class CampaignConsumer extends WorkerHost {
-  private readonly logger = new Logger(CampaignConsumer.name);
-
   constructor(@InjectDB() private db: DrizzleClient) {
     super();
   }
 
   async process(job: Job) {
     if (job.name === CampaignJobs.SYNC_LEAD_CAMPAIGN) {
-      this.logger.log(`Syncing lead ${job.data.leadId}`, job.data);
+      console.log("syncing lead", job.data);
       await this.syncLead(job.data);
     }
   }
@@ -44,7 +41,7 @@ export class CampaignConsumer extends WorkerHost {
         where: expression,
       });
 
-      this.logger.log(`Found ${campaigns.length} matching campaigns for lead`);
+      console.log(`found campaign ${campaigns.length}`);
 
       if (campaigns.length) {
         const campaignLeadValues: CampaignLeadInsert[] = [];
@@ -97,9 +94,6 @@ export class CampaignConsumer extends WorkerHost {
 
   @OnWorkerEvent("failed")
   handleFailed(job: Job, error: any) {
-    this.logger.error(
-      `Campaign job ${job.id} failed: ${error?.message || "Unknown error"}`,
-      error?.stack,
-    );
+    console.log("job failed", job, error);
   }
 }

@@ -2,14 +2,12 @@
  * Enrichment Module
  * Handles B2B ingestion, SkipTrace, Apollo, Identity Graph, and Lead Card building
  */
-import { Module, forwardRef } from "@nestjs/common";
+import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { BullModule } from "@nestjs/bullmq";
-import { BillingModule } from "../billing/billing.module";
 
 // Services
 import { B2BIngestionService } from "./services/b2b-ingestion.service";
-import { CsvImportService } from "./services/csv-import.service";
 import { RealEstateApiService } from "./services/realestate-api.service";
 import { SkipTraceService } from "./services/skiptrace.service";
 // TODO: SkipTracingService needs rewrite to match current schema (businessOwners is junction table, not flat owner table)
@@ -38,7 +36,6 @@ import { LeadCardRepository } from "./repositories/lead-card.repository";
 @Module({
   imports: [
     ConfigModule,
-    forwardRef(() => BillingModule),
     BullModule.registerQueue(
       { name: "b2b-ingestion" },
       { name: "skiptrace" },
@@ -48,7 +45,6 @@ import { LeadCardRepository } from "./repositories/lead-card.repository";
   providers: [
     // Services
     B2BIngestionService,
-    CsvImportService,
     RealEstateApiService,
     SkipTraceService,
     // SkipTracingService, // Disabled: needs schema alignment
@@ -71,7 +67,6 @@ import { LeadCardRepository } from "./repositories/lead-card.repository";
   ],
   exports: [
     B2BIngestionService,
-    CsvImportService,
     RealEstateApiService,
     SkipTraceService,
     // SkipTracingService, // Disabled: needs schema alignment

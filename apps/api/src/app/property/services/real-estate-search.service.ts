@@ -13,7 +13,6 @@ import * as path from "path";
 import { RealEstateService } from "./real-estate.service";
 
 export interface RealEstatePaginatedSearchRequest {
-  teamId: string;
   endpoint: string;
   method?: "GET" | "POST";
   filters?: Record<string, any>;
@@ -64,7 +63,6 @@ export class RealEstateSearchService {
       .from(propertySearchesTable)
       .where(
         and(
-          eq(propertySearchesTable.teamId, request.teamId),
           eq(propertySearchesTable.endpoint, endpoint),
           eq(propertySearchesTable.filterHash, filterHash),
           eq(propertySearchesTable.source, "RealEstateAPI"),
@@ -101,7 +99,6 @@ export class RealEstateSearchService {
 
     await this.db.insert(propertySearchesTable).values({
       id: searchId,
-      teamId: request.teamId,
       source: "RealEstateAPI",
       endpoint,
       filters,
@@ -164,7 +161,6 @@ export class RealEstateSearchService {
           });
 
           await this.db.insert(propertySearchBlocksTable).values({
-            teamId: request.teamId,
             searchId,
             blockIndex,
             key,

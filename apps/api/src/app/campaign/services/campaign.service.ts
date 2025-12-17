@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  InternalServerErrorException,
-  Logger,
-} from "@nestjs/common";
+import { Injectable, InternalServerErrorException } from "@nestjs/common";
 import {
   FindOneCampaignArgs,
   CampaignConnectionArgs,
@@ -31,18 +27,8 @@ import { LeadService } from "@/app/lead/services/lead.service";
 import { CampaignLeadInsert } from "../models/campaign-lead.model";
 import { CampaignSequenceStatus, CampaignStatus } from "@nextier/common";
 
-/**
- * Campaign batching constants to prevent carrier blocking
- * Block rules: 1K min, 2K max per day
- */
-const MIN_BATCH_SIZE = 1000;
-const MAX_BATCH_SIZE = 2000;
-const BATCH_DELAY_DAYS = 1; // Days between batches
-
 @Injectable()
 export class CampaignService {
-  private readonly logger = new Logger(CampaignService.name);
-
   constructor(
     private repository: CampaignRepository,
     @InjectDB() private db: DrizzleClient,
@@ -76,27 +62,6 @@ export class CampaignService {
     return campaign;
   }
 
-  /**
-   * Helper to split an array into chunks of specified size
-   */
-  private chunkArray<T>(array: T[], chunkSize: number): T[][] {
-    const chunks: T[][] = [];
-    for (let i = 0; i < array.length; i += chunkSize) {
-      chunks.push(array.slice(i, i + chunkSize));
-    }
-    return chunks;
-  }
-
-  /**
-   * Calculate the scheduled run date for a batch
-   * First batch runs immediately, subsequent batches are staggered by BATCH_DELAY_DAYS
-   */
-  private getBatchScheduledDate(batchIndex: number, startDate: Date): Date {
-    const scheduledDate = new Date(startDate);
-    scheduledDate.setDate(scheduledDate.getDate() + batchIndex * BATCH_DELAY_DAYS);
-    return scheduledDate;
-  }
-
   async create({ input, teamId }: CreateCampaignArgs) {
     const estimatedLeadsCount = await this.leadService.count({
       teamId,
@@ -107,14 +72,13 @@ export class CampaignService {
     const result = await this.db.transaction(async (tx) => {
       const sessionOptions = { session: tx };
       try {
-        const startsAt = new Date();
         const campaign = await this.repository.create(
           {
             ...input,
             teamId,
             estimatedLeadsCount,
             status: CampaignStatus.SCHEDULED,
-            startsAt,
+            startsAt: new Date(),
           },
           sessionOptions,
         );
@@ -139,41 +103,18 @@ export class CampaignService {
         });
 
         if (eligibleLeads.length) {
-          // Split leads into batches to prevent carrier blocking
-          // Block rules: 1K min, 2K max per day
-          const leadBatches = this.chunkArray(eligibleLeads, MAX_BATCH_SIZE);
-          const totalBatches = leadBatches.length;
+          const campaignLeadValues: CampaignLeadInsert[] = eligibleLeads.map(
+            (lead) => ({
+              campaignId: campaign.id,
+              leadId: lead.id,
+              currentSequencePosition: 1,
+              currentSequenceStatus: CampaignSequenceStatus.PENDING,
+              nextSequenceRunAt: new Date(),
+              status: "ACTIVE",
+            }),
+          );
 
-          if (totalBatches > 1) {
-            this.logger.log(
-              `Campaign ${campaign.id}: Splitting ${eligibleLeads.length} leads into ${totalBatches} batches of max ${MAX_BATCH_SIZE}`,
-            );
-          }
-
-          // Process each batch with staggered scheduling
-          for (let batchIndex = 0; batchIndex < leadBatches.length; batchIndex++) {
-            const batch = leadBatches[batchIndex];
-            const batchScheduledDate = this.getBatchScheduledDate(batchIndex, startsAt);
-
-            const campaignLeadValues: CampaignLeadInsert[] = batch.map(
-              (lead) => ({
-                campaignId: campaign.id,
-                leadId: lead.id,
-                currentSequencePosition: 1,
-                currentSequenceStatus: CampaignSequenceStatus.PENDING,
-                nextSequenceRunAt: batchScheduledDate,
-                status: "ACTIVE",
-              }),
-            );
-
-            await tx.insert(campaignLeadsTable).values(campaignLeadValues);
-
-            if (totalBatches > 1) {
-              this.logger.log(
-                `Campaign ${campaign.id}: Batch ${batchIndex + 1}/${totalBatches} (${batch.length} leads) scheduled for ${batchScheduledDate.toISOString()}`,
-              );
-            }
-          }
+          await tx.insert(campaignLeadsTable).values(campaignLeadValues);
         }
 
         return { campaign };

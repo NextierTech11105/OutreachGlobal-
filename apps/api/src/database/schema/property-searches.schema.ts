@@ -9,13 +9,11 @@ import {
 } from "drizzle-orm/pg-core";
 import { createdAt, updatedAt } from "../columns/timestamps";
 import { primaryUlid, ulidColumn } from "../columns/ulid";
-import { teamsRef } from "./teams.schema";
 
 export const propertySearches = pgTable(
   "property_searches",
   {
     id: primaryUlid("psrch"),
-    teamId: teamsRef({ onDelete: "cascade" }).notNull(),
     source: varchar().notNull(),
     endpoint: varchar().notNull(),
     filters: jsonb().$type<Record<string, any>>(),
@@ -29,8 +27,7 @@ export const propertySearches = pgTable(
     updatedAt,
   },
   (t) => [
-    uniqueIndex().on(t.teamId, t.source, t.endpoint, t.filterHash),
-    index().on(t.teamId),
+    uniqueIndex().on(t.source, t.endpoint, t.filterHash),
     index().on(t.createdAt),
   ],
 );
@@ -39,7 +36,6 @@ export const propertySearchBlocks = pgTable(
   "property_search_blocks",
   {
     id: primaryUlid("psb"),
-    teamId: teamsRef({ onDelete: "cascade" }).notNull(),
     searchId: ulidColumn()
       .references(() => propertySearches.id, { onDelete: "cascade" })
       .notNull(),
@@ -51,9 +47,5 @@ export const propertySearchBlocks = pgTable(
     createdAt,
     updatedAt,
   },
-  (t) => [
-    uniqueIndex().on(t.searchId, t.blockIndex),
-    index().on(t.teamId),
-    index().on(t.searchId),
-  ],
+  (t) => [uniqueIndex().on(t.searchId, t.blockIndex), index().on(t.searchId)],
 );

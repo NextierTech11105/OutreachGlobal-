@@ -13,13 +13,11 @@ import {
 import { primaryUlid } from "../columns/ulid";
 import { createdAt, updatedAt } from "../columns/timestamps";
 import { customNumeric } from "../columns/numeric";
-import { teamsRef } from "./teams.schema";
 
 export const propertyDistressScores = pgTable(
   "property_distress_scores",
   {
     id: primaryUlid("pds"),
-    teamId: teamsRef({ onDelete: "cascade" }).notNull(),
     provider: varchar(),
     externalId: varchar(),
     uid: varchar(),
@@ -37,17 +35,13 @@ export const propertyDistressScores = pgTable(
     createdAt,
     updatedAt,
   },
-  (t) => [
-    uniqueIndex().on(t.teamId, t.provider, t.externalId),
-    index().on(t.teamId),
-  ],
+  (t) => [uniqueIndex().on(t.provider, t.externalId)],
 );
 
 export const properties = pgTable(
   "properties",
   {
     id: primaryUlid("prop"),
-    teamId: teamsRef({ onDelete: "cascade" }).notNull(),
     externalId: varchar(),
     source: varchar(),
     ownerFirstName: varchar(),
@@ -68,8 +62,5 @@ export const properties = pgTable(
     createdAt,
     updatedAt,
   },
-  (t) => [
-    uniqueIndex().on(t.teamId, t.externalId, t.source),
-    index().on(t.teamId),
-  ],
+  (t) => [uniqueIndex().on(t.externalId, t.source)],
 );

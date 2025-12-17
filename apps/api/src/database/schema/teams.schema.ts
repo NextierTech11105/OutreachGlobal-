@@ -21,14 +21,13 @@ export const teams = pgTable(
     ownerId: ulidColumn()
       .references(() => users.id, { onDelete: "cascade" })
       .notNull(),
-    whiteLabelId: text("white_label_id"), // References white_labels.id
     name: varchar().notNull(),
     slug: varchar().notNull().unique(),
     description: text(),
     createdAt,
     updatedAt,
   },
-  (t) => [index().on(t.ownerId), index().on(t.whiteLabelId)],
+  (t) => [index().on(t.ownerId)],
 );
 
 export const teamsRef = (config?: ReferenceConfig["actions"]) =>

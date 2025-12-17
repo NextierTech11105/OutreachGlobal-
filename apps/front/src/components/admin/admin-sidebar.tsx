@@ -14,7 +14,6 @@ import {
   LayoutGrid,
   Megaphone,
   ChevronRight,
-  HelpCircle,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -158,8 +157,7 @@ export function AdminSidebar() {
         pathname === "/admin/billing" ||
         pathname === "/admin/system" ||
         pathname === "/admin/integrations/llm-settings" ||
-        pathname === "/admin/batch-jobs" ||
-        pathname === "/admin/help",
+        pathname === "/admin/batch-jobs",
       children: [
         {
           href: "/admin/users",
@@ -180,11 +178,6 @@ export function AdminSidebar() {
           href: "/admin/batch-jobs",
           label: "Background Jobs",
           active: pathname === "/admin/batch-jobs",
-        },
-        {
-          href: "/admin/help",
-          label: "Help & Shortcuts",
-          active: pathname === "/admin/help",
         },
       ],
     },

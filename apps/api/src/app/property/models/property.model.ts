@@ -17,9 +17,6 @@ export type PropertyInsert = typeof propertiesTable.$inferInsert;
 
 @ObjectType()
 export class Property extends TimestampModel implements PropertySelect {
-  @StringField()
-  teamId: string;
-
   @StringField({ nullable: true })
   externalId: MaybeString;
 

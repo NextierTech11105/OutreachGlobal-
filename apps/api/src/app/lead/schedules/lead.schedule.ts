@@ -164,9 +164,8 @@ export class LeadSchedule {
         lead.score,
       );
 
-      if (!scoreValues.find((score) => score.externalId === property.id && score.teamId === lead.teamId)) {
+      if (!scoreValues.find((score) => score.externalId === property.id)) {
         scoreValues.push({
-          teamId: lead.teamId,
           provider: "REAL_ESTATE_API",
           externalId: property.id,
           address: property.address?.address || null,
@@ -207,7 +206,6 @@ export class LeadSchedule {
       .values(scoreValues)
       .onConflictDoUpdate({
         target: [
-          propertyDistressScoresTable.teamId,
           propertyDistressScoresTable.provider,
           propertyDistressScoresTable.externalId,
         ],

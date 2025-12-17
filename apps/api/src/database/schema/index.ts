@@ -30,9 +30,3 @@ export * from "./skiptrace-result.schema";
 export * from "./property-owner.schema";
 export * from "./business-owner.schema";
 export * from "./unified-lead-card.schema";
-
-// ===== BILLING & SUBSCRIPTIONS =====
-export * from "./billing.schema";
-
-// ===== WHITE LABELS =====
-export * from "./white-labels.schema";

@@ -10,9 +10,6 @@ export type TeamInsert = typeof teamsTable.$inferInsert;
 export class Team extends TimestampModel implements TeamSelect {
   ownerId: string;
 
-  @StringField({ nullable: true })
-  whiteLabelId: string | null;
-
   @Field()
   name: string;
 

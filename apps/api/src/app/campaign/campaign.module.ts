@@ -30,24 +30,14 @@ import { CampaignExecutionResolver } from "./resolvers/campaign-execution.resolv
       name: CAMPAIGN_SEQUENCE_QUEUE,
       defaultJobOptions: {
         removeOnComplete: 100,
-        removeOnFail: 500, // Keep failed jobs for debugging
-        attempts: 3,
-        backoff: {
-          type: "exponential",
-          delay: 5000, // 5s, 10s, 20s
-        },
+        removeOnFail: 50,
       },
     }),
     BullModule.registerQueue({
       name: CAMPAIGN_QUEUE,
       defaultJobOptions: {
-        removeOnComplete: 100,
-        removeOnFail: 500, // Keep failed jobs for debugging
-        attempts: 3,
-        backoff: {
-          type: "exponential",
-          delay: 5000,
-        },
+        removeOnComplete: true,
+        removeOnFail: true,
       },
     }),
   ],
