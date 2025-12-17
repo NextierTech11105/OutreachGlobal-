@@ -33,34 +33,171 @@ export interface FavoriteGroup {
   updatedAt?: string;
 }
 
-// Pre-defined favorite groups for common use cases
+// ==========================================
+// BUSINESS LINE GROUPINGS
+// Three core business lines: OutreachGlobal, Nextier, ECBB
+// ==========================================
+
+// Pre-defined favorite groups organized by BUSINESS LINE
 export const DEFAULT_FAVORITE_GROUPS: FavoriteGroup[] = [
+  // ===== OUTREACHGLOBAL - WHITE LABEL RESELLERS =====
+  // Sell TO consultants & agencies who white-label to THEIR clients
   {
-    id: "property-associated",
-    name: "Property-Associated Businesses",
-    description: "Businesses directly tied to real estate - good for property data enrichment",
+    id: "outreachglobal-white-label",
+    name: "OutreachGlobal - White Label Prospects",
+    description: "Consultants & agencies who can white-label OutreachGlobal to their clients | Sell TO these businesses",
+    color: "#EC4899",
+    icon: "briefcase",
+    bucketIds: [
+      // Management Consultants - 1.4M nationwide
+      "us-prof-consulting",
+      "ny-prof-consulting",
+      // Marketing & Advertising Agencies
+      "us-prof-marketing-agencies",
+      "us-biz-advertising",
+      "ny-biz-advertising",
+      // Staffing & Recruiting Agencies
+      "us-biz-staffing",
+      "ny-biz-staffing",
+      // Accounting & CPA Firms
+      "us-prof-accounting",
+      "ny-prof-accounting",
+      // Legal Services (for client referrals)
+      "us-prof-legal-services",
+      "ny-prof-legal-services",
+      // IT Services & Tech Consultants
+      "ny-biz-it-services",
+    ],
+  },
+
+  // ===== NEXTIER - REAL ESTATE DATALAKE =====
+  // Sell TO RE agents & brokers (commercial + residential)
+  // Core property datalake business
+  {
+    id: "nextier-re-datalake",
+    name: "Nextier - RE Agents & Brokers",
+    description: "Real estate agents & brokers (commercial + residential) | Sell Nextier property datalake TO these businesses",
     color: "#10B981",
     icon: "building",
     bucketIds: [
-      "ny-realestate-agents-brokers",
-      "ny-realestate-property-mgmt",
-      "ny-realestate-developers",
-      "ny-realestate-appraisers",
-      "ny-realestate-title-companies",
+      // RE Agents & Brokers - 2.2M nationwide
       "us-realestate-agents-brokers",
-      "us-realestate-reits",
+      "ny-realestate-agents-brokers",
+      // Property Management
+      "ny-realestate-property-mgmt",
+      // Developers
+      "ny-realestate-developers",
+      // Appraisers
+      "ny-realestate-appraisers",
+      // Title Companies
+      "ny-realestate-title-companies",
+      // Mortgage Brokers
       "ny-finance-mortgage-brokers",
-      "ny-construction-general-contractors",
-      "us-hospitality-campgrounds-rv",
-      "ny-hospitality-hotels",
-      "us-transport-warehousing",
     ],
   },
   {
+    id: "nextier-property-owners",
+    name: "Nextier - Property Owners & Landlords",
+    description: "Commercial & residential property owners for Nextier datalake enrichment | Property-associated businesses",
+    color: "#059669",
+    icon: "home",
+    bucketIds: [
+      // Commercial Landlords
+      "us-commercial-landlords",
+      // Residential Landlords
+      "us-residential-landlords",
+      // Self Storage
+      "us-self-storage",
+      // Mobile Home Parks
+      "us-mobile-home-parks",
+      // Parking Facilities
+      "us-parking-facilities",
+      // Shopping Centers
+      "us-shopping-centers",
+      // Industrial Parks
+      "us-industrial-parks",
+      // Hotels (property-based)
+      "ny-hospitality-hotels",
+      "us-hospitality-campgrounds-rv",
+    ],
+  },
+
+  // ===== ECBB DEAL SOURCING - SELLER LEADS =====
+  // Source FOR East Coast Business Brokers | Businesses AS seller leads
+  // Revenue filter: $500K-$10M | States: NY, NJ, FL, CT
+  {
+    id: "ecbb-deal-sourcing",
+    name: "ECBB - Deal Sourcing (Seller Leads)",
+    description: "Source businesses AS seller leads for East Coast Business Brokers | Revenue: $500K-$10M | NY, NJ, FL, CT",
+    color: "#14B8A6",
+    icon: "handshake",
+    bucketIds: [
+      // Construction & Trades - HIGH DEMAND
+      "ny-construction-plumbers",
+      "ny-construction-electricians",
+      "ny-construction-hvac",
+      "ny-construction-roofers",
+      "us-construction-plumbers-hvac",
+      // Food & Hospitality
+      "ny-food-restaurants",
+      "ny-food-pizzerias",
+      "ny-food-delis",
+      "ny-food-bakeries",
+      "ny-food-bars-taverns",
+      "us-food-restaurants",
+      "us-food-bakeries",
+      // RV Parks & Campgrounds
+      "us-hospitality-campgrounds-rv",
+      // Auto Services
+      "ny-auto-car-wash",
+      "ny-auto-repair-shops",
+      "us-auto-car-wash",
+      "us-auto-repair-shops",
+      // Personal Services
+      "ny-personal-laundromats",
+      "ny-personal-dry-cleaners",
+      "ny-personal-salons",
+      "us-personal-laundromats",
+      // Retail
+      "ny-retail-convenience",
+      "ny-retail-grocery",
+      // Healthcare (high value)
+      "ny-health-physicians",
+      "ny-health-dentists",
+      "us-health-dentists",
+    ],
+  },
+  {
+    id: "ecbb-deal-origination",
+    name: "ECBB - Deal Origination (Buyers & Capital)",
+    description: "REITs, PE firms, family offices for deal origination | Potential BUYERS of businesses",
+    color: "#8B5CF6",
+    icon: "dollar-sign",
+    bucketIds: [
+      // REITs - 28K nationwide
+      "us-realestate-reits",
+      // Private Equity
+      "us-private-equity",
+      "ny-private-equity",
+      // Venture Capital
+      "us-venture-capital",
+      // M&A Advisors
+      "us-mna-advisors",
+      // Family Offices
+      "us-family-offices",
+      // Business Brokers (for co-brokering)
+      "us-biz-brokers",
+      "ny-biz-brokers",
+    ],
+  },
+
+  // ===== HIGH VALUE ACQUISITION TARGETS =====
+  // Cross-reference for all business lines
+  {
     id: "high-value-targets",
     name: "High-Value Acquisition Targets",
-    description: "Businesses commonly acquired by PE/strategic buyers",
-    color: "#8B5CF6",
+    description: "Businesses commonly acquired by PE/strategic buyers - use for ECBB deal sourcing priority",
+    color: "#F59E0B",
     icon: "star",
     bucketIds: [
       "us-auto-car-wash",
@@ -70,88 +207,7 @@ export const DEFAULT_FAVORITE_GROUPS: FavoriteGroup[] = [
       "us-health-dentists",
       "us-construction-plumbers-hvac",
       "us-biz-janitorial",
-    ],
-  },
-  {
-    id: "skip-trace-priority",
-    name: "Skip Trace Priority",
-    description: "Sectors where skip tracing has highest ROI for outreach",
-    color: "#F59E0B",
-    icon: "phone",
-    bucketIds: [
-      "ny-construction-plumbers",
-      "ny-construction-electricians",
-      "ny-construction-roofers",
-      "ny-auto-repair-shops",
-      "ny-food-restaurants",
-      "us-construction-plumbers-hvac",
-    ],
-  },
-  {
-    id: "local-services",
-    name: "Local Services",
-    description: "Hyper-local service businesses for geographic targeting",
-    color: "#3B82F6",
-    icon: "map-pin",
-    bucketIds: [
-      "ny-personal-salons",
-      "ny-personal-barbershops",
-      "ny-personal-dry-cleaners",
-      "ny-personal-laundromats",
-      "ny-food-pizzerias",
-      "ny-food-delis",
-      "ny-auto-car-wash",
-    ],
-  },
-  {
-    id: "white-label-prospects",
-    name: "White-Label Prospects",
-    description: "Agencies & consultants who can white-label OutreachGlobal to their clients",
-    color: "#EC4899",
-    icon: "briefcase",
-    bucketIds: [
-      "us-prof-consulting",
-      "us-prof-marketing-agencies",
-      "us-biz-advertising",
-      "us-biz-staffing",
-      "us-prof-accounting",
-      "us-prof-legal-services",
-    ],
-  },
-  {
-    id: "deal-sourcing-ecbb",
-    name: "Deal Sourcing - ECBB Targets",
-    description: "Businesses to source for East Coast Business Brokers | NY, NJ, FL, CT | Revenue: $500K-$10M | Filter by Annual Revenue in uploads",
-    color: "#14B8A6",
-    icon: "handshake",
-    bucketIds: [
-      // Service businesses - high broker demand
-      "ny-personal-laundromats",
-      "ny-personal-dry-cleaners",
-      "ny-personal-salons",
-      "ny-auto-car-wash",
-      "ny-auto-repair-shops",
-      // Food & hospitality
-      "ny-food-restaurants",
-      "ny-food-pizzerias",
-      "ny-food-delis",
-      "ny-food-bakeries",
-      "ny-food-bars-taverns",
-      // Construction & trades
-      "ny-construction-plumbers",
-      "ny-construction-electricians",
-      "ny-construction-hvac",
-      // Retail
-      "ny-retail-convenience",
-      "ny-retail-grocery",
-      // Healthcare
-      "ny-health-physicians",
-      "ny-health-dentists",
-      // Professional
-      "ny-prof-accounting",
-      // Property-associated (ECBB does commercial RE too)
-      "ny-realestate-agents-brokers",
-      "ny-realestate-property-mgmt",
+      "us-hospitality-campgrounds-rv",
     ],
   },
 ];
@@ -1756,6 +1812,128 @@ export function createFavoriteGroup(
     icon: options?.icon || "star",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
+  };
+}
+
+// ==========================================
+// BUSINESS LINE HELPERS
+// Three modular business lines that compound into deal flow
+// ==========================================
+
+export type BusinessLine = "outreachglobal" | "nextier" | "ecbb";
+
+export interface BusinessLineConfig {
+  id: BusinessLine;
+  name: string;
+  description: string;
+  model: string; // How this line generates value
+  groupIds: string[]; // Favorite groups that belong to this line
+}
+
+export const BUSINESS_LINES: BusinessLineConfig[] = [
+  {
+    id: "outreachglobal",
+    name: "OutreachGlobal",
+    description: "White-label outreach platform for agencies & consultants",
+    model: "Sell TO consultants/agencies → They white-label to THEIR clients",
+    groupIds: ["outreachglobal-white-label"],
+  },
+  {
+    id: "nextier",
+    name: "Nextier",
+    description: "Real estate datalake & deal sourcing machine",
+    model: "Sell TO RE agents/brokers → Response machine → Compounds into deal flow",
+    groupIds: ["nextier-re-datalake", "nextier-property-owners"],
+  },
+  {
+    id: "ecbb",
+    name: "ECBB (East Coast Business Brokers)",
+    description: "Deal sourcing & origination for business brokerage",
+    model: "Source businesses AS seller leads ($500K-$10M) → Match with buyers/capital → Roll-ups",
+    groupIds: ["ecbb-deal-sourcing", "ecbb-deal-origination", "high-value-targets"],
+  },
+];
+
+// ==========================================
+// CLIENT CONFIGURATIONS
+// Specific client use cases for the platform
+// ==========================================
+
+export interface ClientConfig {
+  id: string;
+  name: string;
+  role: string; // Your role at this company
+  description: string;
+  primaryBusinessLine: BusinessLine;
+  targetGroups: string[];
+  useCase: string;
+}
+
+export const CLIENT_CONFIGS: ClientConfig[] = [
+  {
+    id: "homeowner-advisor",
+    name: "Homeowner Advisor",
+    role: "Director",
+    description: "Homeowner services and advisory platform",
+    primaryBusinessLine: "nextier",
+    targetGroups: ["nextier-re-datalake", "nextier-property-owners"],
+    useCase: "Use Nextier datalake for homeowner outreach → Property data enrichment → Deal flow",
+  },
+];
+
+// Get client config by ID
+export function getClientConfig(clientId: string): ClientConfig | undefined {
+  return CLIENT_CONFIGS.find((c) => c.id === clientId);
+}
+
+// Get buckets for a client
+export function getBucketsForClient(clientId: string): SectorBucket[] {
+  const config = getClientConfig(clientId);
+  if (!config) return [];
+  const bucketIds = new Set<string>();
+  config.targetGroups.forEach((groupId) => {
+    const group = DEFAULT_FAVORITE_GROUPS.find((g) => g.id === groupId);
+    group?.bucketIds.forEach((id) => bucketIds.add(id));
+  });
+  return Array.from(bucketIds)
+    .map((id) => BUCKET_BY_ID[id])
+    .filter(Boolean);
+}
+
+// Get all groups for a business line
+export function getGroupsForBusinessLine(line: BusinessLine): FavoriteGroup[] {
+  const config = BUSINESS_LINES.find((b) => b.id === line);
+  if (!config) return [];
+  return config.groupIds
+    .map((id) => DEFAULT_FAVORITE_GROUPS.find((g) => g.id === id))
+    .filter(Boolean) as FavoriteGroup[];
+}
+
+// Get all buckets for a business line
+export function getBucketsForBusinessLine(line: BusinessLine): SectorBucket[] {
+  const groups = getGroupsForBusinessLine(line);
+  const bucketIds = new Set<string>();
+  groups.forEach((g) => g.bucketIds.forEach((id) => bucketIds.add(id)));
+  return Array.from(bucketIds)
+    .map((id) => BUCKET_BY_ID[id])
+    .filter(Boolean);
+}
+
+// Get business line summary
+export function getBusinessLineSummary(): Record<BusinessLine, { groups: number; buckets: number }> {
+  return {
+    outreachglobal: {
+      groups: getGroupsForBusinessLine("outreachglobal").length,
+      buckets: getBucketsForBusinessLine("outreachglobal").length,
+    },
+    nextier: {
+      groups: getGroupsForBusinessLine("nextier").length,
+      buckets: getBucketsForBusinessLine("nextier").length,
+    },
+    ecbb: {
+      groups: getGroupsForBusinessLine("ecbb").length,
+      buckets: getBucketsForBusinessLine("ecbb").length,
+    },
   };
 }
 
