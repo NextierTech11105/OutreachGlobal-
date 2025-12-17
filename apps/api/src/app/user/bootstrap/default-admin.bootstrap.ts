@@ -8,6 +8,7 @@ import {
 } from "@/database/schema-alias";
 import { hashMake } from "@/common/utils/hash";
 import { slugify, TeamMemberRole, TeamMemberStatus } from "@nextier/common";
+import { eq } from "drizzle-orm";
 
 /**
  * Creates a default admin user on startup if one does not exist.
@@ -33,8 +34,15 @@ export class DefaultAdminBootstrap implements OnApplicationBootstrap {
     const existing = await this.db.query.users.findFirst({
       where: (t, { eq }) => eq(t.email, email),
     });
+
+    // If user exists, update the password to the one from env
     if (existing) {
-      this.logger.log(`Default admin already exists for ${email}`);
+      const passwordHash = await hashMake(password);
+      await this.db
+        .update(usersTable)
+        .set({ password: passwordHash, updatedAt: new Date() })
+        .where(eq(usersTable.email, email));
+      this.logger.log(`Default admin password updated for ${email}`);
       return;
     }
 
