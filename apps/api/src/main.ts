@@ -26,7 +26,7 @@ async function bootstrap() {
 
   // Set global API prefix for all routes
   app.setGlobalPrefix("api", {
-    exclude: ["/", "/graphql", "/version", "/setupdb", "/migrate"],
+    exclude: ["/", "/graphql", "/version"],
   });
 
   app.enableShutdownHooks();
