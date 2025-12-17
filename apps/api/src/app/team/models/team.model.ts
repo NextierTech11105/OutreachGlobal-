@@ -34,15 +34,10 @@ export class Team extends TimestampModel implements TeamSelect {
   @Field()
   slug: string;
 
-  @StringField({ nullable: true })
-  description: string | null;
+  // NOTE: description and branding removed temporarily - columns don't exist in DB yet
+  // @StringField({ nullable: true })
+  // description: string | null;
 
-  @Field(() => TeamBranding, { nullable: true })
-  branding: {
-    appName?: string;
-    companyName?: string;
-    logoUrl?: string;
-    aiAssistantName?: string;
-    themeKey?: string;
-  } | null;
+  // @Field(() => TeamBranding, { nullable: true })
+  // branding: {...} | null;
 }

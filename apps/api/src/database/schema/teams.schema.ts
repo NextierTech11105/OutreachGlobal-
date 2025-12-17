@@ -1,8 +1,6 @@
 import {
   index,
-  jsonb,
   pgTable,
-  text,
   timestamp,
   uniqueIndex,
   varchar,
@@ -24,14 +22,8 @@ export const teams = pgTable(
       .notNull(),
     name: varchar().notNull(),
     slug: varchar().notNull().unique(),
-    description: text(),
-    branding: jsonb().$type<{
-      appName?: string;
-      companyName?: string;
-      logoUrl?: string;
-      aiAssistantName?: string;
-      themeKey?: string;
-    }>(),
+    // NOTE: description and branding columns removed temporarily
+    // They will be added back after database migration
     createdAt,
     updatedAt,
   },
