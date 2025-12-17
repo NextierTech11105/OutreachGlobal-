@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { gianna, type GiannaContext } from "@/lib/gianna/gianna-service";
+import {
+  classifyResponse,
+  extractEmail,
+  isOptOut,
+  type ClassificationResult,
+} from "@/lib/response-classifications";
 
 /**
  * GIANNA AI SMS WEBHOOK HANDLER
@@ -13,6 +19,7 @@ import { gianna, type GiannaContext } from "@/lib/gianna/gianna-service";
  * - Email capture automation trigger
  * - Human-in-loop for first 3 rebuttals
  * - Opt-out compliance
+ * - Client-specific response classifications (Homeowner Advisor: Email Capture)
  */
 
 const APP_URL =
@@ -41,6 +48,7 @@ const conversationContextStore = new Map<
     propertyAddress?: string;
     propertyId?: string;
     leadType?: string;
+    clientId?: string; // Which client this conversation belongs to
     lastMessageAt: string;
     messageCount: number;
     lastIntent?: string;
@@ -121,14 +129,25 @@ export async function POST(request: NextRequest) {
     }
 
     // ═════════════════════════════════════════════════
-    // STEP 2: Check for email capture
+    // STEP 2: Classify response (AI Copilot Gianna - Inbound Response Handling)
+    // ═════════════════════════════════════════════════
+    const clientId = storedContext.clientId || "homeowner-advisor"; // Default to Homeowner Advisor
+    const classification = classifyResponse(clientId, body);
+
+    if (classification) {
+      console.log(`[Gianna SMS] Classification: ${classification.classificationName} (${classification.classificationId}) for client: ${clientId}`);
+    }
+
+    // ═════════════════════════════════════════════════
+    // STEP 3: Handle Email Capture (Homeowner Advisor)
     // ═════════════════════════════════════════════════
     const emailMatch = body.match(EMAIL_REGEX);
     if (emailMatch) {
       const email = emailMatch[0].toLowerCase();
-      console.log(`[Gianna SMS] Email captured: ${email} from ${from}`);
+      console.log(`[Gianna SMS] EMAIL CAPTURE: ${email} from ${from} | Client: ${clientId}`);
 
       // Trigger email capture automation (async)
+      // Deliverable: PROPERTY VALUATION REPORT for Homeowner Advisor
       triggerEmailCaptureAutomation({
         email,
         smsMessage: body,
@@ -137,6 +156,9 @@ export async function POST(request: NextRequest) {
         firstName: storedContext.firstName,
         propertyId: storedContext.propertyId,
         propertyAddress: storedContext.propertyAddress,
+        clientId,
+        classification: classification?.classificationId || "email-capture",
+        deliverable: "property-valuation-report",
       });
 
       // Update context
@@ -286,6 +308,9 @@ function triggerEmailCaptureAutomation(data: {
   firstName?: string;
   propertyId?: string;
   propertyAddress?: string;
+  clientId?: string;
+  classification?: string;
+  deliverable?: string;
 }): void {
   fetch(`${APP_URL}/api/automation/email-capture`, {
     method: "POST",

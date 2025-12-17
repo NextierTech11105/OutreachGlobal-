@@ -1874,10 +1874,19 @@ export const CLIENT_CONFIGS: ClientConfig[] = [
     id: "homeowner-advisor",
     name: "Homeowner Advisor",
     role: "Director",
-    description: "Homeowner services and advisory platform",
+    description: "Nextier WHITE-LABEL CLIENT #1 | Residential Distressed Real Estate",
     primaryBusinessLine: "nextier",
     targetGroups: ["nextier-re-datalake", "nextier-property-owners"],
-    useCase: "Use Nextier datalake for homeowner outreach → Property data enrichment → Deal flow",
+    useCase: "Email Capture → Property Valuation → Valuation Queue → Deal Flow",
+  },
+  {
+    id: "nextier-consulting",
+    name: "Nextier Consulting (Cole & Frank)",
+    role: "Principal",
+    description: "Deal origination via consulting | RE investment advisory",
+    primaryBusinessLine: "nextier",
+    targetGroups: ["nextier-re-datalake", "nextier-property-owners", "ecbb-deal-origination"],
+    useCase: "Consulting engagements → Deal origination → Investment opportunities",
   },
 ];
 
