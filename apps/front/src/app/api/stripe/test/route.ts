@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
     if (!secretKey) {
       return NextResponse.json(
         { error: "Secret key is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -21,13 +21,19 @@ export async function POST(request: NextRequest) {
     const balance = await stripe.balance.retrieve();
     const products = await stripe.products.list({ limit: 100, active: true });
     const prices = await stripe.prices.list({ limit: 100, active: true });
-    const subscriptions = await stripe.subscriptions.list({ limit: 1, status: "active" });
+    const subscriptions = await stripe.subscriptions.list({
+      limit: 1,
+      status: "active",
+    });
 
     return NextResponse.json({
       success: true,
       account: {
         id: account.id,
-        businessName: account.business_profile?.name || account.settings?.dashboard?.display_name || "Your Business",
+        businessName:
+          account.business_profile?.name ||
+          account.settings?.dashboard?.display_name ||
+          "Your Business",
         email: account.email,
         country: account.country,
         defaultCurrency: account.default_currency,
@@ -52,13 +58,13 @@ export async function POST(request: NextRequest) {
     if (error.type === "StripeAuthenticationError") {
       return NextResponse.json(
         { error: "Invalid API key. Please check your Stripe secret key." },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     return NextResponse.json(
       { error: error.message || "Failed to connect to Stripe" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -84,7 +90,10 @@ export async function GET() {
     const account = await stripe.accounts.retrieve();
     const balance = await stripe.balance.retrieve();
     const products = await stripe.products.list({ limit: 100, active: true });
-    const subscriptions = await stripe.subscriptions.list({ limit: 100, status: "active" });
+    const subscriptions = await stripe.subscriptions.list({
+      limit: 100,
+      status: "active",
+    });
 
     return NextResponse.json({
       configured: true,

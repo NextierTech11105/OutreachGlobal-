@@ -2,8 +2,12 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { businesses } from "@/lib/db/schema";
 import { sql, eq, like, or } from "drizzle-orm";
-import { auth } from "@clerk/nextjs/server";
-import { S3Client, GetObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
+import { apiAuth } from "@/lib/api-auth";
+import {
+  S3Client,
+  GetObjectCommand,
+  ListObjectsV2Command,
+} from "@aws-sdk/client-s3";
 
 /**
  * Sector Stats API
@@ -14,9 +18,11 @@ import { S3Client, GetObjectCommand, ListObjectsV2Command } from "@aws-sdk/clien
 
 // DO Spaces configuration - check multiple env var names for compatibility
 const SPACES_ENDPOINT = "https://nyc3.digitaloceanspaces.com";
-const SPACES_BUCKET = process.env.SPACES_BUCKET || process.env.DO_SPACES_BUCKET || "nextier";
+const SPACES_BUCKET =
+  process.env.SPACES_BUCKET || process.env.DO_SPACES_BUCKET || "nextier";
 const SPACES_KEY = process.env.SPACES_KEY || process.env.DO_SPACES_KEY || "";
-const SPACES_SECRET = process.env.SPACES_SECRET || process.env.DO_SPACES_SECRET || "";
+const SPACES_SECRET =
+  process.env.SPACES_SECRET || process.env.DO_SPACES_SECRET || "";
 
 function getS3Client(): S3Client | null {
   if (!SPACES_KEY || !SPACES_SECRET) {
@@ -30,11 +36,23 @@ function getS3Client(): S3Client | null {
 }
 
 // Geographic sector definitions for NY
-const GEOGRAPHIC_SECTORS: Record<string, { name: string; state: string; counties?: string[] }> = {
+const GEOGRAPHIC_SECTORS: Record<
+  string,
+  { name: string; state: string; counties?: string[] }
+> = {
   ny_metro: {
     name: "NYC Metro Area",
     state: "NY",
-    counties: ["New York", "Kings", "Queens", "Bronx", "Richmond", "Nassau", "Suffolk", "Westchester"],
+    counties: [
+      "New York",
+      "Kings",
+      "Queens",
+      "Bronx",
+      "Richmond",
+      "Nassau",
+      "Suffolk",
+      "Westchester",
+    ],
   },
   ny_upstate: {
     name: "Upstate New York",
@@ -42,10 +60,22 @@ const GEOGRAPHIC_SECTORS: Record<string, { name: string; state: string; counties
     // Exclude metro counties
   },
   bronx: { name: "Bronx County", state: "NY", counties: ["Bronx"] },
-  brooklyn: { name: "Brooklyn (Kings County)", state: "NY", counties: ["Kings"] },
-  manhattan: { name: "Manhattan (New York County)", state: "NY", counties: ["New York"] },
+  brooklyn: {
+    name: "Brooklyn (Kings County)",
+    state: "NY",
+    counties: ["Kings"],
+  },
+  manhattan: {
+    name: "Manhattan (New York County)",
+    state: "NY",
+    counties: ["New York"],
+  },
   queens: { name: "Queens County", state: "NY", counties: ["Queens"] },
-  staten_island: { name: "Staten Island (Richmond County)", state: "NY", counties: ["Richmond"] },
+  staten_island: {
+    name: "Staten Island (Richmond County)",
+    state: "NY",
+    counties: ["Richmond"],
+  },
 };
 
 // B2B Sectors with SIC code prefixes
@@ -185,7 +215,11 @@ async function getBucketGeographicStats(s3: S3Client | null): Promise<{
   byState: Record<string, number>;
   totalFromBuckets: number;
 }> {
-  const result = { byCounty: {} as Record<string, number>, byState: {} as Record<string, number>, totalFromBuckets: 0 };
+  const result = {
+    byCounty: {} as Record<string, number>,
+    byState: {} as Record<string, number>,
+    totalFromBuckets: 0,
+  };
 
   if (!s3) return result;
 
@@ -244,14 +278,8 @@ async function getBucketGeographicStats(s3: S3Client | null): Promise<{
 
 export async function GET(): Promise<NextResponse> {
   try {
-    // Try to get userId but don't fail if Clerk middleware isn't configured
-    let userId: string | null = null;
-    try {
-      const authResult = await auth();
-      userId = authResult.userId;
-    } catch (authError) {
-      console.log("[Sector Stats] Auth not available, proceeding without user filter");
-    }
+    // Get userId from JWT token
+    const { userId } = await apiAuth();
     const s3 = getS3Client();
 
     // Get bucket stats first (works without DB)
@@ -262,14 +290,26 @@ export async function GET(): Promise<NextResponse> {
       console.log("[Sector Stats] No database - returning bucket-only stats");
 
       // Calculate geographic sector stats from bucket data only
-      const geoSectorStats: Record<string, {
-        sectorId: string;
-        name: string;
-        totalRecords: number;
-        enriched: number;
-      }> = {};
+      const geoSectorStats: Record<
+        string,
+        {
+          sectorId: string;
+          name: string;
+          totalRecords: number;
+          enriched: number;
+        }
+      > = {};
 
-      const metroCounties = ["New York", "Kings", "Queens", "Bronx", "Richmond", "Nassau", "Suffolk", "Westchester"];
+      const metroCounties = [
+        "New York",
+        "Kings",
+        "Queens",
+        "Bronx",
+        "Richmond",
+        "Nassau",
+        "Suffolk",
+        "Westchester",
+      ];
 
       for (const [sectorId, sector] of Object.entries(GEOGRAPHIC_SECTORS)) {
         let count = 0;
@@ -309,7 +349,9 @@ export async function GET(): Promise<NextResponse> {
           totalRecords: bucketStats.totalFromBuckets,
           totalFromDB: 0,
           totalFromBuckets: bucketStats.totalFromBuckets,
-          sectorsWithData: Object.values(geoSectorStats).filter(s => s.totalRecords > 0).length,
+          sectorsWithData: Object.values(geoSectorStats).filter(
+            (s) => s.totalRecords > 0,
+          ).length,
           source: "buckets_only",
         },
       });
@@ -327,7 +369,10 @@ export async function GET(): Promise<NextResponse> {
         .where(userId ? eq(businesses.userId, userId) : sql`1=1`);
       totalRecords = totalResult?.count || 0;
     } catch (dbError) {
-      console.log("[Sector Stats] DB query failed, using buckets only:", dbError);
+      console.log(
+        "[Sector Stats] DB query failed, using buckets only:",
+        dbError,
+      );
       dbQueryFailed = true;
     }
 
@@ -346,7 +391,11 @@ export async function GET(): Promise<NextResponse> {
     > = {};
 
     // Only query sectors if DB is working
-    let topSicCodes: Array<{ sicCode: string | null; sicDescription: string | null; count: number }> = [];
+    let topSicCodes: Array<{
+      sicCode: string | null;
+      sicDescription: string | null;
+      count: number;
+    }> = [];
 
     if (!dbQueryFailed) {
       // Query each sector's counts
@@ -357,7 +406,9 @@ export async function GET(): Promise<NextResponse> {
             (prefix) => sql`${businesses.sicCode} LIKE ${prefix + "%"}`,
           );
 
-          const userCondition = userId ? eq(businesses.userId, userId) : sql`1=1`;
+          const userCondition = userId
+            ? eq(businesses.userId, userId)
+            : sql`1=1`;
 
           // Get count for this sector
           const [countResult] = await db
@@ -415,15 +466,27 @@ export async function GET(): Promise<NextResponse> {
     }
 
     // Calculate geographic sector stats from bucket data (using bucketStats from above)
-    const geoSectorStats: Record<string, {
-      sectorId: string;
-      name: string;
-      totalRecords: number;
-      enriched: number;
-    }> = {};
+    const geoSectorStats: Record<
+      string,
+      {
+        sectorId: string;
+        name: string;
+        totalRecords: number;
+        enriched: number;
+      }
+    > = {};
 
     // NY Metro counties for exclusion in upstate
-    const metroCounties = ["New York", "Kings", "Queens", "Bronx", "Richmond", "Nassau", "Suffolk", "Westchester"];
+    const metroCounties = [
+      "New York",
+      "Kings",
+      "Queens",
+      "Bronx",
+      "Richmond",
+      "Nassau",
+      "Suffolk",
+      "Westchester",
+    ];
 
     for (const [sectorId, sector] of Object.entries(GEOGRAPHIC_SECTORS)) {
       let count = 0;

@@ -13,7 +13,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { businesses, properties, leads, contacts } from "@/lib/db/schema";
 import { eq, and, gte, lte, desc, asc, isNull, or, sql, ne } from "drizzle-orm";
-import { auth } from "@clerk/nextjs/server";
+import { apiAuth } from "@/lib/api-auth";
 
 // RealEstateAPI for Skip Trace & Property Lookup
 const REALESTATE_API_KEY =
@@ -390,7 +390,7 @@ async function findPropertiesOwnedBy(
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { userId } = await apiAuth();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -807,7 +807,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { userId } = await apiAuth();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

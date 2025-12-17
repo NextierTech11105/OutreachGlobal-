@@ -11,18 +11,12 @@ import {
   sql,
   count as sqlCount,
 } from "drizzle-orm";
-import { auth } from "@clerk/nextjs/server";
+import { apiAuth } from "@/lib/api-auth";
 
 // GET - List leads with filtering and pagination
 export async function GET(request: NextRequest) {
   try {
-    let userId: string | null = null;
-    try {
-      const authResult = await auth();
-      userId = authResult.userId;
-    } catch {
-      // Auth not available
-    }
+    const { userId } = await apiAuth();
     if (!userId) {
       return NextResponse.json(
         { error: "Unauthorized", message: "Please sign in to view leads" },
@@ -201,7 +195,7 @@ export async function GET(request: NextRequest) {
 // PATCH - Update lead status
 export async function PATCH(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { userId } = await apiAuth();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

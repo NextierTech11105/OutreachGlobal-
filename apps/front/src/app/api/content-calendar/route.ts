@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { apiAuth } from "@/lib/api-auth";
 
 // Content Calendar Engine
 // - Schedule Medium articles 3+ months out
@@ -43,7 +43,7 @@ function getWeekKey(date: Date): string {
 // POST - Add content to calendar
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { userId } = await apiAuth();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
 // GET - Get calendar view or upcoming content
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { userId } = await apiAuth();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -206,7 +206,7 @@ export async function GET(request: NextRequest) {
 // PATCH - Update scheduled content
 export async function PATCH(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { userId } = await apiAuth();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -254,7 +254,7 @@ export async function PATCH(request: NextRequest) {
 // DELETE - Remove from calendar
 export async function DELETE(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { userId } = await apiAuth();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

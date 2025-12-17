@@ -7,7 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { apiAuth } from "@/lib/api-auth";
 import { randomUUID } from "crypto";
 
 // WARNING: In-memory storage - data will be lost on server restart
@@ -70,7 +70,7 @@ function validateId(id: string): boolean {
 export async function GET(request: NextRequest) {
   try {
     // Auth check
-    const { userId } = await auth();
+    const { userId } = await apiAuth();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -111,7 +111,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Auth check
-    const { userId } = await auth();
+    const { userId } = await apiAuth();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
   if (!STRIPE_SECRET_KEY) {
     return NextResponse.json(
       { error: "Stripe not configured" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 
@@ -19,7 +19,10 @@ export async function GET(request: NextRequest) {
     const Stripe = (await import("stripe")).default;
     const stripe = new Stripe(STRIPE_SECRET_KEY);
 
-    const params: any = { limit, expand: ["data.customer", "data.items.data.price.product"] };
+    const params: any = {
+      limit,
+      expand: ["data.customer", "data.items.data.price.product"],
+    };
     if (status !== "all") {
       params.status = status;
     }
@@ -64,7 +67,9 @@ export async function GET(request: NextRequest) {
           amount: item?.price?.unit_amount,
           interval: item?.price?.recurring?.interval,
         },
-        currentPeriodStart: new Date(sub.current_period_start * 1000).toISOString(),
+        currentPeriodStart: new Date(
+          sub.current_period_start * 1000,
+        ).toISOString(),
         currentPeriodEnd: new Date(sub.current_period_end * 1000).toISOString(),
         cancelAtPeriodEnd: sub.cancel_at_period_end,
         created: new Date(sub.created * 1000).toISOString(),
@@ -83,7 +88,7 @@ export async function GET(request: NextRequest) {
     console.error("[Stripe Subscriptions] Error:", error);
     return NextResponse.json(
       { error: error.message || "Failed to fetch subscriptions" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -93,18 +98,25 @@ export async function POST(request: NextRequest) {
   if (!STRIPE_SECRET_KEY) {
     return NextResponse.json(
       { error: "Stripe not configured" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 
   try {
     const body = await request.json();
-    const { priceId, customerId, customerEmail, successUrl, cancelUrl, metadata } = body;
+    const {
+      priceId,
+      customerId,
+      customerEmail,
+      successUrl,
+      cancelUrl,
+      metadata,
+    } = body;
 
     if (!priceId) {
       return NextResponse.json(
         { error: "Price ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -115,8 +127,12 @@ export async function POST(request: NextRequest) {
     const sessionParams: any = {
       mode: "subscription",
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: successUrl || `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: cancelUrl || `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/pricing`,
+      success_url:
+        successUrl ||
+        `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url:
+        cancelUrl ||
+        `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/pricing`,
       metadata,
     };
 
@@ -137,7 +153,7 @@ export async function POST(request: NextRequest) {
     console.error("[Stripe Subscriptions] Error:", error);
     return NextResponse.json(
       { error: error.message || "Failed to create checkout session" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -147,7 +163,7 @@ export async function PATCH(request: NextRequest) {
   if (!STRIPE_SECRET_KEY) {
     return NextResponse.json(
       { error: "Stripe not configured" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 
@@ -158,7 +174,7 @@ export async function PATCH(request: NextRequest) {
     if (!subscriptionId) {
       return NextResponse.json(
         { error: "Subscription ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -176,7 +192,9 @@ export async function PATCH(request: NextRequest) {
         subscription: {
           id: subscription.id,
           cancelAtPeriodEnd: subscription.cancel_at_period_end,
-          currentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString(),
+          currentPeriodEnd: new Date(
+            subscription.current_period_end * 1000,
+          ).toISOString(),
         },
       });
     }
@@ -211,15 +229,18 @@ export async function PATCH(request: NextRequest) {
 
     if (action === "change-plan" && newPriceId) {
       const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-      const updatedSubscription = await stripe.subscriptions.update(subscriptionId, {
-        items: [
-          {
-            id: subscription.items.data[0].id,
-            price: newPriceId,
-          },
-        ],
-        proration_behavior: "create_prorations",
-      });
+      const updatedSubscription = await stripe.subscriptions.update(
+        subscriptionId,
+        {
+          items: [
+            {
+              id: subscription.items.data[0].id,
+              price: newPriceId,
+            },
+          ],
+          proration_behavior: "create_prorations",
+        },
+      );
 
       return NextResponse.json({
         success: true,
@@ -231,15 +252,12 @@ export async function PATCH(request: NextRequest) {
       });
     }
 
-    return NextResponse.json(
-      { error: "Invalid action" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   } catch (error: any) {
     console.error("[Stripe Subscriptions] Error:", error);
     return NextResponse.json(
       { error: error.message || "Failed to update subscription" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -15,9 +15,11 @@ import {
 
 // DO Spaces configuration - check multiple env var names for compatibility
 const SPACES_ENDPOINT = "https://nyc3.digitaloceanspaces.com";
-const SPACES_BUCKET = process.env.SPACES_BUCKET || process.env.DO_SPACES_BUCKET || "nextier";
+const SPACES_BUCKET =
+  process.env.SPACES_BUCKET || process.env.DO_SPACES_BUCKET || "nextier";
 const SPACES_KEY = process.env.SPACES_KEY || process.env.DO_SPACES_KEY || "";
-const SPACES_SECRET = process.env.SPACES_SECRET || process.env.DO_SPACES_SECRET || "";
+const SPACES_SECRET =
+  process.env.SPACES_SECRET || process.env.DO_SPACES_SECRET || "";
 
 function getS3Client(): S3Client | null {
   if (!SPACES_KEY || !SPACES_SECRET) {

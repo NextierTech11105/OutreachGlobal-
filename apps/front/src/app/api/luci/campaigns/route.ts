@@ -20,7 +20,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { businesses, leads } from "@/lib/db/schema";
 import { eq, and, sql, desc, asc, isNull, ne } from "drizzle-orm";
-import { auth } from "@clerk/nextjs/server";
+import { apiAuth } from "@/lib/api-auth";
 import { randomUUID } from "crypto";
 
 // Constants
@@ -209,7 +209,7 @@ function generateTags(biz: {
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { userId } = await apiAuth();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

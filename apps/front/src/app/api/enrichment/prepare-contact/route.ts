@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { apiAuth } from "@/lib/api-auth";
 
 // Just-in-Time Enrichment for Power Dialer
 // This endpoint runs the full enrichment pipeline BEFORE contacting a lead:
@@ -292,7 +292,7 @@ async function enrichB2BLead(
 // POST - Prepare a lead for contact (just-in-time enrichment)
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { userId } = await apiAuth();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

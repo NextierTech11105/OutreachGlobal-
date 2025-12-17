@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { apiAuth } from "@/lib/api-auth";
 
 // Content Library Categories from OutreachGlobal
 export interface ContentCategory {
@@ -672,7 +672,7 @@ export async function GET(request: NextRequest) {
 // POST - Generate content from a prompt template
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { userId } = await apiAuth();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

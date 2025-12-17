@@ -3,7 +3,7 @@ import { TagLeadRequest } from "@/lib/types/bucket";
 import { db } from "@/lib/db";
 import { leads, leadTags, tags } from "@/lib/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
-import { auth } from "@clerk/nextjs/server";
+import { apiAuth } from "@/lib/api-auth";
 
 // POST /api/leads/:id/tag - Add/remove/replace tags on a lead (REAL DATABASE)
 export async function POST(
@@ -11,7 +11,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { userId } = await auth();
+    const { userId } = await apiAuth();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

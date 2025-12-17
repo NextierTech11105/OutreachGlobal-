@@ -71,7 +71,7 @@ export async function GET() {
   if (!STRIPE_SECRET_KEY) {
     return NextResponse.json(
       { error: "Stripe not configured" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 
@@ -86,10 +86,10 @@ export async function GET() {
     const productsWithPrices = products.data.map((product) => {
       const productPrices = prices.data.filter((p) => p.product === product.id);
       const monthlyPrice = productPrices.find(
-        (p) => p.recurring?.interval === "month"
+        (p) => p.recurring?.interval === "month",
       );
       const yearlyPrice = productPrices.find(
-        (p) => p.recurring?.interval === "year"
+        (p) => p.recurring?.interval === "year",
       );
 
       return {
@@ -126,7 +126,7 @@ export async function GET() {
     console.error("[Stripe Products] Error:", error);
     return NextResponse.json(
       { error: error.message || "Failed to fetch products" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -136,7 +136,7 @@ export async function POST(request: NextRequest) {
   if (!STRIPE_SECRET_KEY) {
     return NextResponse.json(
       { error: "Stripe not configured" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 
@@ -197,7 +197,14 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === "create-single") {
-      const { name, description, monthlyPrice, yearlyPrice, features, metadata } = body;
+      const {
+        name,
+        description,
+        monthlyPrice,
+        yearlyPrice,
+        features,
+        metadata,
+      } = body;
 
       const product = await stripe.products.create({
         name,
@@ -233,13 +240,13 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       { error: "Invalid action. Use 'create-defaults' or 'create-single'" },
-      { status: 400 }
+      { status: 400 },
     );
   } catch (error: any) {
     console.error("[Stripe Products] Error:", error);
     return NextResponse.json(
       { error: error.message || "Failed to create products" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -249,7 +256,7 @@ export async function DELETE(request: NextRequest) {
   if (!STRIPE_SECRET_KEY) {
     return NextResponse.json(
       { error: "Stripe not configured" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 
@@ -260,7 +267,7 @@ export async function DELETE(request: NextRequest) {
     if (!productId) {
       return NextResponse.json(
         { error: "Product ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -278,7 +285,7 @@ export async function DELETE(request: NextRequest) {
     console.error("[Stripe Products] Error:", error);
     return NextResponse.json(
       { error: error.message || "Failed to archive product" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

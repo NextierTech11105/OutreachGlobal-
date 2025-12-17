@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { businesses } from "@/lib/db/schema";
 import { eq, and, gte, lte, desc, or, isNotNull } from "drizzle-orm";
-import { auth } from "@clerk/nextjs/server";
+import { apiAuth } from "@/lib/api-auth";
 
 // Business type for calendar with full USBizData fields
 interface CalendarBusiness {
@@ -205,7 +205,7 @@ function generateAutoTags(business: {
 // GET - Fetch businesses for calendar view
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { userId } = await apiAuth();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -407,7 +407,7 @@ export async function GET(request: NextRequest) {
 // POST - Update business status or push to campaigns
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { userId } = await apiAuth();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

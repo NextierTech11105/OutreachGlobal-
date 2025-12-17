@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { apiAuth } from "@/lib/api-auth";
 
 // OutreachGlobal Database API Connection
 // Connects to the original OutreachGlobal platform database at data.outreachglobal.io
@@ -56,7 +56,7 @@ async function fetchFromOutreachGlobal(query: OutreachGlobalQuery) {
 // GET - Query OutreachGlobal database
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { userId } = await apiAuth();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -132,7 +132,7 @@ export async function GET(request: NextRequest) {
 // POST - Write to OutreachGlobal database or sync data
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { userId } = await apiAuth();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

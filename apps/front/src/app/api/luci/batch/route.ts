@@ -14,7 +14,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { businesses, leads, contacts } from "@/lib/db/schema";
 import { eq, and, gte, lte, desc, asc, sql, gt, isNull, or } from "drizzle-orm";
-import { auth } from "@clerk/nextjs/server";
+import { apiAuth } from "@/lib/api-auth";
 
 // Constants
 const BATCH_SIZE = 100; // Process 100 at a time
@@ -427,7 +427,7 @@ async function processBatch(
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { userId } = await apiAuth();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
