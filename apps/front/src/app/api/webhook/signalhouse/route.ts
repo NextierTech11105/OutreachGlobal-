@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { smsQueueService } from "@/lib/services/sms-queue-service";
+import { db } from "@/lib/db";
+import { smsMessages, leads } from "@/lib/db/schema";
+import { eq, and, or, desc, like } from "drizzle-orm";
 
 // SignalHouse Webhook Handler
 // Based on https://devapi.signalhouse.io/apiDocs
@@ -33,18 +36,6 @@ interface SignalHouseWebhookPayload {
   [key: string]: unknown;
 }
 
-// Store recent inbound messages (in production, save to DB)
-const recentInboundMessages: Array<{
-  id: string;
-  from: string;
-  to: string;
-  body: string;
-  receivedAt: string;
-  status: string;
-  campaignId?: string;
-  isLead?: boolean; // true if response indicates interest
-}> = [];
-
 // Keywords that indicate a lead is interested
 const POSITIVE_KEYWORDS = [
   "YES",
@@ -65,16 +56,67 @@ const OPT_OUT_KEYWORDS = [
   "OPT OUT",
 ];
 
-// GET - Retrieve recent inbound messages
+/**
+ * Helper to find a lead by phone number
+ */
+async function getLeadByPhone(phone: string) {
+  if (!phone) return null;
+
+  // Normalize phone for searching (last 10 digits)
+  const normalized = phone.replace(/\D/g, "").slice(-10);
+  if (normalized.length < 10) return null;
+
+  try {
+    const results = await db
+      .select()
+      .from(leads)
+      .where(like(leads.phone, `%${normalized}%`))
+      .limit(1);
+
+    return results[0] || null;
+  } catch (error) {
+    console.error(
+      `[SignalHouse Webhook] Error finding lead for ${phone}:`,
+      error,
+    );
+    return null;
+  }
+}
+
+// GET - Retrieve recent inbound messages from DB
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const limit = parseInt(searchParams.get("limit") || "50");
+  const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 100);
 
-  return NextResponse.json({
-    success: true,
-    count: recentInboundMessages.length,
-    messages: recentInboundMessages.slice(0, limit),
-  });
+  try {
+    const messages = await db
+      .select()
+      .from(smsMessages)
+      .where(eq(smsMessages.direction, "inbound"))
+      .orderBy(desc(smsMessages.createdAt))
+      .limit(limit);
+
+    return NextResponse.json({
+      success: true,
+      count: messages.length,
+      messages: messages.map((m) => ({
+        id: m.id,
+        from: m.fromNumber,
+        to: m.toNumber,
+        body: m.body,
+        receivedAt: m.receivedAt || m.createdAt,
+        status: m.status,
+        campaignId: m.campaignId,
+        leadId: m.leadId,
+      })),
+    });
+  } catch (error) {
+    console.error("[SignalHouse Webhook] GET Error:", error);
+    return NextResponse.json(
+      { success: false, error: "Failed to fetch messages" },
+      { status: 500 },
+    );
+  }
 }
 
 // POST - Handle incoming webhooks from SignalHouse
@@ -87,6 +129,8 @@ export async function POST(request: NextRequest) {
     const messageId =
       payload.message_id || payload.messageId || `msg_${Date.now()}`;
     const messageBody = payload.text || payload.body || "";
+    const fromNumber = payload.from || "";
+    const toNumber = payload.to || "";
 
     console.log(
       `[SignalHouse Webhook] Event: ${eventType}`,
@@ -104,104 +148,91 @@ export async function POST(request: NextRequest) {
     // Support both dot notation (message.received) and underscore (MESSAGE_RECEIVED)
     const normalizedEvent = eventType.toLowerCase().replace(/_/g, ".");
 
+    // Find lead associated with this communication
+    // For inbound, search by 'from'. For outbound, search by 'to'.
+    const searchPhone =
+      normalizedEvent.includes("received") || normalizedEvent.includes("inbound")
+        ? fromNumber
+        : toNumber;
+
+    const lead = await getLeadByPhone(searchPhone);
+
     switch (normalizedEvent) {
       case "message.received":
       case "sms.received":
       case "inbound": {
         // Inbound SMS received - potential lead response!
-        const inboundMessage = {
-          id: messageId,
-          from: payload.from || "",
-          to: payload.to || "",
-          body: messageBody,
-          receivedAt: payload.timestamp || new Date().toISOString(),
-          status: isOptOut ? "opted_out" : "received",
-          campaignId: payload.campaign_id,
-          isLead: isPositiveLead && !isOptOut,
-        };
 
-        // Add to recent messages (keep last 100)
-        recentInboundMessages.unshift(inboundMessage);
-        if (recentInboundMessages.length > 100) {
-          recentInboundMessages.pop();
-        }
+        // Save to DB
+        await db.insert(smsMessages).values({
+          id: crypto.randomUUID(),
+          leadId: lead?.id,
+          direction: "inbound",
+          fromNumber,
+          toNumber,
+          body: messageBody,
+          status: isOptOut ? "opted_out" : "received",
+          providerMessageId: messageId,
+          campaignId: payload.campaign_id as string,
+          receivedAt: new Date(),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
 
         if (isOptOut) {
-          console.log(`[SignalHouse] OPT-OUT from ${inboundMessage.from}`);
+          console.log(`[SignalHouse] OPT-OUT from ${fromNumber}`);
           // Mark as opted-out in SMS queue service (cancels pending messages)
-          smsQueueService.handleStopMessage(inboundMessage.from);
-          // TODO: Mark lead as opted-out in database
+          smsQueueService.handleStopMessage(fromNumber);
+
+          if (lead) {
+            // Update lead status to opted_out in database
+            await db
+              .update(leads)
+              .set({ status: "opted_out", updatedAt: new Date() })
+              .where(eq(leads.id, lead.id));
+          }
         } else if (isPositiveLead) {
           console.log(
-            `[SignalHouse] 🎯 LEAD RESPONSE from ${inboundMessage.from}: ${messageBody}`,
+            `[SignalHouse] 🎯 LEAD RESPONSE from ${fromNumber}: ${messageBody}`,
           );
-          // TODO: Flag as hot lead, notify team, update CRM
-        } else {
-          console.log(
-            `[SignalHouse] Inbound SMS from ${inboundMessage.from}: ${messageBody}`,
-          );
+
+          if (lead) {
+            // Update lead status to interested
+            await db
+              .update(leads)
+              .set({ status: "interested", updatedAt: new Date() })
+              .where(eq(leads.id, lead.id));
+          }
         }
 
-        // TODO: Save to database
-        // TODO: Update lead activity
-
-        return NextResponse.json({
-          success: true,
-          event: "inbound_sms",
-          messageId,
-          isOptOut,
-          isLead: isPositiveLead,
-          processed: true,
-        });
+        return NextResponse.json({ success: true, event: "inbound_sms" });
       }
 
       case "message.sent":
       case "sms.sent":
-      case "sent": {
-        // Outbound SMS sent confirmation
-        console.log(`[SignalHouse] Message ${messageId} sent`);
-
-        return NextResponse.json({
-          success: true,
-          event: "message_sent",
-          messageId,
-          status: "sent",
-        });
-      }
-
+      case "sent":
       case "message.delivered":
       case "sms.delivered":
-      case "delivered": {
-        // SMS delivered to recipient
-        console.log(`[SignalHouse] Message ${messageId} delivered`);
-
-        return NextResponse.json({
-          success: true,
-          event: "delivered",
-          messageId,
-          status: "delivered",
-        });
-      }
-
+      case "delivered":
       case "message.failed":
       case "sms.failed":
       case "failed":
       case "undelivered": {
-        // SMS failed to deliver
-        const errorCode = payload.error_code || payload.errorCode;
-        const errorMessage = payload.error_message || payload.errorMessage;
-        console.error(
-          `[SignalHouse] Message ${messageId} FAILED: ${errorCode} - ${errorMessage}`,
-        );
-
-        return NextResponse.json({
-          success: true,
-          event: "failed",
-          messageId,
-          status: "failed",
-          errorCode,
-          errorMessage,
-        });
+        // Update existing message status if found by providerMessageId
+        if (messageId) {
+          const status = normalizedEvent.split(".").pop() as string;
+          await db
+            .update(smsMessages)
+            .set({
+              status: status,
+              providerStatus: (payload.status as string) || status,
+              updatedAt: new Date(),
+              deliveredAt:
+                normalizedEvent.includes("delivered") ? new Date() : undefined,
+            })
+            .where(eq(smsMessages.providerMessageId, messageId));
+        }
+        return NextResponse.json({ success: true, event: "status_update" });
       }
 
       case "number.provisioned":
@@ -222,24 +253,13 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: true, event: "number_ported" });
       }
 
-      default: {
-        // Log unknown events for debugging
-        console.log(`[SignalHouse] Event: ${eventType}`, payload);
-        return NextResponse.json({
-          success: true,
-          event: eventType,
-          logged: true,
-        });
-      }
+      default:
+        return NextResponse.json({ success: true, event: "ignored" });
     }
   } catch (error: any) {
-    console.error("[SignalHouse Webhook] Error processing webhook:", error);
-
+    console.error("[SignalHouse Webhook] POST Error:", error);
     return NextResponse.json(
-      {
-        success: false,
-        error: error.message,
-      },
+      { success: false, error: error.message || "Internal server error" },
       { status: 500 },
     );
   }

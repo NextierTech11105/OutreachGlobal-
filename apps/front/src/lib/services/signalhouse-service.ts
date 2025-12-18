@@ -107,6 +107,25 @@ export interface DashboardAnalytics {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// PLATFORM ENGINEERING CONFIG
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const RETRY_CONFIG = {
+  maxRetries: 3,
+  baseDelayMs: 1000,
+  maxDelayMs: 10000,
+  retryableStatuses: [408, 429, 500, 502, 503, 504],
+};
+
+// Generate correlation ID for cross-platform tracing
+function generateCorrelationId(): string {
+  return `nxt_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+}
+
+// Sleep helper for retry delays
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // SIGNALHOUSE SERVICE CLASS
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -128,32 +147,84 @@ export class SignalHouseService {
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // PRIVATE HELPERS
+  // PRIVATE HELPERS - PLATFORM ENGINEERING BEST PRACTICES
   // ─────────────────────────────────────────────────────────────────────────────
 
+  /**
+   * Make API request with retry logic, correlation ID, and proper error handling
+   * - Exponential backoff for retryable errors (429, 5xx)
+   * - Correlation ID header for cross-platform tracing
+   * - Structured logging for debugging
+   */
   private async request<T>(
     endpoint: string,
     options: RequestInit = {},
+    correlationId?: string,
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
+    const corrId = correlationId || generateCorrelationId();
+    let lastError: Error | null = null;
 
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": this.apiKey,
-        ...options.headers,
-      },
-    });
+    for (let attempt = 0; attempt <= RETRY_CONFIG.maxRetries; attempt++) {
+      try {
+        const response = await fetch(url, {
+          ...options,
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": this.apiKey,
+            "x-correlation-id": corrId, // Cross-platform tracing
+            "x-client": "nextier-platform", // Identify our platform
+            ...options.headers,
+          },
+        });
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error(
-        error.message || `SignalHouse API error: ${response.status}`,
-      );
+        // Handle rate limiting (429) with retry-after header
+        if (response.status === 429) {
+          const retryAfter = response.headers.get("retry-after");
+          const delayMs = retryAfter
+            ? parseInt(retryAfter, 10) * 1000
+            : Math.min(RETRY_CONFIG.baseDelayMs * Math.pow(2, attempt), RETRY_CONFIG.maxDelayMs);
+
+          console.warn(`[SignalHouse] Rate limited (429), retry ${attempt + 1}/${RETRY_CONFIG.maxRetries} after ${delayMs}ms [${corrId}]`);
+
+          if (attempt < RETRY_CONFIG.maxRetries) {
+            await sleep(delayMs);
+            continue;
+          }
+        }
+
+        // Handle retryable server errors
+        if (RETRY_CONFIG.retryableStatuses.includes(response.status) && attempt < RETRY_CONFIG.maxRetries) {
+          const delayMs = Math.min(RETRY_CONFIG.baseDelayMs * Math.pow(2, attempt), RETRY_CONFIG.maxDelayMs);
+          console.warn(`[SignalHouse] Retryable error ${response.status}, retry ${attempt + 1}/${RETRY_CONFIG.maxRetries} after ${delayMs}ms [${corrId}]`);
+          await sleep(delayMs);
+          continue;
+        }
+
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({}));
+          throw new Error(
+            error.message || `SignalHouse API error: ${response.status} [${corrId}]`,
+          );
+        }
+
+        return response.json();
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+
+        // Network errors are retryable
+        if (attempt < RETRY_CONFIG.maxRetries && lastError.message.includes("fetch")) {
+          const delayMs = Math.min(RETRY_CONFIG.baseDelayMs * Math.pow(2, attempt), RETRY_CONFIG.maxDelayMs);
+          console.warn(`[SignalHouse] Network error, retry ${attempt + 1}/${RETRY_CONFIG.maxRetries} after ${delayMs}ms [${corrId}]`);
+          await sleep(delayMs);
+          continue;
+        }
+
+        throw lastError;
+      }
     }
 
-    return response.json();
+    throw lastError || new Error(`SignalHouse request failed after ${RETRY_CONFIG.maxRetries} retries [${corrId}]`);
   }
 
   private formatPhoneNumber(phone: string): string {
@@ -795,6 +866,229 @@ export class SignalHouseService {
       hasFromNumber: !!SIGNALHOUSE_CONFIG.defaultFromNumber,
       baseUrl: this.baseUrl,
     };
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // SUB-GROUP OPERATIONS (WHITE-LABEL / MULTI-TENANT)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Create a new sub-group (for white-label tenant)
+   * Each team in Nextier maps to a SignalHouse sub-group
+   */
+  public async createSubGroup(data: {
+    name: string;
+    description?: string;
+  }): Promise<{ subGroupId: string; name: string }> {
+    return this.request("/user/subGroup/create", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  /**
+   * Get all sub-groups
+   */
+  public async getAllSubGroups(): Promise<Array<{
+    subGroupId: string;
+    name: string;
+    description?: string;
+    createdAt: string;
+  }>> {
+    return this.request("/user/subGroup/AllSubGroups");
+  }
+
+  /**
+   * Get sub-group details
+   */
+  public async getSubGroupDetails(subGroupId: string): Promise<{
+    subGroupId: string;
+    name: string;
+    description?: string;
+    phoneNumbers: string[];
+    userCount: number;
+  }> {
+    return this.request(`/user/subGroup/Details/${subGroupId}`);
+  }
+
+  /**
+   * Update sub-group
+   */
+  public async updateSubGroup(data: {
+    subGroupId: string;
+    name?: string;
+    description?: string;
+  }): Promise<void> {
+    await this.request("/user/subGroup/update", {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  }
+
+  /**
+   * Delete sub-group
+   */
+  public async deleteSubGroup(subGroupId: string): Promise<void> {
+    await this.request("/user/subGroup/delete", {
+      method: "DELETE",
+      body: JSON.stringify({ subGroupId }),
+    });
+  }
+
+  /**
+   * Assign user to sub-group
+   */
+  public async assignUserToSubGroup(data: {
+    userId: string;
+    subGroupId: string;
+  }): Promise<void> {
+    await this.request("/user/subGroups/assign", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  /**
+   * Get sub-group data counts (messages, usage per tenant)
+   */
+  public async getSubGroupDataCounts(): Promise<Array<{
+    subGroupId: string;
+    name: string;
+    messageCount: number;
+    phoneNumberCount: number;
+  }>> {
+    return this.request("/user/subGroups/data");
+  }
+
+  /**
+   * Search sub-groups by partial name
+   */
+  public async searchSubGroups(query: string): Promise<Array<{
+    subGroupId: string;
+    name: string;
+  }>> {
+    return this.request(`/user/subGroups/search?query=${encodeURIComponent(query)}`);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // AGGREGATED ANALYTICS (ACROSS ALL TENANTS)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Get aggregated dashboard analytics (all sub-groups combined)
+   */
+  public async getAggregatedDashboardAnalytics(params?: {
+    startDate?: string;
+    endDate?: string;
+  }): Promise<DashboardAnalytics> {
+    const queryParams = new URLSearchParams();
+    if (params?.startDate) queryParams.append("startDate", params.startDate);
+    if (params?.endDate) queryParams.append("endDate", params.endDate);
+
+    return this.request<DashboardAnalytics>(
+      `/analytics/agg/dashboardAnalytics?${queryParams.toString()}`,
+    );
+  }
+
+  /**
+   * Get aggregated outbound analytics
+   */
+  public async getAggregatedOutboundAnalytics(params?: {
+    startDate?: string;
+    endDate?: string;
+    groupBy?: "hour" | "day" | "week" | "month";
+  }): Promise<
+    Array<{ period: string; sent: number; delivered: number; failed: number }>
+  > {
+    const queryParams = new URLSearchParams();
+    if (params?.startDate) queryParams.append("startDate", params.startDate);
+    if (params?.endDate) queryParams.append("endDate", params.endDate);
+    if (params?.groupBy) queryParams.append("groupBy", params.groupBy);
+
+    return this.request(
+      `/analytics/agg/analyticsOutbound?${queryParams.toString()}`,
+    );
+  }
+
+  /**
+   * Get aggregated inbound analytics
+   */
+  public async getAggregatedInboundAnalytics(params?: {
+    startDate?: string;
+    endDate?: string;
+    groupBy?: "hour" | "day" | "week" | "month";
+  }): Promise<Array<{ period: string; received: number; responded: number }>> {
+    const queryParams = new URLSearchParams();
+    if (params?.startDate) queryParams.append("startDate", params.startDate);
+    if (params?.endDate) queryParams.append("endDate", params.endDate);
+    if (params?.groupBy) queryParams.append("groupBy", params.groupBy);
+
+    return this.request(
+      `/analytics/agg/analyticsInbound?${queryParams.toString()}`,
+    );
+  }
+
+  /**
+   * Get aggregated usage summary
+   */
+  public async getAggregatedUsageSummary(params?: {
+    startDate?: string;
+    endDate?: string;
+  }): Promise<{
+    smsSent: number;
+    smsReceived: number;
+    mmsSent: number;
+    mmsReceived: number;
+    totalCost: number;
+  }> {
+    const queryParams = new URLSearchParams();
+    if (params?.startDate) queryParams.append("startDate", params.startDate);
+    if (params?.endDate) queryParams.append("endDate", params.endDate);
+
+    return this.request(`/wallet/agg/usageSummary?${queryParams.toString()}`);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // LANDING PAGES (WHITE-LABEL)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Create a landing page (for opt-in, campaigns)
+   */
+  public async createLandingPage(data: {
+    name: string;
+    content: string;
+    settings?: Record<string, unknown>;
+  }): Promise<{ uniqueId: string }> {
+    return this.request("/user/landingPage", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  /**
+   * Get landing page
+   */
+  public async getLandingPage(uniqueId: string): Promise<{
+    uniqueId: string;
+    name: string;
+    content: string;
+    settings: Record<string, unknown>;
+  }> {
+    return this.request(`/user/landingPage/${uniqueId}`);
+  }
+
+  /**
+   * Update landing page
+   */
+  public async updateLandingPage(
+    uniqueId: string,
+    data: { name?: string; content?: string; settings?: Record<string, unknown> },
+  ): Promise<void> {
+    await this.request(`/user/landingPage/${uniqueId}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
   }
 }
 

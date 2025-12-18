@@ -405,10 +405,17 @@ export class SMSQueueService {
         message.attempts++;
 
         try {
-          // Send via SignalHouse
+          // Send via SignalHouse - pass campaignId as tag for tracking
+          // SignalHouse stores all logs - query their API for reports
+          const tags: string[] = [];
+          if (message.campaignId) tags.push(`campaign:${message.campaignId}`);
+          if (message.agent) tags.push(`agent:${message.agent}`);
+          if (batchId) tags.push(`batch:${batchId}`);
+
           const response = await signalHouseService.sendSMS({
             to: message.to,
             message: message.message,
+            tags: tags.length > 0 ? tags : undefined,
           });
 
           message.status = "sent";

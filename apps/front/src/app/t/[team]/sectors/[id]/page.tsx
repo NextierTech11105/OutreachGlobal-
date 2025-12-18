@@ -46,6 +46,7 @@ import {
   Home,
   Phone,
   PhoneCall,
+  Smartphone,
   Mail,
   Send,
   Loader2,
@@ -76,9 +77,24 @@ import { cn } from "@/lib/utils";
 // ==================== DECISION MAKER DETECTION ====================
 // Detect if contact is likely a decision maker based on name/title patterns
 const DECISION_MAKER_TITLES = [
-  "owner", "president", "ceo", "chief", "founder", "partner", "principal",
-  "director", "vp", "vice president", "general manager", "gm", "managing",
-  "chairman", "executive", "proprietor", "operator", "franchisee"
+  "owner",
+  "president",
+  "ceo",
+  "chief",
+  "founder",
+  "partner",
+  "principal",
+  "director",
+  "vp",
+  "vice president",
+  "general manager",
+  "gm",
+  "managing",
+  "chairman",
+  "executive",
+  "proprietor",
+  "operator",
+  "franchisee",
 ];
 
 const DECISION_MAKER_NAME_PATTERNS = [
@@ -87,14 +103,20 @@ const DECISION_MAKER_NAME_PATTERNS = [
     if (!contactName || !companyName) return false;
     const lastName = contactName.split(" ").pop()?.toLowerCase() || "";
     const companyWords = companyName.toLowerCase().split(/[\s,.-]+/);
-    return companyWords.some(w => w.length > 2 && lastName.includes(w) || w.includes(lastName));
-  }
+    return companyWords.some(
+      (w) => (w.length > 2 && lastName.includes(w)) || w.includes(lastName),
+    );
+  },
 ];
 
-function detectDecisionMaker(lead: { contactName?: string | null; title?: string | null; companyName?: string | null }): boolean {
+function detectDecisionMaker(lead: {
+  contactName?: string | null;
+  title?: string | null;
+  companyName?: string | null;
+}): boolean {
   // Check title
   const title = (lead.title || "").toLowerCase();
-  if (DECISION_MAKER_TITLES.some(t => title.includes(t))) return true;
+  if (DECISION_MAKER_TITLES.some((t) => title.includes(t))) return true;
 
   // Check name patterns (owner name in company name)
   for (const pattern of DECISION_MAKER_NAME_PATTERNS) {
@@ -106,11 +128,20 @@ function detectDecisionMaker(lead: { contactName?: string | null; title?: string
 
 // ==================== PROPERTY OWNERSHIP LIKELIHOOD ====================
 // Score industries by likelihood of owning commercial property
-const PROPERTY_OWNER_SIC_PREFIXES: Record<string, { likelihood: "high" | "medium" | "low"; reason: string }> = {
+const PROPERTY_OWNER_SIC_PREFIXES: Record<
+  string,
+  { likelihood: "high" | "medium" | "low"; reason: string }
+> = {
   // HIGH - Very likely to own property
-  "15": { likelihood: "high", reason: "General Contractors - often own offices/yards" },
+  "15": {
+    likelihood: "high",
+    reason: "General Contractors - often own offices/yards",
+  },
   "16": { likelihood: "high", reason: "Heavy Construction - equipment yards" },
-  "17": { likelihood: "high", reason: "Special Trade Contractors - own facilities" },
+  "17": {
+    likelihood: "high",
+    reason: "Special Trade Contractors - own facilities",
+  },
   "55": { likelihood: "high", reason: "Auto Dealers - own dealerships" },
   "54": { likelihood: "high", reason: "Food Stores - may own locations" },
   "58": { likelihood: "high", reason: "Restaurants - may own buildings" },
@@ -118,35 +149,66 @@ const PROPERTY_OWNER_SIC_PREFIXES: Record<string, { likelihood: "high" | "medium
   "65": { likelihood: "high", reason: "Real Estate - own properties" },
   // MEDIUM - Likely to own property
   "20": { likelihood: "medium", reason: "Food Manufacturing - own plants" },
-  "35": { likelihood: "medium", reason: "Industrial Machinery - own facilities" },
+  "35": {
+    likelihood: "medium",
+    reason: "Industrial Machinery - own facilities",
+  },
   "36": { likelihood: "medium", reason: "Electronics Mfg - own facilities" },
-  "37": { likelihood: "medium", reason: "Transportation Equipment - own facilities" },
-  "38": { likelihood: "medium", reason: "Instruments/Optical - own facilities" },
+  "37": {
+    likelihood: "medium",
+    reason: "Transportation Equipment - own facilities",
+  },
+  "38": {
+    likelihood: "medium",
+    reason: "Instruments/Optical - own facilities",
+  },
   "39": { likelihood: "medium", reason: "Misc Manufacturing - own facilities" },
   "50": { likelihood: "medium", reason: "Wholesale Durable - warehouses" },
   "51": { likelihood: "medium", reason: "Wholesale Nondurable - warehouses" },
-  "42": { likelihood: "medium", reason: "Trucking/Warehousing - own facilities" },
+  "42": {
+    likelihood: "medium",
+    reason: "Trucking/Warehousing - own facilities",
+  },
   "75": { likelihood: "medium", reason: "Auto Repair/Services - own shops" },
   // LOW but some ownership
   "73": { likelihood: "low", reason: "Business Services - usually lease" },
   "87": { likelihood: "low", reason: "Engineering Services - usually lease" },
 };
 
-function getPropertyOwnershipLikelihood(sicCode?: string | null): { likelihood: "high" | "medium" | "low" | "unknown"; reason: string; score: number } {
-  if (!sicCode) return { likelihood: "unknown", reason: "No SIC code", score: 0 };
+function getPropertyOwnershipLikelihood(sicCode?: string | null): {
+  likelihood: "high" | "medium" | "low" | "unknown";
+  reason: string;
+  score: number;
+} {
+  if (!sicCode)
+    return { likelihood: "unknown", reason: "No SIC code", score: 0 };
 
   // Check first 2 digits
   const prefix2 = sicCode.slice(0, 2);
   if (PROPERTY_OWNER_SIC_PREFIXES[prefix2]) {
     const { likelihood, reason } = PROPERTY_OWNER_SIC_PREFIXES[prefix2];
-    return { likelihood, reason, score: likelihood === "high" ? 80 : likelihood === "medium" ? 50 : 20 };
+    return {
+      likelihood,
+      reason,
+      score: likelihood === "high" ? 80 : likelihood === "medium" ? 50 : 20,
+    };
   }
 
-  return { likelihood: "unknown", reason: "Industry not categorized", score: 0 };
+  return {
+    likelihood: "unknown",
+    reason: "Industry not categorized",
+    score: 0,
+  };
 }
 
 // Calculate priority score for sorting (higher = more important)
-function calculatePriorityScore(lead: { isDecisionMaker?: boolean; propertyScore?: number; enriched?: boolean; phone?: string | null; email?: string | null }): number {
+function calculatePriorityScore(lead: {
+  isDecisionMaker?: boolean;
+  propertyScore?: number;
+  enriched?: boolean;
+  phone?: string | null;
+  email?: string | null;
+}): number {
   let score = 0;
   if (lead.isDecisionMaker) score += 50;
   if (lead.propertyScore) score += lead.propertyScore * 0.3;
@@ -156,8 +218,19 @@ function calculatePriorityScore(lead: { isDecisionMaker?: boolean; propertyScore
   return score;
 }
 
+// Phone with type info from skip trace
+interface PhoneWithType {
+  number: string;
+  type?: string; // "mobile", "landline", "unknown"
+}
+
 interface Lead {
   id: string;
+  // UNIQUE IDs - Generated on enrichment
+  leadId?: string; // Unique lead ID (generated when enriched - this is what defines a LEAD)
+  uploadId?: string; // List ID - which upload batch this came from
+  bucketId?: string; // Data lake bucket ID
+  // Company/Contact Info
   companyName?: string | null;
   contactName?: string | null;
   email?: string | null;
@@ -182,11 +255,24 @@ interface Lead {
   priorityScore?: number;
   // Enrichment fields
   enriched?: boolean;
-  enrichedPhones?: string[];
+  enrichedPhones?: PhoneWithType[]; // Now includes type info
   enrichedEmails?: string[];
+  mobilePhone?: string | null; // Best mobile phone
   ownerName?: string;
   skipTraceData?: Record<string, unknown>;
   apolloData?: Record<string, unknown>;
+  // SOCIAL PROFILES (from skip trace)
+  linkedin?: string | null;
+  facebook?: string | null;
+  twitter?: string | null;
+  instagram?: string | null;
+  // DEMOGRAPHICS (from skip trace)
+  demographics?: {
+    income?: string;
+    netWorth?: string;
+    occupation?: string;
+    employer?: string;
+  };
   // CONTACT TRACKING
   contactAttempts?: number;
   lastContactDate?: string;
@@ -248,7 +334,9 @@ export default function SectorDetailPage() {
   const [shuffleMode, setShuffleMode] = useState(false);
 
   // Sorting state for prioritization
-  const [sortBy, setSortBy] = useState<"default" | "priority" | "decisionMaker" | "propertyScore">("default");
+  const [sortBy, setSortBy] = useState<
+    "default" | "priority" | "decisionMaker" | "propertyScore"
+  >("default");
 
   // Daily skip trace limit (2000/day)
   const DAILY_SKIP_TRACE_LIMIT = 2000;
@@ -291,6 +379,34 @@ export default function SectorDetailPage() {
   const [selectedSequence, setSelectedSequence] = useState<
     "10-touch" | "nurture" | "re-engage"
   >("10-touch");
+
+  // Push to SMS Queue state
+  const [showPushSmsDialog, setShowPushSmsDialog] = useState(false);
+  const [pushingSms, setPushingSms] = useState(false);
+  const [smsTemplateMessage, setSmsTemplateMessage] = useState(
+    "Hey {name}! Quick question about {company} - are you looking for growth opportunities? Reply YES to learn more.",
+  );
+  const [smsPushMode, setSmsPushMode] = useState<"draft" | "immediate">(
+    "draft",
+  );
+  // Campaign context - drives message selection and attempt tracking
+  const [campaignContext, setCampaignContext] = useState<
+    "initial" | "retarget" | "follow_up" | "nurture" | "instant"
+  >("initial");
+
+  // Push to Dialer state
+  const [showPushDialerDialog, setShowPushDialerDialog] = useState(false);
+  const [pushingDialer, setPushingDialer] = useState(false);
+
+  // LUCI Orchestrate state (Enrich & Queue All)
+  const [showOrchestrateDialog, setShowOrchestrateDialog] = useState(false);
+  const [orchestrating, setOrchestrating] = useState(false);
+  const [orchestrateProgress, setOrchestrateProgress] = useState<{
+    status: string;
+    leadsProcessed?: number;
+    leadsEnriched?: number;
+    leadsPushed?: number;
+  } | null>(null);
 
   // Load daily skip trace count from localStorage
   useEffect(() => {
@@ -391,7 +507,9 @@ export default function SectorDetailPage() {
             (r.matchingKeys as Record<string, unknown>) || {};
 
           // Get SIC code for property scoring
-          const sicCode = (matchingKeys.sicCode || original["SIC Code"]) as string | undefined;
+          const sicCode = (matchingKeys.sicCode || original["SIC Code"]) as
+            | string
+            | undefined;
 
           // Get company name and contact name for decision maker detection
           const companyName = (matchingKeys.companyName ||
@@ -408,8 +526,9 @@ export default function SectorDetailPage() {
           const title = original["Title"] as string | undefined;
 
           // Detect decision maker status
-          const isDecisionMaker = (r.flags as Record<string, boolean>)?.isDecisionMaker
-            || detectDecisionMaker({ contactName, title, companyName });
+          const isDecisionMaker =
+            (r.flags as Record<string, boolean>)?.isDecisionMaker ||
+            detectDecisionMaker({ contactName, title, companyName });
 
           // Calculate property ownership likelihood
           const propertyOwnership = getPropertyOwnershipLikelihood(sicCode);
@@ -455,21 +574,24 @@ export default function SectorDetailPage() {
             enriched:
               (r.enrichment as Record<string, unknown>)?.status === "success",
             // Prioritization fields
-            propertyScore: (r.propertyScore as number) || propertyOwnership.score,
-            propertyLikelihood: (r.propertyLikelihood as string) || propertyOwnership.likelihood,
+            propertyScore:
+              (r.propertyScore as number) || propertyOwnership.score,
+            propertyLikelihood:
+              (r.propertyLikelihood as string) || propertyOwnership.likelihood,
             propertyReason: propertyOwnership.reason,
             isDecisionMaker,
             ...r, // Keep original data too
           };
 
           // Calculate overall priority score
-          (lead as Lead & { priorityScore: number }).priorityScore = calculatePriorityScore({
-            isDecisionMaker,
-            propertyScore: lead.propertyScore,
-            enriched: lead.enriched,
-            phone: lead.phone as string | null,
-            email: lead.email as string | null,
-          });
+          (lead as Lead & { priorityScore: number }).priorityScore =
+            calculatePriorityScore({
+              isDecisionMaker,
+              propertyScore: lead.propertyScore,
+              enriched: lead.enriched,
+              phone: lead.phone as string | null,
+              email: lead.email as string | null,
+            });
 
           return lead;
         });
@@ -593,26 +715,42 @@ export default function SectorDetailPage() {
       const results = await Promise.all(
         batch.map(async (lead) => {
           try {
+            // Parse contact name into first/last - REQUIRED by RealEstateAPI
+            const nameParts = (lead.contactName || "").trim().split(/\s+/);
+            const firstName = nameParts[0] || "";
+            const lastName = nameParts.slice(1).join(" ") || nameParts[0] || "";
+
             const response = await fetch("/api/skip-trace", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
+                firstName: firstName,
+                lastName: lastName,
                 address: lead.address,
                 city: lead.city,
                 state: lead.state,
                 zip: lead.zip,
-                lastName:
-                  lead.contactName?.split(" ").pop() || lead.companyName,
               }),
             });
 
             const data = await response.json();
             if (data.success) {
+              // Preserve full phone objects with type info
+              const phones = data.phones || [];
+              // Find best mobile phone
+              const mobilePhone = phones.find(
+                (p: { type?: string }) =>
+                  p.type?.toLowerCase() === "mobile" ||
+                  p.type?.toLowerCase() === "cell",
+              );
               return {
                 leadId: lead.id,
                 success: true,
-                phones:
-                  data.phones?.map((p: { number: string }) => p.number) || [],
+                phones: phones.map((p: { number: string; type?: string }) => ({
+                  number: p.number,
+                  type: p.type || "unknown",
+                })),
+                mobilePhone: mobilePhone?.number || null,
                 emails:
                   data.emails?.map((e: { email: string }) => e.email) || [],
                 ownerName: data.ownerName,
@@ -634,7 +772,8 @@ export default function SectorDetailPage() {
             return {
               ...lead,
               enriched: true,
-              enrichedPhones: result.phones,
+              enrichedPhones: result.phones, // Now has type info
+              mobilePhone: result.mobilePhone, // Best mobile phone
               enrichedEmails: result.emails,
               ownerName: result.ownerName,
             };
@@ -803,14 +942,34 @@ export default function SectorDetailPage() {
     );
   };
 
-  // Send SMS
+  // Send SMS - prioritize mobile phones
   const handleSendSms = async () => {
     const phonesToSms: string[] = [];
     leads
       .filter((l) => selectedIds.has(l.id))
       .forEach((lead) => {
+        // First priority: explicit mobile phone
+        if (lead.mobilePhone) {
+          phonesToSms.push(lead.mobilePhone);
+          return;
+        }
+        // Second priority: mobile from enriched phones
+        const mobile = lead.enrichedPhones?.find(
+          (p) =>
+            p.type?.toLowerCase() === "mobile" ||
+            p.type?.toLowerCase() === "cell",
+        );
+        if (mobile) {
+          phonesToSms.push(mobile.number);
+          return;
+        }
+        // Fallback: any enriched phone
+        if (lead.enrichedPhones?.length) {
+          phonesToSms.push(lead.enrichedPhones[0].number);
+          return;
+        }
+        // Last resort: original phone
         if (lead.phone) phonesToSms.push(lead.phone);
-        if (lead.enrichedPhones) phonesToSms.push(...lead.enrichedPhones);
       });
 
     const uniquePhones = [...new Set(phonesToSms)].filter(
@@ -871,23 +1030,72 @@ export default function SectorDetailPage() {
     }
   };
 
-  // Get phone count
+  // Get phone count - prioritize mobile phones for SMS
   const getPhoneCount = () => {
     const phones: string[] = [];
     leads
       .filter((l) => selectedIds.has(l.id))
       .forEach((lead) => {
+        // First priority: explicit mobile phone
+        if (lead.mobilePhone) {
+          phones.push(lead.mobilePhone);
+          return;
+        }
+        // Second priority: mobile from enriched phones
+        const mobile = lead.enrichedPhones?.find(
+          (p) =>
+            p.type?.toLowerCase() === "mobile" ||
+            p.type?.toLowerCase() === "cell",
+        );
+        if (mobile) {
+          phones.push(mobile.number);
+          return;
+        }
+        // Fallback: any enriched phone number
+        if (lead.enrichedPhones?.length) {
+          phones.push(lead.enrichedPhones[0].number);
+          return;
+        }
+        // Last resort: original phone
         if (lead.phone) phones.push(lead.phone);
-        if (lead.enrichedPhones) phones.push(...lead.enrichedPhones);
       });
     return new Set(phones.filter((p) => p && p.length > 5)).size;
+  };
+
+  // Get mobile phone count specifically
+  const getMobileCount = () => {
+    return leads.filter(
+      (l) =>
+        selectedIds.has(l.id) &&
+        (l.mobilePhone ||
+          l.enrichedPhones?.some(
+            (p) =>
+              p.type?.toLowerCase() === "mobile" ||
+              p.type?.toLowerCase() === "cell",
+          )),
+    ).length;
+  };
+
+  // Get best phone for a lead (mobile preferred)
+  const getBestPhone = (lead: Lead): string | null => {
+    if (lead.mobilePhone) return lead.mobilePhone;
+    const mobile = lead.enrichedPhones?.find(
+      (p) =>
+        p.type?.toLowerCase() === "mobile" || p.type?.toLowerCase() === "cell",
+    );
+    if (mobile) return mobile.number;
+    if (lead.enrichedPhones?.length) return lead.enrichedPhones[0].number;
+    return lead.phone || null;
   };
 
   // Schedule Calls - Push to Calendar
   const handleScheduleCalls = async () => {
     const selected = leads.filter((l) => selectedIds.has(l.id));
     const withPhones = selected.filter(
-      (l) => l.phone || (l.enrichedPhones && l.enrichedPhones.length > 0),
+      (l) =>
+        l.phone ||
+        l.mobilePhone ||
+        (l.enrichedPhones && l.enrichedPhones.length > 0),
     );
 
     if (withPhones.length === 0) {
@@ -905,7 +1113,7 @@ export default function SectorDetailPage() {
           leads: withPhones.map((l) => ({
             id: l.id,
             name: l.contactName || l.companyName || "Unknown",
-            phone: l.phone || l.enrichedPhones?.[0],
+            phone: getBestPhone(l),
             email: l.email || l.enrichedEmails?.[0],
             address: l.address,
             city: l.city,
@@ -940,7 +1148,10 @@ export default function SectorDetailPage() {
   const handlePushToSequence = async () => {
     const selected = leads.filter((l) => selectedIds.has(l.id));
     const withPhones = selected.filter(
-      (l) => l.phone || (l.enrichedPhones && l.enrichedPhones.length > 0),
+      (l) =>
+        l.phone ||
+        l.mobilePhone ||
+        (l.enrichedPhones && l.enrichedPhones.length > 0),
     );
 
     if (withPhones.length === 0) {
@@ -958,7 +1169,7 @@ export default function SectorDetailPage() {
           leads: withPhones.map((l) => ({
             id: l.id,
             name: l.contactName || l.companyName || "Unknown",
-            phone: l.phone || l.enrichedPhones?.[0],
+            phone: getBestPhone(l),
             email: l.email || l.enrichedEmails?.[0],
             company: l.companyName,
             address: l.address,
@@ -1004,6 +1215,204 @@ export default function SectorDetailPage() {
       setSelectedIds(new Set());
     } finally {
       setPushingToSequence(false);
+    }
+  };
+
+  // Push to SMS Queue - Connect to LUCI → Gianna Pipeline
+  const handlePushToSmsQueue = async () => {
+    const selected = leads.filter((l) => selectedIds.has(l.id));
+    const withPhones = selected.filter(
+      (l) =>
+        l.mobilePhone ||
+        l.enrichedPhones?.some(
+          (p) =>
+            p.type?.toLowerCase() === "mobile" ||
+            p.type?.toLowerCase() === "cell",
+        ) ||
+        l.phone,
+    );
+
+    if (withPhones.length === 0) {
+      toast.error("No selected records have phone numbers for SMS");
+      return;
+    }
+
+    setPushingSms(true);
+    try {
+      const response = await fetch("/api/luci/push-to-sms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          leads: withPhones.map((l) => ({
+            id: l.id,
+            name: l.contactName || l.companyName || "Unknown",
+            firstName: l.contactName?.split(" ")[0],
+            lastName: l.contactName?.split(" ").slice(1).join(" "),
+            phone: l.phone,
+            mobilePhone: l.mobilePhone,
+            enrichedPhones: l.enrichedPhones,
+            email: l.email || l.enrichedEmails?.[0],
+            company: l.companyName,
+            address: l.address,
+            city: l.city,
+            state: l.state,
+            industry: l.industry,
+            sicCode: l.sicCode,
+            isDecisionMaker: l.isDecisionMaker,
+          })),
+          templateMessage: smsTemplateMessage,
+          mode: smsPushMode, // "draft" or "immediate"
+          campaignContext: campaignContext, // initial, retarget, follow_up, nurture, instant
+          campaignName: `Sector-${dataLake?.name || sectorId}`,
+          source: `sector-${sectorId}`,
+          agent: "gianna",
+        }),
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        toast.success(
+          `${result.queued} leads pushed to SMS queue${smsPushMode === "draft" ? " for review" : ""}`,
+          {
+            description:
+              result.skipped > 0
+                ? `${result.skipped} skipped (no mobile)`
+                : "Ready for campaign execution",
+          },
+        );
+        setShowPushSmsDialog(false);
+        setSelectedIds(new Set());
+      } else {
+        throw new Error(result.error || "Failed to push to SMS queue");
+      }
+    } catch (error) {
+      toast.error("Failed to push to SMS queue", {
+        description: error instanceof Error ? error.message : "Unknown error",
+      });
+    } finally {
+      setPushingSms(false);
+    }
+  };
+
+  // LUCI ORCHESTRATE - Full Pipeline: Enrich → Generate Lead IDs → Push to Queue
+  const handleOrchestrate = async (pushTo: "sms" | "dialer" | "both") => {
+    setOrchestrating(true);
+    setOrchestrateProgress({ status: "Starting pipeline..." });
+
+    try {
+      const response = await fetch("/api/luci/orchestrate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bucketId: sectorId,
+          action: "enrich", // First enrich, then push
+          filters: {
+            hasAddress: true,
+            limit: selectedIds.size > 0 ? undefined : 100,
+          },
+          enrichmentTypes: ["skip_trace"],
+          pushTo,
+          mode: smsPushMode,
+          templateMessage: smsTemplateMessage,
+          templateCategory: "blue_collar",
+          agent: "gianna",
+          campaignContext: campaignContext,
+          campaignName: `LUCI-${dataLake?.name || sectorId}-${Date.now()}`,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setOrchestrateProgress({
+          status: "Complete!",
+          leadsProcessed: result.summary.leadsProcessed,
+          leadsEnriched: result.summary.leadsEnriched,
+          leadsPushed: result.summary.leadsPushed,
+        });
+
+        toast.success(
+          `Pipeline complete: ${result.summary.leadsEnriched} enriched, ${result.summary.leadsPushed} queued`,
+          {
+            description: result.nextSteps?.[0] || "Ready for outreach",
+          }
+        );
+
+        // Refresh the data
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+      } else {
+        throw new Error(result.error || "Pipeline failed");
+      }
+    } catch (error) {
+      toast.error("Pipeline failed", {
+        description: error instanceof Error ? error.message : "Unknown error",
+      });
+      setOrchestrateProgress(null);
+    } finally {
+      setOrchestrating(false);
+    }
+  };
+
+  // Push to Dialer - Connect to Power Dialer / Call Center
+  const handlePushToDialer = async () => {
+    const selected = leads.filter((l) => selectedIds.has(l.id));
+    const withPhones = selected.filter(
+      (l) =>
+        l.phone ||
+        l.mobilePhone ||
+        (l.enrichedPhones && l.enrichedPhones.length > 0),
+    );
+
+    if (withPhones.length === 0) {
+      toast.error("No selected records have phone numbers for dialer");
+      return;
+    }
+
+    setPushingDialer(true);
+    try {
+      const response = await fetch("/api/luci/push-to-dialer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          leads: withPhones.map((l) => ({
+            id: l.id,
+            name: l.contactName || l.companyName || "Unknown",
+            firstName: l.contactName?.split(" ")[0],
+            lastName: l.contactName?.split(" ").slice(1).join(" "),
+            phone: getBestPhone(l),
+            email: l.email || l.enrichedEmails?.[0],
+            company: l.companyName,
+            address: l.address,
+            city: l.city,
+            state: l.state,
+            industry: l.industry,
+            title: l.title,
+            isDecisionMaker: l.isDecisionMaker,
+          })),
+          priority: "normal",
+          source: `sector-${sectorId}`,
+          campaignName: `Sector-${dataLake?.name || sectorId}`,
+        }),
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        toast.success(`${result.queued} leads added to call queue`, {
+          description: `Ready in Power Dialer workspace`,
+        });
+        setShowPushDialerDialog(false);
+        setSelectedIds(new Set());
+      } else {
+        throw new Error(result.error || "Failed to push to dialer");
+      }
+    } catch (error) {
+      toast.error("Failed to push to dialer", {
+        description: error instanceof Error ? error.message : "Unknown error",
+      });
+    } finally {
+      setPushingDialer(false);
     }
   };
 
@@ -1056,7 +1465,7 @@ export default function SectorDetailPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-7 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-8 gap-4">
           <Card>
             <CardContent className="pt-4">
               <div className="text-2xl font-bold">
@@ -1071,6 +1480,28 @@ export default function SectorDetailPage() {
                 {sf(dataLake.metadata?.stats?.withPhone ?? 0)}
               </div>
               <p className="text-xs text-muted-foreground">With Phones</p>
+            </CardContent>
+          </Card>
+          {/* MOBILE PHONES - Key SMS metric */}
+          <Card className="border-green-300 bg-green-50/50">
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-1.5">
+                <Smartphone className="h-5 w-5 text-green-600" />
+                <div className="text-2xl font-bold text-green-700">
+                  {sf(
+                    leads.filter(
+                      (l) =>
+                        l.mobilePhone ||
+                        l.enrichedPhones?.some(
+                          (p) =>
+                            p.type?.toLowerCase() === "mobile" ||
+                            p.type?.toLowerCase() === "cell",
+                        ),
+                    ).length,
+                  )}
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">With Mobiles</p>
             </CardContent>
           </Card>
           <Card>
@@ -1115,7 +1546,9 @@ export default function SectorDetailPage() {
               <div className="flex items-center gap-1.5">
                 <Target className="h-5 w-5 text-green-500" />
                 <div className="text-2xl font-bold text-green-600">
-                  {sf(leads.filter((l) => l.propertyLikelihood === "high").length)}
+                  {sf(
+                    leads.filter((l) => l.propertyLikelihood === "high").length,
+                  )}
                 </div>
               </div>
               <p className="text-xs text-muted-foreground">Likely Owners</p>
@@ -1297,6 +1730,68 @@ export default function SectorDetailPage() {
             <Send className="h-4 w-4 mr-2" />
             SMS ({getPhoneCount()})
           </Button>
+
+          {/* PUSH TO SMS QUEUE - LUCI → Gianna Pipeline */}
+          <Button
+            onClick={() => setShowPushSmsDialog(true)}
+            disabled={selectedIds.size === 0 || pushingSms}
+            variant="outline"
+            className="border-emerald-500 text-emerald-600 hover:bg-emerald-50"
+          >
+            <Zap className="h-4 w-4 mr-2" />
+            Push to SMS Queue ({getMobileCount()})
+          </Button>
+
+          {/* PUSH TO DIALER - Power Dialer / Call Center */}
+          <Button
+            onClick={() => setShowPushDialerDialog(true)}
+            disabled={selectedIds.size === 0 || pushingDialer}
+            variant="outline"
+            className="border-orange-500 text-orange-600 hover:bg-orange-50"
+          >
+            <PhoneCall className="h-4 w-4 mr-2" />
+            Push to Dialer ({getPhoneCount()})
+          </Button>
+
+          {/* Schedule Calls */}
+          <Button
+            onClick={() => setShowScheduleCallDialog(true)}
+            disabled={selectedIds.size === 0}
+            variant="outline"
+          >
+            <CalendarPlus className="h-4 w-4 mr-2" />
+            Calendar ({getPhoneCount()})
+          </Button>
+
+          {/* Push to Sequence */}
+          <Button
+            onClick={() => setShowSequenceDialog(true)}
+            disabled={selectedIds.size === 0}
+            variant="outline"
+            className="border-indigo-500 text-indigo-600 hover:bg-indigo-50"
+          >
+            <ArrowRight className="h-4 w-4 mr-2" />
+            Sequence
+          </Button>
+
+          {/* LUCI ORCHESTRATE - Full Pipeline Button */}
+          <Button
+            onClick={() => handleOrchestrate("sms")}
+            disabled={orchestrating}
+            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+          >
+            {orchestrating ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                {orchestrateProgress?.status || "Processing..."}
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4 mr-2" />
+                Enrich & Queue All
+              </>
+            )}
+          </Button>
         </div>
 
         {/* Table - FULL DATA VIEW */}
@@ -1314,10 +1809,24 @@ export default function SectorDetailPage() {
                   />
                 </TableHead>
                 <TableHead className="w-[50px] min-w-[50px] sticky left-[50px] bg-background z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]"></TableHead>
+                <TableHead className="w-[100px]">Lead ID</TableHead>
+                <TableHead className="w-[100px]">List ID</TableHead>
                 <TableHead className="min-w-[200px]">Company Name</TableHead>
                 <TableHead className="min-w-[180px]">Contact Name</TableHead>
                 <TableHead className="min-w-[200px]">Email</TableHead>
                 <TableHead className="min-w-[140px]">Phone</TableHead>
+                <TableHead className="min-w-[140px]">
+                  <div className="flex items-center gap-1">
+                    <Smartphone className="h-3.5 w-3.5 text-green-600" />
+                    Mobile
+                  </div>
+                </TableHead>
+                <TableHead className="min-w-[120px]">
+                  <div className="flex items-center gap-1">
+                    <Globe className="h-3.5 w-3.5 text-blue-600" />
+                    LinkedIn
+                  </div>
+                </TableHead>
                 <TableHead className="min-w-[250px]">Full Address</TableHead>
                 <TableHead className="min-w-[120px]">City</TableHead>
                 <TableHead className="w-[60px]">State</TableHead>
@@ -1336,7 +1845,7 @@ export default function SectorDetailPage() {
               {paginatedLeads.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={18}
+                    colSpan={19}
                     className="text-center py-8 text-muted-foreground"
                   >
                     {searchQuery
@@ -1371,6 +1880,22 @@ export default function SectorDetailPage() {
                         <Eye className="h-4 w-4" />
                       </Button>
                     </TableCell>
+                    {/* LEAD ID - Generated on enrichment */}
+                    <TableCell>
+                      {(lead.skipTraceData as any)?.leadId || lead.leadId ? (
+                        <Badge variant="outline" className="text-[10px] font-mono bg-green-50 text-green-700 border-green-200">
+                          {((lead.skipTraceData as any)?.leadId || lead.leadId || "").slice(0, 12)}...
+                        </Badge>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    {/* LIST ID - Upload/Bucket ID */}
+                    <TableCell>
+                      <Badge variant="secondary" className="text-[10px] font-mono">
+                        {(lead.uploadId || (lead as any).bucketId || sectorId || "").slice(0, 8)}...
+                      </Badge>
+                    </TableCell>
                     {/* COMPANY NAME */}
                     <TableCell>
                       <div className="font-medium">
@@ -1389,7 +1914,10 @@ export default function SectorDetailPage() {
                           {lead.contactName || "-"}
                         </span>
                         {lead.isDecisionMaker && (
-                          <Badge variant="secondary" className="bg-amber-100 text-amber-700 text-[10px] px-1 py-0 h-4">
+                          <Badge
+                            variant="secondary"
+                            className="bg-amber-100 text-amber-700 text-[10px] px-1 py-0 h-4"
+                          >
                             <Crown className="h-2.5 w-2.5 mr-0.5" />
                             DM
                           </Badge>
@@ -1423,21 +1951,37 @@ export default function SectorDetailPage() {
                         <span className="text-muted-foreground">-</span>
                       )}
                     </TableCell>
-                    {/* PHONES - Up to 3 (Skip Traced from Owner + Company Address) */}
+                    {/* PHONES - All phones with type indicators */}
                     <TableCell>
                       {lead.enrichedPhones && lead.enrichedPhones.length > 0 ? (
                         <div className="space-y-1">
-                          {lead.enrichedPhones.slice(0, 3).map((phone, idx) => (
-                            <a
-                              key={idx}
-                              href={`tel:${phone}`}
-                              className="text-sm text-blue-600 hover:underline flex items-center gap-1"
-                            >
-                              <Phone className={`h-3 w-3 ${idx === 0 ? 'text-green-600' : 'text-muted-foreground'}`} />
-                              {phone}
-                              {idx === 0 && <span className="text-[10px] text-green-600 ml-1">1st</span>}
-                            </a>
-                          ))}
+                          {lead.enrichedPhones.slice(0, 3).map((phone, idx) => {
+                            const isMobile =
+                              phone.type?.toLowerCase() === "mobile" ||
+                              phone.type?.toLowerCase() === "cell";
+                            return (
+                              <a
+                                key={idx}
+                                href={`tel:${phone.number}`}
+                                className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+                              >
+                                {isMobile ? (
+                                  <Smartphone className="h-3 w-3 text-green-600" />
+                                ) : (
+                                  <Phone className="h-3 w-3 text-muted-foreground" />
+                                )}
+                                {phone.number}
+                                {isMobile && (
+                                  <Badge
+                                    variant="secondary"
+                                    className="text-[9px] px-1 py-0 h-4 bg-green-100 text-green-700"
+                                  >
+                                    MOBILE
+                                  </Badge>
+                                )}
+                              </a>
+                            );
+                          })}
                           {lead.enrichedPhones.length > 3 && (
                             <span className="text-[10px] text-muted-foreground">
                               +{lead.enrichedPhones.length - 3} more
@@ -1454,6 +1998,65 @@ export default function SectorDetailPage() {
                         </a>
                       ) : (
                         <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    {/* MOBILE PHONE - Best mobile for SMS */}
+                    <TableCell>
+                      {lead.mobilePhone ? (
+                        <a
+                          href={`tel:${lead.mobilePhone}`}
+                          className="text-sm text-green-700 hover:underline flex items-center gap-1 font-medium"
+                        >
+                          <Smartphone className="h-4 w-4 text-green-600" />
+                          {lead.mobilePhone}
+                        </a>
+                      ) : lead.enrichedPhones?.find(
+                          (p) =>
+                            p.type?.toLowerCase() === "mobile" ||
+                            p.type?.toLowerCase() === "cell",
+                        ) ? (
+                        <a
+                          href={`tel:${
+                            lead.enrichedPhones.find(
+                              (p) =>
+                                p.type?.toLowerCase() === "mobile" ||
+                                p.type?.toLowerCase() === "cell",
+                            )?.number
+                          }`}
+                          className="text-sm text-green-700 hover:underline flex items-center gap-1 font-medium"
+                        >
+                          <Smartphone className="h-4 w-4 text-green-600" />
+                          {
+                            lead.enrichedPhones.find(
+                              (p) =>
+                                p.type?.toLowerCase() === "mobile" ||
+                                p.type?.toLowerCase() === "cell",
+                            )?.number
+                          }
+                        </a>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">
+                          Skip trace to find
+                        </span>
+                      )}
+                    </TableCell>
+                    {/* LINKEDIN - From skip trace socials */}
+                    <TableCell>
+                      {(lead.skipTraceData as any)?.socials?.linkedin || (lead.apolloData as any)?.linkedinUrl ? (
+                        <a
+                          href={(lead.skipTraceData as any)?.socials?.linkedin || (lead.apolloData as any)?.linkedinUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+                        >
+                          <Globe className="h-3.5 w-3.5 text-blue-700" />
+                          <span className="truncate max-w-[100px]">
+                            {((lead.skipTraceData as any)?.socials?.linkedinUsername ||
+                              (lead.apolloData as any)?.linkedinUrl?.split('/').pop()) || "Profile"}
+                          </span>
+                        </a>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">-</span>
                       )}
                     </TableCell>
                     {/* FULL ADDRESS */}
@@ -1475,7 +2078,9 @@ export default function SectorDetailPage() {
                     </TableCell>
                     {/* STATE */}
                     <TableCell>
-                      <span className="text-sm font-medium">{lead.state || "-"}</span>
+                      <span className="text-sm font-medium">
+                        {lead.state || "-"}
+                      </span>
                     </TableCell>
                     {/* ZIP */}
                     <TableCell>
@@ -1489,13 +2094,19 @@ export default function SectorDetailPage() {
                     <TableCell>
                       {lead.website ? (
                         <a
-                          href={lead.website.startsWith("http") ? lead.website : `https://${lead.website}`}
+                          href={
+                            lead.website.startsWith("http")
+                              ? lead.website
+                              : `https://${lead.website}`
+                          }
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-sm text-blue-600 hover:underline flex items-center gap-1"
                         >
                           <Globe className="h-3 w-3" />
-                          {lead.website.replace(/^https?:\/\//, "").slice(0, 25)}
+                          {lead.website
+                            .replace(/^https?:\/\//, "")
+                            .slice(0, 25)}
                         </a>
                       ) : (
                         <span className="text-muted-foreground">-</span>
@@ -1525,27 +2136,36 @@ export default function SectorDetailPage() {
                     </TableCell>
                     {/* SIC CODE */}
                     <TableCell>
-                      <span className="text-sm font-mono">{lead.sicCode || "-"}</span>
+                      <span className="text-sm font-mono">
+                        {lead.sicCode || "-"}
+                      </span>
                     </TableCell>
                     {/* SIC DESCRIPTION / INDUSTRY */}
                     <TableCell>
                       <div className="flex flex-col gap-0.5">
                         <span className="text-sm">{lead.industry || "-"}</span>
-                        {lead.propertyLikelihood && lead.propertyLikelihood !== "unknown" && (
-                          <Badge
-                            variant="outline"
-                            className={cn(
-                              "text-[9px] px-1 py-0 w-fit",
-                              lead.propertyLikelihood === "high" && "border-green-500 text-green-600 bg-green-50",
-                              lead.propertyLikelihood === "medium" && "border-blue-500 text-blue-600 bg-blue-50",
-                              lead.propertyLikelihood === "low" && "border-gray-400 text-gray-500"
-                            )}
-                          >
-                            <Target className="h-2 w-2 mr-0.5" />
-                            {lead.propertyLikelihood === "high" ? "Likely Owner" :
-                             lead.propertyLikelihood === "medium" ? "May Own" : "Unlikely"}
-                          </Badge>
-                        )}
+                        {lead.propertyLikelihood &&
+                          lead.propertyLikelihood !== "unknown" && (
+                            <Badge
+                              variant="outline"
+                              className={cn(
+                                "text-[9px] px-1 py-0 w-fit",
+                                lead.propertyLikelihood === "high" &&
+                                  "border-green-500 text-green-600 bg-green-50",
+                                lead.propertyLikelihood === "medium" &&
+                                  "border-blue-500 text-blue-600 bg-blue-50",
+                                lead.propertyLikelihood === "low" &&
+                                  "border-gray-400 text-gray-500",
+                              )}
+                            >
+                              <Target className="h-2 w-2 mr-0.5" />
+                              {lead.propertyLikelihood === "high"
+                                ? "Likely Owner"
+                                : lead.propertyLikelihood === "medium"
+                                  ? "May Own"
+                                  : "Unlikely"}
+                            </Badge>
+                          )}
                       </div>
                     </TableCell>
                     {/* CONTACT ATTEMPTS */}
@@ -1740,6 +2360,11 @@ export default function SectorDetailPage() {
             </DialogTitle>
             <DialogDescription>
               Sending to {getPhoneCount()} phone numbers
+              {getMobileCount() > 0 && (
+                <span className="ml-2 text-green-600 font-medium">
+                  ({getMobileCount()} mobile)
+                </span>
+              )}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -1817,6 +2442,376 @@ export default function SectorDetailPage() {
                 <Send className="h-4 w-4 mr-2" />
               )}
               Send
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Push to SMS Queue Dialog */}
+      <Dialog open={showPushSmsDialog} onOpenChange={setShowPushSmsDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Zap className="h-5 w-5 text-emerald-600" />
+              Push to SMS Queue
+            </DialogTitle>
+            <DialogDescription>
+              Push {selectedIds.size} leads to SMS campaign queue for Gianna
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {/* Stats */}
+            <div className="grid grid-cols-3 gap-4 text-center p-3 bg-muted/50 rounded-lg">
+              <div>
+                <div className="text-xl font-bold text-blue-600">
+                  {selectedIds.size}
+                </div>
+                <div className="text-xs text-muted-foreground">Selected</div>
+              </div>
+              <div>
+                <div className="text-xl font-bold text-green-600">
+                  {getMobileCount()}
+                </div>
+                <div className="text-xs text-muted-foreground">With Mobile</div>
+              </div>
+              <div>
+                <div className="text-xl font-bold text-orange-600">
+                  {selectedIds.size - getMobileCount()}
+                </div>
+                <div className="text-xs text-muted-foreground">No Mobile</div>
+              </div>
+            </div>
+
+            {/* Mode Selection */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Push Mode</label>
+              <Select
+                value={smsPushMode}
+                onValueChange={(v) =>
+                  setSmsPushMode(v as "draft" | "immediate")
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="draft">
+                    <div className="flex items-center gap-2">
+                      <Eye className="h-4 w-4" />
+                      Draft (Human Review)
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="immediate">
+                    <div className="flex items-center gap-2">
+                      <Zap className="h-4 w-4" />
+                      Immediate (Auto-Send)
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {smsPushMode === "draft"
+                  ? "Messages will be queued for review before sending"
+                  : "Messages will be sent immediately (within rate limits)"}
+              </p>
+            </div>
+
+            {/* Campaign Context - Drives Gianna's message selection */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Campaign Context</label>
+              <Select
+                value={campaignContext}
+                onValueChange={(v) =>
+                  setCampaignContext(v as "initial" | "retarget" | "follow_up" | "nurture" | "instant")
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="initial">
+                    <div className="flex flex-col">
+                      <span className="font-medium">Initial Outreach</span>
+                      <span className="text-xs text-muted-foreground">First contact attempt</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="retarget">
+                    <div className="flex flex-col">
+                      <span className="font-medium">Retarget</span>
+                      <span className="text-xs text-muted-foreground">No response yet, trying again</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="follow_up">
+                    <div className="flex flex-col">
+                      <span className="font-medium">Follow Up</span>
+                      <span className="text-xs text-muted-foreground">They responded, continuing convo</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="nurture">
+                    <div className="flex flex-col">
+                      <span className="font-medium">Nurture</span>
+                      <span className="text-xs text-muted-foreground">Long-term drip sequence</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="instant">
+                    <div className="flex flex-col">
+                      <span className="font-medium">Instant</span>
+                      <span className="text-xs text-muted-foreground">Send immediately, hot lead</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Gianna will select appropriate opener based on context
+              </p>
+            </div>
+
+            {/* Template Message */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Template Message</label>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setSmsTemplateMessage(
+                      "Hey {name}! Quick question about {company} - are you looking for growth opportunities? Reply YES to learn more.",
+                    )
+                  }
+                >
+                  Growth Offer
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setSmsTemplateMessage(
+                      "Hi {name}, I specialize in helping businesses like {company} in {city}. Would you be open to a quick call? Reply YES",
+                    )
+                  }
+                >
+                  Local Expert
+                </Button>
+              </div>
+              <textarea
+                value={smsTemplateMessage}
+                onChange={(e) => setSmsTemplateMessage(e.target.value)}
+                placeholder="Type your message template..."
+                className="w-full min-h-[80px] p-3 rounded-md border bg-background text-sm"
+                maxLength={300}
+              />
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>
+                  Variables: {"{name}"}, {"{company}"}, {"{city}"}, {"{state}"}
+                </span>
+                <span>{smsTemplateMessage.length}/300</span>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowPushSmsDialog(false)}
+              disabled={pushingSms}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handlePushToSmsQueue}
+              disabled={pushingSms || getMobileCount() === 0}
+              className="bg-emerald-600 hover:bg-emerald-700"
+            >
+              {pushingSms ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Zap className="h-4 w-4 mr-2" />
+              )}
+              Push {getMobileCount()} to Queue
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Push to Dialer Dialog */}
+      <Dialog
+        open={showPushDialerDialog}
+        onOpenChange={setShowPushDialerDialog}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <PhoneCall className="h-5 w-5 text-orange-600" />
+              Push to Power Dialer
+            </DialogTitle>
+            <DialogDescription>
+              Add {getPhoneCount()} leads to call queue for Power Dialer
+              workspace
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {/* Stats */}
+            <div className="grid grid-cols-2 gap-4 text-center p-3 bg-muted/50 rounded-lg">
+              <div>
+                <div className="text-xl font-bold text-blue-600">
+                  {selectedIds.size}
+                </div>
+                <div className="text-xs text-muted-foreground">Selected</div>
+              </div>
+              <div>
+                <div className="text-xl font-bold text-green-600">
+                  {getPhoneCount()}
+                </div>
+                <div className="text-xs text-muted-foreground">With Phone</div>
+              </div>
+            </div>
+
+            {/* Decision Makers Count */}
+            {leads.filter((l) => selectedIds.has(l.id) && l.isDecisionMaker)
+              .length > 0 && (
+              <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <Crown className="h-5 w-5 text-amber-500" />
+                <span className="text-sm">
+                  <strong>
+                    {
+                      leads.filter(
+                        (l) => selectedIds.has(l.id) && l.isDecisionMaker,
+                      ).length
+                    }
+                  </strong>{" "}
+                  decision makers will be prioritized in the call queue
+                </span>
+              </div>
+            )}
+
+            <p className="text-sm text-muted-foreground">
+              Leads will be added to the global call queue and available in the
+              Power Dialer workspace. Decision makers will receive higher
+              priority.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowPushDialerDialog(false)}
+              disabled={pushingDialer}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handlePushToDialer}
+              disabled={pushingDialer || getPhoneCount() === 0}
+              className="bg-orange-600 hover:bg-orange-700"
+            >
+              {pushingDialer ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <PhoneCall className="h-4 w-4 mr-2" />
+              )}
+              Add {getPhoneCount()} to Dialer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Schedule Call Dialog */}
+      <Dialog
+        open={showScheduleCallDialog}
+        onOpenChange={setShowScheduleCallDialog}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CalendarPlus className="h-5 w-5 text-blue-600" />
+              Schedule Calls
+            </DialogTitle>
+            <DialogDescription>
+              Add {getPhoneCount()} leads to Calendar for follow-up calls
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              Selected leads will be added to your Calendar workspace for
+              scheduled follow-up calls.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowScheduleCallDialog(false)}
+              disabled={schedulingCall}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleScheduleCalls}
+              disabled={schedulingCall || getPhoneCount() === 0}
+            >
+              {schedulingCall ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <CalendarPlus className="h-4 w-4 mr-2" />
+              )}
+              Add to Calendar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Push to Sequence Dialog */}
+      <Dialog open={showSequenceDialog} onOpenChange={setShowSequenceDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ArrowRight className="h-5 w-5 text-indigo-600" />
+              Enroll in Sequence
+            </DialogTitle>
+            <DialogDescription>
+              Enroll {getPhoneCount()} leads in an automated outreach sequence
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Select Sequence</label>
+              <Select
+                value={selectedSequence}
+                onValueChange={(v) =>
+                  setSelectedSequence(v as "10-touch" | "nurture" | "re-engage")
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10-touch">
+                    10-Touch 30-Day Outreach
+                  </SelectItem>
+                  <SelectItem value="nurture">Nurture Sequence</SelectItem>
+                  <SelectItem value="re-engage">
+                    Re-engagement Sequence
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowSequenceDialog(false)}
+              disabled={pushingToSequence}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handlePushToSequence}
+              disabled={pushingToSequence || getPhoneCount() === 0}
+              className="bg-indigo-600 hover:bg-indigo-700"
+            >
+              {pushingToSequence ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <ArrowRight className="h-4 w-4 mr-2" />
+              )}
+              Enroll {getPhoneCount()}
             </Button>
           </DialogFooter>
         </DialogContent>

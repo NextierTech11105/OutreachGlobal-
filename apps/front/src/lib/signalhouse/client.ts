@@ -1,6 +1,12 @@
 // SignalHouse API Client
 // Wraps all SignalHouse API calls with proper auth headers
 // https://app.signalhouse.io/apidoc
+//
+// PLATFORM ENGINEERING BEST PRACTICES:
+// - Retry with exponential backoff for transient errors
+// - Correlation ID for cross-platform tracing
+// - Rate limit handling with retry-after
+// - Structured error responses
 
 const SIGNALHOUSE_API_BASE = "https://api.signalhouse.io/api/v1";
 
@@ -8,9 +14,27 @@ const SIGNALHOUSE_API_BASE = "https://api.signalhouse.io/api/v1";
 const API_KEY = process.env.SIGNALHOUSE_API_KEY || "";
 const AUTH_TOKEN = process.env.SIGNALHOUSE_AUTH_TOKEN || "";
 
-export function getAuthHeaders(): Record<string, string> {
+// Retry configuration
+const RETRY_CONFIG = {
+  maxRetries: 3,
+  baseDelayMs: 1000,
+  maxDelayMs: 10000,
+  retryableStatuses: [408, 429, 500, 502, 503, 504],
+};
+
+// Generate correlation ID for cross-platform tracing
+function generateCorrelationId(): string {
+  return `nxt_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+}
+
+// Sleep helper
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+export function getAuthHeaders(correlationId?: string): Record<string, string> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
+    "x-correlation-id": correlationId || generateCorrelationId(),
+    "x-client": "nextier-platform",
   };
   if (API_KEY) headers["apiKey"] = API_KEY;
   if (AUTH_TOKEN) headers["authToken"] = AUTH_TOKEN;
@@ -21,20 +45,22 @@ export function isConfigured(): boolean {
   return !!(API_KEY || AUTH_TOKEN);
 }
 
-// Generic API call wrapper
+// Generic API call wrapper with retry logic
 export async function signalhouseRequest<T>(
   endpoint: string,
   options: {
     method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
     body?: Record<string, unknown>;
     params?: Record<string, string>;
+    correlationId?: string;
   } = {},
-): Promise<{ success: boolean; data?: T; error?: string; status?: number }> {
+): Promise<{ success: boolean; data?: T; error?: string; status?: number; correlationId?: string }> {
   if (!isConfigured()) {
     return { success: false, error: "SignalHouse credentials not configured" };
   }
 
-  const { method = "GET", body, params } = options;
+  const { method = "GET", body, params, correlationId } = options;
+  const corrId = correlationId || generateCorrelationId();
 
   let url = `${SIGNALHOUSE_API_BASE}${endpoint}`;
   if (params) {
@@ -42,31 +68,66 @@ export async function signalhouseRequest<T>(
     url += `?${searchParams.toString()}`;
   }
 
-  try {
-    const response = await fetch(url, {
-      method,
-      headers: getAuthHeaders(),
-      ...(body && { body: JSON.stringify(body) }),
-    });
+  let lastError: string = "Unknown error";
 
-    const data = await response.json().catch(() => ({}));
+  for (let attempt = 0; attempt <= RETRY_CONFIG.maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, {
+        method,
+        headers: getAuthHeaders(corrId),
+        ...(body && { body: JSON.stringify(body) }),
+      });
 
-    if (!response.ok) {
-      return {
-        success: false,
-        error:
-          data.message || data.error || `Request failed: ${response.status}`,
-        status: response.status,
-      };
+      // Handle rate limiting with retry-after
+      if (response.status === 429 && attempt < RETRY_CONFIG.maxRetries) {
+        const retryAfter = response.headers.get("retry-after");
+        const delayMs = retryAfter
+          ? parseInt(retryAfter, 10) * 1000
+          : Math.min(RETRY_CONFIG.baseDelayMs * Math.pow(2, attempt), RETRY_CONFIG.maxDelayMs);
+
+        console.warn(`[SignalHouse Client] Rate limited, retry ${attempt + 1}/${RETRY_CONFIG.maxRetries} after ${delayMs}ms [${corrId}]`);
+        await sleep(delayMs);
+        continue;
+      }
+
+      // Handle retryable server errors
+      if (RETRY_CONFIG.retryableStatuses.includes(response.status) && attempt < RETRY_CONFIG.maxRetries) {
+        const delayMs = Math.min(RETRY_CONFIG.baseDelayMs * Math.pow(2, attempt), RETRY_CONFIG.maxDelayMs);
+        console.warn(`[SignalHouse Client] Retryable error ${response.status}, retry ${attempt + 1}/${RETRY_CONFIG.maxRetries} [${corrId}]`);
+        await sleep(delayMs);
+        continue;
+      }
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        return {
+          success: false,
+          error: data.message || data.error || `Request failed: ${response.status}`,
+          status: response.status,
+          correlationId: corrId,
+        };
+      }
+
+      return { success: true, data: data as T, correlationId: corrId };
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : "Request failed";
+
+      // Network errors are retryable
+      if (attempt < RETRY_CONFIG.maxRetries) {
+        const delayMs = Math.min(RETRY_CONFIG.baseDelayMs * Math.pow(2, attempt), RETRY_CONFIG.maxDelayMs);
+        console.warn(`[SignalHouse Client] Network error, retry ${attempt + 1}/${RETRY_CONFIG.maxRetries} [${corrId}]`);
+        await sleep(delayMs);
+        continue;
+      }
     }
-
-    return { success: true, data: data as T };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Request failed",
-    };
   }
+
+  return {
+    success: false,
+    error: `${lastError} (after ${RETRY_CONFIG.maxRetries} retries)`,
+    correlationId: corrId,
+  };
 }
 
 // ============ BRAND OPERATIONS ============

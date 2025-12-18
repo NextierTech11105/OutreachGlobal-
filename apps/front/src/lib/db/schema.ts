@@ -51,248 +51,56 @@ export const buckets = pgTable(
 );
 
 // ============================================================
-// LEADS - Full RealEstateAPI + Apollo merged data
+// LEADS - Matches actual API database schema
+// Note: The API owns the database schema. Frontend queries same DB.
+// See: apps/api/src/database/schema/leads.schema.ts for source of truth
 // ============================================================
 
 export const leads = pgTable(
   "leads",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
-    bucketId: uuid("bucket_id")
-      .notNull()
-      .references(() => buckets.id, { onDelete: "cascade" }),
-    userId: text("user_id").notNull(),
-    source: text("source").notNull().default("real-estate"), // 'real-estate' | 'apollo' | 'mixed'
-    status: text("status").notNull().default("new"), // 'new' | 'contacted' | 'qualified' | 'nurturing' | 'closed' | 'lost'
+    // The actual DB uses ULID with 'lead_' prefix, but we query by the full id
+    id: text("id").primaryKey(),
+    teamId: text("team_id").notNull(),
+    integrationId: text("integration_id"),
+    propertyId: text("property_id"),
+    position: integer("position").default(0),
+    externalId: text("external_id"),
 
-    // === Contact Info ===
+    // === Contact Info (actual DB columns) ===
     firstName: text("first_name"),
     lastName: text("last_name"),
     email: text("email"),
     phone: text("phone"),
-    secondaryPhone: text("secondary_phone"),
+    title: text("title"),
+    company: text("company"),
 
-    // === RealEstateAPI Property Identifiers ===
-    propertyId: text("property_id"), // RealEstateAPI ID
-    apn: text("apn"), // Assessor Parcel Number
-    fips: text("fips"), // FIPS code
-    legalDescription: text("legal_description"),
-    subdivision: text("subdivision"),
-    tract: text("tract"),
-    block: text("block"),
-    lot: text("lot"),
-    // === Address ===
-    propertyAddress: text("property_address"),
-    propertyAddress2: text("property_address_2"),
-    propertyCity: text("property_city"),
-    propertyState: text("property_state"),
-    propertyZip: text("property_zip"),
-    propertyZip4: text("property_zip_4"),
-    propertyCounty: text("property_county"),
-    latitude: decimal("latitude", { precision: 10, scale: 7 }),
-    longitude: decimal("longitude", { precision: 10, scale: 7 }),
-    censusTract: text("census_tract"),
-    congressionalDistrict: text("congressional_district"),
-    // === Property Classification ===
-    propertyType: text("property_type"), // 'SFR' | 'Condo' | 'Townhouse' | 'Multi-Family' | 'Commercial' | 'Land' | 'Mobile'
-    propertySubtype: text("property_subtype"), // 'Duplex' | 'Triplex' | 'Fourplex' | 'Apartment' | 'Retail' | 'Office' | 'Industrial' | 'Mixed Use'
-    propertyClass: text("property_class"), // 'Residential' | 'Commercial' | 'Industrial' | 'Agricultural' | 'Vacant Land'
-    propertyUse: text("property_use"), // 'Single Family' | 'Investment' | 'Vacation' | 'Agricultural'
-    zoning: text("zoning"), // 'R1' | 'R2' | 'C1' | 'M1' etc
-    zoningDescription: text("zoning_description"),
-    landUseCode: text("land_use_code"),
-    // === Units (for multi-family) ===
-    units: integer("units"),
-    buildingCount: integer("building_count"),
-    // Physical characteristics
-    bedrooms: integer("bedrooms"),
-    bathrooms: decimal("bathrooms", { precision: 3, scale: 1 }),
-    sqft: integer("sqft"),
-    lotSizeSqft: integer("lot_size_sqft"),
-    lotSizeAcres: decimal("lot_size_acres", { precision: 10, scale: 4 }),
-    yearBuilt: integer("year_built"),
-    stories: integer("stories"),
-    pool: boolean("pool"),
-    garage: boolean("garage"),
-    garageSpaces: integer("garage_spaces"),
-    // Valuation
-    estimatedValue: integer("estimated_value"),
-    assessedValue: integer("assessed_value"),
-    taxAmount: integer("tax_amount"),
-    estimatedEquity: integer("estimated_equity"),
-    equityPercent: decimal("equity_percent", { precision: 5, scale: 2 }),
-    // === Primary Mortgage (1st Position) ===
-    mtg1Amount: integer("mtg1_amount"),
-    mtg1Date: date("mtg1_date"),
-    mtg1LoanType: text("mtg1_loan_type"), // 'Conventional' | 'FHA' | 'VA' | 'USDA' | 'ARM' | 'Balloon'
-    mtg1InterestRate: decimal("mtg1_interest_rate", { precision: 5, scale: 3 }),
-    mtg1Term: integer("mtg1_term"), // months
-    mtg1Lender: text("mtg1_lender"),
-    mtg1DueDate: date("mtg1_due_date"),
-    // === Secondary Mortgage (2nd Position) ===
-    mtg2Amount: integer("mtg2_amount"),
-    mtg2Date: date("mtg2_date"),
-    mtg2LoanType: text("mtg2_loan_type"),
-    mtg2InterestRate: decimal("mtg2_interest_rate", { precision: 5, scale: 3 }),
-    mtg2Term: integer("mtg2_term"),
-    mtg2Lender: text("mtg2_lender"),
-    // === Combined Mortgage Info ===
-    totalMortgageBalance: integer("total_mortgage_balance"),
-    combinedLtv: decimal("combined_ltv", { precision: 5, scale: 2 }), // Loan-to-Value ratio
-    // === Liens & Encumbrances ===
-    lienAmount: integer("lien_amount"),
-    lienType: text("lien_type"), // 'tax' | 'mechanic' | 'judgment' | 'hoa'
-    lienDate: date("lien_date"),
-    lienHolder: text("lien_holder"),
-    // === Last Sale ===
-    lastSaleDate: date("last_sale_date"),
-    lastSaleAmount: integer("last_sale_amount"),
-    lastSaleType: text("last_sale_type"), // 'arms_length' | 'foreclosure' | 'reo' | 'short_sale' | 'auction'
-    lastSaleSeller: text("last_sale_seller"),
-    lastSaleBuyer: text("last_sale_buyer"),
-    lastSaleDocNumber: text("last_sale_doc_number"),
-    // === Prior Sale ===
-    priorSaleDate: date("prior_sale_date"),
-    priorSaleAmount: integer("prior_sale_amount"),
-    priorSaleType: text("prior_sale_type"),
-    // === Calculated Fields ===
-    appreciationSinceLastSale: integer("appreciation_since_last_sale"),
-    appreciationPercent: decimal("appreciation_percent", {
-      precision: 5,
-      scale: 2,
-    }),
-    daysOnMarket: integer("days_on_market"),
-    yearsOwned: decimal("years_owned", { precision: 4, scale: 1 }),
-    // Owner info from RealEstateAPI
-    owner1FirstName: text("owner1_first_name"),
-    owner1LastName: text("owner1_last_name"),
-    owner2FirstName: text("owner2_first_name"),
-    owner2LastName: text("owner2_last_name"),
-    ownerType: text("owner_type"), // 'individual' | 'trust' | 'corporation' | 'llc'
-    ownerOccupied: boolean("owner_occupied"),
-    absenteeOwner: boolean("absentee_owner"),
-    // Mailing address (from skip trace)
-    mailingAddress: text("mailing_address"),
-    mailingCity: text("mailing_city"),
-    mailingState: text("mailing_state"),
-    mailingZip: text("mailing_zip"),
-    // === Distress Flags ===
-    preForeclosure: boolean("pre_foreclosure").default(false),
-    preForeclosureDate: date("pre_foreclosure_date"),
-    foreclosure: boolean("foreclosure").default(false),
-    foreclosureDate: date("foreclosure_date"),
-    foreclosureAuctionDate: date("foreclosure_auction_date"),
-    reo: boolean("reo").default(false), // Bank-owned
-    reoDate: date("reo_date"),
-    bankruptcy: boolean("bankruptcy").default(false),
-    bankruptcyDate: date("bankruptcy_date"),
-    bankruptcyChapter: text("bankruptcy_chapter"), // '7' | '11' | '13'
-    taxLien: boolean("tax_lien").default(false),
-    taxLienAmount: integer("tax_lien_amount"),
-    taxLienDate: date("tax_lien_date"),
-    taxDelinquent: boolean("tax_delinquent").default(false),
-    taxDelinquentYear: integer("tax_delinquent_year"),
-    // === Opportunity Flags ===
-    inherited: boolean("inherited").default(false),
-    inheritedDate: date("inherited_date"),
-    probate: boolean("probate").default(false),
-    probateDate: date("probate_date"),
-    divorce: boolean("divorce").default(false),
-    vacant: boolean("vacant").default(false),
-    vacantIndicator: text("vacant_indicator"), // Source of vacancy data
-    tired: boolean("tired").default(false), // Landlord with old property
-    cashBuyer: boolean("cash_buyer").default(false), // Previous cash buyer
-    investor: boolean("investor").default(false), // Known investor
-    outOfState: boolean("out_of_state").default(false), // Owner lives out of state
-    outOfCounty: boolean("out_of_county").default(false),
-    seniorOwner: boolean("senior_owner").default(false), // Owner 65+
-    // === Equity Flags ===
-    highEquity: boolean("high_equity").default(false), // 50%+ equity
-    lowEquity: boolean("low_equity").default(false), // <20% equity
-    negativeEquity: boolean("negative_equity").default(false), // Underwater
-    freeClear: boolean("free_clear").default(false), // No mortgage
-    // === Market Flags ===
-    listedForSale: boolean("listed_for_sale").default(false),
-    listedDate: date("listed_date"),
-    listingPrice: integer("listing_price"),
-    mlsNumber: text("mls_number"),
-    dom: integer("dom"),
-    priceReduced: boolean("price_reduced").default(false),
-    // === Quality Flags ===
-    needsRepair: boolean("needs_repair").default(false),
-    codeViolation: boolean("code_violation").default(false),
-    permitPulled: boolean("permit_pulled").default(false),
+    // === Status & Scoring ===
+    status: text("status").default("new"),
+    score: integer("score").default(0),
+    tags: text("tags").array(),
 
-    // === Apollo.io Data ===
-    apolloPersonId: text("apollo_person_id"),
-    apolloOrgId: text("apollo_org_id"),
-    apolloTitle: text("apollo_title"),
-    apolloCompany: text("apollo_company"),
-    apolloCompanyDomain: text("apollo_company_domain"),
-    apolloIndustry: text("apollo_industry"),
-    apolloRevenue: integer("apollo_revenue"),
-    apolloRevenueRange: text("apollo_revenue_range"),
-    apolloEmployeeCount: integer("apollo_employee_count"),
-    apolloEmployeeRange: text("apollo_employee_range"),
-    apolloLinkedinUrl: text("apollo_linkedin_url"),
-    apolloIntentScore: integer("apollo_intent_score"),
-    apolloSignals: jsonb("apollo_signals").default([]), // string[]
-    apolloFoundedYear: integer("apollo_founded_year"),
-    apolloTechnologies: jsonb("apollo_technologies").default([]), // string[]
-    apolloKeywords: jsonb("apollo_keywords").default([]), // string[]
-    apolloEnrichedAt: timestamp("apollo_enriched_at"), // When Apollo enrichment was last done
-    apolloData: jsonb("apollo_data"), // Full Apollo API response for reference
+    // === Address (actual column names - NOT propertyAddress) ===
+    address: text("address"),
+    city: text("city"),
+    state: text("state"),
+    zipCode: text("zip_code"),
+    country: text("country"),
 
-    // === Enrichment Metadata ===
-    enrichmentStatus: text("enrichment_status").default("pending"),
-    enrichedAt: timestamp("enriched_at"),
-    enrichmentError: text("enrichment_error"),
-    skipTracedAt: timestamp("skip_traced_at"),
-
-    // === Activity Tracking ===
-    lastActivityAt: timestamp("last_activity_at"),
-    lastActivityType: text("last_activity_type"), // 'email' | 'call' | 'sms' | 'meeting'
-    activityCount: integer("activity_count").default(0),
+    // === Additional Info ===
+    source: text("source"),
     notes: text("notes"),
-
-    // === Lead Actions (Pause/Suppress/Rethink/Revisit) ===
-    pausedAt: timestamp("paused_at"),
-    pauseReason: text("pause_reason"), // 'timing' | 'busy' | 'vacation' | 'other'
-    suppressedAt: timestamp("suppressed_at"),
-    suppressReason: text("suppress_reason"), // 'dnc' | 'wrong_number' | 'deceased' | 'requested' | 'duplicate'
-    rethinkAt: timestamp("rethink_at"),
-    rethinkReason: text("rethink_reason"), // 'strategy_change' | 'new_info' | 'escalate' | 'review'
-    revisitAt: timestamp("revisit_at"),
-    revisitReason: text("revisit_reason"), // 'callback' | 'follow_up' | 'nurture' | 'seasonal'
-
-    // === Gianna/Sabrina Copilot ===
-    assignedAdvisor: text("assigned_advisor"), // 'gianna' | 'sabrina' | user_id
-    assignedNumber: text("assigned_number"), // Phone number assigned to advisor
-    dialerWorkspaceId: text("dialer_workspace_id"), // Current dialer workspace
-    dialerLoadedAt: timestamp("dialer_loaded_at"), // When loaded into dialer
-    lastContactDate: timestamp("last_contact_date"), // Last communication
-    assignedTo: text("assigned_to"), // User ID assignment
-
-    // === Lead Classification ===
-    leadType: text("lead_type"), // 'distressed' | 'equity' | 'absentee' | 'inherited' | 'business' | etc
-    priority: text("priority").default("Medium"), // 'Low' | 'Medium' | 'High' | 'Urgent'
-    companyName: text("company_name"), // Business/Company name
-    industry: text("industry"), // Industry classification
-    companySize: text("company_size"), // Employee count range
+    metadata: jsonb("metadata"),
+    customFields: jsonb("custom_fields"),
 
     // === Timestamps ===
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => ({
-    bucketIdIdx: index("leads_bucket_id_idx").on(table.bucketId),
-    userIdIdx: index("leads_user_id_idx").on(table.userId),
-    propertyIdIdx: index("leads_property_id_idx").on(table.propertyId),
+    teamIdIdx: index("leads_team_id_idx").on(table.teamId),
     statusIdx: index("leads_status_idx").on(table.status),
-    stateIdx: index("leads_property_state_idx").on(table.propertyState),
-    enrichmentIdx: index("leads_enrichment_status_idx").on(
-      table.enrichmentStatus,
-    ),
+    scoreIdx: index("leads_score_idx").on(table.score),
   }),
 );
 
@@ -324,7 +132,7 @@ export const leadTags = pgTable(
   "lead_tags",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    leadId: uuid("lead_id")
+    leadId: text("lead_id")
       .notNull()
       .references(() => leads.id, { onDelete: "cascade" }),
     tagId: uuid("tag_id")
@@ -1380,7 +1188,7 @@ export const smsMessages = pgTable(
   "sms_messages",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    leadId: uuid("lead_id").references(() => leads.id, { onDelete: "cascade" }),
+    leadId: text("lead_id").references(() => leads.id, { onDelete: "cascade" }),
     userId: text("user_id"),
 
     // === Message Info ===
@@ -1431,7 +1239,7 @@ export const callLogs = pgTable(
   "call_logs",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    leadId: uuid("lead_id").references(() => leads.id, { onDelete: "cascade" }),
+    leadId: text("lead_id").references(() => leads.id, { onDelete: "cascade" }),
     userId: text("user_id"),
 
     // === Call Info ===
@@ -1541,6 +1349,93 @@ export const dialerSessionsRelations = relations(dialerSessions, ({ one }) => ({
   }),
 }));
 
+/**
+ * CAMPAIGN ATTEMPTS - Track all outreach attempts for compliance
+ * Required for TCPA compliance, performance metrics, and auto-retarget triggering
+ *
+ * Tracks:
+ * - All campaign contexts (initial, retarget, follow_up, book_appointment, etc.)
+ * - Attempt history per lead
+ * - Contact status
+ * - Template/message used
+ * - Response tracking
+ */
+export const campaignAttempts = pgTable(
+  "campaign_attempts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+
+    // === Links ===
+    leadId: text("lead_id").references(() => leads.id, { onDelete: "cascade" }),
+    teamId: text("team_id"),
+    userId: text("user_id"),
+
+    // === Campaign Context ===
+    campaignContext: text("campaign_context").notNull(), // 'initial' | 'retarget' | 'follow_up' | 'book_appointment' | 'confirm_appointment' | 'nurture' | 'ghost' | 'scheduled' | 'instant'
+    campaignId: text("campaign_id"), // Link to campaign
+    campaignName: text("campaign_name"),
+
+    // === Attempt Info ===
+    attemptNumber: integer("attempt_number").notNull().default(1), // 1, 2, 3...
+    previousAttempts: integer("previous_attempts").default(0), // Total attempts before this one
+    channel: text("channel").notNull(), // 'sms' | 'dialer' | 'email'
+
+    // === Message ===
+    templateUsed: text("template_used"), // Template/opener text used
+    templateCategory: text("template_category"), // 'property' | 'business' | 'general' | 'blue_collar' | 'ny_direct'
+    agent: text("agent"), // 'gianna' | 'sabrina' | null
+
+    // === Status ===
+    status: text("status").notNull().default("queued"), // 'queued' | 'sent' | 'delivered' | 'failed' | 'bounced'
+    contactMade: boolean("contact_made").default(false), // Did we get a response?
+
+    // === Response Tracking ===
+    responseReceived: boolean("response_received").default(false),
+    responseText: text("response_text"),
+    responseClassification: text("response_classification"), // 'interested' | 'not_interested' | 'question' | 'opt_out' | 'ghost'
+    responseReceivedAt: timestamp("response_received_at"),
+
+    // === Auto-Retarget ===
+    autoRetargetEligible: boolean("auto_retarget_eligible").default(false),
+    retargetScheduledFor: timestamp("retarget_scheduled_for"),
+    humanApprovalRequired: boolean("human_approval_required").default(false),
+    humanApprovedBy: text("human_approved_by"),
+    humanApprovedAt: timestamp("human_approved_at"),
+
+    // === Provider Info ===
+    providerMessageId: text("provider_message_id"), // SignalHouse message ID
+    providerStatus: text("provider_status"),
+
+    // === Error Tracking ===
+    errorCode: text("error_code"),
+    errorMessage: text("error_message"),
+
+    // === Metadata ===
+    metadata: jsonb("metadata"), // Additional context data
+
+    // === Timestamps ===
+    scheduledAt: timestamp("scheduled_at"), // When scheduled to send
+    sentAt: timestamp("sent_at"), // When actually sent
+    deliveredAt: timestamp("delivered_at"), // When confirmed delivered
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    leadIdIdx: index("campaign_attempts_lead_id_idx").on(table.leadId),
+    teamIdIdx: index("campaign_attempts_team_id_idx").on(table.teamId),
+    campaignContextIdx: index("campaign_attempts_context_idx").on(table.campaignContext),
+    statusIdx: index("campaign_attempts_status_idx").on(table.status),
+    channelIdx: index("campaign_attempts_channel_idx").on(table.channel),
+    campaignIdIdx: index("campaign_attempts_campaign_id_idx").on(table.campaignId),
+    createdAtIdx: index("campaign_attempts_created_at_idx").on(table.createdAt),
+  }),
+);
+
+// Campaign Attempts Relations
+export const campaignAttemptsRelations = relations(campaignAttempts, ({ one }) => ({
+  lead: one(leads, { fields: [campaignAttempts.leadId], references: [leads.id] }),
+}));
+
 // Type exports
 export type SmsMessage = typeof smsMessages.$inferSelect;
 export type NewSmsMessage = typeof smsMessages.$inferInsert;
@@ -1548,6 +1443,8 @@ export type CallLog = typeof callLogs.$inferSelect;
 export type NewCallLog = typeof callLogs.$inferInsert;
 export type DialerSession = typeof dialerSessions.$inferSelect;
 export type NewDialerSession = typeof dialerSessions.$inferInsert;
+export type CampaignAttempt = typeof campaignAttempts.$inferSelect;
+export type NewCampaignAttempt = typeof campaignAttempts.$inferInsert;
 
 // ============================================================
 // DEALS - Deal Pipeline / Machine 5
@@ -1565,7 +1462,7 @@ export const deals = pgTable(
     userId: text("user_id").notNull(),
 
     // === Links ===
-    leadId: uuid("lead_id").references(() => leads.id, {
+    leadId: text("lead_id").references(() => leads.id, {
       onDelete: "set null",
     }),
     propertyId: uuid("property_id").references(() => properties.id, {
