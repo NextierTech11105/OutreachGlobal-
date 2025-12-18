@@ -124,9 +124,9 @@ const navGroups = [
         icon: SendIcon,
       },
       {
-        title: "Inbox",
+        title: "AI Inbound Response Center",
         path: "/inbox",
-        icon: MailIcon,
+        icon: SparkleIcon,
       },
       {
         title: "Calendar",

@@ -5,7 +5,7 @@ import { TeamHeader } from "@/features/team/layouts/team-header";
 export default function InboxPage() {
   return (
     <>
-      <TeamHeader title="Inbox" />
+      <TeamHeader title="AI Inbound Response Center" />
       <InboxProvider>
         <UnifiedInbox />
       </InboxProvider>

@@ -3,6 +3,64 @@
 // Per-client SMS response classification logic
 // ==========================================
 
+// ==========================================
+// CAMPAIGN CONTEXT TYPES
+// Each SMS campaign has context for workflow state
+// ==========================================
+export type CampaignContext =
+  | "initial" // First touch outreach
+  | "retarget" // Re-engagement of non-responders
+  | "follow_up" // Following up on interest
+  | "book_appointment" // Appointment booking workflow
+  | "nurture" // Long-term nurture sequence
+  | "instant"; // Instant/immediate response
+
+export interface CampaignContextConfig {
+  id: CampaignContext;
+  name: string;
+  description: string;
+  nextSteps: CampaignContext[];
+}
+
+export const CAMPAIGN_CONTEXTS: CampaignContextConfig[] = [
+  {
+    id: "initial",
+    name: "Initial Outreach",
+    description: "First touch SMS to new leads",
+    nextSteps: ["follow_up", "retarget"],
+  },
+  {
+    id: "retarget",
+    name: "Retarget",
+    description: "Re-engagement of non-responders",
+    nextSteps: ["follow_up", "nurture"],
+  },
+  {
+    id: "follow_up",
+    name: "Follow Up",
+    description: "Following up on expressed interest",
+    nextSteps: ["book_appointment", "nurture"],
+  },
+  {
+    id: "book_appointment",
+    name: "Book Appointment",
+    description: "Appointment booking workflow",
+    nextSteps: ["nurture"],
+  },
+  {
+    id: "nurture",
+    name: "Nurture",
+    description: "Long-term nurture sequence",
+    nextSteps: ["retarget", "book_appointment"],
+  },
+  {
+    id: "instant",
+    name: "Instant Response",
+    description: "Immediate/real-time response",
+    nextSteps: ["follow_up", "book_appointment"],
+  },
+];
+
 export interface ResponseClassification {
   id: string;
   name: string;
@@ -12,6 +70,8 @@ export interface ResponseClassification {
   priority: number; // Higher = check first
   deliverable?: string; // What content to deliver (property-valuation, exit-prep, white-label-pitch, etc.)
   queue?: string; // Which delivery queue (valuation-queue, content-queue, etc.)
+  suppress?: boolean; // If true, hide from AI Inbound Response Center UI
+  highlight?: "green" | "yellow" | "red" | "blue"; // Tag color for UI
 }
 
 // ==========================================
@@ -87,16 +147,56 @@ export interface ClientClassifications {
 const EMAIL_REGEX = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi;
 
 // Phone regex - captures phone numbers
-const PHONE_REGEX = /(?:\+?1[-.\s]?)?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}/g;
+const PHONE_REGEX =
+  /(?:\+?1[-.\s]?)?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}/g;
 
 // Opt-out keywords
-const OPT_OUT_KEYWORDS = ["STOP", "UNSUBSCRIBE", "CANCEL", "END", "QUIT", "OPTOUT", "OPT OUT", "REMOVE"];
+const OPT_OUT_KEYWORDS = [
+  "STOP",
+  "UNSUBSCRIBE",
+  "CANCEL",
+  "END",
+  "QUIT",
+  "OPTOUT",
+  "OPT OUT",
+  "REMOVE",
+];
 
 // Interest keywords
-const INTEREST_KEYWORDS = ["YES", "INTERESTED", "CALL", "INFO", "MORE", "DETAILS", "HELP", "TELL ME"];
+const INTEREST_KEYWORDS = [
+  "YES",
+  "INTERESTED",
+  "CALL",
+  "INFO",
+  "MORE",
+  "DETAILS",
+  "HELP",
+  "TELL ME",
+];
 
 // Negative keywords
-const NEGATIVE_KEYWORDS = ["NO", "NOT INTERESTED", "NO THANKS", "PASS", "DECLINE", "WRONG NUMBER"];
+const NEGATIVE_KEYWORDS = [
+  "NO",
+  "NOT INTERESTED",
+  "NO THANKS",
+  "PASS",
+  "DECLINE",
+  "WRONG NUMBER",
+];
+
+// Profanity keywords (suppress from UI)
+const PROFANITY_KEYWORDS = [
+  "FUCK",
+  "SHIT",
+  "ASS",
+  "BITCH",
+  "DAMN",
+  "HELL",
+  "CRAP",
+  "DICK",
+  "PISS",
+  "BASTARD",
+];
 
 // ==========================================
 // HOMEOWNER ADVISOR CLASSIFICATIONS
@@ -107,11 +207,72 @@ const NEGATIVE_KEYWORDS = ["NO", "NOT INTERESTED", "NO THANKS", "PASS", "DECLINE
 // ==========================================
 
 const HOMEOWNER_ADVISOR_CLASSIFICATIONS: ResponseClassification[] = [
+  // SUPPRESSED - Profanity (hide from UI)
+  {
+    id: "profanity",
+    name: "Profanity",
+    description: "Message contains profanity - suppressed from UI",
+    priority: 200, // Check first
+    suppress: true,
+    detect: (message: string) => {
+      const upper = message.toUpperCase();
+      return PROFANITY_KEYWORDS.some((kw) => upper.includes(kw));
+    },
+  },
+  // SUPPRESSED - Opt-out (hide from UI)
+  {
+    id: "opt-out",
+    name: "Opt-Out",
+    description: "Contact requested to be removed from SMS list",
+    priority: 190,
+    suppress: true, // Hide from AI Inbound Response Center
+    detect: (message: string) => {
+      const upper = message.toUpperCase().trim();
+      return OPT_OUT_KEYWORDS.some((kw) => upper.includes(kw));
+    },
+  },
+  // SUPPRESSED - Wrong Number (hide from UI)
+  {
+    id: "wrong-number",
+    name: "Wrong Number",
+    description: "Contact indicates wrong number - remove from list",
+    priority: 185,
+    suppress: true, // Hide from AI Inbound Response Center
+    detect: (message: string) => {
+      const upper = message.toUpperCase().trim();
+      return (
+        upper.includes("WRONG NUMBER") ||
+        upper.includes("WRONG PERSON") ||
+        upper.includes("NOT ME") ||
+        upper.includes("WHO IS THIS") ||
+        upper.includes("DON'T KNOW") ||
+        upper.includes("DONT KNOW") ||
+        upper.includes("NEVER HEARD") ||
+        upper.includes("DON'T TEXT") ||
+        upper.includes("DONT TEXT")
+      );
+    },
+  },
+  // SUPPRESSED - Not Interested (hide from UI - focus on leads that matter)
+  {
+    id: "not-interested",
+    name: "Not Interested",
+    description: "Contact declined or not interested",
+    priority: 180,
+    suppress: true, // Hide - we focus on actionable leads only
+    detect: (message: string) => {
+      const upper = message.toUpperCase().trim();
+      return NEGATIVE_KEYWORDS.some((kw) => upper.includes(kw));
+    },
+  },
+  // GREEN TAG - Email Capture (highest priority actionable)
   {
     id: "email-capture",
     name: "Email Capture",
-    description: "Response contains email address for PROPERTY VALUATION report delivery",
+    description:
+      "Response contains email address for PROPERTY VALUATION report delivery",
     priority: 100,
+    highlight: "green",
     detect: (message: string) => {
       const emails = message.match(EMAIL_REGEX);
       return emails !== null && emails.length > 0;
@@ -125,55 +286,83 @@ const HOMEOWNER_ADVISOR_CLASSIFICATIONS: ResponseClassification[] = [
       };
     },
   },
+  // GREEN TAG - Called Phone Line (high intent)
   {
-    id: "opt-out",
-    name: "Opt-Out",
-    description: "Contact requested to be removed from SMS list",
-    priority: 90,
+    id: "called-phone-line",
+    name: "Called Phone Line",
+    description: "Contact called back after SMS - HIGH INTENT inbound call",
+    priority: 95,
+    highlight: "green",
     detect: (message: string) => {
       const upper = message.toUpperCase().trim();
-      return OPT_OUT_KEYWORDS.some((kw) => upper.includes(kw));
+      return (
+        upper.includes("INBOUND CALL") ||
+        upper.includes("CALLED BACK") ||
+        upper.includes("CALL FROM") ||
+        message.startsWith("[CALL]") ||
+        message.startsWith("[INBOUND]")
+      );
     },
   },
+  // GREEN TAG - Question (needs assistance)
+  {
+    id: "question",
+    name: "Question",
+    description: "Contact asked a question - needs follow-up",
+    priority: 85,
+    highlight: "green",
+    detect: (message: string) => {
+      return message.includes("?");
+    },
+  },
+  // GREEN TAG - Help/Assistance Request
+  {
+    id: "assistance",
+    name: "Assistance Request",
+    description: "Contact requested help or assistance",
+    priority: 80,
+    highlight: "green",
+    detect: (message: string) => {
+      const upper = message.toUpperCase().trim();
+      return (
+        upper.includes("HELP") ||
+        upper.includes("ASSIST") ||
+        upper.includes("SUPPORT") ||
+        upper.includes("CAN YOU") ||
+        upper.includes("COULD YOU") ||
+        upper.includes("PLEASE")
+      );
+    },
+  },
+  // GREEN TAG - Interested
   {
     id: "interested",
     name: "Interested",
     description: "Contact expressed interest in valuation report",
     priority: 50,
+    highlight: "green",
     detect: (message: string) => {
       const upper = message.toUpperCase().trim();
       return INTEREST_KEYWORDS.some((kw) => upper.includes(kw));
     },
   },
-  {
-    id: "not-interested",
-    name: "Not Interested",
-    description: "Contact declined or not interested",
-    priority: 40,
-    detect: (message: string) => {
-      const upper = message.toUpperCase().trim();
-      return NEGATIVE_KEYWORDS.some((kw) => upper.includes(kw));
-    },
-  },
+  // BLUE TAG - Thank You (acknowledgment)
   {
     id: "thank-you",
     name: "Thank You",
     description: "Contact acknowledged receipt (likely after email provided)",
     priority: 30,
+    highlight: "blue",
     detect: (message: string) => {
       const upper = message.toUpperCase().trim();
-      return upper.includes("THANK") || upper.includes("THANKS") || upper.includes("TY");
+      return (
+        upper.includes("THANK") ||
+        upper.includes("THANKS") ||
+        upper.includes("TY")
+      );
     },
   },
-  {
-    id: "question",
-    name: "Question",
-    description: "Contact asked a question - needs follow-up",
-    priority: 20,
-    detect: (message: string) => {
-      return message.includes("?");
-    },
-  },
+  // No highlight - Other
   {
     id: "other",
     name: "Other Response",
@@ -227,7 +416,7 @@ export interface ClassificationResult {
  */
 export function classifyResponse(
   clientId: string,
-  message: string
+  message: string,
 ): ClassificationResult | null {
   const client = CLIENT_CLASSIFICATIONS.find((c) => c.clientId === clientId);
   if (!client) {
@@ -236,7 +425,9 @@ export function classifyResponse(
   }
 
   // Sort by priority (highest first)
-  const sorted = [...client.classifications].sort((a, b) => b.priority - a.priority);
+  const sorted = [...client.classifications].sort(
+    (a, b) => b.priority - a.priority,
+  );
 
   for (const classification of sorted) {
     if (classification.detect(message)) {
@@ -258,7 +449,9 @@ export function classifyResponse(
 /**
  * Get all classifications for a client
  */
-export function getClientClassifications(clientId: string): ResponseClassification[] {
+export function getClientClassifications(
+  clientId: string,
+): ResponseClassification[] {
   const client = CLIENT_CLASSIFICATIONS.find((c) => c.clientId === clientId);
   return client?.classifications || [];
 }
@@ -295,5 +488,151 @@ export function isInterested(message: string): boolean {
   return INTEREST_KEYWORDS.some((kw) => upper.includes(kw));
 }
 
+// ==========================================
+// SUPPRESSION HELPERS
+// ==========================================
+
+/**
+ * Check if response should be suppressed from UI
+ * (STOP, profanity, etc. - GIANNA doesn't focus on these)
+ */
+export function shouldSuppressResponse(
+  clientId: string,
+  message: string,
+): boolean {
+  const result = classifyResponse(clientId, message);
+  if (!result) return false;
+
+  const client = CLIENT_CLASSIFICATIONS.find((c) => c.clientId === clientId);
+  const classification = client?.classifications.find(
+    (c) => c.id === result.classificationId,
+  );
+
+  return classification?.suppress === true;
+}
+
+/**
+ * Check if response contains profanity
+ */
+export function containsProfanity(message: string): boolean {
+  const upper = message.toUpperCase();
+  return PROFANITY_KEYWORDS.some((kw) => upper.includes(kw));
+}
+
+// ==========================================
+// GIANNA AI RESPONSE TEMPLATES
+// Structured templates for AI copilot responses
+// ==========================================
+
+export type GiannaTemplateType = "email_capture" | "question" | "assistance";
+
+export interface GiannaResponseTemplate {
+  id: GiannaTemplateType;
+  name: string;
+  description: string;
+  classificationIds: string[]; // Which classifications trigger this template
+  template: string;
+  variables: string[]; // Placeholders to fill
+  automatable: boolean; // Can be fully automated or needs human-in-loop
+}
+
+export const GIANNA_RESPONSE_TEMPLATES: GiannaResponseTemplate[] = [
+  {
+    id: "email_capture",
+    name: "Email Capture Acknowledgment",
+    description: "Respond when lead provides their email address",
+    classificationIds: ["email-capture"],
+    template: `Thanks {{first_name}}! I've received your email ({{email}}). Your {{deliverable}} will be sent shortly. Is there anything specific you'd like included in the report?`,
+    variables: ["first_name", "email", "deliverable"],
+    automatable: true, // Can be fully automated
+  },
+  {
+    id: "question",
+    name: "Question Response",
+    description: "Respond when lead asks a question",
+    classificationIds: ["question"],
+    template: `Great question, {{first_name}}! {{ai_generated_answer}} Would you like me to send more details to your email?`,
+    variables: ["first_name", "ai_generated_answer"],
+    automatable: false, // Human-in-loop for AI answer review
+  },
+  {
+    id: "assistance",
+    name: "Assistance Response",
+    description: "Respond when lead requests help or assistance",
+    classificationIds: ["assistance", "interested", "called-phone-line"],
+    template: `Hi {{first_name}}, I'd be happy to help! {{context_response}} What's the best email to send you more information?`,
+    variables: ["first_name", "context_response"],
+    automatable: false, // Human-in-loop for context
+  },
+];
+
+/**
+ * Get the appropriate GIANNA template for a classification
+ */
+export function getGiannaTemplate(
+  classificationId: string,
+): GiannaResponseTemplate | null {
+  return (
+    GIANNA_RESPONSE_TEMPLATES.find((t) =>
+      t.classificationIds.includes(classificationId),
+    ) || null
+  );
+}
+
+/**
+ * Get all green-tagged (high priority) responses for GIANNA to focus on
+ */
+export function getActionableClassifications(
+  clientId: string,
+): ResponseClassification[] {
+  const client = CLIENT_CLASSIFICATIONS.find((c) => c.clientId === clientId);
+  if (!client) return [];
+
+  return client.classifications.filter(
+    (c) => c.highlight === "green" && !c.suppress,
+  );
+}
+
+/**
+ * Filter messages for AI Inbound Response Center
+ * Only returns non-suppressed messages
+ */
+export function filterForResponseCenter(
+  clientId: string,
+  messages: Array<{ id: string; content: string; [key: string]: unknown }>,
+): Array<{
+  id: string;
+  content: string;
+  classification: ClassificationResult | null;
+  highlight: "green" | "yellow" | "red" | "blue" | undefined;
+  template: GiannaResponseTemplate | null;
+  [key: string]: unknown;
+}> {
+  return messages
+    .map((msg) => {
+      const classification = classifyResponse(clientId, msg.content);
+      const client = CLIENT_CLASSIFICATIONS.find((c) => c.clientId === clientId);
+      const classificationDef = client?.classifications.find(
+        (c) => c.id === classification?.classificationId,
+      );
+
+      return {
+        ...msg,
+        classification,
+        highlight: classificationDef?.highlight,
+        template: classification
+          ? getGiannaTemplate(classification.classificationId)
+          : null,
+        suppress: classificationDef?.suppress,
+      };
+    })
+    .filter((msg) => !msg.suppress); // Remove suppressed messages
+}
+
 // Log on import
-console.log(`[Response Classifications] Loaded ${CLIENT_CLASSIFICATIONS.length} client configurations`);
+console.log(
+  `[Response Classifications] Loaded ${CLIENT_CLASSIFICATIONS.length} client configurations`,
+);
+console.log(
+  `[Response Classifications] ${GIANNA_RESPONSE_TEMPLATES.length} GIANNA templates ready`,
+);
