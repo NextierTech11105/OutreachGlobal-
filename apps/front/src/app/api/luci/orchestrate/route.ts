@@ -254,59 +254,99 @@ async function handleEnrichAction(
     socials?: Record<string, string | null>;
   }> = [];
 
-  for (const lead of batchLeads) {
-    let enrichedLead: typeof enrichedLeads[0] = { ...lead };
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BULK SKIP TRACE - Process entire batch in one API call
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (enrichmentTypes.includes("skip_trace")) {
+    // Filter leads that have address data for skip tracing
+    const skipTraceableLeads = batchLeads.filter(
+      (lead) => lead.address && lead.city && lead.state
+    );
 
-    // Skip Trace enrichment
-    if (enrichmentTypes.includes("skip_trace") && lead.address && lead.city && lead.state) {
+    if (skipTraceableLeads.length > 0) {
+      console.log(`[LUCI Orchestrate] Bulk skip tracing ${skipTraceableLeads.length} leads`);
+
       try {
-        const firstName = lead.firstName || lead.contactName?.split(" ")[0] || "";
-        const lastName = lead.lastName || lead.contactName?.split(" ").slice(1).join(" ") || "";
+        // Build bulk skip trace payload
+        const bulkPayload = {
+          leads: skipTraceableLeads.map((lead) => ({
+            id: lead.id,
+            firstName: lead.firstName || lead.contactName?.split(" ")[0] || "",
+            lastName: lead.lastName || lead.contactName?.split(" ").slice(1).join(" ") || "",
+            companyName: lead.companyName,
+            address: lead.address,
+            city: lead.city,
+            state: lead.state,
+            zip: lead.zip,
+          })),
+          batchId: `batch_${batchNumber}_${Date.now()}`,
+          teamId: teamId,
+          // Webhook for async completion (optional - can also poll)
+          webhookUrl: `${process.env.NEXT_PUBLIC_URL || "http://localhost:3000"}/api/webhook/skip-trace`,
+        };
 
-        const skipTraceResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_URL || "http://localhost:3000"}/api/enrichment/skip-trace`,
+        const bulkSkipTraceResponse = await fetch(
+          `${process.env.NEXT_PUBLIC_URL || "http://localhost:3000"}/api/enrichment/bulk-skip-trace`,
           {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
               Cookie: request.headers.get("cookie") || "",
             },
-            body: JSON.stringify({
-              recordId: lead.id,
-              bucketId,
-              firstName,
-              lastName,
-              address: lead.address,
-              city: lead.city,
-              state: lead.state,
-              zip: lead.zip,
-            }),
+            body: JSON.stringify(bulkPayload),
           }
         );
 
-        const skipTraceData = await skipTraceResponse.json();
-        if (skipTraceData.success && skipTraceData.enrichedData) {
-          enrichmentResults.skipTraced++;
-          enrichedLead = {
-            ...enrichedLead,
-            leadId: skipTraceData.leadId,
-            enrichedPhones: skipTraceData.enrichedData.allPhones,
-            enrichedEmails: skipTraceData.enrichedData.allEmails?.map((e: { email: string }) => e.email),
-            mobilePhone: skipTraceData.enrichedData.phone,
-            socials: skipTraceData.enrichedData.socials,
-            enriched: true,
-          };
+        const bulkResult = await bulkSkipTraceResponse.json();
+
+        if (bulkResult.success) {
+          if (bulkResult.mode === "sync" && bulkResult.results) {
+            // Synchronous results - process immediately
+            for (const result of bulkResult.results) {
+              if (result.success) {
+                enrichmentResults.skipTraced++;
+                // Find and update the lead in our batch
+                const leadIndex = batchLeads.findIndex((l) => l.id === result.id);
+                if (leadIndex >= 0) {
+                  const mobilePhone = result.phones?.find((p: { isMobile: boolean }) => p.isMobile);
+                  batchLeads[leadIndex] = {
+                    ...batchLeads[leadIndex],
+                    leadId: result.leadId,
+                    enrichedPhones: result.phones,
+                    enrichedEmails: result.emails?.map((e: { email: string }) => e.email),
+                    mobilePhone: mobilePhone?.number || result.phones?.[0]?.number,
+                    socials: result.socials,
+                    enriched: true,
+                  } as typeof batchLeads[0];
+                }
+              } else {
+                enrichmentResults.failed++;
+              }
+            }
+          } else {
+            // Async mode - job submitted, will be processed via webhook
+            console.log(`[LUCI Orchestrate] Bulk skip trace job submitted: ${bulkResult.jobId}`);
+            // Mark as pending - webhook will update when complete
+            enrichmentResults.skipTraced = skipTraceableLeads.length; // Optimistic
+          }
+        } else {
+          console.error(`[LUCI Orchestrate] Bulk skip trace failed:`, bulkResult.error);
+          enrichmentResults.failed += skipTraceableLeads.length;
         }
       } catch (error) {
-        console.error(`[LUCI Orchestrate] Skip trace failed for ${lead.id}:`, error);
-        enrichmentResults.failed++;
+        console.error(`[LUCI Orchestrate] Bulk skip trace error:`, error);
+        enrichmentResults.failed += skipTraceableLeads.length;
       }
-
-      // Rate limit between skip trace calls
-      await new Promise((resolve) => setTimeout(resolve, RATE_LIMIT_DELAY));
     }
+  }
 
-    // Apollo enrichment
+  // ═══════════════════════════════════════════════════════════════════════════
+  // APOLLO ENRICHMENT - Still done per-lead (they don't have bulk)
+  // ═══════════════════════════════════════════════════════════════════════════
+  for (const lead of batchLeads) {
+    let enrichedLead: typeof enrichedLeads[0] = { ...lead };
+
+    // Apollo enrichment (no bulk API available)
     if (enrichmentTypes.includes("apollo") && (lead.email || (lead.contactName && lead.companyName))) {
       try {
         const apolloResponse = await fetch(
@@ -339,6 +379,9 @@ async function handleEnrichAction(
       } catch (error) {
         console.error(`[LUCI Orchestrate] Apollo enrichment failed for ${lead.id}:`, error);
       }
+
+      // Rate limit between Apollo calls
+      await new Promise((resolve) => setTimeout(resolve, RATE_LIMIT_DELAY));
     }
 
     enrichedLeads.push(enrichedLead);
