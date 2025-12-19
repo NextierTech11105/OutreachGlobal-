@@ -476,7 +476,10 @@ export default function StripeAdminPage() {
                     <p className="text-muted-foreground mb-4">
                       No products created yet
                     </p>
-                    <Button onClick={handleCreateDefaultPlans} disabled={refreshing}>
+                    <Button
+                      onClick={handleCreateDefaultPlans}
+                      disabled={refreshing}
+                    >
                       <Package className="mr-2 h-4 w-4" />
                       {refreshing ? "Creating..." : "Create Default Plans"}
                     </Button>

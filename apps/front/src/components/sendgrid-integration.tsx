@@ -101,8 +101,12 @@ export function SendgridIntegration() {
     unsubscribeLink: "{{unsubscribe_link}}",
   };
 
-  const [connectionStatus, setConnectionStatus] = useState<"success" | "error" | null>(null);
-  const [saveStatus, setSaveStatus] = useState<"success" | "error" | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<
+    "success" | "error" | null
+  >(null);
+  const [saveStatus, setSaveStatus] = useState<"success" | "error" | null>(
+    null,
+  );
 
   const handleSaveSettings = async () => {
     setIsSaving(true);

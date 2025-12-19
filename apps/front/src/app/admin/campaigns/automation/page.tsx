@@ -27,13 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Plus,
-  Trash2,
-  Zap,
-  ArrowRight,
-  Settings,
-} from "lucide-react";
+import { Plus, Trash2, Zap, ArrowRight, Settings } from "lucide-react";
 
 interface AutomationRule {
   id: string;
@@ -146,7 +140,10 @@ export default function CampaignAutomationPage() {
               </div>
               <div className="space-y-2">
                 <Label>Priority</Label>
-                <Select value={newRulePriority} onValueChange={setNewRulePriority}>
+                <Select
+                  value={newRulePriority}
+                  onValueChange={setNewRulePriority}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -162,7 +159,10 @@ export default function CampaignAutomationPage() {
             <div className="grid grid-cols-3 gap-4 items-end">
               <div className="space-y-2">
                 <Label>When this happens (Trigger)</Label>
-                <Select value={newRuleTrigger} onValueChange={setNewRuleTrigger}>
+                <Select
+                  value={newRuleTrigger}
+                  onValueChange={setNewRuleTrigger}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select trigger..." />
                   </SelectTrigger>

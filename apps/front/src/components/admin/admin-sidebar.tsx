@@ -88,7 +88,9 @@ export function AdminSidebar() {
         {
           href: "/admin/digital-workers",
           label: "AI Agent (Gianna)",
-          active: pathname === "/admin/digital-workers" || pathname === "/admin/ai-sdr",
+          active:
+            pathname === "/admin/digital-workers" ||
+            pathname === "/admin/ai-sdr",
         },
         {
           href: "/admin/campaigns/automation",
