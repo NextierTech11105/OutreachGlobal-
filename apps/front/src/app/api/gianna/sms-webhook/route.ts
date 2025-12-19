@@ -135,7 +135,9 @@ export async function POST(request: NextRequest) {
     const classification = classifyResponse(clientId, body);
 
     if (classification) {
-      console.log(`[Gianna SMS] Classification: ${classification.classificationName} (${classification.classificationId}) for client: ${clientId}`);
+      console.log(
+        `[Gianna SMS] Classification: ${classification.classificationName} (${classification.classificationId}) for client: ${clientId}`,
+      );
     }
 
     // ═════════════════════════════════════════════════
@@ -144,7 +146,9 @@ export async function POST(request: NextRequest) {
     const emailMatch = body.match(EMAIL_REGEX);
     if (emailMatch) {
       const email = emailMatch[0].toLowerCase();
-      console.log(`[Gianna SMS] EMAIL CAPTURE: ${email} from ${from} | Client: ${clientId}`);
+      console.log(
+        `[Gianna SMS] EMAIL CAPTURE: ${email} from ${from} | Client: ${clientId}`,
+      );
 
       // Trigger email capture automation (async)
       // Deliverable: PROPERTY VALUATION REPORT for Homeowner Advisor

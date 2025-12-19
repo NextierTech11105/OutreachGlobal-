@@ -7,7 +7,8 @@ export default function DigitalWorkersPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">AI Replies</h1>
           <p className="text-muted-foreground mt-2">
-            Configure GIANNA - your AI-powered outreach assistant backed by real personality DNA.
+            Configure GIANNA - your AI-powered outreach assistant backed by real
+            personality DNA.
           </p>
         </div>
 

@@ -71,7 +71,11 @@ export function MessageDetail({ message, onReply }: MessageDetailProps) {
               {getIcon()}
               {message.type.toUpperCase()}
             </Badge>
-            <Badge variant={message.direction === "inbound" ? "default" : "secondary"}>
+            <Badge
+              variant={
+                message.direction === "inbound" ? "default" : "secondary"
+              }
+            >
               {message.direction}
             </Badge>
           </div>

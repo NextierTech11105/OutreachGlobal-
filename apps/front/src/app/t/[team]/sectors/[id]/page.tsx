@@ -1335,7 +1335,7 @@ export default function SectorDetailPage() {
           `Pipeline complete: ${result.summary.leadsEnriched} enriched, ${result.summary.leadsPushed} queued`,
           {
             description: result.nextSteps?.[0] || "Ready for outreach",
-          }
+          },
         );
 
         // Refresh the data
@@ -1883,8 +1883,16 @@ export default function SectorDetailPage() {
                     {/* LEAD ID - Generated on enrichment */}
                     <TableCell>
                       {(lead.skipTraceData as any)?.leadId || lead.leadId ? (
-                        <Badge variant="outline" className="text-[10px] font-mono bg-green-50 text-green-700 border-green-200">
-                          {((lead.skipTraceData as any)?.leadId || lead.leadId || "").slice(0, 12)}...
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] font-mono bg-green-50 text-green-700 border-green-200"
+                        >
+                          {(
+                            (lead.skipTraceData as any)?.leadId ||
+                            lead.leadId ||
+                            ""
+                          ).slice(0, 12)}
+                          ...
                         </Badge>
                       ) : (
                         <span className="text-xs text-muted-foreground">-</span>
@@ -1892,8 +1900,17 @@ export default function SectorDetailPage() {
                     </TableCell>
                     {/* LIST ID - Upload/Bucket ID */}
                     <TableCell>
-                      <Badge variant="secondary" className="text-[10px] font-mono">
-                        {(lead.uploadId || (lead as any).bucketId || sectorId || "").slice(0, 8)}...
+                      <Badge
+                        variant="secondary"
+                        className="text-[10px] font-mono"
+                      >
+                        {(
+                          lead.uploadId ||
+                          (lead as any).bucketId ||
+                          sectorId ||
+                          ""
+                        ).slice(0, 8)}
+                        ...
                       </Badge>
                     </TableCell>
                     {/* COMPANY NAME */}
@@ -2042,17 +2059,25 @@ export default function SectorDetailPage() {
                     </TableCell>
                     {/* LINKEDIN - From skip trace socials */}
                     <TableCell>
-                      {(lead.skipTraceData as any)?.socials?.linkedin || (lead.apolloData as any)?.linkedinUrl ? (
+                      {(lead.skipTraceData as any)?.socials?.linkedin ||
+                      (lead.apolloData as any)?.linkedinUrl ? (
                         <a
-                          href={(lead.skipTraceData as any)?.socials?.linkedin || (lead.apolloData as any)?.linkedinUrl}
+                          href={
+                            (lead.skipTraceData as any)?.socials?.linkedin ||
+                            (lead.apolloData as any)?.linkedinUrl
+                          }
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-sm text-blue-600 hover:underline flex items-center gap-1"
                         >
                           <Globe className="h-3.5 w-3.5 text-blue-700" />
                           <span className="truncate max-w-[100px]">
-                            {((lead.skipTraceData as any)?.socials?.linkedinUsername ||
-                              (lead.apolloData as any)?.linkedinUrl?.split('/').pop()) || "Profile"}
+                            {(lead.skipTraceData as any)?.socials
+                              ?.linkedinUsername ||
+                              (lead.apolloData as any)?.linkedinUrl
+                                ?.split("/")
+                                .pop() ||
+                              "Profile"}
                           </span>
                         </a>
                       ) : (
@@ -2522,7 +2547,14 @@ export default function SectorDetailPage() {
               <Select
                 value={campaignContext}
                 onValueChange={(v) =>
-                  setCampaignContext(v as "initial" | "retarget" | "follow_up" | "nurture" | "instant")
+                  setCampaignContext(
+                    v as
+                      | "initial"
+                      | "retarget"
+                      | "follow_up"
+                      | "nurture"
+                      | "instant",
+                  )
                 }
               >
                 <SelectTrigger>
@@ -2532,31 +2564,41 @@ export default function SectorDetailPage() {
                   <SelectItem value="initial">
                     <div className="flex flex-col">
                       <span className="font-medium">Initial Outreach</span>
-                      <span className="text-xs text-muted-foreground">First contact attempt</span>
+                      <span className="text-xs text-muted-foreground">
+                        First contact attempt
+                      </span>
                     </div>
                   </SelectItem>
                   <SelectItem value="retarget">
                     <div className="flex flex-col">
                       <span className="font-medium">Retarget</span>
-                      <span className="text-xs text-muted-foreground">No response yet, trying again</span>
+                      <span className="text-xs text-muted-foreground">
+                        No response yet, trying again
+                      </span>
                     </div>
                   </SelectItem>
                   <SelectItem value="follow_up">
                     <div className="flex flex-col">
                       <span className="font-medium">Follow Up</span>
-                      <span className="text-xs text-muted-foreground">They responded, continuing convo</span>
+                      <span className="text-xs text-muted-foreground">
+                        They responded, continuing convo
+                      </span>
                     </div>
                   </SelectItem>
                   <SelectItem value="nurture">
                     <div className="flex flex-col">
                       <span className="font-medium">Nurture</span>
-                      <span className="text-xs text-muted-foreground">Long-term drip sequence</span>
+                      <span className="text-xs text-muted-foreground">
+                        Long-term drip sequence
+                      </span>
                     </div>
                   </SelectItem>
                   <SelectItem value="instant">
                     <div className="flex flex-col">
                       <span className="font-medium">Instant</span>
-                      <span className="text-xs text-muted-foreground">Send immediately, hot lead</span>
+                      <span className="text-xs text-muted-foreground">
+                        Send immediately, hot lead
+                      </span>
                     </div>
                   </SelectItem>
                 </SelectContent>

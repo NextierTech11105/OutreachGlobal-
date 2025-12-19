@@ -431,14 +431,18 @@ export const ALL_TEMPLATES: MessageTemplate[] = [
 /**
  * Get templates by context
  */
-export function getTemplatesByContext(context: CampaignContext): MessageTemplate[] {
+export function getTemplatesByContext(
+  context: CampaignContext,
+): MessageTemplate[] {
   return ALL_TEMPLATES.filter((t) => t.context === context);
 }
 
 /**
  * Get templates by worker
  */
-export function getTemplatesByWorker(worker: DigitalWorkerId): MessageTemplate[] {
+export function getTemplatesByWorker(
+  worker: DigitalWorkerId,
+): MessageTemplate[] {
   return ALL_TEMPLATES.filter((t) => t.worker === worker);
 }
 
@@ -450,7 +454,7 @@ export function getTemplateByAttempt(
   attemptNumber: number,
 ): MessageTemplate | undefined {
   return ALL_TEMPLATES.find(
-    (t) => t.context === context && t.attemptNumber === attemptNumber
+    (t) => t.context === context && t.attemptNumber === attemptNumber,
   );
 }
 
@@ -523,16 +527,16 @@ export function createAttemptRecord(
 /**
  * Determine which worker should handle next based on history
  */
-export function determineNextWorker(history: LeadAttemptHistory): DigitalWorkerId {
+export function determineNextWorker(
+  history: LeadAttemptHistory,
+): DigitalWorkerId {
   // If no response after 3+ attempts, switch to CATHY
   if (history.totalAttempts >= 3 && history.status === "active") {
     return "cathy";
   }
 
   // If responded with interest, switch to SABRINA
-  const lastResponse = history.attempts
-    .filter((a) => a.response)
-    .pop();
+  const lastResponse = history.attempts.filter((a) => a.response).pop();
 
   if (lastResponse?.response?.type === "interested") {
     return "sabrina";
@@ -579,7 +583,11 @@ export function getTemplateSummary(template: MessageTemplate): string {
   return `[${template.worker.toUpperCase()}] ${template.name} (Attempt #${template.attemptNumber})`;
 }
 
-console.log("[Message Templates] Library loaded with", ALL_TEMPLATES.length, "templates");
+console.log(
+  "[Message Templates] Library loaded with",
+  ALL_TEMPLATES.length,
+  "templates",
+);
 console.log("  - Initial:", GIANNA_INITIAL_TEMPLATES.length);
 console.log("  - Follow-up:", FOLLOW_UP_TEMPLATES.length);
 console.log("  - Retarget:", RETARGET_TEMPLATES.length);

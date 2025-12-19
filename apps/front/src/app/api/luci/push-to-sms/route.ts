@@ -49,7 +49,13 @@ interface PushToSmsRequest {
   scheduledAt?: string;
   agent?: "gianna" | "sabrina";
   // Campaign context - drives message selection
-  campaignContext?: "initial" | "retarget" | "follow_up" | "nurture" | "instant" | "ghost";
+  campaignContext?:
+    | "initial"
+    | "retarget"
+    | "follow_up"
+    | "nurture"
+    | "instant"
+    | "ghost";
   source?: string;
 }
 

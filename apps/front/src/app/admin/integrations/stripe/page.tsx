@@ -155,7 +155,9 @@ export default function StripeAdminPage() {
       case "trialing":
         return <Badge className="bg-blue-500/10 text-blue-500">Trialing</Badge>;
       case "past_due":
-        return <Badge className="bg-yellow-500/10 text-yellow-500">Past Due</Badge>;
+        return (
+          <Badge className="bg-yellow-500/10 text-yellow-500">Past Due</Badge>
+        );
       case "canceled":
         return <Badge className="bg-red-500/10 text-red-500">Canceled</Badge>;
       default:
@@ -187,8 +189,15 @@ export default function StripeAdminPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={refreshing}
+          >
+            <RefreshCw
+              className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`}
+            />
             Refresh
           </Button>
           {isConfigured ? (
@@ -240,7 +249,9 @@ export default function StripeAdminPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.activeSubscriptions}</div>
+              <div className="text-2xl font-bold">
+                {stats.activeSubscriptions}
+              </div>
               <p className="text-xs text-muted-foreground">Active</p>
             </CardContent>
           </Card>
@@ -260,9 +271,17 @@ export default function StripeAdminPage() {
       )}
 
       {/* Main Tabs */}
-      <Tabs defaultValue={!isConfigured ? "wizard" : hasProducts ? "dashboard" : "wizard"}>
+      <Tabs
+        defaultValue={
+          !isConfigured ? "wizard" : hasProducts ? "dashboard" : "wizard"
+        }
+      >
         <TabsList className="mb-6">
-          <TabsTrigger value="dashboard" className="gap-2" disabled={!isConfigured}>
+          <TabsTrigger
+            value="dashboard"
+            className="gap-2"
+            disabled={!isConfigured}
+          >
             <LayoutDashboard className="h-4 w-4" />
             Dashboard
           </TabsTrigger>
@@ -270,7 +289,11 @@ export default function StripeAdminPage() {
             <Wand2 className="h-4 w-4" />
             Setup Wizard
           </TabsTrigger>
-          <TabsTrigger value="products" className="gap-2" disabled={!isConfigured}>
+          <TabsTrigger
+            value="products"
+            className="gap-2"
+            disabled={!isConfigured}
+          >
             <Package className="h-4 w-4" />
             Products
           </TabsTrigger>
@@ -308,7 +331,9 @@ export default function StripeAdminPage() {
                           <TableRow key={sub.id}>
                             <TableCell>
                               <div>
-                                <p className="font-medium">{sub.customer.name || "—"}</p>
+                                <p className="font-medium">
+                                  {sub.customer.name || "—"}
+                                </p>
                                 <p className="text-sm text-muted-foreground">
                                   {sub.customer.email}
                                 </p>
@@ -317,13 +342,18 @@ export default function StripeAdminPage() {
                             <TableCell>{sub.plan.name}</TableCell>
                             <TableCell>{getStatusBadge(sub.status)}</TableCell>
                             <TableCell>
-                              {formatCurrency(sub.plan.amount)}/{sub.plan.interval}
+                              {formatCurrency(sub.plan.amount)}/
+                              {sub.plan.interval}
                             </TableCell>
                             <TableCell>
                               {sub.cancelAtPeriodEnd ? (
-                                <span className="text-yellow-500">Canceling</span>
+                                <span className="text-yellow-500">
+                                  Canceling
+                                </span>
                               ) : (
-                                new Date(sub.currentPeriodEnd).toLocaleDateString()
+                                new Date(
+                                  sub.currentPeriodEnd,
+                                ).toLocaleDateString()
                               )}
                             </TableCell>
                           </TableRow>
@@ -332,7 +362,8 @@ export default function StripeAdminPage() {
                     </Table>
                   ) : (
                     <div className="text-center py-8 text-muted-foreground">
-                      No subscriptions yet. Share your pricing page to get customers!
+                      No subscriptions yet. Share your pricing page to get
+                      customers!
                     </div>
                   )}
                 </CardContent>
@@ -465,9 +496,7 @@ STRIPE_WEBHOOK_SECRET=whsec_xxxxx`}
             <Card>
               <CardHeader>
                 <CardTitle>Webhook Endpoint</CardTitle>
-                <CardDescription>
-                  Configure in Stripe Dashboard
-                </CardDescription>
+                <CardDescription>Configure in Stripe Dashboard</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>

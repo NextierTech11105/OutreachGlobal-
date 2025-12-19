@@ -25,7 +25,7 @@ export async function GET() {
     if (!db) {
       return NextResponse.json(
         { error: "Database not configured", database: "not_connected" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -42,12 +42,18 @@ export async function GET() {
       campaignAttemptsResult,
       dealsResult,
     ] = await Promise.all([
-      db.select({ count: count() }).from(leads).catch(() => [{ count: 0 }]),
+      db
+        .select({ count: count() })
+        .from(leads)
+        .catch(() => [{ count: 0 }]),
       db
         .select({ count: count() })
         .from(businesses)
         .catch(() => [{ count: 0 }]),
-      db.select({ count: count() }).from(contacts).catch(() => [{ count: 0 }]),
+      db
+        .select({ count: count() })
+        .from(contacts)
+        .catch(() => [{ count: 0 }]),
       db
         .select({ count: count() })
         .from(properties)
@@ -56,17 +62,26 @@ export async function GET() {
         .select({ count: count() })
         .from(smsMessages)
         .catch(() => [{ count: 0 }]),
-      db.select({ count: count() }).from(callLogs).catch(() => [{ count: 0 }]),
+      db
+        .select({ count: count() })
+        .from(callLogs)
+        .catch(() => [{ count: 0 }]),
       db
         .select({ count: count() })
         .from(dataSources)
         .catch(() => [{ count: 0 }]),
-      db.select({ count: count() }).from(buckets).catch(() => [{ count: 0 }]),
+      db
+        .select({ count: count() })
+        .from(buckets)
+        .catch(() => [{ count: 0 }]),
       db
         .select({ count: count() })
         .from(campaignAttempts)
         .catch(() => [{ count: 0 }]),
-      db.select({ count: count() }).from(deals).catch(() => [{ count: 0 }]),
+      db
+        .select({ count: count() })
+        .from(deals)
+        .catch(() => [{ count: 0 }]),
     ]);
 
     // Get recent activity from SMS messages and call logs
@@ -94,7 +109,8 @@ export async function GET() {
 
       recentActivity = recentSms.map((msg) => ({
         id: String(msg.id),
-        type: msg.direction === "inbound" ? "📥 Inbound SMS" : "📤 Outbound SMS",
+        type:
+          msg.direction === "inbound" ? "📥 Inbound SMS" : "📤 Outbound SMS",
         description: `${msg.direction === "inbound" ? "From" : "To"} ${msg.direction === "inbound" ? msg.fromNumber : msg.toNumber} (${msg.status})`,
         time: msg.createdAt.toISOString(),
       }));
@@ -118,7 +134,10 @@ export async function GET() {
         ...recentActivity,
         ...recentCalls.map((call) => ({
           id: String(call.id),
-          type: call.direction === "inbound" ? "📞 Inbound Call" : "📱 Outbound Call",
+          type:
+            call.direction === "inbound"
+              ? "📞 Inbound Call"
+              : "📱 Outbound Call",
           description: `${call.direction === "inbound" ? "From" : "To"} ${call.direction === "inbound" ? call.fromNumber : call.toNumber} (${call.status}, ${call.duration || 0}s)`,
           time: call.createdAt.toISOString(),
         })),
@@ -202,7 +221,7 @@ export async function GET() {
         },
         recentActivity: [],
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

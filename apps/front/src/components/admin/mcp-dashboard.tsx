@@ -122,7 +122,7 @@ export function MCPDashboard() {
 
   const fetchHealthStatus = async () => {
     setServers((prev) =>
-      prev.map((server) => ({ ...server, status: "checking" as const }))
+      prev.map((server) => ({ ...server, status: "checking" as const })),
     );
 
     try {
@@ -175,16 +175,16 @@ export function MCPDashboard() {
             };
           }
           return server;
-        })
+        }),
       );
 
       if (data.overallStatus === "healthy") {
         toast.success(
-          `System healthy: ${data.summary.operational}/${data.summary.total} services operational`
+          `System healthy: ${data.summary.operational}/${data.summary.total} services operational`,
         );
       } else if (data.overallStatus === "degraded") {
         toast.warning(
-          `System degraded: ${data.summary.operational}/${data.summary.total} services operational`
+          `System degraded: ${data.summary.operational}/${data.summary.total} services operational`,
         );
       } else {
         toast.error("System unhealthy - check connections");
@@ -192,7 +192,7 @@ export function MCPDashboard() {
     } catch (error) {
       console.error("Health check failed:", error);
       setServers((prev) =>
-        prev.map((server) => ({ ...server, status: "disconnected" as const }))
+        prev.map((server) => ({ ...server, status: "disconnected" as const })),
       );
       toast.error("Failed to check system health");
     }
@@ -201,8 +201,8 @@ export function MCPDashboard() {
   const testConnection = async (serverId: string) => {
     setServers((prev) =>
       prev.map((s) =>
-        s.id === serverId ? { ...s, status: "checking" as const } : s
-      )
+        s.id === serverId ? { ...s, status: "checking" as const } : s,
+      ),
     );
 
     // Make real health check API call
@@ -228,24 +228,24 @@ export function MCPDashboard() {
         prev.map((s) =>
           s.id === serverId
             ? { ...s, status: isConnected ? "connected" : "disconnected" }
-            : s
-        )
+            : s,
+        ),
       );
 
       if (isConnected) {
         toast.success(
-          `${servers.find((s) => s.id === serverId)?.name} connected`
+          `${servers.find((s) => s.id === serverId)?.name} connected`,
         );
       } else {
         toast.error(
-          `${servers.find((s) => s.id === serverId)?.name} connection failed`
+          `${servers.find((s) => s.id === serverId)?.name} connection failed`,
         );
       }
     } catch (error) {
       setServers((prev) =>
         prev.map((s) =>
-          s.id === serverId ? { ...s, status: "disconnected" as const } : s
-        )
+          s.id === serverId ? { ...s, status: "disconnected" as const } : s,
+        ),
       );
       toast.error(`Failed to test ${serverId}`);
     }

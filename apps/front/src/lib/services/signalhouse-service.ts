@@ -183,9 +183,14 @@ export class SignalHouseService {
           const retryAfter = response.headers.get("retry-after");
           const delayMs = retryAfter
             ? parseInt(retryAfter, 10) * 1000
-            : Math.min(RETRY_CONFIG.baseDelayMs * Math.pow(2, attempt), RETRY_CONFIG.maxDelayMs);
+            : Math.min(
+                RETRY_CONFIG.baseDelayMs * Math.pow(2, attempt),
+                RETRY_CONFIG.maxDelayMs,
+              );
 
-          console.warn(`[SignalHouse] Rate limited (429), retry ${attempt + 1}/${RETRY_CONFIG.maxRetries} after ${delayMs}ms [${corrId}]`);
+          console.warn(
+            `[SignalHouse] Rate limited (429), retry ${attempt + 1}/${RETRY_CONFIG.maxRetries} after ${delayMs}ms [${corrId}]`,
+          );
 
           if (attempt < RETRY_CONFIG.maxRetries) {
             await sleep(delayMs);
@@ -194,9 +199,17 @@ export class SignalHouseService {
         }
 
         // Handle retryable server errors
-        if (RETRY_CONFIG.retryableStatuses.includes(response.status) && attempt < RETRY_CONFIG.maxRetries) {
-          const delayMs = Math.min(RETRY_CONFIG.baseDelayMs * Math.pow(2, attempt), RETRY_CONFIG.maxDelayMs);
-          console.warn(`[SignalHouse] Retryable error ${response.status}, retry ${attempt + 1}/${RETRY_CONFIG.maxRetries} after ${delayMs}ms [${corrId}]`);
+        if (
+          RETRY_CONFIG.retryableStatuses.includes(response.status) &&
+          attempt < RETRY_CONFIG.maxRetries
+        ) {
+          const delayMs = Math.min(
+            RETRY_CONFIG.baseDelayMs * Math.pow(2, attempt),
+            RETRY_CONFIG.maxDelayMs,
+          );
+          console.warn(
+            `[SignalHouse] Retryable error ${response.status}, retry ${attempt + 1}/${RETRY_CONFIG.maxRetries} after ${delayMs}ms [${corrId}]`,
+          );
           await sleep(delayMs);
           continue;
         }
@@ -204,7 +217,8 @@ export class SignalHouseService {
         if (!response.ok) {
           const error = await response.json().catch(() => ({}));
           throw new Error(
-            error.message || `SignalHouse API error: ${response.status} [${corrId}]`,
+            error.message ||
+              `SignalHouse API error: ${response.status} [${corrId}]`,
           );
         }
 
@@ -213,9 +227,17 @@ export class SignalHouseService {
         lastError = error instanceof Error ? error : new Error(String(error));
 
         // Network errors are retryable
-        if (attempt < RETRY_CONFIG.maxRetries && lastError.message.includes("fetch")) {
-          const delayMs = Math.min(RETRY_CONFIG.baseDelayMs * Math.pow(2, attempt), RETRY_CONFIG.maxDelayMs);
-          console.warn(`[SignalHouse] Network error, retry ${attempt + 1}/${RETRY_CONFIG.maxRetries} after ${delayMs}ms [${corrId}]`);
+        if (
+          attempt < RETRY_CONFIG.maxRetries &&
+          lastError.message.includes("fetch")
+        ) {
+          const delayMs = Math.min(
+            RETRY_CONFIG.baseDelayMs * Math.pow(2, attempt),
+            RETRY_CONFIG.maxDelayMs,
+          );
+          console.warn(
+            `[SignalHouse] Network error, retry ${attempt + 1}/${RETRY_CONFIG.maxRetries} after ${delayMs}ms [${corrId}]`,
+          );
           await sleep(delayMs);
           continue;
         }
@@ -224,7 +246,12 @@ export class SignalHouseService {
       }
     }
 
-    throw lastError || new Error(`SignalHouse request failed after ${RETRY_CONFIG.maxRetries} retries [${corrId}]`);
+    throw (
+      lastError ||
+      new Error(
+        `SignalHouse request failed after ${RETRY_CONFIG.maxRetries} retries [${corrId}]`,
+      )
+    );
   }
 
   private formatPhoneNumber(phone: string): string {
@@ -889,12 +916,14 @@ export class SignalHouseService {
   /**
    * Get all sub-groups
    */
-  public async getAllSubGroups(): Promise<Array<{
-    subGroupId: string;
-    name: string;
-    description?: string;
-    createdAt: string;
-  }>> {
+  public async getAllSubGroups(): Promise<
+    Array<{
+      subGroupId: string;
+      name: string;
+      description?: string;
+      createdAt: string;
+    }>
+  > {
     return this.request("/user/subGroup/AllSubGroups");
   }
 
@@ -951,23 +980,29 @@ export class SignalHouseService {
   /**
    * Get sub-group data counts (messages, usage per tenant)
    */
-  public async getSubGroupDataCounts(): Promise<Array<{
-    subGroupId: string;
-    name: string;
-    messageCount: number;
-    phoneNumberCount: number;
-  }>> {
+  public async getSubGroupDataCounts(): Promise<
+    Array<{
+      subGroupId: string;
+      name: string;
+      messageCount: number;
+      phoneNumberCount: number;
+    }>
+  > {
     return this.request("/user/subGroups/data");
   }
 
   /**
    * Search sub-groups by partial name
    */
-  public async searchSubGroups(query: string): Promise<Array<{
-    subGroupId: string;
-    name: string;
-  }>> {
-    return this.request(`/user/subGroups/search?query=${encodeURIComponent(query)}`);
+  public async searchSubGroups(query: string): Promise<
+    Array<{
+      subGroupId: string;
+      name: string;
+    }>
+  > {
+    return this.request(
+      `/user/subGroups/search?query=${encodeURIComponent(query)}`,
+    );
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -1083,7 +1118,11 @@ export class SignalHouseService {
    */
   public async updateLandingPage(
     uniqueId: string,
-    data: { name?: string; content?: string; settings?: Record<string, unknown> },
+    data: {
+      name?: string;
+      content?: string;
+      settings?: Record<string, unknown>;
+    },
   ): Promise<void> {
     await this.request(`/user/landingPage/${uniqueId}`, {
       method: "PATCH",

@@ -15,7 +15,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { businesses, contacts, leads } from "@/lib/db/schema";
-import { sql, eq, and, or, desc, asc, isNotNull, like, ilike } from "drizzle-orm";
+import {
+  sql,
+  eq,
+  and,
+  or,
+  desc,
+  asc,
+  isNotNull,
+  like,
+  ilike,
+} from "drizzle-orm";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -113,7 +123,7 @@ export async function GET(request: NextRequest) {
           .select({ count: sql<number>`count(*)` })
           .from(businesses)
           .where(
-            or(isNotNull(businesses.phone), isNotNull(businesses.ownerPhone))
+            or(isNotNull(businesses.phone), isNotNull(businesses.ownerPhone)),
           );
 
         const [contactsWithPhone] = await db
@@ -202,7 +212,7 @@ export async function GET(request: NextRequest) {
                 search
                   ? or(
                       ilike(businesses.companyName, `%${search}%`),
-                      ilike(businesses.ownerName, `%${search}%`)
+                      ilike(businesses.ownerName, `%${search}%`),
                     )
                   : undefined,
                 state ? eq(businesses.state, state) : undefined,
@@ -210,21 +220,21 @@ export async function GET(request: NextRequest) {
                 hasPhone === "true"
                   ? or(
                       isNotNull(businesses.phone),
-                      isNotNull(businesses.ownerPhone)
+                      isNotNull(businesses.ownerPhone),
                     )
                   : undefined,
                 hasEmail === "true"
                   ? or(
                       isNotNull(businesses.email),
-                      isNotNull(businesses.ownerEmail)
+                      isNotNull(businesses.ownerEmail),
                     )
-                  : undefined
-              )
+                  : undefined,
+              ),
             )
             .orderBy(
               sortDir === "desc"
                 ? desc(businesses.createdAt)
-                : asc(businesses.createdAt)
+                : asc(businesses.createdAt),
             )
             .limit(limit)
             .offset(offset);
@@ -242,7 +252,8 @@ export async function GET(request: NextRequest) {
               name:
                 biz.ownerName ||
                 `${biz.ownerFirstName || ""} ${biz.ownerLastName || ""}`.trim() ||
-                biz.companyName || "Unknown",
+                biz.companyName ||
+                "Unknown",
               firstName: biz.ownerFirstName || undefined,
               lastName: biz.ownerLastName || undefined,
               company: biz.companyName || undefined,
@@ -299,17 +310,17 @@ export async function GET(request: NextRequest) {
                   ? or(
                       ilike(leads.firstName, `%${search}%`),
                       ilike(leads.lastName, `%${search}%`),
-                      ilike(leads.company, `%${search}%`)
+                      ilike(leads.company, `%${search}%`),
                     )
                   : undefined,
                 state ? eq(leads.state, state) : undefined,
                 status ? eq(leads.status, status) : undefined,
                 hasPhone === "true" ? isNotNull(leads.phone) : undefined,
-                hasEmail === "true" ? isNotNull(leads.email) : undefined
-              )
+                hasEmail === "true" ? isNotNull(leads.email) : undefined,
+              ),
             )
             .orderBy(
-              sortDir === "desc" ? desc(leads.createdAt) : asc(leads.createdAt)
+              sortDir === "desc" ? desc(leads.createdAt) : asc(leads.createdAt),
             )
             .limit(limit)
             .offset(offset);
@@ -429,14 +440,14 @@ export async function GET(request: NextRequest) {
       default:
         return NextResponse.json(
           { error: "Invalid action. Use: stats, query, campaign-ready" },
-          { status: 400 }
+          { status: 400 },
         );
     }
   } catch (error) {
     console.error("[Unified Datalake] Error:", error);
     return NextResponse.json(
       { error: "Query failed", details: String(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -491,9 +502,7 @@ function generateTags(biz: any): string[] {
   return tags;
 }
 
-function getSuggestedWorker(
-  status: string
-): "gianna" | "cathy" | "sabrina" {
+function getSuggestedWorker(status: string): "gianna" | "cathy" | "sabrina" {
   switch (status) {
     case "new":
     case "pending":

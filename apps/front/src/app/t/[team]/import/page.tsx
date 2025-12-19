@@ -2,10 +2,22 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function ImportPage() {
@@ -58,7 +70,8 @@ export default function ImportPage() {
         <CardHeader>
           <CardTitle>Import USBizData CSV</CardTitle>
           <CardDescription>
-            Upload CSV files from USBizData to import businesses or contacts directly into your database
+            Upload CSV files from USBizData to import businesses or contacts
+            directly into your database
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -74,7 +87,8 @@ export default function ImportPage() {
             />
             {file && (
               <p className="text-sm text-muted-foreground">
-                Selected: {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                Selected: {file.name} ({(file.size / 1024 / 1024).toFixed(2)}{" "}
+                MB)
               </p>
             )}
           </div>
@@ -82,7 +96,11 @@ export default function ImportPage() {
           {/* Import Type */}
           <div className="space-y-2">
             <Label htmlFor="type">Import Type</Label>
-            <Select value={importType} onValueChange={setImportType} disabled={uploading}>
+            <Select
+              value={importType}
+              onValueChange={setImportType}
+              disabled={uploading}
+            >
               <SelectTrigger id="type">
                 <SelectValue />
               </SelectTrigger>
@@ -136,23 +154,33 @@ export default function ImportPage() {
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <p className="text-muted-foreground">Total Rows:</p>
-                      <p className="font-mono">{result.stats.totalRows.toLocaleString()}</p>
+                      <p className="font-mono">
+                        {result.stats.totalRows.toLocaleString()}
+                      </p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Imported:</p>
-                      <p className="font-mono text-green-600">{result.stats.inserted.toLocaleString()}</p>
+                      <p className="font-mono text-green-600">
+                        {result.stats.inserted.toLocaleString()}
+                      </p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Errors:</p>
-                      <p className="font-mono text-red-600">{result.stats.errors.toLocaleString()}</p>
+                      <p className="font-mono text-red-600">
+                        {result.stats.errors.toLocaleString()}
+                      </p>
                     </div>
                   </div>
                   {result.errors && (
                     <div className="mt-4">
-                      <p className="text-sm text-muted-foreground">First few errors:</p>
+                      <p className="text-sm text-muted-foreground">
+                        First few errors:
+                      </p>
                       <ul className="list-disc list-inside text-xs font-mono space-y-1 mt-1">
                         {result.errors.map((err: string, i: number) => (
-                          <li key={i} className="text-red-600">{err}</li>
+                          <li key={i} className="text-red-600">
+                            {err}
+                          </li>
                         ))}
                       </ul>
                     </div>
@@ -190,7 +218,8 @@ export default function ImportPage() {
               </div>
             </div>
             <p className="text-xs text-muted-foreground mt-2">
-              * Required field. Field names are case-insensitive and support multiple variations.
+              * Required field. Field names are case-insensitive and support
+              multiple variations.
             </p>
           </div>
         </CardContent>

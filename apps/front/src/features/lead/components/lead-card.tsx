@@ -37,7 +37,9 @@ export function LeadCard({ lead }: LeadCardProps) {
                 {lead.status || "New"}
               </Badge>
               <span className="text-xs text-muted-foreground">
-                {formatDistanceToNow(new Date(lead.createdAt), { addSuffix: true })}
+                {formatDistanceToNow(new Date(lead.createdAt), {
+                  addSuffix: true,
+                })}
               </span>
             </div>
           </div>

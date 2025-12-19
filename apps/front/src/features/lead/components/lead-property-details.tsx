@@ -26,10 +26,20 @@ export function LeadPropertyDetails({ lead }: Props) {
     { label: "Year Built", value: property.yearBuilt },
     { label: "Square Feet", value: property.buildingSquareFeet },
     { label: "Lot Size", value: property.lotSquareFeet },
-    { label: "Assessed Value", value: property.assessedValue ? `$${property.assessedValue.toLocaleString()}` : null },
-    { label: "Estimated Value", value: property.estimatedValue ? `$${property.estimatedValue.toLocaleString()}` : null },
+    {
+      label: "Assessed Value",
+      value: property.assessedValue
+        ? `$${property.assessedValue.toLocaleString()}`
+        : null,
+    },
+    {
+      label: "Estimated Value",
+      value: property.estimatedValue
+        ? `$${property.estimatedValue.toLocaleString()}`
+        : null,
+    },
     { label: "Owner Occupied", value: property.ownerOccupied ? "Yes" : "No" },
-  ].filter(d => d.value);
+  ].filter((d) => d.value);
 
   return (
     <div className="grid grid-cols-2 gap-4">

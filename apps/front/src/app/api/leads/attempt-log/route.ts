@@ -77,7 +77,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (!body.leadId || !body.campaignContext || !body.channel) {
       return NextResponse.json(
         { error: "leadId, campaignContext, and channel are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -113,12 +113,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         autoRetargetEligible: body.autoRetargetEligible ?? false,
         humanApprovalRequired: body.humanApprovalRequired ?? false,
         metadata: body.metadata,
-        sentAt: body.status === "sent" || body.status === "delivered" ? new Date() : undefined,
+        sentAt:
+          body.status === "sent" || body.status === "delivered"
+            ? new Date()
+            : undefined,
         deliveredAt: body.status === "delivered" ? new Date() : undefined,
       })
       .returning();
 
-    console.log(`[Attempt Log] ${body.campaignContext} #${body.attemptNumber || attemptCount + 1} for lead ${body.leadId}: ${body.status}`);
+    console.log(
+      `[Attempt Log] ${body.campaignContext} #${body.attemptNumber || attemptCount + 1} for lead ${body.leadId}: ${body.status}`,
+    );
 
     return NextResponse.json({
       success: true,
@@ -138,8 +143,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   } catch (error) {
     console.error("[Attempt Log] Error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to log attempt" },
-      { status: 500 }
+      {
+        error: error instanceof Error ? error.message : "Failed to log attempt",
+      },
+      { status: 500 },
     );
   }
 }
@@ -200,11 +207,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     for (const attempt of attempts) {
       // By context
-      stats.byContext[attempt.campaignContext] = (stats.byContext[attempt.campaignContext] || 0) + 1;
+      stats.byContext[attempt.campaignContext] =
+        (stats.byContext[attempt.campaignContext] || 0) + 1;
       // By status
-      stats.byStatus[attempt.status] = (stats.byStatus[attempt.status] || 0) + 1;
+      stats.byStatus[attempt.status] =
+        (stats.byStatus[attempt.status] || 0) + 1;
       // By channel
-      stats.byChannel[attempt.channel] = (stats.byChannel[attempt.channel] || 0) + 1;
+      stats.byChannel[attempt.channel] =
+        (stats.byChannel[attempt.channel] || 0) + 1;
       // Contact made
       if (attempt.contactMade) stats.contactMadeCount++;
       // Response received
@@ -225,8 +235,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   } catch (error) {
     console.error("[Attempt Log] GET Error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to fetch attempts" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to fetch attempts",
+      },
+      { status: 500 },
     );
   }
 }
@@ -255,7 +268,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     if (!attemptId) {
       return NextResponse.json(
         { error: "attemptId is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -265,16 +278,21 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     };
 
     if (updates.status) updateData.status = updates.status;
-    if (updates.contactMade !== undefined) updateData.contactMade = updates.contactMade;
+    if (updates.contactMade !== undefined)
+      updateData.contactMade = updates.contactMade;
     if (updates.responseText) {
       updateData.responseText = updates.responseText;
       updateData.responseReceived = true;
       updateData.responseReceivedAt = new Date();
     }
-    if (updates.responseClassification) updateData.responseClassification = updates.responseClassification;
-    if (updates.providerStatus) updateData.providerStatus = updates.providerStatus;
-    if (updates.providerMessageId) updateData.providerMessageId = updates.providerMessageId;
-    if (updates.deliveredAt) updateData.deliveredAt = new Date(updates.deliveredAt);
+    if (updates.responseClassification)
+      updateData.responseClassification = updates.responseClassification;
+    if (updates.providerStatus)
+      updateData.providerStatus = updates.providerStatus;
+    if (updates.providerMessageId)
+      updateData.providerMessageId = updates.providerMessageId;
+    if (updates.deliveredAt)
+      updateData.deliveredAt = new Date(updates.deliveredAt);
     if (updates.humanApprovedBy) {
       updateData.humanApprovedBy = updates.humanApprovedBy;
       updateData.humanApprovedAt = new Date();
@@ -287,13 +305,12 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       .returning();
 
     if (!updated) {
-      return NextResponse.json(
-        { error: "Attempt not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Attempt not found" }, { status: 404 });
     }
 
-    console.log(`[Attempt Log] Updated attempt ${attemptId}: ${JSON.stringify(updates)}`);
+    console.log(
+      `[Attempt Log] Updated attempt ${attemptId}: ${JSON.stringify(updates)}`,
+    );
 
     return NextResponse.json({
       success: true,
@@ -307,8 +324,11 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
   } catch (error) {
     console.error("[Attempt Log] PATCH Error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to update attempt" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to update attempt",
+      },
+      { status: 500 },
     );
   }
 }

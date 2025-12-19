@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { smsMessages, callLogs, campaignAttempts, leads } from "@/lib/db/schema";
+import {
+  smsMessages,
+  callLogs,
+  campaignAttempts,
+  leads,
+} from "@/lib/db/schema";
 import { desc, gte, and, eq, sql, count } from "drizzle-orm";
 
 /**
@@ -14,7 +19,7 @@ export async function GET() {
     if (!db) {
       return NextResponse.json(
         { error: "Database not configured" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -38,8 +43,16 @@ export async function GET() {
 
     // Build byTouch object from real data
     const byTouch: Record<number, number> = {
-      1: 0, 2: 0, 3: 0, 4: 0, 5: 0,
-      6: 0, 7: 0, 8: 0, 9: 0, 10: 0,
+      1: 0,
+      2: 0,
+      3: 0,
+      4: 0,
+      5: 0,
+      6: 0,
+      7: 0,
+      8: 0,
+      9: 0,
+      10: 0,
     };
 
     attemptsByTouch.forEach((row) => {
@@ -59,8 +72,8 @@ export async function GET() {
       .where(
         and(
           gte(campaignAttempts.createdAt, sevenDaysAgo),
-          eq(campaignAttempts.attemptNumber, 10)
-        )
+          eq(campaignAttempts.attemptNumber, 10),
+        ),
       )
       .catch(() => [{ count: 0 }]);
     const completedThisWeek = Number(completedResult[0]?.count) || 0;
@@ -72,22 +85,24 @@ export async function GET() {
       .where(
         and(
           gte(campaignAttempts.createdAt, sevenDaysAgo),
-          eq(campaignAttempts.responseReceived, true)
-        )
+          eq(campaignAttempts.responseReceived, true),
+        ),
       )
       .catch(() => [{ count: 0 }]);
     const convertedThisWeek = Number(convertedResult[0]?.count) || 0;
 
     // Calculate response rate
     const totalAttempts = totalActive || 1;
-    const responseRate = totalActive > 0
-      ? Math.round((convertedThisWeek / totalAttempts) * 1000) / 10
-      : 0;
+    const responseRate =
+      totalActive > 0
+        ? Math.round((convertedThisWeek / totalAttempts) * 1000) / 10
+        : 0;
 
     // Calculate average touches to response
-    const avgTouchesToResponse = convertedThisWeek > 0
-      ? Math.round(totalActive / convertedThisWeek * 10) / 10
-      : 0;
+    const avgTouchesToResponse =
+      convertedThisWeek > 0
+        ? Math.round((totalActive / convertedThisWeek) * 10) / 10
+        : 0;
 
     // Get opt-out count
     const optOutResult = await db
@@ -96,9 +111,8 @@ export async function GET() {
       .where(eq(leads.optedOut, true))
       .catch(() => [{ count: 0 }]);
     const optOutCount = Number(optOutResult[0]?.count) || 0;
-    const optOutRate = totalActive > 0
-      ? Math.round((optOutCount / totalActive) * 1000) / 10
-      : 0;
+    const optOutRate =
+      totalActive > 0 ? Math.round((optOutCount / totalActive) * 1000) / 10 : 0;
 
     // Build queue from pending attempts
     const pendingAttempts = await db
@@ -115,14 +129,25 @@ export async function GET() {
       .catch(() => []);
 
     const queue = pendingAttempts.map((row) => {
-      const scheduledDate = row.nextScheduled ? new Date(row.nextScheduled) : new Date();
+      const scheduledDate = row.nextScheduled
+        ? new Date(row.nextScheduled)
+        : new Date();
       const isToday = scheduledDate.toDateString() === now.toDateString();
-      const isTomorrow = scheduledDate.toDateString() === new Date(now.getTime() + 86400000).toDateString();
+      const isTomorrow =
+        scheduledDate.toDateString() ===
+        new Date(now.getTime() + 86400000).toDateString();
 
-      let nextBatch = scheduledDate.toLocaleDateString("en-US", { weekday: "long" });
+      let nextBatch = scheduledDate.toLocaleDateString("en-US", {
+        weekday: "long",
+      });
       if (isToday) nextBatch = "Today";
       if (isTomorrow) nextBatch = "Tomorrow";
-      nextBatch += " " + scheduledDate.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+      nextBatch +=
+        " " +
+        scheduledDate.toLocaleTimeString("en-US", {
+          hour: "numeric",
+          minute: "2-digit",
+        });
 
       return {
         touch: row.attemptNumber || 1,
@@ -151,10 +176,22 @@ export async function GET() {
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : "Failed to fetch pipeline",
+        error:
+          error instanceof Error ? error.message : "Failed to fetch pipeline",
         stats: {
           totalActive: 0,
-          byTouch: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0 },
+          byTouch: {
+            1: 0,
+            2: 0,
+            3: 0,
+            4: 0,
+            5: 0,
+            6: 0,
+            7: 0,
+            8: 0,
+            9: 0,
+            10: 0,
+          },
           completedThisWeek: 0,
           convertedThisWeek: 0,
           responseRate: 0,
@@ -163,7 +200,7 @@ export async function GET() {
         },
         queue: [],
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -1,10 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import {
-  leads,
-  smsMessages,
-  campaignAttempts,
-} from "@/lib/db/schema";
+import { leads, smsMessages, campaignAttempts } from "@/lib/db/schema";
 import { count, eq, sql, and, or, gte, isNull, desc } from "drizzle-orm";
 
 /**
@@ -21,7 +17,7 @@ export async function GET() {
     if (!db) {
       return NextResponse.json(
         { error: "Database not configured", database: "not_connected" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -34,8 +30,8 @@ export async function GET() {
           eq(campaignAttempts.campaignContext, "follow_up"),
           eq(campaignAttempts.campaignContext, "retarget"),
           eq(campaignAttempts.campaignContext, "nurture"),
-          eq(campaignAttempts.campaignContext, "ghost")
-        )
+          eq(campaignAttempts.campaignContext, "ghost"),
+        ),
       )
       .catch(() => [{ count: 0 }]);
 
@@ -49,10 +45,10 @@ export async function GET() {
             eq(campaignAttempts.campaignContext, "follow_up"),
             eq(campaignAttempts.campaignContext, "retarget"),
             eq(campaignAttempts.campaignContext, "nurture"),
-            eq(campaignAttempts.campaignContext, "ghost")
+            eq(campaignAttempts.campaignContext, "ghost"),
           ),
-          eq(campaignAttempts.responseReceived, true)
-        )
+          eq(campaignAttempts.responseReceived, true),
+        ),
       )
       .catch(() => [{ count: 0 }]);
 
@@ -65,11 +61,8 @@ export async function GET() {
       .where(
         and(
           eq(leads.status, "contacted"),
-          or(
-            isNull(leads.updatedAt),
-            sql`${leads.updatedAt} < ${oneDayAgo}`
-          )
-        )
+          or(isNull(leads.updatedAt), sql`${leads.updatedAt} < ${oneDayAgo}`),
+        ),
       )
       .catch(() => [{ count: 0 }]);
 
@@ -86,8 +79,8 @@ export async function GET() {
           eq(campaignAttempts.campaignContext, "follow_up"),
           eq(campaignAttempts.campaignContext, "retarget"),
           eq(campaignAttempts.campaignContext, "nurture"),
-          eq(campaignAttempts.campaignContext, "ghost")
-        )
+          eq(campaignAttempts.campaignContext, "ghost"),
+        ),
       )
       .groupBy(campaignAttempts.campaignContext)
       .catch(() => []);
@@ -108,8 +101,8 @@ export async function GET() {
           eq(campaignAttempts.campaignContext, "follow_up"),
           eq(campaignAttempts.campaignContext, "retarget"),
           eq(campaignAttempts.campaignContext, "nurture"),
-          eq(campaignAttempts.campaignContext, "ghost")
-        )
+          eq(campaignAttempts.campaignContext, "ghost"),
+        ),
       )
       .orderBy(desc(campaignAttempts.createdAt))
       .limit(10)
@@ -128,10 +121,10 @@ export async function GET() {
             eq(campaignAttempts.campaignContext, "follow_up"),
             eq(campaignAttempts.campaignContext, "retarget"),
             eq(campaignAttempts.campaignContext, "nurture"),
-            eq(campaignAttempts.campaignContext, "ghost")
+            eq(campaignAttempts.campaignContext, "ghost"),
           ),
-          gte(campaignAttempts.createdAt, todayStart)
-        )
+          gte(campaignAttempts.createdAt, todayStart),
+        ),
       )
       .catch(() => [{ count: 0 }]);
 
@@ -140,18 +133,22 @@ export async function GET() {
     const totalResponses = Number(nudgeResponsesResult[0]?.count || 0);
     const leadsInQueue = Number(leadsInQueueResult[0]?.count || 0);
     const todayNudges = Number(todayNudgesResult[0]?.count || 0);
-    const responseRate = totalNudgesSent > 0
-      ? ((totalResponses / totalNudgesSent) * 100).toFixed(1)
-      : "0.0";
+    const responseRate =
+      totalNudgesSent > 0
+        ? ((totalResponses / totalNudgesSent) * 100).toFixed(1)
+        : "0.0";
 
     // Build sequence stats from context data
     const sequenceStats = contextStatsResult.map((stat) => ({
       context: stat.context,
       nudgesSent: Number(stat.total || 0),
       responses: Number(stat.responses || 0),
-      responseRate: stat.total > 0
-        ? ((Number(stat.responses || 0) / Number(stat.total)) * 100).toFixed(1)
-        : "0.0",
+      responseRate:
+        stat.total > 0
+          ? ((Number(stat.responses || 0) / Number(stat.total)) * 100).toFixed(
+              1,
+            )
+          : "0.0",
     }));
 
     return NextResponse.json({
@@ -187,7 +184,10 @@ export async function GET() {
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : "Failed to fetch Cathy stats",
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to fetch Cathy stats",
         database: "error",
         stats: {
           leadsInQueue: 0,
@@ -200,7 +200,7 @@ export async function GET() {
         },
         recentActivity: [],
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

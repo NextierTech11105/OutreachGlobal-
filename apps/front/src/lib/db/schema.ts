@@ -1423,18 +1423,28 @@ export const campaignAttempts = pgTable(
   (table) => ({
     leadIdIdx: index("campaign_attempts_lead_id_idx").on(table.leadId),
     teamIdIdx: index("campaign_attempts_team_id_idx").on(table.teamId),
-    campaignContextIdx: index("campaign_attempts_context_idx").on(table.campaignContext),
+    campaignContextIdx: index("campaign_attempts_context_idx").on(
+      table.campaignContext,
+    ),
     statusIdx: index("campaign_attempts_status_idx").on(table.status),
     channelIdx: index("campaign_attempts_channel_idx").on(table.channel),
-    campaignIdIdx: index("campaign_attempts_campaign_id_idx").on(table.campaignId),
+    campaignIdIdx: index("campaign_attempts_campaign_id_idx").on(
+      table.campaignId,
+    ),
     createdAtIdx: index("campaign_attempts_created_at_idx").on(table.createdAt),
   }),
 );
 
 // Campaign Attempts Relations
-export const campaignAttemptsRelations = relations(campaignAttempts, ({ one }) => ({
-  lead: one(leads, { fields: [campaignAttempts.leadId], references: [leads.id] }),
-}));
+export const campaignAttemptsRelations = relations(
+  campaignAttempts,
+  ({ one }) => ({
+    lead: one(leads, {
+      fields: [campaignAttempts.leadId],
+      references: [leads.id],
+    }),
+  }),
+);
 
 // Type exports
 export type SmsMessage = typeof smsMessages.$inferSelect;

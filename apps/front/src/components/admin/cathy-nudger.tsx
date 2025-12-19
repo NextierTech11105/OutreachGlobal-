@@ -115,7 +115,7 @@ export function CathyNudger() {
                 };
                 const context = contextMap[seq.id];
                 const apiSeq = data.stats.sequenceStats.find(
-                  (s: { context: string }) => s.context === context
+                  (s: { context: string }) => s.context === context,
                 );
 
                 if (apiSeq) {
@@ -127,7 +127,7 @@ export function CathyNudger() {
                   };
                 }
                 return seq;
-              })
+              }),
             );
           }
         }
@@ -262,10 +262,18 @@ export function CathyNudger() {
   };
 
   // Stats - use real API data when available, fall back to computed values
-  const totalInQueue = apiStats?.leadsInQueue ?? sequences.reduce((sum, s) => sum + s.leadsInQueue, 0);
-  const totalNudgesSent = apiStats?.totalNudgesSent ?? sequences.reduce((sum, s) => sum + s.nudgesSent, 0);
-  const totalResponses = apiStats?.totalResponses ?? sequences.reduce((sum, s) => sum + s.responses, 0);
-  const avgResponseRate = apiStats?.responseRate ?? (totalNudgesSent > 0 ? (totalResponses / totalNudgesSent) * 100 : 0);
+  const totalInQueue =
+    apiStats?.leadsInQueue ??
+    sequences.reduce((sum, s) => sum + s.leadsInQueue, 0);
+  const totalNudgesSent =
+    apiStats?.totalNudgesSent ??
+    sequences.reduce((sum, s) => sum + s.nudgesSent, 0);
+  const totalResponses =
+    apiStats?.totalResponses ??
+    sequences.reduce((sum, s) => sum + s.responses, 0);
+  const avgResponseRate =
+    apiStats?.responseRate ??
+    (totalNudgesSent > 0 ? (totalResponses / totalNudgesSent) * 100 : 0);
 
   return (
     <div className="space-y-6">

@@ -156,11 +156,7 @@ export function AiSdrForm({ sdr }: AiSdrFormProps) {
       </Card>
 
       <div className="flex justify-end gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => router.back()}
-        >
+        <Button type="button" variant="outline" onClick={() => router.back()}>
           Cancel
         </Button>
         <Button type="submit" disabled={loading}>

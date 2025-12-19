@@ -45,7 +45,8 @@ export const DEFAULT_FAVORITE_GROUPS: FavoriteGroup[] = [
   {
     id: "outreachglobal-white-label",
     name: "OutreachGlobal - White Label Prospects",
-    description: "Consultants & agencies who can white-label OutreachGlobal to their clients | Sell TO these businesses",
+    description:
+      "Consultants & agencies who can white-label OutreachGlobal to their clients | Sell TO these businesses",
     color: "#EC4899",
     icon: "briefcase",
     bucketIds: [
@@ -76,7 +77,8 @@ export const DEFAULT_FAVORITE_GROUPS: FavoriteGroup[] = [
   {
     id: "nextier-re-datalake",
     name: "Nextier - RE Agents & Brokers",
-    description: "Real estate agents & brokers (commercial + residential) | Sell Nextier property datalake TO these businesses",
+    description:
+      "Real estate agents & brokers (commercial + residential) | Sell Nextier property datalake TO these businesses",
     color: "#10B981",
     icon: "building",
     bucketIds: [
@@ -98,7 +100,8 @@ export const DEFAULT_FAVORITE_GROUPS: FavoriteGroup[] = [
   {
     id: "nextier-property-owners",
     name: "Nextier - Property Owners & Landlords",
-    description: "Commercial & residential property owners for Nextier datalake enrichment | Property-associated businesses",
+    description:
+      "Commercial & residential property owners for Nextier datalake enrichment | Property-associated businesses",
     color: "#059669",
     icon: "home",
     bucketIds: [
@@ -128,7 +131,8 @@ export const DEFAULT_FAVORITE_GROUPS: FavoriteGroup[] = [
   {
     id: "ecbb-deal-sourcing",
     name: "ECBB - Deal Sourcing (Seller Leads)",
-    description: "Source businesses AS seller leads for East Coast Business Brokers | Revenue: $500K-$10M | NY, NJ, FL, CT",
+    description:
+      "Source businesses AS seller leads for East Coast Business Brokers | Revenue: $500K-$10M | NY, NJ, FL, CT",
     color: "#14B8A6",
     icon: "handshake",
     bucketIds: [
@@ -170,7 +174,8 @@ export const DEFAULT_FAVORITE_GROUPS: FavoriteGroup[] = [
   {
     id: "ecbb-deal-origination",
     name: "ECBB - Deal Origination (Buyers & Capital)",
-    description: "REITs, PE firms, family offices for deal origination | Potential BUYERS of businesses",
+    description:
+      "REITs, PE firms, family offices for deal origination | Potential BUYERS of businesses",
     color: "#8B5CF6",
     icon: "dollar-sign",
     bucketIds: [
@@ -196,7 +201,8 @@ export const DEFAULT_FAVORITE_GROUPS: FavoriteGroup[] = [
   {
     id: "high-value-targets",
     name: "High-Value Acquisition Targets",
-    description: "Businesses commonly acquired by PE/strategic buyers - use for ECBB deal sourcing priority",
+    description:
+      "Businesses commonly acquired by PE/strategic buyers - use for ECBB deal sourcing priority",
     color: "#F59E0B",
     icon: "star",
     bucketIds: [
@@ -220,7 +226,8 @@ export const CONSTRUCTION_BUCKETS: SectorBucket[] = [
     sector: "construction-contractors",
     subsector: "general-contractors",
     sicCodes: ["1521", "1522"],
-    storagePath: "datalake/business/ny/sectors/construction-contractors/general-contractors/",
+    storagePath:
+      "datalake/business/ny/sectors/construction-contractors/general-contractors/",
     description: "Residential & commercial general contractors",
     state: "NY",
   },
@@ -230,7 +237,8 @@ export const CONSTRUCTION_BUCKETS: SectorBucket[] = [
     sector: "construction-contractors",
     subsector: "commercial-builders",
     sicCodes: ["1541", "1542"],
-    storagePath: "datalake/business/ny/sectors/construction-contractors/commercial-builders/",
+    storagePath:
+      "datalake/business/ny/sectors/construction-contractors/commercial-builders/",
     description: "Commercial & industrial building contractors",
     state: "NY",
   },
@@ -240,7 +248,8 @@ export const CONSTRUCTION_BUCKETS: SectorBucket[] = [
     sector: "construction-contractors",
     subsector: "plumbers",
     sicCodes: ["1711"],
-    storagePath: "datalake/business/ny/sectors/construction-contractors/plumbers/",
+    storagePath:
+      "datalake/business/ny/sectors/construction-contractors/plumbers/",
     description: "Plumbing, Heating & Air Conditioning contractors (SIC 1711)",
     state: "NY",
   },
@@ -260,7 +269,8 @@ export const CONSTRUCTION_BUCKETS: SectorBucket[] = [
     sector: "construction-contractors",
     subsector: "electricians",
     sicCodes: ["1731"],
-    storagePath: "datalake/business/ny/sectors/construction-contractors/electricians/",
+    storagePath:
+      "datalake/business/ny/sectors/construction-contractors/electricians/",
     description: "Electrical contractors (SIC 1731)",
     state: "NY",
   },
@@ -270,7 +280,8 @@ export const CONSTRUCTION_BUCKETS: SectorBucket[] = [
     sector: "construction-contractors",
     subsector: "roofers",
     sicCodes: ["1761"],
-    storagePath: "datalake/business/ny/sectors/construction-contractors/roofers/",
+    storagePath:
+      "datalake/business/ny/sectors/construction-contractors/roofers/",
     description: "Roofing contractors (SIC 1761)",
     state: "NY",
   },
@@ -280,7 +291,8 @@ export const CONSTRUCTION_BUCKETS: SectorBucket[] = [
     sector: "construction-contractors",
     subsector: "painters",
     sicCodes: ["1721"],
-    storagePath: "datalake/business/ny/sectors/construction-contractors/painters/",
+    storagePath:
+      "datalake/business/ny/sectors/construction-contractors/painters/",
     description: "Painting contractors (SIC 1721)",
     state: "NY",
   },
@@ -290,7 +302,8 @@ export const CONSTRUCTION_BUCKETS: SectorBucket[] = [
     sector: "construction-contractors",
     subsector: "carpenters",
     sicCodes: ["1751"],
-    storagePath: "datalake/business/ny/sectors/construction-contractors/carpenters/",
+    storagePath:
+      "datalake/business/ny/sectors/construction-contractors/carpenters/",
     description: "Carpentry contractors (SIC 1751)",
     state: "NY",
   },
@@ -300,7 +313,8 @@ export const CONSTRUCTION_BUCKETS: SectorBucket[] = [
     sector: "construction-contractors",
     subsector: "masonry",
     sicCodes: ["1741"],
-    storagePath: "datalake/business/ny/sectors/construction-contractors/masonry/",
+    storagePath:
+      "datalake/business/ny/sectors/construction-contractors/masonry/",
     description: "Masonry contractors (SIC 1741)",
     state: "NY",
   },
@@ -310,7 +324,8 @@ export const CONSTRUCTION_BUCKETS: SectorBucket[] = [
     sector: "construction-contractors",
     subsector: "landscaping",
     sicCodes: ["0782"],
-    storagePath: "datalake/business/ny/sectors/construction-contractors/landscaping/",
+    storagePath:
+      "datalake/business/ny/sectors/construction-contractors/landscaping/",
     description: "Landscaping services (SIC 0782)",
     state: "NY",
   },
@@ -324,7 +339,8 @@ export const TRANSPORTATION_BUCKETS: SectorBucket[] = [
     sector: "transportation-logistics",
     subsector: "trucking",
     sicCodes: ["4212", "4213", "4214"],
-    storagePath: "datalake/business/ny/sectors/transportation-logistics/trucking/",
+    storagePath:
+      "datalake/business/ny/sectors/transportation-logistics/trucking/",
     description: "Trucking & freight companies",
     state: "NY",
   },
@@ -334,7 +350,8 @@ export const TRANSPORTATION_BUCKETS: SectorBucket[] = [
     sector: "transportation-logistics",
     subsector: "moving",
     sicCodes: ["4212", "4214"],
-    storagePath: "datalake/business/ny/sectors/transportation-logistics/moving/",
+    storagePath:
+      "datalake/business/ny/sectors/transportation-logistics/moving/",
     description: "Moving & storage companies",
     state: "NY",
   },
@@ -344,7 +361,8 @@ export const TRANSPORTATION_BUCKETS: SectorBucket[] = [
     sector: "transportation-logistics",
     subsector: "warehousing",
     sicCodes: ["4225", "4226"],
-    storagePath: "datalake/business/ny/sectors/transportation-logistics/warehousing/",
+    storagePath:
+      "datalake/business/ny/sectors/transportation-logistics/warehousing/",
     description: "Warehousing & storage facilities",
     state: "NY",
   },
@@ -354,7 +372,8 @@ export const TRANSPORTATION_BUCKETS: SectorBucket[] = [
     sector: "transportation-logistics",
     subsector: "freight",
     sicCodes: ["4731"],
-    storagePath: "datalake/business/ny/sectors/transportation-logistics/freight/",
+    storagePath:
+      "datalake/business/ny/sectors/transportation-logistics/freight/",
     description: "Freight forwarding & logistics",
     state: "NY",
   },
@@ -364,7 +383,8 @@ export const TRANSPORTATION_BUCKETS: SectorBucket[] = [
     sector: "transportation-logistics",
     subsector: "courier",
     sicCodes: ["4215"],
-    storagePath: "datalake/business/ny/sectors/transportation-logistics/courier/",
+    storagePath:
+      "datalake/business/ny/sectors/transportation-logistics/courier/",
     description: "Courier & delivery services",
     state: "NY",
   },
@@ -374,7 +394,8 @@ export const TRANSPORTATION_BUCKETS: SectorBucket[] = [
     sector: "transportation-logistics",
     subsector: "taxis-limo",
     sicCodes: ["4121"],
-    storagePath: "datalake/business/ny/sectors/transportation-logistics/taxis-limo/",
+    storagePath:
+      "datalake/business/ny/sectors/transportation-logistics/taxis-limo/",
     description: "Taxi & limousine services",
     state: "NY",
   },
@@ -556,7 +577,8 @@ export const PROFESSIONAL_BUCKETS: SectorBucket[] = [
     sector: "professional-services",
     subsector: "legal-services",
     sicCodes: ["8111"],
-    storagePath: "datalake/business/ny/sectors/professional-services/legal-services/",
+    storagePath:
+      "datalake/business/ny/sectors/professional-services/legal-services/",
     description: "Law firms & attorneys",
     state: "NY",
   },
@@ -566,7 +588,8 @@ export const PROFESSIONAL_BUCKETS: SectorBucket[] = [
     sector: "professional-services",
     subsector: "accounting",
     sicCodes: ["8721"],
-    storagePath: "datalake/business/ny/sectors/professional-services/accounting/",
+    storagePath:
+      "datalake/business/ny/sectors/professional-services/accounting/",
     description: "CPAs & accounting firms",
     state: "NY",
   },
@@ -576,7 +599,8 @@ export const PROFESSIONAL_BUCKETS: SectorBucket[] = [
     sector: "professional-services",
     subsector: "consulting",
     sicCodes: ["8742"],
-    storagePath: "datalake/business/ny/sectors/professional-services/consulting/",
+    storagePath:
+      "datalake/business/ny/sectors/professional-services/consulting/",
     description: "Management consulting firms",
     state: "NY",
   },
@@ -586,7 +610,8 @@ export const PROFESSIONAL_BUCKETS: SectorBucket[] = [
     sector: "professional-services",
     subsector: "engineering",
     sicCodes: ["8711"],
-    storagePath: "datalake/business/ny/sectors/professional-services/engineering/",
+    storagePath:
+      "datalake/business/ny/sectors/professional-services/engineering/",
     description: "Engineering services",
     state: "NY",
   },
@@ -596,7 +621,8 @@ export const PROFESSIONAL_BUCKETS: SectorBucket[] = [
     sector: "professional-services",
     subsector: "architects",
     sicCodes: ["8712"],
-    storagePath: "datalake/business/ny/sectors/professional-services/architects/",
+    storagePath:
+      "datalake/business/ny/sectors/professional-services/architects/",
     description: "Architectural firms",
     state: "NY",
   },
@@ -630,7 +656,8 @@ export const HEALTHCARE_BUCKETS: SectorBucket[] = [
     sector: "healthcare-medical",
     subsector: "chiropractors",
     sicCodes: ["8041"],
-    storagePath: "datalake/business/ny/sectors/healthcare-medical/chiropractors/",
+    storagePath:
+      "datalake/business/ny/sectors/healthcare-medical/chiropractors/",
     description: "Chiropractic offices",
     state: "NY",
   },
@@ -640,7 +667,8 @@ export const HEALTHCARE_BUCKETS: SectorBucket[] = [
     sector: "healthcare-medical",
     subsector: "nursing-homes",
     sicCodes: ["8051"],
-    storagePath: "datalake/business/ny/sectors/healthcare-medical/nursing-homes/",
+    storagePath:
+      "datalake/business/ny/sectors/healthcare-medical/nursing-homes/",
     description: "Skilled nursing facilities",
     state: "NY",
   },
@@ -660,7 +688,8 @@ export const HEALTHCARE_BUCKETS: SectorBucket[] = [
     sector: "healthcare-medical",
     subsector: "medical-labs",
     sicCodes: ["8071"],
-    storagePath: "datalake/business/ny/sectors/healthcare-medical/medical-labs/",
+    storagePath:
+      "datalake/business/ny/sectors/healthcare-medical/medical-labs/",
     description: "Medical laboratories & diagnostics",
     state: "NY",
   },
@@ -842,7 +871,8 @@ export const HOSPITALITY_BUCKETS: SectorBucket[] = [
     sector: "hotels-hospitality",
     subsector: "bed-breakfast",
     sicCodes: ["7011"],
-    storagePath: "datalake/business/ny/sectors/hotels-hospitality/bed-breakfast/",
+    storagePath:
+      "datalake/business/ny/sectors/hotels-hospitality/bed-breakfast/",
     description: "Bed & breakfast establishments",
     state: "NY",
   },
@@ -852,7 +882,8 @@ export const HOSPITALITY_BUCKETS: SectorBucket[] = [
     sector: "hotels-hospitality",
     subsector: "event-venues",
     sicCodes: ["7941"],
-    storagePath: "datalake/business/ny/sectors/hotels-hospitality/event-venues/",
+    storagePath:
+      "datalake/business/ny/sectors/hotels-hospitality/event-venues/",
     description: "Event halls & venues",
     state: "NY",
   },
@@ -862,7 +893,8 @@ export const HOSPITALITY_BUCKETS: SectorBucket[] = [
     sector: "hotels-hospitality",
     subsector: "campgrounds-rv",
     sicCodes: ["7033"],
-    storagePath: "datalake/business/us/sectors/hotels-hospitality/campgrounds-rv/",
+    storagePath:
+      "datalake/business/us/sectors/hotels-hospitality/campgrounds-rv/",
     description: "Campgrounds & RV parks (SIC 7033) - 16,366 nationwide",
     state: "US",
   },
@@ -877,8 +909,10 @@ export const NATIONAL_BUCKETS: SectorBucket[] = [
     sector: "construction-contractors",
     subsector: "plumbers-hvac",
     sicCodes: ["1711"],
-    storagePath: "datalake/business/us/sectors/construction-contractors/plumbers-hvac/",
-    description: "US Plumbing, Heating & AC contractors (SIC 1711) - 338,605 nationwide",
+    storagePath:
+      "datalake/business/us/sectors/construction-contractors/plumbers-hvac/",
+    description:
+      "US Plumbing, Heating & AC contractors (SIC 1711) - 338,605 nationwide",
     state: "US",
   },
   {
@@ -887,7 +921,8 @@ export const NATIONAL_BUCKETS: SectorBucket[] = [
     sector: "hotels-hospitality",
     subsector: "campgrounds-rv",
     sicCodes: ["7033"],
-    storagePath: "datalake/business/us/sectors/hotels-hospitality/campgrounds-rv/",
+    storagePath:
+      "datalake/business/us/sectors/hotels-hospitality/campgrounds-rv/",
     description: "US Campgrounds & RV parks (SIC 7033) - 16,366 nationwide",
     state: "US",
   },
@@ -897,7 +932,8 @@ export const NATIONAL_BUCKETS: SectorBucket[] = [
     sector: "transportation-logistics",
     subsector: "trucking",
     sicCodes: ["4212", "4213", "4214"],
-    storagePath: "datalake/business/us/sectors/transportation-logistics/trucking/",
+    storagePath:
+      "datalake/business/us/sectors/transportation-logistics/trucking/",
     description: "US Trucking & freight companies - nationwide",
     state: "US",
   },
@@ -937,7 +973,8 @@ export const NATIONAL_BUCKETS: SectorBucket[] = [
     sector: "transportation-logistics",
     subsector: "warehousing",
     sicCodes: ["4225", "4226"],
-    storagePath: "datalake/business/us/sectors/transportation-logistics/warehousing/",
+    storagePath:
+      "datalake/business/us/sectors/transportation-logistics/warehousing/",
     description: "US Warehousing & self-storage facilities - nationwide",
     state: "US",
   },
@@ -947,7 +984,8 @@ export const NATIONAL_BUCKETS: SectorBucket[] = [
     sector: "personal-services",
     subsector: "funeral-homes",
     sicCodes: ["7261"],
-    storagePath: "datalake/business/us/sectors/personal-services/funeral-homes/",
+    storagePath:
+      "datalake/business/us/sectors/personal-services/funeral-homes/",
     description: "US Funeral homes & mortuaries - nationwide",
     state: "US",
   },
@@ -1007,7 +1045,8 @@ export const NATIONAL_BUCKETS: SectorBucket[] = [
     sector: "professional-services",
     subsector: "legal-services",
     sicCodes: ["8111"],
-    storagePath: "datalake/business/us/sectors/professional-services/legal-services/",
+    storagePath:
+      "datalake/business/us/sectors/professional-services/legal-services/",
     description: "US Law firms & attorneys - nationwide",
     state: "US",
   },
@@ -1068,7 +1107,8 @@ export const NATIONAL_BUCKETS: SectorBucket[] = [
     subsector: "agents-brokers",
     sicCodes: ["6531"],
     storagePath: "datalake/business/us/sectors/real-estate/agents-brokers/",
-    description: "US Real estate agents & brokers - 2,184,724 nationwide (SIC 6531)",
+    description:
+      "US Real estate agents & brokers - 2,184,724 nationwide (SIC 6531)",
     state: "US",
     propertyAssociated: true,
     tags: ["real-estate", "agents", "brokers"],
@@ -1079,7 +1119,8 @@ export const NATIONAL_BUCKETS: SectorBucket[] = [
     sector: "financial-services",
     subsector: "insurance-agents",
     sicCodes: ["6411"],
-    storagePath: "datalake/business/us/sectors/financial-services/insurance-agents/",
+    storagePath:
+      "datalake/business/us/sectors/financial-services/insurance-agents/",
     description: "US Insurance agents & brokers - nationwide",
     state: "US",
   },
@@ -1101,8 +1142,10 @@ export const NATIONAL_BUCKETS: SectorBucket[] = [
     sector: "professional-services",
     subsector: "consulting",
     sicCodes: ["8742"],
-    storagePath: "datalake/business/us/sectors/professional-services/consulting/",
-    description: "US Management consultants - 1,393,898 nationwide (SIC 8742) - WHITE LABEL PROSPECTS",
+    storagePath:
+      "datalake/business/us/sectors/professional-services/consulting/",
+    description:
+      "US Management consultants - 1,393,898 nationwide (SIC 8742) - WHITE LABEL PROSPECTS",
     state: "US",
     tags: ["consulting", "agencies", "white-label-prospects"],
   },
@@ -1112,7 +1155,8 @@ export const NATIONAL_BUCKETS: SectorBucket[] = [
     sector: "professional-services",
     subsector: "marketing-agencies",
     sicCodes: ["7311", "8743"],
-    storagePath: "datalake/business/us/sectors/professional-services/marketing-agencies/",
+    storagePath:
+      "datalake/business/us/sectors/professional-services/marketing-agencies/",
     description: "US Marketing & advertising agencies - WHITE LABEL PROSPECTS",
     state: "US",
     tags: ["marketing", "agencies", "white-label-prospects"],
@@ -1145,7 +1189,8 @@ export const NATIONAL_BUCKETS: SectorBucket[] = [
     sector: "professional-services",
     subsector: "accounting",
     sicCodes: ["8721"],
-    storagePath: "datalake/business/us/sectors/professional-services/accounting/",
+    storagePath:
+      "datalake/business/us/sectors/professional-services/accounting/",
     description: "US CPAs & accounting firms - WHITE LABEL PROSPECTS",
     state: "US",
     tags: ["accounting", "cpa", "white-label-prospects"],
@@ -1224,7 +1269,8 @@ export const FINANCIAL_BUCKETS: SectorBucket[] = [
     sector: "financial-services",
     subsector: "credit-unions",
     sicCodes: ["6061"],
-    storagePath: "datalake/business/ny/sectors/financial-services/credit-unions/",
+    storagePath:
+      "datalake/business/ny/sectors/financial-services/credit-unions/",
     description: "Credit unions",
     state: "NY",
   },
@@ -1234,7 +1280,8 @@ export const FINANCIAL_BUCKETS: SectorBucket[] = [
     sector: "financial-services",
     subsector: "mortgage-brokers",
     sicCodes: ["6162"],
-    storagePath: "datalake/business/ny/sectors/financial-services/mortgage-brokers/",
+    storagePath:
+      "datalake/business/ny/sectors/financial-services/mortgage-brokers/",
     description: "Mortgage brokers & lenders",
     state: "NY",
   },
@@ -1244,7 +1291,8 @@ export const FINANCIAL_BUCKETS: SectorBucket[] = [
     sector: "financial-services",
     subsector: "insurance-agents",
     sicCodes: ["6411"],
-    storagePath: "datalake/business/ny/sectors/financial-services/insurance-agents/",
+    storagePath:
+      "datalake/business/ny/sectors/financial-services/insurance-agents/",
     description: "Insurance agents & brokers",
     state: "NY",
   },
@@ -1254,7 +1302,8 @@ export const FINANCIAL_BUCKETS: SectorBucket[] = [
     sector: "financial-services",
     subsector: "investment-advisors",
     sicCodes: ["6282"],
-    storagePath: "datalake/business/ny/sectors/financial-services/investment-advisors/",
+    storagePath:
+      "datalake/business/ny/sectors/financial-services/investment-advisors/",
     description: "Investment advisors & wealth management",
     state: "NY",
   },
@@ -1264,7 +1313,8 @@ export const FINANCIAL_BUCKETS: SectorBucket[] = [
     sector: "financial-services",
     subsector: "tax-preparers",
     sicCodes: ["7291"],
-    storagePath: "datalake/business/ny/sectors/financial-services/tax-preparers/",
+    storagePath:
+      "datalake/business/ny/sectors/financial-services/tax-preparers/",
     description: "Tax preparation services",
     state: "NY",
   },
@@ -1328,7 +1378,8 @@ export const PERSONAL_SERVICES_BUCKETS: SectorBucket[] = [
     sector: "personal-services",
     subsector: "funeral-homes",
     sicCodes: ["7261"],
-    storagePath: "datalake/business/ny/sectors/personal-services/funeral-homes/",
+    storagePath:
+      "datalake/business/ny/sectors/personal-services/funeral-homes/",
     description: "Funeral homes & mortuaries",
     state: "NY",
   },
@@ -1381,7 +1432,17 @@ export const BUSINESS_SERVICES_BUCKETS: SectorBucket[] = [
     name: "NY IT Services",
     sector: "business-services",
     subsector: "it-services",
-    sicCodes: ["7371", "7372", "7373", "7374", "7375", "7376", "7377", "7378", "7379"],
+    sicCodes: [
+      "7371",
+      "7372",
+      "7373",
+      "7374",
+      "7375",
+      "7376",
+      "7377",
+      "7378",
+      "7379",
+    ],
     storagePath: "datalake/business/ny/sectors/business-services/it-services/",
     description: "IT services & computer consulting",
     state: "NY",
@@ -1406,7 +1467,8 @@ export const EDUCATION_BUCKETS: SectorBucket[] = [
     sector: "education-training",
     subsector: "private-schools",
     sicCodes: ["8211"],
-    storagePath: "datalake/business/ny/sectors/education-training/private-schools/",
+    storagePath:
+      "datalake/business/ny/sectors/education-training/private-schools/",
     description: "Private K-12 schools",
     state: "NY",
   },
@@ -1470,7 +1532,8 @@ export const RECREATION_BUCKETS: SectorBucket[] = [
     sector: "recreation-entertainment",
     subsector: "golf-courses",
     sicCodes: ["7992"],
-    storagePath: "datalake/business/ny/sectors/recreation-entertainment/golf-courses/",
+    storagePath:
+      "datalake/business/ny/sectors/recreation-entertainment/golf-courses/",
     description: "Golf courses & country clubs",
     state: "NY",
   },
@@ -1480,7 +1543,8 @@ export const RECREATION_BUCKETS: SectorBucket[] = [
     sector: "recreation-entertainment",
     subsector: "bowling",
     sicCodes: ["7933"],
-    storagePath: "datalake/business/ny/sectors/recreation-entertainment/bowling/",
+    storagePath:
+      "datalake/business/ny/sectors/recreation-entertainment/bowling/",
     description: "Bowling alleys",
     state: "NY",
   },
@@ -1490,7 +1554,8 @@ export const RECREATION_BUCKETS: SectorBucket[] = [
     sector: "recreation-entertainment",
     subsector: "theaters",
     sicCodes: ["7832"],
-    storagePath: "datalake/business/ny/sectors/recreation-entertainment/theaters/",
+    storagePath:
+      "datalake/business/ny/sectors/recreation-entertainment/theaters/",
     description: "Movie theaters & cinemas",
     state: "NY",
   },
@@ -1500,7 +1565,8 @@ export const RECREATION_BUCKETS: SectorBucket[] = [
     sector: "recreation-entertainment",
     subsector: "amusement",
     sicCodes: ["7996"],
-    storagePath: "datalake/business/ny/sectors/recreation-entertainment/amusement/",
+    storagePath:
+      "datalake/business/ny/sectors/recreation-entertainment/amusement/",
     description: "Amusement parks & attractions",
     state: "NY",
   },
@@ -1515,7 +1581,8 @@ export const BUSINESS_BROKERS_PE_BUCKETS: SectorBucket[] = [
     sector: "business-brokers-pe",
     subsector: "business-brokers",
     sicCodes: ["6531", "6282"],
-    storagePath: "datalake/business/us/sectors/business-brokers-pe/business-brokers/",
+    storagePath:
+      "datalake/business/us/sectors/business-brokers-pe/business-brokers/",
     description: "Business brokers & M&A intermediaries - nationwide",
     state: "US",
     propertyAssociated: true,
@@ -1527,7 +1594,8 @@ export const BUSINESS_BROKERS_PE_BUCKETS: SectorBucket[] = [
     sector: "business-brokers-pe",
     subsector: "private-equity",
     sicCodes: ["6282", "6722"],
-    storagePath: "datalake/business/us/sectors/business-brokers-pe/private-equity/",
+    storagePath:
+      "datalake/business/us/sectors/business-brokers-pe/private-equity/",
     description: "Private equity & investment firms - nationwide",
     state: "US",
     tags: ["investors", "acquisitions", "capital"],
@@ -1538,7 +1606,8 @@ export const BUSINESS_BROKERS_PE_BUCKETS: SectorBucket[] = [
     sector: "business-brokers-pe",
     subsector: "venture-capital",
     sicCodes: ["6282", "6722"],
-    storagePath: "datalake/business/us/sectors/business-brokers-pe/venture-capital/",
+    storagePath:
+      "datalake/business/us/sectors/business-brokers-pe/venture-capital/",
     description: "Venture capital firms - nationwide",
     state: "US",
     tags: ["investors", "startups", "capital"],
@@ -1549,7 +1618,8 @@ export const BUSINESS_BROKERS_PE_BUCKETS: SectorBucket[] = [
     sector: "business-brokers-pe",
     subsector: "mna-advisors",
     sicCodes: ["6282", "8742"],
-    storagePath: "datalake/business/us/sectors/business-brokers-pe/mna-advisors/",
+    storagePath:
+      "datalake/business/us/sectors/business-brokers-pe/mna-advisors/",
     description: "M&A advisors & investment bankers - nationwide",
     state: "US",
     tags: ["m&a", "investment-banking", "deals"],
@@ -1560,7 +1630,8 @@ export const BUSINESS_BROKERS_PE_BUCKETS: SectorBucket[] = [
     sector: "business-brokers-pe",
     subsector: "family-offices",
     sicCodes: ["6282", "6722"],
-    storagePath: "datalake/business/us/sectors/business-brokers-pe/family-offices/",
+    storagePath:
+      "datalake/business/us/sectors/business-brokers-pe/family-offices/",
     description: "Family offices & wealth management - nationwide",
     state: "US",
     tags: ["investors", "capital", "wealth"],
@@ -1571,7 +1642,8 @@ export const BUSINESS_BROKERS_PE_BUCKETS: SectorBucket[] = [
     sector: "business-brokers-pe",
     subsector: "business-brokers",
     sicCodes: ["6531", "6282"],
-    storagePath: "datalake/business/ny/sectors/business-brokers-pe/business-brokers/",
+    storagePath:
+      "datalake/business/ny/sectors/business-brokers-pe/business-brokers/",
     description: "NY Business brokers & M&A intermediaries",
     state: "NY",
     propertyAssociated: true,
@@ -1583,7 +1655,8 @@ export const BUSINESS_BROKERS_PE_BUCKETS: SectorBucket[] = [
     sector: "business-brokers-pe",
     subsector: "private-equity",
     sicCodes: ["6282", "6722"],
-    storagePath: "datalake/business/ny/sectors/business-brokers-pe/private-equity/",
+    storagePath:
+      "datalake/business/ny/sectors/business-brokers-pe/private-equity/",
     description: "NY Private equity & investment firms",
     state: "NY",
     tags: ["investors", "acquisitions", "capital"],
@@ -1599,7 +1672,8 @@ export const PROPERTY_ASSOCIATED_BUCKETS: SectorBucket[] = [
     sector: "property-associated",
     subsector: "commercial-landlords",
     sicCodes: ["6512"],
-    storagePath: "datalake/business/us/sectors/property-associated/commercial-landlords/",
+    storagePath:
+      "datalake/business/us/sectors/property-associated/commercial-landlords/",
     description: "Commercial building operators & landlords - nationwide",
     state: "US",
     propertyAssociated: true,
@@ -1611,7 +1685,8 @@ export const PROPERTY_ASSOCIATED_BUCKETS: SectorBucket[] = [
     sector: "property-associated",
     subsector: "residential-landlords",
     sicCodes: ["6513"],
-    storagePath: "datalake/business/us/sectors/property-associated/residential-landlords/",
+    storagePath:
+      "datalake/business/us/sectors/property-associated/residential-landlords/",
     description: "Apartment building operators - nationwide",
     state: "US",
     propertyAssociated: true,
@@ -1623,7 +1698,8 @@ export const PROPERTY_ASSOCIATED_BUCKETS: SectorBucket[] = [
     sector: "property-associated",
     subsector: "self-storage",
     sicCodes: ["4225"],
-    storagePath: "datalake/business/us/sectors/property-associated/self-storage/",
+    storagePath:
+      "datalake/business/us/sectors/property-associated/self-storage/",
     description: "Self storage facilities - nationwide",
     state: "US",
     propertyAssociated: true,
@@ -1635,7 +1711,8 @@ export const PROPERTY_ASSOCIATED_BUCKETS: SectorBucket[] = [
     sector: "property-associated",
     subsector: "mobile-home-parks",
     sicCodes: ["6515"],
-    storagePath: "datalake/business/us/sectors/property-associated/mobile-home-parks/",
+    storagePath:
+      "datalake/business/us/sectors/property-associated/mobile-home-parks/",
     description: "Mobile home parks & manufactured housing - nationwide",
     state: "US",
     propertyAssociated: true,
@@ -1659,7 +1736,8 @@ export const PROPERTY_ASSOCIATED_BUCKETS: SectorBucket[] = [
     sector: "property-associated",
     subsector: "shopping-centers",
     sicCodes: ["6512"],
-    storagePath: "datalake/business/us/sectors/property-associated/shopping-centers/",
+    storagePath:
+      "datalake/business/us/sectors/property-associated/shopping-centers/",
     description: "Shopping centers & retail property operators - nationwide",
     state: "US",
     propertyAssociated: true,
@@ -1671,7 +1749,8 @@ export const PROPERTY_ASSOCIATED_BUCKETS: SectorBucket[] = [
     sector: "property-associated",
     subsector: "industrial-parks",
     sicCodes: ["6512", "6552"],
-    storagePath: "datalake/business/us/sectors/property-associated/industrial-parks/",
+    storagePath:
+      "datalake/business/us/sectors/property-associated/industrial-parks/",
     description: "Industrial park operators & developers - nationwide",
     state: "US",
     propertyAssociated: true,
@@ -1702,25 +1781,27 @@ export const ALL_SECTOR_BUCKETS: SectorBucket[] = [
 ];
 
 // ===== BUCKET LOOKUP BY ID =====
-export const BUCKET_BY_ID: Record<string, SectorBucket> = ALL_SECTOR_BUCKETS.reduce(
-  (acc, bucket) => {
-    acc[bucket.id] = bucket;
-    return acc;
-  },
-  {} as Record<string, SectorBucket>
-);
+export const BUCKET_BY_ID: Record<string, SectorBucket> =
+  ALL_SECTOR_BUCKETS.reduce(
+    (acc, bucket) => {
+      acc[bucket.id] = bucket;
+      return acc;
+    },
+    {} as Record<string, SectorBucket>,
+  );
 
 // ===== BUCKET LOOKUP BY SIC CODE =====
-export const BUCKETS_BY_SIC: Record<string, SectorBucket[]> = ALL_SECTOR_BUCKETS.reduce(
-  (acc, bucket) => {
-    bucket.sicCodes.forEach((sic) => {
-      if (!acc[sic]) acc[sic] = [];
-      acc[sic].push(bucket);
-    });
-    return acc;
-  },
-  {} as Record<string, SectorBucket[]>
-);
+export const BUCKETS_BY_SIC: Record<string, SectorBucket[]> =
+  ALL_SECTOR_BUCKETS.reduce(
+    (acc, bucket) => {
+      bucket.sicCodes.forEach((sic) => {
+        if (!acc[sic]) acc[sic] = [];
+        acc[sic].push(bucket);
+      });
+      return acc;
+    },
+    {} as Record<string, SectorBucket[]>,
+  );
 
 // ===== HELPER: Get bucket ID for a SIC code =====
 export function getBucketForSIC(sicCode: string): SectorBucket | null {
@@ -1801,7 +1882,7 @@ export function getAllTags(): string[] {
 export function createFavoriteGroup(
   name: string,
   bucketIds: string[],
-  options?: { description?: string; color?: string; icon?: string }
+  options?: { description?: string; color?: string; icon?: string },
 ): FavoriteGroup {
   return {
     id: `custom-${Date.now()}`,
@@ -1842,15 +1923,21 @@ export const BUSINESS_LINES: BusinessLineConfig[] = [
     id: "nextier",
     name: "Nextier",
     description: "Real estate datalake & deal sourcing machine",
-    model: "Sell TO RE agents/brokers → Response machine → Compounds into deal flow",
+    model:
+      "Sell TO RE agents/brokers → Response machine → Compounds into deal flow",
     groupIds: ["nextier-re-datalake", "nextier-property-owners"],
   },
   {
     id: "ecbb",
     name: "ECBB (East Coast Business Brokers)",
     description: "Deal sourcing & origination for business brokerage",
-    model: "Source businesses AS seller leads ($500K-$10M) → Match with buyers/capital → Roll-ups",
-    groupIds: ["ecbb-deal-sourcing", "ecbb-deal-origination", "high-value-targets"],
+    model:
+      "Source businesses AS seller leads ($500K-$10M) → Match with buyers/capital → Roll-ups",
+    groupIds: [
+      "ecbb-deal-sourcing",
+      "ecbb-deal-origination",
+      "high-value-targets",
+    ],
   },
 ];
 
@@ -1874,7 +1961,8 @@ export const CLIENT_CONFIGS: ClientConfig[] = [
     id: "homeowner-advisor",
     name: "Homeowner Advisor",
     role: "Director",
-    description: "Nextier WHITE-LABEL CLIENT #1 | Residential Distressed Real Estate",
+    description:
+      "Nextier WHITE-LABEL CLIENT #1 | Residential Distressed Real Estate",
     primaryBusinessLine: "nextier",
     targetGroups: ["nextier-re-datalake", "nextier-property-owners"],
     useCase: "Email Capture → Property Valuation → Valuation Queue → Deal Flow",
@@ -1885,8 +1973,13 @@ export const CLIENT_CONFIGS: ClientConfig[] = [
     role: "Principal",
     description: "Deal origination via consulting | RE investment advisory",
     primaryBusinessLine: "nextier",
-    targetGroups: ["nextier-re-datalake", "nextier-property-owners", "ecbb-deal-origination"],
-    useCase: "Consulting engagements → Deal origination → Investment opportunities",
+    targetGroups: [
+      "nextier-re-datalake",
+      "nextier-property-owners",
+      "ecbb-deal-origination",
+    ],
+    useCase:
+      "Consulting engagements → Deal origination → Investment opportunities",
   },
 ];
 
@@ -1929,7 +2022,10 @@ export function getBucketsForBusinessLine(line: BusinessLine): SectorBucket[] {
 }
 
 // Get business line summary
-export function getBusinessLineSummary(): Record<BusinessLine, { groups: number; buckets: number }> {
+export function getBusinessLineSummary(): Record<
+  BusinessLine,
+  { groups: number; buckets: number }
+> {
   return {
     outreachglobal: {
       groups: getGroupsForBusinessLine("outreachglobal").length,
@@ -1947,4 +2043,6 @@ export function getBusinessLineSummary(): Record<BusinessLine, { groups: number;
 }
 
 // Log summary on import (for debugging)
-console.log(`[Sector Buckets] Loaded ${ALL_SECTOR_BUCKETS.length} bucket definitions across 17 sectors`);
+console.log(
+  `[Sector Buckets] Loaded ${ALL_SECTOR_BUCKETS.length} bucket definitions across 17 sectors`,
+);

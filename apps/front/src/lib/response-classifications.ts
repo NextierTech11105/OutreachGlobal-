@@ -531,7 +531,11 @@ export function containsProfanity(message: string): boolean {
 // Structured templates for AI copilot responses
 // ==========================================
 
-export type GiannaTemplateType = "email_capture" | "question" | "assistance" | "nudger";
+export type GiannaTemplateType =
+  | "email_capture"
+  | "question"
+  | "assistance"
+  | "nudger";
 
 export interface GiannaResponseTemplate {
   id: GiannaTemplateType;
@@ -574,7 +578,8 @@ export const GIANNA_RESPONSE_TEMPLATES: GiannaResponseTemplate[] = [
   {
     id: "nudger",
     name: "CATHY Nudger",
-    description: "Background nudge for non-responders - deployed through CATHY with Leslie Nielsen/Henny Youngman humor",
+    description:
+      "Background nudge for non-responders - deployed through CATHY with Leslie Nielsen/Henny Youngman humor",
     classificationIds: [], // Outbound only, not triggered by inbound classification
     template: `Hey {{first_name}}, we tried reaching you {{attempt_count}} times... do we have the right person?? Let us know! - Cathy`,
     variables: ["first_name", "attempt_count"],
@@ -770,7 +775,9 @@ export function getCathyTemperature(humorLevel: CathyHumorLevel): number {
  * Get a pre-written CATHY template (fallback when OpenAI unavailable)
  */
 export function getCathyFallbackTemplate(attemptNumber: number): string {
-  const templates = CATHY_NUDGE_TEMPLATES[Math.min(attemptNumber, 5)] || CATHY_NUDGE_TEMPLATES[5];
+  const templates =
+    CATHY_NUDGE_TEMPLATES[Math.min(attemptNumber, 5)] ||
+    CATHY_NUDGE_TEMPLATES[5];
   return templates[Math.floor(Math.random() * templates.length)];
 }
 
@@ -795,9 +802,11 @@ export function buildCathyContextMessage(
   variables: Record<string, string>,
 ): { message: string; templateUsed: string } {
   // Determine context type
-  let contextType: "property" | "business" | "value_offer" | "general" = "general";
+  let contextType: "property" | "business" | "value_offer" | "general" =
+    "general";
   if (context.propertyAddress) contextType = "property";
-  else if (context.companyName || context.businessName) contextType = "business";
+  else if (context.companyName || context.businessName)
+    contextType = "business";
   else if (context.valueContent) contextType = "value_offer";
 
   // Get template
@@ -908,7 +917,9 @@ export function suggestNextOutreachTime(history: LeadNudgeHistory): {
   }
 
   // Analyze what time slots have been tried
-  const attemptHours = history.attempts.map((a) => new Date(a.sentAt).getHours());
+  const attemptHours = history.attempts.map((a) =>
+    new Date(a.sentAt).getHours(),
+  );
   const attemptSlots = attemptHours.map(getTimeSlot);
 
   // Count attempts per slot
@@ -922,7 +933,7 @@ export function suggestNextOutreachTime(history: LeadNudgeHistory): {
 
   // Find most tried slot
   const mostTriedSlot = Object.entries(slotCounts).reduce((a, b) =>
-    b[1] > a[1] ? b : a
+    b[1] > a[1] ? b : a,
   )[0] as TimeSlot;
 
   // Suggest opposite
@@ -992,7 +1003,9 @@ export function buildCathyNudgeMessage(
   }
 
   // Fallback: Basic template without humor
-  const basicTemplate = GIANNA_RESPONSE_TEMPLATES.find((t) => t.id === "nudger");
+  const basicTemplate = GIANNA_RESPONSE_TEMPLATES.find(
+    (t) => t.id === "nudger",
+  );
   if (!basicTemplate) {
     return {
       message: `Hey ${firstName}, we tried reaching you ${attemptNumber} times... do we have the right person?? Let us know! - Cathy`,
@@ -1018,7 +1031,11 @@ export async function generateCathyMessageWithAI(
   context: string,
   humorLevel: CathyHumorLevel = "medium",
   openaiApiKey?: string,
-): Promise<{ message: string; nudgeId: string; source: "openai" | "fallback" }> {
+): Promise<{
+  message: string;
+  nudgeId: string;
+  source: "openai" | "fallback";
+}> {
   const nudgeId = generateNudgeId();
 
   // If no API key, use fallback
@@ -1042,7 +1059,15 @@ export async function generateCathyMessageWithAI(
         model: "gpt-4o-mini",
         messages: [
           { role: "system", content: CATHY_OPENAI_SYSTEM_PROMPT },
-          { role: "user", content: getCathyOpenAIPrompt(firstName, attemptNumber, context, humorLevel) },
+          {
+            role: "user",
+            content: getCathyOpenAIPrompt(
+              firstName,
+              attemptNumber,
+              context,
+              humorLevel,
+            ),
+          },
         ],
         temperature: getCathyTemperature(humorLevel),
         max_tokens: 200,
@@ -1160,7 +1185,9 @@ export function filterForResponseCenter(
   return messages
     .map((msg) => {
       const classification = classifyResponse(clientId, msg.content);
-      const client = CLIENT_CLASSIFICATIONS.find((c) => c.clientId === clientId);
+      const client = CLIENT_CLASSIFICATIONS.find(
+        (c) => c.clientId === clientId,
+      );
       const classificationDef = client?.classifications.find(
         (c) => c.id === classification?.classificationId,
       );
@@ -1217,7 +1244,13 @@ export interface CallQueueEntry {
   queuedAt: string;
   scheduledCallAt: string;
   valueXDelivered: boolean;
-  status: "queued" | "assigned" | "calling" | "completed" | "no_answer" | "callback_scheduled";
+  status:
+    | "queued"
+    | "assigned"
+    | "calling"
+    | "completed"
+    | "no_answer"
+    | "callback_scheduled";
   assignedTo?: string;
   notes?: string;
 }
@@ -1247,7 +1280,7 @@ export function getEmailCaptureResponse(
     "white-label-pitch": "Platform Overview",
     "user-to-owner-pitch": "Partnership Details",
     "buyer-profile": "Investment Profile",
-    "custom": "information you requested",
+    custom: "information you requested",
   };
 
   const valueName = valueXNames[valueXType] || "information";
@@ -1274,7 +1307,10 @@ export function handleEmailCapture(event: EmailCaptureEvent): {
   const followUpTime = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
   // GIANNA's immediate response
-  const giannaResponse = getEmailCaptureResponse(event.firstName, event.valueXType);
+  const giannaResponse = getEmailCaptureResponse(
+    event.firstName,
+    event.valueXType,
+  );
 
   // Value X delivery record
   const valueXDelivery: ValueXDelivery = {
@@ -1305,7 +1341,9 @@ export function handleEmailCapture(event: EmailCaptureEvent): {
   console.log(`[Email Capture Flow] Lead ${event.leadId}:`);
   console.log(`  1. GIANNA response sent`);
   console.log(`  2. Value X (${event.valueXType}) queued for delivery`);
-  console.log(`  3. Call queue entry created - scheduled for ${followUpTime.toISOString()}`);
+  console.log(
+    `  3. Call queue entry created - scheduled for ${followUpTime.toISOString()}`,
+  );
 
   return {
     giannaResponse,
@@ -1418,7 +1456,13 @@ export interface LeadSequenceHistory {
   totalAttempts: number;
   emailCapturedAt?: string;
   callQueuedAt?: string;
-  status: "active" | "email_captured" | "call_scheduled" | "converted" | "opted_out" | "exhausted";
+  status:
+    | "active"
+    | "email_captured"
+    | "call_scheduled"
+    | "converted"
+    | "opted_out"
+    | "exhausted";
 }
 
 /**
@@ -1430,9 +1474,10 @@ export function getSequenceSummary(history: LeadSequenceHistory): {
   nextAction: string;
   status: string;
 } {
-  const lastAttempt = history.attempts.length > 0
-    ? history.attempts[history.attempts.length - 1]
-    : null;
+  const lastAttempt =
+    history.attempts.length > 0
+      ? history.attempts[history.attempts.length - 1]
+      : null;
 
   let nextAction = "Send initial outreach";
 

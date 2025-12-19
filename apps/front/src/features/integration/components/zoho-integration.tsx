@@ -1,7 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -111,7 +117,11 @@ export function ZohoIntegration() {
                 placeholder="Enter Zoho API Key"
               />
             </div>
-            <Button onClick={handleConnect} disabled={loading} className="w-full">
+            <Button
+              onClick={handleConnect}
+              disabled={loading}
+              className="w-full"
+            >
               {loading ? (
                 <>
                   <RefreshCw className="h-4 w-4 mr-2 animate-spin" />

@@ -239,14 +239,20 @@ export async function POST(request: NextRequest) {
           });
         }
       } catch (pgError) {
-        console.warn("[B2B Search] PostgreSQL query failed, falling back to DO Spaces:", pgError);
+        console.warn(
+          "[B2B Search] PostgreSQL query failed, falling back to DO Spaces:",
+          pgError,
+        );
       }
     }
 
     // FALLBACK: Search DO Spaces bucket files
     if (!SPACES_KEY || !SPACES_SECRET) {
       return NextResponse.json(
-        { error: "No data sources configured - check DATABASE_URL and DO Spaces credentials" },
+        {
+          error:
+            "No data sources configured - check DATABASE_URL and DO Spaces credentials",
+        },
         { status: 503 },
       );
     }
@@ -279,7 +285,11 @@ export async function POST(request: NextRequest) {
 
     for (const bucket of bucketList) {
       if (allResults.length >= limit) break;
-      const results = await searchBucket(bucket.key, filters, limit - allResults.length);
+      const results = await searchBucket(
+        bucket.key,
+        filters,
+        limit - allResults.length,
+      );
       allResults.push(...results);
     }
 
@@ -350,8 +360,8 @@ async function searchPostgreSQL(filters: {
         ilike(businesses.ownerTitle, "%partner%"),
         ilike(businesses.ownerTitle, "%manager%"),
         ilike(businesses.ownerTitle, "%vp%"),
-        ilike(businesses.ownerTitle, "%founder%")
-      )
+        ilike(businesses.ownerTitle, "%founder%"),
+      ),
     );
   }
 
@@ -404,7 +414,9 @@ async function searchPostgreSQL(filters: {
 
     // Check if decision maker based on title
     const title = (biz.ownerTitle || "").toLowerCase();
-    const isDecisionMaker = DECISION_MAKER_TITLES.some((dm) => title.includes(dm));
+    const isDecisionMaker = DECISION_MAKER_TITLES.some((dm) =>
+      title.includes(dm),
+    );
 
     return {
       id: biz.id,
@@ -430,7 +442,9 @@ async function searchPostgreSQL(filters: {
     };
   });
 
-  console.log(`[B2B Search] PostgreSQL query returned ${leads.length} leads (total: ${total})`);
+  console.log(
+    `[B2B Search] PostgreSQL query returned ${leads.length} leads (total: ${total})`,
+  );
 
   return {
     leads,

@@ -6,7 +6,10 @@ export async function POST() {
   const email = process.env.DEFAULT_ADMIN_EMAIL || "admin@outreachglobal.io";
 
   if (!databaseUrl) {
-    return NextResponse.json({ error: "DATABASE_URL not set" }, { status: 500 });
+    return NextResponse.json(
+      { error: "DATABASE_URL not set" },
+      { status: 500 },
+    );
   }
 
   try {
@@ -27,13 +30,26 @@ export async function POST() {
 
     if (teams.length > 0) {
       await sql.end();
-      return NextResponse.json({ message: "Team already exists", team: teams[0] });
+      return NextResponse.json({
+        message: "Team already exists",
+        team: teams[0],
+      });
     }
 
     // Generate team ID and slug
-    const teamId = "team_" + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    const teamId =
+      "team_" +
+      Math.random().toString(36).substring(2, 15) +
+      Math.random().toString(36).substring(2, 15);
     const teamName = `${user.name || "Admin"}'s Team`;
-    const slug = teamName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "") + "-" + Math.random().toString(16).slice(2, 8);
+    const slug =
+      teamName
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "") +
+      "-" +
+      Math.random().toString(16).slice(2, 8);
     const now = new Date();
 
     // Create team
@@ -44,7 +60,10 @@ export async function POST() {
     `;
 
     // Create team member
-    const tmId = "tm_" + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    const tmId =
+      "tm_" +
+      Math.random().toString(36).substring(2, 15) +
+      Math.random().toString(36).substring(2, 15);
     await sql`
       INSERT INTO team_members (id, team_id, user_id, role, status, created_at, updated_at)
       VALUES (${tmId}, ${teamId}, ${user.id}, 'OWNER', 'APPROVED', ${now}, ${now})

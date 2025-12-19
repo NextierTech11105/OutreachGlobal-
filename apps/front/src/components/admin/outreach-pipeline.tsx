@@ -434,58 +434,62 @@ export function OutreachPipeline() {
                 {queue.length === 0 ? (
                   <div className="text-center py-8">
                     <Clock className="h-8 w-8 mx-auto text-muted-foreground/50 mb-2" />
-                    <p className="text-sm text-muted-foreground">No items in queue</p>
+                    <p className="text-sm text-muted-foreground">
+                      No items in queue
+                    </p>
                     <p className="text-xs text-muted-foreground mt-1">
                       Push leads to campaigns to see them here
                     </p>
                   </div>
-                ) : queue.map((item, i) => {
-                  const touch = OUTREACH_SEQUENCE.find(
-                    (t) => t.position === item.touch,
-                  );
-                  const colors = TOUCH_COLORS[item.touch];
+                ) : (
+                  queue.map((item, i) => {
+                    const touch = OUTREACH_SEQUENCE.find(
+                      (t) => t.position === item.touch,
+                    );
+                    const colors = TOUCH_COLORS[item.touch];
 
-                  return (
-                    <div
-                      key={i}
-                      className={cn(
-                        "flex items-center justify-between p-3 rounded-lg border",
-                        colors.bg,
-                        colors.border,
-                      )}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={cn(
-                            "w-8 h-8 rounded-full flex items-center justify-center",
-                            colors.bg,
-                          )}
-                        >
-                          <span
-                            className={cn("text-sm font-bold", colors.text)}
+                    return (
+                      <div
+                        key={i}
+                        className={cn(
+                          "flex items-center justify-between p-3 rounded-lg border",
+                          colors.bg,
+                          colors.border,
+                        )}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={cn(
+                              "w-8 h-8 rounded-full flex items-center justify-center",
+                              colors.bg,
+                            )}
                           >
-                            #{item.touch}
-                          </span>
+                            <span
+                              className={cn("text-sm font-bold", colors.text)}
+                            >
+                              #{item.touch}
+                            </span>
+                          </div>
+                          <div>
+                            <div className="font-semibold">{touch?.name}</div>
+                            <div className="text-xs text-muted-foreground flex items-center gap-1">
+                              <ChannelIcon channel={touch?.channel || "sms"} />
+                              {touch?.channel.toUpperCase()}
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <div className="font-semibold">{touch?.name}</div>
-                          <div className="text-xs text-muted-foreground flex items-center gap-1">
-                            <ChannelIcon channel={touch?.channel || "sms"} />
-                            {touch?.channel.toUpperCase()}
+                        <div className="text-right">
+                          <div className={cn("text-lg font-bold", colors.text)}>
+                            {item.count}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {item.nextBatch}
                           </div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className={cn("text-lg font-bold", colors.text)}>
-                          {item.count}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {item.nextBatch}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                )}
               </div>
             </ScrollArea>
           </CardContent>

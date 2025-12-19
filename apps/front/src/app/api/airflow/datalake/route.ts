@@ -7,7 +7,13 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { businesses, contacts, leads, properties, dataSources } from "@/lib/db/schema";
+import {
+  businesses,
+  contacts,
+  leads,
+  properties,
+  dataSources,
+} from "@/lib/db/schema";
 import { eq, ilike, or, sql, count, desc, and } from "drizzle-orm";
 
 // USBizData exact column structure (NY 5.5M, Hotel-Motel 433K, etc.)
@@ -338,8 +344,8 @@ async function handleUpsert(body: {
         .where(
           and(
             eq(businesses.companyName, schemaRecord.name),
-            eq(businesses.address, schemaRecord.address || "")
-          )
+            eq(businesses.address, schemaRecord.address || ""),
+          ),
         )
         .limit(1);
 
@@ -352,8 +358,10 @@ async function handleUpsert(body: {
             email: schemaRecord.email || existing[0].email,
             website: schemaRecord.website || existing[0].website,
             sicCode: record.sic_code || existing[0].sicCode,
-            sicDescription: record.sic_description || existing[0].sicDescription,
-            employeeCount: parseInt(record.employee_count) || existing[0].employeeCount,
+            sicDescription:
+              record.sic_description || existing[0].sicDescription,
+            employeeCount:
+              parseInt(record.employee_count) || existing[0].employeeCount,
             revenueRange: record.revenue_range || existing[0].revenueRange,
             primarySectorId: schemaRecord.sector,
             updatedAt: new Date(),
@@ -393,7 +401,9 @@ async function handleUpsert(body: {
   const totalResult = await db.select({ count: count() }).from(businesses);
   const total = totalResult[0]?.count || 0;
 
-  console.log(`[Airflow Datalake] PostgreSQL - Inserted: ${inserted}, Updated: ${updated}, Total: ${total}`);
+  console.log(
+    `[Airflow Datalake] PostgreSQL - Inserted: ${inserted}, Updated: ${updated}, Total: ${total}`,
+  );
 
   return NextResponse.json({
     success: true,
@@ -426,7 +436,9 @@ async function handleComplete(body: {
         fileName: file,
         status: "completed",
         totalRows: Math.floor(total_records / (processed_files?.length || 1)),
-        processedRows: Math.floor(total_records / (processed_files?.length || 1)),
+        processedRows: Math.floor(
+          total_records / (processed_files?.length || 1),
+        ),
         processedAt: new Date(run_date),
       });
     } catch (err) {
@@ -513,8 +525,8 @@ async function handleSearch(params: URLSearchParams) {
     conditions.push(
       or(
         ilike(businesses.companyName, `%${name}%`),
-        ilike(businesses.ownerName, `%${name}%`)
-      )
+        ilike(businesses.ownerName, `%${name}%`),
+      ),
     );
   }
 
@@ -525,8 +537,8 @@ async function handleSearch(params: URLSearchParams) {
         ilike(businesses.companyName, `%${query}%`),
         ilike(businesses.ownerName, `%${query}%`),
         ilike(businesses.city, `%${query}%`),
-        ilike(businesses.sicDescription, `%${query}%`)
-      )
+        ilike(businesses.sicDescription, `%${query}%`),
+      ),
     );
   }
 
@@ -583,7 +595,7 @@ async function handleSearch(params: URLSearchParams) {
     console.error("[Airflow Datalake] Search error:", err);
     return NextResponse.json(
       { error: "Database query failed", details: String(err) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -620,7 +632,7 @@ async function handleManifest() {
     console.error("[Airflow Datalake] Manifest error:", err);
     return NextResponse.json(
       { processed_files: [], total_files: 0, error: String(err) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

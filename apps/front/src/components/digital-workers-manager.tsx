@@ -70,8 +70,11 @@ interface WorkerState {
 }
 
 export function DigitalWorkersManager() {
-  const [selectedWorker, setSelectedWorker] = useState<DigitalWorkerId>("gianna");
-  const [workerStates, setWorkerStates] = useState<Record<DigitalWorkerId, WorkerState>>({
+  const [selectedWorker, setSelectedWorker] =
+    useState<DigitalWorkerId>("gianna");
+  const [workerStates, setWorkerStates] = useState<
+    Record<DigitalWorkerId, WorkerState>
+  >({
     gianna: { isActive: true, autoResponse: true },
     cathy: { isActive: true, autoResponse: true, humorLevel: "medium" },
     sabrina: { isActive: true, autoResponse: false },
@@ -124,13 +127,20 @@ export function DigitalWorkersManager() {
                 {WORKER_ICONS[id]}
               </div>
               <div className="text-left">
-                <p className={`font-medium ${!isActive ? "text-muted-foreground" : ""}`}>
+                <p
+                  className={`font-medium ${!isActive ? "text-muted-foreground" : ""}`}
+                >
                   {w.name}
                 </p>
-                <p className="text-xs text-muted-foreground capitalize">{w.role}</p>
+                <p className="text-xs text-muted-foreground capitalize">
+                  {w.role}
+                </p>
               </div>
               {isActive && (
-                <Badge variant="outline" className="ml-auto bg-green-50 text-green-700 border-green-200">
+                <Badge
+                  variant="outline"
+                  className="ml-auto bg-green-50 text-green-700 border-green-200"
+                >
                   Active
                 </Badge>
               )}
@@ -144,7 +154,9 @@ export function DigitalWorkersManager() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className={`p-3 rounded-full text-white ${WORKER_COLORS[selectedWorker]}`}>
+              <div
+                className={`p-3 rounded-full text-white ${WORKER_COLORS[selectedWorker]}`}
+              >
                 {WORKER_ICONS[selectedWorker]}
               </div>
               <div>
@@ -164,7 +176,9 @@ export function DigitalWorkersManager() {
               <Switch
                 id="worker-active"
                 checked={state.isActive}
-                onCheckedChange={(checked) => updateWorkerState({ isActive: checked })}
+                onCheckedChange={(checked) =>
+                  updateWorkerState({ isActive: checked })
+                }
               />
             </div>
           </div>
@@ -213,7 +227,9 @@ export function DigitalWorkersManager() {
 
                 {/* Quirks */}
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Personality Quirks</Label>
+                  <Label className="text-sm font-medium">
+                    Personality Quirks
+                  </Label>
                   <ul className="space-y-1">
                     {worker.personality.quirks.map((q, i) => (
                       <li key={i} className="flex items-start gap-2 text-sm">
@@ -239,7 +255,9 @@ export function DigitalWorkersManager() {
 
               {/* Trigger Conditions */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Trigger Conditions</Label>
+                <Label className="text-sm font-medium">
+                  Trigger Conditions
+                </Label>
                 <p className="text-xs text-muted-foreground mb-2">
                   {worker.name} is automatically deployed when:
                 </p>
@@ -310,7 +328,9 @@ export function DigitalWorkersManager() {
 
               {/* Avoids */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-red-600">Words/Phrases to Avoid</Label>
+                <Label className="text-sm font-medium text-red-600">
+                  Words/Phrases to Avoid
+                </Label>
                 <div className="flex flex-wrap gap-2">
                   {worker.linguistic.avoids.map((a, i) => (
                     <Badge key={i} variant="destructive" className="text-xs">
@@ -328,12 +348,15 @@ export function DigitalWorkersManager() {
                 <div>
                   <Label className="text-sm font-medium">Auto-Response</Label>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Allow {worker.name} to automatically respond to inbound messages
+                    Allow {worker.name} to automatically respond to inbound
+                    messages
                   </p>
                 </div>
                 <Switch
                   checked={state.autoResponse}
-                  onCheckedChange={(checked) => updateWorkerState({ autoResponse: checked })}
+                  onCheckedChange={(checked) =>
+                    updateWorkerState({ autoResponse: checked })
+                  }
                 />
               </div>
 
@@ -342,12 +365,15 @@ export function DigitalWorkersManager() {
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">Humor Level</Label>
                   <p className="text-xs text-muted-foreground mb-2">
-                    Controls the intensity of CATHY&apos;s Leslie Nielsen/Henny Youngman style humor
+                    Controls the intensity of CATHY&apos;s Leslie Nielsen/Henny
+                    Youngman style humor
                   </p>
                   <Select
                     value={state.humorLevel || "medium"}
                     onValueChange={(value) =>
-                      updateWorkerState({ humorLevel: value as "mild" | "medium" | "spicy" })
+                      updateWorkerState({
+                        humorLevel: value as "mild" | "medium" | "spicy",
+                      })
                     }
                   >
                     <SelectTrigger>
@@ -370,14 +396,19 @@ export function DigitalWorkersManager() {
 
               {/* Custom Greeting Override */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Custom Greeting (Optional)</Label>
+                <Label className="text-sm font-medium">
+                  Custom Greeting (Optional)
+                </Label>
                 <p className="text-xs text-muted-foreground mb-2">
-                  Override the default greeting. Leave empty to use {worker.name}&apos;s DNA.
+                  Override the default greeting. Leave empty to use{" "}
+                  {worker.name}&apos;s DNA.
                 </p>
                 <Input
                   placeholder={worker.linguistic.greetings[0]}
                   value={state.customGreeting || ""}
-                  onChange={(e) => updateWorkerState({ customGreeting: e.target.value })}
+                  onChange={(e) =>
+                    updateWorkerState({ customGreeting: e.target.value })
+                  }
                 />
               </div>
 
@@ -405,15 +436,20 @@ export function DigitalWorkersManager() {
             <TabsContent value="system-prompt" className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <Label className="text-sm font-medium">OpenAI System Prompt</Label>
+                  <Label className="text-sm font-medium">
+                    OpenAI System Prompt
+                  </Label>
                   <p className="text-xs text-muted-foreground mt-1">
-                    This prompt is sent to OpenAI when generating AI-assisted messages for {worker.name}
+                    This prompt is sent to OpenAI when generating AI-assisted
+                    messages for {worker.name}
                   </p>
                 </div>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => copyToClipboard(worker.systemPrompt, "System Prompt")}
+                  onClick={() =>
+                    copyToClipboard(worker.systemPrompt, "System Prompt")
+                  }
                 >
                   <Copy className="h-4 w-4 mr-2" />
                   Copy
@@ -425,7 +461,8 @@ export function DigitalWorkersManager() {
                 readOnly
               />
               <p className="text-xs text-muted-foreground italic">
-                This system prompt is read-only. {worker.name}&apos;s personality is hardcoded and proprietary.
+                This system prompt is read-only. {worker.name}&apos;s
+                personality is hardcoded and proprietary.
               </p>
             </TabsContent>
           </Tabs>
@@ -453,7 +490,9 @@ export function DigitalWorkersManager() {
             <div className="text-2xl font-bold">
               {Object.values(workerStates).filter((s) => s.autoResponse).length}
             </div>
-            <p className="text-xs text-muted-foreground">Auto-Response Enabled</p>
+            <p className="text-xs text-muted-foreground">
+              Auto-Response Enabled
+            </p>
           </CardContent>
         </Card>
         <Card>

@@ -235,3 +235,9 @@ fdaily-pro-spec.yaml
 # Temporary files
 tmp-*.json
 
+
+# Files with secrets - do not commit
+apps/front/check-app-db.mjs
+apps/front/verify-db.mjs
+AUDIT_01B_DO_INFRASTRUCTURE.md
+*temp_app_spec*

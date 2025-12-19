@@ -144,45 +144,45 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (!leads || !Array.isArray(leads) || leads.length === 0) {
       return NextResponse.json(
         { error: "leads array is required and must not be empty" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (leads.length > 250) {
       return NextResponse.json(
         { error: "Maximum 250 leads per batch. Split into multiple requests." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Validate each lead has address
-    const invalidLeads = leads.filter(
-      (l) => !l.address || !l.city || !l.state
-    );
+    const invalidLeads = leads.filter((l) => !l.address || !l.city || !l.state);
     if (invalidLeads.length > 0) {
       return NextResponse.json(
         {
           error: `${invalidLeads.length} leads missing required address fields`,
           invalidIds: invalidLeads.map((l) => l.id),
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Check API key
     if (!REALESTATE_API_KEY) {
-      console.warn(`[Bulk Skip Trace] REALESTATE_API_KEY not configured [${correlationId}]`);
+      console.warn(
+        `[Bulk Skip Trace] REALESTATE_API_KEY not configured [${correlationId}]`,
+      );
       return NextResponse.json(
         {
           error: "Skip trace API not configured",
           hint: "Set REALESTATE_API_KEY environment variable",
         },
-        { status: 503 }
+        { status: 503 },
       );
     }
 
     console.log(
-      `[Bulk Skip Trace] Processing ${leads.length} leads, batchId=${batchId || "none"} [${correlationId}]`
+      `[Bulk Skip Trace] Processing ${leads.length} leads, batchId=${batchId || "none"} [${correlationId}]`,
     );
 
     // Build payload for RealEstateAPI
@@ -235,11 +235,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             ? parseInt(retryAfter, 10) * 1000
             : Math.min(
                 RETRY_CONFIG.baseDelayMs * Math.pow(2, attempt),
-                RETRY_CONFIG.maxDelayMs
+                RETRY_CONFIG.maxDelayMs,
               );
 
           console.warn(
-            `[Bulk Skip Trace] Rate limited, retry ${attempt + 1}/${RETRY_CONFIG.maxRetries} after ${delayMs}ms [${correlationId}]`
+            `[Bulk Skip Trace] Rate limited, retry ${attempt + 1}/${RETRY_CONFIG.maxRetries} after ${delayMs}ms [${correlationId}]`,
           );
           await sleep(delayMs);
           continue;
@@ -252,10 +252,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         ) {
           const delayMs = Math.min(
             RETRY_CONFIG.baseDelayMs * Math.pow(2, attempt),
-            RETRY_CONFIG.maxDelayMs
+            RETRY_CONFIG.maxDelayMs,
           );
           console.warn(
-            `[Bulk Skip Trace] Retryable error ${response.status}, retry ${attempt + 1}/${RETRY_CONFIG.maxRetries} [${correlationId}]`
+            `[Bulk Skip Trace] Retryable error ${response.status}, retry ${attempt + 1}/${RETRY_CONFIG.maxRetries} [${correlationId}]`,
           );
           await sleep(delayMs);
           continue;
@@ -264,32 +264,35 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         if (!response.ok) {
           const errorText = await response.text();
           console.error(
-            `[Bulk Skip Trace] API error: ${response.status} - ${errorText} [${correlationId}]`
+            `[Bulk Skip Trace] API error: ${response.status} - ${errorText} [${correlationId}]`,
           );
 
           if (response.status === 401) {
             return NextResponse.json(
               { error: "Invalid API key", correlationId },
-              { status: 401 }
+              { status: 401 },
             );
           }
           if (response.status === 403) {
             return NextResponse.json(
               { error: "No skip trace credits remaining", correlationId },
-              { status: 403 }
+              { status: 403 },
             );
           }
 
           return NextResponse.json(
-            { error: `Bulk skip trace failed: ${response.status}`, correlationId },
-            { status: response.status }
+            {
+              error: `Bulk skip trace failed: ${response.status}`,
+              correlationId,
+            },
+            { status: response.status },
           );
         }
 
         const result: BulkJobResponse = await response.json();
 
         console.log(
-          `[Bulk Skip Trace] Job submitted: ${result.job_id}, status=${result.status} [${correlationId}]`
+          `[Bulk Skip Trace] Job submitted: ${result.job_id}, status=${result.status} [${correlationId}]`,
         );
 
         // If results are immediately available (small batch), process them
@@ -328,10 +331,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         if (attempt < RETRY_CONFIG.maxRetries) {
           const delayMs = Math.min(
             RETRY_CONFIG.baseDelayMs * Math.pow(2, attempt),
-            RETRY_CONFIG.maxDelayMs
+            RETRY_CONFIG.maxDelayMs,
           );
           console.warn(
-            `[Bulk Skip Trace] Network error, retry ${attempt + 1}/${RETRY_CONFIG.maxRetries} [${correlationId}]`
+            `[Bulk Skip Trace] Network error, retry ${attempt + 1}/${RETRY_CONFIG.maxRetries} [${correlationId}]`,
           );
           await sleep(delayMs);
           continue;
@@ -344,10 +347,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     console.error(`[Bulk Skip Trace] Error [${correlationId}]:`, error);
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : "Bulk skip trace failed",
+        error:
+          error instanceof Error ? error.message : "Bulk skip trace failed",
         correlationId,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -378,7 +382,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   if (!REALESTATE_API_KEY) {
     return NextResponse.json(
       { error: "Skip trace API not configured" },
-      { status: 503 }
+      { status: 503 },
     );
   }
 
@@ -391,13 +395,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
           "x-api-key": REALESTATE_API_KEY,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
 
     if (!response.ok) {
       return NextResponse.json(
         { error: `Failed to get job status: ${response.status}` },
-        { status: response.status }
+        { status: response.status },
       );
     }
 
@@ -413,8 +417,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     });
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to check status" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to check status",
+      },
+      { status: 500 },
     );
   }
 }
@@ -422,13 +429,23 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 // Process results and map back to original leads
 function processResults(
   originalLeads: BulkSkipTraceInput[],
-  results: SkipTraceResult[]
+  results: SkipTraceResult[],
 ): Array<{
   id: string;
   leadId: string;
   success: boolean;
-  phones: Array<{ number: string; type: string; isMobile: boolean; score?: number }>;
-  emails: Array<{ email: string; type: string; isValid?: boolean; score?: number }>;
+  phones: Array<{
+    number: string;
+    type: string;
+    isMobile: boolean;
+    score?: number;
+  }>;
+  emails: Array<{
+    email: string;
+    type: string;
+    isValid?: boolean;
+    score?: number;
+  }>;
   socials: {
     linkedin?: string;
     facebook?: string;
@@ -473,10 +490,18 @@ function processResults(
 
     const socialProfiles = result.output.social_profiles || [];
     const socials = {
-      linkedin: socialProfiles.find((s) => s.platform.toLowerCase() === "linkedin")?.url,
-      facebook: socialProfiles.find((s) => s.platform.toLowerCase() === "facebook")?.url,
-      twitter: socialProfiles.find((s) => s.platform.toLowerCase() === "twitter")?.url,
-      instagram: socialProfiles.find((s) => s.platform.toLowerCase() === "instagram")?.url,
+      linkedin: socialProfiles.find(
+        (s) => s.platform.toLowerCase() === "linkedin",
+      )?.url,
+      facebook: socialProfiles.find(
+        (s) => s.platform.toLowerCase() === "facebook",
+      )?.url,
+      twitter: socialProfiles.find(
+        (s) => s.platform.toLowerCase() === "twitter",
+      )?.url,
+      instagram: socialProfiles.find(
+        (s) => s.platform.toLowerCase() === "instagram",
+      )?.url,
     };
 
     return {

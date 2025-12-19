@@ -16,9 +16,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { apiAuth } from "@/lib/api-auth";
 
 // Import existing Gianna infrastructure - USE THESE, DON'T CREATE NEW ONES
-import { OPENER_LIBRARY, REBUTTAL_LIBRARY, getBestOpeners } from "@/lib/gianna/knowledge-base/message-library";
-import { CONVERSATION_FLOWS, classifyResponse, getFlowForResponse, INDUSTRY_OPENERS } from "@/lib/gianna/conversation-flows";
-import { GIANNA_TEMPLATES, getGiannaPrompt } from "@/lib/gianna/knowledge-base/personality";
+import {
+  OPENER_LIBRARY,
+  REBUTTAL_LIBRARY,
+  getBestOpeners,
+} from "@/lib/gianna/knowledge-base/message-library";
+import {
+  CONVERSATION_FLOWS,
+  classifyResponse,
+  getFlowForResponse,
+  INDUSTRY_OPENERS,
+} from "@/lib/gianna/conversation-flows";
+import {
+  GIANNA_TEMPLATES,
+  getGiannaPrompt,
+} from "@/lib/gianna/knowledge-base/personality";
 
 // Constants
 const BATCH_SIZE = 250; // Process 250 at a time
@@ -27,23 +39,23 @@ const RATE_LIMIT_DELAY = 500; // ms between batches
 
 // Campaign context types - tracks attempt history and contact status
 type CampaignContext =
-  | "initial"           // First outreach attempt
-  | "retarget"          // No contact made, trying again (auto-triggered)
-  | "follow_up"         // Contact made, following up
-  | "book_appointment"  // Scheduling an appointment
+  | "initial" // First outreach attempt
+  | "retarget" // No contact made, trying again (auto-triggered)
+  | "follow_up" // Contact made, following up
+  | "book_appointment" // Scheduling an appointment
   | "confirm_appointment" // Confirming scheduled appointment
-  | "nurture"           // Long-term drip sequence
-  | "ghost"             // Was engaged, went silent
-  | "scheduled"         // Scheduled for future
-  | "instant";          // Immediate outreach
+  | "nurture" // Long-term drip sequence
+  | "ghost" // Was engaged, went silent
+  | "scheduled" // Scheduled for future
+  | "instant"; // Immediate outreach
 
 interface CampaignAttemptInfo {
-  attemptNumber: number;     // 1, 2, 3... (retarget_1, retarget_2, etc.)
-  previousAttempts: number;  // Total attempts so far
-  contactMade: boolean;      // Has contact been established?
-  lastAttemptDate?: string;  // When was last attempt
+  attemptNumber: number; // 1, 2, 3... (retarget_1, retarget_2, etc.)
+  previousAttempts: number; // Total attempts so far
+  contactMade: boolean; // Has contact been established?
+  lastAttemptDate?: string; // When was last attempt
   lastResponseDate?: string; // When did they last respond (if ever)
-  autoRetarget?: boolean;    // Should auto-queue for retarget if no response?
+  autoRetarget?: boolean; // Should auto-queue for retarget if no response?
 }
 
 interface OrchestrateRequest {
@@ -99,10 +111,10 @@ interface LeadRecord {
 
 // Auto-retarget configuration - uses LEARNING_CONFIG from message-library.ts
 const RETARGET_CONFIG = {
-  defaultThreshold: 3,           // Default: auto-retarget after 3 no-contact attempts
-  maxRetargets: 5,               // Max retarget attempts before moving to nurture
-  retargetDelayHours: 48,        // Wait 48 hours between retargets
-  requireHumanApproval: true,    // Human-in-the-loop for Gianna co-pilot (matches LEARNING_CONFIG.human_in_loop)
+  defaultThreshold: 3, // Default: auto-retarget after 3 no-contact attempts
+  maxRetargets: 5, // Max retarget attempts before moving to nurture
+  retargetDelayHours: 48, // Wait 48 hours between retargets
+  requireHumanApproval: true, // Human-in-the-loop for Gianna co-pilot (matches LEARNING_CONFIG.human_in_loop)
 };
 
 /**
@@ -129,7 +141,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (!bucketId) {
       return NextResponse.json(
         { error: "bucketId is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -143,13 +155,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Legacy: if no action specified, return error
     return NextResponse.json(
       { error: "action is required: 'enrich' or 'push'" },
-      { status: 400 }
+      { status: 400 },
     );
   } catch (error) {
     console.error("[LUCI Orchestrate] Error:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Pipeline failed" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -163,7 +175,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 async function handleEnrichAction(
   request: NextRequest,
   body: OrchestrateRequest,
-  teamId: string | null
+  teamId: string | null,
 ): Promise<NextResponse> {
   const {
     bucketId,
@@ -172,23 +184,26 @@ async function handleEnrichAction(
     filters = {},
   } = body;
 
-  console.log(`[LUCI Orchestrate] ENRICH batch ${batchNumber} for bucket: ${bucketId}`);
+  console.log(
+    `[LUCI Orchestrate] ENRICH batch ${batchNumber} for bucket: ${bucketId}`,
+  );
 
   // STEP 1: Get ALL leads from bucket to calculate totals
   const bucketResponse = await fetch(
     `${process.env.NEXT_PUBLIC_URL || "http://localhost:3000"}/api/buckets/${bucketId}`,
-    { headers: { Cookie: request.headers.get("cookie") || "" } }
+    { headers: { Cookie: request.headers.get("cookie") || "" } },
   );
   const bucketData = await bucketResponse.json();
 
   if (bucketData.error) {
     return NextResponse.json(
       { error: `Failed to fetch bucket: ${bucketData.error}` },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
-  let allLeads: LeadRecord[] = bucketData.records || bucketData.properties || [];
+  let allLeads: LeadRecord[] =
+    bucketData.records || bucketData.properties || [];
 
   // Apply filters first
   if (filters.hasAddress) {
@@ -199,12 +214,12 @@ async function handleEnrichAction(
   }
   if (filters.sicCodes?.length) {
     allLeads = allLeads.filter((l) =>
-      filters.sicCodes!.some((sic) => l.sicCode?.startsWith(sic))
+      filters.sicCodes!.some((sic) => l.sicCode?.startsWith(sic)),
     );
   }
   if (filters.states?.length) {
     allLeads = allLeads.filter((l) =>
-      filters.states!.includes(l.state?.toUpperCase() || "")
+      filters.states!.includes(l.state?.toUpperCase() || ""),
     );
   }
   if (filters.unenrichedOnly) {
@@ -234,10 +249,16 @@ async function handleEnrichAction(
 
   // Get THIS batch (250 records)
   const batchStart = batchNumber * BATCH_SIZE;
-  const batchEnd = Math.min(batchStart + BATCH_SIZE, totalLeads, LEAD_BLOCK_SIZE);
+  const batchEnd = Math.min(
+    batchStart + BATCH_SIZE,
+    totalLeads,
+    LEAD_BLOCK_SIZE,
+  );
   const batchLeads = allLeads.slice(batchStart, batchEnd);
 
-  console.log(`[LUCI Orchestrate] Processing batch ${batchNumber + 1}/${effectiveTotalBatches}: records ${batchStart}-${batchEnd}`);
+  console.log(
+    `[LUCI Orchestrate] Processing batch ${batchNumber + 1}/${effectiveTotalBatches}: records ${batchStart}-${batchEnd}`,
+  );
 
   // STEP 2: Enrich THIS BATCH ONLY
   const enrichmentResults = {
@@ -246,13 +267,15 @@ async function handleEnrichAction(
     failed: 0,
   };
 
-  const enrichedLeads: Array<LeadRecord & {
-    leadId?: string;
-    enrichedPhones?: PhoneWithType[];
-    enrichedEmails?: string[];
-    mobilePhone?: string;
-    socials?: Record<string, string | null>;
-  }> = [];
+  const enrichedLeads: Array<
+    LeadRecord & {
+      leadId?: string;
+      enrichedPhones?: PhoneWithType[];
+      enrichedEmails?: string[];
+      mobilePhone?: string;
+      socials?: Record<string, string | null>;
+    }
+  > = [];
 
   // ═══════════════════════════════════════════════════════════════════════════
   // BULK SKIP TRACE - Process entire batch in one API call
@@ -260,11 +283,13 @@ async function handleEnrichAction(
   if (enrichmentTypes.includes("skip_trace")) {
     // Filter leads that have address data for skip tracing
     const skipTraceableLeads = batchLeads.filter(
-      (lead) => lead.address && lead.city && lead.state
+      (lead) => lead.address && lead.city && lead.state,
     );
 
     if (skipTraceableLeads.length > 0) {
-      console.log(`[LUCI Orchestrate] Bulk skip tracing ${skipTraceableLeads.length} leads`);
+      console.log(
+        `[LUCI Orchestrate] Bulk skip tracing ${skipTraceableLeads.length} leads`,
+      );
 
       try {
         // Build bulk skip trace payload
@@ -272,7 +297,10 @@ async function handleEnrichAction(
           leads: skipTraceableLeads.map((lead) => ({
             id: lead.id,
             firstName: lead.firstName || lead.contactName?.split(" ")[0] || "",
-            lastName: lead.lastName || lead.contactName?.split(" ").slice(1).join(" ") || "",
+            lastName:
+              lead.lastName ||
+              lead.contactName?.split(" ").slice(1).join(" ") ||
+              "",
             companyName: lead.companyName,
             address: lead.address,
             city: lead.city,
@@ -294,7 +322,7 @@ async function handleEnrichAction(
               Cookie: request.headers.get("cookie") || "",
             },
             body: JSON.stringify(bulkPayload),
-          }
+          },
         );
 
         const bulkResult = await bulkSkipTraceResponse.json();
@@ -306,18 +334,25 @@ async function handleEnrichAction(
               if (result.success) {
                 enrichmentResults.skipTraced++;
                 // Find and update the lead in our batch
-                const leadIndex = batchLeads.findIndex((l) => l.id === result.id);
+                const leadIndex = batchLeads.findIndex(
+                  (l) => l.id === result.id,
+                );
                 if (leadIndex >= 0) {
-                  const mobilePhone = result.phones?.find((p: { isMobile: boolean }) => p.isMobile);
+                  const mobilePhone = result.phones?.find(
+                    (p: { isMobile: boolean }) => p.isMobile,
+                  );
                   batchLeads[leadIndex] = {
                     ...batchLeads[leadIndex],
                     leadId: result.leadId,
                     enrichedPhones: result.phones,
-                    enrichedEmails: result.emails?.map((e: { email: string }) => e.email),
-                    mobilePhone: mobilePhone?.number || result.phones?.[0]?.number,
+                    enrichedEmails: result.emails?.map(
+                      (e: { email: string }) => e.email,
+                    ),
+                    mobilePhone:
+                      mobilePhone?.number || result.phones?.[0]?.number,
                     socials: result.socials,
                     enriched: true,
-                  } as typeof batchLeads[0];
+                  } as (typeof batchLeads)[0];
                 }
               } else {
                 enrichmentResults.failed++;
@@ -325,12 +360,17 @@ async function handleEnrichAction(
             }
           } else {
             // Async mode - job submitted, will be processed via webhook
-            console.log(`[LUCI Orchestrate] Bulk skip trace job submitted: ${bulkResult.jobId}`);
+            console.log(
+              `[LUCI Orchestrate] Bulk skip trace job submitted: ${bulkResult.jobId}`,
+            );
             // Mark as pending - webhook will update when complete
             enrichmentResults.skipTraced = skipTraceableLeads.length; // Optimistic
           }
         } else {
-          console.error(`[LUCI Orchestrate] Bulk skip trace failed:`, bulkResult.error);
+          console.error(
+            `[LUCI Orchestrate] Bulk skip trace failed:`,
+            bulkResult.error,
+          );
           enrichmentResults.failed += skipTraceableLeads.length;
         }
       } catch (error) {
@@ -344,10 +384,13 @@ async function handleEnrichAction(
   // APOLLO ENRICHMENT - Still done per-lead (they don't have bulk)
   // ═══════════════════════════════════════════════════════════════════════════
   for (const lead of batchLeads) {
-    let enrichedLead: typeof enrichedLeads[0] = { ...lead };
+    let enrichedLead: (typeof enrichedLeads)[0] = { ...lead };
 
     // Apollo enrichment (no bulk API available)
-    if (enrichmentTypes.includes("apollo") && (lead.email || (lead.contactName && lead.companyName))) {
+    if (
+      enrichmentTypes.includes("apollo") &&
+      (lead.email || (lead.contactName && lead.companyName))
+    ) {
       try {
         const apolloResponse = await fetch(
           `${process.env.NEXT_PUBLIC_URL || "http://localhost:3000"}/api/enrichment/apollo`,
@@ -362,10 +405,12 @@ async function handleEnrichAction(
               bucketId,
               email: lead.email,
               firstName: lead.firstName || lead.contactName?.split(" ")[0],
-              lastName: lead.lastName || lead.contactName?.split(" ").slice(1).join(" "),
+              lastName:
+                lead.lastName ||
+                lead.contactName?.split(" ").slice(1).join(" "),
               companyName: lead.companyName,
             }),
-          }
+          },
         );
 
         const apolloData = await apolloResponse.json();
@@ -377,7 +422,10 @@ async function handleEnrichAction(
           };
         }
       } catch (error) {
-        console.error(`[LUCI Orchestrate] Apollo enrichment failed for ${lead.id}:`, error);
+        console.error(
+          `[LUCI Orchestrate] Apollo enrichment failed for ${lead.id}:`,
+          error,
+        );
       }
 
       // Rate limit between Apollo calls
@@ -387,7 +435,10 @@ async function handleEnrichAction(
     enrichedLeads.push(enrichedLead);
   }
 
-  console.log(`[LUCI Orchestrate] Batch ${batchNumber + 1} complete:`, enrichmentResults);
+  console.log(
+    `[LUCI Orchestrate] Batch ${batchNumber + 1} complete:`,
+    enrichmentResults,
+  );
 
   // Return batch results with progress info
   const isLastBatch = batchNumber + 1 >= effectiveTotalBatches;
@@ -406,7 +457,9 @@ async function handleEnrichAction(
       totalBatches: effectiveTotalBatches,
       recordsProcessed: batchEnd,
       totalRecords: Math.min(totalLeads, LEAD_BLOCK_SIZE),
-      percentComplete: Math.round((batchEnd / Math.min(totalLeads, LEAD_BLOCK_SIZE)) * 100),
+      percentComplete: Math.round(
+        (batchEnd / Math.min(totalLeads, LEAD_BLOCK_SIZE)) * 100,
+      ),
     },
     // Include enriched leads from this batch for client-side aggregation
     enrichedLeads: enrichedLeads.filter((l) => l.leadId),
@@ -433,9 +486,11 @@ interface AttemptLog {
 
 async function logAttempt(
   request: NextRequest,
-  log: AttemptLog
+  log: AttemptLog,
 ): Promise<void> {
-  console.log(`[LUCI Attempt Log] ${log.campaignContext} #${log.attemptNumber} for ${log.leadId}: ${log.status}`);
+  console.log(
+    `[LUCI Attempt Log] ${log.campaignContext} #${log.attemptNumber} for ${log.leadId}: ${log.status}`,
+  );
 
   // TODO: Store in database for tracking
   // This creates an audit trail for:
@@ -454,7 +509,7 @@ async function logAttempt(
           Cookie: request.headers.get("cookie") || "",
         },
         body: JSON.stringify(log),
-      }
+      },
     );
   } catch (error) {
     // Log but don't fail the operation
@@ -471,7 +526,12 @@ function selectTemplate(
   attemptInfo: CampaignAttemptInfo | undefined,
   templateCategory: string,
   customTemplate?: string,
-  leadContext?: { firstName?: string; companyName?: string; industry?: string; city?: string }
+  leadContext?: {
+    firstName?: string;
+    companyName?: string;
+    industry?: string;
+    city?: string;
+  },
 ): string {
   // Custom template always wins
   if (customTemplate) return customTemplate;
@@ -567,7 +627,7 @@ function selectTemplate(
 async function handlePushAction(
   request: NextRequest,
   body: OrchestrateRequest,
-  teamId: string | null
+  teamId: string | null,
 ): Promise<NextResponse> {
   const {
     bucketId,
@@ -585,43 +645,49 @@ async function handlePushAction(
   if (!leadBlockId) {
     return NextResponse.json(
       { error: "leadBlockId is required for push action" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
   // For retargets, enforce human-in-the-loop if configured
-  const effectiveMode = (campaignContext === "retarget" && RETARGET_CONFIG.requireHumanApproval)
-    ? "draft"
-    : mode;
+  const effectiveMode =
+    campaignContext === "retarget" && RETARGET_CONFIG.requireHumanApproval
+      ? "draft"
+      : mode;
 
-  console.log(`[LUCI Orchestrate] PUSH lead block ${leadBlockId} to ${pushTo} (context: ${campaignContext}, attempt: ${attemptInfo?.attemptNumber || 1})`);
+  console.log(
+    `[LUCI Orchestrate] PUSH lead block ${leadBlockId} to ${pushTo} (context: ${campaignContext}, attempt: ${attemptInfo?.attemptNumber || 1})`,
+  );
 
   // Get enriched leads from the bucket (those with leadId)
   const bucketResponse = await fetch(
     `${process.env.NEXT_PUBLIC_URL || "http://localhost:3000"}/api/buckets/${bucketId}`,
-    { headers: { Cookie: request.headers.get("cookie") || "" } }
+    { headers: { Cookie: request.headers.get("cookie") || "" } },
   );
   const bucketData = await bucketResponse.json();
 
   if (bucketData.error) {
     return NextResponse.json(
       { error: `Failed to fetch bucket: ${bucketData.error}` },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
   // Filter to only enriched leads (those with leadId)
-  const allLeads: LeadRecord[] = bucketData.records || bucketData.properties || [];
+  const allLeads: LeadRecord[] =
+    bucketData.records || bucketData.properties || [];
   const enrichedLeads = allLeads.filter((l) => l.enriched);
 
   if (enrichedLeads.length === 0) {
     return NextResponse.json(
       { error: "No enriched leads found. Run enrich action first." },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
-  console.log(`[LUCI Orchestrate] Found ${enrichedLeads.length} enriched leads to push`);
+  console.log(
+    `[LUCI Orchestrate] Found ${enrichedLeads.length} enriched leads to push`,
+  );
 
   const pushResults = {
     smsQueued: 0,
@@ -632,12 +698,19 @@ async function handlePushAction(
   // Push to SMS
   if (pushTo === "sms" || pushTo === "both") {
     const leadsWithMobile = enrichedLeads.filter(
-      (l) => l.mobilePhone || l.enrichedPhones?.some((p) => p.type?.toLowerCase() === "mobile")
+      (l) =>
+        l.mobilePhone ||
+        l.enrichedPhones?.some((p) => p.type?.toLowerCase() === "mobile"),
     );
 
     if (leadsWithMobile.length > 0) {
       // Use selectTemplate with Gianna library - gets appropriate template based on campaign context
-      const template = selectTemplate(campaignContext, attemptInfo, templateCategory, templateMessage);
+      const template = selectTemplate(
+        campaignContext,
+        attemptInfo,
+        templateCategory,
+        templateMessage,
+      );
 
       try {
         const pushResponse = await fetch(
@@ -662,16 +735,19 @@ async function handlePushAction(
                 address: l.address,
                 city: l.city,
                 state: l.state,
-                industry: (l._original as Record<string, unknown>)?.["SIC Description"] || l.sicCode,
+                industry:
+                  (l._original as Record<string, unknown>)?.[
+                    "SIC Description"
+                  ] || l.sicCode,
               })),
               templateMessage: template,
               campaignName: campaignName || `LUCI-${bucketId}-${Date.now()}`,
               campaignContext, // Pass context for downstream processing
-              attemptInfo,     // Pass attempt info for logging
+              attemptInfo, // Pass attempt info for logging
               mode: effectiveMode, // Use effectiveMode (draft for retargets if human-in-loop)
               agent,
             }),
-          }
+          },
         );
 
         const pushData = await pushResponse.json();
@@ -685,7 +761,7 @@ async function handlePushAction(
   // Push to Dialer
   if (pushTo === "dialer" || pushTo === "both") {
     const leadsWithPhone = enrichedLeads.filter(
-      (l) => l.phone || l.mobilePhone || l.enrichedPhones?.length
+      (l) => l.phone || l.mobilePhone || l.enrichedPhones?.length,
     );
 
     if (leadsWithPhone.length > 0) {
@@ -700,10 +776,11 @@ async function handlePushAction(
             },
             body: JSON.stringify({
               leads: leadsWithPhone,
-              campaignName: campaignName || `LUCI-DIALER-${bucketId}-${Date.now()}`,
+              campaignName:
+                campaignName || `LUCI-DIALER-${bucketId}-${Date.now()}`,
               priority: "normal",
             }),
-          }
+          },
         );
 
         const pushData = await pushResponse.json();
@@ -733,9 +810,15 @@ async function handlePushAction(
       skipped: pushResults.skipped,
     },
     nextSteps: [
-      pushResults.smsQueued > 0 ? `Review ${pushResults.smsQueued} messages in SMS Queue` : null,
-      pushResults.dialerQueued > 0 ? `${pushResults.dialerQueued} leads ready for dialer` : null,
-      mode === "draft" ? "Messages in draft mode - review before sending" : null,
+      pushResults.smsQueued > 0
+        ? `Review ${pushResults.smsQueued} messages in SMS Queue`
+        : null,
+      pushResults.dialerQueued > 0
+        ? `${pushResults.dialerQueued} leads ready for dialer`
+        : null,
+      mode === "draft"
+        ? "Messages in draft mode - review before sending"
+        : null,
     ].filter(Boolean),
   });
 }
@@ -744,21 +827,27 @@ async function handlePushAction(
 export async function GET(): Promise<NextResponse> {
   return NextResponse.json({
     endpoint: "POST /api/luci/orchestrate",
-    description: "Unified LUCI → GIANNA pipeline orchestrator with batch processing",
+    description:
+      "Unified LUCI → GIANNA pipeline orchestrator with batch processing",
     version: "2.0",
     workflow: {
-      step1: "ENRICH: Process batches of 250 records, build lead blocks up to 2,000",
-      step2: "PUSH: User decides where to push enriched lead block (separate action)",
+      step1:
+        "ENRICH: Process batches of 250 records, build lead blocks up to 2,000",
+      step2:
+        "PUSH: User decides where to push enriched lead block (separate action)",
       note: "Enrichment and push are SEPARATE actions. Enrich first, then push.",
     },
     actions: {
       enrich: {
-        description: "Process a batch of records for enrichment (skip trace, apollo, etc.)",
+        description:
+          "Process a batch of records for enrichment (skip trace, apollo, etc.)",
         parameters: {
           action: "'enrich' (required)",
           bucketId: "string (required) - Data lake bucket ID",
-          batchNumber: "number - Which batch to process (0-indexed, default: 0)",
-          enrichmentTypes: "('skip_trace' | 'apollo' | 'property')[] - What to enrich",
+          batchNumber:
+            "number - Which batch to process (0-indexed, default: 0)",
+          enrichmentTypes:
+            "('skip_trace' | 'apollo' | 'property')[] - What to enrich",
           filters: {
             hasAddress: "boolean - Only leads with address",
             missingPhone: "boolean - Only leads missing phone",
@@ -767,7 +856,8 @@ export async function GET(): Promise<NextResponse> {
             unenrichedOnly: "boolean - Skip already enriched records",
           },
         },
-        response: "Returns batch results, progress info, nextBatch number, leadBlockId when complete",
+        response:
+          "Returns batch results, progress info, nextBatch number, leadBlockId when complete",
       },
       push: {
         description: "Push completed lead block to campaign context",
@@ -777,15 +867,18 @@ export async function GET(): Promise<NextResponse> {
           leadBlockId: "string (required) - Lead block ID from enrichment",
           pushTo: "'sms' | 'dialer' | 'both'",
           mode: "'draft' | 'immediate' - Draft requires human review (default for retargets)",
-          campaignContext: "'initial' | 'retarget' | 'follow_up' | 'book_appointment' | 'confirm_appointment' | 'nurture' | 'ghost' | 'scheduled' | 'instant'",
+          campaignContext:
+            "'initial' | 'retarget' | 'follow_up' | 'book_appointment' | 'confirm_appointment' | 'nurture' | 'ghost' | 'scheduled' | 'instant'",
           attemptInfo: {
             attemptNumber: "number - Which attempt this is (1, 2, 3...)",
             previousAttempts: "number - Total attempts so far",
             contactMade: "boolean - Has contact been established?",
             autoRetarget: "boolean - Auto-queue for retarget if no response?",
           },
-          templateCategory: "'blue_collar' | 'property' | 'business' | 'general' | 'ny_direct'",
-          templateMessage: "string - Optional custom message (overrides library templates)",
+          templateCategory:
+            "'blue_collar' | 'property' | 'business' | 'general' | 'ny_direct'",
+          templateMessage:
+            "string - Optional custom message (overrides library templates)",
           agent: "'gianna' | 'sabrina' - AI agent to use",
           campaignName: "string - Optional campaign name",
         },
@@ -793,10 +886,13 @@ export async function GET(): Promise<NextResponse> {
     },
     campaignContexts: {
       initial: "First outreach attempt - uses OPENER_LIBRARY",
-      retarget: "No contact made after threshold - uses ghost flows, human-in-loop enforced",
-      follow_up: "Contact was made, continuing conversation - uses follow-up templates",
+      retarget:
+        "No contact made after threshold - uses ghost flows, human-in-loop enforced",
+      follow_up:
+        "Contact was made, continuing conversation - uses follow-up templates",
       book_appointment: "Scheduling an appointment - uses schedule_call flow",
-      confirm_appointment: "Confirming scheduled appointment - uses appointment_confirm template",
+      confirm_appointment:
+        "Confirming scheduled appointment - uses appointment_confirm template",
       nurture: "Long-term value drip sequence - uses nurture_soft_no flow",
       ghost: "Previously engaged but went silent - uses ghost recovery flows",
       scheduled: "Scheduled for future - uses OPENER_LIBRARY",
@@ -844,7 +940,11 @@ export async function GET(): Promise<NextResponse> {
         leadBlockId: "lb_us-construction-plumbers-hvac_1703123456789",
         pushTo: "sms",
         campaignContext: "retarget",
-        attemptInfo: { attemptNumber: 2, previousAttempts: 1, contactMade: false },
+        attemptInfo: {
+          attemptNumber: 2,
+          previousAttempts: 1,
+          contactMade: false,
+        },
         templateCategory: "blue_collar",
         agent: "gianna",
       },

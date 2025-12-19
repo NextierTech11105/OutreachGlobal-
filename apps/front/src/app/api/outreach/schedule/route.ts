@@ -14,7 +14,7 @@ export async function GET() {
     if (!db) {
       return NextResponse.json(
         { error: "Database not configured" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -39,8 +39,8 @@ export async function GET() {
       .where(
         and(
           eq(smsMessages.direction, "outbound"),
-          gte(smsMessages.createdAt, today)
-        )
+          gte(smsMessages.createdAt, today),
+        ),
       )
       .orderBy(desc(smsMessages.createdAt))
       .limit(100)
@@ -80,7 +80,10 @@ export async function GET() {
       .catch(() => []);
 
     // Group SMS by campaign
-    const campaignMap = new Map<string, { id: string; count: number; status: string; scheduledAt: Date }>();
+    const campaignMap = new Map<
+      string,
+      { id: string; count: number; status: string; scheduledAt: Date }
+    >();
     smsData.forEach((sms) => {
       const campaignId = sms.campaignId || "direct";
       const existing = campaignMap.get(campaignId);
@@ -97,7 +100,16 @@ export async function GET() {
     });
 
     // Group campaign attempts by context (follow_up, nurture, etc.)
-    const sequenceMap = new Map<string, { id: string; name: string; count: number; status: string; scheduledAt: Date }>();
+    const sequenceMap = new Map<
+      string,
+      {
+        id: string;
+        name: string;
+        count: number;
+        status: string;
+        scheduledAt: Date;
+      }
+    >();
     campaignData.forEach((attempt) => {
       const context = attempt.campaignContext || "general";
       const existing = sequenceMap.get(context);
@@ -106,7 +118,9 @@ export async function GET() {
       } else {
         sequenceMap.set(context, {
           id: context,
-          name: context.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+          name: context
+            .replace(/_/g, " ")
+            .replace(/\b\w/g, (c) => c.toUpperCase()),
           count: 1,
           status: attempt.status || "pending",
           scheduledAt: attempt.createdAt,
@@ -120,14 +134,24 @@ export async function GET() {
       name: c.id === "direct" ? "Direct SMS" : `Campaign ${c.id.slice(0, 8)}`,
       scheduledAt: c.scheduledAt.toISOString(),
       recipientCount: c.count,
-      status: c.status === "delivered" ? "completed" : c.status === "sending" ? "active" : "pending",
+      status:
+        c.status === "delivered"
+          ? "completed"
+          : c.status === "sending"
+            ? "active"
+            : "pending",
     }));
 
     const calls = callData.map((call) => ({
       id: String(call.id),
       scheduledAt: (call.scheduledAt || call.createdAt).toISOString(),
       leadName: `Lead ${call.leadId || call.toNumber}`,
-      status: call.status === "completed" ? "completed" : call.status === "in-progress" ? "active" : "pending",
+      status:
+        call.status === "completed"
+          ? "completed"
+          : call.status === "in-progress"
+            ? "active"
+            : "pending",
     }));
 
     const sequences = Array.from(sequenceMap.values()).map((s) => ({
@@ -156,13 +180,14 @@ export async function GET() {
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : "Failed to fetch schedule",
+        error:
+          error instanceof Error ? error.message : "Failed to fetch schedule",
         campaigns: [],
         calls: [],
         sequences: [],
         stats: { totalSms: 0, totalCalls: 0, totalAttempts: 0 },
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -140,7 +140,7 @@ export function AssistantMode({
   const fetchAssistantState = useCallback(async () => {
     try {
       const res = await fetch(
-        `/api/call-center/queue?action=assistant-state&persona=${persona}`
+        `/api/call-center/queue?action=assistant-state&persona=${persona}`,
       );
       const data = await res.json();
       if (data.success && data.state) {
@@ -309,7 +309,7 @@ export function AssistantMode({
         v.name.toLowerCase().includes("female") ||
         v.name.toLowerCase().includes("samantha") ||
         v.name.toLowerCase().includes("karen") ||
-        v.name.toLowerCase().includes("victoria")
+        v.name.toLowerCase().includes("victoria"),
     );
     if (femaleVoice) utterance.voice = femaleVoice;
 
@@ -579,8 +579,8 @@ export function AssistantMode({
                       state.currentLead.priority >= 8
                         ? "bg-green-500/20 text-green-400"
                         : state.currentLead.priority >= 5
-                        ? "bg-yellow-500/20 text-yellow-400"
-                        : "bg-zinc-700 text-zinc-400"
+                          ? "bg-yellow-500/20 text-yellow-400"
+                          : "bg-zinc-700 text-zinc-400"
                     }`}
                   >
                     Priority {state.currentLead.priority}

@@ -10,7 +10,8 @@ export const COMPANY_NAME = process.env.NEXT_PUBLIC_COMPANY_NAME || "Nextier";
 export const PLATFORM_NAME = `${APP_NAME} Data Engine`;
 
 // AI Assistant names (configurable per tenant)
-export const AI_ASSISTANT_NAME = process.env.NEXT_PUBLIC_AI_ASSISTANT_NAME || "Gianna";
+export const AI_ASSISTANT_NAME =
+  process.env.NEXT_PUBLIC_AI_ASSISTANT_NAME || "Gianna";
 export const AI_ASSISTANT_FULL = `${AI_ASSISTANT_NAME} | ${APP_NAME}`;
 
 // Agent names - these can be customized per tenant
@@ -22,7 +23,8 @@ export const AGENTS = {
 };
 
 // Email configuration
-export const EMAIL_SENDER_NAME = process.env.EMAIL_SENDER_NAME || AI_ASSISTANT_FULL;
+export const EMAIL_SENDER_NAME =
+  process.env.EMAIL_SENDER_NAME || AI_ASSISTANT_FULL;
 
 // Theme
 export const THEME_KEY = process.env.NEXT_PUBLIC_THEME_KEY || "nextier-theme";
@@ -65,6 +67,8 @@ ${COMPANY_NAME}
 `;
 
 // System prompts base (for AI agents)
-export function getAISystemPrompt(agentName: string = AI_ASSISTANT_NAME): string {
+export function getAISystemPrompt(
+  agentName: string = AI_ASSISTANT_NAME,
+): string {
   return `You are ${agentName}, an AI Sales Development Representative (SDR) assistant for ${COMPANY_NAME}. You help with lead qualification, outreach, and customer communication. Be professional, helpful, and concise.`;
 }

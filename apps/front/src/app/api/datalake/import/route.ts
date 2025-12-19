@@ -11,38 +11,79 @@ import { apiAuth } from "@/lib/api-auth";
 
 // Field mappings for USBizData format
 const FIELD_MAP: Record<string, string[]> = {
-  companyName: ["Company Name", "Company", "COMPANY NAME", "company_name", "Business Name"],
-  contactName: ["Contact Name", "Contact", "CONTACT NAME", "contact_name", "Owner Name"],
+  companyName: [
+    "Company Name",
+    "Company",
+    "COMPANY NAME",
+    "company_name",
+    "Business Name",
+  ],
+  contactName: [
+    "Contact Name",
+    "Contact",
+    "CONTACT NAME",
+    "contact_name",
+    "Owner Name",
+  ],
   firstName: ["First Name", "FirstName", "FIRST NAME", "first_name"],
   lastName: ["Last Name", "LastName", "LAST NAME", "last_name"],
   email: ["Email Address", "Email", "EMAIL", "email", "E-mail"],
-  phone: ["Phone Number", "Phone", "PHONE", "phone", "Telephone", "Primary Phone"],
+  phone: [
+    "Phone Number",
+    "Phone",
+    "PHONE",
+    "phone",
+    "Telephone",
+    "Primary Phone",
+  ],
   address: ["Street Address", "Address", "ADDRESS", "address", "Street"],
   city: ["City", "CITY", "city"],
   state: ["State", "STATE", "state", "ST"],
   zip: ["Zip Code", "ZIP", "Zip", "zip", "zipcode", "Postal Code"],
   county: ["County", "COUNTY", "county"],
   website: ["Website URL", "Website", "URL", "website"],
-  employees: ["Number of Employees", "Employees", "employees", "EMPLOYEES", "Emp Size"],
-  revenue: ["Annual Revenue", "Revenue", "revenue", "REVENUE", "Sales", "Sales Volume"],
+  employees: [
+    "Number of Employees",
+    "Employees",
+    "employees",
+    "EMPLOYEES",
+    "Emp Size",
+  ],
+  revenue: [
+    "Annual Revenue",
+    "Revenue",
+    "revenue",
+    "REVENUE",
+    "Sales",
+    "Sales Volume",
+  ],
   sicCode: ["SIC Code", "SIC", "sic_code", "SIC CODE", "Primary SIC"],
-  sicDescription: ["SIC Description", "SIC Desc", "sic_description", "Industry"],
+  sicDescription: [
+    "SIC Description",
+    "SIC Desc",
+    "sic_description",
+    "Industry",
+  ],
 };
 
 function findColumn(headers: string[], fieldName: string): string | null {
   const variations = FIELD_MAP[fieldName] || [];
   for (const v of variations) {
     const found = headers.find(
-      (h) => h.toLowerCase().trim() === v.toLowerCase().trim()
+      (h) => h.toLowerCase().trim() === v.toLowerCase().trim(),
     );
     if (found) return found;
   }
   return null;
 }
 
-function extractValue(row: Record<string, string>, headers: string[], field: string): string | null {
+function extractValue(
+  row: Record<string, string>,
+  headers: string[],
+  field: string,
+): string | null {
   const col = findColumn(headers, field);
-  return col ? (row[col]?.trim() || null) : null;
+  return col ? row[col]?.trim() || null : null;
 }
 
 export async function POST(request: NextRequest) {
@@ -54,8 +95,8 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData();
     const file = formData.get("file") as File;
-    const importType = formData.get("type") as string || "business"; // business or contact
-    const batchSize = parseInt(formData.get("batchSize") as string || "100");
+    const importType = (formData.get("type") as string) || "business"; // business or contact
+    const batchSize = parseInt((formData.get("batchSize") as string) || "100");
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
@@ -75,7 +116,7 @@ export async function POST(request: NextRequest) {
     } catch (e) {
       return NextResponse.json(
         { error: "Failed to parse CSV", details: String(e) },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -94,37 +135,41 @@ export async function POST(request: NextRequest) {
 
       if (importType === "business") {
         // Insert into businesses table
-        const businessRecords = batch.map((row) => {
-          const companyName = extractValue(row, headers, "companyName");
-          const phone = extractValue(row, headers, "phone");
-          const email = extractValue(row, headers, "email");
-          const employeesStr = extractValue(row, headers, "employees");
-          const revenueStr = extractValue(row, headers, "revenue");
+        const businessRecords = batch
+          .map((row) => {
+            const companyName = extractValue(row, headers, "companyName");
+            const phone = extractValue(row, headers, "phone");
+            const email = extractValue(row, headers, "email");
+            const employeesStr = extractValue(row, headers, "employees");
+            const revenueStr = extractValue(row, headers, "revenue");
 
-          // Need at least company name
-          if (!companyName) return null;
+            // Need at least company name
+            if (!companyName) return null;
 
-          return {
-            userId: userId,
-            companyName: companyName,
-            phone: phone,
-            email: email,
-            address: extractValue(row, headers, "address"),
-            city: extractValue(row, headers, "city"),
-            state: extractValue(row, headers, "state"),
-            zip: extractValue(row, headers, "zip"),
-            county: extractValue(row, headers, "county"),
-            website: extractValue(row, headers, "website"),
-            sicCode: extractValue(row, headers, "sicCode"),
-            sicDescription: extractValue(row, headers, "sicDescription"),
-            employeeCount: employeesStr ? parseInt(employeesStr) : null,
-            annualRevenue: revenueStr ? parseInt(revenueStr.replace(/[^0-9]/g, "")) : null,
-            ownerName: extractValue(row, headers, "contactName"),
-            enrichmentStatus: "pending",
-            status: "new",
-            rawData: row,
-          };
-        }).filter(Boolean);
+            return {
+              userId: userId,
+              companyName: companyName,
+              phone: phone,
+              email: email,
+              address: extractValue(row, headers, "address"),
+              city: extractValue(row, headers, "city"),
+              state: extractValue(row, headers, "state"),
+              zip: extractValue(row, headers, "zip"),
+              county: extractValue(row, headers, "county"),
+              website: extractValue(row, headers, "website"),
+              sicCode: extractValue(row, headers, "sicCode"),
+              sicDescription: extractValue(row, headers, "sicDescription"),
+              employeeCount: employeesStr ? parseInt(employeesStr) : null,
+              annualRevenue: revenueStr
+                ? parseInt(revenueStr.replace(/[^0-9]/g, ""))
+                : null,
+              ownerName: extractValue(row, headers, "contactName"),
+              enrichmentStatus: "pending",
+              status: "new",
+              rawData: row,
+            };
+          })
+          .filter(Boolean);
 
         if (businessRecords.length > 0) {
           try {
@@ -135,38 +180,42 @@ export async function POST(request: NextRequest) {
             errors.push(`Batch ${Math.floor(i / batchSize)}: ${String(err)}`);
           }
         }
-
       } else {
         // Insert into contacts table
-        const contactRecords = batch.map((row) => {
-          const firstName = extractValue(row, headers, "firstName");
-          const lastName = extractValue(row, headers, "lastName");
-          const contactName = extractValue(row, headers, "contactName");
-          const phone = extractValue(row, headers, "phone");
-          const email = extractValue(row, headers, "email");
+        const contactRecords = batch
+          .map((row) => {
+            const firstName = extractValue(row, headers, "firstName");
+            const lastName = extractValue(row, headers, "lastName");
+            const contactName = extractValue(row, headers, "contactName");
+            const phone = extractValue(row, headers, "phone");
+            const email = extractValue(row, headers, "email");
 
-          // Need at least name or contact info
-          if (!firstName && !lastName && !contactName && !phone && !email) return null;
+            // Need at least name or contact info
+            if (!firstName && !lastName && !contactName && !phone && !email)
+              return null;
 
-          const fName = firstName || contactName?.split(" ")[0] || null;
-          const lName = lastName || contactName?.split(" ").slice(1).join(" ") || null;
+            const fName = firstName || contactName?.split(" ")[0] || null;
+            const lName =
+              lastName || contactName?.split(" ").slice(1).join(" ") || null;
 
-          return {
-            userId: userId,
-            firstName: fName,
-            lastName: lName,
-            fullName: contactName || [fName, lName].filter(Boolean).join(" ") || null,
-            title: extractValue(row, headers, "title"),
-            phone: phone,
-            email: email,
-            address: extractValue(row, headers, "address"),
-            city: extractValue(row, headers, "city"),
-            state: extractValue(row, headers, "state"),
-            zip: extractValue(row, headers, "zip"),
-            sourceType: "csv",
-            status: "active",
-          };
-        }).filter(Boolean);
+            return {
+              userId: userId,
+              firstName: fName,
+              lastName: lName,
+              fullName:
+                contactName || [fName, lName].filter(Boolean).join(" ") || null,
+              title: extractValue(row, headers, "title"),
+              phone: phone,
+              email: email,
+              address: extractValue(row, headers, "address"),
+              city: extractValue(row, headers, "city"),
+              state: extractValue(row, headers, "state"),
+              zip: extractValue(row, headers, "zip"),
+              sourceType: "csv",
+              status: "active",
+            };
+          })
+          .filter(Boolean);
 
         if (contactRecords.length > 0) {
           try {
@@ -191,7 +240,6 @@ export async function POST(request: NextRequest) {
       },
       errors: errors.length > 0 ? errors.slice(0, 5) : undefined,
     });
-
   } catch (error) {
     console.error("[Datalake Import] Error:", error);
     return NextResponse.json(
@@ -199,7 +247,7 @@ export async function POST(request: NextRequest) {
         error: "Import failed",
         details: error instanceof Error ? error.message : String(error),
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

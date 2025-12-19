@@ -196,7 +196,9 @@ async function fetchDataSources(): Promise<DataSource[]> {
       });
     }
 
-    console.log(`[LUCI] Connected to PostgreSQL - ${sources.length} data sources, ${data.stats.datalakeTotal} total records`);
+    console.log(
+      `[LUCI] Connected to PostgreSQL - ${sources.length} data sources, ${data.stats.datalakeTotal} total records`,
+    );
     return sources;
   } catch (error) {
     console.error("[LUCI] Failed to fetch data sources:", error);
@@ -279,14 +281,19 @@ export function LuciDataAgent() {
       setError(null);
 
       try {
-        const [sourcesData, pipelinesData, qualityData, crossRefsData, metricsData] =
-          await Promise.all([
-            fetchDataSources(),
-            fetchPipelines(),
-            fetchQualityChecks(),
-            fetchCrossRefs(),
-            fetchDatalakeMetrics(),
-          ]);
+        const [
+          sourcesData,
+          pipelinesData,
+          qualityData,
+          crossRefsData,
+          metricsData,
+        ] = await Promise.all([
+          fetchDataSources(),
+          fetchPipelines(),
+          fetchQualityChecks(),
+          fetchCrossRefs(),
+          fetchDatalakeMetrics(),
+        ]);
 
         setSources(sourcesData);
         setPipelines(pipelinesData);
@@ -300,7 +307,9 @@ export function LuciDataAgent() {
         });
       } catch (err) {
         console.error("[LUCI] Failed to load data:", err);
-        setError("Failed to connect to PostgreSQL database. Check DATABASE_URL configuration.");
+        setError(
+          "Failed to connect to PostgreSQL database. Check DATABASE_URL configuration.",
+        );
       } finally {
         setIsLoading(false);
       }
@@ -613,9 +622,12 @@ export function LuciDataAgent() {
               {sources.length === 0 ? (
                 <div className="text-center py-12 text-zinc-500">
                   <HardDrive className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg font-medium mb-2">No data sources connected</p>
+                  <p className="text-lg font-medium mb-2">
+                    No data sources connected
+                  </p>
                   <p className="text-sm mb-4">
-                    Upload CSV files or connect to DigitalOcean Spaces to get started.
+                    Upload CSV files or connect to DigitalOcean Spaces to get
+                    started.
                   </p>
                   <Button size="sm" className="bg-red-600 hover:bg-red-700">
                     <Upload className="h-4 w-4 mr-2" />
@@ -623,118 +635,120 @@ export function LuciDataAgent() {
                   </Button>
                 </div>
               ) : (
-              <div className="space-y-3">
-                {sources.map((source) => (
-                  <div key={source.id} className="p-4 bg-zinc-800 rounded-lg">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`p-2 rounded-lg ${
-                            source.type === "s3"
-                              ? "bg-orange-600/20"
-                              : source.type === "api"
-                                ? "bg-blue-600/20"
-                                : source.type === "postgres"
-                                  ? "bg-cyan-600/20"
-                                  : "bg-zinc-700"
-                          }`}
-                        >
-                          {source.type === "s3" && (
-                            <Cloud className="h-4 w-4 text-orange-400" />
-                          )}
-                          {source.type === "api" && (
-                            <Code className="h-4 w-4 text-blue-400" />
-                          )}
-                          {source.type === "postgres" && (
-                            <Database className="h-4 w-4 text-cyan-400" />
-                          )}
-                          {source.type === "csv" && (
-                            <FileSpreadsheet className="h-4 w-4 text-green-400" />
-                          )}
-                          {source.type === "manual" && (
-                            <FolderOpen className="h-4 w-4 text-zinc-400" />
-                          )}
-                        </div>
-                        <div>
-                          <span className="font-medium text-white">
-                            {source.name}
-                          </span>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <Badge
-                              variant="outline"
-                              className="text-xs border-zinc-600 text-zinc-400"
-                            >
-                              {source.type.toUpperCase()}
-                            </Badge>
-                            <span className="text-xs text-zinc-500">
-                              {source.schema_fields} fields
+                <div className="space-y-3">
+                  {sources.map((source) => (
+                    <div key={source.id} className="p-4 bg-zinc-800 rounded-lg">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`p-2 rounded-lg ${
+                              source.type === "s3"
+                                ? "bg-orange-600/20"
+                                : source.type === "api"
+                                  ? "bg-blue-600/20"
+                                  : source.type === "postgres"
+                                    ? "bg-cyan-600/20"
+                                    : "bg-zinc-700"
+                            }`}
+                          >
+                            {source.type === "s3" && (
+                              <Cloud className="h-4 w-4 text-orange-400" />
+                            )}
+                            {source.type === "api" && (
+                              <Code className="h-4 w-4 text-blue-400" />
+                            )}
+                            {source.type === "postgres" && (
+                              <Database className="h-4 w-4 text-cyan-400" />
+                            )}
+                            {source.type === "csv" && (
+                              <FileSpreadsheet className="h-4 w-4 text-green-400" />
+                            )}
+                            {source.type === "manual" && (
+                              <FolderOpen className="h-4 w-4 text-zinc-400" />
+                            )}
+                          </div>
+                          <div>
+                            <span className="font-medium text-white">
+                              {source.name}
                             </span>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <Badge
+                                variant="outline"
+                                className="text-xs border-zinc-600 text-zinc-400"
+                              >
+                                {source.type.toUpperCase()}
+                              </Badge>
+                              <span className="text-xs text-zinc-500">
+                                {source.schema_fields} fields
+                              </span>
+                            </div>
                           </div>
                         </div>
+                        <div className="flex items-center gap-2">
+                          <Badge className={getStatusColor(source.status)}>
+                            {source.status}
+                          </Badge>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 border-zinc-700"
+                            onClick={() => triggerSync(source.id)}
+                            disabled={source.status === "syncing"}
+                          >
+                            <RefreshCw
+                              className={`h-3 w-3 ${source.status === "syncing" ? "animate-spin" : ""}`}
+                            />
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Badge className={getStatusColor(source.status)}>
-                          {source.status}
-                        </Badge>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-7 border-zinc-700"
-                          onClick={() => triggerSync(source.id)}
-                          disabled={source.status === "syncing"}
-                        >
-                          <RefreshCw
-                            className={`h-3 w-3 ${source.status === "syncing" ? "animate-spin" : ""}`}
-                          />
-                        </Button>
-                      </div>
-                    </div>
 
-                    <div className="grid grid-cols-4 gap-4">
-                      <div>
-                        <span className="text-xs text-zinc-500">Records</span>
-                        <p className="text-lg font-semibold text-white">
-                          {source.records.toLocaleString()}
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-xs text-zinc-500">Quality</span>
-                        <p
-                          className={`text-lg font-semibold ${source.quality_score >= 90 ? "text-green-400" : source.quality_score >= 80 ? "text-yellow-400" : "text-red-400"}`}
-                        >
-                          {source.quality_score}%
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-xs text-zinc-500">Last Sync</span>
-                        <p className="text-sm text-zinc-300">
-                          {source.last_sync
-                            ? source.last_sync.toLocaleDateString()
-                            : "Never"}
-                        </p>
-                      </div>
-                      <div className="flex items-end justify-end gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-7 border-zinc-700 text-zinc-400"
-                        >
-                          <Eye className="h-3 w-3 mr-1" />
-                          Preview
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-7 border-zinc-700 text-zinc-400"
-                        >
-                          <Table className="h-3 w-3 mr-1" />
-                          Schema
-                        </Button>
+                      <div className="grid grid-cols-4 gap-4">
+                        <div>
+                          <span className="text-xs text-zinc-500">Records</span>
+                          <p className="text-lg font-semibold text-white">
+                            {source.records.toLocaleString()}
+                          </p>
+                        </div>
+                        <div>
+                          <span className="text-xs text-zinc-500">Quality</span>
+                          <p
+                            className={`text-lg font-semibold ${source.quality_score >= 90 ? "text-green-400" : source.quality_score >= 80 ? "text-yellow-400" : "text-red-400"}`}
+                          >
+                            {source.quality_score}%
+                          </p>
+                        </div>
+                        <div>
+                          <span className="text-xs text-zinc-500">
+                            Last Sync
+                          </span>
+                          <p className="text-sm text-zinc-300">
+                            {source.last_sync
+                              ? source.last_sync.toLocaleDateString()
+                              : "Never"}
+                          </p>
+                        </div>
+                        <div className="flex items-end justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 border-zinc-700 text-zinc-400"
+                          >
+                            <Eye className="h-3 w-3 mr-1" />
+                            Preview
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 border-zinc-700 text-zinc-400"
+                          >
+                            <Table className="h-3 w-3 mr-1" />
+                            Schema
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
               )}
             </CardContent>
           </Card>
@@ -759,121 +773,131 @@ export function LuciDataAgent() {
               {pipelines.length === 0 ? (
                 <div className="text-center py-12 text-zinc-500">
                   <GitMerge className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg font-medium mb-2">No pipelines configured</p>
+                  <p className="text-lg font-medium mb-2">
+                    No pipelines configured
+                  </p>
                   <p className="text-sm mb-4">
                     Create ETL pipelines to automate data processing.
                   </p>
-                  <Button size="sm" className="bg-orange-600 hover:bg-orange-700">
+                  <Button
+                    size="sm"
+                    className="bg-orange-600 hover:bg-orange-700"
+                  >
                     <GitMerge className="h-4 w-4 mr-2" />
                     Create Pipeline
                   </Button>
                 </div>
               ) : (
-              <div className="space-y-3">
-                {pipelines.map((pipeline) => (
-                  <div key={pipeline.id} className="p-4 bg-zinc-800 rounded-lg">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`w-2 h-2 rounded-full ${
-                            pipeline.status === "running"
-                              ? "bg-cyan-400 animate-pulse"
-                              : pipeline.status === "scheduled"
-                                ? "bg-green-400"
-                                : pipeline.status === "paused"
-                                  ? "bg-yellow-400"
-                                  : "bg-red-400"
-                          }`}
-                        />
-                        <div>
-                          <span className="font-medium text-white">
-                            {pipeline.name}
-                          </span>
-                          <div className="flex items-center gap-2 mt-0.5 text-xs text-zinc-500">
-                            <span>{pipeline.source}</span>
-                            <span>→</span>
-                            <span>{pipeline.destination}</span>
+                <div className="space-y-3">
+                  {pipelines.map((pipeline) => (
+                    <div
+                      key={pipeline.id}
+                      className="p-4 bg-zinc-800 rounded-lg"
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`w-2 h-2 rounded-full ${
+                              pipeline.status === "running"
+                                ? "bg-cyan-400 animate-pulse"
+                                : pipeline.status === "scheduled"
+                                  ? "bg-green-400"
+                                  : pipeline.status === "paused"
+                                    ? "bg-yellow-400"
+                                    : "bg-red-400"
+                            }`}
+                          />
+                          <div>
+                            <span className="font-medium text-white">
+                              {pipeline.name}
+                            </span>
+                            <div className="flex items-center gap-2 mt-0.5 text-xs text-zinc-500">
+                              <span>{pipeline.source}</span>
+                              <span>→</span>
+                              <span>{pipeline.destination}</span>
+                            </div>
                           </div>
                         </div>
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            variant="outline"
+                            className="border-zinc-600 text-zinc-400 text-xs"
+                          >
+                            {pipeline.schedule}
+                          </Badge>
+                          <Badge className={getStatusColor(pipeline.status)}>
+                            {pipeline.status}
+                          </Badge>
+                          {pipeline.status !== "running" && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 border-zinc-700"
+                              onClick={() => runPipeline(pipeline.id)}
+                            >
+                              <Play className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Badge
-                          variant="outline"
-                          className="border-zinc-600 text-zinc-400 text-xs"
-                        >
-                          {pipeline.schedule}
-                        </Badge>
-                        <Badge className={getStatusColor(pipeline.status)}>
-                          {pipeline.status}
-                        </Badge>
-                        {pipeline.status !== "running" && (
+
+                      <div className="grid grid-cols-4 gap-4 text-sm">
+                        <div>
+                          <span className="text-xs text-zinc-500">
+                            Last Run
+                          </span>
+                          <p className="text-zinc-300">
+                            {pipeline.last_run
+                              ? pipeline.last_run.toLocaleString()
+                              : "Never"}
+                          </p>
+                        </div>
+                        <div>
+                          <span className="text-xs text-zinc-500">
+                            Records Processed
+                          </span>
+                          <p className="text-zinc-300">
+                            {pipeline.records_processed.toLocaleString()}
+                          </p>
+                        </div>
+                        <div>
+                          <span className="text-xs text-zinc-500">
+                            Error Rate
+                          </span>
+                          <p
+                            className={
+                              pipeline.error_rate > 2
+                                ? "text-red-400"
+                                : pipeline.error_rate > 1
+                                  ? "text-yellow-400"
+                                  : "text-green-400"
+                            }
+                          >
+                            {pipeline.error_rate}%
+                          </p>
+                        </div>
+                        <div className="flex items-end justify-end gap-2">
                           <Button
                             variant="outline"
                             size="sm"
-                            className="h-7 border-zinc-700"
-                            onClick={() => runPipeline(pipeline.id)}
+                            className="h-7 border-zinc-700 text-zinc-400"
                           >
-                            <Play className="h-3 w-3" />
+                            <Eye className="h-3 w-3 mr-1" />
+                            Logs
                           </Button>
-                        )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 border-zinc-700 text-zinc-400"
+                          >
+                            <Settings className="h-3 w-3 mr-1" />
+                            Edit
+                          </Button>
+                        </div>
                       </div>
                     </div>
-
-                    <div className="grid grid-cols-4 gap-4 text-sm">
-                      <div>
-                        <span className="text-xs text-zinc-500">Last Run</span>
-                        <p className="text-zinc-300">
-                          {pipeline.last_run
-                            ? pipeline.last_run.toLocaleString()
-                            : "Never"}
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-xs text-zinc-500">
-                          Records Processed
-                        </span>
-                        <p className="text-zinc-300">
-                          {pipeline.records_processed.toLocaleString()}
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-xs text-zinc-500">
-                          Error Rate
-                        </span>
-                        <p
-                          className={
-                            pipeline.error_rate > 2
-                              ? "text-red-400"
-                              : pipeline.error_rate > 1
-                                ? "text-yellow-400"
-                                : "text-green-400"
-                          }
-                        >
-                          {pipeline.error_rate}%
-                        </p>
-                      </div>
-                      <div className="flex items-end justify-end gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-7 border-zinc-700 text-zinc-400"
-                        >
-                          <Eye className="h-3 w-3 mr-1" />
-                          Logs
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-7 border-zinc-700 text-zinc-400"
-                        >
-                          <Settings className="h-3 w-3 mr-1" />
-                          Edit
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
               )}
             </CardContent>
           </Card>
@@ -892,63 +916,69 @@ export function LuciDataAgent() {
               {qualityChecks.length === 0 ? (
                 <div className="text-center py-12 text-zinc-500">
                   <CheckCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg font-medium mb-2">No quality checks configured</p>
+                  <p className="text-lg font-medium mb-2">
+                    No quality checks configured
+                  </p>
                   <p className="text-sm">
                     Upload data to run quality checks automatically.
                   </p>
                 </div>
               ) : (
-              <div className="space-y-3">
-                {qualityChecks.map((check) => {
-                  const total = check.passed + check.failed;
-                  const passRate = total > 0 ? (check.passed / total) * 100 : 0;
+                <div className="space-y-3">
+                  {qualityChecks.map((check) => {
+                    const total = check.passed + check.failed;
+                    const passRate =
+                      total > 0 ? (check.passed / total) * 100 : 0;
 
-                  return (
-                    <div key={check.id} className="p-4 bg-zinc-800 rounded-lg">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-3">
-                          <span className="font-medium text-white capitalize">
-                            {check.field}
-                          </span>
-                          <Badge
-                            variant="outline"
-                            className="border-zinc-600 text-zinc-400 text-xs"
-                          >
-                            {check.check_type}
-                          </Badge>
+                    return (
+                      <div
+                        key={check.id}
+                        className="p-4 bg-zinc-800 rounded-lg"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-3">
+                            <span className="font-medium text-white capitalize">
+                              {check.field}
+                            </span>
+                            <Badge
+                              variant="outline"
+                              className="border-zinc-600 text-zinc-400 text-xs"
+                            >
+                              {check.check_type}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {check.status === "healthy" && (
+                              <CheckCircle className="h-4 w-4 text-green-400" />
+                            )}
+                            {check.status === "warning" && (
+                              <AlertTriangle className="h-4 w-4 text-yellow-400" />
+                            )}
+                            {check.status === "critical" && (
+                              <XCircle className="h-4 w-4 text-red-400" />
+                            )}
+                            <span
+                              className={`text-sm font-medium ${getQualityColor(check.status)}`}
+                            >
+                              {passRate.toFixed(1)}% pass
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          {check.status === "healthy" && (
-                            <CheckCircle className="h-4 w-4 text-green-400" />
-                          )}
-                          {check.status === "warning" && (
-                            <AlertTriangle className="h-4 w-4 text-yellow-400" />
-                          )}
-                          {check.status === "critical" && (
-                            <XCircle className="h-4 w-4 text-red-400" />
-                          )}
-                          <span
-                            className={`text-sm font-medium ${getQualityColor(check.status)}`}
-                          >
-                            {passRate.toFixed(1)}% pass
+
+                        <Progress value={passRate} className="h-2 mb-2" />
+
+                        <div className="flex justify-between text-xs text-zinc-500">
+                          <span className="text-green-400">
+                            {check.passed.toLocaleString()} passed
+                          </span>
+                          <span className="text-red-400">
+                            {check.failed.toLocaleString()} failed
                           </span>
                         </div>
                       </div>
-
-                      <Progress value={passRate} className="h-2 mb-2" />
-
-                      <div className="flex justify-between text-xs text-zinc-500">
-                        <span className="text-green-400">
-                          {check.passed.toLocaleString()} passed
-                        </span>
-                        <span className="text-red-400">
-                          {check.failed.toLocaleString()} failed
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
               )}
             </CardContent>
           </Card>
@@ -973,90 +1003,102 @@ export function LuciDataAgent() {
               {crossRefs.length === 0 ? (
                 <div className="text-center py-12 text-zinc-500">
                   <ArrowUpDown className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg font-medium mb-2">No cross-references configured</p>
-                  <p className="text-sm mb-4">
-                    Create cross-references to match records across data sources.
+                  <p className="text-lg font-medium mb-2">
+                    No cross-references configured
                   </p>
-                  <Button size="sm" className="bg-purple-600 hover:bg-purple-700">
+                  <p className="text-sm mb-4">
+                    Create cross-references to match records across data
+                    sources.
+                  </p>
+                  <Button
+                    size="sm"
+                    className="bg-purple-600 hover:bg-purple-700"
+                  >
                     <ArrowUpDown className="h-4 w-4 mr-2" />
                     New Cross-Ref
                   </Button>
                 </div>
               ) : (
-              <div className="space-y-3">
-                {crossRefs.map((cr) => {
-                  const totalA = cr.matched + cr.unmatched_a;
-                  const matchRateA =
-                    totalA > 0 ? (cr.matched / totalA) * 100 : 0;
+                <div className="space-y-3">
+                  {crossRefs.map((cr) => {
+                    const totalA = cr.matched + cr.unmatched_a;
+                    const matchRateA =
+                      totalA > 0 ? (cr.matched / totalA) * 100 : 0;
 
-                  return (
-                    <div key={cr.id} className="p-4 bg-zinc-800 rounded-lg">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                          <div className="flex items-center gap-2 text-white">
-                            <Badge className="bg-zinc-700">{cr.source_a}</Badge>
-                            <ArrowUpDown className="h-4 w-4 text-purple-400" />
-                            <Badge className="bg-zinc-700">{cr.source_b}</Badge>
+                    return (
+                      <div key={cr.id} className="p-4 bg-zinc-800 rounded-lg">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2 text-white">
+                              <Badge className="bg-zinc-700">
+                                {cr.source_a}
+                              </Badge>
+                              <ArrowUpDown className="h-4 w-4 text-purple-400" />
+                              <Badge className="bg-zinc-700">
+                                {cr.source_b}
+                              </Badge>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge
+                              variant="outline"
+                              className="border-zinc-600 text-zinc-400 text-xs"
+                            >
+                              Match: {cr.match_field}
+                            </Badge>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 border-purple-600 text-purple-400"
+                              onClick={() => runCrossRef(cr.id)}
+                              disabled={isProcessing}
+                            >
+                              <RefreshCw
+                                className={`h-3 w-3 mr-1 ${isProcessing ? "animate-spin" : ""}`}
+                              />
+                              Run
+                            </Button>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Badge
-                            variant="outline"
-                            className="border-zinc-600 text-zinc-400 text-xs"
-                          >
-                            Match: {cr.match_field}
-                          </Badge>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-7 border-purple-600 text-purple-400"
-                            onClick={() => runCrossRef(cr.id)}
-                            disabled={isProcessing}
-                          >
-                            <RefreshCw
-                              className={`h-3 w-3 mr-1 ${isProcessing ? "animate-spin" : ""}`}
-                            />
-                            Run
-                          </Button>
-                        </div>
-                      </div>
 
-                      <div className="grid grid-cols-4 gap-4">
-                        <div>
-                          <span className="text-xs text-zinc-500">Matched</span>
-                          <p className="text-lg font-semibold text-green-400">
-                            {cr.matched.toLocaleString()}
-                          </p>
-                        </div>
-                        <div>
-                          <span className="text-xs text-zinc-500">
-                            Unmatched ({cr.source_a})
-                          </span>
-                          <p className="text-lg font-semibold text-yellow-400">
-                            {cr.unmatched_a.toLocaleString()}
-                          </p>
-                        </div>
-                        <div>
-                          <span className="text-xs text-zinc-500">
-                            Match Rate
-                          </span>
-                          <p className="text-lg font-semibold text-purple-400">
-                            {matchRateA.toFixed(1)}%
-                          </p>
-                        </div>
-                        <div>
-                          <span className="text-xs text-zinc-500">
-                            Last Run
-                          </span>
-                          <p className="text-sm text-zinc-300">
-                            {cr.last_run.toLocaleDateString()}
-                          </p>
+                        <div className="grid grid-cols-4 gap-4">
+                          <div>
+                            <span className="text-xs text-zinc-500">
+                              Matched
+                            </span>
+                            <p className="text-lg font-semibold text-green-400">
+                              {cr.matched.toLocaleString()}
+                            </p>
+                          </div>
+                          <div>
+                            <span className="text-xs text-zinc-500">
+                              Unmatched ({cr.source_a})
+                            </span>
+                            <p className="text-lg font-semibold text-yellow-400">
+                              {cr.unmatched_a.toLocaleString()}
+                            </p>
+                          </div>
+                          <div>
+                            <span className="text-xs text-zinc-500">
+                              Match Rate
+                            </span>
+                            <p className="text-lg font-semibold text-purple-400">
+                              {matchRateA.toFixed(1)}%
+                            </p>
+                          </div>
+                          <div>
+                            <span className="text-xs text-zinc-500">
+                              Last Run
+                            </span>
+                            <p className="text-sm text-zinc-300">
+                              {cr.last_run.toLocaleDateString()}
+                            </p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
               )}
             </CardContent>
           </Card>

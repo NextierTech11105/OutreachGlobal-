@@ -40,13 +40,21 @@ export async function GET(request: NextRequest) {
   const maxKeys = parseInt(searchParams.get("limit") || "100");
 
   if (!SPACES_KEY || !SPACES_SECRET) {
-    return NextResponse.json(
-      {
-        error: "DO Spaces credentials not configured",
-        configured: false,
+    // Return empty result instead of error when not configured
+    return NextResponse.json({
+      success: true,
+      bucket: SPACES_BUCKET,
+      prefix: prefix || "(root)",
+      folders: [],
+      files: [],
+      summary: {
+        folderCount: 0,
+        fileCount: 0,
+        totalSize: "0 B",
+        isTruncated: false,
       },
-      { status: 503 },
-    );
+      message: "DO Spaces credentials not configured",
+    });
   }
 
   try {
@@ -95,12 +103,21 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("[Datalake List] Error:", error);
-    return NextResponse.json(
-      {
-        error: "Failed to list bucket",
-        details: String(error),
+    // Return empty result on error to prevent UI crashes
+    return NextResponse.json({
+      success: false,
+      bucket: SPACES_BUCKET,
+      prefix: prefix || "(root)",
+      folders: [],
+      files: [],
+      summary: {
+        folderCount: 0,
+        fileCount: 0,
+        totalSize: "0 B",
+        isTruncated: false,
       },
-      { status: 500 },
-    );
+      error: "Failed to list bucket",
+      details: String(error),
+    });
   }
 }

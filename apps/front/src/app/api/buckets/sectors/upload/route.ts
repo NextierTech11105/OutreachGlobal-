@@ -54,7 +54,7 @@ function findColumn(headers: string[], fieldName: string): string | null {
   const variations = FIELD_MAPPINGS[fieldName] || [];
   for (const v of variations) {
     const found = headers.find(
-      (h) => h.toLowerCase().trim() === v.toLowerCase().trim()
+      (h) => h.toLowerCase().trim() === v.toLowerCase().trim(),
     );
     if (found) return found;
   }
@@ -63,7 +63,7 @@ function findColumn(headers: string[], fieldName: string): string | null {
 
 function normalizeRow(
   row: Record<string, string>,
-  headers: string[]
+  headers: string[],
 ): Record<string, string | null> {
   const normalized: Record<string, string | null> = {};
   for (const [standardField] of Object.entries(FIELD_MAPPINGS)) {
@@ -71,7 +71,10 @@ function normalizeRow(
     normalized[standardField] = col ? row[col]?.trim() || null : null;
   }
   // Combine first + last if no contact name
-  if (!normalized.contactName && (normalized.firstName || normalized.lastName)) {
+  if (
+    !normalized.contactName &&
+    (normalized.firstName || normalized.lastName)
+  ) {
     normalized.contactName = [normalized.firstName, normalized.lastName]
       .filter(Boolean)
       .join(" ");
@@ -91,7 +94,7 @@ export async function POST(request: NextRequest) {
     if (!client) {
       return NextResponse.json(
         { error: "DO Spaces not configured" },
-        { status: 503 }
+        { status: 503 },
       );
     }
 
@@ -115,7 +118,7 @@ export async function POST(request: NextRequest) {
             error: `Bucket ${bucketId} not found`,
             availableBuckets: Object.keys(BUCKET_BY_ID).slice(0, 20),
           },
-          { status: 404 }
+          { status: 404 },
         );
       }
     } else if (sicCode) {
@@ -123,16 +126,17 @@ export async function POST(request: NextRequest) {
       if (!bucket) {
         return NextResponse.json(
           { error: `No bucket for SIC ${sicCode}` },
-          { status: 404 }
+          { status: 404 },
         );
       }
     } else {
       return NextResponse.json(
         {
           error: "bucketId or sicCode required",
-          example: "POST with FormData: file, bucketId=ny-construction-plumbers",
+          example:
+            "POST with FormData: file, bucketId=ny-construction-plumbers",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -149,7 +153,7 @@ export async function POST(request: NextRequest) {
     } catch (e) {
       return NextResponse.json(
         { error: "Failed to parse CSV", details: String(e) },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -164,7 +168,7 @@ export async function POST(request: NextRequest) {
     const withPhone = normalizedRecords.filter((r) => r.phone).length;
     const withEmail = normalizedRecords.filter((r) => r.email).length;
     const withAddress = normalizedRecords.filter(
-      (r) => r.address && r.city && r.state
+      (r) => r.address && r.city && r.state,
     ).length;
 
     const now = new Date().toISOString();
@@ -188,40 +192,52 @@ export async function POST(request: NextRequest) {
 
     // Create indexes
     const indexes = {
-      byState: processedRecords.reduce((acc, r, i) => {
-        const state = r.state?.toUpperCase();
-        if (state) {
-          if (!acc[state]) acc[state] = [];
-          acc[state].push(i);
-        }
-        return acc;
-      }, {} as Record<string, number[]>),
-      byCounty: processedRecords.reduce((acc, r, i) => {
-        const county = r.county?.replace(/ County$/i, "").trim();
-        if (county) {
-          if (!acc[county]) acc[county] = [];
-          acc[county].push(i);
-        }
-        return acc;
-      }, {} as Record<string, number[]>),
-      byCity: processedRecords.reduce((acc, r, i) => {
-        const city = r.city?.toLowerCase();
-        const state = r.state?.toUpperCase();
-        if (city && state) {
-          const key = `${city}-${state}`;
-          if (!acc[key]) acc[key] = [];
-          acc[key].push(i);
-        }
-        return acc;
-      }, {} as Record<string, number[]>),
-      bySicCode: processedRecords.reduce((acc, r, i) => {
-        const sic = r.sicCode;
-        if (sic) {
-          if (!acc[sic]) acc[sic] = [];
-          acc[sic].push(i);
-        }
-        return acc;
-      }, {} as Record<string, number[]>),
+      byState: processedRecords.reduce(
+        (acc, r, i) => {
+          const state = r.state?.toUpperCase();
+          if (state) {
+            if (!acc[state]) acc[state] = [];
+            acc[state].push(i);
+          }
+          return acc;
+        },
+        {} as Record<string, number[]>,
+      ),
+      byCounty: processedRecords.reduce(
+        (acc, r, i) => {
+          const county = r.county?.replace(/ County$/i, "").trim();
+          if (county) {
+            if (!acc[county]) acc[county] = [];
+            acc[county].push(i);
+          }
+          return acc;
+        },
+        {} as Record<string, number[]>,
+      ),
+      byCity: processedRecords.reduce(
+        (acc, r, i) => {
+          const city = r.city?.toLowerCase();
+          const state = r.state?.toUpperCase();
+          if (city && state) {
+            const key = `${city}-${state}`;
+            if (!acc[key]) acc[key] = [];
+            acc[key].push(i);
+          }
+          return acc;
+        },
+        {} as Record<string, number[]>,
+      ),
+      bySicCode: processedRecords.reduce(
+        (acc, r, i) => {
+          const sic = r.sicCode;
+          if (sic) {
+            if (!acc[sic]) acc[sic] = [];
+            acc[sic].push(i);
+          }
+          return acc;
+        },
+        {} as Record<string, number[]>,
+      ),
     };
 
     // Save raw CSV
@@ -231,7 +247,7 @@ export async function POST(request: NextRequest) {
         Key: `${bucket.storagePath}raw/${uploadId}.csv`,
         Body: content,
         ContentType: "text/csv",
-      })
+      }),
     );
 
     // Save processed data
@@ -259,7 +275,7 @@ export async function POST(request: NextRequest) {
         Key: `${bucket.storagePath}processed/${uploadId}.json`,
         Body: JSON.stringify(uploadData, null, 2),
         ContentType: "application/json",
-      })
+      }),
     );
 
     // Update bucket index
@@ -287,7 +303,7 @@ export async function POST(request: NextRequest) {
         new GetObjectCommand({
           Bucket: SPACES_BUCKET,
           Key: `${bucket.storagePath}index.json`,
-        })
+        }),
       );
       const existingContent = await response.Body?.transformToString();
       if (existingContent) {
@@ -329,7 +345,7 @@ export async function POST(request: NextRequest) {
         Key: `${bucket.storagePath}index.json`,
         Body: JSON.stringify(bucketIndex, null, 2),
         ContentType: "application/json",
-      })
+      }),
     );
 
     return NextResponse.json({
@@ -357,7 +373,7 @@ export async function POST(request: NextRequest) {
     console.error("[Sector Upload] Error:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Upload failed" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -379,7 +395,7 @@ export async function GET(request: NextRequest) {
           error: "bucketId required",
           usage: "GET ?bucketId=ny-construction-plumbers",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -387,7 +403,7 @@ export async function GET(request: NextRequest) {
     if (!bucket) {
       return NextResponse.json(
         { error: `Bucket ${bucketId} not found` },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -395,7 +411,7 @@ export async function GET(request: NextRequest) {
     if (!client) {
       return NextResponse.json(
         { error: "DO Spaces not configured" },
-        { status: 503 }
+        { status: 503 },
       );
     }
 
@@ -405,7 +421,7 @@ export async function GET(request: NextRequest) {
         new GetObjectCommand({
           Bucket: SPACES_BUCKET,
           Key: `${bucket.storagePath}index.json`,
-        })
+        }),
       );
       const content = await response.Body?.transformToString();
       if (content) {
@@ -455,8 +471,10 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("[Sector Upload Status] Error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to get status" },
-      { status: 500 }
+      {
+        error: error instanceof Error ? error.message : "Failed to get status",
+      },
+      { status: 500 },
     );
   }
 }

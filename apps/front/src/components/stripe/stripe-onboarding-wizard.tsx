@@ -37,7 +37,11 @@ interface WizardStep {
   completed: boolean;
 }
 
-export function StripeOnboardingWizard({ onComplete }: { onComplete?: () => void }) {
+export function StripeOnboardingWizard({
+  onComplete,
+}: {
+  onComplete?: () => void;
+}) {
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,9 +56,10 @@ export function StripeOnboardingWizard({ onComplete }: { onComplete?: () => void
   const [connectionResult, setConnectionResult] = useState<any>(null);
   const [productsCreated, setProductsCreated] = useState<any[]>([]);
 
-  const webhookUrl = typeof window !== "undefined"
-    ? `${window.location.origin}/api/billing/webhook`
-    : "";
+  const webhookUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/api/billing/webhook`
+      : "";
 
   const steps: WizardStep[] = [
     {
@@ -218,8 +223,8 @@ export function StripeOnboardingWizard({ onComplete }: { onComplete?: () => void
                   Connected to {connectionResult.account.businessName}!
                   <br />
                   <span className="text-xs">
-                    Balance: {connectionResult.stats.balance} |
-                    Products: {connectionResult.stats.products}
+                    Balance: {connectionResult.stats.balance} | Products:{" "}
+                    {connectionResult.stats.products}
                   </span>
                 </AlertDescription>
               </Alert>
@@ -300,7 +305,11 @@ export function StripeOnboardingWizard({ onComplete }: { onComplete?: () => void
                 Back
               </Button>
               <Button
-                onClick={productsCreated.length > 0 ? () => setCurrentStep(2) : createProducts}
+                onClick={
+                  productsCreated.length > 0
+                    ? () => setCurrentStep(2)
+                    : createProducts
+                }
                 disabled={loading}
                 className="flex-1"
               >
@@ -329,13 +338,21 @@ export function StripeOnboardingWizard({ onComplete }: { onComplete?: () => void
               <div>
                 <Label>Step 1: Copy this webhook URL</Label>
                 <div className="flex gap-2 mt-2">
-                  <Input value={webhookUrl} readOnly className="font-mono text-sm" />
+                  <Input
+                    value={webhookUrl}
+                    readOnly
+                    className="font-mono text-sm"
+                  />
                   <Button
                     variant="outline"
                     size="icon"
                     onClick={() => copyToClipboard(webhookUrl)}
                   >
-                    {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    {copied ? (
+                      <Check className="h-4 w-4" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
                   </Button>
                 </div>
               </div>
@@ -357,7 +374,8 @@ export function StripeOnboardingWizard({ onComplete }: { onComplete?: () => void
                   </li>
                   <li>Click &quot;Add endpoint&quot;</li>
                   <li>Paste the webhook URL above</li>
-                  <li>Select events:
+                  <li>
+                    Select events:
                     <ul className="list-disc list-inside ml-4 mt-1">
                       <li>customer.subscription.created</li>
                       <li>customer.subscription.updated</li>
@@ -372,7 +390,9 @@ export function StripeOnboardingWizard({ onComplete }: { onComplete?: () => void
               </div>
 
               <div className="space-y-2">
-                <Label>Step 3: Paste webhook signing secret (starts with whsec_)</Label>
+                <Label>
+                  Step 3: Paste webhook signing secret (starts with whsec_)
+                </Label>
                 <Input
                   type="password"
                   value={webhookSecret}
@@ -410,16 +430,32 @@ export function StripeOnboardingWizard({ onComplete }: { onComplete?: () => void
                 <Label>Environment Variables for Production</Label>
                 <div className="mt-2 bg-zinc-900 p-4 rounded-lg font-mono text-sm space-y-1">
                   <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">STRIPE_SECRET_KEY=</span>
-                    <span className="text-green-400">{secretKey ? "sk_****" + secretKey.slice(-4) : "not set"}</span>
+                    <span className="text-muted-foreground">
+                      STRIPE_SECRET_KEY=
+                    </span>
+                    <span className="text-green-400">
+                      {secretKey ? "sk_****" + secretKey.slice(-4) : "not set"}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=</span>
-                    <span className="text-green-400">{publishableKey ? "pk_****" + publishableKey.slice(-4) : "not set"}</span>
+                    <span className="text-muted-foreground">
+                      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
+                    </span>
+                    <span className="text-green-400">
+                      {publishableKey
+                        ? "pk_****" + publishableKey.slice(-4)
+                        : "not set"}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">STRIPE_WEBHOOK_SECRET=</span>
-                    <span className="text-green-400">{webhookSecret ? "whsec_****" + webhookSecret.slice(-4) : "not set"}</span>
+                    <span className="text-muted-foreground">
+                      STRIPE_WEBHOOK_SECRET=
+                    </span>
+                    <span className="text-green-400">
+                      {webhookSecret
+                        ? "whsec_****" + webhookSecret.slice(-4)
+                        : "not set"}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -441,7 +477,18 @@ STRIPE_WEBHOOK_SECRET=${webhookSecret}`;
               <div className="pt-4 border-t">
                 <Label>Where to add them:</Label>
                 <ol className="list-decimal list-inside mt-2 space-y-1 text-sm text-muted-foreground">
-                  <li>Go to <a href="https://cloud.digitalocean.com/apps" target="_blank" rel="noopener noreferrer" className="text-primary underline">DigitalOcean Apps <ExternalLink className="inline h-3 w-3" /></a></li>
+                  <li>
+                    Go to{" "}
+                    <a
+                      href="https://cloud.digitalocean.com/apps"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary underline"
+                    >
+                      DigitalOcean Apps{" "}
+                      <ExternalLink className="inline h-3 w-3" />
+                    </a>
+                  </li>
                   <li>Click your app → Settings</li>
                   <li>Scroll to &quot;App-Level Environment Variables&quot;</li>
                   <li>Click Edit → Add each variable</li>
@@ -483,8 +530,8 @@ STRIPE_WEBHOOK_SECRET=${webhookSecret}`;
                   index === currentStep
                     ? "border-primary bg-primary text-primary-foreground"
                     : step.completed
-                    ? "border-green-500 bg-green-500 text-white"
-                    : "border-muted-foreground/30"
+                      ? "border-green-500 bg-green-500 text-white"
+                      : "border-muted-foreground/30"
                 }`}
               >
                 {step.completed ? (
@@ -510,7 +557,9 @@ STRIPE_WEBHOOK_SECRET=${webhookSecret}`;
             <div
               key={step.id}
               className={`text-center ${
-                index === currentStep ? "text-foreground" : "text-muted-foreground"
+                index === currentStep
+                  ? "text-foreground"
+                  : "text-muted-foreground"
               }`}
               style={{ width: "80px" }}
             >

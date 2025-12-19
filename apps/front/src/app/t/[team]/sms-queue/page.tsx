@@ -102,44 +102,67 @@ export default function SMSQueuePage() {
 
           // Add SMS campaigns
           if (data.campaigns) {
-            data.campaigns.forEach((campaign: { id: string; name: string; scheduledAt: string; recipientCount: number; status: string }) => {
-              items.push({
-                id: campaign.id,
-                type: "blast",
-                time: new Date(campaign.scheduledAt),
-                name: campaign.name,
-                count: campaign.recipientCount,
-                status: campaign.status as "pending" | "active" | "completed",
-              });
-            });
+            data.campaigns.forEach(
+              (campaign: {
+                id: string;
+                name: string;
+                scheduledAt: string;
+                recipientCount: number;
+                status: string;
+              }) => {
+                items.push({
+                  id: campaign.id,
+                  type: "blast",
+                  time: new Date(campaign.scheduledAt),
+                  name: campaign.name,
+                  count: campaign.recipientCount,
+                  status: campaign.status as "pending" | "active" | "completed",
+                });
+              },
+            );
           }
 
           // Add scheduled calls
           if (data.calls) {
-            data.calls.forEach((call: { id: string; scheduledAt: string; leadName: string; status: string }) => {
-              items.push({
-                id: call.id,
-                type: "call",
-                time: new Date(call.scheduledAt),
-                name: call.leadName || "Scheduled Call",
-                count: 1,
-                status: call.status as "pending" | "active" | "completed",
-              });
-            });
+            data.calls.forEach(
+              (call: {
+                id: string;
+                scheduledAt: string;
+                leadName: string;
+                status: string;
+              }) => {
+                items.push({
+                  id: call.id,
+                  type: "call",
+                  time: new Date(call.scheduledAt),
+                  name: call.leadName || "Scheduled Call",
+                  count: 1,
+                  status: call.status as "pending" | "active" | "completed",
+                });
+              },
+            );
           }
 
           // Add campaign attempts/sequences
           if (data.sequences) {
-            data.sequences.forEach((seq: { id: string; name: string; scheduledAt: string; recipientCount: number; status: string }) => {
-              items.push({
-                id: seq.id,
-                type: "sequence",
-                time: new Date(seq.scheduledAt),
-                name: seq.name,
-                count: seq.recipientCount,
-                status: seq.status as "pending" | "active" | "completed",
-              });
-            });
+            data.sequences.forEach(
+              (seq: {
+                id: string;
+                name: string;
+                scheduledAt: string;
+                recipientCount: number;
+                status: string;
+              }) => {
+                items.push({
+                  id: seq.id,
+                  type: "sequence",
+                  time: new Date(seq.scheduledAt),
+                  name: seq.name,
+                  count: seq.recipientCount,
+                  status: seq.status as "pending" | "active" | "completed",
+                });
+              },
+            );
           }
 
           setWeekSchedule(items);

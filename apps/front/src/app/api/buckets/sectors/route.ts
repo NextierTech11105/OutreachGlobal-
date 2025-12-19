@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
       if (!bucket) {
         return NextResponse.json(
           { error: `Bucket ${bucketId} not found` },
-          { status: 404 }
+          { status: 404 },
         );
       }
 
@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
             new GetObjectCommand({
               Bucket: SPACES_BUCKET,
               Key: `${bucket.storagePath}index.json`,
-            })
+            }),
           );
           const content = await response.Body?.transformToString();
           if (content) {
@@ -156,8 +156,10 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("[Sector Buckets] Error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to get buckets" },
-      { status: 500 }
+      {
+        error: error instanceof Error ? error.message : "Failed to get buckets",
+      },
+      { status: 500 },
     );
   }
 }
@@ -176,7 +178,7 @@ export async function POST(request: NextRequest) {
           error: "DO Spaces credentials not configured",
           required: ["SPACES_KEY", "SPACES_SECRET"],
         },
-        { status: 503 }
+        { status: 503 },
       );
     }
 
@@ -185,7 +187,9 @@ export async function POST(request: NextRequest) {
 
     // Initialize specific buckets by ID
     if (action === "init" && bucketIds && Array.isArray(bucketIds)) {
-      const results = await initializeBuckets(bucketIds.map((id: string) => BUCKET_BY_ID[id]).filter(Boolean));
+      const results = await initializeBuckets(
+        bucketIds.map((id: string) => BUCKET_BY_ID[id]).filter(Boolean),
+      );
       return NextResponse.json({
         success: true,
         action: "init",
@@ -199,7 +203,7 @@ export async function POST(request: NextRequest) {
       if (!bucket) {
         return NextResponse.json(
           { error: `No bucket defined for SIC ${sicCode}` },
-          { status: 404 }
+          { status: 404 },
         );
       }
       const results = await initializeBuckets([bucket]);
@@ -241,16 +245,24 @@ export async function POST(request: NextRequest) {
         ],
         example: {
           action: "init",
-          bucketIds: ["ny-construction-plumbers", "us-construction-plumbers-hvac"],
+          bucketIds: [
+            "ny-construction-plumbers",
+            "us-construction-plumbers-hvac",
+          ],
         },
       },
-      { status: 400 }
+      { status: 400 },
     );
   } catch (error) {
     console.error("[Sector Buckets] Error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to initialize buckets" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to initialize buckets",
+      },
+      { status: 500 },
     );
   }
 }
@@ -277,7 +289,7 @@ async function initializeBuckets(buckets: SectorBucket[]) {
             Bucket: SPACES_BUCKET,
             Prefix: bucket.storagePath,
             MaxKeys: 1,
-          })
+          }),
         );
         // Check for index.json specifically
         try {
@@ -285,7 +297,7 @@ async function initializeBuckets(buckets: SectorBucket[]) {
             new GetObjectCommand({
               Bucket: SPACES_BUCKET,
               Key: `${bucket.storagePath}index.json`,
-            })
+            }),
           );
           exists = true;
         } catch {
@@ -334,7 +346,7 @@ async function initializeBuckets(buckets: SectorBucket[]) {
           Key: `${bucket.storagePath}index.json`,
           Body: JSON.stringify(index, null, 2),
           ContentType: "application/json",
-        })
+        }),
       );
 
       // Create raw/ subfolder marker
@@ -344,7 +356,7 @@ async function initializeBuckets(buckets: SectorBucket[]) {
           Key: `${bucket.storagePath}raw/.folder`,
           Body: JSON.stringify({ created: new Date().toISOString() }),
           ContentType: "application/json",
-        })
+        }),
       );
 
       // Create processed/ subfolder marker
@@ -354,7 +366,7 @@ async function initializeBuckets(buckets: SectorBucket[]) {
           Key: `${bucket.storagePath}processed/.folder`,
           Body: JSON.stringify({ created: new Date().toISOString() }),
           ContentType: "application/json",
-        })
+        }),
       );
 
       // Create enriched/ subfolder marker
@@ -364,7 +376,7 @@ async function initializeBuckets(buckets: SectorBucket[]) {
           Key: `${bucket.storagePath}enriched/.folder`,
           Body: JSON.stringify({ created: new Date().toISOString() }),
           ContentType: "application/json",
-        })
+        }),
       );
 
       results.push({

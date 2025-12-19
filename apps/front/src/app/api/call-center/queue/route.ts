@@ -20,35 +20,35 @@ import { NextRequest, NextResponse } from "next/server";
 export type PersonaId = "gianna" | "cathy" | "sabrina";
 
 export type CallQueueType =
-  | "immediate"      // Call right now
-  | "scheduled"      // Scheduled for specific time
-  | "follow_up"      // Follow-up call
-  | "callback"       // Lead requested callback
-  | "power_dial";    // Power dialer batch
+  | "immediate" // Call right now
+  | "scheduled" // Scheduled for specific time
+  | "follow_up" // Follow-up call
+  | "callback" // Lead requested callback
+  | "power_dial"; // Power dialer batch
 
 export type PersonaMode =
-  | "assistant"      // Hands-free, user directs via voice/command
-  | "inbound";       // Responding to inbound messages/calls
+  | "assistant" // Hands-free, user directs via voice/command
+  | "inbound"; // Responding to inbound messages/calls
 
 export type CampaignLane =
-  | "initial"        // GIANNA - First contact
-  | "retarget"       // GIANNA/CATHY - Re-engagement
-  | "follow_up"      // GIANNA/SABRINA - Following up
+  | "initial" // GIANNA - First contact
+  | "retarget" // GIANNA/CATHY - Re-engagement
+  | "follow_up" // GIANNA/SABRINA - Following up
   | "book_appointment" // SABRINA - Booking calls
-  | "nurture"        // GIANNA - Long-term
-  | "nudger";        // CATHY - Gentle reminders
+  | "nurture" // GIANNA - Long-term
+  | "nudger"; // CATHY - Gentle reminders
 
 export type LeadSource =
-  | "usbizdata"      // Business database (millions)
-  | "realtor"        // Realtor database (2.18M)
-  | "consultant"     // CRM consultants
-  | "solopreneur"    // Individual sales pros
-  | "property";      // Property owners
+  | "usbizdata" // Business database (millions)
+  | "realtor" // Realtor database (2.18M)
+  | "consultant" // CRM consultants
+  | "solopreneur" // Individual sales pros
+  | "property"; // Property owners
 
 export type BusinessLine =
-  | "nextier"        // Nextier users
+  | "nextier" // Nextier users
   | "outreachglobal" // OutreachGlobal white label
-  | "ecbb";          // Exit/expansion blue collar
+  | "ecbb"; // Exit/expansion blue collar
 
 export interface CallQueueItem {
   id: string;
@@ -66,7 +66,13 @@ export interface CallQueueItem {
 
   // Queue details
   queueType: CallQueueType;
-  status: "pending" | "in_progress" | "completed" | "failed" | "no_answer" | "skipped";
+  status:
+    | "pending"
+    | "in_progress"
+    | "completed"
+    | "failed"
+    | "no_answer"
+    | "skipped";
   priority: number; // 1-10, higher = more urgent
   scheduledAt?: Date;
 
@@ -79,7 +85,14 @@ export interface CallQueueItem {
   tags: string[];
 
   // Outcomes
-  outcome?: "connected" | "voicemail" | "no_answer" | "busy" | "wrong_number" | "booked" | "declined";
+  outcome?:
+    | "connected"
+    | "voicemail"
+    | "no_answer"
+    | "busy"
+    | "wrong_number"
+    | "booked"
+    | "declined";
   duration?: number;
   createdAt: Date;
   completedAt?: Date;
@@ -122,21 +135,27 @@ function generateId(): string {
   return `call_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
-function getNextLead(persona: PersonaId, campaignLane?: CampaignLane): CallQueueItem | null {
+function getNextLead(
+  persona: PersonaId,
+  campaignLane?: CampaignLane,
+): CallQueueItem | null {
   const allowedLanes = campaignLane ? [campaignLane] : PERSONA_LANES[persona];
   const items = Array.from(callQueue.values());
 
   const nextLead = items
-    .filter(item =>
-      item.status === "pending" &&
-      item.persona === persona &&
-      allowedLanes.includes(item.campaignLane) &&
-      (!item.scheduledAt || new Date(item.scheduledAt) <= new Date())
+    .filter(
+      (item) =>
+        item.status === "pending" &&
+        item.persona === persona &&
+        allowedLanes.includes(item.campaignLane) &&
+        (!item.scheduledAt || new Date(item.scheduledAt) <= new Date()),
     )
     .sort((a, b) => {
       if (b.priority !== a.priority) return b.priority - a.priority;
       if (a.scheduledAt && b.scheduledAt) {
-        return new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime();
+        return (
+          new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime()
+        );
       }
       return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
     })[0];
@@ -199,17 +218,36 @@ export async function GET(request: NextRequest) {
           failed: items.filter((i) => i.status === "failed").length,
           noAnswer: items.filter((i) => i.status === "no_answer").length,
           byPersona: {
-            gianna: items.filter(i => i.persona === "gianna" && i.status === "pending").length,
-            cathy: items.filter(i => i.persona === "cathy" && i.status === "pending").length,
-            sabrina: items.filter(i => i.persona === "sabrina" && i.status === "pending").length,
+            gianna: items.filter(
+              (i) => i.persona === "gianna" && i.status === "pending",
+            ).length,
+            cathy: items.filter(
+              (i) => i.persona === "cathy" && i.status === "pending",
+            ).length,
+            sabrina: items.filter(
+              (i) => i.persona === "sabrina" && i.status === "pending",
+            ).length,
           },
           byLane: {
-            initial: items.filter(i => i.campaignLane === "initial" && i.status === "pending").length,
-            retarget: items.filter(i => i.campaignLane === "retarget" && i.status === "pending").length,
-            follow_up: items.filter(i => i.campaignLane === "follow_up" && i.status === "pending").length,
-            book_appointment: items.filter(i => i.campaignLane === "book_appointment" && i.status === "pending").length,
-            nurture: items.filter(i => i.campaignLane === "nurture" && i.status === "pending").length,
-            nudger: items.filter(i => i.campaignLane === "nudger" && i.status === "pending").length,
+            initial: items.filter(
+              (i) => i.campaignLane === "initial" && i.status === "pending",
+            ).length,
+            retarget: items.filter(
+              (i) => i.campaignLane === "retarget" && i.status === "pending",
+            ).length,
+            follow_up: items.filter(
+              (i) => i.campaignLane === "follow_up" && i.status === "pending",
+            ).length,
+            book_appointment: items.filter(
+              (i) =>
+                i.campaignLane === "book_appointment" && i.status === "pending",
+            ).length,
+            nurture: items.filter(
+              (i) => i.campaignLane === "nurture" && i.status === "pending",
+            ).length,
+            nudger: items.filter(
+              (i) => i.campaignLane === "nudger" && i.status === "pending",
+            ).length,
           },
         };
         return NextResponse.json({ success: true, stats });
@@ -217,7 +255,10 @@ export async function GET(request: NextRequest) {
 
       case "next": {
         if (!persona) {
-          return NextResponse.json({ success: false, error: "persona required" }, { status: 400 });
+          return NextResponse.json(
+            { success: false, error: "persona required" },
+            { status: 400 },
+          );
         }
 
         const nextLead = getNextLead(persona, lane || undefined);
@@ -232,11 +273,15 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({
           success: true,
           nextCall: nextLead,
-          remaining: items.filter(i =>
-            i.status === "pending" &&
-            i.persona === persona &&
-            (lane ? i.campaignLane === lane : PERSONA_LANES[persona].includes(i.campaignLane))
-          ).length - 1,
+          remaining:
+            items.filter(
+              (i) =>
+                i.status === "pending" &&
+                i.persona === persona &&
+                (lane
+                  ? i.campaignLane === lane
+                  : PERSONA_LANES[persona].includes(i.campaignLane)),
+            ).length - 1,
         });
       }
 
@@ -257,7 +302,9 @@ export async function GET(request: NextRequest) {
 
         filtered.sort((a, b) => {
           if (b.priority !== a.priority) return b.priority - a.priority;
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+          return (
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
         });
 
         return NextResponse.json({
@@ -269,7 +316,10 @@ export async function GET(request: NextRequest) {
 
       case "assistant-state": {
         if (!persona) {
-          return NextResponse.json({ success: false, error: "persona required" }, { status: 400 });
+          return NextResponse.json(
+            { success: false, error: "persona required" },
+            { status: 400 },
+          );
         }
 
         const state = assistantStates.get(persona);
@@ -281,7 +331,9 @@ export async function GET(request: NextRequest) {
             persona,
             mode: "assistant",
             active: false,
-            queuedLeads: items.filter(i => i.persona === persona && i.status === "pending").length,
+            queuedLeads: items.filter(
+              (i) => i.persona === persona && i.status === "pending",
+            ).length,
             completedToday: 0,
             campaignLane: defaultLane,
             voiceEnabled: false,
@@ -424,7 +476,9 @@ export async function POST(request: NextRequest) {
             campaignLane,
             queueType,
             status: "pending",
-            priority: lead.score ? Math.min(10, Math.floor(lead.score / 10)) : priority,
+            priority: lead.score
+              ? Math.min(10, Math.floor(lead.score / 10))
+              : priority,
             scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined,
             leadSource,
             businessLine,
@@ -450,7 +504,11 @@ export async function POST(request: NextRequest) {
       // ADD FROM LUCY (Batch add from all campaign lanes)
       // ═══════════════════════════════════════════════════════════════════════
       case "add_from_lucy": {
-        const { batches, leadSource = "usbizdata", businessLine = "nextier" } = body;
+        const {
+          batches,
+          leadSource = "usbizdata",
+          businessLine = "nextier",
+        } = body;
 
         if (!batches || typeof batches !== "object") {
           return NextResponse.json(
@@ -473,7 +531,9 @@ export async function POST(request: NextRequest) {
             const item: CallQueueItem = {
               id,
               leadId: lead.id || generateId(),
-              leadName: lead.name || `${lead.firstName || ""} ${lead.lastName || ""}`.trim(),
+              leadName:
+                lead.name ||
+                `${lead.firstName || ""} ${lead.lastName || ""}`.trim(),
               phone: lead.phone || lead.mobilePhone,
               email: lead.email,
               company: lead.company || lead.businessName,
@@ -483,7 +543,9 @@ export async function POST(request: NextRequest) {
               campaignLane: lane as CampaignLane,
               queueType: "power_dial",
               status: "pending",
-              priority: lead.score ? Math.min(10, Math.floor(lead.score / 10)) : 5,
+              priority: lead.score
+                ? Math.min(10, Math.floor(lead.score / 10))
+                : 5,
               leadSource,
               businessLine,
               attempts: 0,
@@ -519,10 +581,13 @@ export async function POST(request: NextRequest) {
 
         const lane = campaignLane || PERSONA_LANES[persona as PersonaId][0];
         if (!PERSONA_LANES[persona as PersonaId].includes(lane)) {
-          return NextResponse.json({
-            success: false,
-            error: `${persona} cannot work ${lane} lane. Allowed: ${PERSONA_LANES[persona as PersonaId].join(", ")}`,
-          }, { status: 400 });
+          return NextResponse.json(
+            {
+              success: false,
+              error: `${persona} cannot work ${lane} lane. Allowed: ${PERSONA_LANES[persona as PersonaId].join(", ")}`,
+            },
+            { status: 400 },
+          );
         }
 
         const items = Array.from(callQueue.values());
@@ -533,15 +598,17 @@ export async function POST(request: NextRequest) {
           mode: "assistant",
           active: true,
           currentLead: nextLead || undefined,
-          queuedLeads: items.filter(i =>
-            i.persona === persona &&
-            i.status === "pending" &&
-            i.campaignLane === lane
+          queuedLeads: items.filter(
+            (i) =>
+              i.persona === persona &&
+              i.status === "pending" &&
+              i.campaignLane === lane,
           ).length,
-          completedToday: items.filter(i =>
-            i.persona === persona &&
-            i.status === "completed" &&
-            i.completedAt?.toDateString() === new Date().toDateString()
+          completedToday: items.filter(
+            (i) =>
+              i.persona === persona &&
+              i.status === "completed" &&
+              i.completedAt?.toDateString() === new Date().toDateString(),
           ).length,
           campaignLane: lane,
           voiceEnabled,
@@ -583,17 +650,21 @@ export async function POST(request: NextRequest) {
 
         const state = assistantStates.get(persona);
         if (!state || !state.active) {
-          return NextResponse.json({
-            success: false,
-            error: "Assistant mode not active. Start it first.",
-          }, { status: 400 });
+          return NextResponse.json(
+            {
+              success: false,
+              error: "Assistant mode not active. Start it first.",
+            },
+            { status: 400 },
+          );
         }
 
         // Complete current lead if exists
         if (state.currentLead) {
           const currentItem = callQueue.get(state.currentLead.id);
           if (currentItem) {
-            currentItem.status = outcome === "skipped" ? "skipped" : "completed";
+            currentItem.status =
+              outcome === "skipped" ? "skipped" : "completed";
             currentItem.completedAt = new Date();
             currentItem.outcome = outcome || "connected";
             if (notes) currentItem.notes = notes;
@@ -643,10 +714,13 @@ export async function POST(request: NextRequest) {
 
         const state = assistantStates.get(persona);
         if (!state?.currentLead) {
-          return NextResponse.json({
-            success: false,
-            error: "No current lead. Get next lead first.",
-          }, { status: 400 });
+          return NextResponse.json(
+            {
+              success: false,
+              error: "No current lead. Get next lead first.",
+            },
+            { status: 400 },
+          );
         }
 
         const lead = state.currentLead;
@@ -692,10 +766,12 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
           success: true,
           message: `${persona.toUpperCase()} assistant mode deactivated`,
-          stats: state ? {
-            completedToday: state.completedToday,
-            remainingInQueue: state.queuedLeads,
-          } : null,
+          stats: state
+            ? {
+                completedToday: state.completedToday,
+                remainingInQueue: state.queuedLeads,
+              }
+            : null,
         });
       }
 
@@ -713,10 +789,13 @@ export async function POST(request: NextRequest) {
         }
 
         if (!PERSONA_LANES[persona as PersonaId].includes(campaignLane)) {
-          return NextResponse.json({
-            success: false,
-            error: `${persona} cannot work ${campaignLane} lane. Allowed: ${PERSONA_LANES[persona as PersonaId].join(", ")}`,
-          }, { status: 400 });
+          return NextResponse.json(
+            {
+              success: false,
+              error: `${persona} cannot work ${campaignLane} lane. Allowed: ${PERSONA_LANES[persona as PersonaId].join(", ")}`,
+            },
+            { status: 400 },
+          );
         }
 
         const state = assistantStates.get(persona);
@@ -729,10 +808,11 @@ export async function POST(request: NextRequest) {
 
         const items = Array.from(callQueue.values());
         state.campaignLane = campaignLane;
-        state.queuedLeads = items.filter(i =>
-          i.persona === persona &&
-          i.status === "pending" &&
-          i.campaignLane === campaignLane
+        state.queuedLeads = items.filter(
+          (i) =>
+            i.persona === persona &&
+            i.status === "pending" &&
+            i.campaignLane === campaignLane,
         ).length;
 
         const nextLead = getNextLead(persona, campaignLane);

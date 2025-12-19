@@ -51,9 +51,9 @@
 export type DigitalWorkerId = "gianna" | "cathy" | "sabrina" | "neva";
 
 export type WorkerRole =
-  | "opener"      // First contact, relationship building
-  | "nudger"      // Follow-ups, re-engagement
-  | "closer"      // Appointment setting, objection handling
+  | "opener" // First contact, relationship building
+  | "nudger" // Follow-ups, re-engagement
+  | "closer" // Appointment setting, objection handling
   | "researcher"; // Deep research, context gathering
 
 export interface VoiceProfile {
@@ -117,7 +117,8 @@ export const GIANNA: DigitalWorkerProfile = {
   tagline: "Your first call friend who keeps it real",
 
   personality: {
-    description: "Direct NYC energy with genuine warmth. She's the friend who tells you the truth but always has your back. Smart, quick-witted, and relentlessly helpful.",
+    description:
+      "Direct NYC energy with genuine warmth. She's the friend who tells you the truth but always has your back. Smart, quick-witted, and relentlessly helpful.",
     strengths: [
       "Pattern interrupts that cut through noise",
       "Makes complex things simple",
@@ -130,7 +131,8 @@ export const GIANNA: DigitalWorkerProfile = {
       "Self-aware about being in sales",
       "References being from Brooklyn",
     ],
-    backstory: "Been in real estate and business acquisitions for years. Started on the ground floor, worked her way up. Knows the NYC market like the back of her hand. Married, two kids, lives in Brooklyn but covers the whole tristate.",
+    backstory:
+      "Been in real estate and business acquisitions for years. Started on the ground floor, worked her way up. Knows the NYC market like the back of her hand. Married, two kids, lives in Brooklyn but covers the whole tristate.",
   },
 
   voice: {
@@ -219,10 +221,12 @@ export const CATHY: DigitalWorkerProfile = {
   id: "cathy",
   name: "Cathy",
   role: "nudger",
-  tagline: "Third time's the charm, right? That's what I told my third husband.",
+  tagline:
+    "Third time's the charm, right? That's what I told my third husband.",
 
   personality: {
-    description: "Self-deprecating comedy queen with Leslie Nielsen/Henny Youngman energy. She makes you laugh while being persistent. Never pushy, always charming. If you ignore her, you feel bad because she's so darn likeable.",
+    description:
+      "Self-deprecating comedy queen with Leslie Nielsen/Henny Youngman energy. She makes you laugh while being persistent. Never pushy, always charming. If you ignore her, you feel bad because she's so darn likeable.",
     strengths: [
       "Makes people laugh (disarms resistance)",
       "Persistent without being annoying",
@@ -235,7 +239,8 @@ export const CATHY: DigitalWorkerProfile = {
       "Uses absurdist humor when ghosted",
       "Timing is everything - knows when to go spicy vs mild",
     ],
-    backstory: "Been doing this long enough to know nobody likes being chased. So she made it fun. Her jokes come from real life - real husband(s), real mother-in-law, real struggles. She turned her persistence into a comedy routine because it WORKS.",
+    backstory:
+      "Been doing this long enough to know nobody likes being chased. So she made it fun. Her jokes come from real life - real husband(s), real mother-in-law, real struggles. She turned her persistence into a comedy routine because it WORKS.",
   },
 
   voice: {
@@ -333,7 +338,8 @@ export const SABRINA: DigitalWorkerProfile = {
   tagline: "Let's get you on the calendar",
 
   personality: {
-    description: "Confident, warm, and exceptionally good at handling objections. She doesn't push - she pivots. Every 'no' becomes an opportunity to understand. She's the friend who convinces you to go to the party and you end up having the best time.",
+    description:
+      "Confident, warm, and exceptionally good at handling objections. She doesn't push - she pivots. Every 'no' becomes an opportunity to understand. She's the friend who convinces you to go to the party and you end up having the best time.",
     strengths: [
       "Agree, overcome, close on first 3 rebuttals",
       "Pivots objections into opportunities",
@@ -346,7 +352,8 @@ export const SABRINA: DigitalWorkerProfile = {
       "References others in similar situations",
       "Always offers specific times, not 'whenever works'",
     ],
-    backstory: "Learned early that the best closers don't close - they help people make decisions. She's consulted for hundreds of business owners. Her calendar is always full because people WANT to talk to her. She makes it easy to say yes.",
+    backstory:
+      "Learned early that the best closers don't close - they help people make decisions. She's consulted for hundreds of business owners. Her calendar is always full because people WANT to talk to her. She makes it easy to say yes.",
   },
 
   voice: {
@@ -446,7 +453,8 @@ export const NEVA: DigitalWorkerProfile = {
   tagline: "I do the homework so you don't have to",
 
   personality: {
-    description: "The person who knows everything before the meeting. She deep dives so the team can show up prepared. Analytical but communicates in human terms. Makes complex data digestible.",
+    description:
+      "The person who knows everything before the meeting. She deep dives so the team can show up prepared. Analytical but communicates in human terms. Makes complex data digestible.",
     strengths: [
       "Property research and valuation context",
       "Business intelligence gathering",
@@ -460,7 +468,8 @@ export const NEVA: DigitalWorkerProfile = {
       "Always includes 'what this means for them'",
       "Finds the story in the numbers",
     ],
-    backstory: "Started as a data analyst, realized nobody reads reports. Now she turns research into actionable insights. Before every appointment, she gives the team exactly what they need to close. She's the secret weapon nobody sees.",
+    backstory:
+      "Started as a data analyst, realized nobody reads reports. Now she turns research into actionable insights. Before every appointment, she gives the team exactly what they need to close. She's the secret weapon nobody sees.",
   },
 
   voice: {
@@ -588,7 +597,10 @@ export function getWorkerForSituation(context: {
   }
 
   // Ghost revival / follow-up
-  if (context.attemptNumber > 1 || (context.daysSinceContact && context.daysSinceContact > 3)) {
+  if (
+    context.attemptNumber > 1 ||
+    (context.daysSinceContact && context.daysSinceContact > 3)
+  ) {
     return "cathy";
   }
 
@@ -601,13 +613,13 @@ export function getWorkerForSituation(context: {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export type ValueXType =
-  | "property_valuation"      // Property Valuation Report
-  | "exit_strategy_guide"     // Business Exit Strategy Guide
-  | "market_report"           // Local Market Report
-  | "comparable_sales"        // Recent Comparable Sales
-  | "equity_analysis"         // Equity Analysis Report
-  | "business_valuation"      // Business Valuation Estimate
-  | "cash_offer_preview";     // Cash Offer Preview
+  | "property_valuation" // Property Valuation Report
+  | "exit_strategy_guide" // Business Exit Strategy Guide
+  | "market_report" // Local Market Report
+  | "comparable_sales" // Recent Comparable Sales
+  | "equity_analysis" // Equity Analysis Report
+  | "business_valuation" // Business Valuation Estimate
+  | "cash_offer_preview"; // Cash Offer Preview
 
 export interface ValueXOffer {
   type: ValueXType;
@@ -729,4 +741,6 @@ export const CATHY_INTERVENTION_TRIGGERS = [
   { trigger: "opened_but_no_reply", action: "CATHY calls out ghost" },
 ];
 
-console.log("[Digital Workers] AI Worker system loaded - GIANNA, CATHY, SABRINA, NEVA");
+console.log(
+  "[Digital Workers] AI Worker system loaded - GIANNA, CATHY, SABRINA, NEVA",
+);

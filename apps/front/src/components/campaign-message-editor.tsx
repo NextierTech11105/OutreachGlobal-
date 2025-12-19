@@ -124,65 +124,121 @@ export function CampaignMessageEditor({
               <Label>Message Variables</Label>
               <div className="space-y-1 text-sm max-h-64 overflow-y-auto">
                 {/* Lead Variables */}
-                <p className="text-xs font-medium text-muted-foreground mt-2">Lead</p>
+                <p className="text-xs font-medium text-muted-foreground mt-2">
+                  Lead
+                </p>
                 {["first_name", "last_name", "fullName", "email"].map((v) => (
                   <div key={v} className="flex items-center justify-between">
                     <code>{`{{${v}}}`}</code>
-                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => navigator.clipboard.writeText(`{{${v}}}`)}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => navigator.clipboard.writeText(`{{${v}}}`)}
+                    >
                       <Copy className="h-3 w-3" />
                     </Button>
                   </div>
                 ))}
                 {/* Property Variables */}
-                <p className="text-xs font-medium text-muted-foreground mt-2">Property</p>
-                {["property_address", "property_city", "estimated_value", "equity_estimate"].map((v) => (
+                <p className="text-xs font-medium text-muted-foreground mt-2">
+                  Property
+                </p>
+                {[
+                  "property_address",
+                  "property_city",
+                  "estimated_value",
+                  "equity_estimate",
+                ].map((v) => (
                   <div key={v} className="flex items-center justify-between">
                     <code>{`{{${v}}}`}</code>
-                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => navigator.clipboard.writeText(`{{${v}}}`)}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => navigator.clipboard.writeText(`{{${v}}}`)}
+                    >
                       <Copy className="h-3 w-3" />
                     </Button>
                   </div>
                 ))}
                 {/* Business Variables */}
-                <p className="text-xs font-medium text-muted-foreground mt-2">Business</p>
-                {["company_name", "business_name", "industry", "sic_description"].map((v) => (
+                <p className="text-xs font-medium text-muted-foreground mt-2">
+                  Business
+                </p>
+                {[
+                  "company_name",
+                  "business_name",
+                  "industry",
+                  "sic_description",
+                ].map((v) => (
                   <div key={v} className="flex items-center justify-between">
                     <code>{`{{${v}}}`}</code>
-                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => navigator.clipboard.writeText(`{{${v}}}`)}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => navigator.clipboard.writeText(`{{${v}}}`)}
+                    >
                       <Copy className="h-3 w-3" />
                     </Button>
                   </div>
                 ))}
                 {/* Campaign Variables */}
-                <p className="text-xs font-medium text-muted-foreground mt-2">Campaign</p>
+                <p className="text-xs font-medium text-muted-foreground mt-2">
+                  Campaign
+                </p>
                 {["value_content", "offer_type", "call_to_action"].map((v) => (
                   <div key={v} className="flex items-center justify-between">
                     <code>{`{{${v}}}`}</code>
-                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => navigator.clipboard.writeText(`{{${v}}}`)}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => navigator.clipboard.writeText(`{{${v}}}`)}
+                    >
                       <Copy className="h-3 w-3" />
                     </Button>
                   </div>
                 ))}
                 {/* Agent Variables */}
-                <p className="text-xs font-medium text-muted-foreground mt-2">Agent</p>
+                <p className="text-xs font-medium text-muted-foreground mt-2">
+                  Agent
+                </p>
                 {["agent_name", "agent_signature", "team_name"].map((v) => (
                   <div key={v} className="flex items-center justify-between">
                     <code>{`{{${v}}}`}</code>
-                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => navigator.clipboard.writeText(`{{${v}}}`)}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => navigator.clipboard.writeText(`{{${v}}}`)}
+                    >
                       <Copy className="h-3 w-3" />
                     </Button>
                   </div>
                 ))}
                 {/* CATHY Nudger Variables */}
-                <p className="text-xs font-medium text-muted-foreground mt-2">CATHY Nudger</p>
-                {["attempt_count", "days_since_contact", "suggested_time"].map((v) => (
-                  <div key={v} className="flex items-center justify-between">
-                    <code>{`{{${v}}}`}</code>
-                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => navigator.clipboard.writeText(`{{${v}}}`)}>
-                      <Copy className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ))}
+                <p className="text-xs font-medium text-muted-foreground mt-2">
+                  CATHY Nudger
+                </p>
+                {["attempt_count", "days_since_contact", "suggested_time"].map(
+                  (v) => (
+                    <div key={v} className="flex items-center justify-between">
+                      <code>{`{{${v}}}`}</code>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() =>
+                          navigator.clipboard.writeText(`{{${v}}}`)
+                        }
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ),
+                )}
               </div>
             </div>
           </div>

@@ -30,7 +30,7 @@ export function GiannaAgentConfig() {
   // Pre-populated with GIANNA's REAL personality DNA
   const [agentName, setAgentName] = useState(GIANNA.name);
   const [description, setDescription] = useState(
-    "AI-Powered Initial Outreach Specialist - Captures emails for Value X delivery"
+    "AI-Powered Initial Outreach Specialist - Captures emails for Value X delivery",
   );
   const [personalityRole, setPersonalityRole] = useState(
     `${GIANNA.personality.description}
@@ -57,7 +57,7 @@ CLOSINGS:
 ${GIANNA.linguistic.closings.map((c) => `"${c}"`).join(", ")}
 
 WORDS TO AVOID:
-${GIANNA.linguistic.avoids.join(", ")}`
+${GIANNA.linguistic.avoids.join(", ")}`,
   );
   const [replyDelay, setReplyDelay] = useState("no-delay");
 
@@ -89,7 +89,8 @@ ${GIANNA.linguistic.avoids.join(", ")}`
               placeholder="Enter agent name"
             />
             <p className="text-xs text-muted-foreground">
-              Choose a friendly name for your AI assistant that users will recognize and connect with.
+              Choose a friendly name for your AI assistant that users will
+              recognize and connect with.
             </p>
           </div>
 
@@ -103,13 +104,16 @@ ${GIANNA.linguistic.avoids.join(", ")}`
               placeholder="Brief overview of what your AI assistant does"
             />
             <p className="text-xs text-muted-foreground">
-              Provide a brief overview of what your AI assistant does and how it helps users.
+              Provide a brief overview of what your AI assistant does and how it
+              helps users.
             </p>
           </div>
 
           {/* Personality & Role Description */}
           <div className="space-y-2">
-            <Label htmlFor="personality-role">Personality & Role Description</Label>
+            <Label htmlFor="personality-role">
+              Personality & Role Description
+            </Label>
             <Textarea
               id="personality-role"
               value={personalityRole}
@@ -118,7 +122,9 @@ ${GIANNA.linguistic.avoids.join(", ")}`
               placeholder="Define your agent's personality, expertise, communication style..."
             />
             <p className="text-xs text-muted-foreground">
-              Define your agent&apos;s personality, expertise, communication style, and how they should interact with users. Be specific about their role and approach.
+              Define your agent&apos;s personality, expertise, communication
+              style, and how they should interact with users. Be specific about
+              their role and approach.
             </p>
           </div>
 
@@ -157,7 +163,8 @@ ${GIANNA.linguistic.avoids.join(", ")}`
         <CardHeader>
           <CardTitle className="text-base">AI Assistant Setup</CardTitle>
           <CardDescription>
-            Let&apos;s set up an AI assistant to reply to messages on your behalf, here&apos;s some tips
+            Let&apos;s set up an AI assistant to reply to messages on your
+            behalf, here&apos;s some tips
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -172,7 +179,8 @@ ${GIANNA.linguistic.avoids.join(", ")}`
             </li>
             <li className="flex items-start gap-2">
               <span className="text-primary">•</span>
-              Define clear boundaries for what the agent should and shouldn&apos;t do
+              Define clear boundaries for what the agent should and
+              shouldn&apos;t do
             </li>
             <li className="flex items-start gap-2">
               <span className="text-primary">•</span>

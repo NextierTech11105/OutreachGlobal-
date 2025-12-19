@@ -55,11 +55,11 @@ export const AiSdrSelector = forwardRef<HTMLButtonElement, AiSdrSelectorProps>(
           </SelectTrigger>
           <SelectContent>
             {loading ? (
-              <SelectItem value="" disabled>
+              <SelectItem value="__loading__" disabled>
                 Loading...
               </SelectItem>
             ) : avatars.length === 0 ? (
-              <SelectItem value="" disabled>
+              <SelectItem value="__empty__" disabled>
                 No AI SDRs configured
               </SelectItem>
             ) : (
@@ -81,7 +81,7 @@ export const AiSdrSelector = forwardRef<HTMLButtonElement, AiSdrSelectorProps>(
         </Select>
       </div>
     );
-  }
+  },
 );
 
 AiSdrSelector.displayName = "AiSdrSelector";

@@ -74,19 +74,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const correlationId = searchParams.get("correlationId") || "unknown";
 
   console.log(
-    `[Skip Trace Webhook] Received callback, batchId=${batchId}, teamId=${teamId} [${correlationId}]`
+    `[Skip Trace Webhook] Received callback, batchId=${batchId}, teamId=${teamId} [${correlationId}]`,
   );
 
   try {
     const payload: BulkSkipTraceWebhookPayload = await request.json();
 
     console.log(
-      `[Skip Trace Webhook] Job ${payload.job_id}: ${payload.status}, ${payload.completed_requests}/${payload.total_requests} completed [${correlationId}]`
+      `[Skip Trace Webhook] Job ${payload.job_id}: ${payload.status}, ${payload.completed_requests}/${payload.total_requests} completed [${correlationId}]`,
     );
 
     if (payload.status === "failed") {
       console.error(
-        `[Skip Trace Webhook] Job ${payload.job_id} failed [${correlationId}]`
+        `[Skip Trace Webhook] Job ${payload.job_id} failed [${correlationId}]`,
       );
       return NextResponse.json({
         received: true,
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       // Extract best phone (prefer mobile)
       const phones = result.output.phones || [];
       const mobilePhone = phones.find(
-        (p) => p.phone_type === "mobile" || p.line_type === "mobile"
+        (p) => p.phone_type === "mobile" || p.line_type === "mobile",
       );
       const bestPhone = mobilePhone || phones[0];
 
@@ -132,10 +132,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       // Extract socials
       const socials = result.output.social_profiles || [];
       const linkedin = socials.find(
-        (s) => s.platform.toLowerCase() === "linkedin"
+        (s) => s.platform.toLowerCase() === "linkedin",
       );
       const facebook = socials.find(
-        (s) => s.platform.toLowerCase() === "facebook"
+        (s) => s.platform.toLowerCase() === "facebook",
       );
 
       // Build enrichment data
@@ -206,7 +206,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     console.log(
-      `[Skip Trace Webhook] Processed: ${processed.enriched} enriched, ${processed.failed} failed, ${processed.skipped} skipped [${correlationId}]`
+      `[Skip Trace Webhook] Processed: ${processed.enriched} enriched, ${processed.failed} failed, ${processed.skipped} skipped [${correlationId}]`,
     );
 
     return NextResponse.json({
@@ -227,7 +227,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         error: error instanceof Error ? error.message : "Processing failed",
         correlationId,
       },
-      { status: 200 } // Return 200 so RealEstateAPI doesn't retry
+      { status: 200 }, // Return 200 so RealEstateAPI doesn't retry
     );
   }
 }
@@ -236,7 +236,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 export async function GET(): Promise<NextResponse> {
   return NextResponse.json({
     endpoint: "POST /api/webhook/skip-trace",
-    description: "Webhook receiver for RealEstateAPI bulk skip trace completion",
+    description:
+      "Webhook receiver for RealEstateAPI bulk skip trace completion",
     queryParams: ["batchId", "teamId", "correlationId"],
     payload: "BulkSkipTraceWebhookPayload from RealEstateAPI",
   });

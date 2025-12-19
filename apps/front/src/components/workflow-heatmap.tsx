@@ -145,7 +145,7 @@ function HeatCell({
           <div
             className={cn(
               "relative p-4 rounded-lg border cursor-pointer transition-all hover:scale-105 hover:shadow-lg",
-              onClick && "cursor-pointer"
+              onClick && "cursor-pointer",
             )}
             style={{
               backgroundColor: `${heatColor}15`,

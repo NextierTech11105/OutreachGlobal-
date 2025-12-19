@@ -317,18 +317,20 @@ export function DatalakeCopilot() {
           leads = leads.filter(
             (l: Lead) =>
               l.address?.toUpperCase().includes(query.state!) ||
-              (l as any).state?.toUpperCase() === query.state
+              (l as any).state?.toUpperCase() === query.state,
           );
         }
 
-        console.log(`[Datalake Copilot] Fetched ${leads.length} leads from PostgreSQL (total: ${data.total})`);
+        console.log(
+          `[Datalake Copilot] Fetched ${leads.length} leads from PostgreSQL (total: ${data.total})`,
+        );
         return leads.slice(0, query.limit || 25);
       } catch (error) {
         console.error("[Datalake Copilot] Fetch error:", error);
         return [];
       }
     },
-    []
+    [],
   );
 
   // Handle send message

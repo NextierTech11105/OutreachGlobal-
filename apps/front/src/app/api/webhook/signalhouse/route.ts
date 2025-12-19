@@ -151,7 +151,8 @@ export async function POST(request: NextRequest) {
     // Find lead associated with this communication
     // For inbound, search by 'from'. For outbound, search by 'to'.
     const searchPhone =
-      normalizedEvent.includes("received") || normalizedEvent.includes("inbound")
+      normalizedEvent.includes("received") ||
+      normalizedEvent.includes("inbound")
         ? fromNumber
         : toNumber;
 
@@ -227,8 +228,9 @@ export async function POST(request: NextRequest) {
               status: status,
               providerStatus: (payload.status as string) || status,
               updatedAt: new Date(),
-              deliveredAt:
-                normalizedEvent.includes("delivered") ? new Date() : undefined,
+              deliveredAt: normalizedEvent.includes("delivered")
+                ? new Date()
+                : undefined,
             })
             .where(eq(smsMessages.providerMessageId, messageId));
         }
