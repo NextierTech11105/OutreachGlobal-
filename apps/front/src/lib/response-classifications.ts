@@ -13,7 +13,8 @@ export type CampaignContext =
   | "follow_up" // Following up on interest
   | "book_appointment" // Appointment booking workflow
   | "nurture" // Long-term nurture sequence
-  | "instant"; // Instant/immediate response
+  | "instant" // Instant/immediate response
+  | "nudger"; // Gentle reminder for non-responders
 
 export interface CampaignContextConfig {
   id: CampaignContext;
@@ -58,6 +59,12 @@ export const CAMPAIGN_CONTEXTS: CampaignContextConfig[] = [
     name: "Instant Response",
     description: "Immediate/real-time response",
     nextSteps: ["follow_up", "book_appointment"],
+  },
+  {
+    id: "nudger",
+    name: "Nudger",
+    description: "Gentle reminder for non-responders - deployed through CATHY",
+    nextSteps: ["follow_up", "retarget", "book_appointment"],
   },
 ];
 
