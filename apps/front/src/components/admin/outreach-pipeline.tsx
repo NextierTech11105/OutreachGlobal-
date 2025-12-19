@@ -55,40 +55,66 @@ const ChannelIcon = ({ channel }: { channel: string }) => {
   }
 };
 
-// Mock data for visualization
-const MOCK_STATS: SequenceStats = {
-  totalActive: 847,
+// Empty initial stats
+const EMPTY_STATS: SequenceStats = {
+  totalActive: 0,
   byTouch: {
-    1: 234,
-    2: 156,
-    3: 142,
-    4: 98,
-    5: 87,
-    6: 54,
-    7: 38,
-    8: 22,
-    9: 12,
-    10: 4,
+    1: 0,
+    2: 0,
+    3: 0,
+    4: 0,
+    5: 0,
+    6: 0,
+    7: 0,
+    8: 0,
+    9: 0,
+    10: 0,
   },
-  completedThisWeek: 23,
-  convertedThisWeek: 8,
-  responseRate: 34.2,
-  avgTouchesToResponse: 3.7,
-  optOutRate: 2.1,
+  completedThisWeek: 0,
+  convertedThisWeek: 0,
+  responseRate: 0,
+  avgTouchesToResponse: 0,
+  optOutRate: 0,
 };
 
-const MOCK_QUEUE: { touch: number; count: number; nextBatch: string }[] = [
-  { touch: 1, count: 45, nextBatch: "Today 10:00 AM" },
-  { touch: 2, count: 32, nextBatch: "Today 2:00 PM" },
-  { touch: 3, count: 28, nextBatch: "Tomorrow 9:30 AM" },
-  { touch: 5, count: 15, nextBatch: "Tomorrow 2:00 PM" },
-  { touch: 7, count: 12, nextBatch: "Friday 9:30 AM" },
-];
+interface QueueItem {
+  touch: number;
+  count: number;
+  nextBatch: string;
+}
 
 export function OutreachPipeline() {
-  const [stats] = useState<SequenceStats>(MOCK_STATS);
+  const [stats, setStats] = useState<SequenceStats>(EMPTY_STATS);
+  const [queue, setQueue] = useState<QueueItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedTouch, setSelectedTouch] = useState<number | null>(null);
   const [isRunning, setIsRunning] = useState(true);
+
+  // Fetch real pipeline stats from PostgreSQL
+  useEffect(() => {
+    async function fetchPipelineData() {
+      try {
+        setIsLoading(true);
+        const response = await fetch("/api/outreach/pipeline");
+        if (response.ok) {
+          const data = await response.json();
+          if (data.stats) {
+            setStats(data.stats);
+          }
+          if (data.queue) {
+            setQueue(data.queue);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch pipeline data:", error);
+        // Keep empty stats on error
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchPipelineData();
+  }, []);
 
   // Calculate total in pipeline
   const totalInPipeline = Object.values(stats.byTouch).reduce(
@@ -405,7 +431,15 @@ export function OutreachPipeline() {
           <CardContent>
             <ScrollArea className="h-[200px]">
               <div className="space-y-3">
-                {MOCK_QUEUE.map((item, i) => {
+                {queue.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Clock className="h-8 w-8 mx-auto text-muted-foreground/50 mb-2" />
+                    <p className="text-sm text-muted-foreground">No items in queue</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Push leads to campaigns to see them here
+                    </p>
+                  </div>
+                ) : queue.map((item, i) => {
                   const touch = OUTREACH_SEQUENCE.find(
                     (t) => t.position === item.touch,
                   );
