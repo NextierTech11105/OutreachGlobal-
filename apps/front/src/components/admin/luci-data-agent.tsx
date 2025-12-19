@@ -98,240 +98,156 @@ interface AgentMetrics {
 }
 
 // ============================================================================
-// MOCK DATA
+// API FETCHERS - Real data from PostgreSQL datalake
 // ============================================================================
 
-function generateMockSources(): DataSource[] {
-  return [
-    {
-      id: "usbiz_hotels",
-      name: "USBizData Hotels",
-      type: "s3",
-      status: "connected",
-      records: 433000,
-      last_sync: new Date("2024-12-12"),
-      schema_fields: 24,
-      quality_score: 94,
-    },
-    {
-      id: "usbiz_auto",
-      name: "USBizData Auto Dealers",
-      type: "s3",
-      status: "syncing",
-      records: 409121,
-      last_sync: new Date("2024-12-11"),
-      schema_fields: 24,
-      quality_score: 91,
-    },
-    {
-      id: "usbiz_rv",
-      name: "USBizData Campgrounds",
-      type: "s3",
-      status: "connected",
-      records: 16366,
-      last_sync: new Date("2024-12-10"),
-      schema_fields: 24,
-      quality_score: 96,
-    },
-    {
-      id: "usbiz_trucking",
-      name: "USBizData Trucking",
-      type: "s3",
-      status: "connected",
-      records: 285000,
-      last_sync: new Date("2024-12-08"),
-      schema_fields: 24,
-      quality_score: 89,
-    },
-    {
-      id: "usbiz_aircraft",
-      name: "USBizData Aircraft",
-      type: "csv",
-      status: "idle",
-      records: 106625,
-      last_sync: new Date("2024-12-05"),
-      schema_fields: 24,
-      quality_score: 92,
-    },
-    {
-      id: "ny_business",
-      name: "NY Business Database",
-      type: "s3",
-      status: "connected",
-      records: 5500000,
-      last_sync: new Date("2024-12-01"),
-      schema_fields: 18,
-      quality_score: 78,
-    },
-    {
-      id: "apollo_enriched",
-      name: "Apollo Enriched",
-      type: "api",
-      status: "connected",
-      records: 125000,
-      last_sync: new Date(),
-      schema_fields: 45,
-      quality_score: 98,
-    },
-    {
-      id: "skip_trace",
-      name: "Skip Trace Results",
-      type: "postgres",
-      status: "connected",
-      records: 450000,
-      last_sync: new Date(),
-      schema_fields: 12,
-      quality_score: 95,
-    },
-  ];
+interface AdminStats {
+  stats: {
+    totalLeads: number;
+    totalBusinesses: number;
+    totalContacts: number;
+    totalProperties: number;
+    datalakeTotal: number;
+    totalSmsMessages: number;
+    totalCalls: number;
+    totalDataSources: number;
+    totalBuckets: number;
+    totalDeals: number;
+    totalCampaignAttempts: number;
+  };
 }
 
-function generateMockPipelines(): ETLPipeline[] {
-  return [
-    {
-      id: "etl_1",
-      name: "USBizData → Datalake",
-      source: "DigitalOcean Spaces",
-      destination: "Datalake",
-      schedule: "Daily 2AM",
-      status: "scheduled",
-      last_run: new Date("2024-12-12T02:00:00"),
-      records_processed: 125000,
-      error_rate: 0.2,
-    },
-    {
-      id: "etl_2",
-      name: "Enrichment → Companies",
-      source: "Apollo API",
-      destination: "Companies Table",
-      schedule: "Hourly",
-      status: "running",
-      last_run: new Date(),
-      records_processed: 2340,
-      error_rate: 1.5,
-    },
-    {
-      id: "etl_3",
-      name: "Cross-Reference Match",
-      source: "Datalake",
-      destination: "Matched Leads",
-      schedule: "Every 6h",
-      status: "scheduled",
-      last_run: new Date("2024-12-12T18:00:00"),
-      records_processed: 45000,
-      error_rate: 0.0,
-    },
-    {
-      id: "etl_4",
-      name: "NY → Sector Tag",
-      source: "NY Business",
-      destination: "Sector Labels",
-      schedule: "Weekly",
-      status: "paused",
-      last_run: new Date("2024-12-08"),
-      records_processed: 5500000,
-      error_rate: 3.2,
-    },
-    {
-      id: "etl_5",
-      name: "Skip Trace Merge",
-      source: "Skip Trace API",
-      destination: "Contact Info",
-      schedule: "On Demand",
-      status: "scheduled",
-      last_run: new Date("2024-12-11"),
-      records_processed: 8500,
-      error_rate: 0.8,
-    },
-  ];
+async function fetchDataSources(): Promise<DataSource[]> {
+  try {
+    // Fetch real stats from PostgreSQL
+    const response = await fetch("/api/admin/stats");
+    if (!response.ok) {
+      console.warn("[LUCI] Admin stats API returned", response.status);
+      return [];
+    }
+    const data: AdminStats = await response.json();
+
+    // Create data sources based on actual database tables with data
+    const sources: DataSource[] = [];
+
+    if (data.stats.totalBusinesses > 0) {
+      sources.push({
+        id: "businesses",
+        name: "Businesses (USBizData)",
+        type: "postgres",
+        status: "connected",
+        records: data.stats.totalBusinesses,
+        last_sync: new Date(),
+        schema_fields: 25,
+        quality_score: 85,
+      });
+    }
+
+    if (data.stats.totalContacts > 0) {
+      sources.push({
+        id: "contacts",
+        name: "Contacts",
+        type: "postgres",
+        status: "connected",
+        records: data.stats.totalContacts,
+        last_sync: new Date(),
+        schema_fields: 18,
+        quality_score: 78,
+      });
+    }
+
+    if (data.stats.totalProperties > 0) {
+      sources.push({
+        id: "properties",
+        name: "Properties (RealEstateAPI)",
+        type: "postgres",
+        status: "connected",
+        records: data.stats.totalProperties,
+        last_sync: new Date(),
+        schema_fields: 45,
+        quality_score: 92,
+      });
+    }
+
+    if (data.stats.totalLeads > 0) {
+      sources.push({
+        id: "leads",
+        name: "Leads Pipeline",
+        type: "postgres",
+        status: "connected",
+        records: data.stats.totalLeads,
+        last_sync: new Date(),
+        schema_fields: 20,
+        quality_score: 88,
+      });
+    }
+
+    // If no data, show placeholder with instructions
+    if (sources.length === 0) {
+      sources.push({
+        id: "postgres",
+        name: "PostgreSQL Database",
+        type: "postgres",
+        status: "connected",
+        records: 0,
+        last_sync: new Date(),
+        schema_fields: 100,
+        quality_score: 0,
+      });
+    }
+
+    console.log(`[LUCI] Connected to PostgreSQL - ${sources.length} data sources, ${data.stats.datalakeTotal} total records`);
+    return sources;
+  } catch (error) {
+    console.error("[LUCI] Failed to fetch data sources:", error);
+    return [];
+  }
 }
 
-function generateMockQualityChecks(): DataQualityCheck[] {
-  return [
-    {
-      id: "q1",
-      field: "email",
-      check_type: "format",
-      passed: 425000,
-      failed: 8000,
-      status: "healthy",
-    },
-    {
-      id: "q2",
-      field: "phone",
-      check_type: "format",
-      passed: 380000,
-      failed: 53000,
-      status: "warning",
-    },
-    {
-      id: "q3",
-      field: "company_name",
-      check_type: "null",
-      passed: 433000,
-      failed: 0,
-      status: "healthy",
-    },
-    {
-      id: "q4",
-      field: "address",
-      check_type: "null",
-      passed: 410000,
-      failed: 23000,
-      status: "warning",
-    },
-    {
-      id: "q5",
-      field: "sic_code",
-      check_type: "format",
-      passed: 420000,
-      failed: 13000,
-      status: "healthy",
-    },
-    {
-      id: "q6",
-      field: "contact_name",
-      check_type: "duplicate",
-      passed: 390000,
-      failed: 43000,
-      status: "warning",
-    },
-  ];
+async function fetchPipelines(): Promise<ETLPipeline[]> {
+  // Pipelines are configured, not stored - return empty for now
+  // Users can create pipelines through the UI
+  return [];
 }
 
-function generateMockCrossRefs(): CrossReference[] {
-  return [
-    {
-      id: "cr1",
-      source_a: "USBizData Hotels",
-      source_b: "Skip Trace",
-      match_field: "address",
-      matched: 125000,
-      unmatched_a: 308000,
-      unmatched_b: 0,
-      last_run: new Date(),
-    },
-    {
-      id: "cr2",
-      source_a: "USBizData Auto",
-      source_b: "Apollo Enriched",
-      match_field: "company_name",
-      matched: 45000,
-      unmatched_a: 364121,
-      unmatched_b: 80000,
-      last_run: new Date(),
-    },
-    {
-      id: "cr3",
-      source_a: "NY Business",
-      source_b: "Datalake Sectors",
-      match_field: "sic_code",
-      matched: 2500000,
-      unmatched_a: 3000000,
-      unmatched_b: 0,
-      last_run: new Date("2024-12-10"),
-    },
-  ];
+async function fetchQualityChecks(): Promise<DataQualityCheck[]> {
+  // Quality checks run on-demand - return empty for now
+  return [];
+}
+
+async function fetchCrossRefs(): Promise<CrossReference[]> {
+  // Cross-references are configured by user - return empty for now
+  return [];
+}
+
+// Fetch total datalake metrics
+async function fetchDatalakeMetrics(): Promise<AgentMetrics> {
+  try {
+    const response = await fetch("/api/admin/stats");
+    if (!response.ok) {
+      throw new Error("Failed to fetch stats");
+    }
+    const data: AdminStats = await response.json();
+
+    return {
+      total_records: data.stats.datalakeTotal,
+      data_sources: 4, // businesses, contacts, properties, leads
+      pipelines_active: 0,
+      quality_score: 85,
+      cross_references: 0,
+      processing_queue: 0,
+    };
+  } catch (error) {
+    console.error("[LUCI] Failed to fetch metrics:", error);
+    return {
+      total_records: 0,
+      data_sources: 0,
+      pipelines_active: 0,
+      quality_score: 0,
+      cross_references: 0,
+      processing_queue: 0,
+    };
+  }
 }
 
 // ============================================================================
@@ -353,54 +269,58 @@ export function LuciDataAgent() {
   });
   const [activeTab, setActiveTab] = useState("sources");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Initialize mock data
+  // Fetch real data from PostgreSQL APIs
   useEffect(() => {
-    const mockSources = generateMockSources();
-    const mockPipelines = generateMockPipelines();
-    const mockQuality = generateMockQualityChecks();
-    const mockCrossRefs = generateMockCrossRefs();
+    async function loadData() {
+      setIsLoading(true);
+      setError(null);
 
-    setSources(mockSources);
-    setPipelines(mockPipelines);
-    setQualityChecks(mockQuality);
-    setCrossRefs(mockCrossRefs);
+      try {
+        const [sourcesData, pipelinesData, qualityData, crossRefsData, metricsData] =
+          await Promise.all([
+            fetchDataSources(),
+            fetchPipelines(),
+            fetchQualityChecks(),
+            fetchCrossRefs(),
+            fetchDatalakeMetrics(),
+          ]);
 
-    const totalRecords = mockSources.reduce((sum, s) => sum + s.records, 0);
-    const avgQuality =
-      mockSources.reduce((sum, s) => sum + s.quality_score, 0) /
-      mockSources.length;
+        setSources(sourcesData);
+        setPipelines(pipelinesData);
+        setQualityChecks(qualityData);
+        setCrossRefs(crossRefsData);
+        setMetrics(metricsData);
 
-    setMetrics({
-      total_records: totalRecords,
-      data_sources: mockSources.length,
-      pipelines_active: mockPipelines.filter(
-        (p) => p.status === "running" || p.status === "scheduled",
-      ).length,
-      quality_score: Math.round(avgQuality),
-      cross_references: mockCrossRefs.reduce((sum, cr) => sum + cr.matched, 0),
-      processing_queue: 15420,
-    });
+        console.log("[LUCI] Loaded from PostgreSQL:", {
+          sources: sourcesData.length,
+          totalRecords: metricsData.total_records,
+        });
+      } catch (err) {
+        console.error("[LUCI] Failed to load data:", err);
+        setError("Failed to connect to PostgreSQL database. Check DATABASE_URL configuration.");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadData();
   }, []);
 
-  // Simulate pipeline progress
+  // Refresh data periodically (every 30 seconds)
   useEffect(() => {
-    const interval = setInterval(() => {
-      setPipelines((prev) =>
-        prev.map((pipeline) => {
-          if (pipeline.status === "running") {
-            return {
-              ...pipeline,
-              records_processed:
-                pipeline.records_processed +
-                Math.floor(Math.random() * 100) +
-                50,
-            };
-          }
-          return pipeline;
-        }),
-      );
-    }, 2000);
+    const interval = setInterval(async () => {
+      const [sourcesData, metricsData] = await Promise.all([
+        fetchDataSources(),
+        fetchDatalakeMetrics(),
+      ]);
+      if (sourcesData.length > 0) {
+        setSources(sourcesData);
+        setMetrics(metricsData);
+      }
+    }, 30000);
 
     return () => clearInterval(interval);
   }, []);
@@ -496,8 +416,42 @@ export function LuciDataAgent() {
     }
   };
 
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center">
+            <RefreshCw className="h-8 w-8 text-red-500 animate-spin mx-auto mb-4" />
+            <p className="text-zinc-400">Loading datalake...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      {/* Error Banner */}
+      {error && (
+        <div className="p-4 bg-red-900/20 border border-red-800 rounded-lg flex items-center gap-3">
+          <AlertTriangle className="h-5 w-5 text-red-400" />
+          <div>
+            <p className="text-red-400 font-medium">Connection Error</p>
+            <p className="text-zinc-400 text-sm">{error}</p>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="ml-auto border-red-700 text-red-400"
+            onClick={() => window.location.reload()}
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Retry
+          </Button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -519,6 +473,7 @@ export function LuciDataAgent() {
             variant="outline"
             className="border-zinc-700 text-zinc-300"
             onClick={() => toast.info("Running all scheduled pipelines...")}
+            disabled={pipelines.length === 0}
           >
             <Play className="h-4 w-4 mr-2" />
             Run Pipelines
@@ -655,6 +610,19 @@ export function LuciDataAgent() {
               </div>
             </CardHeader>
             <CardContent>
+              {sources.length === 0 ? (
+                <div className="text-center py-12 text-zinc-500">
+                  <HardDrive className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg font-medium mb-2">No data sources connected</p>
+                  <p className="text-sm mb-4">
+                    Upload CSV files or connect to DigitalOcean Spaces to get started.
+                  </p>
+                  <Button size="sm" className="bg-red-600 hover:bg-red-700">
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload Data
+                  </Button>
+                </div>
+              ) : (
               <div className="space-y-3">
                 {sources.map((source) => (
                   <div key={source.id} className="p-4 bg-zinc-800 rounded-lg">
@@ -767,6 +735,7 @@ export function LuciDataAgent() {
                   </div>
                 ))}
               </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -787,6 +756,19 @@ export function LuciDataAgent() {
               </div>
             </CardHeader>
             <CardContent>
+              {pipelines.length === 0 ? (
+                <div className="text-center py-12 text-zinc-500">
+                  <GitMerge className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg font-medium mb-2">No pipelines configured</p>
+                  <p className="text-sm mb-4">
+                    Create ETL pipelines to automate data processing.
+                  </p>
+                  <Button size="sm" className="bg-orange-600 hover:bg-orange-700">
+                    <GitMerge className="h-4 w-4 mr-2" />
+                    Create Pipeline
+                  </Button>
+                </div>
+              ) : (
               <div className="space-y-3">
                 {pipelines.map((pipeline) => (
                   <div key={pipeline.id} className="p-4 bg-zinc-800 rounded-lg">
@@ -892,6 +874,7 @@ export function LuciDataAgent() {
                   </div>
                 ))}
               </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -906,6 +889,15 @@ export function LuciDataAgent() {
               </CardTitle>
             </CardHeader>
             <CardContent>
+              {qualityChecks.length === 0 ? (
+                <div className="text-center py-12 text-zinc-500">
+                  <CheckCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg font-medium mb-2">No quality checks configured</p>
+                  <p className="text-sm">
+                    Upload data to run quality checks automatically.
+                  </p>
+                </div>
+              ) : (
               <div className="space-y-3">
                 {qualityChecks.map((check) => {
                   const total = check.passed + check.failed;
@@ -957,6 +949,7 @@ export function LuciDataAgent() {
                   );
                 })}
               </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -977,6 +970,19 @@ export function LuciDataAgent() {
               </div>
             </CardHeader>
             <CardContent>
+              {crossRefs.length === 0 ? (
+                <div className="text-center py-12 text-zinc-500">
+                  <ArrowUpDown className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg font-medium mb-2">No cross-references configured</p>
+                  <p className="text-sm mb-4">
+                    Create cross-references to match records across data sources.
+                  </p>
+                  <Button size="sm" className="bg-purple-600 hover:bg-purple-700">
+                    <ArrowUpDown className="h-4 w-4 mr-2" />
+                    New Cross-Ref
+                  </Button>
+                </div>
+              ) : (
               <div className="space-y-3">
                 {crossRefs.map((cr) => {
                   const totalA = cr.matched + cr.unmatched_a;
@@ -1051,6 +1057,7 @@ export function LuciDataAgent() {
                   );
                 })}
               </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

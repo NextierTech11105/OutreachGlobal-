@@ -294,34 +294,41 @@ export function DatalakeCopilot() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Fetch leads from datalake
+  // Fetch leads from datalake - CONNECTED TO POSTGRESQL
   const fetchLeads = useCallback(
     async (query: ParsedQuery): Promise<Lead[]> => {
       try {
         const params = new URLSearchParams({ action: "search" });
         if (query.sector) params.append("sector", query.sector);
         if (query.limit) params.append("limit", query.limit.toString());
+        // Pass keywords as natural language query for server-side search
+        if (query.keywords.length > 0) {
+          params.append("q", query.keywords.join(" "));
+        }
 
         const response = await fetch(`/api/airflow/datalake?${params}`);
-        if (!response.ok) throw new Error("Failed to fetch");
+        if (!response.ok) throw new Error("Failed to fetch from PostgreSQL");
 
         const data = await response.json();
         let leads = data.businesses || [];
 
-        // Filter by state if specified
+        // Filter by state client-side if needed (state not in server query yet)
         if (query.state) {
-          leads = leads.filter((l: Lead) =>
-            l.address?.toUpperCase().includes(query.state!),
+          leads = leads.filter(
+            (l: Lead) =>
+              l.address?.toUpperCase().includes(query.state!) ||
+              (l as any).state?.toUpperCase() === query.state
           );
         }
 
+        console.log(`[Datalake Copilot] Fetched ${leads.length} leads from PostgreSQL (total: ${data.total})`);
         return leads.slice(0, query.limit || 25);
       } catch (error) {
-        console.error("Fetch error:", error);
+        console.error("[Datalake Copilot] Fetch error:", error);
         return [];
       }
     },
-    [],
+    []
   );
 
   // Handle send message

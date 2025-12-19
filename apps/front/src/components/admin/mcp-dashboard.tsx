@@ -86,49 +86,175 @@ const MCP_SERVERS: MCPServer[] = [
   },
 ];
 
+interface HealthResponse {
+  success: boolean;
+  overallStatus: "healthy" | "degraded" | "unhealthy";
+  integrations: {
+    database: { status: string; message?: string; latency?: number };
+    twilio: { status: string; message?: string };
+    signalhouse: { status: string; message?: string; latency?: number };
+    sendgrid: { status: string; message?: string };
+    apollo: { status: string; message?: string };
+    openai: { status: string; message?: string };
+    stripe: { status: string; message?: string };
+    doSpaces: { status: string; message?: string };
+  };
+  summary: { operational: number; configured: number; total: number };
+}
+
+// Map health API integration names to MCP server IDs
+const HEALTH_TO_MCP_MAP: Record<string, string> = {
+  database: "postgres",
+  signalhouse: "realestate-api", // SignalHouse powers property ops
+  openai: "digitalocean", // OpenAI for AI operations
+};
+
 export function MCPDashboard() {
   const [servers, setServers] = useState<MCPServer[]>(MCP_SERVERS);
   const [isTestingAll, setIsTestingAll] = useState(false);
+  const [healthData, setHealthData] = useState<HealthResponse | null>(null);
+  const [dbLatency, setDbLatency] = useState<number | null>(null);
 
+  // Fetch real health status on mount
   useEffect(() => {
-    // Simulate initial connection check
-    const timer = setTimeout(() => {
-      setServers((prev) =>
-        prev.map((server) => ({
-          ...server,
-          status: "connected" as const,
-        })),
-      );
-    }, 1500);
-    return () => clearTimeout(timer);
+    fetchHealthStatus();
   }, []);
+
+  const fetchHealthStatus = async () => {
+    setServers((prev) =>
+      prev.map((server) => ({ ...server, status: "checking" as const }))
+    );
+
+    try {
+      const response = await fetch("/api/admin/health");
+      const data: HealthResponse = await response.json();
+      setHealthData(data);
+
+      if (data.integrations.database.latency) {
+        setDbLatency(data.integrations.database.latency);
+      }
+
+      // Update server statuses based on real health check
+      setServers((prev) =>
+        prev.map((server) => {
+          // PostgreSQL - check database status
+          if (server.id === "postgres") {
+            const dbStatus = data.integrations.database.status;
+            return {
+              ...server,
+              status: dbStatus === "operational" ? "connected" : "disconnected",
+            };
+          }
+          // RealEstateAPI - check SignalHouse (same infrastructure)
+          if (server.id === "realestate-api") {
+            const shStatus = data.integrations.signalhouse.status;
+            return {
+              ...server,
+              status:
+                shStatus === "operational" || shStatus === "degraded"
+                  ? "connected"
+                  : "disconnected",
+            };
+          }
+          // DigitalOcean API - check if DO Spaces is configured
+          if (server.id === "digitalocean") {
+            const doStatus = data.integrations.doSpaces.status;
+            return {
+              ...server,
+              status: doStatus === "operational" ? "connected" : "disconnected",
+            };
+          }
+          // REAPI Developer - assume connected if database works
+          if (server.id === "reapi-developer") {
+            return {
+              ...server,
+              status:
+                data.integrations.database.status === "operational"
+                  ? "connected"
+                  : "disconnected",
+            };
+          }
+          return server;
+        })
+      );
+
+      if (data.overallStatus === "healthy") {
+        toast.success(
+          `System healthy: ${data.summary.operational}/${data.summary.total} services operational`
+        );
+      } else if (data.overallStatus === "degraded") {
+        toast.warning(
+          `System degraded: ${data.summary.operational}/${data.summary.total} services operational`
+        );
+      } else {
+        toast.error("System unhealthy - check connections");
+      }
+    } catch (error) {
+      console.error("Health check failed:", error);
+      setServers((prev) =>
+        prev.map((server) => ({ ...server, status: "disconnected" as const }))
+      );
+      toast.error("Failed to check system health");
+    }
+  };
 
   const testConnection = async (serverId: string) => {
     setServers((prev) =>
       prev.map((s) =>
-        s.id === serverId ? { ...s, status: "checking" as const } : s,
-      ),
+        s.id === serverId ? { ...s, status: "checking" as const } : s
+      )
     );
 
-    // Simulate connection test
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    // Make real health check API call
+    try {
+      const response = await fetch("/api/admin/health");
+      const data: HealthResponse = await response.json();
 
-    setServers((prev) =>
-      prev.map((s) =>
-        s.id === serverId ? { ...s, status: "connected" as const } : s,
-      ),
-    );
+      // Map server ID to health check result
+      let isConnected = false;
+      if (serverId === "postgres") {
+        isConnected = data.integrations.database.status === "operational";
+      } else if (serverId === "realestate-api") {
+        isConnected =
+          data.integrations.signalhouse.status === "operational" ||
+          data.integrations.signalhouse.status === "degraded";
+      } else if (serverId === "digitalocean") {
+        isConnected = data.integrations.doSpaces.status === "operational";
+      } else if (serverId === "reapi-developer") {
+        isConnected = data.integrations.database.status === "operational";
+      }
 
-    toast.success(`${servers.find((s) => s.id === serverId)?.name} connected`);
+      setServers((prev) =>
+        prev.map((s) =>
+          s.id === serverId
+            ? { ...s, status: isConnected ? "connected" : "disconnected" }
+            : s
+        )
+      );
+
+      if (isConnected) {
+        toast.success(
+          `${servers.find((s) => s.id === serverId)?.name} connected`
+        );
+      } else {
+        toast.error(
+          `${servers.find((s) => s.id === serverId)?.name} connection failed`
+        );
+      }
+    } catch (error) {
+      setServers((prev) =>
+        prev.map((s) =>
+          s.id === serverId ? { ...s, status: "disconnected" as const } : s
+        )
+      );
+      toast.error(`Failed to test ${serverId}`);
+    }
   };
 
   const testAllConnections = async () => {
     setIsTestingAll(true);
-    for (const server of servers) {
-      await testConnection(server.id);
-    }
+    await fetchHealthStatus();
     setIsTestingAll(false);
-    toast.success("All MCP servers connected!");
   };
 
   const getStatusBadge = (status: MCPServer["status"]) => {

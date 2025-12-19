@@ -1,16 +1,14 @@
 /**
  * Airflow Datalake API Routes
  * Called by datalake_etl_dag.py for batch upserts and manifest tracking
+ *
+ * CONNECTED TO: DigitalOcean Managed PostgreSQL
  */
 
 import { NextRequest, NextResponse } from "next/server";
-
-// In-memory store for demo - replace with actual DB
-const processedManifest = new Map<
-  string,
-  { processedAt: string; recordCount: number }
->();
-const datalakeRecords: any[] = [];
+import { db } from "@/lib/db";
+import { businesses, contacts, leads, properties, dataSources } from "@/lib/db/schema";
+import { eq, ilike, or, sql, count, desc, and } from "drizzle-orm";
 
 // USBizData exact column structure (NY 5.5M, Hotel-Motel 433K, etc.)
 interface DatalakeRecord {
@@ -304,8 +302,9 @@ export async function GET(request: NextRequest) {
 async function handleUpsert(body: {
   records: DatalakeRecord[];
   sector?: DatalakeSector;
+  userId?: string;
 }) {
-  const { records, sector } = body;
+  const { records, sector, userId = "system" } = body;
 
   if (!records || !Array.isArray(records)) {
     return NextResponse.json(
@@ -318,60 +317,92 @@ async function handleUpsert(body: {
     ? DATALAKE_SECTORS[sector]?.label || sector
     : "auto-detect";
   console.log(
-    `[Airflow Datalake] Upserting ${records.length} records | Sector: ${sectorLabel}`,
+    `[Airflow Datalake] Upserting ${records.length} records to PostgreSQL | Sector: ${sectorLabel}`,
   );
 
-  // In production: batch upsert to PostgreSQL
-  // For now, store in memory
   let inserted = 0;
   let updated = 0;
   const sectorCounts: Record<string, number> = {};
 
+  // Batch insert to PostgreSQL
   for (const record of records) {
-    // Transform to Companies schema format with sector tagging
     const schemaRecord = transformToCompanySchema(record, sector);
-
-    // Track sector distribution
     const s = schemaRecord.sector || "other";
     sectorCounts[s] = (sectorCounts[s] || 0) + 1;
 
-    // Check for duplicate by normalized_address + name
-    const existingIndex = datalakeRecords.findIndex(
-      (r) =>
-        r.normalized_address === schemaRecord.normalized_address &&
-        r.name === schemaRecord.name,
-    );
+    try {
+      // Check for existing record by company name + address
+      const existing = await db
+        .select()
+        .from(businesses)
+        .where(
+          and(
+            eq(businesses.companyName, schemaRecord.name),
+            eq(businesses.address, schemaRecord.address || "")
+          )
+        )
+        .limit(1);
 
-    if (existingIndex >= 0) {
-      // Update existing
-      datalakeRecords[existingIndex] = {
-        ...datalakeRecords[existingIndex],
-        ...schemaRecord,
-        updated_at: new Date().toISOString(),
-      };
-      updated++;
-    } else {
-      // Insert new - using Companies schema format
-      datalakeRecords.push({
-        id: datalakeRecords.length + 1,
-        ...schemaRecord,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      });
-      inserted++;
+      if (existing.length > 0) {
+        // Update existing business
+        await db
+          .update(businesses)
+          .set({
+            phone: schemaRecord.phone || existing[0].phone,
+            email: schemaRecord.email || existing[0].email,
+            website: schemaRecord.website || existing[0].website,
+            sicCode: record.sic_code || existing[0].sicCode,
+            sicDescription: record.sic_description || existing[0].sicDescription,
+            employeeCount: parseInt(record.employee_count) || existing[0].employeeCount,
+            revenueRange: record.revenue_range || existing[0].revenueRange,
+            primarySectorId: schemaRecord.sector,
+            updatedAt: new Date(),
+          })
+          .where(eq(businesses.id, existing[0].id));
+        updated++;
+      } else {
+        // Insert new business record
+        await db.insert(businesses).values({
+          userId,
+          companyName: schemaRecord.name,
+          address: schemaRecord.address,
+          city: record.city,
+          state: record.state,
+          zip: record.zip,
+          county: record.county,
+          phone: schemaRecord.phone,
+          email: schemaRecord.email,
+          website: schemaRecord.website,
+          sicCode: record.sic_code,
+          sicDescription: record.sic_description,
+          employeeCount: parseInt(record.employee_count) || null,
+          revenueRange: record.revenue_range,
+          primarySectorId: schemaRecord.sector,
+          ownerName: schemaRecord.contact_name,
+          ownerTitle: schemaRecord.contact_title,
+          status: "new",
+        });
+        inserted++;
+      }
+    } catch (err) {
+      console.error(`[Airflow Datalake] Error upserting record:`, err);
     }
   }
 
-  console.log(`[Airflow Datalake] Inserted: ${inserted}, Updated: ${updated}`);
-  console.log(`[Airflow Datalake] Sectors:`, sectorCounts);
+  // Get total count from database
+  const totalResult = await db.select({ count: count() }).from(businesses);
+  const total = totalResult[0]?.count || 0;
+
+  console.log(`[Airflow Datalake] PostgreSQL - Inserted: ${inserted}, Updated: ${updated}, Total: ${total}`);
 
   return NextResponse.json({
     success: true,
     inserted,
     updated,
-    total: datalakeRecords.length,
-    schema: "companies",
-    sectors: sectorCounts, // Distribution by sector
+    total,
+    schema: "businesses",
+    database: "postgresql",
+    sectors: sectorCounts,
   });
 }
 
@@ -379,16 +410,33 @@ async function handleComplete(body: {
   processed_files: string[];
   total_records: number;
   run_date: string;
+  userId?: string;
 }) {
-  const { processed_files, total_records, run_date } = body;
+  const { processed_files, total_records, run_date, userId = "system" } = body;
 
-  // Update manifest with processed files
+  // Create data source records for processed files
   for (const file of processed_files || []) {
-    processedManifest.set(file, {
-      processedAt: run_date,
-      recordCount: Math.floor(total_records / (processed_files?.length || 1)),
-    });
+    try {
+      await db.insert(dataSources).values({
+        userId,
+        name: file,
+        slug: file.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+        sourceType: "csv",
+        sourceProvider: "usbizdata",
+        fileName: file,
+        status: "completed",
+        totalRows: Math.floor(total_records / (processed_files?.length || 1)),
+        processedRows: Math.floor(total_records / (processed_files?.length || 1)),
+        processedAt: new Date(run_date),
+      });
+    } catch (err) {
+      console.error(`[Airflow Datalake] Error creating data source:`, err);
+    }
   }
+
+  // Get actual counts from database
+  const dataSourceCount = await db.select({ count: count() }).from(dataSources);
+  const businessCount = await db.select({ count: count() }).from(businesses);
 
   console.log(
     `[Airflow Datalake] ETL Complete - ${total_records} records from ${processed_files?.length} files`,
@@ -396,8 +444,9 @@ async function handleComplete(body: {
 
   return NextResponse.json({
     success: true,
-    manifest_size: processedManifest.size,
-    total_records,
+    manifest_size: dataSourceCount[0]?.count || 0,
+    total_records: businessCount[0]?.count || 0,
+    database: "postgresql",
   });
 }
 
@@ -409,87 +458,171 @@ async function handleSectors() {
     sic_codes: config.sic,
   }));
 
-  // Count records per sector
+  // Get sector stats from database
   const sectorStats: Record<string, number> = {};
-  datalakeRecords.forEach((r) => {
-    const s = r.sector || "other";
-    sectorStats[s] = (sectorStats[s] || 0) + 1;
-  });
+
+  try {
+    // Query businesses grouped by sector
+    const sectorCounts = await db
+      .select({
+        sector: businesses.primarySectorId,
+        count: count(),
+      })
+      .from(businesses)
+      .groupBy(businesses.primarySectorId);
+
+    for (const row of sectorCounts) {
+      const s = row.sector || "other";
+      sectorStats[s] = Number(row.count);
+    }
+  } catch (err) {
+    console.error("[Airflow Datalake] Error fetching sector stats:", err);
+  }
+
+  // Get total records from database
+  const totalResult = await db.select({ count: count() }).from(businesses);
+  const total = totalResult[0]?.count || 0;
 
   return NextResponse.json({
     sectors,
     stats: sectorStats,
-    total_records: datalakeRecords.length,
+    total_records: total,
+    database: "postgresql",
   });
 }
 
 async function handleSearch(params: URLSearchParams) {
   const address = params.get("address");
   const name = params.get("name");
-  const sector = params.get("sector"); // Filter by sector
-  const limit = parseInt(params.get("limit") || "10");
+  const sector = params.get("sector");
+  const query = params.get("q"); // Natural language search
+  const limitParam = parseInt(params.get("limit") || "50");
 
-  if (!address && !name && !sector) {
-    return NextResponse.json(
-      { error: "Address, name, or sector required" },
-      { status: 400 },
-    );
-  }
+  // Build query conditions
+  const conditions = [];
 
-  // Normalize search address
-  const normalizedSearch = address?.toUpperCase().trim() || "";
-
-  // Search datalake records
-  let results = datalakeRecords;
-
-  // Filter by sector first (most efficient)
   if (sector) {
-    results = results.filter((r) => r.sector === sector);
+    conditions.push(eq(businesses.primarySectorId, sector));
   }
 
   if (address) {
-    results = results.filter((r) => {
-      // Fuzzy address matching
-      const recordAddr = r.normalized_address || "";
-      return (
-        recordAddr.includes(normalizedSearch) ||
-        normalizedSearch.includes(recordAddr) ||
-        calculateAddressSimilarity(normalizedSearch, recordAddr) > 0.7
-      );
-    });
+    conditions.push(ilike(businesses.address, `%${address}%`));
   }
 
   if (name) {
-    const normalizedName = name.toUpperCase().trim();
-    results = results.filter((r) => {
-      const contactName = (r.contact_name || "").toUpperCase();
-      return (
-        contactName.includes(normalizedName) ||
-        normalizedName.includes(contactName)
-      );
-    });
+    conditions.push(
+      or(
+        ilike(businesses.companyName, `%${name}%`),
+        ilike(businesses.ownerName, `%${name}%`)
+      )
+    );
   }
 
-  // Limit results
-  results = results.slice(0, limit);
+  if (query) {
+    // Natural language search across multiple fields
+    conditions.push(
+      or(
+        ilike(businesses.companyName, `%${query}%`),
+        ilike(businesses.ownerName, `%${query}%`),
+        ilike(businesses.city, `%${query}%`),
+        ilike(businesses.sicDescription, `%${query}%`)
+      )
+    );
+  }
 
-  return NextResponse.json({
-    businesses: results,
-    count: results.length,
-    sector_filter: sector || null,
-  });
+  try {
+    // Query PostgreSQL database
+    let dbQuery = db
+      .select({
+        id: businesses.id,
+        name: businesses.companyName,
+        address: businesses.address,
+        city: businesses.city,
+        state: businesses.state,
+        zip: businesses.zip,
+        phone: businesses.phone,
+        email: businesses.email,
+        website: businesses.website,
+        contact_name: businesses.ownerName,
+        contact_title: businesses.ownerTitle,
+        sector: businesses.primarySectorId,
+        sic_code: businesses.sicCode,
+        sic_description: businesses.sicDescription,
+        employee_count: businesses.employeeCount,
+        revenue_range: businesses.revenueRange,
+        status: businesses.status,
+        score: businesses.score,
+        created_at: businesses.createdAt,
+      })
+      .from(businesses)
+      .orderBy(desc(businesses.createdAt))
+      .limit(limitParam);
+
+    // Apply conditions if any
+    if (conditions.length > 0) {
+      dbQuery = dbQuery.where(and(...conditions)) as typeof dbQuery;
+    }
+
+    const results = await dbQuery;
+
+    // Get total count for the query
+    let countQuery = db.select({ count: count() }).from(businesses);
+    if (conditions.length > 0) {
+      countQuery = countQuery.where(and(...conditions)) as typeof countQuery;
+    }
+    const totalResult = await countQuery;
+
+    return NextResponse.json({
+      businesses: results,
+      count: results.length,
+      total: totalResult[0]?.count || 0,
+      sector_filter: sector || null,
+      database: "postgresql",
+    });
+  } catch (err) {
+    console.error("[Airflow Datalake] Search error:", err);
+    return NextResponse.json(
+      { error: "Database query failed", details: String(err) },
+      { status: 500 }
+    );
+  }
 }
 
 async function handleManifest() {
-  const files = Array.from(processedManifest.entries()).map(([key, value]) => ({
-    file: key,
-    ...value,
-  }));
+  try {
+    // Get data sources from database
+    const sources = await db
+      .select({
+        file: dataSources.fileName,
+        processedAt: dataSources.processedAt,
+        recordCount: dataSources.totalRows,
+        status: dataSources.status,
+        sourceProvider: dataSources.sourceProvider,
+      })
+      .from(dataSources)
+      .orderBy(desc(dataSources.processedAt))
+      .limit(100);
 
-  return NextResponse.json({
-    processed_files: files,
-    total_files: files.length,
-  });
+    const files = sources.map((s) => ({
+      file: s.file,
+      processedAt: s.processedAt?.toISOString(),
+      recordCount: s.recordCount,
+      status: s.status,
+      provider: s.sourceProvider,
+    }));
+
+    return NextResponse.json({
+      processed_files: files,
+      total_files: files.length,
+      database: "postgresql",
+    });
+  } catch (err) {
+    console.error("[Airflow Datalake] Manifest error:", err);
+    return NextResponse.json(
+      { processed_files: [], total_files: 0, error: String(err) },
+      { status: 500 }
+    );
+  }
 }
 
 // Simple address similarity calculation
