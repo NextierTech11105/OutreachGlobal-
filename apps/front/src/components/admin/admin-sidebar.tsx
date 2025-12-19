@@ -66,7 +66,7 @@ export function AdminSidebar() {
         },
         {
           href: "/admin/mcp",
-          label: "Property Pipeline",
+          label: "AI Agent Pipeline",
           active: pathname === "/admin/mcp",
         },
         {
@@ -84,8 +84,14 @@ export function AdminSidebar() {
       active:
         pathname.startsWith("/admin/campaigns") ||
         pathname === "/admin/message-templates" ||
-        pathname === "/admin/ai-sdr",
+        pathname === "/admin/ai-sdr" ||
+        pathname === "/admin/digital-workers",
       children: [
+        {
+          href: "/admin/digital-workers",
+          label: "Digital Workers",
+          active: pathname === "/admin/digital-workers",
+        },
         {
           href: "/admin/ai-sdr",
           label: "AI SDR Avatars",
