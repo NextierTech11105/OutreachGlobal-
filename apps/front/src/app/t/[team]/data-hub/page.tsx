@@ -100,6 +100,17 @@ export default function DataHubPage() {
   const [isLoadingDatalake, setIsLoadingDatalake] = useState(false);
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
 
+  // Buckets state (CSV uploads, USBizData, etc.)
+  const [buckets, setBuckets] = useState<
+    Array<{
+      id: string;
+      name: string;
+      totalLeads: number;
+      source?: string;
+      tags?: string[];
+    }>
+  >([]);
+
   // Leads list state
   const [leads, setLeads] = useState<Lead[]>([]);
   const [selectedLeads, setSelectedLeads] = useState<Set<string>>(new Set());
@@ -302,10 +313,21 @@ export default function DataHubPage() {
   const loadDatalakeFolders = async () => {
     setIsLoadingDatalake(true);
     try {
-      const response = await fetch("/api/datalake/list?prefix=datalake/");
-      const data = await response.json();
-      if (data.success) {
-        setDatalakeFolders(data.folders || []);
+      // Load both datalake folders AND buckets (CSV uploads, USBizData)
+      const [datalakeRes, bucketsRes] = await Promise.all([
+        fetch("/api/datalake/list?prefix=datalake/"),
+        fetch("/api/buckets?perPage=100"),
+      ]);
+
+      const datalakeData = await datalakeRes.json();
+      const bucketsData = await bucketsRes.json();
+
+      if (datalakeData.success) {
+        setDatalakeFolders(datalakeData.folders || []);
+      }
+
+      if (bucketsData.buckets && bucketsData.buckets.length > 0) {
+        setBuckets(bucketsData.buckets);
       }
     } catch (error) {
       console.error("Failed to load datalake folders:", error);
@@ -359,6 +381,51 @@ export default function DataHubPage() {
       }
     } catch (error) {
       toast.error("Failed to pull from datalake");
+      console.error(error);
+    } finally {
+      setIsLoadingLeads(false);
+    }
+  };
+
+  // Load records from a bucket (USBizData, CSV uploads, etc.)
+  const pullFromBucket = async (bucketId: string, bucketName: string) => {
+    setIsLoadingLeads(true);
+    setSelectedFolder(bucketName);
+    try {
+      const response = await fetch(`/api/buckets/${bucketId}`);
+      const data = await response.json();
+
+      if (data.records && data.records.length > 0) {
+        // Map bucket records to leads
+        const mappedLeads: Lead[] = data.records.map(
+          (r: { id: string; matchingKeys?: Record<string, string | null>; flags?: Record<string, boolean>; _original?: Record<string, string> }, i: number) => {
+            const keys = r.matchingKeys || {};
+            const orig = r._original || {};
+            return {
+              id: r.id || `bucket-${i}`,
+              name: keys.contactName || orig["Contact Name"] || orig["Contact"] || "Unknown",
+              firstName: keys.firstName || orig["First Name"] || "",
+              lastName: keys.lastName || orig["Last Name"] || "",
+              company: keys.companyName || orig["Company Name"] || orig["Company"] || "",
+              phone: orig["Phone Number"] || orig["Phone"] || "",
+              email: orig["Email Address"] || orig["Email"] || "",
+              address: keys.address || orig["Street Address"] || orig["Address"] || "",
+              city: keys.city || orig["City"] || "",
+              state: keys.state || orig["State"] || "",
+              zip: keys.zip || orig["Zip Code"] || orig["Zip"] || "",
+              industry: keys.sicDescription || orig["SIC Description"] || "",
+              source: "bucket",
+              enriched: r.flags?.hasPhone || r.flags?.hasEmail || false,
+            };
+          },
+        );
+        setLeads(mappedLeads);
+        toast.success(`Loaded ${mappedLeads.length} records from ${bucketName}`);
+      } else {
+        toast.error("No records found in bucket");
+      }
+    } catch (error) {
+      toast.error("Failed to pull from bucket");
       console.error(error);
     } finally {
       setIsLoadingLeads(false);
@@ -807,31 +874,70 @@ export default function DataHubPage() {
                     </span>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-64 bg-zinc-900 border-zinc-700">
-                  {datalakeFolders.length === 0 ? (
-                    <DropdownMenuItem disabled className="text-zinc-500">
-                      No folders found
-                    </DropdownMenuItem>
-                  ) : (
-                    datalakeFolders.map((folder) => (
-                      <DropdownMenuItem
-                        key={folder.path}
-                        onClick={() => pullFromDatalake(folder.path)}
-                        className="text-white hover:bg-zinc-800 cursor-pointer"
-                      >
-                        <Database className="h-4 w-4 mr-2 text-purple-400" />
-                        {folder.path
-                          .replace("datalake/", "")
-                          .replace("/", "") || "Root"}
-                      </DropdownMenuItem>
-                    ))
+                <DropdownMenuContent className="w-72 bg-zinc-900 border-zinc-700 max-h-96 overflow-y-auto">
+                  {/* BUCKETS - CSV uploads, USBizData, etc. */}
+                  {buckets.length > 0 && (
+                    <>
+                      <div className="px-2 py-1 text-xs font-semibold text-purple-400 border-b border-zinc-700 mb-1">
+                        YOUR DATA ({buckets.length})
+                      </div>
+                      {buckets.slice(0, 10).map((bucket) => (
+                        <DropdownMenuItem
+                          key={bucket.id}
+                          onClick={() => pullFromBucket(bucket.id, bucket.name)}
+                          className="text-white hover:bg-zinc-800 cursor-pointer"
+                        >
+                          <Database className="h-4 w-4 mr-2 text-green-400" />
+                          <div className="flex-1 overflow-hidden">
+                            <div className="truncate text-sm">{bucket.name}</div>
+                            <div className="text-xs text-zinc-500">
+                              {bucket.totalLeads?.toLocaleString() || 0} records
+                            </div>
+                          </div>
+                        </DropdownMenuItem>
+                      ))}
+                      {buckets.length > 10 && (
+                        <div className="px-2 py-1 text-xs text-zinc-500">
+                          +{buckets.length - 10} more...
+                        </div>
+                      )}
+                    </>
                   )}
+
+                  {/* DATALAKE FOLDERS */}
+                  {datalakeFolders.length > 0 && (
+                    <>
+                      <div className="px-2 py-1 text-xs font-semibold text-blue-400 border-b border-zinc-700 mb-1 mt-2">
+                        DATALAKE FOLDERS
+                      </div>
+                      {datalakeFolders.map((folder) => (
+                        <DropdownMenuItem
+                          key={folder.path}
+                          onClick={() => pullFromDatalake(folder.path)}
+                          className="text-white hover:bg-zinc-800 cursor-pointer"
+                        >
+                          <HardDrive className="h-4 w-4 mr-2 text-blue-400" />
+                          {folder.path
+                            .replace("datalake/", "")
+                            .replace("/", "") || "Root"}
+                        </DropdownMenuItem>
+                      ))}
+                    </>
+                  )}
+
+                  {/* Empty state */}
+                  {buckets.length === 0 && datalakeFolders.length === 0 && (
+                    <DropdownMenuItem disabled className="text-zinc-500">
+                      No data found. Upload a CSV to get started!
+                    </DropdownMenuItem>
+                  )}
+
                   <DropdownMenuItem
                     onClick={loadDatalakeFolders}
                     className="text-zinc-400 hover:bg-zinc-800 cursor-pointer border-t border-zinc-700 mt-1"
                   >
                     <RefreshCw className="h-4 w-4 mr-2" />
-                    Refresh folders
+                    Refresh
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
