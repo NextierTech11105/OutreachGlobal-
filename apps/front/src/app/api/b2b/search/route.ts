@@ -2,12 +2,15 @@
  * B2B Search API
  *
  * Data Sources:
- * 1. Pushbutton Business List API (34M+ companies, 235M+ contacts)
- * 2. USBizData from DO Spaces (5.5M NY businesses)
- * 3. Apollo API fallback (all US)
+ * 1. PostgreSQL businesses table (USBizData - primary)
+ * 2. DO Spaces bucket files (legacy fallback)
+ * 3. Apollo API (external search)
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { businesses } from "@/lib/db/schema";
+import { eq, ilike, or, and, count, desc } from "drizzle-orm";
 import {
   S3Client,
   GetObjectCommand,
@@ -198,13 +201,6 @@ function formatLead(lead: BucketLead) {
 
 export async function POST(request: NextRequest) {
   try {
-    if (!SPACES_KEY || !SPACES_SECRET) {
-      return NextResponse.json(
-        { error: "DO Spaces credentials not configured" },
-        { status: 503 },
-      );
-    }
-
     const body = await request.json();
     const {
       state,
@@ -213,11 +209,47 @@ export async function POST(request: NextRequest) {
       sicCode,
       email,
       title,
-      decisionMakersOnly = true, // DEFAULT: Only show decision makers (Owner, CEO, Partner, Sales Manager)
+      decisionMakersOnly = true,
       limit = 50,
       offset = 0,
-      bucketId, // Optional: search specific bucket
+      bucketId,
+      source = "postgresql", // Default to PostgreSQL
     } = body;
+
+    // PRIMARY: Search PostgreSQL businesses table (USBizData)
+    if (source === "postgresql" || !bucketId) {
+      try {
+        const pgResults = await searchPostgreSQL({
+          state,
+          city,
+          company,
+          sicCode,
+          title,
+          decisionMakersOnly,
+          limit,
+          offset,
+        });
+
+        if (pgResults.leads.length > 0 || source === "postgresql") {
+          return NextResponse.json({
+            ...pgResults,
+            source: "postgresql",
+            database: "businesses",
+            filters: { state, city, company, title, decisionMakersOnly },
+          });
+        }
+      } catch (pgError) {
+        console.warn("[B2B Search] PostgreSQL query failed, falling back to DO Spaces:", pgError);
+      }
+    }
+
+    // FALLBACK: Search DO Spaces bucket files
+    if (!SPACES_KEY || !SPACES_SECRET) {
+      return NextResponse.json(
+        { error: "No data sources configured - check DATABASE_URL and DO Spaces credentials" },
+        { status: 503 },
+      );
+    }
 
     const filters = {
       state,
@@ -229,7 +261,6 @@ export async function POST(request: NextRequest) {
       decisionMakersOnly,
     };
 
-    // If specific bucket requested, search just that one
     if (bucketId) {
       const results = await searchBucket(bucketId, filters, limit);
       return NextResponse.json({
@@ -243,18 +274,12 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Otherwise, search across buckets (sample from first few)
-    const bucketList = await listBuckets(10); // Get first 10 buckets to sample
+    const bucketList = await listBuckets(10);
     const allResults: BucketLead[] = [];
 
     for (const bucket of bucketList) {
       if (allResults.length >= limit) break;
-
-      const results = await searchBucket(
-        bucket.key,
-        filters,
-        limit - allResults.length,
-      );
+      const results = await searchBucket(bucket.key, filters, limit - allResults.length);
       allResults.push(...results);
     }
 
@@ -266,9 +291,6 @@ export async function POST(request: NextRequest) {
       source: "buckets",
       bucketsSearched: bucketList.length,
       filters: { decisionMakersOnly, title },
-      hint: decisionMakersOnly
-        ? "Showing decision makers only (Owner, CEO, Partner, Sales Manager). Set decisionMakersOnly=false to see all."
-        : "Add bucketId param to search a specific bucket",
     });
   } catch (error) {
     console.error("B2B search error:", error);
@@ -277,6 +299,145 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     );
   }
+}
+
+// Search PostgreSQL businesses table (USBizData)
+async function searchPostgreSQL(filters: {
+  state?: string;
+  city?: string;
+  company?: string;
+  sicCode?: string;
+  title?: string;
+  decisionMakersOnly?: boolean;
+  limit: number;
+  offset: number;
+}) {
+  const conditions = [];
+
+  // State filter
+  if (filters.state) {
+    conditions.push(eq(businesses.state, filters.state.toUpperCase()));
+  }
+
+  // City filter
+  if (filters.city) {
+    conditions.push(ilike(businesses.city, `%${filters.city}%`));
+  }
+
+  // Company filter
+  if (filters.company) {
+    conditions.push(ilike(businesses.companyName, `%${filters.company}%`));
+  }
+
+  // SIC code filter
+  if (filters.sicCode) {
+    conditions.push(ilike(businesses.sicCode, `${filters.sicCode}%`));
+  }
+
+  // Title filter (owner name title)
+  if (filters.title) {
+    conditions.push(ilike(businesses.ownerTitle, `%${filters.title}%`));
+  }
+
+  // Decision maker filter
+  if (filters.decisionMakersOnly) {
+    conditions.push(
+      or(
+        ilike(businesses.ownerTitle, "%owner%"),
+        ilike(businesses.ownerTitle, "%ceo%"),
+        ilike(businesses.ownerTitle, "%president%"),
+        ilike(businesses.ownerTitle, "%director%"),
+        ilike(businesses.ownerTitle, "%partner%"),
+        ilike(businesses.ownerTitle, "%manager%"),
+        ilike(businesses.ownerTitle, "%vp%"),
+        ilike(businesses.ownerTitle, "%founder%")
+      )
+    );
+  }
+
+  // Build query
+  let query = db
+    .select({
+      id: businesses.id,
+      companyName: businesses.companyName,
+      ownerName: businesses.ownerName,
+      ownerTitle: businesses.ownerTitle,
+      address: businesses.address,
+      city: businesses.city,
+      state: businesses.state,
+      zip: businesses.zip,
+      phone: businesses.phone,
+      email: businesses.email,
+      website: businesses.website,
+      sicCode: businesses.sicCode,
+      sicDescription: businesses.sicDescription,
+      employeeCount: businesses.employeeCount,
+      revenueRange: businesses.revenueRange,
+      primarySectorId: businesses.primarySectorId,
+      createdAt: businesses.createdAt,
+    })
+    .from(businesses)
+    .orderBy(desc(businesses.createdAt))
+    .limit(filters.limit)
+    .offset(filters.offset);
+
+  if (conditions.length > 0) {
+    query = query.where(and(...conditions)) as typeof query;
+  }
+
+  const results = await query;
+
+  // Get total count
+  let countQuery = db.select({ count: count() }).from(businesses);
+  if (conditions.length > 0) {
+    countQuery = countQuery.where(and(...conditions)) as typeof countQuery;
+  }
+  const totalResult = await countQuery;
+  const total = Number(totalResult[0]?.count || 0);
+
+  // Transform to expected format
+  const leads = results.map((biz) => {
+    // Parse owner name into first/last
+    const nameParts = (biz.ownerName || "").split(" ");
+    const firstName = nameParts[0] || "";
+    const lastName = nameParts.slice(1).join(" ") || "";
+
+    // Check if decision maker based on title
+    const title = (biz.ownerTitle || "").toLowerCase();
+    const isDecisionMaker = DECISION_MAKER_TITLES.some((dm) => title.includes(dm));
+
+    return {
+      id: biz.id,
+      first_name: firstName,
+      last_name: lastName,
+      title: biz.ownerTitle || "",
+      company: biz.companyName || "",
+      email: biz.email || "",
+      phone: biz.phone || "",
+      address: biz.address || "",
+      city: biz.city || "",
+      state: biz.state || "",
+      zip_code: biz.zip || "",
+      sic_code: biz.sicCode || "",
+      sic_description: biz.sicDescription || "",
+      industry: biz.primarySectorId || "",
+      revenue: biz.revenueRange || "",
+      employees: biz.employeeCount?.toString() || "",
+      is_decision_maker: isDecisionMaker,
+      property_id: null,
+      metadata: { source: "postgresql", sector: biz.primarySectorId },
+      created_at: biz.createdAt?.toISOString() || new Date().toISOString(),
+    };
+  });
+
+  console.log(`[B2B Search] PostgreSQL query returned ${leads.length} leads (total: ${total})`);
+
+  return {
+    leads,
+    total,
+    limit: filters.limit,
+    offset: filters.offset,
+  };
 }
 
 // GET - Return available buckets and search options

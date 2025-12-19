@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -71,11 +71,80 @@ interface NudgeSequence {
   responses: number;
 }
 
+// API response type
+interface CathyStats {
+  leadsInQueue: number;
+  totalNudgesSent: number;
+  totalResponses: number;
+  responseRate: number;
+  todayNudges: number;
+  sequenceStats: Array<{
+    context: string;
+    nudgesSent: number;
+    responses: number;
+    responseRate: string;
+  }>;
+}
+
 export function CathyNudger() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isGlobalActive, setIsGlobalActive] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [apiStats, setApiStats] = useState<CathyStats | null>(null);
 
-  // Default templates
+  // Fetch real stats from PostgreSQL
+  useEffect(() => {
+    async function fetchCathyStats() {
+      try {
+        setIsLoading(true);
+        const response = await fetch("/api/cathy/stats");
+        const data = await response.json();
+
+        if (data.success) {
+          setApiStats(data.stats);
+
+          // Update sequences with real data from API
+          if (data.stats.sequenceStats && data.stats.sequenceStats.length > 0) {
+            setSequences((prev) =>
+              prev.map((seq) => {
+                // Map sequence to campaign context
+                const contextMap: Record<string, string> = {
+                  "1": "follow_up",
+                  "2": "retarget",
+                  "3": "nurture",
+                };
+                const context = contextMap[seq.id];
+                const apiSeq = data.stats.sequenceStats.find(
+                  (s: { context: string }) => s.context === context
+                );
+
+                if (apiSeq) {
+                  return {
+                    ...seq,
+                    nudgesSent: apiSeq.nudgesSent,
+                    responses: apiSeq.responses,
+                    leadsInQueue: Math.round(data.stats.leadsInQueue / 3), // Distribute across sequences
+                  };
+                }
+                return seq;
+              })
+            );
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch Cathy stats:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchCathyStats();
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchCathyStats, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Template definitions (structure - stats come from API)
   const [templates, setTemplates] = useState<NudgeTemplate[]>([
     {
       id: "1",
@@ -84,8 +153,8 @@ export function CathyNudger() {
         "Hey {firstName}, just circling back on my last message. Still interested in chatting about {topic}?",
       delay: 24,
       isActive: true,
-      sendCount: 1234,
-      responseRate: 12.5,
+      sendCount: 0,
+      responseRate: 0,
     },
     {
       id: "2",
@@ -94,8 +163,8 @@ export function CathyNudger() {
         "Hi {firstName}, I found some info that might be helpful for your {businessType}. Want me to share?",
       delay: 48,
       isActive: true,
-      sendCount: 892,
-      responseRate: 18.3,
+      sendCount: 0,
+      responseRate: 0,
     },
     {
       id: "3",
@@ -104,8 +173,8 @@ export function CathyNudger() {
         "{firstName}, I don't want to be a pest! Should I close your file, or is there a better time to connect?",
       delay: 72,
       isActive: true,
-      sendCount: 456,
-      responseRate: 22.1,
+      sendCount: 0,
+      responseRate: 0,
     },
     {
       id: "4",
@@ -114,12 +183,12 @@ export function CathyNudger() {
         "Hey {firstName}, I'll assume the timing isn't right. Feel free to reach out if things change. Best of luck!",
       delay: 120,
       isActive: false,
-      sendCount: 234,
-      responseRate: 8.7,
+      sendCount: 0,
+      responseRate: 0,
     },
   ]);
 
-  // Default sequences
+  // Sequence definitions (structure - stats updated from API)
   const [sequences, setSequences] = useState<NudgeSequence[]>([
     {
       id: "1",
@@ -129,9 +198,9 @@ export function CathyNudger() {
       maxNudges: 3,
       templates: ["1", "2", "3"],
       isActive: true,
-      leadsInQueue: 342,
-      nudgesSent: 1567,
-      responses: 198,
+      leadsInQueue: 0,
+      nudgesSent: 0,
+      responses: 0,
     },
     {
       id: "2",
@@ -141,9 +210,9 @@ export function CathyNudger() {
       maxNudges: 4,
       templates: ["1", "2", "3", "4"],
       isActive: true,
-      leadsInQueue: 89,
-      nudgesSent: 456,
-      responses: 87,
+      leadsInQueue: 0,
+      nudgesSent: 0,
+      responses: 0,
     },
     {
       id: "3",
@@ -153,9 +222,9 @@ export function CathyNudger() {
       maxNudges: 6,
       templates: ["2", "1", "2", "1", "3", "4"],
       isActive: false,
-      leadsInQueue: 1205,
-      nudgesSent: 3421,
-      responses: 312,
+      leadsInQueue: 0,
+      nudgesSent: 0,
+      responses: 0,
     },
   ]);
 
@@ -192,12 +261,11 @@ export function CathyNudger() {
     );
   };
 
-  // Stats
-  const totalInQueue = sequences.reduce((sum, s) => sum + s.leadsInQueue, 0);
-  const totalNudgesSent = sequences.reduce((sum, s) => sum + s.nudgesSent, 0);
-  const totalResponses = sequences.reduce((sum, s) => sum + s.responses, 0);
-  const avgResponseRate =
-    totalNudgesSent > 0 ? (totalResponses / totalNudgesSent) * 100 : 0;
+  // Stats - use real API data when available, fall back to computed values
+  const totalInQueue = apiStats?.leadsInQueue ?? sequences.reduce((sum, s) => sum + s.leadsInQueue, 0);
+  const totalNudgesSent = apiStats?.totalNudgesSent ?? sequences.reduce((sum, s) => sum + s.nudgesSent, 0);
+  const totalResponses = apiStats?.totalResponses ?? sequences.reduce((sum, s) => sum + s.responses, 0);
+  const avgResponseRate = apiStats?.responseRate ?? (totalNudgesSent > 0 ? (totalResponses / totalNudgesSent) * 100 : 0);
 
   return (
     <div className="space-y-6">

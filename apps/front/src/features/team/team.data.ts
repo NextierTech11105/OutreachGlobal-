@@ -13,8 +13,17 @@ export const getTeam = cache(async (id: string) => {
       context: await apolloAuthContext(),
     });
 
+    if (!data?.team) {
+      console.warn(`[getTeam] Team not found for ID: ${id}`);
+      notFound();
+    }
+
     return data.team;
   } catch (error) {
+    console.error(`[getTeam] Error fetching team ${id}:`, error);
+    // If it's a 404 from the API, then notFound() is appropriate
+    // But if it's a network error or 500, we might want to show an error page instead
+    // For now, we'll keep notFound() but add logging so we can see WHY it's failing
     notFound();
   }
 });

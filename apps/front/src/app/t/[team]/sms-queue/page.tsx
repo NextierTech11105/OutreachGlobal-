@@ -2,7 +2,7 @@
 
 import { sf, sfd } from "@/lib/utils/safe-format";
 import * as React from "react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Send,
   Phone,
@@ -86,63 +86,74 @@ export default function SMSQueuePage() {
   );
   const [isCampaignSetupOpen, setIsCampaignSetupOpen] = useState(false);
   const [selectedDay, setSelectedDay] = useState(new Date());
+  const [weekSchedule, setWeekSchedule] = useState<ScheduleItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Generate mock schedule for the week
-  const weekSchedule = useMemo(() => {
-    const items: ScheduleItem[] = [];
-    const today = new Date();
+  // Fetch real schedule data from PostgreSQL
+  useEffect(() => {
+    async function fetchScheduleData() {
+      try {
+        setIsLoading(true);
+        const response = await fetch("/api/outreach/schedule");
+        if (response.ok) {
+          const data = await response.json();
+          // Transform API data to ScheduleItem format
+          const items: ScheduleItem[] = [];
 
-    // Generate sample schedule items
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(today);
-      date.setDate(date.getDate() + i);
+          // Add SMS campaigns
+          if (data.campaigns) {
+            data.campaigns.forEach((campaign: { id: string; name: string; scheduledAt: string; recipientCount: number; status: string }) => {
+              items.push({
+                id: campaign.id,
+                type: "blast",
+                time: new Date(campaign.scheduledAt),
+                name: campaign.name,
+                count: campaign.recipientCount,
+                status: campaign.status as "pending" | "active" | "completed",
+              });
+            });
+          }
 
-      // Morning SMS blast
-      if (i % 2 === 0) {
-        items.push({
-          id: `blast-${i}`,
-          type: "blast",
-          time: new Date(date.setHours(9, 0, 0, 0)),
-          name: "Morning SMS Blast",
-          count: 150 + Math.floor(Math.random() * 100),
-          status: i === 0 ? "active" : "pending",
-        });
+          // Add scheduled calls
+          if (data.calls) {
+            data.calls.forEach((call: { id: string; scheduledAt: string; leadName: string; status: string }) => {
+              items.push({
+                id: call.id,
+                type: "call",
+                time: new Date(call.scheduledAt),
+                name: call.leadName || "Scheduled Call",
+                count: 1,
+                status: call.status as "pending" | "active" | "completed",
+              });
+            });
+          }
+
+          // Add campaign attempts/sequences
+          if (data.sequences) {
+            data.sequences.forEach((seq: { id: string; name: string; scheduledAt: string; recipientCount: number; status: string }) => {
+              items.push({
+                id: seq.id,
+                type: "sequence",
+                time: new Date(seq.scheduledAt),
+                name: seq.name,
+                count: seq.recipientCount,
+                status: seq.status as "pending" | "active" | "completed",
+              });
+            });
+          }
+
+          setWeekSchedule(items);
+        }
+      } catch (error) {
+        console.error("Failed to fetch schedule:", error);
+        // Set empty array on error - no fake data
+        setWeekSchedule([]);
+      } finally {
+        setIsLoading(false);
       }
-
-      // Scheduled calls
-      items.push({
-        id: `call-${i}-1`,
-        type: "call",
-        time: new Date(date.setHours(10, 30, 0, 0)),
-        name: "Priority Callbacks",
-        count: 12 + Math.floor(Math.random() * 8),
-        status: "pending",
-      });
-
-      // Sequence
-      if (i % 3 === 0) {
-        items.push({
-          id: `seq-${i}`,
-          type: "sequence",
-          time: new Date(date.setHours(14, 0, 0, 0)),
-          name: "NC Retarget Sequence",
-          count: 75 + Math.floor(Math.random() * 50),
-          status: "pending",
-        });
-      }
-
-      // Afternoon calls
-      items.push({
-        id: `call-${i}-2`,
-        type: "call",
-        time: new Date(date.setHours(15, 0, 0, 0)),
-        name: "New Lead Follow-ups",
-        count: 8 + Math.floor(Math.random() * 6),
-        status: "pending",
-      });
     }
 
-    return items;
+    fetchScheduleData();
   }, []);
 
   // Get items for selected day
