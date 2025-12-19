@@ -590,3 +590,264 @@ export async function getUserInfo() {
 export async function getSubUsers() {
   return signalhouseRequest<UserInfo[]>("/user/subUsers");
 }
+
+// ============ GIANNA AI INTEGRATION ============
+// Auto-response and classification helpers for LUCI pipeline
+
+import {
+  classifyResponse,
+  getGiannaTemplate,
+  type GiannaResponseTemplate,
+  type ClassificationResult,
+} from "../response-classifications";
+
+export interface GiannaAutoResponse {
+  shouldAutoRespond: boolean;
+  template: GiannaResponseTemplate | null;
+  message: string | null;
+  classification: ClassificationResult | null;
+  variables: Record<string, string>;
+}
+
+export interface LeadContext {
+  firstName: string;
+  lastName?: string;
+  propertyAddress?: string;
+  valueContent: string; // e.g., "Property Valuation Report", "Exit Strategy Guide"
+  campaignContext?: string;
+}
+
+/**
+ * Check if GIANNA can auto-respond to an inbound SMS
+ * Returns the template and pre-filled message if automatable
+ */
+export function checkGiannaAutoResponse(
+  clientId: string,
+  inboundMessage: string,
+  leadContext: LeadContext,
+): GiannaAutoResponse {
+  const classification = classifyResponse(clientId, inboundMessage);
+
+  if (!classification) {
+    return {
+      shouldAutoRespond: false,
+      template: null,
+      message: null,
+      classification: null,
+      variables: {},
+    };
+  }
+
+  const template = getGiannaTemplate(classification.classificationId);
+
+  if (!template || !template.automatable) {
+    return {
+      shouldAutoRespond: false,
+      template,
+      message: null,
+      classification,
+      variables: {},
+    };
+  }
+
+  // Build response message from template
+  const variables: Record<string, string> = {
+    first_name: leadContext.firstName,
+    value_content: leadContext.valueContent,
+    property_address: leadContext.propertyAddress || "",
+    campaign_context: leadContext.campaignContext || "",
+  };
+
+  let message = template.template;
+  for (const [key, value] of Object.entries(variables)) {
+    message = message.replace(new RegExp(`{{${key}}}`, "g"), value);
+  }
+
+  return {
+    shouldAutoRespond: true,
+    template,
+    message,
+    classification,
+    variables,
+  };
+}
+
+/**
+ * Send GIANNA auto-response through SignalHouse
+ */
+export async function sendGiannaResponse(
+  from: string,
+  to: string,
+  autoResponse: GiannaAutoResponse,
+  correlationId?: string,
+): Promise<{
+  success: boolean;
+  messageId?: string;
+  error?: string;
+  correlationId?: string;
+}> {
+  if (!autoResponse.shouldAutoRespond || !autoResponse.message) {
+    return {
+      success: false,
+      error: "No auto-response configured",
+    };
+  }
+
+  const result = await sendSMS({
+    from,
+    to,
+    message: autoResponse.message,
+  });
+
+  return {
+    success: result.success,
+    messageId: result.data?.messageId,
+    error: result.error,
+    correlationId: result.correlationId,
+  };
+}
+
+// ============ WORKFLOW ANALYTICS TYPES ============
+// For heatmap visualization of high-impact workflows
+
+export interface WorkflowMetrics {
+  workflowId: string;
+  name: string;
+  campaignContext: string;
+  metrics: {
+    totalSent: number;
+    delivered: number;
+    responses: number;
+    emailCaptures: number;
+    optOuts: number;
+    interested: number;
+    questions: number;
+  };
+  conversionRate: number; // emailCaptures / delivered
+  responseRate: number; // responses / delivered
+  heatScore: number; // 0-100 weighted score for heatmap
+}
+
+export interface WorkflowHeatmapData {
+  workflows: WorkflowMetrics[];
+  dateRange: { start: string; end: string };
+  aggregatedMetrics: {
+    totalSent: number;
+    totalDelivered: number;
+    totalResponses: number;
+    totalEmailCaptures: number;
+    avgConversionRate: number;
+    avgResponseRate: number;
+  };
+}
+
+/**
+ * Calculate heat score for workflow prioritization
+ * Higher score = higher impact, should be prioritized
+ */
+export function calculateHeatScore(metrics: WorkflowMetrics["metrics"]): number {
+  // Weights for different metrics (sum = 100)
+  const weights = {
+    emailCaptures: 40, // Most valuable - gateway to conversation
+    interested: 25, // High intent
+    questions: 15, // Engagement signal
+    responseRate: 10, // Overall engagement
+    deliveryRate: 10, // Campaign health
+  };
+
+  const deliveryRate = metrics.totalSent > 0 ? metrics.delivered / metrics.totalSent : 0;
+  const responseRate = metrics.delivered > 0 ? metrics.responses / metrics.delivered : 0;
+  const captureRate = metrics.delivered > 0 ? metrics.emailCaptures / metrics.delivered : 0;
+  const interestRate = metrics.responses > 0 ? metrics.interested / metrics.responses : 0;
+  const questionRate = metrics.responses > 0 ? metrics.questions / metrics.responses : 0;
+
+  const score =
+    captureRate * weights.emailCaptures * 100 +
+    interestRate * weights.interested * 100 +
+    questionRate * weights.questions * 100 +
+    responseRate * weights.responseRate * 100 +
+    deliveryRate * weights.deliveryRate * 100;
+
+  return Math.min(100, Math.round(score));
+}
+
+/**
+ * Get heat color based on score (for visualization)
+ */
+export function getHeatColor(score: number): string {
+  if (score >= 80) return "#22c55e"; // Green - high impact
+  if (score >= 60) return "#84cc16"; // Lime
+  if (score >= 40) return "#eab308"; // Yellow
+  if (score >= 20) return "#f97316"; // Orange
+  return "#ef4444"; // Red - low impact
+}
+
+/**
+ * Build workflow heatmap data from SignalHouse analytics
+ */
+export async function buildWorkflowHeatmap(
+  campaigns: Array<{
+    campaignId: string;
+    name: string;
+    context: string;
+  }>,
+): Promise<WorkflowHeatmapData> {
+  const workflows: WorkflowMetrics[] = [];
+  let totalSent = 0;
+  let totalDelivered = 0;
+  let totalResponses = 0;
+  let totalEmailCaptures = 0;
+
+  // In production, this would aggregate from SignalHouse analytics
+  // For now, structure shows the expected data shape
+  for (const campaign of campaigns) {
+    const analytics = await getDashboardAnalytics();
+
+    if (analytics.success && analytics.data) {
+      const metrics = {
+        totalSent: analytics.data.totalSent,
+        delivered: analytics.data.totalDelivered,
+        responses: 0, // Would come from inbound analytics
+        emailCaptures: 0, // Would come from classification aggregation
+        optOuts: 0,
+        interested: 0,
+        questions: 0,
+      };
+
+      const heatScore = calculateHeatScore(metrics);
+
+      workflows.push({
+        workflowId: campaign.campaignId,
+        name: campaign.name,
+        campaignContext: campaign.context,
+        metrics,
+        conversionRate: metrics.delivered > 0 ? metrics.emailCaptures / metrics.delivered : 0,
+        responseRate: metrics.delivered > 0 ? metrics.responses / metrics.delivered : 0,
+        heatScore,
+      });
+
+      totalSent += metrics.totalSent;
+      totalDelivered += metrics.delivered;
+      totalResponses += metrics.responses;
+      totalEmailCaptures += metrics.emailCaptures;
+    }
+  }
+
+  return {
+    workflows: workflows.sort((a, b) => b.heatScore - a.heatScore),
+    dateRange: {
+      start: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+      end: new Date().toISOString(),
+    },
+    aggregatedMetrics: {
+      totalSent,
+      totalDelivered,
+      totalResponses,
+      totalEmailCaptures,
+      avgConversionRate: totalDelivered > 0 ? totalEmailCaptures / totalDelivered : 0,
+      avgResponseRate: totalDelivered > 0 ? totalResponses / totalDelivered : 0,
+    },
+  };
+}
+
+console.log("[SignalHouse] Client loaded with GIANNA integration");

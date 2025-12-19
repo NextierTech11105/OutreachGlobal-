@@ -542,8 +542,8 @@ export const GIANNA_RESPONSE_TEMPLATES: GiannaResponseTemplate[] = [
     name: "Email Capture Acknowledgment",
     description: "Respond when lead provides their email address",
     classificationIds: ["email-capture"],
-    template: `Thanks {{first_name}}! I've received your email ({{email}}). Your {{deliverable}} will be sent shortly. Is there anything specific you'd like included in the report?`,
-    variables: ["first_name", "email", "deliverable"],
+    template: `Ok great {{first_name}}! I will have the {{value_content}} emailed to you by this week. Have a great day! - Gianna`,
+    variables: ["first_name", "value_content"],
     automatable: true, // Can be fully automated
   },
   {
