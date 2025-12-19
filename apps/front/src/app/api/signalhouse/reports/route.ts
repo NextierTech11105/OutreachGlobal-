@@ -53,7 +53,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (!signalHouseService.isConfigured()) {
       return NextResponse.json(
         { error: "SignalHouse not configured" },
-        { status: 503 }
+        { status: 503 },
       );
     }
 
@@ -115,13 +115,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         // Get conversation between two numbers
         if (!body.fromNumber || !body.toNumber) {
           return NextResponse.json(
-            { error: "fromNumber and toNumber required for conversation report" },
-            { status: 400 }
+            {
+              error: "fromNumber and toNumber required for conversation report",
+            },
+            { status: 400 },
           );
         }
         data = await signalHouseService.getConversation(
           body.fromNumber,
-          body.toNumber
+          body.toNumber,
         );
         break;
 
@@ -136,7 +138,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       default:
         return NextResponse.json(
           { error: `Unknown report type: ${reportType}` },
-          { status: 400 }
+          { status: 400 },
         );
     }
 
@@ -151,8 +153,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   } catch (error) {
     console.error("[SignalHouse Reports] Error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to fetch report" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to fetch report",
+      },
+      { status: 500 },
     );
   }
 }
@@ -171,9 +176,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json(
         {
           configured: false,
-          message: "SignalHouse not configured. Set SIGNALHOUSE_API_KEY in environment.",
+          message:
+            "SignalHouse not configured. Set SIGNALHOUSE_API_KEY in environment.",
         },
-        { status: 200 }
+        { status: 200 },
       );
     }
 
@@ -221,8 +227,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   } catch (error) {
     console.error("[SignalHouse Reports] GET Error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to fetch dashboard" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to fetch dashboard",
+      },
+      { status: 500 },
     );
   }
 }

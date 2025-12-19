@@ -54,7 +54,13 @@ export async function signalhouseRequest<T>(
     params?: Record<string, string>;
     correlationId?: string;
   } = {},
-): Promise<{ success: boolean; data?: T; error?: string; status?: number; correlationId?: string }> {
+): Promise<{
+  success: boolean;
+  data?: T;
+  error?: string;
+  status?: number;
+  correlationId?: string;
+}> {
   if (!isConfigured()) {
     return { success: false, error: "SignalHouse credentials not configured" };
   }
@@ -83,17 +89,30 @@ export async function signalhouseRequest<T>(
         const retryAfter = response.headers.get("retry-after");
         const delayMs = retryAfter
           ? parseInt(retryAfter, 10) * 1000
-          : Math.min(RETRY_CONFIG.baseDelayMs * Math.pow(2, attempt), RETRY_CONFIG.maxDelayMs);
+          : Math.min(
+              RETRY_CONFIG.baseDelayMs * Math.pow(2, attempt),
+              RETRY_CONFIG.maxDelayMs,
+            );
 
-        console.warn(`[SignalHouse Client] Rate limited, retry ${attempt + 1}/${RETRY_CONFIG.maxRetries} after ${delayMs}ms [${corrId}]`);
+        console.warn(
+          `[SignalHouse Client] Rate limited, retry ${attempt + 1}/${RETRY_CONFIG.maxRetries} after ${delayMs}ms [${corrId}]`,
+        );
         await sleep(delayMs);
         continue;
       }
 
       // Handle retryable server errors
-      if (RETRY_CONFIG.retryableStatuses.includes(response.status) && attempt < RETRY_CONFIG.maxRetries) {
-        const delayMs = Math.min(RETRY_CONFIG.baseDelayMs * Math.pow(2, attempt), RETRY_CONFIG.maxDelayMs);
-        console.warn(`[SignalHouse Client] Retryable error ${response.status}, retry ${attempt + 1}/${RETRY_CONFIG.maxRetries} [${corrId}]`);
+      if (
+        RETRY_CONFIG.retryableStatuses.includes(response.status) &&
+        attempt < RETRY_CONFIG.maxRetries
+      ) {
+        const delayMs = Math.min(
+          RETRY_CONFIG.baseDelayMs * Math.pow(2, attempt),
+          RETRY_CONFIG.maxDelayMs,
+        );
+        console.warn(
+          `[SignalHouse Client] Retryable error ${response.status}, retry ${attempt + 1}/${RETRY_CONFIG.maxRetries} [${corrId}]`,
+        );
         await sleep(delayMs);
         continue;
       }
@@ -103,7 +122,8 @@ export async function signalhouseRequest<T>(
       if (!response.ok) {
         return {
           success: false,
-          error: data.message || data.error || `Request failed: ${response.status}`,
+          error:
+            data.message || data.error || `Request failed: ${response.status}`,
           status: response.status,
           correlationId: corrId,
         };
@@ -115,8 +135,13 @@ export async function signalhouseRequest<T>(
 
       // Network errors are retryable
       if (attempt < RETRY_CONFIG.maxRetries) {
-        const delayMs = Math.min(RETRY_CONFIG.baseDelayMs * Math.pow(2, attempt), RETRY_CONFIG.maxDelayMs);
-        console.warn(`[SignalHouse Client] Network error, retry ${attempt + 1}/${RETRY_CONFIG.maxRetries} [${corrId}]`);
+        const delayMs = Math.min(
+          RETRY_CONFIG.baseDelayMs * Math.pow(2, attempt),
+          RETRY_CONFIG.maxDelayMs,
+        );
+        console.warn(
+          `[SignalHouse Client] Network error, retry ${attempt + 1}/${RETRY_CONFIG.maxRetries} [${corrId}]`,
+        );
         await sleep(delayMs);
         continue;
       }
@@ -745,7 +770,9 @@ export interface WorkflowHeatmapData {
  * Calculate heat score for workflow prioritization
  * Higher score = higher impact, should be prioritized
  */
-export function calculateHeatScore(metrics: WorkflowMetrics["metrics"]): number {
+export function calculateHeatScore(
+  metrics: WorkflowMetrics["metrics"],
+): number {
   // Weights for different metrics (sum = 100)
   const weights = {
     emailCaptures: 40, // Most valuable - gateway to conversation
@@ -755,11 +782,16 @@ export function calculateHeatScore(metrics: WorkflowMetrics["metrics"]): number 
     deliveryRate: 10, // Campaign health
   };
 
-  const deliveryRate = metrics.totalSent > 0 ? metrics.delivered / metrics.totalSent : 0;
-  const responseRate = metrics.delivered > 0 ? metrics.responses / metrics.delivered : 0;
-  const captureRate = metrics.delivered > 0 ? metrics.emailCaptures / metrics.delivered : 0;
-  const interestRate = metrics.responses > 0 ? metrics.interested / metrics.responses : 0;
-  const questionRate = metrics.responses > 0 ? metrics.questions / metrics.responses : 0;
+  const deliveryRate =
+    metrics.totalSent > 0 ? metrics.delivered / metrics.totalSent : 0;
+  const responseRate =
+    metrics.delivered > 0 ? metrics.responses / metrics.delivered : 0;
+  const captureRate =
+    metrics.delivered > 0 ? metrics.emailCaptures / metrics.delivered : 0;
+  const interestRate =
+    metrics.responses > 0 ? metrics.interested / metrics.responses : 0;
+  const questionRate =
+    metrics.responses > 0 ? metrics.questions / metrics.responses : 0;
 
   const score =
     captureRate * weights.emailCaptures * 100 +
@@ -821,8 +853,10 @@ export async function buildWorkflowHeatmap(
         name: campaign.name,
         campaignContext: campaign.context,
         metrics,
-        conversionRate: metrics.delivered > 0 ? metrics.emailCaptures / metrics.delivered : 0,
-        responseRate: metrics.delivered > 0 ? metrics.responses / metrics.delivered : 0,
+        conversionRate:
+          metrics.delivered > 0 ? metrics.emailCaptures / metrics.delivered : 0,
+        responseRate:
+          metrics.delivered > 0 ? metrics.responses / metrics.delivered : 0,
         heatScore,
       });
 
@@ -844,7 +878,8 @@ export async function buildWorkflowHeatmap(
       totalDelivered,
       totalResponses,
       totalEmailCaptures,
-      avgConversionRate: totalDelivered > 0 ? totalEmailCaptures / totalDelivered : 0,
+      avgConversionRate:
+        totalDelivered > 0 ? totalEmailCaptures / totalDelivered : 0,
       avgResponseRate: totalDelivered > 0 ? totalResponses / totalDelivered : 0,
     },
   };
