@@ -574,13 +574,114 @@ export const GIANNA_RESPONSE_TEMPLATES: GiannaResponseTemplate[] = [
   {
     id: "nudger",
     name: "CATHY Nudger",
-    description: "Background nudge for non-responders - deployed through CATHY",
+    description: "Background nudge for non-responders - deployed through CATHY with Leslie Nielsen/Henny Youngman humor",
     classificationIds: [], // Outbound only, not triggered by inbound classification
     template: `Hey {{first_name}}, we tried reaching you {{attempt_count}} times... do we have the right person?? Let us know! - Cathy`,
     variables: ["first_name", "attempt_count"],
     automatable: true, // CATHY runs in background automatically
   },
 ];
+
+// ==========================================
+// CATHY HUMOR SYSTEM
+// Leslie Nielsen deadpan + Henny Youngman one-liners
+// Temperature controls humor intensity via OpenAI
+// ==========================================
+
+export type CathyHumorLevel = "mild" | "medium" | "spicy";
+
+export interface CathyPersonality {
+  humorLevel: CathyHumorLevel;
+  temperature: number; // OpenAI temperature: 0.3 = mild, 0.7 = medium, 1.0 = spicy
+  style: "leslie_nielsen" | "henny_youngman" | "mixed";
+}
+
+// Pre-written CATHY templates by attempt number (fallback if OpenAI unavailable)
+export const CATHY_NUDGE_TEMPLATES: Record<number, string[]> = {
+  // Attempt 1: Friendly intro
+  1: [
+    `Hey {{first_name}}! Cathy here. I'm not saying you're hard to reach, but I've had better luck getting through to my mother-in-law. And she's been screening my calls since '94. Text back? - Cathy`,
+    `{{first_name}}! This is Cathy. I called earlier but you didn't pick up. That's ok - my husband doesn't pick up either. I've been married 30 years and I'm still not sure he knows my name. Anyway, got a minute? - Cathy`,
+  ],
+  // Attempt 2: Light pressure
+  2: [
+    `{{first_name}}, it's Cathy again. I've reached out twice now. My therapist says I have "attachment issues" but I prefer to call it "professional persistence." Can we chat? - Cathy`,
+    `Hey {{first_name}}! Cathy here, attempt #2. I'm starting to feel like a telemarketer and frankly, that's offensive to telemarketers. They at least get hung up on - I'm getting the silent treatment! - Cathy`,
+  ],
+  // Attempt 3: Getting creative
+  3: [
+    `{{first_name}}! Third time's the charm, right? That's what I told my third husband. He didn't believe me either. But seriously, just need 2 minutes! - Cathy`,
+    `{{first_name}}, Cathy here. Three attempts now. I'm not saying I'm persistent, but I once followed a food truck for 6 blocks because they had good tacos. This is like that, but with less guacamole. - Cathy`,
+  ],
+  // Attempt 4: Self-deprecating
+  4: [
+    `{{first_name}}! It's Cathy. Fourth message. At this point I feel like that guy at the party who won't stop talking about his podcast. But unlike him, I actually have something useful to share! - Cathy`,
+    `Hey {{first_name}}, Cathy again. My boss asked why I keep texting you. I said "because quitting isn't in my vocabulary." Neither is "boundaries" apparently. Quick call? - Cathy`,
+  ],
+  // Attempt 5+: Full absurdist
+  5: [
+    `{{first_name}}! Cathy here, attempt #{{attempt_count}}. I've now texted you more times than I've texted my own kids. They're fine with it - they don't text me back either. Do we have the right number? - Cathy`,
+    `{{first_name}}, it's Cathy. Message #{{attempt_count}}. I'm starting to think you're either really busy or you're in witness protection. If it's the second one, blink twice. Otherwise, text back! - Cathy`,
+    `Hey {{first_name}}! Cathy again. At this point I'm basically family. Speaking of which, are you coming to Thanksgiving? I'm bringing the persistence. You bring the replies. - Cathy`,
+  ],
+};
+
+// OpenAI prompt for generating CATHY humor
+export const CATHY_OPENAI_SYSTEM_PROMPT = `You are CATHY, a friendly and persistently funny SMS follow-up assistant.
+
+Your humor style combines:
+1. LESLIE NIELSEN (Naked Gun/Airplane): Deadpan delivery of absurd statements. Take things literally. Act serious while saying ridiculous things.
+2. HENNY YOUNGMAN: Quick one-liners, self-deprecating jokes, observational humor. "Take my wife... please!" energy.
+
+Rules:
+- Keep messages under 160 characters when possible (SMS limit)
+- Always end with "- Cathy"
+- Reference the attempt number naturally
+- Be persistent but never aggressive or rude
+- Make fun of YOURSELF, never the recipient
+- Include a clear call-to-action (text back, call, etc.)
+- No emojis (too corporate)
+- Sound like a real person, not a bot
+
+You're following up because you genuinely want to help, but you also can't help being funny about it.`;
+
+export function getCathyOpenAIPrompt(
+  firstName: string,
+  attemptNumber: number,
+  context: string,
+  humorLevel: CathyHumorLevel,
+): string {
+  const intensityGuide = {
+    mild: "Keep it professional with just a hint of wit. Think subtle smile, not belly laugh.",
+    medium: "Be funny but not over the top. Classic sitcom humor level.",
+    spicy: "Full Leslie Nielsen. Absurdist, deadpan, wonderfully ridiculous.",
+  };
+
+  return `Generate a follow-up SMS from CATHY to ${firstName}.
+
+This is attempt #${attemptNumber}.
+Context: ${context}
+Humor intensity: ${humorLevel} - ${intensityGuide[humorLevel]}
+
+Remember: Deadpan delivery, self-deprecating, reference the attempt number, end with "- Cathy"`;
+}
+
+export function getCathyTemperature(humorLevel: CathyHumorLevel): number {
+  const temps: Record<CathyHumorLevel, number> = {
+    mild: 0.3,
+    medium: 0.7,
+    spicy: 1.0,
+  };
+  return temps[humorLevel];
+}
+
+/**
+ * Get a pre-written CATHY template (fallback when OpenAI unavailable)
+ */
+export function getCathyFallbackTemplate(attemptNumber: number): string {
+  const templates = CATHY_NUDGE_TEMPLATES[Math.min(attemptNumber, 5)] || CATHY_NUDGE_TEMPLATES[5];
+  return templates[Math.floor(Math.random() * templates.length)];
+}
 
 // ==========================================
 // CATHY NUDGER SYSTEM
@@ -719,26 +820,111 @@ export function createNudgeAttempt(
 
 /**
  * Build CATHY nudge message with attempt tracking
+ * Uses pre-written Leslie Nielsen/Henny Youngman style templates
  */
 export function buildCathyNudgeMessage(
   firstName: string,
   attemptNumber: number,
-): { message: string; nudgeId: string } {
+  useHumor: boolean = true,
+): { message: string; nudgeId: string; templateUsed: string } {
   const nudgeId = generateNudgeId();
-  const template = GIANNA_RESPONSE_TEMPLATES.find((t) => t.id === "nudger");
 
-  if (!template) {
+  // Use funny templates if humor enabled
+  if (useHumor) {
+    let template = getCathyFallbackTemplate(attemptNumber);
+    template = template.replace(/{{first_name}}/g, firstName);
+    template = template.replace(/{{attempt_count}}/g, String(attemptNumber));
+
     return {
-      message: `Hey ${firstName}, we tried reaching you ${attemptNumber} times... do we have the right person?? Let us know! - Cathy`,
+      message: template,
       nudgeId,
+      templateUsed: `cathy_humor_attempt_${Math.min(attemptNumber, 5)}`,
     };
   }
 
-  let message = template.template;
+  // Fallback: Basic template without humor
+  const basicTemplate = GIANNA_RESPONSE_TEMPLATES.find((t) => t.id === "nudger");
+  if (!basicTemplate) {
+    return {
+      message: `Hey ${firstName}, we tried reaching you ${attemptNumber} times... do we have the right person?? Let us know! - Cathy`,
+      nudgeId,
+      templateUsed: "cathy_basic_fallback",
+    };
+  }
+
+  let message = basicTemplate.template;
   message = message.replace(/{{first_name}}/g, firstName);
   message = message.replace(/{{attempt_count}}/g, String(attemptNumber));
 
-  return { message, nudgeId };
+  return { message, nudgeId, templateUsed: "cathy_basic" };
+}
+
+/**
+ * Generate CATHY message using OpenAI (async version)
+ * Falls back to pre-written templates if OpenAI unavailable
+ */
+export async function generateCathyMessageWithAI(
+  firstName: string,
+  attemptNumber: number,
+  context: string,
+  humorLevel: CathyHumorLevel = "medium",
+  openaiApiKey?: string,
+): Promise<{ message: string; nudgeId: string; source: "openai" | "fallback" }> {
+  const nudgeId = generateNudgeId();
+
+  // If no API key, use fallback
+  if (!openaiApiKey) {
+    const fallback = buildCathyNudgeMessage(firstName, attemptNumber, true);
+    return {
+      message: fallback.message,
+      nudgeId,
+      source: "fallback",
+    };
+  }
+
+  try {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${openaiApiKey}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: CATHY_OPENAI_SYSTEM_PROMPT },
+          { role: "user", content: getCathyOpenAIPrompt(firstName, attemptNumber, context, humorLevel) },
+        ],
+        temperature: getCathyTemperature(humorLevel),
+        max_tokens: 200,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const aiMessage = data.choices?.[0]?.message?.content?.trim();
+
+    if (aiMessage) {
+      return {
+        message: aiMessage,
+        nudgeId,
+        source: "openai",
+      };
+    }
+
+    throw new Error("No message generated");
+  } catch (error) {
+    console.warn("[CATHY] OpenAI generation failed, using fallback:", error);
+    const fallback = buildCathyNudgeMessage(firstName, attemptNumber, true);
+    return {
+      message: fallback.message,
+      nudgeId,
+      source: "fallback",
+    };
+  }
 }
 
 /**
