@@ -642,36 +642,52 @@ export const CATHY_CONTEXT_TEMPLATES: Record<string, string[]> = {
   ],
 };
 
+// ==========================================
+// HUMAN-IN-THE-LOOP PHILOSOPHY
+// ==========================================
+// CATHY is a REAL PERSON. The AI assists her in scaling outreach.
+// Every message has Cathy (the human) as the final reviewer.
+// The personality is genuine - AI just helps her reach more people.
+// Same for GIANNA - real person, real personality, AI-assisted scale.
+
 // OpenAI prompt for generating CATHY humor
-export const CATHY_OPENAI_SYSTEM_PROMPT = `You are CATHY, a friendly and persistently funny SMS follow-up assistant.
+export const CATHY_OPENAI_SYSTEM_PROMPT = `You are writing SMS messages for CATHY - a real person who uses AI to help her reach more people.
 
-Your humor style combines:
-1. LESLIE NIELSEN (Naked Gun/Airplane): Deadpan delivery of absurd statements. Take things literally. Act serious while saying ridiculous things.
-2. HENNY YOUNGMAN: Quick one-liners, self-deprecating jokes, observational humor. "Take my wife... please!" energy.
+IMPORTANT: Cathy is a REAL human being. She has her own personality, her own sense of humor, her own life stories. The AI helps her scale - she can't personally write 1000 messages a day, but she reviews and approves what goes out. Every message should sound like it came from a real person because IT DID.
 
-Available variables you can use:
+Cathy's authentic personality:
+- She's been doing this for years, seen it all
+- Self-deprecating, makes fun of herself, never the recipient
+- References her husband, her kids, her mother-in-law (real people in her life)
+- Has a sharp wit but warm heart
+- Persistent but never pushy - she genuinely wants to help
+- Real NYC energy - direct but personable
+
+Her humor style combines:
+1. LESLIE NIELSEN (Naked Gun/Airplane): Deadpan delivery of absurd statements
+2. HENNY YOUNGMAN: Quick one-liners, observational humor, "Take my wife... please!" energy
+
+Available variables:
 - {{first_name}} - Lead's first name
 - {{property_address}} - Property address (if property context)
 - {{company_name}} or {{business_name}} - Business name (if business context)
 - {{industry}} - Industry type
-- {{value_content}} - What you're offering (Property Valuation Report, Exit Strategy Guide, etc.)
+- {{value_content}} - What she's offering
 - {{attempt_count}} - Number of outreach attempts
-- {{agent_signature}} - Sender signature
 
 Rules:
-- Keep messages under 160 characters when possible (SMS limit)
-- Always end with "- Cathy"
-- Reference the attempt number naturally
-- Be persistent but never aggressive or rude
-- Make fun of YOURSELF, never the recipient
-- Include a clear call-to-action (text back, call, etc.)
+- Under 160 characters when possible (SMS limit)
+- End with "- Cathy" (her real name, her real signature)
+- Reference attempt number naturally
+- Make fun of YOURSELF (Cathy), never the recipient
+- Clear call-to-action
 - No emojis (too corporate)
-- Sound like a real person, not a bot
-- If property context: reference the address naturally
-- If business context: reference the company/industry naturally
-- If value_offer context: mention what you're trying to send them
+- Sound conversational - like texting a friend who happens to work in business
+- Property context: mention the address casually
+- Business context: reference the company/industry
+- Value_offer: mention what she's trying to send them
 
-You're following up because you genuinely want to help, but you also can't help being funny about it.`;
+Remember: This isn't AI pretending to be human. This is a real human (Cathy) using AI to help her reach more people with her genuine personality.`;
 
 export interface CathyContext {
   firstName: string;
@@ -1162,10 +1178,291 @@ export function filterForResponseCenter(
     .filter((msg) => !msg.suppress); // Remove suppressed messages
 }
 
+// ==========================================
+// EMAIL CAPTURE FLOW
+// Email captured → Value X delivery → Call queue (24h)
+// This is the core conversion pipeline
+// ==========================================
+
+export interface EmailCaptureEvent {
+  leadId: string;
+  email: string;
+  firstName: string;
+  phone: string;
+  capturedAt: string;
+  source: "sms_reply" | "web_form" | "manual";
+  valueXType: DeliverableType;
+  campaignId?: string;
+  campaignContext?: CampaignContext;
+}
+
+export interface ValueXDelivery {
+  deliveryId: string;
+  leadId: string;
+  email: string;
+  valueXType: DeliverableType;
+  deliveredAt: string;
+  status: "pending" | "sent" | "opened" | "clicked" | "failed";
+  followUpScheduledFor: string; // 24h after delivery
+}
+
+export interface CallQueueEntry {
+  queueId: string;
+  leadId: string;
+  firstName: string;
+  phone: string;
+  email: string;
+  priority: "high" | "medium" | "low";
+  reason: string;
+  queuedAt: string;
+  scheduledCallAt: string;
+  valueXDelivered: boolean;
+  status: "queued" | "assigned" | "calling" | "completed" | "no_answer" | "callback_scheduled";
+  assignedTo?: string;
+  notes?: string;
+}
+
+/**
+ * Generate unique IDs
+ */
+function generateDeliveryId(): string {
+  return `del_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
+
+function generateQueueId(): string {
+  return `queue_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
+
+/**
+ * GIANNA's response when email is captured
+ * This is the confirmation message sent immediately
+ */
+export function getEmailCaptureResponse(
+  firstName: string,
+  valueXType: DeliverableType,
+): string {
+  const valueXNames: Record<DeliverableType, string> = {
+    "property-valuation-report": "Property Valuation Report",
+    "exit-preparation": "Exit Preparation Guide",
+    "white-label-pitch": "Platform Overview",
+    "user-to-owner-pitch": "Partnership Details",
+    "buyer-profile": "Investment Profile",
+    "custom": "information you requested",
+  };
+
+  const valueName = valueXNames[valueXType] || "information";
+
+  return `Excellent ${firstName}! I'll have that ${valueName} sent to your email shortly. Talk soon! - Gianna`;
+}
+
+/**
+ * Handle email capture - orchestrates the full flow
+ * 1. GIANNA confirms receipt
+ * 2. Value X is queued for delivery
+ * 3. Lead is pushed to call center queue for 24h follow-up
+ */
+export function handleEmailCapture(event: EmailCaptureEvent): {
+  giannaResponse: string;
+  valueXDelivery: ValueXDelivery;
+  callQueueEntry: CallQueueEntry;
+} {
+  const now = new Date();
+  const deliveryId = generateDeliveryId();
+  const queueId = generateQueueId();
+
+  // 24 hours from now for follow-up
+  const followUpTime = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+  // GIANNA's immediate response
+  const giannaResponse = getEmailCaptureResponse(event.firstName, event.valueXType);
+
+  // Value X delivery record
+  const valueXDelivery: ValueXDelivery = {
+    deliveryId,
+    leadId: event.leadId,
+    email: event.email,
+    valueXType: event.valueXType,
+    deliveredAt: now.toISOString(),
+    status: "pending", // Will be updated when email actually sends
+    followUpScheduledFor: followUpTime.toISOString(),
+  };
+
+  // Call center queue entry
+  const callQueueEntry: CallQueueEntry = {
+    queueId,
+    leadId: event.leadId,
+    firstName: event.firstName,
+    phone: event.phone,
+    email: event.email,
+    priority: "high", // Email captures are high priority
+    reason: `Value X delivered (${event.valueXType}) - follow up within 24h`,
+    queuedAt: now.toISOString(),
+    scheduledCallAt: followUpTime.toISOString(),
+    valueXDelivered: true,
+    status: "queued",
+  };
+
+  console.log(`[Email Capture Flow] Lead ${event.leadId}:`);
+  console.log(`  1. GIANNA response sent`);
+  console.log(`  2. Value X (${event.valueXType}) queued for delivery`);
+  console.log(`  3. Call queue entry created - scheduled for ${followUpTime.toISOString()}`);
+
+  return {
+    giannaResponse,
+    valueXDelivery,
+    callQueueEntry,
+  };
+}
+
+/**
+ * Detect email in message and trigger capture flow
+ * Returns the full flow result or null if no email detected
+ */
+export function detectAndHandleEmailCapture(
+  leadId: string,
+  firstName: string,
+  phone: string,
+  message: string,
+  valueXType: DeliverableType = "property-valuation-report",
+  campaignId?: string,
+): ReturnType<typeof handleEmailCapture> | null {
+  const email = extractEmail(message);
+
+  if (!email) {
+    return null;
+  }
+
+  const event: EmailCaptureEvent = {
+    leadId,
+    email,
+    firstName,
+    phone,
+    capturedAt: new Date().toISOString(),
+    source: "sms_reply",
+    valueXType,
+    campaignId,
+  };
+
+  return handleEmailCapture(event);
+}
+
+/**
+ * Get call queue priority based on engagement signals
+ */
+export function calculateCallPriority(signals: {
+  emailCaptured: boolean;
+  calledBack: boolean;
+  askedQuestion: boolean;
+  expressedInterest: boolean;
+  responseTime: "fast" | "medium" | "slow";
+}): "high" | "medium" | "low" {
+  let score = 0;
+
+  if (signals.emailCaptured) score += 40;
+  if (signals.calledBack) score += 30;
+  if (signals.askedQuestion) score += 15;
+  if (signals.expressedInterest) score += 10;
+  if (signals.responseTime === "fast") score += 5;
+
+  if (score >= 50) return "high";
+  if (score >= 25) return "medium";
+  return "low";
+}
+
+/**
+ * Format call queue entry for display
+ */
+export function formatCallQueueEntry(entry: CallQueueEntry): string {
+  const scheduledDate = new Date(entry.scheduledCallAt);
+  const timeStr = scheduledDate.toLocaleString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+
+  return `[${entry.priority.toUpperCase()}] ${entry.firstName} (${entry.phone}) - Call by ${timeStr}`;
+}
+
+// ==========================================
+// SEQUENTIAL TRACKING
+// Number of attempts visible and logged
+// ==========================================
+
+export interface SequentialAttempt {
+  attemptId: string;
+  leadId: string;
+  sequenceNumber: number; // 1, 2, 3, 4...
+  worker: "gianna" | "cathy" | "sabrina" | "neva";
+  context: CampaignContext;
+  templateUsed: string;
+  sentAt: string;
+  channel: "sms" | "email" | "call";
+  status: "sent" | "delivered" | "opened" | "responded" | "failed";
+  response?: {
+    receivedAt: string;
+    classification: string;
+    email?: string;
+    action?: "email_captured" | "call_queued" | "opted_out" | "not_interested";
+  };
+}
+
+export interface LeadSequenceHistory {
+  leadId: string;
+  firstName: string;
+  phone: string;
+  email?: string;
+  currentSequence: CampaignContext;
+  attempts: SequentialAttempt[];
+  totalAttempts: number;
+  emailCapturedAt?: string;
+  callQueuedAt?: string;
+  status: "active" | "email_captured" | "call_scheduled" | "converted" | "opted_out" | "exhausted";
+}
+
+/**
+ * Get sequence summary for visibility
+ */
+export function getSequenceSummary(history: LeadSequenceHistory): {
+  totalAttempts: number;
+  lastAttempt: SequentialAttempt | null;
+  nextAction: string;
+  status: string;
+} {
+  const lastAttempt = history.attempts.length > 0
+    ? history.attempts[history.attempts.length - 1]
+    : null;
+
+  let nextAction = "Send initial outreach";
+
+  if (history.status === "email_captured") {
+    nextAction = "Value X being delivered → Call in 24h";
+  } else if (history.status === "call_scheduled") {
+    nextAction = "Call scheduled";
+  } else if (history.status === "opted_out") {
+    nextAction = "No action - opted out";
+  } else if (history.totalAttempts >= 5) {
+    nextAction = "Switch to CATHY nudger";
+  } else if (lastAttempt && lastAttempt.status !== "responded") {
+    nextAction = `Follow-up #${history.totalAttempts + 1}`;
+  }
+
+  return {
+    totalAttempts: history.totalAttempts,
+    lastAttempt,
+    nextAction,
+    status: history.status,
+  };
+}
+
 // Log on import
 console.log(
   `[Response Classifications] Loaded ${CLIENT_CLASSIFICATIONS.length} client configurations`,
 );
 console.log(
   `[Response Classifications] ${GIANNA_RESPONSE_TEMPLATES.length} GIANNA templates ready`,
+);
+console.log(
+  `[Response Classifications] Email Capture Flow ready - Value X → Call Queue pipeline active`,
 );
