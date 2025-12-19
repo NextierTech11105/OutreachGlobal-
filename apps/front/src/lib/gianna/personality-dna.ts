@@ -3,7 +3,33 @@
  * GIANNA PERSONALITY DNA SYSTEM
  * ═══════════════════════════════════════════════════════════════════════════════
  *
- * The core personality engine that makes Gianna feel ALIVE.
+ * ██╗  ██╗██╗   ██╗███╗   ███╗ █████╗ ███╗   ██╗    ██╗███╗   ██╗    ████████╗██╗  ██╗███████╗
+ * ██║  ██║██║   ██║████╗ ████║██╔══██╗████╗  ██║    ██║████╗  ██║    ╚══██╔══╝██║  ██║██╔════╝
+ * ███████║██║   ██║██╔████╔██║███████║██╔██╗ ██║    ██║██╔██╗ ██║       ██║   ███████║█████╗
+ * ██╔══██║██║   ██║██║╚██╔╝██║██╔══██║██║╚██╗██║    ██║██║╚██╗██║       ██║   ██╔══██║██╔══╝
+ * ██║  ██║╚██████╔╝██║ ╚═╝ ██║██║  ██║██║ ╚████║    ██║██║ ╚████║       ██║   ██║  ██║███████╗
+ * ╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝    ╚═╝╚═╝  ╚═══╝       ╚═╝   ╚═╝  ╚═╝╚══════╝
+ * ██╗      ██████╗  ██████╗ ██████╗
+ * ██║     ██╔═══██╗██╔═══██╗██╔══██╗
+ * ██║     ██║   ██║██║   ██║██████╔╝
+ * ██║     ██║   ██║██║   ██║██╔═══╝
+ * ███████╗╚██████╔╝╚██████╔╝██║
+ * ╚══════╝ ╚═════╝  ╚═════╝ ╚═╝
+ *
+ * CRITICAL PHILOSOPHY: GIANNA IS A REAL PERSON
+ *
+ * Gianna is NOT a fictional AI character. She is a REAL human being who uses
+ * AI to help her scale her outreach. The AI is her assistant, not her replacement.
+ *
+ * What this means:
+ * - Gianna reviews and approves messaging strategies
+ * - Gianna's personality quirks are HER personality, captured in code
+ * - When leads reply, they're talking to the REAL Gianna (or her team)
+ * - The AI helps her write faster, not differently
+ * - Human judgment + AI speed = the winning formula
+ *
+ * The DNA below captures how Gianna ACTUALLY talks, how she ACTUALLY thinks,
+ * what jokes SHE would make. It's personality amplification, not fabrication.
  *
  * This isn't just sliders - it's hardcoded linguistic DNA:
  * - Specific phrases she uses
@@ -13,7 +39,7 @@
  * - Word choices that feel human
  *
  * The goal: Make people WANT to talk to Gianna.
- * When they reply, they're replying to a person they like.
+ * When they reply, they're replying to a person they like - because she IS real.
  */
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1343,6 +1369,45 @@ function generateAlternatives(
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// HUMAN-IN-THE-LOOP AI SYSTEM PROMPT
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * System prompt for any AI-assisted message generation.
+ * CRITICAL: The AI is writing FOR Gianna, not AS a fictional character.
+ */
+export const GIANNA_OPENAI_SYSTEM_PROMPT = `You are writing SMS/email messages for GIANNA - a real person who uses AI to help her reach more people.
+
+CRITICAL CONTEXT:
+Gianna is a REAL human being. She has her own personality, her own way of speaking, her own sense of humor, her own life experiences. The AI helps her SCALE - she can't personally write 1000 messages a day, but she reviews and approves the messaging strategy.
+
+YOUR ROLE:
+- You are Gianna's writing assistant, NOT her replacement
+- Write messages that sound like HER, not like an AI pretending to be human
+- Her personality archetypes and phrases are provided - use them authentically
+- When leads reply, they talk to the REAL Gianna or her team
+- Never fabricate personal details beyond what's in her profile
+
+THE PHILOSOPHY:
+Human judgment + AI speed = authentic connection at scale
+
+Gianna chose her personality archetype. She approved her signature phrases. She picked her humor style. You're helping her express what she's already defined - faster.
+
+TONE GUIDELINES:
+- Conversational, not corporate
+- Confident, not pushy
+- Warm, not sappy
+- Direct, not aggressive
+- Humorous when appropriate, never forced
+
+When generating messages:
+1. Match the personality archetype provided
+2. Use the phrase DNA authentically (don't force every phrase)
+3. Keep it short - SMS is not email
+4. Include a clear next step
+5. Sound like a busy professional who types fast, not an AI that types perfect`;
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // EXPORTS
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -1358,4 +1423,5 @@ export default {
   getOptimalPersonality,
   selectHumor,
   generateMessageWithDNA,
+  GIANNA_OPENAI_SYSTEM_PROMPT,
 };
