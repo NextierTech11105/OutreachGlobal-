@@ -353,13 +353,6 @@ export default function AdminDashboard() {
                   </Button>
                 </Link>
 
-                <Link href="/admin/data/schema">
-                  <Button variant="outline" className="w-full justify-start">
-                    <Database className="mr-2 h-4 w-4" />
-                    Data Schema
-                  </Button>
-                </Link>
-
                 <Link href="/admin/workflows">
                   <Button variant="outline" className="w-full justify-start">
                     <Workflow className="mr-2 h-4 w-4" />

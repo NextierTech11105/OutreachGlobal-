@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -30,8 +30,6 @@ import {
 import {
   Plus,
   Trash2,
-  Play,
-  Pause,
   Zap,
   ArrowRight,
   Settings,
@@ -42,14 +40,66 @@ interface AutomationRule {
   name: string;
   trigger: string;
   action: string;
+  priority: string;
   isActive: boolean;
   executionCount: number;
 }
 
+const STORAGE_KEY = "automation_rules";
+
 export default function CampaignAutomationPage() {
-  // Rules state - starts empty, populated by user creation
   const [rules, setRules] = useState<AutomationRule[]>([]);
   const [showNewRule, setShowNewRule] = useState(false);
+
+  // Form state for new rule
+  const [newRuleName, setNewRuleName] = useState("");
+  const [newRuleTrigger, setNewRuleTrigger] = useState("");
+  const [newRuleAction, setNewRuleAction] = useState("");
+  const [newRulePriority, setNewRulePriority] = useState("normal");
+
+  // Load rules from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        setRules(JSON.parse(saved));
+      } catch (e) {
+        console.error("Failed to load rules:", e);
+      }
+    }
+  }, []);
+
+  // Save rules to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(rules));
+  }, [rules]);
+
+  const resetForm = () => {
+    setNewRuleName("");
+    setNewRuleTrigger("");
+    setNewRuleAction("");
+    setNewRulePriority("normal");
+    setShowNewRule(false);
+  };
+
+  const createRule = () => {
+    if (!newRuleName || !newRuleTrigger || !newRuleAction) {
+      return; // Require all fields
+    }
+
+    const newRule: AutomationRule = {
+      id: `rule_${Date.now()}`,
+      name: newRuleName,
+      trigger: newRuleTrigger,
+      action: newRuleAction,
+      priority: newRulePriority,
+      isActive: true,
+      executionCount: 0,
+    };
+
+    setRules((prev) => [...prev, newRule]);
+    resetForm();
+  };
 
   const toggleRule = (id: string) => {
     setRules(
@@ -88,11 +138,15 @@ export default function CampaignAutomationPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Rule Name</Label>
-                <Input placeholder="e.g., Auto-assign positive responses" />
+                <Input
+                  placeholder="e.g., Auto-assign positive responses"
+                  value={newRuleName}
+                  onChange={(e) => setNewRuleName(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label>Priority</Label>
-                <Select defaultValue="normal">
+                <Select value={newRulePriority} onValueChange={setNewRulePriority}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -108,7 +162,7 @@ export default function CampaignAutomationPage() {
             <div className="grid grid-cols-3 gap-4 items-end">
               <div className="space-y-2">
                 <Label>When this happens (Trigger)</Label>
-                <Select>
+                <Select value={newRuleTrigger} onValueChange={setNewRuleTrigger}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select trigger..." />
                   </SelectTrigger>
@@ -147,7 +201,7 @@ export default function CampaignAutomationPage() {
 
               <div className="space-y-2">
                 <Label>Do this (Action)</Label>
-                <Select>
+                <Select value={newRuleAction} onValueChange={setNewRuleAction}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select action..." />
                   </SelectTrigger>
@@ -178,10 +232,13 @@ export default function CampaignAutomationPage() {
             </div>
 
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setShowNewRule(false)}>
+              <Button variant="outline" onClick={resetForm}>
                 Cancel
               </Button>
-              <Button onClick={() => setShowNewRule(false)}>
+              <Button
+                onClick={createRule}
+                disabled={!newRuleName || !newRuleTrigger || !newRuleAction}
+              >
                 <Zap className="mr-2 h-4 w-4" />
                 Create Rule
               </Button>

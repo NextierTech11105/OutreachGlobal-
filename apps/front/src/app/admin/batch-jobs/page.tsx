@@ -140,7 +140,7 @@ const emptyStats: BatchStats = {
 };
 
 export default function BatchJobsPage() {
-  // Jobs state - starts empty, populated by user creation
+  // Jobs state - fetched from real API
   const [jobs, setJobs] = useState<BatchJob[]>([]);
   const [stats, setStats] = useState<BatchStats>(emptyStats);
   const [activeTab, setActiveTab] = useState("jobs");
@@ -148,101 +148,114 @@ export default function BatchJobsPage() {
   const [newJobType, setNewJobType] = useState<string>("");
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Simulate real-time updates
+  // Fetch jobs from real API
+  const fetchJobs = async () => {
+    try {
+      const res = await fetch("/api/batch-jobs");
+      const data = await res.json();
+      if (data.success && data.jobs) {
+        // Transform API jobs to page format
+        const transformedJobs: BatchJob[] = data.jobs.map((j: any) => ({
+          id: j.id,
+          name: `${j.type} Job`,
+          type: j.type,
+          status: j.status === "processing" ? "running" : j.status,
+          total_records: j.progress?.total || 0,
+          processed_records: j.progress?.processed || 0,
+          success_count: j.progress?.successful || 0,
+          fail_count: j.progress?.failed || 0,
+          created_at: j.createdAt,
+          started_at: j.startedAt || null,
+          completed_at: j.completedAt || null,
+          estimated_completion: null,
+        }));
+        setJobs(transformedJobs);
+
+        // Update stats from daily usage
+        if (data.dailyUsage) {
+          setStats((prev) => ({
+            ...prev,
+            total_jobs_today: data.count || 0,
+            records_processed_today: data.dailyUsage.used || 0,
+          }));
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch batch jobs:", error);
+    }
+  };
+
+  // Fetch on mount and poll for updates
   useEffect(() => {
-    const interval = setInterval(() => {
-      setJobs((prev) =>
-        prev.map((job) => {
-          if (
-            job.status === "running" &&
-            job.processed_records < job.total_records
-          ) {
-            const increment = Math.min(
-              Math.floor(Math.random() * 50) + 10,
-              job.total_records - job.processed_records,
-            );
-            const newProcessed = job.processed_records + increment;
-            const successRate = 0.88;
-            const newSuccess = Math.floor(increment * successRate);
-            return {
-              ...job,
-              processed_records: newProcessed,
-              success_count: job.success_count + newSuccess,
-              fail_count: job.fail_count + (increment - newSuccess),
-              status:
-                newProcessed >= job.total_records ? "completed" : "running",
-              completed_at:
-                newProcessed >= job.total_records
-                  ? new Date().toISOString()
-                  : null,
-            };
-          }
-          return job;
-        }),
-      );
-    }, 2000);
+    fetchJobs();
+    const interval = setInterval(fetchJobs, 5000); // Poll every 5 seconds
     return () => clearInterval(interval);
   }, []);
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     setIsRefreshing(true);
-    setTimeout(() => setIsRefreshing(false), 1000);
+    await fetchJobs();
+    setIsRefreshing(false);
   };
 
-  const handleStartJob = (jobId: string) => {
-    setJobs((prev) =>
-      prev.map((job) =>
-        job.id === jobId
-          ? { ...job, status: "running", started_at: new Date().toISOString() }
-          : job,
-      ),
-    );
+  const handleStartJob = async (jobId: string) => {
+    try {
+      await fetch("/api/batch-jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "start", jobId }),
+      });
+      await fetchJobs();
+    } catch (error) {
+      console.error("Failed to start job:", error);
+    }
   };
 
-  const handlePauseJob = (jobId: string) => {
-    setJobs((prev) =>
-      prev.map((job) =>
-        job.id === jobId ? { ...job, status: "paused" } : job,
-      ),
-    );
+  const handlePauseJob = async (jobId: string) => {
+    try {
+      await fetch("/api/batch-jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "pause", jobId }),
+      });
+      await fetchJobs();
+    } catch (error) {
+      console.error("Failed to pause job:", error);
+    }
   };
 
-  const handleRetryJob = (jobId: string) => {
-    setJobs((prev) =>
-      prev.map((job) =>
-        job.id === jobId
-          ? {
-              ...job,
-              status: "running",
-              started_at: new Date().toISOString(),
-              error_message: undefined,
-            }
-          : job,
-      ),
-    );
+  const handleRetryJob = async (jobId: string) => {
+    try {
+      await fetch("/api/batch-jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "resume", jobId }),
+      });
+      await fetchJobs();
+    } catch (error) {
+      console.error("Failed to retry job:", error);
+    }
   };
 
-  const handleDeleteJob = (jobId: string) => {
-    setJobs((prev) => prev.filter((job) => job.id !== jobId));
+  const handleDeleteJob = async (jobId: string) => {
+    try {
+      await fetch("/api/batch-jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "cancel", jobId }),
+      });
+      await fetchJobs();
+    } catch (error) {
+      console.error("Failed to delete job:", error);
+    }
   };
 
   const handleCreateJob = () => {
+    // Job creation requires property IDs - show info message
     if (!newJobType) return;
-    const newJob: BatchJob = {
-      id: `batch-${Date.now()}`,
-      name: `New ${newJobType} Job`,
-      type: newJobType as BatchJob["type"],
-      status: "pending",
-      total_records: Math.floor(Math.random() * 1000) + 100,
-      processed_records: 0,
-      success_count: 0,
-      fail_count: 0,
-      created_at: new Date().toISOString(),
-      started_at: null,
-      completed_at: null,
-      estimated_completion: null,
-    };
-    setJobs((prev) => [newJob, ...prev]);
+    alert(
+      "To create a batch job, go to Sectors or Data Hub and select records to process in bulk.",
+    );
     setIsCreatingJob(false);
     setNewJobType("");
   };

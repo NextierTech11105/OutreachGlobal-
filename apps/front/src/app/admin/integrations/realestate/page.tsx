@@ -314,7 +314,7 @@ export default function RealEstateApiIntegrationPage() {
                 filters, and criteria.
               </p>
               <Button className="mt-4" asChild>
-                <a href="/admin/data/verification">Go to Property Search</a>
+                <a href="/admin/data/import">Go to Data Import</a>
               </Button>
             </CardContent>
           </Card>

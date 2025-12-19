@@ -140,6 +140,28 @@ export default function StripeAdminPage() {
     setRefreshing(false);
   };
 
+  const handleCreateDefaultPlans = async () => {
+    try {
+      setRefreshing(true);
+      const res = await fetch("/api/stripe/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "create-defaults" }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        await fetchProducts();
+        await checkStatus();
+      } else {
+        console.error("Failed to create plans:", data.error);
+      }
+    } catch (error) {
+      console.error("Error creating plans:", error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const handleWizardComplete = () => {
     checkStatus();
   };
@@ -454,9 +476,9 @@ export default function StripeAdminPage() {
                     <p className="text-muted-foreground mb-4">
                       No products created yet
                     </p>
-                    <Button onClick={() => {}}>
+                    <Button onClick={handleCreateDefaultPlans} disabled={refreshing}>
                       <Package className="mr-2 h-4 w-4" />
-                      Create Default Plans
+                      {refreshing ? "Creating..." : "Create Default Plans"}
                     </Button>
                   </div>
                 )}

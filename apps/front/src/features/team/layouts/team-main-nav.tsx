@@ -140,13 +140,23 @@ const navGroups = [
     items: [
       {
         title: "Gianna AI",
-        path: "/ai-training",
+        path: "/inbox",
         icon: BrainIcon,
-      },
-      {
-        title: "AI SDR Avatars",
-        path: "/ai-sdr",
-        icon: BotIcon,
+        items: [
+          {
+            title: "Inbound Responses",
+            path: "/inbox",
+            exact: true,
+          },
+          {
+            title: "Train AI",
+            path: "/ai-training",
+          },
+          {
+            title: "AI Personas",
+            path: "/settings/ai-sdr",
+          },
+        ],
       },
       {
         title: "Content Library",

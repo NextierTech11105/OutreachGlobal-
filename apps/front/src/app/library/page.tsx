@@ -326,18 +326,6 @@ const sections: PageSection[] = [
         description: "Bulk data import",
       },
       {
-        name: "Data Schema",
-        href: "/admin/data/schema",
-        icon: Database,
-        description: "Database schema",
-      },
-      {
-        name: "Data Verification",
-        href: "/admin/data/verification",
-        icon: CheckCircle2,
-        description: "Verify data quality",
-      },
-      {
         name: "Prompt Library",
         href: "/admin/prompt-library",
         icon: FileText,

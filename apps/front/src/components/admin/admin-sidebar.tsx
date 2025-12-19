@@ -72,9 +72,7 @@ export function AdminSidebar() {
         {
           href: "/admin/data/import",
           label: "Data Import",
-          active:
-            pathname === "/admin/data/import" ||
-            pathname === "/admin/data/schema",
+          active: pathname === "/admin/data/import",
         },
       ],
     },
@@ -89,13 +87,8 @@ export function AdminSidebar() {
       children: [
         {
           href: "/admin/digital-workers",
-          label: "Digital Workers",
-          active: pathname === "/admin/digital-workers",
-        },
-        {
-          href: "/admin/ai-sdr",
-          label: "AI SDR Avatars",
-          active: pathname === "/admin/ai-sdr",
+          label: "AI Agent (Gianna)",
+          active: pathname === "/admin/digital-workers" || pathname === "/admin/ai-sdr",
         },
         {
           href: "/admin/campaigns/automation",
