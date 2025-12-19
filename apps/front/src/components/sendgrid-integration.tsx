@@ -101,25 +101,77 @@ export function SendgridIntegration() {
     unsubscribeLink: "{{unsubscribe_link}}",
   };
 
-  const handleSaveSettings = () => {
+  const [connectionStatus, setConnectionStatus] = useState<"success" | "error" | null>(null);
+  const [saveStatus, setSaveStatus] = useState<"success" | "error" | null>(null);
+
+  const handleSaveSettings = async () => {
     setIsSaving(true);
-    // Simulate API call
-    setTimeout(() => {
+    setSaveStatus(null);
+    try {
+      const response = await fetch("/api/sendgrid/configure", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          apiKey: apiKey.includes("•") ? undefined : apiKey,
+          fromEmail,
+          fromName,
+          replyTo,
+          sandboxMode,
+          ipPool,
+          emailCategory,
+          dailyLimit: parseInt(dailyLimit),
+          batchSize: parseInt(batchSize),
+        }),
+      });
+      if (!response.ok) throw new Error("Failed to save");
+      setSaveStatus("success");
+    } catch (err) {
+      setSaveStatus("error");
+      console.error("Save failed:", err);
+    } finally {
       setIsSaving(false);
-    }, 1000);
+    }
   };
 
-  const handleTestConnection = () => {
+  const handleTestConnection = async () => {
     setIsTesting(true);
-    // Simulate API call
-    setTimeout(() => {
+    setConnectionStatus(null);
+    try {
+      const response = await fetch("/api/sendgrid/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          apiKey: apiKey.includes("•") ? undefined : apiKey,
+        }),
+      });
+      if (!response.ok) throw new Error("Connection failed");
+      setConnectionStatus("success");
+    } catch (err) {
+      setConnectionStatus("error");
+      console.error("Connection test failed:", err);
+    } finally {
       setIsTesting(false);
-    }, 1500);
+    }
   };
 
-  const handleSendTestEmail = () => {
-    // Implementation would send a test email
-    console.log(`Sending test email to ${testEmail}`);
+  const handleSendTestEmail = async () => {
+    if (!testEmail) return;
+    try {
+      const response = await fetch("/api/sendgrid/send-test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: testEmail,
+          fromEmail,
+          fromName,
+        }),
+      });
+      if (!response.ok) throw new Error("Failed to send test email");
+      alert("Test email sent successfully!");
+    } catch (err) {
+      alert("Failed to send test email");
+      console.error("Test email failed:", err);
+    }
   };
 
   const toggleEventType = (type: string) => {

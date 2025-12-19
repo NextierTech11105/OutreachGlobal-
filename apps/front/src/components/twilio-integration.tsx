@@ -273,15 +273,34 @@ export function TwilioIntegration() {
   };
 
   const handleSaveCredentials = async () => {
+    if (!credentials.accountSid || !credentials.authToken) {
+      setError("Please enter Account SID and Auth Token");
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
     setSuccess(false);
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const response = await fetch("/api/twilio/configure", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          accountSid: credentials.accountSid,
+          authToken: credentials.authToken,
+          apiKey: credentials.apiKey,
+          apiSecret: credentials.apiSecret,
+          appSid: credentials.appSid,
+        }),
+      });
 
-      // Success
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to save credentials");
+      }
+
+      setIsConnected(true);
       setSuccess(true);
     } catch (err) {
       setError(
