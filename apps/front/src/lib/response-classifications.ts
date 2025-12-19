@@ -626,12 +626,37 @@ export const CATHY_NUDGE_TEMPLATES: Record<number, string[]> = {
   ],
 };
 
+// Context-specific CATHY templates (property, business, value offering)
+export const CATHY_CONTEXT_TEMPLATES: Record<string, string[]> = {
+  property: [
+    `{{first_name}}, Cathy again about {{property_address}}. I've driven by this address more times than my ex. And that's saying something - he lived next door. Quick chat? - Cathy`,
+    `Hey {{first_name}}! Still thinking about your place on {{property_street}}. My GPS and I have become very familiar with the route. She doesn't judge. Text back? - Cathy`,
+  ],
+  business: [
+    `{{first_name}}, Cathy here about {{company_name}}. I've looked at more {{industry}} businesses than my accountant looks at spreadsheets. And she LOVES spreadsheets. Got 5 mins? - Cathy`,
+    `Hey {{first_name}}! Quick follow-up on {{business_name}}. I've been in this game long enough to know when something's worth my persistence. This is one of those times. - Cathy`,
+  ],
+  value_offer: [
+    `{{first_name}}! Cathy here. Still want to send you that {{value_content}}. It's free, it's useful, and unlike my cooking, it won't disappoint. Just need your email! - Cathy`,
+    `Hey {{first_name}}, that {{value_content}} I mentioned? Still got your name on it. My handwriting is terrible but my follow-through is excellent. Email? - Cathy`,
+  ],
+};
+
 // OpenAI prompt for generating CATHY humor
 export const CATHY_OPENAI_SYSTEM_PROMPT = `You are CATHY, a friendly and persistently funny SMS follow-up assistant.
 
 Your humor style combines:
 1. LESLIE NIELSEN (Naked Gun/Airplane): Deadpan delivery of absurd statements. Take things literally. Act serious while saying ridiculous things.
 2. HENNY YOUNGMAN: Quick one-liners, self-deprecating jokes, observational humor. "Take my wife... please!" energy.
+
+Available variables you can use:
+- {{first_name}} - Lead's first name
+- {{property_address}} - Property address (if property context)
+- {{company_name}} or {{business_name}} - Business name (if business context)
+- {{industry}} - Industry type
+- {{value_content}} - What you're offering (Property Valuation Report, Exit Strategy Guide, etc.)
+- {{attempt_count}} - Number of outreach attempts
+- {{agent_signature}} - Sender signature
 
 Rules:
 - Keep messages under 160 characters when possible (SMS limit)
@@ -642,13 +667,29 @@ Rules:
 - Include a clear call-to-action (text back, call, etc.)
 - No emojis (too corporate)
 - Sound like a real person, not a bot
+- If property context: reference the address naturally
+- If business context: reference the company/industry naturally
+- If value_offer context: mention what you're trying to send them
 
 You're following up because you genuinely want to help, but you also can't help being funny about it.`;
+
+export interface CathyContext {
+  firstName: string;
+  attemptNumber: number;
+  humorLevel: CathyHumorLevel;
+  // Optional context fields
+  propertyAddress?: string;
+  companyName?: string;
+  businessName?: string;
+  industry?: string;
+  valueContent?: string;
+  campaignContext?: string;
+}
 
 export function getCathyOpenAIPrompt(
   firstName: string,
   attemptNumber: number,
-  context: string,
+  context: string | CathyContext,
   humorLevel: CathyHumorLevel,
 ): string {
   const intensityGuide = {
@@ -657,13 +698,47 @@ export function getCathyOpenAIPrompt(
     spicy: "Full Leslie Nielsen. Absurdist, deadpan, wonderfully ridiculous.",
   };
 
+  // Build context string from object if provided
+  let contextString = typeof context === "string" ? context : "";
+  let contextType = "general";
+
+  if (typeof context === "object") {
+    const parts: string[] = [];
+    if (context.propertyAddress) {
+      parts.push(`Property: ${context.propertyAddress}`);
+      contextType = "property";
+    }
+    if (context.companyName || context.businessName) {
+      parts.push(`Business: ${context.companyName || context.businessName}`);
+      contextType = "business";
+    }
+    if (context.industry) {
+      parts.push(`Industry: ${context.industry}`);
+    }
+    if (context.valueContent) {
+      parts.push(`Offering: ${context.valueContent}`);
+      contextType = contextType === "general" ? "value_offer" : contextType;
+    }
+    if (context.campaignContext) {
+      parts.push(`Campaign type: ${context.campaignContext}`);
+    }
+    contextString = parts.join(". ");
+  }
+
   return `Generate a follow-up SMS from CATHY to ${firstName}.
 
 This is attempt #${attemptNumber}.
-Context: ${context}
+Context type: ${contextType}
+Details: ${contextString || "General follow-up"}
 Humor intensity: ${humorLevel} - ${intensityGuide[humorLevel]}
 
-Remember: Deadpan delivery, self-deprecating, reference the attempt number, end with "- Cathy"`;
+Remember:
+- Deadpan delivery, self-deprecating
+- Reference the attempt number naturally
+- End with "- Cathy"
+- If property context: mention the address casually
+- If business context: reference the company/industry
+- If value_offer: mention what you're sending them`;
 }
 
 export function getCathyTemperature(humorLevel: CathyHumorLevel): number {
@@ -681,6 +756,64 @@ export function getCathyTemperature(humorLevel: CathyHumorLevel): number {
 export function getCathyFallbackTemplate(attemptNumber: number): string {
   const templates = CATHY_NUDGE_TEMPLATES[Math.min(attemptNumber, 5)] || CATHY_NUDGE_TEMPLATES[5];
   return templates[Math.floor(Math.random() * templates.length)];
+}
+
+/**
+ * Get context-specific CATHY template
+ */
+export function getCathyContextTemplate(
+  contextType: "property" | "business" | "value_offer",
+): string {
+  const templates = CATHY_CONTEXT_TEMPLATES[contextType];
+  if (!templates || templates.length === 0) {
+    return getCathyFallbackTemplate(1);
+  }
+  return templates[Math.floor(Math.random() * templates.length)];
+}
+
+/**
+ * Build CATHY message with full context
+ */
+export function buildCathyContextMessage(
+  context: CathyContext,
+  variables: Record<string, string>,
+): { message: string; templateUsed: string } {
+  // Determine context type
+  let contextType: "property" | "business" | "value_offer" | "general" = "general";
+  if (context.propertyAddress) contextType = "property";
+  else if (context.companyName || context.businessName) contextType = "business";
+  else if (context.valueContent) contextType = "value_offer";
+
+  // Get template
+  let template: string;
+  if (contextType !== "general") {
+    template = getCathyContextTemplate(contextType);
+  } else {
+    template = getCathyFallbackTemplate(context.attemptNumber);
+  }
+
+  // Replace all variables
+  let message = template;
+  const allVars = {
+    first_name: context.firstName,
+    attempt_count: String(context.attemptNumber),
+    property_address: context.propertyAddress || "",
+    property_street: context.propertyAddress?.split(",")[0] || "",
+    company_name: context.companyName || "",
+    business_name: context.businessName || "",
+    industry: context.industry || "",
+    value_content: context.valueContent || "",
+    ...variables,
+  };
+
+  for (const [key, value] of Object.entries(allVars)) {
+    message = message.replace(new RegExp(`{{${key}}}`, "gi"), value);
+  }
+
+  return {
+    message,
+    templateUsed: `cathy_${contextType}_${context.attemptNumber}`,
+  };
 }
 
 // ==========================================
