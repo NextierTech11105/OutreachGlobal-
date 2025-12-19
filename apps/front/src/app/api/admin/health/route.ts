@@ -207,24 +207,64 @@ async function checkStripe(): Promise<IntegrationStatus> {
 }
 
 async function checkDOSpaces(): Promise<IntegrationStatus> {
+  // Check all possible env var names used across the codebase
   const accessKey =
-    process.env.DO_SPACES_ACCESS_KEY || process.env.SPACES_ACCESS_KEY;
+    process.env.DO_SPACES_KEY ||
+    process.env.SPACES_KEY ||
+    process.env.DO_SPACES_ACCESS_KEY ||
+    process.env.SPACES_ACCESS_KEY;
   const secretKey =
-    process.env.DO_SPACES_SECRET_KEY || process.env.SPACES_SECRET_KEY;
-  const bucket = process.env.DO_SPACES_BUCKET || process.env.SPACES_BUCKET;
+    process.env.DO_SPACES_SECRET ||
+    process.env.SPACES_SECRET ||
+    process.env.DO_SPACES_SECRET_KEY ||
+    process.env.SPACES_SECRET_ACCESS_KEY;
+  const bucket =
+    process.env.DO_SPACES_BUCKET ||
+    process.env.SPACES_BUCKET ||
+    "nextier";
 
   if (!accessKey || !secretKey) {
     return {
       status: "not_configured",
-      message: "DO Spaces credentials not set",
+      message: "DO Spaces credentials not set. Need DO_SPACES_KEY + DO_SPACES_SECRET",
     };
   }
 
-  if (!bucket) {
-    return { status: "degraded", message: "Bucket name not configured" };
-  }
+  // Actually test the connection
+  const start = Date.now();
+  try {
+    const { S3Client, ListObjectsV2Command } = await import("@aws-sdk/client-s3");
+    const client = new S3Client({
+      endpoint: "https://nyc3.digitaloceanspaces.com",
+      region: "nyc3",
+      credentials: { accessKeyId: accessKey, secretAccessKey: secretKey },
+    });
 
-  return { status: "operational", message: "Credentials configured" };
+    const result = await client.send(
+      new ListObjectsV2Command({
+        Bucket: bucket,
+        Prefix: "buckets/",
+        MaxKeys: 5,
+      }),
+    );
+
+    const bucketCount = result.Contents?.length || 0;
+    const hasIndex = result.Contents?.some((obj) =>
+      obj.Key?.includes("_index.json"),
+    );
+
+    return {
+      status: "operational",
+      latency: Date.now() - start,
+      message: `Connected to '${bucket}'. ${bucketCount} bucket files found. Index: ${hasIndex ? "yes" : "no"}`,
+    };
+  } catch (error) {
+    return {
+      status: "error",
+      latency: Date.now() - start,
+      message: error instanceof Error ? error.message : "Connection failed",
+    };
+  }
 }
 
 export async function GET() {
