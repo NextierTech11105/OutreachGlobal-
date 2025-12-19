@@ -531,7 +531,7 @@ export function containsProfanity(message: string): boolean {
 // Structured templates for AI copilot responses
 // ==========================================
 
-export type GiannaTemplateType = "email_capture" | "question" | "assistance";
+export type GiannaTemplateType = "email_capture" | "question" | "assistance" | "nudger";
 
 export interface GiannaResponseTemplate {
   id: GiannaTemplateType;
@@ -571,7 +571,214 @@ export const GIANNA_RESPONSE_TEMPLATES: GiannaResponseTemplate[] = [
     variables: ["first_name", "context_response"],
     automatable: false, // Human-in-loop for context
   },
+  {
+    id: "nudger",
+    name: "CATHY Nudger",
+    description: "Background nudge for non-responders - deployed through CATHY",
+    classificationIds: [], // Outbound only, not triggered by inbound classification
+    template: `Hey {{first_name}}, we tried reaching you {{attempt_count}} times... do we have the right person?? Let us know! - Cathy`,
+    variables: ["first_name", "attempt_count"],
+    automatable: true, // CATHY runs in background automatically
+  },
 ];
+
+// ==========================================
+// CATHY NUDGER SYSTEM
+// Background nudge tracking for non-responders
+// ==========================================
+
+export interface NudgeAttempt {
+  nudgeId: string; // Unique ID for this nudge: nudge_${timestamp}_${random}
+  leadId: string;
+  attemptNumber: number; // 1, 2, 3, 4...
+  sentAt: string; // ISO timestamp
+  messageId?: string; // SignalHouse message ID
+  status: "sent" | "delivered" | "failed" | "responded";
+  template: string; // Which template was used
+}
+
+export interface LeadNudgeHistory {
+  leadId: string;
+  firstName: string;
+  phone: string;
+  campaignContext: CampaignContext; // What type of campaign
+  attempts: NudgeAttempt[];
+  totalAttempts: number;
+  lastAttemptAt: string | null;
+  lastAttemptHour: number | null; // 0-23 hour of last attempt
+  lastResponseAt: string | null;
+  suggestedNextTime: string | null; // Smart scheduling suggestion
+  status: "active" | "responded" | "exhausted" | "opted_out";
+}
+
+/**
+ * Time slots for smart scheduling
+ */
+export type TimeSlot = "morning" | "midday" | "afternoon" | "evening";
+
+/**
+ * Get time slot from hour
+ */
+export function getTimeSlot(hour: number): TimeSlot {
+  if (hour >= 6 && hour < 11) return "morning";
+  if (hour >= 11 && hour < 14) return "midday";
+  if (hour >= 14 && hour < 18) return "afternoon";
+  return "evening";
+}
+
+/**
+ * Get opposite time slot for smart scheduling
+ * If morning attempts fail, try evening. If midday fails, try morning/evening.
+ */
+export function getOppositeTimeSlot(slot: TimeSlot): TimeSlot {
+  const opposites: Record<TimeSlot, TimeSlot> = {
+    morning: "evening",
+    midday: "morning",
+    afternoon: "morning",
+    evening: "midday",
+  };
+  return opposites[slot];
+}
+
+/**
+ * Suggest next outreach time based on failed attempts
+ * Smart scheduling: try opposite time of day
+ */
+export function suggestNextOutreachTime(history: LeadNudgeHistory): {
+  suggestedSlot: TimeSlot;
+  suggestedHour: number;
+  reason: string;
+} {
+  if (history.attempts.length === 0) {
+    return {
+      suggestedSlot: "morning",
+      suggestedHour: 10,
+      reason: "Default: Start with morning outreach",
+    };
+  }
+
+  // Analyze what time slots have been tried
+  const attemptHours = history.attempts.map((a) => new Date(a.sentAt).getHours());
+  const attemptSlots = attemptHours.map(getTimeSlot);
+
+  // Count attempts per slot
+  const slotCounts: Record<TimeSlot, number> = {
+    morning: 0,
+    midday: 0,
+    afternoon: 0,
+    evening: 0,
+  };
+  attemptSlots.forEach((slot) => slotCounts[slot]++);
+
+  // Find most tried slot
+  const mostTriedSlot = Object.entries(slotCounts).reduce((a, b) =>
+    b[1] > a[1] ? b : a
+  )[0] as TimeSlot;
+
+  // Suggest opposite
+  const suggestedSlot = getOppositeTimeSlot(mostTriedSlot);
+  const slotHours: Record<TimeSlot, number> = {
+    morning: 9,
+    midday: 12,
+    afternoon: 15,
+    evening: 18,
+  };
+
+  return {
+    suggestedSlot,
+    suggestedHour: slotHours[suggestedSlot],
+    reason: `No response from ${mostTriedSlot} attempts (${slotCounts[mostTriedSlot]}x) - try ${suggestedSlot}`,
+  };
+}
+
+/**
+ * Generate unique nudge attempt ID
+ */
+export function generateNudgeId(): string {
+  return `nudge_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
+
+/**
+ * Create a new nudge attempt record
+ */
+export function createNudgeAttempt(
+  leadId: string,
+  attemptNumber: number,
+  messageId?: string,
+): NudgeAttempt {
+  return {
+    nudgeId: generateNudgeId(),
+    leadId,
+    attemptNumber,
+    sentAt: new Date().toISOString(),
+    messageId,
+    status: "sent",
+    template: "nudger",
+  };
+}
+
+/**
+ * Build CATHY nudge message with attempt tracking
+ */
+export function buildCathyNudgeMessage(
+  firstName: string,
+  attemptNumber: number,
+): { message: string; nudgeId: string } {
+  const nudgeId = generateNudgeId();
+  const template = GIANNA_RESPONSE_TEMPLATES.find((t) => t.id === "nudger");
+
+  if (!template) {
+    return {
+      message: `Hey ${firstName}, we tried reaching you ${attemptNumber} times... do we have the right person?? Let us know! - Cathy`,
+      nudgeId,
+    };
+  }
+
+  let message = template.template;
+  message = message.replace(/{{first_name}}/g, firstName);
+  message = message.replace(/{{attempt_count}}/g, String(attemptNumber));
+
+  return { message, nudgeId };
+}
+
+/**
+ * Get last outreach attempt for a lead
+ * Critical visibility log for Nextier
+ */
+export function getLastOutreachAttempt(
+  history: LeadNudgeHistory,
+): NudgeAttempt | null {
+  if (history.attempts.length === 0) return null;
+  return history.attempts[history.attempts.length - 1];
+}
+
+/**
+ * Format last outreach for display
+ */
+export function formatLastOutreach(attempt: NudgeAttempt | null): string {
+  if (!attempt) return "No outreach yet";
+
+  const date = new Date(attempt.sentAt);
+  const ago = getTimeAgo(date);
+
+  return `Attempt #${attempt.attemptNumber} - ${ago} (${attempt.status})`;
+}
+
+/**
+ * Helper: Get time ago string
+ */
+function getTimeAgo(date: Date): string {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffDays > 0) return `${diffDays}d ago`;
+  if (diffHours > 0) return `${diffHours}h ago`;
+  if (diffMins > 0) return `${diffMins}m ago`;
+  return "just now";
+}
 
 /**
  * Get the appropriate GIANNA template for a classification
