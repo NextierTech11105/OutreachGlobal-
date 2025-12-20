@@ -46,7 +46,10 @@ const SABRINA_CONFIG = {
   gradient: "from-emerald-500 to-teal-600",
   color: "emerald",
   confirmationWorkflow: [
-    { step: "CONFIRM", description: "Send confirmation when appointment is booked" },
+    {
+      step: "CONFIRM",
+      description: "Send confirmation when appointment is booked",
+    },
     { step: "REMIND", description: "Send reminder 24 hours before" },
     { step: "DAY-OF", description: "Send day-of reminder 1 hour before" },
   ],
@@ -92,7 +95,7 @@ export default function SabrinaCampaignsPage() {
     async function fetchPhone() {
       try {
         const response = await fetch(
-          `/api/workers/phone?worker=sabrina&teamId=${team.id}`
+          `/api/workers/phone?worker=sabrina&teamId=${team.id}`,
         );
         const data = await response.json();
         if (data.success && data.assignment?.phoneNumber) {
@@ -129,11 +132,13 @@ export default function SabrinaCampaignsPage() {
   };
 
   // Handle handoff
-  const handleHandoff = async (leadId: string, toWorker: "gianna" | "cathy") => {
+  const handleHandoff = async (
+    leadId: string,
+    toWorker: "gianna" | "cathy",
+  ) => {
     try {
-      const endpoint = toWorker === "cathy"
-        ? "/api/cathy/schedule"
-        : "/api/gianna/respond";
+      const endpoint =
+        toWorker === "cathy" ? "/api/cathy/schedule" : "/api/gianna/respond";
 
       const response = await fetch(endpoint, {
         method: "POST",
@@ -142,7 +147,8 @@ export default function SabrinaCampaignsPage() {
           leadId,
           fromWorker: "sabrina",
           teamId: team.id,
-          reason: toWorker === "cathy" ? "backed_off_3_rebuttals" : "needs_warming",
+          reason:
+            toWorker === "cathy" ? "backed_off_3_rebuttals" : "needs_warming",
         }),
       });
 
@@ -166,7 +172,7 @@ export default function SabrinaCampaignsPage() {
             <div
               className={cn(
                 "w-16 h-16 rounded-2xl flex items-center justify-center bg-gradient-to-br",
-                SABRINA_CONFIG.gradient
+                SABRINA_CONFIG.gradient,
               )}
             >
               <CheckCircle2 className="w-8 h-8 text-white" />
@@ -326,14 +332,18 @@ export default function SabrinaCampaignsPage() {
                         "w-10 h-10 rounded-full flex items-center justify-center font-bold",
                         i === 0 && "bg-blue-500/20 text-blue-400",
                         i === 1 && "bg-yellow-500/20 text-yellow-400",
-                        i === 2 && "bg-green-500/20 text-green-400"
+                        i === 2 && "bg-green-500/20 text-green-400",
                       )}
                     >
                       {i + 1}
                     </div>
                     <div>
-                      <p className="font-medium text-zinc-100">{strategy.step}</p>
-                      <p className="text-sm text-zinc-400">{strategy.description}</p>
+                      <p className="font-medium text-zinc-100">
+                        {strategy.step}
+                      </p>
+                      <p className="text-sm text-zinc-400">
+                        {strategy.description}
+                      </p>
                     </div>
                   </div>
                 ))}
@@ -454,7 +464,11 @@ export default function SabrinaCampaignsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Button className="w-full justify-between" variant="outline" asChild>
+                <Button
+                  className="w-full justify-between"
+                  variant="outline"
+                  asChild
+                >
                   <TeamLink href="/calendar">
                     <span className="flex items-center gap-2">
                       <Calendar className="w-4 h-4" />
@@ -463,7 +477,11 @@ export default function SabrinaCampaignsPage() {
                     <ChevronRight className="w-4 h-4" />
                   </TeamLink>
                 </Button>
-                <Button className="w-full justify-between" variant="outline" asChild>
+                <Button
+                  className="w-full justify-between"
+                  variant="outline"
+                  asChild
+                >
                   <TeamLink href="/analytics/bookings">
                     <span className="flex items-center gap-2">
                       <BarChart3 className="w-4 h-4" />

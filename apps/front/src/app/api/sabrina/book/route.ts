@@ -27,7 +27,9 @@ const BUSINESS_HOURS = {
 const SLOT_DURATION = 30;
 
 // Generate available slots for the next N days
-function generateAvailableSlots(days: number = 5): Array<{ date: string; time: string; slot: string }> {
+function generateAvailableSlots(
+  days: number = 5,
+): Array<{ date: string; time: string; slot: string }> {
   const slots: Array<{ date: string; time: string; slot: string }> = [];
   const now = new Date();
 
@@ -115,7 +117,7 @@ export async function POST(request: NextRequest) {
     if (!leadId || !slot) {
       return NextResponse.json(
         { success: false, error: "leadId and slot are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -124,7 +126,7 @@ export async function POST(request: NextRequest) {
     if (slotDate <= new Date()) {
       return NextResponse.json(
         { success: false, error: "Slot must be in the future" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -138,7 +140,7 @@ export async function POST(request: NextRequest) {
     if (!lead) {
       return NextResponse.json(
         { success: false, error: "Lead not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -181,7 +183,10 @@ export async function POST(request: NextRequest) {
     let confirmationSent = false;
     if (sendConfirmation && lead.phone) {
       let message = BOOKING_TEMPLATES.confirmation.sms;
-      message = message.replace(/\{\{first_name\}\}/g, lead.firstName || "there");
+      message = message.replace(
+        /\{\{first_name\}\}/g,
+        lead.firstName || "there",
+      );
       message = message.replace(/\{\{date\}\}/g, dateStr);
       message = message.replace(/\{\{time\}\}/g, timeStr);
 
@@ -218,7 +223,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(
-      `[Sabrina Book] Booked appointment for ${lead.firstName} on ${dateStr} at ${timeStr}`
+      `[Sabrina Book] Booked appointment for ${lead.firstName} on ${dateStr} at ${timeStr}`,
     );
 
     return NextResponse.json({
@@ -248,7 +253,7 @@ export async function POST(request: NextRequest) {
         success: false,
         error: error instanceof Error ? error.message : "Booking failed",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -85,7 +85,7 @@ export default function GiannaCampaignsPage() {
     async function fetchPhone() {
       try {
         const response = await fetch(
-          `/api/workers/phone?worker=gianna&teamId=${team.id}`
+          `/api/workers/phone?worker=gianna&teamId=${team.id}`,
         );
         const data = await response.json();
         if (data.success && data.assignment?.phoneNumber) {
@@ -102,9 +102,7 @@ export default function GiannaCampaignsPage() {
   useEffect(() => {
     async function fetchStats() {
       try {
-        const response = await fetch(
-          `/api/gianna/stats?teamId=${team.id}`
-        );
+        const response = await fetch(`/api/gianna/stats?teamId=${team.id}`);
         const data = await response.json();
         if (data.success) {
           setStats(data.stats);
@@ -125,11 +123,13 @@ export default function GiannaCampaignsPage() {
   };
 
   // Handle handoff to another worker
-  const handleHandoff = async (leadId: string, toWorker: "cathy" | "sabrina") => {
+  const handleHandoff = async (
+    leadId: string,
+    toWorker: "cathy" | "sabrina",
+  ) => {
     try {
-      const endpoint = toWorker === "cathy"
-        ? "/api/cathy/schedule"
-        : "/api/sabrina/book";
+      const endpoint =
+        toWorker === "cathy" ? "/api/cathy/schedule" : "/api/sabrina/book";
 
       const response = await fetch(endpoint, {
         method: "POST",
@@ -161,7 +161,7 @@ export default function GiannaCampaignsPage() {
             <div
               className={cn(
                 "w-16 h-16 rounded-2xl flex items-center justify-center bg-gradient-to-br",
-                GIANNA_CONFIG.gradient
+                GIANNA_CONFIG.gradient,
               )}
             >
               <Sparkles className="w-8 h-8 text-white" />
@@ -169,7 +169,10 @@ export default function GiannaCampaignsPage() {
             <div>
               <TeamTitle className="flex items-center gap-2">
                 {GIANNA_CONFIG.name}
-                <Badge variant="outline" className="text-purple-400 border-purple-400/50">
+                <Badge
+                  variant="outline"
+                  className="text-purple-400 border-purple-400/50"
+                >
                   {GIANNA_CONFIG.role}
                 </Badge>
               </TeamTitle>
@@ -308,7 +311,11 @@ export default function GiannaCampaignsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Button className="w-full justify-between" variant="outline" asChild>
+                <Button
+                  className="w-full justify-between"
+                  variant="outline"
+                  asChild
+                >
                   <TeamLink href="/campaigns/create">
                     <span className="flex items-center gap-2">
                       <Target className="w-4 h-4" />
@@ -317,7 +324,11 @@ export default function GiannaCampaignsPage() {
                     <ChevronRight className="w-4 h-4" />
                   </TeamLink>
                 </Button>
-                <Button className="w-full justify-between" variant="outline" asChild>
+                <Button
+                  className="w-full justify-between"
+                  variant="outline"
+                  asChild
+                >
                   <TeamLink href="/sms/queue">
                     <span className="flex items-center gap-2">
                       <Inbox className="w-4 h-4" />
@@ -326,7 +337,11 @@ export default function GiannaCampaignsPage() {
                     <ChevronRight className="w-4 h-4" />
                   </TeamLink>
                 </Button>
-                <Button className="w-full justify-between" variant="outline" asChild>
+                <Button
+                  className="w-full justify-between"
+                  variant="outline"
+                  asChild
+                >
                   <TeamLink href="/ai-training">
                     <span className="flex items-center gap-2">
                       <Sparkles className="w-4 h-4" />
@@ -335,7 +350,11 @@ export default function GiannaCampaignsPage() {
                     <ChevronRight className="w-4 h-4" />
                   </TeamLink>
                 </Button>
-                <Button className="w-full justify-between" variant="outline" asChild>
+                <Button
+                  className="w-full justify-between"
+                  variant="outline"
+                  asChild
+                >
                   <TeamLink href="/analytics/sms">
                     <span className="flex items-center gap-2">
                       <BarChart3 className="w-4 h-4" />
@@ -363,7 +382,9 @@ export default function GiannaCampaignsPage() {
                     </div>
                   ))}
                   <div className="border-t border-zinc-800 pt-4 mt-4">
-                    <p className="text-xs text-zinc-500 mb-3">Then hands off to:</p>
+                    <p className="text-xs text-zinc-500 mb-3">
+                      Then hands off to:
+                    </p>
                     <div className="flex gap-2">
                       <Badge
                         variant="outline"
@@ -409,8 +430,8 @@ export default function GiannaCampaignsPage() {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-zinc-500">
-              Campaigns assigned to GIANNA will appear here. Create a campaign and
-              assign GIANNA as the AI SDR to see it listed.
+              Campaigns assigned to GIANNA will appear here. Create a campaign
+              and assign GIANNA as the AI SDR to see it listed.
             </p>
           </CardContent>
         </Card>

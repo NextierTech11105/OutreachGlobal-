@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     if (!teamId) {
       return NextResponse.json(
         { success: false, error: "teamId is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -138,7 +138,7 @@ export async function GET(request: NextRequest) {
         error: error instanceof Error ? error.message : "Failed to fetch inbox",
         messages: [],
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -152,7 +152,7 @@ export async function PATCH(request: NextRequest) {
     if (!messageIds || !teamId) {
       return NextResponse.json(
         { success: false, error: "messageIds and teamId are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -182,9 +182,10 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : "Failed to update messages",
+        error:
+          error instanceof Error ? error.message : "Failed to update messages",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

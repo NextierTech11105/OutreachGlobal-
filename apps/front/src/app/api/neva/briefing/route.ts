@@ -35,7 +35,11 @@ interface BriefingOutput {
     keyInsight: string;
     talkingPoints: string[];
     objectionPrep: Array<{ objection: string; response: string }>;
-    conversationHistory: Array<{ date: string; summary: string; direction: "inbound" | "outbound" }>;
+    conversationHistory: Array<{
+      date: string;
+      summary: string;
+      direction: "inbound" | "outbound";
+    }>;
     nextSteps: string[];
   };
   quickGlance: string; // One-liner summary
@@ -50,7 +54,9 @@ function formatBriefing(briefing: BriefingOutput): string {
   lines.push(`📋 PRE-CALL BRIEFING: ${briefing.header.leadName.toUpperCase()}`);
   lines.push("═══════════════════════════════════════════════════");
   lines.push("");
-  lines.push(`📅 ${briefing.header.appointmentDate} | ${briefing.header.meetingType}`);
+  lines.push(
+    `📅 ${briefing.header.appointmentDate} | ${briefing.header.meetingType}`,
+  );
   lines.push(`🤖 Prepared by NEVA at ${briefing.header.preparedAt}`);
   lines.push("");
   lines.push("───────────────────────────────────────────────────");
@@ -118,7 +124,7 @@ export async function POST(request: NextRequest) {
     if (!leadId) {
       return NextResponse.json(
         { success: false, error: "leadId required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -132,12 +138,16 @@ export async function POST(request: NextRequest) {
     if (!lead) {
       return NextResponse.json(
         { success: false, error: "Lead not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     // Get conversation history
-    let conversationHistory: Array<{ date: string; summary: string; direction: "inbound" | "outbound" }> = [];
+    let conversationHistory: Array<{
+      date: string;
+      summary: string;
+      direction: "inbound" | "outbound";
+    }> = [];
     try {
       const messages = await db
         .select()
@@ -148,7 +158,9 @@ export async function POST(request: NextRequest) {
 
       conversationHistory = messages.map((msg) => ({
         date: new Date(msg.createdAt).toLocaleDateString(),
-        summary: (msg.body?.substring(0, 80) + (msg.body && msg.body.length > 80 ? "..." : "")) || "No content",
+        summary:
+          msg.body?.substring(0, 80) +
+            (msg.body && msg.body.length > 80 ? "..." : "") || "No content",
         direction: msg.direction as "inbound" | "outbound",
       }));
     } catch {
@@ -190,41 +202,51 @@ export async function POST(request: NextRequest) {
     }
 
     if (!context.trim()) {
-      context = "Limited context available. Use discovery questions to learn more.";
+      context =
+        "Limited context available. Use discovery questions to learn more.";
     }
 
     // Generate insight based on lead data
-    let keyInsight = "Standard lead profile. Focus on building rapport and understanding their needs.";
+    let keyInsight =
+      "Standard lead profile. Focus on building rapport and understanding their needs.";
     if (attemptCount > 3) {
       keyInsight = `Persistent engagement (${attemptCount} attempts) suggests genuine interest but possible hesitation. Address underlying concerns.`;
     } else if (lead.status === "appointment") {
-      keyInsight = "Already committed to meeting - they're interested. Focus on value delivery, not more selling.";
+      keyInsight =
+        "Already committed to meeting - they're interested. Focus on value delivery, not more selling.";
     } else if (lead.email && lead.phone) {
-      keyInsight = "Good contact info captured. Lead is engaged enough to share details. Ready for deeper conversation.";
+      keyInsight =
+        "Good contact info captured. Lead is engaged enough to share details. Ready for deeper conversation.";
     }
 
     // Build talking points
     const talkingPoints = [
-      lead.firstName ? `Open with their name ("Hi ${lead.firstName}") - personal touch` : "Ask for their name to personalize",
+      lead.firstName
+        ? `Open with their name ("Hi ${lead.firstName}") - personal touch`
+        : "Ask for their name to personalize",
       "Acknowledge their time is valuable - get to the point",
-      lead.company ? `Reference their business (${lead.company}) to show you did research` : "Ask about their business/situation",
-      "Ask open-ended questions: \"What's driving your interest?\"",
+      lead.company
+        ? `Reference their business (${lead.company}) to show you did research`
+        : "Ask about their business/situation",
+      'Ask open-ended questions: "What\'s driving your interest?"',
       "Listen for pain points - don't jump to solutions too fast",
     ];
 
     // Build objection prep
     const objectionPrep = [
       {
-        objection: "\"What's this about again?\"",
+        objection: '"What\'s this about again?"',
         response: `I'm following up on our previous conversation. Wanted to share some ideas that might help with [reference their situation].`,
       },
       {
-        objection: "\"I'm not sure this is for me\"",
-        response: "Totally fair. Let me ask - what would make it more relevant? I might be able to tailor this to your actual needs.",
+        objection: '"I\'m not sure this is for me"',
+        response:
+          "Totally fair. Let me ask - what would make it more relevant? I might be able to tailor this to your actual needs.",
       },
       {
-        objection: "\"I need to think about it\"",
-        response: "Makes sense. What specifically would you want to think through? Maybe I can help clarify right now.",
+        objection: '"I need to think about it"',
+        response:
+          "Makes sense. What specifically would you want to think through? Maybe I can help clarify right now.",
       },
     ];
 
@@ -248,7 +270,8 @@ export async function POST(request: NextRequest) {
     // Build briefing
     const briefing: BriefingOutput = {
       header: {
-        leadName: `${lead.firstName || ""} ${lead.lastName || ""}`.trim() || "Unknown",
+        leadName:
+          `${lead.firstName || ""} ${lead.lastName || ""}`.trim() || "Unknown",
         appointmentDate: formattedDate,
         meetingType: meetingType.charAt(0).toUpperCase() + meetingType.slice(1),
         preparedBy: "NEVA",
@@ -269,7 +292,9 @@ export async function POST(request: NextRequest) {
     // Generate formatted version
     briefing.formatted = formatBriefing(briefing);
 
-    console.log(`[Neva Briefing] Generated briefing for ${briefing.header.leadName}`);
+    console.log(
+      `[Neva Briefing] Generated briefing for ${briefing.header.leadName}`,
+    );
 
     return NextResponse.json({
       success: true,
@@ -291,7 +316,7 @@ export async function POST(request: NextRequest) {
         success: false,
         error: error instanceof Error ? error.message : "Briefing failed",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

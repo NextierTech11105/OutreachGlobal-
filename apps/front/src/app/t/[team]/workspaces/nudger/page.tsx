@@ -51,7 +51,9 @@ export default function NudgerWorkspacePage() {
   useEffect(() => {
     async function fetchLeads() {
       try {
-        const response = await fetch(`/api/leads?teamId=${teamId}&status=nurturing&limit=50`);
+        const response = await fetch(
+          `/api/leads?teamId=${teamId}&status=nurturing&limit=50`,
+        );
         const data = await response.json();
 
         if (data.success && data.leads) {
@@ -59,8 +61,12 @@ export default function NudgerWorkspacePage() {
           const now = new Date();
           const nudgeLeads: NudgeLead[] = data.leads
             .map((lead: Record<string, unknown>) => {
-              const lastContact = lead.updatedAt ? new Date(lead.updatedAt as string) : new Date(lead.createdAt as string);
-              const daysSince = Math.floor((now.getTime() - lastContact.getTime()) / (1000 * 60 * 60 * 24));
+              const lastContact = lead.updatedAt
+                ? new Date(lead.updatedAt as string)
+                : new Date(lead.createdAt as string);
+              const daysSince = Math.floor(
+                (now.getTime() - lastContact.getTime()) / (1000 * 60 * 60 * 24),
+              );
               return {
                 id: lead.id,
                 firstName: lead.firstName || "",
@@ -118,9 +124,11 @@ export default function NudgerWorkspacePage() {
       const data = await response.json();
 
       if (data.success) {
-        toast.success(`Nudge sent to ${selectedLead.firstName || selectedLead.phone}`);
+        toast.success(
+          `Nudge sent to ${selectedLead.firstName || selectedLead.phone}`,
+        );
         // Remove from list
-        setLeads(prev => prev.filter(l => l.id !== selectedLead.id));
+        setLeads((prev) => prev.filter((l) => l.id !== selectedLead.id));
         setSelectedLead(null);
         setMessage("");
       } else {
@@ -143,7 +151,7 @@ export default function NudgerWorkspacePage() {
   // Skip lead (move to next)
   const handleSkip = () => {
     if (selectedLead) {
-      setLeads(prev => prev.filter(l => l.id !== selectedLead.id));
+      setLeads((prev) => prev.filter((l) => l.id !== selectedLead.id));
       setSelectedLead(null);
       setMessage("");
       toast.info("Lead skipped");
@@ -165,7 +173,10 @@ export default function NudgerWorkspacePage() {
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <MessageCircle className="h-6 w-6 text-pink-500" />
           Nudger Workspace
-          <Badge variant="outline" className="ml-2 text-pink-600 border-pink-300">
+          <Badge
+            variant="outline"
+            className="ml-2 text-pink-600 border-pink-300"
+          >
             CATHY
           </Badge>
         </h1>
@@ -179,7 +190,9 @@ export default function NudgerWorkspacePage() {
           <CardContent className="py-12 text-center">
             <CheckCircle2 className="h-12 w-12 mx-auto mb-4 text-green-500" />
             <h3 className="text-lg font-medium">All caught up!</h3>
-            <p className="text-muted-foreground">No stale leads to nudge right now.</p>
+            <p className="text-muted-foreground">
+              No stale leads to nudge right now.
+            </p>
           </CardContent>
         </Card>
       ) : (
@@ -222,7 +235,9 @@ export default function NudgerWorkspacePage() {
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">
-                {selectedLead ? `Message ${selectedLead.firstName || "Lead"}` : "Select a Lead"}
+                {selectedLead
+                  ? `Message ${selectedLead.firstName || "Lead"}`
+                  : "Select a Lead"}
               </CardTitle>
             </CardHeader>
             <CardContent>

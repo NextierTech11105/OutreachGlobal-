@@ -103,7 +103,9 @@ export function WorkerInbox({
 }: WorkerInboxProps) {
   const [messages, setMessages] = useState<InboxMessage[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedMessage, setSelectedMessage] = useState<InboxMessage | null>(null);
+  const [selectedMessage, setSelectedMessage] = useState<InboxMessage | null>(
+    null,
+  );
   const [replyText, setReplyText] = useState("");
   const [sending, setSending] = useState(false);
   const [filter, setFilter] = useState<"all" | "new" | "replied">("all");
@@ -117,7 +119,7 @@ export function WorkerInbox({
   const fetchMessages = useCallback(async () => {
     try {
       const response = await fetch(
-        `/api/workers/inbox?worker=${workerId}&teamId=${teamId}&phoneNumber=${phoneNumber || ""}`
+        `/api/workers/inbox?worker=${workerId}&teamId=${teamId}&phoneNumber=${phoneNumber || ""}`,
       );
       const data = await response.json();
 
@@ -126,7 +128,7 @@ export function WorkerInbox({
           data.messages.map((m: any) => ({
             ...m,
             createdAt: new Date(m.createdAt),
-          }))
+          })),
         );
       }
     } catch (error) {
@@ -213,14 +215,19 @@ export function WorkerInbox({
   const unreadCount = messages.filter((m) => m.status === "new").length;
 
   return (
-    <div className={cn("flex flex-col h-full bg-zinc-900/50 rounded-lg border border-zinc-800", className)}>
+    <div
+      className={cn(
+        "flex flex-col h-full bg-zinc-900/50 rounded-lg border border-zinc-800",
+        className,
+      )}
+    >
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-zinc-800">
         <div className="flex items-center gap-3">
           <div
             className={cn(
               "w-10 h-10 rounded-full flex items-center justify-center bg-gradient-to-br",
-              config.gradient
+              config.gradient,
             )}
           >
             <Icon className="w-5 h-5 text-white" />
@@ -229,7 +236,10 @@ export function WorkerInbox({
             <h3 className="font-medium text-zinc-100 flex items-center gap-2">
               {config.name} Inbox
               {unreadCount > 0 && (
-                <Badge variant="secondary" className="bg-red-500/20 text-red-400">
+                <Badge
+                  variant="secondary"
+                  className="bg-red-500/20 text-red-400"
+                >
                   {unreadCount} new
                 </Badge>
               )}
@@ -299,7 +309,7 @@ export function WorkerInbox({
                 className={cn(
                   "w-full p-4 text-left hover:bg-zinc-800/50 transition-colors",
                   message.status === "new" && "bg-zinc-800/30",
-                  selectedMessage?.id === message.id && "bg-zinc-800"
+                  selectedMessage?.id === message.id && "bg-zinc-800",
                 )}
               >
                 <div className="flex items-start justify-between gap-3">
@@ -317,7 +327,9 @@ export function WorkerInbox({
                     </p>
                     <div className="flex items-center gap-2 mt-2">
                       <span className="text-xs text-zinc-500">
-                        {formatDistanceToNow(message.createdAt, { addSuffix: true })}
+                        {formatDistanceToNow(message.createdAt, {
+                          addSuffix: true,
+                        })}
                       </span>
                       {message.classification && (
                         <Badge
@@ -331,7 +343,7 @@ export function WorkerInbox({
                             message.classification === "objection" &&
                               "border-orange-500/50 text-orange-400",
                             message.classification === "opt_out" &&
-                              "border-red-500/50 text-red-400"
+                              "border-red-500/50 text-red-400",
                           )}
                         >
                           {message.classification}
@@ -390,7 +402,9 @@ export function WorkerInbox({
                 {/* Classification */}
                 {selectedMessage.classification && (
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-zinc-500">AI Classification:</span>
+                    <span className="text-xs text-zinc-500">
+                      AI Classification:
+                    </span>
                     <Badge
                       className={cn(
                         "text-xs",
@@ -399,7 +413,7 @@ export function WorkerInbox({
                         selectedMessage.classification === "question" &&
                           "bg-blue-500/20 text-blue-400",
                         selectedMessage.classification === "objection" &&
-                          "bg-orange-500/20 text-orange-400"
+                          "bg-orange-500/20 text-orange-400",
                       )}
                     >
                       {selectedMessage.classification}

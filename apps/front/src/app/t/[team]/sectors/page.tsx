@@ -354,7 +354,7 @@ export default function SectorsPage() {
       const data = await response.json();
       if (data.success) {
         toast.success(
-          `Pushed ${data.results.pushed} leads to database! (${data.results.skipped} skipped, ${data.results.duplicates} duplicates)`
+          `Pushed ${data.results.pushed} leads to database! (${data.results.skipped} skipped, ${data.results.duplicates} duplicates)`,
         );
         router.push(`/t/${teamId}/leads`);
       } else {

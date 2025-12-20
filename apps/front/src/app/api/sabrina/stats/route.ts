@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     if (!db) {
       return NextResponse.json(
         { error: "Database not configured", database: "not_connected" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -30,9 +30,9 @@ export async function GET(request: NextRequest) {
           or(
             eq(campaignAttempts.campaignContext, "booking"),
             eq(campaignAttempts.campaignContext, "closing"),
-            eq(campaignAttempts.campaignContext, "objection")
-          )
-        )
+            eq(campaignAttempts.campaignContext, "objection"),
+          ),
+        ),
       )
       .catch(() => [{ count: 0 }]);
 
@@ -52,8 +52,8 @@ export async function GET(request: NextRequest) {
         .where(
           and(
             teamId ? eq(leads.teamId, teamId) : sql`true`,
-            eq(leads.status, "appointment_set")
-          )
+            eq(leads.status, "appointment_set"),
+          ),
         )
         .catch(() => [{ count: 0 }]);
     }
@@ -65,8 +65,8 @@ export async function GET(request: NextRequest) {
       .where(
         and(
           teamId ? eq(campaignAttempts.teamId, teamId) : sql`true`,
-          eq(campaignAttempts.campaignContext, "objection")
-        )
+          eq(campaignAttempts.campaignContext, "objection"),
+        ),
       )
       .catch(() => [{ count: 0 }]);
 
@@ -77,8 +77,8 @@ export async function GET(request: NextRequest) {
       .where(
         and(
           teamId ? eq(leads.teamId, teamId) : sql`true`,
-          eq(leads.status, "nurturing")
-        )
+          eq(leads.status, "nurturing"),
+        ),
       )
       .catch(() => [{ count: 0 }]);
 
@@ -87,14 +87,19 @@ export async function GET(request: NextRequest) {
     const appointmentsBooked = Number(appointmentsBookedResult[0]?.count || 0);
     const objectionsHandled = Number(objectionsHandledResult[0]?.count || 0);
     const handedToCathy = Number(handedToCathyResult[0]?.count || 0);
-    const conversionRate = totalOutreach > 0 ? (appointmentsBooked / totalOutreach) * 100 : 0;
+    const conversionRate =
+      totalOutreach > 0 ? (appointmentsBooked / totalOutreach) * 100 : 0;
 
     // Objection breakdown (simulated - would need real classification data)
     const objectionBreakdown = {
       timing: Math.floor(objectionsHandled * 0.35),
       price: Math.floor(objectionsHandled * 0.25),
       notInterested: Math.floor(objectionsHandled * 0.25),
-      other: objectionsHandled - Math.floor(objectionsHandled * 0.35) - Math.floor(objectionsHandled * 0.25) - Math.floor(objectionsHandled * 0.25),
+      other:
+        objectionsHandled -
+        Math.floor(objectionsHandled * 0.35) -
+        Math.floor(objectionsHandled * 0.25) -
+        Math.floor(objectionsHandled * 0.25),
     };
 
     return NextResponse.json({
@@ -125,10 +130,15 @@ export async function GET(request: NextRequest) {
           conversionRate: 0,
           handedToCathy: 0,
           avgRebuttalsToBook: 0,
-          objectionBreakdown: { timing: 0, price: 0, notInterested: 0, other: 0 },
+          objectionBreakdown: {
+            timing: 0,
+            price: 0,
+            notInterested: 0,
+            other: 0,
+          },
         },
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

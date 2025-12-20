@@ -58,7 +58,7 @@ async function initializeFromRedis(): Promise<void> {
       if (stored) {
         scheduleMemory = stored;
         console.log(
-          `[Cathy Schedule] Loaded ${scheduleMemory.schedules.length} scheduled nudges from Redis`
+          `[Cathy Schedule] Loaded ${scheduleMemory.schedules.length} scheduled nudges from Redis`,
         );
       }
     }
@@ -96,17 +96,12 @@ export async function POST(request: NextRequest) {
     await initializeFromRedis();
 
     const body: ScheduleRequest = await request.json();
-    const {
-      leadIds,
-      cadence = DEFAULT_CADENCE,
-      startDate,
-      campaignId,
-    } = body;
+    const { leadIds, cadence = DEFAULT_CADENCE, startDate, campaignId } = body;
 
     if (!leadIds || !Array.isArray(leadIds) || leadIds.length === 0) {
       return NextResponse.json(
         { success: false, error: "leadIds array required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -129,7 +124,7 @@ export async function POST(request: NextRequest) {
 
       // Check for existing schedules
       const existingForLead = scheduleMemory.schedules.filter(
-        (s) => s.leadId === leadId && s.status === "pending"
+        (s) => s.leadId === leadId && s.status === "pending",
       );
 
       if (existingForLead.length > 0) {
@@ -161,7 +156,7 @@ export async function POST(request: NextRequest) {
     await persistSchedule();
 
     console.log(
-      `[Cathy Schedule] Created ${createdSchedules.length} nudge schedules for ${leadIds.length - skipped.length} leads`
+      `[Cathy Schedule] Created ${createdSchedules.length} nudge schedules for ${leadIds.length - skipped.length} leads`,
     );
 
     return NextResponse.json({
@@ -185,7 +180,7 @@ export async function POST(request: NextRequest) {
         success: false,
         error: error instanceof Error ? error.message : "Schedule failed",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -216,13 +211,14 @@ export async function GET(request: NextRequest) {
     if (dueOnly) {
       const now = new Date();
       schedules = schedules.filter(
-        (s) => s.status === "pending" && new Date(s.scheduledAt) <= now
+        (s) => s.status === "pending" && new Date(s.scheduledAt) <= now,
       );
     }
 
     // Sort by scheduledAt
     schedules.sort(
-      (a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime()
+      (a, b) =>
+        new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime(),
     );
 
     return NextResponse.json({
@@ -230,17 +226,22 @@ export async function GET(request: NextRequest) {
       count: schedules.length,
       schedules: schedules.slice(0, 100), // Limit response
       summary: {
-        pending: scheduleMemory.schedules.filter((s) => s.status === "pending").length,
-        sent: scheduleMemory.schedules.filter((s) => s.status === "sent").length,
-        cancelled: scheduleMemory.schedules.filter((s) => s.status === "cancelled").length,
-        failed: scheduleMemory.schedules.filter((s) => s.status === "failed").length,
+        pending: scheduleMemory.schedules.filter((s) => s.status === "pending")
+          .length,
+        sent: scheduleMemory.schedules.filter((s) => s.status === "sent")
+          .length,
+        cancelled: scheduleMemory.schedules.filter(
+          (s) => s.status === "cancelled",
+        ).length,
+        failed: scheduleMemory.schedules.filter((s) => s.status === "failed")
+          .length,
       },
     });
   } catch (error) {
     console.error("[Cathy Schedule] GET error:", error);
     return NextResponse.json(
       { success: false, error: "Failed to get schedules" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -275,8 +276,11 @@ export async function DELETE(request: NextRequest) {
       });
     } else {
       return NextResponse.json(
-        { success: false, error: "scheduleIds array or leadId with cancelAll required" },
-        { status: 400 }
+        {
+          success: false,
+          error: "scheduleIds array or leadId with cancelAll required",
+        },
+        { status: 400 },
       );
     }
 
@@ -290,7 +294,7 @@ export async function DELETE(request: NextRequest) {
     console.error("[Cathy Schedule] DELETE error:", error);
     return NextResponse.json(
       { success: false, error: "Failed to cancel schedules" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -39,7 +39,8 @@ const CATHY_CONFIG = {
   id: "cathy" as const,
   name: "CATHY",
   role: "Nudger",
-  tagline: "Third time's the charm, right? That's what I told my third husband.",
+  tagline:
+    "Third time's the charm, right? That's what I told my third husband.",
   description:
     "Humor-based re-engagement, ghost revival, and follow-ups. Uses Leslie Nielsen style comedy to break through.",
   gradient: "from-orange-500 to-amber-600",
@@ -90,7 +91,7 @@ export default function CathyCampaignsPage() {
     async function fetchPhone() {
       try {
         const response = await fetch(
-          `/api/workers/phone?worker=cathy&teamId=${team.id}`
+          `/api/workers/phone?worker=cathy&teamId=${team.id}`,
         );
         const data = await response.json();
         if (data.success && data.assignment?.phoneNumber) {
@@ -127,11 +128,13 @@ export default function CathyCampaignsPage() {
   };
 
   // Handle handoff
-  const handleHandoff = async (leadId: string, toWorker: "gianna" | "sabrina") => {
+  const handleHandoff = async (
+    leadId: string,
+    toWorker: "gianna" | "sabrina",
+  ) => {
     try {
-      const endpoint = toWorker === "sabrina"
-        ? "/api/sabrina/book"
-        : "/api/gianna/respond";
+      const endpoint =
+        toWorker === "sabrina" ? "/api/sabrina/book" : "/api/gianna/respond";
 
       const response = await fetch(endpoint, {
         method: "POST",
@@ -163,7 +166,7 @@ export default function CathyCampaignsPage() {
             <div
               className={cn(
                 "w-16 h-16 rounded-2xl flex items-center justify-center bg-gradient-to-br",
-                CATHY_CONFIG.gradient
+                CATHY_CONFIG.gradient,
               )}
             >
               <MessageCircle className="w-8 h-8 text-white" />
@@ -171,7 +174,10 @@ export default function CathyCampaignsPage() {
             <div>
               <TeamTitle className="flex items-center gap-2">
                 {CATHY_CONFIG.name}
-                <Badge variant="outline" className="text-orange-400 border-orange-400/50">
+                <Badge
+                  variant="outline"
+                  className="text-orange-400 border-orange-400/50"
+                >
                   {CATHY_CONFIG.role}
                 </Badge>
               </TeamTitle>
@@ -293,7 +299,8 @@ export default function CathyCampaignsPage() {
               <p className="text-2xl font-bold text-yellow-400">
                 {stats.totalNudges > 0
                   ? ((stats.revivedLeads / stats.totalNudges) * 100).toFixed(1)
-                  : 0}%
+                  : 0}
+                %
               </p>
             </CardContent>
           </Card>
@@ -319,7 +326,7 @@ export default function CathyCampaignsPage() {
                       "p-3 rounded-lg border",
                       i === 0 && "border-green-500/30 bg-green-500/5",
                       i === 1 && "border-yellow-500/30 bg-yellow-500/5",
-                      i === 2 && "border-red-500/30 bg-red-500/5"
+                      i === 2 && "border-red-500/30 bg-red-500/5",
                     )}
                   >
                     <div className="flex items-center justify-between mb-1">
@@ -339,7 +346,7 @@ export default function CathyCampaignsPage() {
                             "w-3 h-3",
                             i === 0 && "text-green-400",
                             i === 1 && "text-yellow-400",
-                            i === 2 && "text-red-400"
+                            i === 2 && "text-red-400",
                           )}
                         />
                       ))}
@@ -358,7 +365,11 @@ export default function CathyCampaignsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Button className="w-full justify-between" variant="outline" asChild>
+                <Button
+                  className="w-full justify-between"
+                  variant="outline"
+                  asChild
+                >
                   <TeamLink href="/campaigns">
                     <span className="flex items-center gap-2">
                       <Target className="w-4 h-4" />
@@ -367,7 +378,11 @@ export default function CathyCampaignsPage() {
                     <ChevronRight className="w-4 h-4" />
                   </TeamLink>
                 </Button>
-                <Button className="w-full justify-between" variant="outline" asChild>
+                <Button
+                  className="w-full justify-between"
+                  variant="outline"
+                  asChild
+                >
                   <TeamLink href="/sms/queue">
                     <span className="flex items-center gap-2">
                       <Inbox className="w-4 h-4" />
@@ -376,7 +391,11 @@ export default function CathyCampaignsPage() {
                     <ChevronRight className="w-4 h-4" />
                   </TeamLink>
                 </Button>
-                <Button className="w-full justify-between" variant="outline" asChild>
+                <Button
+                  className="w-full justify-between"
+                  variant="outline"
+                  asChild
+                >
                   <TeamLink href="/analytics/nudges">
                     <span className="flex items-center gap-2">
                       <BarChart3 className="w-4 h-4" />

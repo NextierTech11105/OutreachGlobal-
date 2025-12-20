@@ -30,12 +30,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Tooltip,
   TooltipContent,
@@ -78,7 +73,11 @@ interface ContentItem {
 
 interface ContentInsertionPickerProps {
   teamId: string;
-  onInsert: (content: { text: string; url?: string; item: ContentItem }) => void;
+  onInsert: (content: {
+    text: string;
+    url?: string;
+    item: ContentItem;
+  }) => void;
   triggerClassName?: string;
   disabled?: boolean;
 }
@@ -121,7 +120,9 @@ export function ContentInsertionPicker({
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<ContentItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<"all" | "links" | "favorites">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "links" | "favorites">(
+    "all",
+  );
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Fetch content items
@@ -129,7 +130,7 @@ export function ContentInsertionPicker({
     try {
       setLoading(true);
       const response = await fetch(
-        `/api/content-library/items?teamId=${teamId}&search=${searchQuery}`
+        `/api/content-library/items?teamId=${teamId}&search=${searchQuery}`,
       );
       const data = await response.json();
 
@@ -138,7 +139,7 @@ export function ContentInsertionPicker({
           (data.items || []).map((item: any) => ({
             ...item,
             lastUsedAt: item.lastUsedAt ? new Date(item.lastUsedAt) : undefined,
-          }))
+          })),
         );
       }
     } catch (error) {
@@ -288,15 +289,13 @@ export function ContentInsertionPicker({
                           <div
                             className={cn(
                               "w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0",
-                              isLink
-                                ? "bg-blue-500/20"
-                                : "bg-purple-500/20"
+                              isLink ? "bg-blue-500/20" : "bg-purple-500/20",
                             )}
                           >
                             <Icon
                               className={cn(
                                 "w-5 h-5",
-                                isLink ? "text-blue-400" : "text-purple-400"
+                                isLink ? "text-blue-400" : "text-purple-400",
                               )}
                             />
                           </div>
@@ -319,18 +318,12 @@ export function ContentInsertionPicker({
                             )}
 
                             <div className="flex items-center gap-2 flex-wrap">
-                              <Badge
-                                variant="outline"
-                                className="text-xs"
-                              >
+                              <Badge variant="outline" className="text-xs">
                                 {label}
                               </Badge>
 
                               {item.category && (
-                                <Badge
-                                  variant="secondary"
-                                  className="text-xs"
-                                >
+                                <Badge variant="secondary" className="text-xs">
                                   {item.category.name}
                                 </Badge>
                               )}

@@ -36,17 +36,20 @@ const TEMPLATES = [
   {
     id: "valuation",
     name: "Property Valuation",
-    template: "Hi {firstName}, I put together a quick valuation report for your property. What's the best email to send it to?",
+    template:
+      "Hi {firstName}, I put together a quick valuation report for your property. What's the best email to send it to?",
   },
   {
     id: "blueprint",
     name: "AI Blueprint",
-    template: "Hey {firstName}! I've been helping companies with AI automation. Got a blueprint that saves 10+ hrs/week. Best email to send it?",
+    template:
+      "Hey {firstName}! I've been helping companies with AI automation. Got a blueprint that saves 10+ hrs/week. Best email to send it?",
   },
   {
     id: "check_in",
     name: "Simple Check-In",
-    template: "Hi {firstName}, this is Gianna - wanted to quickly reach out about your property. Got a minute to chat?",
+    template:
+      "Hi {firstName}, this is Gianna - wanted to quickly reach out about your property. Got a minute to chat?",
   },
 ];
 
@@ -76,7 +79,9 @@ export default function InitialMessageWorkspacePage() {
   useEffect(() => {
     async function fetchLeads() {
       try {
-        const response = await fetch(`/api/leads?teamId=${teamId}&status=new&limit=50`);
+        const response = await fetch(
+          `/api/leads?teamId=${teamId}&status=new&limit=50`,
+        );
         const data = await response.json();
 
         if (data.success && data.leads) {
@@ -108,7 +113,7 @@ export default function InitialMessageWorkspacePage() {
 
   // Generate message from template
   const generateMessage = (lead: InitialLead, templateId: string) => {
-    const template = TEMPLATES.find(t => t.id === templateId);
+    const template = TEMPLATES.find((t) => t.id === templateId);
     if (!template) return "";
 
     const firstName = lead.firstName || "there";
@@ -139,7 +144,9 @@ export default function InitialMessageWorkspacePage() {
       const data = await response.json();
 
       if (data.success) {
-        toast.success(`Message sent to ${selectedLead.firstName || selectedLead.phone}`);
+        toast.success(
+          `Message sent to ${selectedLead.firstName || selectedLead.phone}`,
+        );
 
         // Update lead status and remove from list
         await fetch("/api/leads/update", {
@@ -151,7 +158,7 @@ export default function InitialMessageWorkspacePage() {
           }),
         });
 
-        setLeads(prev => prev.filter(l => l.id !== selectedLead.id));
+        setLeads((prev) => prev.filter((l) => l.id !== selectedLead.id));
         setSelectedLead(null);
         setMessage("");
       } else {
@@ -179,7 +186,7 @@ export default function InitialMessageWorkspacePage() {
 
   const handleSkip = () => {
     if (selectedLead) {
-      setLeads(prev => prev.filter(l => l.id !== selectedLead.id));
+      setLeads((prev) => prev.filter((l) => l.id !== selectedLead.id));
       setSelectedLead(null);
       setMessage("");
       toast.info("Lead skipped");
@@ -201,7 +208,10 @@ export default function InitialMessageWorkspacePage() {
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <MessageSquare className="h-6 w-6 text-blue-500" />
           Initial Message Workspace
-          <Badge variant="outline" className="ml-2 text-blue-600 border-blue-300">
+          <Badge
+            variant="outline"
+            className="ml-2 text-blue-600 border-blue-300"
+          >
             GIANNA
           </Badge>
         </h1>
@@ -215,7 +225,9 @@ export default function InitialMessageWorkspacePage() {
           <CardContent className="py-12 text-center">
             <CheckCircle2 className="h-12 w-12 mx-auto mb-4 text-green-500" />
             <h3 className="text-lg font-medium">No new leads</h3>
-            <p className="text-muted-foreground">New leads will appear here when added.</p>
+            <p className="text-muted-foreground">
+              New leads will appear here when added.
+            </p>
           </CardContent>
         </Card>
       ) : (
@@ -258,7 +270,9 @@ export default function InitialMessageWorkspacePage() {
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">
-                {selectedLead ? `Message ${selectedLead.firstName || "Lead"}` : "Select a Lead"}
+                {selectedLead
+                  ? `Message ${selectedLead.firstName || "Lead"}`
+                  : "Select a Lead"}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -280,12 +294,15 @@ export default function InitialMessageWorkspacePage() {
                   {/* Template Selection */}
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Template</label>
-                    <Select value={selectedTemplate} onValueChange={handleTemplateChange}>
+                    <Select
+                      value={selectedTemplate}
+                      onValueChange={handleTemplateChange}
+                    >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {TEMPLATES.map(t => (
+                        {TEMPLATES.map((t) => (
                           <SelectItem key={t.id} value={t.id}>
                             {t.name}
                           </SelectItem>

@@ -55,26 +55,29 @@ interface ResearchOutput {
 // Generate research insight based on data
 function generateInsight(
   property?: ResearchOutput["propertyContext"],
-  business?: ResearchOutput["businessContext"]
+  business?: ResearchOutput["businessContext"],
 ): { insight: string; motivation: string } {
   // Property-focused insights
   if (property) {
     if (property.distressSignals && property.distressSignals.length > 0) {
       return {
         insight: `Property shows ${property.distressSignals.length} distress signal(s): ${property.distressSignals.join(", ")}. High motivation potential.`,
-        motivation: "Likely looking for a quick, hassle-free solution due to property stress.",
+        motivation:
+          "Likely looking for a quick, hassle-free solution due to property stress.",
       };
     }
     if (property.equity && property.equity > 100000) {
       return {
         insight: `Significant equity position (~$${(property.equity / 1000).toFixed(0)}K). Could be looking to unlock value.`,
-        motivation: "May want to access equity or optimize their real estate portfolio.",
+        motivation:
+          "May want to access equity or optimize their real estate portfolio.",
       };
     }
     if (property.yearsOwned && property.yearsOwned > 10) {
       return {
         insight: `Long-term owner (${property.yearsOwned}+ years). Likely has strong emotional attachment.`,
-        motivation: "Needs to feel their property will be valued and cared for.",
+        motivation:
+          "Needs to feel their property will be valued and cared for.",
       };
     }
   }
@@ -84,19 +87,22 @@ function generateInsight(
     if (business.yearsInBusiness && business.yearsInBusiness > 20) {
       return {
         insight: `Established business (${business.yearsInBusiness}+ years). Owner likely thinking about succession/exit.`,
-        motivation: "May be considering retirement or transitioning to next chapter.",
+        motivation:
+          "May be considering retirement or transitioning to next chapter.",
       };
     }
     if (business.employees && business.employees < 10) {
       return {
         insight: `Small operation with <10 employees. Owner likely wearing many hats.`,
-        motivation: "May be burned out, looking for relief or exit opportunity.",
+        motivation:
+          "May be burned out, looking for relief or exit opportunity.",
       };
     }
   }
 
   return {
-    insight: "Standard lead profile. Focus on discovery to uncover specific motivations.",
+    insight:
+      "Standard lead profile. Focus on discovery to uncover specific motivations.",
     motivation: "Motivation unclear - lead with open-ended questions.",
   };
 }
@@ -104,28 +110,38 @@ function generateInsight(
 // Generate talking points
 function generateTalkingPoints(
   property?: ResearchOutput["propertyContext"],
-  business?: ResearchOutput["businessContext"]
+  business?: ResearchOutput["businessContext"],
 ): string[] {
   const points: string[] = [];
 
   if (property) {
     if (property.estimatedValue) {
-      points.push(`Reference property value (~$${(property.estimatedValue / 1000).toFixed(0)}K) to establish credibility`);
+      points.push(
+        `Reference property value (~$${(property.estimatedValue / 1000).toFixed(0)}K) to establish credibility`,
+      );
     }
     if (property.yearsOwned) {
-      points.push(`Acknowledge their tenure (${property.yearsOwned} years) - shows you did homework`);
+      points.push(
+        `Acknowledge their tenure (${property.yearsOwned} years) - shows you did homework`,
+      );
     }
     if (property.distressSignals?.length) {
-      points.push(`Gently probe on situation - they may be looking for solutions`);
+      points.push(
+        `Gently probe on situation - they may be looking for solutions`,
+      );
     }
   }
 
   if (business) {
     if (business.industry) {
-      points.push(`Reference their industry (${business.industry}) - show you understand their world`);
+      points.push(
+        `Reference their industry (${business.industry}) - show you understand their world`,
+      );
     }
     if (business.yearsInBusiness) {
-      points.push(`Compliment business longevity (${business.yearsInBusiness} years) - build rapport`);
+      points.push(
+        `Compliment business longevity (${business.yearsInBusiness} years) - build rapport`,
+      );
     }
   }
 
@@ -140,33 +156,37 @@ function generateTalkingPoints(
 // Generate objection prep
 function generateObjectionPrep(
   property?: ResearchOutput["propertyContext"],
-  business?: ResearchOutput["businessContext"]
+  business?: ResearchOutput["businessContext"],
 ): Array<{ objection: string; response: string }> {
   const preps: Array<{ objection: string; response: string }> = [];
 
   if (property?.yearsOwned && property.yearsOwned > 10) {
     preps.push({
       objection: '"We\'ve been here too long to sell now"',
-      response: "That's actually why it makes sense to explore options - you've built significant equity. Let me show you what that could mean for you.",
+      response:
+        "That's actually why it makes sense to explore options - you've built significant equity. Let me show you what that could mean for you.",
     });
   }
 
   if (business?.yearsInBusiness && business.yearsInBusiness > 15) {
     preps.push({
       objection: '"I\'m not ready to retire yet"',
-      response: "Totally get it. This isn't about retiring - it's about knowing your options. Smart owners plan ahead.",
+      response:
+        "Totally get it. This isn't about retiring - it's about knowing your options. Smart owners plan ahead.",
     });
   }
 
   // Common objections
   preps.push({
     objection: '"I\'m not interested in selling"',
-    response: "No problem. I'm not here to push. Just wanted to share what's happening in your market. Worth 10 mins?",
+    response:
+      "No problem. I'm not here to push. Just wanted to share what's happening in your market. Worth 10 mins?",
   });
 
   preps.push({
     objection: '"How did you get my number?"',
-    response: "We research property/business owners in the area who might benefit from what we do. If it's not relevant, I totally understand.",
+    response:
+      "We research property/business owners in the area who might benefit from what we do. If it's not relevant, I totally understand.",
   });
 
   return preps.slice(0, 4);
@@ -186,8 +206,11 @@ export async function POST(request: NextRequest) {
 
     if (!leadId && !propertyAddress && !businessName) {
       return NextResponse.json(
-        { success: false, error: "leadId, propertyAddress, or businessName required" },
-        { status: 400 }
+        {
+          success: false,
+          error: "leadId, propertyAddress, or businessName required",
+        },
+        { status: 400 },
       );
     }
 
@@ -205,7 +228,10 @@ export async function POST(request: NextRequest) {
       lead = foundLead;
 
       // Try to find associated property/business
-      if (lead?.address && (researchType === "property" || researchType === "both")) {
+      if (
+        lead?.address &&
+        (researchType === "property" || researchType === "both")
+      ) {
         try {
           const [prop] = await db
             .select()
@@ -218,7 +244,10 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      if (lead?.company && (researchType === "business" || researchType === "both")) {
+      if (
+        lead?.company &&
+        (researchType === "business" || researchType === "both")
+      ) {
         try {
           const [biz] = await db
             .select()
@@ -233,7 +262,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Direct property lookup
-    if (propertyAddress && (researchType === "property" || researchType === "both")) {
+    if (
+      propertyAddress &&
+      (researchType === "property" || researchType === "both")
+    ) {
       try {
         const [prop] = await db
           .select()
@@ -247,7 +279,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Direct business lookup
-    if (businessName && (researchType === "business" || researchType === "both")) {
+    if (
+      businessName &&
+      (researchType === "business" || researchType === "both")
+    ) {
       try {
         const [biz] = await db
           .select()
@@ -268,7 +303,10 @@ export async function POST(request: NextRequest) {
         estimatedValue: propertyData.estimatedValue || undefined,
         equity: propertyData.equity || undefined,
         yearsOwned: propertyData.purchaseDate
-          ? Math.floor((Date.now() - new Date(propertyData.purchaseDate).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+          ? Math.floor(
+              (Date.now() - new Date(propertyData.purchaseDate).getTime()) /
+                (365.25 * 24 * 60 * 60 * 1000),
+            )
           : undefined,
         distressSignals: [], // Would come from propertyDistressScores table
         propertyType: propertyData.propertyType || undefined,
@@ -301,9 +339,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate insights
-    const { insight, motivation } = generateInsight(propertyContext, businessContext);
-    const talkingPoints = generateTalkingPoints(propertyContext, businessContext);
-    const objectionPrep = generateObjectionPrep(propertyContext, businessContext);
+    const { insight, motivation } = generateInsight(
+      propertyContext,
+      businessContext,
+    );
+    const talkingPoints = generateTalkingPoints(
+      propertyContext,
+      businessContext,
+    );
+    const objectionPrep = generateObjectionPrep(
+      propertyContext,
+      businessContext,
+    );
 
     // Build research output
     const research: ResearchOutput = {
@@ -314,7 +361,9 @@ export async function POST(request: NextRequest) {
       talkingPoints,
       potentialObjections: objectionPrep,
       nextSteps: [
-        lead?.phone ? "Call or text to initiate contact" : "Find phone number for outreach",
+        lead?.phone
+          ? "Call or text to initiate contact"
+          : "Find phone number for outreach",
         "Reference key insight in opener",
         "Prepare for listed objections",
         "Book strategy session if interest shown",
@@ -323,7 +372,7 @@ export async function POST(request: NextRequest) {
     };
 
     console.log(
-      `[Neva Research] Generated research for ${lead?.firstName || propertyAddress || businessName}`
+      `[Neva Research] Generated research for ${lead?.firstName || propertyAddress || businessName}`,
     );
 
     return NextResponse.json({
@@ -348,7 +397,7 @@ export async function POST(request: NextRequest) {
         success: false,
         error: error instanceof Error ? error.message : "Research failed",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

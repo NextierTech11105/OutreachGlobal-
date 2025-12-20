@@ -130,7 +130,7 @@ async function getBucketData(id: string): Promise<BucketData | null> {
       new GetObjectCommand({
         Bucket: SPACES_BUCKET,
         Key: `buckets/${id}.json`,
-      })
+      }),
     );
 
     const bodyContents = await response.Body?.transformToString();
@@ -190,7 +190,7 @@ function extractEmail(record: BucketRecord): string | null {
 // POST /api/buckets/:id/push-to-leads
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id: bucketId } = await params;
@@ -200,7 +200,7 @@ export async function POST(
     if (!teamId) {
       return NextResponse.json(
         { success: false, error: "teamId is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -209,7 +209,7 @@ export async function POST(
     if (!bucketData) {
       return NextResponse.json(
         { success: false, error: "Bucket not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -408,7 +408,7 @@ export async function POST(
     }
 
     console.log(
-      `[Push to Leads] Bucket ${bucketId}: ${results.pushed}/${results.total} pushed, ${results.skipped} skipped, ${results.duplicates} duplicates`
+      `[Push to Leads] Bucket ${bucketId}: ${results.pushed}/${results.total} pushed, ${results.skipped} skipped, ${results.duplicates} duplicates`,
     );
 
     return NextResponse.json({
@@ -424,7 +424,7 @@ export async function POST(
         success: false,
         error: error instanceof Error ? error.message : "Push failed",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -432,7 +432,7 @@ export async function POST(
 // GET - Check push status / preview
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id: bucketId } = await params;
@@ -441,7 +441,7 @@ export async function GET(
     if (!bucketData) {
       return NextResponse.json(
         { success: false, error: "Bucket not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -494,7 +494,7 @@ export async function GET(
     console.error("[Push to Leads] GET error:", error);
     return NextResponse.json(
       { success: false, error: "Preview failed" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

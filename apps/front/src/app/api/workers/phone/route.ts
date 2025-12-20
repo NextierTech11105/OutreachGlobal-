@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
     if (!teamId) {
       return NextResponse.json(
         { success: false, error: "teamId is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
             success: false,
             error: `Invalid worker. Must be one of: ${VALID_WORKERS.join(", ")}`,
           },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -98,7 +98,9 @@ export async function GET(request: NextRequest) {
         assignment = result.rows?.[0] as WorkerPhoneAssignment | undefined;
       } catch {
         // Table doesn't exist yet - fall back to env vars
-        console.log("[Worker Phone API] worker_phone_assignments table not found, using env vars");
+        console.log(
+          "[Worker Phone API] worker_phone_assignments table not found, using env vars",
+        );
       }
 
       if (assignment) {
@@ -144,7 +146,9 @@ export async function GET(request: NextRequest) {
       assignments = (result.rows || []) as WorkerPhoneAssignment[];
     } catch {
       // Table doesn't exist yet - will use env vars only
-      console.log("[Worker Phone API] worker_phone_assignments table not found");
+      console.log(
+        "[Worker Phone API] worker_phone_assignments table not found",
+      );
     }
 
     // Merge with env vars for any missing workers
@@ -182,9 +186,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : "Failed to get assignments",
+        error:
+          error instanceof Error ? error.message : "Failed to get assignments",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -197,8 +202,11 @@ export async function POST(request: NextRequest) {
 
     if (!worker || !phoneNumber || !teamId) {
       return NextResponse.json(
-        { success: false, error: "worker, phoneNumber, and teamId are required" },
-        { status: 400 }
+        {
+          success: false,
+          error: "worker, phoneNumber, and teamId are required",
+        },
+        { status: 400 },
       );
     }
 
@@ -208,7 +216,7 @@ export async function POST(request: NextRequest) {
           success: false,
           error: `Invalid worker. Must be one of: ${VALID_WORKERS.join(", ")}`,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -247,7 +255,7 @@ export async function POST(request: NextRequest) {
     `);
 
     console.log(
-      `[Worker Phone API] Assigned ${normalizedPhone} to ${worker} for team ${teamId}`
+      `[Worker Phone API] Assigned ${normalizedPhone} to ${worker} for team ${teamId}`,
     );
 
     return NextResponse.json({
@@ -266,9 +274,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : "Failed to assign phone",
+        error:
+          error instanceof Error ? error.message : "Failed to assign phone",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -283,7 +292,7 @@ export async function DELETE(request: NextRequest) {
     if (!worker || !teamId) {
       return NextResponse.json(
         { success: false, error: "worker and teamId are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -293,7 +302,7 @@ export async function DELETE(request: NextRequest) {
           success: false,
           error: `Invalid worker. Must be one of: ${VALID_WORKERS.join(", ")}`,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -304,7 +313,7 @@ export async function DELETE(request: NextRequest) {
     `);
 
     console.log(
-      `[Worker Phone API] Deactivated phone for ${worker} in team ${teamId}`
+      `[Worker Phone API] Deactivated phone for ${worker} in team ${teamId}`,
     );
 
     return NextResponse.json({
@@ -316,9 +325,12 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : "Failed to remove assignment",
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to remove assignment",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

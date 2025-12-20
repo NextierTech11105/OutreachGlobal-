@@ -51,7 +51,9 @@ export default function RetargetWorkspacePage() {
     async function fetchLeads() {
       try {
         // Fetch leads with status "contacted" that haven't responded
-        const response = await fetch(`/api/leads?teamId=${teamId}&status=contacted&limit=50`);
+        const response = await fetch(
+          `/api/leads?teamId=${teamId}&status=contacted&limit=50`,
+        );
         const data = await response.json();
 
         if (data.success && data.leads) {
@@ -61,7 +63,9 @@ export default function RetargetWorkspacePage() {
               const lastContact = lead.updatedAt
                 ? new Date(lead.updatedAt as string)
                 : new Date(lead.createdAt as string);
-              const daysSince = Math.floor((now.getTime() - lastContact.getTime()) / (1000 * 60 * 60 * 24));
+              const daysSince = Math.floor(
+                (now.getTime() - lastContact.getTime()) / (1000 * 60 * 60 * 24),
+              );
               return {
                 id: lead.id,
                 firstName: lead.firstName || "",
@@ -128,8 +132,10 @@ export default function RetargetWorkspacePage() {
       const data = await response.json();
 
       if (data.success) {
-        toast.success(`Retarget sent to ${selectedLead.firstName || selectedLead.phone}`);
-        setLeads(prev => prev.filter(l => l.id !== selectedLead.id));
+        toast.success(
+          `Retarget sent to ${selectedLead.firstName || selectedLead.phone}`,
+        );
+        setLeads((prev) => prev.filter((l) => l.id !== selectedLead.id));
         setSelectedLead(null);
         setMessage("");
       } else {
@@ -150,7 +156,7 @@ export default function RetargetWorkspacePage() {
 
   const handleSkip = () => {
     if (selectedLead) {
-      setLeads(prev => prev.filter(l => l.id !== selectedLead.id));
+      setLeads((prev) => prev.filter((l) => l.id !== selectedLead.id));
       setSelectedLead(null);
       setMessage("");
       toast.info("Lead skipped");
@@ -172,7 +178,10 @@ export default function RetargetWorkspacePage() {
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <RefreshCw className="h-6 w-6 text-purple-500" />
           Retarget Workspace
-          <Badge variant="outline" className="ml-2 text-purple-600 border-purple-300">
+          <Badge
+            variant="outline"
+            className="ml-2 text-purple-600 border-purple-300"
+          >
             CATHY
           </Badge>
         </h1>
@@ -186,7 +195,9 @@ export default function RetargetWorkspacePage() {
           <CardContent className="py-12 text-center">
             <CheckCircle2 className="h-12 w-12 mx-auto mb-4 text-green-500" />
             <h3 className="text-lg font-medium">No leads to retarget</h3>
-            <p className="text-muted-foreground">All leads have been contacted recently.</p>
+            <p className="text-muted-foreground">
+              All leads have been contacted recently.
+            </p>
           </CardContent>
         </Card>
       ) : (
@@ -216,7 +227,11 @@ export default function RetargetWorkspacePage() {
                         {lead.phone}
                       </p>
                     </div>
-                    <Badge variant={lead.daysSinceContact > 7 ? "destructive" : "outline"}>
+                    <Badge
+                      variant={
+                        lead.daysSinceContact > 7 ? "destructive" : "outline"
+                      }
+                    >
                       {lead.daysSinceContact}d ago
                     </Badge>
                   </div>
@@ -229,7 +244,9 @@ export default function RetargetWorkspacePage() {
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">
-                {selectedLead ? `Retarget ${selectedLead.firstName || "Lead"}` : "Select a Lead"}
+                {selectedLead
+                  ? `Retarget ${selectedLead.firstName || "Lead"}`
+                  : "Select a Lead"}
               </CardTitle>
             </CardHeader>
             <CardContent>

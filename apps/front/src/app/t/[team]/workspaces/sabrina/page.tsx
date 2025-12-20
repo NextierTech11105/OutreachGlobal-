@@ -59,7 +59,9 @@ export default function SabrinaWorkspacePage() {
   useEffect(() => {
     async function fetchAppointments() {
       try {
-        const response = await fetch(`/api/calendar/appointments?teamId=${teamId}&upcoming=true`);
+        const response = await fetch(
+          `/api/calendar/appointments?teamId=${teamId}&upcoming=true`,
+        );
         const data = await response.json();
 
         if (data.success && data.appointments) {
@@ -124,21 +126,22 @@ export default function SabrinaWorkspacePage() {
         toast.success(
           type === "confirm"
             ? `Confirmation sent to ${selectedAppt.leadName}`
-            : `Reminder sent to ${selectedAppt.leadName}`
+            : `Reminder sent to ${selectedAppt.leadName}`,
         );
 
         // Update appointment status
-        setAppointments(prev =>
-          prev.map(a =>
+        setAppointments((prev) =>
+          prev.map((a) =>
             a.id === selectedAppt.id
               ? {
                   ...a,
-                  confirmationSent: type === "confirm" ? true : a.confirmationSent,
+                  confirmationSent:
+                    type === "confirm" ? true : a.confirmationSent,
                   reminderSent: type === "remind" ? true : a.reminderSent,
                   status: type === "confirm" ? "confirmed" : "reminded",
                 }
-              : a
-          )
+              : a,
+          ),
         );
         setSelectedAppt(null);
         setMessage("");
@@ -167,8 +170,10 @@ export default function SabrinaWorkspacePage() {
   }
 
   // Separate appointments by status
-  const needsConfirmation = appointments.filter(a => !a.confirmationSent);
-  const needsReminder = appointments.filter(a => a.confirmationSent && !a.reminderSent && a.hoursUntil <= 24);
+  const needsConfirmation = appointments.filter((a) => !a.confirmationSent);
+  const needsReminder = appointments.filter(
+    (a) => a.confirmationSent && !a.reminderSent && a.hoursUntil <= 24,
+  );
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
@@ -177,12 +182,16 @@ export default function SabrinaWorkspacePage() {
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <CheckCircle2 className="h-6 w-6 text-emerald-500" />
           Confirmation Workspace
-          <Badge variant="outline" className="ml-2 text-emerald-600 border-emerald-300">
+          <Badge
+            variant="outline"
+            className="ml-2 text-emerald-600 border-emerald-300"
+          >
             SABRINA
           </Badge>
         </h1>
         <p className="text-muted-foreground">
-          Confirm appointments and send reminders • {appointments.length} upcoming
+          Confirm appointments and send reminders • {appointments.length}{" "}
+          upcoming
         </p>
       </div>
 
@@ -229,7 +238,9 @@ export default function SabrinaWorkspacePage() {
                         </div>
                         <div className="text-right">
                           <Badge variant="outline">
-                            {new Date(appt.appointmentDate).toLocaleDateString()}
+                            {new Date(
+                              appt.appointmentDate,
+                            ).toLocaleDateString()}
                           </Badge>
                           <p className="text-sm text-muted-foreground mt-1">
                             {appt.appointmentTime}
@@ -284,7 +295,9 @@ export default function SabrinaWorkspacePage() {
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">
-                {selectedAppt ? `Message ${selectedAppt.leadName}` : "Select an Appointment"}
+                {selectedAppt
+                  ? `Message ${selectedAppt.leadName}`
+                  : "Select an Appointment"}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -295,7 +308,10 @@ export default function SabrinaWorkspacePage() {
                     <div className="flex items-center gap-2 text-sm">
                       <Calendar className="h-4 w-4" />
                       <span>
-                        {new Date(selectedAppt.appointmentDate).toLocaleDateString()} at {selectedAppt.appointmentTime}
+                        {new Date(
+                          selectedAppt.appointmentDate,
+                        ).toLocaleDateString()}{" "}
+                        at {selectedAppt.appointmentTime}
                       </span>
                     </div>
                     <div className="flex items-center gap-2 text-sm mt-1">
@@ -316,7 +332,11 @@ export default function SabrinaWorkspacePage() {
                   <div className="flex gap-2">
                     <Button
                       className="flex-1 bg-emerald-600 hover:bg-emerald-700"
-                      onClick={() => handleSendMessage(selectedAppt.confirmationSent ? "remind" : "confirm")}
+                      onClick={() =>
+                        handleSendMessage(
+                          selectedAppt.confirmationSent ? "remind" : "confirm",
+                        )
+                      }
                       disabled={sending || !message.trim()}
                     >
                       {sending ? (
@@ -324,7 +344,9 @@ export default function SabrinaWorkspacePage() {
                       ) : (
                         <Send className="h-4 w-4 mr-2" />
                       )}
-                      {selectedAppt.confirmationSent ? "Send Reminder" : "Send Confirmation"}
+                      {selectedAppt.confirmationSent
+                        ? "Send Reminder"
+                        : "Send Confirmation"}
                     </Button>
                     <Button
                       variant="outline"
@@ -340,7 +362,9 @@ export default function SabrinaWorkspacePage() {
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
                   <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>Click on an appointment to send a confirmation or reminder</p>
+                  <p>
+                    Click on an appointment to send a confirmation or reminder
+                  </p>
                 </div>
               )}
             </CardContent>

@@ -158,7 +158,8 @@ export async function GET(request: NextRequest) {
       calendarLeads = results.map((lead) => ({
         id: lead.id,
         name:
-          [lead.firstName, lead.lastName].filter(Boolean).join(" ") || "Unknown",
+          [lead.firstName, lead.lastName].filter(Boolean).join(" ") ||
+          "Unknown",
         phone: lead.phone || undefined,
         email: lead.email || undefined,
         address: lead.address || undefined,

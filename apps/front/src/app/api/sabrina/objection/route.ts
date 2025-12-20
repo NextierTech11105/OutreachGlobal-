@@ -48,21 +48,25 @@ const OBJECTION_RESPONSES: Record<
     {
       agree: "I hear you — everyone's calendar is packed these days.",
       overcome: "That's exactly why I keep these calls short and focused.",
-      close: "How about a quick call Thursday or Friday? I'll work around your schedule.",
+      close:
+        "How about a quick call Thursday or Friday? I'll work around your schedule.",
       maxRebuttals: 3,
     },
   ],
   not_interested: [
     {
       agree: "No pressure at all, I respect that.",
-      overcome: "Curious though — what would need to change for it to make sense?",
+      overcome:
+        "Curious though — what would need to change for it to make sense?",
       close: "Even just 5 mins to share what I'm seeing in your area?",
       maxRebuttals: 2,
     },
     {
       agree: "Totally fair.",
-      overcome: "Most folks I talk to felt the same way... until they saw the numbers.",
-      close: "10 mins, no commitment. If it's not relevant, you've lost nothing. Worth a shot?",
+      overcome:
+        "Most folks I talk to felt the same way... until they saw the numbers.",
+      close:
+        "10 mins, no commitment. If it's not relevant, you've lost nothing. Worth a shot?",
       maxRebuttals: 2,
     },
   ],
@@ -70,12 +74,14 @@ const OBJECTION_RESPONSES: Record<
     {
       agree: "Makes sense — big decisions deserve thought.",
       overcome: "What questions can I answer now to help you decide?",
-      close: "Or we could chat through it together? Sometimes talking helps clarify.",
+      close:
+        "Or we could chat through it together? Sometimes talking helps clarify.",
       maxRebuttals: 3,
     },
     {
       agree: "Absolutely, take your time.",
-      overcome: "While you're thinking, let me share one thing that might help...",
+      overcome:
+        "While you're thinking, let me share one thing that might help...",
       close: "Quick call this week to walk through the details?",
       maxRebuttals: 3,
     },
@@ -83,13 +89,15 @@ const OBJECTION_RESPONSES: Record<
   bad_timing: [
     {
       agree: "I get it — timing is everything.",
-      overcome: "When would be better timing? I'll set a reminder to reach out.",
+      overcome:
+        "When would be better timing? I'll set a reminder to reach out.",
       close: "Should I check back in a month, or after the holidays?",
       maxRebuttals: 2,
     },
     {
       agree: "Totally understand, there's always a lot going on.",
-      overcome: "The thing is, market conditions keep changing. Better to know your options now.",
+      overcome:
+        "The thing is, market conditions keep changing. Better to know your options now.",
       close: "Even a quick 15-min call to get the lay of the land?",
       maxRebuttals: 2,
     },
@@ -98,14 +106,16 @@ const OBJECTION_RESPONSES: Record<
     {
       agree: "Great that you're already working with someone!",
       overcome: "Just curious — are they showing you all your options?",
-      close: "No harm in a second opinion. 10 mins, and I'll show you what else is out there.",
+      close:
+        "No harm in a second opinion. 10 mins, and I'll show you what else is out there.",
       maxRebuttals: 2,
     },
   ],
   too_expensive: [
     {
       agree: "I hear you, cost matters.",
-      overcome: "Here's the thing — this call is free, and it might save you money.",
+      overcome:
+        "Here's the thing — this call is free, and it might save you money.",
       close: "Let's at least look at the numbers together. What's a good time?",
       maxRebuttals: 3,
     },
@@ -122,7 +132,8 @@ const OBJECTION_RESPONSES: Record<
     {
       agree: "I appreciate you being upfront.",
       overcome: "Mind if I ask — what's the hesitation?",
-      close: "Maybe a quick chat would clear things up. No pressure, just perspective.",
+      close:
+        "Maybe a quick chat would clear things up. No pressure, just perspective.",
       maxRebuttals: 2,
     },
   ],
@@ -130,13 +141,46 @@ const OBJECTION_RESPONSES: Record<
 
 // Keywords to detect objection type
 const OBJECTION_KEYWORDS: Record<ObjectionType, string[]> = {
-  too_busy: ["busy", "no time", "swamped", "hectic", "crazy schedule", "tied up"],
-  not_interested: ["not interested", "no thanks", "don't want", "pass", "no need"],
-  need_to_think: ["think about", "consider", "decide", "talk it over", "sleep on it"],
-  bad_timing: ["bad time", "not now", "later", "wrong time", "not a good time", "after"],
+  too_busy: [
+    "busy",
+    "no time",
+    "swamped",
+    "hectic",
+    "crazy schedule",
+    "tied up",
+  ],
+  not_interested: [
+    "not interested",
+    "no thanks",
+    "don't want",
+    "pass",
+    "no need",
+  ],
+  need_to_think: [
+    "think about",
+    "consider",
+    "decide",
+    "talk it over",
+    "sleep on it",
+  ],
+  bad_timing: [
+    "bad time",
+    "not now",
+    "later",
+    "wrong time",
+    "not a good time",
+    "after",
+  ],
   already_have: ["already have", "working with", "got someone", "have one"],
   too_expensive: ["expensive", "cost", "afford", "money", "budget", "price"],
-  spouse_decision: ["spouse", "wife", "husband", "partner", "together", "both of us"],
+  spouse_decision: [
+    "spouse",
+    "wife",
+    "husband",
+    "partner",
+    "together",
+    "both of us",
+  ],
   unknown: [],
 };
 
@@ -178,7 +222,7 @@ export async function POST(request: NextRequest) {
     if (!leadId || !objectionMessage) {
       return NextResponse.json(
         { success: false, error: "leadId and objectionMessage required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -192,7 +236,7 @@ export async function POST(request: NextRequest) {
     if (!lead) {
       return NextResponse.json(
         { success: false, error: "Lead not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -248,7 +292,7 @@ export async function POST(request: NextRequest) {
     if (!lead.phone) {
       return NextResponse.json(
         { success: false, error: "Lead has no phone number" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -257,13 +301,18 @@ export async function POST(request: NextRequest) {
       smsResult = await signalHouseService.sendSMS({
         to: lead.phone,
         message,
-        tags: ["sabrina", "objection", objectionType, `rebuttal_${rebuttalNumber}`],
+        tags: [
+          "sabrina",
+          "objection",
+          objectionType,
+          `rebuttal_${rebuttalNumber}`,
+        ],
       });
     } catch (smsError) {
       console.error("[Sabrina Objection] SMS error:", smsError);
       return NextResponse.json(
         { success: false, error: "Failed to send SMS" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -310,7 +359,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(
-      `[Sabrina Objection] Handled "${objectionType}" (rebuttal ${rebuttalNumber}) for ${lead.firstName}`
+      `[Sabrina Objection] Handled "${objectionType}" (rebuttal ${rebuttalNumber}) for ${lead.firstName}`,
     );
 
     return NextResponse.json({
@@ -339,21 +388,24 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : "Objection handling failed",
+        error:
+          error instanceof Error ? error.message : "Objection handling failed",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 // GET - Get objection types and templates
 export async function GET() {
-  const objectionInfo = Object.entries(OBJECTION_RESPONSES).map(([type, templates]) => ({
-    type,
-    keywords: OBJECTION_KEYWORDS[type as ObjectionType],
-    maxRebuttals: templates[0].maxRebuttals,
-    templateCount: templates.length,
-  }));
+  const objectionInfo = Object.entries(OBJECTION_RESPONSES).map(
+    ([type, templates]) => ({
+      type,
+      keywords: OBJECTION_KEYWORDS[type as ObjectionType],
+      maxRebuttals: templates[0].maxRebuttals,
+      templateCount: templates.length,
+    }),
+  );
 
   return NextResponse.json({
     success: true,

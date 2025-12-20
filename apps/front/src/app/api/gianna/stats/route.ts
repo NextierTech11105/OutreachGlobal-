@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     if (!db) {
       return NextResponse.json(
         { error: "Database not configured", database: "not_connected" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -30,9 +30,9 @@ export async function GET(request: NextRequest) {
           or(
             eq(campaignAttempts.campaignContext, "initial"),
             eq(campaignAttempts.campaignContext, "cold_outreach"),
-            isNull(campaignAttempts.campaignContext)
-          )
-        )
+            isNull(campaignAttempts.campaignContext),
+          ),
+        ),
       )
       .catch(() => [{ count: 0 }]);
 
@@ -46,10 +46,10 @@ export async function GET(request: NextRequest) {
           or(
             eq(campaignAttempts.campaignContext, "initial"),
             eq(campaignAttempts.campaignContext, "cold_outreach"),
-            isNull(campaignAttempts.campaignContext)
+            isNull(campaignAttempts.campaignContext),
           ),
-          eq(campaignAttempts.responseReceived, true)
-        )
+          eq(campaignAttempts.responseReceived, true),
+        ),
       )
       .catch(() => [{ count: 0 }]);
 
@@ -60,8 +60,8 @@ export async function GET(request: NextRequest) {
       .where(
         and(
           teamId ? eq(leads.teamId, teamId) : sql`true`,
-          sql`${leads.email} IS NOT NULL AND ${leads.email} != ''`
-        )
+          sql`${leads.email} IS NOT NULL AND ${leads.email} != ''`,
+        ),
       )
       .catch(() => [{ count: 0 }]);
 
@@ -72,8 +72,8 @@ export async function GET(request: NextRequest) {
       .where(
         and(
           teamId ? eq(leads.teamId, teamId) : sql`true`,
-          eq(leads.status, "qualified")
-        )
+          eq(leads.status, "qualified"),
+        ),
       )
       .catch(() => [{ count: 0 }]);
 
@@ -84,8 +84,8 @@ export async function GET(request: NextRequest) {
       .where(
         and(
           teamId ? eq(leads.teamId, teamId) : sql`true`,
-          eq(leads.status, "contacted")
-        )
+          eq(leads.status, "contacted"),
+        ),
       )
       .catch(() => [{ count: 0 }]);
 
@@ -96,8 +96,8 @@ export async function GET(request: NextRequest) {
       .where(
         and(
           teamId ? eq(leads.teamId, teamId) : sql`true`,
-          eq(leads.status, "unsubscribed")
-        )
+          eq(leads.status, "unsubscribed"),
+        ),
       )
       .catch(() => [{ count: 0 }]);
 
@@ -141,7 +141,7 @@ export async function GET(request: NextRequest) {
           avgResponseRate: 0,
         },
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

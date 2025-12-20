@@ -33,61 +33,72 @@ const NUDGE_TEMPLATES = {
   mild: [
     {
       id: "mild_1",
-      content: "Hey {{first_name}}, just checking in! Did my last message get lost in the void? 😅",
+      content:
+        "Hey {{first_name}}, just checking in! Did my last message get lost in the void? 😅",
       context: "first_followup",
     },
     {
       id: "mild_2",
-      content: "{{first_name}} — hope you're having a good week! Still interested in chatting about your property?",
+      content:
+        "{{first_name}} — hope you're having a good week! Still interested in chatting about your property?",
       context: "general",
     },
     {
       id: "mild_3",
-      content: "Quick follow-up {{first_name}} — I know inboxes get crazy. Worth a chat?",
+      content:
+        "Quick follow-up {{first_name}} — I know inboxes get crazy. Worth a chat?",
       context: "general",
     },
   ],
   medium: [
     {
       id: "med_1",
-      content: "{{first_name}}... still there? I promise I'm more interesting than my messages make me seem 😂",
+      content:
+        "{{first_name}}... still there? I promise I'm more interesting than my messages make me seem 😂",
       context: "ghosted",
     },
     {
       id: "med_2",
-      content: "{{first_name}} — at this point I should probably send flowers. Or pizza. Pizza usually works.",
+      content:
+        "{{first_name}} — at this point I should probably send flowers. Or pizza. Pizza usually works.",
       context: "ghosted",
     },
     {
       id: "med_3",
-      content: "I've had better luck reaching my mother-in-law, {{first_name}}. And she ignores me on purpose!",
+      content:
+        "I've had better luck reaching my mother-in-law, {{first_name}}. And she ignores me on purpose!",
       context: "ghosted",
     },
     {
       id: "med_4",
-      content: "Third time's the charm, right? That's what I told my third husband. {{first_name}}, got 5 mins?",
+      content:
+        "Third time's the charm, right? That's what I told my third husband. {{first_name}}, got 5 mins?",
       context: "third_attempt",
     },
   ],
   spicy: [
     {
       id: "spicy_1",
-      content: "{{first_name}}, either you're really busy or I'm really boring. Hoping it's the first one! 😅 Last shot — worth a quick call?",
+      content:
+        "{{first_name}}, either you're really busy or I'm really boring. Hoping it's the first one! 😅 Last shot — worth a quick call?",
       context: "final_attempt",
     },
     {
       id: "spicy_2",
-      content: "{{first_name}} — if you don't respond, I'll assume you've been abducted by aliens. Blink twice if you need help... or just text back?",
+      content:
+        "{{first_name}} — if you don't respond, I'll assume you've been abducted by aliens. Blink twice if you need help... or just text back?",
       context: "ghosted",
     },
     {
       id: "spicy_3",
-      content: "Not gonna lie {{first_name}}, I'm running out of clever things to say. At least I'm not selling extended warranties. 10 mins?",
+      content:
+        "Not gonna lie {{first_name}}, I'm running out of clever things to say. At least I'm not selling extended warranties. 10 mins?",
       context: "final_attempt",
     },
     {
       id: "spicy_4",
-      content: "{{first_name}}, I've now texted you more than I text my kids. They're jealous. Can we at least have a quick chat so I feel productive?",
+      content:
+        "{{first_name}}, I've now texted you more than I text my kids. They're jealous. Can we at least have a quick chat so I feel productive?",
       context: "persistent",
     },
   ],
@@ -118,7 +129,7 @@ export async function POST(request: NextRequest) {
     if (!leadId) {
       return NextResponse.json(
         { success: false, error: "leadId is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -132,7 +143,7 @@ export async function POST(request: NextRequest) {
     if (!lead) {
       return NextResponse.json(
         { success: false, error: "Lead not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -177,7 +188,7 @@ export async function POST(request: NextRequest) {
     if (!message) {
       return NextResponse.json(
         { success: false, error: "No template available for this context" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -207,7 +218,7 @@ export async function POST(request: NextRequest) {
     if (!lead.phone) {
       return NextResponse.json(
         { success: false, error: "Lead has no phone number" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -223,7 +234,7 @@ export async function POST(request: NextRequest) {
       console.error("[Cathy Nudge] SMS send error:", smsError);
       return NextResponse.json(
         { success: false, error: "Failed to send SMS" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -271,7 +282,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(
-      `[Cathy Nudge] Sent ${humorLevel} nudge (attempt ${currentAttempt}) to ${lead.phone}`
+      `[Cathy Nudge] Sent ${humorLevel} nudge (attempt ${currentAttempt}) to ${lead.phone}`,
     );
 
     return NextResponse.json({
@@ -297,7 +308,7 @@ export async function POST(request: NextRequest) {
         success: false,
         error: error instanceof Error ? error.message : "Nudge failed",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -307,7 +318,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const level = searchParams.get("level") as HumorLevel | null;
 
-  let templates = level
+  const templates = level
     ? { [level]: NUDGE_TEMPLATES[level] }
     : NUDGE_TEMPLATES;
 
