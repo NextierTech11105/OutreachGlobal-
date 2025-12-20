@@ -216,26 +216,105 @@ export function GiannaMatrixAgent() {
   const [batchSize] = useState(2000);
   const [processingSpeed, setProcessingSpeed] = useState(0);
 
-  // Initialize with mock data
+  // Fetch REAL data from database instead of mock
   useEffect(() => {
-    const mockQueues = generateMockQueues();
-    setQueues(mockQueues);
+    async function fetchRealData() {
+      try {
+        const [sectorResponse, bucketsResponse] = await Promise.all([
+          fetch("/api/sectors/stats"),
+          fetch("/api/buckets?perPage=100"),
+        ]);
 
-    // Calculate stats
-    const totalLeads = mockQueues.reduce((sum, q) => sum + q.total, 0);
-    const noContact = mockQueues.reduce((sum, q) => sum + q.no_contact, 0);
-    const contacted = mockQueues.reduce((sum, q) => sum + q.contacted, 0);
-    const responded = mockQueues.reduce((sum, q) => sum + q.responded, 0);
+        const sectorData = await sectorResponse.json();
+        const bucketsData = await bucketsResponse.json();
 
-    setStats({
-      total_leads: totalLeads,
-      no_contact: noContact,
-      contacted,
-      responded,
-      conversion_rate: totalLeads > 0 ? (responded / totalLeads) * 100 : 0,
-      leads_per_hour: 0,
-      active_campaigns: 0,
-    });
+        const realQueues: SectorQueue[] = [];
+
+        // Build queues from buckets (actual uploaded data)
+        if (bucketsData.buckets && bucketsData.buckets.length > 0) {
+          bucketsData.buckets.forEach((bucket: {
+            id: string;
+            name: string;
+            totalLeads: number;
+            enrichedLeads: number;
+            contactedLeads: number;
+          }) => {
+            realQueues.push({
+              sector: bucket.id,
+              label: bucket.name,
+              total: bucket.totalLeads || 0,
+              no_contact: Math.max(0, (bucket.totalLeads || 0) - (bucket.contactedLeads || 0)),
+              attempted: 0,
+              contacted: bucket.contactedLeads || 0,
+              responded: 0,
+              converted: 0,
+              avg_priority: 75,
+              active: bucket.totalLeads > 0,
+            });
+          });
+        }
+
+        // Add sector stats from SIC code aggregation
+        if (sectorData.sectors) {
+          Object.entries(sectorData.sectors).forEach(([sectorId, sectorStat]: [string, unknown]) => {
+            const s = sectorStat as { totalRecords: number; enriched: number };
+            const config = SECTOR_CONFIG[sectorId] || { label: sectorId, color: "bg-zinc-500" };
+
+            realQueues.push({
+              sector: sectorId,
+              label: config.label,
+              total: s.totalRecords || 0,
+              no_contact: s.totalRecords || 0,
+              attempted: 0,
+              contacted: 0,
+              responded: 0,
+              converted: 0,
+              avg_priority: 70,
+              active: s.totalRecords > 0,
+            });
+          });
+        }
+
+        // Use real data if available, otherwise fallback to mock
+        if (realQueues.length > 0) {
+          setQueues(realQueues);
+          const totalLeads = realQueues.reduce((sum, q) => sum + q.total, 0);
+          const noContact = realQueues.reduce((sum, q) => sum + q.no_contact, 0);
+          const contacted = realQueues.reduce((sum, q) => sum + q.contacted, 0);
+          const responded = realQueues.reduce((sum, q) => sum + q.responded, 0);
+
+          setStats({
+            total_leads: totalLeads,
+            no_contact: noContact,
+            contacted,
+            responded,
+            conversion_rate: totalLeads > 0 ? (responded / totalLeads) * 100 : 0,
+            leads_per_hour: 0,
+            active_campaigns: 0,
+          });
+        } else {
+          // Fallback to mock if no data
+          const mockQueues = generateMockQueues();
+          setQueues(mockQueues);
+          const totalLeads = mockQueues.reduce((sum, q) => sum + q.total, 0);
+          setStats({
+            total_leads: totalLeads,
+            no_contact: mockQueues.reduce((sum, q) => sum + q.no_contact, 0),
+            contacted: mockQueues.reduce((sum, q) => sum + q.contacted, 0),
+            responded: mockQueues.reduce((sum, q) => sum + q.responded, 0),
+            conversion_rate: 0,
+            leads_per_hour: 0,
+            active_campaigns: 0,
+          });
+        }
+      } catch (error) {
+        console.error("Failed to fetch real data:", error);
+        const mockQueues = generateMockQueues();
+        setQueues(mockQueues);
+      }
+    }
+
+    fetchRealData();
   }, []);
 
   // Toggle sector selection

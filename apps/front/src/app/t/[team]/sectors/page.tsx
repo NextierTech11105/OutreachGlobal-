@@ -51,7 +51,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import {
   SECTOR_WORKSPACES,
   Sector,
@@ -104,6 +104,8 @@ interface DataLake {
 
 export default function SectorsPage() {
   const router = useRouter();
+  const params = useParams();
+  const teamId = params.team as string;
   const [activeWorkspace, setActiveWorkspace] = useState<string>("data_lakes");
   const [selectedSector, setSelectedSector] = useState<Sector | null>(null);
   const [selectedDataLake, setSelectedDataLake] = useState<DataLake | null>(
@@ -294,6 +296,9 @@ export default function SectorsPage() {
   // Enrichment state for data lake cards
   const [enrichingLakeId, setEnrichingLakeId] = useState<string | null>(null);
 
+  // Push to leads state
+  const [pushingLakeId, setPushingLakeId] = useState<string | null>(null);
+
   // Quick enrich a data lake
   const handleQuickEnrich = async (
     lake: DataLake,
@@ -328,10 +333,46 @@ export default function SectorsPage() {
     }
   };
 
+  // Push data lake records to leads table
+  const handlePushToLeads = async (lake: DataLake) => {
+    if (!teamId) {
+      toast.error("Team ID not found");
+      return;
+    }
+
+    setPushingLakeId(lake.id);
+    try {
+      const response = await fetch(`/api/buckets/${lake.id}/push-to-leads`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          teamId,
+          requirePhone: false,
+          requireEnriched: false,
+        }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        toast.success(
+          `Pushed ${data.results.pushed} leads to database! (${data.results.skipped} skipped, ${data.results.duplicates} duplicates)`
+        );
+        router.push(`/t/${teamId}/leads`);
+      } else {
+        toast.error(data.error || "Push to leads failed");
+      }
+    } catch (error) {
+      console.error("Push to leads failed:", error);
+      toast.error("Push to leads failed");
+    } finally {
+      setPushingLakeId(null);
+    }
+  };
+
   // Data Lake Card component
   const DataLakeCard = ({ lake }: { lake: DataLake }) => {
     const isSelected = selectedDataLake?.id === lake.id;
     const isEnriching = enrichingLakeId === lake.id;
+    const isPushing = pushingLakeId === lake.id;
     const unenrichedCount = lake.totalLeads - lake.enrichedLeads;
 
     return (
@@ -392,6 +433,26 @@ export default function SectorsPage() {
             >
               <Send className="h-3 w-3 mr-1" />
               SMS
+            </Button>
+          </div>
+
+          {/* Push to Leads button - converts bucket to database leads */}
+          <div className="mt-2">
+            <Button
+              size="sm"
+              className="w-full bg-amber-600 hover:bg-amber-700"
+              disabled={isPushing}
+              onClick={(e) => {
+                e.stopPropagation();
+                handlePushToLeads(lake);
+              }}
+            >
+              {isPushing ? (
+                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+              ) : (
+                <Database className="h-3 w-3 mr-1" />
+              )}
+              {isPushing ? "Pushing..." : "Push to Leads"}
             </Button>
           </div>
 
