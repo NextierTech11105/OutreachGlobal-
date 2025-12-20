@@ -9,6 +9,15 @@
  */
 
 import { signalHouseService } from "./signalhouse-service";
+import { redis, isRedisAvailable } from "@/lib/redis";
+import { db } from "@/lib/db";
+import { leads } from "@/lib/db/schema";
+import { eq, or, like, isNotNull } from "drizzle-orm";
+
+// Redis keys for SMS queue persistence
+const SMS_QUEUE_KEY = "sms:queue";
+const SMS_OPTOUT_KEY = "sms:optout";
+const SMS_STATS_KEY = "sms:stats";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -131,10 +140,178 @@ export class SMSQueueService {
   private lastHourReset = new Date();
   private lastDayReset = new Date();
   private optOutList: Set<string> = new Set();
+  private redisAvailable = false;
+  private initialized = false;
 
   private constructor() {
+    // Check Redis availability and load persisted data
+    this.initializeFromRedis();
     // Reset counters at appropriate intervals
     this.startCounterResets();
+  }
+
+  /**
+   * Initialize queue from Redis and Database
+   */
+  private async initializeFromRedis(): Promise<void> {
+    try {
+      this.redisAvailable = isRedisAvailable();
+
+      console.log("[SMSQueue] Initializing queue...");
+
+      // Load queue from Redis if available
+      if (this.redisAvailable) {
+        const queueData = await redis.get<string>(SMS_QUEUE_KEY);
+        if (queueData) {
+          const parsed = typeof queueData === "string" ? JSON.parse(queueData) : queueData;
+          if (Array.isArray(parsed)) {
+            this.queue = parsed.map((m: QueuedMessage) => ({
+              ...m,
+              createdAt: new Date(m.createdAt),
+              sentAt: m.sentAt ? new Date(m.sentAt) : undefined,
+              scheduledAt: m.scheduledAt ? new Date(m.scheduledAt) : undefined,
+              approvedAt: m.approvedAt ? new Date(m.approvedAt) : undefined,
+              editedAt: m.editedAt ? new Date(m.editedAt) : undefined,
+            }));
+            console.log(`[SMSQueue] Loaded ${this.queue.length} messages from Redis`);
+          }
+        }
+
+        // Load opt-out list from Redis
+        const optOutData = await redis.get<string>(SMS_OPTOUT_KEY);
+        if (optOutData) {
+          const parsed = typeof optOutData === "string" ? JSON.parse(optOutData) : optOutData;
+          if (Array.isArray(parsed)) {
+            this.optOutList = new Set(parsed);
+            console.log(`[SMSQueue] Loaded ${this.optOutList.size} opt-outs from Redis`);
+          }
+        }
+
+        // Load stats from Redis
+        const statsData = await redis.get<string>(SMS_STATS_KEY);
+        if (statsData) {
+          const parsed = typeof statsData === "string" ? JSON.parse(statsData) : statsData;
+          if (parsed.sentToday !== undefined) this.sentToday = parsed.sentToday;
+          if (parsed.sentThisHour !== undefined) this.sentThisHour = parsed.sentThisHour;
+          if (parsed.lastHourReset) this.lastHourReset = new Date(parsed.lastHourReset);
+          if (parsed.lastDayReset) this.lastDayReset = new Date(parsed.lastDayReset);
+        }
+      } else {
+        console.log("[SMSQueue] Redis not available, using in-memory only");
+      }
+
+      // Load opt-outs from database (source of truth)
+      await this.loadOptOutsFromDatabase();
+
+      this.initialized = true;
+      console.log("[SMSQueue] Initialization complete");
+    } catch (error) {
+      console.error("[SMSQueue] Initialization error:", error);
+      this.redisAvailable = false;
+      this.initialized = true;
+    }
+  }
+
+  /**
+   * Load opt-outs from database (leads with status = 'opted_out')
+   * Database is the source of truth, merges with Redis cache
+   */
+  private async loadOptOutsFromDatabase(): Promise<void> {
+    try {
+      // Query leads with opted_out status that have phone numbers
+      const optedOutLeads = await db
+        .select({ phone: leads.phone })
+        .from(leads)
+        .where(eq(leads.status, "opted_out"));
+
+      let dbOptOuts = 0;
+      for (const lead of optedOutLeads) {
+        if (lead.phone) {
+          const normalized = this.normalizePhone(lead.phone);
+          if (normalized && !this.optOutList.has(normalized)) {
+            this.optOutList.add(normalized);
+            dbOptOuts++;
+          }
+        }
+      }
+
+      if (dbOptOuts > 0) {
+        console.log(`[SMSQueue] Loaded ${dbOptOuts} additional opt-outs from database`);
+        // Persist merged list to Redis
+        await this.persistOptOuts();
+      }
+
+      console.log(`[SMSQueue] Total opt-outs: ${this.optOutList.size}`);
+    } catch (error) {
+      console.error("[SMSQueue] Failed to load opt-outs from database:", error);
+      // Non-fatal - continue with Redis/in-memory opt-outs
+    }
+  }
+
+  /**
+   * Normalize phone number to E.164 format for consistent opt-out checking
+   */
+  private normalizePhone(phone: string): string {
+    // Remove all non-digit characters
+    const digits = phone.replace(/\D/g, "");
+
+    // Handle US numbers (10 digits -> +1XXXXXXXXXX)
+    if (digits.length === 10) {
+      return `+1${digits}`;
+    }
+
+    // Handle numbers with country code (11 digits starting with 1)
+    if (digits.length === 11 && digits.startsWith("1")) {
+      return `+${digits}`;
+    }
+
+    // Return as-is with + prefix if already formatted
+    if (phone.startsWith("+")) {
+      return phone;
+    }
+
+    return `+${digits}`;
+  }
+
+  /**
+   * Persist queue to Redis (debounced)
+   */
+  private async persistQueue(): Promise<void> {
+    if (!this.redisAvailable) return;
+    try {
+      await redis.set(SMS_QUEUE_KEY, JSON.stringify(this.queue));
+    } catch (error) {
+      console.error("[SMSQueue] Failed to persist queue:", error);
+    }
+  }
+
+  /**
+   * Persist opt-out list to Redis
+   */
+  private async persistOptOuts(): Promise<void> {
+    if (!this.redisAvailable) return;
+    try {
+      await redis.set(SMS_OPTOUT_KEY, JSON.stringify(Array.from(this.optOutList)));
+    } catch (error) {
+      console.error("[SMSQueue] Failed to persist opt-outs:", error);
+    }
+  }
+
+  /**
+   * Persist stats to Redis
+   */
+  private async persistStats(): Promise<void> {
+    if (!this.redisAvailable) return;
+    try {
+      await redis.set(SMS_STATS_KEY, JSON.stringify({
+        sentToday: this.sentToday,
+        sentThisHour: this.sentThisHour,
+        lastHourReset: this.lastHourReset.toISOString(),
+        lastDayReset: this.lastDayReset.toISOString(),
+      }));
+    } catch (error) {
+      console.error("[SMSQueue] Failed to persist stats:", error);
+    }
   }
 
   public static getInstance(): SMSQueueService {
@@ -192,6 +369,9 @@ export class SMSQueueService {
     } else {
       this.queue.splice(insertIndex, 0, queuedMessage);
     }
+
+    // Persist to Redis
+    this.persistQueue();
 
     return id;
   }
@@ -423,6 +603,9 @@ export class SMSQueueService {
           this.sentToday++;
           this.sentThisHour++;
 
+          // Persist stats on each send
+          this.persistStats();
+
           results.push({
             id: message.id,
             to: message.to,
@@ -457,6 +640,8 @@ export class SMSQueueService {
       }
     } finally {
       this.isProcessing = false;
+      // Persist queue state after batch
+      this.persistQueue();
     }
 
     return {
@@ -568,6 +753,9 @@ export class SMSQueueService {
       }
     }
 
+    // Persist to Redis
+    if (approved > 0) this.persistQueue();
+
     return { approved, notFound };
   }
 
@@ -584,6 +772,8 @@ export class SMSQueueService {
         approved++;
       }
     });
+    // Persist to Redis
+    if (approved > 0) this.persistQueue();
     return approved;
   }
 
@@ -668,6 +858,9 @@ export class SMSQueueService {
       ids.push(m.id);
     });
 
+    // Persist to Redis
+    if (ids.length > 0) this.persistQueue();
+
     return { deployed: ids.length, ids };
   }
 
@@ -739,6 +932,9 @@ export class SMSQueueService {
       queueIds.push(id);
     }
 
+    // Persist to Redis
+    if (queueIds.length > 0) this.persistQueue();
+
     return { added: queueIds.length, skipped, queueIds };
   }
 
@@ -753,14 +949,20 @@ export class SMSQueueService {
     this.optOutList.add(this.normalizePhone(phoneNumber));
 
     // Cancel any pending messages to this number
+    let modified = false;
     this.queue.forEach((message) => {
       if (
         this.normalizePhone(message.to) === this.normalizePhone(phoneNumber) &&
         message.status === "pending"
       ) {
         message.status = "cancelled";
+        modified = true;
       }
     });
+
+    // Persist to Redis
+    this.persistOptOuts();
+    if (modified) this.persistQueue();
   }
 
   /**
@@ -768,6 +970,8 @@ export class SMSQueueService {
    */
   public removeOptOut(phoneNumber: string): void {
     this.optOutList.delete(this.normalizePhone(phoneNumber));
+    // Persist to Redis
+    this.persistOptOuts();
   }
 
   /**
@@ -795,10 +999,6 @@ export class SMSQueueService {
   // ─────────────────────────────────────────────────────────────────────────────
   // HELPER METHODS
   // ─────────────────────────────────────────────────────────────────────────────
-
-  private normalizePhone(phone: string): string {
-    return phone.replace(/\D/g, "").slice(-10);
-  }
 
   private renderTemplate(
     template: string,

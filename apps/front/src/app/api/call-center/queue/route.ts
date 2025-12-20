@@ -12,6 +12,11 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { redis, isRedisAvailable } from "@/lib/redis";
+
+// Redis keys for Call Queue persistence
+const CALL_QUEUE_KEY = "call:queue";
+const CALL_STATES_KEY = "call:assistant_states";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -121,11 +126,99 @@ const PERSONA_LANES: Record<PersonaId, CampaignLane[]> = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// IN-MEMORY STORAGE (Replace with DB/Redis in production)
+// REDIS-BACKED STORAGE (with in-memory fallback)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const callQueue: Map<string, CallQueueItem> = new Map();
-const assistantStates: Map<string, AssistantModeState> = new Map();
+// In-memory fallback (used when Redis unavailable)
+let callQueueMemory: Map<string, CallQueueItem> = new Map();
+let assistantStatesMemory: Map<string, AssistantModeState> = new Map();
+let redisAvailable = false;
+let initialized = false;
+
+// Initialize from Redis
+async function initializeFromRedis(): Promise<void> {
+  if (initialized) return;
+
+  try {
+    redisAvailable = isRedisAvailable();
+    if (!redisAvailable) {
+      console.log("[CallQueue] Redis not available, using in-memory");
+      initialized = true;
+      return;
+    }
+
+    // Load call queue from Redis
+    const queueData = await redis.get<string>(CALL_QUEUE_KEY);
+    if (queueData) {
+      const parsed = typeof queueData === "string" ? JSON.parse(queueData) : queueData;
+      if (Array.isArray(parsed)) {
+        callQueueMemory = new Map(
+          parsed.map((item: CallQueueItem) => [
+            item.id,
+            {
+              ...item,
+              createdAt: new Date(item.createdAt),
+              scheduledAt: item.scheduledAt ? new Date(item.scheduledAt) : undefined,
+              lastAttempt: item.lastAttempt ? new Date(item.lastAttempt) : undefined,
+              completedAt: item.completedAt ? new Date(item.completedAt) : undefined,
+            },
+          ])
+        );
+        console.log(`[CallQueue] Loaded ${callQueueMemory.size} calls from Redis`);
+      }
+    }
+
+    // Load assistant states from Redis
+    const statesData = await redis.get<string>(CALL_STATES_KEY);
+    if (statesData) {
+      const parsed = typeof statesData === "string" ? JSON.parse(statesData) : statesData;
+      if (Array.isArray(parsed)) {
+        assistantStatesMemory = new Map(parsed.map((item: [string, AssistantModeState]) => item));
+        console.log(`[CallQueue] Loaded ${assistantStatesMemory.size} assistant states from Redis`);
+      }
+    }
+
+    initialized = true;
+  } catch (error) {
+    console.error("[CallQueue] Redis init error:", error);
+    redisAvailable = false;
+    initialized = true;
+  }
+}
+
+// Persist call queue to Redis
+async function persistQueue(): Promise<void> {
+  if (!redisAvailable) return;
+  try {
+    const data = Array.from(callQueueMemory.entries()).map(([, v]) => v);
+    await redis.set(CALL_QUEUE_KEY, JSON.stringify(data));
+  } catch (error) {
+    console.error("[CallQueue] Failed to persist queue:", error);
+  }
+}
+
+// Persist assistant states to Redis
+async function persistStates(): Promise<void> {
+  if (!redisAvailable) return;
+  try {
+    const data = Array.from(assistantStatesMemory.entries());
+    await redis.set(CALL_STATES_KEY, JSON.stringify(data));
+  } catch (error) {
+    console.error("[CallQueue] Failed to persist states:", error);
+  }
+}
+
+// Getter for call queue (ensures initialization)
+async function getCallQueue(): Promise<Map<string, CallQueueItem>> {
+  await initializeFromRedis();
+  return callQueueMemory;
+}
+
+// Getter for assistant states (ensures initialization)
+async function getAssistantStates(): Promise<Map<string, AssistantModeState>> {
+  await initializeFromRedis();
+  return assistantStatesMemory;
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // HELPER FUNCTIONS
@@ -135,11 +228,12 @@ function generateId(): string {
   return `call_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
-function getNextLead(
+async function getNextLead(
   persona: PersonaId,
   campaignLane?: CampaignLane,
-): CallQueueItem | null {
+): Promise<CallQueueItem | null> {
   const allowedLanes = campaignLane ? [campaignLane] : PERSONA_LANES[persona];
+  const callQueue = await getCallQueue();
   const items = Array.from(callQueue.values());
 
   const nextLead = items
@@ -206,6 +300,8 @@ export async function GET(request: NextRequest) {
   const lane = searchParams.get("lane") as CampaignLane | null;
 
   try {
+    const callQueue = await getCallQueue();
+    const assistantStates = await getAssistantStates();
     const items = Array.from(callQueue.values());
 
     switch (action) {
@@ -261,7 +357,7 @@ export async function GET(request: NextRequest) {
           );
         }
 
-        const nextLead = getNextLead(persona, lane || undefined);
+        const nextLead = await getNextLead(persona, lane || undefined);
         if (!nextLead) {
           return NextResponse.json({
             success: true,
@@ -395,6 +491,7 @@ export async function POST(request: NextRequest) {
           );
         }
 
+        const callQueue = await getCallQueue();
         const id = generateId();
         const item: CallQueueItem = {
           id,
@@ -419,6 +516,7 @@ export async function POST(request: NextRequest) {
         };
 
         callQueue.set(id, item);
+        await persistQueue();
 
         return NextResponse.json({
           success: true,
@@ -450,6 +548,7 @@ export async function POST(request: NextRequest) {
           );
         }
 
+        const callQueue = await getCallQueue();
         const results = {
           added: 0,
           skipped: 0,
@@ -492,6 +591,8 @@ export async function POST(request: NextRequest) {
           results.callIds.push(id);
         }
 
+        await persistQueue();
+
         return NextResponse.json({
           success: true,
           ...results,
@@ -517,6 +618,7 @@ export async function POST(request: NextRequest) {
           );
         }
 
+        const callQueue = await getCallQueue();
         const results: Record<string, number> = {};
 
         for (const [lane, leads] of Object.entries(batches)) {
@@ -558,6 +660,8 @@ export async function POST(request: NextRequest) {
           }
         }
 
+        await persistQueue();
+
         return NextResponse.json({
           success: true,
           message: "Leads added from LUCY preparation",
@@ -590,8 +694,10 @@ export async function POST(request: NextRequest) {
           );
         }
 
+        const callQueue = await getCallQueue();
+        const assistantStates = await getAssistantStates();
         const items = Array.from(callQueue.values());
-        const nextLead = getNextLead(persona, lane);
+        const nextLead = await getNextLead(persona, lane);
 
         const state: AssistantModeState = {
           persona,
@@ -620,9 +726,11 @@ export async function POST(request: NextRequest) {
           nextLead.lastAttempt = new Date();
           nextLead.attempts++;
           callQueue.set(nextLead.id, nextLead);
+          await persistQueue();
         }
 
         assistantStates.set(persona, state);
+        await persistStates();
 
         return NextResponse.json({
           success: true,
@@ -648,6 +756,8 @@ export async function POST(request: NextRequest) {
           );
         }
 
+        const callQueue = await getCallQueue();
+        const assistantStates = await getAssistantStates();
         const state = assistantStates.get(persona);
         if (!state || !state.active) {
           return NextResponse.json(
@@ -674,7 +784,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Get next lead
-        const nextLead = getNextLead(persona, state.campaignLane);
+        const nextLead = await getNextLead(persona, state.campaignLane);
 
         if (nextLead) {
           nextLead.status = "in_progress";
@@ -688,6 +798,8 @@ export async function POST(request: NextRequest) {
         }
 
         assistantStates.set(persona, state);
+        await persistQueue();
+        await persistStates();
 
         return NextResponse.json({
           success: true,
@@ -712,6 +824,7 @@ export async function POST(request: NextRequest) {
           );
         }
 
+        const assistantStates = await getAssistantStates();
         const state = assistantStates.get(persona);
         if (!state?.currentLead) {
           return NextResponse.json(
@@ -756,11 +869,13 @@ export async function POST(request: NextRequest) {
           );
         }
 
+        const assistantStates = await getAssistantStates();
         const state = assistantStates.get(persona);
         if (state) {
           state.active = false;
           state.currentLead = undefined;
           assistantStates.set(persona, state);
+          await persistStates();
         }
 
         return NextResponse.json({
@@ -798,6 +913,8 @@ export async function POST(request: NextRequest) {
           );
         }
 
+        const callQueue = await getCallQueue();
+        const assistantStates = await getAssistantStates();
         const state = assistantStates.get(persona);
         if (!state) {
           return NextResponse.json(
@@ -815,7 +932,7 @@ export async function POST(request: NextRequest) {
             i.campaignLane === campaignLane,
         ).length;
 
-        const nextLead = getNextLead(persona, campaignLane);
+        const nextLead = await getNextLead(persona, campaignLane);
         if (nextLead) {
           nextLead.status = "in_progress";
           nextLead.lastAttempt = new Date();
@@ -825,6 +942,8 @@ export async function POST(request: NextRequest) {
         state.currentLead = nextLead || undefined;
 
         assistantStates.set(persona, state);
+        await persistQueue();
+        await persistStates();
 
         return NextResponse.json({
           success: true,
@@ -849,6 +968,7 @@ export async function POST(request: NextRequest) {
           );
         }
 
+        const callQueue = await getCallQueue();
         const item = callQueue.get(callId);
         if (!item) {
           return NextResponse.json(
@@ -861,6 +981,7 @@ export async function POST(request: NextRequest) {
         item.attempts++;
         item.lastAttempt = new Date();
         callQueue.set(callId, item);
+        await persistQueue();
 
         return NextResponse.json({
           success: true,
@@ -878,6 +999,7 @@ export async function POST(request: NextRequest) {
           );
         }
 
+        const callQueue = await getCallQueue();
         const item = callQueue.get(callId);
         if (!item) {
           return NextResponse.json(
@@ -892,6 +1014,7 @@ export async function POST(request: NextRequest) {
         item.duration = duration;
         item.completedAt = new Date();
         callQueue.set(callId, item);
+        await persistQueue();
 
         return NextResponse.json({
           success: true,
@@ -909,6 +1032,7 @@ export async function POST(request: NextRequest) {
           );
         }
 
+        const callQueue = await getCallQueue();
         const item = callQueue.get(callId);
         if (!item) {
           return NextResponse.json(
@@ -920,6 +1044,7 @@ export async function POST(request: NextRequest) {
         item.status = "pending";
         item.scheduledAt = new Date(scheduledAt);
         callQueue.set(callId, item);
+        await persistQueue();
 
         return NextResponse.json({
           success: true,
@@ -950,6 +1075,7 @@ export async function DELETE(request: NextRequest) {
   try {
     const body = await request.json();
     const { action, callId, leadId, persona, campaignLane } = body;
+    const callQueue = await getCallQueue();
 
     switch (action) {
       case "remove": {
@@ -961,6 +1087,7 @@ export async function DELETE(request: NextRequest) {
         }
 
         const deleted = callQueue.delete(callId);
+        if (deleted) await persistQueue();
         return NextResponse.json({
           success: deleted,
           message: deleted ? "Call removed" : "Call not found",
@@ -983,6 +1110,7 @@ export async function DELETE(request: NextRequest) {
           }
         }
 
+        if (removed > 0) await persistQueue();
         return NextResponse.json({
           success: true,
           removed,
@@ -998,6 +1126,7 @@ export async function DELETE(request: NextRequest) {
           }
         }
 
+        if (removed > 0) await persistQueue();
         return NextResponse.json({
           success: true,
           removed,
@@ -1022,6 +1151,7 @@ export async function DELETE(request: NextRequest) {
           }
         }
 
+        if (removed > 0) await persistQueue();
         return NextResponse.json({
           success: true,
           removed,
