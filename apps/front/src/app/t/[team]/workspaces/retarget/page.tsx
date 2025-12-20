@@ -73,18 +73,23 @@ import { toast } from "sonner";
 import { useGlobalActions } from "@/lib/providers/global-actions-provider";
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// RETARGET WORKSPACE - SABRINA AI RE-ENGAGEMENT
+// RETARGET WORKSPACE - CATHY AI RE-ENGAGEMENT
 // ═══════════════════════════════════════════════════════════════════════════════
 //
-// SABRINA specializes in re-engaging cold leads who:
+// CATHY is the NUDGER - specializes in re-engaging cold leads who:
 // - Haven't responded to initial outreach
 // - Showed interest but went dark
 // - Need a different approach
 //
+// CATHY has her own:
+// - Dedicated phone numbers (different from GIANNA and CATHY)
+// - Inbound response center
+// - Calendar for scheduling
+//
 // Workflow:
 // 1. Leads that haven't responded after X days flow here
-// 2. SABRINA analyzes previous attempts and crafts retarget strategy
-// 3. Uses different angles, value props, or channels
+// 2. CATHY analyzes previous attempts and crafts retarget strategy
+// 3. Uses humor-based, human-feeling follow-ups
 // 4. Tracks re-engagement success rate
 //
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -126,7 +131,7 @@ interface RetargetLead {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SABRINA RETARGET TEMPLATES
+// CATHY RETARGET TEMPLATES (NUDGER - Humor-based re-engagement)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const RETARGET_TEMPLATES = [
@@ -135,7 +140,7 @@ const RETARGET_TEMPLATES = [
     name: "Casual Check-In",
     strategy: "new_angle" as const,
     template:
-      "Hey {firstName}! Just checking in - still interested in that {previousValueProp}? No worries if timing isn't right - Sabrina",
+      "Hey {firstName}! Just checking in - still interested in that {previousValueProp}? No worries if timing isn't right - Cathy",
     timing: "3-5 days after last contact",
   },
   {
@@ -143,7 +148,7 @@ const RETARGET_TEMPLATES = [
     name: "New Value Prop",
     strategy: "different_value" as const,
     template:
-      "Hey {firstName}! Got something new you might like - different from what I sent before. Quick question: what's your biggest challenge with {industry} right now? - Sabrina",
+      "Hey {firstName}! Got something new you might like - different from what I sent before. Quick question: what's your biggest challenge with {industry} right now? - Cathy",
     timing: "7+ days after last contact",
   },
   {
@@ -151,7 +156,7 @@ const RETARGET_TEMPLATES = [
     name: "Switch to Call",
     strategy: "channel_switch" as const,
     template:
-      "Quick call instead of text? Just 2 mins - promise! What time works? - Sabrina",
+      "Quick call instead of text? Just 2 mins - promise! What time works? - Cathy",
     timing: "After 2+ SMS with no response",
   },
   {
@@ -159,7 +164,7 @@ const RETARGET_TEMPLATES = [
     name: "Pattern Interrupt",
     strategy: "pattern_interrupt" as const,
     template:
-      "Random thought - are you the {firstName} who {randomDetail}? Either way, still got that {previousValueProp} for you! - Sabrina",
+      "Random thought - are you the {firstName} who {randomDetail}? Either way, still got that {previousValueProp} for you! - Cathy",
     timing: "10+ days, creative approach",
   },
   {
@@ -167,7 +172,7 @@ const RETARGET_TEMPLATES = [
     name: "Honest Approach",
     strategy: "new_angle" as const,
     template:
-      "Hey {firstName} - I'll be honest, I'm not sure if my messages are going through or if you're just busy. Either way, door's always open! - Sabrina",
+      "Hey {firstName} - I'll be honest, I'm not sure if my messages are going through or if you're just busy. Either way, door's always open! - Cathy",
     timing: "After 3+ attempts",
   },
   {
@@ -175,7 +180,7 @@ const RETARGET_TEMPLATES = [
     name: "Subtle FOMO",
     strategy: "different_value" as const,
     template:
-      "Hey {firstName}! Just helped someone in {city} with something similar - thought of you. Still available if interested! - Sabrina",
+      "Hey {firstName}! Just helped someone in {city} with something similar - thought of you. Still available if interested! - Cathy",
     timing: "5-7 days",
   },
 ];
@@ -184,7 +189,7 @@ const RETARGET_TEMPLATES = [
 // COPILOT RETARGET ANALYSIS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function getSabrinaRetargetSuggestion(lead: RetargetLead): {
+function getCathyRetargetSuggestion(lead: RetargetLead): {
   strategy: string;
   template: (typeof RETARGET_TEMPLATES)[0];
   reasoning: string;
@@ -332,7 +337,7 @@ function RetargetLeadCard({
   onRetarget: () => void;
   onRemove: () => void;
 }) {
-  const suggestion = getSabrinaRetargetSuggestion(lead);
+  const suggestion = getCathyRetargetSuggestion(lead);
 
   return (
     <Card
@@ -404,7 +409,7 @@ function RetargetLeadCard({
           <Progress value={lead.reEngagementScore} className="h-1.5" />
         </div>
 
-        {/* SABRINA Suggestion */}
+        {/* CATHY Suggestion */}
         <div
           className={cn(
             "p-3 rounded-lg border mb-3",
@@ -428,7 +433,7 @@ function RetargetLeadCard({
             />
             <div className="flex-1">
               <p className="text-sm font-medium flex items-center gap-2">
-                SABRINA: {suggestion.strategy}
+                CATHY: {suggestion.strategy}
                 <Badge variant="outline" className="text-xs">
                   {suggestion.confidence}% conf
                 </Badge>
@@ -521,7 +526,7 @@ export default function RetargetWorkspace() {
   );
 
   const handleRetarget = (lead: RetargetLead) => {
-    const suggestion = getSabrinaRetargetSuggestion(lead);
+    const suggestion = getCathyRetargetSuggestion(lead);
     const message = suggestion.template.template
       .replace(/{firstName}/g, lead.firstName || lead.name.split(" ")[0])
       .replace(/{previousValueProp}/g, lead.previousValueProp || "info")
@@ -578,7 +583,7 @@ export default function RetargetWorkspace() {
                 variant="outline"
                 className="ml-2 bg-purple-50 text-purple-700"
               >
-                SABRINA
+                CATHY
               </Badge>
             </h1>
             <p className="text-sm text-muted-foreground">
@@ -695,7 +700,7 @@ export default function RetargetWorkspace() {
             {selectedLead && (
               <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
                 <p className="text-sm font-medium text-purple-700">
-                  SABRINA's Strategy:
+                  CATHY's Strategy:
                 </p>
                 <p className="text-sm text-purple-600">
                   {getSabrinaRetargetSuggestion(selectedLead).reasoning}

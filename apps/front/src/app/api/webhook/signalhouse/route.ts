@@ -84,12 +84,13 @@ const OPT_OUT_KEYWORDS = [
 const EMAIL_REGEX = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi;
 
 // Hot lead campaign ID (configured per tenant, fallback to default)
-const HOT_LEAD_CAMPAIGN_ID = process.env.HOT_LEAD_CAMPAIGN_ID || "hot_leads_default";
+const HOT_LEAD_CAMPAIGN_ID =
+  process.env.HOT_LEAD_CAMPAIGN_ID || "hot_leads_default";
 
 // AI Worker phone numbers - each worker gets isolated lane
 const AI_WORKER_PHONES: Record<string, string> = {
-  GIANNA: process.env.GIANNA_PHONE_NUMBER || "",  // Opener - inbound response center
-  CATHY: process.env.CATHY_PHONE_NUMBER || "",    // Nudger - inbound response center
+  GIANNA: process.env.GIANNA_PHONE_NUMBER || "", // Opener - inbound response center
+  CATHY: process.env.CATHY_PHONE_NUMBER || "", // Nudger - inbound response center
   SABRINA: process.env.SABRINA_PHONE_NUMBER || "", // Closer - booking focus
 };
 
@@ -108,12 +109,19 @@ function extractEmail(body: string): string | null {
  */
 async function getContentLinkForLead(
   leadId?: string,
-  contentType?: "MEDIUM_ARTICLE" | "NEWSLETTER" | "VIDEO" | "EBOOK" | "ONE_PAGER"
+  contentType?:
+    | "MEDIUM_ARTICLE"
+    | "NEWSLETTER"
+    | "VIDEO"
+    | "EBOOK"
+    | "ONE_PAGER",
 ): Promise<{ url: string; title: string; contentType: string } | null> {
   try {
     // Default content link if DB query fails
     const fallback = {
-      url: process.env.DEFAULT_CONTENT_LINK || "https://outreachglobal.com/resources",
+      url:
+        process.env.DEFAULT_CONTENT_LINK ||
+        "https://outreachglobal.com/resources",
       title: "Exclusive Resources",
       contentType: "EXTERNAL_LINK",
     };
@@ -142,14 +150,18 @@ async function getContentLinkForLead(
       }
     } catch (dbError) {
       // Content library table may not exist - this is OK
-      console.log("[SignalHouse] Content library query skipped - using fallback");
+      console.log(
+        "[SignalHouse] Content library query skipped - using fallback",
+      );
     }
 
     return fallback;
   } catch (error) {
     console.error("[SignalHouse] Error fetching content link:", error);
     return {
-      url: process.env.DEFAULT_CONTENT_LINK || "https://outreachglobal.com/resources",
+      url:
+        process.env.DEFAULT_CONTENT_LINK ||
+        "https://outreachglobal.com/resources",
       title: "Exclusive Resources",
       contentType: "EXTERNAL_LINK",
     };
@@ -159,7 +171,10 @@ async function getContentLinkForLead(
 /**
  * Push lead to hot lead campaign with email_captured label
  */
-async function pushToHotLeadCampaign(leadId: string, email: string): Promise<void> {
+async function pushToHotLeadCampaign(
+  leadId: string,
+  email: string,
+): Promise<void> {
   try {
     // Update lead with email_captured tag and hot lead status
     await db
@@ -172,7 +187,9 @@ async function pushToHotLeadCampaign(leadId: string, email: string): Promise<voi
       })
       .where(eq(leads.id, leadId));
 
-    console.log(`[SignalHouse] 🔥 Lead ${leadId} pushed to hot lead campaign with email: ${email}`);
+    console.log(
+      `[SignalHouse] 🔥 Lead ${leadId} pushed to hot lead campaign with email: ${email}`,
+    );
   } catch (error) {
     console.error("[SignalHouse] Error pushing to hot lead campaign:", error);
   }
@@ -338,7 +355,9 @@ export async function POST(request: NextRequest) {
         // Lead provided email → Confirm → Queue Value X delivery via email
         // ─────────────────────────────────────────────────────────────────────
         if (capturedEmail) {
-          console.log(`[SignalHouse] 📧 EMAIL CAPTURED from ${fromNumber}: ${capturedEmail}`);
+          console.log(
+            `[SignalHouse] 📧 EMAIL CAPTURED from ${fromNumber}: ${capturedEmail}`,
+          );
 
           // Get worker name (default to Gianna for opener)
           const workerName = "Gianna";
@@ -361,7 +380,9 @@ export async function POST(request: NextRequest) {
               });
 
               if (smsResult.success) {
-                console.log(`[SignalHouse] ✅ Email capture confirmation sent to ${fromNumber}`);
+                console.log(
+                  `[SignalHouse] ✅ Email capture confirmation sent to ${fromNumber}`,
+                );
 
                 await db.insert(smsMessages).values({
                   id: crypto.randomUUID(),
@@ -403,10 +424,15 @@ export async function POST(request: NextRequest) {
         // Lead said "yes/sure" → Send content link via SMS
         // ─────────────────────────────────────────────────────────────────────
         if (isPermissionResponse) {
-          console.log(`[SignalHouse] 🔗 CONTENT PERMISSION from ${fromNumber}: "${messageBody}"`);
+          console.log(
+            `[SignalHouse] 🔗 CONTENT PERMISSION from ${fromNumber}: "${messageBody}"`,
+          );
 
           // Get content link from library
-          const contentLink = await getContentLinkForLead(lead?.id, "MEDIUM_ARTICLE");
+          const contentLink = await getContentLinkForLead(
+            lead?.id,
+            "MEDIUM_ARTICLE",
+          );
           const workerName = "Gianna";
           const firstName = lead?.firstName || "";
 
@@ -426,7 +452,9 @@ export async function POST(request: NextRequest) {
               });
 
               if (smsResult.success) {
-                console.log(`[SignalHouse] ✅ Content link sent to ${fromNumber}: ${contentLink.url}`);
+                console.log(
+                  `[SignalHouse] ✅ Content link sent to ${fromNumber}: ${contentLink.url}`,
+                );
 
                 await db.insert(smsMessages).values({
                   id: crypto.randomUUID(),
@@ -474,7 +502,9 @@ export async function POST(request: NextRequest) {
         // Lead is interested but we need more context
         // ─────────────────────────────────────────────────────────────────────
         if (isPositiveLead) {
-          console.log(`[SignalHouse] 🎯 POSITIVE RESPONSE from ${fromNumber}: ${messageBody}`);
+          console.log(
+            `[SignalHouse] 🎯 POSITIVE RESPONSE from ${fromNumber}: ${messageBody}`,
+          );
 
           if (lead) {
             await db

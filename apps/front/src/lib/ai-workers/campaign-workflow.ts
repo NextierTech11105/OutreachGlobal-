@@ -696,12 +696,12 @@ export function summarizeWorkflows(
 export type TwoBracketFlowType = "email_capture" | "content_permission";
 
 export type OpenerMessageType =
-  | "valuation_report"      // "Best email to send valuation report?"
-  | "ai_blueprint"          // "Best email to send our AI blueprint?"
-  | "medium_article"        // "Can I send you the Medium article link?"
-  | "newsletter"            // "Mind if I send you our newsletter?"
-  | "historical_fact"       // "Mind if I send our historical fact of the day?"
-  | "industry_news";        // "Mind if I share the latest HVAC trends?"
+  | "valuation_report" // "Best email to send valuation report?"
+  | "ai_blueprint" // "Best email to send our AI blueprint?"
+  | "medium_article" // "Can I send you the Medium article link?"
+  | "newsletter" // "Mind if I send you our newsletter?"
+  | "historical_fact" // "Mind if I send our historical fact of the day?"
+  | "industry_news"; // "Mind if I share the latest HVAC trends?"
 
 export interface TwoBracketOpener {
   id: string;
@@ -722,7 +722,8 @@ export const TWO_BRACKET_OPENERS: TwoBracketOpener[] = [
     id: "opener_valuation",
     type: "valuation_report",
     flowType: "email_capture",
-    template: "Hi {firstName}, this is {worker} from Homeowner Advisor. Following up to send you a valuation report for {propertyAddress}. What is the best email to send? Reply STOP to opt-out.",
+    template:
+      "Hi {firstName}, this is {worker} from Homeowner Advisor. Following up to send you a valuation report for {propertyAddress}. What is the best email to send? Reply STOP to opt-out.",
     variables: ["firstName", "worker", "propertyAddress"],
     valueX: "property_valuation",
     expectedResponse: "email",
@@ -732,7 +733,8 @@ export const TWO_BRACKET_OPENERS: TwoBracketOpener[] = [
     id: "opener_blueprint",
     type: "ai_blueprint",
     flowType: "email_capture",
-    template: "Hey {firstName}, For {companyName} whether you're looking to expand or exit we got you. Best email to send our AI blueprint? - {worker}",
+    template:
+      "Hey {firstName}, For {companyName} whether you're looking to expand or exit we got you. Best email to send our AI blueprint? - {worker}",
     variables: ["firstName", "companyName", "worker"],
     valueX: "ai_blueprint",
     expectedResponse: "email",
@@ -742,7 +744,8 @@ export const TWO_BRACKET_OPENERS: TwoBracketOpener[] = [
     id: "opener_industry_news",
     type: "industry_news",
     flowType: "email_capture",
-    template: "Hey {firstName}! Mind if I shared with you the history of {industry} and keep you up to date with the latest trends? Best email? - {worker}",
+    template:
+      "Hey {firstName}! Mind if I shared with you the history of {industry} and keep you up to date with the latest trends? Best email? - {worker}",
     variables: ["firstName", "industry", "worker"],
     valueX: "industry_insights",
     expectedResponse: "email",
@@ -756,7 +759,8 @@ export const TWO_BRACKET_OPENERS: TwoBracketOpener[] = [
     id: "opener_medium_article",
     type: "medium_article",
     flowType: "content_permission",
-    template: "Hey {firstName}! Can I send you a link to the Medium article I wrote about AI and {industry}? - {worker}",
+    template:
+      "Hey {firstName}! Can I send you a link to the Medium article I wrote about AI and {industry}? - {worker}",
     variables: ["firstName", "industry", "worker"],
     valueX: "medium_article",
     expectedResponse: "permission",
@@ -766,7 +770,8 @@ export const TWO_BRACKET_OPENERS: TwoBracketOpener[] = [
     id: "opener_medium_upset",
     type: "medium_article",
     flowType: "content_permission",
-    template: "{firstName} - would you be upset if I text you the link to the Medium article I just wrote? - {worker}",
+    template:
+      "{firstName} - would you be upset if I text you the link to the Medium article I just wrote? - {worker}",
     variables: ["firstName", "worker"],
     valueX: "medium_article",
     expectedResponse: "permission",
@@ -776,7 +781,8 @@ export const TWO_BRACKET_OPENERS: TwoBracketOpener[] = [
     id: "opener_historical_fact",
     type: "historical_fact",
     flowType: "content_permission",
-    template: "Hey {firstName}, mind if I send our historical fact of the day regarding {neighborhood}? - {worker}",
+    template:
+      "Hey {firstName}, mind if I send our historical fact of the day regarding {neighborhood}? - {worker}",
     variables: ["firstName", "neighborhood", "worker"],
     valueX: "did_you_know",
     expectedResponse: "permission",
@@ -786,7 +792,8 @@ export const TWO_BRACKET_OPENERS: TwoBracketOpener[] = [
     id: "opener_newsletter",
     type: "newsletter",
     flowType: "content_permission",
-    template: "{firstName} - mind if I send you our weekly {industry} newsletter? Some good stuff this week! - {worker}",
+    template:
+      "{firstName} - mind if I send you our weekly {industry} newsletter? Some good stuff this week! - {worker}",
     variables: ["firstName", "industry", "worker"],
     valueX: "newsletter",
     expectedResponse: "permission",
@@ -818,7 +825,9 @@ export function getTwoBracketOpener(context: {
 
   // Prefer property openers if we have property data
   if (context.hasProperty) {
-    const propertyOpeners = openers.filter((o) => o.type === "valuation_report");
+    const propertyOpeners = openers.filter(
+      (o) => o.type === "valuation_report",
+    );
     if (propertyOpeners.length > 0) return propertyOpeners[0];
   }
 
@@ -838,7 +847,7 @@ export function getTwoBracketOpener(context: {
  */
 export function renderOpenerTemplate(
   opener: TwoBracketOpener,
-  variables: Record<string, string>
+  variables: Record<string, string>,
 ): string {
   let message = opener.template;
 

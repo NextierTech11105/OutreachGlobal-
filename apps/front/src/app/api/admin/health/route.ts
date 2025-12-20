@@ -219,21 +219,22 @@ async function checkDOSpaces(): Promise<IntegrationStatus> {
     process.env.DO_SPACES_SECRET_KEY ||
     process.env.SPACES_SECRET_ACCESS_KEY;
   const bucket =
-    process.env.DO_SPACES_BUCKET ||
-    process.env.SPACES_BUCKET ||
-    "nextier";
+    process.env.DO_SPACES_BUCKET || process.env.SPACES_BUCKET || "nextier";
 
   if (!accessKey || !secretKey) {
     return {
       status: "not_configured",
-      message: "DO Spaces credentials not set. Need DO_SPACES_KEY + DO_SPACES_SECRET",
+      message:
+        "DO Spaces credentials not set. Need DO_SPACES_KEY + DO_SPACES_SECRET",
     };
   }
 
   // Actually test the connection
   const start = Date.now();
   try {
-    const { S3Client, ListObjectsV2Command } = await import("@aws-sdk/client-s3");
+    const { S3Client, ListObjectsV2Command } = await import(
+      "@aws-sdk/client-s3"
+    );
     const client = new S3Client({
       endpoint: "https://nyc3.digitaloceanspaces.com",
       region: "nyc3",

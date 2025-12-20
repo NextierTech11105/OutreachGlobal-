@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import {
   Phone,
   Save,
@@ -8,6 +8,7 @@ import {
   RefreshCw,
   Clock,
   CheckCircle2,
+  Brain,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +26,11 @@ import { CallControls } from "./call-controls";
 import { CallTranscription } from "./call-transcription";
 import { useCallState } from "@/lib/providers/call-state-provider";
 import { Badge } from "@/components/ui/badge";
+import {
+  CopilotNextStep,
+  type CallDisposition,
+  type NextStepSuggestion,
+} from "./copilot-next-step";
 
 interface PowerDialerProps {
   leadName?: string;
@@ -100,6 +106,32 @@ export function PowerDialer({
   const deviceRef = useRef<any>(null);
   const connectionRef = useRef<any>(null);
   const { toast } = useToast();
+
+  // State for Copilot Next Step
+  const [showCopilotNextStep, setShowCopilotNextStep] = useState(false);
+  const [callDuration, setCallDuration] = useState<number>(0);
+
+  // Lead context for Copilot
+  const leadContext = useMemo(
+    () => ({
+      id: leadId,
+      name: leadName || "Unknown",
+      phone: leadPhone || phoneNumber,
+      email: enrichedData?.contact?.emails?.[0]?.email,
+      company: leadCompany || "Unknown",
+      previousAttempts: 0, // Would be fetched from lead data
+      campaignId: campaignId,
+    }),
+    [
+      leadId,
+      leadName,
+      leadPhone,
+      phoneNumber,
+      enrichedData,
+      leadCompany,
+      campaignId,
+    ],
+  );
 
   // Lead information for AI context
   const leadInfo = {
@@ -234,12 +266,20 @@ export function PowerDialer({
                 // Stop transcription
                 stopTranscription();
 
-                // Call the onCallComplete callback if provided
-                if (onCallComplete && callStartTime) {
+                // Calculate call duration and show Copilot Next Step
+                if (callStartTime) {
                   const duration = Math.floor(
                     (new Date().getTime() - callStartTime.getTime()) / 1000,
                   );
-                  onCallComplete(duration, notes);
+                  setCallDuration(duration);
+
+                  // Show Copilot Next Step after call ends
+                  setShowCopilotNextStep(true);
+
+                  // Call the onCallComplete callback if provided
+                  if (onCallComplete) {
+                    onCallComplete(duration, notes);
+                  }
                 }
 
                 setCallStartTime(null);
@@ -715,7 +755,13 @@ export function PowerDialer({
                 "justify-start text-xs h-9 px-3",
                 callDisposition === option.value && option.color,
               )}
-              onClick={() => setCallDisposition(option.value)}
+              onClick={() => {
+                setCallDisposition(option.value);
+                // Show copilot when disposition is selected after call
+                if (callStatus === "completed") {
+                  setShowCopilotNextStep(true);
+                }
+              }}
             >
               {callDisposition === option.value && (
                 <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
@@ -725,6 +771,48 @@ export function PowerDialer({
           ))}
         </div>
       </div>
+
+      {/* Copilot Next Step - Shows after call ends with disposition selected */}
+      {showCopilotNextStep && callDisposition && callStatus === "completed" && (
+        <div className="mt-4">
+          <CopilotNextStep
+            disposition={callDisposition as CallDisposition}
+            lead={leadContext}
+            callDuration={callDuration}
+            notes={notes}
+            onExecuteAction={async (suggestion: NextStepSuggestion) => {
+              console.log("Executing:", suggestion);
+              toast({
+                title: `Executing: ${suggestion.action}`,
+                description: `${suggestion.aiWorker} is handling this action`,
+              });
+            }}
+            onQueueAction={async (suggestion: NextStepSuggestion) => {
+              console.log("Queueing:", suggestion);
+              toast({
+                title: `Queued: ${suggestion.action}`,
+                description: `Scheduled for ${suggestion.timing}`,
+              });
+            }}
+            onWarmTransfer={() => {
+              toast({
+                title: "Warm Transfer",
+                description: "Connecting to available agent...",
+              });
+              setShowTransferPanel(true);
+            }}
+            onSkip={() => {
+              setShowCopilotNextStep(false);
+              toast({
+                title: "Skipped",
+                description: "Moving to next lead",
+              });
+              if (onClose) onClose();
+            }}
+            isAssistanceMode={true}
+          />
+        </div>
+      )}
     </div>
   );
 

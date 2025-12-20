@@ -53,7 +53,7 @@ export interface CalendarEvent {
   description?: string;
   startTime: Date;
   endTime: Date;
-  type: "call" | "meeting" | "task" | "reminder";
+  type: "call" | "meeting" | "task" | "reminder" | "sms";
   leadId?: string;
   location?: string;
   googleEventId?: string;

@@ -34,25 +34,27 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 // SABRINA worker configuration
+// SABRINA ONLY confirms and reminds about EXISTING appointments
+// She does NOT book appointments, handle objections, or close leads
 const SABRINA_CONFIG = {
   id: "sabrina" as const,
   name: "SABRINA",
-  role: "Closer",
-  tagline: "Let's get you on the calendar",
+  role: "Appointment Confirmer",
+  tagline: "Your appointment reminder assistant",
   description:
-    "Objection handling, appointment booking, and closing. Agree, overcome, close on first 3 rebuttals.",
+    "Confirms booked appointments and sends reminders to recipients. Ensures people show up on time.",
   gradient: "from-emerald-500 to-teal-600",
   color: "emerald",
-  objectionStrategy: [
-    { step: "AGREE", description: "Validate their concern" },
-    { step: "OVERCOME", description: "Reframe gently" },
-    { step: "CLOSE", description: "Offer specific times" },
+  confirmationWorkflow: [
+    { step: "CONFIRM", description: "Send confirmation when appointment is booked" },
+    { step: "REMIND", description: "Send reminder 24 hours before" },
+    { step: "DAY-OF", description: "Send day-of reminder 1 hour before" },
   ],
   goals: [
-    "Book strategy sessions",
-    "Handle first 3 objections",
-    "Send calendar invites",
-    "Convert interested leads",
+    "Confirm all booked appointments",
+    "Send 24-hour reminders",
+    "Send day-of reminders",
+    "Reduce no-shows",
   ],
 };
 

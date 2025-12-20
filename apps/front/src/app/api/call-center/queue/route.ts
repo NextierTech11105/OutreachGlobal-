@@ -150,7 +150,8 @@ async function initializeFromRedis(): Promise<void> {
     // Load call queue from Redis
     const queueData = await redis.get<string>(CALL_QUEUE_KEY);
     if (queueData) {
-      const parsed = typeof queueData === "string" ? JSON.parse(queueData) : queueData;
+      const parsed =
+        typeof queueData === "string" ? JSON.parse(queueData) : queueData;
       if (Array.isArray(parsed)) {
         callQueueMemory = new Map(
           parsed.map((item: CallQueueItem) => [
@@ -158,23 +159,36 @@ async function initializeFromRedis(): Promise<void> {
             {
               ...item,
               createdAt: new Date(item.createdAt),
-              scheduledAt: item.scheduledAt ? new Date(item.scheduledAt) : undefined,
-              lastAttempt: item.lastAttempt ? new Date(item.lastAttempt) : undefined,
-              completedAt: item.completedAt ? new Date(item.completedAt) : undefined,
+              scheduledAt: item.scheduledAt
+                ? new Date(item.scheduledAt)
+                : undefined,
+              lastAttempt: item.lastAttempt
+                ? new Date(item.lastAttempt)
+                : undefined,
+              completedAt: item.completedAt
+                ? new Date(item.completedAt)
+                : undefined,
             },
-          ])
+          ]),
         );
-        console.log(`[CallQueue] Loaded ${callQueueMemory.size} calls from Redis`);
+        console.log(
+          `[CallQueue] Loaded ${callQueueMemory.size} calls from Redis`,
+        );
       }
     }
 
     // Load assistant states from Redis
     const statesData = await redis.get<string>(CALL_STATES_KEY);
     if (statesData) {
-      const parsed = typeof statesData === "string" ? JSON.parse(statesData) : statesData;
+      const parsed =
+        typeof statesData === "string" ? JSON.parse(statesData) : statesData;
       if (Array.isArray(parsed)) {
-        assistantStatesMemory = new Map(parsed.map((item: [string, AssistantModeState]) => item));
-        console.log(`[CallQueue] Loaded ${assistantStatesMemory.size} assistant states from Redis`);
+        assistantStatesMemory = new Map(
+          parsed.map((item: [string, AssistantModeState]) => item),
+        );
+        console.log(
+          `[CallQueue] Loaded ${assistantStatesMemory.size} assistant states from Redis`,
+        );
       }
     }
 

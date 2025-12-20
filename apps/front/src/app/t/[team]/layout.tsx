@@ -10,6 +10,8 @@ import { TeamProvider } from "@/features/team/team-provider";
 import { getTeam } from "@/features/team/team.data";
 import { LayoutProps } from "@/types/route.type";
 import { Metadata } from "next";
+import { GlobalActionsProvider } from "@/lib/providers/global-actions-provider";
+import { GlobalCalendarWidget } from "@/components/global-calendar-widget";
 
 export const generateMetadata = async ({
   params,
@@ -31,22 +33,26 @@ export default async function Layout({
   return (
     <SidebarProvider>
       <TeamProvider team={team}>
-        <TeamSidebar variant="inset" />
-        <SidebarInset>
-          <header className="bg-background sticky top-0 z-30 group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 flex h-12 shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear">
-            <div
-              className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6"
-              id="team-header-wrapper"
-            >
-              <SidebarTrigger className="-ml-1" />
-              <Separator
-                orientation="vertical"
-                className="mx-2 data-[orientation=vertical]:h-4"
-              />
-            </div>
-          </header>
-          {children}
-        </SidebarInset>
+        <GlobalActionsProvider>
+          <TeamSidebar variant="inset" />
+          <SidebarInset>
+            <header className="bg-background sticky top-0 z-30 group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 flex h-12 shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear">
+              <div
+                className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6"
+                id="team-header-wrapper"
+              >
+                <SidebarTrigger className="-ml-1" />
+                <Separator
+                  orientation="vertical"
+                  className="mx-2 data-[orientation=vertical]:h-4"
+                />
+              </div>
+            </header>
+            {children}
+          </SidebarInset>
+          {/* Global Calendar Widget - Floating on all team pages */}
+          <GlobalCalendarWidget />
+        </GlobalActionsProvider>
       </TeamProvider>
     </SidebarProvider>
   );

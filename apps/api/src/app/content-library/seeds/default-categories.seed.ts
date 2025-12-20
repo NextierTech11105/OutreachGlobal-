@@ -346,6 +346,493 @@ LIMIT 100;`,
   },
 ];
 
+// ============================================================================
+// SOCIAL MEDIA TEMPLATES - Baseline posts and ads for AI copilot distribution
+// Each template has a unique ID pattern for 2-bracket SMS content link approach
+// ============================================================================
+
+const SOCIAL_MEDIA_TEMPLATES = [
+  // -------------------------------------------------------------------------
+  // FACEBOOK POSTS
+  // -------------------------------------------------------------------------
+  {
+    categorySlug: "facebook",
+    contentType: "SOCIAL_POST",
+    title: "FB - Value Bomb Post",
+    content: `🔥 {{industry}} Tip of the Day 🔥
+
+Most {{targetAudience}} don't realize this, but {{valueBomb}}.
+
+Here's the thing: {{explanation}}
+
+The result? {{benefit}}
+
+💬 Drop a "🙌" in the comments if you found this helpful!
+
+#{{industry}} #{{niche}} #ValueFirst`,
+    description: "High-engagement value post that drives comments",
+    tags: ["facebook", "engagement", "value", "organic"],
+    externalUrl: null,
+  },
+  {
+    categorySlug: "facebook",
+    contentType: "SOCIAL_POST",
+    title: "FB - Before/After Story",
+    content: `📍 BEFORE: {{painPoint}}
+📍 AFTER: {{transformation}}
+
+Here's what changed for {{clientName}} in just {{timeframe}}:
+
+✅ {{result1}}
+✅ {{result2}}
+✅ {{result3}}
+
+The secret? {{method}}
+
+Want the same results? Comment "INFO" below 👇`,
+    description: "Transformation story post for social proof",
+    tags: ["facebook", "testimonial", "story", "lead-gen"],
+    externalUrl: null,
+  },
+  {
+    categorySlug: "facebook",
+    contentType: "SOCIAL_AD",
+    title: "FB Ad - Lead Magnet Offer",
+    content: `🎁 FREE {{leadMagnetType}}: "{{leadMagnetTitle}}"
+
+{{targetAudience}}: Stop wasting time on {{painActivity}}.
+
+In this {{leadMagnetType}}, you'll discover:
+📌 {{benefit1}}
+📌 {{benefit2}}
+📌 {{benefit3}}
+
+👉 Click below to get your FREE copy instantly.
+
+{{callToAction}}`,
+    description: "Facebook ad for lead magnet download",
+    tags: ["facebook", "ad", "lead-magnet", "paid"],
+    externalUrl: "{{leadMagnetUrl}}",
+  },
+  {
+    categorySlug: "facebook",
+    contentType: "SOCIAL_AD",
+    title: "FB Ad - Appointment Booking",
+    content: `📞 {{targetAudience}} in {{location}}!
+
+Are you dealing with {{painPoint}}?
+
+We've helped {{number}}+ {{clientType}} achieve {{result}}.
+
+🗓️ Book your FREE {{duration}} {{meetingType}} today.
+
+Limited spots available this week.
+
+👇 Click "Book Now" to secure your time.`,
+    description: "Direct response ad for appointment booking",
+    tags: ["facebook", "ad", "appointment", "local"],
+    externalUrl: "{{bookingUrl}}",
+  },
+
+  // -------------------------------------------------------------------------
+  // LINKEDIN POSTS
+  // -------------------------------------------------------------------------
+  {
+    categorySlug: "linkedin",
+    contentType: "SOCIAL_POST",
+    title: "LI - Thought Leadership Hook",
+    content: `{{controversialOpening}}
+
+I know that might ruffle some feathers, but hear me out.
+
+After {{yearsExperience}} years in {{industry}}, I've learned that {{insight}}.
+
+Here's what most people get wrong:
+
+❌ They think {{misconception}}
+✅ When actually {{truth}}
+
+The best {{professionals}} understand this.
+
+What's your take? 👇`,
+    description: "Thought leadership post that sparks discussion",
+    tags: ["linkedin", "thought-leadership", "engagement", "b2b"],
+    externalUrl: null,
+  },
+  {
+    categorySlug: "linkedin",
+    contentType: "SOCIAL_POST",
+    title: "LI - Case Study Teaser",
+    content: `We just helped {{clientType}} achieve {{result}} in {{timeframe}}.
+
+Here's the 3-step framework we used:
+
+1️⃣ {{step1}}
+2️⃣ {{step2}}
+3️⃣ {{step3}}
+
+The outcome:
+→ {{metric1}}
+→ {{metric2}}
+→ {{metric3}}
+
+Full case study in the comments 👇`,
+    description: "Case study teaser for B2B lead generation",
+    tags: ["linkedin", "case-study", "b2b", "results"],
+    externalUrl: null,
+  },
+  {
+    categorySlug: "linkedin",
+    contentType: "SOCIAL_POST",
+    title: "LI - Personal Story + Lesson",
+    content: `{{yearsAgo}} years ago, I was {{pastSituation}}.
+
+I made a decision that changed everything: {{decision}}
+
+It wasn't easy. In fact, {{challenge}}.
+
+But here's what I learned:
+
+{{lesson}}
+
+Now, {{currentSituation}}.
+
+If you're facing {{similarSituation}}, remember: {{encouragement}}
+
+Has anyone else experienced this? I'd love to hear your story.`,
+    description: "Personal narrative post for connection and engagement",
+    tags: ["linkedin", "personal", "story", "authentic"],
+    externalUrl: null,
+  },
+
+  // -------------------------------------------------------------------------
+  // INSTAGRAM POSTS
+  // -------------------------------------------------------------------------
+  {
+    categorySlug: "instagram",
+    contentType: "SOCIAL_POST",
+    title: "IG - Carousel Hook (Slide 1)",
+    content: `SLIDE 1 (HOOK):
+{{hookQuestion}}
+
+SLIDE 2-7 (CONTENT):
+{{point1}} → {{explanation1}}
+{{point2}} → {{explanation2}}
+{{point3}} → {{explanation3}}
+{{point4}} → {{explanation4}}
+{{point5}} → {{explanation5}}
+{{point6}} → {{explanation6}}
+
+SLIDE 8 (CTA):
+Save this post 📌
+Share with someone who needs this 📤
+Follow @{{handle}} for more
+
+CAPTION:
+{{captionHook}}
+
+Which tip are you going to try first? Comment below! 👇
+
+.
+.
+.
+#{{hashtag1}} #{{hashtag2}} #{{hashtag3}} #{{hashtag4}} #{{hashtag5}}`,
+    description: "Educational carousel post framework",
+    tags: ["instagram", "carousel", "educational", "save-worthy"],
+    externalUrl: null,
+  },
+  {
+    categorySlug: "instagram",
+    contentType: "SOCIAL_POST",
+    title: "IG - Reel Script Template",
+    content: `🎬 REEL SCRIPT
+
+HOOK (0-3 sec):
+"{{attentionGrabber}}"
+
+PROBLEM (3-7 sec):
+"If you're a {{targetAudience}} struggling with {{problem}}..."
+
+SOLUTION (7-20 sec):
+"Here's what you need to do:
+Step 1: {{step1}}
+Step 2: {{step2}}
+Step 3: {{step3}}"
+
+CTA (20-25 sec):
+"Follow for more {{niche}} tips!"
+
+CAPTION:
+{{caption}}
+
+🎵 Trending audio suggestion: {{audioSuggestion}}`,
+    description: "Reel script template for quick tips",
+    tags: ["instagram", "reel", "video", "short-form"],
+    externalUrl: null,
+  },
+  {
+    categorySlug: "instagram",
+    contentType: "SOCIAL_STORY",
+    title: "IG Story - Poll Engagement",
+    content: `STORY SEQUENCE:
+
+STORY 1 (Question):
+"Quick question for my {{niche}} people 👇"
+
+STORY 2 (Poll):
+"Which is your biggest challenge?"
+Option A: {{option1}}
+Option B: {{option2}}
+
+STORY 3 (Based on results):
+"Interesting! Most of you said {{winningOption}}..."
+
+STORY 4 (Value):
+"Here's my #1 tip for that: {{tip}}"
+
+STORY 5 (CTA):
+"Want more tips like this?"
+[Link sticker to: {{linkUrl}}]`,
+    description: "Interactive story sequence for engagement",
+    tags: ["instagram", "story", "poll", "engagement"],
+    externalUrl: "{{linkUrl}}",
+  },
+
+  // -------------------------------------------------------------------------
+  // TIKTOK POSTS
+  // -------------------------------------------------------------------------
+  {
+    categorySlug: "tiktok",
+    contentType: "SOCIAL_REEL",
+    title: "TikTok - POV Hook Script",
+    content: `🎬 TIKTOK SCRIPT
+
+TEXT ON SCREEN:
+"POV: You're a {{targetAudience}} who just discovered {{discovery}}"
+
+VOICEOVER:
+"{{openingLine}}
+
+Here's the thing no one tells you about {{topic}}:
+
+{{revelation}}
+
+This is why {{reason}}.
+
+{{callToAction}}"
+
+HASHTAGS:
+#{{niche}}tok #{{topic}} #fyp #viral #{{industry}}
+
+CAPTION:
+{{caption}} | Follow for more {{niche}} content 🔥`,
+    description: "POV-style TikTok script for relatability",
+    tags: ["tiktok", "pov", "viral", "hook"],
+    externalUrl: null,
+  },
+  {
+    categorySlug: "tiktok",
+    contentType: "SOCIAL_REEL",
+    title: "TikTok - Myth Buster",
+    content: `🎬 TIKTOK SCRIPT
+
+HOOK (show text):
+"{{myth}} ❌ WRONG"
+
+REVEAL:
+"Actually, {{truth}} ✅
+
+Here's what {{experts}} don't want you to know:
+
+{{insiderInfo}}
+
+And that's why {{conclusion}}."
+
+END CARD:
+"Follow for more {{niche}} secrets 🤫"
+
+HASHTAGS:
+#mythbusted #{{niche}} #facts #themoreyouknow #fyp`,
+    description: "Myth-busting format for authority building",
+    tags: ["tiktok", "myth", "educational", "authority"],
+    externalUrl: null,
+  },
+
+  // -------------------------------------------------------------------------
+  // YOUTUBE POSTS
+  // -------------------------------------------------------------------------
+  {
+    categorySlug: "youtube",
+    contentType: "SOCIAL_POST",
+    title: "YT - Video Title + Description",
+    content: `📹 VIDEO TITLE OPTIONS:
+1. {{title1}}
+2. {{title2}}
+3. {{title3}}
+
+DESCRIPTION:
+{{hookParagraph}}
+
+In this video, you'll learn:
+⏱️ 0:00 - Intro
+⏱️ {{timestamp1}} - {{topic1}}
+⏱️ {{timestamp2}} - {{topic2}}
+⏱️ {{timestamp3}} - {{topic3}}
+⏱️ {{timestamp4}} - {{topic4}}
+⏱️ {{finalTimestamp}} - Recap & Next Steps
+
+🔗 RESOURCES MENTIONED:
+• {{resource1}}: {{resourceUrl1}}
+• {{resource2}}: {{resourceUrl2}}
+
+📧 FREE {{leadMagnet}}: {{leadMagnetUrl}}
+
+🔔 Don't forget to SUBSCRIBE and hit the notification bell!
+
+#{{keyword1}} #{{keyword2}} #{{keyword3}}`,
+    description: "YouTube video title and description template",
+    tags: ["youtube", "seo", "description", "timestamps"],
+    externalUrl: "{{leadMagnetUrl}}",
+  },
+  {
+    categorySlug: "youtube",
+    contentType: "SOCIAL_POST",
+    title: "YT Shorts - Quick Tip Script",
+    content: `🎬 YOUTUBE SHORTS SCRIPT (60 sec max)
+
+HOOK (0-3 sec):
+[On screen text]: "{{hookText}}"
+[Say]: "{{hookLine}}"
+
+CONTENT (3-50 sec):
+"Most {{targetAudience}} make this mistake: {{mistake}}
+
+Instead, try this:
+1. {{tip1}}
+2. {{tip2}}
+3. {{tip3}}"
+
+CTA (50-60 sec):
+"Subscribe for more {{niche}} tips in 60 seconds!"
+
+[End with subscribe animation]`,
+    description: "YouTube Shorts script for quick tips",
+    tags: ["youtube", "shorts", "quick-tip", "60-sec"],
+    externalUrl: null,
+  },
+
+  // -------------------------------------------------------------------------
+  // SMS CONTENT LINKS - For 2-bracket email capture approach
+  // -------------------------------------------------------------------------
+  {
+    categorySlug: "sms-templates",
+    contentType: "SMS_CONTENT_LINK",
+    title: "SMS - Content Link (Post Email Capture)",
+    content: `Thanks {{firstName}}! Here's your exclusive content: {{contentUrl}}
+
+Any questions? Just reply here. 📲`,
+    description: "SMS sent after email capture with content link",
+    tags: ["sms", "content-link", "email-capture", "2-bracket"],
+    externalUrl: "{{contentUrl}}",
+  },
+  {
+    categorySlug: "sms-templates",
+    contentType: "SMS_CONTENT_LINK",
+    title: "SMS - Free Guide Link",
+    content: `Hey {{firstName}}! 🎁 Your free guide is ready: {{guideUrl}}
+
+Got it? Reply YES to confirm!`,
+    description: "SMS delivery of free guide after opt-in",
+    tags: ["sms", "guide", "lead-magnet", "confirmation"],
+    externalUrl: "{{guideUrl}}",
+  },
+  {
+    categorySlug: "sms-templates",
+    contentType: "SMS_CONTENT_LINK",
+    title: "SMS - Case Study Link",
+    content: `{{firstName}}, here's that case study I mentioned: {{caseStudyUrl}}
+
+See how {{clientType}} got {{result}}. Reply with any Qs!`,
+    description: "SMS with case study link for nurturing",
+    tags: ["sms", "case-study", "nurture", "social-proof"],
+    externalUrl: "{{caseStudyUrl}}",
+  },
+  {
+    categorySlug: "sms-templates",
+    contentType: "SMS_CONTENT_LINK",
+    title: "SMS - Video Training Link",
+    content: `🎥 {{firstName}}, your training video is live: {{videoUrl}}
+
+Watch now - it's only {{duration}} mins. Reply DONE when finished!`,
+    description: "SMS with video training link",
+    tags: ["sms", "video", "training", "engagement"],
+    externalUrl: "{{videoUrl}}",
+  },
+
+  // -------------------------------------------------------------------------
+  // LEAD MAGNETS - Downloadable content for distribution
+  // -------------------------------------------------------------------------
+  {
+    categorySlug: "lead-magnets",
+    contentType: "EBOOK",
+    title: "eBook - Industry Secrets Guide",
+    content: `📚 EBOOK OUTLINE
+
+TITLE: "The {{industry}} Secrets: {{subtitle}}"
+
+CHAPTERS:
+1. Introduction: Why {{topic}} Matters
+2. The {{number}} Biggest Mistakes {{targetAudience}} Make
+3. {{framework}} Framework Explained
+4. Case Study: How {{exampleClient}} Achieved {{result}}
+5. Step-by-Step Implementation Guide
+6. Tools & Resources
+7. Next Steps & Call to Action
+
+LANDING PAGE COPY:
+"Download the FREE guide that {{number}}+ {{targetAudience}} have used to {{benefit}}."`,
+    description: "eBook outline template for lead magnets",
+    tags: ["ebook", "lead-magnet", "download", "pdf"],
+    externalUrl: null,
+  },
+  {
+    categorySlug: "lead-magnets",
+    contentType: "ONE_PAGER",
+    title: "One-Pager - Quick Reference Cheatsheet",
+    content: `📄 ONE-PAGER TEMPLATE
+
+TITLE: "{{topic}} Cheatsheet"
+
+SECTION 1: Quick Stats
+• {{stat1}}
+• {{stat2}}
+• {{stat3}}
+
+SECTION 2: Do's & Don'ts
+✅ {{do1}}
+✅ {{do2}}
+❌ {{dont1}}
+❌ {{dont2}}
+
+SECTION 3: Key Formulas/Frameworks
+{{formula1}}
+{{formula2}}
+
+SECTION 4: Next Steps
+1. {{step1}}
+2. {{step2}}
+3. {{step3}}
+
+FOOTER: "{{companyName}} | {{website}} | {{tagline}}"`,
+    description: "One-page cheatsheet template",
+    tags: ["one-pager", "cheatsheet", "quick-reference", "printable"],
+    externalUrl: null,
+  },
+];
+
+// Combine all content items
+const ALL_CONTENT_ITEMS = [...SAMPLE_CONTENT_ITEMS, ...SOCIAL_MEDIA_TEMPLATES];
+
 @Injectable()
 export class ContentLibrarySeed {
   constructor(@InjectDB() private db: DrizzleClient) {}
@@ -369,12 +856,13 @@ export class ContentLibrarySeed {
       await this.seedCategory(category, null);
     }
 
-    // Seed sample content items
-    for (const item of SAMPLE_CONTENT_ITEMS) {
+    // Seed all content items (including social media templates)
+    for (const item of ALL_CONTENT_ITEMS) {
       await this.seedContentItem(item);
     }
 
     console.log("Content library seeding complete!");
+    console.log(`Seeded ${ALL_CONTENT_ITEMS.length} content items.`);
   }
 
   private async seedCategory(
@@ -412,6 +900,8 @@ export class ContentLibrarySeed {
     content: string;
     description?: string;
     tags?: string[];
+    contentType?: string;
+    externalUrl?: string | null;
   }): Promise<void> {
     // Find category by slug
     const category = await this.db.query.contentCategories.findFirst({
@@ -429,13 +919,14 @@ export class ContentLibrarySeed {
       title: data.title,
       content: data.content,
       description: data.description,
-      contentType: "PROMPT",
+      contentType: data.contentType || "PROMPT",
       tags: data.tags ?? [],
       variables: [],
       visibility: "PUBLIC",
       isActive: true,
       isFavorite: false,
       usageCount: 0,
+      externalUrl: data.externalUrl ?? null,
     } as any);
   }
 }

@@ -175,6 +175,80 @@ const CONTENT_LIBRARY = {
     ],
     case_studies: [] as ContentItem[],
   },
+
+  // Links - Medium Articles, Newsletters, External Resources
+  // AI copilots (GIANNA, CATHY) send these after email capture
+  links: {
+    medium_articles: [
+      {
+        id: "medium-ai-real-estate",
+        title: "How AI is Transforming Real Estate Valuation",
+        description: "Deep dive into AI-powered property analysis",
+        url: "https://medium.com/@nextier/ai-real-estate-valuation",
+        category: "property",
+      },
+      {
+        id: "medium-data-enrichment",
+        title: "The Power of Data Enrichment for Sales Teams",
+        description: "Turn cold data into warm conversations",
+        url: "https://medium.com/@nextier/data-enrichment-sales",
+        category: "b2b",
+      },
+      {
+        id: "medium-exit-strategy",
+        title: "Planning Your Business Exit: A Founder's Guide",
+        description: "Strategic insights for business owners",
+        url: "https://medium.com/@nextier/business-exit-guide",
+        category: "b2b",
+      },
+      {
+        id: "medium-market-timing",
+        title: "When to Sell: Reading the Real Estate Market",
+        description: "Data-driven insights on market timing",
+        url: "https://medium.com/@nextier/real-estate-market-timing",
+        category: "property",
+      },
+    ],
+    newsletters: [
+      {
+        id: "newsletter-weekly-insights",
+        title: "Weekly Market Insights",
+        description: "Stay ahead with our weekly market analysis",
+        url: "https://nextier.io/newsletter/weekly",
+        category: "general",
+      },
+      {
+        id: "newsletter-property-pulse",
+        title: "Property Pulse Newsletter",
+        description: "Local market trends and opportunities",
+        url: "https://nextier.io/newsletter/property-pulse",
+        category: "property",
+      },
+      {
+        id: "newsletter-b2b-growth",
+        title: "B2B Growth Strategies",
+        description: "Actionable tips for scaling your business",
+        url: "https://nextier.io/newsletter/b2b-growth",
+        category: "b2b",
+      },
+    ],
+    external_resources: [
+      {
+        id: "tool-roi-calculator",
+        title: "Free ROI Calculator",
+        description: "Calculate your potential returns instantly",
+        url: "https://nextier.io/tools/roi-calculator",
+        category: "general",
+      },
+      {
+        id: "tool-valuation-estimator",
+        title: "Property Value Estimator",
+        description: "Get an instant estimate for any property",
+        url: "https://nextier.io/tools/valuation",
+        category: "property",
+      },
+    ],
+  },
 };
 
 type ContentCategory = "property" | "b2b" | "general";

@@ -398,18 +398,35 @@ export default function DataHubPage() {
       if (data.records && data.records.length > 0) {
         // Map bucket records to leads
         const mappedLeads: Lead[] = data.records.map(
-          (r: { id: string; matchingKeys?: Record<string, string | null>; flags?: Record<string, boolean>; _original?: Record<string, string> }, i: number) => {
+          (
+            r: {
+              id: string;
+              matchingKeys?: Record<string, string | null>;
+              flags?: Record<string, boolean>;
+              _original?: Record<string, string>;
+            },
+            i: number,
+          ) => {
             const keys = r.matchingKeys || {};
             const orig = r._original || {};
             return {
               id: r.id || `bucket-${i}`,
-              name: keys.contactName || orig["Contact Name"] || orig["Contact"] || "Unknown",
+              name:
+                keys.contactName ||
+                orig["Contact Name"] ||
+                orig["Contact"] ||
+                "Unknown",
               firstName: keys.firstName || orig["First Name"] || "",
               lastName: keys.lastName || orig["Last Name"] || "",
-              company: keys.companyName || orig["Company Name"] || orig["Company"] || "",
+              company:
+                keys.companyName ||
+                orig["Company Name"] ||
+                orig["Company"] ||
+                "",
               phone: orig["Phone Number"] || orig["Phone"] || "",
               email: orig["Email Address"] || orig["Email"] || "",
-              address: keys.address || orig["Street Address"] || orig["Address"] || "",
+              address:
+                keys.address || orig["Street Address"] || orig["Address"] || "",
               city: keys.city || orig["City"] || "",
               state: keys.state || orig["State"] || "",
               zip: keys.zip || orig["Zip Code"] || orig["Zip"] || "",
@@ -420,7 +437,9 @@ export default function DataHubPage() {
           },
         );
         setLeads(mappedLeads);
-        toast.success(`Loaded ${mappedLeads.length} records from ${bucketName}`);
+        toast.success(
+          `Loaded ${mappedLeads.length} records from ${bucketName}`,
+        );
       } else {
         toast.error("No records found in bucket");
       }
@@ -889,7 +908,9 @@ export default function DataHubPage() {
                         >
                           <Database className="h-4 w-4 mr-2 text-green-400" />
                           <div className="flex-1 overflow-hidden">
-                            <div className="truncate text-sm">{bucket.name}</div>
+                            <div className="truncate text-sm">
+                              {bucket.name}
+                            </div>
                             <div className="text-xs text-zinc-500">
                               {bucket.totalLeads?.toLocaleString() || 0} records
                             </div>

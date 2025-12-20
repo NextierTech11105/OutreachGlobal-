@@ -163,7 +163,8 @@ export class SMSQueueService {
       if (this.redisAvailable) {
         const queueData = await redis.get<string>(SMS_QUEUE_KEY);
         if (queueData) {
-          const parsed = typeof queueData === "string" ? JSON.parse(queueData) : queueData;
+          const parsed =
+            typeof queueData === "string" ? JSON.parse(queueData) : queueData;
           if (Array.isArray(parsed)) {
             this.queue = parsed.map((m: QueuedMessage) => ({
               ...m,
@@ -173,28 +174,39 @@ export class SMSQueueService {
               approvedAt: m.approvedAt ? new Date(m.approvedAt) : undefined,
               editedAt: m.editedAt ? new Date(m.editedAt) : undefined,
             }));
-            console.log(`[SMSQueue] Loaded ${this.queue.length} messages from Redis`);
+            console.log(
+              `[SMSQueue] Loaded ${this.queue.length} messages from Redis`,
+            );
           }
         }
 
         // Load opt-out list from Redis
         const optOutData = await redis.get<string>(SMS_OPTOUT_KEY);
         if (optOutData) {
-          const parsed = typeof optOutData === "string" ? JSON.parse(optOutData) : optOutData;
+          const parsed =
+            typeof optOutData === "string"
+              ? JSON.parse(optOutData)
+              : optOutData;
           if (Array.isArray(parsed)) {
             this.optOutList = new Set(parsed);
-            console.log(`[SMSQueue] Loaded ${this.optOutList.size} opt-outs from Redis`);
+            console.log(
+              `[SMSQueue] Loaded ${this.optOutList.size} opt-outs from Redis`,
+            );
           }
         }
 
         // Load stats from Redis
         const statsData = await redis.get<string>(SMS_STATS_KEY);
         if (statsData) {
-          const parsed = typeof statsData === "string" ? JSON.parse(statsData) : statsData;
+          const parsed =
+            typeof statsData === "string" ? JSON.parse(statsData) : statsData;
           if (parsed.sentToday !== undefined) this.sentToday = parsed.sentToday;
-          if (parsed.sentThisHour !== undefined) this.sentThisHour = parsed.sentThisHour;
-          if (parsed.lastHourReset) this.lastHourReset = new Date(parsed.lastHourReset);
-          if (parsed.lastDayReset) this.lastDayReset = new Date(parsed.lastDayReset);
+          if (parsed.sentThisHour !== undefined)
+            this.sentThisHour = parsed.sentThisHour;
+          if (parsed.lastHourReset)
+            this.lastHourReset = new Date(parsed.lastHourReset);
+          if (parsed.lastDayReset)
+            this.lastDayReset = new Date(parsed.lastDayReset);
         }
       } else {
         console.log("[SMSQueue] Redis not available, using in-memory only");
@@ -236,7 +248,9 @@ export class SMSQueueService {
       }
 
       if (dbOptOuts > 0) {
-        console.log(`[SMSQueue] Loaded ${dbOptOuts} additional opt-outs from database`);
+        console.log(
+          `[SMSQueue] Loaded ${dbOptOuts} additional opt-outs from database`,
+        );
         // Persist merged list to Redis
         await this.persistOptOuts();
       }
@@ -291,7 +305,10 @@ export class SMSQueueService {
   private async persistOptOuts(): Promise<void> {
     if (!this.redisAvailable) return;
     try {
-      await redis.set(SMS_OPTOUT_KEY, JSON.stringify(Array.from(this.optOutList)));
+      await redis.set(
+        SMS_OPTOUT_KEY,
+        JSON.stringify(Array.from(this.optOutList)),
+      );
     } catch (error) {
       console.error("[SMSQueue] Failed to persist opt-outs:", error);
     }
@@ -303,12 +320,15 @@ export class SMSQueueService {
   private async persistStats(): Promise<void> {
     if (!this.redisAvailable) return;
     try {
-      await redis.set(SMS_STATS_KEY, JSON.stringify({
-        sentToday: this.sentToday,
-        sentThisHour: this.sentThisHour,
-        lastHourReset: this.lastHourReset.toISOString(),
-        lastDayReset: this.lastDayReset.toISOString(),
-      }));
+      await redis.set(
+        SMS_STATS_KEY,
+        JSON.stringify({
+          sentToday: this.sentToday,
+          sentThisHour: this.sentThisHour,
+          lastHourReset: this.lastHourReset.toISOString(),
+          lastDayReset: this.lastDayReset.toISOString(),
+        }),
+      );
     } catch (error) {
       console.error("[SMSQueue] Failed to persist stats:", error);
     }
