@@ -440,6 +440,45 @@ async function handleEnrichAction(
     enrichmentResults,
   );
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // INSERT ENRICHED LEADS INTO DATABASE (with Lead IDs)
+  // This is the KEY step - leads with phones get Lead IDs and go into DB
+  // ═══════════════════════════════════════════════════════════════════════════
+  const leadsWithPhones = enrichedLeads.filter(
+    (l) => l.mobilePhone || l.enrichedPhones?.some((p) => p.number),
+  );
+
+  if (leadsWithPhones.length > 0 && teamId) {
+    console.log(
+      `[LUCI Orchestrate] Inserting ${leadsWithPhones.length} leads with phones into database`,
+    );
+
+    try {
+      const pushResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_URL || "http://localhost:3000"}/api/buckets/${bucketId}/push-to-leads`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Cookie: request.headers.get("cookie") || "",
+          },
+          body: JSON.stringify({
+            teamId,
+            requirePhone: true,
+            requireEnriched: false,
+          }),
+        },
+      );
+
+      const pushResult = await pushResponse.json();
+      console.log(
+        `[LUCI Orchestrate] Database insert: ${pushResult.results?.pushed || 0} leads`,
+      );
+    } catch (error) {
+      console.error(`[LUCI Orchestrate] Database insert failed:`, error);
+    }
+  }
+
   // Return batch results with progress info
   const isLastBatch = batchNumber + 1 >= effectiveTotalBatches;
 
