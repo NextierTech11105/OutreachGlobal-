@@ -124,61 +124,63 @@ export async function GET(request: NextRequest) {
       conditions.push(eq(leads.status, status));
     }
 
-    // Fetch leads from database - explicitly select only columns we need
-    const query = db
-      .select({
-        id: leads.id,
-        firstName: leads.firstName,
-        lastName: leads.lastName,
-        phone: leads.phone,
-        email: leads.email,
-        propertyAddress: leads.propertyAddress,
-        propertyCity: leads.propertyCity,
-        propertyState: leads.propertyState,
-        estimatedValue: leads.estimatedValue,
-        estimatedEquity: leads.estimatedEquity,
-        leadType: leads.leadType,
-        propertyType: leads.propertyType,
-        status: leads.status,
-        createdAt: leads.createdAt,
-        lastActivityAt: leads.lastActivityAt,
-        source: leads.source,
-      })
-      .from(leads);
+    // Fetch leads from database - use basic columns that definitely exist
+    let calendarLeads: CalendarLead[] = [];
 
-    // Only add where clause if there are conditions
-    const results =
-      conditions.length > 0
-        ? await query
-            .where(and(...conditions))
-            .orderBy(desc(leads.createdAt))
-            .limit(1000)
-        : await query.orderBy(desc(leads.createdAt)).limit(1000);
+    try {
+      const query = db
+        .select({
+          id: leads.id,
+          firstName: leads.firstName,
+          lastName: leads.lastName,
+          phone: leads.phone,
+          email: leads.email,
+          address: leads.address,
+          city: leads.city,
+          state: leads.state,
+          status: leads.status,
+          createdAt: leads.createdAt,
+          updatedAt: leads.updatedAt,
+          source: leads.source,
+        })
+        .from(leads);
 
-    // Transform to calendar format with proper type handling
-    const calendarLeads: CalendarLead[] = results.map((lead) => ({
-      id: lead.id,
-      name:
-        [lead.firstName, lead.lastName].filter(Boolean).join(" ") || "Unknown",
-      phone: lead.phone || undefined,
-      email: lead.email || undefined,
-      address: lead.propertyAddress || undefined,
-      city: lead.propertyCity || undefined,
-      state: lead.propertyState || undefined,
-      propertyValue: lead.estimatedValue
-        ? Number(lead.estimatedValue)
-        : undefined,
-      equity: lead.estimatedEquity ? Number(lead.estimatedEquity) : undefined,
-      leadType: lead.leadType || lead.propertyType || undefined,
-      status: mapDbStatus(lead.status || "new"),
-      createdAt: lead.createdAt
-        ? new Date(lead.createdAt).toISOString()
-        : new Date().toISOString(),
-      lastContactedAt: lead.lastActivityAt
-        ? new Date(lead.lastActivityAt).toISOString()
-        : undefined,
-      source: lead.source || "Unknown",
-    }));
+      // Only add where clause if there are conditions
+      const results =
+        conditions.length > 0
+          ? await query
+              .where(and(...conditions))
+              .orderBy(desc(leads.createdAt))
+              .limit(1000)
+          : await query.orderBy(desc(leads.createdAt)).limit(1000);
+
+      // Transform to calendar format with proper type handling
+      calendarLeads = results.map((lead) => ({
+        id: lead.id,
+        name:
+          [lead.firstName, lead.lastName].filter(Boolean).join(" ") || "Unknown",
+        phone: lead.phone || undefined,
+        email: lead.email || undefined,
+        address: lead.address || undefined,
+        city: lead.city || undefined,
+        state: lead.state || undefined,
+        propertyValue: undefined,
+        equity: undefined,
+        leadType: undefined,
+        status: mapDbStatus(lead.status || "new"),
+        createdAt: lead.createdAt
+          ? new Date(lead.createdAt).toISOString()
+          : new Date().toISOString(),
+        lastContactedAt: lead.updatedAt
+          ? new Date(lead.updatedAt).toISOString()
+          : undefined,
+        source: lead.source || "Unknown",
+      }));
+    } catch (dbError) {
+      console.error("[Calendar Leads] DB query error:", dbError);
+      // Return empty array on DB error
+      calendarLeads = [];
+    }
 
     return NextResponse.json({
       success: true,

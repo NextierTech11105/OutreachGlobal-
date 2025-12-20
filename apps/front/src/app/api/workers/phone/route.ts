@@ -87,14 +87,19 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      // Try to get from database first
-      const result = await db.execute(sql`
-        SELECT * FROM worker_phone_assignments
-        WHERE team_id = ${teamId} AND worker_id = ${worker}
-        LIMIT 1
-      `);
-
-      const assignment = result.rows?.[0] as WorkerPhoneAssignment | undefined;
+      // Try to get from database first (table may not exist)
+      let assignment: WorkerPhoneAssignment | undefined;
+      try {
+        const result = await db.execute(sql`
+          SELECT * FROM worker_phone_assignments
+          WHERE team_id = ${teamId} AND worker_id = ${worker}
+          LIMIT 1
+        `);
+        assignment = result.rows?.[0] as WorkerPhoneAssignment | undefined;
+      } catch {
+        // Table doesn't exist yet - fall back to env vars
+        console.log("[Worker Phone API] worker_phone_assignments table not found, using env vars");
+      }
 
       if (assignment) {
         return NextResponse.json({
@@ -128,14 +133,19 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Get all assignments for the team
-    const result = await db.execute(sql`
-      SELECT * FROM worker_phone_assignments
-      WHERE team_id = ${teamId}
-      ORDER BY worker_id
-    `);
-
-    const assignments = (result.rows || []) as WorkerPhoneAssignment[];
+    // Get all assignments for the team (table may not exist)
+    let assignments: WorkerPhoneAssignment[] = [];
+    try {
+      const result = await db.execute(sql`
+        SELECT * FROM worker_phone_assignments
+        WHERE team_id = ${teamId}
+        ORDER BY worker_id
+      `);
+      assignments = (result.rows || []) as WorkerPhoneAssignment[];
+    } catch {
+      // Table doesn't exist yet - will use env vars only
+      console.log("[Worker Phone API] worker_phone_assignments table not found");
+    }
 
     // Merge with env vars for any missing workers
     const allAssignments = VALID_WORKERS.map((wid) => {

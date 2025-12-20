@@ -128,11 +128,11 @@ export async function GET() {
       }
     });
 
-    // Transform to API response
+    // Transform to API response - handle null dates safely
     const campaigns = Array.from(campaignMap.values()).map((c) => ({
       id: c.id,
       name: c.id === "direct" ? "Direct SMS" : `Campaign ${c.id.slice(0, 8)}`,
-      scheduledAt: c.scheduledAt.toISOString(),
+      scheduledAt: c.scheduledAt ? c.scheduledAt.toISOString() : new Date().toISOString(),
       recipientCount: c.count,
       status:
         c.status === "delivered"
@@ -144,8 +144,8 @@ export async function GET() {
 
     const calls = callData.map((call) => ({
       id: String(call.id),
-      scheduledAt: (call.scheduledAt || call.createdAt).toISOString(),
-      leadName: `Lead ${call.leadId || call.toNumber}`,
+      scheduledAt: (call.scheduledAt || call.createdAt || new Date()).toISOString(),
+      leadName: `Lead ${call.leadId || call.toNumber || "Unknown"}`,
       status:
         call.status === "completed"
           ? "completed"
@@ -157,7 +157,7 @@ export async function GET() {
     const sequences = Array.from(sequenceMap.values()).map((s) => ({
       id: s.id,
       name: s.name,
-      scheduledAt: s.scheduledAt.toISOString(),
+      scheduledAt: s.scheduledAt ? s.scheduledAt.toISOString() : new Date().toISOString(),
       recipientCount: s.count,
       status: "pending",
     }));
