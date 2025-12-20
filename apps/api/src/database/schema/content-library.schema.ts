@@ -72,6 +72,9 @@ export const contentItems = pgTable(
       .default(ContentItemType.PROMPT),
     tags: text().array().default([]),
 
+    // External URL for content links (lead magnets, articles, videos)
+    externalUrl: text(),
+
     // Variables/tokens for personalization
     variables: jsonb().$type<ContentVariable[]>().default([]),
 

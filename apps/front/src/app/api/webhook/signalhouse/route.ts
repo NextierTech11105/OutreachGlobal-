@@ -2,12 +2,36 @@ import { NextRequest, NextResponse } from "next/server";
 import { smsQueueService } from "@/lib/services/sms-queue-service";
 import { db } from "@/lib/db";
 import { smsMessages, leads } from "@/lib/db/schema";
-import { eq, and, or, desc, like } from "drizzle-orm";
+import { eq, and, desc, like, isNotNull, sql } from "drizzle-orm";
+import { sendSMS } from "@/lib/signalhouse/client";
+import {
+  getEmailCaptureConfirmation,
+  getContentLinkConfirmation,
+  isContentPermission,
+} from "@/lib/gianna/knowledge-base/email-capture-library";
 
 // SignalHouse Webhook Handler
 // Based on https://devapi.signalhouse.io/apiDocs
 // Receives inbound SMS, delivery status updates, and other events
 // Integrates with SMS Queue Service for opt-out handling
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+// 2-BRACKET SMS FLOW PATTERNS:
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FLOW A: Email Capture
+//   1. Outbound: "Best email to send valuation report for {address}?"
+//   2. Inbound:  "john@email.com"
+//   3. Outbound: "John sure! Will have that sent out shortly - Gianna"
+//   → Value X delivered via EMAIL, 24h SABRINA follow-up scheduled
+//
+// FLOW B: Content Link Permission
+//   1. Outbound: "Can I send you a link to the Medium article I wrote?"
+//   2. Inbound:  "Yes" / "Sure" / "Send it"
+//   3. Outbound: "Great! Here it is: {contentUrl} - Gianna"
+//   → Content link sent via SMS, 24h follow-up to pivot to email capture
+//
+// ═══════════════════════════════════════════════════════════════════════════════
 
 interface SignalHouseWebhookPayload {
   // Event identification (SignalHouse format)
@@ -55,6 +79,104 @@ const OPT_OUT_KEYWORDS = [
   "OPTOUT",
   "OPT OUT",
 ];
+
+// Email extraction regex - RFC 5322 simplified
+const EMAIL_REGEX = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi;
+
+// Hot lead campaign ID (configured per tenant, fallback to default)
+const HOT_LEAD_CAMPAIGN_ID = process.env.HOT_LEAD_CAMPAIGN_ID || "hot_leads_default";
+
+// AI Worker phone numbers - each worker gets isolated lane
+const AI_WORKER_PHONES: Record<string, string> = {
+  GIANNA: process.env.GIANNA_PHONE_NUMBER || "",  // Opener - inbound response center
+  CATHY: process.env.CATHY_PHONE_NUMBER || "",    // Nudger - inbound response center
+  SABRINA: process.env.SABRINA_PHONE_NUMBER || "", // Closer - booking focus
+};
+
+/**
+ * Extract email from message body
+ */
+function extractEmail(body: string): string | null {
+  const matches = body.match(EMAIL_REGEX);
+  return matches && matches.length > 0 ? matches[0].toLowerCase() : null;
+}
+
+/**
+ * Get content link for 2-bracket SMS flow
+ * Returns a content link based on lead context/sector
+ * Queries content library directly (no relations needed)
+ */
+async function getContentLinkForLead(
+  leadId?: string,
+  contentType?: "MEDIUM_ARTICLE" | "NEWSLETTER" | "VIDEO" | "EBOOK" | "ONE_PAGER"
+): Promise<{ url: string; title: string; contentType: string } | null> {
+  try {
+    // Default content link if DB query fails
+    const fallback = {
+      url: process.env.DEFAULT_CONTENT_LINK || "https://outreachglobal.com/resources",
+      title: "Exclusive Resources",
+      contentType: "EXTERNAL_LINK",
+    };
+
+    // Try to get content from content library
+    // NOTE: content_items table may not exist in front app schema
+    // If this fails, we gracefully fallback to default link
+    try {
+      const result = await db.execute(sql`
+        SELECT id, title, external_url, content_type
+        FROM content_items
+        WHERE is_active = true
+          AND external_url IS NOT NULL
+          ${contentType ? sql`AND content_type = ${contentType}` : sql``}
+        ORDER BY created_at DESC
+        LIMIT 1
+      `);
+
+      if (result.rows && result.rows.length > 0) {
+        const item = result.rows[0] as any;
+        return {
+          url: item.external_url || fallback.url,
+          title: item.title || fallback.title,
+          contentType: item.content_type || "EXTERNAL_LINK",
+        };
+      }
+    } catch (dbError) {
+      // Content library table may not exist - this is OK
+      console.log("[SignalHouse] Content library query skipped - using fallback");
+    }
+
+    return fallback;
+  } catch (error) {
+    console.error("[SignalHouse] Error fetching content link:", error);
+    return {
+      url: process.env.DEFAULT_CONTENT_LINK || "https://outreachglobal.com/resources",
+      title: "Exclusive Resources",
+      contentType: "EXTERNAL_LINK",
+    };
+  }
+}
+
+/**
+ * Push lead to hot lead campaign with email_captured label
+ */
+async function pushToHotLeadCampaign(leadId: string, email: string): Promise<void> {
+  try {
+    // Update lead with email_captured tag and hot lead status
+    await db
+      .update(leads)
+      .set({
+        email: email,
+        status: "hot_lead",
+        tags: db.sql`array_append(COALESCE(tags, ARRAY[]::text[]), 'email_captured')`,
+        updatedAt: new Date(),
+      })
+      .where(eq(leads.id, leadId));
+
+    console.log(`[SignalHouse] 🔥 Lead ${leadId} pushed to hot lead campaign with email: ${email}`);
+  } catch (error) {
+    console.error("[SignalHouse] Error pushing to hot lead campaign:", error);
+  }
+}
 
 /**
  * Helper to find a lead by phone number
@@ -162,9 +284,24 @@ export async function POST(request: NextRequest) {
       case "message.received":
       case "sms.received":
       case "inbound": {
-        // Inbound SMS received - potential lead response!
+        // ═══════════════════════════════════════════════════════════════════════
+        // INBOUND SMS RECEIVED - Detect response type and handle appropriately
+        // ═══════════════════════════════════════════════════════════════════════
 
-        // Save to DB
+        // Extract email from message if present
+        const capturedEmail = extractEmail(messageBody);
+
+        // Check if this is permission to send content (Flow B)
+        const isPermissionResponse = isContentPermission(messageBody);
+
+        // Determine message status
+        let messageStatus = "received";
+        if (isOptOut) messageStatus = "opted_out";
+        else if (capturedEmail) messageStatus = "email_captured";
+        else if (isPermissionResponse) messageStatus = "content_permission";
+        else if (isPositiveLead) messageStatus = "interested";
+
+        // Save inbound message to DB
         await db.insert(smsMessages).values({
           id: crypto.randomUUID(),
           leadId: lead?.id,
@@ -172,7 +309,7 @@ export async function POST(request: NextRequest) {
           fromNumber,
           toNumber,
           body: messageBody,
-          status: isOptOut ? "opted_out" : "received",
+          status: messageStatus,
           providerMessageId: messageId,
           campaignId: payload.campaign_id as string,
           receivedAt: new Date(),
@@ -180,30 +317,173 @@ export async function POST(request: NextRequest) {
           updatedAt: new Date(),
         });
 
+        // ─────────────────────────────────────────────────────────────────────
+        // HANDLE OPT-OUT
+        // ─────────────────────────────────────────────────────────────────────
         if (isOptOut) {
-          console.log(`[SignalHouse] OPT-OUT from ${fromNumber}`);
-          // Mark as opted-out in SMS queue service (cancels pending messages)
+          console.log(`[SignalHouse] 🛑 OPT-OUT from ${fromNumber}`);
           smsQueueService.handleStopMessage(fromNumber);
 
           if (lead) {
-            // Update lead status to opted_out in database
             await db
               .update(leads)
               .set({ status: "opted_out", updatedAt: new Date() })
               .where(eq(leads.id, lead.id));
           }
-        } else if (isPositiveLead) {
-          console.log(
-            `[SignalHouse] 🎯 LEAD RESPONSE from ${fromNumber}: ${messageBody}`,
-          );
+          return NextResponse.json({ success: true, event: "opt_out" });
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // FLOW A: EMAIL CAPTURED
+        // Lead provided email → Confirm → Queue Value X delivery via email
+        // ─────────────────────────────────────────────────────────────────────
+        if (capturedEmail) {
+          console.log(`[SignalHouse] 📧 EMAIL CAPTURED from ${fromNumber}: ${capturedEmail}`);
+
+          // Get worker name (default to Gianna for opener)
+          const workerName = "Gianna";
+          const firstName = lead?.firstName || "";
+
+          // Get confirmation template from library
+          const confirmationMessage = getEmailCaptureConfirmation("standard", {
+            firstName,
+            email: capturedEmail,
+            worker: workerName,
+          });
+
+          // Send confirmation SMS
+          if (toNumber) {
+            try {
+              const smsResult = await sendSMS({
+                to: fromNumber,
+                from: toNumber,
+                message: confirmationMessage,
+              });
+
+              if (smsResult.success) {
+                console.log(`[SignalHouse] ✅ Email capture confirmation sent to ${fromNumber}`);
+
+                await db.insert(smsMessages).values({
+                  id: crypto.randomUUID(),
+                  leadId: lead?.id,
+                  direction: "outbound",
+                  fromNumber: toNumber,
+                  toNumber: fromNumber,
+                  body: confirmationMessage,
+                  status: "sent",
+                  providerMessageId: smsResult.data?.messageId,
+                  campaignId: HOT_LEAD_CAMPAIGN_ID,
+                  createdAt: new Date(),
+                  updatedAt: new Date(),
+                });
+              }
+            } catch (smsError) {
+              console.error(`[SignalHouse] SMS send error:`, smsError);
+            }
+          }
+
+          // Push to hot lead campaign
+          if (lead) {
+            await pushToHotLeadCampaign(lead.id, capturedEmail);
+          }
+
+          // TODO: Queue Value X email delivery
+          // TODO: Schedule 24h SABRINA follow-up
+
+          return NextResponse.json({
+            success: true,
+            event: "email_captured",
+            email: capturedEmail,
+            flow: "email_capture",
+          });
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // FLOW B: CONTENT PERMISSION GRANTED
+        // Lead said "yes/sure" → Send content link via SMS
+        // ─────────────────────────────────────────────────────────────────────
+        if (isPermissionResponse) {
+          console.log(`[SignalHouse] 🔗 CONTENT PERMISSION from ${fromNumber}: "${messageBody}"`);
+
+          // Get content link from library
+          const contentLink = await getContentLinkForLead(lead?.id, "MEDIUM_ARTICLE");
+          const workerName = "Gianna";
+          const firstName = lead?.firstName || "";
+
+          if (contentLink && toNumber) {
+            // Get response template from library
+            const contentMessage = getContentLinkConfirmation("article", {
+              firstName,
+              contentUrl: contentLink.url,
+              worker: workerName,
+            });
+
+            try {
+              const smsResult = await sendSMS({
+                to: fromNumber,
+                from: toNumber,
+                message: contentMessage,
+              });
+
+              if (smsResult.success) {
+                console.log(`[SignalHouse] ✅ Content link sent to ${fromNumber}: ${contentLink.url}`);
+
+                await db.insert(smsMessages).values({
+                  id: crypto.randomUUID(),
+                  leadId: lead?.id,
+                  direction: "outbound",
+                  fromNumber: toNumber,
+                  toNumber: fromNumber,
+                  body: contentMessage,
+                  status: "sent",
+                  providerMessageId: smsResult.data?.messageId,
+                  campaignId: payload.campaign_id as string,
+                  createdAt: new Date(),
+                  updatedAt: new Date(),
+                });
+
+                // Update lead status
+                if (lead) {
+                  await db
+                    .update(leads)
+                    .set({
+                      status: "content_sent",
+                      tags: sql`array_append(COALESCE(tags, ARRAY[]::text[]), 'content_delivered')`,
+                      updatedAt: new Date(),
+                    })
+                    .where(eq(leads.id, lead.id));
+                }
+
+                // TODO: Schedule 24h follow-up to pivot to email capture
+              }
+            } catch (smsError) {
+              console.error(`[SignalHouse] SMS send error:`, smsError);
+            }
+          }
+
+          return NextResponse.json({
+            success: true,
+            event: "content_link_sent",
+            contentUrl: contentLink?.url,
+            flow: "content_permission",
+          });
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // POSITIVE LEAD RESPONSE (not email, not permission)
+        // Lead is interested but we need more context
+        // ─────────────────────────────────────────────────────────────────────
+        if (isPositiveLead) {
+          console.log(`[SignalHouse] 🎯 POSITIVE RESPONSE from ${fromNumber}: ${messageBody}`);
 
           if (lead) {
-            // Update lead status to interested
             await db
               .update(leads)
               .set({ status: "interested", updatedAt: new Date() })
               .where(eq(leads.id, lead.id));
           }
+
+          // TODO: Queue for AI response or human review
         }
 
         return NextResponse.json({ success: true, event: "inbound_sms" });

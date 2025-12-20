@@ -681,10 +681,182 @@ export function summarizeWorkflows(
   return summary;
 }
 
+// ════════════════════════════════════════════════════════════════════════════════
+// 2-BRACKET SMS FLOW TYPES - Integrated with email-capture-library.ts
+// ════════════════════════════════════════════════════════════════════════════════
+//
+// The 2-bracket SMS flow uses templates from:
+// @/lib/gianna/knowledge-base/email-capture-library.ts
+//
+// Two primary flows:
+// 1. EMAIL CAPTURE: Ask for email → Receive email → Confirm + Queue Value X
+// 2. CONTENT PERMISSION: Ask permission → Receive "yes" → Send content link
+//
+
+export type TwoBracketFlowType = "email_capture" | "content_permission";
+
+export type OpenerMessageType =
+  | "valuation_report"      // "Best email to send valuation report?"
+  | "ai_blueprint"          // "Best email to send our AI blueprint?"
+  | "medium_article"        // "Can I send you the Medium article link?"
+  | "newsletter"            // "Mind if I send you our newsletter?"
+  | "historical_fact"       // "Mind if I send our historical fact of the day?"
+  | "industry_news";        // "Mind if I share the latest HVAC trends?"
+
+export interface TwoBracketOpener {
+  id: string;
+  type: OpenerMessageType;
+  flowType: TwoBracketFlowType;
+  template: string;
+  variables: string[];
+  valueX: string;
+  expectedResponse: "email" | "permission";
+  worker: DigitalWorkerId;
+}
+
+export const TWO_BRACKET_OPENERS: TwoBracketOpener[] = [
+  // ─────────────────────────────────────────────────────────────────────────────
+  // EMAIL CAPTURE OPENERS - Lead provides email in bracket 2
+  // ─────────────────────────────────────────────────────────────────────────────
+  {
+    id: "opener_valuation",
+    type: "valuation_report",
+    flowType: "email_capture",
+    template: "Hi {firstName}, this is {worker} from Homeowner Advisor. Following up to send you a valuation report for {propertyAddress}. What is the best email to send? Reply STOP to opt-out.",
+    variables: ["firstName", "worker", "propertyAddress"],
+    valueX: "property_valuation",
+    expectedResponse: "email",
+    worker: "gianna",
+  },
+  {
+    id: "opener_blueprint",
+    type: "ai_blueprint",
+    flowType: "email_capture",
+    template: "Hey {firstName}, For {companyName} whether you're looking to expand or exit we got you. Best email to send our AI blueprint? - {worker}",
+    variables: ["firstName", "companyName", "worker"],
+    valueX: "ai_blueprint",
+    expectedResponse: "email",
+    worker: "gianna",
+  },
+  {
+    id: "opener_industry_news",
+    type: "industry_news",
+    flowType: "email_capture",
+    template: "Hey {firstName}! Mind if I shared with you the history of {industry} and keep you up to date with the latest trends? Best email? - {worker}",
+    variables: ["firstName", "industry", "worker"],
+    valueX: "industry_insights",
+    expectedResponse: "email",
+    worker: "gianna",
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // CONTENT PERMISSION OPENERS - Lead says "yes" in bracket 2
+  // ─────────────────────────────────────────────────────────────────────────────
+  {
+    id: "opener_medium_article",
+    type: "medium_article",
+    flowType: "content_permission",
+    template: "Hey {firstName}! Can I send you a link to the Medium article I wrote about AI and {industry}? - {worker}",
+    variables: ["firstName", "industry", "worker"],
+    valueX: "medium_article",
+    expectedResponse: "permission",
+    worker: "gianna",
+  },
+  {
+    id: "opener_medium_upset",
+    type: "medium_article",
+    flowType: "content_permission",
+    template: "{firstName} - would you be upset if I text you the link to the Medium article I just wrote? - {worker}",
+    variables: ["firstName", "worker"],
+    valueX: "medium_article",
+    expectedResponse: "permission",
+    worker: "gianna",
+  },
+  {
+    id: "opener_historical_fact",
+    type: "historical_fact",
+    flowType: "content_permission",
+    template: "Hey {firstName}, mind if I send our historical fact of the day regarding {neighborhood}? - {worker}",
+    variables: ["firstName", "neighborhood", "worker"],
+    valueX: "did_you_know",
+    expectedResponse: "permission",
+    worker: "gianna",
+  },
+  {
+    id: "opener_newsletter",
+    type: "newsletter",
+    flowType: "content_permission",
+    template: "{firstName} - mind if I send you our weekly {industry} newsletter? Some good stuff this week! - {worker}",
+    variables: ["firstName", "industry", "worker"],
+    valueX: "newsletter",
+    expectedResponse: "permission",
+    worker: "gianna",
+  },
+];
+
+/**
+ * Get an opener template for a given context
+ */
+export function getTwoBracketOpener(context: {
+  flowType?: TwoBracketFlowType;
+  type?: OpenerMessageType;
+  hasProperty?: boolean;
+  hasCompany?: boolean;
+  industry?: string;
+}): TwoBracketOpener | null {
+  let openers = TWO_BRACKET_OPENERS;
+
+  // Filter by flow type
+  if (context.flowType) {
+    openers = openers.filter((o) => o.flowType === context.flowType);
+  }
+
+  // Filter by message type
+  if (context.type) {
+    openers = openers.filter((o) => o.type === context.type);
+  }
+
+  // Prefer property openers if we have property data
+  if (context.hasProperty) {
+    const propertyOpeners = openers.filter((o) => o.type === "valuation_report");
+    if (propertyOpeners.length > 0) return propertyOpeners[0];
+  }
+
+  // Prefer business openers if we have company data
+  if (context.hasCompany) {
+    const businessOpeners = openers.filter((o) => o.type === "ai_blueprint");
+    if (businessOpeners.length > 0) return businessOpeners[0];
+  }
+
+  // Random selection from remaining
+  if (openers.length === 0) return null;
+  return openers[Math.floor(Math.random() * openers.length)];
+}
+
+/**
+ * Render an opener template with variables
+ */
+export function renderOpenerTemplate(
+  opener: TwoBracketOpener,
+  variables: Record<string, string>
+): string {
+  let message = opener.template;
+
+  for (const [key, value] of Object.entries(variables)) {
+    message = message.replace(new RegExp(`{${key}}`, "g"), value);
+  }
+
+  return message;
+}
+
 console.log(
   "[Campaign Workflow] Engine loaded - batched skip trace + lifecycle management",
 );
 console.log(
   "[Campaign Workflow] Templates available:",
   CAMPAIGN_TEMPLATES.length,
+);
+console.log(
+  "[Campaign Workflow] 2-Bracket SMS openers loaded:",
+  TWO_BRACKET_OPENERS.length,
 );
