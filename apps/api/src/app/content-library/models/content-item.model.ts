@@ -61,6 +61,9 @@ export class ContentItem extends TimestampModel implements ContentItemSelect {
   @Field(() => [String], { nullable: true })
   tags: Maybe<string[]>;
 
+  @StringField({ nullable: true })
+  externalUrl: MaybeString;
+
   @Field(() => [ContentVariableType], { nullable: true })
   variables: Maybe<ContentVariable[]>;
 
