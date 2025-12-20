@@ -65,13 +65,13 @@ const PERSONALIZATION_VARS = [
   { key: "{{revenue_range}}", label: "Revenue Range", example: "$1-5M" },
 ];
 
-// SMS Templates - Gianna's voice (or configurable sender)
+// SMS Templates - Gianna's voice (or configurable sender) - ALL UNDER 160 CHARS
 const INITIAL_SMS_TEMPLATES = [
   {
     id: "sms-1",
     name: "Valuation Curiosity",
     message:
-      "Hey {{name}}, {{sender_name}} with {{company}}. Quick one — ever wonder what your business could actually sell for? I can get you a valuation. Best email?",
+      "Hey {{name}}, {{sender_name}} with {{company}}. Ever wonder what your business could sell for? I can get you a valuation. Best email?",
     category: "opening",
     tags: ["valuation", "soft-open"],
   },
@@ -79,7 +79,7 @@ const INITIAL_SMS_TEMPLATES = [
     id: "sms-2",
     name: "Hidden Value",
     message:
-      "Hey {{name}}, can you get a quick valuation on your business? Most owners I talk to have no idea what they're sitting on. Best email to send details?",
+      "Hey {{name}}, most owners have no idea what they're sitting on. Want a quick valuation? Best email to send it?",
     category: "opening",
     tags: ["valuation", "curiosity"],
   },
@@ -87,7 +87,7 @@ const INITIAL_SMS_TEMPLATES = [
     id: "sms-3",
     name: "Expand or Exit",
     message:
-      "{{sender_name}} here — have you thought about expanding or exiting anytime soon? I can get you a clean valuation. What's a good email?",
+      "{{sender_name}} here — thinking about expanding or exiting? I can get you a clean valuation. What's a good email?",
     category: "opening",
     tags: ["exit", "expansion"],
   },
@@ -95,7 +95,7 @@ const INITIAL_SMS_TEMPLATES = [
     id: "sms-4",
     name: "Free Valuation Offer",
     message:
-      "Hey {{name}}, I help owners understand what their business can sell for. Want me to send you a valuation? What email should I use?",
+      "Hey {{name}}, I help owners know what their business can sell for. Want a valuation? What email works?",
     category: "opening",
     tags: ["valuation", "offer"],
   },
@@ -111,7 +111,7 @@ const INITIAL_SMS_TEMPLATES = [
     id: "sms-6",
     name: "15-Min Chat",
     message:
-      "{{sender_name}} from {{company}} — I can get you a free business valuation. Worth a 15-min chat. What email should I send it to?",
+      "{{sender_name}} from {{company}} — free business valuation, 15-min chat. Worth it? What email should I use?",
     category: "opening",
     tags: ["meeting", "valuation"],
   },
@@ -119,7 +119,7 @@ const INITIAL_SMS_TEMPLATES = [
     id: "sms-7",
     name: "Growth or Exit Check",
     message:
-      "Hey {{name}}, are you in growth mode or thinking about stepping back? I can get you a valuation either way. Best email?",
+      "Hey {{name}}, growth mode or stepping back? I can get you a valuation either way. Best email?",
     category: "opening",
     tags: ["qualification", "valuation"],
   },
@@ -127,7 +127,7 @@ const INITIAL_SMS_TEMPLATES = [
     id: "sms-8",
     name: "Tomorrow's Offer",
     message:
-      "If someone made you an offer tomorrow — do you know your number? I can get you a valuation. What's a good email?",
+      "If someone made you an offer tomorrow — do you know your number? I can get you a valuation. Email?",
     category: "opening",
     tags: ["urgency", "valuation"],
   },
@@ -135,7 +135,7 @@ const INITIAL_SMS_TEMPLATES = [
     id: "sms-9",
     name: "Worth Mapping",
     message:
-      "{{sender_name}} here — I help owners map out what they're worth. Quick valuation if you want it. Email?",
+      "{{sender_name}} here — I help owners map out what they're worth. Quick valuation if you want. Email?",
     category: "opening",
     tags: ["valuation", "short"],
   },
@@ -143,7 +143,7 @@ const INITIAL_SMS_TEMPLATES = [
     id: "sms-10",
     name: "1-2 Year Horizon",
     message:
-      "Hey {{name}}, thinking expansion or exit in the next year or two? Either way, I can get you a valuation. Email?",
+      "Hey {{name}}, thinking expansion or exit in the next year or two? I can get you a valuation. Email?",
     category: "opening",
     tags: ["timeline", "valuation"],
   },
@@ -159,7 +159,7 @@ const INITIAL_SMS_TEMPLATES = [
     id: "sms-12",
     name: "Exit Number",
     message:
-      "Hey {{name}}, most owners I talk to don't know their exit number. Want yours? Best email?",
+      "Hey {{name}}, most owners don't know their exit number. Want yours? Best email?",
     category: "opening",
     tags: ["exit", "curiosity"],
   },
@@ -167,7 +167,7 @@ const INITIAL_SMS_TEMPLATES = [
     id: "sms-13",
     name: "Quick Intro",
     message:
-      "{{sender_name}} with {{company}} — I run valuations for business owners. Want me to send you yours? Email?",
+      "{{sender_name}} with {{company}} — I run valuations for business owners. Want yours? Email?",
     category: "opening",
     tags: ["intro", "valuation"],
   },
@@ -175,7 +175,7 @@ const INITIAL_SMS_TEMPLATES = [
     id: "sms-14",
     name: "Head Number",
     message:
-      "If you ever sold, what number's in your head? I can get you the real one. Send me your best email?",
+      "If you ever sold, what number's in your head? I can get you the real one. Best email?",
     category: "opening",
     tags: ["direct", "valuation"],
   },
@@ -183,7 +183,7 @@ const INITIAL_SMS_TEMPLATES = [
     id: "sms-15",
     name: "Step Back Question",
     message:
-      "Quick one — have you thought about stepping back or selling someday? I can get you a valuation. Email?",
+      "Quick one — thought about stepping back or selling someday? I can get you a valuation. Email?",
     category: "opening",
     tags: ["soft", "exit"],
   },
@@ -191,7 +191,7 @@ const INITIAL_SMS_TEMPLATES = [
     id: "sms-16",
     name: "True Worth",
     message:
-      "{{sender_name}} here — I help owners figure out what they're really worth. Want yours? What email should I send it to?",
+      "{{sender_name}} here — I help owners figure out what they're really worth. Want yours? Email?",
     category: "opening",
     tags: ["valuation", "worth"],
   },
@@ -207,7 +207,7 @@ const INITIAL_SMS_TEMPLATES = [
     id: "sms-18",
     name: "Buyer Snapshot",
     message:
-      "I can get you a full valuation + snapshot of what buyers would pay. Want it? Email?",
+      "I can get you a valuation + snapshot of what buyers would pay. Want it? Email?",
     category: "opening",
     tags: ["buyers", "valuation"],
   },
@@ -215,7 +215,7 @@ const INITIAL_SMS_TEMPLATES = [
     id: "sms-19",
     name: "This Week Batch",
     message:
-      "{{sender_name}} at {{company}} — I'm doing valuations this week for business owners. Want yours? Email?",
+      "{{sender_name}} at {{company}} — doing valuations this week. Want yours? Email?",
     category: "opening",
     tags: ["batch", "urgency"],
   },
@@ -223,9 +223,665 @@ const INITIAL_SMS_TEMPLATES = [
     id: "sms-20",
     name: "Full Valuation",
     message:
-      "Ever thought about expanding or exiting? I can get you a full valuation. What's the best email for you?",
+      "Ever thought about expanding or exiting? I can get you a full valuation. Best email?",
     category: "opening",
     tags: ["complete", "valuation"],
+  },
+];
+
+// RETARGET SMS Templates - Cathy's voice - For leads who didn't respond (3+ days) - ALL UNDER 160 CHARS
+const RETARGET_SMS_TEMPLATES = [
+  {
+    id: "retarget-1",
+    name: "Quick Check-In",
+    message:
+      "Hey {{name}}! Just checking in — still interested in chatting? Let me know if now works better!",
+    category: "retarget",
+    tags: ["soft", "check-in"],
+  },
+  {
+    id: "retarget-2",
+    name: "Busy Week",
+    message:
+      "Hey {{name}}, I know things get busy. Still interested in that valuation? Just reply and we can set up a quick call.",
+    category: "retarget",
+    tags: ["empathy", "follow-up"],
+  },
+  {
+    id: "retarget-3",
+    name: "Making Sure",
+    message:
+      "Hey {{name}}! Making sure my messages are getting through. If you're still interested, I'm here!",
+    category: "retarget",
+    tags: ["soft", "confirmation"],
+  },
+  {
+    id: "retarget-4",
+    name: "Different Angle",
+    message:
+      "{{name}}, maybe timing wasn't right before. Still curious about what your business could sell for?",
+    category: "retarget",
+    tags: ["timing", "curiosity"],
+  },
+  {
+    id: "retarget-5",
+    name: "No Pressure",
+    message:
+      "Hey {{name}}, no pressure at all — just wanted to see if you're still thinking about getting a valuation. Thoughts?",
+    category: "retarget",
+    tags: ["no-pressure", "soft"],
+  },
+  {
+    id: "retarget-6",
+    name: "Circle Back",
+    message:
+      "{{sender_name}} here again. Wanted to circle back — still interested in knowing what your business is worth?",
+    category: "retarget",
+    tags: ["follow-up", "direct"],
+  },
+  {
+    id: "retarget-7",
+    name: "Quick Question",
+    message:
+      "Hey {{name}}, quick question — is now a better time to chat about that valuation? Just say the word.",
+    category: "retarget",
+    tags: ["timing", "question"],
+  },
+  {
+    id: "retarget-8",
+    name: "Still Here",
+    message:
+      "Hey {{name}}! Still here if you want that valuation. No rush — just let me know when you're ready.",
+    category: "retarget",
+    tags: ["patience", "soft"],
+  },
+  {
+    id: "retarget-9",
+    name: "Last Check",
+    message:
+      "{{name}}, last check-in — still interested in finding out what your business could sell for? Either way, let me know!",
+    category: "retarget",
+    tags: ["final", "direct"],
+  },
+  {
+    id: "retarget-10",
+    name: "Timing Better",
+    message:
+      "Hey {{name}}, maybe the timing wasn't great before. Would a quick call work better now?",
+    category: "retarget",
+    tags: ["timing", "call"],
+  },
+  {
+    id: "retarget-11",
+    name: "Missed Connection",
+    message:
+      "{{sender_name}} here — we might have missed each other. Still want that business valuation?",
+    category: "retarget",
+    tags: ["reconnect", "soft"],
+  },
+  {
+    id: "retarget-12",
+    name: "Thinking About It",
+    message:
+      "Hey {{name}}, been thinking about it? The valuation offer still stands. Just reply when ready.",
+    category: "retarget",
+    tags: ["patience", "offer"],
+  },
+  {
+    id: "retarget-13",
+    name: "Free Reminder",
+    message:
+      "Quick reminder — that free valuation I mentioned is still available. Worth 5 mins? Let me know!",
+    category: "retarget",
+    tags: ["reminder", "value"],
+  },
+  {
+    id: "retarget-14",
+    name: "New Info",
+    message:
+      "Hey {{name}}, I've got some new market info that might change your mind. Want to hear it?",
+    category: "retarget",
+    tags: ["curiosity", "value"],
+  },
+  {
+    id: "retarget-15",
+    name: "Changed Mind",
+    message:
+      "{{name}}, changed your mind? Totally fine — but if you're still curious about your valuation, I'm here.",
+    category: "retarget",
+    tags: ["understanding", "soft"],
+  },
+  {
+    id: "retarget-16",
+    name: "Back to You",
+    message:
+      "Hey {{name}}, coming back to you. Still thinking about that valuation? Happy to chat whenever.",
+    category: "retarget",
+    tags: ["follow-up", "patient"],
+  },
+  {
+    id: "retarget-17",
+    name: "Market Update",
+    message:
+      "{{name}}, quick market update — valuations in {{industry}} are shifting. Want to know where you stand?",
+    category: "retarget",
+    tags: ["urgency", "market"],
+  },
+  {
+    id: "retarget-18",
+    name: "Simple Reply",
+    message:
+      "Hey {{name}}! Just reply YES if you still want that valuation. No if not. Either works!",
+    category: "retarget",
+    tags: ["direct", "easy"],
+  },
+  {
+    id: "retarget-19",
+    name: "Week Later",
+    message:
+      "It's been a week — figured I'd check in. Still want to know what your business could sell for?",
+    category: "retarget",
+    tags: ["timeline", "check-in"],
+  },
+  {
+    id: "retarget-20",
+    name: "One More Time",
+    message:
+      "{{sender_name}} here, one more time. Valuation still on the table if you're interested. Just say when!",
+    category: "retarget",
+    tags: ["final", "offer"],
+  },
+];
+
+// NUDGE SMS Templates - Cathy's voice - For stale leads in nurturing (2+ days) - ALL UNDER 160 CHARS
+const NUDGE_SMS_TEMPLATES = [
+  {
+    id: "nudge-1",
+    name: "Just Checking",
+    message:
+      "Hey {{name}}, just checking in! Any questions about that valuation? Let me know if now works better to chat.",
+    category: "nudge",
+    tags: ["soft", "check-in"],
+  },
+  {
+    id: "nudge-2",
+    name: "Following Up",
+    message:
+      "{{sender_name}} here — following up on our conversation. Still thinking about it? Happy to answer questions.",
+    category: "nudge",
+    tags: ["follow-up", "helpful"],
+  },
+  {
+    id: "nudge-3",
+    name: "Quick Reminder",
+    message:
+      "Hey {{name}}! Quick reminder — I'm here if you have questions about the valuation. No rush!",
+    category: "nudge",
+    tags: ["reminder", "patient"],
+  },
+  {
+    id: "nudge-4",
+    name: "Thoughts",
+    message:
+      "Hey {{name}}, any thoughts since we last chatted? Let me know if you want to discuss further.",
+    category: "nudge",
+    tags: ["question", "soft"],
+  },
+  {
+    id: "nudge-5",
+    name: "Next Steps",
+    message:
+      "{{name}}, wanted to check if you're ready for next steps on that valuation. Just say the word!",
+    category: "nudge",
+    tags: ["action", "direct"],
+  },
+  {
+    id: "nudge-6",
+    name: "Questions",
+    message:
+      "Hey {{name}}! Got any questions I can answer? Happy to help clarify anything about the process.",
+    category: "nudge",
+    tags: ["helpful", "questions"],
+  },
+  {
+    id: "nudge-7",
+    name: "Moving Forward",
+    message:
+      "{{sender_name}} here — ready to move forward whenever you are. Just let me know what you need!",
+    category: "nudge",
+    tags: ["action", "supportive"],
+  },
+  {
+    id: "nudge-8",
+    name: "Good Time",
+    message:
+      "Hey {{name}}, is now a good time to continue our conversation? I'm free whenever works for you.",
+    category: "nudge",
+    tags: ["timing", "flexible"],
+  },
+  {
+    id: "nudge-9",
+    name: "Status Check",
+    message:
+      "Quick status check — where are you at with the valuation idea? Still interested? Let me know!",
+    category: "nudge",
+    tags: ["status", "direct"],
+  },
+  {
+    id: "nudge-10",
+    name: "Clarify Anything",
+    message:
+      "Hey {{name}}, happy to clarify anything about the valuation process. What would help most?",
+    category: "nudge",
+    tags: ["helpful", "questions"],
+  },
+  {
+    id: "nudge-11",
+    name: "Schedule Call",
+    message:
+      "{{name}}, want to schedule a quick call to go over next steps? Just 10 mins. What time works?",
+    category: "nudge",
+    tags: ["call", "scheduling"],
+  },
+  {
+    id: "nudge-12",
+    name: "Gentle Push",
+    message:
+      "Hey {{name}}! Gentle nudge — I don't want you to miss out on this. Ready to move forward?",
+    category: "nudge",
+    tags: ["urgency", "soft"],
+  },
+  {
+    id: "nudge-13",
+    name: "Here to Help",
+    message:
+      "{{sender_name}} here — just want you to know I'm here to help whenever you're ready. No pressure!",
+    category: "nudge",
+    tags: ["supportive", "patient"],
+  },
+  {
+    id: "nudge-14",
+    name: "Quick Chat",
+    message:
+      "Hey {{name}}, got 5 mins for a quick chat? Can answer any questions you might have.",
+    category: "nudge",
+    tags: ["call", "quick"],
+  },
+  {
+    id: "nudge-15",
+    name: "Still Interested",
+    message:
+      "{{name}}, still interested in getting that valuation done? I can make it super easy. Let me know!",
+    category: "nudge",
+    tags: ["easy", "action"],
+  },
+  {
+    id: "nudge-16",
+    name: "Thinking It Over",
+    message:
+      "Hey {{name}}, totally understand if you're thinking it over. Anything I can help clarify?",
+    category: "nudge",
+    tags: ["understanding", "helpful"],
+  },
+  {
+    id: "nudge-17",
+    name: "Ready When You Are",
+    message:
+      "{{sender_name}} here — ready when you are! Just reply and we can pick up where we left off.",
+    category: "nudge",
+    tags: ["patient", "easy"],
+  },
+  {
+    id: "nudge-18",
+    name: "One Quick Thing",
+    message:
+      "Hey {{name}}, one quick thing — did you get a chance to review what we discussed? Any thoughts?",
+    category: "nudge",
+    tags: ["follow-up", "question"],
+  },
+  {
+    id: "nudge-19",
+    name: "Move Things Along",
+    message:
+      "{{name}}, want to move things along? I can send over the next steps right now. Just say yes!",
+    category: "nudge",
+    tags: ["action", "direct"],
+  },
+  {
+    id: "nudge-20",
+    name: "Final Nudge",
+    message:
+      "Hey {{name}}! Last nudge from me — still want that valuation? Either way, let me know!",
+    category: "nudge",
+    tags: ["final", "soft"],
+  },
+];
+
+// FOLLOW-UP NURTURE SMS Templates - For active nurturing leads - ALL UNDER 160 CHARS
+const FOLLOWUP_SMS_TEMPLATES = [
+  {
+    id: "followup-1",
+    name: "Value Add",
+    message:
+      "Hey {{name}}, thought you'd find this interesting — just saw some new data on {{industry}} valuations. Want me to share?",
+    category: "follow-up",
+    tags: ["value", "helpful"],
+  },
+  {
+    id: "followup-2",
+    name: "Check Progress",
+    message:
+      "{{sender_name}} here — how are things going with your business? Any updates since we last talked?",
+    category: "follow-up",
+    tags: ["progress", "soft"],
+  },
+  {
+    id: "followup-3",
+    name: "Market Insight",
+    message:
+      "Hey {{name}}, quick market insight: {{industry}} is seeing increased buyer interest. Thought you'd want to know!",
+    category: "follow-up",
+    tags: ["market", "value"],
+  },
+  {
+    id: "followup-4",
+    name: "Resource Share",
+    message:
+      "{{name}}, I have a resource on business valuation you might like. Want me to send it over? No strings attached.",
+    category: "follow-up",
+    tags: ["resource", "helpful"],
+  },
+  {
+    id: "followup-5",
+    name: "Timeline Check",
+    message:
+      "Hey {{name}}, has your timeline changed at all? Just checking in to see where you're at with everything.",
+    category: "follow-up",
+    tags: ["timeline", "question"],
+  },
+  {
+    id: "followup-6",
+    name: "Success Story",
+    message:
+      "{{name}}, just helped another {{industry}} owner get a great valuation. Reminded me of you. How are things?",
+    category: "follow-up",
+    tags: ["social-proof", "soft"],
+  },
+  {
+    id: "followup-7",
+    name: "Quarterly Check",
+    message:
+      "Hey {{name}}! Quarterly check-in — how's {{business_name}} doing? Any new developments I should know about?",
+    category: "follow-up",
+    tags: ["regular", "business"],
+  },
+  {
+    id: "followup-8",
+    name: "Thinking of You",
+    message:
+      "{{sender_name}} here — saw something about {{industry}} and thought of you. How's business going?",
+    category: "follow-up",
+    tags: ["personal", "soft"],
+  },
+  {
+    id: "followup-9",
+    name: "Goals Update",
+    message:
+      "Hey {{name}}, any updates on your goals for this year? I'm here if you want to chat through anything.",
+    category: "follow-up",
+    tags: ["goals", "supportive"],
+  },
+  {
+    id: "followup-10",
+    name: "New Opportunity",
+    message:
+      "{{name}}, I might have an opportunity that fits your situation. Got a minute to hear about it?",
+    category: "follow-up",
+    tags: ["opportunity", "value"],
+  },
+  {
+    id: "followup-11",
+    name: "Stay Connected",
+    message:
+      "Hey {{name}}, just staying connected. No agenda — just wanted to see how you're doing!",
+    category: "follow-up",
+    tags: ["personal", "soft"],
+  },
+  {
+    id: "followup-12",
+    name: "Industry News",
+    message:
+      "{{name}}, big news in {{industry}} this week. Affects valuations. Want me to break it down for you?",
+    category: "follow-up",
+    tags: ["news", "value"],
+  },
+  {
+    id: "followup-13",
+    name: "Helpful Article",
+    message:
+      "Hey {{name}}, found an article about growing {{industry}} businesses. Thought of you. Want the link?",
+    category: "follow-up",
+    tags: ["resource", "helpful"],
+  },
+  {
+    id: "followup-14",
+    name: "Business Check",
+    message:
+      "{{sender_name}} checking in — how's {{business_name}} doing lately? Any wins to celebrate?",
+    category: "follow-up",
+    tags: ["positive", "business"],
+  },
+  {
+    id: "followup-15",
+    name: "Ready Talk",
+    message:
+      "Hey {{name}}, when you're ready to talk next steps, I'm here. No rush — just wanted you to know!",
+    category: "follow-up",
+    tags: ["patient", "supportive"],
+  },
+  {
+    id: "followup-16",
+    name: "New Data",
+    message:
+      "{{name}}, got some new valuation data for {{city}} area businesses. Interesting stuff. Want to see it?",
+    category: "follow-up",
+    tags: ["data", "local"],
+  },
+  {
+    id: "followup-17",
+    name: "Quick Update",
+    message:
+      "Hey {{name}}, quick update from my end — got some new tools that could help you. Want to hear more?",
+    category: "follow-up",
+    tags: ["update", "value"],
+  },
+  {
+    id: "followup-18",
+    name: "Seasonal Check",
+    message:
+      "{{sender_name}} here — how's business this season? {{industry}} usually picks up around now!",
+    category: "follow-up",
+    tags: ["seasonal", "business"],
+  },
+  {
+    id: "followup-19",
+    name: "Growth Chat",
+    message:
+      "Hey {{name}}, any thoughts on growth this year? I've got some ideas if you want to brainstorm.",
+    category: "follow-up",
+    tags: ["growth", "helpful"],
+  },
+  {
+    id: "followup-20",
+    name: "Touch Base",
+    message:
+      "{{name}}, just touching base. How are things with {{business_name}}? Anything new happening?",
+    category: "follow-up",
+    tags: ["regular", "soft"],
+  },
+];
+
+// RETENTION SMS Templates - For existing clients - ALL UNDER 160 CHARS
+const RETENTION_SMS_TEMPLATES = [
+  {
+    id: "retention-1",
+    name: "Check-In",
+    message:
+      "Hey {{name}}, {{sender_name}} here. Just checking in — how's everything going since we last worked together?",
+    category: "retention",
+    tags: ["check-in", "soft"],
+  },
+  {
+    id: "retention-2",
+    name: "Referral Ask",
+    message:
+      "{{name}}, quick question — know anyone else who might benefit from what we did for you? Happy to help them too!",
+    category: "retention",
+    tags: ["referral", "direct"],
+  },
+  {
+    id: "retention-3",
+    name: "New Service",
+    message:
+      "Hey {{name}}, we just added a new service I think would help {{business_name}}. Got a minute to hear about it?",
+    category: "retention",
+    tags: ["upsell", "value"],
+  },
+  {
+    id: "retention-4",
+    name: "Anniversary",
+    message:
+      "{{name}}, can't believe it's been a year since we started working together! How's everything going?",
+    category: "retention",
+    tags: ["milestone", "personal"],
+  },
+  {
+    id: "retention-5",
+    name: "Feedback Request",
+    message:
+      "Hey {{name}}, quick favor — how would you rate your experience with us? Your feedback means a lot!",
+    category: "retention",
+    tags: ["feedback", "soft"],
+  },
+  {
+    id: "retention-6",
+    name: "Update Available",
+    message:
+      "{{sender_name}} here — got an update on {{business_name}}'s valuation. Numbers are looking good. Want to see?",
+    category: "retention",
+    tags: ["update", "value"],
+  },
+  {
+    id: "retention-7",
+    name: "Support Check",
+    message:
+      "Hey {{name}}, just making sure you have everything you need from us. Anything I can help with?",
+    category: "retention",
+    tags: ["support", "helpful"],
+  },
+  {
+    id: "retention-8",
+    name: "VIP Offer",
+    message:
+      "{{name}}, as one of our valued clients, wanted to give you first look at something new. Interested?",
+    category: "retention",
+    tags: ["exclusive", "value"],
+  },
+  {
+    id: "retention-9",
+    name: "Results Check",
+    message:
+      "Hey {{name}}, how are the results looking since we worked together? Would love to hear an update!",
+    category: "retention",
+    tags: ["results", "positive"],
+  },
+  {
+    id: "retention-10",
+    name: "Next Steps",
+    message:
+      "{{sender_name}} here — ready to take the next step with {{business_name}}? I've got some ideas for you.",
+    category: "retention",
+    tags: ["action", "growth"],
+  },
+  {
+    id: "retention-11",
+    name: "Appreciation",
+    message:
+      "Hey {{name}}, just wanted to say thanks for trusting us with {{business_name}}. We appreciate you!",
+    category: "retention",
+    tags: ["gratitude", "personal"],
+  },
+  {
+    id: "retention-12",
+    name: "Renewal Reminder",
+    message:
+      "{{name}}, heads up — your renewal is coming up. Want to chat about what's next?",
+    category: "retention",
+    tags: ["renewal", "reminder"],
+  },
+  {
+    id: "retention-13",
+    name: "Market Update",
+    message:
+      "Hey {{name}}, market update for existing clients: {{industry}} valuations are shifting. Want the details?",
+    category: "retention",
+    tags: ["market", "exclusive"],
+  },
+  {
+    id: "retention-14",
+    name: "Quick Call",
+    message:
+      "{{sender_name}} here — got time for a quick call this week? Want to make sure you're getting full value.",
+    category: "retention",
+    tags: ["call", "support"],
+  },
+  {
+    id: "retention-15",
+    name: "Success Share",
+    message:
+      "Hey {{name}}, would you be open to sharing your success story? Could help other business owners like you!",
+    category: "retention",
+    tags: ["testimonial", "social-proof"],
+  },
+  {
+    id: "retention-16",
+    name: "Loyalty Thank You",
+    message:
+      "{{name}}, thank you for being a loyal client. Anything we can do to make your experience even better?",
+    category: "retention",
+    tags: ["gratitude", "improvement"],
+  },
+  {
+    id: "retention-17",
+    name: "Exclusive Access",
+    message:
+      "Hey {{name}}, as a valued client, you get early access to our new {{industry}} report. Want it?",
+    category: "retention",
+    tags: ["exclusive", "value"],
+  },
+  {
+    id: "retention-18",
+    name: "Partner Check",
+    message:
+      "{{sender_name}} checking in — how's our partnership working for you? Any adjustments needed?",
+    category: "retention",
+    tags: ["partnership", "support"],
+  },
+  {
+    id: "retention-19",
+    name: "Growth Review",
+    message:
+      "Hey {{name}}, want to schedule a growth review for {{business_name}}? Could uncover new opportunities!",
+    category: "retention",
+    tags: ["growth", "value"],
+  },
+  {
+    id: "retention-20",
+    name: "Stay Connected",
+    message:
+      "{{name}}, just staying connected! How's {{business_name}} doing? Any big plans coming up?",
+    category: "retention",
+    tags: ["personal", "business"],
   },
 ];
 
@@ -374,7 +1030,7 @@ const COLD_CALL_SCRIPTS = [
 ];
 
 export default function MessageTemplatesPage() {
-  const [activeTab, setActiveTab] = useState("sms");
+  const [activeTab, setActiveTab] = useState("initial");
   const [searchQuery, setSearchQuery] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [previewTemplate, setPreviewTemplate] = useState<string | null>(null);
@@ -428,14 +1084,23 @@ export default function MessageTemplatesPage() {
   };
 
   // Filter templates by search
-  const filteredSMS = INITIAL_SMS_TEMPLATES.filter(
-    (t) =>
-      t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.tags.some((tag) =>
-        tag.toLowerCase().includes(searchQuery.toLowerCase()),
-      ),
-  );
+  const filterTemplates = (
+    templates: { name: string; message: string; tags: string[] }[],
+  ) =>
+    templates.filter(
+      (t) =>
+        t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        t.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        t.tags.some((tag) =>
+          tag.toLowerCase().includes(searchQuery.toLowerCase()),
+        ),
+    );
+
+  const filteredInitial = filterTemplates(INITIAL_SMS_TEMPLATES);
+  const filteredRetarget = filterTemplates(RETARGET_SMS_TEMPLATES);
+  const filteredNudge = filterTemplates(NUDGE_SMS_TEMPLATES);
+  const filteredFollowup = filterTemplates(FOLLOWUP_SMS_TEMPLATES);
+  const filteredRetention = filterTemplates(RETENTION_SMS_TEMPLATES);
 
   const filteredCalls = COLD_CALL_SCRIPTS.filter(
     (t) =>
@@ -454,109 +1119,119 @@ export default function MessageTemplatesPage() {
       />
 
       <div className="p-6">
-        {/* Hero Section */}
-        <Card className="mb-6 bg-gradient-to-br from-blue-900/20 to-cyan-900/20 border-blue-500/30">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <motion.div
-                  className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center"
-                  animate={{ scale: [1, 1.05, 1] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                >
-                  <MessageSquare className="w-8 h-8 text-white" />
-                </motion.div>
-                <div>
-                  <CardTitle className="text-2xl">
-                    Initial Outreach Templates
-                  </CardTitle>
-                  <CardDescription className="text-base">
-                    Hyperpersonalized SMS & Cold Call scripts with plug-and-play
-                    variables
-                  </CardDescription>
-                </div>
-              </div>
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold">Campaign Templates</h1>
+            <p className="text-muted-foreground">
+              SMS templates for each campaign stage • All under 160 characters
+            </p>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Label className="text-sm text-muted-foreground">Sender:</Label>
+              <Select value={senderName} onValueChange={setSenderName}>
+                <SelectTrigger className="w-36">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Gianna">
+                    <div className="flex items-center gap-2">
+                      <Bot className="w-4 h-4" />
+                      Gianna (AI)
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="Cathy">
+                    <div className="flex items-center gap-2">
+                      <Bot className="w-4 h-4" />
+                      Cathy (AI)
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="Sabrina">
+                    <div className="flex items-center gap-2">
+                      <Bot className="w-4 h-4" />
+                      Sabrina (AI)
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="Tommy">
+                    <div className="flex items-center gap-2">
+                      <User className="w-4 h-4" />
+                      Tommy
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2">
+              <Label className="text-sm text-muted-foreground">Company:</Label>
+              <Input
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
+                className="w-28"
+              />
+            </div>
+          </div>
+        </div>
 
-              {/* Sender Config */}
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <Label className="text-sm text-muted-foreground">
-                    Sender:
-                  </Label>
-                  <Select value={senderName} onValueChange={setSenderName}>
-                    <SelectTrigger className="w-36">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Gianna">
-                        <div className="flex items-center gap-2">
-                          <Bot className="w-4 h-4" />
-                          Gianna (AI)
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="Tommy">
-                        <div className="flex items-center gap-2">
-                          <User className="w-4 h-4" />
-                          Tommy
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="Tommy Borruso">
-                        <div className="flex items-center gap-2">
-                          <User className="w-4 h-4" />
-                          Tommy Borruso
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Label className="text-sm text-muted-foreground">
-                    Company:
-                  </Label>
-                  <Input
-                    value={companyName}
-                    onChange={(e) => setCompanyName(e.target.value)}
-                    className="w-28"
-                  />
-                </div>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {/* Variable Reference */}
-            <div className="flex flex-wrap gap-2 mt-2">
-              {PERSONALIZATION_VARS.map((v) => (
-                <Badge
-                  key={v.key}
-                  variant="outline"
-                  className="text-xs cursor-pointer hover:bg-blue-500/20"
-                  onClick={() => {
-                    navigator.clipboard.writeText(v.key);
-                    toast.success(`Copied ${v.key}`);
-                  }}
-                >
-                  {v.key} → {v.example}
-                </Badge>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        {/* Variable Reference */}
+        <div className="flex flex-wrap gap-2 mb-6">
+          {PERSONALIZATION_VARS.map((v) => (
+            <Badge
+              key={v.key}
+              variant="outline"
+              className="text-xs cursor-pointer hover:bg-blue-500/20"
+              onClick={() => {
+                navigator.clipboard.writeText(v.key);
+                toast.success(`Copied ${v.key}`);
+              }}
+            >
+              {v.key} → {v.example}
+            </Badge>
+          ))}
+        </div>
 
         {/* Main Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <div className="flex items-center justify-between mb-4">
-            <TabsList>
-              <TabsTrigger value="sms" className="flex items-center gap-2">
+            <TabsList className="flex-wrap h-auto gap-1">
+              <TabsTrigger
+                value="initial"
+                className="flex items-center gap-2 data-[state=active]:bg-blue-600"
+              >
                 <MessageSquare className="w-4 h-4" />
-                SMS Templates ({filteredSMS.length})
+                Initial ({filteredInitial.length})
+              </TabsTrigger>
+              <TabsTrigger
+                value="retarget"
+                className="flex items-center gap-2 data-[state=active]:bg-purple-600"
+              >
+                Retarget ({filteredRetarget.length})
+              </TabsTrigger>
+              <TabsTrigger
+                value="nudge"
+                className="flex items-center gap-2 data-[state=active]:bg-pink-600"
+              >
+                Nudge ({filteredNudge.length})
+              </TabsTrigger>
+              <TabsTrigger
+                value="followup"
+                className="flex items-center gap-2 data-[state=active]:bg-amber-600"
+              >
+                Follow-Up ({filteredFollowup.length})
+              </TabsTrigger>
+              <TabsTrigger
+                value="retention"
+                className="flex items-center gap-2 data-[state=active]:bg-emerald-600"
+              >
+                Retention ({filteredRetention.length})
               </TabsTrigger>
               <TabsTrigger value="calls" className="flex items-center gap-2">
                 <Phone className="w-4 h-4" />
-                Cold Call Scripts ({filteredCalls.length})
+                Cold Calls ({filteredCalls.length})
               </TabsTrigger>
               <TabsTrigger value="preview" className="flex items-center gap-2">
                 <Eye className="w-4 h-4" />
-                Preview & Test
+                Preview
               </TabsTrigger>
             </TabsList>
 
@@ -577,9 +1252,20 @@ export default function MessageTemplatesPage() {
             </div>
           </div>
 
-          {/* SMS Templates Tab */}
-          <TabsContent value="sms" className="space-y-3">
-            {filteredSMS.map((template, index) => (
+          {/* Initial Templates Tab */}
+          <TabsContent value="initial" className="space-y-3">
+            <Card className="mb-4 bg-blue-500/10 border-blue-500/30">
+              <CardContent className="py-3">
+                <div className="flex items-center gap-2">
+                  <Bot className="w-5 h-5 text-blue-500" />
+                  <span className="font-medium">GIANNA - Initial Outreach</span>
+                  <Badge variant="outline" className="ml-2">
+                    New leads
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
+            {filteredInitial.map((template, index) => (
               <motion.div
                 key={template.id}
                 initial={{ opacity: 0, y: 10 }}
@@ -638,6 +1324,222 @@ export default function MessageTemplatesPage() {
                           )}
                         </Button>
                       </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </TabsContent>
+
+          {/* Retarget Templates Tab */}
+          <TabsContent value="retarget" className="space-y-3">
+            <Card className="mb-4 bg-purple-500/10 border-purple-500/30">
+              <CardContent className="py-3">
+                <div className="flex items-center gap-2">
+                  <Bot className="w-5 h-5 text-purple-500" />
+                  <span className="font-medium">CATHY - Retarget</span>
+                  <Badge variant="outline" className="ml-2">
+                    No response (3+ days)
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
+            {filteredRetarget.map((template, index) => (
+              <motion.div
+                key={template.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.03 }}
+              >
+                <Card className="hover:border-purple-500/50 transition-colors">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="font-medium">{template.name}</span>
+                          {template.tags.map((tag) => (
+                            <Badge key={tag} variant="outline" className="text-xs">
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+                        <p className="text-sm text-muted-foreground font-mono bg-muted/30 p-3 rounded-md">
+                          {template.message}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleCopy(template.message, template.id)}
+                      >
+                        {copiedId === template.id ? (
+                          <Check className="w-4 h-4 text-green-500" />
+                        ) : (
+                          <Copy className="w-4 h-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </TabsContent>
+
+          {/* Nudge Templates Tab */}
+          <TabsContent value="nudge" className="space-y-3">
+            <Card className="mb-4 bg-pink-500/10 border-pink-500/30">
+              <CardContent className="py-3">
+                <div className="flex items-center gap-2">
+                  <Bot className="w-5 h-5 text-pink-500" />
+                  <span className="font-medium">CATHY - Nudge</span>
+                  <Badge variant="outline" className="ml-2">
+                    Stale nurturing (2+ days)
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
+            {filteredNudge.map((template, index) => (
+              <motion.div
+                key={template.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.03 }}
+              >
+                <Card className="hover:border-pink-500/50 transition-colors">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="font-medium">{template.name}</span>
+                          {template.tags.map((tag) => (
+                            <Badge key={tag} variant="outline" className="text-xs">
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+                        <p className="text-sm text-muted-foreground font-mono bg-muted/30 p-3 rounded-md">
+                          {template.message}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleCopy(template.message, template.id)}
+                      >
+                        {copiedId === template.id ? (
+                          <Check className="w-4 h-4 text-green-500" />
+                        ) : (
+                          <Copy className="w-4 h-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </TabsContent>
+
+          {/* Follow-Up Templates Tab */}
+          <TabsContent value="followup" className="space-y-3">
+            <Card className="mb-4 bg-amber-500/10 border-amber-500/30">
+              <CardContent className="py-3">
+                <div className="flex items-center gap-2">
+                  <Bot className="w-5 h-5 text-amber-500" />
+                  <span className="font-medium">Follow-Up Nurture</span>
+                  <Badge variant="outline" className="ml-2">
+                    Active nurturing
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
+            {filteredFollowup.map((template, index) => (
+              <motion.div
+                key={template.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.03 }}
+              >
+                <Card className="hover:border-amber-500/50 transition-colors">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="font-medium">{template.name}</span>
+                          {template.tags.map((tag) => (
+                            <Badge key={tag} variant="outline" className="text-xs">
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+                        <p className="text-sm text-muted-foreground font-mono bg-muted/30 p-3 rounded-md">
+                          {template.message}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleCopy(template.message, template.id)}
+                      >
+                        {copiedId === template.id ? (
+                          <Check className="w-4 h-4 text-green-500" />
+                        ) : (
+                          <Copy className="w-4 h-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </TabsContent>
+
+          {/* Retention Templates Tab */}
+          <TabsContent value="retention" className="space-y-3">
+            <Card className="mb-4 bg-emerald-500/10 border-emerald-500/30">
+              <CardContent className="py-3">
+                <div className="flex items-center gap-2">
+                  <Bot className="w-5 h-5 text-emerald-500" />
+                  <span className="font-medium">Retention</span>
+                  <Badge variant="outline" className="ml-2">
+                    Existing clients
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
+            {filteredRetention.map((template, index) => (
+              <motion.div
+                key={template.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.03 }}
+              >
+                <Card className="hover:border-emerald-500/50 transition-colors">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="font-medium">{template.name}</span>
+                          {template.tags.map((tag) => (
+                            <Badge key={tag} variant="outline" className="text-xs">
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+                        <p className="text-sm text-muted-foreground font-mono bg-muted/30 p-3 rounded-md">
+                          {template.message}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleCopy(template.message, template.id)}
+                      >
+                        {copiedId === template.id ? (
+                          <Check className="w-4 h-4 text-green-500" />
+                        ) : (
+                          <Copy className="w-4 h-4" />
+                        )}
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>

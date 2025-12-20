@@ -11,7 +11,6 @@ import { getTeam } from "@/features/team/team.data";
 import { LayoutProps } from "@/types/route.type";
 import { Metadata } from "next";
 import { GlobalActionsProvider } from "@/lib/providers/global-actions-provider";
-import { GlobalCalendarWidget } from "@/components/global-calendar-widget";
 
 export const generateMetadata = async ({
   params,
@@ -50,8 +49,6 @@ export default async function Layout({
             </header>
             {children}
           </SidebarInset>
-          {/* Global Calendar Widget - Floating on all team pages */}
-          <GlobalCalendarWidget />
         </GlobalActionsProvider>
       </TeamProvider>
     </SidebarProvider>
