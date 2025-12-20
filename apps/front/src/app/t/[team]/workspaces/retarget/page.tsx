@@ -1,731 +1,288 @@
 "use client";
 
-import * as React from "react";
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
 import {
   RefreshCw,
-  MessageSquare,
   Send,
-  Clock,
-  Zap,
-  Bot,
-  Filter,
-  CheckCircle2,
-  User,
-  Loader2,
-  Target,
-  Search,
-  Calendar,
   Phone,
-  Mail,
-  MoreHorizontal,
-  Sparkles,
-  ArrowRight,
-  ChevronRight,
-  Eye,
+  Loader2,
+  CheckCircle2,
   AlertCircle,
-  TrendingUp,
-  History,
-  Flame,
-  Pause,
-  UserX,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Separator } from "@/components/ui/separator";
-import { Progress } from "@/components/ui/progress";
-import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { useGlobalActions } from "@/lib/providers/global-actions-provider";
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// RETARGET WORKSPACE - CATHY AI RE-ENGAGEMENT
-// ═══════════════════════════════════════════════════════════════════════════════
-//
-// CATHY is the NUDGER - specializes in re-engaging cold leads who:
-// - Haven't responded to initial outreach
-// - Showed interest but went dark
-// - Need a different approach
-//
-// CATHY has her own:
-// - Dedicated phone numbers (different from GIANNA and CATHY)
-// - Inbound response center
-// - Calendar for scheduling
-//
-// Workflow:
-// 1. Leads that haven't responded after X days flow here
-// 2. CATHY analyzes previous attempts and crafts retarget strategy
-// 3. Uses humor-based, human-feeling follow-ups
-// 4. Tracks re-engagement success rate
-//
-// ═══════════════════════════════════════════════════════════════════════════════
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// TYPES
-// ═══════════════════════════════════════════════════════════════════════════════
+/**
+ * RETARGET WORKSPACE - CATHY AI
+ *
+ * Re-engage leads who haven't responded.
+ * Fetches REAL leads from the database - no mock data.
+ */
 
 interface RetargetLead {
   id: string;
-  name: string;
-  firstName?: string;
-  lastName?: string;
-  phone?: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
   email?: string;
   company?: string;
-  address?: string;
-  city?: string;
-  state?: string;
-  // Previous engagement
-  previousAttempts: number;
   lastContactAt: string;
   daysSinceContact: number;
-  previousChannel: "sms" | "email" | "call";
-  previousValueProp?: string;
-  // Retarget specific
-  retargetReason: "no_response" | "went_cold" | "bounced" | "paused";
-  retargetStrategy?:
-    | "new_angle"
-    | "different_value"
-    | "channel_switch"
-    | "pattern_interrupt";
-  suggestedApproach?: string;
-  // Status
-  status: "queued" | "retargeting" | "re-engaged" | "removed";
-  priority: "high" | "medium" | "low";
-  reEngagementScore: number; // 0-100 likelihood to re-engage
-  createdAt: string;
+  previousAttempts: number;
+  status: string;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// CATHY RETARGET TEMPLATES (NUDGER - Humor-based re-engagement)
-// ═══════════════════════════════════════════════════════════════════════════════
+export default function RetargetWorkspacePage() {
+  const params = useParams();
+  const teamId = params.team as string;
 
-const RETARGET_TEMPLATES = [
-  {
-    id: "rt_check_in",
-    name: "Casual Check-In",
-    strategy: "new_angle" as const,
-    template:
-      "Hey {firstName}! Just checking in - still interested in that {previousValueProp}? No worries if timing isn't right - Cathy",
-    timing: "3-5 days after last contact",
-  },
-  {
-    id: "rt_new_value",
-    name: "New Value Prop",
-    strategy: "different_value" as const,
-    template:
-      "Hey {firstName}! Got something new you might like - different from what I sent before. Quick question: what's your biggest challenge with {industry} right now? - Cathy",
-    timing: "7+ days after last contact",
-  },
-  {
-    id: "rt_channel_switch_call",
-    name: "Switch to Call",
-    strategy: "channel_switch" as const,
-    template:
-      "Quick call instead of text? Just 2 mins - promise! What time works? - Cathy",
-    timing: "After 2+ SMS with no response",
-  },
-  {
-    id: "rt_pattern_interrupt",
-    name: "Pattern Interrupt",
-    strategy: "pattern_interrupt" as const,
-    template:
-      "Random thought - are you the {firstName} who {randomDetail}? Either way, still got that {previousValueProp} for you! - Cathy",
-    timing: "10+ days, creative approach",
-  },
-  {
-    id: "rt_honest",
-    name: "Honest Approach",
-    strategy: "new_angle" as const,
-    template:
-      "Hey {firstName} - I'll be honest, I'm not sure if my messages are going through or if you're just busy. Either way, door's always open! - Cathy",
-    timing: "After 3+ attempts",
-  },
-  {
-    id: "rt_fomo",
-    name: "Subtle FOMO",
-    strategy: "different_value" as const,
-    template:
-      "Hey {firstName}! Just helped someone in {city} with something similar - thought of you. Still available if interested! - Cathy",
-    timing: "5-7 days",
-  },
-];
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// COPILOT RETARGET ANALYSIS
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function getCathyRetargetSuggestion(lead: RetargetLead): {
-  strategy: string;
-  template: (typeof RETARGET_TEMPLATES)[0];
-  reasoning: string;
-  confidence: number;
-} {
-  // Analyze based on previous engagement
-  if (lead.daysSinceContact <= 3) {
-    return {
-      strategy: "Wait",
-      template: RETARGET_TEMPLATES[0],
-      reasoning: "Too soon to retarget. Give them a few more days.",
-      confidence: 30,
-    };
-  }
-
-  if (
-    lead.daysSinceContact >= 3 &&
-    lead.daysSinceContact <= 5 &&
-    lead.previousAttempts === 1
-  ) {
-    return {
-      strategy: "Casual Check-In",
-      template: RETARGET_TEMPLATES.find((t) => t.id === "rt_check_in")!,
-      reasoning: "First retarget attempt. A friendly check-in works best.",
-      confidence: 75,
-    };
-  }
-
-  if (lead.previousAttempts >= 2 && lead.previousChannel === "sms") {
-    return {
-      strategy: "Channel Switch",
-      template: RETARGET_TEMPLATES.find(
-        (t) => t.id === "rt_channel_switch_call",
-      )!,
-      reasoning: "SMS isn't working. Try switching to voice.",
-      confidence: 60,
-    };
-  }
-
-  if (lead.daysSinceContact >= 7 && lead.daysSinceContact <= 14) {
-    return {
-      strategy: "New Value Prop",
-      template: RETARGET_TEMPLATES.find((t) => t.id === "rt_new_value")!,
-      reasoning: "Enough time has passed. Offer something fresh.",
-      confidence: 70,
-    };
-  }
-
-  if (lead.daysSinceContact >= 14 || lead.previousAttempts >= 4) {
-    return {
-      strategy: "Pattern Interrupt",
-      template: RETARGET_TEMPLATES.find(
-        (t) => t.id === "rt_pattern_interrupt",
-      )!,
-      reasoning: "Standard approaches exhausted. Time for creativity.",
-      confidence: 50,
-    };
-  }
-
-  return {
-    strategy: "Honest Approach",
-    template: RETARGET_TEMPLATES.find((t) => t.id === "rt_honest")!,
-    reasoning: "Be direct about the situation.",
-    confidence: 55,
-  };
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// MOCK DATA
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function generateMockRetargetLeads(count: number): RetargetLead[] {
-  const industries = [
-    "Real Estate",
-    "Insurance",
-    "Legal",
-    "Healthcare",
-    "Retail",
-  ];
-  const reasons: RetargetLead["retargetReason"][] = [
-    "no_response",
-    "went_cold",
-    "bounced",
-    "paused",
-  ];
-  const channels: RetargetLead["previousChannel"][] = ["sms", "email", "call"];
-  const firstNames = ["John", "Sarah", "Mike", "Lisa", "David", "Jennifer"];
-  const lastNames = ["Smith", "Johnson", "Williams", "Brown", "Jones"];
-  const cities = ["Brooklyn", "Queens", "Manhattan", "Newark", "Jersey City"];
-  const valueProp = [
-    "AI Blueprint",
-    "Valuation Report",
-    "Industry Newsletter",
-    "Case Study",
-  ];
-
-  return Array.from({ length: count }, (_, i) => {
-    const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
-    const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
-    const daysSince = Math.floor(Math.random() * 21) + 1;
-
-    return {
-      id: `retarget-${i + 1}`,
-      name: `${firstName} ${lastName}`,
-      firstName,
-      lastName,
-      phone: `+1${Math.floor(Math.random() * 9000000000 + 1000000000)}`,
-      company: `${lastName} ${industries[Math.floor(Math.random() * industries.length)]}`,
-      address: `${Math.floor(Math.random() * 9999) + 1} Main Street`,
-      city: cities[Math.floor(Math.random() * cities.length)],
-      state: "NY",
-      previousAttempts: Math.floor(Math.random() * 5) + 1,
-      lastContactAt: new Date(
-        Date.now() - daysSince * 24 * 60 * 60 * 1000,
-      ).toISOString(),
-      daysSinceContact: daysSince,
-      previousChannel: channels[Math.floor(Math.random() * channels.length)],
-      previousValueProp:
-        valueProp[Math.floor(Math.random() * valueProp.length)],
-      retargetReason: reasons[Math.floor(Math.random() * reasons.length)],
-      status: "queued",
-      priority: daysSince > 14 ? "low" : daysSince > 7 ? "medium" : "high",
-      reEngagementScore: Math.floor(Math.random() * 60) + 20,
-      createdAt: new Date(
-        Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000,
-      ).toISOString(),
-    };
-  });
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// LEAD CARD
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function RetargetLeadCard({
-  lead,
-  isSelected,
-  onSelect,
-  onRetarget,
-  onRemove,
-}: {
-  lead: RetargetLead;
-  isSelected: boolean;
-  onSelect: () => void;
-  onRetarget: () => void;
-  onRemove: () => void;
-}) {
-  const suggestion = getCathyRetargetSuggestion(lead);
-
-  return (
-    <Card
-      className={cn(
-        "transition-all hover:shadow-md",
-        isSelected && "ring-2 ring-primary",
-        lead.priority === "high" && "border-l-4 border-l-orange-500",
-        lead.priority === "medium" && "border-l-4 border-l-yellow-500",
-        lead.priority === "low" && "border-l-4 border-l-gray-300",
-      )}
-    >
-      <CardContent className="p-4">
-        {/* Header */}
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex items-center gap-3">
-            <Checkbox checked={isSelected} onCheckedChange={onSelect} />
-            <div>
-              <p className="font-medium">{lead.name}</p>
-              <p className="text-sm text-muted-foreground">{lead.company}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge
-              variant="outline"
-              className={cn(
-                "text-xs",
-                lead.retargetReason === "no_response" && "bg-gray-100",
-                lead.retargetReason === "went_cold" &&
-                  "bg-blue-100 text-blue-700",
-                lead.retargetReason === "bounced" && "bg-red-100 text-red-700",
-                lead.retargetReason === "paused" &&
-                  "bg-yellow-100 text-yellow-700",
-              )}
-            >
-              {lead.retargetReason.replace("_", " ")}
-            </Badge>
-          </div>
-        </div>
-
-        {/* Previous Engagement */}
-        <div className="flex items-center gap-4 text-xs text-muted-foreground mb-3 py-2 px-3 bg-muted/50 rounded-lg">
-          <div className="flex items-center gap-1">
-            <History className="h-3 w-3" />
-            <span>
-              <strong>{lead.previousAttempts}</strong> prev attempts
-            </span>
-          </div>
-          <Separator orientation="vertical" className="h-4" />
-          <div className="flex items-center gap-1">
-            <Clock className="h-3 w-3" />
-            <span>
-              <strong>{lead.daysSinceContact}</strong> days ago
-            </span>
-          </div>
-          <Separator orientation="vertical" className="h-4" />
-          <Badge variant="secondary" className="text-xs">
-            {lead.previousChannel}
-          </Badge>
-        </div>
-
-        {/* Re-engagement Score */}
-        <div className="mb-3">
-          <div className="flex items-center justify-between text-xs mb-1">
-            <span className="text-muted-foreground">
-              Re-engagement likelihood
-            </span>
-            <span className="font-medium">{lead.reEngagementScore}%</span>
-          </div>
-          <Progress value={lead.reEngagementScore} className="h-1.5" />
-        </div>
-
-        {/* CATHY Suggestion */}
-        <div
-          className={cn(
-            "p-3 rounded-lg border mb-3",
-            suggestion.confidence >= 70 && "bg-green-50 border-green-200",
-            suggestion.confidence >= 50 &&
-              suggestion.confidence < 70 &&
-              "bg-yellow-50 border-yellow-200",
-            suggestion.confidence < 50 && "bg-gray-50 border-gray-200",
-          )}
-        >
-          <div className="flex items-start gap-2">
-            <Sparkles
-              className={cn(
-                "h-4 w-4 mt-0.5",
-                suggestion.confidence >= 70 && "text-green-600",
-                suggestion.confidence >= 50 &&
-                  suggestion.confidence < 70 &&
-                  "text-yellow-600",
-                suggestion.confidence < 50 && "text-gray-600",
-              )}
-            />
-            <div className="flex-1">
-              <p className="text-sm font-medium flex items-center gap-2">
-                CATHY: {suggestion.strategy}
-                <Badge variant="outline" className="text-xs">
-                  {suggestion.confidence}% conf
-                </Badge>
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {suggestion.reasoning}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Actions */}
-        <div className="flex items-center gap-2">
-          <Button size="sm" className="flex-1" onClick={onRetarget}>
-            <RefreshCw className="h-4 w-4 mr-1" />
-            Retarget
-          </Button>
-          <Button size="sm" variant="outline" onClick={onRemove}>
-            <UserX className="h-4 w-4" />
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// MAIN COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════════
-
-export default function RetargetWorkspace() {
   const [leads, setLeads] = useState<RetargetLead[]>([]);
-  const [selectedLeads, setSelectedLeads] = useState<Set<string>>(new Set());
-  const [isLoading, setIsLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filterReason, setFilterReason] = useState<string>("all");
-
-  // Dialog state
+  const [loading, setLoading] = useState(true);
   const [selectedLead, setSelectedLead] = useState<RetargetLead | null>(null);
-  const [showRetargetDialog, setShowRetargetDialog] = useState(false);
-  const [retargetMessage, setRetargetMessage] = useState("");
+  const [message, setMessage] = useState("");
+  const [sending, setSending] = useState(false);
 
-  // Load leads
+  // Fetch leads that need retargeting (no response leads)
   useEffect(() => {
-    const loadLeads = async () => {
-      setIsLoading(true);
+    async function fetchLeads() {
       try {
-        const mockLeads = generateMockRetargetLeads(40);
-        setLeads(mockLeads);
-      } catch (error) {
-        console.error("Failed to load leads:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadLeads();
-  }, []);
+        // Fetch leads with status "contacted" that haven't responded
+        const response = await fetch(`/api/leads?teamId=${teamId}&status=contacted&limit=50`);
+        const data = await response.json();
 
-  // Filtered leads
-  const filteredLeads = useMemo(() => {
-    return leads.filter((lead) => {
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        if (
-          !lead.name.toLowerCase().includes(query) &&
-          !lead.company?.toLowerCase().includes(query)
-        ) {
-          return false;
+        if (data.success && data.leads) {
+          const now = new Date();
+          const retargetLeads: RetargetLead[] = data.leads
+            .map((lead: Record<string, unknown>) => {
+              const lastContact = lead.updatedAt
+                ? new Date(lead.updatedAt as string)
+                : new Date(lead.createdAt as string);
+              const daysSince = Math.floor((now.getTime() - lastContact.getTime()) / (1000 * 60 * 60 * 24));
+              return {
+                id: lead.id,
+                firstName: lead.firstName || "",
+                lastName: lead.lastName || "",
+                phone: lead.phone || "",
+                email: lead.email || "",
+                company: lead.company || "",
+                lastContactAt: lastContact.toISOString(),
+                daysSinceContact: daysSince,
+                previousAttempts: 1,
+                status: lead.status || "contacted",
+              };
+            })
+            .filter((l: RetargetLead) => l.phone && l.daysSinceContact >= 3); // 3+ days without response
+
+          setLeads(retargetLeads);
         }
+      } catch (error) {
+        console.error("Failed to fetch leads:", error);
+        toast.error("Failed to load leads");
+      } finally {
+        setLoading(false);
       }
-      if (filterReason !== "all" && lead.retargetReason !== filterReason) {
-        return false;
-      }
-      return true;
-    });
-  }, [leads, searchQuery, filterReason]);
+    }
 
-  // Stats
-  const stats = useMemo(
-    () => ({
-      total: leads.length,
-      noResponse: leads.filter((l) => l.retargetReason === "no_response")
-        .length,
-      wentCold: leads.filter((l) => l.retargetReason === "went_cold").length,
-      highConfidence: leads.filter(
-        (l) => getSabrinaRetargetSuggestion(l).confidence >= 70,
-      ).length,
-    }),
-    [leads],
-  );
+    fetchLeads();
+  }, [teamId]);
 
-  const handleRetarget = (lead: RetargetLead) => {
-    const suggestion = getCathyRetargetSuggestion(lead);
-    const message = suggestion.template.template
-      .replace(/{firstName}/g, lead.firstName || lead.name.split(" ")[0])
-      .replace(/{previousValueProp}/g, lead.previousValueProp || "info")
-      .replace(/{city}/g, lead.city || "your area")
-      .replace(/{industry}/g, "your industry")
-      .replace(/{randomDetail}/g, "works in real estate");
+  // Generate retarget message
+  const generateMessage = (lead: RetargetLead) => {
+    const firstName = lead.firstName || "there";
+    const days = lead.daysSinceContact;
 
-    setSelectedLead(lead);
-    setRetargetMessage(message);
-    setShowRetargetDialog(true);
-  };
-
-  const executeRetarget = () => {
-    if (selectedLead) {
-      setLeads((prev) =>
-        prev.map((l) =>
-          l.id === selectedLead.id
-            ? {
-                ...l,
-                status: "retargeting" as const,
-                previousAttempts: l.previousAttempts + 1,
-              }
-            : l,
-        ),
-      );
-      toast.success(`Retarget message sent to ${selectedLead.name}`, {
-        description: "Via SignalHouse",
-      });
-      setShowRetargetDialog(false);
+    if (days < 7) {
+      return `Hey ${firstName}! Just checking in - still interested in chatting? Let me know if now is a better time! - Cathy`;
+    } else if (days < 14) {
+      return `Hey ${firstName}, wanted to circle back! I know things get busy. If you're still interested, just reply and we can set up a quick call. - Cathy`;
+    } else {
+      return `Hey ${firstName}! It's been a while - just making sure my messages are getting through. If you're still interested, I'm here! - Cathy`;
     }
   };
 
-  if (isLoading) {
+  // Send retarget message via SignalHouse SMS
+  const handleSendRetarget = async () => {
+    if (!selectedLead || !message.trim()) {
+      toast.error("Select a lead and enter a message");
+      return;
+    }
+
+    setSending(true);
+    try {
+      const response = await fetch("/api/signalhouse/sms/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: selectedLead.phone,
+          message: message.trim(),
+          leadId: selectedLead.id,
+          worker: "cathy",
+          teamId,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success(`Retarget sent to ${selectedLead.firstName || selectedLead.phone}`);
+        setLeads(prev => prev.filter(l => l.id !== selectedLead.id));
+        setSelectedLead(null);
+        setMessage("");
+      } else {
+        toast.error(data.error || "Failed to send SMS");
+      }
+    } catch (error) {
+      console.error("Send error:", error);
+      toast.error("Failed to send retarget");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleSelectLead = (lead: RetargetLead) => {
+    setSelectedLead(lead);
+    setMessage(generateMessage(lead));
+  };
+
+  const handleSkip = () => {
+    if (selectedLead) {
+      setLeads(prev => prev.filter(l => l.id !== selectedLead.id));
+      setSelectedLead(null);
+      setMessage("");
+      toast.info("Lead skipped");
+    }
+  };
+
+  if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
-          <p className="text-muted-foreground">Loading Retarget Queue...</p>
-        </div>
+        <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="h-screen flex flex-col bg-background">
+    <div className="p-6 max-w-6xl mx-auto">
       {/* Header */}
-      <div className="border-b p-4">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <RefreshCw className="h-6 w-6 text-purple-500" />
-              Retarget Workspace
-              <Badge
-                variant="outline"
-                className="ml-2 bg-purple-50 text-purple-700"
-              >
-                CATHY
-              </Badge>
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Re-engage cold leads with AI-powered strategies
-            </p>
-          </div>
-        </div>
-
-        {/* Stats */}
-        <div className="flex items-center gap-4 mb-4">
-          <Badge variant="outline" className="bg-gray-50">
-            📋 Total: {stats.total}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold flex items-center gap-2">
+          <RefreshCw className="h-6 w-6 text-purple-500" />
+          Retarget Workspace
+          <Badge variant="outline" className="ml-2 text-purple-600 border-purple-300">
+            CATHY
           </Badge>
-          <Badge variant="outline" className="bg-gray-100">
-            😴 No Response: {stats.noResponse}
-          </Badge>
-          <Badge variant="outline" className="bg-blue-50 text-blue-700">
-            ❄️ Went Cold: {stats.wentCold}
-          </Badge>
-          <Badge variant="outline" className="bg-green-50 text-green-700">
-            🎯 High Confidence: {stats.highConfidence}
-          </Badge>
-        </div>
-
-        {/* Filters */}
-        <div className="flex items-center gap-4">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search leads..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-
-          <Select value={filterReason} onValueChange={setFilterReason}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Filter by reason" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Reasons</SelectItem>
-              <SelectItem value="no_response">No Response</SelectItem>
-              <SelectItem value="went_cold">Went Cold</SelectItem>
-              <SelectItem value="bounced">Bounced</SelectItem>
-              <SelectItem value="paused">Paused</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <div className="flex-1" />
-
-          {selectedLeads.size > 0 && (
-            <div className="flex items-center gap-2">
-              <Badge>{selectedLeads.size} selected</Badge>
-              <Button size="sm">
-                <RefreshCw className="h-4 w-4 mr-1" />
-                Bulk Retarget
-              </Button>
-            </div>
-          )}
-        </div>
+        </h1>
+        <p className="text-muted-foreground">
+          Re-engage leads who haven't responded • {leads.length} leads
+        </p>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-auto p-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredLeads.map((lead) => (
-            <RetargetLeadCard
-              key={lead.id}
-              lead={lead}
-              isSelected={selectedLeads.has(lead.id)}
-              onSelect={() => {
-                setSelectedLeads((prev) => {
-                  const next = new Set(prev);
-                  if (next.has(lead.id)) next.delete(lead.id);
-                  else next.add(lead.id);
-                  return next;
-                });
-              }}
-              onRetarget={() => handleRetarget(lead)}
-              onRemove={() => {
-                setLeads((prev) => prev.filter((l) => l.id !== lead.id));
-                toast.success("Lead removed from retarget queue");
-              }}
-            />
-          ))}
+      {leads.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <CheckCircle2 className="h-12 w-12 mx-auto mb-4 text-green-500" />
+            <h3 className="text-lg font-medium">No leads to retarget</h3>
+            <p className="text-muted-foreground">All leads have been contacted recently.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Lead List */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Leads to Retarget</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 max-h-[500px] overflow-y-auto">
+              {leads.map((lead) => (
+                <div
+                  key={lead.id}
+                  className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                    selectedLead?.id === lead.id
+                      ? "border-purple-500 bg-purple-50 dark:bg-purple-950/20"
+                      : "hover:border-purple-300"
+                  }`}
+                  onClick={() => handleSelectLead(lead)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">
+                        {lead.firstName} {lead.lastName}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {lead.phone}
+                      </p>
+                    </div>
+                    <Badge variant={lead.daysSinceContact > 7 ? "destructive" : "outline"}>
+                      {lead.daysSinceContact}d ago
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          {/* Message Composer */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">
+                {selectedLead ? `Retarget ${selectedLead.firstName || "Lead"}` : "Select a Lead"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {selectedLead ? (
+                <div className="space-y-4">
+                  {/* Lead Info */}
+                  <div className="p-3 bg-muted rounded-lg">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Phone className="h-4 w-4" />
+                      <span>{selectedLead.phone}</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Last contact: {selectedLead.daysSinceContact} days ago
+                    </p>
+                  </div>
+
+                  {/* Message Input */}
+                  <Textarea
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    placeholder="Enter your retarget message..."
+                    rows={4}
+                  />
+
+                  {/* Actions */}
+                  <div className="flex gap-2">
+                    <Button
+                      className="flex-1 bg-purple-600 hover:bg-purple-700"
+                      onClick={handleSendRetarget}
+                      disabled={sending || !message.trim()}
+                    >
+                      {sending ? (
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4 mr-2" />
+                      )}
+                      Send Retarget
+                    </Button>
+                    <Button variant="outline" onClick={handleSkip}>
+                      Skip
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>Click on a lead to compose a retarget message</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
-      </div>
-
-      {/* Retarget Dialog */}
-      <Dialog open={showRetargetDialog} onOpenChange={setShowRetargetDialog}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <RefreshCw className="h-5 w-5 text-purple-500" />
-              Retarget: {selectedLead?.name}
-            </DialogTitle>
-            <DialogDescription>
-              {selectedLead?.previousAttempts} previous attempts • Last contact{" "}
-              {selectedLead?.daysSinceContact} days ago
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Retarget Message</Label>
-              <Textarea
-                value={retargetMessage}
-                onChange={(e) => setRetargetMessage(e.target.value)}
-                rows={4}
-              />
-            </div>
-
-            {selectedLead && (
-              <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
-                <p className="text-sm font-medium text-purple-700">
-                  CATHY's Strategy:
-                </p>
-                <p className="text-sm text-purple-600">
-                  {getSabrinaRetargetSuggestion(selectedLead).reasoning}
-                </p>
-              </div>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowRetargetDialog(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={executeRetarget}
-              className="bg-purple-600 hover:bg-purple-700"
-            >
-              <Send className="h-4 w-4 mr-1" />
-              Send Retarget
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      )}
     </div>
   );
 }
