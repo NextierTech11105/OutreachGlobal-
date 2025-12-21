@@ -1,2 +1,5 @@
 .vercel
 .env*.local
+
+# Ignore dist folders in src
+src/**/dist/

@@ -1778,7 +1778,9 @@ export const dialerContacts = pgTable(
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => ({
-    powerDialerIdIdx: index("dialer_contacts_power_dialer_id_idx").on(table.powerDialerId),
+    powerDialerIdIdx: index("dialer_contacts_power_dialer_id_idx").on(
+      table.powerDialerId,
+    ),
     statusIdx: index("dialer_contacts_status_idx").on(table.status),
   }),
 );
@@ -1808,8 +1810,12 @@ export const callHistories = pgTable(
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => ({
-    powerDialerIdIdx: index("call_histories_power_dialer_id_idx").on(table.powerDialerId),
-    dialerContactIdIdx: index("call_histories_dialer_contact_id_idx").on(table.dialerContactId),
+    powerDialerIdIdx: index("call_histories_power_dialer_id_idx").on(
+      table.powerDialerId,
+    ),
+    dialerContactIdIdx: index("call_histories_dialer_contact_id_idx").on(
+      table.dialerContactId,
+    ),
   }),
 );
 
