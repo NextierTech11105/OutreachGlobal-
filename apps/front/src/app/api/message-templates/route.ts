@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     console.error("Get message templates error:", error);
     return NextResponse.json(
       { error: "Failed to get message templates", details: String(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -39,12 +39,12 @@ export async function POST(request: NextRequest) {
     if (!teamId || !name || !content) {
       return NextResponse.json(
         { error: "teamId, name, and content are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const id = `tmpl_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-    
+
     const [newTemplate] = await db
       .insert(messageTemplates)
       .values({
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
     console.error("Create message template error:", error);
     return NextResponse.json(
       { error: "Failed to create message template", details: String(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

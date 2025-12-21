@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { powerDialers, dialerContacts } from "@/lib/db/schema";
+import { dialerSessions, leads } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 
 const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
 const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
@@ -18,32 +19,36 @@ export async function GET(request: NextRequest) {
     if (dialerId) {
       const [dialer] = await db
         .select()
-        .from(powerDialers)
-        .where(eq(powerDialers.id, dialerId));
+        .from(dialerSessions)
+        .where(eq(dialerSessions.id, dialerId));
 
       if (!dialer) {
-        return NextResponse.json({ error: "Dialer not found" }, { status: 404 });
+        return NextResponse.json(
+          { error: "Dialer not found" },
+          { status: 404 },
+        );
       }
 
-      const contacts = await db
+      // Get leads that are in this session
+      const sessionLeads = await db
         .select()
-        .from(dialerContacts)
-        .where(eq(dialerContacts.dialerId, dialerId));
+        .from(leads)
+        .where(eq(leads.dialerSessionId, dialerId));
 
       return NextResponse.json({
         configured,
         dialer,
-        contacts,
-        contactCount: contacts.length,
+        contacts: sessionLeads,
+        contactCount: sessionLeads.length,
       });
     }
 
     if (teamId) {
       const dialers = await db
         .select()
-        .from(powerDialers)
-        .where(eq(powerDialers.teamId, teamId))
-        .orderBy(desc(powerDialers.createdAt));
+        .from(dialerSessions)
+        .where(eq(dialerSessions.teamId, teamId))
+        .orderBy(desc(dialerSessions.createdAt));
 
       return NextResponse.json({
         configured,
@@ -60,7 +65,7 @@ export async function GET(request: NextRequest) {
     console.error("Get dialer error:", error);
     return NextResponse.json(
       { error: "Failed to get dialer data", details: String(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -73,7 +78,7 @@ export async function POST(request: NextRequest) {
     if (!teamId || !name) {
       return NextResponse.json(
         { error: "teamId and name are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -110,7 +115,7 @@ export async function POST(request: NextRequest) {
     console.error("Create dialer error:", error);
     return NextResponse.json(
       { error: "Failed to create dialer", details: String(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -1702,3 +1702,141 @@ export const dataSchemas = pgTable(
 // Type exports
 export type DataSchema = typeof dataSchemas.$inferSelect;
 export type NewDataSchema = typeof dataSchemas.$inferInsert;
+
+// ============================================================
+// CAMPAIGNS - Marketing/outreach campaigns
+// See: apps/api/src/database/schema/campaigns.schema.ts
+// ============================================================
+
+export const campaigns = pgTable(
+  "campaigns",
+  {
+    id: text("id").primaryKey(),
+    teamId: text("team_id").notNull(),
+    sdrId: text("sdr_id"),
+    name: text("name").notNull(),
+    description: text("description"),
+    targetMethod: text("target_method").notNull().default("SCORE_BASED"),
+    minScore: integer("min_score").notNull(),
+    maxScore: integer("max_score").notNull(),
+    location: jsonb("location"),
+    status: text("status").notNull().default("DRAFT"),
+    estimatedLeadsCount: integer("estimated_leads_count").notNull().default(0),
+    startsAt: timestamp("starts_at").notNull(),
+    endsAt: timestamp("ends_at"),
+    pausedAt: timestamp("paused_at"),
+    resumedAt: timestamp("resumed_at"),
+    metadata: jsonb("metadata"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    teamIdIdx: index("campaigns_team_id_idx").on(table.teamId),
+    statusIdx: index("campaigns_status_idx").on(table.status),
+  }),
+);
+
+export type Campaign = typeof campaigns.$inferSelect;
+export type NewCampaign = typeof campaigns.$inferInsert;
+
+// ============================================================
+// POWER DIALERS - Dialing sessions
+// See: apps/api/src/database/schema/power-dialers.schema.ts
+// ============================================================
+
+export const powerDialers = pgTable(
+  "power_dialers",
+  {
+    id: text("id").primaryKey(),
+    teamId: text("team_id").notNull(),
+    memberId: text("member_id"),
+    title: text("title").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    teamIdIdx: index("power_dialers_team_id_idx").on(table.teamId),
+  }),
+);
+
+export type PowerDialer = typeof powerDialers.$inferSelect;
+export type NewPowerDialer = typeof powerDialers.$inferInsert;
+
+// ============================================================
+// DIALER CONTACTS - Contacts queued in a power dialer session
+// ============================================================
+
+export const dialerContacts = pgTable(
+  "dialer_contacts",
+  {
+    id: text("id").primaryKey(),
+    powerDialerId: text("power_dialer_id").notNull(),
+    leadId: text("lead_id"),
+    position: integer("position").notNull(),
+    status: text("status").notNull().default("PENDING"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    powerDialerIdIdx: index("dialer_contacts_power_dialer_id_idx").on(table.powerDialerId),
+    statusIdx: index("dialer_contacts_status_idx").on(table.status),
+  }),
+);
+
+export type DialerContact = typeof dialerContacts.$inferSelect;
+export type NewDialerContact = typeof dialerContacts.$inferInsert;
+
+// ============================================================
+// CALL HISTORIES - Records of calls made
+// ============================================================
+
+export const callHistories = pgTable(
+  "call_histories",
+  {
+    id: text("id").primaryKey(),
+    dialerContactId: text("dialer_contact_id").notNull(),
+    powerDialerId: text("power_dialer_id").notNull(),
+    sid: text("sid"),
+    dialerMode: text("dialer_mode").notNull(),
+    teamMemberId: text("team_member_id"),
+    aiSdrAvatarId: text("ai_sdr_avatar_id"),
+    duration: integer("duration").notNull().default(0),
+    disposition: text("disposition"),
+    notes: text("notes"),
+    sentiment: jsonb("sentiment"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    powerDialerIdIdx: index("call_histories_power_dialer_id_idx").on(table.powerDialerId),
+    dialerContactIdIdx: index("call_histories_dialer_contact_id_idx").on(table.dialerContactId),
+  }),
+);
+
+export type CallHistory = typeof callHistories.$inferSelect;
+export type NewCallHistory = typeof callHistories.$inferInsert;
+
+// ============================================================
+// MESSAGE TEMPLATES - Reusable message templates
+// See: apps/api/src/database/schema/message-templates.schema.ts
+// ============================================================
+
+export const messageTemplates = pgTable(
+  "message_templates",
+  {
+    id: text("id").primaryKey(),
+    teamId: text("team_id").notNull(),
+    type: text("type").notNull(),
+    name: text("name").notNull(),
+    data: jsonb("data").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    teamIdIdx: index("message_templates_team_id_idx").on(table.teamId),
+    typeIdx: index("message_templates_type_idx").on(table.type),
+  }),
+);
+
+export type MessageTemplate = typeof messageTemplates.$inferSelect;
+export type NewMessageTemplate = typeof messageTemplates.$inferInsert;

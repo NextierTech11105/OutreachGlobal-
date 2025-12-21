@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("[Twilio Webhook] Error:", error);
-    
+
     // Return valid TwiML even on error
     const errorTwiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
@@ -73,6 +73,8 @@ export async function GET() {
       voice: "POST /api/webhook/twilio",
       sms: "POST /api/webhook/sms/inbound",
     },
-    configured: !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN),
+    configured: !!(
+      process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN
+    ),
   });
 }

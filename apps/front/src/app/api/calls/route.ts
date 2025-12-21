@@ -15,7 +15,10 @@ export async function GET(request: NextRequest) {
   try {
     const configured = !!(TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN);
 
-    let query = db.select().from(callHistories).orderBy(desc(callHistories.createdAt));
+    const query = db
+      .select()
+      .from(callHistories)
+      .orderBy(desc(callHistories.createdAt));
 
     if (teamId) {
       const calls = await db
@@ -74,7 +77,7 @@ export async function GET(request: NextRequest) {
     console.error("Get calls error:", error);
     return NextResponse.json(
       { error: "Failed to get calls", details: String(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -84,7 +87,7 @@ export async function POST(request: NextRequest) {
     if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) {
       return NextResponse.json(
         { error: "Twilio not configured" },
-        { status: 503 }
+        { status: 503 },
       );
     }
 
@@ -94,17 +97,20 @@ export async function POST(request: NextRequest) {
     if (!to) {
       return NextResponse.json(
         { error: "to phone number is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Initiate call via Twilio
     const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Calls.json`;
-    
+
     const formData = new URLSearchParams();
     formData.append("To", to);
     formData.append("From", from || process.env.TWILIO_PHONE_NUMBER || "");
-    formData.append("Url", `${process.env.NEXT_PUBLIC_APP_URL || "https://monkfish-app-mb7h3.ondigitalocean.app"}/api/twilio/twiml`);
+    formData.append(
+      "Url",
+      `${process.env.NEXT_PUBLIC_APP_URL || "https://monkfish-app-mb7h3.ondigitalocean.app"}/api/twilio/twiml`,
+    );
 
     const twilioResponse = await fetch(twilioUrl, {
       method: "POST",
@@ -120,13 +126,13 @@ export async function POST(request: NextRequest) {
     if (!twilioResponse.ok) {
       return NextResponse.json(
         { error: "Twilio call failed", details: twilioData },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
     // Log the call
     const callId = `call_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-    
+
     await db.insert(callHistories).values({
       id: callId,
       teamId: teamId || "",
@@ -151,7 +157,7 @@ export async function POST(request: NextRequest) {
     console.error("Initiate call error:", error);
     return NextResponse.json(
       { error: "Failed to initiate call", details: String(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

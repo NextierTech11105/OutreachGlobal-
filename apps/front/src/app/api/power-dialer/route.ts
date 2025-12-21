@@ -22,7 +22,10 @@ export async function GET(request: NextRequest) {
         .where(eq(powerDialers.id, id));
 
       if (!dialer) {
-        return NextResponse.json({ error: "Power dialer not found" }, { status: 404 });
+        return NextResponse.json(
+          { error: "Power dialer not found" },
+          { status: 404 },
+        );
       }
 
       const contacts = await db
@@ -82,7 +85,7 @@ export async function GET(request: NextRequest) {
     console.error("Power dialer error:", error);
     return NextResponse.json(
       { error: "Failed to get power dialer data", details: String(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -95,7 +98,7 @@ export async function POST(request: NextRequest) {
     if (!teamId || !name) {
       return NextResponse.json(
         { error: "teamId and name are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -118,7 +121,7 @@ export async function POST(request: NextRequest) {
     console.error("Create power dialer error:", error);
     return NextResponse.json(
       { error: "Failed to create power dialer", details: String(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

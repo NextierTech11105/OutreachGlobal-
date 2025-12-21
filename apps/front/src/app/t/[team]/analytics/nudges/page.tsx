@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   MessageSquare,
   TrendingUp,
@@ -12,7 +12,7 @@ import {
   XCircle,
   RefreshCw,
   Calendar,
-} from 'lucide-react';
+} from "lucide-react";
 
 interface NudgeStats {
   totalSent: number;
@@ -33,7 +33,7 @@ export default function NudgeAnalyticsPage() {
     avgResponseTime: 0,
   });
   const [loading, setLoading] = useState(true);
-  const [dateRange, setDateRange] = useState('7d');
+  const [dateRange, setDateRange] = useState("7d");
 
   useEffect(() => {
     async function loadStats() {
@@ -52,7 +52,7 @@ export default function NudgeAnalyticsPage() {
           });
         }
       } catch (err) {
-        console.error('Failed to load nudge stats:', err);
+        console.error("Failed to load nudge stats:", err);
       } finally {
         setLoading(false);
       }
@@ -60,10 +60,22 @@ export default function NudgeAnalyticsPage() {
     loadStats();
   }, [dateRange]);
 
-  const deliveryRate = stats.totalSent > 0 ? ((stats.delivered / stats.totalSent) * 100).toFixed(1) : '0';
-  const openRate = stats.delivered > 0 ? ((stats.opened / stats.delivered) * 100).toFixed(1) : '0';
-  const responseRate = stats.opened > 0 ? ((stats.responded / stats.opened) * 100).toFixed(1) : '0';
-  const conversionRate = stats.responded > 0 ? ((stats.converted / stats.responded) * 100).toFixed(1) : '0';
+  const deliveryRate =
+    stats.totalSent > 0
+      ? ((stats.delivered / stats.totalSent) * 100).toFixed(1)
+      : "0";
+  const openRate =
+    stats.delivered > 0
+      ? ((stats.opened / stats.delivered) * 100).toFixed(1)
+      : "0";
+  const responseRate =
+    stats.opened > 0
+      ? ((stats.responded / stats.opened) * 100).toFixed(1)
+      : "0";
+  const conversionRate =
+    stats.responded > 0
+      ? ((stats.converted / stats.responded) * 100).toFixed(1)
+      : "0";
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -91,7 +103,7 @@ export default function NudgeAnalyticsPage() {
             onClick={() => setDateRange(dateRange)}
             disabled={loading}
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
           </Button>
         </div>
       </div>
@@ -100,12 +112,14 @@ export default function NudgeAnalyticsPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Nudges Sent</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total Nudges Sent
+            </CardTitle>
             <MessageSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {loading ? '...' : (stats.totalSent ?? 0).toLocaleString()}
+              {loading ? "..." : (stats.totalSent ?? 0).toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground">
               Follow-up messages sent by CATHY
@@ -120,7 +134,7 @@ export default function NudgeAnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {loading ? '...' : (stats.delivered ?? 0).toLocaleString()}
+              {loading ? "..." : (stats.delivered ?? 0).toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground">
               {deliveryRate}% delivery rate
@@ -135,7 +149,7 @@ export default function NudgeAnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {loading ? '...' : (stats.responded ?? 0).toLocaleString()}
+              {loading ? "..." : (stats.responded ?? 0).toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground">
               {responseRate}% response rate
@@ -150,7 +164,7 @@ export default function NudgeAnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {loading ? '...' : (stats.converted ?? 0).toLocaleString()}
+              {loading ? "..." : (stats.converted ?? 0).toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground">
               {conversionRate}% conversion rate
@@ -171,14 +185,16 @@ export default function NudgeAnalyticsPage() {
               <div className="flex-1 bg-muted rounded-full h-8 overflow-hidden">
                 <div
                   className="bg-blue-500 h-full flex items-center justify-end pr-2 text-white text-sm font-medium"
-                  style={{ width: '100%' }}
+                  style={{ width: "100%" }}
                 >
                   {(stats.totalSent ?? 0).toLocaleString()}
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <div className="w-24 text-sm text-muted-foreground">Delivered</div>
+              <div className="w-24 text-sm text-muted-foreground">
+                Delivered
+              </div>
               <div className="flex-1 bg-muted rounded-full h-8 overflow-hidden">
                 <div
                   className="bg-green-500 h-full flex items-center justify-end pr-2 text-white text-sm font-medium"
@@ -200,7 +216,9 @@ export default function NudgeAnalyticsPage() {
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <div className="w-24 text-sm text-muted-foreground">Responded</div>
+              <div className="w-24 text-sm text-muted-foreground">
+                Responded
+              </div>
               <div className="flex-1 bg-muted rounded-full h-8 overflow-hidden">
                 <div
                   className="bg-purple-500 h-full flex items-center justify-end pr-2 text-white text-sm font-medium"
@@ -211,7 +229,9 @@ export default function NudgeAnalyticsPage() {
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <div className="w-24 text-sm text-muted-foreground">Converted</div>
+              <div className="w-24 text-sm text-muted-foreground">
+                Converted
+              </div>
               <div className="flex-1 bg-muted rounded-full h-8 overflow-hidden">
                 <div
                   className="bg-pink-500 h-full flex items-center justify-end pr-2 text-white text-sm font-medium"
@@ -235,7 +255,7 @@ export default function NudgeAnalyticsPage() {
         </CardHeader>
         <CardContent>
           <div className="text-3xl font-bold">
-            {loading ? '...' : `${stats.avgResponseTime ?? 0} min`}
+            {loading ? "..." : `${stats.avgResponseTime ?? 0} min`}
           </div>
           <p className="text-sm text-muted-foreground mt-1">
             Time between nudge sent and lead response

@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   Calendar,
   TrendingUp,
@@ -11,7 +11,7 @@ import {
   XCircle,
   RefreshCw,
   Users,
-} from 'lucide-react';
+} from "lucide-react";
 
 interface BookingStats {
   totalBooked: number;
@@ -32,7 +32,7 @@ export default function BookingAnalyticsPage() {
     avgBookingValue: 0,
   });
   const [loading, setLoading] = useState(true);
-  const [dateRange, setDateRange] = useState('7d');
+  const [dateRange, setDateRange] = useState("7d");
 
   useEffect(() => {
     async function loadStats() {
@@ -51,7 +51,7 @@ export default function BookingAnalyticsPage() {
           });
         }
       } catch (err) {
-        console.error('Failed to load booking stats:', err);
+        console.error("Failed to load booking stats:", err);
       } finally {
         setLoading(false);
       }
@@ -59,9 +59,18 @@ export default function BookingAnalyticsPage() {
     loadStats();
   }, [dateRange]);
 
-  const confirmRate = stats.totalBooked > 0 ? ((stats.confirmed / stats.totalBooked) * 100).toFixed(1) : '0';
-  const showRate = stats.confirmed > 0 ? (((stats.confirmed - stats.noShow) / stats.confirmed) * 100).toFixed(1) : '0';
-  const completionRate = stats.confirmed > 0 ? ((stats.completed / stats.confirmed) * 100).toFixed(1) : '0';
+  const confirmRate =
+    stats.totalBooked > 0
+      ? ((stats.confirmed / stats.totalBooked) * 100).toFixed(1)
+      : "0";
+  const showRate =
+    stats.confirmed > 0
+      ? (((stats.confirmed - stats.noShow) / stats.confirmed) * 100).toFixed(1)
+      : "0";
+  const completionRate =
+    stats.confirmed > 0
+      ? ((stats.completed / stats.confirmed) * 100).toFixed(1)
+      : "0";
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -89,7 +98,7 @@ export default function BookingAnalyticsPage() {
             onClick={() => setDateRange(dateRange)}
             disabled={loading}
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
           </Button>
         </div>
       </div>
@@ -98,12 +107,14 @@ export default function BookingAnalyticsPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Bookings</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total Bookings
+            </CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {loading ? '...' : (stats.totalBooked ?? 0).toLocaleString()}
+              {loading ? "..." : (stats.totalBooked ?? 0).toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground">
               Appointments booked by SABRINA
@@ -118,7 +129,7 @@ export default function BookingAnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {loading ? '...' : (stats.confirmed ?? 0).toLocaleString()}
+              {loading ? "..." : (stats.confirmed ?? 0).toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground">
               {confirmRate}% confirmation rate
@@ -133,7 +144,7 @@ export default function BookingAnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {loading ? '...' : (stats.completed ?? 0).toLocaleString()}
+              {loading ? "..." : (stats.completed ?? 0).toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground">
               {completionRate}% completion rate
@@ -148,7 +159,7 @@ export default function BookingAnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {loading ? '...' : (stats.noShow ?? 0).toLocaleString()}
+              {loading ? "..." : (stats.noShow ?? 0).toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground">
               {showRate}% show rate
@@ -169,14 +180,16 @@ export default function BookingAnalyticsPage() {
               <div className="flex-1 bg-muted rounded-full h-8 overflow-hidden">
                 <div
                   className="bg-blue-500 h-full flex items-center justify-end pr-2 text-white text-sm font-medium"
-                  style={{ width: '100%' }}
+                  style={{ width: "100%" }}
                 >
                   {(stats.totalBooked ?? 0).toLocaleString()}
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <div className="w-24 text-sm text-muted-foreground">Confirmed</div>
+              <div className="w-24 text-sm text-muted-foreground">
+                Confirmed
+              </div>
               <div className="flex-1 bg-muted rounded-full h-8 overflow-hidden">
                 <div
                   className="bg-green-500 h-full flex items-center justify-end pr-2 text-white text-sm font-medium"
@@ -187,18 +200,24 @@ export default function BookingAnalyticsPage() {
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <div className="w-24 text-sm text-muted-foreground">Showed Up</div>
+              <div className="w-24 text-sm text-muted-foreground">
+                Showed Up
+              </div>
               <div className="flex-1 bg-muted rounded-full h-8 overflow-hidden">
                 <div
                   className="bg-yellow-500 h-full flex items-center justify-end pr-2 text-white text-sm font-medium"
                   style={{ width: `${showRate}%` }}
                 >
-                  {((stats.confirmed ?? 0) - (stats.noShow ?? 0)).toLocaleString()}
+                  {(
+                    (stats.confirmed ?? 0) - (stats.noShow ?? 0)
+                  ).toLocaleString()}
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <div className="w-24 text-sm text-muted-foreground">Completed</div>
+              <div className="w-24 text-sm text-muted-foreground">
+                Completed
+              </div>
               <div className="flex-1 bg-muted rounded-full h-8 overflow-hidden">
                 <div
                   className="bg-purple-500 h-full flex items-center justify-end pr-2 text-white text-sm font-medium"
@@ -222,7 +241,9 @@ export default function BookingAnalyticsPage() {
         </CardHeader>
         <CardContent>
           <div className="text-3xl font-bold">
-            {loading ? '...' : `$${(stats.avgBookingValue ?? 0).toLocaleString()}`}
+            {loading
+              ? "..."
+              : `$${(stats.avgBookingValue ?? 0).toLocaleString()}`}
           </div>
           <p className="text-sm text-muted-foreground mt-1">
             Average deal value from SABRINA bookings

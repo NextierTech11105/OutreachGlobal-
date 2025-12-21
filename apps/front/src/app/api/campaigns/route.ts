@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     console.error("Get campaigns error:", error);
     return NextResponse.json(
       { error: "Failed to get campaigns", details: String(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -39,12 +39,12 @@ export async function POST(request: NextRequest) {
     if (!teamId || !name) {
       return NextResponse.json(
         { error: "teamId and name are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const id = `camp_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-    
+
     const [newCampaign] = await db
       .insert(campaigns)
       .values({
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
     console.error("Create campaign error:", error);
     return NextResponse.json(
       { error: "Failed to create campaign", details: String(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
