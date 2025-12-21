@@ -1,7 +1,11 @@
 import { Controller, Get, Post } from "@nestjs/common";
 import { InjectDB } from "@/database/decorators";
 import { DrizzleClient } from "@/database/types";
-import { teamsTable, teamMembersTable, usersTable } from "@/database/schema-alias";
+import {
+  teamsTable,
+  teamMembersTable,
+  usersTable,
+} from "@/database/schema-alias";
 import { eq, sql } from "drizzle-orm";
 import { slugify, TeamMemberRole, TeamMemberStatus } from "@nextier/common";
 
@@ -45,7 +49,8 @@ export class AppController {
 
   @Post("setupdb")
   async setupAdmin() {
-    const email = process.env.DEFAULT_ADMIN_EMAIL?.trim() || "admin@outreachglobal.io";
+    const email =
+      process.env.DEFAULT_ADMIN_EMAIL?.trim() || "admin@outreachglobal.io";
 
     // Find the user
     const user = await this.db.query.users.findFirst({
@@ -68,7 +73,10 @@ export class AppController {
     // Create team
     const now = new Date();
     const teamName = `${user.name || "Admin"}'s Team`;
-    const slug = slugify(teamName) + "-" + Math.random().toString(16).slice(2, 8).toLowerCase();
+    const slug =
+      slugify(teamName) +
+      "-" +
+      Math.random().toString(16).slice(2, 8).toLowerCase();
 
     const [team] = await this.db
       .insert(teamsTable)

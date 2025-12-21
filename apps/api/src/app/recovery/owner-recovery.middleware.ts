@@ -17,10 +17,17 @@ export class OwnerRecoveryMiddleware implements NestMiddleware {
 
   async use(req: FastifyRequest, _res: FastifyReply, next: () => void) {
     const expected = this.configService.get<string>("OWNER_RECOVERY_TOKEN");
-    const provided = normalizeHeader(req.headers["x-owner-recovery-token"] as any)?.trim();
+    const provided = normalizeHeader(
+      req.headers["x-owner-recovery-token"] as any,
+    )?.trim();
 
-    if (expected && provided && this.ownerRecoveryService.constantTimeEquals(provided, expected)) {
-      const context = await this.ownerRecoveryService.ensureOwnerAnchor("recovery-header");
+    if (
+      expected &&
+      provided &&
+      this.ownerRecoveryService.constantTimeEquals(provided, expected)
+    ) {
+      const context =
+        await this.ownerRecoveryService.ensureOwnerAnchor("recovery-header");
       if (context?.user) {
         req["user"] = context.user;
         req["tokenPayload"] = {

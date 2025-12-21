@@ -1,25 +1,80 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
- * NEXTIER AI DIGITAL WORKERS - UNIFIED CONFIGURATION
+ * NEXTIER AI DIGITAL WORKERS - DEAL ORIGINATION MACHINE
  * ═══════════════════════════════════════════════════════════════════════════════
  *
- * ARCHITECTURE:
+ * ROLE: Digital embodiment of human oversight teams - synergistic AI agents
+ * representing real people managing distinct operational departments.
+ * Human expertise × AI capability = Exponential effectiveness.
+ *
  * ┌─────────────────────────────────────────────────────────────────────────────┐
- * │                           AI WORKER LANES                                    │
+ * │                     DUAL-MODE OPERATIONAL ARCHITECTURE                       │
  * ├─────────────────────────────────────────────────────────────────────────────┤
- * │  LUCI (Data)      │  No Phone  │  Data Lake → Skip Trace → Lead ID         │
- * │  GIANNA (Outreach)│  Own Phone │  Initial SMS/Call + AI Inbound Response   │
- * │  CATHY (Nudging)  │  Own Phone │  Follow-ups/Nudges + AI Inbound Response  │
- * │  SABRINA (Booking)│  Own Phone │  Appointment Booking + Confirmations      │
+ * │                                                                              │
+ * │  MODE 1: ASSISTANT MODE (Sequential Outbound)                                │
+ * │  ─────────────────────────────────────────────                               │
+ * │  • One-to-one communication with granular control                            │
+ * │  • Individual calls, personalized SMS (not bulk broadcast)                   │
+ * │  • Sequential campaigns where each interaction gets full attention           │
+ * │                                                                              │
+ * │  MODE 2: INBOUND SMS RESPONSE MODE (Automated Inbound)                       │
+ * │  ─────────────────────────────────────────────────────                       │
+ * │  • Gianna's AI response management system                                    │
+ * │  • Contextual awareness + human-like interaction quality                     │
+ * │  • Processes and responds with appropriate tone/content                      │
+ * │                                                                              │
+ * │  WORKFLOW SYNCHRONIZATION:                                                   │
+ * │  Both modes operate INDEPENDENTLY yet SYNERGISTICALLY                        │
+ * │  → Outbound sequential + Inbound responses = Complete ecosystem              │
+ * │  → Separate workflow integrity + Personalized attention each interaction     │
+ * │                                                                              │
  * └─────────────────────────────────────────────────────────────────────────────┘
  *
+ * ┌─────────────────────────────────────────────────────────────────────────────┐
+ * │                        AI WORKER RESPONSIBILITIES                            │
+ * ├─────────────────────────────────────────────────────────────────────────────┤
+ * │  LUCI (Data)      │  No Phone  │  $1-10M exits │ Scans lists → Prep batches │
+ * │  GIANNA (Initial) │  Own Phone │  The Opener   │ SMS blast + Inbound AI     │
+ * │  CATHY (Nudge)    │  Own Phone │  The Nudger   │ Ghost revival + Follow-up  │
+ * │  SABRINA (Close)  │  Own Phone │  The Closer   │ AGGRESSIVE booking/remind  │
+ * └─────────────────────────────────────────────────────────────────────────────┘
+ *
+ * FUNNEL: Data → Outreach → Response → Conversation → Proposal → DEAL
+ *
+ * FLOW:
+ *   LUCI scans USBizData → Preps SMS batch → GIANNA sends initial blast
+ *   GIANNA handles inbound → Routes to SABRINA (interested) or CATHY (ghost)
+ *   CATHY nudges ghosts → Revives → Routes to SABRINA
+ *   SABRINA AGGRESSIVELY books + reminds → DEAL HANDOFF
+ *
  * CRITICAL RULES:
- * 1. Each worker has ISOLATED lane - no cross-contamination
- * 2. LUCI never touches phones - data scientist only
- * 3. GIANNA & CATHY have AI inbound response centers
- * 4. SABRINA handles booking confirmations only
- * 5. Phone numbers are mapped 1:1 to workers
+ * 1. LUCI = DATA COPILOT - fetches from internal lists, never touches phones
+ * 2. GIANNA = INITIAL MESSAGE + ALL INBOUND HANDLING (dual-mode)
+ * 3. CATHY = NUDGER - humor-based ghost revival
+ * 4. SABRINA = AGGRESSIVE CLOSER - gets appointments back no matter what
+ * 5. Each agent has ISOLATED phone lane - no cross-contamination
  */
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// OPERATIONAL MODES
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export type OperationalMode = "assistant" | "inbound-response";
+
+export interface DualModeConfig {
+  /** Sequential one-to-one outbound (calls, personalized SMS) */
+  assistantMode: {
+    enabled: boolean;
+    description: string;
+    capabilities: string[];
+  };
+  /** Automated inbound handling (AI response center) */
+  inboundResponseMode: {
+    enabled: boolean;
+    description: string;
+    capabilities: string[];
+  };
+}
 
 export type WorkerId = "luci" | "gianna" | "cathy" | "sabrina";
 
@@ -49,6 +104,9 @@ export interface WorkerConfig {
   /** Phone/SMS configuration */
   phone: WorkerPhoneConfig;
 
+  /** Dual-mode operation config (for agents with both outbound + inbound) */
+  dualMode?: DualModeConfig;
+
   /** Primary responsibilities */
   responsibilities: string[];
 
@@ -68,13 +126,17 @@ export interface WorkerConfig {
 // ═══════════════════════════════════════════════════════════════════════════════
 // LUCI - DATA COPILOT (NO PHONE - DATA ONLY)
 // ═══════════════════════════════════════════════════════════════════════════════
+// PERSONA: Asian female, data engineer, probability genius
+// FOCUS: $1-10M revenue business exits from USBizData internal lists
+// ROLE: Scans lists, sources best leads, triggers prep/preview/confirmation
+// ═══════════════════════════════════════════════════════════════════════════════
 
 export const LUCI_CONFIG: WorkerConfig = {
   id: "luci",
   name: "LUCI",
   domain: "data",
   description:
-    "Lead Understanding & Classification Intelligence - Data scientist that manages the lead pipeline from raw data to campaign-ready leads",
+    "Data Copilot & Probability Genius - Asian female data engineer who scans USBizData internal lists to source $1-10M revenue exit-friendly businesses, prepares campaign batches, and triggers SMS blasts and calendar calls",
 
   phone: {
     hasPhone: false,
@@ -83,36 +145,48 @@ export const LUCI_CONFIG: WorkerConfig = {
   },
 
   responsibilities: [
-    "Import and classify USBizData records",
-    "Execute skip trace enrichment (get mobiles, emails, socials)",
-    "Apollo enrichment on-demand for company intel",
-    "Cross-reference property ownership",
-    "Assign Lead IDs to enriched records",
-    "Score and prioritize leads",
+    // DATA SOURCING
+    "Scan USBizData internal lists for $1-10M revenue exit candidates",
+    "Apply probabilistic scoring to identify best targets",
+    "Execute skip trace enrichment (mobiles, emails, socials)",
+    "Cross-reference property ownership for multi-angle opportunities",
+    // CAMPAIGN PREP
+    "Source best initial SMS campaign leads from internal lists",
+    "Source best call leads for calendar view placement",
     "Batch leads into campaign context buckets (2,000 per category)",
-    "Push campaign-ready leads to worker queues",
+    "Assign unique Lead IDs to enriched records",
+    // TRIGGER & CONFIRM
+    "Trigger prep, preview, and confirmation of SMS blasts",
+    "Deliver focused campaign batches to each agent's queue",
+    "Track conversion probability at each funnel stage",
   ],
 
   triggers: [
     "Daily scheduled scan of data lake",
     "Manual scan request from admin",
-    "New CSV upload to data lake",
+    "New CSV upload to data lake (5 sectors)",
     "API call to /api/luci/scan",
+    "Batch processing request (250 per batch, 2000 max)",
   ],
 
   outputs: [
+    "SMS blast batches ready for GIANNA",
+    "Call lists ready for calendar placement",
     "Enriched lead records with Lead IDs",
-    "Campaign context buckets (initial, retarget, follow_up, etc.)",
-    "Lead scores with reasoning",
+    "Campaign context buckets (initial, retarget, nudge, book)",
+    "Probability scores with reasoning",
     "Skip trace results (phones, emails, addresses)",
   ],
 
   handoffTo: ["gianna", "cathy", "sabrina"],
-  receivesFrom: [], // LUCI is the source
+  receivesFrom: [], // LUCI is the source - fetches from internal lists
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// GIANNA - OUTREACH COPILOT (OWN PHONE + AI INBOUND RESPONSE CENTER)
+// GIANNA - INITIAL MESSAGE AGENT + INBOUND RESPONSE HANDLER
+// ═══════════════════════════════════════════════════════════════════════════════
+// ROLE: The Opener - sends initial SMS blasts, handles ALL inbound responses
+// PHONE: Own dedicated number for outbound + inbound AI response center
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export const GIANNA_CONFIG: WorkerConfig = {
@@ -120,39 +194,73 @@ export const GIANNA_CONFIG: WorkerConfig = {
   name: "GIANNA",
   domain: "outreach",
   description:
-    "The Opener - Initial outreach specialist with AI-powered inbound response center",
+    "Initial Message Agent & Inbound Response Handler - Sends first-touch SMS blasts and manages all inbound conversations with AI-powered response center",
 
   phone: {
     hasPhone: true,
     phoneEnvVar: "GIANNA_PHONE_NUMBER",
     subgroupEnvVar: "SIGNALHOUSE_GIANNA_SUBGROUP",
-    hasInboundResponseCenter: true, // AI responds to inbound messages
+    hasInboundResponseCenter: true, // AI responds to ALL inbound messages
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // DUAL-MODE OPERATION: Outbound + Inbound run SIMULTANEOUSLY
+  // ═══════════════════════════════════════════════════════════════════════════
+  dualMode: {
+    assistantMode: {
+      enabled: true,
+      description:
+        "Sequential one-to-one outbound communication with granular control",
+      capabilities: [
+        "Individual phone calls with full attention",
+        "Personalized SMS messages (not bulk broadcast)",
+        "Sequential call campaigns with customization per interaction",
+        "Granular control over each outbound touchpoint",
+      ],
+    },
+    inboundResponseMode: {
+      enabled: true,
+      description: "Gianna's AI response management system for incoming SMS",
+      capabilities: [
+        "Automated inbound SMS processing",
+        "Contextual awareness of lead history",
+        "Human-like interaction quality",
+        "2-bracket flow execution (email → content permission)",
+        "Real-time routing decisions (SABRINA vs CATHY)",
+      ],
+    },
   },
 
   responsibilities: [
-    "Send initial SMS outreach",
-    "Make initial phone calls",
-    "Respond to inbound SMS via AI response center",
-    "Capture email addresses (gateway to conversation)",
-    "Build initial rapport",
-    "Qualify interest level",
+    // INITIAL OUTREACH
+    "Execute SMS blasts from LUCI's prepared batches",
+    "Send initial opener messages (sector-specific templates)",
+    "Make initial phone calls from calendar queue",
+    // INBOUND HANDLING
+    "Handle ALL inbound SMS responses via AI response center",
+    "Capture email addresses (gateway to deeper conversation)",
+    "Execute 2-bracket response flow (email → content permission)",
+    "Build initial rapport and qualify interest level",
+    // ROUTING
     "Route interested leads to SABRINA for booking",
-    "Route non-responders to CATHY for nudging",
+    "Route non-responders (3+ days) to CATHY for nudging",
+    "Flag negative responses for DNC list",
   ],
 
   triggers: [
-    "LUCI pushes leads to 'initial' bucket",
-    "Campaign scheduled execution",
+    "LUCI pushes SMS batch to 'initial' queue",
+    "Scheduled campaign execution time",
     "Inbound SMS to GIANNA's phone number",
     "Inbound call to GIANNA's phone number",
   ],
 
   outputs: [
-    "Initial outreach sent",
+    "Initial SMS blasts sent",
+    "Inbound conversations handled",
     "Lead status updates (interested, not_interested, no_response)",
-    "Email captures",
-    "Qualified leads for SABRINA",
-    "Non-responders for CATHY",
+    "Email captures from 2-bracket flow",
+    "Qualified leads → SABRINA queue",
+    "Non-responders → CATHY queue",
   ],
 
   handoffTo: ["sabrina", "cathy"],
@@ -160,7 +268,11 @@ export const GIANNA_CONFIG: WorkerConfig = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// CATHY - NUDGING COPILOT (OWN PHONE + AI INBOUND RESPONSE CENTER)
+// CATHY - THE NUDGER (OWN PHONE + AI INBOUND RESPONSE CENTER)
+// ═══════════════════════════════════════════════════════════════════════════════
+// ROLE: Follow-up specialist - revives ghosts, re-engages non-responders
+// PHONE: Own dedicated number for nudge sequences
+// STYLE: Humor-based, pattern-interrupt, ghost revival specialist
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export const CATHY_CONFIG: WorkerConfig = {
@@ -168,43 +280,55 @@ export const CATHY_CONFIG: WorkerConfig = {
   name: "CATHY",
   domain: "nudging",
   description:
-    "The Nudger - Follow-up specialist with humor-based ghost revival and AI inbound response center",
+    "The Nudger - Follow-up specialist who revives ghost leads with humor and pattern-interrupts, keeps leads warm until they respond",
 
   phone: {
     hasPhone: true,
     phoneEnvVar: "CATHY_PHONE_NUMBER",
     subgroupEnvVar: "SIGNALHOUSE_CATHY_SUBGROUP",
-    hasInboundResponseCenter: true, // AI responds to inbound messages
+    hasInboundResponseCenter: true, // AI responds to nudge inbounds
   },
 
   responsibilities: [
-    "Send follow-up nudge messages",
-    "Revive ghost leads with humor",
-    "Respond to inbound SMS via AI response center",
-    "Re-engage non-responders",
-    "Keep leads warm",
-    "Route revived leads back to GIANNA or SABRINA",
+    // NUDGE SEQUENCES
+    "Send follow-up nudge messages (Day 3, 7, 14, 30)",
+    "Revive ghost leads with humor-based pattern interrupts",
+    "Re-engage non-responders from GIANNA's queue",
+    "Execute retarget campaigns for cold leads",
+    // INBOUND HANDLING
+    "Handle inbound responses to nudge messages",
+    "Keep leads warm with value-add content",
+    // ROUTING
+    "Route revived leads to SABRINA for immediate booking",
+    "Route re-engaged leads back to GIANNA if needs more qualification",
+    "Mark leads as 'max attempts' after nudge sequence complete",
   ],
 
   triggers: [
-    "GIANNA flags lead as non-responder",
-    "LUCI pushes leads to 'retarget' or 'nudger' bucket",
-    "Scheduled nudge timing (e.g., 3 days no response)",
+    "GIANNA flags lead as non-responder (3+ days)",
+    "LUCI pushes leads to 'retarget' or 'nudge' bucket",
+    "Scheduled nudge timing (Day 3, 7, 14, 30)",
     "Inbound SMS to CATHY's phone number",
   ],
 
   outputs: [
-    "Nudge messages sent",
-    "Revived leads (back in conversation)",
-    "Final disposition (max attempts reached)",
+    "Nudge sequences executed",
+    "Ghost leads revived",
+    "Revived leads → SABRINA queue (ready to book)",
+    "Re-engaged leads → GIANNA queue (needs qualification)",
+    "Max attempts reached → Archive",
   ],
 
-  handoffTo: ["gianna", "sabrina"],
+  handoffTo: ["sabrina", "gianna"],
   receivesFrom: ["luci", "gianna"],
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SABRINA - BOOKING COPILOT (OWN PHONE - CONFIRMATIONS ONLY)
+// SABRINA - THE AGGRESSIVE CLOSER + APPOINTMENT REMINDER
+// ═══════════════════════════════════════════════════════════════════════════════
+// ROLE: Appointment booking, reminders, and AGGRESSIVE follow-up to get meetings
+// PHONE: Own dedicated number for booking confirmations + aggressive reschedules
+// STYLE: Aggressive personality - gets appointments back on calendar no matter what
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export const SABRINA_CONFIG: WorkerConfig = {
@@ -212,39 +336,52 @@ export const SABRINA_CONFIG: WorkerConfig = {
   name: "SABRINA",
   domain: "booking",
   description:
-    "The Closer - Appointment booking specialist handling objections and scheduling",
+    "The Aggressive Closer - Appointment booking specialist with aggressive personality who gets meetings back on calendar, handles objections, and sends persistent reminders",
 
   phone: {
     hasPhone: true,
     phoneEnvVar: "SABRINA_PHONE_NUMBER",
     subgroupEnvVar: "SIGNALHOUSE_SABRINA_SUBGROUP",
-    hasInboundResponseCenter: false, // Confirmations only, not full AI responses
+    hasInboundResponseCenter: true, // AGGRESSIVE responses to get appointments
   },
 
   responsibilities: [
-    "Set appointments with qualified leads",
-    "Handle objections (agree, overcome, close)",
-    "Send appointment confirmations",
-    "Send appointment reminders",
-    "Reschedule requests",
-    "Pivot to 'strategy session' or 'ideas discussion'",
+    // APPOINTMENT BOOKING
+    "Set appointments with qualified leads (aggressive close)",
+    "Handle objections: AGREE → OVERCOME → CLOSE",
+    "Pivot objections to 'quick strategy call' or 'ideas discussion'",
+    // REMINDERS
+    "Send appointment confirmations (24hr, 2hr before)",
+    "Send aggressive follow-up if no-show or reschedule",
+    "Chase down cancellations to get back on calendar",
+    // AGGRESSIVE CLOSING
+    "Use urgency and scarcity to lock appointments",
+    "Suggest specific times (not 'when works for you')",
+    "Handle 'I need to think about it' with immediate callback offer",
+    "Escalate to personal call if text not working",
   ],
 
   triggers: [
     "GIANNA qualifies lead as interested",
     "CATHY revives lead ready for booking",
     "LUCI pushes leads to 'book_appointment' bucket",
-    "Lead requests callback or meeting",
+    "Appointment no-show detected",
+    "Appointment cancellation received",
+    "24hr reminder trigger",
+    "2hr reminder trigger",
   ],
 
   outputs: [
-    "Booked appointments",
-    "Appointment confirmations sent",
-    "Reminder sequences",
+    "Appointments BOOKED on calendar",
+    "Confirmation messages sent",
+    "Reminder sequences executed",
+    "No-shows chased down and rebooked",
+    "Cancellations recovered",
     "Objection handling logs",
+    "DEAL HANDOFF to human closer",
   ],
 
-  handoffTo: [], // SABRINA is the final step before human handoff
+  handoffTo: [], // SABRINA is the final step → DEAL
   receivesFrom: ["luci", "gianna", "cathy"],
 };
 

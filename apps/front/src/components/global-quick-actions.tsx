@@ -338,7 +338,10 @@ export function GlobalQuickActions() {
       </div>
 
       {/* SMS Campaign Dialog */}
-      <Dialog open={isSMSDialogOpen} onOpenChange={(open) => !open && closeSMSDialog()}>
+      <Dialog
+        open={isSMSDialogOpen}
+        onOpenChange={(open) => !open && closeSMSDialog()}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -532,7 +535,10 @@ export function GlobalQuickActions() {
       </Dialog>
 
       {/* Skip Trace Dialog */}
-      <Dialog open={isSkipTraceDialogOpen} onOpenChange={(open) => !open && closeSkipTraceDialog()}>
+      <Dialog
+        open={isSkipTraceDialogOpen}
+        onOpenChange={(open) => !open && closeSkipTraceDialog()}
+      >
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">

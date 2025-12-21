@@ -25,12 +25,22 @@ import {
   leadActivities,
   campaignQueue,
 } from "./schema/unified-lead-card.schema";
-import { personas, personasRef, personaMergeHistory } from "./schema/persona.schema";
+import {
+  personas,
+  personasRef,
+  personaMergeHistory,
+} from "./schema/persona.schema";
 import { personaPhones, personaPhonesRef } from "./schema/phone.schema";
 import { personaEmails, personaEmailsRef } from "./schema/email.schema";
 import { personaSocials, personaSocialsRef } from "./schema/social.schema";
-import { personaAddresses, personaAddressesRef } from "./schema/address-history.schema";
-import { personaDemographics, personaDemographicsRef } from "./schema/demographics.schema";
+import {
+  personaAddresses,
+  personaAddressesRef,
+} from "./schema/address-history.schema";
+import {
+  personaDemographics,
+  personaDemographicsRef,
+} from "./schema/demographics.schema";
 import { teamSettings } from "./schema/team-settings.schema";
 import { messageTemplates } from "./schema/message-templates.schema";
 import {

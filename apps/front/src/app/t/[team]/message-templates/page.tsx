@@ -1358,7 +1358,11 @@ export default function MessageTemplatesPage() {
                         <div className="flex items-center gap-2 mb-2">
                           <span className="font-medium">{template.name}</span>
                           {template.tags.map((tag) => (
-                            <Badge key={tag} variant="outline" className="text-xs">
+                            <Badge
+                              key={tag}
+                              variant="outline"
+                              className="text-xs"
+                            >
                               {tag}
                             </Badge>
                           ))}
@@ -1370,7 +1374,9 @@ export default function MessageTemplatesPage() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleCopy(template.message, template.id)}
+                        onClick={() =>
+                          handleCopy(template.message, template.id)
+                        }
                       >
                         {copiedId === template.id ? (
                           <Check className="w-4 h-4 text-green-500" />
@@ -1412,7 +1418,11 @@ export default function MessageTemplatesPage() {
                         <div className="flex items-center gap-2 mb-2">
                           <span className="font-medium">{template.name}</span>
                           {template.tags.map((tag) => (
-                            <Badge key={tag} variant="outline" className="text-xs">
+                            <Badge
+                              key={tag}
+                              variant="outline"
+                              className="text-xs"
+                            >
                               {tag}
                             </Badge>
                           ))}
@@ -1424,7 +1434,9 @@ export default function MessageTemplatesPage() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleCopy(template.message, template.id)}
+                        onClick={() =>
+                          handleCopy(template.message, template.id)
+                        }
                       >
                         {copiedId === template.id ? (
                           <Check className="w-4 h-4 text-green-500" />
@@ -1466,7 +1478,11 @@ export default function MessageTemplatesPage() {
                         <div className="flex items-center gap-2 mb-2">
                           <span className="font-medium">{template.name}</span>
                           {template.tags.map((tag) => (
-                            <Badge key={tag} variant="outline" className="text-xs">
+                            <Badge
+                              key={tag}
+                              variant="outline"
+                              className="text-xs"
+                            >
                               {tag}
                             </Badge>
                           ))}
@@ -1478,7 +1494,9 @@ export default function MessageTemplatesPage() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleCopy(template.message, template.id)}
+                        onClick={() =>
+                          handleCopy(template.message, template.id)
+                        }
                       >
                         {copiedId === template.id ? (
                           <Check className="w-4 h-4 text-green-500" />
@@ -1520,7 +1538,11 @@ export default function MessageTemplatesPage() {
                         <div className="flex items-center gap-2 mb-2">
                           <span className="font-medium">{template.name}</span>
                           {template.tags.map((tag) => (
-                            <Badge key={tag} variant="outline" className="text-xs">
+                            <Badge
+                              key={tag}
+                              variant="outline"
+                              className="text-xs"
+                            >
                               {tag}
                             </Badge>
                           ))}
@@ -1532,7 +1554,9 @@ export default function MessageTemplatesPage() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleCopy(template.message, template.id)}
+                        onClick={() =>
+                          handleCopy(template.message, template.id)
+                        }
                       >
                         {copiedId === template.id ? (
                           <Check className="w-4 h-4 text-green-500" />

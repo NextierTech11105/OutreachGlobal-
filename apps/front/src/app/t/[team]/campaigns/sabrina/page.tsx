@@ -34,17 +34,27 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 // SABRINA worker configuration
-// SABRINA ONLY confirms and reminds about EXISTING appointments
-// She does NOT book appointments, handle objections, or close leads
+// SABRINA is the Email SDR - handles relationship building, follow-ups, and closing
+// She also confirms appointments and sends reminders to reduce no-shows
 const SABRINA_CONFIG = {
   id: "sabrina" as const,
   name: "SABRINA",
-  role: "Appointment Confirmer",
-  tagline: "Your appointment reminder assistant",
+  role: "Email SDR & Closer",
+  tagline: "Email outreach, relationship building & appointment management",
   description:
-    "Confirms booked appointments and sends reminders to recipients. Ensures people show up on time.",
+    "Handles email channel for sales leads, managers, and general contacts. Builds relationships, handles objections, books appointments, and sends reminders.",
   gradient: "from-emerald-500 to-teal-600",
   color: "emerald",
+  // SDR workflow for closing leads
+  sdrWorkflow: [
+    {
+      step: "ENGAGE",
+      description: "Initial email outreach via relationship building",
+    },
+    { step: "QUALIFY", description: "Assess interest and handle objections" },
+    { step: "CLOSE", description: "Book appointment or hand off to CATHY" },
+  ],
+  // Confirmation workflow for booked appointments
   confirmationWorkflow: [
     {
       step: "CONFIRM",
@@ -54,10 +64,10 @@ const SABRINA_CONFIG = {
     { step: "DAY-OF", description: "Send day-of reminder 1 hour before" },
   ],
   goals: [
-    "Confirm all booked appointments",
-    "Send 24-hour reminders",
-    "Send day-of reminders",
-    "Reduce no-shows",
+    "Build relationships via email",
+    "Handle objections and close",
+    "Confirm booked appointments",
+    "Reduce no-shows with reminders",
   ],
 };
 
@@ -163,7 +173,7 @@ export default function SabrinaCampaignsPage() {
 
   return (
     <TeamSection>
-      <TeamHeader title="SABRINA - The Closer" />
+      <TeamHeader title="SABRINA - Email SDR & Closer" />
 
       <div className="container space-y-6">
         {/* Header */}
@@ -313,18 +323,63 @@ export default function SabrinaCampaignsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left: Strategy & Actions */}
           <div className="space-y-6">
-            {/* Agree-Overcome-Close Strategy */}
+            {/* SDR Workflow - Closing Leads */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Target className="w-5 h-5 text-emerald-400" />
-                  Agree-Overcome-Close Strategy
+                  Email SDR Workflow
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {SABRINA_CONFIG.objectionStrategy.map((strategy, i) => (
+                {SABRINA_CONFIG.sdrWorkflow.map((workflow, i) => (
                   <div
-                    key={strategy.step}
+                    key={workflow.step}
+                    className="flex items-center gap-4 p-3 rounded-lg border border-zinc-800 bg-zinc-900/50"
+                  >
+                    <div
+                      className={cn(
+                        "w-10 h-10 rounded-full flex items-center justify-center font-bold",
+                        i === 0 && "bg-purple-500/20 text-purple-400",
+                        i === 1 && "bg-blue-500/20 text-blue-400",
+                        i === 2 && "bg-green-500/20 text-green-400",
+                      )}
+                    >
+                      {i + 1}
+                    </div>
+                    <div>
+                      <p className="font-medium text-zinc-100">
+                        {workflow.step}
+                      </p>
+                      <p className="text-sm text-zinc-400">
+                        {workflow.description}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+                <div className="pt-4 border-t border-zinc-800">
+                  <div className="flex items-center gap-2 text-sm text-zinc-500">
+                    <AlertTriangle className="w-4 h-4 text-orange-400" />
+                    <span>
+                      After 3 rebuttals, hand off to CATHY for nurturing
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Confirmation Workflow */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-blue-400" />
+                  Appointment Confirmation
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {SABRINA_CONFIG.confirmationWorkflow.map((workflow, i) => (
+                  <div
+                    key={workflow.step}
                     className="flex items-center gap-4 p-3 rounded-lg border border-zinc-800 bg-zinc-900/50"
                   >
                     <div
@@ -339,19 +394,19 @@ export default function SabrinaCampaignsPage() {
                     </div>
                     <div>
                       <p className="font-medium text-zinc-100">
-                        {strategy.step}
+                        {workflow.step}
                       </p>
                       <p className="text-sm text-zinc-400">
-                        {strategy.description}
+                        {workflow.description}
                       </p>
                     </div>
                   </div>
                 ))}
                 <div className="pt-4 border-t border-zinc-800">
                   <div className="flex items-center gap-2 text-sm text-zinc-500">
-                    <AlertTriangle className="w-4 h-4 text-orange-400" />
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                     <span>
-                      After 3 rebuttals, hand off to CATHY for nurturing
+                      Reduce no-shows with timely confirmation & reminders
                     </span>
                   </div>
                 </div>

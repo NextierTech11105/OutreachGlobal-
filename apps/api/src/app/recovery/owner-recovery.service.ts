@@ -1,6 +1,10 @@
 import { InjectDB } from "@/database/decorators";
 import { DrizzleClient } from "@/database/types";
-import { teamMembersTable, teamsTable, usersTable } from "@/database/schema-alias";
+import {
+  teamMembersTable,
+  teamsTable,
+  usersTable,
+} from "@/database/schema-alias";
 import { TeamMemberRole, TeamMemberStatus, slugify } from "@nextier/common";
 import { ConfigService } from "@nestjs/config";
 import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
@@ -35,16 +39,24 @@ export class OwnerRecoveryService implements OnModuleInit {
     try {
       await this.ensureOwnerAnchor("startup");
     } catch (error) {
-      this.logger.error(`Failed to ensure owner anchor on startup: ${error instanceof Error ? error.message : String(error)}`);
+      this.logger.error(
+        `Failed to ensure owner anchor on startup: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
-  async ensureOwnerAnchor(reason: string = "runtime"): Promise<OwnerContext | null> {
+  async ensureOwnerAnchor(
+    reason: string = "runtime",
+  ): Promise<OwnerContext | null> {
     const ownerEmail = this.configService.get<string>("OWNER_EMAIL")?.trim();
-    const recoveryToken = this.configService.get<string>("OWNER_RECOVERY_TOKEN");
+    const recoveryToken = this.configService.get<string>(
+      "OWNER_RECOVERY_TOKEN",
+    );
 
     if (!ownerEmail || !recoveryToken) {
-      this.logger.log("Owner recovery inactive (OWNER_EMAIL or OWNER_RECOVERY_TOKEN missing)");
+      this.logger.log(
+        "Owner recovery inactive (OWNER_EMAIL or OWNER_RECOVERY_TOKEN missing)",
+      );
       return null;
     }
 
@@ -54,7 +66,9 @@ export class OwnerRecoveryService implements OnModuleInit {
     });
 
     if (!user) {
-      const password = await hashMake(`disabled-${Date.now()}-${Math.random()}`);
+      const password = await hashMake(
+        `disabled-${Date.now()}-${Math.random()}`,
+      );
       const now = new Date();
       [user] = await this.db
         .insert(usersTable)
@@ -67,14 +81,18 @@ export class OwnerRecoveryService implements OnModuleInit {
           updatedAt: now,
         })
         .returning();
-      this.logger.log(`Owner anchor created user for ${ownerEmail} (${reason})`);
+      this.logger.log(
+        `Owner anchor created user for ${ownerEmail} (${reason})`,
+      );
     } else if (user.role !== "OWNER") {
       [user] = await this.db
         .update(usersTable)
         .set({ role: "OWNER", updatedAt: new Date() })
         .where(eq(usersTable.id, user.id))
         .returning();
-      this.logger.log(`Owner anchor restored OWNER role for ${ownerEmail} (${reason})`);
+      this.logger.log(
+        `Owner anchor restored OWNER role for ${ownerEmail} (${reason})`,
+      );
     }
 
     // Ensure team exists and ownership
@@ -96,12 +114,18 @@ export class OwnerRecoveryService implements OnModuleInit {
           updatedAt: now,
         })
         .returning();
-      this.logger.log(`Owner anchor created team for ${ownerEmail} (${reason})`);
+      this.logger.log(
+        `Owner anchor created team for ${ownerEmail} (${reason})`,
+      );
     }
 
     const member = await this.db.query.teamMembers.findFirst({
       where: (t) =>
-        and(eq(t.teamId, team.id), eq(t.userId, user.id), eq(t.status, TeamMemberStatus.APPROVED)),
+        and(
+          eq(t.teamId, team.id),
+          eq(t.userId, user.id),
+          eq(t.status, TeamMemberStatus.APPROVED),
+        ),
     });
 
     if (!member) {

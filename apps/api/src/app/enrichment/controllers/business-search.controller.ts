@@ -42,7 +42,9 @@ export class BusinessSearchController {
   constructor(@InjectDB() private db: DrizzleClient) {}
 
   @Post("search")
-  async searchBusinesses(@Body() searchRequest: BusinessSearchRequest): Promise<{
+  async searchBusinesses(
+    @Body() searchRequest: BusinessSearchRequest,
+  ): Promise<{
     results: BusinessSearchResult[];
     total: number;
   }> {
@@ -62,43 +64,41 @@ export class BusinessSearchController {
 
     if (businessName) {
       whereConditions.push(
-        sql`${businesses.name} ILIKE ${`%${businessName}%`}`
+        sql`${businesses.name} ILIKE ${`%${businessName}%`}`,
       );
     }
 
     if (state) {
-      whereConditions.push(
-        sql`${businesses.state} ILIKE ${`%${state}%`}`
-      );
+      whereConditions.push(sql`${businesses.state} ILIKE ${`%${state}%`}`);
     }
 
     // Filter by business type keywords
-    if (businessType === 'motel' || businessType === 'hotel') {
+    if (businessType === "motel" || businessType === "hotel") {
       whereConditions.push(
         or(
-          sql`${businesses.name} ILIKE ${'%motel%'}`,
-          sql`${businesses.name} ILIKE ${'%hotel%'}`,
-          sql`${businesses.name} ILIKE ${'%inn%'}`,
-          sql`${businesses.name} ILIKE ${'%lodge%'}`
-        )
+          sql`${businesses.name} ILIKE ${"%motel%"}`,
+          sql`${businesses.name} ILIKE ${"%hotel%"}`,
+          sql`${businesses.name} ILIKE ${"%inn%"}`,
+          sql`${businesses.name} ILIKE ${"%lodge%"}`,
+        ),
       );
-    } else if (businessType === 'car_dealership' || businessType === 'auto') {
+    } else if (businessType === "car_dealership" || businessType === "auto") {
       whereConditions.push(
         or(
-          sql`${businesses.name} ILIKE ${'%auto%'}`,
-          sql`${businesses.name} ILIKE ${'%car%'}`,
-          sql`${businesses.name} ILIKE ${'%dealership%'}`,
-          sql`${businesses.name} ILIKE ${'%motor%'}`
-        )
+          sql`${businesses.name} ILIKE ${"%auto%"}`,
+          sql`${businesses.name} ILIKE ${"%car%"}`,
+          sql`${businesses.name} ILIKE ${"%dealership%"}`,
+          sql`${businesses.name} ILIKE ${"%motor%"}`,
+        ),
       );
-    } else if (businessType === 'campground' || businessType === 'rv_park') {
+    } else if (businessType === "campground" || businessType === "rv_park") {
       whereConditions.push(
         or(
-          sql`${businesses.name} ILIKE ${'%campground%'}`,
-          sql`${businesses.name} ILIKE ${'%rv%'}`,
-          sql`${businesses.name} ILIKE ${'%park%'}`,
-          sql`${businesses.name} ILIKE ${'%resort%'}`
-        )
+          sql`${businesses.name} ILIKE ${"%campground%"}`,
+          sql`${businesses.name} ILIKE ${"%rv%"}`,
+          sql`${businesses.name} ILIKE ${"%park%"}`,
+          sql`${businesses.name} ILIKE ${"%resort%"}`,
+        ),
       );
     }
 
@@ -119,12 +119,13 @@ export class BusinessSearchController {
     const total = totalResult[0]?.count || 0;
 
     // Format results
-    const formattedResults: BusinessSearchResult[] = results.map(row => ({
+    const formattedResults: BusinessSearchResult[] = results.map((row) => ({
       id: row.id,
       businessName: row.name,
-      businessAddress: `${row.street || ''} ${row.city || ''} ${row.state || ''} ${row.zip || ''}`.trim(),
-      ownerName: 'Owner data pending', // TODO: Join with businessOwners table
-      ownerType: 'unknown',
+      businessAddress:
+        `${row.street || ""} ${row.city || ""} ${row.state || ""} ${row.zip || ""}`.trim(),
+      ownerName: "Owner data pending", // TODO: Join with businessOwners table
+      ownerType: "unknown",
       ownershipPercentage: undefined,
       revenue: row.annualRevenue || undefined,
       employeeCount: row.employeeCount || undefined,

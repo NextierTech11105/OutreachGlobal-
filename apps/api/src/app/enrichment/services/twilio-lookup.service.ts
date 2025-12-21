@@ -125,4 +125,3 @@ export class TwilioLookupService {
     return type ? typeMap[type] || "unknown" : "unknown";
   }
 }
-

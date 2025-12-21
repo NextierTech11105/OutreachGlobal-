@@ -13,6 +13,9 @@ export async function POST(request: Request) {
     const body = await request.json();
     return NextResponse.json({ success: true, id: "schedule_" + Date.now() });
   } catch {
-    return NextResponse.json({ error: "Failed to create schedule" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Failed to create schedule" },
+      { status: 400 },
+    );
   }
 }

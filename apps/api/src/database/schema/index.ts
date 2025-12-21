@@ -15,6 +15,9 @@ export * from "./inbox.schema";
 export * from "./achievements.schema";
 export * from "./initial-messages.schema";
 export * from "./property-searches.schema";
+export * from "./appointments.schema";
+export * from "./outreach_logs.schema";
+export * from "./sdr_sessions.schema";
 
 // ===== CONTENT LIBRARY =====
 export * from "./content-library.schema";

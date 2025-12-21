@@ -3,7 +3,11 @@ import { IdField, StringField, BooleanField } from "@/app/apollo/decorators";
 import { MaybeString } from "@/app/apollo/types/maybe.type";
 import { BaseTeamArgs } from "@/app/team/args/team.args";
 import { ArgsType, Field, registerEnumType } from "@nestjs/graphql";
-import { ContentItemType, ContentUsedIn, ContentVisibility } from "@nextier/common";
+import {
+  ContentItemType,
+  ContentUsedIn,
+  ContentVisibility,
+} from "@nextier/common";
 import {
   CreateContentItemInput,
   UpdateContentItemInput,

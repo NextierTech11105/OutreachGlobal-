@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { leads, campaignAttempts, appointments } from "@/lib/db/schema";
+import { leads, campaignAttempts } from "@/lib/db/schema";
 import { count, eq, sql, and, or, gte, desc } from "drizzle-orm";
 
 /**
@@ -37,26 +37,16 @@ export async function GET(request: NextRequest) {
       .catch(() => [{ count: 0 }]);
 
     // Get appointments booked
-    let appointmentsBookedResult = [{ count: 0 }];
-    try {
-      appointmentsBookedResult = await db
-        .select({ count: count() })
-        .from(appointments)
-        .where(teamId ? eq(appointments.teamId, teamId) : sql`true`)
-        .catch(() => [{ count: 0 }]);
-    } catch {
-      // Appointments table might not exist
-      appointmentsBookedResult = await db
-        .select({ count: count() })
-        .from(leads)
-        .where(
-          and(
-            teamId ? eq(leads.teamId, teamId) : sql`true`,
-            eq(leads.status, "appointment_set"),
-          ),
-        )
-        .catch(() => [{ count: 0 }]);
-    }
+    const appointmentsBookedResult = await db
+      .select({ count: count() })
+      .from(leads)
+      .where(
+        and(
+          teamId ? eq(leads.teamId, teamId) : sql`true`,
+          eq(leads.status, "appointment_set"),
+        ),
+      )
+      .catch(() => [{ count: 0 }]);
 
     // Get objections handled (attempts with classification containing objection)
     const objectionsHandledResult = await db
