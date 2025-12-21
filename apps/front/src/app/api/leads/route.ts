@@ -31,12 +31,15 @@ export async function GET(request: NextRequest) {
     const source = searchParams.get("source");
     const priority = searchParams.get("priority");
     const search = searchParams.get("search");
-    const bucketId = searchParams.get("bucketId");
+    const teamId = searchParams.get("teamId");
     const sortBy = searchParams.get("sortBy") || "createdAt";
     const sortOrder = searchParams.get("sortOrder") || "desc";
 
-    // Build where conditions
-    const conditions = [eq(leads.userId, userId)];
+    // Build where conditions - filter by teamId if provided, otherwise by userId
+    const conditions: ReturnType<typeof eq>[] = [];
+    if (teamId) {
+      conditions.push(eq(leads.teamId, teamId));
+    }
 
     if (status) {
       conditions.push(eq(leads.status, status));
@@ -46,10 +49,6 @@ export async function GET(request: NextRequest) {
       conditions.push(eq(leads.source, source));
     }
 
-    if (bucketId) {
-      conditions.push(eq(leads.bucketId, bucketId));
-    }
-
     if (search) {
       conditions.push(
         sql`(
@@ -57,16 +56,17 @@ export async function GET(request: NextRequest) {
           ${leads.lastName} ILIKE ${"%" + search + "%"} OR
           ${leads.email} ILIKE ${"%" + search + "%"} OR
           ${leads.phone} ILIKE ${"%" + search + "%"} OR
-          ${leads.propertyAddress} ILIKE ${"%" + search + "%"}
+          ${leads.address} ILIKE ${"%" + search + "%"}
         )`,
       );
     }
 
     // Get total count
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
     const [countResult] = await db
       .select({ count: sqlCount() })
       .from(leads)
-      .where(and(...conditions));
+      .where(whereClause);
 
     const totalCount = countResult?.count || 0;
     const totalPages = Math.ceil(totalCount / limit);
@@ -79,8 +79,8 @@ export async function GET(request: NextRequest) {
           return leads.firstName;
         case "status":
           return leads.status;
-        case "estimatedValue":
-          return leads.estimatedValue;
+        case "score":
+          return leads.score;
         case "updatedAt":
           return leads.updatedAt;
         default:
@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
     const results = await db
       .select()
       .from(leads)
-      .where(and(...conditions))
+      .where(whereClause)
       .orderBy(orderDir)
       .limit(limit)
       .offset(offset);
