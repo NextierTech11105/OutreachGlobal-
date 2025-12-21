@@ -222,7 +222,7 @@ export async function PATCH(request: NextRequest) {
     const [updated] = await db
       .update(leads)
       .set(updateData)
-      .where(and(eq(leads.id, leadId), eq(leads.userId, userId)))
+      .where(and(eq(leads.id, leadId), eq(leads.teamId, userId)))
       .returning();
 
     if (!updated) {

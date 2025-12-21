@@ -37,7 +37,7 @@ export async function POST(
     const [lead] = await db
       .select()
       .from(leads)
-      .where(and(eq(leads.id, id), eq(leads.userId, userId)))
+      .where(and(eq(leads.id, id), eq(leads.teamId, userId)))
       .limit(1);
 
     if (!lead) {

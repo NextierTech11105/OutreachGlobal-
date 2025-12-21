@@ -109,8 +109,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Build query conditions - only add userId filter if authenticated
-    const conditions = userId ? [eq(leads.userId, userId)] : [];
+    // Build query conditions - only add teamId filter if authenticated
+    // Note: We use teamId since leads belong to teams, not individual users
+    const conditions = userId ? [eq(leads.teamId, userId)] : [];
 
     if (startDate) {
       conditions.push(gte(leads.createdAt, new Date(startDate)));
@@ -403,7 +404,7 @@ export async function POST(request: NextRequest) {
               lastActivityAt: new Date(scheduleDate),
               updatedAt: new Date(),
             })
-            .where(and(eq(leads.id, id), eq(leads.userId, userId))),
+            .where(and(eq(leads.id, id), eq(leads.teamId, userId))),
         );
 
         await Promise.all(updatePromises);
@@ -452,7 +453,7 @@ export async function POST(request: NextRequest) {
             lastActivityAt: new Date(),
             updatedAt: new Date(),
           })
-          .where(and(eq(leads.id, leadId), eq(leads.userId, userId)));
+          .where(and(eq(leads.id, leadId), eq(leads.teamId, userId)));
 
         return NextResponse.json({
           success: true,
@@ -507,7 +508,7 @@ export async function POST(request: NextRequest) {
               lastActivityAt: new Date(),
               updatedAt: new Date(),
             })
-            .where(and(eq(leads.id, id), eq(leads.userId, userId))),
+            .where(and(eq(leads.id, id), eq(leads.teamId, userId))),
         );
 
         await Promise.all(updatePromises);
