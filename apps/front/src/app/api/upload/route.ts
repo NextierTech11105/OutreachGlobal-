@@ -13,7 +13,7 @@ const s3Client = new S3Client({
     accessKeyId: process.env.DO_SPACES_KEY || "",
     secretAccessKey: process.env.DO_SPACES_SECRET || "",
   },
-  forcePathStyle: false,
+  forcePathStyle: true,
 });
 
 const BUCKET_NAME = "nextier";

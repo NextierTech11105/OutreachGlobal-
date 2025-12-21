@@ -33,7 +33,7 @@ const s3Client = new S3Client({
     accessKeyId: SPACES_KEY,
     secretAccessKey: SPACES_SECRET,
   },
-  forcePathStyle: false,
+  forcePathStyle: true,
 });
 
 // GET - List all sector buckets or get specific bucket info

@@ -76,7 +76,7 @@ function getS3Client(): S3Client {
       accessKeyId: process.env.DO_SPACES_KEY || "",
       secretAccessKey: process.env.DO_SPACES_SECRET || "",
     },
-    forcePathStyle: false,
+    forcePathStyle: true,
   });
 }
 

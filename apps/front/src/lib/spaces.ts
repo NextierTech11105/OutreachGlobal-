@@ -38,6 +38,7 @@ function getS3Client(): S3Client | null {
       accessKeyId: SPACES_KEY,
       secretAccessKey: SPACES_SECRET,
     },
+    forcePathStyle: true,
   });
 
   return _s3Client;

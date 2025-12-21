@@ -45,7 +45,7 @@ const s3Client = new S3Client({
     accessKeyId: SPACES_KEY,
     secretAccessKey: SPACES_SECRET,
   },
-  forcePathStyle: false,
+  forcePathStyle: true,
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════

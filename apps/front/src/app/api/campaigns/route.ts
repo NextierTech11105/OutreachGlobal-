@@ -34,7 +34,18 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { teamId, name, type, status, config } = body;
+    const {
+      teamId,
+      name,
+      description,
+      targetMethod,
+      minScore,
+      maxScore,
+      location,
+      status,
+      startsAt,
+      endsAt,
+    } = body;
 
     if (!teamId || !name) {
       return NextResponse.json(
@@ -51,9 +62,14 @@ export async function POST(request: NextRequest) {
         id,
         teamId,
         name,
-        type: type || "sms",
-        status: status || "draft",
-        config: config || {},
+        description: description || null,
+        targetMethod: targetMethod || "SCORE_BASED",
+        minScore: minScore ?? 0,
+        maxScore: maxScore ?? 100,
+        location: location || null,
+        status: status || "DRAFT",
+        startsAt: startsAt ? new Date(startsAt) : new Date(),
+        endsAt: endsAt ? new Date(endsAt) : null,
         createdAt: new Date(),
         updatedAt: new Date(),
       })

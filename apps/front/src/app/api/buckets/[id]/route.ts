@@ -24,6 +24,7 @@ function getS3Client(): S3Client | null {
     endpoint: SPACES_ENDPOINT,
     region: "nyc3",
     credentials: { accessKeyId: SPACES_KEY, secretAccessKey: SPACES_SECRET },
+    forcePathStyle: true,
   });
 }
 
