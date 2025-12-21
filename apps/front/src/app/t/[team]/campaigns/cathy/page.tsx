@@ -242,7 +242,7 @@ export default function CathyCampaignsPage() {
                 Total Nudges
               </div>
               <p className="text-2xl font-bold text-zinc-100">
-                {stats.totalNudges.toLocaleString()}
+                {(stats.totalNudges ?? 0).toLocaleString()}
               </p>
             </CardContent>
           </Card>
@@ -253,7 +253,7 @@ export default function CathyCampaignsPage() {
                 Leads Revived
               </div>
               <p className="text-2xl font-bold text-green-400">
-                {stats.revivedLeads.toLocaleString()}
+                {(stats.revivedLeads ?? 0).toLocaleString()}
               </p>
             </CardContent>
           </Card>
@@ -264,7 +264,7 @@ export default function CathyCampaignsPage() {
                 To SABRINA
               </div>
               <p className="text-2xl font-bold text-emerald-400">
-                {stats.handedToSabrina.toLocaleString()}
+                {(stats.handedToSabrina ?? 0).toLocaleString()}
               </p>
             </CardContent>
           </Card>
@@ -275,7 +275,7 @@ export default function CathyCampaignsPage() {
                 Back to GIANNA
               </div>
               <p className="text-2xl font-bold text-purple-400">
-                {stats.handedToGianna.toLocaleString()}
+                {(stats.handedToGianna ?? 0).toLocaleString()}
               </p>
             </CardContent>
           </Card>
@@ -286,7 +286,7 @@ export default function CathyCampaignsPage() {
                 Avg Attempts
               </div>
               <p className="text-2xl font-bold text-orange-400">
-                {stats.avgAttemptsToRevive.toFixed(1)}
+                {(stats.avgAttemptsToRevive ?? 0).toFixed(1)}
               </p>
             </CardContent>
           </Card>
@@ -297,8 +297,8 @@ export default function CathyCampaignsPage() {
                 Revival Rate
               </div>
               <p className="text-2xl font-bold text-yellow-400">
-                {stats.totalNudges > 0
-                  ? ((stats.revivedLeads / stats.totalNudges) * 100).toFixed(1)
+                {(stats.totalNudges ?? 0) > 0
+                  ? (((stats.revivedLeads ?? 0) / (stats.totalNudges ?? 1)) * 100).toFixed(1)
                   : 0}
                 %
               </p>

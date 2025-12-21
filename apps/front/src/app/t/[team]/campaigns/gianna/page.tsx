@@ -237,7 +237,7 @@ export default function GiannaCampaignsPage() {
                 Messages Sent
               </div>
               <p className="text-2xl font-bold text-zinc-100">
-                {stats.totalSent.toLocaleString()}
+                {(stats.totalSent ?? 0).toLocaleString()}
               </p>
             </CardContent>
           </Card>
@@ -248,7 +248,7 @@ export default function GiannaCampaignsPage() {
                 Responses
               </div>
               <p className="text-2xl font-bold text-green-400">
-                {stats.responses.toLocaleString()}
+                {(stats.responses ?? 0).toLocaleString()}
               </p>
             </CardContent>
           </Card>
@@ -259,7 +259,7 @@ export default function GiannaCampaignsPage() {
                 Emails Captured
               </div>
               <p className="text-2xl font-bold text-blue-400">
-                {stats.emailsCaptured.toLocaleString()}
+                {(stats.emailsCaptured ?? 0).toLocaleString()}
               </p>
             </CardContent>
           </Card>
@@ -270,7 +270,7 @@ export default function GiannaCampaignsPage() {
                 To SABRINA
               </div>
               <p className="text-2xl font-bold text-emerald-400">
-                {stats.handedToSabrina.toLocaleString()}
+                {(stats.handedToSabrina ?? 0).toLocaleString()}
               </p>
             </CardContent>
           </Card>
@@ -281,7 +281,7 @@ export default function GiannaCampaignsPage() {
                 To CATHY
               </div>
               <p className="text-2xl font-bold text-orange-400">
-                {stats.handedToCathy.toLocaleString()}
+                {(stats.handedToCathy ?? 0).toLocaleString()}
               </p>
             </CardContent>
           </Card>
@@ -292,7 +292,7 @@ export default function GiannaCampaignsPage() {
                 Response Rate
               </div>
               <p className="text-2xl font-bold text-purple-400">
-                {stats.avgResponseRate.toFixed(1)}%
+                {(stats.avgResponseRate ?? 0).toFixed(1)}%
               </p>
             </CardContent>
           </Card>

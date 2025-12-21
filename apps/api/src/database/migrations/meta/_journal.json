@@ -183,6 +183,13 @@
       "when": 1753625429891,
       "tag": "0025_wakeful_nightshade",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1766337578781,
+      "tag": "0026_lucky_reaper",
+      "breakpoints": true
     }
   ]
 }

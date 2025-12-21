@@ -258,7 +258,7 @@ export default function SabrinaCampaignsPage() {
                 Total Outreach
               </div>
               <p className="text-2xl font-bold text-zinc-100">
-                {stats.totalOutreach.toLocaleString()}
+                {(stats.totalOutreach ?? 0).toLocaleString()}
               </p>
             </CardContent>
           </Card>
@@ -269,7 +269,7 @@ export default function SabrinaCampaignsPage() {
                 Booked
               </div>
               <p className="text-2xl font-bold text-green-400">
-                {stats.appointmentsBooked.toLocaleString()}
+                {(stats.appointmentsBooked ?? 0).toLocaleString()}
               </p>
             </CardContent>
           </Card>
@@ -280,7 +280,7 @@ export default function SabrinaCampaignsPage() {
                 Objections Handled
               </div>
               <p className="text-2xl font-bold text-blue-400">
-                {stats.objectionsHandled.toLocaleString()}
+                {(stats.objectionsHandled ?? 0).toLocaleString()}
               </p>
             </CardContent>
           </Card>
@@ -291,7 +291,7 @@ export default function SabrinaCampaignsPage() {
                 Conversion Rate
               </div>
               <p className="text-2xl font-bold text-emerald-400">
-                {stats.conversionRate.toFixed(1)}%
+                {(stats.conversionRate ?? 0).toFixed(1)}%
               </p>
             </CardContent>
           </Card>
@@ -302,7 +302,7 @@ export default function SabrinaCampaignsPage() {
                 To CATHY
               </div>
               <p className="text-2xl font-bold text-orange-400">
-                {stats.handedToCathy.toLocaleString()}
+                {(stats.handedToCathy ?? 0).toLocaleString()}
               </p>
             </CardContent>
           </Card>
@@ -313,7 +313,7 @@ export default function SabrinaCampaignsPage() {
                 Avg Rebuttals
               </div>
               <p className="text-2xl font-bold text-yellow-400">
-                {stats.avgRebuttalsToBook.toFixed(1)}
+                {(stats.avgRebuttalsToBook ?? 0).toFixed(1)}
               </p>
             </CardContent>
           </Card>
