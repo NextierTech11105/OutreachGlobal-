@@ -264,13 +264,16 @@ export function CathyNudger() {
   // Stats - use real API data when available, fall back to computed values
   const totalInQueue =
     apiStats?.leadsInQueue ??
-    (sequences?.reduce((sum, s) => sum + (s.leadsInQueue ?? 0), 0) ?? 0);
+    sequences?.reduce((sum, s) => sum + (s.leadsInQueue ?? 0), 0) ??
+    0;
   const totalNudgesSent =
     apiStats?.totalNudgesSent ??
-    (sequences?.reduce((sum, s) => sum + (s.nudgesSent ?? 0), 0) ?? 0);
+    sequences?.reduce((sum, s) => sum + (s.nudgesSent ?? 0), 0) ??
+    0;
   const totalResponses =
     apiStats?.totalResponses ??
-    (sequences?.reduce((sum, s) => sum + (s.responses ?? 0), 0) ?? 0);
+    sequences?.reduce((sum, s) => sum + (s.responses ?? 0), 0) ??
+    0;
   const avgResponseRate =
     apiStats?.responseRate ??
     (totalNudgesSent > 0 ? (totalResponses / totalNudgesSent) * 100 : 0);

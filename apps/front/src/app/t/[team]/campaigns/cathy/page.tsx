@@ -298,7 +298,10 @@ export default function CathyCampaignsPage() {
               </div>
               <p className="text-2xl font-bold text-yellow-400">
                 {(stats.totalNudges ?? 0) > 0
-                  ? (((stats.revivedLeads ?? 0) / (stats.totalNudges ?? 1)) * 100).toFixed(1)
+                  ? (
+                      ((stats.revivedLeads ?? 0) / (stats.totalNudges ?? 1)) *
+                      100
+                    ).toFixed(1)
                   : 0}
                 %
               </p>

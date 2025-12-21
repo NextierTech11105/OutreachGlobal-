@@ -65,7 +65,9 @@ export default function SmsQueuePage() {
 
       <div className="p-6 space-y-6">
         <div className="flex justify-between items-center">
-          <p className="text-zinc-400">Monitor and manage your SMS sending queue</p>
+          <p className="text-zinc-400">
+            Monitor and manage your SMS sending queue
+          </p>
           <Button variant="outline" size="sm">
             <RefreshCw className="w-4 h-4 mr-2" />
             Refresh
@@ -144,8 +146,9 @@ export default function SmsQueuePage() {
               </CardHeader>
               <CardContent>
                 <p className="text-zinc-400">
-                  SMS queue is operational. Messages are processed at up to 100/minute
-                  with a daily limit of 2,000 messages via SignalHouse.
+                  SMS queue is operational. Messages are processed at up to
+                  100/minute with a daily limit of 2,000 messages via
+                  SignalHouse.
                 </p>
               </CardContent>
             </Card>

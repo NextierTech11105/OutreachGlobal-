@@ -32,7 +32,9 @@ export default function SignalhouseNumbersPage() {
   useEffect(() => {
     async function fetchNumbers() {
       try {
-        const response = await fetch(`/api/signalhouse/numbers?teamId=${team.id}`);
+        const response = await fetch(
+          `/api/signalhouse/numbers?teamId=${team.id}`,
+        );
         const data = await response.json();
         if (data.success) {
           setNumbers(data.numbers || []);
@@ -74,9 +76,12 @@ export default function SignalhouseNumbersPage() {
           <Card>
             <CardContent className="py-12 text-center">
               <Phone className="w-12 h-12 mx-auto text-zinc-500 mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No Numbers Configured</h3>
+              <h3 className="text-lg font-semibold mb-2">
+                No Numbers Configured
+              </h3>
               <p className="text-zinc-400 mb-4">
-                Add a 10DLC number from SignalHouse to start sending SMS campaigns
+                Add a 10DLC number from SignalHouse to start sending SMS
+                campaigns
               </p>
               <Button>
                 <Plus className="w-4 h-4 mr-2" />
@@ -94,7 +99,9 @@ export default function SignalhouseNumbersPage() {
                     <div>
                       <p className="font-mono text-lg">{num.number}</p>
                       {num.friendlyName && (
-                        <p className="text-sm text-zinc-400">{num.friendlyName}</p>
+                        <p className="text-sm text-zinc-400">
+                          {num.friendlyName}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -103,7 +110,9 @@ export default function SignalhouseNumbersPage() {
                       <Badge variant="outline">{num.assignedWorker}</Badge>
                     )}
                     <Badge
-                      variant={num.status === "active" ? "default" : "secondary"}
+                      variant={
+                        num.status === "active" ? "default" : "secondary"
+                      }
                     >
                       {num.status}
                     </Badge>
