@@ -264,13 +264,13 @@ export function CathyNudger() {
   // Stats - use real API data when available, fall back to computed values
   const totalInQueue =
     apiStats?.leadsInQueue ??
-    sequences.reduce((sum, s) => sum + s.leadsInQueue, 0);
+    (sequences?.reduce((sum, s) => sum + (s.leadsInQueue ?? 0), 0) ?? 0);
   const totalNudgesSent =
     apiStats?.totalNudgesSent ??
-    sequences.reduce((sum, s) => sum + s.nudgesSent, 0);
+    (sequences?.reduce((sum, s) => sum + (s.nudgesSent ?? 0), 0) ?? 0);
   const totalResponses =
     apiStats?.totalResponses ??
-    sequences.reduce((sum, s) => sum + s.responses, 0);
+    (sequences?.reduce((sum, s) => sum + (s.responses ?? 0), 0) ?? 0);
   const avgResponseRate =
     apiStats?.responseRate ??
     (totalNudgesSent > 0 ? (totalResponses / totalNudgesSent) * 100 : 0);
@@ -319,7 +319,7 @@ export function CathyNudger() {
               <Users className="h-5 w-5 text-blue-400" />
               <div>
                 <p className="text-2xl font-bold text-white">
-                  {totalInQueue.toLocaleString()}
+                  {(totalInQueue ?? 0).toLocaleString()}
                 </p>
                 <p className="text-xs text-zinc-500">In Nudge Queue</p>
               </div>
@@ -332,7 +332,7 @@ export function CathyNudger() {
               <MessageSquare className="h-5 w-5 text-amber-400" />
               <div>
                 <p className="text-2xl font-bold text-white">
-                  {totalNudgesSent.toLocaleString()}
+                  {(totalNudgesSent ?? 0).toLocaleString()}
                 </p>
                 <p className="text-xs text-zinc-500">Nudges Sent</p>
               </div>
@@ -345,7 +345,7 @@ export function CathyNudger() {
               <CheckCircle className="h-5 w-5 text-green-400" />
               <div>
                 <p className="text-2xl font-bold text-white">
-                  {totalResponses.toLocaleString()}
+                  {(totalResponses ?? 0).toLocaleString()}
                 </p>
                 <p className="text-xs text-zinc-500">Responses</p>
               </div>
@@ -358,7 +358,7 @@ export function CathyNudger() {
               <TrendingUp className="h-5 w-5 text-purple-400" />
               <div>
                 <p className="text-2xl font-bold text-white">
-                  {avgResponseRate.toFixed(1)}%
+                  {(avgResponseRate ?? 0).toFixed(1)}%
                 </p>
                 <p className="text-xs text-zinc-500">Response Rate</p>
               </div>
@@ -595,11 +595,11 @@ export function CathyNudger() {
                     <div className="flex items-center gap-4 text-sm">
                       <span className="text-zinc-500">
                         <MessageSquare className="h-3 w-3 inline mr-1" />
-                        {tpl.sendCount.toLocaleString()} sent
+                        {(tpl.sendCount ?? 0).toLocaleString()} sent
                       </span>
                       <span className="text-green-400">
                         <TrendingUp className="h-3 w-3 inline mr-1" />
-                        {tpl.responseRate}% response rate
+                        {tpl.responseRate ?? 0}% response rate
                       </span>
                     </div>
                   </div>

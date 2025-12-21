@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
+import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -92,12 +93,40 @@ import {
   Play,
 } from "lucide-react";
 import { toast } from "sonner";
-import { CampaignSmsConfigurator } from "@/components/campaign-sms-configurator";
-import {
-  PropertyMap,
-  PropertyMarker,
-} from "@/components/property-map/property-map";
 import { sf, sfd } from "@/lib/utils/safe-format";
+import type { PropertyMarker } from "@/components/property-map/property-map";
+
+// Dynamic imports for heavy components (reduce initial bundle by ~40KB)
+const CampaignSmsConfigurator = dynamic(
+  () =>
+    import("@/components/campaign-sms-configurator").then(
+      (mod) => mod.CampaignSmsConfigurator,
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-6 w-6 animate-spin" />
+      </div>
+    ),
+  },
+);
+
+const PropertyMap = dynamic(
+  () =>
+    import("@/components/property-map/property-map").then(
+      (mod) => mod.PropertyMap,
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex items-center justify-center h-[500px] bg-muted/50 rounded-lg">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Loading map...</span>
+      </div>
+    ),
+  },
+);
 
 // ============ MOTIVATED SELLER LEAD TYPES (PropWire-style) ============
 const LEAD_TYPES = [

@@ -34,22 +34,22 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 // SABRINA worker configuration
-// SABRINA is the Email SDR - handles relationship building, follow-ups, and closing
+// SABRINA is the SMS SDR - handles relationship building, follow-ups, and closing
 // She also confirms appointments and sends reminders to reduce no-shows
 const SABRINA_CONFIG = {
   id: "sabrina" as const,
   name: "SABRINA",
-  role: "Email SDR & Closer",
-  tagline: "Email outreach, relationship building & appointment management",
+  role: "SMS SDR & Closer",
+  tagline: "SMS outreach, relationship building & appointment management",
   description:
-    "Handles email channel for sales leads, managers, and general contacts. Builds relationships, handles objections, books appointments, and sends reminders.",
+    "Handles SMS channel for sales leads, managers, and general contacts. Builds relationships, handles objections, books appointments, and sends reminders.",
   gradient: "from-emerald-500 to-teal-600",
   color: "emerald",
   // SDR workflow for closing leads
   sdrWorkflow: [
     {
       step: "ENGAGE",
-      description: "Initial email outreach via relationship building",
+      description: "Initial SMS outreach via relationship building",
     },
     { step: "QUALIFY", description: "Assess interest and handle objections" },
     { step: "CLOSE", description: "Book appointment or hand off to CATHY" },
@@ -64,7 +64,7 @@ const SABRINA_CONFIG = {
     { step: "DAY-OF", description: "Send day-of reminder 1 hour before" },
   ],
   goals: [
-    "Build relationships via email",
+    "Build relationships via SMS",
     "Handle objections and close",
     "Confirm booked appointments",
     "Reduce no-shows with reminders",
@@ -173,7 +173,7 @@ export default function SabrinaCampaignsPage() {
 
   return (
     <TeamSection>
-      <TeamHeader title="SABRINA - Email SDR & Closer" />
+      <TeamHeader title="SABRINA - SMS SDR & Closer" />
 
       <div className="container space-y-6">
         {/* Header */}
@@ -328,7 +328,7 @@ export default function SabrinaCampaignsPage() {
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Target className="w-5 h-5 text-emerald-400" />
-                  Email SDR Workflow
+                  SMS SDR Workflow
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
