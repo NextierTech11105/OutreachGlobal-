@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Phone, PhoneCall, Clock, User, MoreVertical } from "lucide-react";
+import { Phone, PhoneCall, Clock, User, MoreVertical, Loader2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   DropdownMenu,
@@ -15,80 +15,83 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+interface CallQueueItem {
+  id: string;
+  name: string;
+  phone: string;
+  waitTime?: string;
+  scheduledTime?: string;
+  source?: string;
+  campaign?: string;
+  avatar?: string;
+}
+
 export function CallQueue() {
   const [activeTab, setActiveTab] = useState("inbound");
+  const [inboundCalls, setInboundCalls] = useState<CallQueueItem[]>([]);
+  const [outboundCalls, setOutboundCalls] = useState<CallQueueItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock data for inbound queue
-  const inboundCalls = [
-    {
-      id: "call-1",
-      name: "John Smith",
-      phone: "(555) 123-4567",
-      waitTime: "2:34",
-      source: "Website",
-      avatar: "/placeholder.svg?key=1",
-    },
-    {
-      id: "call-2",
-      name: "Sarah Johnson",
-      phone: "(555) 234-5678",
-      waitTime: "1:15",
-      source: "Campaign",
-      avatar: "/placeholder.svg?key=2",
-    },
-    {
-      id: "call-3",
-      name: "Michael Chen",
-      phone: "(555) 345-6789",
-      waitTime: "0:45",
-      source: "Referral",
-      avatar: "/placeholder.svg?key=3",
-    },
-  ];
+  useEffect(() => {
+    async function fetchCallQueues() {
+      setLoading(true);
+      try {
+        // Fetch inbound calls from leads with recent inbound messages
+        const inboundRes = await fetch("/api/leads?status=inbound&limit=10");
+        if (inboundRes.ok) {
+          const data = await inboundRes.json();
+          setInboundCalls(
+            (data.leads || []).map((lead: any) => ({
+              id: lead.id,
+              name: lead.name || lead.firstName || "Unknown",
+              phone: lead.phone || lead.mobilePhone || "",
+              waitTime: getWaitTime(lead.lastContactedAt),
+              source: lead.source || "Direct",
+              avatar: lead.avatarUrl,
+            }))
+          );
+        }
 
-  // Mock data for outbound queue
-  const outboundCalls = [
-    {
-      id: "call-4",
-      name: "Emily Davis",
-      phone: "(555) 456-7890",
-      scheduledTime: "10:30 AM",
-      campaign: "Spring Outreach",
-      avatar: "/placeholder.svg?key=4",
-    },
-    {
-      id: "call-5",
-      name: "Robert Wilson",
-      phone: "(555) 567-8901",
-      scheduledTime: "11:15 AM",
-      campaign: "Follow-up",
-      avatar: "/placeholder.svg?key=5",
-    },
-    {
-      id: "call-6",
-      name: "Jennifer Martinez",
-      phone: "(555) 678-9012",
-      scheduledTime: "1:45 PM",
-      campaign: "New Listings",
-      avatar: "/placeholder.svg?key=6",
-    },
-    {
-      id: "call-7",
-      name: "David Thompson",
-      phone: "(555) 789-0123",
-      scheduledTime: "2:30 PM",
-      campaign: "Spring Outreach",
-      avatar: "/placeholder.svg?key=7",
-    },
-    {
-      id: "call-8",
-      name: "Lisa Brown",
-      phone: "(555) 890-1234",
-      scheduledTime: "3:15 PM",
-      campaign: "Follow-up",
-      avatar: "/placeholder.svg?key=8",
-    },
-  ];
+        // Fetch outbound calls from scheduled campaigns
+        const outboundRes = await fetch("/api/call-center/queue?type=outbound&limit=10");
+        if (outboundRes.ok) {
+          const data = await outboundRes.json();
+          setOutboundCalls(
+            (data.queue || []).map((item: any) => ({
+              id: item.id,
+              name: item.leadName || item.name || "Unknown",
+              phone: item.phone || "",
+              scheduledTime: formatTime(item.scheduledAt),
+              campaign: item.campaignName || "Outreach",
+              avatar: item.avatarUrl,
+            }))
+          );
+        }
+      } catch (error) {
+        console.error("Failed to fetch call queues:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchCallQueues();
+  }, []);
+
+  function getWaitTime(timestamp: string | null): string {
+    if (!timestamp) return "0:00";
+    const diff = Date.now() - new Date(timestamp).getTime();
+    const mins = Math.floor(diff / 60000);
+    const secs = Math.floor((diff % 60000) / 1000);
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  }
+
+  function formatTime(timestamp: string | null): string {
+    if (!timestamp) return "";
+    return new Date(timestamp).toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+  }
 
   return (
     <Card>

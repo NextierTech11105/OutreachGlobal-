@@ -885,4 +885,32 @@ export async function buildWorkflowHeatmap(
   };
 }
 
+// ============ ALIAS EXPORTS ============
+// For backwards compatibility with admin APIs
+
+export interface SearchNumbersOptions {
+  areaCode?: string;
+  state?: string;
+  numberType?: "local" | "tollfree";
+  limit?: number;
+}
+
+export async function searchNumbers(options: SearchNumbersOptions = {}) {
+  return getAvailableNumbers({
+    areaCode: options.areaCode,
+    state: options.state,
+    limit: options.limit,
+  });
+}
+
+export async function purchaseNumber(phoneNumber: string) {
+  return buyPhoneNumber(phoneNumber);
+}
+
+export async function getOwnedNumbers() {
+  return getMyPhoneNumbers();
+}
+
+export { releasePhoneNumber as releaseNumber };
+
 console.log("[SignalHouse] Client loaded with GIANNA integration");

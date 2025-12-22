@@ -2,8 +2,8 @@
 
 import type React from "react";
 
-import { useState } from "react";
-import { Search } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Search, Loader2 } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -26,153 +26,19 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { APP_NAME, AI_ASSISTANT_NAME } from "@/config/branding";
 
-// Mock AI SDR data - uses branding config for model names
-const aiSdrs = [
-  {
-    id: "1",
-    name: AI_ASSISTANT_NAME,
-    model: `${APP_NAME} Business Broker`,
-    description: "AI-Powered Deal Sourcing & Business Valuation Specialist",
-    industry: "real-estate",
-    tags: ["foreclosure", "homeowner", "advocate"],
-    avatar: "/stylized-letters-sj.png",
-    mission:
-      "Guide homeowners through foreclosure, auction delays, loan modifications, and equity recovery.",
-    goal: "Help clients navigate legal, financial, and strategic options at zero cost while leading them to a consultation.",
-    role: [
-      "Engage personally (mentions the homeowner's name).",
-      "Educate homeowners on foreclosure timelines, legal rights, and financial solutions.",
-      "Lead them to a free consultation to explore monetary options, short sales, loan modifications, or delaying foreclosure.",
-      "Objection Handling: Overcome fear, misinformation, and procrastination.",
-    ],
-    faqs: [
-      {
-        question: "How is Elite Homeowner Advisor different from an attorney?",
-        answer:
-          "We provide free advisory services to help homeowners understand their situation, while attorneys charge substantial legal fees.",
-      },
-      {
-        question: "I applied for a loan modification. How can you help?",
-        answer:
-          "We help you understand hidden clauses, repayment terms, and financial impact before committing.",
-      },
-      {
-        question: "My house is going to auction. What are my options?",
-        answer:
-          "There may still be ways to delay or stop the auction. We'll explore loan negotiations, short sales, and postponement strategies.",
-      },
-    ],
-  },
-  {
-    id: "2",
-    name: AI_ASSISTANT_NAME,
-    model: `${APP_NAME} M&A Advisory`,
-    description: "AI-Powered M&A Advisory for Business Owners & Exit Planning",
-    industry: "real-estate",
-    tags: ["development", "buyouts", "consulting"],
-    avatar: "/stylized-letters-sj.png",
-    mission:
-      "Identify high-value exit or repositioning strategies for property owners.",
-    goal: "Help clients unlock hidden value in real estate through development, 1031 exchanges, estate sales, and commercial repositioning.",
-    role: [
-      "Analyze property potential (redevelopment, rezoning, or cash-out strategies).",
-      "Assist investors, developers, and owners in navigating 1031 exchanges, buyouts, and high-stakes negotiations.",
-      "Connect with property owners for strategic exits (retail bidding wars, distressed asset flips).",
-      "Overcome objections and drive action toward an advisory consultation.",
-    ],
-    faqs: [
-      {
-        question:
-          "I own a property in an Opportunity Zone. What are my options?",
-        answer:
-          "Tax-advantaged development, long-term investment strategies, or quick-flip sales.",
-      },
-      {
-        question:
-          "I have a commercial property that I want to repurpose. Can you help?",
-        answer:
-          "Yes. We specialize in repositioning assets for the highest return (office-to-resi, mixed-use conversions, etc.).",
-      },
-      {
-        question: "I want to do a 1031 exchange. Can you guide me?",
-        answer:
-          "We help identify qualifying replacement properties, timeline compliance, and maximizing tax benefits.",
-      },
-    ],
-  },
-  {
-    id: "3",
-    name: "Michael",
-    model: "Commercial Investment Advisor",
-    description: "AI-Powered Commercial Real Estate Investment Specialist",
-    industry: "commercial",
-    tags: ["commercial", "investment", "advisor"],
-    avatar: "/abstract-geometric-mg.png",
-    mission:
-      "Help investors identify and capitalize on commercial real estate opportunities.",
-    goal: "Guide clients through the commercial investment process from acquisition to exit strategy.",
-    role: [
-      "Analyze market trends and identify high-potential commercial properties.",
-      "Provide detailed ROI analysis and investment projections.",
-      "Guide investors through financing options and tax strategies.",
-      "Develop exit strategies that maximize returns.",
-    ],
-    faqs: [
-      {
-        question: "What types of commercial properties should I consider?",
-        answer:
-          "It depends on your investment goals, but we can analyze retail, office, industrial, and mixed-use opportunities.",
-      },
-      {
-        question:
-          "How do I evaluate the potential ROI of a commercial property?",
-        answer:
-          "We use a comprehensive analysis including cap rate, cash-on-cash return, IRR, and potential appreciation.",
-      },
-      {
-        question:
-          "What financing options are available for commercial properties?",
-        answer:
-          "We can guide you through traditional bank loans, SBA loans, CMBS, and private equity options.",
-      },
-    ],
-  },
-  {
-    id: "4",
-    name: "Rachel",
-    model: "Residential Investment Specialist",
-    description: "AI-Powered Residential Real Estate Investment Advisor",
-    industry: "residential",
-    tags: ["residential", "investment", "specialist"],
-    avatar: "/abstract-rj.png",
-    mission:
-      "Help investors build and optimize residential real estate portfolios.",
-    goal: "Guide clients to maximize cash flow and appreciation through strategic residential investments.",
-    role: [
-      "Identify high-potential residential investment properties.",
-      "Analyze cash flow potential and appreciation forecasts.",
-      "Guide investors through financing and tax optimization.",
-      "Develop portfolio diversification strategies.",
-    ],
-    faqs: [
-      {
-        question: "Should I focus on cash flow or appreciation?",
-        answer:
-          "It depends on your investment goals. We can help you balance both for optimal returns.",
-      },
-      {
-        question: "What markets are best for residential investment?",
-        answer:
-          "We analyze population growth, job markets, and economic indicators to identify promising markets.",
-      },
-      {
-        question: "How do I scale my residential portfolio?",
-        answer:
-          "We can guide you through BRRRR strategies, 1031 exchanges, and portfolio financing options.",
-      },
-    ],
-  },
-];
+interface AiSdr {
+  id: string;
+  name: string;
+  model: string;
+  description: string;
+  industry: string;
+  tags: string[];
+  avatar: string;
+  mission: string;
+  goal: string;
+  role: string[];
+  faqs: { question: string; answer: string }[];
+}
 
 interface AiSdrSelectorProps {
   selectedAiSdrId: string | null;
@@ -186,9 +52,27 @@ export function AiSdrSelector({
   const [searchQuery, setSearchQuery] = useState("");
   const [industryFilter, setIndustryFilter] = useState("all");
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const [selectedSdr, setSelectedSdr] = useState<(typeof aiSdrs)[0] | null>(
-    null,
-  );
+  const [selectedSdr, setSelectedSdr] = useState<AiSdr | null>(null);
+  const [aiSdrs, setAiSdrs] = useState<AiSdr[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchAiSdrs() {
+      setLoading(true);
+      try {
+        const res = await fetch("/api/ai-sdr");
+        if (res.ok) {
+          const data = await res.json();
+          setAiSdrs(data.sdrs || data || []);
+        }
+      } catch (error) {
+        console.error("Failed to fetch AI SDRs:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchAiSdrs();
+  }, []);
 
   const filteredSdrs = aiSdrs.filter((sdr) => {
     const matchesSearch =
