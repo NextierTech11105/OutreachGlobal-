@@ -51,11 +51,14 @@ const LABEL_COLORS = [
 
 // Default labels matching the SMS funnel flow
 // These align with webhook auto-tagging from SignalHouse
+// Funnel: Cold (0%) → Mobile Captured → Email Captured → GOLD (100%)
 const DEFAULT_LABELS: CustomLabel[] = [
+  // === FUNNEL STAGES (in order) ===
+  { id: "label-cold", name: "Cold (0%)", color: "text-slate-500" },
   {
-    id: "label-gold",
-    name: "🏆 GOLD (High Contactability)",
-    color: "text-amber-500",
+    id: "label-mobile-captured",
+    name: "Mobile Captured",
+    color: "text-blue-500",
   },
   {
     id: "label-email-captured",
@@ -63,10 +66,11 @@ const DEFAULT_LABELS: CustomLabel[] = [
     color: "text-green-500",
   },
   {
-    id: "label-mobile-captured",
-    name: "Mobile Captured",
-    color: "text-blue-500",
+    id: "label-gold",
+    name: "🏆 GOLD (100%)",
+    color: "text-amber-500",
   },
+  // === RESPONSE TYPES ===
   { id: "label-needs-help", name: "Needs Help Now", color: "text-red-500" },
   {
     id: "label-has-questions",
@@ -80,6 +84,7 @@ const DEFAULT_LABELS: CustomLabel[] = [
     name: "Yes to Content Link",
     color: "text-green-500",
   },
+  // === OUTCOMES ===
   {
     id: "label-push-call-center",
     name: "Push to Call Center",
