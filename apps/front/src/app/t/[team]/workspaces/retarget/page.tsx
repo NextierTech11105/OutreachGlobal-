@@ -108,7 +108,7 @@ export default function RetargetWorkspacePage() {
     }
   };
 
-  // Send retarget message via SignalHouse SMS
+  // Send retarget message via SMS API
   const handleSendRetarget = async () => {
     if (!selectedLead || !message.trim()) {
       toast.error("Select a lead and enter a message");

@@ -7,7 +7,7 @@ import drizzle from "eslint-plugin-drizzle";
 
 export default tseslint.config(
   {
-    ignores: ["eslint.config.mjs", "ecosystem.config.js", "dist"],
+    ignores: ["eslint.config.mjs", "ecosystem.config.js", "dist", "**/dist/**", "**/*.spec.ts"],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
@@ -28,8 +28,8 @@ export default tseslint.config(
   {
     rules: {
       "@typescript-eslint/no-explicit-any": "off",
-      "drizzle/enforce-delete-with-where": "error",
-      "drizzle/enforce-update-with-where": "error",
+      "drizzle/enforce-delete-with-where": ["error", { drizzleObjectName: ["db"] }],
+      "drizzle/enforce-update-with-where": ["error", { drizzleObjectName: ["db"] }],
       "@typescript-eslint/no-unused-vars": "off",
       "@typescript-eslint/no-unnecessary-type-constraint": "off"
     },

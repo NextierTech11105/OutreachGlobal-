@@ -17,6 +17,11 @@ const eslintConfig = [
     "eslint.config.mjs",
     "ecosystem.config.js",
     "src/graphql/types/graphql-object.ts",
+    "**/dist/**",
+    "**/dist/*.js",
+    "src/**/dist/**",
+    "src/app/api/**/dist/**",
+    "src/lib/**/dist/**",
   ]),
   prettierRecommended,
   {

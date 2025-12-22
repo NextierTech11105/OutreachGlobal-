@@ -87,7 +87,7 @@ export default function SMSSettingsPage() {
             </div>
             <CardTitle>SMS Not Configured</CardTitle>
             <CardDescription>
-              SignalHouse API credentials are not set up yet
+              SMS API credentials are not set up yet
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -97,40 +97,21 @@ export default function SMSSettingsPage() {
               </p>
               <ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
                 <li>
-                  Go to{" "}
-                  <a
-                    href="https://app.signalhouse.io"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline"
-                  >
-                    SignalHouse.io
-                  </a>{" "}
-                  and create an account
+                  Contact your administrator to configure SMS API credentials
                 </li>
-                <li>Get your API Key and Auth Token from the dashboard</li>
+                <li>Get your API Key and Auth Token from the SMS provider dashboard</li>
                 <li>
                   Add them to your environment variables:
                   <pre className="mt-2 p-2 bg-background rounded text-xs overflow-x-auto">
-                    {`SIGNALHOUSE_API_KEY=your-api-key
-SIGNALHOUSE_AUTH_TOKEN=your-auth-token`}
+                    {`SMS_API_KEY=your-api-key
+SMS_AUTH_TOKEN=your-auth-token`}
                   </pre>
                 </li>
                 <li>Redeploy your application</li>
               </ol>
             </div>
             <div className="flex gap-2">
-              <Button asChild className="flex-1">
-                <a
-                  href="https://app.signalhouse.io"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Go to SignalHouse
-                  <ExternalLink className="h-4 w-4 ml-2" />
-                </a>
-              </Button>
-              <Button variant="outline" onClick={checkStatus}>
+              <Button variant="outline" onClick={checkStatus} className="flex-1">
                 Refresh Status
               </Button>
             </div>

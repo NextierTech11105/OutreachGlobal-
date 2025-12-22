@@ -100,7 +100,7 @@ export default function NudgerWorkspacePage() {
     return `Hey ${firstName}, just checking in! Wanted to see if you had any questions or if now is a better time to chat. Let me know!`;
   };
 
-  // Send the nudge via SignalHouse SMS
+  // Send the nudge via SMS API
   const handleSendNudge = async () => {
     if (!selectedLead || !message.trim()) {
       toast.error("Select a lead and enter a message");

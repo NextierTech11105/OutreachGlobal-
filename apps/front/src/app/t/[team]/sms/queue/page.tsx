@@ -148,7 +148,7 @@ export default function SmsQueuePage() {
                 <p className="text-zinc-400">
                   SMS queue is operational. Messages are processed at up to
                   100/minute with a daily limit of 2,000 messages via
-                  SignalHouse.
+                  10DLC compliant infrastructure.
                 </p>
               </CardContent>
             </Card>

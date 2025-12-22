@@ -379,6 +379,7 @@ const VARIABLES = [
 ];
 
 // Gianna Initial Message Templates - Focus on CRE & Business Advisory
+// ALL TEMPLATES MUST BE ≤160 CHARS FOR SINGLE SMS
 const GIANNA_TEMPLATES = [
   // === BUSINESS ADVISORY - AI & TECH ===
   {
@@ -386,15 +387,15 @@ const GIANNA_TEMPLATES = [
     name: "AI Adoption Intro",
     persona: "b2b_ai_adoption",
     category: "business",
-    message: `Hi {{firstName}}, I noticed {{companyName}} has been in {{industry}} for {{yearsInBusiness}} years. We're helping established businesses like yours implement AI to cut costs and boost efficiency. Curious if you've explored this yet?`,
-    variables: ["firstName", "companyName", "industry", "yearsInBusiness"],
+    message: `Hi {{firstName}}, {{companyName}} caught my eye. We help {{industry}} businesses use AI to cut costs. Curious if you've explored this?`,
+    variables: ["firstName", "companyName", "industry"],
   },
   {
     id: "b2b_tech_modernize",
     name: "Tech Modernization",
     persona: "b2b_tech_laggard",
     category: "business",
-    message: `{{firstName}}, quick thought - many {{industry}} businesses are still running on outdated systems. We help companies modernize without disrupting operations. Would a 10-min call to see if there's a fit make sense?`,
+    message: `{{firstName}}, many {{industry}} businesses run outdated systems. We help modernize without disruption. Quick call to see if there's a fit?`,
     variables: ["firstName", "industry"],
   },
 
@@ -404,15 +405,15 @@ const GIANNA_TEMPLATES = [
     name: "Exit - Valuation Curiosity",
     persona: "b2b_exit_curious",
     category: "business",
-    message: `Hi {{firstName}}, I work with business owners in {{industry}} who are curious about what their company might be worth. Even if selling isn't on your radar, knowing your number can be valuable. Want me to run a quick analysis on {{companyName}}?`,
-    variables: ["firstName", "industry", "companyName"],
+    message: `Hi {{firstName}}, curious what {{companyName}} might be worth? Even if not selling, knowing your number is valuable. Quick analysis?`,
+    variables: ["firstName", "companyName"],
   },
   {
     id: "b2b_exit_ready",
     name: "Exit - Ready to Sell",
     persona: "b2b_exit_ready",
     category: "business",
-    message: `{{firstName}}, I understand you may be thinking about your next chapter. With {{companyName}} doing {{revenue}} annually, there's real interest from buyers in your space. Happy to share what we're seeing if helpful.`,
+    message: `{{firstName}}, with {{companyName}} at {{revenue}}/yr, buyers are interested. Thinking about your next chapter? Happy to share what I'm seeing.`,
     variables: ["firstName", "companyName", "revenue"],
   },
   {
@@ -420,7 +421,7 @@ const GIANNA_TEMPLATES = [
     name: "Tech-Prep for Exit",
     persona: "b2b_tech_exit",
     category: "business",
-    message: `Hi {{firstName}}, businesses that implement modern systems before exit typically command 20-30% higher valuations. If you're thinking ahead, I'd love to show you what smart owners are doing to prep {{companyName}} for maximum value.`,
+    message: `Hi {{firstName}}, modern systems = 20-30% higher valuations at exit. Want to see how smart owners prep {{companyName}} for max value?`,
     variables: ["firstName", "companyName"],
   },
 
@@ -430,7 +431,7 @@ const GIANNA_TEMPLATES = [
     name: "Expansion Support",
     persona: "b2b_expansion",
     category: "business",
-    message: `{{firstName}}, I noticed {{companyName}} has been growing in {{city}}. We help businesses like yours expand strategically - whether that's new locations, acquisitions, or scaling ops. Worth a conversation?`,
+    message: `{{firstName}}, {{companyName}} is growing in {{city}}! We help with expansion - new locations, acquisitions, scaling. Worth a quick chat?`,
     variables: ["firstName", "companyName", "city"],
   },
   {
@@ -438,7 +439,7 @@ const GIANNA_TEMPLATES = [
     name: "Acquisition Interest",
     persona: "b2b_acquisition",
     category: "business",
-    message: `Hi {{firstName}}, I'm working with buyers interested in {{industry}} businesses in {{state}}. {{companyName}} came up as a potential fit. No pressure - but would you be open to hearing what they're offering?`,
+    message: `Hi {{firstName}}, buyers are looking at {{industry}} in {{state}}. {{companyName}} came up. Open to hearing offers? No pressure.`,
     variables: ["firstName", "industry", "state", "companyName"],
   },
 
@@ -448,7 +449,7 @@ const GIANNA_TEMPLATES = [
     name: "Turnaround Support",
     persona: "b2b_struggling",
     category: "business",
-    message: `{{firstName}}, I know things can get tough in {{industry}}. We've helped business owners navigate difficult periods and come out stronger. If you ever want to talk through options - no judgment, just support.`,
+    message: `{{firstName}}, {{industry}} can be tough. We help owners navigate challenges and come out stronger. Want to talk through options? No judgment.`,
     variables: ["firstName", "industry"],
   },
   {
@@ -456,7 +457,7 @@ const GIANNA_TEMPLATES = [
     name: "Retirement Planning",
     persona: "b2b_retirement",
     category: "business",
-    message: `Hi {{firstName}}, after {{yearsInBusiness}} years building {{companyName}}, you've earned the right to think about what's next. I help owners like you plan smooth transitions. Coffee sometime?`,
+    message: `Hi {{firstName}}, after {{yearsInBusiness}} yrs building {{companyName}}, you've earned what's next. I help owners plan smooth exits. Coffee?`,
     variables: ["firstName", "yearsInBusiness", "companyName"],
   },
 
@@ -466,7 +467,7 @@ const GIANNA_TEMPLATES = [
     name: "Multi-Family Inquiry",
     persona: "cre_multifamily",
     category: "commercial",
-    message: `{{firstName}}, I noticed your {{units}}-unit property at {{propertyAddress}}. With cap rates where they are, curious if you've thought about your options? I work with investors actively looking in {{city}}.`,
+    message: `{{firstName}}, your {{units}}-unit at {{propertyAddress}} - thought about options? I work with investors looking in {{city}}.`,
     variables: ["firstName", "units", "propertyAddress", "city"],
   },
   {
@@ -474,7 +475,7 @@ const GIANNA_TEMPLATES = [
     name: "Office Building Outreach",
     persona: "cre_office",
     category: "commercial",
-    message: `Hi {{firstName}}, the office market has shifted and I know many owners are reconsidering their positions. If you've thought about repositioning or selling {{propertyAddress}}, I'd love to share what we're seeing.`,
+    message: `Hi {{firstName}}, office market has shifted. Thought about repositioning or selling {{propertyAddress}}? Happy to share what I'm seeing.`,
     variables: ["firstName", "propertyAddress"],
   },
   {
@@ -482,7 +483,7 @@ const GIANNA_TEMPLATES = [
     name: "Retail Property Interest",
     persona: "cre_retail",
     category: "commercial",
-    message: `{{firstName}}, retail has been resilient in {{city}} and your property at {{propertyAddress}} looks well-positioned. I have buyers looking for exactly this type of asset. Open to a quick call?`,
+    message: `{{firstName}}, retail is strong in {{city}}. Your property at {{propertyAddress}} - I have buyers looking. Open to a quick call?`,
     variables: ["firstName", "city", "propertyAddress"],
   },
   {
@@ -490,7 +491,7 @@ const GIANNA_TEMPLATES = [
     name: "Industrial/Warehouse",
     persona: "cre_industrial",
     category: "commercial",
-    message: `Hi {{firstName}}, industrial properties are in high demand right now. Your warehouse at {{propertyAddress}} is exactly what several of my buyers are looking for. Worth exploring offers?`,
+    message: `Hi {{firstName}}, industrial is hot. Your warehouse at {{propertyAddress}} is what my buyers want. Worth exploring offers?`,
     variables: ["firstName", "propertyAddress"],
   },
   {
@@ -498,7 +499,7 @@ const GIANNA_TEMPLATES = [
     name: "Land Development",
     persona: "cre_land",
     category: "commercial",
-    message: `{{firstName}}, I'm working with developers looking for land in {{city}}. Your parcel at {{propertyAddress}} came up in our search. Any interest in discussing development or sale options?`,
+    message: `{{firstName}}, developers looking for land in {{city}}. Your parcel at {{propertyAddress}} came up. Interested in discussing?`,
     variables: ["firstName", "city", "propertyAddress"],
   },
   {
@@ -506,7 +507,7 @@ const GIANNA_TEMPLATES = [
     name: "CRE Value Add",
     persona: "cre_mixed_use",
     category: "commercial",
-    message: `Hi {{firstName}}, looking at {{propertyAddress}}, there may be untapped value through repositioning or redevelopment. I help owners maximize returns on commercial assets. Interested in an analysis?`,
+    message: `Hi {{firstName}}, {{propertyAddress}} may have untapped value. I help owners maximize CRE returns. Want an analysis?`,
     variables: ["firstName", "propertyAddress"],
   },
 
@@ -516,7 +517,7 @@ const GIANNA_TEMPLATES = [
     name: "Residential - Warm Intro",
     persona: "distressed_seller",
     category: "residential",
-    message: `Hey {{firstName}}, I was looking at properties in {{city}} and came across your place on {{propertyAddress}}. I work with buyers interested in that area. Would you consider selling if the price was right?`,
+    message: `Hey {{firstName}}, saw your place at {{propertyAddress}} in {{city}}. I work with buyers in that area. Consider selling if the price is right?`,
     variables: ["firstName", "city", "propertyAddress"],
   },
   {
@@ -524,7 +525,7 @@ const GIANNA_TEMPLATES = [
     name: "Residential - High Equity",
     persona: "high_equity",
     category: "residential",
-    message: `Hi {{firstName}}! Your home at {{propertyAddress}} could be worth around {{estimatedValue}} based on recent sales. Have you thought about what you'd do with that equity?`,
+    message: `Hi {{firstName}}! {{propertyAddress}} could be worth ~{{estimatedValue}} based on recent sales. Thought about what to do with that equity?`,
     variables: ["firstName", "propertyAddress", "estimatedValue"],
   },
 
@@ -534,7 +535,7 @@ const GIANNA_TEMPLATES = [
     name: "Follow Up - Business",
     persona: "any",
     category: "business",
-    message: `Hey {{firstName}}, just following up on my message about {{companyName}}. No pressure - just wanted to see if you had any questions or wanted to chat. Either way, let me know!`,
+    message: `Hey {{firstName}}, following up on {{companyName}}. Any questions or want to chat? No pressure - just let me know!`,
     variables: ["firstName", "companyName"],
   },
   {
@@ -542,8 +543,32 @@ const GIANNA_TEMPLATES = [
     name: "Follow Up - CRE",
     persona: "any",
     category: "commercial",
-    message: `{{firstName}}, circling back on {{propertyAddress}}. Market conditions are moving fast - if you're even slightly curious about your options, happy to share what I'm seeing. No obligation.`,
+    message: `{{firstName}}, circling back on {{propertyAddress}}. Market moving fast - curious about options? Happy to share what I'm seeing.`,
     variables: ["firstName", "propertyAddress"],
+  },
+];
+
+// Campaign Types for ML classification and workflow orchestration
+export type CampaignType = "initial" | "nudger" | "nurture";
+
+const CAMPAIGN_TYPES: { id: CampaignType; name: string; description: string; icon: string }[] = [
+  {
+    id: "initial",
+    name: "Initial Outreach",
+    description: "First contact - Day 1 opener to new leads",
+    icon: "🎯",
+  },
+  {
+    id: "nudger",
+    name: "Nudger",
+    description: "Gentle follow-up for non-responders (CATHY)",
+    icon: "👋",
+  },
+  {
+    id: "nurture",
+    name: "Nurture",
+    description: "Long-term engagement for warm leads",
+    icon: "🌱",
   },
 ];
 
@@ -562,6 +587,21 @@ export interface SMSCampaignConfig {
   customMessage: string;
   campaignName: string;
   audienceDescription: string; // Custom context from user
+  // === ML & Tracking Fields ===
+  campaignType: CampaignType; // initial | nudger | nurture
+  // Attempt tracking (auto-populated on creation)
+  attemptNumber: number; // Which attempt is this (1 = first, 2 = second, etc.)
+  totalAttemptsSinceInception: number; // Total attempts across all campaign types
+  lastAttemptedAt: string | null; // ISO timestamp of last attempt
+  // ML Labels
+  mlLabels: {
+    campaignType: CampaignType;
+    attemptSequence: number;
+    createdAtUtc: string;
+    scheduledAtUtc: string | null;
+    audienceContext: string;
+    personaId: string;
+  };
 }
 
 export function SMSCampaignSetup({
@@ -579,6 +619,8 @@ export function SMSCampaignSetup({
   const [campaignName, setCampaignName] = useState("");
   const [audienceDescription, setAudienceDescription] = useState("");
   const [activeTab, setActiveTab] = useState("templates");
+  // Campaign Type - Initial, Nudger, or Nurture
+  const [campaignType, setCampaignType] = useState<CampaignType>("initial");
 
   // Filter personas by selected category
   const filteredPersonas = AUDIENCE_PERSONAS.filter(
@@ -609,8 +651,9 @@ export function SMSCampaignSetup({
     setCustomMessage((prev) => prev + " " + variable);
   };
 
-  // Handle submit
+  // Handle submit - include ML tracking fields
   const handleSubmit = () => {
+    const now = new Date().toISOString();
     onSubmit({
       category: selectedCategory,
       persona: selectedPersona,
@@ -619,6 +662,19 @@ export function SMSCampaignSetup({
       campaignName:
         campaignName || `Campaign ${new Date().toLocaleDateString()}`,
       audienceDescription,
+      // === ML & Tracking Fields ===
+      campaignType,
+      attemptNumber: 1, // This is attempt #1 for this campaign
+      totalAttemptsSinceInception: 1, // Will be updated by backend with actual count
+      lastAttemptedAt: null, // No previous attempt
+      mlLabels: {
+        campaignType,
+        attemptSequence: 1,
+        createdAtUtc: now,
+        scheduledAtUtc: null, // Will be set when scheduled
+        audienceContext: audienceDescription,
+        personaId: selectedPersona,
+      },
     });
     onClose();
   };
@@ -657,6 +713,38 @@ export function SMSCampaignSetup({
               value={campaignName}
               onChange={(e) => setCampaignName(e.target.value)}
             />
+          </div>
+
+          {/* Campaign Type - Initial, Nudger, Nurture */}
+          <div className="space-y-3">
+            <Label className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4" />
+              Campaign Type <span className="text-red-500">*</span>
+            </Label>
+            <div className="grid grid-cols-3 gap-2">
+              {CAMPAIGN_TYPES.map((type) => (
+                <Card
+                  key={type.id}
+                  className={`cursor-pointer transition-all ${
+                    campaignType === type.id
+                      ? "border-green-500 bg-green-500/5"
+                      : "hover:border-muted-foreground/50"
+                  }`}
+                  onClick={() => setCampaignType(type.id)}
+                >
+                  <CardContent className="p-3 text-center">
+                    <div className="text-2xl mb-1">{type.icon}</div>
+                    <div className="font-medium text-sm">{type.name}</div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {type.description}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              ⚡ All attempts logged with timestamps for ML training
+            </p>
           </div>
 
           {/* Category Selection - Business & CRE Primary */}
@@ -831,20 +919,26 @@ export function SMSCampaignSetup({
 
               {/* Message Editor */}
               <div className="space-y-2">
-                <Label>Your Message</Label>
+                <Label>Your Message (160 char limit)</Label>
                 <Textarea
                   placeholder="Type your message here... Use variables like {{firstName}} to personalize"
                   value={customMessage}
-                  onChange={(e) => setCustomMessage(e.target.value)}
-                  rows={6}
-                  className="font-mono text-sm"
+                  onChange={(e) => {
+                    // Enforce 160 char limit for single SMS
+                    if (e.target.value.length <= 160) {
+                      setCustomMessage(e.target.value);
+                    }
+                  }}
+                  maxLength={160}
+                  rows={4}
+                  className={`font-mono text-sm ${customMessage.length >= 150 ? 'border-yellow-500' : ''} ${customMessage.length >= 160 ? 'border-red-500' : ''}`}
                 />
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>{customMessage.length} characters</span>
-                  <span>
-                    {customMessage.length > 160
-                      ? "2+ SMS segments"
-                      : "1 SMS segment"}
+                <div className="flex justify-between text-xs">
+                  <span className={customMessage.length >= 150 ? (customMessage.length >= 160 ? 'text-red-500 font-medium' : 'text-yellow-500') : 'text-muted-foreground'}>
+                    {customMessage.length}/160 characters
+                  </span>
+                  <span className={customMessage.length > 160 ? 'text-red-500' : 'text-green-500'}>
+                    {customMessage.length <= 160 ? '✓ Single SMS' : '⚠ Too long'}
                   </span>
                 </div>
               </div>

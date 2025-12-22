@@ -130,7 +130,7 @@ export function AdminSidebar() {
         },
         {
           href: "/admin/integrations/signalhouse",
-          label: "SMS (SignalHouse)",
+          label: "SMS & 10DLC",
           active: pathname === "/admin/integrations/signalhouse",
         },
         {

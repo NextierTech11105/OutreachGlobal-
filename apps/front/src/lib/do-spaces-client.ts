@@ -1,9 +1,9 @@
 /**
  * DigitalOcean Spaces S3 Client - Centralized Configuration
- * 
+ *
  * This module provides a properly configured S3 client for DO Spaces.
  * All S3 operations should use this client to ensure consistent configuration.
- * 
+ *
  * Key settings:
  * - forcePathStyle: true (REQUIRED for DO Spaces compatibility)
  * - region: nyc3
@@ -31,14 +31,27 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 // CONFIGURATION
 // ============================================================================
 
-const SPACES_REGION = process.env.DO_SPACES_REGION || process.env.SPACES_REGION || "nyc3";
-const SPACES_ENDPOINT = process.env.DO_SPACES_ENDPOINT || process.env.SPACES_ENDPOINT || `https://${SPACES_REGION}.digitaloceanspaces.com`;
-const SPACES_BUCKET = process.env.DO_SPACES_BUCKET || process.env.SPACES_BUCKET || "nextier";
+const SPACES_REGION =
+  process.env.DO_SPACES_REGION || process.env.SPACES_REGION || "nyc3";
+const SPACES_ENDPOINT =
+  process.env.DO_SPACES_ENDPOINT ||
+  process.env.SPACES_ENDPOINT ||
+  `https://${SPACES_REGION}.digitaloceanspaces.com`;
+const SPACES_BUCKET =
+  process.env.DO_SPACES_BUCKET || process.env.SPACES_BUCKET || "nextier";
 const SPACES_CDN_URL = `https://${SPACES_BUCKET}.${SPACES_REGION}.cdn.digitaloceanspaces.com`;
 
 // Credentials - check multiple env var names for compatibility
-const SPACES_KEY = process.env.DO_SPACES_KEY || process.env.SPACES_KEY || process.env.SPACES_ACCESS_KEY_ID || "";
-const SPACES_SECRET = process.env.DO_SPACES_SECRET || process.env.SPACES_SECRET || process.env.SPACES_SECRET_ACCESS_KEY || "";
+const SPACES_KEY =
+  process.env.DO_SPACES_KEY ||
+  process.env.SPACES_KEY ||
+  process.env.SPACES_ACCESS_KEY_ID ||
+  "";
+const SPACES_SECRET =
+  process.env.DO_SPACES_SECRET ||
+  process.env.SPACES_SECRET ||
+  process.env.SPACES_SECRET_ACCESS_KEY ||
+  "";
 
 // ============================================================================
 // SINGLETON CLIENT
@@ -54,7 +67,9 @@ export function getSpacesClient(): S3Client | null {
   if (_s3Client) return _s3Client;
 
   if (!SPACES_KEY || !SPACES_SECRET) {
-    console.warn("[DO Spaces] Not configured. Set DO_SPACES_KEY and DO_SPACES_SECRET environment variables.");
+    console.warn(
+      "[DO Spaces] Not configured. Set DO_SPACES_KEY and DO_SPACES_SECRET environment variables.",
+    );
     return null;
   }
 
@@ -69,7 +84,9 @@ export function getSpacesClient(): S3Client | null {
     forcePathStyle: true,
   });
 
-  console.log(`[DO Spaces] Client initialized for ${SPACES_ENDPOINT}, bucket: ${SPACES_BUCKET}`);
+  console.log(
+    `[DO Spaces] Client initialized for ${SPACES_ENDPOINT}, bucket: ${SPACES_BUCKET}`,
+  );
   return _s3Client;
 }
 
@@ -112,7 +129,7 @@ export async function uploadToSpaces(
   key: string,
   body: Buffer | string | Uint8Array,
   contentType: string = "application/octet-stream",
-  options?: { isPublic?: boolean; metadata?: Record<string, string> }
+  options?: { isPublic?: boolean; metadata?: Record<string, string> },
 ): Promise<{ url: string; cdnUrl: string } | null> {
   const client = getSpacesClient();
   if (!client) return null;
@@ -151,10 +168,10 @@ export async function downloadFromSpaces(key: string): Promise<string | null> {
       new GetObjectCommand({
         Bucket: SPACES_BUCKET,
         Key: key,
-      })
+      }),
     );
 
-    return await response.Body?.transformToString() || null;
+    return (await response.Body?.transformToString()) || null;
   } catch (error: unknown) {
     const err = error as { name?: string };
     if (err.name === "NoSuchKey") return null;
@@ -175,7 +192,7 @@ export async function deleteFromSpaces(key: string): Promise<boolean> {
       new DeleteObjectCommand({
         Bucket: SPACES_BUCKET,
         Key: key,
-      })
+      }),
     );
     return true;
   } catch (error) {
@@ -189,7 +206,7 @@ export async function deleteFromSpaces(key: string): Promise<boolean> {
  */
 export async function listSpacesObjects(
   prefix?: string,
-  maxKeys: number = 1000
+  maxKeys: number = 1000,
 ): Promise<{ key: string; size: number; lastModified: Date }[]> {
   const client = getSpacesClient();
   if (!client) return [];
@@ -226,7 +243,7 @@ export async function existsInSpaces(key: string): Promise<boolean> {
       new HeadObjectCommand({
         Bucket: SPACES_BUCKET,
         Key: key,
-      })
+      }),
     );
     return true;
   } catch {
@@ -239,7 +256,7 @@ export async function existsInSpaces(key: string): Promise<boolean> {
  */
 export async function getPresignedUrl(
   key: string,
-  expiresIn: number = 3600
+  expiresIn: number = 3600,
 ): Promise<string | null> {
   const client = getSpacesClient();
   if (!client) return null;
@@ -262,7 +279,7 @@ export async function getPresignedUrl(
  */
 export async function copyInSpaces(
   sourceKey: string,
-  destinationKey: string
+  destinationKey: string,
 ): Promise<boolean> {
   const client = getSpacesClient();
   if (!client) return false;
@@ -273,7 +290,7 @@ export async function copyInSpaces(
         Bucket: SPACES_BUCKET,
         CopySource: `${SPACES_BUCKET}/${sourceKey}`,
         Key: destinationKey,
-      })
+      }),
     );
     return true;
   } catch (error) {

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Activity,
   ArrowRight,
@@ -90,6 +90,8 @@ import { cn } from "@/lib/utils";
 
 // ============================================================================
 // PIPELINE STAGE DEFINITIONS
+// Correct flow: INGESTION → SKIP TRACING → CAMPAIGNS → INBOUND RESPONSES →
+//               EMAIL CAPTURES → MOBILE CAPTURES → PROPOSALS → DEALS
 // ============================================================================
 interface PipelineStage {
   id: string;
@@ -147,113 +149,111 @@ function getHeatBgColor(level: "hot" | "warm" | "cold"): string {
 }
 
 // ============================================================================
-// MOCK PIPELINE DATA
+// DEFAULT PIPELINE STAGES (Real data fetched on load)
+// Flow: Ingestion → Skip Trace → Campaign → Inbound → Email → Mobile → Proposal → Deal
 // ============================================================================
-const PIPELINE_STAGES: PipelineStage[] = [
+const DEFAULT_PIPELINE_STAGES: PipelineStage[] = [
   {
     id: "ingestion",
     name: "Data Ingestion",
     shortName: "Ingestion",
     icon: Database,
     color: "text-blue-600",
-    description: "Raw data flowing into the system",
+    description: "USBizData CSV imports into the system",
     metrics: [
-      {
-        label: "Records Imported",
-        value: 2450,
-        previousValue: 2100,
-        target: 2500,
-        unit: "",
-      },
-      {
-        label: "Skip Traced",
-        value: 1820,
-        previousValue: 1650,
-        target: 2000,
-        unit: "",
-      },
-      {
-        label: "Campaign Ready",
-        value: 1456,
-        previousValue: 1200,
-        target: 1500,
-        unit: "",
-      },
+      { label: "Records Imported", value: 0, previousValue: 0, target: 2500, unit: "" },
+      { label: "Lists Created", value: 0, previousValue: 0, target: 10, unit: "" },
+      { label: "Ready for Skip Trace", value: 0, previousValue: 0, target: 2000, unit: "" },
     ],
-    conversionToNext: 72,
-    previousConversion: 68,
-    heatLevel: "hot",
-    bottleneckRisk: 15,
+    conversionToNext: 0,
+    previousConversion: 0,
+    heatLevel: "cold",
+    bottleneckRisk: 0,
+  },
+  {
+    id: "skip_trace",
+    name: "Skip Tracing",
+    shortName: "Skip Trace",
+    icon: Target,
+    color: "text-cyan-600",
+    description: "Phone/email enrichment via RealEstateAPI",
+    metrics: [
+      { label: "Skip Traced", value: 0, previousValue: 0, target: 2000, unit: "" },
+      { label: "Phones Found", value: 0, previousValue: 0, target: 1500, unit: "" },
+      { label: "Emails Found", value: 0, previousValue: 0, target: 1200, unit: "" },
+    ],
+    conversionToNext: 0,
+    previousConversion: 0,
+    heatLevel: "cold",
+    bottleneckRisk: 0,
   },
   {
     id: "campaign",
-    name: "Campaign Velocity",
+    name: "Campaigns",
     shortName: "Campaigns",
     icon: Zap,
     color: "text-purple-600",
-    description: "Outreach execution speed",
+    description: "SignalHouse SMS/Voice outreach execution",
     metrics: [
-      {
-        label: "SMS Sent",
-        value: 856,
-        previousValue: 720,
-        target: 1000,
-        unit: "",
-      },
-      {
-        label: "Calls Made",
-        value: 342,
-        previousValue: 280,
-        target: 400,
-        unit: "",
-      },
-      {
-        label: "Emails Sent",
-        value: 1250,
-        previousValue: 1100,
-        target: 1500,
-        unit: "",
-      },
+      { label: "SMS Sent", value: 0, previousValue: 0, target: 1000, unit: "" },
+      { label: "Calls Made", value: 0, previousValue: 0, target: 400, unit: "" },
+      { label: "Emails Sent", value: 0, previousValue: 0, target: 1500, unit: "" },
     ],
-    conversionToNext: 12,
-    previousConversion: 10,
-    heatLevel: "warm",
-    bottleneckRisk: 45,
+    conversionToNext: 0,
+    previousConversion: 0,
+    heatLevel: "cold",
+    bottleneckRisk: 0,
   },
   {
-    id: "value_conversation",
-    name: "Value Conversations",
-    shortName: "Value Conv",
+    id: "inbound_response",
+    name: "Inbound Responses",
+    shortName: "Inbound",
     icon: MessageSquare,
     color: "text-green-600",
-    description: "Meaningful prospect engagement",
+    description: "AI Copilot handling inbound messages",
     metrics: [
-      {
-        label: "Responses",
-        value: 124,
-        previousValue: 98,
-        target: 150,
-        unit: "",
-      },
-      {
-        label: "Meetings Set",
-        value: 38,
-        previousValue: 30,
-        target: 50,
-        unit: "",
-      },
-      {
-        label: "Demos Given",
-        value: 22,
-        previousValue: 18,
-        target: 30,
-        unit: "",
-      },
+      { label: "SMS Responses", value: 0, previousValue: 0, target: 150, unit: "" },
+      { label: "Call Backs", value: 0, previousValue: 0, target: 50, unit: "" },
+      { label: "Voicemails", value: 0, previousValue: 0, target: 30, unit: "" },
     ],
-    conversionToNext: 58,
-    previousConversion: 55,
-    heatLevel: "warm",
-    bottleneckRisk: 35,
+    conversionToNext: 0,
+    previousConversion: 0,
+    heatLevel: "cold",
+    bottleneckRisk: 0,
+  },
+  {
+    id: "email_capture",
+    name: "Email Captures",
+    shortName: "Emails",
+    icon: Mail,
+    color: "text-amber-600",
+    description: "Emails collected from responses",
+    metrics: [
+      { label: "Emails Captured", value: 0, previousValue: 0, target: 100, unit: "" },
+      { label: "Verified", value: 0, previousValue: 0, target: 80, unit: "" },
+      { label: "Opted In", value: 0, previousValue: 0, target: 60, unit: "" },
+    ],
+    conversionToNext: 0,
+    previousConversion: 0,
+    heatLevel: "cold",
+    bottleneckRisk: 0,
+  },
+  {
+    id: "mobile_capture",
+    name: "Mobile Captures",
+    shortName: "Mobiles",
+    icon: Phone,
+    color: "text-indigo-600",
+    description: "Mobile numbers verified for SMS",
+    metrics: [
+      { label: "Mobiles Captured", value: 0, previousValue: 0, target: 120, unit: "" },
+      { label: "SMS Capable", value: 0, previousValue: 0, target: 100, unit: "" },
+      { label: "Opted In", value: 0, previousValue: 0, target: 80, unit: "" },
+    ],
+    conversionToNext: 0,
+    previousConversion: 0,
+    heatLevel: "cold",
+    bottleneckRisk: 0,
   },
   {
     id: "proposal",
@@ -263,20 +263,14 @@ const PIPELINE_STAGES: PipelineStage[] = [
     color: "text-orange-600",
     description: "Active deal negotiations",
     metrics: [
-      {
-        label: "Proposals Sent",
-        value: 18,
-        previousValue: 14,
-        target: 25,
-        unit: "",
-      },
-      { label: "Viewed", value: 15, previousValue: 12, target: 20, unit: "" },
-      { label: "In Review", value: 8, previousValue: 6, target: 10, unit: "" },
+      { label: "Proposals Sent", value: 0, previousValue: 0, target: 25, unit: "" },
+      { label: "Viewed", value: 0, previousValue: 0, target: 20, unit: "" },
+      { label: "In Review", value: 0, previousValue: 0, target: 10, unit: "" },
     ],
-    conversionToNext: 44,
-    previousConversion: 40,
+    conversionToNext: 0,
+    previousConversion: 0,
     heatLevel: "cold",
-    bottleneckRisk: 60,
+    bottleneckRisk: 0,
   },
   {
     id: "deal",
@@ -286,26 +280,14 @@ const PIPELINE_STAGES: PipelineStage[] = [
     color: "text-emerald-600",
     description: "Revenue generated",
     metrics: [
-      { label: "Won", value: 7, previousValue: 5, target: 10, unit: "" },
-      {
-        label: "Revenue",
-        value: 84500,
-        previousValue: 62000,
-        target: 100000,
-        unit: "$",
-      },
-      {
-        label: "Avg Deal Size",
-        value: 12071,
-        previousValue: 12400,
-        target: 15000,
-        unit: "$",
-      },
+      { label: "Won", value: 0, previousValue: 0, target: 10, unit: "" },
+      { label: "Revenue", value: 0, previousValue: 0, target: 100000, unit: "$" },
+      { label: "Avg Deal Size", value: 0, previousValue: 0, target: 15000, unit: "$" },
     ],
     conversionToNext: 0,
     previousConversion: 0,
-    heatLevel: "warm",
-    bottleneckRisk: 25,
+    heatLevel: "cold",
+    bottleneckRisk: 0,
   },
 ];
 
@@ -317,73 +299,74 @@ interface WebhookActivity {
   source: string;
   event: string;
   count: number;
-  lastFired: Date;
+  lastFired: string | null;
   status: "healthy" | "degraded" | "failing";
   avgLatency: number;
 }
 
-const WEBHOOK_ACTIVITIES: WebhookActivity[] = [
+// Default placeholder data (shown while loading or on error)
+const DEFAULT_WEBHOOK_ACTIVITIES: WebhookActivity[] = [
   {
     id: "wh-1",
     source: "SignalHouse",
     event: "sms.delivered",
-    count: 856,
-    lastFired: new Date(),
-    status: "healthy",
+    count: 0,
+    lastFired: null,
+    status: "failing",
     avgLatency: 45,
   },
   {
     id: "wh-2",
     source: "SignalHouse",
     event: "sms.response",
-    count: 124,
-    lastFired: new Date(),
-    status: "healthy",
+    count: 0,
+    lastFired: null,
+    status: "failing",
     avgLatency: 52,
   },
   {
     id: "wh-3",
     source: "Twilio",
     event: "call.completed",
-    count: 342,
-    lastFired: new Date(),
-    status: "healthy",
+    count: 0,
+    lastFired: null,
+    status: "failing",
     avgLatency: 38,
   },
   {
     id: "wh-4",
     source: "SendGrid",
     event: "email.opened",
-    count: 445,
-    lastFired: new Date(),
-    status: "healthy",
+    count: 0,
+    lastFired: null,
+    status: "failing",
     avgLatency: 120,
   },
   {
     id: "wh-5",
     source: "SendGrid",
     event: "email.clicked",
-    count: 89,
-    lastFired: new Date(),
-    status: "degraded",
-    avgLatency: 850,
+    count: 0,
+    lastFired: null,
+    status: "failing",
+    avgLatency: 150,
   },
   {
     id: "wh-6",
     source: "Calendly",
     event: "meeting.scheduled",
-    count: 38,
-    lastFired: new Date(),
-    status: "healthy",
+    count: 0,
+    lastFired: null,
+    status: "failing",
     avgLatency: 95,
   },
   {
     id: "wh-7",
     source: "Stripe",
     event: "invoice.paid",
-    count: 7,
-    lastFired: new Date(),
-    status: "healthy",
+    count: 0,
+    lastFired: null,
+    status: "failing",
     avgLatency: 65,
   },
 ];
@@ -419,29 +402,108 @@ export default function PipelineHeatmapPage() {
     null,
   );
   const [heatmapData] = useState(() => generateHeatmapData());
+  const [webhookActivities, setWebhookActivities] = useState<WebhookActivity[]>(
+    DEFAULT_WEBHOOK_ACTIVITIES,
+  );
+  const [isLoadingWebhooks, setIsLoadingWebhooks] = useState(true);
+  const [pipelineStages, setPipelineStages] = useState<PipelineStage[]>(DEFAULT_PIPELINE_STAGES);
+  const [isLoadingPipeline, setIsLoadingPipeline] = useState(true);
+
+  // Fetch pipeline stats from database
+  useEffect(() => {
+    async function fetchPipelineStats() {
+      try {
+        setIsLoadingPipeline(true);
+        const response = await fetch(`/api/analytics/pipeline-stats`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.data) {
+            // Merge fetched data with default stage definitions
+            const updatedStages = DEFAULT_PIPELINE_STAGES.map((stage) => {
+              const stageData = data.data.find((d: { id: string }) => d.id === stage.id);
+              if (stageData) {
+                // Calculate heat level based on first metric
+                const firstMetric = stageData.metrics[0];
+                const heatLevel = calculateHeatLevel(firstMetric.value, firstMetric.target);
+                // Calculate bottleneck risk (inverse of conversion to next stage)
+                const bottleneckRisk = stageData.conversionToNext > 0 
+                  ? Math.max(0, 100 - stageData.conversionToNext)
+                  : stage.id === "deal" ? 0 : 75;
+                
+                return {
+                  ...stage,
+                  metrics: stageData.metrics,
+                  conversionToNext: stageData.conversionToNext,
+                  previousConversion: stageData.previousConversion,
+                  heatLevel,
+                  bottleneckRisk,
+                };
+              }
+              return stage;
+            });
+            setPipelineStages(updatedStages);
+          }
+        }
+      } catch (error) {
+        console.error("[Pipeline Heatmap] Failed to fetch pipeline stats:", error);
+      } finally {
+        setIsLoadingPipeline(false);
+      }
+    }
+    fetchPipelineStats();
+  }, [timeRange]);
+
+  // Fetch webhook health data
+  useEffect(() => {
+    async function fetchWebhookHealth() {
+      try {
+        setIsLoadingWebhooks(true);
+        const hoursMap: Record<string, number> = {
+          "24h": 24,
+          "7d": 168,
+          "30d": 720,
+          "90d": 2160,
+        };
+        const hours = hoursMap[timeRange] || 168;
+        const response = await fetch(`/api/analytics/webhook-health?hours=${hours}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.webhooks && Array.isArray(data.webhooks)) {
+            setWebhookActivities(data.webhooks);
+          }
+        }
+      } catch (error) {
+        console.error("[Pipeline Heatmap] Failed to fetch webhook health:", error);
+      } finally {
+        setIsLoadingWebhooks(false);
+      }
+    }
+    fetchWebhookHealth();
+  }, [timeRange]);
 
   // Calculate overall pipeline health
   const pipelineHealth = useMemo(() => {
     const avgConversion =
-      PIPELINE_STAGES.slice(0, -1).reduce(
+      pipelineStages.slice(0, -1).reduce(
         (sum, s) => sum + s.conversionToNext,
         0,
       ) /
-      (PIPELINE_STAGES.length - 1);
+      (pipelineStages.length - 1);
     const avgBottleneck =
-      PIPELINE_STAGES.reduce((sum, s) => sum + s.bottleneckRisk, 0) /
-      PIPELINE_STAGES.length;
+      pipelineStages.reduce((sum, s) => sum + s.bottleneckRisk, 0) /
+      pipelineStages.length;
 
+    const dealStage = pipelineStages.find(s => s.id === "deal");
     return {
       overallHealth: 100 - avgBottleneck,
       avgConversion,
-      totalDeals: PIPELINE_STAGES[4].metrics[0].value,
-      totalRevenue: PIPELINE_STAGES[4].metrics[1].value,
-      bottleneckStage: PIPELINE_STAGES.reduce((max, s) =>
+      totalDeals: dealStage?.metrics[0]?.value ?? 0,
+      totalRevenue: dealStage?.metrics[1]?.value ?? 0,
+      bottleneckStage: pipelineStages.reduce((max, s) =>
         s.bottleneckRisk > (max?.bottleneckRisk ?? 0) ? s : max,
       ),
     };
-  }, []);
+  }, [pipelineStages]);
 
   return (
     <div className="flex flex-1 flex-col p-6 gap-6">
@@ -558,9 +620,15 @@ export default function PipelineHeatmapPage() {
         </CardHeader>
         <CardContent>
           <div className="flex items-stretch gap-2">
-            {PIPELINE_STAGES.map((stage, idx) => {
+            {isLoadingPipeline ? (
+              <div className="flex-1 flex items-center justify-center py-12">
+                <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+                <span className="ml-2 text-muted-foreground">Loading pipeline data...</span>
+              </div>
+            ) : (
+            pipelineStages.map((stage, idx) => {
               const Icon = stage.icon;
-              const isLast = idx === PIPELINE_STAGES.length - 1;
+              const isLast = idx === pipelineStages.length - 1;
 
               return (
                 <React.Fragment key={stage.id}>
@@ -671,7 +739,8 @@ export default function PipelineHeatmapPage() {
                   )}
                 </React.Fragment>
               );
-            })}
+            })
+            )}
           </div>
         </CardContent>
       </Card>
@@ -785,7 +854,7 @@ export default function PipelineHeatmapPage() {
 
         {/* WEBHOOKS TAB */}
         <TabsContent value="webhooks" className="mt-4">
-          <Card>
+          <Card className="border-border">
             <CardHeader>
               <CardTitle className="text-lg">Webhook Health Monitor</CardTitle>
               <CardDescription>
@@ -793,69 +862,83 @@ export default function PipelineHeatmapPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {WEBHOOK_ACTIVITIES.map((wh) => (
-                  <div
-                    key={wh.id}
-                    className={cn(
-                      "p-3 rounded-lg border flex items-center justify-between",
-                      wh.status === "healthy" &&
-                        "border-green-200 bg-green-50/50",
-                      wh.status === "degraded" &&
-                        "border-yellow-200 bg-yellow-50/50",
-                      wh.status === "failing" && "border-red-200 bg-red-50/50",
-                    )}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={cn(
-                          "h-2 w-2 rounded-full",
-                          wh.status === "healthy" && "bg-green-500",
-                          wh.status === "degraded" && "bg-yellow-500",
-                          wh.status === "failing" && "bg-red-500",
-                        )}
-                      />
-                      <div>
-                        <p className="font-medium text-sm">{wh.source}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {wh.event}
-                        </p>
+              {isLoadingWebhooks ? (
+                <div className="flex items-center justify-center py-8 text-muted-foreground">
+                  <RefreshCw className="h-5 w-5 animate-spin mr-2" />
+                  Loading webhook health...
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {webhookActivities.map((wh) => (
+                    <div
+                      key={wh.id}
+                      className={cn(
+                        "p-3 rounded-lg border flex items-center justify-between transition-colors",
+                        wh.status === "healthy" &&
+                          "border-emerald-500/50 bg-emerald-500/10 dark:border-emerald-400/30 dark:bg-emerald-400/5",
+                        wh.status === "degraded" &&
+                          "border-amber-500/50 bg-amber-500/10 dark:border-amber-400/30 dark:bg-amber-400/5",
+                        wh.status === "failing" &&
+                          "border-red-500/50 bg-red-500/10 dark:border-red-400/30 dark:bg-red-400/5",
+                      )}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={cn(
+                            "h-2.5 w-2.5 rounded-full",
+                            wh.status === "healthy" && "bg-emerald-500 dark:bg-emerald-400",
+                            wh.status === "degraded" && "bg-amber-500 dark:bg-amber-400",
+                            wh.status === "failing" && "bg-red-500 dark:bg-red-400",
+                          )}
+                        />
+                        <div>
+                          <p className="font-medium text-sm">{wh.source}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {wh.event}
+                          </p>
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="flex items-center gap-6 text-sm">
-                      <div className="text-center">
-                        <p className="font-medium">
-                          {wh.count.toLocaleString()}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground">
-                          Events
-                        </p>
+                      <div className="flex items-center gap-6 text-sm">
+                        <div className="text-center min-w-[60px]">
+                          <p className="font-semibold tabular-nums">
+                            {wh.count.toLocaleString()}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground">
+                            Events
+                          </p>
+                        </div>
+                        <div className="text-center min-w-[60px]">
+                          <p className={cn(
+                            "font-semibold tabular-nums",
+                            wh.avgLatency > 500 && "text-amber-500 dark:text-amber-400",
+                            wh.avgLatency > 1000 && "text-red-500 dark:text-red-400",
+                          )}>
+                            {wh.avgLatency}ms
+                          </p>
+                          <p className="text-[10px] text-muted-foreground">
+                            Latency
+                          </p>
+                        </div>
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "capitalize min-w-[80px] justify-center",
+                            wh.status === "healthy" &&
+                              "border-emerald-500 text-emerald-600 dark:border-emerald-400 dark:text-emerald-400",
+                            wh.status === "degraded" &&
+                              "border-amber-500 text-amber-600 dark:border-amber-400 dark:text-amber-400",
+                            wh.status === "failing" &&
+                              "border-red-500 text-red-600 dark:border-red-400 dark:text-red-400",
+                          )}
+                        >
+                          {wh.status}
+                        </Badge>
                       </div>
-                      <div className="text-center">
-                        <p className="font-medium">{wh.avgLatency}ms</p>
-                        <p className="text-[10px] text-muted-foreground">
-                          Latency
-                        </p>
-                      </div>
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "capitalize",
-                          wh.status === "healthy" &&
-                            "border-green-500 text-green-600",
-                          wh.status === "degraded" &&
-                            "border-yellow-500 text-yellow-600",
-                          wh.status === "failing" &&
-                            "border-red-500 text-red-600",
-                        )}
-                      >
-                        {wh.status}
-                      </Badge>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -873,7 +956,7 @@ export default function PipelineHeatmapPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {PIPELINE_STAGES.sort(
+                {[...pipelineStages].sort(
                   (a, b) => b.bottleneckRisk - a.bottleneckRisk,
                 ).map((stage) => {
                   const Icon = stage.icon;

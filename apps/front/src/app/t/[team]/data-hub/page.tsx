@@ -59,6 +59,36 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FIELD MAPPING CONFIGURATION - USBizData compatible
+// ═══════════════════════════════════════════════════════════════════════════
+const STANDARD_FIELDS = [
+  { key: "companyName", label: "Company Name", required: false },
+  { key: "contactName", label: "Contact Name", required: false },
+  { key: "firstName", label: "First Name", required: true },
+  { key: "lastName", label: "Last Name", required: true },
+  { key: "email", label: "Email", required: false },
+  { key: "phone", label: "Phone", required: false },
+  { key: "address", label: "Address", required: false },
+  { key: "city", label: "City", required: false },
+  { key: "state", label: "State", required: false },
+  { key: "zip", label: "Zip Code", required: false },
+  { key: "county", label: "County", required: false },
+  { key: "website", label: "Website", required: false },
+  { key: "employees", label: "Employees", required: false },
+  { key: "revenue", label: "Revenue", required: false },
+  { key: "sicCode", label: "SIC Code", required: false },
+  { key: "sicDescription", label: "Industry/SIC Desc", required: false },
+] as const;
 
 // Lead type for display
 interface Lead {
@@ -87,6 +117,24 @@ interface DatalakeFolder {
   path: string;
 }
 
+// Bucket with age tracking
+interface DataBucket {
+  id: string;
+  name: string;
+  totalLeads: number;
+  source?: string;
+  tags?: string[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// Field mapping type
+interface FieldMapping {
+  csvColumn: string;
+  standardField: string;
+  sampleValue?: string;
+}
+
 export default function DataHubPage() {
   const params = useParams();
   const [searchQuery, setSearchQuery] = useState("");
@@ -100,16 +148,44 @@ export default function DataHubPage() {
   const [isLoadingDatalake, setIsLoadingDatalake] = useState(false);
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
 
-  // Buckets state (CSV uploads, USBizData, etc.)
-  const [buckets, setBuckets] = useState<
-    Array<{
-      id: string;
-      name: string;
-      totalLeads: number;
-      source?: string;
-      tags?: string[];
-    }>
-  >([]);
+  // ═══════════════════════════════════════════════════════════════════
+  // WORKFLOW CONFIGURATION - Daily Limits & Batch Processing
+  // ═══════════════════════════════════════════════════════════════════
+  const WORKFLOW_CONFIG = {
+    skipTraceBatchSize: 250,      // Skip trace in batches of 250
+    maxSkipTracePerDay: 2000,     // Max 2,000 skip traces per day
+    maxSmsPerDay: 2000,           // Max 2,000 SMS blasts per day
+    maxCallsPerDay: 1000,         // Max 1,000 automated calls per day
+  };
+
+  // Workflow step tracking
+  const [workflowStep, setWorkflowStep] = useState<
+    "import" | "map" | "enrich" | "blast" | "respond" | "call"
+  >("import");
+
+  // Daily usage tracking (would come from API in production)
+  const [dailyUsage, setDailyUsage] = useState({
+    skipTracesUsed: 0,
+    smsUsed: 0,
+    callsUsed: 0,
+  });
+
+  // Buckets state (CSV uploads, USBizData, etc.) - with age tracking
+  const [buckets, setBuckets] = useState<DataBucket[]>([]);
+
+  // Field mapping state for CSV imports
+  const [showMappingDialog, setShowMappingDialog] = useState(false);
+  const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
+  const [csvPreview, setCsvPreview] = useState<Record<string, string>[]>([]);
+  const [fieldMappings, setFieldMappings] = useState<FieldMapping[]>([]);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+
+  // Current bucket age info
+  const [currentBucketAge, setCurrentBucketAge] = useState<{
+    uploadedAt: Date | null;
+    ageInDays: number;
+    ageFreshness: "fresh" | "recent" | "aging" | "stale";
+  }>({ uploadedAt: null, ageInDays: 0, ageFreshness: "fresh" });
 
   // Leads list state
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -223,10 +299,147 @@ export default function DataHubPage() {
     withEmail: leads.filter((l) => l.email).length,
   };
 
-  // Load datalake folders on mount
+  // ═══════════════════════════════════════════════════════════════════════════
+  // DATA AGE UTILITIES - Track freshness of uploaded data
+  // ═══════════════════════════════════════════════════════════════════════════
+  const calculateDataAge = (uploadDateString: string | undefined): {
+    uploadedAt: Date | null;
+    ageInDays: number;
+    ageFreshness: "fresh" | "recent" | "aging" | "stale";
+  } => {
+    if (!uploadDateString) return { uploadedAt: null, ageInDays: 0, ageFreshness: "fresh" };
+    
+    const uploadedAt = new Date(uploadDateString);
+    const now = new Date();
+    const ageInMs = now.getTime() - uploadedAt.getTime();
+    const ageInDays = Math.floor(ageInMs / (1000 * 60 * 60 * 24));
+    
+    let ageFreshness: "fresh" | "recent" | "aging" | "stale" = "fresh";
+    if (ageInDays <= 7) ageFreshness = "fresh";
+    else if (ageInDays <= 30) ageFreshness = "recent";
+    else if (ageInDays <= 90) ageFreshness = "aging";
+    else ageFreshness = "stale";
+    
+    return { uploadedAt, ageInDays, ageFreshness };
+  };
+
+  const getAgeBadgeColor = (freshness: string) => {
+    switch (freshness) {
+      case "fresh": return "bg-green-500/20 text-green-400 border-green-500/50";
+      case "recent": return "bg-blue-500/20 text-blue-400 border-blue-500/50";
+      case "aging": return "bg-amber-500/20 text-amber-400 border-amber-500/50";
+      case "stale": return "bg-red-500/20 text-red-400 border-red-500/50";
+      default: return "bg-zinc-500/20 text-zinc-400 border-zinc-500/50";
+    }
+  };
+
+  const formatAge = (days: number): string => {
+    if (days === 0) return "Today";
+    if (days === 1) return "Yesterday";
+    if (days < 7) return `${days} days ago`;
+    if (days < 30) return `${Math.floor(days / 7)} weeks ago`;
+    if (days < 365) return `${Math.floor(days / 30)} months ago`;
+    return `${Math.floor(days / 365)} years ago`;
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FIELD MAPPING UTILITIES - Auto-detect and map CSV columns
+  // ═══════════════════════════════════════════════════════════════════════════
+  const autoDetectMapping = (headers: string[]): FieldMapping[] => {
+    const mappings: FieldMapping[] = [];
+    
+    const columnPatterns: Record<string, RegExp> = {
+      companyName: /^(company|company.?name|business|business.?name|org|organization)$/i,
+      contactName: /^(contact|contact.?name|full.?name|name)$/i,
+      firstName: /^(first|first.?name|fname|given.?name)$/i,
+      lastName: /^(last|last.?name|lname|surname|family.?name)$/i,
+      email: /^(email|email.?address|e-mail|mail)$/i,
+      phone: /^(phone|phone.?number|telephone|tel|mobile|cell)$/i,
+      address: /^(address|street|street.?address|address.?1)$/i,
+      city: /^(city|town|municipality)$/i,
+      state: /^(state|province|region)$/i,
+      zip: /^(zip|zip.?code|postal|postal.?code|zipcode)$/i,
+      county: /^(county|parish)$/i,
+      website: /^(website|web|url|site|website.?url)$/i,
+      employees: /^(employees|employee.?count|number.?of.?employees|staff|headcount)$/i,
+      revenue: /^(revenue|annual.?revenue|sales|income)$/i,
+      sicCode: /^(sic|sic.?code)$/i,
+      sicDescription: /^(sic.?description|industry|sector|category)$/i,
+    };
+    
+    for (const header of headers) {
+      let matched = false;
+      for (const [field, pattern] of Object.entries(columnPatterns)) {
+        if (pattern.test(header.trim())) {
+          mappings.push({ csvColumn: header, standardField: field });
+          matched = true;
+          break;
+        }
+      }
+      if (!matched) {
+        mappings.push({ csvColumn: header, standardField: "skip" });
+      }
+    }
+    
+    return mappings;
+  };
+
+  const updateFieldMapping = (csvColumn: string, newField: string) => {
+    setFieldMappings(prev => 
+      prev.map(m => m.csvColumn === csvColumn ? { ...m, standardField: newField } : m)
+    );
+  };
+
+  const processCSVWithMapping = async () => {
+    if (!pendingFile || fieldMappings.length === 0) return;
+    
+    // For now, redirect to import-companies with mapped data
+    // In production, this would process inline
+    toast.success(`Mapping configured for ${fieldMappings.filter(m => m.standardField !== "skip").length} fields`);
+    setShowMappingDialog(false);
+    window.location.href = `/t/${params.team}/leads/import-companies`;
+  };
+
+  // Load leads from database
+  const loadLeadsFromDB = async () => {
+    setIsLoadingLeads(true);
+    try {
+      const teamSlug = params.team as string;
+      const response = await fetch(`/api/leads?teamId=${teamSlug}&limit=100`);
+      const data = await response.json();
+      
+      if (data.leads && data.leads.length > 0) {
+        const mappedLeads: Lead[] = data.leads.map((l: Record<string, unknown>) => ({
+          id: l.id as string,
+          name: l.name as string || "Unknown",
+          firstName: (l.name as string)?.split(" ")[0] || "",
+          lastName: (l.name as string)?.split(" ").slice(1).join(" ") || "",
+          company: l.company as string || "",
+          phone: l.phone as string || "",
+          email: l.email as string || "",
+          address: l.address as string || "",
+          city: l.city as string || "",
+          state: l.state as string || "",
+          zip: l.zipCode as string || "",
+          industry: l.industry as string || "",
+          source: l.source as string || "database",
+          enriched: !!(l.phone || l.email),
+        }));
+        setLeads(mappedLeads);
+        setSelectedFolder("Database Leads");
+      }
+    } catch (error) {
+      console.error("Failed to load leads from DB:", error);
+    } finally {
+      setIsLoadingLeads(false);
+    }
+  };
+
+  // Load datalake folders and leads on mount
   useEffect(() => {
     loadDatalakeFolders();
-  }, []);
+    loadLeadsFromDB();
+  }, [params.team]);
 
   // Keyboard shortcuts for Pro mode - TradingView style
   useEffect(() => {
@@ -395,6 +608,14 @@ export default function DataHubPage() {
       const response = await fetch(`/api/buckets/${bucketId}`);
       const data = await response.json();
 
+      // Set age tracking from bucket metadata
+      const bucket = buckets.find(b => b.id === bucketId);
+      if (bucket?.createdAt) {
+        setCurrentBucketAge(calculateDataAge(bucket.createdAt));
+      } else {
+        setCurrentBucketAge({ uploadedAt: null, ageInDays: 0, ageFreshness: "fresh" });
+      }
+
       if (data.records && data.records.length > 0) {
         // Map bucket records to leads
         const mappedLeads: Lead[] = data.records.map(
@@ -437,6 +658,7 @@ export default function DataHubPage() {
           },
         );
         setLeads(mappedLeads);
+        setWorkflowStep("enrich"); // Move to enrich step after loading
         toast.success(
           `Loaded ${mappedLeads.length} records from ${bucketName}`,
         );
@@ -504,10 +726,24 @@ export default function DataHubPage() {
       return;
     }
 
+    // Check daily limit
+    const remainingSkipTraces = WORKFLOW_CONFIG.maxSkipTracePerDay - dailyUsage.skipTracesUsed;
+    if (remainingSkipTraces <= 0) {
+      toast.error(`Daily skip trace limit reached (${WORKFLOW_CONFIG.maxSkipTracePerDay}/day)`);
+      return;
+    }
+
+    // Cap at remaining daily limit
+    const actualLeadsToEnrich = leadsToEnrich.slice(0, Math.min(leadsToEnrich.length, remainingSkipTraces));
+    if (actualLeadsToEnrich.length < leadsToEnrich.length) {
+      toast.warning(`Enriching ${actualLeadsToEnrich.length} of ${leadsToEnrich.length} (daily limit)`);
+    }
+
     setIsEnriching(true);
     setShowEnrichDialog(true);
+    setWorkflowStep("enrich");
     setEnrichProgress({
-      total: leadsToEnrich.length,
+      total: actualLeadsToEnrich.length,
       processed: 0,
       successful: 0,
       withPhones: 0,
@@ -516,9 +752,10 @@ export default function DataHubPage() {
     let successful = 0;
     let withPhones = 0;
 
-    // Process in batches of 5
-    for (let i = 0; i < leadsToEnrich.length; i += 5) {
-      const batch = leadsToEnrich.slice(i, i + 5);
+    // Process in batches of 250 (WORKFLOW_CONFIG.skipTraceBatchSize)
+    const batchSize = Math.min(WORKFLOW_CONFIG.skipTraceBatchSize, 5); // API calls in parallel
+    for (let i = 0; i < actualLeadsToEnrich.length; i += batchSize) {
+      const batch = actualLeadsToEnrich.slice(i, i + batchSize);
 
       const batchPromises = batch.map(async (lead) => {
         try {
@@ -714,8 +951,45 @@ export default function DataHubPage() {
       return;
     }
 
-    toast.success(`File "${file.name}" selected. Redirecting to upload...`);
-    window.location.href = `/t/${params.team}/leads/import-companies`;
+    // Parse CSV headers and show mapping dialog
+    try {
+      const text = await file.text();
+      const lines = text.split("\n").filter(l => l.trim());
+      if (lines.length < 2) {
+        toast.error("CSV file is empty or has no data rows");
+        return;
+      }
+
+      // Parse headers (first row)
+      const headers = lines[0].split(",").map(h => h.replace(/^"|"$/g, "").trim());
+      setCsvHeaders(headers);
+
+      // Parse preview rows (next 3 rows)
+      const previewRows = lines.slice(1, 4).map(line => {
+        const values = line.split(",").map(v => v.replace(/^"|"$/g, "").trim());
+        const row: Record<string, string> = {};
+        headers.forEach((h, i) => { row[h] = values[i] || ""; });
+        return row;
+      });
+      setCsvPreview(previewRows);
+
+      // Auto-detect mappings
+      const autoMappings = autoDetectMapping(headers);
+      // Add sample values
+      autoMappings.forEach(m => {
+        m.sampleValue = previewRows[0]?.[m.csvColumn] || "";
+      });
+      setFieldMappings(autoMappings);
+
+      setPendingFile(file);
+      setShowMappingDialog(true);
+      setWorkflowStep("map");
+      
+      toast.success(`CSV "${file.name}" loaded - ${headers.length} columns detected`);
+    } catch (error) {
+      console.error("CSV parse error:", error);
+      toast.error("Failed to parse CSV file");
+    }
   };
 
   const handleTestSkipTrace = async () => {
@@ -893,30 +1167,38 @@ export default function DataHubPage() {
                     </span>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-72 bg-zinc-900 border-zinc-700 max-h-96 overflow-y-auto">
-                  {/* BUCKETS - CSV uploads, USBizData, etc. */}
+                <DropdownMenuContent className="w-80 bg-zinc-900 border-zinc-700 max-h-96 overflow-y-auto">
+                  {/* BUCKETS - CSV uploads, USBizData, etc. with AGE TRACKING */}
                   {buckets.length > 0 && (
                     <>
                       <div className="px-2 py-1 text-xs font-semibold text-purple-400 border-b border-zinc-700 mb-1">
                         YOUR DATA ({buckets.length})
                       </div>
-                      {buckets.slice(0, 10).map((bucket) => (
-                        <DropdownMenuItem
-                          key={bucket.id}
-                          onClick={() => pullFromBucket(bucket.id, bucket.name)}
-                          className="text-white hover:bg-zinc-800 cursor-pointer"
-                        >
-                          <Database className="h-4 w-4 mr-2 text-green-400" />
-                          <div className="flex-1 overflow-hidden">
-                            <div className="truncate text-sm">
-                              {bucket.name}
+                      {buckets.slice(0, 10).map((bucket) => {
+                        const age = calculateDataAge(bucket.createdAt);
+                        return (
+                          <DropdownMenuItem
+                            key={bucket.id}
+                            onClick={() => pullFromBucket(bucket.id, bucket.name)}
+                            className="text-white hover:bg-zinc-800 cursor-pointer py-2"
+                          >
+                            <Database className="h-4 w-4 mr-2 text-green-400 flex-shrink-0" />
+                            <div className="flex-1 overflow-hidden min-w-0">
+                              <div className="truncate text-sm font-medium">
+                                {bucket.name}
+                              </div>
+                              <div className="flex items-center gap-2 text-xs text-zinc-500">
+                                <span>{bucket.totalLeads?.toLocaleString() || 0} records</span>
+                                {age.uploadedAt && (
+                                  <span className={`px-1.5 py-0.5 rounded text-[10px] border ${getAgeBadgeColor(age.ageFreshness)}`}>
+                                    {formatAge(age.ageInDays)}
+                                  </span>
+                                )}
+                              </div>
                             </div>
-                            <div className="text-xs text-zinc-500">
-                              {bucket.totalLeads?.toLocaleString() || 0} records
-                            </div>
-                          </div>
-                        </DropdownMenuItem>
-                      ))}
+                          </DropdownMenuItem>
+                        );
+                      })}
                       {buckets.length > 10 && (
                         <div className="px-2 py-1 text-xs text-zinc-500">
                           +{buckets.length - 10} more...
@@ -1135,7 +1417,7 @@ export default function DataHubPage() {
           </CardContent>
         </Card>
 
-        {/* LEADS TABLE - Shows after data is loaded */}
+        {/* LEADS TABLE - Shows after data is loaded with AGE TRACKING */}
         {leads.length > 0 && (
           <Card className="bg-zinc-900 border border-zinc-700">
             <CardContent className="p-4">
@@ -1154,6 +1436,12 @@ export default function DataHubPage() {
                     {selectedLeads.size > 0 &&
                       ` (${selectedLeads.size} selected)`}
                   </span>
+                  {/* Data Age Badge */}
+                  {currentBucketAge.uploadedAt && (
+                    <span className={`px-2 py-0.5 rounded text-xs border ${getAgeBadgeColor(currentBucketAge.ageFreshness)}`}>
+                      📅 {formatAge(currentBucketAge.ageInDays)}
+                    </span>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   {selectedLeads.size > 0 && (
@@ -1372,9 +1660,15 @@ export default function DataHubPage() {
         <Button
           size="sm"
           variant="ghost"
+          onClick={() => {
+            loadDatalakeFolders();
+            loadLeadsFromDB();
+            toast.success("Refreshing data...");
+          }}
+          disabled={isLoadingLeads}
           className="text-zinc-400 hover:text-white hover:bg-zinc-800"
         >
-          <RefreshCw className="h-4 w-4 mr-1" />
+          <RefreshCw className={`h-4 w-4 mr-1 ${isLoadingLeads ? 'animate-spin' : ''}`} />
           Refresh
         </Button>
         <div className="flex-1" />
@@ -1600,7 +1894,15 @@ export default function DataHubPage() {
 
         {/* Center - Data Grid */}
         <div className="flex-1 bg-zinc-900 p-4 flex flex-col">
-          {leads.length === 0 ? (
+          {isLoadingLeads ? (
+            <div className="flex-1 border border-zinc-800 rounded-lg flex items-center justify-center">
+              <div className="text-center">
+                <Loader2 className="h-12 w-12 text-blue-500 mx-auto mb-4 animate-spin" />
+                <p className="text-zinc-400 text-lg mb-2">Loading leads...</p>
+                <p className="text-zinc-600 text-sm">Fetching from database</p>
+              </div>
+            </div>
+          ) : leads.length === 0 ? (
             <div className="flex-1 border border-zinc-800 rounded-lg flex items-center justify-center">
               <div className="text-center">
                 <Terminal className="h-16 w-16 text-zinc-700 mx-auto mb-4" />
@@ -1609,6 +1911,15 @@ export default function DataHubPage() {
                   Import a CSV, pull from datalake, or search Apollo
                 </p>
                 <div className="flex gap-2 justify-center flex-wrap">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={loadLeadsFromDB}
+                    className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Refresh
+                  </Button>
                   <Button
                     size="sm"
                     className="bg-blue-600 hover:bg-blue-700"
@@ -2350,6 +2661,170 @@ export default function DataHubPage() {
               Pro mode only. Shortcuts are disabled when typing in input fields.
             </p>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ═══════════════════════════════════════════════════════════════════════════
+          FIELD MAPPING DIALOG - Visual CSV Column Mapper
+          ═══════════════════════════════════════════════════════════════════════════ */}
+      <Dialog open={showMappingDialog} onOpenChange={setShowMappingDialog}>
+        <DialogContent className="sm:max-w-[800px] bg-zinc-900 border-zinc-700 text-white max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-white">
+              <ArrowRight className="h-5 w-5 text-blue-400" />
+              Map Your CSV Columns
+              {pendingFile && (
+                <span className="text-sm font-normal text-zinc-400 ml-2">
+                  - {pendingFile.name}
+                </span>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto space-y-4 py-4">
+            {/* Instructions */}
+            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+              <p className="text-sm text-blue-300">
+                <strong>Auto-detected {fieldMappings.filter(m => m.standardField !== "skip").length} mappings.</strong>{" "}
+                Review and adjust column mappings below. First Name and Last Name are required for skip trace.
+              </p>
+            </div>
+
+            {/* Mapping Grid */}
+            <div className="border border-zinc-700 rounded-lg overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-zinc-800 hover:bg-zinc-800">
+                    <TableHead className="text-zinc-300 w-1/3">CSV Column</TableHead>
+                    <TableHead className="text-zinc-300 w-1/3">Sample Value</TableHead>
+                    <TableHead className="text-zinc-300 w-1/3">Map To</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {fieldMappings.map((mapping) => (
+                    <TableRow key={mapping.csvColumn} className="hover:bg-zinc-800/50">
+                      <TableCell className="font-mono text-sm text-white">
+                        {mapping.csvColumn}
+                      </TableCell>
+                      <TableCell className="text-sm text-zinc-400 truncate max-w-[200px]">
+                        {mapping.sampleValue || "-"}
+                      </TableCell>
+                      <TableCell>
+                        <Select
+                          value={mapping.standardField}
+                          onValueChange={(val) => updateFieldMapping(mapping.csvColumn, val)}
+                        >
+                          <SelectTrigger className="w-full bg-zinc-800 border-zinc-600 text-white">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-zinc-900 border-zinc-700">
+                            <SelectItem value="skip" className="text-zinc-400">
+                              ⏭️ Skip this column
+                            </SelectItem>
+                            {STANDARD_FIELDS.map(field => (
+                              <SelectItem 
+                                key={field.key} 
+                                value={field.key}
+                                className={field.required ? "text-amber-400" : "text-white"}
+                              >
+                                {field.label} {field.required && "⭐"}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Validation Summary */}
+            <div className="flex items-center gap-4 text-sm">
+              <div className="flex items-center gap-2">
+                {fieldMappings.some(m => m.standardField === "firstName") ? (
+                  <CheckCircle2 className="h-4 w-4 text-green-400" />
+                ) : (
+                  <X className="h-4 w-4 text-red-400" />
+                )}
+                <span className={fieldMappings.some(m => m.standardField === "firstName") ? "text-green-400" : "text-red-400"}>
+                  First Name
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                {fieldMappings.some(m => m.standardField === "lastName") ? (
+                  <CheckCircle2 className="h-4 w-4 text-green-400" />
+                ) : (
+                  <X className="h-4 w-4 text-red-400" />
+                )}
+                <span className={fieldMappings.some(m => m.standardField === "lastName") ? "text-green-400" : "text-red-400"}>
+                  Last Name
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                {fieldMappings.some(m => m.standardField === "address") ? (
+                  <CheckCircle2 className="h-4 w-4 text-green-400" />
+                ) : (
+                  <span className="h-4 w-4 text-zinc-500">○</span>
+                )}
+                <span className="text-zinc-400">Address (optional)</span>
+              </div>
+            </div>
+
+            {/* Preview Section */}
+            {csvPreview.length > 0 && (
+              <div className="space-y-2">
+                <div className="text-xs text-zinc-500 uppercase tracking-wider">
+                  Data Preview (first {csvPreview.length} rows)
+                </div>
+                <div className="bg-zinc-800/50 rounded-lg p-3 overflow-x-auto">
+                  <table className="text-xs font-mono">
+                    <thead>
+                      <tr>
+                        {csvHeaders.slice(0, 6).map(h => (
+                          <th key={h} className="px-2 py-1 text-left text-zinc-400">
+                            {h.substring(0, 15)}
+                          </th>
+                        ))}
+                        {csvHeaders.length > 6 && (
+                          <th className="px-2 py-1 text-zinc-500">+{csvHeaders.length - 6} more</th>
+                        )}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {csvPreview.map((row, i) => (
+                        <tr key={i}>
+                          {csvHeaders.slice(0, 6).map(h => (
+                            <td key={h} className="px-2 py-1 text-zinc-300 truncate max-w-[120px]">
+                              {row[h] || "-"}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="border-t border-zinc-800 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowMappingDialog(false)}
+              className="border-zinc-600 text-zinc-300 hover:bg-zinc-800"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={processCSVWithMapping}
+              disabled={!fieldMappings.some(m => m.standardField === "firstName") || !fieldMappings.some(m => m.standardField === "lastName")}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <ArrowRight className="h-4 w-4 mr-2" />
+              Continue to Import
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

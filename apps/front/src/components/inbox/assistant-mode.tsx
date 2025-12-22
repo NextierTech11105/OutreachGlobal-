@@ -8,7 +8,7 @@
  * GIANNA, CATHY, and SABRINA can each enter "Assistant Mode" for hands-free calling.
  * User directs them: "next lead", "call", "skip", "switch lane"
  *
- * SignalHouse.io handles the call infrastructure.
+ * The integrated communication stack handles call infrastructure.
  * We handle the AI persona orchestration on the frontend.
  */
 

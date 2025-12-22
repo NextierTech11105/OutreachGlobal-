@@ -53,7 +53,7 @@ export default function SignalhouseNumbersPage() {
       <TeamHeader>
         <TeamTitle>
           <Phone className="w-6 h-6 mr-2" />
-          SignalHouse Numbers
+          10DLC Numbers
         </TeamTitle>
       </TeamHeader>
 
@@ -80,7 +80,7 @@ export default function SignalhouseNumbersPage() {
                 No Numbers Configured
               </h3>
               <p className="text-zinc-400 mb-4">
-                Add a 10DLC number from SignalHouse to start sending SMS
+                Add a 10DLC registered number to start sending SMS
                 campaigns
               </p>
               <Button>

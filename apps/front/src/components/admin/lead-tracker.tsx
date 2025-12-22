@@ -2386,7 +2386,7 @@ export function LeadTracker() {
                     3. Assign Number
                   </Button>
                   <p className="text-xs text-zinc-500 mt-1 text-center">
-                    {activeCampaign?.phone || "SignalHouse #"}
+                    {activeCampaign?.phone || "10DLC Number"}
                   </p>
                 </div>
 

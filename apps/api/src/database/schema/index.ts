@@ -22,6 +22,9 @@ export * from "./sdr_sessions.schema";
 // ===== CONTENT LIBRARY =====
 export * from "./content-library.schema";
 
+// ===== SIGNALHOUSE INTEGRATION =====
+export * from "./signalhouse.schema";
+
 // ===== ENRICHMENT PIPELINE SCHEMAS =====
 export * from "./persona.schema";
 export * from "./phone.schema";

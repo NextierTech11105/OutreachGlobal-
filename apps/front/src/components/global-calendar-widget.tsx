@@ -33,7 +33,7 @@ import { toast } from "sonner";
  * A floating, minimizable calendar that appears on ALL pages except raw datalakes.
  * Provides:
  * - Quick view of today's scheduled calls/tasks
- * - Click-to-call / Click-to-SMS actions (SignalHouse for SMS, Twilio for voice)
+ * - Click-to-call / Click-to-SMS actions (integrated SMS and voice stack)
  * - Push leads to calendar from anywhere
  * - Schedule strategy sessions
  *
@@ -190,7 +190,7 @@ export function GlobalCalendarWidget() {
 
         if (response.ok) {
           toast.success(`SMS queued to ${leadName || phone}`, {
-            description: "Via SignalHouse.io",
+            description: "Message sent via 10DLC",
           });
         } else {
           // Fallback to SMS link

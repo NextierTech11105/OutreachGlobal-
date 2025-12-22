@@ -44,38 +44,38 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Build query to fetch SMS messages
-    // This queries the sms_messages table or similar
+    // Build query to fetch messages via inbox_items + messages tables
     let messages: InboxMessage[] = [];
 
     try {
-      // Query SMS messages table for inbound messages
+      // Query inbox_items joined with messages table for inbound responses
       const result = await db.execute(sql`
         SELECT
-          sm.id,
-          sm.lead_id as "leadId",
-          COALESCE(l.first_name || ' ' || l.last_name, sm.from_phone) as "leadName",
-          sm.from_phone as "leadPhone",
-          sm.body as message,
-          sm.direction,
+          ii.id,
+          ii.lead_id as "leadId",
+          COALESCE(l.first_name || ' ' || l.last_name, m.from_address) as "leadName",
+          m.from_address as "leadPhone",
+          COALESCE(ii.response_text, m.body) as message,
+          m.direction,
           CASE
-            WHEN sm.read_at IS NULL THEN 'new'
-            WHEN sm.replied_at IS NOT NULL THEN 'replied'
+            WHEN ii.is_read = false THEN 'new'
+            WHEN ii.is_processed = true THEN 'replied'
             ELSE 'read'
           END as status,
-          sm.classification,
-          sm.sentiment,
-          sm.created_at as "createdAt",
+          ii.classification,
+          ii.sentiment,
+          ii.created_at as "createdAt",
           c.name as campaign
-        FROM sms_messages sm
-        LEFT JOIN leads l ON sm.lead_id = l.id
-        LEFT JOIN campaigns c ON sm.campaign_id = c.id
-        WHERE sm.team_id = ${teamId}
-          AND sm.direction = 'inbound'
-          ${phoneNumber ? sql`AND sm.to_phone = ${phoneNumber}` : sql``}
-          ${status === "new" ? sql`AND sm.read_at IS NULL` : sql``}
-          ${status === "replied" ? sql`AND sm.replied_at IS NOT NULL` : sql``}
-        ORDER BY sm.created_at DESC
+        FROM inbox_items ii
+        LEFT JOIN messages m ON ii.message_id = m.id
+        LEFT JOIN leads l ON ii.lead_id = l.id
+        LEFT JOIN campaigns c ON ii.campaign_id = c.id
+        WHERE ii.team_id = ${teamId}
+          AND (m.direction = 'INBOUND' OR m.direction IS NULL)
+          ${phoneNumber ? sql`AND m.to_address = ${phoneNumber}` : sql``}
+          ${status === "new" ? sql`AND ii.is_read = false` : sql``}
+          ${status === "replied" ? sql`AND ii.is_processed = true` : sql``}
+        ORDER BY ii.created_at DESC
         LIMIT ${limit}
         OFFSET ${offset}
       `);
@@ -106,12 +106,13 @@ export async function GET(request: NextRequest) {
     try {
       const countResult = await db.execute(sql`
         SELECT
-          COUNT(*) FILTER (WHERE read_at IS NULL) as new_count,
+          COUNT(*) FILTER (WHERE ii.is_read = false) as new_count,
           COUNT(*) as total_count
-        FROM sms_messages
-        WHERE team_id = ${teamId}
-          AND direction = 'inbound'
-          ${phoneNumber ? sql`AND to_phone = ${phoneNumber}` : sql``}
+        FROM inbox_items ii
+        LEFT JOIN messages m ON ii.message_id = m.id
+        WHERE ii.team_id = ${teamId}
+          AND (m.direction = 'INBOUND' OR m.direction IS NULL)
+          ${phoneNumber ? sql`AND m.to_address = ${phoneNumber}` : sql``}
       `);
 
       newCount = countResult.rows?.[0]?.new_count || 0;
@@ -156,18 +157,18 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    // Update message status
+    // Update inbox_item status
     if (status === "read") {
       await db.execute(sql`
-        UPDATE sms_messages
-        SET read_at = NOW()
+        UPDATE inbox_items
+        SET is_read = true, updated_at = NOW()
         WHERE id = ANY(${messageIds}::text[])
           AND team_id = ${teamId}
       `);
     } else if (status === "archived") {
       await db.execute(sql`
-        UPDATE sms_messages
-        SET archived_at = NOW()
+        UPDATE inbox_items
+        SET is_processed = true, processed_at = NOW(), updated_at = NOW()
         WHERE id = ANY(${messageIds}::text[])
           AND team_id = ${teamId}
       `);

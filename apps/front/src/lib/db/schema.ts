@@ -1359,6 +1359,12 @@ export const dialerSessionsRelations = relations(dialerSessions, ({ one }) => ({
  * - Contact status
  * - Template/message used
  * - Response tracking
+ *
+ * ML LABELING: Every attempt is timestamped and labeled for machine learning:
+ * - campaignType: initial | nudger | nurture
+ * - attemptNumber: Which attempt this is (1, 2, 3...)
+ * - totalAttemptsSinceInception: Cumulative count across all campaigns for this lead
+ * - All timestamps in UTC for consistent ML training
  */
 export const campaignAttempts = pgTable(
   "campaign_attempts",
@@ -1374,10 +1380,13 @@ export const campaignAttempts = pgTable(
     campaignContext: text("campaign_context").notNull(), // 'initial' | 'retarget' | 'follow_up' | 'book_appointment' | 'confirm_appointment' | 'nurture' | 'ghost' | 'scheduled' | 'instant'
     campaignId: text("campaign_id"), // Link to campaign
     campaignName: text("campaign_name"),
+    // === Campaign Type for ML ===
+    campaignType: text("campaign_type").notNull().default("initial"), // 'initial' | 'nudger' | 'nurture'
 
     // === Attempt Info ===
     attemptNumber: integer("attempt_number").notNull().default(1), // 1, 2, 3...
     previousAttempts: integer("previous_attempts").default(0), // Total attempts before this one
+    totalAttemptsSinceInception: integer("total_attempts_since_inception").default(1), // Total from lead inception
     channel: text("channel").notNull(), // 'sms' | 'dialer' | 'email'
 
     // === Message ===
@@ -1410,13 +1419,17 @@ export const campaignAttempts = pgTable(
     errorCode: text("error_code"),
     errorMessage: text("error_message"),
 
+    // === ML Labels (for training) ===
+    mlLabels: jsonb("ml_labels"), // { campaignType, attemptSequence, createdAtUtc, scheduledAtUtc, audienceContext, personaId }
+
     // === Metadata ===
     metadata: jsonb("metadata"), // Additional context data
 
-    // === Timestamps ===
+    // === Timestamps (all UTC for ML consistency) ===
     scheduledAt: timestamp("scheduled_at"), // When scheduled to send
     sentAt: timestamp("sent_at"), // When actually sent
     deliveredAt: timestamp("delivered_at"), // When confirmed delivered
+    lastAttemptedAt: timestamp("last_attempted_at"), // When this specific attempt was made
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
@@ -1432,6 +1445,11 @@ export const campaignAttempts = pgTable(
       table.campaignId,
     ),
     createdAtIdx: index("campaign_attempts_created_at_idx").on(table.createdAt),
+    // === ML Query Indexes ===
+    campaignTypeIdx: index("campaign_attempts_type_idx").on(table.campaignType),
+    attemptNumberIdx: index("campaign_attempts_attempt_num_idx").on(table.attemptNumber),
+    lastAttemptedAtIdx: index("campaign_attempts_last_attempted_idx").on(table.lastAttemptedAt),
+    mlCompositeIdx: index("campaign_attempts_ml_idx").on(table.campaignType, table.attemptNumber, table.createdAt),
   }),
 );
 
@@ -1727,12 +1745,23 @@ export const campaigns = pgTable(
     pausedAt: timestamp("paused_at"),
     resumedAt: timestamp("resumed_at"),
     metadata: jsonb("metadata"),
+    // === Campaign Type for ML Classification ===
+    campaignType: text("campaign_type").notNull().default("initial"), // 'initial' | 'nudger' | 'nurture'
+    // === Attempt Tracking from Inception ===
+    totalAttempts: integer("total_attempts").notNull().default(0), // Total attempts since campaign inception
+    currentAttemptNumber: integer("current_attempt_number").notNull().default(0), // Current attempt sequence
+    lastAttemptedAt: timestamp("last_attempted_at"), // When was last attempt made
+    lastAttemptStatus: text("last_attempt_status"), // Status of last attempt
+    // === ML Labels (timestamped for training) ===
+    mlLabels: jsonb("ml_labels"), // { campaignType, attemptSequence, createdAtUtc, audienceContext, personaId }
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => ({
     teamIdIdx: index("campaigns_team_id_idx").on(table.teamId),
     statusIdx: index("campaigns_status_idx").on(table.status),
+    campaignTypeIdx: index("campaigns_type_idx").on(table.campaignType),
+    lastAttemptedAtIdx: index("campaigns_last_attempted_at_idx").on(table.lastAttemptedAt),
   }),
 );
 
@@ -1846,3 +1875,193 @@ export const messageTemplates = pgTable(
 
 export type MessageTemplate = typeof messageTemplates.$inferSelect;
 export type NewMessageTemplate = typeof messageTemplates.$inferInsert;
+
+// ============================================================
+// SIGNALHOUSE 10DLC BRAND REGISTRATION
+// Tracks brand registration status with SignalHouse/TCR for 10DLC compliance
+// See: apps/api/src/database/schema/signalhouse.schema.ts for source of truth
+// ============================================================
+
+export const signalhouseBrands = pgTable(
+  "signalhouse_brands",
+  {
+    id: text("id").primaryKey(),
+    teamId: text("team_id").notNull(),
+
+    // SignalHouse identifiers
+    brandId: text("brand_id").notNull(),
+    cspId: text("csp_id"),
+
+    // Brand details
+    displayName: text("display_name").notNull(),
+    companyName: text("company_name").notNull(),
+    ein: text("ein"),
+    einIssuingCountry: text("ein_issuing_country").default("US"),
+    entityType: text("entity_type").notNull().default("PRIVATE_PROFIT"),
+    vertical: text("vertical").notNull().default("PROFESSIONAL"),
+
+    // Contact info
+    email: text("email"),
+    phone: text("phone"),
+    street: text("street"),
+    city: text("city"),
+    state: text("state"),
+    postalCode: text("postal_code"),
+    country: text("country").default("US"),
+    website: text("website"),
+
+    // Registration status
+    registrationStatus: text("registration_status").notNull().default("PENDING"),
+    tcrBrandId: text("tcr_brand_id"),
+    tcrScore: integer("tcr_score"),
+    vettingStatus: text("vetting_status").default("PENDING"),
+
+    // Metadata
+    rejectionReason: text("rejection_reason"),
+    metadata: jsonb("metadata"),
+
+    // Timestamps
+    submittedAt: timestamp("submitted_at"),
+    approvedAt: timestamp("approved_at"),
+    expiresAt: timestamp("expires_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    teamIdIdx: index("signalhouse_brands_team_id_idx").on(table.teamId),
+    brandIdIdx: index("signalhouse_brands_brand_id_idx").on(table.brandId),
+    statusIdx: index("signalhouse_brands_status_idx").on(table.registrationStatus),
+  }),
+);
+
+export type SignalhouseBrand = typeof signalhouseBrands.$inferSelect;
+export type NewSignalhouseBrand = typeof signalhouseBrands.$inferInsert;
+
+// ============================================================
+// SIGNALHOUSE 10DLC CAMPAIGN REGISTRATION
+// Tracks campaign (use case) registration with SignalHouse/TCR
+// ============================================================
+
+export const signalhouseCampaigns = pgTable(
+  "signalhouse_campaigns",
+  {
+    id: text("id").primaryKey(),
+    teamId: text("team_id").notNull(),
+    brandId: text("brand_id").notNull(),
+
+    // SignalHouse identifiers
+    campaignId: text("campaign_id").notNull(),
+    tcrCampaignId: text("tcr_campaign_id"),
+
+    // Campaign details
+    useCase: text("use_case").notNull().default("MIXED"),
+    subUseCases: jsonb("sub_use_cases").$type<string[]>().default([]),
+    description: text("description").notNull(),
+    sampleMessages: jsonb("sample_messages").$type<string[]>().default([]),
+
+    // Message flow settings
+    subscriberOptIn: boolean("subscriber_opt_in").notNull().default(true),
+    subscriberOptOut: boolean("subscriber_opt_out").notNull().default(true),
+    subscriberHelp: boolean("subscriber_help").notNull().default(true),
+    embeddedLink: boolean("embedded_link").notNull().default(false),
+    embeddedPhone: boolean("embedded_phone").notNull().default(false),
+    numberPool: boolean("number_pool").notNull().default(false),
+
+    // Throughput limits
+    messageClassification: text("message_classification").default("STANDARD"),
+    dailyLimit: integer("daily_limit"),
+    monthlyLimit: integer("monthly_limit"),
+
+    // Registration status
+    registrationStatus: text("registration_status").notNull().default("PENDING"),
+    rejectionReason: text("rejection_reason"),
+
+    // Link to internal campaign
+    internalCampaignId: text("internal_campaign_id"),
+
+    // Metadata
+    metadata: jsonb("metadata"),
+
+    // Timestamps
+    submittedAt: timestamp("submitted_at"),
+    approvedAt: timestamp("approved_at"),
+    expiresAt: timestamp("expires_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    teamIdIdx: index("signalhouse_campaigns_team_id_idx").on(table.teamId),
+    brandIdIdx: index("signalhouse_campaigns_brand_id_idx").on(table.brandId),
+    campaignIdIdx: index("signalhouse_campaigns_campaign_id_idx").on(table.campaignId),
+    statusIdx: index("signalhouse_campaigns_status_idx").on(table.registrationStatus),
+  }),
+);
+
+export type SignalhouseCampaign = typeof signalhouseCampaigns.$inferSelect;
+export type NewSignalhouseCampaign = typeof signalhouseCampaigns.$inferInsert;
+
+// ============================================================
+// TEAM PHONE NUMBERS
+// Phone numbers provisioned from SignalHouse for each team
+// ============================================================
+
+export const teamPhoneNumbers = pgTable(
+  "team_phone_numbers",
+  {
+    id: text("id").primaryKey(),
+    teamId: text("team_id").notNull(),
+
+    // Phone number details
+    phoneNumber: text("phone_number").notNull(),
+    formattedNumber: text("formatted_number"),
+    areaCode: text("area_code"),
+
+    // SignalHouse identifiers
+    signalhouseId: text("signalhouse_id"),
+    orderId: text("order_id"),
+
+    // Number type and capabilities
+    numberType: text("number_type").notNull().default("local"),
+    capabilities: jsonb("capabilities")
+      .$type<{ sms: boolean; mms: boolean; voice: boolean; fax: boolean }>()
+      .default({ sms: true, mms: false, voice: false, fax: false }),
+
+    // 10DLC association
+    brandId: text("brand_id"),
+    campaignId: text("campaign_id"),
+    tenDlcStatus: text("ten_dlc_status").default("PENDING"),
+
+    // Status and assignment
+    status: text("status").notNull().default("active"),
+    assignedTo: text("assigned_to"),
+    isPrimary: boolean("is_primary").default(false),
+    isDefault: boolean("is_default").default(false),
+
+    // Usage tracking
+    smsCount: integer("sms_count").default(0),
+    mmsCount: integer("mms_count").default(0),
+    voiceMinutes: integer("voice_minutes").default(0),
+    lastUsedAt: timestamp("last_used_at"),
+
+    // Billing
+    monthlyCost: decimal("monthly_cost", { precision: 10, scale: 4 }),
+
+    // Metadata
+    metadata: jsonb("metadata"),
+
+    // Timestamps
+    provisionedAt: timestamp("provisioned_at"),
+    releasedAt: timestamp("released_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    teamIdIdx: index("team_phone_numbers_team_id_idx").on(table.teamId),
+    phoneNumberIdx: index("team_phone_numbers_phone_number_idx").on(table.phoneNumber),
+    statusIdx: index("team_phone_numbers_status_idx").on(table.status),
+    signalhouseIdIdx: index("team_phone_numbers_signalhouse_id_idx").on(table.signalhouseId),
+  }),
+);
+
+export type TeamPhoneNumber = typeof teamPhoneNumbers.$inferSelect;
+export type NewTeamPhoneNumber = typeof teamPhoneNumbers.$inferInsert;

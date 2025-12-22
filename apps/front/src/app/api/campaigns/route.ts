@@ -45,6 +45,19 @@ export async function POST(request: NextRequest) {
       status,
       startsAt,
       endsAt,
+      // SMS Campaign fields
+      category,
+      persona,
+      template,
+      message,
+      audienceDescription,
+      recipientCount,
+      // === Campaign Type & ML Tracking ===
+      campaignType, // 'initial' | 'nudger' | 'nurture'
+      attemptNumber,
+      totalAttemptsSinceInception,
+      lastAttemptedAt,
+      mlLabels,
     } = body;
 
     if (!teamId || !name) {
@@ -54,7 +67,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate SMS message length (must be ≤160 chars)
+    if (message && message.length > 160) {
+      return NextResponse.json(
+        { error: "SMS message must be 160 characters or less" },
+        { status: 400 },
+      );
+    }
+
     const id = `camp_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+    const now = new Date();
+
+    // Build ML labels with full timestamp tracking
+    const mlLabelData = mlLabels || {
+      campaignType: campaignType || "initial",
+      attemptSequence: attemptNumber || 1,
+      createdAtUtc: now.toISOString(),
+      scheduledAtUtc: startsAt || null,
+      audienceContext: audienceDescription || "",
+      personaId: persona || "",
+      category: category || "",
+      template: template || "",
+    };
 
     const [newCampaign] = await db
       .insert(campaigns)
@@ -62,18 +96,33 @@ export async function POST(request: NextRequest) {
         id,
         teamId,
         name,
-        description: description || null,
+        description: description || audienceDescription || null,
         targetMethod: targetMethod || "SCORE_BASED",
         minScore: minScore ?? 0,
         maxScore: maxScore ?? 100,
         location: location || null,
-        status: status || "DRAFT",
-        startsAt: startsAt ? new Date(startsAt) : new Date(),
+        status: status || "SCHEDULED",
+        startsAt: startsAt ? new Date(startsAt) : now,
         endsAt: endsAt ? new Date(endsAt) : null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        // === Campaign Type & ML Tracking ===
+        campaignType: campaignType || "initial",
+        totalAttempts: totalAttemptsSinceInception || 1,
+        currentAttemptNumber: attemptNumber || 1,
+        lastAttemptedAt: lastAttemptedAt ? new Date(lastAttemptedAt) : null,
+        lastAttemptStatus: null,
+        mlLabels: mlLabelData,
+        createdAt: now,
+        updatedAt: now,
+        // Store SMS config in metadata field if it exists, otherwise in description
+        estimatedLeadsCount: recipientCount || 0,
       })
       .returning();
+
+    console.log(`[Campaigns API] Created ${campaignType || 'initial'} campaign: ${name} (${id}) with ${recipientCount || 0} recipients`);
+    console.log(`[Campaigns API] Campaign Type: ${campaignType || 'initial'}, Attempt #${attemptNumber || 1}`);
+    console.log(`[Campaigns API] Category: ${category}, Persona: ${persona}, Template: ${template}`);
+    console.log(`[Campaigns API] Message (${message?.length || 0} chars): ${message?.substring(0, 50)}...`);
+    console.log(`[Campaigns API] ML Labels:`, JSON.stringify(mlLabelData));
 
     return NextResponse.json(newCampaign, { status: 201 });
   } catch (error) {

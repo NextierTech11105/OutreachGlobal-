@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { smsQueueService } from "@/lib/services/sms-queue-service";
 import { db } from "@/lib/db";
-import { smsMessages, leads } from "@/lib/db/schema";
+import { smsMessages, leads, signalhouseBrands, signalhouseCampaigns, teamPhoneNumbers } from "@/lib/db/schema";
 import { eq, and, desc, like, isNotNull, sql } from "drizzle-orm";
 import { sendSMS } from "@/lib/signalhouse/client";
 import {
@@ -548,25 +548,154 @@ export async function POST(request: NextRequest) {
       }
 
       case "number.provisioned":
-      case "number.purchased": {
+      case "number.purchased":
+      case "number_provisioned":
+      case "number_purchased": {
         console.log(
-          `[SignalHouse] Number provisioned: ${payload.from || payload.phone_number}`,
+          `[SignalHouse] 📱 Number provisioned: ${payload.from || payload.phone_number}`,
         );
+        // TODO: Store in team phone numbers table
         return NextResponse.json({
           success: true,
           event: "number_provisioned",
         });
       }
 
-      case "number.ported": {
+      case "number.ported":
+      case "number_ported": {
         console.log(
-          `[SignalHouse] Number ported: ${payload.from || payload.phone_number}`,
+          `[SignalHouse] 🔄 Number ported: ${payload.from || payload.phone_number}`,
         );
         return NextResponse.json({ success: true, event: "number_ported" });
       }
 
+      // ─────────────────────────────────────────────────────────────────────
+      // BRAND EVENTS - 10DLC Brand Registration
+      // ─────────────────────────────────────────────────────────────────────
+      case "brand.add":
+      case "brand_add": {
+        console.log(
+          `[SignalHouse] 🏢 Brand added: ${payload.brandId || payload.brand_id}`,
+          JSON.stringify(payload, null, 2),
+        );
+        // Store brand registration status for multi-tenant tracking
+        // TODO: Update team's 10DLC brand status in database
+        return NextResponse.json({
+          success: true,
+          event: "brand_add",
+          brandId: payload.brandId || payload.brand_id,
+        });
+      }
+
+      case "brand.delete":
+      case "brand_delete": {
+        console.log(
+          `[SignalHouse] 🗑️ Brand deleted: ${payload.brandId || payload.brand_id}`,
+        );
+        // TODO: Update team's 10DLC status as inactive
+        return NextResponse.json({
+          success: true,
+          event: "brand_delete",
+          brandId: payload.brandId || payload.brand_id,
+        });
+      }
+
+      // ─────────────────────────────────────────────────────────────────────
+      // CAMPAIGN EVENTS - 10DLC Campaign Registration
+      // ─────────────────────────────────────────────────────────────────────
+      case "campaign.add":
+      case "campaign_add": {
+        console.log(
+          `[SignalHouse] 📢 Campaign registered: ${payload.campaignId || payload.campaign_id}`,
+          JSON.stringify(payload, null, 2),
+        );
+        // Campaign approved by carriers - ready for messaging
+        // TODO: Update campaign status to "approved" and enable sending
+        return NextResponse.json({
+          success: true,
+          event: "campaign_add",
+          campaignId: payload.campaignId || payload.campaign_id,
+          status: payload.status || "active",
+        });
+      }
+
+      case "campaign.update":
+      case "campaign_update": {
+        console.log(
+          `[SignalHouse] ✏️ Campaign updated: ${payload.campaignId || payload.campaign_id}`,
+          JSON.stringify(payload, null, 2),
+        );
+        // TODO: Sync campaign status changes
+        return NextResponse.json({
+          success: true,
+          event: "campaign_update",
+          campaignId: payload.campaignId || payload.campaign_id,
+          status: payload.status,
+        });
+      }
+
+      case "campaign.expired":
+      case "campaign_expired": {
+        console.log(
+          `[SignalHouse] ⏰ Campaign expired: ${payload.campaignId || payload.campaign_id}`,
+        );
+        // Campaign needs renewal - pause messaging and notify team
+        // TODO: Mark campaign as expired, send alert to team
+        return NextResponse.json({
+          success: true,
+          event: "campaign_expired",
+          campaignId: payload.campaignId || payload.campaign_id,
+        });
+      }
+
+      // ─────────────────────────────────────────────────────────────────────
+      // MMS EVENTS
+      // ─────────────────────────────────────────────────────────────────────
+      case "mms.sent":
+      case "mms_sent": {
+        console.log(`[SignalHouse] 🖼️ MMS sent: ${messageId}`);
+        if (messageId) {
+          await db
+            .update(smsMessages)
+            .set({
+              status: "sent",
+              providerStatus: "mms_sent",
+              sentAt: new Date(),
+              updatedAt: new Date(),
+            })
+            .where(eq(smsMessages.providerMessageId, messageId));
+        }
+        return NextResponse.json({ success: true, event: "mms_sent" });
+      }
+
+      case "mms.received":
+      case "mms_received": {
+        console.log(`[SignalHouse] 🖼️ MMS received from ${fromNumber}`);
+        // Save MMS with media URL
+        await db.insert(smsMessages).values({
+          id: crypto.randomUUID(),
+          leadId: lead?.id,
+          direction: "inbound",
+          fromNumber,
+          toNumber,
+          body: messageBody || "[MMS Received]",
+          status: "received",
+          providerMessageId: messageId,
+          campaignId: payload.campaign_id as string,
+          receivedAt: new Date(),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          metadata: {
+            mediaUrl: payload.media_url || payload.mediaUrl,
+            mmsType: payload.content_type || payload.contentType,
+          },
+        } as any);
+        return NextResponse.json({ success: true, event: "mms_received" });
+      }
+
       default:
-        return NextResponse.json({ success: true, event: "ignored" });
+        console.log(`[SignalHouse] ⚠️ Unhandled event: ${eventType}`, payload);
+        return NextResponse.json({ success: true, event: "ignored", originalEvent: eventType });
     }
   } catch (error: any) {
     console.error("[SignalHouse Webhook] POST Error:", error);

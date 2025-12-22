@@ -81,7 +81,7 @@ const PROVIDER_CONFIG = {
     description: "Dialer + SMS at wholesale rates",
   },
   signalhouse: {
-    name: "SignalHouse",
+    name: "Outreach Engine",
     color: "bg-green-500/20 text-green-400 border-green-500/30",
     description: "Bulk SMS campaigns",
   },
@@ -146,17 +146,17 @@ export function GiannaPhonePool() {
         allNumbers.push(...easifyNumbers);
       }
 
-      // Process SignalHouse numbers (Bulk SMS only)
+      // Process Outreach Engine numbers (Bulk SMS only)
       if (signalhouseRes.status === "fulfilled" && signalhouseRes.value.ok) {
         const data = await signalhouseRes.value.json();
         const signalhouseNumbers = (data.numbers || []).map((num: any) => ({
           id: `signalhouse-${num.id || num.phoneNumber}`,
           number: num.phoneNumber || num.number,
-          friendlyName: num.label || num.friendlyName || "SignalHouse Bulk",
+          friendlyName: num.label || num.friendlyName || "Bulk SMS",
           provider: "signalhouse" as PhoneProvider,
           capabilities: {
             sms: true,
-            voice: false, // SignalHouse is SMS only
+            voice: false, // SMS only
             mms: false,
             bulkSms: true, // Bulk SMS capability
           },
@@ -356,8 +356,8 @@ export function GiannaPhonePool() {
                 Gianna AI Phone Pool
               </CardTitle>
               <CardDescription>
-                Assign Gianna AI to handle communications. Uses Easify
-                (dialer/SMS) and SignalHouse (bulk SMS) infrastructure.
+                Assign Gianna AI to handle communications. Uses integrated
+                dialer and bulk SMS infrastructure.
               </CardDescription>
             </div>
             <Button variant="outline" size="sm" onClick={fetchPhoneNumbers}>
