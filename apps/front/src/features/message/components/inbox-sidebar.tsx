@@ -46,13 +46,24 @@ const LABEL_COLORS = [
   { name: "Pink", value: "text-pink-500" },
   { name: "Orange", value: "text-orange-500" },
   { name: "Cyan", value: "text-cyan-500" },
+  { name: "Gold", value: "text-amber-500" },
 ];
 
+// Default labels matching the SMS funnel flow
+// These align with webhook auto-tagging from SignalHouse
 const DEFAULT_LABELS: CustomLabel[] = [
-  { id: "label-1", name: "Important", color: "text-red-500" },
-  { id: "label-2", name: "Follow-up", color: "text-yellow-500" },
-  { id: "label-3", name: "Leads", color: "text-green-500" },
-  { id: "label-4", name: "Customers", color: "text-blue-500" },
+  { id: "label-gold", name: "🏆 GOLD (High Contactability)", color: "text-amber-500" },
+  { id: "label-email-captured", name: "Email Captured", color: "text-green-500" },
+  { id: "label-mobile-captured", name: "Mobile Captured", color: "text-blue-500" },
+  { id: "label-needs-help", name: "Needs Help Now", color: "text-red-500" },
+  { id: "label-has-questions", name: "Has Questions", color: "text-yellow-500" },
+  { id: "label-wants-call", name: "Wants Call", color: "text-purple-500" },
+  { id: "label-called-back", name: "Called Back", color: "text-cyan-500" },
+  { id: "label-yes-content", name: "Yes to Content Link", color: "text-green-500" },
+  { id: "label-push-call-center", name: "Push to Call Center", color: "text-orange-500" },
+  { id: "label-sold", name: "Sold", color: "text-emerald-500" },
+  { id: "label-stop", name: "Stop (Opted Out)", color: "text-gray-500" },
+  { id: "label-wrong-number", name: "Wrong Number", color: "text-red-500" },
 ];
 
 interface SidebarItemProps {

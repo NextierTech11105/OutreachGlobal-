@@ -45,7 +45,7 @@ interface AiSdrListProps {
   onView: (sdr: AiSdr) => void;
   onEdit: (sdr: AiSdr) => void;
   onDuplicate: (sdr: AiSdr) => void;
-  onDelete: (id: number) => void;
+  onDelete: (id: string | number) => void;
 }
 
 export function AiSdrList({
@@ -56,7 +56,7 @@ export function AiSdrList({
   onDelete,
 }: AiSdrListProps) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [deleteId, setDeleteId] = useState<string | number | null>(null);
 
   const filteredSdrs = sdrs.filter(
     (sdr) =>

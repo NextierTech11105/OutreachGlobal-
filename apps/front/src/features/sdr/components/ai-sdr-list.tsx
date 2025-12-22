@@ -9,24 +9,34 @@ import { Badge } from "@/components/ui/badge";
 import { TeamLink } from "@/features/team/components/team-link";
 import { Plus, Edit, Bot } from "lucide-react";
 
+interface AiSdrNode {
+  id: string;
+  name: string;
+  avatarUri?: string | null;
+  personality?: string | null;
+  active?: boolean | null;
+}
+
 interface AiSdrListQuery {
   aiSdrAvatars: {
-    id: string;
-    name: string;
-    avatarUrl?: string | null;
-    tone?: string | null;
-    personality?: string | null;
-  }[];
+    edges: {
+      node: AiSdrNode;
+    }[];
+  };
 }
 
 const AI_SDR_LIST_QUERY: TypedDocumentNode<AiSdrListQuery> = gql`
   query AiSdrList($teamId: ID!) {
-    aiSdrAvatars(teamId: $teamId) {
-      id
-      name
-      avatarUrl
-      tone
-      personality
+    aiSdrAvatars(teamId: $teamId, first: 50) {
+      edges {
+        node {
+          id
+          name
+          avatarUri
+          personality
+          active
+        }
+      }
     }
   }
 `;
@@ -38,7 +48,7 @@ export function AiSdrList() {
     skip: !isTeamReady,
   });
 
-  const sdrs = data?.aiSdrAvatars || [];
+  const sdrs = data?.aiSdrAvatars?.edges?.map((edge) => edge.node) || [];
 
   if (loading) {
     return (
@@ -75,16 +85,16 @@ export function AiSdrList() {
           <CardContent className="pt-6">
             <div className="flex items-start gap-4">
               <Avatar className="h-12 w-12">
-                <AvatarImage src={sdr.avatarUrl || undefined} />
+                <AvatarImage src={sdr.avatarUri || undefined} />
                 <AvatarFallback>
                   {sdr.name.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
                 <h3 className="font-medium truncate">{sdr.name}</h3>
-                {sdr.tone && (
-                  <Badge variant="secondary" className="mt-1">
-                    {sdr.tone}
+                {sdr.active !== undefined && (
+                  <Badge variant={sdr.active ? "default" : "secondary"} className="mt-1">
+                    {sdr.active ? "Active" : "Inactive"}
                   </Badge>
                 )}
                 {sdr.personality && (

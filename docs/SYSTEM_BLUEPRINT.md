@@ -1,0 +1,363 @@
+# OutreachGlobal Platform Blueprint
+> Concise System Design • Flexible Interoperability • Synergistic Architecture
+
+---
+
+## 🏗️ Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           NEXTIER HOLDINGS                                   │
+│                        (Master Tenant / Brand)                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  ┌─────────────┐   ┌─────────────────┐   ┌──────────────────┐              │
+│  │  Nextier    │   │    Nextier      │   │     Nextier      │              │
+│  │ Consulting  │   │  Technologies   │   │  System Design   │              │
+│  └──────┬──────┘   └────────┬────────┘   └────────┬─────────┘              │
+│         │                   │                      │                        │
+│         └───────────────────┼──────────────────────┘                        │
+│                             ▼                                               │
+│              ┌──────────────────────────────┐                               │
+│              │     UNIFIED API GATEWAY      │                               │
+│              │   /api/admin/* + /api/*      │                               │
+│              └──────────────┬───────────────┘                               │
+└─────────────────────────────┼───────────────────────────────────────────────┘
+                              ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        CORE SERVICES LAYER                                   │
+├───────────────┬───────────────┬───────────────┬─────────────────────────────┤
+│  SignalHouse  │  AI Workers   │   Content     │        GraphQL              │
+│   Client      │   Router      │   Library     │         API                 │
+└───────┬───────┴───────┬───────┴───────┬───────┴────────────┬────────────────┘
+        │               │               │                    │
+        ▼               ▼               ▼                    ▼
+┌───────────────────────────────────────────────────────────────────────────┐
+│                         EXTERNAL INTEGRATIONS                              │
+├─────────────┬─────────────┬─────────────┬─────────────┬───────────────────┤
+│ SignalHouse │   Apollo    │  USBizData  │   Email     │    CRM/Pipeline   │
+│  SMS/Voice  │   Enrich    │   Import    │   SMTP      │    Management     │
+└─────────────┴─────────────┴─────────────┴─────────────┴───────────────────┘
+```
+
+---
+
+## 🔄 Data Flow Matrix
+
+### Inbound (Webhooks → Platform)
+
+```
+SignalHouse Webhook
+       │
+       ▼
+┌──────────────────┐     ┌─────────────────────────────────┐
+│ /api/signalhouse │────▶│        AI WORKER ROUTER         │
+│    /webhook      │     │  routeByPhoneNumber(fromNumber) │
+└──────────────────┘     └──────────────┬──────────────────┘
+                                        │
+                    ┌───────────────────┼───────────────────┐
+                    ▼                   ▼                   ▼
+              ┌──────────┐       ┌──────────┐       ┌──────────┐
+              │  GIANNA  │       │  CATHY   │       │  SABRINA │
+              │  Opener  │       │  Nudger  │       │  Closer  │
+              │ Stage:1  │       │ Stage:2  │       │ Stage:3  │
+              └──────────┘       └──────────┘       └──────────┘
+```
+
+### Outbound (Platform → External)
+
+```
+User Action / Trigger
+         │
+         ▼
+┌────────────────────┐
+│   Admin Service    │◀────────────────────────────────────┐
+│  getSignalHouse    │                                     │
+│  ContextForTeam()  │     ┌───────────────────────────┐   │
+└────────┬───────────┘     │    Tenant Mapping         │   │
+         │                 │  NEXTIER_BRANDS[]         │───┘
+         ▼                 │  NEXTIER_SUB_BRANDS[]     │
+┌────────────────────┐     │  getSubGroup(tenantId)    │
+│  SignalHouse API   │     └───────────────────────────┘
+│  - Send SMS        │
+│  - Provision #     │
+│  - 10DLC Campaign  │
+└────────────────────┘
+```
+
+---
+
+## 🎯 API Route Map
+
+### Admin Panel APIs (`/api/admin/*`)
+
+| Route | Method | Service Function | Purpose |
+|-------|--------|------------------|---------|
+| `/dashboard` | GET | `getAdminDashboard()` | Full SignalHouse stats |
+| `/billing` | GET | `getAdminBilling()` | Wallet, usage, pricing |
+| `/campaigns` | GET/POST | `getCampaignsBySubGroup()` | 10DLC campaign CRUD |
+| `/numbers` | POST | `provisionNumberForTeam()` | Number provisioning |
+| `/phone-numbers` | * | Multiple | Full inventory mgmt |
+| `/tenants` | GET/POST | `fullTenantSync()` | Multi-tenant brands |
+| `/usage` | GET | `getUsageDetails()` | Analytics & metrics |
+
+### Content Library APIs (`/api/content-library/*`)
+
+| Route | Method | Purpose |
+|-------|--------|---------|
+| `/items` | POST | List items by category |
+| `/items` | PUT | Create new item |
+| `/items/[id]` | PATCH | Update item |
+| `/items/[id]` | DELETE | Remove item |
+
+---
+
+## 🤖 AI Worker System
+
+```typescript
+const AI_WORKERS = {
+  GIANNA: { role: 'Opener',  stage: 1, number: '+1XXXXXXXXXX' },
+  CATHY:  { role: 'Nudger',  stage: 2, number: '+1XXXXXXXXXX' },
+  SABRINA:{ role: 'Closer',  stage: 3, number: '+1XXXXXXXXXX' }
+};
+```
+
+### Worker Selection Logic
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    LEAD STAGE ROUTING                        │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  NEW LEAD ───────▶ GIANNA (Opener)                          │
+│      │                  │                                    │
+│      │            [Opens conversation]                       │
+│      │                  │                                    │
+│      │                  ▼                                    │
+│  ENGAGED ────────▶ CATHY (Nudger)                           │
+│      │                  │                                    │
+│      │            [Builds rapport]                          │
+│      │                  │                                    │
+│      │                  ▼                                    │
+│  QUALIFIED ──────▶ SABRINA (Closer)                         │
+│                         │                                    │
+│                   [Closes deal]                             │
+│                         │                                    │
+│                         ▼                                    │
+│                    CONVERSION                                │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 📬 SMS Funnel Labels (GOLD Flow)
+
+```
+┌────────────────────────────────────────────────────────────┐
+│                    INBOX LABEL SYSTEM                       │
+├────────────────────────────────────────────────────────────┤
+│                                                             │
+│  🥇 GOLD                 ──▶ Premium qualified lead         │
+│  📧 Email Captured       ──▶ Email obtained                 │
+│  📱 Mobile Captured      ──▶ Mobile verified                │
+│  🆘 Needs Help Now       ──▶ Urgent assistance              │
+│  🔥 Hot Prospect         ──▶ High intent                    │
+│  📞 Callback Requested   ──▶ Wants call                     │
+│  📅 Meeting Scheduled    ──▶ Calendar booked                │
+│  ❓ Question Asked       ──▶ Inquiry received               │
+│  😴 Dormant              ──▶ Re-engagement needed           │
+│  🚫 Unsubscribed         ──▶ Opt-out                        │
+│  📥 Imported Lead        ──▶ New from CSV                   │
+│  ⚡ Instant Outreach     ──▶ Immediate action               │
+│                                                             │
+└────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🏢 Multi-Tenant Brand Hierarchy
+
+```typescript
+// Master Brand
+NEXTIER_BRANDS = [{
+  brandId: 'nextier-holdings',
+  ein: 'XX-XXXXXXX',
+  signalHouseId: 'shbrand_xxx'
+}];
+
+// Sub-Brands (inherit 10DLC from master)
+NEXTIER_SUB_BRANDS = [
+  { id: 'nextier-consulting',    parentBrand: 'nextier-holdings' },
+  { id: 'nextier-technologies',  parentBrand: 'nextier-holdings' },
+  { id: 'nextier-system-design', parentBrand: 'nextier-holdings' }
+];
+```
+
+### Tenant Context Resolution
+
+```
+Request with tenantId
+         │
+         ▼
+┌─────────────────────────────┐
+│ getSignalHouseContextFor    │
+│ Team(tenantId)              │
+├─────────────────────────────┤
+│ 1. Find sub-brand config    │
+│ 2. Get parent brand         │
+│ 3. Resolve SignalHouse IDs  │
+│ 4. Return unified context   │
+└──────────────┬──────────────┘
+               ▼
+        { brandId, subGroupId, 
+          campaignId, phonePool }
+```
+
+---
+
+## 🔌 Service Interoperability
+
+### Synergy Map
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                                                                      │
+│    ┌──────────────┐         ┌──────────────┐                        │
+│    │   Content    │◀───────▶│  AI Workers  │                        │
+│    │   Library    │         │   (GPT-4)    │                        │
+│    └──────┬───────┘         └──────┬───────┘                        │
+│           │                        │                                 │
+│           │    ┌──────────────┐    │                                 │
+│           └───▶│   Message    │◀───┘                                 │
+│                │   Composer   │                                      │
+│                └──────┬───────┘                                      │
+│                       │                                              │
+│           ┌───────────┴───────────┐                                  │
+│           ▼                       ▼                                  │
+│    ┌──────────────┐        ┌──────────────┐                         │
+│    │  SignalHouse │◀──────▶│   Pipeline   │                         │
+│    │   Delivery   │        │   Tracker    │                         │
+│    └──────────────┘        └──────────────┘                         │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+
+FLOW:
+1. Content Library provides templates → AI Workers personalize
+2. AI Workers compose → Message Composer formats
+3. Message Composer → SignalHouse delivers
+4. SignalHouse events → Pipeline Tracker updates lead stage
+5. Pipeline stage change → Worker Router assigns next AI
+```
+
+---
+
+## 🔗 Integration Endpoints
+
+| System | Purpose | Connection |
+|--------|---------|------------|
+| **SignalHouse** | SMS/Voice/10DLC | REST API + Webhooks |
+| **Apollo.io** | Lead Enrichment | REST API |
+| **USBizData** | Business Data Import | CSV Upload → Parser |
+| **PostgreSQL** | Primary Database | Drizzle ORM |
+| **GraphQL** | Frontend Queries | Yoga Server |
+| **Vercel** | Frontend Hosting | Edge Functions |
+| **DigitalOcean** | API/Workers | App Platform |
+
+---
+
+## 📊 Key Design Principles
+
+### 1. **Loose Coupling**
+Each service operates independently with well-defined interfaces.
+
+```
+Service A ──[API Contract]──▶ Service B
+              │
+              └─ No direct DB access
+              └─ Event-driven updates
+              └─ Graceful degradation
+```
+
+### 2. **Tenant Isolation**
+Every request carries tenant context, ensuring data segregation.
+
+```typescript
+// Every API route
+const { tenantId } = await getSession(request);
+const context = getSignalHouseContextForTeam(tenantId);
+// All operations scoped to tenant
+```
+
+### 3. **Worker Abstraction**
+AI workers are interchangeable with consistent interfaces.
+
+```typescript
+interface AIWorker {
+  processMessage(input: InboundMessage): Promise<Response>;
+  getContext(): WorkerContext;
+  handoff(nextWorker: WorkerType): void;
+}
+```
+
+### 4. **Event-Driven Flow**
+State changes propagate through events, not polling.
+
+```
+Lead Created → Event Emitted → Worker Assigned → Message Sent
+      └────────────────────────────────────────────────────▶ Tracked
+```
+
+---
+
+## 🚀 Quick Reference
+
+### Start Development
+```bash
+pnpm install
+pnpm dev              # Start all apps
+```
+
+### Database Operations
+```bash
+pnpm --filter api db:generate   # Generate migrations
+pnpm --filter api db:migrate    # Apply migrations
+pnpm --filter api db:seed       # Seed data
+```
+
+### Key Environment Variables
+```env
+SIGNALHOUSE_API_KEY=xxx
+SIGNALHOUSE_ACCOUNT_ID=xxx
+DATABASE_URL=postgres://...
+NEXTAUTH_SECRET=xxx
+OPENAI_API_KEY=xxx
+```
+
+---
+
+## 📁 Critical File Paths
+
+```
+apps/front/src/
+├── app/api/
+│   ├── admin/          # Admin panel APIs
+│   ├── content-library/# Content management
+│   └── signalhouse/    # Webhook handlers
+├── lib/
+│   ├── signalhouse/
+│   │   ├── client.ts       # SignalHouse HTTP client
+│   │   ├── admin-service.ts# Unified admin ops
+│   │   └── tenant-mapping.ts# Multi-tenant config
+│   ├── ai-workers/
+│   │   └── worker-router.ts# AI worker routing
+│   └── services/
+│       └── ai-assistant-service.ts
+└── features/
+    ├── sdr/components/ai-sdr-list.tsx
+    └── message/components/inbox-sidebar.tsx
+```
+
+---
+
+> **Blueprint Version**: 1.0.0  
+> **Last Updated**: December 22, 2025  
+> **Architecture**: Nextier Platform / OutreachGlobal

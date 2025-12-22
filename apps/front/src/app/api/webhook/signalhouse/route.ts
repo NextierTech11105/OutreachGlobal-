@@ -15,11 +15,30 @@ import {
   getContentLinkConfirmation,
   isContentPermission,
 } from "@/lib/gianna/knowledge-base/email-capture-library";
+import {
+  routeByPhoneNumber,
+  routeByCampaignId,
+  formatWorkerResponse,
+  logWorkerActivity,
+  getWorkerForLeadStage,
+  type AIWorker,
+} from "@/lib/ai-workers/worker-router";
 
 // SignalHouse Webhook Handler
 // Based on https://devapi.signalhouse.io/apiDocs
 // Receives inbound SMS, delivery status updates, and other events
 // Integrates with SMS Queue Service for opt-out handling
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+// AI WORKER ROUTING:
+// ═══════════════════════════════════════════════════════════════════════════════
+// Each AI worker has their own dedicated phone number:
+// - GIANNA (Opener)  → Initial contact, email capture
+// - CATHY  (Nudger)  → Follow-ups, ghost re-engagement
+// - SABRINA (Closer) → Booking calls, strategy sessions
+//
+// Inbound messages route to the worker whose number received them.
+// ═══════════════════════════════════════════════════════════════════════════════
 //
 // ═══════════════════════════════════════════════════════════════════════════════
 // 2-BRACKET SMS FLOW PATTERNS:
@@ -89,6 +108,10 @@ const OPT_OUT_KEYWORDS = [
 // Email extraction regex - RFC 5322 simplified
 const EMAIL_REGEX = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi;
 
+// Phone/Mobile extraction regex - captures various formats
+// Matches: (555) 123-4567, 555-123-4567, 555.123.4567, 5551234567, +1 555 123 4567
+const PHONE_REGEX = /(?:\+?1[-.\s]?)?(?:\(?[2-9]\d{2}\)?[-.\s]?)?[2-9]\d{2}[-.\s]?\d{4}/g;
+
 // Hot lead campaign ID (configured per tenant, fallback to default)
 const HOT_LEAD_CAMPAIGN_ID =
   process.env.HOT_LEAD_CAMPAIGN_ID || "hot_leads_default";
@@ -106,6 +129,28 @@ const AI_WORKER_PHONES: Record<string, string> = {
 function extractEmail(body: string): string | null {
   const matches = body.match(EMAIL_REGEX);
   return matches && matches.length > 0 ? matches[0].toLowerCase() : null;
+}
+
+/**
+ * Extract phone/mobile number from message body
+ * Returns normalized 10-digit US phone number
+ * Filters out the sender's own number to avoid false positives
+ */
+function extractPhone(body: string, excludeNumber?: string): string | null {
+  const matches = body.match(PHONE_REGEX);
+  if (!matches || matches.length === 0) return null;
+
+  // Normalize and filter
+  const excludeNormalized = excludeNumber?.replace(/\D/g, "").slice(-10) || "";
+  
+  for (const match of matches) {
+    const normalized = match.replace(/\D/g, "").slice(-10);
+    // Must be 10 digits and not the sender's number
+    if (normalized.length === 10 && normalized !== excludeNormalized) {
+      return normalized;
+    }
+  }
+  return null;
 }
 
 /**
@@ -175,26 +220,59 @@ async function getContentLinkForLead(
 }
 
 /**
- * Push lead to hot lead campaign with email_captured label
+ * Push lead to hot lead campaign with GOLD label (email + mobile captured)
+ * GOLD = High Contactability = 100% Lead Score
+ * - email_captured: extracted from message
+ * - mobile_captured: confirmed from inbound SMS number
+ * - gold_label: both contact methods verified
  */
 async function pushToHotLeadCampaign(
   leadId: string,
   email: string,
+  mobileNumber?: string,
 ): Promise<void> {
   try {
-    // Update lead with email_captured tag and hot lead status
+    // Normalize mobile to E.164 format
+    const normalizedMobile = mobileNumber 
+      ? `+1${mobileNumber.replace(/\D/g, "").slice(-10)}`
+      : undefined;
+
+    // Build tags array: email_captured + mobile_captured + gold_label
+    const updateData: Record<string, unknown> = {
+      email: email,
+      status: "hot_lead",
+      // Add all labels: email_captured, mobile_captured, gold_label, high_contactability
+      tags: sql`
+        array_cat(
+          COALESCE(tags, ARRAY[]::text[]),
+          ARRAY['email_captured', 'mobile_captured', 'gold_label', 'high_contactability']::text[]
+        )
+      `,
+      score: 100, // 100% lead score for GOLD label
+      updatedAt: new Date(),
+    };
+
+    // Also update phone if provided (from inbound SMS = verified mobile)
+    if (normalizedMobile) {
+      updateData.phone = normalizedMobile;
+    }
+
     await db
       .update(leads)
-      .set({
-        email: email,
-        status: "hot_lead",
-        tags: db.sql`array_append(COALESCE(tags, ARRAY[]::text[]), 'email_captured')`,
-        updatedAt: new Date(),
-      })
+      .set(updateData)
       .where(eq(leads.id, leadId));
 
     console.log(
-      `[SignalHouse] 🔥 Lead ${leadId} pushed to hot lead campaign with email: ${email}`,
+      `[SignalHouse] 🏆 GOLD LABEL: Lead ${leadId} → email: ${email}, mobile: ${normalizedMobile || 'from inbound'}`,
+    );
+    console.log(
+      `[SignalHouse] 📱 Mobile saved to lead record: ${normalizedMobile}`,
+    );
+    console.log(
+      `[SignalHouse] 📧 Email saved to lead record: ${email}`,
+    );
+    console.log(
+      `[SignalHouse] 🎯 Lead Score: 100% (High Contactability)`,
     );
   } catch (error) {
     console.error("[SignalHouse] Error pushing to hot lead campaign:", error);
@@ -308,11 +386,29 @@ export async function POST(request: NextRequest) {
       case "sms.received":
       case "inbound": {
         // ═══════════════════════════════════════════════════════════════════════
-        // INBOUND SMS RECEIVED - Detect response type and handle appropriately
+        // INBOUND SMS RECEIVED - Route to correct AI Worker
         // ═══════════════════════════════════════════════════════════════════════
+
+        // STEP 1: Route to correct AI worker based on receiving phone number
+        const workerRoute = routeByPhoneNumber(toNumber);
+        const worker = workerRoute.worker;
+        
+        console.log(
+          `[SignalHouse] 🤖 Routed to ${worker.name} (${worker.role}) via ${workerRoute.matchedBy}`,
+        );
+
+        // Log worker activity
+        await logWorkerActivity(worker, "inbound_received", lead?.id || null, {
+          from: fromNumber,
+          to: toNumber,
+          body: messageBody.substring(0, 100),
+        });
 
         // Extract email from message if present
         const capturedEmail = extractEmail(messageBody);
+
+        // Extract phone/mobile from message if present (excludes sender's number)
+        const capturedMobile = extractPhone(messageBody, fromNumber);
 
         // Check if this is permission to send content (Flow B)
         const isPermissionResponse = isContentPermission(messageBody);
@@ -321,10 +417,11 @@ export async function POST(request: NextRequest) {
         let messageStatus = "received";
         if (isOptOut) messageStatus = "opted_out";
         else if (capturedEmail) messageStatus = "email_captured";
+        else if (capturedMobile) messageStatus = "mobile_captured";
         else if (isPermissionResponse) messageStatus = "content_permission";
         else if (isPositiveLead) messageStatus = "interested";
 
-        // Save inbound message to DB
+        // Save inbound message to DB with worker info
         await db.insert(smsMessages).values({
           id: crypto.randomUUID(),
           leadId: lead?.id,
@@ -335,6 +432,12 @@ export async function POST(request: NextRequest) {
           status: messageStatus,
           providerMessageId: messageId,
           campaignId: payload.campaign_id as string,
+          // Store worker info in metadata or dedicated field
+          metadata: {
+            workerId: worker.id,
+            workerName: worker.name,
+            routedBy: workerRoute.matchedBy,
+          },
           receivedAt: new Date(),
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -357,37 +460,140 @@ export async function POST(request: NextRequest) {
         }
 
         // ─────────────────────────────────────────────────────────────────────
-        // FLOW A: EMAIL CAPTURED
-        // Lead provided email → Confirm → Queue Value X delivery via email
+        // FLOW A: EMAIL CAPTURED = MOBILE + EMAIL CAPTURED (100% Lead Score)
+        // When lead provides email via SMS, we have BOTH contact methods:
+        // - Mobile: confirmed from fromNumber (they're texting from it)
+        // - Email: extracted from message body
         // ─────────────────────────────────────────────────────────────────────
         if (capturedEmail) {
           console.log(
-            `[SignalHouse] 📧 EMAIL CAPTURED from ${fromNumber}: ${capturedEmail}`,
+            `[SignalHouse] 📧📱 EMAIL + MOBILE CAPTURED from ${fromNumber}: ${capturedEmail}`,
+          );
+          console.log(
+            `[SignalHouse] 🎯 100% Lead Score - Both contact methods verified!`,
+          );
+          console.log(
+            `[SignalHouse] 🤖 ${worker.name} handling email capture response`,
           );
 
-          // Get worker name (default to Gianna for opener)
-          const workerName = "Gianna";
+          // Use the routed worker for response
           const firstName = lead?.firstName || "";
 
-          // Get confirmation template from library
-          const confirmationMessage = getEmailCaptureConfirmation("standard", {
-            firstName,
-            email: capturedEmail,
-            worker: workerName,
-          });
+          // Get worker-specific confirmation message
+          const confirmationMessage = formatWorkerResponse(
+            worker,
+            "emailCaptured",
+            {
+              firstName,
+              email: capturedEmail,
+            }
+          );
 
-          // Send confirmation SMS
+          // Send confirmation SMS from the SAME worker's number
           if (toNumber) {
             try {
               const smsResult = await sendSMS({
                 to: fromNumber,
-                from: toNumber,
+                from: toNumber, // Reply from same worker's number
                 message: confirmationMessage,
               });
 
               if (smsResult.success) {
                 console.log(
-                  `[SignalHouse] ✅ Email capture confirmation sent to ${fromNumber}`,
+                  `[SignalHouse] ✅ ${worker.name} sent confirmation to ${fromNumber}`,
+                );
+
+                // Log outbound with worker info
+                await db.insert(smsMessages).values({
+                  id: crypto.randomUUID(),
+                  leadId: lead?.id,
+                  direction: "outbound",
+                  fromNumber: toNumber,
+                  toNumber: fromNumber,
+                  body: confirmationMessage,
+                  status: "sent",
+                  providerMessageId: smsResult.data?.messageId,
+                  campaignId: HOT_LEAD_CAMPAIGN_ID,
+                  metadata: {
+                    workerId: worker.id,
+                    workerName: worker.name,
+                    action: "email_capture_confirmation",
+                  },
+                  createdAt: new Date(),
+                  updatedAt: new Date(),
+                });
+
+                // Log worker activity
+                await logWorkerActivity(worker, "email_capture_confirmed", lead?.id || null, {
+                  email: capturedEmail,
+                  mobile: fromNumber,
+                });
+              }
+            } catch (smsError) {
+              console.error(`[SignalHouse] ${worker.name} SMS send error:`, smsError);
+            }
+          }
+
+          // Push to hot lead campaign with GOLD label (email + mobile = 100% score)
+          if (lead) {
+            await pushToHotLeadCampaign(lead.id, capturedEmail, fromNumber);
+          }
+
+          // TODO: Queue Value X email delivery
+          // TODO: Schedule 24h SABRINA follow-up
+
+          return NextResponse.json({
+            success: true,
+            event: "gold_label",
+            email: capturedEmail,
+            mobile: fromNumber,
+            labels: ["email_captured", "mobile_captured", "gold_label", "high_contactability"],
+            leadScore: 100,
+            flow: "email_capture",
+          });
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // FLOW A2: MOBILE CAPTURED
+        // Lead provided different phone number → Confirm → Update lead record
+        // ─────────────────────────────────────────────────────────────────────
+        if (capturedMobile && !capturedEmail) {
+          console.log(
+            `[SignalHouse] 📱 MOBILE CAPTURED from ${fromNumber}: ${capturedMobile}`,
+          );
+          console.log(
+            `[SignalHouse] 🤖 ${worker.name} handling mobile capture response`,
+          );
+
+          // Format for display: (555) 123-4567
+          const formattedPhone = capturedMobile.replace(
+            /(\d{3})(\d{3})(\d{4})/,
+            "($1) $2-$3"
+          );
+
+          const firstName = lead?.firstName || "";
+
+          // Use worker-specific confirmation message
+          const confirmationMessage = formatWorkerResponse(
+            worker,
+            "mobileCaptured",
+            {
+              firstName,
+              phone: formattedPhone,
+            }
+          );
+
+          if (toNumber) {
+            try {
+              const smsResult = await sendSMS({
+                to: fromNumber,
+                from: toNumber, // Reply from same worker's number
+                message: confirmationMessage,
+              });
+
+              if (smsResult.success) {
+                console.log(
+                  `[SignalHouse] ✅ ${worker.name} sent mobile confirmation to ${fromNumber}`,
                 );
 
                 await db.insert(smsMessages).values({
@@ -400,28 +606,43 @@ export async function POST(request: NextRequest) {
                   status: "sent",
                   providerMessageId: smsResult.data?.messageId,
                   campaignId: HOT_LEAD_CAMPAIGN_ID,
+                  metadata: {
+                    workerId: worker.id,
+                    workerName: worker.name,
+                    action: "mobile_capture_confirmation",
+                  },
                   createdAt: new Date(),
                   updatedAt: new Date(),
                 });
+
+                await logWorkerActivity(worker, "mobile_capture_confirmed", lead?.id || null, {
+                  capturedMobile,
+                  fromNumber,
+                });
               }
             } catch (smsError) {
-              console.error(`[SignalHouse] SMS send error:`, smsError);
+              console.error(`[SignalHouse] ${worker.name} SMS send error:`, smsError);
             }
           }
 
-          // Push to hot lead campaign
+          // Update lead with mobile_captured tag
           if (lead) {
-            await pushToHotLeadCampaign(lead.id, capturedEmail);
+            await db
+              .update(leads)
+              .set({
+                phone: `+1${capturedMobile}`, // Store as E.164
+                status: "hot_lead",
+                tags: sql`array_append(COALESCE(tags, ARRAY[]::text[]), 'mobile_captured')`,
+                updatedAt: new Date(),
+              })
+              .where(eq(leads.id, lead.id));
           }
-
-          // TODO: Queue Value X email delivery
-          // TODO: Schedule 24h SABRINA follow-up
 
           return NextResponse.json({
             success: true,
-            event: "email_captured",
-            email: capturedEmail,
-            flow: "email_capture",
+            event: "mobile_captured",
+            phone: capturedMobile,
+            flow: "mobile_capture",
           });
         }
 
@@ -433,33 +654,38 @@ export async function POST(request: NextRequest) {
           console.log(
             `[SignalHouse] 🔗 CONTENT PERMISSION from ${fromNumber}: "${messageBody}"`,
           );
+          console.log(
+            `[SignalHouse] 🤖 ${worker.name} handling content link delivery`,
+          );
 
           // Get content link from library
           const contentLink = await getContentLinkForLead(
             lead?.id,
             "MEDIUM_ARTICLE",
           );
-          const workerName = "Gianna";
           const firstName = lead?.firstName || "";
 
           if (contentLink && toNumber) {
-            // Get response template from library
-            const contentMessage = getContentLinkConfirmation("article", {
-              firstName,
-              contentUrl: contentLink.url,
-              worker: workerName,
-            });
+            // Use worker-specific content link response
+            const contentMessage = formatWorkerResponse(
+              worker,
+              "contentLink",
+              {
+                firstName,
+                contentUrl: contentLink.url,
+              }
+            );
 
             try {
               const smsResult = await sendSMS({
                 to: fromNumber,
-                from: toNumber,
+                from: toNumber, // Reply from same worker's number
                 message: contentMessage,
               });
 
               if (smsResult.success) {
                 console.log(
-                  `[SignalHouse] ✅ Content link sent to ${fromNumber}: ${contentLink.url}`,
+                  `[SignalHouse] ✅ ${worker.name} sent content link to ${fromNumber}: ${contentLink.url}`,
                 );
 
                 await db.insert(smsMessages).values({
@@ -472,6 +698,12 @@ export async function POST(request: NextRequest) {
                   status: "sent",
                   providerMessageId: smsResult.data?.messageId,
                   campaignId: payload.campaign_id as string,
+                  metadata: {
+                    workerId: worker.id,
+                    workerName: worker.name,
+                    action: "content_link_sent",
+                    contentUrl: contentLink.url,
+                  },
                   createdAt: new Date(),
                   updatedAt: new Date(),
                 });
@@ -488,16 +720,22 @@ export async function POST(request: NextRequest) {
                     .where(eq(leads.id, lead.id));
                 }
 
+                await logWorkerActivity(worker, "content_link_sent", lead?.id || null, {
+                  contentUrl: contentLink.url,
+                  contentType: contentLink.contentType,
+                });
+
                 // TODO: Schedule 24h follow-up to pivot to email capture
               }
             } catch (smsError) {
-              console.error(`[SignalHouse] SMS send error:`, smsError);
+              console.error(`[SignalHouse] ${worker.name} SMS send error:`, smsError);
             }
           }
 
           return NextResponse.json({
             success: true,
             event: "content_link_sent",
+            worker: worker.name,
             contentUrl: contentLink?.url,
             flow: "content_permission",
           });
@@ -511,18 +749,34 @@ export async function POST(request: NextRequest) {
           console.log(
             `[SignalHouse] 🎯 POSITIVE RESPONSE from ${fromNumber}: ${messageBody}`,
           );
+          console.log(
+            `[SignalHouse] 🤖 ${worker.name} flagging for follow-up`,
+          );
 
           if (lead) {
             await db
               .update(leads)
-              .set({ status: "interested", updatedAt: new Date() })
+              .set({ 
+                status: "interested", 
+                tags: sql`array_append(COALESCE(tags, ARRAY[]::text[]), 'needs_follow_up')`,
+                updatedAt: new Date() 
+              })
               .where(eq(leads.id, lead.id));
           }
+
+          await logWorkerActivity(worker, "positive_response", lead?.id || null, {
+            message: messageBody,
+          });
 
           // TODO: Queue for AI response or human review
         }
 
-        return NextResponse.json({ success: true, event: "inbound_sms" });
+        return NextResponse.json({ 
+          success: true, 
+          event: "inbound_sms",
+          worker: worker.name,
+          workerId: worker.id,
+        });
       }
 
       case "message.sent":
