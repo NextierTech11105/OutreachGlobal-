@@ -120,6 +120,7 @@ export const LeadTable = () => {
   const { showError } = useApiError();
   const [bulkDelete] = useMutation(BULK_DELETE_LEAD_MUTATION);
 
+  // Early return AFTER all hooks
   if (!isTeamReady) {
     return null;
   }

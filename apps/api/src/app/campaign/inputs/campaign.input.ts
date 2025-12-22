@@ -35,8 +35,8 @@ export class CampaignSequenceInput {
 
 @InputType({ isAbstract: true })
 export class CampaignInput implements CampaignDto {
-  @StringField({ nullable: true })
-  campaignType?: "INITIAL" | "RETARGET" | "NURTURE";
+  @StringField()
+  campaignType: "INITIAL" | "RETARGET" | "NURTURE" = "INITIAL";
 
   @IdField()
   sdrId: string;

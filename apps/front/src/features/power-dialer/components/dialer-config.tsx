@@ -27,6 +27,7 @@ export function DialerConfigComponent() {
   });
   const [{ mode, aiSdrAvatar }, dispatch] = usePowerDialerContext();
 
+  // Early return AFTER all hooks
   if (!isTeamReady) {
     return null;
   }

@@ -80,6 +80,7 @@ export function LeadDetails({ lead }: Props) {
   const { showAlert } = useModalAlert();
   const { cache } = useApolloClient();
 
+  // Early return AFTER all hooks
   if (!isTeamReady) {
     return null;
   }

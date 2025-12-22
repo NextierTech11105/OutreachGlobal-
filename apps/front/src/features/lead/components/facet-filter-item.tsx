@@ -83,6 +83,7 @@ export const FacetFilterItem: React.FC<Props> = ({
     };
   }, [name, placeholder, label]);
 
+  // Early return AFTER all hooks
   if (!isTeamReady) {
     return null;
   }
