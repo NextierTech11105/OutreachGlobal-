@@ -38,12 +38,10 @@ const eslintConfig = [
       "react-hooks/exhaustive-deps": "off",
       // Allow anonymous default exports (common pattern)
       "import/no-anonymous-default-export": "off",
-      // TODO: Fix these properly - hooks called conditionally need refactoring
-      "react-hooks/rules-of-hooks": "warn",
-      // TODO: Convert <a> tags to <Link> components
-      "@next/next/no-html-link-for-pages": "warn",
       // Display name for components
       "react/display-name": "off",
+      // TODO: Convert <a> tags to <Link> components  
+      "@next/next/no-html-link-for-pages": "warn",
     },
   },
 ];

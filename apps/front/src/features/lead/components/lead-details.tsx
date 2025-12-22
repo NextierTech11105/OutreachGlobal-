@@ -75,6 +75,7 @@ export function LeadDetails({ lead }: Props) {
   );
 
   const [updateLead] = useMutation(UPDATE_LEAD_MUTATION);
+  const [deleteLead] = useMutation(BULK_DELETE_LEAD_MUTATION);
   const router = useRouter();
   const { showAlert } = useModalAlert();
   const { cache } = useApolloClient();
@@ -82,7 +83,6 @@ export function LeadDetails({ lead }: Props) {
   if (!isTeamReady) {
     return null;
   }
-  const [deleteLead] = useMutation(BULK_DELETE_LEAD_MUTATION);
 
   const handleStatusChange = async (newStatus: string) => {
     const prevStatus = currentStatus;

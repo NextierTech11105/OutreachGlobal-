@@ -80,10 +80,6 @@ export function BusinessListImport() {
   const [loadPresetOpen, setLoadPresetOpen] = useState(false);
   const { showError } = useApiError();
 
-  if (!isTeamReady) {
-    return null;
-  }
-
   const searchParams = useMemo(() => {
     return {
       searchQuery: debouncedQuery,
@@ -162,6 +158,10 @@ export function BusinessListImport() {
 
     firstFetch();
   }, [searchParams]);
+
+  if (!isTeamReady) {
+    return null;
+  }
 
   return (
     <>

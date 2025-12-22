@@ -25,12 +25,11 @@ export function DialerConfigComponent() {
     skip: !isTeamReady,
     variables: { teamId, first: 100 },
   });
+  const [{ mode, aiSdrAvatar }, dispatch] = usePowerDialerContext();
 
   if (!isTeamReady) {
     return null;
   }
-
-  const [{ mode, aiSdrAvatar }, dispatch] = usePowerDialerContext();
 
   const handleModeChange = (mode: DialerMode) => {
     dispatch({ mode });

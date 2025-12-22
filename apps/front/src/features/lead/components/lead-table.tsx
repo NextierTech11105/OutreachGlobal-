@@ -103,10 +103,6 @@ export const LeadTable = () => {
     },
   );
 
-  if (!isTeamReady) {
-    return null;
-  }
-
   const [
     selectedLeads,
     {
@@ -123,6 +119,10 @@ export const LeadTable = () => {
   const { showAlert } = useModalAlert();
   const { showError } = useApiError();
   const [bulkDelete] = useMutation(BULK_DELETE_LEAD_MUTATION);
+
+  if (!isTeamReady) {
+    return null;
+  }
 
   const confirmBulkDelete = () => {
     showAlert({

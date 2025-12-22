@@ -269,7 +269,7 @@ export function CampaignSmsConfigurator({
   };
 
   // Use template from library
-  const useTemplate = (template: string) => {
+  const applyTemplate = (template: string) => {
     setSelectedMessage(template);
     setShowTemplateLibrary(false);
     toast.success("Template applied - customize as needed");
@@ -445,7 +445,7 @@ export function CampaignSmsConfigurator({
               {currentStage.templateLibrary.map((template, idx) => (
                 <div
                   key={idx}
-                  onClick={() => useTemplate(template)}
+                  onClick={() => applyTemplate(template)}
                   className="p-3 rounded-lg border bg-card hover:bg-accent cursor-pointer transition-colors"
                 >
                   <p className="text-sm">{template}</p>

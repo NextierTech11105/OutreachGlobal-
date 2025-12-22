@@ -71,10 +71,6 @@ export const FacetFilterItem: React.FC<Props> = ({
     skip: !isTeamReady,
   });
 
-  if (!isTeamReady) {
-    return null;
-  }
-
   const total = useMemo(() => {
     return checkedValues?.length || 0;
   }, [checkedValues]);
@@ -86,6 +82,10 @@ export const FacetFilterItem: React.FC<Props> = ({
       placeholder: placeholder ?? label,
     };
   }, [name, placeholder, label]);
+
+  if (!isTeamReady) {
+    return null;
+  }
 
   const handleCheckedChange = (value: string) => (e: CheckedState) => {
     const isChecked = e === true;

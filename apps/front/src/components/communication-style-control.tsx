@@ -164,7 +164,7 @@ export function CommunicationStyleControl({
   };
 
   // Use presets
-  const usePreset = (
+  const applyPreset = (
     preset: "shark_ladies" | "mr_wonderful" | "10x" | "straight_line",
   ) => {
     switch (preset) {
@@ -418,28 +418,28 @@ export function CommunicationStyleControl({
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={() => usePreset("shark_ladies")}
+                onClick={() => applyPreset("shark_ladies")}
               >
                 👑 Shark Tank Ladies
               </Button>
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={() => usePreset("mr_wonderful")}
+                onClick={() => applyPreset("mr_wonderful")}
               >
                 💰 Mr. Wonderful
               </Button>
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={() => usePreset("10x")}
+                onClick={() => applyPreset("10x")}
               >
                 🔥 10X Energy
               </Button>
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={() => usePreset("straight_line")}
+                onClick={() => applyPreset("straight_line")}
               >
                 🐺 Straight Line Closer
               </Button>
