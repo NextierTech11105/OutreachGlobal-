@@ -78,7 +78,6 @@ export class CampaignConsumer extends WorkerHost {
               .groupBy(campaignLeadsTable.campaignId),
           );
 
-          // eslint-disable-next-line drizzle/enforce-update-with-where
           await this.db
             .with(leadCounts)
             .update(campaignsTable)
