@@ -38,7 +38,7 @@ export async function GET() {
     const leadsWithPhone = await db
       .select({ count: count() })
       .from(leads)
-      .where(sql`phone IS NOT NULL OR "mobile" IS NOT NULL`);
+      .where(sql`phone IS NOT NULL`);
     const leadsWithEmail = await db
       .select({ count: count() })
       .from(leads)
