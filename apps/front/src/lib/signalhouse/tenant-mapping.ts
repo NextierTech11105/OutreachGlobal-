@@ -34,7 +34,11 @@ export interface NextierBrand {
   ein?: string;
   website?: string;
   vertical: string;
-  entityType: "PRIVATE_PROFIT" | "PUBLIC_PROFIT" | "NON_PROFIT" | "SOLE_PROPRIETOR";
+  entityType:
+    | "PRIVATE_PROFIT"
+    | "PUBLIC_PROFIT"
+    | "NON_PROFIT"
+    | "SOLE_PROPRIETOR";
   signalhouseBrandId?: string; // Populated after registration
   isParent?: boolean;
 }
@@ -96,7 +100,9 @@ export const NEXTIER_SUB_BRANDS: NextierSubBrand[] = [
 /**
  * Get SignalHouse sub-group ID for a Nextier team
  */
-export function getSubGroupForTeam(teamId: string): NextierSubBrand | undefined {
+export function getSubGroupForTeam(
+  teamId: string,
+): NextierSubBrand | undefined {
   return NEXTIER_SUB_BRANDS.find((sb) => sb.teamIds.includes(teamId));
 }
 
@@ -128,7 +134,8 @@ export async function syncBrandsToSignalHouse(): Promise<{
   success: boolean;
   brands: { name: string; signalhouseId?: string; error?: string }[];
 }> {
-  const results: { name: string; signalhouseId?: string; error?: string }[] = [];
+  const results: { name: string; signalhouseId?: string; error?: string }[] =
+    [];
 
   for (const brand of NEXTIER_BRANDS) {
     try {
@@ -136,7 +143,10 @@ export async function syncBrandsToSignalHouse(): Promise<{
       const existing = await getBrandByName(brand.name);
       if (existing.success && existing.data) {
         brand.signalhouseBrandId = existing.data.brandId;
-        results.push({ name: brand.name, signalhouseId: existing.data.brandId });
+        results.push({
+          name: brand.name,
+          signalhouseId: existing.data.brandId,
+        });
         continue;
       }
 
@@ -178,7 +188,8 @@ export async function syncSubBrandsToSignalHouse(): Promise<{
   success: boolean;
   subBrands: { name: string; signalhouseId?: string; error?: string }[];
 }> {
-  const results: { name: string; signalhouseId?: string; error?: string }[] = [];
+  const results: { name: string; signalhouseId?: string; error?: string }[] =
+    [];
 
   // Get existing sub-groups
   const existingResult = await getSubGroups();
@@ -189,10 +200,15 @@ export async function syncSubBrandsToSignalHouse(): Promise<{
   for (const subBrand of NEXTIER_SUB_BRANDS) {
     try {
       // Check if sub-group already exists by name
-      const existing = existingSubGroups.find((sg) => sg.name === subBrand.name);
+      const existing = existingSubGroups.find(
+        (sg) => sg.name === subBrand.name,
+      );
       if (existing) {
         subBrand.signalhouseSubGroupId = existing.subGroupId;
-        results.push({ name: subBrand.name, signalhouseId: existing.subGroupId });
+        results.push({
+          name: subBrand.name,
+          signalhouseId: existing.subGroupId,
+        });
         continue;
       }
 
@@ -204,7 +220,10 @@ export async function syncSubBrandsToSignalHouse(): Promise<{
 
       if (created.success && created.data) {
         subBrand.signalhouseSubGroupId = created.data.subGroupId;
-        results.push({ name: subBrand.name, signalhouseId: created.data.subGroupId });
+        results.push({
+          name: subBrand.name,
+          signalhouseId: created.data.subGroupId,
+        });
       } else {
         results.push({ name: subBrand.name, error: created.error });
       }

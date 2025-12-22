@@ -80,8 +80,7 @@ export async function GET(request: NextRequest) {
     console.error("[Admin Numbers] Error:", error);
     return NextResponse.json(
       {
-        error:
-          error instanceof Error ? error.message : "Failed to get numbers",
+        error: error instanceof Error ? error.message : "Failed to get numbers",
       },
       { status: 500 },
     );
@@ -161,7 +160,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await provisionNumberForTeam(teamId, phoneNumber, campaignId);
+    const result = await provisionNumberForTeam(
+      teamId,
+      phoneNumber,
+      campaignId,
+    );
 
     if (!result.success) {
       return NextResponse.json({ error: result.error }, { status: 400 });

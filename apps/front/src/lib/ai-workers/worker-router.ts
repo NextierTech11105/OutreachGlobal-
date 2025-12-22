@@ -51,14 +51,25 @@ export const AI_WORKERS: Record<AIWorkerName, AIWorker> = {
       style: "conversational, asks questions",
       signOff: "- Gianna",
     },
-    capabilities: ["email_capture", "valuation_offer", "content_link", "initial_qualification"],
+    capabilities: [
+      "email_capture",
+      "valuation_offer",
+      "content_link",
+      "initial_qualification",
+    ],
     responseTemplates: {
-      emailCaptured: "{firstName}, got it! I'll have the valuation report sent to {email} shortly. - Gianna",
-      mobileCaptured: "{firstName}, got it! I've noted {phone} as your preferred contact number. - Gianna",
-      contentLink: "Great! Here's the article I mentioned: {contentUrl} - Gianna",
-      scheduleCall: "Perfect! I'll have our advisor give you a call. What time works best? - Gianna",
-      followUp: "Hi {firstName}, just circling back on the property. Still interested in getting a valuation? - Gianna",
-      objectionHandle: "I completely understand, {firstName}. No pressure at all. - Gianna",
+      emailCaptured:
+        "{firstName}, got it! I'll have the valuation report sent to {email} shortly. - Gianna",
+      mobileCaptured:
+        "{firstName}, got it! I've noted {phone} as your preferred contact number. - Gianna",
+      contentLink:
+        "Great! Here's the article I mentioned: {contentUrl} - Gianna",
+      scheduleCall:
+        "Perfect! I'll have our advisor give you a call. What time works best? - Gianna",
+      followUp:
+        "Hi {firstName}, just circling back on the property. Still interested in getting a valuation? - Gianna",
+      objectionHandle:
+        "I completely understand, {firstName}. No pressure at all. - Gianna",
     },
   },
   CATHY: {
@@ -75,14 +86,24 @@ export const AI_WORKERS: Record<AIWorkerName, AIWorker> = {
       style: "empathetic, low-pressure",
       signOff: "- Cathy",
     },
-    capabilities: ["ghost_followup", "re_engagement", "status_check", "nurture_sequence"],
+    capabilities: [
+      "ghost_followup",
+      "re_engagement",
+      "status_check",
+      "nurture_sequence",
+    ],
     responseTemplates: {
-      emailCaptured: "Thanks {firstName}! Sending that info to {email} now. - Cathy",
-      mobileCaptured: "Got it, {firstName}! I'll make sure we reach you at {phone}. - Cathy",
-      contentLink: "Here's that resource you might find helpful: {contentUrl} - Cathy",
-      scheduleCall: "Would it help to have a quick chat? I can set something up. - Cathy",
+      emailCaptured:
+        "Thanks {firstName}! Sending that info to {email} now. - Cathy",
+      mobileCaptured:
+        "Got it, {firstName}! I'll make sure we reach you at {phone}. - Cathy",
+      contentLink:
+        "Here's that resource you might find helpful: {contentUrl} - Cathy",
+      scheduleCall:
+        "Would it help to have a quick chat? I can set something up. - Cathy",
       followUp: "Hi {firstName}, just wanted to check in. No rush! - Cathy",
-      objectionHandle: "Totally get it, {firstName}. Whenever you're ready, I'm here. - Cathy",
+      objectionHandle:
+        "Totally get it, {firstName}. Whenever you're ready, I'm here. - Cathy",
     },
   },
   SABRINA: {
@@ -99,14 +120,25 @@ export const AI_WORKERS: Record<AIWorkerName, AIWorker> = {
       style: "professional, results-focused",
       signOff: "- Sabrina",
     },
-    capabilities: ["schedule_call", "book_appointment", "calendar_integration", "hot_lead_handling"],
+    capabilities: [
+      "schedule_call",
+      "book_appointment",
+      "calendar_integration",
+      "hot_lead_handling",
+    ],
     responseTemplates: {
-      emailCaptured: "Perfect {firstName}! Sending your report to {email} now. Let's schedule a call to review. - Sabrina",
-      mobileCaptured: "Great, {firstName}! I'll give you a call at {phone} shortly. - Sabrina",
-      contentLink: "Here's the info: {contentUrl}. Ready to book a call when you've reviewed? - Sabrina",
-      scheduleCall: "Let's get you on the calendar, {firstName}. Here's my booking link: {bookingUrl} - Sabrina",
-      followUp: "Hi {firstName}, you mentioned interest in a call. I have availability - shall I send times? - Sabrina",
-      objectionHandle: "I hear you, {firstName}. When would be a better time to connect? - Sabrina",
+      emailCaptured:
+        "Perfect {firstName}! Sending your report to {email} now. Let's schedule a call to review. - Sabrina",
+      mobileCaptured:
+        "Great, {firstName}! I'll give you a call at {phone} shortly. - Sabrina",
+      contentLink:
+        "Here's the info: {contentUrl}. Ready to book a call when you've reviewed? - Sabrina",
+      scheduleCall:
+        "Let's get you on the calendar, {firstName}. Here's my booking link: {bookingUrl} - Sabrina",
+      followUp:
+        "Hi {firstName}, you mentioned interest in a call. I have availability - shall I send times? - Sabrina",
+      objectionHandle:
+        "I hear you, {firstName}. When would be a better time to connect? - Sabrina",
     },
   },
 };
@@ -144,7 +176,7 @@ export function getAllWorkers(): AIWorker[] {
 export function formatWorkerResponse(
   worker: AIWorker,
   templateKey: keyof AIWorker["responseTemplates"],
-  data: Record<string, string>
+  data: Record<string, string>,
 ): string {
   let template = worker.responseTemplates[templateKey];
   for (const [key, value] of Object.entries(data)) {
@@ -153,7 +185,10 @@ export function formatWorkerResponse(
   return template;
 }
 
-export function getWorkerForLeadStage(stage: string, tags: string[] = []): AIWorker {
+export function getWorkerForLeadStage(
+  stage: string,
+  tags: string[] = [],
+): AIWorker {
   if (
     stage === "hot_lead" ||
     stage === "scheduled" ||
@@ -179,15 +214,18 @@ export async function logWorkerActivity(
   worker: AIWorker,
   action: string,
   leadId: string | null,
-  details: Record<string, unknown> = {}
+  details: Record<string, unknown> = {},
 ): Promise<void> {
   console.log(
     `[AI Worker: ${worker.name}] ${action}`,
-    JSON.stringify({ leadId, ...details })
+    JSON.stringify({ leadId, ...details }),
   );
 }
 
-export function validateWorkerPhoneNumbers(): { valid: boolean; missing: AIWorkerName[] } {
+export function validateWorkerPhoneNumbers(): {
+  valid: boolean;
+  missing: AIWorkerName[];
+} {
   const missing: AIWorkerName[] = [];
   for (const [name, worker] of Object.entries(AI_WORKERS)) {
     if (!worker.phoneNumber) {

@@ -29,8 +29,7 @@ export async function GET() {
     console.error("[Tenant Admin] Error:", error);
     return NextResponse.json(
       {
-        error:
-          error instanceof Error ? error.message : "Failed to get tenants",
+        error: error instanceof Error ? error.message : "Failed to get tenants",
       },
       { status: 500 },
     );
@@ -86,10 +85,7 @@ export async function POST(request: NextRequest) {
       );
 
       if (!result.success) {
-        return NextResponse.json(
-          { error: result.error },
-          { status: 400 },
-        );
+        return NextResponse.json({ error: result.error }, { status: 400 });
       }
 
       return NextResponse.json({

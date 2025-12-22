@@ -110,7 +110,8 @@ const EMAIL_REGEX = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi;
 
 // Phone/Mobile extraction regex - captures various formats
 // Matches: (555) 123-4567, 555-123-4567, 555.123.4567, 5551234567, +1 555 123 4567
-const PHONE_REGEX = /(?:\+?1[-.\s]?)?(?:\(?[2-9]\d{2}\)?[-.\s]?)?[2-9]\d{2}[-.\s]?\d{4}/g;
+const PHONE_REGEX =
+  /(?:\+?1[-.\s]?)?(?:\(?[2-9]\d{2}\)?[-.\s]?)?[2-9]\d{2}[-.\s]?\d{4}/g;
 
 // Hot lead campaign ID (configured per tenant, fallback to default)
 const HOT_LEAD_CAMPAIGN_ID =
@@ -142,7 +143,7 @@ function extractPhone(body: string, excludeNumber?: string): string | null {
 
   // Normalize and filter
   const excludeNormalized = excludeNumber?.replace(/\D/g, "").slice(-10) || "";
-  
+
   for (const match of matches) {
     const normalized = match.replace(/\D/g, "").slice(-10);
     // Must be 10 digits and not the sender's number
@@ -233,7 +234,7 @@ async function pushToHotLeadCampaign(
 ): Promise<void> {
   try {
     // Normalize mobile to E.164 format
-    const normalizedMobile = mobileNumber 
+    const normalizedMobile = mobileNumber
       ? `+1${mobileNumber.replace(/\D/g, "").slice(-10)}`
       : undefined;
 
@@ -257,23 +258,16 @@ async function pushToHotLeadCampaign(
       updateData.phone = normalizedMobile;
     }
 
-    await db
-      .update(leads)
-      .set(updateData)
-      .where(eq(leads.id, leadId));
+    await db.update(leads).set(updateData).where(eq(leads.id, leadId));
 
     console.log(
-      `[SignalHouse] 🏆 GOLD LABEL: Lead ${leadId} → email: ${email}, mobile: ${normalizedMobile || 'from inbound'}`,
+      `[SignalHouse] 🏆 GOLD LABEL: Lead ${leadId} → email: ${email}, mobile: ${normalizedMobile || "from inbound"}`,
     );
     console.log(
       `[SignalHouse] 📱 Mobile saved to lead record: ${normalizedMobile}`,
     );
-    console.log(
-      `[SignalHouse] 📧 Email saved to lead record: ${email}`,
-    );
-    console.log(
-      `[SignalHouse] 🎯 Lead Score: 100% (High Contactability)`,
-    );
+    console.log(`[SignalHouse] 📧 Email saved to lead record: ${email}`);
+    console.log(`[SignalHouse] 🎯 Lead Score: 100% (High Contactability)`);
   } catch (error) {
     console.error("[SignalHouse] Error pushing to hot lead campaign:", error);
   }
@@ -392,7 +386,7 @@ export async function POST(request: NextRequest) {
         // STEP 1: Route to correct AI worker based on receiving phone number
         const workerRoute = routeByPhoneNumber(toNumber);
         const worker = workerRoute.worker;
-        
+
         console.log(
           `[SignalHouse] 🤖 Routed to ${worker.name} (${worker.role}) via ${workerRoute.matchedBy}`,
         );
@@ -486,7 +480,7 @@ export async function POST(request: NextRequest) {
             {
               firstName,
               email: capturedEmail,
-            }
+            },
           );
 
           // Send confirmation SMS from the SAME worker's number
@@ -524,13 +518,21 @@ export async function POST(request: NextRequest) {
                 });
 
                 // Log worker activity
-                await logWorkerActivity(worker, "email_capture_confirmed", lead?.id || null, {
-                  email: capturedEmail,
-                  mobile: fromNumber,
-                });
+                await logWorkerActivity(
+                  worker,
+                  "email_capture_confirmed",
+                  lead?.id || null,
+                  {
+                    email: capturedEmail,
+                    mobile: fromNumber,
+                  },
+                );
               }
             } catch (smsError) {
-              console.error(`[SignalHouse] ${worker.name} SMS send error:`, smsError);
+              console.error(
+                `[SignalHouse] ${worker.name} SMS send error:`,
+                smsError,
+              );
             }
           }
 
@@ -547,7 +549,12 @@ export async function POST(request: NextRequest) {
             event: "gold_label",
             email: capturedEmail,
             mobile: fromNumber,
-            labels: ["email_captured", "mobile_captured", "gold_label", "high_contactability"],
+            labels: [
+              "email_captured",
+              "mobile_captured",
+              "gold_label",
+              "high_contactability",
+            ],
             leadScore: 100,
             flow: "email_capture",
           });
@@ -568,7 +575,7 @@ export async function POST(request: NextRequest) {
           // Format for display: (555) 123-4567
           const formattedPhone = capturedMobile.replace(
             /(\d{3})(\d{3})(\d{4})/,
-            "($1) $2-$3"
+            "($1) $2-$3",
           );
 
           const firstName = lead?.firstName || "";
@@ -580,7 +587,7 @@ export async function POST(request: NextRequest) {
             {
               firstName,
               phone: formattedPhone,
-            }
+            },
           );
 
           if (toNumber) {
@@ -615,13 +622,21 @@ export async function POST(request: NextRequest) {
                   updatedAt: new Date(),
                 });
 
-                await logWorkerActivity(worker, "mobile_capture_confirmed", lead?.id || null, {
-                  capturedMobile,
-                  fromNumber,
-                });
+                await logWorkerActivity(
+                  worker,
+                  "mobile_capture_confirmed",
+                  lead?.id || null,
+                  {
+                    capturedMobile,
+                    fromNumber,
+                  },
+                );
               }
             } catch (smsError) {
-              console.error(`[SignalHouse] ${worker.name} SMS send error:`, smsError);
+              console.error(
+                `[SignalHouse] ${worker.name} SMS send error:`,
+                smsError,
+              );
             }
           }
 
@@ -667,14 +682,10 @@ export async function POST(request: NextRequest) {
 
           if (contentLink && toNumber) {
             // Use worker-specific content link response
-            const contentMessage = formatWorkerResponse(
-              worker,
-              "contentLink",
-              {
-                firstName,
-                contentUrl: contentLink.url,
-              }
-            );
+            const contentMessage = formatWorkerResponse(worker, "contentLink", {
+              firstName,
+              contentUrl: contentLink.url,
+            });
 
             try {
               const smsResult = await sendSMS({
@@ -720,15 +731,23 @@ export async function POST(request: NextRequest) {
                     .where(eq(leads.id, lead.id));
                 }
 
-                await logWorkerActivity(worker, "content_link_sent", lead?.id || null, {
-                  contentUrl: contentLink.url,
-                  contentType: contentLink.contentType,
-                });
+                await logWorkerActivity(
+                  worker,
+                  "content_link_sent",
+                  lead?.id || null,
+                  {
+                    contentUrl: contentLink.url,
+                    contentType: contentLink.contentType,
+                  },
+                );
 
                 // TODO: Schedule 24h follow-up to pivot to email capture
               }
             } catch (smsError) {
-              console.error(`[SignalHouse] ${worker.name} SMS send error:`, smsError);
+              console.error(
+                `[SignalHouse] ${worker.name} SMS send error:`,
+                smsError,
+              );
             }
           }
 
@@ -749,30 +768,33 @@ export async function POST(request: NextRequest) {
           console.log(
             `[SignalHouse] 🎯 POSITIVE RESPONSE from ${fromNumber}: ${messageBody}`,
           );
-          console.log(
-            `[SignalHouse] 🤖 ${worker.name} flagging for follow-up`,
-          );
+          console.log(`[SignalHouse] 🤖 ${worker.name} flagging for follow-up`);
 
           if (lead) {
             await db
               .update(leads)
-              .set({ 
-                status: "interested", 
+              .set({
+                status: "interested",
                 tags: sql`array_append(COALESCE(tags, ARRAY[]::text[]), 'needs_follow_up')`,
-                updatedAt: new Date() 
+                updatedAt: new Date(),
               })
               .where(eq(leads.id, lead.id));
           }
 
-          await logWorkerActivity(worker, "positive_response", lead?.id || null, {
-            message: messageBody,
-          });
+          await logWorkerActivity(
+            worker,
+            "positive_response",
+            lead?.id || null,
+            {
+              message: messageBody,
+            },
+          );
 
           // TODO: Queue for AI response or human review
         }
 
-        return NextResponse.json({ 
-          success: true, 
+        return NextResponse.json({
+          success: true,
           event: "inbound_sms",
           worker: worker.name,
           workerId: worker.id,

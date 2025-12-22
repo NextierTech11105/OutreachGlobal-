@@ -66,8 +66,14 @@ export async function GET(request: NextRequest) {
     // Analytics breakdown
     if (action === "analytics") {
       const [outbound, inbound, optout, dashboard] = await Promise.all([
-        getOutboundAnalytics({ startDate: startDate || undefined, endDate: endDate || undefined }),
-        getInboundAnalytics({ startDate: startDate || undefined, endDate: endDate || undefined }),
+        getOutboundAnalytics({
+          startDate: startDate || undefined,
+          endDate: endDate || undefined,
+        }),
+        getInboundAnalytics({
+          startDate: startDate || undefined,
+          endDate: endDate || undefined,
+        }),
         getOptOutAnalytics(),
         getDashboardAnalytics(),
       ]);

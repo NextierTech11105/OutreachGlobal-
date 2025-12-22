@@ -36,10 +36,7 @@ export async function GET(request: NextRequest) {
     if (action === "qualify" && brandId) {
       const result = await qualifyBrandForUsecases(brandId);
       if (!result.success) {
-        return NextResponse.json(
-          { error: result.error },
-          { status: 400 },
-        );
+        return NextResponse.json({ error: result.error }, { status: 400 });
       }
       return NextResponse.json({
         success: true,
@@ -51,10 +48,7 @@ export async function GET(request: NextRequest) {
     if (campaignId) {
       const result = await getCampaign(campaignId);
       if (!result.success) {
-        return NextResponse.json(
-          { error: result.error },
-          { status: 400 },
-        );
+        return NextResponse.json({ error: result.error }, { status: 400 });
       }
       return NextResponse.json({
         success: true,
@@ -118,10 +112,7 @@ export async function POST(request: NextRequest) {
     );
 
     if (!result.success) {
-      return NextResponse.json(
-        { error: result.error },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: result.error }, { status: 400 });
     }
 
     return NextResponse.json({
@@ -169,10 +160,7 @@ export async function PATCH(request: NextRequest) {
     const result = await updateCampaign(campaignId, updates);
 
     if (!result.success) {
-      return NextResponse.json(
-        { error: result.error },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: result.error }, { status: 400 });
     }
 
     return NextResponse.json({
@@ -219,10 +207,7 @@ export async function DELETE(request: NextRequest) {
     const result = await deleteCampaign(campaignId);
 
     if (!result.success) {
-      return NextResponse.json(
-        { error: result.error },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: result.error }, { status: 400 });
     }
 
     return NextResponse.json({

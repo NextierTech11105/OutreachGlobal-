@@ -423,58 +423,73 @@ export default function InstantOutreachWorkspace() {
       setIsLoading(true);
       try {
         // Fetch hot leads (status = hot_lead OR has gold_label tag)
-        const response = await fetch('/api/leads?status=hot_lead&limit=200');
+        const response = await fetch("/api/leads?status=hot_lead&limit=200");
         const data = await response.json();
 
         if (data.error) {
-          console.error('[Instant Outreach] API error:', data.error);
-          toast.error('Failed to load hot leads');
+          console.error("[Instant Outreach] API error:", data.error);
+          toast.error("Failed to load hot leads");
           setLeads([]);
           return;
         }
 
         // Map API leads to OutreachLead format with vtag
-        const outreachLeads: OutreachLead[] = (data.leads || []).map((lead: any, index: number) => {
-          // Determine vtag based on status and tags
-          let vtag: VTag = 'hot';
-          if (lead.status === 'contacted') vtag = 'contacted';
-          else if (lead.status === 'scheduled') vtag = 'scheduled';
-          else if (lead.status === 'closed' || lead.status === 'closed_won') vtag = 'closed';
-          else if (lead.tags?.includes('calling')) vtag = 'calling';
-          else if (lead.tags?.includes('no_answer')) vtag = 'no_answer';
-          // Default: hot_lead, gold_label, email_captured, mobile_captured → 'hot' vtag
+        const outreachLeads: OutreachLead[] = (data.leads || []).map(
+          (lead: any, index: number) => {
+            // Determine vtag based on status and tags
+            let vtag: VTag = "hot";
+            if (lead.status === "contacted") vtag = "contacted";
+            else if (lead.status === "scheduled") vtag = "scheduled";
+            else if (lead.status === "closed" || lead.status === "closed_won")
+              vtag = "closed";
+            else if (lead.tags?.includes("calling")) vtag = "calling";
+            else if (lead.tags?.includes("no_answer")) vtag = "no_answer";
+            // Default: hot_lead, gold_label, email_captured, mobile_captured → 'hot' vtag
 
-          return {
-            id: lead.id,
-            name: `${lead.firstName || ''} ${lead.lastName || ''}`.trim() || 'Unknown',
-            firstName: lead.firstName,
-            lastName: lead.lastName,
-            phone: lead.phone,
-            email: lead.email,
-            address: lead.address,
-            city: lead.city,
-            state: lead.state,
-            propertyValue: lead.metadata?.propertyValue,
-            equity: lead.metadata?.equity,
-            leadType: lead.source || 'Lead',
-            vtag,
-            priority: lead.tags?.includes('gold_label') ? 'hot' : lead.score >= 70 ? 'hot' : lead.score >= 40 ? 'warm' : 'cold',
-            score: lead.score || 0,
-            lastAction: lead.metadata?.lastAction,
-            lastActionAt: lead.updatedAt,
-            attempts: lead.metadata?.attempts || 0,
-            source: lead.tags?.includes('email_captured') ? 'Email Captured' : lead.source,
-            notes: lead.notes,
-            createdAt: lead.createdAt,
-            position: index,
-          };
-        });
+            return {
+              id: lead.id,
+              name:
+                `${lead.firstName || ""} ${lead.lastName || ""}`.trim() ||
+                "Unknown",
+              firstName: lead.firstName,
+              lastName: lead.lastName,
+              phone: lead.phone,
+              email: lead.email,
+              address: lead.address,
+              city: lead.city,
+              state: lead.state,
+              propertyValue: lead.metadata?.propertyValue,
+              equity: lead.metadata?.equity,
+              leadType: lead.source || "Lead",
+              vtag,
+              priority: lead.tags?.includes("gold_label")
+                ? "hot"
+                : lead.score >= 70
+                  ? "hot"
+                  : lead.score >= 40
+                    ? "warm"
+                    : "cold",
+              score: lead.score || 0,
+              lastAction: lead.metadata?.lastAction,
+              lastActionAt: lead.updatedAt,
+              attempts: lead.metadata?.attempts || 0,
+              source: lead.tags?.includes("email_captured")
+                ? "Email Captured"
+                : lead.source,
+              notes: lead.notes,
+              createdAt: lead.createdAt,
+              position: index,
+            };
+          },
+        );
 
         setLeads(outreachLeads);
-        console.log(`[Instant Outreach] Loaded ${outreachLeads.length} hot leads from database`);
+        console.log(
+          `[Instant Outreach] Loaded ${outreachLeads.length} hot leads from database`,
+        );
       } catch (error) {
-        console.error('Failed to load leads:', error);
-        toast.error('Failed to load leads');
+        console.error("Failed to load leads:", error);
+        toast.error("Failed to load leads");
         setLeads([]);
       } finally {
         setIsLoading(false);

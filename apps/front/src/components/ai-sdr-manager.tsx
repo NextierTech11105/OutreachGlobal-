@@ -60,7 +60,11 @@ const CREATE_AI_SDR_AVATAR = gql`
 `;
 
 const UPDATE_AI_SDR_AVATAR = gql`
-  mutation UpdateAiSdrAvatar($teamId: ID!, $id: ID!, $input: UpdateAiSdrAvatarInput!) {
+  mutation UpdateAiSdrAvatar(
+    $teamId: ID!
+    $id: ID!
+    $input: UpdateAiSdrAvatarInput!
+  ) {
     updateAiSdrAvatar(teamId: $teamId, id: $id, input: $input) {
       id
       name
@@ -121,23 +125,25 @@ export function AiSdrManager() {
   });
 
   // Transform GraphQL data to component format
-  const sdrs: AiSdr[] = (data?.aiSdrAvatars?.edges || []).map((edge: { node: any }) => ({
-    id: edge.node.id,
-    name: edge.node.name || "",
-    description: edge.node.description || "",
-    personality: edge.node.personality || "",
-    voiceType: edge.node.voiceType || "",
-    avatarUrl: edge.node.avatarUri || "",
-    isActive: edge.node.active ?? true,
-    industry: edge.node.industry || "",
-    mission: edge.node.mission || "",
-    goal: edge.node.goal || "",
-    role: edge.node.roles || [],
-    faqs: edge.node.faqs || [],
-    tags: edge.node.tags || [],
-    createdAt: edge.node.createdAt || "",
-    updatedAt: edge.node.updatedAt || "",
-  }));
+  const sdrs: AiSdr[] = (data?.aiSdrAvatars?.edges || []).map(
+    (edge: { node: any }) => ({
+      id: edge.node.id,
+      name: edge.node.name || "",
+      description: edge.node.description || "",
+      personality: edge.node.personality || "",
+      voiceType: edge.node.voiceType || "",
+      avatarUrl: edge.node.avatarUri || "",
+      isActive: edge.node.active ?? true,
+      industry: edge.node.industry || "",
+      mission: edge.node.mission || "",
+      goal: edge.node.goal || "",
+      role: edge.node.roles || [],
+      faqs: edge.node.faqs || [],
+      tags: edge.node.tags || [],
+      createdAt: edge.node.createdAt || "",
+      updatedAt: edge.node.updatedAt || "",
+    }),
+  );
 
   const handleAddNew = () => {
     setSelectedSdr(null);
@@ -208,7 +214,9 @@ export function AiSdrManager() {
     }
   };
 
-  const handleSave = async (sdr: Omit<AiSdr, "id" | "createdAt" | "updatedAt">) => {
+  const handleSave = async (
+    sdr: Omit<AiSdr, "id" | "createdAt" | "updatedAt">,
+  ) => {
     try {
       const input = {
         name: sdr.name,
@@ -246,7 +254,9 @@ export function AiSdrManager() {
     } catch (error) {
       toast({
         title: "Error",
-        description: isEditing ? "Failed to update avatar." : "Failed to create avatar.",
+        description: isEditing
+          ? "Failed to update avatar."
+          : "Failed to create avatar.",
         variant: "destructive",
       });
     }

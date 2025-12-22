@@ -93,7 +93,10 @@ export function AiSdrList() {
               <div className="flex-1 min-w-0">
                 <h3 className="font-medium truncate">{sdr.name}</h3>
                 {sdr.active !== undefined && (
-                  <Badge variant={sdr.active ? "default" : "secondary"} className="mt-1">
+                  <Badge
+                    variant={sdr.active ? "default" : "secondary"}
+                    className="mt-1"
+                  >
                     {sdr.active ? "Active" : "Inactive"}
                   </Badge>
                 )}

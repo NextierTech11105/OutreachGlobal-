@@ -12,7 +12,11 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { teamPhoneNumbers, signalhouseBrands, signalhouseCampaigns } from "@/lib/db/schema";
+import {
+  teamPhoneNumbers,
+  signalhouseBrands,
+  signalhouseCampaigns,
+} from "@/lib/db/schema";
 import { eq, sql, desc, and, isNull, like, count, sum } from "drizzle-orm";
 import {
   searchNumbers,
@@ -109,8 +113,14 @@ export async function GET(request: NextRequest) {
         // Search for available numbers from SignalHouse
         const areaCode = searchParams.get("areaCode");
         const state = searchParams.get("state");
-        const numberType = searchParams.get("numberType") as "local" | "tollfree" | undefined;
-        const searchLimit = parseInt(searchParams.get("searchLimit") || "20", 10);
+        const numberType = searchParams.get("numberType") as
+          | "local"
+          | "tollfree"
+          | undefined;
+        const searchLimit = parseInt(
+          searchParams.get("searchLimit") || "20",
+          10,
+        );
 
         const options: SearchNumbersOptions = {
           limit: searchLimit,
@@ -135,7 +145,7 @@ export async function GET(request: NextRequest) {
         if (!ownedResult.success) {
           return NextResponse.json(
             { success: false, error: ownedResult.error },
-            { status: 500 }
+            { status: 500 },
           );
         }
 
@@ -143,7 +153,9 @@ export async function GET(request: NextRequest) {
         const localNumbers = await db.select().from(teamPhoneNumbers);
 
         const localMap = new Map(localNumbers.map((n) => [n.phoneNumber, n]));
-        const signalhouseMap = new Map(signalhouseNumbers.map((n: any) => [n.phoneNumber, n]));
+        const signalhouseMap = new Map(
+          signalhouseNumbers.map((n: any) => [n.phoneNumber, n]),
+        );
 
         const toAdd: any[] = [];
         const toUpdate: any[] = [];
@@ -158,7 +170,10 @@ export async function GET(request: NextRequest) {
 
         // Find numbers locally but not in SignalHouse (released?)
         for (const [phoneNumber, localNumber] of localMap) {
-          if (!signalhouseMap.has(phoneNumber) && localNumber.status === "active") {
+          if (
+            !signalhouseMap.has(phoneNumber) &&
+            localNumber.status === "active"
+          ) {
             missing.push(phoneNumber);
           }
         }
@@ -196,14 +211,17 @@ export async function GET(request: NextRequest) {
       default:
         return NextResponse.json(
           { success: false, error: `Unknown action: ${action}` },
-          { status: 400 }
+          { status: 400 },
         );
     }
   } catch (error) {
     console.error("[Admin Phone Numbers GET]", error);
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Internal error" },
-      { status: 500 }
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Internal error",
+      },
+      { status: 500 },
     );
   }
 }
@@ -223,7 +241,7 @@ export async function POST(request: NextRequest) {
         if (!phoneNumber || !teamId) {
           return NextResponse.json(
             { success: false, error: "phoneNumber and teamId are required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -232,7 +250,7 @@ export async function POST(request: NextRequest) {
         if (!purchaseResult.success) {
           return NextResponse.json(
             { success: false, error: purchaseResult.error },
-            { status: 500 }
+            { status: 500 },
           );
         }
 
@@ -271,7 +289,7 @@ export async function POST(request: NextRequest) {
         if (!phoneNumberId) {
           return NextResponse.json(
             { success: false, error: "phoneNumberId is required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -293,8 +311,11 @@ export async function POST(request: NextRequest) {
 
         if (!phoneNumberId || !newTeamId) {
           return NextResponse.json(
-            { success: false, error: "phoneNumberId and newTeamId are required" },
-            { status: 400 }
+            {
+              success: false,
+              error: "phoneNumberId and newTeamId are required",
+            },
+            { status: 400 },
           );
         }
 
@@ -318,7 +339,7 @@ export async function POST(request: NextRequest) {
         if (!phoneNumberId) {
           return NextResponse.json(
             { success: false, error: "phoneNumberId is required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -342,7 +363,7 @@ export async function POST(request: NextRequest) {
         if (!teamId) {
           return NextResponse.json(
             { success: false, error: "teamId is required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -350,7 +371,7 @@ export async function POST(request: NextRequest) {
         if (!ownedResult.success) {
           return NextResponse.json(
             { success: false, error: ownedResult.error },
-            { status: 500 }
+            { status: 500 },
           );
         }
 
@@ -398,14 +419,17 @@ export async function POST(request: NextRequest) {
       default:
         return NextResponse.json(
           { success: false, error: `Unknown action: ${action}` },
-          { status: 400 }
+          { status: 400 },
         );
     }
   } catch (error) {
     console.error("[Admin Phone Numbers POST]", error);
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Internal error" },
-      { status: 500 }
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Internal error",
+      },
+      { status: 500 },
     );
   }
 }
@@ -421,7 +445,7 @@ export async function DELETE(request: NextRequest) {
     if (!phoneNumberId) {
       return NextResponse.json(
         { success: false, error: "id is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -434,7 +458,7 @@ export async function DELETE(request: NextRequest) {
     if (!number) {
       return NextResponse.json(
         { success: false, error: "Phone number not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -442,7 +466,10 @@ export async function DELETE(request: NextRequest) {
     if (releaseFromSignalhouse && number.signalhouseId) {
       const releaseResult = await releaseNumber(number.signalhouseId);
       if (!releaseResult.success) {
-        console.warn("[Admin Phone Numbers DELETE] SignalHouse release failed:", releaseResult.error);
+        console.warn(
+          "[Admin Phone Numbers DELETE] SignalHouse release failed:",
+          releaseResult.error,
+        );
         // Continue with local update anyway
       }
     }
@@ -464,8 +491,11 @@ export async function DELETE(request: NextRequest) {
   } catch (error) {
     console.error("[Admin Phone Numbers DELETE]", error);
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Internal error" },
-      { status: 500 }
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Internal error",
+      },
+      { status: 500 },
     );
   }
 }

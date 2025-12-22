@@ -46,7 +46,7 @@ export async function getAIAssistantItems(
     }
 
     const data = await response.json();
-    
+
     // Transform content items to AI assistant format
     return (data.items || []).map((item: any) => ({
       id: item.id,
