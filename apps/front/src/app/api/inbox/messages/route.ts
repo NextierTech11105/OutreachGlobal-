@@ -92,12 +92,12 @@ export async function GET(request: NextRequest) {
     // ========================================
     try {
       const conditions = [];
-      
+
       // Filter by direction
       if (direction) {
         conditions.push(eq(smsMessages.direction, direction));
       }
-      
+
       // Only get messages from last 30 days for performance
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
       conditions.push(gte(smsMessages.createdAt, thirtyDaysAgo));
@@ -127,14 +127,22 @@ export async function GET(request: NextRequest) {
       for (const msg of dbMessages) {
         const isInbound = msg.direction === "inbound";
         const messageBody = msg.body || "";
-        const dateStr = (msg.receivedAt || msg.sentAt || msg.createdAt)?.toISOString() || new Date().toISOString();
+        const dateStr =
+          (msg.receivedAt || msg.sentAt || msg.createdAt)?.toISOString() ||
+          new Date().toISOString();
 
         allMessages.push({
           id: msg.id,
           type: "sms",
-          from: isInbound ? (msg.fromNumber || "Unknown") : (msg.toNumber || "Unknown"),
-          phone: isInbound ? msg.fromNumber || undefined : msg.toNumber || undefined,
-          preview: messageBody.substring(0, 100) + (messageBody.length > 100 ? "..." : ""),
+          from: isInbound
+            ? msg.fromNumber || "Unknown"
+            : msg.toNumber || "Unknown",
+          phone: isInbound
+            ? msg.fromNumber || undefined
+            : msg.toNumber || undefined,
+          preview:
+            messageBody.substring(0, 100) +
+            (messageBody.length > 100 ? "..." : ""),
           content: messageBody,
           date: dateStr,
           status: mapDbStatus(msg.status, isInbound),
@@ -158,7 +166,7 @@ export async function GET(request: NextRequest) {
     if (type === "all" || type === "voice") {
       try {
         const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-        
+
         const dbCalls = await db
           .select({
             id: callLogs.id,
@@ -180,15 +188,25 @@ export async function GET(request: NextRequest) {
 
         for (const call of dbCalls) {
           const isInbound = call.direction === "inbound";
-          const dateStr = (call.startedAt || call.createdAt)?.toISOString() || new Date().toISOString();
+          const dateStr =
+            (call.startedAt || call.createdAt)?.toISOString() ||
+            new Date().toISOString();
 
           allMessages.push({
             id: call.id,
             type: "voice",
-            from: isInbound ? (call.fromNumber || "Unknown") : (call.toNumber || "Unknown"),
-            phone: isInbound ? call.fromNumber || undefined : call.toNumber || undefined,
-            preview: call.transcription?.substring(0, 100) || `Call - ${call.duration || 0}s`,
-            content: call.transcription || `Voice call - Duration: ${call.duration || 0} seconds`,
+            from: isInbound
+              ? call.fromNumber || "Unknown"
+              : call.toNumber || "Unknown",
+            phone: isInbound
+              ? call.fromNumber || undefined
+              : call.toNumber || undefined,
+            preview:
+              call.transcription?.substring(0, 100) ||
+              `Call - ${call.duration || 0}s`,
+            content:
+              call.transcription ||
+              `Voice call - Duration: ${call.duration || 0} seconds`,
             date: dateStr,
             status: call.status === "completed" ? "replied" : "new",
             direction: call.direction || "outbound",
@@ -227,20 +245,32 @@ export async function GET(request: NextRequest) {
           const contentType = response.headers.get("content-type");
           if (contentType?.includes("application/json")) {
             const data = await response.json();
-            const rawMessages: SignalHouseMessage[] = data.messages || data.data || data || [];
-            
+            const rawMessages: SignalHouseMessage[] =
+              data.messages || data.data || data || [];
+
             for (const msg of rawMessages) {
-              const messageId = msg.id || msg.message_id || msg.sid || `msg-${Date.now()}-${Math.random()}`;
-              const isInbound = msg.direction === "inbound" || msg.direction === "incoming";
+              const messageId =
+                msg.id ||
+                msg.message_id ||
+                msg.sid ||
+                `msg-${Date.now()}-${Math.random()}`;
+              const isInbound =
+                msg.direction === "inbound" || msg.direction === "incoming";
               const messageBody = msg.body || msg.message || "";
-              const dateStr = msg.date_created || msg.date_sent || msg.created_at || new Date().toISOString();
+              const dateStr =
+                msg.date_created ||
+                msg.date_sent ||
+                msg.created_at ||
+                new Date().toISOString();
 
               allMessages.push({
                 id: messageId,
                 type: "sms",
                 from: isInbound ? msg.from || "Unknown" : msg.to || "Unknown",
                 phone: isInbound ? msg.from : msg.to,
-                preview: messageBody.substring(0, 100) + (messageBody.length > 100 ? "..." : ""),
+                preview:
+                  messageBody.substring(0, 100) +
+                  (messageBody.length > 100 ? "..." : ""),
                 content: messageBody,
                 date: dateStr,
                 status: mapStatus(msg.status, isInbound),
@@ -262,12 +292,13 @@ export async function GET(request: NextRequest) {
     }
 
     // Sort all messages by date (newest first)
-    allMessages.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    allMessages.sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+    );
 
     // Filter by type if specified
-    const filteredMessages = type === "all"
-      ? allMessages
-      : allMessages.filter((m) => m.type === type);
+    const filteredMessages =
+      type === "all" ? allMessages : allMessages.filter((m) => m.type === type);
 
     return NextResponse.json({
       success: true,
@@ -297,7 +328,7 @@ export async function GET(request: NextRequest) {
 
 function mapDbStatus(dbStatus: string | null, isInbound: boolean): string {
   if (!dbStatus) return isInbound ? "new" : "sent";
-  
+
   switch (dbStatus.toLowerCase()) {
     case "delivered":
       return "replied";

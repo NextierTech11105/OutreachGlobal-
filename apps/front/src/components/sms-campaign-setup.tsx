@@ -551,7 +551,12 @@ const GIANNA_TEMPLATES = [
 // Campaign Types for ML classification and workflow orchestration
 export type CampaignType = "initial" | "nudger" | "nurture";
 
-const CAMPAIGN_TYPES: { id: CampaignType; name: string; description: string; icon: string }[] = [
+const CAMPAIGN_TYPES: {
+  id: CampaignType;
+  name: string;
+  description: string;
+  icon: string;
+}[] = [
   {
     id: "initial",
     name: "Initial Outreach",
@@ -931,14 +936,30 @@ export function SMSCampaignSetup({
                   }}
                   maxLength={160}
                   rows={4}
-                  className={`font-mono text-sm ${customMessage.length >= 150 ? 'border-yellow-500' : ''} ${customMessage.length >= 160 ? 'border-red-500' : ''}`}
+                  className={`font-mono text-sm ${customMessage.length >= 150 ? "border-yellow-500" : ""} ${customMessage.length >= 160 ? "border-red-500" : ""}`}
                 />
                 <div className="flex justify-between text-xs">
-                  <span className={customMessage.length >= 150 ? (customMessage.length >= 160 ? 'text-red-500 font-medium' : 'text-yellow-500') : 'text-muted-foreground'}>
+                  <span
+                    className={
+                      customMessage.length >= 150
+                        ? customMessage.length >= 160
+                          ? "text-red-500 font-medium"
+                          : "text-yellow-500"
+                        : "text-muted-foreground"
+                    }
+                  >
                     {customMessage.length}/160 characters
                   </span>
-                  <span className={customMessage.length > 160 ? 'text-red-500' : 'text-green-500'}>
-                    {customMessage.length <= 160 ? '✓ Single SMS' : '⚠ Too long'}
+                  <span
+                    className={
+                      customMessage.length > 160
+                        ? "text-red-500"
+                        : "text-green-500"
+                    }
+                  >
+                    {customMessage.length <= 160
+                      ? "✓ Single SMS"
+                      : "⚠ Too long"}
                   </span>
                 </div>
               </div>

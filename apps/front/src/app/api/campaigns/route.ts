@@ -118,10 +118,18 @@ export async function POST(request: NextRequest) {
       })
       .returning();
 
-    console.log(`[Campaigns API] Created ${campaignType || 'initial'} campaign: ${name} (${id}) with ${recipientCount || 0} recipients`);
-    console.log(`[Campaigns API] Campaign Type: ${campaignType || 'initial'}, Attempt #${attemptNumber || 1}`);
-    console.log(`[Campaigns API] Category: ${category}, Persona: ${persona}, Template: ${template}`);
-    console.log(`[Campaigns API] Message (${message?.length || 0} chars): ${message?.substring(0, 50)}...`);
+    console.log(
+      `[Campaigns API] Created ${campaignType || "initial"} campaign: ${name} (${id}) with ${recipientCount || 0} recipients`,
+    );
+    console.log(
+      `[Campaigns API] Campaign Type: ${campaignType || "initial"}, Attempt #${attemptNumber || 1}`,
+    );
+    console.log(
+      `[Campaigns API] Category: ${category}, Persona: ${persona}, Template: ${template}`,
+    );
+    console.log(
+      `[Campaigns API] Message (${message?.length || 0} chars): ${message?.substring(0, 50)}...`,
+    );
     console.log(`[Campaigns API] ML Labels:`, JSON.stringify(mlLabelData));
 
     return NextResponse.json(newCampaign, { status: 201 });

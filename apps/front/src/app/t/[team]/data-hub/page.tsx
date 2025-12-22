@@ -152,10 +152,10 @@ export default function DataHubPage() {
   // WORKFLOW CONFIGURATION - Daily Limits & Batch Processing
   // ═══════════════════════════════════════════════════════════════════
   const WORKFLOW_CONFIG = {
-    skipTraceBatchSize: 250,      // Skip trace in batches of 250
-    maxSkipTracePerDay: 2000,     // Max 2,000 skip traces per day
-    maxSmsPerDay: 2000,           // Max 2,000 SMS blasts per day
-    maxCallsPerDay: 1000,         // Max 1,000 automated calls per day
+    skipTraceBatchSize: 250, // Skip trace in batches of 250
+    maxSkipTracePerDay: 2000, // Max 2,000 skip traces per day
+    maxSmsPerDay: 2000, // Max 2,000 SMS blasts per day
+    maxCallsPerDay: 1000, // Max 1,000 automated calls per day
   };
 
   // Workflow step tracking
@@ -302,34 +302,42 @@ export default function DataHubPage() {
   // ═══════════════════════════════════════════════════════════════════════════
   // DATA AGE UTILITIES - Track freshness of uploaded data
   // ═══════════════════════════════════════════════════════════════════════════
-  const calculateDataAge = (uploadDateString: string | undefined): {
+  const calculateDataAge = (
+    uploadDateString: string | undefined,
+  ): {
     uploadedAt: Date | null;
     ageInDays: number;
     ageFreshness: "fresh" | "recent" | "aging" | "stale";
   } => {
-    if (!uploadDateString) return { uploadedAt: null, ageInDays: 0, ageFreshness: "fresh" };
-    
+    if (!uploadDateString)
+      return { uploadedAt: null, ageInDays: 0, ageFreshness: "fresh" };
+
     const uploadedAt = new Date(uploadDateString);
     const now = new Date();
     const ageInMs = now.getTime() - uploadedAt.getTime();
     const ageInDays = Math.floor(ageInMs / (1000 * 60 * 60 * 24));
-    
+
     let ageFreshness: "fresh" | "recent" | "aging" | "stale" = "fresh";
     if (ageInDays <= 7) ageFreshness = "fresh";
     else if (ageInDays <= 30) ageFreshness = "recent";
     else if (ageInDays <= 90) ageFreshness = "aging";
     else ageFreshness = "stale";
-    
+
     return { uploadedAt, ageInDays, ageFreshness };
   };
 
   const getAgeBadgeColor = (freshness: string) => {
     switch (freshness) {
-      case "fresh": return "bg-green-500/20 text-green-400 border-green-500/50";
-      case "recent": return "bg-blue-500/20 text-blue-400 border-blue-500/50";
-      case "aging": return "bg-amber-500/20 text-amber-400 border-amber-500/50";
-      case "stale": return "bg-red-500/20 text-red-400 border-red-500/50";
-      default: return "bg-zinc-500/20 text-zinc-400 border-zinc-500/50";
+      case "fresh":
+        return "bg-green-500/20 text-green-400 border-green-500/50";
+      case "recent":
+        return "bg-blue-500/20 text-blue-400 border-blue-500/50";
+      case "aging":
+        return "bg-amber-500/20 text-amber-400 border-amber-500/50";
+      case "stale":
+        return "bg-red-500/20 text-red-400 border-red-500/50";
+      default:
+        return "bg-zinc-500/20 text-zinc-400 border-zinc-500/50";
     }
   };
 
@@ -347,9 +355,10 @@ export default function DataHubPage() {
   // ═══════════════════════════════════════════════════════════════════════════
   const autoDetectMapping = (headers: string[]): FieldMapping[] => {
     const mappings: FieldMapping[] = [];
-    
+
     const columnPatterns: Record<string, RegExp> = {
-      companyName: /^(company|company.?name|business|business.?name|org|organization)$/i,
+      companyName:
+        /^(company|company.?name|business|business.?name|org|organization)$/i,
       contactName: /^(contact|contact.?name|full.?name|name)$/i,
       firstName: /^(first|first.?name|fname|given.?name)$/i,
       lastName: /^(last|last.?name|lname|surname|family.?name)$/i,
@@ -361,12 +370,13 @@ export default function DataHubPage() {
       zip: /^(zip|zip.?code|postal|postal.?code|zipcode)$/i,
       county: /^(county|parish)$/i,
       website: /^(website|web|url|site|website.?url)$/i,
-      employees: /^(employees|employee.?count|number.?of.?employees|staff|headcount)$/i,
+      employees:
+        /^(employees|employee.?count|number.?of.?employees|staff|headcount)$/i,
       revenue: /^(revenue|annual.?revenue|sales|income)$/i,
       sicCode: /^(sic|sic.?code)$/i,
       sicDescription: /^(sic.?description|industry|sector|category)$/i,
     };
-    
+
     for (const header of headers) {
       let matched = false;
       for (const [field, pattern] of Object.entries(columnPatterns)) {
@@ -380,22 +390,26 @@ export default function DataHubPage() {
         mappings.push({ csvColumn: header, standardField: "skip" });
       }
     }
-    
+
     return mappings;
   };
 
   const updateFieldMapping = (csvColumn: string, newField: string) => {
-    setFieldMappings(prev => 
-      prev.map(m => m.csvColumn === csvColumn ? { ...m, standardField: newField } : m)
+    setFieldMappings((prev) =>
+      prev.map((m) =>
+        m.csvColumn === csvColumn ? { ...m, standardField: newField } : m,
+      ),
     );
   };
 
   const processCSVWithMapping = async () => {
     if (!pendingFile || fieldMappings.length === 0) return;
-    
+
     // For now, redirect to import-companies with mapped data
     // In production, this would process inline
-    toast.success(`Mapping configured for ${fieldMappings.filter(m => m.standardField !== "skip").length} fields`);
+    toast.success(
+      `Mapping configured for ${fieldMappings.filter((m) => m.standardField !== "skip").length} fields`,
+    );
     setShowMappingDialog(false);
     window.location.href = `/t/${params.team}/leads/import-companies`;
   };
@@ -407,24 +421,26 @@ export default function DataHubPage() {
       const teamSlug = params.team as string;
       const response = await fetch(`/api/leads?teamId=${teamSlug}&limit=100`);
       const data = await response.json();
-      
+
       if (data.leads && data.leads.length > 0) {
-        const mappedLeads: Lead[] = data.leads.map((l: Record<string, unknown>) => ({
-          id: l.id as string,
-          name: l.name as string || "Unknown",
-          firstName: (l.name as string)?.split(" ")[0] || "",
-          lastName: (l.name as string)?.split(" ").slice(1).join(" ") || "",
-          company: l.company as string || "",
-          phone: l.phone as string || "",
-          email: l.email as string || "",
-          address: l.address as string || "",
-          city: l.city as string || "",
-          state: l.state as string || "",
-          zip: l.zipCode as string || "",
-          industry: l.industry as string || "",
-          source: l.source as string || "database",
-          enriched: !!(l.phone || l.email),
-        }));
+        const mappedLeads: Lead[] = data.leads.map(
+          (l: Record<string, unknown>) => ({
+            id: l.id as string,
+            name: (l.name as string) || "Unknown",
+            firstName: (l.name as string)?.split(" ")[0] || "",
+            lastName: (l.name as string)?.split(" ").slice(1).join(" ") || "",
+            company: (l.company as string) || "",
+            phone: (l.phone as string) || "",
+            email: (l.email as string) || "",
+            address: (l.address as string) || "",
+            city: (l.city as string) || "",
+            state: (l.state as string) || "",
+            zip: (l.zipCode as string) || "",
+            industry: (l.industry as string) || "",
+            source: (l.source as string) || "database",
+            enriched: !!(l.phone || l.email),
+          }),
+        );
         setLeads(mappedLeads);
         setSelectedFolder("Database Leads");
       }
@@ -609,11 +625,15 @@ export default function DataHubPage() {
       const data = await response.json();
 
       // Set age tracking from bucket metadata
-      const bucket = buckets.find(b => b.id === bucketId);
+      const bucket = buckets.find((b) => b.id === bucketId);
       if (bucket?.createdAt) {
         setCurrentBucketAge(calculateDataAge(bucket.createdAt));
       } else {
-        setCurrentBucketAge({ uploadedAt: null, ageInDays: 0, ageFreshness: "fresh" });
+        setCurrentBucketAge({
+          uploadedAt: null,
+          ageInDays: 0,
+          ageFreshness: "fresh",
+        });
       }
 
       if (data.records && data.records.length > 0) {
@@ -727,16 +747,24 @@ export default function DataHubPage() {
     }
 
     // Check daily limit
-    const remainingSkipTraces = WORKFLOW_CONFIG.maxSkipTracePerDay - dailyUsage.skipTracesUsed;
+    const remainingSkipTraces =
+      WORKFLOW_CONFIG.maxSkipTracePerDay - dailyUsage.skipTracesUsed;
     if (remainingSkipTraces <= 0) {
-      toast.error(`Daily skip trace limit reached (${WORKFLOW_CONFIG.maxSkipTracePerDay}/day)`);
+      toast.error(
+        `Daily skip trace limit reached (${WORKFLOW_CONFIG.maxSkipTracePerDay}/day)`,
+      );
       return;
     }
 
     // Cap at remaining daily limit
-    const actualLeadsToEnrich = leadsToEnrich.slice(0, Math.min(leadsToEnrich.length, remainingSkipTraces));
+    const actualLeadsToEnrich = leadsToEnrich.slice(
+      0,
+      Math.min(leadsToEnrich.length, remainingSkipTraces),
+    );
     if (actualLeadsToEnrich.length < leadsToEnrich.length) {
-      toast.warning(`Enriching ${actualLeadsToEnrich.length} of ${leadsToEnrich.length} (daily limit)`);
+      toast.warning(
+        `Enriching ${actualLeadsToEnrich.length} of ${leadsToEnrich.length} (daily limit)`,
+      );
     }
 
     setIsEnriching(true);
@@ -954,21 +982,27 @@ export default function DataHubPage() {
     // Parse CSV headers and show mapping dialog
     try {
       const text = await file.text();
-      const lines = text.split("\n").filter(l => l.trim());
+      const lines = text.split("\n").filter((l) => l.trim());
       if (lines.length < 2) {
         toast.error("CSV file is empty or has no data rows");
         return;
       }
 
       // Parse headers (first row)
-      const headers = lines[0].split(",").map(h => h.replace(/^"|"$/g, "").trim());
+      const headers = lines[0]
+        .split(",")
+        .map((h) => h.replace(/^"|"$/g, "").trim());
       setCsvHeaders(headers);
 
       // Parse preview rows (next 3 rows)
-      const previewRows = lines.slice(1, 4).map(line => {
-        const values = line.split(",").map(v => v.replace(/^"|"$/g, "").trim());
+      const previewRows = lines.slice(1, 4).map((line) => {
+        const values = line
+          .split(",")
+          .map((v) => v.replace(/^"|"$/g, "").trim());
         const row: Record<string, string> = {};
-        headers.forEach((h, i) => { row[h] = values[i] || ""; });
+        headers.forEach((h, i) => {
+          row[h] = values[i] || "";
+        });
         return row;
       });
       setCsvPreview(previewRows);
@@ -976,7 +1010,7 @@ export default function DataHubPage() {
       // Auto-detect mappings
       const autoMappings = autoDetectMapping(headers);
       // Add sample values
-      autoMappings.forEach(m => {
+      autoMappings.forEach((m) => {
         m.sampleValue = previewRows[0]?.[m.csvColumn] || "";
       });
       setFieldMappings(autoMappings);
@@ -984,8 +1018,10 @@ export default function DataHubPage() {
       setPendingFile(file);
       setShowMappingDialog(true);
       setWorkflowStep("map");
-      
-      toast.success(`CSV "${file.name}" loaded - ${headers.length} columns detected`);
+
+      toast.success(
+        `CSV "${file.name}" loaded - ${headers.length} columns detected`,
+      );
     } catch (error) {
       console.error("CSV parse error:", error);
       toast.error("Failed to parse CSV file");
@@ -1179,7 +1215,9 @@ export default function DataHubPage() {
                         return (
                           <DropdownMenuItem
                             key={bucket.id}
-                            onClick={() => pullFromBucket(bucket.id, bucket.name)}
+                            onClick={() =>
+                              pullFromBucket(bucket.id, bucket.name)
+                            }
                             className="text-white hover:bg-zinc-800 cursor-pointer py-2"
                           >
                             <Database className="h-4 w-4 mr-2 text-green-400 flex-shrink-0" />
@@ -1188,9 +1226,14 @@ export default function DataHubPage() {
                                 {bucket.name}
                               </div>
                               <div className="flex items-center gap-2 text-xs text-zinc-500">
-                                <span>{bucket.totalLeads?.toLocaleString() || 0} records</span>
+                                <span>
+                                  {bucket.totalLeads?.toLocaleString() || 0}{" "}
+                                  records
+                                </span>
                                 {age.uploadedAt && (
-                                  <span className={`px-1.5 py-0.5 rounded text-[10px] border ${getAgeBadgeColor(age.ageFreshness)}`}>
+                                  <span
+                                    className={`px-1.5 py-0.5 rounded text-[10px] border ${getAgeBadgeColor(age.ageFreshness)}`}
+                                  >
                                     {formatAge(age.ageInDays)}
                                   </span>
                                 )}
@@ -1438,7 +1481,9 @@ export default function DataHubPage() {
                   </span>
                   {/* Data Age Badge */}
                   {currentBucketAge.uploadedAt && (
-                    <span className={`px-2 py-0.5 rounded text-xs border ${getAgeBadgeColor(currentBucketAge.ageFreshness)}`}>
+                    <span
+                      className={`px-2 py-0.5 rounded text-xs border ${getAgeBadgeColor(currentBucketAge.ageFreshness)}`}
+                    >
                       📅 {formatAge(currentBucketAge.ageInDays)}
                     </span>
                   )}
@@ -1668,7 +1713,9 @@ export default function DataHubPage() {
           disabled={isLoadingLeads}
           className="text-zinc-400 hover:text-white hover:bg-zinc-800"
         >
-          <RefreshCw className={`h-4 w-4 mr-1 ${isLoadingLeads ? 'animate-spin' : ''}`} />
+          <RefreshCw
+            className={`h-4 w-4 mr-1 ${isLoadingLeads ? "animate-spin" : ""}`}
+          />
           Refresh
         </Button>
         <div className="flex-1" />
@@ -2685,8 +2732,16 @@ export default function DataHubPage() {
             {/* Instructions */}
             <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
               <p className="text-sm text-blue-300">
-                <strong>Auto-detected {fieldMappings.filter(m => m.standardField !== "skip").length} mappings.</strong>{" "}
-                Review and adjust column mappings below. First Name and Last Name are required for skip trace.
+                <strong>
+                  Auto-detected{" "}
+                  {
+                    fieldMappings.filter((m) => m.standardField !== "skip")
+                      .length
+                  }{" "}
+                  mappings.
+                </strong>{" "}
+                Review and adjust column mappings below. First Name and Last
+                Name are required for skip trace.
               </p>
             </div>
 
@@ -2695,14 +2750,23 @@ export default function DataHubPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-zinc-800 hover:bg-zinc-800">
-                    <TableHead className="text-zinc-300 w-1/3">CSV Column</TableHead>
-                    <TableHead className="text-zinc-300 w-1/3">Sample Value</TableHead>
-                    <TableHead className="text-zinc-300 w-1/3">Map To</TableHead>
+                    <TableHead className="text-zinc-300 w-1/3">
+                      CSV Column
+                    </TableHead>
+                    <TableHead className="text-zinc-300 w-1/3">
+                      Sample Value
+                    </TableHead>
+                    <TableHead className="text-zinc-300 w-1/3">
+                      Map To
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {fieldMappings.map((mapping) => (
-                    <TableRow key={mapping.csvColumn} className="hover:bg-zinc-800/50">
+                    <TableRow
+                      key={mapping.csvColumn}
+                      className="hover:bg-zinc-800/50"
+                    >
                       <TableCell className="font-mono text-sm text-white">
                         {mapping.csvColumn}
                       </TableCell>
@@ -2712,7 +2776,9 @@ export default function DataHubPage() {
                       <TableCell>
                         <Select
                           value={mapping.standardField}
-                          onValueChange={(val) => updateFieldMapping(mapping.csvColumn, val)}
+                          onValueChange={(val) =>
+                            updateFieldMapping(mapping.csvColumn, val)
+                          }
                         >
                           <SelectTrigger className="w-full bg-zinc-800 border-zinc-600 text-white">
                             <SelectValue />
@@ -2721,11 +2787,15 @@ export default function DataHubPage() {
                             <SelectItem value="skip" className="text-zinc-400">
                               ⏭️ Skip this column
                             </SelectItem>
-                            {STANDARD_FIELDS.map(field => (
-                              <SelectItem 
-                                key={field.key} 
+                            {STANDARD_FIELDS.map((field) => (
+                              <SelectItem
+                                key={field.key}
                                 value={field.key}
-                                className={field.required ? "text-amber-400" : "text-white"}
+                                className={
+                                  field.required
+                                    ? "text-amber-400"
+                                    : "text-white"
+                                }
                               >
                                 {field.label} {field.required && "⭐"}
                               </SelectItem>
@@ -2742,27 +2812,39 @@ export default function DataHubPage() {
             {/* Validation Summary */}
             <div className="flex items-center gap-4 text-sm">
               <div className="flex items-center gap-2">
-                {fieldMappings.some(m => m.standardField === "firstName") ? (
+                {fieldMappings.some((m) => m.standardField === "firstName") ? (
                   <CheckCircle2 className="h-4 w-4 text-green-400" />
                 ) : (
                   <X className="h-4 w-4 text-red-400" />
                 )}
-                <span className={fieldMappings.some(m => m.standardField === "firstName") ? "text-green-400" : "text-red-400"}>
+                <span
+                  className={
+                    fieldMappings.some((m) => m.standardField === "firstName")
+                      ? "text-green-400"
+                      : "text-red-400"
+                  }
+                >
                   First Name
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                {fieldMappings.some(m => m.standardField === "lastName") ? (
+                {fieldMappings.some((m) => m.standardField === "lastName") ? (
                   <CheckCircle2 className="h-4 w-4 text-green-400" />
                 ) : (
                   <X className="h-4 w-4 text-red-400" />
                 )}
-                <span className={fieldMappings.some(m => m.standardField === "lastName") ? "text-green-400" : "text-red-400"}>
+                <span
+                  className={
+                    fieldMappings.some((m) => m.standardField === "lastName")
+                      ? "text-green-400"
+                      : "text-red-400"
+                  }
+                >
                   Last Name
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                {fieldMappings.some(m => m.standardField === "address") ? (
+                {fieldMappings.some((m) => m.standardField === "address") ? (
                   <CheckCircle2 className="h-4 w-4 text-green-400" />
                 ) : (
                   <span className="h-4 w-4 text-zinc-500">○</span>
@@ -2781,21 +2863,29 @@ export default function DataHubPage() {
                   <table className="text-xs font-mono">
                     <thead>
                       <tr>
-                        {csvHeaders.slice(0, 6).map(h => (
-                          <th key={h} className="px-2 py-1 text-left text-zinc-400">
+                        {csvHeaders.slice(0, 6).map((h) => (
+                          <th
+                            key={h}
+                            className="px-2 py-1 text-left text-zinc-400"
+                          >
                             {h.substring(0, 15)}
                           </th>
                         ))}
                         {csvHeaders.length > 6 && (
-                          <th className="px-2 py-1 text-zinc-500">+{csvHeaders.length - 6} more</th>
+                          <th className="px-2 py-1 text-zinc-500">
+                            +{csvHeaders.length - 6} more
+                          </th>
                         )}
                       </tr>
                     </thead>
                     <tbody>
                       {csvPreview.map((row, i) => (
                         <tr key={i}>
-                          {csvHeaders.slice(0, 6).map(h => (
-                            <td key={h} className="px-2 py-1 text-zinc-300 truncate max-w-[120px]">
+                          {csvHeaders.slice(0, 6).map((h) => (
+                            <td
+                              key={h}
+                              className="px-2 py-1 text-zinc-300 truncate max-w-[120px]"
+                            >
                               {row[h] || "-"}
                             </td>
                           ))}
@@ -2818,7 +2908,10 @@ export default function DataHubPage() {
             </Button>
             <Button
               onClick={processCSVWithMapping}
-              disabled={!fieldMappings.some(m => m.standardField === "firstName") || !fieldMappings.some(m => m.standardField === "lastName")}
+              disabled={
+                !fieldMappings.some((m) => m.standardField === "firstName") ||
+                !fieldMappings.some((m) => m.standardField === "lastName")
+              }
               className="bg-blue-600 hover:bg-blue-700"
             >
               <ArrowRight className="h-4 w-4 mr-2" />

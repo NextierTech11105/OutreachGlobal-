@@ -161,9 +161,27 @@ const DEFAULT_PIPELINE_STAGES: PipelineStage[] = [
     color: "text-blue-600",
     description: "USBizData CSV imports into the system",
     metrics: [
-      { label: "Records Imported", value: 0, previousValue: 0, target: 2500, unit: "" },
-      { label: "Lists Created", value: 0, previousValue: 0, target: 10, unit: "" },
-      { label: "Ready for Skip Trace", value: 0, previousValue: 0, target: 2000, unit: "" },
+      {
+        label: "Records Imported",
+        value: 0,
+        previousValue: 0,
+        target: 2500,
+        unit: "",
+      },
+      {
+        label: "Lists Created",
+        value: 0,
+        previousValue: 0,
+        target: 10,
+        unit: "",
+      },
+      {
+        label: "Ready for Skip Trace",
+        value: 0,
+        previousValue: 0,
+        target: 2000,
+        unit: "",
+      },
     ],
     conversionToNext: 0,
     previousConversion: 0,
@@ -178,9 +196,27 @@ const DEFAULT_PIPELINE_STAGES: PipelineStage[] = [
     color: "text-cyan-600",
     description: "Phone/email enrichment via RealEstateAPI",
     metrics: [
-      { label: "Skip Traced", value: 0, previousValue: 0, target: 2000, unit: "" },
-      { label: "Phones Found", value: 0, previousValue: 0, target: 1500, unit: "" },
-      { label: "Emails Found", value: 0, previousValue: 0, target: 1200, unit: "" },
+      {
+        label: "Skip Traced",
+        value: 0,
+        previousValue: 0,
+        target: 2000,
+        unit: "",
+      },
+      {
+        label: "Phones Found",
+        value: 0,
+        previousValue: 0,
+        target: 1500,
+        unit: "",
+      },
+      {
+        label: "Emails Found",
+        value: 0,
+        previousValue: 0,
+        target: 1200,
+        unit: "",
+      },
     ],
     conversionToNext: 0,
     previousConversion: 0,
@@ -196,8 +232,20 @@ const DEFAULT_PIPELINE_STAGES: PipelineStage[] = [
     description: "SignalHouse SMS/Voice outreach execution",
     metrics: [
       { label: "SMS Sent", value: 0, previousValue: 0, target: 1000, unit: "" },
-      { label: "Calls Made", value: 0, previousValue: 0, target: 400, unit: "" },
-      { label: "Emails Sent", value: 0, previousValue: 0, target: 1500, unit: "" },
+      {
+        label: "Calls Made",
+        value: 0,
+        previousValue: 0,
+        target: 400,
+        unit: "",
+      },
+      {
+        label: "Emails Sent",
+        value: 0,
+        previousValue: 0,
+        target: 1500,
+        unit: "",
+      },
     ],
     conversionToNext: 0,
     previousConversion: 0,
@@ -212,7 +260,13 @@ const DEFAULT_PIPELINE_STAGES: PipelineStage[] = [
     color: "text-green-600",
     description: "AI Copilot handling inbound messages",
     metrics: [
-      { label: "SMS Responses", value: 0, previousValue: 0, target: 150, unit: "" },
+      {
+        label: "SMS Responses",
+        value: 0,
+        previousValue: 0,
+        target: 150,
+        unit: "",
+      },
       { label: "Call Backs", value: 0, previousValue: 0, target: 50, unit: "" },
       { label: "Voicemails", value: 0, previousValue: 0, target: 30, unit: "" },
     ],
@@ -229,7 +283,13 @@ const DEFAULT_PIPELINE_STAGES: PipelineStage[] = [
     color: "text-amber-600",
     description: "Emails collected from responses",
     metrics: [
-      { label: "Emails Captured", value: 0, previousValue: 0, target: 100, unit: "" },
+      {
+        label: "Emails Captured",
+        value: 0,
+        previousValue: 0,
+        target: 100,
+        unit: "",
+      },
       { label: "Verified", value: 0, previousValue: 0, target: 80, unit: "" },
       { label: "Opted In", value: 0, previousValue: 0, target: 60, unit: "" },
     ],
@@ -246,8 +306,20 @@ const DEFAULT_PIPELINE_STAGES: PipelineStage[] = [
     color: "text-indigo-600",
     description: "Mobile numbers verified for SMS",
     metrics: [
-      { label: "Mobiles Captured", value: 0, previousValue: 0, target: 120, unit: "" },
-      { label: "SMS Capable", value: 0, previousValue: 0, target: 100, unit: "" },
+      {
+        label: "Mobiles Captured",
+        value: 0,
+        previousValue: 0,
+        target: 120,
+        unit: "",
+      },
+      {
+        label: "SMS Capable",
+        value: 0,
+        previousValue: 0,
+        target: 100,
+        unit: "",
+      },
       { label: "Opted In", value: 0, previousValue: 0, target: 80, unit: "" },
     ],
     conversionToNext: 0,
@@ -263,7 +335,13 @@ const DEFAULT_PIPELINE_STAGES: PipelineStage[] = [
     color: "text-orange-600",
     description: "Active deal negotiations",
     metrics: [
-      { label: "Proposals Sent", value: 0, previousValue: 0, target: 25, unit: "" },
+      {
+        label: "Proposals Sent",
+        value: 0,
+        previousValue: 0,
+        target: 25,
+        unit: "",
+      },
       { label: "Viewed", value: 0, previousValue: 0, target: 20, unit: "" },
       { label: "In Review", value: 0, previousValue: 0, target: 10, unit: "" },
     ],
@@ -281,8 +359,20 @@ const DEFAULT_PIPELINE_STAGES: PipelineStage[] = [
     description: "Revenue generated",
     metrics: [
       { label: "Won", value: 0, previousValue: 0, target: 10, unit: "" },
-      { label: "Revenue", value: 0, previousValue: 0, target: 100000, unit: "$" },
-      { label: "Avg Deal Size", value: 0, previousValue: 0, target: 15000, unit: "$" },
+      {
+        label: "Revenue",
+        value: 0,
+        previousValue: 0,
+        target: 100000,
+        unit: "$",
+      },
+      {
+        label: "Avg Deal Size",
+        value: 0,
+        previousValue: 0,
+        target: 15000,
+        unit: "$",
+      },
     ],
     conversionToNext: 0,
     previousConversion: 0,
@@ -406,7 +496,9 @@ export default function PipelineHeatmapPage() {
     DEFAULT_WEBHOOK_ACTIVITIES,
   );
   const [isLoadingWebhooks, setIsLoadingWebhooks] = useState(true);
-  const [pipelineStages, setPipelineStages] = useState<PipelineStage[]>(DEFAULT_PIPELINE_STAGES);
+  const [pipelineStages, setPipelineStages] = useState<PipelineStage[]>(
+    DEFAULT_PIPELINE_STAGES,
+  );
   const [isLoadingPipeline, setIsLoadingPipeline] = useState(true);
 
   // Fetch pipeline stats from database
@@ -420,16 +512,24 @@ export default function PipelineHeatmapPage() {
           if (data.success && data.data) {
             // Merge fetched data with default stage definitions
             const updatedStages = DEFAULT_PIPELINE_STAGES.map((stage) => {
-              const stageData = data.data.find((d: { id: string }) => d.id === stage.id);
+              const stageData = data.data.find(
+                (d: { id: string }) => d.id === stage.id,
+              );
               if (stageData) {
                 // Calculate heat level based on first metric
                 const firstMetric = stageData.metrics[0];
-                const heatLevel = calculateHeatLevel(firstMetric.value, firstMetric.target);
+                const heatLevel = calculateHeatLevel(
+                  firstMetric.value,
+                  firstMetric.target,
+                );
                 // Calculate bottleneck risk (inverse of conversion to next stage)
-                const bottleneckRisk = stageData.conversionToNext > 0 
-                  ? Math.max(0, 100 - stageData.conversionToNext)
-                  : stage.id === "deal" ? 0 : 75;
-                
+                const bottleneckRisk =
+                  stageData.conversionToNext > 0
+                    ? Math.max(0, 100 - stageData.conversionToNext)
+                    : stage.id === "deal"
+                      ? 0
+                      : 75;
+
                 return {
                   ...stage,
                   metrics: stageData.metrics,
@@ -445,7 +545,10 @@ export default function PipelineHeatmapPage() {
           }
         }
       } catch (error) {
-        console.error("[Pipeline Heatmap] Failed to fetch pipeline stats:", error);
+        console.error(
+          "[Pipeline Heatmap] Failed to fetch pipeline stats:",
+          error,
+        );
       } finally {
         setIsLoadingPipeline(false);
       }
@@ -465,7 +568,9 @@ export default function PipelineHeatmapPage() {
           "90d": 2160,
         };
         const hours = hoursMap[timeRange] || 168;
-        const response = await fetch(`/api/analytics/webhook-health?hours=${hours}`);
+        const response = await fetch(
+          `/api/analytics/webhook-health?hours=${hours}`,
+        );
         if (response.ok) {
           const data = await response.json();
           if (data.webhooks && Array.isArray(data.webhooks)) {
@@ -473,7 +578,10 @@ export default function PipelineHeatmapPage() {
           }
         }
       } catch (error) {
-        console.error("[Pipeline Heatmap] Failed to fetch webhook health:", error);
+        console.error(
+          "[Pipeline Heatmap] Failed to fetch webhook health:",
+          error,
+        );
       } finally {
         setIsLoadingWebhooks(false);
       }
@@ -484,16 +592,15 @@ export default function PipelineHeatmapPage() {
   // Calculate overall pipeline health
   const pipelineHealth = useMemo(() => {
     const avgConversion =
-      pipelineStages.slice(0, -1).reduce(
-        (sum, s) => sum + s.conversionToNext,
-        0,
-      ) /
+      pipelineStages
+        .slice(0, -1)
+        .reduce((sum, s) => sum + s.conversionToNext, 0) /
       (pipelineStages.length - 1);
     const avgBottleneck =
       pipelineStages.reduce((sum, s) => sum + s.bottleneckRisk, 0) /
       pipelineStages.length;
 
-    const dealStage = pipelineStages.find(s => s.id === "deal");
+    const dealStage = pipelineStages.find((s) => s.id === "deal");
     return {
       overallHealth: 100 - avgBottleneck,
       avgConversion,
@@ -623,123 +730,125 @@ export default function PipelineHeatmapPage() {
             {isLoadingPipeline ? (
               <div className="flex-1 flex items-center justify-center py-12">
                 <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
-                <span className="ml-2 text-muted-foreground">Loading pipeline data...</span>
+                <span className="ml-2 text-muted-foreground">
+                  Loading pipeline data...
+                </span>
               </div>
             ) : (
-            pipelineStages.map((stage, idx) => {
-              const Icon = stage.icon;
-              const isLast = idx === pipelineStages.length - 1;
+              pipelineStages.map((stage, idx) => {
+                const Icon = stage.icon;
+                const isLast = idx === pipelineStages.length - 1;
 
-              return (
-                <React.Fragment key={stage.id}>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div
-                          className={cn(
-                            "flex-1 p-4 rounded-lg border-2 cursor-pointer transition-all",
-                            getHeatBgColor(stage.heatLevel),
-                            selectedStage?.id === stage.id &&
-                              "ring-2 ring-offset-2 ring-purple-500",
-                          )}
-                          onClick={() => setSelectedStage(stage)}
-                        >
-                          {/* Stage Header */}
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-2">
-                              <div
-                                className={cn(
-                                  "p-2 rounded-lg bg-white shadow-sm",
-                                  stage.color,
-                                )}
-                              >
-                                <Icon className="h-5 w-5" />
-                              </div>
-                              <div>
-                                <p className="font-medium text-sm">
-                                  {stage.shortName}
-                                </p>
-                                <div className="flex items-center gap-1">
-                                  <div
-                                    className={cn(
-                                      "h-2 w-2 rounded-full",
-                                      getHeatColor(stage.heatLevel),
-                                    )}
-                                  />
-                                  <span className="text-[10px] text-muted-foreground capitalize">
-                                    {stage.heatLevel}
-                                  </span>
+                return (
+                  <React.Fragment key={stage.id}>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div
+                            className={cn(
+                              "flex-1 p-4 rounded-lg border-2 cursor-pointer transition-all",
+                              getHeatBgColor(stage.heatLevel),
+                              selectedStage?.id === stage.id &&
+                                "ring-2 ring-offset-2 ring-purple-500",
+                            )}
+                            onClick={() => setSelectedStage(stage)}
+                          >
+                            {/* Stage Header */}
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className={cn(
+                                    "p-2 rounded-lg bg-white shadow-sm",
+                                    stage.color,
+                                  )}
+                                >
+                                  <Icon className="h-5 w-5" />
+                                </div>
+                                <div>
+                                  <p className="font-medium text-sm">
+                                    {stage.shortName}
+                                  </p>
+                                  <div className="flex items-center gap-1">
+                                    <div
+                                      className={cn(
+                                        "h-2 w-2 rounded-full",
+                                        getHeatColor(stage.heatLevel),
+                                      )}
+                                    />
+                                    <span className="text-[10px] text-muted-foreground capitalize">
+                                      {stage.heatLevel}
+                                    </span>
+                                  </div>
                                 </div>
                               </div>
+                              {stage.bottleneckRisk > 40 && (
+                                <AlertTriangle className="h-4 w-4 text-orange-500" />
+                              )}
                             </div>
-                            {stage.bottleneckRisk > 40 && (
-                              <AlertTriangle className="h-4 w-4 text-orange-500" />
+
+                            {/* Primary Metric */}
+                            <div className="mb-2">
+                              <p className="text-2xl font-bold">
+                                {stage.metrics[0].unit}
+                                {stage.metrics[0].value.toLocaleString()}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {stage.metrics[0].label}
+                              </p>
+                            </div>
+
+                            {/* Conversion Rate */}
+                            {!isLast && (
+                              <div className="pt-2 border-t">
+                                <div className="flex items-center justify-between text-xs">
+                                  <span className="text-muted-foreground">
+                                    → Next
+                                  </span>
+                                  <span className="font-medium">
+                                    {stage.conversionToNext}%
+                                  </span>
+                                </div>
+                                <Progress
+                                  value={stage.conversionToNext}
+                                  className="h-1 mt-1"
+                                />
+                              </div>
                             )}
                           </div>
-
-                          {/* Primary Metric */}
-                          <div className="mb-2">
-                            <p className="text-2xl font-bold">
-                              {stage.metrics[0].unit}
-                              {stage.metrics[0].value.toLocaleString()}
-                            </p>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="max-w-xs">
+                          <div className="space-y-2">
+                            <p className="font-medium">{stage.name}</p>
                             <p className="text-xs text-muted-foreground">
-                              {stage.metrics[0].label}
+                              {stage.description}
                             </p>
-                          </div>
-
-                          {/* Conversion Rate */}
-                          {!isLast && (
-                            <div className="pt-2 border-t">
-                              <div className="flex items-center justify-between text-xs">
-                                <span className="text-muted-foreground">
-                                  → Next
-                                </span>
+                            {stage.metrics.map((m) => (
+                              <div
+                                key={m.label}
+                                className="flex justify-between text-xs"
+                              >
+                                <span>{m.label}:</span>
                                 <span className="font-medium">
-                                  {stage.conversionToNext}%
+                                  {m.unit}
+                                  {m.value.toLocaleString()} / {m.unit}
+                                  {m.target.toLocaleString()}
                                 </span>
                               </div>
-                              <Progress
-                                value={stage.conversionToNext}
-                                className="h-1 mt-1"
-                              />
-                            </div>
-                          )}
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom" className="max-w-xs">
-                        <div className="space-y-2">
-                          <p className="font-medium">{stage.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {stage.description}
-                          </p>
-                          {stage.metrics.map((m) => (
-                            <div
-                              key={m.label}
-                              className="flex justify-between text-xs"
-                            >
-                              <span>{m.label}:</span>
-                              <span className="font-medium">
-                                {m.unit}
-                                {m.value.toLocaleString()} / {m.unit}
-                                {m.target.toLocaleString()}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                            ))}
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
 
-                  {/* Arrow between stages */}
-                  {!isLast && (
-                    <div className="flex items-center justify-center px-1">
-                      <ArrowRight className="h-5 w-5 text-muted-foreground/50" />
-                    </div>
-                  )}
-                </React.Fragment>
-              );
-            })
+                    {/* Arrow between stages */}
+                    {!isLast && (
+                      <div className="flex items-center justify-center px-1">
+                        <ArrowRight className="h-5 w-5 text-muted-foreground/50" />
+                      </div>
+                    )}
+                  </React.Fragment>
+                );
+              })
             )}
           </div>
         </CardContent>
@@ -886,9 +995,12 @@ export default function PipelineHeatmapPage() {
                         <div
                           className={cn(
                             "h-2.5 w-2.5 rounded-full",
-                            wh.status === "healthy" && "bg-emerald-500 dark:bg-emerald-400",
-                            wh.status === "degraded" && "bg-amber-500 dark:bg-amber-400",
-                            wh.status === "failing" && "bg-red-500 dark:bg-red-400",
+                            wh.status === "healthy" &&
+                              "bg-emerald-500 dark:bg-emerald-400",
+                            wh.status === "degraded" &&
+                              "bg-amber-500 dark:bg-amber-400",
+                            wh.status === "failing" &&
+                              "bg-red-500 dark:bg-red-400",
                           )}
                         />
                         <div>
@@ -909,11 +1021,15 @@ export default function PipelineHeatmapPage() {
                           </p>
                         </div>
                         <div className="text-center min-w-[60px]">
-                          <p className={cn(
-                            "font-semibold tabular-nums",
-                            wh.avgLatency > 500 && "text-amber-500 dark:text-amber-400",
-                            wh.avgLatency > 1000 && "text-red-500 dark:text-red-400",
-                          )}>
+                          <p
+                            className={cn(
+                              "font-semibold tabular-nums",
+                              wh.avgLatency > 500 &&
+                                "text-amber-500 dark:text-amber-400",
+                              wh.avgLatency > 1000 &&
+                                "text-red-500 dark:text-red-400",
+                            )}
+                          >
                             {wh.avgLatency}ms
                           </p>
                           <p className="text-[10px] text-muted-foreground">
@@ -956,46 +1072,47 @@ export default function PipelineHeatmapPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {[...pipelineStages].sort(
-                  (a, b) => b.bottleneckRisk - a.bottleneckRisk,
-                ).map((stage) => {
-                  const Icon = stage.icon;
-                  return (
-                    <div key={stage.id} className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Icon className={cn("h-4 w-4", stage.color)} />
-                          <span className="text-sm font-medium">
-                            {stage.name}
+                {[...pipelineStages]
+                  .sort((a, b) => b.bottleneckRisk - a.bottleneckRisk)
+                  .map((stage) => {
+                    const Icon = stage.icon;
+                    return (
+                      <div key={stage.id} className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Icon className={cn("h-4 w-4", stage.color)} />
+                            <span className="text-sm font-medium">
+                              {stage.name}
+                            </span>
+                          </div>
+                          <span
+                            className={cn(
+                              "text-sm font-medium",
+                              stage.bottleneckRisk > 50 && "text-red-600",
+                              stage.bottleneckRisk > 30 &&
+                                stage.bottleneckRisk <= 50 &&
+                                "text-yellow-600",
+                              stage.bottleneckRisk <= 30 && "text-green-600",
+                            )}
+                          >
+                            {stage.bottleneckRisk}%
                           </span>
                         </div>
-                        <span
+                        <Progress
+                          value={stage.bottleneckRisk}
                           className={cn(
-                            "text-sm font-medium",
-                            stage.bottleneckRisk > 50 && "text-red-600",
+                            "h-2",
+                            stage.bottleneckRisk > 50 && "[&>div]:bg-red-500",
                             stage.bottleneckRisk > 30 &&
                               stage.bottleneckRisk <= 50 &&
-                              "text-yellow-600",
-                            stage.bottleneckRisk <= 30 && "text-green-600",
+                              "[&>div]:bg-yellow-500",
+                            stage.bottleneckRisk <= 30 &&
+                              "[&>div]:bg-green-500",
                           )}
-                        >
-                          {stage.bottleneckRisk}%
-                        </span>
+                        />
                       </div>
-                      <Progress
-                        value={stage.bottleneckRisk}
-                        className={cn(
-                          "h-2",
-                          stage.bottleneckRisk > 50 && "[&>div]:bg-red-500",
-                          stage.bottleneckRisk > 30 &&
-                            stage.bottleneckRisk <= 50 &&
-                            "[&>div]:bg-yellow-500",
-                          stage.bottleneckRisk <= 30 && "[&>div]:bg-green-500",
-                        )}
-                      />
-                    </div>
-                  );
-                })}
+                    );
+                  })}
               </CardContent>
             </Card>
 

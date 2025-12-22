@@ -326,8 +326,10 @@ describe("Gianna SMS Webhook - Compliance Tests", () => {
   });
 
   describe("Response Classification Integration", () => {
-    it("should use classifyResponse from response-classifications module", () => {
-      const { classifyResponse } = require("@/lib/response-classifications");
+    it("should use classifyResponse from response-classifications module", async () => {
+      const { classifyResponse } = await import(
+        "@/lib/response-classifications"
+      );
 
       const result = classifyResponse("homeowner-advisor", "I am interested");
 

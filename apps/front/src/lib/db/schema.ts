@@ -1386,7 +1386,9 @@ export const campaignAttempts = pgTable(
     // === Attempt Info ===
     attemptNumber: integer("attempt_number").notNull().default(1), // 1, 2, 3...
     previousAttempts: integer("previous_attempts").default(0), // Total attempts before this one
-    totalAttemptsSinceInception: integer("total_attempts_since_inception").default(1), // Total from lead inception
+    totalAttemptsSinceInception: integer(
+      "total_attempts_since_inception",
+    ).default(1), // Total from lead inception
     channel: text("channel").notNull(), // 'sms' | 'dialer' | 'email'
 
     // === Message ===
@@ -1447,9 +1449,17 @@ export const campaignAttempts = pgTable(
     createdAtIdx: index("campaign_attempts_created_at_idx").on(table.createdAt),
     // === ML Query Indexes ===
     campaignTypeIdx: index("campaign_attempts_type_idx").on(table.campaignType),
-    attemptNumberIdx: index("campaign_attempts_attempt_num_idx").on(table.attemptNumber),
-    lastAttemptedAtIdx: index("campaign_attempts_last_attempted_idx").on(table.lastAttemptedAt),
-    mlCompositeIdx: index("campaign_attempts_ml_idx").on(table.campaignType, table.attemptNumber, table.createdAt),
+    attemptNumberIdx: index("campaign_attempts_attempt_num_idx").on(
+      table.attemptNumber,
+    ),
+    lastAttemptedAtIdx: index("campaign_attempts_last_attempted_idx").on(
+      table.lastAttemptedAt,
+    ),
+    mlCompositeIdx: index("campaign_attempts_ml_idx").on(
+      table.campaignType,
+      table.attemptNumber,
+      table.createdAt,
+    ),
   }),
 );
 
@@ -1749,7 +1759,9 @@ export const campaigns = pgTable(
     campaignType: text("campaign_type").notNull().default("initial"), // 'initial' | 'nudger' | 'nurture'
     // === Attempt Tracking from Inception ===
     totalAttempts: integer("total_attempts").notNull().default(0), // Total attempts since campaign inception
-    currentAttemptNumber: integer("current_attempt_number").notNull().default(0), // Current attempt sequence
+    currentAttemptNumber: integer("current_attempt_number")
+      .notNull()
+      .default(0), // Current attempt sequence
     lastAttemptedAt: timestamp("last_attempted_at"), // When was last attempt made
     lastAttemptStatus: text("last_attempt_status"), // Status of last attempt
     // === ML Labels (timestamped for training) ===
@@ -1761,7 +1773,9 @@ export const campaigns = pgTable(
     teamIdIdx: index("campaigns_team_id_idx").on(table.teamId),
     statusIdx: index("campaigns_status_idx").on(table.status),
     campaignTypeIdx: index("campaigns_type_idx").on(table.campaignType),
-    lastAttemptedAtIdx: index("campaigns_last_attempted_at_idx").on(table.lastAttemptedAt),
+    lastAttemptedAtIdx: index("campaigns_last_attempted_at_idx").on(
+      table.lastAttemptedAt,
+    ),
   }),
 );
 
@@ -1911,7 +1925,9 @@ export const signalhouseBrands = pgTable(
     website: text("website"),
 
     // Registration status
-    registrationStatus: text("registration_status").notNull().default("PENDING"),
+    registrationStatus: text("registration_status")
+      .notNull()
+      .default("PENDING"),
     tcrBrandId: text("tcr_brand_id"),
     tcrScore: integer("tcr_score"),
     vettingStatus: text("vetting_status").default("PENDING"),
@@ -1930,7 +1946,9 @@ export const signalhouseBrands = pgTable(
   (table) => ({
     teamIdIdx: index("signalhouse_brands_team_id_idx").on(table.teamId),
     brandIdIdx: index("signalhouse_brands_brand_id_idx").on(table.brandId),
-    statusIdx: index("signalhouse_brands_status_idx").on(table.registrationStatus),
+    statusIdx: index("signalhouse_brands_status_idx").on(
+      table.registrationStatus,
+    ),
   }),
 );
 
@@ -1973,7 +1991,9 @@ export const signalhouseCampaigns = pgTable(
     monthlyLimit: integer("monthly_limit"),
 
     // Registration status
-    registrationStatus: text("registration_status").notNull().default("PENDING"),
+    registrationStatus: text("registration_status")
+      .notNull()
+      .default("PENDING"),
     rejectionReason: text("rejection_reason"),
 
     // Link to internal campaign
@@ -1992,8 +2012,12 @@ export const signalhouseCampaigns = pgTable(
   (table) => ({
     teamIdIdx: index("signalhouse_campaigns_team_id_idx").on(table.teamId),
     brandIdIdx: index("signalhouse_campaigns_brand_id_idx").on(table.brandId),
-    campaignIdIdx: index("signalhouse_campaigns_campaign_id_idx").on(table.campaignId),
-    statusIdx: index("signalhouse_campaigns_status_idx").on(table.registrationStatus),
+    campaignIdIdx: index("signalhouse_campaigns_campaign_id_idx").on(
+      table.campaignId,
+    ),
+    statusIdx: index("signalhouse_campaigns_status_idx").on(
+      table.registrationStatus,
+    ),
   }),
 );
 
@@ -2057,9 +2081,13 @@ export const teamPhoneNumbers = pgTable(
   },
   (table) => ({
     teamIdIdx: index("team_phone_numbers_team_id_idx").on(table.teamId),
-    phoneNumberIdx: index("team_phone_numbers_phone_number_idx").on(table.phoneNumber),
+    phoneNumberIdx: index("team_phone_numbers_phone_number_idx").on(
+      table.phoneNumber,
+    ),
     statusIdx: index("team_phone_numbers_status_idx").on(table.status),
-    signalhouseIdIdx: index("team_phone_numbers_signalhouse_id_idx").on(table.signalhouseId),
+    signalhouseIdIdx: index("team_phone_numbers_signalhouse_id_idx").on(
+      table.signalhouseId,
+    ),
   }),
 );
 

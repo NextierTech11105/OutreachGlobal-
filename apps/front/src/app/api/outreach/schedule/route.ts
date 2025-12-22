@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { campaigns, campaignAttempts, callLogs, smsMessages } from "@/lib/db/schema";
+import {
+  campaigns,
+  campaignAttempts,
+  callLogs,
+  smsMessages,
+} from "@/lib/db/schema";
 import { eq, and, gte, lte, desc } from "drizzle-orm";
 import { apiAuth } from "@/lib/api-auth";
 
@@ -45,8 +50,8 @@ export async function GET(request: NextRequest) {
         and(
           teamId ? eq(campaigns.teamId, teamId) : undefined,
           gte(campaigns.startsAt, now),
-          lte(campaigns.startsAt, weekEnd)
-        )
+          lte(campaigns.startsAt, weekEnd),
+        ),
       )
       .orderBy(campaigns.startsAt)
       .limit(50);
@@ -67,8 +72,8 @@ export async function GET(request: NextRequest) {
           teamId ? eq(campaignAttempts.teamId, teamId) : undefined,
           eq(campaignAttempts.status, "pending"),
           gte(campaignAttempts.scheduledAt, now),
-          lte(campaignAttempts.scheduledAt, weekEnd)
-        )
+          lte(campaignAttempts.scheduledAt, weekEnd),
+        ),
       )
       .orderBy(campaignAttempts.scheduledAt)
       .limit(100);
@@ -86,10 +91,7 @@ export async function GET(request: NextRequest) {
       })
       .from(callLogs)
       .where(
-        and(
-          gte(callLogs.createdAt, now),
-          lte(callLogs.createdAt, weekEnd)
-        )
+        and(gte(callLogs.createdAt, now), lte(callLogs.createdAt, weekEnd)),
       )
       .orderBy(desc(callLogs.createdAt))
       .limit(50);
@@ -100,14 +102,24 @@ export async function GET(request: NextRequest) {
       name: c.name,
       scheduledAt: c.startsAt?.toISOString() || new Date().toISOString(),
       recipientCount: c.estimatedLeadsCount || 0,
-      status: c.status === "ACTIVE" ? "active" : c.status === "COMPLETED" ? "completed" : "pending",
+      status:
+        c.status === "ACTIVE"
+          ? "active"
+          : c.status === "COMPLETED"
+            ? "completed"
+            : "pending",
     }));
 
     const transformedCalls = callsData.map((c) => ({
       id: c.id,
       scheduledAt: c.startedAt?.toISOString() || new Date().toISOString(),
       leadName: `Call ${c.direction === "inbound" ? "from" : "to"} ${c.direction === "inbound" ? c.fromNumber : c.toNumber}`,
-      status: c.status === "completed" ? "completed" : c.status === "in-progress" ? "active" : "pending",
+      status:
+        c.status === "completed"
+          ? "completed"
+          : c.status === "in-progress"
+            ? "active"
+            : "pending",
     }));
 
     // Group sequences by campaign context
@@ -120,13 +132,16 @@ export async function GET(request: NextRequest) {
       sequenceGroups.get(key)!.push(seq);
     }
 
-    const transformedSequences = Array.from(sequenceGroups.entries()).map(([context, items]) => ({
-      id: items[0].id,
-      name: `${context} Sequence`,
-      scheduledAt: items[0].scheduledAt?.toISOString() || new Date().toISOString(),
-      recipientCount: items.length,
-      status: "pending" as const,
-    }));
+    const transformedSequences = Array.from(sequenceGroups.entries()).map(
+      ([context, items]) => ({
+        id: items[0].id,
+        name: `${context} Sequence`,
+        scheduledAt:
+          items[0].scheduledAt?.toISOString() || new Date().toISOString(),
+        recipientCount: items.length,
+        status: "pending" as const,
+      }),
+    );
 
     return NextResponse.json({
       campaigns: transformedCampaigns,
@@ -139,7 +154,8 @@ export async function GET(request: NextRequest) {
       campaigns: [],
       calls: [],
       sequences: [],
-      error: error instanceof Error ? error.message : "Failed to fetch schedule",
+      error:
+        error instanceof Error ? error.message : "Failed to fetch schedule",
     });
   }
 }
@@ -147,10 +163,10 @@ export async function GET(request: NextRequest) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    
+
     // TODO: Create scheduled campaign or sequence
     // This would insert into campaignAttempts with scheduledAt
-    
+
     return NextResponse.json({ success: true, id: "schedule_" + Date.now() });
   } catch {
     return NextResponse.json(

@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
   if (process.env.NODE_ENV === "production") {
     return NextResponse.json(
       { error: "Not available in production" },
-      { status: 403 }
+      { status: 403 },
     );
   }
 
@@ -89,7 +89,8 @@ export async function POST(request: NextRequest) {
         toNumber: "+18881234567",
         status: "completed",
         duration: 145,
-        transcription: "Caller inquired about selling their manufacturing business. They have annual revenue of $5M and want to retire within 2 years.",
+        transcription:
+          "Caller inquired about selling their manufacturing business. They have annual revenue of $5M and want to retire within 2 years.",
         startedAt: oneHourAgo,
         endedAt: new Date(oneHourAgo.getTime() + 145 * 1000),
         createdAt: oneHourAgo,
@@ -101,7 +102,8 @@ export async function POST(request: NextRequest) {
         toNumber: "+15553334444",
         status: "completed",
         duration: 312,
-        transcription: "Follow-up call with prospect. Discussed valuation methodology and next steps for confidential information memorandum.",
+        transcription:
+          "Follow-up call with prospect. Discussed valuation methodology and next steps for confidential information memorandum.",
         startedAt: twoHoursAgo,
         endedAt: new Date(twoHoursAgo.getTime() + 312 * 1000),
         createdAt: twoHoursAgo,
@@ -120,8 +122,14 @@ export async function POST(request: NextRequest) {
     ];
 
     // Insert into database
-    const insertedSms = await db.insert(smsMessages).values(smsSeeds).returning({ id: smsMessages.id });
-    const insertedCalls = await db.insert(callLogs).values(callSeeds).returning({ id: callLogs.id });
+    const insertedSms = await db
+      .insert(smsMessages)
+      .values(smsSeeds)
+      .returning({ id: smsMessages.id });
+    const insertedCalls = await db
+      .insert(callLogs)
+      .values(callSeeds)
+      .returning({ id: callLogs.id });
 
     return NextResponse.json({
       success: true,
@@ -135,9 +143,10 @@ export async function POST(request: NextRequest) {
     console.error("[Seed Messages] Error:", error);
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : "Failed to seed messages",
+        error:
+          error instanceof Error ? error.message : "Failed to seed messages",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -145,7 +154,9 @@ export async function POST(request: NextRequest) {
 // GET - Check count of messages
 export async function GET() {
   try {
-    const smsCount = await db.select({ count: smsMessages.id }).from(smsMessages);
+    const smsCount = await db
+      .select({ count: smsMessages.id })
+      .from(smsMessages);
     const callCount = await db.select({ count: callLogs.id }).from(callLogs);
 
     return NextResponse.json({

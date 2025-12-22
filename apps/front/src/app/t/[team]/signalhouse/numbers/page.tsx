@@ -80,8 +80,7 @@ export default function SignalhouseNumbersPage() {
                 No Numbers Configured
               </h3>
               <p className="text-zinc-400 mb-4">
-                Add a 10DLC registered number to start sending SMS
-                campaigns
+                Add a 10DLC registered number to start sending SMS campaigns
               </p>
               <Button>
                 <Plus className="w-4 h-4 mr-2" />

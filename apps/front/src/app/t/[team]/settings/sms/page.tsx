@@ -99,7 +99,10 @@ export default function SMSSettingsPage() {
                 <li>
                   Contact your administrator to configure SMS API credentials
                 </li>
-                <li>Get your API Key and Auth Token from the SMS provider dashboard</li>
+                <li>
+                  Get your API Key and Auth Token from the SMS provider
+                  dashboard
+                </li>
                 <li>
                   Add them to your environment variables:
                   <pre className="mt-2 p-2 bg-background rounded text-xs overflow-x-auto">
@@ -111,7 +114,11 @@ SMS_AUTH_TOKEN=your-auth-token`}
               </ol>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={checkStatus} className="flex-1">
+              <Button
+                variant="outline"
+                onClick={checkStatus}
+                className="flex-1"
+              >
                 Refresh Status
               </Button>
             </div>

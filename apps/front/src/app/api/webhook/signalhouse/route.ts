@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { smsQueueService } from "@/lib/services/sms-queue-service";
 import { db } from "@/lib/db";
-import { smsMessages, leads, signalhouseBrands, signalhouseCampaigns, teamPhoneNumbers } from "@/lib/db/schema";
+import {
+  smsMessages,
+  leads,
+  signalhouseBrands,
+  signalhouseCampaigns,
+  teamPhoneNumbers,
+} from "@/lib/db/schema";
 import { eq, and, desc, like, isNotNull, sql } from "drizzle-orm";
 import { sendSMS } from "@/lib/signalhouse/client";
 import {
@@ -695,7 +701,11 @@ export async function POST(request: NextRequest) {
 
       default:
         console.log(`[SignalHouse] ⚠️ Unhandled event: ${eventType}`, payload);
-        return NextResponse.json({ success: true, event: "ignored", originalEvent: eventType });
+        return NextResponse.json({
+          success: true,
+          event: "ignored",
+          originalEvent: eventType,
+        });
     }
   } catch (error: any) {
     console.error("[SignalHouse Webhook] POST Error:", error);

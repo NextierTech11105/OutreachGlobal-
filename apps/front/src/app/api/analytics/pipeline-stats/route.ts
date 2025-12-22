@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { leads, smsMessages, callLogs, campaigns, deals } from "@/lib/db/schema";
+import {
+  leads,
+  smsMessages,
+  callLogs,
+  campaigns,
+  deals,
+} from "@/lib/db/schema";
 import { sql, count } from "drizzle-orm";
 
 // ============================================================================
@@ -122,79 +128,238 @@ export async function GET() {
       {
         id: "ingestion",
         metrics: [
-          { label: "Records Imported", value: ingestionTotal, previousValue: 0, target: 2500, unit: "" },
-          { label: "Lists Created", value: 0, previousValue: 0, target: 10, unit: "" },
-          { label: "Ready for Skip Trace", value: ingestionTotal, previousValue: 0, target: 2000, unit: "" },
+          {
+            label: "Records Imported",
+            value: ingestionTotal,
+            previousValue: 0,
+            target: 2500,
+            unit: "",
+          },
+          {
+            label: "Lists Created",
+            value: 0,
+            previousValue: 0,
+            target: 10,
+            unit: "",
+          },
+          {
+            label: "Ready for Skip Trace",
+            value: ingestionTotal,
+            previousValue: 0,
+            target: 2000,
+            unit: "",
+          },
         ],
-        conversionToNext: ingestionTotal > 0 ? Math.round((skipTraced / ingestionTotal) * 100) : 0,
+        conversionToNext:
+          ingestionTotal > 0
+            ? Math.round((skipTraced / ingestionTotal) * 100)
+            : 0,
         previousConversion: 0,
       },
       {
         id: "skip_trace",
         metrics: [
-          { label: "Skip Traced", value: skipTraced, previousValue: 0, target: 2000, unit: "" },
-          { label: "Phones Found", value: skipPhones, previousValue: 0, target: 1500, unit: "" },
-          { label: "Emails Found", value: skipEmails, previousValue: 0, target: 1200, unit: "" },
+          {
+            label: "Skip Traced",
+            value: skipTraced,
+            previousValue: 0,
+            target: 2000,
+            unit: "",
+          },
+          {
+            label: "Phones Found",
+            value: skipPhones,
+            previousValue: 0,
+            target: 1500,
+            unit: "",
+          },
+          {
+            label: "Emails Found",
+            value: skipEmails,
+            previousValue: 0,
+            target: 1200,
+            unit: "",
+          },
         ],
-        conversionToNext: skipTraced > 0 ? Math.round((smsSent / skipTraced) * 100) : 0,
+        conversionToNext:
+          skipTraced > 0 ? Math.round((smsSent / skipTraced) * 100) : 0,
         previousConversion: 0,
       },
       {
         id: "campaign",
         metrics: [
-          { label: "SMS Sent", value: smsSent, previousValue: 0, target: 1000, unit: "" },
-          { label: "Calls Made", value: callsMade, previousValue: 0, target: 400, unit: "" },
-          { label: "Emails Sent", value: 0, previousValue: 0, target: 1500, unit: "" },
+          {
+            label: "SMS Sent",
+            value: smsSent,
+            previousValue: 0,
+            target: 1000,
+            unit: "",
+          },
+          {
+            label: "Calls Made",
+            value: callsMade,
+            previousValue: 0,
+            target: 400,
+            unit: "",
+          },
+          {
+            label: "Emails Sent",
+            value: 0,
+            previousValue: 0,
+            target: 1500,
+            unit: "",
+          },
         ],
-        conversionToNext: smsSent > 0 ? Math.round((smsResponses / smsSent) * 100) : 0,
+        conversionToNext:
+          smsSent > 0 ? Math.round((smsResponses / smsSent) * 100) : 0,
         previousConversion: 0,
       },
       {
         id: "inbound_response",
         metrics: [
-          { label: "SMS Responses", value: smsResponses, previousValue: 0, target: 150, unit: "" },
-          { label: "Call Backs", value: callBacks, previousValue: 0, target: 50, unit: "" },
-          { label: "Voicemails", value: voicemailCount, previousValue: 0, target: 30, unit: "" },
+          {
+            label: "SMS Responses",
+            value: smsResponses,
+            previousValue: 0,
+            target: 150,
+            unit: "",
+          },
+          {
+            label: "Call Backs",
+            value: callBacks,
+            previousValue: 0,
+            target: 50,
+            unit: "",
+          },
+          {
+            label: "Voicemails",
+            value: voicemailCount,
+            previousValue: 0,
+            target: 30,
+            unit: "",
+          },
         ],
-        conversionToNext: smsResponses > 0 ? Math.round((emailCaptures / smsResponses) * 100) : 0,
+        conversionToNext:
+          smsResponses > 0
+            ? Math.round((emailCaptures / smsResponses) * 100)
+            : 0,
         previousConversion: 0,
       },
       {
         id: "email_capture",
         metrics: [
-          { label: "Emails Captured", value: emailCaptures, previousValue: 0, target: 100, unit: "" },
-          { label: "Verified", value: Math.floor(emailCaptures * 0.8), previousValue: 0, target: 80, unit: "" },
-          { label: "Opted In", value: Math.floor(emailCaptures * 0.6), previousValue: 0, target: 60, unit: "" },
+          {
+            label: "Emails Captured",
+            value: emailCaptures,
+            previousValue: 0,
+            target: 100,
+            unit: "",
+          },
+          {
+            label: "Verified",
+            value: Math.floor(emailCaptures * 0.8),
+            previousValue: 0,
+            target: 80,
+            unit: "",
+          },
+          {
+            label: "Opted In",
+            value: Math.floor(emailCaptures * 0.6),
+            previousValue: 0,
+            target: 60,
+            unit: "",
+          },
         ],
-        conversionToNext: emailCaptures > 0 ? Math.round((mobileCaptures / emailCaptures) * 100) : 0,
+        conversionToNext:
+          emailCaptures > 0
+            ? Math.round((mobileCaptures / emailCaptures) * 100)
+            : 0,
         previousConversion: 0,
       },
       {
         id: "mobile_capture",
         metrics: [
-          { label: "Mobiles Captured", value: mobileCaptures, previousValue: 0, target: 120, unit: "" },
-          { label: "SMS Capable", value: Math.floor(mobileCaptures * 0.85), previousValue: 0, target: 100, unit: "" },
-          { label: "Opted In", value: Math.floor(mobileCaptures * 0.7), previousValue: 0, target: 80, unit: "" },
+          {
+            label: "Mobiles Captured",
+            value: mobileCaptures,
+            previousValue: 0,
+            target: 120,
+            unit: "",
+          },
+          {
+            label: "SMS Capable",
+            value: Math.floor(mobileCaptures * 0.85),
+            previousValue: 0,
+            target: 100,
+            unit: "",
+          },
+          {
+            label: "Opted In",
+            value: Math.floor(mobileCaptures * 0.7),
+            previousValue: 0,
+            target: 80,
+            unit: "",
+          },
         ],
-        conversionToNext: mobileCaptures > 0 ? Math.round((proposalsSent / mobileCaptures) * 100) : 0,
+        conversionToNext:
+          mobileCaptures > 0
+            ? Math.round((proposalsSent / mobileCaptures) * 100)
+            : 0,
         previousConversion: 0,
       },
       {
         id: "proposal",
         metrics: [
-          { label: "Proposals Sent", value: proposalsSent, previousValue: 0, target: 25, unit: "" },
-          { label: "Viewed", value: proposalsViewed, previousValue: 0, target: 20, unit: "" },
-          { label: "In Review", value: Math.floor(proposalsSent * 0.5), previousValue: 0, target: 10, unit: "" },
+          {
+            label: "Proposals Sent",
+            value: proposalsSent,
+            previousValue: 0,
+            target: 25,
+            unit: "",
+          },
+          {
+            label: "Viewed",
+            value: proposalsViewed,
+            previousValue: 0,
+            target: 20,
+            unit: "",
+          },
+          {
+            label: "In Review",
+            value: Math.floor(proposalsSent * 0.5),
+            previousValue: 0,
+            target: 10,
+            unit: "",
+          },
         ],
-        conversionToNext: proposalsSent > 0 ? Math.round((dealsWon / proposalsSent) * 100) : 0,
+        conversionToNext:
+          proposalsSent > 0 ? Math.round((dealsWon / proposalsSent) * 100) : 0,
         previousConversion: 0,
       },
       {
         id: "deal",
         metrics: [
-          { label: "Won", value: dealsWon, previousValue: 0, target: 10, unit: "" },
-          { label: "Revenue", value: revenue, previousValue: 0, target: 100000, unit: "$" },
-          { label: "Avg Deal Size", value: dealsWon > 0 ? Math.round(revenue / dealsWon) : 0, previousValue: 0, target: 15000, unit: "$" },
+          {
+            label: "Won",
+            value: dealsWon,
+            previousValue: 0,
+            target: 10,
+            unit: "",
+          },
+          {
+            label: "Revenue",
+            value: revenue,
+            previousValue: 0,
+            target: 100000,
+            unit: "$",
+          },
+          {
+            label: "Avg Deal Size",
+            value: dealsWon > 0 ? Math.round(revenue / dealsWon) : 0,
+            previousValue: 0,
+            target: 15000,
+            unit: "$",
+          },
         ],
         conversionToNext: 0,
         previousConversion: 0,

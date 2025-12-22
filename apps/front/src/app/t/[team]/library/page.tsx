@@ -279,7 +279,7 @@ export default function LibraryPage() {
   });
 
   // Mutations
-  const [useContentItem] = useMutation(USE_CONTENT_ITEM_MUTATION);
+  const [logContentUsage] = useMutation(USE_CONTENT_ITEM_MUTATION);
   const [toggleFavorite] = useMutation(TOGGLE_FAVORITE_MUTATION);
   const [createContentItem] = useMutation(CREATE_CONTENT_ITEM_MUTATION);
 
@@ -309,7 +309,7 @@ export default function LibraryPage() {
       toast.success("Content copied to clipboard!");
 
       // Log usage
-      await useContentItem({
+      await logContentUsage({
         variables: { teamId, id: item.id, usedIn: "MANUAL" },
       });
     } catch (err) {
@@ -333,7 +333,7 @@ export default function LibraryPage() {
 
   const handleUseInAI = async (item: ContentItem) => {
     try {
-      await useContentItem({
+      await logContentUsage({
         variables: { teamId, id: item.id, usedIn: "AI" },
       });
       toast.success("Opening in AI assistant...");
