@@ -1,0 +1,366 @@
+/* Nextier Phone Center - Popup Styles */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  font-size: 14px;
+  color: #1f2937;
+  background: #f9fafb;
+  min-width: 360px;
+  max-width: 400px;
+}
+
+.popup-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 480px;
+}
+
+/* Header */
+.popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  color: white;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logo-icon {
+  font-size: 24px;
+}
+
+.logo-text {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #fbbf24;
+  animation: pulse 2s infinite;
+}
+
+.status-indicator.connected .status-dot {
+  background: #22c55e;
+  animation: none;
+}
+
+.status-indicator.error .status-dot {
+  background: #ef4444;
+  animation: none;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Main Content */
+.popup-main {
+  flex: 1;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Sections */
+.section {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.section h3 {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6b7280;
+  margin-bottom: 12px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.section-header h3 {
+  margin-bottom: 0;
+}
+
+.btn-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.btn-close:hover {
+  color: #374151;
+}
+
+/* Input Group */
+.input-group {
+  display: flex;
+  gap: 8px;
+}
+
+.input-group input {
+  flex: 1;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.input-group input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Buttons */
+.btn {
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-call {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.btn-call:hover {
+  background: #bbf7d0;
+  transform: scale(1.05);
+}
+
+.btn-sms {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.btn-sms:hover {
+  background: #bfdbfe;
+  transform: scale(1.05);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  color: white;
+  font-weight: 500;
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-full {
+  width: 100%;
+}
+
+/* Form Groups */
+.form-group {
+  margin-bottom: 12px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6b7280;
+  margin-bottom: 6px;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.char-count {
+  text-align: right;
+  font-size: 11px;
+  color: #9ca3af;
+  margin-top: 4px;
+}
+
+/* SMS Section */
+.sms-to {
+  padding: 8px 12px;
+  background: #f3f4f6;
+  border-radius: 6px;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+/* Recent List */
+.recent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.recent-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  background: #f9fafb;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.recent-item:hover {
+  background: #f3f4f6;
+}
+
+.recent-icon {
+  font-size: 16px;
+}
+
+.recent-info {
+  flex: 1;
+}
+
+.recent-phone {
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.recent-time {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.recent-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.recent-action-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: white;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+
+.recent-action-btn:hover {
+  background: #e5e7eb;
+}
+
+.empty-state {
+  text-align: center;
+  color: #9ca3af;
+  font-size: 13px;
+  padding: 20px;
+}
+
+/* Settings */
+.settings-section {
+  position: absolute;
+  top: 60px;
+  left: 16px;
+  right: 16px;
+  background: white;
+  z-index: 10;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* Footer */
+.popup-footer {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-top: 1px solid #e5e7eb;
+  background: white;
+}
+
+.footer-btn {
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #6b7280;
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.footer-btn:hover {
+  background: #f3f4f6;
+  color: #374151;
+}

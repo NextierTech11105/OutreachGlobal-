@@ -218,6 +218,3 @@ export async function GET() {
     );
   }
 }
-    );
-  }
-}

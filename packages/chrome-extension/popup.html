@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nextier Phone Center</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <!-- Header -->
+    <header class="popup-header">
+      <div class="logo">
+        <span class="logo-icon">📞</span>
+        <span class="logo-text">Nextier</span>
+      </div>
+      <div class="status-indicator" id="status-indicator">
+        <span class="status-dot"></span>
+        <span class="status-text">Connecting...</span>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="popup-main">
+      <!-- Quick Dial Section -->
+      <section class="section" id="quick-dial-section">
+        <h3>Quick Dial</h3>
+        <div class="input-group">
+          <input type="tel" id="phone-input" placeholder="+1 (555) 123-4567" />
+          <button class="btn btn-call" id="call-btn" title="Call">📞</button>
+          <button class="btn btn-sms" id="sms-btn" title="SMS">💬</button>
+        </div>
+      </section>
+
+      <!-- SMS Composer -->
+      <section class="section" id="sms-section" style="display: none;">
+        <div class="section-header">
+          <h3>Send SMS</h3>
+          <button class="btn-close" id="close-sms">&times;</button>
+        </div>
+        <div class="sms-to">
+          To: <strong id="sms-to-display"></strong>
+        </div>
+        <div class="form-group">
+          <label>Template</label>
+          <select id="template-select">
+            <option value="">-- Quick Templates --</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Message</label>
+          <textarea id="sms-message" rows="4" placeholder="Type your message..."></textarea>
+          <div class="char-count"><span id="char-count">0</span>/160</div>
+        </div>
+        <button class="btn btn-primary btn-full" id="send-sms-btn">
+          Send SMS
+        </button>
+      </section>
+
+      <!-- Recent Activity -->
+      <section class="section">
+        <h3>Recent</h3>
+        <div class="recent-list" id="recent-list">
+          <div class="empty-state">No recent calls or messages</div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Settings Panel -->
+    <section class="section settings-section" id="settings-section" style="display: none;">
+      <div class="section-header">
+        <h3>⚙️ Settings</h3>
+        <button class="btn-close" id="close-settings">&times;</button>
+      </div>
+      <div class="form-group">
+        <label>Team ID</label>
+        <input type="text" id="team-id-input" placeholder="your-team-slug" />
+      </div>
+      <div class="form-group">
+        <label>Auth Token</label>
+        <input type="password" id="auth-token-input" placeholder="Bearer token" />
+      </div>
+      <div class="form-group">
+        <label>Default From Number</label>
+        <input type="tel" id="from-number-input" placeholder="+15551234567" />
+      </div>
+      <button class="btn btn-primary btn-full" id="save-settings-btn">
+        Save Settings
+      </button>
+    </section>
+
+    <!-- Footer -->
+    <footer class="popup-footer">
+      <button class="footer-btn" id="settings-btn">⚙️ Settings</button>
+      <a class="footer-btn" href="https://monkfish-app-mb7h3.ondigitalocean.app" target="_blank">
+        🚀 Open Nextier
+      </a>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
