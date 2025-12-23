@@ -14,6 +14,7 @@ import {
   LayoutGrid,
   Megaphone,
   ChevronRight,
+  Building2,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -43,13 +44,19 @@ export function AdminSidebar() {
     }));
   };
 
-  // Consolidated admin navigation - 5 groups total
+  // Consolidated admin navigation - 6 groups total
   const routes: NavItem[] = [
     {
       href: "/admin",
       label: "Home Dashboards",
       icon: <BarChart3 className="h-4 w-4" />,
       active: pathname === "/admin",
+    },
+    {
+      href: "/admin/companies",
+      label: "Companies",
+      icon: <Building2 className="h-4 w-4" />,
+      active: pathname.startsWith("/admin/companies"),
     },
     {
       label: "Lead Generation",

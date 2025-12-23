@@ -2093,3 +2093,95 @@ export const teamPhoneNumbers = pgTable(
 
 export type TeamPhoneNumber = typeof teamPhoneNumbers.$inferSelect;
 export type NewTeamPhoneNumber = typeof teamPhoneNumbers.$inferInsert;
+
+// ============================================================
+// USERS - Core user accounts
+// ============================================================
+
+export const users = pgTable("users", {
+  id: text("id").primaryKey(),
+  role: text("role").notNull().default("USER"),
+  name: text("name").notNull(),
+  email: text("email").notNull().unique(),
+  password: text("password").notNull(),
+  emailVerifiedAt: timestamp("email_verified_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type User = typeof users.$inferSelect;
+export type NewUser = typeof users.$inferInsert;
+
+// ============================================================
+// TEAMS - Multi-tenant companies/organizations
+// ============================================================
+
+export const teams = pgTable(
+  "teams",
+  {
+    id: text("id").primaryKey(),
+    ownerId: text("owner_id").notNull(),
+    name: text("name").notNull(),
+    slug: text("slug").notNull().unique(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    ownerIdIdx: index("teams_owner_id_idx").on(table.ownerId),
+  }),
+);
+
+export type Team = typeof teams.$inferSelect;
+export type NewTeam = typeof teams.$inferInsert;
+
+// ============================================================
+// TEAM MEMBERS - User-Team relationships
+// ============================================================
+
+export const teamMembers = pgTable(
+  "team_members",
+  {
+    id: text("id").primaryKey(),
+    teamId: text("team_id").notNull(),
+    userId: text("user_id"),
+    role: text("role").notNull().default("MEMBER"),
+    status: text("status").notNull().default("PENDING"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    teamIdIdx: index("team_members_team_id_idx").on(table.teamId),
+    userIdIdx: index("team_members_user_id_idx").on(table.userId),
+  }),
+);
+
+export type TeamMember = typeof teamMembers.$inferSelect;
+export type NewTeamMember = typeof teamMembers.$inferInsert;
+
+// ============================================================
+// TEAM SETTINGS - Per-team configuration
+// ============================================================
+
+export const teamSettings = pgTable(
+  "team_settings",
+  {
+    id: text("id").primaryKey(),
+    teamId: text("team_id").notNull(),
+    name: text("name").notNull(),
+    value: text("value"),
+    maskedValue: text("masked_value"),
+    isMasked: boolean("is_masked").default(false),
+    type: text("type").default("string"),
+    scope: text("scope"),
+    metadata: jsonb("metadata"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    teamIdIdx: index("team_settings_team_id_idx").on(table.teamId),
+    nameIdx: index("team_settings_name_idx").on(table.name),
+  }),
+);
+
+export type TeamSetting = typeof teamSettings.$inferSelect;
+export type NewTeamSetting = typeof teamSettings.$inferInsert;

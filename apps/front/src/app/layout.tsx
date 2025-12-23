@@ -11,6 +11,7 @@ import { GlobalQuickActions } from "@/components/global-quick-actions";
 import { getTitle } from "@/config/title";
 import { AppProviders } from "@/providers/app-providers";
 import { getAuthUser } from "@/features/auth/auth.data";
+import { ImpersonationBanner } from "@/components/admin/impersonation-banner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -47,6 +48,7 @@ export default async function RootLayout({
           >
             <GlobalActionsProvider>
               <CallStateProvider>
+                <ImpersonationBanner />
                 <CallStateBridge />
                 {children}
                 <CallModal />
