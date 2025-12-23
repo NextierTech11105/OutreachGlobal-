@@ -24,6 +24,7 @@ import {
   SmileIcon,
   SparkleIcon,
   UsersIcon,
+  UserSearchIcon,
   ZapIcon,
 } from "lucide-react";
 import {
@@ -83,6 +84,11 @@ const navGroups = [
         title: "Leads",
         path: "/leads",
         icon: UsersIcon,
+      },
+      {
+        title: "Skip Trace",
+        path: "/skip-trace",
+        icon: UserSearchIcon,
       },
       {
         title: "Data Hub",
