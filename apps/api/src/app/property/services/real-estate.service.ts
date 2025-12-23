@@ -63,7 +63,7 @@ export class RealEstateService {
     if (ltvMin !== undefined) payload.ltv_min = ltvMin;
     if (ltvMax !== undefined) payload.ltv_max = ltvMax;
 
-    const { data } = await this.http.post("/v2/PropertySearch", payload);
+    const { data } = await this.http.post("/PropertySearch", payload);
 
     return data.data as any[];
   }
