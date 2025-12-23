@@ -245,7 +245,7 @@ export default function LuciDataDashboardPage() {
                 Skip Traced
               </div>
               <p className="text-xl font-bold text-green-400">
-                {pipelineStats.skipTraced.toLocaleString()}
+                {(pipelineStats.skipTraced ?? 0).toLocaleString()}
               </p>
               <p className="text-xs text-zinc-500">{capacity.skipTraceBatchSize}/batch</p>
             </CardContent>
@@ -257,7 +257,7 @@ export default function LuciDataDashboardPage() {
                 Ready for Campaign
               </div>
               <p className="text-xl font-bold text-purple-400">
-                {pipelineStats.readyForCampaign.toLocaleString()}
+                {(pipelineStats.readyForCampaign ?? 0).toLocaleString()}
               </p>
               <p className="text-xs text-zinc-500">{capacity.leadBlockSize}/day max</p>
             </CardContent>
@@ -269,7 +269,7 @@ export default function LuciDataDashboardPage() {
                 Monthly Pool
               </div>
               <p className="text-xl font-bold text-blue-400">
-                {totalBucketLeads.toLocaleString()} / {capacity.poolTarget.toLocaleString()}
+                {(totalBucketLeads ?? 0).toLocaleString()} / {(capacity.poolTarget ?? 20000).toLocaleString()}
               </p>
               <Progress value={poolFillPercent} className="h-1 mt-1" />
             </CardContent>

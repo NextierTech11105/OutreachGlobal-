@@ -331,7 +331,7 @@ export function SMSCommandCenter({ teamId }: SMSCommandCenterProps) {
               Pending
             </div>
             <p className="text-xl font-bold text-yellow-400">
-              {conversationStats.pending.toLocaleString()}
+              {(conversationStats.pending ?? 0).toLocaleString()}
             </p>
           </CardContent>
         </Card>
@@ -342,7 +342,7 @@ export function SMSCommandCenter({ teamId }: SMSCommandCenterProps) {
               Sent Today
             </div>
             <p className="text-xl font-bold text-blue-400">
-              {queueStats.sent.toLocaleString()}
+              {(queueStats.sent ?? 0).toLocaleString()}
             </p>
           </CardContent>
         </Card>
@@ -353,7 +353,7 @@ export function SMSCommandCenter({ teamId }: SMSCommandCenterProps) {
               Delivered
             </div>
             <p className="text-xl font-bold text-green-400">
-              {queueStats.delivered.toLocaleString()}
+              {(queueStats.delivered ?? 0).toLocaleString()}
             </p>
           </CardContent>
         </Card>
@@ -364,7 +364,7 @@ export function SMSCommandCenter({ teamId }: SMSCommandCenterProps) {
               Failed
             </div>
             <p className="text-xl font-bold text-red-400">
-              {queueStats.failed.toLocaleString()}
+              {(queueStats.failed ?? 0).toLocaleString()}
             </p>
           </CardContent>
         </Card>
@@ -375,7 +375,7 @@ export function SMSCommandCenter({ teamId }: SMSCommandCenterProps) {
               Daily Left
             </div>
             <p className="text-xl font-bold text-zinc-100">
-              {queueStats.dailyRemaining.toLocaleString()}
+              {(queueStats.dailyRemaining ?? 2000).toLocaleString()}
             </p>
           </CardContent>
         </Card>

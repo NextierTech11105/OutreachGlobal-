@@ -169,7 +169,7 @@ export default function TeamHomePage() {
                 Pending Replies
               </div>
               <p className="text-2xl font-bold text-yellow-400">
-                {stats.pendingMessages}
+                {(stats.pendingMessages ?? 0).toLocaleString()}
               </p>
             </CardContent>
           </Card>
@@ -180,7 +180,7 @@ export default function TeamHomePage() {
                 Sent Today
               </div>
               <p className="text-2xl font-bold text-blue-400">
-                {stats.sentToday}
+                {(stats.sentToday ?? 0).toLocaleString()}
               </p>
             </CardContent>
           </Card>
@@ -191,7 +191,7 @@ export default function TeamHomePage() {
                 Leads Ready
               </div>
               <p className="text-2xl font-bold text-green-400">
-                {stats.leadsReady}
+                {(stats.leadsReady ?? 0).toLocaleString()}
               </p>
             </CardContent>
           </Card>
@@ -202,7 +202,7 @@ export default function TeamHomePage() {
                 Active Campaigns
               </div>
               <p className="text-2xl font-bold text-purple-400">
-                {stats.activeCampaigns}
+                {(stats.activeCampaigns ?? 0).toLocaleString()}
               </p>
             </CardContent>
           </Card>
