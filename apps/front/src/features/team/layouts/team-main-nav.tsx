@@ -60,20 +60,14 @@ const navGroups = [
         exact: true,
       },
       {
+        title: "Command Center",
+        path: "/command-center",
+        icon: ZapIcon,
+      },
+      {
         title: "Analytics",
         path: "/analytics",
         icon: BarChartIcon,
-        items: [
-          {
-            title: "Overview",
-            path: "/analytics",
-            exact: true,
-          },
-          {
-            title: "Pipeline Heat Map",
-            path: "/analytics/pipeline-heatmap",
-          },
-        ],
       },
     ],
   },
