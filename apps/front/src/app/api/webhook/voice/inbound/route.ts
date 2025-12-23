@@ -82,26 +82,33 @@ export async function POST(request: NextRequest) {
       recentCalls.pop();
     }
 
-    // TODO: Save to database
-    // TODO: Look up lead by phone number
-    // TODO: Route to appropriate agent
-
-    // Return TwiML response - simple greeting with voicemail
+    // Route call to browser-based Twilio Client
+    // Dial connected inbound agents - first to answer gets the call
+    // Fallback to voicemail if no answer after 30 seconds
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
+  <Dial timeout="30" action="/api/webhook/voice/status" callerId="${to}">
+    <Client>
+      <Identity>inbound-agent</Identity>
+      <Parameter name="From" value="${from}"/>
+      <Parameter name="CallerName" value="${callerName || "Unknown"}"/>
+    </Client>
+  </Dial>
   <Say voice="alice">
-    Thank you for calling. We're currently assisting other customers.
-    Please leave a message after the beep, and we'll return your call as soon as possible.
+    Thank you for calling. Our team is currently unavailable.
+    Please leave a message after the beep.
   </Say>
   <Record
     maxLength="120"
     action="/api/webhook/voice/recording"
     transcribe="true"
     transcribeCallback="/api/webhook/voice/transcription"
+    playBeep="true"
   />
   <Say voice="alice">
-    We didn't receive a recording. Goodbye.
+    We didn't receive a recording. Thank you for calling.
   </Say>
+  <Hangup/>
 </Response>`;
 
     return new NextResponse(twiml, {

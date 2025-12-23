@@ -9,7 +9,8 @@ const TWILIO_TWIML_APP_SID = process.env.TWILIO_TWIML_APP_SID || "";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}));
-    const identity = body.identity || `user-${Date.now()}`;
+    // Use "inbound-agent" identity to receive calls routed by the voice webhook
+    const identity = body.identity || "inbound-agent";
 
     if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) {
       return NextResponse.json(

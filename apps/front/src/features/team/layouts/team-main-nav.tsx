@@ -136,7 +136,7 @@ const navGroups = [
       },
       {
         title: "SMS Queue",
-        path: "/sms-queue",
+        path: "/sms/queue",
         icon: SendIcon,
       },
       {

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { MessageReply } from "@/components/message-reply";
 import { InboxToolbar } from "@/components/inbox-toolbar";
+import { InboundCallPanel } from "@/components/inbound-call-panel";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useMediaQuery } from "@/hooks/use-media-query";
@@ -175,7 +176,9 @@ export function UnifiedInbox() {
         {/* Sidebar */}
         {showSidebar && !selectedMessage && (
           <div className="w-56 md:w-64 border-r bg-muted/10 overflow-y-auto">
-            <div className="p-2">
+            <div className="p-2 space-y-4">
+              {/* Inbound Call Panel - Always visible at top */}
+              <InboundCallPanel />
               <InboxSidebar />
             </div>
           </div>
