@@ -14,6 +14,21 @@ const SIGNALHOUSE_API_BASE = "https://api.signalhouse.io/api/v1";
 const API_KEY = process.env.SIGNALHOUSE_API_KEY || "";
 const AUTH_TOKEN = process.env.SIGNALHOUSE_AUTH_TOKEN || "";
 
+// ============ WEBHOOK URL CONSTANTS ============
+// Use these when configuring phone numbers in SignalHouse portal
+export const WEBHOOK_URLS = {
+  // Main app webhook - handles ALL SignalHouse events with full business logic
+  APP_WEBHOOK: process.env.NEXT_PUBLIC_API_URL
+    ? `${process.env.NEXT_PUBLIC_API_URL}/api/webhook/signalhouse`
+    : "https://monkfish-app-mb7h3.ondigitalocean.app/api/webhook/signalhouse",
+
+  // DO Functions webhook - lightweight, use as backup
+  FUNCTIONS_SMS_INBOUND:
+    "https://faas-nyc1-2ef2e6cc.doserverless.co/api/v1/web/fn-44110ae1-dbf0-4680-b90b-3d9e342bd433/webhooks/sms-inbound",
+  FUNCTIONS_VOICE_INBOUND:
+    "https://faas-nyc1-2ef2e6cc.doserverless.co/api/v1/web/fn-44110ae1-dbf0-4680-b90b-3d9e342bd433/webhooks/voice-inbound",
+} as const;
+
 // Retry configuration
 const RETRY_CONFIG = {
   maxRetries: 3,
@@ -361,6 +376,60 @@ export async function addFriendlyName(
   });
 }
 
+export async function getPhoneNumberDetails(phoneNumber: string) {
+  return signalhouseRequest<PhoneNumber>("/phoneNumber/getPhoneNumberDetails", {
+    params: { phoneNumber },
+  });
+}
+
+export async function fetchPhoneNumberConfig(phoneNumber: string) {
+  return signalhouseRequest<{
+    phoneNumber: string;
+    campaignId?: string;
+    brandId?: string;
+    subGroupId?: string;
+    webhookUrl?: string;
+    backupUrl?: string;
+  }>("/phoneNumber/fetchConfigurePhoneNumber", {
+    params: { phoneNumber },
+  });
+}
+
+export async function validatePhoneNumber(phoneNumber: string) {
+  return signalhouseRequest<{
+    valid: boolean;
+    lineType?: string;
+    carrier?: string;
+    countryCode?: string;
+  }>(`/phoneNumber/numberValidation/${encodeURIComponent(phoneNumber)}`);
+}
+
+export async function getPhoneNumberActionHistory(phoneNumber: string) {
+  return signalhouseRequest<Array<{
+    action: string;
+    timestamp: string;
+    details?: Record<string, unknown>;
+  }>>(`/phoneNumber/action/history/${encodeURIComponent(phoneNumber)}`);
+}
+
+export async function getAvailablePhoneNumbersForCampaign() {
+  return signalhouseRequest<PhoneNumber[]>("/phoneNumber/campaign/attach/available");
+}
+
+export async function bulkWhitelistFor10DLC(phoneNumbers: string[], campaignId: string) {
+  return signalhouseRequest<{ success: boolean; processed: number }>("/phoneNumber/bulkTenDLCWhitelist", {
+    method: "POST",
+    body: { phoneNumbers, campaignId },
+  });
+}
+
+export async function getAreaCodes(state?: string) {
+  return signalhouseRequest<Array<{ areaCode: string; state: string; city?: string }>>(
+    "/phoneNumber/areaCodes",
+    { params: state ? { state } : undefined },
+  );
+}
+
 // ============ MESSAGING OPERATIONS ============
 
 export interface SendSMSInput {
@@ -418,6 +487,175 @@ export async function calculateSegments(message: string) {
       params: { message },
     },
   );
+}
+
+// Template Operations
+export interface MessageTemplate {
+  templateId: string;
+  name: string;
+  content: string;
+  variables?: string[];
+  createdAt?: string;
+}
+
+export async function createTemplate(input: {
+  name: string;
+  content: string;
+  variables?: string[];
+}) {
+  return signalhouseRequest<MessageTemplate>("/message/createTemplate", {
+    method: "POST",
+    body: input,
+  });
+}
+
+export async function getTemplates(params?: { name?: string }) {
+  return signalhouseRequest<MessageTemplate[]>("/message/findTemplate", {
+    params: params as Record<string, string>,
+  });
+}
+
+export async function getTemplateDetails(templateId: string) {
+  return signalhouseRequest<MessageTemplate>("/message/getTemplateDetails", {
+    params: { templateId },
+  });
+}
+
+export async function editTemplate(templateId: string, updates: Partial<{ name: string; content: string }>) {
+  return signalhouseRequest<MessageTemplate>("/message/editTemplate", {
+    method: "PUT",
+    body: { templateId, ...updates },
+  });
+}
+
+export async function deleteTemplate(templateId: string) {
+  return signalhouseRequest<{ success: boolean }>("/message/deleteTemplate", {
+    method: "DELETE",
+    body: { templateId },
+  });
+}
+
+// Conversation Operations
+export async function getConversationList(params?: { limit?: number; offset?: number }) {
+  return signalhouseRequest<Array<{
+    from: string;
+    to: string;
+    lastMessage: string;
+    lastMessageAt: string;
+    unreadCount: number;
+  }>>("/message/conversationList", {
+    params: params as Record<string, string>,
+  });
+}
+
+export async function getMessageLogsByNumber(phoneNumber: string) {
+  return signalhouseRequest<MessageResult[]>(`/message/logs/${encodeURIComponent(phoneNumber)}`);
+}
+
+export async function getEventLogs(params?: { startDate?: string; endDate?: string; event?: string }) {
+  return signalhouseRequest<Array<{
+    event: string;
+    timestamp: string;
+    data: Record<string, unknown>;
+  }>>("/message/getEventLogs", {
+    params: params as Record<string, string>,
+  });
+}
+
+export async function getCarriers() {
+  return signalhouseRequest<Array<{ carrierId: string; name: string; country: string }>>("/message/carriers");
+}
+
+// Short Link Operations
+export async function getAllShortLinks() {
+  return signalhouseRequest<Array<{
+    shortUrl: string;
+    originalUrl: string;
+    clicks: number;
+    createdAt: string;
+  }>>("/message/allShortLinks");
+}
+
+export async function updateShortLinkFriendlyName(shortUrl: string, friendlyName: string) {
+  return signalhouseRequest<{ success: boolean }>("/message/shortLink", {
+    method: "PATCH",
+    body: { shortUrl, friendlyName },
+  });
+}
+
+export async function createShortLink(originalUrl: string, friendlyName?: string) {
+  return signalhouseRequest<{
+    shortUrl: string;
+    originalUrl: string;
+    createdAt: string;
+  }>("/message/shortLink", {
+    method: "POST",
+    body: { originalUrl, friendlyName },
+  });
+}
+
+export async function getShortLinkAnalytics(shortUrl: string) {
+  return signalhouseRequest<{
+    shortUrl: string;
+    originalUrl: string;
+    totalClicks: number;
+    uniqueClicks: number;
+    clicksByDate: Array<{ date: string; clicks: number }>;
+  }>(`/message/shortLink/analytics/${encodeURIComponent(shortUrl)}`);
+}
+
+// ============ OPT-OUT MANAGEMENT ============
+
+export async function getOptOutList(params?: { limit?: number; offset?: number }) {
+  return signalhouseRequest<Array<{
+    phoneNumber: string;
+    optOutAt: string;
+    reason?: string;
+  }>>("/message/optOutList", {
+    params: params as Record<string, string>,
+  });
+}
+
+export async function addToOptOutList(phoneNumber: string, reason?: string) {
+  return signalhouseRequest<{ success: boolean }>("/message/optOut", {
+    method: "POST",
+    body: { phoneNumber, reason },
+  });
+}
+
+export async function removeFromOptOutList(phoneNumber: string) {
+  return signalhouseRequest<{ success: boolean }>("/message/optOut", {
+    method: "DELETE",
+    body: { phoneNumber },
+  });
+}
+
+export async function checkOptOutStatus(phoneNumber: string) {
+  return signalhouseRequest<{
+    isOptedOut: boolean;
+    optOutAt?: string;
+    reason?: string;
+  }>(`/message/optOut/check/${encodeURIComponent(phoneNumber)}`);
+}
+
+// ============ CAMPAIGN PHONE NUMBER MANAGEMENT ============
+
+export async function attachNumberToCampaign(phoneNumber: string, campaignId: string) {
+  return signalhouseRequest<{ success: boolean }>("/campaign/attachNumber", {
+    method: "POST",
+    body: { phoneNumber, campaignId },
+  });
+}
+
+export async function detachNumberFromCampaign(phoneNumber: string, campaignId: string) {
+  return signalhouseRequest<{ success: boolean }>("/campaign/detachNumber", {
+    method: "POST",
+    body: { phoneNumber, campaignId },
+  });
+}
+
+export async function getCampaignNumbers(campaignId: string) {
+  return signalhouseRequest<PhoneNumber[]>(`/campaign/${campaignId}/numbers`);
 }
 
 // ============ ANALYTICS OPERATIONS ============
@@ -492,6 +730,57 @@ export async function getUsageSummary(params?: {
 
 export async function getPricing() {
   return signalhouseRequest<Record<string, number>>("/wallet/pricing");
+}
+
+export async function getTransactionHistory(params?: {
+  startDate?: string;
+  endDate?: string;
+  type?: string;
+  limit?: number;
+}) {
+  return signalhouseRequest<Array<{
+    transactionId: string;
+    type: string;
+    amount: number;
+    balance: number;
+    description: string;
+    createdAt: string;
+  }>>("/wallet/transactions", {
+    params: params as Record<string, string>,
+  });
+}
+
+export async function rechargeWallet(amount: number, paymentMethodId?: string) {
+  return signalhouseRequest<{
+    success: boolean;
+    transactionId: string;
+    newBalance: number;
+  }>("/wallet/recharge", {
+    method: "POST",
+    body: { amount, paymentMethodId },
+  });
+}
+
+export async function configureAutoRecharge(config: {
+  enabled: boolean;
+  threshold?: number;
+  amount?: number;
+}) {
+  return signalhouseRequest<WalletSummary>("/wallet/autoRecharge", {
+    method: "POST",
+    body: config,
+  });
+}
+
+export async function getPaymentMethods() {
+  return signalhouseRequest<Array<{
+    id: string;
+    type: string;
+    last4: string;
+    expiryMonth?: number;
+    expiryYear?: number;
+    isDefault: boolean;
+  }>>("/wallet/paymentMethods");
 }
 
 // ============ WEBHOOK OPERATIONS ============
