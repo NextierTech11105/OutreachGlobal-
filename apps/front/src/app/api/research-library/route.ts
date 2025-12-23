@@ -18,15 +18,20 @@ const SPACES_SECRET =
 const SPACES_BUCKET =
   process.env.SPACES_BUCKET || process.env.DO_SPACES_BUCKET || "nextier";
 
-const s3Client = new S3Client({
-  endpoint: SPACES_ENDPOINT,
-  region: SPACES_REGION,
-  credentials: {
-    accessKeyId: SPACES_KEY,
-    secretAccessKey: SPACES_SECRET,
-  },
-  forcePathStyle: true,
-});
+// Only create S3 client if credentials are configured
+const SPACES_CONFIGURED = Boolean(SPACES_KEY && SPACES_SECRET);
+
+const s3Client = SPACES_CONFIGURED
+  ? new S3Client({
+      endpoint: SPACES_ENDPOINT,
+      region: SPACES_REGION,
+      credentials: {
+        accessKeyId: SPACES_KEY,
+        secretAccessKey: SPACES_SECRET,
+      },
+      forcePathStyle: true,
+    })
+  : null;
 
 const RESEARCH_PREFIX = "research-library/";
 
@@ -170,62 +175,62 @@ export async function GET(request: NextRequest) {
     // List items in path
     const items = folderStructure[path] || [];
 
-    // Also try to list from Spaces
-    try {
-      const prefix = `${RESEARCH_PREFIX}${path === "/" ? "" : path.slice(1) + "/"}`;
-      const command = new ListObjectsV2Command({
-        Bucket: SPACES_BUCKET,
-        Prefix: prefix,
-        Delimiter: "/",
-      });
-      const response = await s3Client.send(command);
+    // Also try to list from Spaces (only if configured)
+    if (s3Client && SPACES_CONFIGURED) {
+      try {
+        const prefix = `${RESEARCH_PREFIX}${path === "/" ? "" : path.slice(1) + "/"}`;
+        const command = new ListObjectsV2Command({
+          Bucket: SPACES_BUCKET,
+          Prefix: prefix,
+          Delimiter: "/",
+        });
+        const response = await s3Client.send(command);
 
-      // Add folders from Spaces
-      if (response.CommonPrefixes) {
-        for (const prefix of response.CommonPrefixes) {
-          const folderName = prefix.Prefix?.replace(RESEARCH_PREFIX, "")
-            .replace(/\/$/, "")
-            .split("/")
-            .pop();
-          if (
-            folderName &&
-            !items.some((i) => i.name === folderName && i.type === "folder")
-          ) {
-            items.push({
-              id: `spaces-${folderName}`,
-              name: folderName,
-              type: "folder",
-              path: `${path}${path === "/" ? "" : "/"}${folderName}`,
-              createdAt: new Date().toISOString(),
-            });
-          }
-        }
-      }
-
-      // Add files from Spaces
-      if (response.Contents) {
-        for (const obj of response.Contents) {
-          if (obj.Key?.endsWith(".json") && obj.Key !== prefix) {
-            const fileName = obj.Key.replace(prefix, "").replace(".json", "");
-            if (fileName && !items.some((i) => i.name === fileName)) {
+        // Add folders from Spaces
+        if (response.CommonPrefixes) {
+          for (const prefix of response.CommonPrefixes) {
+            const folderName = prefix.Prefix?.replace(RESEARCH_PREFIX, "")
+              .replace(/\/$/, "")
+              .split("/")
+              .pop();
+            if (
+              folderName &&
+              !items.some((i) => i.name === folderName && i.type === "folder")
+            ) {
               items.push({
-                id: obj.Key,
-                name: fileName,
-                type: "report",
-                path: `${path}${path === "/" ? "" : "/"}${fileName}`,
-                createdAt:
-                  obj.LastModified?.toISOString() || new Date().toISOString(),
-                size: obj.Size,
+                id: `spaces-${folderName}`,
+                name: folderName,
+                type: "folder",
+                path: `${path}${path === "/" ? "" : "/"}${folderName}`,
+                createdAt: new Date().toISOString(),
               });
             }
           }
         }
+
+        // Add files from Spaces
+        if (response.Contents) {
+          for (const obj of response.Contents) {
+            if (obj.Key?.endsWith(".json") && obj.Key !== prefix) {
+              const fileName = obj.Key.replace(prefix, "").replace(".json", "");
+              if (fileName && !items.some((i) => i.name === fileName)) {
+                items.push({
+                  id: obj.Key,
+                  name: fileName,
+                  type: "report",
+                  path: `${path}${path === "/" ? "" : "/"}${fileName}`,
+                  createdAt:
+                    obj.LastModified?.toISOString() || new Date().toISOString(),
+                  size: obj.Size,
+                });
+              }
+            }
+          }
+        }
+      } catch (err) {
+        // Silently skip if Spaces is not configured or has auth issues
+        // Reports will still work from in-memory storage
       }
-    } catch (err) {
-      console.log(
-        "[Research Library] Spaces listing error (may not be configured):",
-        err,
-      );
     }
 
     return NextResponse.json({
@@ -269,19 +274,21 @@ export async function POST(request: NextRequest) {
       folderStructure[parentPath].push(newFolder);
       folderStructure[folderPath] = [];
 
-      // Also create in Spaces
-      try {
-        const spacesPath = `${RESEARCH_PREFIX}${folderPath.slice(1)}/.folder`;
-        await s3Client.send(
-          new PutObjectCommand({
-            Bucket: SPACES_BUCKET,
-            Key: spacesPath,
-            Body: JSON.stringify({ created: new Date().toISOString() }),
-            ContentType: "application/json",
-          }),
-        );
-      } catch (err) {
-        console.log("[Research Library] Spaces folder creation skipped:", err);
+      // Also create in Spaces (if configured)
+      if (s3Client) {
+        try {
+          const spacesPath = `${RESEARCH_PREFIX}${folderPath.slice(1)}/.folder`;
+          await s3Client.send(
+            new PutObjectCommand({
+              Bucket: SPACES_BUCKET,
+              Key: spacesPath,
+              Body: JSON.stringify({ created: new Date().toISOString() }),
+              ContentType: "application/json",
+            }),
+          );
+        } catch {
+          // Spaces not configured - continue without cloud storage
+        }
       }
 
       return NextResponse.json({ success: true, folder: newFolder });
@@ -321,46 +328,49 @@ export async function POST(request: NextRequest) {
       const cdnUrl = `https://${SPACES_BUCKET}.${SPACES_REGION}.cdn.digitaloceanspaces.com`;
       let htmlUrl = null;
 
-      try {
-        // Save valuation report to lead's valuation-reports folder
-        const spacesKey = `leads/${leadId}/valuation-reports/${reportId}.json`;
-        await s3Client.send(
-          new PutObjectCommand({
-            Bucket: SPACES_BUCKET,
-            Key: spacesKey,
-            Body: JSON.stringify(reportData),
-            ContentType: "application/json",
-            ACL: "private",
-          }),
-        );
+      // Save to Spaces (if configured)
+      if (s3Client) {
+        try {
+          // Save valuation report to lead's valuation-reports folder
+          const spacesKey = `leads/${leadId}/valuation-reports/${reportId}.json`;
+          await s3Client.send(
+            new PutObjectCommand({
+              SPACES_BUCKET,
+              Key: spacesKey,
+              Body: JSON.stringify(reportData),
+              ContentType: "application/json",
+              ACL: "private",
+            }),
+          );
 
-        // Also save to research-library for backwards compatibility
-        const legacyKey = `${RESEARCH_PREFIX}reports/${reportId}.json`;
-        await s3Client.send(
-          new PutObjectCommand({
-            Bucket: SPACES_BUCKET,
-            Key: legacyKey,
-            Body: JSON.stringify(reportData),
-            ContentType: "application/json",
-            ACL: "private",
-          }),
-        );
+          // Also save to research-library for backwards compatibility
+          const legacyKey = `${RESEARCH_PREFIX}reports/${reportId}.json`;
+          await s3Client.send(
+            new PutObjectCommand({
+              Bucket: SPACES_BUCKET,
+              Key: legacyKey,
+              Body: JSON.stringify(reportData),
+              ContentType: "application/json",
+              ACL: "private",
+            }),
+          );
 
-        // Generate shareable HTML version
-        const htmlContent = generateShareableHTML(reportData);
-        const htmlKey = `leads/${leadId}/shared/${reportId}.html`;
-        await s3Client.send(
-          new PutObjectCommand({
-            Bucket: SPACES_BUCKET,
-            Key: htmlKey,
-            Body: htmlContent,
-            ContentType: "text/html",
-            ACL: "public-read",
-          }),
-        );
-        htmlUrl = `${cdnUrl}/${htmlKey}`;
-      } catch (err) {
-        console.log("[Research Library] Spaces save error:", err);
+          // Generate shareable HTML version
+          const htmlContent = generateShareableHTML(reportData);
+          const htmlKey = `leads/${leadId}/shared/${reportId}.html`;
+          await s3Client.send(
+            new PutObjectCommand({
+              Bucket: SPACES_BUCKET,
+              Key: htmlKey,
+              Body: htmlContent,
+              ContentType: "text/html",
+              ACL: "public-read",
+            }),
+          );
+          htmlUrl = `${cdnUrl}/${htmlKey}`;
+        } catch {
+          // Spaces not configured - reports stored in-memory only
+        }
       }
 
       // Add to folder structure
@@ -1243,18 +1253,18 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Try to delete from Spaces
-    try {
-      if (id.startsWith("report-")) {
+    // Try to delete from Spaces (if configured)
+    if (s3Client && id.startsWith("report-")) {
+      try {
         await s3Client.send(
           new DeleteObjectCommand({
             Bucket: SPACES_BUCKET,
             Key: `${RESEARCH_PREFIX}reports/${id}.json`,
           }),
         );
+      } catch {
+        // Spaces not configured - nothing to delete
       }
-    } catch (err) {
-      console.log("[Research Library] Spaces delete error:", err);
     }
 
     return NextResponse.json({ success: true });

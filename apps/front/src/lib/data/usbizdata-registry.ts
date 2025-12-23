@@ -19,6 +19,7 @@ export interface USBizDataDatabase {
   sicCode: string;
   sicDescription: string;
   totalRecords: number;
+  verified: boolean; // true = verified from usbizdata.com, false = estimated
   lastUpdate: string; // Q4 2025 format
   price: number; // USD
   category:
@@ -29,8 +30,12 @@ export interface USBizDataDatabase {
     | "retail"
     | "technology"
     | "financial"
+    | "hospitality"
+    | "food_service"
+    | "education"
     | "other";
   tags: string[];
+  businessLine?: "nextier" | "outreach_global" | "ecbb" | "all"; // Which business line uses this
   // Local storage path when uploaded
   localPath?: string;
   uploadedAt?: string;
@@ -42,9 +47,9 @@ export interface USBizDataDatabase {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const USBIZDATA_REGISTRY: USBizDataDatabase[] = [
-  // ─────────────────────────────────────────────────────────────────────────
-  // BLUE COLLAR - Primary Target for ECBB/Nextier
-  // ─────────────────────────────────────────────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BLUE COLLAR - Primary Target for ECBB/Nextier (Acquisition Targets)
+  // ═══════════════════════════════════════════════════════════════════════════
   {
     id: "usbiz-plumber",
     name: "US Plumbing, Heating & Air Conditioning Contractor Database",
@@ -52,10 +57,12 @@ export const USBIZDATA_REGISTRY: USBizDataDatabase[] = [
     sicCode: "1711",
     sicDescription: "Plumbing, Heating, Air-Conditioning",
     totalRecords: 338605,
+    verified: true, // Q4 2025 usbizdata.com
     lastUpdate: "Q4 2025",
     price: 27.0,
     category: "blue_collar",
     tags: ["plumber", "hvac", "contractor", "blue_collar", "trades"],
+    businessLine: "ecbb",
   },
   {
     id: "usbiz-electrician",
@@ -63,11 +70,13 @@ export const USBIZDATA_REGISTRY: USBizDataDatabase[] = [
     slug: "electrician",
     sicCode: "1731",
     sicDescription: "Electrical Work",
-    totalRecords: 245000, // Estimated
+    totalRecords: 245000,
+    verified: false, // Estimated - needs verification
     lastUpdate: "Q4 2025",
     price: 27.0,
     category: "blue_collar",
     tags: ["electrician", "contractor", "blue_collar", "trades"],
+    businessLine: "ecbb",
   },
   {
     id: "usbiz-roofing",
@@ -75,28 +84,32 @@ export const USBIZDATA_REGISTRY: USBizDataDatabase[] = [
     slug: "roofing",
     sicCode: "1761",
     sicDescription: "Roofing, Siding, Sheet Metal Work",
-    totalRecords: 180000, // Estimated
+    totalRecords: 180000,
+    verified: false, // Estimated - needs verification
     lastUpdate: "Q4 2025",
     price: 27.0,
     category: "blue_collar",
     tags: ["roofing", "siding", "contractor", "blue_collar", "trades"],
+    businessLine: "ecbb",
   },
   {
     id: "usbiz-trucking",
-    name: "US Trucking Companies Database",
+    name: "US Trucking-Freight Company Database",
     slug: "trucking",
-    sicCode: "4213",
-    sicDescription: "Trucking, Except Local",
-    totalRecords: 420000, // Estimated
+    sicCode: "4212,4213,4214",
+    sicDescription: "Trucking & Freight (Local/Except Local/With Storage)",
+    totalRecords: 306647,
+    verified: true, // Q4 2025 usbizdata.com
     lastUpdate: "Q4 2025",
     price: 27.0,
     category: "blue_collar",
-    tags: ["trucking", "logistics", "transportation", "blue_collar"],
+    tags: ["trucking", "freight", "logistics", "transportation", "blue_collar"],
+    businessLine: "ecbb",
   },
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // REAL ESTATE
-  // ─────────────────────────────────────────────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════════════════
+  // REAL ESTATE - Nextier (Datalake Clients) → OutreachGlobal (White-Label)
+  // ═══════════════════════════════════════════════════════════════════════════
   {
     id: "usbiz-realtor",
     name: "US Realtor Database",
@@ -104,10 +117,12 @@ export const USBIZDATA_REGISTRY: USBizDataDatabase[] = [
     sicCode: "6531",
     sicDescription: "Real Estate Agents and Managers",
     totalRecords: 2184726,
+    verified: true, // Q4 2025 usbizdata.com
     lastUpdate: "Q4 2025",
     price: 27.0,
     category: "real_estate",
     tags: ["realtor", "real_estate", "agent", "broker"],
+    businessLine: "nextier", // Nextier first, then OutreachGlobal white-label
   },
   {
     id: "usbiz-property-management",
@@ -115,16 +130,18 @@ export const USBIZDATA_REGISTRY: USBizDataDatabase[] = [
     slug: "property-management",
     sicCode: "6531",
     sicDescription: "Real Estate Agents and Managers",
-    totalRecords: 450000, // Estimated subset
+    totalRecords: 450000,
+    verified: false, // Estimated subset
     lastUpdate: "Q4 2025",
     price: 27.0,
     category: "real_estate",
     tags: ["property_management", "real_estate", "landlord"],
+    businessLine: "nextier",
   },
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // HEALTHCARE
-  // ─────────────────────────────────────────────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════════════════
+  // HEALTHCARE - Acquisition Targets + B2B
+  // ═══════════════════════════════════════════════════════════════════════════
   {
     id: "usbiz-medical-dental-equipment",
     name: "US Medical-Dental Equipment Supplier Database",
@@ -132,10 +149,12 @@ export const USBIZDATA_REGISTRY: USBizDataDatabase[] = [
     sicCode: "5047",
     sicDescription: "Medical, Dental, Hospital Equipment",
     totalRecords: 179953,
+    verified: true, // Q4 2025 usbizdata.com
     lastUpdate: "Q4 2025",
     price: 27.0,
     category: "healthcare",
     tags: ["medical", "dental", "healthcare", "equipment", "supplier"],
+    businessLine: "all",
   },
   {
     id: "usbiz-dentist",
@@ -143,11 +162,13 @@ export const USBIZDATA_REGISTRY: USBizDataDatabase[] = [
     slug: "dentist",
     sicCode: "8021",
     sicDescription: "Offices and Clinics of Dentists",
-    totalRecords: 320000, // Estimated
+    totalRecords: 320000,
+    verified: false, // Estimated - needs verification
     lastUpdate: "Q4 2025",
     price: 27.0,
     category: "healthcare",
     tags: ["dentist", "dental", "healthcare", "clinic"],
+    businessLine: "all",
   },
   {
     id: "usbiz-physician",
@@ -155,27 +176,99 @@ export const USBIZDATA_REGISTRY: USBizDataDatabase[] = [
     slug: "physician",
     sicCode: "8011",
     sicDescription: "Offices and Clinics of Doctors",
-    totalRecords: 890000, // Estimated
+    totalRecords: 890000,
+    verified: false, // Estimated - needs verification
     lastUpdate: "Q4 2025",
     price: 27.0,
     category: "healthcare",
     tags: ["physician", "doctor", "healthcare", "clinic"],
+    businessLine: "all",
   },
 
-  // ─────────────────────────────────────────────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════════════════
+  // HOSPITALITY - Hotels, Motels, Campgrounds
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    id: "usbiz-hotels-motels",
+    name: "US Hotels & Motels Database",
+    slug: "hotels-motels",
+    sicCode: "7011,7021",
+    sicDescription: "Hotels and Motels",
+    totalRecords: 85000,
+    verified: false, // Estimated - needs verification
+    lastUpdate: "Q4 2025",
+    price: 27.0,
+    category: "hospitality",
+    tags: ["hotel", "motel", "hospitality", "lodging"],
+    businessLine: "ecbb",
+  },
+  {
+    id: "usbiz-campgrounds-rv",
+    name: "US Campgrounds & RV Parks Database",
+    slug: "campgrounds-rv",
+    sicCode: "7032,7033",
+    sicDescription: "Sporting/Recreational Camps, RV Parks",
+    totalRecords: 25000,
+    verified: false, // Estimated - needs verification
+    lastUpdate: "Q4 2025",
+    price: 27.0,
+    category: "hospitality",
+    tags: ["campground", "rv_park", "recreation", "hospitality"],
+    businessLine: "ecbb",
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FOOD SERVICE - Restaurants, Bakeries, Caterers
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    id: "usbiz-restaurants",
+    name: "US Restaurants Database",
+    slug: "restaurants",
+    sicCode: "5812,5813,5814",
+    sicDescription: "Eating Places, Drinking Places, Caterers",
+    totalRecords: 750000,
+    verified: false, // Estimated - needs verification
+    lastUpdate: "Q4 2025",
+    price: 27.0,
+    category: "food_service",
+    tags: ["restaurant", "food_service", "dining", "hospitality"],
+    businessLine: "ecbb",
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // EDUCATION - Schools, Training Centers
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    id: "usbiz-schools",
+    name: "US Schools Database",
+    slug: "schools",
+    sicCode: "8211",
+    sicDescription: "Elementary and Secondary Schools",
+    totalRecords: 130000,
+    verified: false, // Estimated - needs verification
+    lastUpdate: "Q4 2025",
+    price: 27.0,
+    category: "education",
+    tags: ["school", "education", "k12", "b2g"],
+    businessLine: "all",
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // PROFESSIONAL SERVICES
-  // ─────────────────────────────────────────────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════════════════
   {
     id: "usbiz-accountant",
     name: "US Accountant Database",
     slug: "accountant",
     sicCode: "8721",
     sicDescription: "Accounting, Auditing, Bookkeeping",
-    totalRecords: 280000, // Estimated
+    totalRecords: 280000,
+    verified: false, // Estimated - needs verification
     lastUpdate: "Q4 2025",
     price: 27.0,
     category: "professional",
     tags: ["accountant", "cpa", "bookkeeper", "financial"],
+    businessLine: "outreach_global",
   },
   {
     id: "usbiz-attorney",
@@ -183,11 +276,13 @@ export const USBIZDATA_REGISTRY: USBizDataDatabase[] = [
     slug: "attorney",
     sicCode: "8111",
     sicDescription: "Legal Services",
-    totalRecords: 450000, // Estimated
+    totalRecords: 450000,
+    verified: false, // Estimated - needs verification
     lastUpdate: "Q4 2025",
     price: 27.0,
     category: "professional",
     tags: ["attorney", "lawyer", "legal", "law_firm"],
+    businessLine: "outreach_global",
   },
   {
     id: "usbiz-insurance",
@@ -195,11 +290,13 @@ export const USBIZDATA_REGISTRY: USBizDataDatabase[] = [
     slug: "insurance",
     sicCode: "6411",
     sicDescription: "Insurance Agents, Brokers, Service",
-    totalRecords: 520000, // Estimated
+    totalRecords: 520000,
+    verified: false, // Estimated - needs verification
     lastUpdate: "Q4 2025",
     price: 27.0,
     category: "financial",
     tags: ["insurance", "agent", "broker", "financial"],
+    businessLine: "outreach_global",
   },
 ];
 
@@ -292,17 +389,84 @@ export function getCategoryStats(): Record<
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// LUCI COPILOT QUERY INTERFACE
+// BUSINESS LINE HELPERS - CRITICAL FOR LUCI
 // ═══════════════════════════════════════════════════════════════════════════
+
+export function getDatabasesByBusinessLine(
+  line: "nextier" | "outreach_global" | "ecbb" | "all",
+): USBizDataDatabase[] {
+  return USBIZDATA_REGISTRY.filter(
+    (db) => db.businessLine === line || db.businessLine === "all",
+  );
+}
+
+export function getVerifiedDatabases(): USBizDataDatabase[] {
+  return USBIZDATA_REGISTRY.filter((db) => db.verified);
+}
+
+export function getUnverifiedDatabases(): USBizDataDatabase[] {
+  return USBIZDATA_REGISTRY.filter((db) => !db.verified);
+}
+
+export function getBusinessLineStats(): Record<
+  string,
+  { databases: number; records: number; verified: number }
+> {
+  const stats: Record<
+    string,
+    { databases: number; records: number; verified: number }
+  > = {
+    nextier: { databases: 0, records: 0, verified: 0 },
+    outreach_global: { databases: 0, records: 0, verified: 0 },
+    ecbb: { databases: 0, records: 0, verified: 0 },
+    all: { databases: 0, records: 0, verified: 0 },
+  };
+
+  for (const db of USBIZDATA_REGISTRY) {
+    const line = db.businessLine || "all";
+    stats[line].databases++;
+    stats[line].records += db.totalRecords;
+    if (db.verified) stats[line].verified++;
+  }
+
+  return stats;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LUCI COPILOT QUERY INTERFACE
+// Uses constants from @/config/agents/luci.ts - DO NOT DUPLICATE
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * LUCI CAPACITY MODEL (source: config/agents/luci.ts)
+ *
+ * MONTHLY ROLLING POOL:
+ * - 20,000 leads hit per month (active outreach)
+ * - ~5,000 net new leads added monthly
+ * - Remove lost deals (keeps pool fresh)
+ *
+ * DAILY BATCHING:
+ * - sms_blast: batchSize=250, pauseAt=2000 (one lead block)
+ * - Lead block = 2,000 enriched leads with Lead IDs
+ * - 8 skip trace batches (250 each) = 1 lead block
+ *
+ * Constants live in LUCI_AGENT.feedsStages - import from there
+ */
+const LUCI_BATCH_SIZE = 250; // Skip trace batch (matches LUCI_AGENT.feedsStages.sms_blast.batchSize)
+const LUCI_PAUSE_AT = 2000; // Lead block size (matches LUCI_AGENT.feedsStages.sms_blast.pauseAt)
+const LUCI_POOL_TARGET = 20000; // Monthly active pool size
+const LUCI_NET_NEW_MONTHLY = 5000; // Approximate net new leads per month
 
 export interface LuciQuery {
   persona?: string; // "plumber", "dentist", etc.
   sicCodes?: string[];
   states?: string[];
+  businessLine?: "nextier" | "outreach_global" | "ecbb" | "all";
   minRevenue?: number;
   maxRevenue?: number;
   minEmployees?: number;
   maxEmployees?: number;
+  verifiedOnly?: boolean;
   limit?: number;
 }
 
@@ -311,10 +475,26 @@ export interface LuciQueryResult {
   matchingDatabases: USBizDataDatabase[];
   estimatedRecords: number;
   recommendation: string;
+  // Capacity planning
+  daysToFillPool: number; // How many days to reach 20K leads from this source
+  batchesNeeded: number; // How many 2K batches to exhaust source
 }
 
 export function luciQuery(query: LuciQuery): LuciQueryResult {
   let matches = [...USBIZDATA_REGISTRY];
+
+  // Filter by business line
+  if (query.businessLine) {
+    matches = matches.filter(
+      (db) =>
+        db.businessLine === query.businessLine || db.businessLine === "all",
+    );
+  }
+
+  // Filter by verified only
+  if (query.verifiedOnly) {
+    matches = matches.filter((db) => db.verified);
+  }
 
   // Filter by persona/tag
   if (query.persona) {
@@ -329,7 +509,11 @@ export function luciQuery(query: LuciQuery): LuciQueryResult {
 
   // Filter by SIC codes
   if (query.sicCodes && query.sicCodes.length > 0) {
-    matches = matches.filter((db) => query.sicCodes!.includes(db.sicCode));
+    matches = matches.filter((db) =>
+      query.sicCodes!.some(
+        (sic) => db.sicCode.includes(sic) || db.sicCode.startsWith(sic),
+      ),
+    );
   }
 
   // Calculate estimated records
@@ -338,15 +522,22 @@ export function luciQuery(query: LuciQuery): LuciQueryResult {
     0,
   );
 
+  // Calculate capacity planning (using LUCI constants)
+  const batchesNeeded = Math.ceil(estimatedRecords / LUCI_PAUSE_AT);
+  const daysToFillPool = Math.min(batchesNeeded, LUCI_POOL_TARGET / LUCI_PAUSE_AT);
+
   // Generate recommendation
   let recommendation = "";
   if (matches.length === 0) {
     recommendation =
       "No matching databases found. Try broadening your search or uploading a custom CSV.";
   } else if (matches.length === 1) {
-    recommendation = `Found ${matches[0].name} with ${matches[0].totalRecords.toLocaleString()} records. Ready to import and enrich.`;
+    const db = matches[0];
+    const verifiedNote = db.verified ? "✓ VERIFIED" : "⚠ Estimated count";
+    recommendation = `Found ${db.name} with ${db.totalRecords.toLocaleString()} records (${verifiedNote}). At 2K/day, pool fills in ${daysToFillPool} days.`;
   } else {
-    recommendation = `Found ${matches.length} databases with ${estimatedRecords.toLocaleString()} total records. Select one to begin import.`;
+    const verifiedCount = matches.filter((db) => db.verified).length;
+    recommendation = `Found ${matches.length} databases (${verifiedCount} verified) with ${estimatedRecords.toLocaleString()} total records. Can generate ${batchesNeeded} lead batches.`;
   }
 
   return {
@@ -354,6 +545,21 @@ export function luciQuery(query: LuciQuery): LuciQueryResult {
     matchingDatabases: matches,
     estimatedRecords,
     recommendation,
+    daysToFillPool,
+    batchesNeeded,
+  };
+}
+
+// Quick helper for LUCI to check daily capacity
+export function getLuciDailyCapacity(): {
+  skipTraceBatchSize: number;
+  leadBlockSize: number;
+  poolTarget: number;
+} {
+  return {
+    skipTraceBatchSize: LUCI_BATCH_SIZE, // 250 records per skip trace batch
+    leadBlockSize: LUCI_PAUSE_AT, // 2000 leads per block
+    poolTarget: LUCI_POOL_TARGET, // 20000 leads before pause/refine
   };
 }
 

@@ -1,8 +1,9 @@
-import { TwilioIntegration } from "@/components/twilio-integration";
+import { TwilioIntegration } from "@/features/twilio/components/twilio-integration";
+import { TwilioTestVoice } from "@/features/twilio/components/twilio-test-voice";
 
 export default function CallCenterSettingsPage() {
   return (
-    <div>
+    <div className="space-y-6">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
@@ -15,6 +16,9 @@ export default function CallCenterSettingsPage() {
       </div>
 
       <TwilioIntegration />
+
+      {/* Voice Test Component */}
+      <TwilioTestVoice />
     </div>
   );
 }

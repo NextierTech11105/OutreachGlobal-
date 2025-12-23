@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6"/>
+      <stop offset="100%" style="stop-color:#1d4ed8"/>
+    </linearGradient>
+  </defs>
+  <rect width="48" height="48" rx="10" fill="url(#bg)"/>
+  <!-- Phone icon -->
+  <path d="M16 12c-1.1 0-2 .9-2 2v20c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V14c0-1.1-.9-2-2-2H16zm8 22c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm8-6H16V16h16v12z" fill="white"/>
+  <!-- Signal waves -->
+  <path d="M36 18c2.5 2.5 2.5 6.5 0 9" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M39 15c4 4 4 12 0 16" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.7"/>
+</svg>

@@ -1,4 +1,4 @@
-import { TwilioIntegration } from "@/components/twilio-integration";
+import { TwilioIntegration } from "@/features/twilio/components/twilio-integration";
 
 export default function TwilioIntegrationPage() {
   return (
