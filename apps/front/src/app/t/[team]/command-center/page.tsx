@@ -2,7 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -26,9 +32,14 @@ import {
   Phone,
   Calendar,
   ArrowRight,
+  Tag,
+  Building2,
+  ChevronRight,
+  Radio,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { InboxResponseHeatmap } from "@/components/inbox-response-heatmap";
 
 // Pipeline targets
 const DAILY_SKIP_TRACE_LIMIT = 2000;
@@ -61,6 +72,86 @@ const AI_WORKERS = [
     color: "text-amber-600",
     bgColor: "bg-amber-100 dark:bg-amber-900/30",
     campaigns: ["Nudger"],
+  },
+];
+
+// Brand Campaign Structure mapped to SignalHouse
+// Brand = registered 10DLC brand with carriers
+// Sub-Brand = campaign types under the brand
+interface BrandCampaign {
+  id: string;
+  brandName: string;
+  brandId: string; // SignalHouse brand registration ID
+  status: "pending" | "approved" | "rejected";
+  registeredAt?: string;
+  subCampaigns: SubCampaign[];
+}
+
+interface SubCampaign {
+  id: string;
+  name: string;
+  type: "initial" | "retarget" | "nurture" | "followup" | "nudge";
+  assignedWorker: string; // gianna, sabrina, cathy
+  messageTemplateId?: string;
+  status: "draft" | "active" | "paused";
+  stats: {
+    sent: number;
+    delivered: number;
+    responses: number;
+    positive: number;
+  };
+}
+
+// Sample brand campaigns (will be fetched from SignalHouse API)
+const SAMPLE_BRAND_CAMPAIGNS: BrandCampaign[] = [
+  {
+    id: "brand-1",
+    brandName: "Outreach Global",
+    brandId: "SH-BR-001",
+    status: "approved",
+    registeredAt: "2024-01-15",
+    subCampaigns: [
+      {
+        id: "sub-1",
+        name: "Initial Outreach",
+        type: "initial",
+        assignedWorker: "gianna",
+        status: "active",
+        stats: { sent: 2500, delivered: 2400, responses: 180, positive: 45 },
+      },
+      {
+        id: "sub-2",
+        name: "Retarget Cold",
+        type: "retarget",
+        assignedWorker: "gianna",
+        status: "active",
+        stats: { sent: 1800, delivered: 1750, responses: 140, positive: 35 },
+      },
+      {
+        id: "sub-3",
+        name: "Follow Up Hot",
+        type: "followup",
+        assignedWorker: "sabrina",
+        status: "active",
+        stats: { sent: 800, delivered: 780, responses: 95, positive: 28 },
+      },
+      {
+        id: "sub-4",
+        name: "Nurture Sequence",
+        type: "nurture",
+        assignedWorker: "gianna",
+        status: "paused",
+        stats: { sent: 1200, delivered: 1150, responses: 65, positive: 18 },
+      },
+      {
+        id: "sub-5",
+        name: "Nudger Drip",
+        type: "nudge",
+        assignedWorker: "cathy",
+        status: "active",
+        stats: { sent: 3000, delivered: 2900, responses: 220, positive: 55 },
+      },
+    ],
   },
 ];
 
@@ -123,11 +214,11 @@ export default function CommandCenterPage() {
         // Calculate stats from buckets
         const totalRecords = bucketsData.buckets.reduce(
           (acc: number, b: DataLake) => acc + (b.totalLeads || 0),
-          0
+          0,
         );
         const totalEnriched = bucketsData.buckets.reduce(
           (acc: number, b: DataLake) => acc + (b.enrichedLeads || 0),
-          0
+          0,
         );
 
         setStats((prev) => ({
@@ -165,7 +256,7 @@ export default function CommandCenterPage() {
 
     // Find a data lake with unenriched records
     const targetLake = dataLakes.find(
-      (lake) => lake.totalLeads > lake.enrichedLeads
+      (lake) => lake.totalLeads > lake.enrichedLeads,
     );
 
     if (!targetLake) {
@@ -188,7 +279,7 @@ export default function CommandCenterPage() {
 
       if (data.success) {
         toast.success(
-          `Skip traced ${data.results.enriched} records from ${targetLake.name}`
+          `Skip traced ${data.results.enriched} records from ${targetLake.name}`,
         );
         fetchStats(); // Refresh stats
       } else {
@@ -405,8 +496,10 @@ export default function CommandCenterPage() {
         <Tabs defaultValue="registry" className="space-y-4">
           <TabsList>
             <TabsTrigger value="registry">Database Registry</TabsTrigger>
-            <TabsTrigger value="buckets">Campaign Buckets</TabsTrigger>
-            <TabsTrigger value="scan">Scan Jobs</TabsTrigger>
+            <TabsTrigger value="brands">Brand Campaigns</TabsTrigger>
+            <TabsTrigger value="buckets">AI Buckets</TabsTrigger>
+            <TabsTrigger value="activity">Response Activity</TabsTrigger>
+            <TabsTrigger value="scan">LUCI</TabsTrigger>
           </TabsList>
 
           {/* Database Registry */}
@@ -494,10 +587,186 @@ export default function CommandCenterPage() {
             )}
           </TabsContent>
 
+          {/* Brand Campaigns - SignalHouse Infrastructure */}
+          <TabsContent value="brands" className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <Building2 className="h-5 w-5 text-blue-500" />
+                  Brand & Sub-Brand Campaigns
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  10DLC registered brands mapped to SignalHouse infrastructure
+                </p>
+              </div>
+              <Button size="sm">
+                <Radio className="h-4 w-4 mr-2" />
+                Register New Brand
+              </Button>
+            </div>
+
+            {SAMPLE_BRAND_CAMPAIGNS.map((brand) => (
+              <Card key={brand.id}>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                        <Building2 className="h-5 w-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg">
+                          {brand.brandName}
+                        </CardTitle>
+                        <CardDescription className="flex items-center gap-2">
+                          <span className="font-mono text-xs">
+                            {brand.brandId}
+                          </span>
+                          <Badge
+                            variant={
+                              brand.status === "approved"
+                                ? "default"
+                                : "secondary"
+                            }
+                            className={cn(
+                              brand.status === "approved" && "bg-green-600",
+                            )}
+                          >
+                            {brand.status}
+                          </Badge>
+                        </CardDescription>
+                      </div>
+                    </div>
+                    <div className="text-right text-sm text-muted-foreground">
+                      <p>{brand.subCampaigns.length} sub-campaigns</p>
+                      <p>
+                        {brand.subCampaigns
+                          .reduce((a, c) => a + c.stats.sent, 0)
+                          .toLocaleString()}{" "}
+                        messages sent
+                      </p>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {brand.subCampaigns.map((sub) => {
+                      const worker = AI_WORKERS.find(
+                        (w) => w.id === sub.assignedWorker,
+                      );
+                      const deliveryRate = (
+                        (sub.stats.delivered / sub.stats.sent) *
+                        100
+                      ).toFixed(1);
+                      const responseRate = (
+                        (sub.stats.responses / sub.stats.delivered) *
+                        100
+                      ).toFixed(1);
+                      const positiveRate = (
+                        (sub.stats.positive / sub.stats.responses) *
+                        100
+                      ).toFixed(1);
+
+                      return (
+                        <div
+                          key={sub.id}
+                          className="flex items-center gap-4 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                        >
+                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{sub.name}</span>
+                              <Badge
+                                variant="outline"
+                                className={cn(
+                                  "text-[10px]",
+                                  sub.status === "active" &&
+                                    "border-green-500 text-green-600",
+                                  sub.status === "paused" &&
+                                    "border-amber-500 text-amber-600",
+                                  sub.status === "draft" &&
+                                    "border-gray-500 text-gray-600",
+                                )}
+                              >
+                                {sub.status}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
+                              <span className="capitalize">{sub.type}</span>
+                              {worker && (
+                                <span
+                                  className={cn(
+                                    "flex items-center gap-1",
+                                    worker.color,
+                                  )}
+                                >
+                                  <Bot className="h-3 w-3" />
+                                  {worker.name}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-4 gap-4 text-center text-xs">
+                            <div>
+                              <p className="font-medium">
+                                {sub.stats.sent.toLocaleString()}
+                              </p>
+                              <p className="text-muted-foreground">Sent</p>
+                            </div>
+                            <div>
+                              <p className="font-medium text-blue-600">
+                                {deliveryRate}%
+                              </p>
+                              <p className="text-muted-foreground">Delivered</p>
+                            </div>
+                            <div>
+                              <p className="font-medium text-purple-600">
+                                {responseRate}%
+                              </p>
+                              <p className="text-muted-foreground">Response</p>
+                            </div>
+                            <div>
+                              <p className="font-medium text-green-600">
+                                {positiveRate}%
+                              </p>
+                              <p className="text-muted-foreground">Positive</p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+
+            {/* SignalHouse Integration Info */}
+            <Card className="border-dashed">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-lg bg-gradient-to-r from-blue-500 to-purple-500">
+                    <Radio className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold">
+                      SignalHouse Infrastructure
+                    </h4>
+                    <p className="text-sm text-muted-foreground">
+                      Brand campaigns are automatically synced with SignalHouse
+                      10DLC registration. Sub-campaigns inherit throughput
+                      limits from the parent brand.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* Campaign Buckets */}
           <TabsContent value="buckets" className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">AI Worker Campaign Buckets</h3>
+              <h3 className="text-lg font-semibold">
+                AI Worker Campaign Buckets
+              </h3>
               <p className="text-sm text-muted-foreground">
                 Each bucket holds {formatNumber(CAMPAIGN_BUCKET_SIZE)} leads
               </p>
@@ -510,10 +779,13 @@ export default function CommandCenterPage() {
                     key={`${worker.id}-${campaign}`}
                     worker={worker}
                     campaign={campaign}
-                    leads={stats.campaignBuckets[`${worker.id}-${campaign}`]?.leads || 0}
+                    leads={
+                      stats.campaignBuckets[`${worker.id}-${campaign}`]
+                        ?.leads || 0
+                    }
                     target={CAMPAIGN_BUCKET_SIZE}
                   />
-                ))
+                )),
               )}
             </div>
 
@@ -542,7 +814,12 @@ export default function CommandCenterPage() {
             </Card>
           </TabsContent>
 
-          {/* Scan Jobs */}
+          {/* Response Activity - Inbox Heatmap */}
+          <TabsContent value="activity" className="space-y-4">
+            <InboxResponseHeatmap />
+          </TabsContent>
+
+          {/* LUCI Copilot */}
           <TabsContent value="scan" className="space-y-4">
             <Card>
               <CardHeader>
@@ -563,7 +840,7 @@ export default function CommandCenterPage() {
                         "p-3 rounded-full",
                         luciActive
                           ? "bg-green-100 dark:bg-green-900/30"
-                          : "bg-muted-foreground/20"
+                          : "bg-muted-foreground/20",
                       )}
                     >
                       <Bot
@@ -571,7 +848,7 @@ export default function CommandCenterPage() {
                           "h-6 w-6",
                           luciActive
                             ? "text-green-600"
-                            : "text-muted-foreground"
+                            : "text-muted-foreground",
                         )}
                       />
                     </div>
@@ -610,7 +887,7 @@ export default function CommandCenterPage() {
                   <div className="p-4 rounded-lg bg-muted text-center">
                     <p className="text-2xl font-bold">
                       {Math.round(
-                        (stats.monthlyPool / MONTHLY_POOL_TARGET) * 100
+                        (stats.monthlyPool / MONTHLY_POOL_TARGET) * 100,
                       )}
                       %
                     </p>
@@ -620,10 +897,12 @@ export default function CommandCenterPage() {
                     <p className="text-2xl font-bold">
                       {Math.ceil(
                         (MONTHLY_POOL_TARGET - stats.monthlyPool) /
-                          DAILY_SKIP_TRACE_LIMIT
+                          DAILY_SKIP_TRACE_LIMIT,
                       )}
                     </p>
-                    <p className="text-xs text-muted-foreground">Days to Goal</p>
+                    <p className="text-xs text-muted-foreground">
+                      Days to Goal
+                    </p>
                   </div>
                 </div>
               </CardContent>
