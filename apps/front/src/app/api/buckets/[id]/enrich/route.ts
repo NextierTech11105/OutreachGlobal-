@@ -290,61 +290,70 @@ export async function POST(
         return prop;
       });
     } else if (enrichType === "skip_trace") {
-      // Skip trace enrichment for property records
-      for (const prop of toEnrich) {
-        if (!prop.address || !prop.city || !prop.state) {
-          failedCount++;
-          continue;
-        }
+      // USBizData Skip Trace: Contact Name + Street Address → mobile/email
+      // Build batch of records with full_name + address
+      const skipTraceRecords = toEnrich
+        .filter((prop) => {
+          // Must have contact name (person) and address
+          const hasName = prop.contactName || (prop.firstName && prop.lastName);
+          const hasAddress = prop.address && prop.city && prop.state;
+          return hasName && hasAddress;
+        })
+        .map((prop) => ({
+          record_id: prop.id,
+          full_name: prop.contactName || `${prop.firstName || ""} ${prop.lastName || ""}`.trim(),
+          address: prop.address || "",
+          city: prop.city || "",
+          state: prop.state || "",
+          zip: prop.zip || "",
+        }));
 
-        try {
-          const response = await fetch(
-            `${request.nextUrl.origin}/api/skip-trace`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                address: prop.address,
-                city: prop.city,
-                state: prop.state,
-                zip: prop.zip,
-              }),
-            },
-          );
+      if (skipTraceRecords.length === 0) {
+        return NextResponse.json({
+          success: false,
+          error: "No records with Contact Name + Address for skip tracing",
+          results: { total: toEnrich.length, enriched: 0, failed: toEnrich.length },
+        });
+      }
 
-          const data = await response.json();
-          if (
-            data.success &&
-            (data.phones?.length > 0 || data.emails?.length > 0)
-          ) {
-            enrichedCount++;
+      try {
+        // Use USBizData skip trace endpoint (batch mode)
+        const response = await fetch(
+          `${request.nextUrl.origin}/api/enrichment/usbiz-skip-trace`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ records: skipTraceRecords }),
+          },
+        );
+
+        const data = await response.json();
+
+        if (data.results) {
+          // Update bucket properties with skip trace results
+          for (const result of data.results) {
             const propIndex = bucket.properties!.findIndex(
-              (p) => p.id === prop.id,
+              (p) => p.id === result.input.record_id,
             );
-            if (propIndex >= 0) {
+
+            if (propIndex >= 0 && result.success) {
+              enrichedCount++;
               bucket.properties![propIndex] = {
                 ...bucket.properties![propIndex],
                 enriched: true,
-                enrichedPhones:
-                  data.phones?.map((p: { number: string }) => p.number) || [],
-                enrichedEmails:
-                  data.emails?.map((e: { email: string }) => e.email) || [],
-                ownerName: data.ownerName,
+                enrichedPhones: result.all_phones?.map((p: { number: string }) => p.number) || [],
+                enrichedEmails: result.all_emails?.map((e: { email: string }) => e.email) || [],
+                phone: result.mobile || bucket.properties![propIndex].phone,
+                email: result.email || bucket.properties![propIndex].email,
               };
+            } else if (propIndex >= 0) {
+              failedCount++;
             }
-          } else {
-            failedCount++;
           }
-        } catch (err) {
-          console.error(
-            `[Bucket Enrich] Skip trace error for ${prop.id}:`,
-            err,
-          );
-          failedCount++;
         }
-
-        // Rate limit
-        await new Promise((r) => setTimeout(r, 100));
+      } catch (err) {
+        console.error(`[Bucket Enrich] USBizData skip trace error:`, err);
+        failedCount = toEnrich.length;
       }
     }
 

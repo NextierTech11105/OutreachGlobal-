@@ -96,11 +96,15 @@ interface DataLake {
   enrichedLeads: number;
   contactedLeads: number;
   queuedLeads: number;
+  contactableLeads?: number; // Records with mobile phone
   createdAt: string;
   updatedAt: string;
   tags?: string[];
   filters?: Record<string, unknown>;
 }
+
+// Target for contactable leads before SMS campaign
+const CONTACTABLE_TARGET = 2000;
 
 export default function SectorsPage() {
   const router = useRouter();
@@ -374,12 +378,17 @@ export default function SectorsPage() {
     const isEnriching = enrichingLakeId === lake.id;
     const isPushing = pushingLakeId === lake.id;
     const unenrichedCount = lake.totalLeads - lake.enrichedLeads;
+    // Contactable = enriched records (have mobile phone from skip trace)
+    const contactableCount = lake.contactableLeads ?? lake.enrichedLeads;
+    const contactableProgress = Math.min((contactableCount / CONTACTABLE_TARGET) * 100, 100);
+    const isReadyForSMS = contactableCount >= CONTACTABLE_TARGET;
 
     return (
       <Card
         className={cn(
           "cursor-pointer transition-all hover:shadow-md hover:border-primary/50",
           isSelected && "ring-2 ring-primary border-primary",
+          isReadyForSMS && "border-green-500/50",
         )}
         onClick={() => setSelectedDataLake(lake)}
       >
@@ -398,6 +407,31 @@ export default function SectorsPage() {
           <p className="text-xs text-muted-foreground line-clamp-2">
             {lake.description || `Source: ${lake.source}`}
           </p>
+
+          {/* Contactable Progress Bar */}
+          <div className="mt-3 space-y-1">
+            <div className="flex justify-between text-xs">
+              <span className={cn(
+                "font-medium",
+                isReadyForSMS ? "text-green-600" : "text-muted-foreground"
+              )}>
+                {formatNumber(contactableCount)} / {formatNumber(CONTACTABLE_TARGET)} contactable
+              </span>
+              {isReadyForSMS && (
+                <Badge className="bg-green-600 text-xs">Ready for SMS</Badge>
+              )}
+            </div>
+            <div className="h-2 bg-muted rounded-full overflow-hidden">
+              <div
+                className={cn(
+                  "h-full transition-all",
+                  isReadyForSMS ? "bg-green-500" : "bg-blue-500"
+                )}
+                style={{ width: `${contactableProgress}%` }}
+              />
+            </div>
+          </div>
+
           <div className="flex gap-2 mt-2">
             <Badge variant="secondary" className="text-xs">
               {formatNumber(lake.enrichedLeads)} enriched
