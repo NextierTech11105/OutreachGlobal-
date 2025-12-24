@@ -7,9 +7,10 @@ import { InboundCallPanel } from "@/components/inbound-call-panel";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useMediaQuery } from "@/hooks/use-media-query";
-import { ChevronLeft, Phone } from "lucide-react";
+import { ChevronLeft, Phone, PhoneCall } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCurrentTeam } from "@/features/team/team.context";
+import { useCallState } from "@/lib/providers/call-state-provider";
 import type { Message, MessageStatus, MessageType } from "@/types/message";
 import { fetchMessages } from "@/lib/services/message-service";
 import { InboxMessages } from "./inbox-messages";
@@ -20,6 +21,7 @@ import { MessageDetail } from "./message-detail";
 export function UnifiedInbox() {
   const router = useRouter();
   const { team } = useCurrentTeam();
+  const { activateCall } = useCallState();
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
@@ -110,6 +112,17 @@ export function UnifiedInbox() {
     });
   };
 
+  // Quick call - stays on inbox page, opens softphone modal
+  const handleQuickCall = (message: Message) => {
+    const phone = message.phone || message.from;
+    if (!phone) return;
+
+    activateCall(phone, message.fromName || message.from, {
+      source: "inbox",
+      status: message.status,
+    });
+  };
+
   const filteredMessages = messages.filter((message) => {
     // Filter by type based on active tab
     if (activeTab === "email" && message.type !== "email") return false;
@@ -180,20 +193,10 @@ export function UnifiedInbox() {
               <Button
                 size="sm"
                 className="h-8 gap-1 bg-green-600 hover:bg-green-700"
-                onClick={() => {
-                  // Navigate to call center with lead context
-                  const phone = selectedMessage.phone || selectedMessage.from;
-                  const leadId = selectedMessage.leadId;
-                  const params = new URLSearchParams();
-                  if (phone) params.set("phone", phone);
-                  if (leadId) params.set("leadId", leadId);
-                  router.push(
-                    `/t/${team?.slug || ""}/call-center?${params.toString()}`
-                  );
-                }}
+                onClick={() => handleQuickCall(selectedMessage)}
               >
-                <Phone className="h-4 w-4" />
-                Call Back
+                <PhoneCall className="h-4 w-4" />
+                Quick Call
               </Button>
             )}
             <InboxToolbar
@@ -224,16 +227,7 @@ export function UnifiedInbox() {
               <InboxMessages
                 onViewMessage={handleViewMessage}
                 onReplyMessage={handleReplyMessage}
-                onCallBack={(message) => {
-                  const phone = message.phone || message.from;
-                  const leadId = message.leadId;
-                  const params = new URLSearchParams();
-                  if (phone) params.set("phone", phone);
-                  if (leadId) params.set("leadId", leadId);
-                  router.push(
-                    `/t/${team?.slug || ""}/call-center?${params.toString()}`
-                  );
-                }}
+                onCallBack={handleQuickCall}
               />
             ) : replyMode ? (
               <MessageReply
