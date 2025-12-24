@@ -248,6 +248,13 @@ export async function POST(
         try {
           const leadId = generateLeadId();
 
+          // GOLD = Skip traced + Mobile + Email captured
+          const isGold = phone && email;
+          const leadTags = [...(record.tags || [])];
+          if (isGold && !leadTags.includes("gold")) {
+            leadTags.push("gold");
+          }
+
           await db.insert(leads).values({
             id: leadId,
             teamId,
@@ -255,6 +262,7 @@ export async function POST(
             lastName: keys.lastName || "",
             email: email || "",
             phone: phone ? normalizePhone(phone) : "",
+            mobilePhone: phone ? normalizePhone(phone) : "", // Also set mobile
             title: keys.title || "",
             company: keys.companyName || "",
             address: keys.address || "",
@@ -263,7 +271,7 @@ export async function POST(
             zipCode: keys.zip || "",
             source: "bucket:" + bucketId,
             status: "new",
-            tags: record.tags || [],
+            tags: leadTags,
             metadata: {
               bucketId,
               sicCode: keys.sicCode,
@@ -313,6 +321,13 @@ export async function POST(
         try {
           const leadId = generateLeadId();
 
+          // GOLD = Skip traced + Mobile + Email captured
+          const isGold = prop.phone && prop.email;
+          const leadTags: string[] = [];
+          if (isGold) {
+            leadTags.push("gold");
+          }
+
           await db.insert(leads).values({
             id: leadId,
             teamId,
@@ -321,12 +336,14 @@ export async function POST(
             lastName: prop.owner1LastName || "",
             email: prop.email || "",
             phone: prop.phone ? normalizePhone(prop.phone) : "",
+            mobilePhone: prop.phone ? normalizePhone(prop.phone) : "", // Also set mobile
             address: addr.address || "",
             city: addr.city || "",
             state: addr.state || "",
             zipCode: addr.zip || "",
             source: "bucket:" + bucketId,
             status: "new",
+            tags: leadTags,
             metadata: {
               bucketId,
               propertyType: prop.propertyType,
@@ -369,6 +386,13 @@ export async function POST(
         try {
           const leadId = generateLeadId();
 
+          // GOLD = Skip traced + Mobile + Email captured
+          const isGold = lead.phone && lead.email;
+          const leadTags = [...(lead.tags || [])];
+          if (isGold && !leadTags.includes("gold")) {
+            leadTags.push("gold");
+          }
+
           await db.insert(leads).values({
             id: leadId,
             teamId,
@@ -376,6 +400,7 @@ export async function POST(
             lastName: lead.lastName || "",
             email: lead.email || "",
             phone: lead.phone ? normalizePhone(lead.phone) : "",
+            mobilePhone: lead.phone ? normalizePhone(lead.phone) : "", // Also set mobile
             title: lead.title || "",
             company: lead.company || "",
             address: lead.address || "",
@@ -384,7 +409,7 @@ export async function POST(
             zipCode: lead.zipCode || "",
             source: lead.source || "bucket:" + bucketId,
             status: lead.status || "new",
-            tags: lead.tags || [],
+            tags: leadTags,
             metadata: {
               bucketId,
               originalLeadId: lead.id,
