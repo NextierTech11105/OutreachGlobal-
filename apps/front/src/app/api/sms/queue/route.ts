@@ -265,6 +265,7 @@ export async function POST(request: NextRequest) {
 
       case "add_optout": {
         // Manually add opt-out
+        // ARCHITECTURE: Persists to Postgres (source of truth) then Redis (cache)
         const { phoneNumber } = body;
         if (!phoneNumber) {
           return NextResponse.json(
@@ -273,15 +274,16 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        smsQueueService.addOptOut(phoneNumber);
+        await smsQueueService.addOptOut(phoneNumber);
         return NextResponse.json({
           success: true,
-          message: `${phoneNumber} added to opt-out list`,
+          message: `${phoneNumber} added to opt-out list (Postgres + Redis)`,
         });
       }
 
       case "remove_optout": {
         // Remove from opt-out list
+        // ARCHITECTURE: Updates Postgres (source of truth) then Redis (cache)
         const { phoneNumber } = body;
         if (!phoneNumber) {
           return NextResponse.json(
@@ -290,10 +292,10 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        smsQueueService.removeOptOut(phoneNumber);
+        await smsQueueService.removeOptOut(phoneNumber);
         return NextResponse.json({
           success: true,
-          message: `${phoneNumber} removed from opt-out list`,
+          message: `${phoneNumber} removed from opt-out list (Postgres + Redis)`,
         });
       }
 

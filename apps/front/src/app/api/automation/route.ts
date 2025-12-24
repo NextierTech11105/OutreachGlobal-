@@ -101,6 +101,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Process incoming message (auto-classify and route)
+      // ARCHITECTURE: Opt-outs persist to Postgres (source of truth)
       case "process_message": {
         const { leadId, phone, message, propertyId } = body;
 
@@ -111,7 +112,7 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        const result = automationService.processIncomingMessage(
+        const result = await automationService.processIncomingMessage(
           leadId,
           phone,
           message,
@@ -136,6 +137,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Manually opt-out a lead
+      // ARCHITECTURE: Persists to Postgres (source of truth) then Redis (cache)
       case "opt_out": {
         const { leadId, phone } = body;
 
@@ -146,11 +148,11 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        automationService.handleOptOut(leadId, phone);
+        await automationService.handleOptOut(leadId, phone);
 
         return NextResponse.json({
           success: true,
-          message: `Lead ${leadId} opted out`,
+          message: `Lead ${leadId} opted out (persisted to Postgres)`,
         });
       }
 

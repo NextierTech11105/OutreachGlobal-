@@ -198,3 +198,13 @@ export const unifiedLeadCardsTable = unifiedLeadCards;
 export const unifiedLeadCardsRefTable = unifiedLeadCardsRef;
 export const leadActivitiesTable = leadActivities;
 export const campaignQueueTable = campaignQueue;
+
+// Operations - Durability tables (replace Redis-only storage)
+import {
+  callQueue,
+  conversationContext,
+  eventLog,
+} from "./schema/operations.schema";
+export const callQueueOperationsTable = callQueue;
+export const conversationContextTable = conversationContext;
+export const eventLogTable = eventLog;

@@ -964,33 +964,83 @@ export class SMSQueueService {
 
   /**
    * Add a number to opt-out list
+   * ARCHITECTURE: Postgres is source of truth, Redis is cache
+   * Writes to Postgres first, then updates Redis cache
    */
-  public addOptOut(phoneNumber: string): void {
-    this.optOutList.add(this.normalizePhone(phoneNumber));
+  public async addOptOut(phoneNumber: string): Promise<void> {
+    const normalizedPhone = this.normalizePhone(phoneNumber);
 
-    // Cancel any pending messages to this number
+    // 1. Write to Postgres first (source of truth)
+    try {
+      // Find leads with this phone number and update status to opted_out
+      const phoneLike = `%${phoneNumber.replace(/\D/g, "").slice(-10)}%`;
+      await db
+        .update(leads)
+        .set({ status: "opted_out", updatedAt: new Date() })
+        .where(
+          or(
+            like(leads.phone, phoneLike),
+            eq(leads.phone, phoneNumber),
+            eq(leads.phone, normalizedPhone)
+          )
+        );
+      console.log(`[SMSQueue] Opt-out persisted to Postgres: ${normalizedPhone}`);
+    } catch (error) {
+      console.error("[SMSQueue] Failed to persist opt-out to Postgres:", error);
+      // Continue - we still want to add to in-memory list and Redis cache
+      // to prevent sending messages while the DB issue is resolved
+    }
+
+    // 2. Add to in-memory list (hot cache)
+    this.optOutList.add(normalizedPhone);
+
+    // 3. Cancel any pending messages to this number
     let modified = false;
     this.queue.forEach((message) => {
       if (
-        this.normalizePhone(message.to) === this.normalizePhone(phoneNumber) &&
-        message.status === "pending"
+        this.normalizePhone(message.to) === normalizedPhone &&
+        (message.status === "pending" || message.status === "draft" || message.status === "approved")
       ) {
         message.status = "cancelled";
         modified = true;
       }
     });
 
-    // Persist to Redis
+    // 4. Persist to Redis (cache layer)
     this.persistOptOuts();
     if (modified) this.persistQueue();
   }
 
   /**
    * Remove a number from opt-out list
+   * ARCHITECTURE: Postgres is source of truth, Redis is cache
+   * Updates Postgres first, then updates Redis cache
    */
-  public removeOptOut(phoneNumber: string): void {
-    this.optOutList.delete(this.normalizePhone(phoneNumber));
-    // Persist to Redis
+  public async removeOptOut(phoneNumber: string): Promise<void> {
+    const normalizedPhone = this.normalizePhone(phoneNumber);
+
+    // 1. Update Postgres first (change status back from opted_out)
+    try {
+      const phoneLike = `%${phoneNumber.replace(/\D/g, "").slice(-10)}%`;
+      await db
+        .update(leads)
+        .set({ status: "active", updatedAt: new Date() })
+        .where(
+          or(
+            like(leads.phone, phoneLike),
+            eq(leads.phone, phoneNumber),
+            eq(leads.phone, normalizedPhone)
+          )
+        );
+      console.log(`[SMSQueue] Opt-out removed in Postgres: ${normalizedPhone}`);
+    } catch (error) {
+      console.error("[SMSQueue] Failed to remove opt-out from Postgres:", error);
+    }
+
+    // 2. Remove from in-memory list
+    this.optOutList.delete(normalizedPhone);
+
+    // 3. Persist to Redis (cache layer)
     this.persistOptOuts();
   }
 
@@ -1010,10 +1060,11 @@ export class SMSQueueService {
 
   /**
    * Handle incoming STOP message
+   * ARCHITECTURE: Persists to Postgres (source of truth) then Redis (cache)
    */
-  public handleStopMessage(from: string): void {
-    this.addOptOut(from);
-    console.log(`Opt-out recorded for: ${from}`);
+  public async handleStopMessage(from: string): Promise<void> {
+    await this.addOptOut(from);
+    console.log(`[SMSQueue] Opt-out recorded and persisted for: ${from}`);
   }
 
   // ─────────────────────────────────────────────────────────────────────────────

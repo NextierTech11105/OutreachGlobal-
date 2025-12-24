@@ -99,9 +99,11 @@ export const campaignExecutions = pgTable(
     updatedAt,
   },
   (t) => [
-    index().on(t.campaignId),
-    index().on(t.leadId),
-    index().on(t.sequenceId),
+    index("campaign_exec_campaign_idx").on(t.campaignId),
+    index("campaign_exec_lead_idx").on(t.leadId),
+    index("campaign_exec_sequence_idx").on(t.sequenceId),
+    // Hot path: active executions lookup
+    index("campaign_exec_active_hot_idx").on(t.campaignId, t.status),
   ],
 );
 

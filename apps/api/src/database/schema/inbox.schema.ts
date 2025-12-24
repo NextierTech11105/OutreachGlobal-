@@ -87,12 +87,18 @@ export const inboxItems = pgTable(
     updatedAt,
   },
   (t) => [
-    index().on(t.teamId),
-    index().on(t.leadId),
-    index().on(t.currentBucket),
-    index().on(t.priority),
-    index().on(t.classification),
-    index().on(t.isProcessed),
+    index("inbox_items_team_idx").on(t.teamId),
+    index("inbox_items_lead_idx").on(t.leadId),
+    index("inbox_items_bucket_idx").on(t.currentBucket),
+    index("inbox_items_priority_idx").on(t.priority),
+    index("inbox_items_classification_idx").on(t.classification),
+    index("inbox_items_processed_idx").on(t.isProcessed),
+    // Hot path: inbox processing - partial index for unprocessed items
+    index("inbox_items_processing_hot_idx").on(
+      t.teamId,
+      t.isProcessed,
+      t.priority,
+    ),
   ],
 );
 

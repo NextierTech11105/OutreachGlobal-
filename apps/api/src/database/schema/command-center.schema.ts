@@ -284,6 +284,8 @@ export const scheduledEvents = pgTable(
     index("events_scheduled_idx").on(t.scheduledAt),
     index("events_status_idx").on(t.status),
     index("events_type_idx").on(t.eventType),
+    // Hot path: scheduled events polling - due pending events
+    index("events_due_pending_hot_idx").on(t.scheduledAt, t.status),
   ],
 );
 

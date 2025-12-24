@@ -328,16 +328,16 @@ class AutomationService {
   /**
    * Detect email in SMS response and auto-send valuation
    */
-  processIncomingMessage(
+  async processIncomingMessage(
     leadId: string,
     phone: string,
     message: string,
     propertyId?: string,
-  ): {
+  ): Promise<{
     classification: ResponseType;
     extractedEmail?: string;
     action: string;
-  } {
+  }> {
     const state = this.getOrCreateState(leadId, phone);
     const lowerMessage = message.toLowerCase().trim();
 
@@ -346,7 +346,7 @@ class AutomationService {
 
     // Check for opt-out first (highest priority)
     if (OPT_OUT_KEYWORDS.some((kw) => lowerMessage.includes(kw))) {
-      this.handleOptOut(leadId, phone);
+      await this.handleOptOut(leadId, phone);
       return {
         classification: "opt_out",
         action: "Added to opt-out list, all messages cancelled",
@@ -429,9 +429,10 @@ class AutomationService {
 
   // ============================================
   // RULE 5: OPT-OUT HANDLING
+  // ARCHITECTURE: Postgres is source of truth, Redis is cache
   // ============================================
 
-  handleOptOut(leadId: string, phone: string): void {
+  async handleOptOut(leadId: string, phone: string): Promise<void> {
     const state = this.getOrCreateState(leadId, phone);
 
     // Cancel all pending tasks
@@ -441,8 +442,8 @@ class AutomationService {
     state.priority = "dead";
     state.drip.sequence = null;
 
-    // Add to SMS queue opt-out list
-    smsQueueService.addOptOut(phone);
+    // Add to SMS queue opt-out list (writes to Postgres then Redis)
+    await smsQueueService.addOptOut(phone);
 
     // Send confirmation
     this.queueSMS(
@@ -453,7 +454,7 @@ class AutomationService {
     );
 
     leadStates.set(leadId, state);
-    console.log(`[Automation] Lead ${leadId} opted out`);
+    console.log(`[Automation] Lead ${leadId} opted out (persisted to Postgres)`);
   }
 
   // ============================================

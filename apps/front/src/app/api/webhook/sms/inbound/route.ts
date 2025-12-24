@@ -112,8 +112,9 @@ export async function POST(request: NextRequest) {
     // =========================================================
     // AUTOMATION SERVICE - Process all incoming messages
     // Handles: opt-out, wrong number, email capture, interest
+    // ARCHITECTURE: Opt-outs persist to Postgres (source of truth)
     // =========================================================
-    const automationResult = automationService.processIncomingMessage(
+    const automationResult = await automationService.processIncomingMessage(
       leadId,
       from,
       body,

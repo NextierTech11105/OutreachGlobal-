@@ -442,7 +442,7 @@ export async function POST(request: NextRequest) {
         // ─────────────────────────────────────────────────────────────────────
         if (isOptOut) {
           console.log(`[SignalHouse] 🛑 OPT-OUT from ${fromNumber}`);
-          smsQueueService.handleStopMessage(fromNumber);
+          await smsQueueService.handleStopMessage(fromNumber);
 
           if (lead) {
             await db
