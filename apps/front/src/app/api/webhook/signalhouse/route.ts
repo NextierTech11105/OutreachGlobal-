@@ -454,6 +454,30 @@ export async function POST(request: NextRequest) {
         }
 
         // ─────────────────────────────────────────────────────────────────────
+        // GREEN TAG: Lead responded! Add "responded" tag for highest priority
+        // ─────────────────────────────────────────────────────────────────────
+        // Priority Hierarchy:
+        //   GREEN = responded (3x priority) - HOTTEST leads, call immediately
+        //   GOLD = skip traced + mobile + email (2x priority)
+        //   Standard = base priority (1x)
+        // ─────────────────────────────────────────────────────────────────────
+        if (lead) {
+          const currentTags = (lead.tags as string[]) || [];
+          if (!currentTags.includes("responded")) {
+            await db
+              .update(leads)
+              .set({
+                tags: sql`array_append(COALESCE(tags, ARRAY[]::text[]), 'responded')`,
+                updatedAt: new Date(),
+              })
+              .where(eq(leads.id, lead.id));
+            console.log(
+              `[SignalHouse] 🟢 GREEN TAG: Added 'responded' to lead ${lead.id} → 3x priority boost`,
+            );
+          }
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
         // FLOW A: EMAIL CAPTURED = MOBILE + EMAIL CAPTURED (100% Lead Score)
         // When lead provides email via SMS, we have BOTH contact methods:
         // - Mobile: confirmed from fromNumber (they're texting from it)

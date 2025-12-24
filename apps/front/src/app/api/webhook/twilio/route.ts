@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { callHistories, leads } from "@/lib/db/schema";
-import { eq, or } from "drizzle-orm";
+import { eq, or, sql } from "drizzle-orm";
 
 /**
  * Twilio Voice Webhook
@@ -39,7 +39,13 @@ export async function POST(request: NextRequest) {
       let leadInfo: { id: string; name?: string; company?: string } | null = null;
       try {
         const leadResults = await db
-          .select({ id: leads.id, firstName: leads.firstName, lastName: leads.lastName, company: leads.company })
+          .select({
+            id: leads.id,
+            firstName: leads.firstName,
+            lastName: leads.lastName,
+            company: leads.company,
+            tags: leads.tags,
+          })
           .from(leads)
           .where(or(
             eq(leads.mobilePhone, from),
@@ -57,6 +63,24 @@ export async function POST(request: NextRequest) {
             company: lead.company || undefined,
           };
           console.log("[Twilio Webhook] Found lead:", leadInfo);
+
+          // ═══════════════════════════════════════════════════════════════════
+          // GREEN TAG: Lead responded! Add "responded" tag for highest priority
+          // ═══════════════════════════════════════════════════════════════════
+          // GOLD = skip traced + mobile + email (2x priority)
+          // GREEN = GOLD + responded (3x priority - HOTTEST leads)
+          const currentTags = (lead.tags as string[]) || [];
+          if (!currentTags.includes("responded")) {
+            const newTags = [...currentTags, "responded"];
+            await db
+              .update(leads)
+              .set({
+                tags: newTags,
+                updatedAt: new Date(),
+              })
+              .where(eq(leads.id, lead.id));
+            console.log("[Twilio Webhook] Added 'responded' tag to lead:", lead.id);
+          }
         }
       } catch (lookupError) {
         console.error("[Twilio Webhook] Lead lookup error:", lookupError);

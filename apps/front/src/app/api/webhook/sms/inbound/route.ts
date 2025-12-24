@@ -1,6 +1,9 @@
 import { sf, sfd } from "@/lib/utils/safe-format";
 import { NextRequest, NextResponse } from "next/server";
 import { automationService } from "@/lib/services/automation-service";
+import { db } from "@/lib/db";
+import { leads } from "@/lib/db/schema";
+import { eq, or, sql } from "drizzle-orm";
 
 // Twilio SMS Webhook - Handles inbound SMS messages
 // Configure in Twilio Console: Messaging Request URL
@@ -34,7 +37,7 @@ interface TwilioSmsPayload {
   ToCountry?: string;
 }
 
-// Lead/conversation context lookup (simplified - would query DB in production)
+// Lead/conversation context lookup
 interface ConversationContext {
   leadId?: string;
   firstName?: string;
@@ -45,8 +48,60 @@ interface ConversationContext {
 async function getConversationContext(
   phone: string,
 ): Promise<ConversationContext> {
-  // In production: lookup lead by phone number
-  // For now, return empty context
+  try {
+    // Normalize phone for searching
+    const normalized = phone.replace(/\D/g, "").slice(-10);
+    if (normalized.length < 10) return {};
+
+    const leadResults = await db
+      .select({
+        id: leads.id,
+        firstName: leads.firstName,
+        tags: leads.tags,
+      })
+      .from(leads)
+      .where(
+        or(
+          eq(leads.mobilePhone, phone),
+          eq(leads.phone, phone),
+          eq(leads.mobilePhone, `+1${normalized}`),
+          eq(leads.phone, `+1${normalized}`)
+        )
+      )
+      .limit(1);
+
+    if (leadResults.length > 0) {
+      const lead = leadResults[0];
+
+      // ═══════════════════════════════════════════════════════════════════
+      // GREEN TAG: Lead responded! Add "responded" tag for highest priority
+      // ═══════════════════════════════════════════════════════════════════
+      // Priority Hierarchy:
+      //   GREEN = responded (3x priority) - HOTTEST leads
+      //   GOLD = skip traced + mobile + email (2x priority)
+      //   Standard = base priority (1x)
+      const currentTags = (lead.tags as string[]) || [];
+      if (!currentTags.includes("responded")) {
+        await db
+          .update(leads)
+          .set({
+            tags: sql`array_append(COALESCE(tags, ARRAY[]::text[]), 'responded')`,
+            updatedAt: new Date(),
+          })
+          .where(eq(leads.id, lead.id));
+        console.log(
+          `[Twilio SMS] 🟢 GREEN TAG: Added 'responded' to lead ${lead.id} → 3x priority boost`,
+        );
+      }
+
+      return {
+        leadId: lead.id,
+        firstName: lead.firstName || undefined,
+      };
+    }
+  } catch (error) {
+    console.error("[Twilio SMS] Lead lookup error:", error);
+  }
   return {};
 }
 

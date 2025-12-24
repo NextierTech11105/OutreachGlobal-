@@ -251,24 +251,43 @@ function generateId(): string {
 }
 
 /**
- * GOLD Label = Fully Contactable Lead
- * ────────────────────────────────────
- * Requirements (ALL must be true):
- *   ✓ Skip Traced (validated via USBizData)
- *   ✓ Mobile Captured (contactable by phone)
- *   ✓ Email Captured (contactable by email)
+ * Lead Priority Hierarchy
+ * ───────────────────────────────────────────────────────────────────────────
  *
- * GOLD leads get 100% priority boost (score doubles)
- * These are your highest quality leads - fully validated and contactable.
+ * GREEN (Responded) = 3x Priority Boost - HOTTEST LEADS
+ *   → Lead called back, replied to SMS, or engaged with content
+ *   → These are ready to close - call immediately!
+ *
+ * GOLD = 2x Priority Boost
+ *   → Skip Traced (validated via USBizData)
+ *   → Mobile Captured (contactable by phone)
+ *   → Email Captured (contactable by email)
+ *
+ * Standard = 1x (base priority)
+ *   → Raw leads without enrichment
+ *
+ * Visual in Inbox:
+ *   - Green tag = responded (highest priority)
+ *   - Gold tag = fully contactable
  */
 function getEffectivePriority(item: CallQueueItem): number {
-  const hasGold = item.tags?.some(
-    (t) => t.toLowerCase() === "gold"
-  );
-  // Also check if lead has both phone AND email (implicit GOLD)
+  const tags = item.tags?.map((t) => t.toLowerCase()) || [];
+
+  // GREEN = Responded leads get 3x priority (HOTTEST - call immediately)
+  const hasResponded = tags.includes("responded") || tags.includes("green");
+  if (hasResponded) {
+    return item.priority * 3;
+  }
+
+  // GOLD = Skip traced + Mobile + Email = 2x priority
+  const hasGold = tags.includes("gold");
   const hasFullContact = item.phone && item.email;
-  // GOLD or fully contactable = 100% priority boost
-  return (hasGold || hasFullContact) ? item.priority * 2 : item.priority;
+  if (hasGold || hasFullContact) {
+    return item.priority * 2;
+  }
+
+  // Standard priority
+  return item.priority;
 }
 
 async function getNextLead(
