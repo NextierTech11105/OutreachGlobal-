@@ -40,6 +40,8 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { InboxResponseHeatmap } from "@/components/inbox-response-heatmap";
+import { useRouter, useParams } from "next/navigation";
+import Link from "next/link";
 
 // Pipeline targets
 const DAILY_SKIP_TRACE_LIMIT = 2000;
@@ -182,6 +184,8 @@ interface DataLake {
 }
 
 export default function CommandCenterPage() {
+  const params = useParams();
+  const teamId = params.team as string;
   const [stats, setStats] = useState<PipelineStats>({
     totalRecords: 0,
     totalDatabases: 0,
@@ -371,6 +375,12 @@ export default function CommandCenterPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <Link href={`/t/${teamId}/skip-trace`}>
+              <Button variant="outline" size="sm">
+                <UserSearch className="h-4 w-4 mr-2" />
+                Skip Trace
+              </Button>
+            </Link>
             <Button variant="outline" size="sm" onClick={fetchStats}>
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh

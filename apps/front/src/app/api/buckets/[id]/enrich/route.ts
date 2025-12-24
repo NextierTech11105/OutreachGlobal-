@@ -301,7 +301,9 @@ export async function POST(
         })
         .map((prop) => ({
           record_id: prop.id,
-          full_name: prop.contactName || `${prop.firstName || ""} ${prop.lastName || ""}`.trim(),
+          full_name:
+            prop.contactName ||
+            `${prop.firstName || ""} ${prop.lastName || ""}`.trim(),
           address: prop.address || "",
           city: prop.city || "",
           state: prop.state || "",
@@ -312,7 +314,11 @@ export async function POST(
         return NextResponse.json({
           success: false,
           error: "No records with Contact Name + Address for skip tracing",
-          results: { total: toEnrich.length, enriched: 0, failed: toEnrich.length },
+          results: {
+            total: toEnrich.length,
+            enriched: 0,
+            failed: toEnrich.length,
+          },
         });
       }
 
@@ -341,8 +347,12 @@ export async function POST(
               bucket.properties![propIndex] = {
                 ...bucket.properties![propIndex],
                 enriched: true,
-                enrichedPhones: result.all_phones?.map((p: { number: string }) => p.number) || [],
-                enrichedEmails: result.all_emails?.map((e: { email: string }) => e.email) || [],
+                enrichedPhones:
+                  result.all_phones?.map((p: { number: string }) => p.number) ||
+                  [],
+                enrichedEmails:
+                  result.all_emails?.map((e: { email: string }) => e.email) ||
+                  [],
                 phone: result.mobile || bucket.properties![propIndex].phone,
                 email: result.email || bucket.properties![propIndex].email,
               };
@@ -359,6 +369,12 @@ export async function POST(
 
     // Update bucket stats
     bucket.enrichedLeads = bucket.properties.filter((p) => p.enriched).length;
+    // Track contactable leads (have mobile phone from skip trace/enrichment)
+    const contactableCount = bucket.properties.filter(
+      (p) => p.enriched && (p.enrichedPhones?.length || p.phone),
+    ).length;
+    (bucket as Bucket & { contactableLeads?: number }).contactableLeads =
+      contactableCount;
 
     // Save updated bucket
     await client.send(
@@ -383,6 +399,7 @@ export async function POST(
         failed: failedCount,
         totalEnriched: bucket.enrichedLeads,
         totalRecords: bucket.totalLeads,
+        contactableLeads: contactableCount,
       },
     });
   } catch (error) {

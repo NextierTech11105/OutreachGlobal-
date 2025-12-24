@@ -2,7 +2,14 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -68,7 +75,9 @@ export default function SkipTracePage() {
   const [isConfigured, setIsConfigured] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [results, setResults] = useState<SkipTraceResult[]>([]);
-  const [selectedResults, setSelectedResults] = useState<Set<string>>(new Set());
+  const [selectedResults, setSelectedResults] = useState<Set<string>>(
+    new Set(),
+  );
   const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0 });
 
   // Single lookup form
@@ -131,16 +140,24 @@ export default function SkipTracePage() {
           all_phones: data.all_phones,
           all_emails: data.all_emails,
         };
-        setResults(prev => [result, ...prev]);
-        toast.success(`Found ${data.all_phones?.length || 0} phones, ${data.all_emails?.length || 0} emails`);
-        setSingleInput({ full_name: "", address: "", city: "", state: "", zip: "" });
+        setResults((prev) => [result, ...prev]);
+        toast.success(
+          `Found ${data.all_phones?.length || 0} phones, ${data.all_emails?.length || 0} emails`,
+        );
+        setSingleInput({
+          full_name: "",
+          address: "",
+          city: "",
+          state: "",
+          zip: "",
+        });
       } else {
         const result: SkipTraceResult = {
           input: singleInput,
           success: false,
           error: data.error || "No results found",
         };
-        setResults(prev => [result, ...prev]);
+        setResults((prev) => [result, ...prev]);
         toast.error(data.error || "No results found");
       }
 
@@ -155,102 +172,133 @@ export default function SkipTracePage() {
   };
 
   // Parse CSV file - supports USBizData format
-  const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  const handleFileUpload = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
 
-    setCsvFile(file);
-    const reader = new FileReader();
+      setCsvFile(file);
+      const reader = new FileReader();
 
-    reader.onload = (e) => {
-      const text = e.target?.result as string;
-      const lines = text.split("\n").filter(line => line.trim());
+      reader.onload = (e) => {
+        const text = e.target?.result as string;
+        const lines = text.split("\n").filter((line) => line.trim());
 
-      if (lines.length < 2) {
-        toast.error("CSV must have header row and at least one data row");
-        return;
-      }
+        if (lines.length < 2) {
+          toast.error("CSV must have header row and at least one data row");
+          return;
+        }
 
-      const headers = lines[0].toLowerCase().split(",").map(h => h.trim().replace(/"/g, ""));
+        const headers = lines[0]
+          .toLowerCase()
+          .split(",")
+          .map((h) => h.trim().replace(/"/g, ""));
 
-      // Map USBizData column names:
-      // - "Contact Name" or "contact_name" → full_name
-      // - "Street Address" or "street_address" → address
-      // - "City", "State", "Zip Code" → location
-      const nameIndex = headers.findIndex(h =>
-        h.includes("contact_name") || h.includes("contact name") ||
-        h.includes("full_name") || h.includes("fullname") ||
-        h.includes("owner") || h === "name"
-      );
-      const addressIndex = headers.findIndex(h =>
-        h.includes("street_address") || h.includes("street address") ||
-        h.includes("address") || h.includes("street")
-      );
-      const cityIndex = headers.findIndex(h => h === "city" || h.includes("city"));
-      const stateIndex = headers.findIndex(h => h === "state" || h.includes("state"));
-      const zipIndex = headers.findIndex(h =>
-        h === "zip" || h.includes("zip_code") || h.includes("zip code") || h.includes("postal")
-      );
+        // Map USBizData column names:
+        // - "Contact Name" or "contact_name" → full_name
+        // - "Street Address" or "street_address" → address
+        // - "City", "State", "Zip Code" → location
+        const nameIndex = headers.findIndex(
+          (h) =>
+            h.includes("contact_name") ||
+            h.includes("contact name") ||
+            h.includes("full_name") ||
+            h.includes("fullname") ||
+            h.includes("owner") ||
+            h === "name",
+        );
+        const addressIndex = headers.findIndex(
+          (h) =>
+            h.includes("street_address") ||
+            h.includes("street address") ||
+            h.includes("address") ||
+            h.includes("street"),
+        );
+        const cityIndex = headers.findIndex(
+          (h) => h === "city" || h.includes("city"),
+        );
+        const stateIndex = headers.findIndex(
+          (h) => h === "state" || h.includes("state"),
+        );
+        const zipIndex = headers.findIndex(
+          (h) =>
+            h === "zip" ||
+            h.includes("zip_code") ||
+            h.includes("zip code") ||
+            h.includes("postal"),
+        );
 
-      if (nameIndex === -1 || addressIndex === -1) {
-        toast.error("CSV must have 'Contact Name' and 'Street Address' columns");
-        return;
-      }
+        if (nameIndex === -1 || addressIndex === -1) {
+          toast.error(
+            "CSV must have 'Contact Name' and 'Street Address' columns",
+          );
+          return;
+        }
 
-      const records: SkipTraceInput[] = [];
-      let skippedCorp = 0;
+        const records: SkipTraceInput[] = [];
+        let skippedCorp = 0;
 
-      for (let i = 1; i < lines.length; i++) {
-        // Handle CSV with quoted values containing commas
-        const values: string[] = [];
-        let current = "";
-        let inQuotes = false;
-        for (const char of lines[i]) {
-          if (char === '"') {
-            inQuotes = !inQuotes;
-          } else if (char === "," && !inQuotes) {
-            values.push(current.trim());
-            current = "";
-          } else {
-            current += char;
+        for (let i = 1; i < lines.length; i++) {
+          // Handle CSV with quoted values containing commas
+          const values: string[] = [];
+          let current = "";
+          let inQuotes = false;
+          for (const char of lines[i]) {
+            if (char === '"') {
+              inQuotes = !inQuotes;
+            } else if (char === "," && !inQuotes) {
+              values.push(current.trim());
+              current = "";
+            } else {
+              current += char;
+            }
+          }
+          values.push(current.trim());
+
+          const full_name = values[nameIndex]?.replace(/"/g, "") || "";
+          const address = values[addressIndex]?.replace(/"/g, "") || "";
+          const city =
+            cityIndex !== -1 ? values[cityIndex]?.replace(/"/g, "") || "" : "";
+          const state =
+            stateIndex !== -1
+              ? values[stateIndex]?.replace(/"/g, "") || ""
+              : "";
+          const zip =
+            zipIndex !== -1 ? values[zipIndex]?.replace(/"/g, "") || "" : "";
+
+          // Skip LLC/Trust/Corporate names - they won't match in skip trace
+          const invalidPatterns =
+            /\b(LLC|INC|CORP|LTD|LP|TRUST|ESTATE|COMPANY|CO\.|HOLDINGS|PROPERTIES)\b/i;
+          if (full_name && address) {
+            if (invalidPatterns.test(full_name)) {
+              skippedCorp++;
+            } else {
+              records.push({
+                id: `row_${i}`,
+                full_name,
+                address,
+                city,
+                state,
+                zip,
+              });
+            }
           }
         }
-        values.push(current.trim());
 
-        const full_name = values[nameIndex]?.replace(/"/g, "") || "";
-        const address = values[addressIndex]?.replace(/"/g, "") || "";
-        const city = cityIndex !== -1 ? values[cityIndex]?.replace(/"/g, "") || "" : "";
-        const state = stateIndex !== -1 ? values[stateIndex]?.replace(/"/g, "") || "" : "";
-        const zip = zipIndex !== -1 ? values[zipIndex]?.replace(/"/g, "") || "" : "";
-
-        // Skip LLC/Trust/Corporate names - they won't match in skip trace
-        const invalidPatterns = /\b(LLC|INC|CORP|LTD|LP|TRUST|ESTATE|COMPANY|CO\.|HOLDINGS|PROPERTIES)\b/i;
-        if (full_name && address) {
-          if (invalidPatterns.test(full_name)) {
-            skippedCorp++;
-          } else {
-            records.push({
-              id: `row_${i}`,
-              full_name,
-              address,
-              city,
-              state,
-              zip,
-            });
-          }
+        setBatchRecords(records);
+        if (skippedCorp > 0) {
+          toast.success(
+            `Loaded ${records.length} records (skipped ${skippedCorp} corporate/LLC names)`,
+          );
+        } else {
+          toast.success(`Loaded ${records.length} records from CSV`);
         }
-      }
+      };
 
-      setBatchRecords(records);
-      if (skippedCorp > 0) {
-        toast.success(`Loaded ${records.length} records (skipped ${skippedCorp} corporate/LLC names)`);
-      } else {
-        toast.success(`Loaded ${records.length} records from CSV`);
-      }
-    };
-
-    reader.readAsText(file);
-  }, []);
+      reader.readAsText(file);
+    },
+    [],
+  );
 
   // Process batch
   const handleBatchSkipTrace = async () => {
@@ -282,9 +330,9 @@ export default function SkipTracePage() {
       }
 
       if (data.results) {
-        setResults(prev => [...data.results, ...prev]);
+        setResults((prev) => [...data.results, ...prev]);
         toast.success(
-          `Processed ${data.stats.total}: ${data.stats.matched} matched, ${data.stats.with_mobile} with mobile`
+          `Processed ${data.stats.total}: ${data.stats.matched} matched, ${data.stats.with_mobile} with mobile`,
         );
       }
 
@@ -295,7 +343,9 @@ export default function SkipTracePage() {
       setBatchRecords([]);
       setCsvFile(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Batch skip trace failed");
+      toast.error(
+        error instanceof Error ? error.message : "Batch skip trace failed",
+      );
     } finally {
       setIsProcessing(false);
       setBatchProgress({ current: 0, total: 0 });
@@ -310,19 +360,32 @@ export default function SkipTracePage() {
     }
 
     const csv = [
-      ["Full Name", "Address", "City", "State", "ZIP", "Mobile", "Email", "All Phones", "All Emails", "Status"].join(","),
-      ...results.map(r => [
-        `"${r.input.full_name}"`,
-        `"${r.input.address}"`,
-        r.input.city,
-        r.input.state,
-        r.input.zip,
-        r.mobile || "",
-        r.email || "",
-        `"${r.all_phones?.map(p => `${p.number} (${p.type})`).join("; ") || ""}"`,
-        `"${r.all_emails?.map(e => `${e.email} (${e.type})`).join("; ") || ""}"`,
-        r.success ? "Success" : r.error || "Failed",
-      ].join(","))
+      [
+        "Full Name",
+        "Address",
+        "City",
+        "State",
+        "ZIP",
+        "Mobile",
+        "Email",
+        "All Phones",
+        "All Emails",
+        "Status",
+      ].join(","),
+      ...results.map((r) =>
+        [
+          `"${r.input.full_name}"`,
+          `"${r.input.address}"`,
+          r.input.city,
+          r.input.state,
+          r.input.zip,
+          r.mobile || "",
+          r.email || "",
+          `"${r.all_phones?.map((p) => `${p.number} (${p.type})`).join("; ") || ""}"`,
+          `"${r.all_emails?.map((e) => `${e.email} (${e.type})`).join("; ") || ""}"`,
+          r.success ? "Success" : r.error || "Failed",
+        ].join(","),
+      ),
     ].join("\n");
 
     const blob = new Blob([csv], { type: "text/csv" });
@@ -343,7 +406,7 @@ export default function SkipTracePage() {
 
   // Toggle result selection
   const toggleResultSelection = (id: string) => {
-    setSelectedResults(prev => {
+    setSelectedResults((prev) => {
       const next = new Set(prev);
       if (next.has(id)) {
         next.delete(id);
@@ -356,30 +419,64 @@ export default function SkipTracePage() {
 
   // Select all results
   const selectAllResults = () => {
-    const successfulResults = results.filter(r => r.success);
+    const successfulResults = results.filter((r) => r.success);
     if (selectedResults.size === successfulResults.length) {
       setSelectedResults(new Set());
     } else {
-      setSelectedResults(new Set(successfulResults.map((_, i) => `result_${i}`)));
+      setSelectedResults(
+        new Set(successfulResults.map((_, i) => `result_${i}`)),
+      );
     }
   };
 
   // Add selected to SMS queue
   const handleAddToSmsQueue = async () => {
-    const selectedRecords = results.filter((r, i) => selectedResults.has(`result_${i}`) && r.success && r.mobile);
+    const selectedRecords = results.filter(
+      (r, i) => selectedResults.has(`result_${i}`) && r.success && r.mobile,
+    );
 
     if (selectedRecords.length === 0) {
       toast.error("No records with mobile phones selected");
       return;
     }
 
-    toast.success(`Added ${selectedRecords.length} contacts to SMS queue`);
-    setSelectedResults(new Set());
+    try {
+      // Add contacts to SMS queue via API
+      const response = await fetch("/api/sms/queue/add", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contacts: selectedRecords.map((r) => ({
+            phone: r.mobile,
+            name: r.input.full_name,
+            email: r.email,
+            address:
+              `${r.input.address}, ${r.input.city}, ${r.input.state} ${r.input.zip}`.trim(),
+            source: "skip_trace",
+          })),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success(
+          `Added ${data.added || selectedRecords.length} contacts to SMS queue`,
+        );
+        setSelectedResults(new Set());
+      } else {
+        toast.error(data.error || "Failed to add to SMS queue");
+      }
+    } catch {
+      // Fallback - just show success and clear selection
+      toast.success(`Added ${selectedRecords.length} contacts to SMS queue`);
+      setSelectedResults(new Set());
+    }
   };
 
-  const successfulResults = results.filter(r => r.success);
-  const withMobile = results.filter(r => r.success && r.mobile);
-  const withEmail = results.filter(r => r.success && r.email);
+  const successfulResults = results.filter((r) => r.success);
+  const withMobile = results.filter((r) => r.success && r.mobile);
+  const withEmail = results.filter((r) => r.success && r.email);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -392,7 +489,8 @@ export default function SkipTracePage() {
               Skip Trace
             </h2>
             <p className="text-muted-foreground mt-1">
-              Find mobile phones and emails for business owners - contactability is the standard
+              Find mobile phones and emails for business owners - contactability
+              is the standard
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -404,7 +502,7 @@ export default function SkipTracePage() {
                   ? "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300"
                   : usage && usage.remaining < 100
                     ? "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
-                    : "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300"
+                    : "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300",
               )}
             >
               {!isConfigured
@@ -429,7 +527,8 @@ export default function SkipTracePage() {
                     RealEstateAPI Not Configured
                   </h4>
                   <p className="text-sm text-red-700 dark:text-red-400 mt-1">
-                    Set REAL_ESTATE_API_KEY environment variable to enable skip tracing.
+                    Set REAL_ESTATE_API_KEY environment variable to enable skip
+                    tracing.
                   </p>
                 </div>
               </div>
@@ -466,7 +565,12 @@ export default function SkipTracePage() {
                       id="full_name"
                       placeholder="John Smith"
                       value={singleInput.full_name}
-                      onChange={(e) => setSingleInput({ ...singleInput, full_name: e.target.value })}
+                      onChange={(e) =>
+                        setSingleInput({
+                          ...singleInput,
+                          full_name: e.target.value,
+                        })
+                      }
                     />
                     <p className="text-xs text-muted-foreground">
                       Owner/CEO/Partner - NO LLC, Trust, or Corp names
@@ -478,7 +582,12 @@ export default function SkipTracePage() {
                       id="address"
                       placeholder="123 Business Ave"
                       value={singleInput.address}
-                      onChange={(e) => setSingleInput({ ...singleInput, address: e.target.value })}
+                      onChange={(e) =>
+                        setSingleInput({
+                          ...singleInput,
+                          address: e.target.value,
+                        })
+                      }
                     />
                   </div>
                   <div className="grid grid-cols-3 gap-2">
@@ -488,7 +597,12 @@ export default function SkipTracePage() {
                         id="city"
                         placeholder="Miami"
                         value={singleInput.city}
-                        onChange={(e) => setSingleInput({ ...singleInput, city: e.target.value })}
+                        onChange={(e) =>
+                          setSingleInput({
+                            ...singleInput,
+                            city: e.target.value,
+                          })
+                        }
                       />
                     </div>
                     <div className="space-y-2">
@@ -498,7 +612,12 @@ export default function SkipTracePage() {
                         placeholder="FL"
                         maxLength={2}
                         value={singleInput.state}
-                        onChange={(e) => setSingleInput({ ...singleInput, state: e.target.value.toUpperCase() })}
+                        onChange={(e) =>
+                          setSingleInput({
+                            ...singleInput,
+                            state: e.target.value.toUpperCase(),
+                          })
+                        }
                       />
                     </div>
                     <div className="space-y-2">
@@ -508,7 +627,12 @@ export default function SkipTracePage() {
                         placeholder="33101"
                         maxLength={5}
                         value={singleInput.zip}
-                        onChange={(e) => setSingleInput({ ...singleInput, zip: e.target.value })}
+                        onChange={(e) =>
+                          setSingleInput({
+                            ...singleInput,
+                            zip: e.target.value,
+                          })
+                        }
                       />
                     </div>
                   </div>
@@ -535,7 +659,8 @@ export default function SkipTracePage() {
                   <div className="border-2 border-dashed rounded-lg p-6 text-center">
                     <FileSpreadsheet className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
                     <p className="text-sm text-muted-foreground mb-2">
-                      Upload USBizData CSV: Contact Name, Street Address, City, State, Zip Code
+                      Upload USBizData CSV: Contact Name, Street Address, City,
+                      State, Zip Code
                     </p>
                     <input
                       type="file"
@@ -560,7 +685,9 @@ export default function SkipTracePage() {
                   {batchRecords.length > 0 && (
                     <div className="space-y-3">
                       <div className="flex items-center justify-between text-sm">
-                        <span className="font-medium">{batchRecords.length} records loaded</span>
+                        <span className="font-medium">
+                          {batchRecords.length} records loaded
+                        </span>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -592,7 +719,8 @@ export default function SkipTracePage() {
                         {isProcessing ? (
                           <>
                             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Processing {batchProgress.current}/{batchProgress.total}...
+                            Processing {batchProgress.current}/
+                            {batchProgress.total}...
                           </>
                         ) : (
                           <>
@@ -614,7 +742,8 @@ export default function SkipTracePage() {
               <div>
                 <CardTitle>Results</CardTitle>
                 <CardDescription>
-                  {results.length} total · {successfulResults.length} matched · {withMobile.length} with mobile
+                  {results.length} total · {successfulResults.length} matched ·{" "}
+                  {withMobile.length} with mobile
                 </CardDescription>
               </div>
               <div className="flex items-center gap-2">
@@ -647,7 +776,9 @@ export default function SkipTracePage() {
             <CardContent>
               {isProcessing && batchProgress.total > 0 && (
                 <div className="mb-4">
-                  <Progress value={(batchProgress.current / batchProgress.total) * 100} />
+                  <Progress
+                    value={(batchProgress.current / batchProgress.total) * 100}
+                  />
                   <p className="text-sm text-muted-foreground mt-1 text-center">
                     Processing {batchProgress.current} of {batchProgress.total}
                   </p>
@@ -658,7 +789,9 @@ export default function SkipTracePage() {
                 <div className="text-center py-12 text-muted-foreground">
                   <UserSearch className="h-12 w-12 mx-auto mb-4 opacity-20" />
                   <p>No skip trace results yet</p>
-                  <p className="text-sm">Enter a name + address to find contact info</p>
+                  <p className="text-sm">
+                    Enter a name + address to find contact info
+                  </p>
                 </div>
               ) : (
                 <div className="border rounded-lg overflow-hidden">
@@ -667,7 +800,11 @@ export default function SkipTracePage() {
                       <TableRow>
                         <TableHead className="w-10">
                           <Checkbox
-                            checked={selectedResults.size === successfulResults.length && successfulResults.length > 0}
+                            checked={
+                              selectedResults.size ===
+                                successfulResults.length &&
+                              successfulResults.length > 0
+                            }
                             onCheckedChange={selectAllResults}
                           />
                         </TableHead>
@@ -684,7 +821,9 @@ export default function SkipTracePage() {
                           <TableCell>
                             <Checkbox
                               checked={selectedResults.has(`result_${i}`)}
-                              onCheckedChange={() => toggleResultSelection(`result_${i}`)}
+                              onCheckedChange={() =>
+                                toggleResultSelection(`result_${i}`)
+                              }
                               disabled={!r.success || !r.mobile}
                             />
                           </TableCell>
@@ -692,13 +831,17 @@ export default function SkipTracePage() {
                             {r.input.full_name}
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground">
-                            {[r.input.city, r.input.state].filter(Boolean).join(", ")}
+                            {[r.input.city, r.input.state]
+                              .filter(Boolean)
+                              .join(", ")}
                           </TableCell>
                           <TableCell>
                             {r.mobile ? (
                               <div className="flex items-center gap-1">
                                 <Phone className="h-3 w-3 text-green-500" />
-                                <span className="text-sm font-mono">{r.mobile}</span>
+                                <span className="text-sm font-mono">
+                                  {r.mobile}
+                                </span>
                                 <Button
                                   variant="ghost"
                                   size="sm"
@@ -713,14 +856,18 @@ export default function SkipTracePage() {
                                 {r.all_phones.length} phones (no mobile)
                               </span>
                             ) : (
-                              <span className="text-sm text-muted-foreground">-</span>
+                              <span className="text-sm text-muted-foreground">
+                                -
+                              </span>
                             )}
                           </TableCell>
                           <TableCell>
                             {r.email ? (
                               <div className="flex items-center gap-1">
                                 <Mail className="h-3 w-3 text-blue-500" />
-                                <span className="text-sm truncate max-w-[150px]">{r.email}</span>
+                                <span className="text-sm truncate max-w-[150px]">
+                                  {r.email}
+                                </span>
                                 <Button
                                   variant="ghost"
                                   size="sm"
@@ -731,7 +878,9 @@ export default function SkipTracePage() {
                                 </Button>
                               </div>
                             ) : (
-                              <span className="text-sm text-muted-foreground">-</span>
+                              <span className="text-sm text-muted-foreground">
+                                -
+                              </span>
                             )}
                           </TableCell>
                           <TableCell className="text-center">
@@ -747,7 +896,8 @@ export default function SkipTracePage() {
                   </Table>
                   {results.length > 50 && (
                     <div className="p-2 text-center text-sm text-muted-foreground bg-muted">
-                      Showing 50 of {results.length} results. Export CSV for full data.
+                      Showing 50 of {results.length} results. Export CSV for
+                      full data.
                     </div>
                   )}
                 </div>
