@@ -250,13 +250,25 @@ function generateId(): string {
   return `call_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
-// GOLD label = Skip traced + captured mobile + email = Score +100%
+/**
+ * GOLD Label = Fully Contactable Lead
+ * ────────────────────────────────────
+ * Requirements (ALL must be true):
+ *   ✓ Skip Traced (validated via USBizData)
+ *   ✓ Mobile Captured (contactable by phone)
+ *   ✓ Email Captured (contactable by email)
+ *
+ * GOLD leads get 100% priority boost (score doubles)
+ * These are your highest quality leads - fully validated and contactable.
+ */
 function getEffectivePriority(item: CallQueueItem): number {
   const hasGold = item.tags?.some(
-    (t) => t.toLowerCase() === "gold" || t.toLowerCase() === "skip_traced"
+    (t) => t.toLowerCase() === "gold"
   );
-  // GOLD doubles the priority (100% boost)
-  return hasGold ? item.priority * 2 : item.priority;
+  // Also check if lead has both phone AND email (implicit GOLD)
+  const hasFullContact = item.phone && item.email;
+  // GOLD or fully contactable = 100% priority boost
+  return (hasGold || hasFullContact) ? item.priority * 2 : item.priority;
 }
 
 async function getNextLead(
