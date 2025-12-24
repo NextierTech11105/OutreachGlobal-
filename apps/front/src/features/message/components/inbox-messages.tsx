@@ -83,11 +83,12 @@ export function InboxMessages({
   const { team } = useCurrentTeam();
   const [{ activeItem }] = useInboxContext();
 
-  const [messages = [], pageInfo, { loading }] = useConnectionQuery(
+  const [messages = [], pageInfo, { loading, fetchMore }] = useConnectionQuery(
     MESSAGES_QUERY,
     {
       pick: "messages",
       variables: {
+        first: 25,
         teamId: team.id,
         direction:
           activeItem === "sent"
@@ -96,6 +97,24 @@ export function InboxMessages({
       },
     },
   );
+
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const handleLoadMore = async () => {
+    if (!pageInfo?.hasNextPage || !pageInfo?.endCursor) return;
+    setLoadingMore(true);
+    try {
+      await fetchMore({
+        variables: {
+          after: pageInfo.endCursor,
+        },
+      });
+    } catch (error) {
+      console.error("Failed to load more messages:", error);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -387,6 +406,27 @@ export function InboxMessages({
           </TableBody>
         </Table>
       </div>
+
+      {/* Load More Button */}
+      {pageInfo?.hasNextPage && !loading && (
+        <div className="flex justify-center pt-4">
+          <Button
+            variant="outline"
+            onClick={handleLoadMore}
+            disabled={loadingMore}
+            className="w-full max-w-xs"
+          >
+            {loadingMore ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Loading...
+              </>
+            ) : (
+              `Load More (${messages.length} shown)`
+            )}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
