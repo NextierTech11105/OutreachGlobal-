@@ -250,6 +250,15 @@ function generateId(): string {
   return `call_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
+// GOLD label = Skip traced + captured mobile + email = Score +100%
+function getEffectivePriority(item: CallQueueItem): number {
+  const hasGold = item.tags?.some(
+    (t) => t.toLowerCase() === "gold" || t.toLowerCase() === "skip_traced"
+  );
+  // GOLD doubles the priority (100% boost)
+  return hasGold ? item.priority * 2 : item.priority;
+}
+
 async function getNextLead(
   persona: PersonaId,
   campaignLane?: CampaignLane,
@@ -267,12 +276,17 @@ async function getNextLead(
         (!item.scheduledAt || new Date(item.scheduledAt) <= new Date()),
     )
     .sort((a, b) => {
-      if (b.priority !== a.priority) return b.priority - a.priority;
+      // GOLD labels get 100% priority boost
+      const priorityA = getEffectivePriority(a);
+      const priorityB = getEffectivePriority(b);
+      if (priorityB !== priorityA) return priorityB - priorityA;
+      // Then by scheduled time
       if (a.scheduledAt && b.scheduledAt) {
         return (
           new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime()
         );
       }
+      // Then by creation time (FIFO)
       return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
     })[0];
 
