@@ -49,12 +49,11 @@ const LABEL_COLORS = [
   { name: "Gold", value: "text-amber-500" },
 ];
 
-// Default labels matching the SMS funnel flow
-// These align with webhook auto-tagging from SignalHouse
-// Funnel: Cold (0%) → Mobile Captured → Email Captured → GOLD (100%)
+// Default labels for AI Inbound Response Center
+// Note: WN (Wrong Number) and profanity → Suppression campaign (not visible here)
 const DEFAULT_LABELS: CustomLabel[] = [
-  // === FUNNEL STAGES (in order) ===
-  { id: "label-cold", name: "Cold (0%)", color: "text-slate-500" },
+  // === RESPONSE INDICATORS ===
+  { id: "label-needs-help", name: "Needs Help", color: "text-red-500" },
   {
     id: "label-mobile-captured",
     name: "Mobile Captured",
@@ -66,33 +65,36 @@ const DEFAULT_LABELS: CustomLabel[] = [
     color: "text-green-500",
   },
   {
-    id: "label-gold",
-    name: "🏆 GOLD (100%)",
-    color: "text-amber-500",
+    id: "label-called-back",
+    name: "Called in / need to call back",
+    color: "text-cyan-500",
   },
-  // === RESPONSE TYPES ===
-  { id: "label-needs-help", name: "Needs Help Now", color: "text-red-500" },
-  {
-    id: "label-has-questions",
-    name: "Has Questions",
-    color: "text-yellow-500",
-  },
-  { id: "label-wants-call", name: "Wants Call", color: "text-purple-500" },
-  { id: "label-called-back", name: "Called Back", color: "text-cyan-500" },
-  {
-    id: "label-yes-content",
-    name: "Yes to Content Link",
-    color: "text-green-500",
-  },
-  // === OUTCOMES ===
   {
     id: "label-push-call-center",
     name: "Push to Call Center",
     color: "text-orange-500",
   },
-  { id: "label-sold", name: "Sold", color: "text-emerald-500" },
-  { id: "label-stop", name: "Stop (Opted Out)", color: "text-gray-500" },
-  { id: "label-wrong-number", name: "Wrong Number", color: "text-red-500" },
+  {
+    id: "label-yes-content",
+    name: "Yes to Content Link",
+    color: "text-green-500",
+  },
+  {
+    id: "label-wants-call",
+    name: "Asking for a phone call",
+    color: "text-purple-500",
+  },
+  // === CAMPAIGNS ===
+  {
+    id: "label-ai-nextier",
+    name: "AI - NEXTIER CAMPAIGN",
+    color: "text-amber-500",
+  },
+  {
+    id: "label-biz-consultant",
+    name: "Business Consultant Campaign",
+    color: "text-blue-500",
+  },
 ];
 
 interface SidebarItemProps {

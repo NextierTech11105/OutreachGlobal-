@@ -85,6 +85,34 @@ const WRONG_NUMBER_KEYWORDS = [
   "idk who",
 ];
 
+// Profanity keywords (simplified - would use a library in production)
+const PROFANITY_KEYWORDS = [
+  "fuck",
+  "shit",
+  "ass",
+  "damn",
+  "bitch",
+  "wtf",
+  "stfu",
+  "scam",
+  "spam",
+  "harassment",
+  "sue you",
+  "lawyer",
+  "attorney",
+  "police",
+  "report you",
+];
+
+// Suppression queue - WN, STOP, profanity all go here for review
+const suppressionQueue: Array<{
+  leadId: string;
+  phone: string;
+  reason: "wrong_number" | "opt_out" | "profanity";
+  message: string;
+  timestamp: Date;
+}> = [];
+
 // Interest keywords
 const INTEREST_KEYWORDS = [
   "yes",
@@ -344,21 +372,41 @@ class AutomationService {
     // Update last response
     state.lastResponseAt = new Date();
 
-    // Check for opt-out first (highest priority)
+    // ═══════════════════════════════════════════════════════════════════════
+    // SUPPRESSION CAMPAIGN: OPT-OUT, WRONG NUMBER, PROFANITY
+    // All go to suppression queue for review - not visible as inbox labels
+    // ═══════════════════════════════════════════════════════════════════════
+
+    // Check for opt-out first (highest priority) → SUPPRESSION
     if (OPT_OUT_KEYWORDS.some((kw) => lowerMessage.includes(kw))) {
       await this.handleOptOut(leadId, phone);
+      this.addToSuppressionQueue(leadId, phone, "opt_out", message);
       return {
         classification: "opt_out",
-        action: "Added to opt-out list, all messages cancelled",
+        action: "Added to suppression campaign for review",
       };
     }
 
-    // Check for wrong number
+    // Check for wrong number → SUPPRESSION
     if (WRONG_NUMBER_KEYWORDS.some((kw) => lowerMessage.includes(kw))) {
       this.handleWrongNumber(leadId, phone);
+      this.addToSuppressionQueue(leadId, phone, "wrong_number", message);
       return {
         classification: "wrong_number",
-        action: "Marked as wrong number, queued for re-skip-trace",
+        action: "Added to suppression campaign for review",
+      };
+    }
+
+    // Check for profanity → SUPPRESSION
+    if (PROFANITY_KEYWORDS.some((kw) => lowerMessage.includes(kw))) {
+      this.addToSuppressionQueue(leadId, phone, "profanity", message);
+      // Don't auto-respond to profanity, just suppress
+      console.log(
+        `[Automation] Profanity detected from ${phone} - added to suppression`,
+      );
+      return {
+        classification: "opt_out", // Treat as opt-out for safety
+        action: "Profanity detected - added to suppression campaign for review",
       };
     }
 
@@ -485,6 +533,52 @@ class AutomationService {
     );
 
     leadStates.set(leadId, state);
+  }
+
+  // ============================================
+  // SUPPRESSION CAMPAIGN
+  // ============================================
+
+  /**
+   * Add to suppression queue for review
+   * WN (wrong number), STOP (opt-out), and profanity all go here
+   * These are NOT visible as inbox labels - they go to admin review
+   */
+  addToSuppressionQueue(
+    leadId: string,
+    phone: string,
+    reason: "wrong_number" | "opt_out" | "profanity",
+    message: string,
+  ): void {
+    suppressionQueue.push({
+      leadId,
+      phone,
+      reason,
+      message,
+      timestamp: new Date(),
+    });
+
+    console.log(
+      `[Suppression] Added to suppression queue: ${reason} from ${phone}`,
+    );
+    console.log(`[Suppression] Queue size: ${suppressionQueue.length}`);
+  }
+
+  /**
+   * Get suppression queue for admin review
+   */
+  getSuppressionQueue() {
+    return [...suppressionQueue];
+  }
+
+  /**
+   * Clear reviewed item from suppression queue
+   */
+  clearFromSuppressionQueue(leadId: string): void {
+    const index = suppressionQueue.findIndex((item) => item.leadId === leadId);
+    if (index !== -1) {
+      suppressionQueue.splice(index, 1);
+    }
   }
 
   // ============================================
