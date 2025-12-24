@@ -13,6 +13,14 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { redis, isRedisAvailable } from "@/lib/redis";
+import { db } from "@/lib/db";
+import { callHistories } from "@/lib/db/schema";
+
+// Twilio credentials for server-initiated calls
+const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || "";
+const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || "";
+const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER || "";
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://app.nextier.ai";
 
 // Redis keys for Call Queue persistence
 const CALL_QUEUE_KEY = "call:queue";
@@ -300,6 +308,84 @@ function getPersonaScriptHint(persona: PersonaId, lead: CallQueueItem): string {
       return `Booking: "Hi ${firstName}, Sabrina here. You mentioned you wanted to talk through some options - I've got Tuesday at 2 or Wednesday at 10. Which works better?"`;
     default:
       return "";
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TWILIO CALL INITIATION
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface TwilioCallResult {
+  success: boolean;
+  callSid?: string;
+  error?: string;
+}
+
+async function initiateTwilioCall(
+  toNumber: string,
+  leadId: string,
+  persona: PersonaId,
+  teamId?: string,
+): Promise<TwilioCallResult> {
+  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
+    return { success: false, error: "Twilio not configured" };
+  }
+
+  try {
+    // Format phone number
+    const formattedTo = toNumber.startsWith("+") ? toNumber : `+1${toNumber.replace(/\D/g, "")}`;
+
+    // Twilio REST API to initiate outbound call
+    const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Calls.json`;
+    const auth = Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString("base64");
+
+    // TwiML URL for call handling - connects to browser client
+    const twimlUrl = `${BASE_URL}/api/webhook/twilio/outbound?leadId=${leadId}&persona=${persona}`;
+
+    const response = await fetch(twilioUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${auth}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        To: formattedTo,
+        From: TWILIO_PHONE_NUMBER,
+        Url: twimlUrl,
+        StatusCallback: `${BASE_URL}/api/webhook/twilio`,
+        StatusCallbackEvent: "initiated ringing answered completed",
+      }).toString(),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      console.error("[CallQueue] Twilio error:", result);
+      return { success: false, error: result.message || "Call failed" };
+    }
+
+    // Log call to database
+    try {
+      await db.insert(callHistories).values({
+        id: crypto.randomUUID(),
+        teamId: teamId || "default",
+        leadId,
+        direction: "outbound",
+        fromNumber: TWILIO_PHONE_NUMBER,
+        toNumber: formattedTo,
+        status: "initiated",
+        twilioSid: result.sid,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    } catch (dbError) {
+      console.error("[CallQueue] DB insert error:", dbError);
+    }
+
+    return { success: true, callSid: result.sid };
+  } catch (error) {
+    console.error("[CallQueue] Call initiation error:", error);
+    return { success: false, error: error instanceof Error ? error.message : "Unknown error" };
   }
 }
 
@@ -826,10 +912,10 @@ export async function POST(request: NextRequest) {
       }
 
       // ═══════════════════════════════════════════════════════════════════════
-      // INITIATE CALL (SignalHouse/Twilio integration)
+      // INITIATE CALL (Twilio integration - Phone only, no SMS)
       // ═══════════════════════════════════════════════════════════════════════
       case "call": {
-        const { persona } = body;
+        const { persona, teamId } = body;
 
         if (!persona) {
           return NextResponse.json(
@@ -839,6 +925,7 @@ export async function POST(request: NextRequest) {
         }
 
         const assistantStates = await getAssistantStates();
+        const callQueue = await getCallQueue();
         const state = assistantStates.get(persona);
         if (!state?.currentLead) {
           return NextResponse.json(
@@ -852,18 +939,45 @@ export async function POST(request: NextRequest) {
 
         const lead = state.currentLead;
 
-        // TODO: Integrate with SignalHouse/Twilio for actual call
-        // SignalHouse handles the infrastructure, we just send the request
+        // Initiate actual Twilio call
+        const callResult = await initiateTwilioCall(
+          lead.phone,
+          lead.leadId,
+          persona,
+          teamId,
+        );
+
+        if (!callResult.success) {
+          return NextResponse.json({
+            success: false,
+            error: callResult.error,
+            message: `Failed to call ${lead.leadName || "lead"}`,
+          }, { status: 500 });
+        }
+
+        // Update queue item with Twilio SID
+        const queueItem = callQueue.get(lead.id);
+        if (queueItem) {
+          queueItem.status = "in_progress";
+          callQueue.set(lead.id, queueItem);
+          await persistQueue();
+        }
+
+        // Update assistant state with call SID
+        state.twilioCallSid = callResult.callSid;
+        assistantStates.set(persona, state);
+        await persistStates();
+
         return NextResponse.json({
           success: true,
-          message: `Initiating call to ${lead.leadName || "lead"} at ${lead.phone}`,
+          message: `Calling ${lead.leadName || "lead"} at ${lead.phone}`,
           callDetails: {
             leadId: lead.leadId,
             phone: lead.phone,
             persona,
             campaignLane: state.campaignLane,
-            callSid: `SIGNALHOUSE_${Date.now()}`,
-            status: "initiating",
+            callSid: callResult.callSid,
+            status: "initiated",
           },
           voicePrompt: `Calling ${lead.leadName || "lead"}. I'll assist with the conversation. Say "hang up" to end or "next" when done.`,
           scriptHint: getPersonaScriptHint(persona, lead),
