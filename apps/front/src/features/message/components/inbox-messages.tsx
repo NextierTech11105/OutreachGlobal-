@@ -25,12 +25,14 @@ import {
   Mail,
   MessageSquare,
   Phone,
+  PhoneCall,
   Flag,
   MoreHorizontal,
   Trash,
   Archive,
   UserPlus,
   Tag,
+  Loader2,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -65,7 +67,17 @@ const formatDate = (dateString: string) => {
   }
 };
 
-export function InboxMessages() {
+interface InboxMessagesProps {
+  onViewMessage?: (message: any) => void;
+  onReplyMessage?: (message: any) => void;
+  onCallBack?: (message: any) => void;
+}
+
+export function InboxMessages({
+  onViewMessage,
+  onReplyMessage,
+  onCallBack,
+}: InboxMessagesProps) {
   const [selectedMessages, setSelectedMessages] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const { team } = useCurrentTeam();
@@ -86,8 +98,21 @@ export function InboxMessages() {
   );
 
   const handleSearch = (e: React.FormEvent) => {
-    //
+    e.preventDefault();
+    // Search is handled reactively via filteredMessages
   };
+
+  // Filter messages by search query
+  const filteredMessages = messages.filter((message) => {
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      message.fromName?.toLowerCase().includes(query) ||
+      message.fromAddress?.toLowerCase().includes(query) ||
+      message.body?.toLowerCase().includes(query) ||
+      message.subject?.toLowerCase().includes(query)
+    );
+  });
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -231,18 +256,26 @@ export function InboxMessages() {
                     </TableCell>
                   </TableRow>
                 ))
-            ) : messages.length === 0 ? (
+            ) : filteredMessages.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} className="h-24 text-center">
-                  No messages found. Try adjusting your filters.
+                  {searchQuery
+                    ? "No messages match your search."
+                    : "No messages found. Try adjusting your filters."}
                 </TableCell>
               </TableRow>
             ) : (
-              messages.map((message) => (
+              filteredMessages.map((message) => (
                 <TableRow
                   key={message.id}
-                  className={cn("cursor-pointer hover:bg-muted/40")}
-                  // onClick={() => onViewMessage(message)}
+                  className={cn(
+                    "cursor-pointer hover:bg-muted/40",
+                    // Unread message styling
+                    message.status !== "read" &&
+                      message.status !== "replied" &&
+                      "bg-blue-50/50 dark:bg-blue-950/20"
+                  )}
+                  onClick={() => onViewMessage?.(message)}
                 >
                   <TableCell
                     className="py-2"
@@ -269,7 +302,15 @@ export function InboxMessages() {
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <div className="font-medium text-sm">
+                        <div
+                          className={cn(
+                            "text-sm",
+                            message.status !== "read" &&
+                              message.status !== "replied"
+                              ? "font-semibold"
+                              : "font-medium"
+                          )}
+                        >
                           {message.fromName}
                         </div>
                         <div className="text-xs text-muted-foreground truncate max-w-[150px]">
@@ -279,7 +320,14 @@ export function InboxMessages() {
                     </div>
                   </TableCell>
                   <TableCell className="hidden md:table-cell py-2">
-                    <div className="font-medium text-sm">
+                    <div
+                      className={cn(
+                        "text-sm",
+                        message.status !== "read" && message.status !== "replied"
+                          ? "font-semibold"
+                          : "font-medium"
+                      )}
+                    >
                       {message.subject || "No Subject"}
                     </div>
                     <div className="text-xs text-muted-foreground truncate max-w-[300px]">
@@ -303,29 +351,29 @@ export function InboxMessages() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                        // onClick={() => onViewMessage(message)}
-                        >
+                        <DropdownMenuItem onClick={() => onViewMessage?.(message)}>
                           View
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          // onClick={() => onReplyMessage(message)}
+                          onClick={() => onReplyMessage?.(message)}
                           disabled={message.status === "unsubscribed"}
                         >
                           Reply
                         </DropdownMenuItem>
-                        <DropdownMenuItem>Forward</DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => onCallBack?.(message)}
+                          className="text-green-600"
+                        >
+                          <PhoneCall className="mr-2 h-4 w-4" /> Call Back
+                        </DropdownMenuItem>
                         <DropdownMenuItem>
                           <Flag className="mr-2 h-4 w-4" /> Flag
                         </DropdownMenuItem>
                         <DropdownMenuItem>
                           <Archive className="mr-2 h-4 w-4" /> Archive
                         </DropdownMenuItem>
-                        <DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive">
                           <Trash className="mr-2 h-4 w-4" /> Delete
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <UserPlus className="mr-2 h-4 w-4" /> Assign
                         </DropdownMenuItem>
                         <DropdownMenuItem>
                           <Tag className="mr-2 h-4 w-4" /> Add Label

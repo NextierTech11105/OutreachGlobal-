@@ -7,7 +7,9 @@ import { InboundCallPanel } from "@/components/inbound-call-panel";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useMediaQuery } from "@/hooks/use-media-query";
-import { ChevronLeft, Plus } from "lucide-react";
+import { ChevronLeft, Phone } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useCurrentTeam } from "@/features/team/team.context";
 import type { Message, MessageStatus, MessageType } from "@/types/message";
 import { fetchMessages } from "@/lib/services/message-service";
 import { InboxMessages } from "./inbox-messages";
@@ -16,6 +18,8 @@ import { useInboxContext } from "../inbox.context";
 import { MessageDetail } from "./message-detail";
 
 export function UnifiedInbox() {
+  const router = useRouter();
+  const { team } = useCurrentTeam();
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
@@ -158,9 +162,38 @@ export function UnifiedInbox() {
 
           <div className="flex items-center gap-2">
             {!selectedMessage && (
-              <Button size="sm" className="h-8 gap-1">
-                <Plus className="h-4 w-4" />
-                Compose
+              <Button
+                size="sm"
+                className="h-8 gap-1 bg-green-600 hover:bg-green-700"
+                onClick={() => {
+                  // Navigate to call center - if a message is selected, pass the phone
+                  const params = new URLSearchParams();
+                  // Could add selected message phone here if needed
+                  router.push(`/t/${team?.slug || ""}/call-center`);
+                }}
+              >
+                <Phone className="h-4 w-4" />
+                Call Center
+              </Button>
+            )}
+            {selectedMessage && (
+              <Button
+                size="sm"
+                className="h-8 gap-1 bg-green-600 hover:bg-green-700"
+                onClick={() => {
+                  // Navigate to call center with lead context
+                  const phone = selectedMessage.phone || selectedMessage.from;
+                  const leadId = selectedMessage.leadId;
+                  const params = new URLSearchParams();
+                  if (phone) params.set("phone", phone);
+                  if (leadId) params.set("leadId", leadId);
+                  router.push(
+                    `/t/${team?.slug || ""}/call-center?${params.toString()}`
+                  );
+                }}
+              >
+                <Phone className="h-4 w-4" />
+                Call Back
               </Button>
             )}
             <InboxToolbar
@@ -188,7 +221,20 @@ export function UnifiedInbox() {
         <div className="flex-1 overflow-auto">
           <div className="p-4">
             {!selectedMessage ? (
-              <InboxMessages />
+              <InboxMessages
+                onViewMessage={handleViewMessage}
+                onReplyMessage={handleReplyMessage}
+                onCallBack={(message) => {
+                  const phone = message.phone || message.from;
+                  const leadId = message.leadId;
+                  const params = new URLSearchParams();
+                  if (phone) params.set("phone", phone);
+                  if (leadId) params.set("leadId", leadId);
+                  router.push(
+                    `/t/${team?.slug || ""}/call-center?${params.toString()}`
+                  );
+                }}
+              />
             ) : replyMode ? (
               <MessageReply
                 message={selectedMessage}
