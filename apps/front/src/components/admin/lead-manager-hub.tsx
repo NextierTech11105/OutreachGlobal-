@@ -165,189 +165,40 @@ const WORKFLOW_TRIGGERS = [
 ];
 
 // ============================================================================
-// MOCK DATA
+// API FETCHERS
 // ============================================================================
 
-function generateMockSectors(): DatalakeSector[] {
-  return [
-    {
-      id: "hotel-motel",
-      name: "hotel-motel",
-      label: "Hotels & Motels",
-      sic_codes: ["7011"],
-      record_count: 433000,
-      enriched_count: 125000,
-      last_upload: new Date("2024-12-10"),
-      status: "active",
-      color: "bg-blue-500",
-    },
-    {
-      id: "campgrounds-rv",
-      name: "campgrounds-rv",
-      label: "Campgrounds & RV",
-      sic_codes: ["7033"],
-      record_count: 16366,
-      enriched_count: 8200,
-      last_upload: new Date("2024-12-08"),
-      status: "active",
-      color: "bg-green-500",
-    },
-    {
-      id: "trucking",
-      name: "trucking",
-      label: "Trucking & Freight",
-      sic_codes: ["4213", "4214", "4215"],
-      record_count: 285000,
-      enriched_count: 95000,
-      last_upload: new Date("2024-12-05"),
-      status: "active",
-      color: "bg-orange-500",
-    },
-    {
-      id: "auto-dealers",
-      name: "auto-dealers",
-      label: "Auto Dealers",
-      sic_codes: ["5511", "5521"],
-      record_count: 409121,
-      enriched_count: 180000,
-      last_upload: new Date("2024-12-12"),
-      status: "active",
-      color: "bg-purple-500",
-    },
-    {
-      id: "auto-repair",
-      name: "auto-repair",
-      label: "Auto Repair",
-      sic_codes: ["7538", "7539", "7549", "7537"],
-      record_count: 197414,
-      enriched_count: 75000,
-      last_upload: new Date("2024-12-11"),
-      status: "active",
-      color: "bg-red-500",
-    },
-    {
-      id: "aircraft-parts",
-      name: "aircraft-parts",
-      label: "Aircraft Parts",
-      sic_codes: ["3721", "3724", "3728"],
-      record_count: 106625,
-      enriched_count: 42000,
-      last_upload: new Date("2024-12-09"),
-      status: "pending",
-      color: "bg-cyan-500",
-    },
-    {
-      id: "ny-business",
-      name: "ny-business",
-      label: "NY Businesses",
-      sic_codes: [],
-      record_count: 5500000,
-      enriched_count: 250000,
-      last_upload: new Date("2024-12-01"),
-      status: "paused",
-      color: "bg-zinc-500",
-    },
-  ];
+async function fetchSectors(): Promise<DatalakeSector[]> {
+  try {
+    const res = await fetch("/api/admin/datalake/sectors");
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.sectors || [];
+  } catch {
+    return [];
+  }
 }
 
-function generateMockJobs(): EnrichmentJob[] {
-  return [
-    {
-      id: "job_1",
-      sector_id: "hotel-motel",
-      type: "skip_trace",
-      status: "running",
-      total: 5000,
-      processed: 2340,
-      enriched: 1890,
-      started_at: new Date(),
-      cost_estimate: "$100",
-    },
-    {
-      id: "job_2",
-      sector_id: "auto-dealers",
-      type: "apollo",
-      status: "queued",
-      total: 10000,
-      processed: 0,
-      enriched: 0,
-      started_at: new Date(),
-      cost_estimate: "$1,000",
-    },
-    {
-      id: "job_3",
-      sector_id: "campgrounds-rv",
-      type: "email_verify",
-      status: "completed",
-      total: 8200,
-      processed: 8200,
-      enriched: 7650,
-      started_at: new Date(Date.now() - 3600000),
-      completed_at: new Date(),
-      cost_estimate: "$41",
-    },
-  ];
+async function fetchEnrichmentJobs(): Promise<EnrichmentJob[]> {
+  try {
+    const res = await fetch("/api/admin/enrichment/jobs");
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.jobs || [];
+  } catch {
+    return [];
+  }
 }
 
-function generateMockWorkflows(): WorkspaceWorkflow[] {
-  return [
-    {
-      id: "wf_1",
-      name: "New Lead → Gianna SMS",
-      workspace: "Hotel Outreach",
-      trigger: "new_lead",
-      actions: [
-        { type: "enrich", config: { type: "skip_trace" } },
-        { type: "sms", config: { template: "valuation_offer" } },
-        { type: "wait", config: { hours: 24 } },
-        { type: "sms", config: { template: "followup_1" } },
-      ],
-      enabled: true,
-      leads_processed: 12500,
-      conversions: 375,
-    },
-    {
-      id: "wf_2",
-      name: "Inbound Response → Email Capture",
-      workspace: "Hotel Outreach",
-      trigger: "response",
-      actions: [
-        { type: "tag", config: { tag: "responded" } },
-        { type: "sms", config: { template: "email_capture" } },
-        { type: "assign", config: { to: "calendar" } },
-      ],
-      enabled: true,
-      leads_processed: 3200,
-      conversions: 1850,
-    },
-    {
-      id: "wf_3",
-      name: "No Response → Requeue",
-      workspace: "Auto Dealers",
-      trigger: "no_response",
-      actions: [
-        { type: "wait", config: { days: 7 } },
-        { type: "sms", config: { template: "soft_followup" } },
-        { type: "tag", config: { tag: "requeued" } },
-      ],
-      enabled: true,
-      leads_processed: 45000,
-      conversions: 890,
-    },
-    {
-      id: "wf_4",
-      name: "Hot Signal → Priority Call",
-      workspace: "RV Parks",
-      trigger: "hot_signal",
-      actions: [
-        { type: "assign", config: { to: "calendar", priority: "high" } },
-        { type: "call", config: { immediate: true } },
-      ],
-      enabled: false,
-      leads_processed: 0,
-      conversions: 0,
-    },
-  ];
+async function fetchWorkflows(): Promise<WorkspaceWorkflow[]> {
+  try {
+    const res = await fetch("/api/admin/workflows");
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.workflows || [];
+  } catch {
+    return [];
+  }
 }
 
 // ============================================================================
@@ -371,31 +222,37 @@ export function LeadManagerHub() {
   const [activeTab, setActiveTab] = useState("datalake");
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Initialize mock data
+  // Fetch data from API
   useEffect(() => {
-    const mockSectors = generateMockSectors();
-    const mockJobs = generateMockJobs();
-    const mockWorkflows = generateMockWorkflows();
+    const loadData = async () => {
+      const [sectorsData, jobsData, workflowsData] = await Promise.all([
+        fetchSectors(),
+        fetchEnrichmentJobs(),
+        fetchWorkflows(),
+      ]);
 
-    setSectors(mockSectors);
-    setEnrichmentJobs(mockJobs);
-    setWorkflows(mockWorkflows);
+      setSectors(sectorsData);
+      setEnrichmentJobs(jobsData);
+      setWorkflows(workflowsData);
 
-    // Calculate metrics
-    setMetrics({
-      total_datalake_records: mockSectors.reduce(
-        (sum, s) => sum + s.record_count,
-        0,
-      ),
-      sectors_active: mockSectors.filter((s) => s.status === "active").length,
-      pending_enrichment: mockJobs.filter(
-        (j) => j.status === "queued" || j.status === "running",
-      ).length,
-      workflows_running: mockWorkflows.filter((w) => w.enabled).length,
-      leads_assigned_today: 2847,
-      response_rate: 4.2,
-      avg_response_time: "18m",
-    });
+      // Calculate metrics from real data
+      setMetrics({
+        total_datalake_records: sectorsData.reduce(
+          (sum, s) => sum + s.record_count,
+          0,
+        ),
+        sectors_active: sectorsData.filter((s) => s.status === "active").length,
+        pending_enrichment: jobsData.filter(
+          (j) => j.status === "queued" || j.status === "running",
+        ).length,
+        workflows_running: workflowsData.filter((w) => w.enabled).length,
+        leads_assigned_today: 0,
+        response_rate: 0,
+        avg_response_time: "0m",
+      });
+    };
+
+    loadData();
   }, []);
 
   // Simulate job progress

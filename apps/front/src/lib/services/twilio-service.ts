@@ -48,102 +48,8 @@ export interface ConferenceParticipant {
   conferenceSid: string;
 }
 
-// Mock data for development
-const mockCalls: CallDetails[] = [
-  {
-    sid: "CA123456789012345678901234567890",
-    from: "(555) 123-4567",
-    to: "(555) 987-6543",
-    direction: "outbound",
-    status: "completed",
-    startTime: new Date(Date.now() - 3600000).toISOString(),
-    endTime: new Date(Date.now() - 3540000).toISOString(),
-    duration: 60,
-    recordingUrl: "https://example.com/recording.mp3",
-    transcriptionText:
-      "Hello, this is John from Nextier Data Engine. I'm calling about your property at 123 Main Street. We have some interesting data insights about your neighborhood that might be valuable for you.",
-    sentimentScore: 0.7,
-  },
-  {
-    sid: "CA234567890123456789012345678901",
-    from: "(555) 234-5678",
-    to: "(555) 987-6543",
-    direction: "inbound",
-    status: "completed",
-    startTime: new Date(Date.now() - 7200000).toISOString(),
-    endTime: new Date(Date.now() - 7080000).toISOString(),
-    duration: 120,
-    recordingUrl: "https://example.com/recording2.mp3",
-    transcriptionText:
-      "Hi, I'm calling about the property data services you offer. I saw your website and I'm interested in learning more about how your platform works for real estate investors.",
-    sentimentScore: 0.8,
-  },
-  {
-    sid: "CA345678901234567890123456789012",
-    from: "(555) 987-6543",
-    to: "(555) 345-6789",
-    direction: "outbound",
-    status: "no-answer",
-    startTime: new Date(Date.now() - 10800000).toISOString(),
-    duration: 0,
-  },
-  {
-    sid: "CA456789012345678901234567890123",
-    from: "(555) 456-7890",
-    to: "(555) 987-6543",
-    direction: "inbound",
-    status: "completed",
-    startTime: new Date(Date.now() - 86400000).toISOString(),
-    endTime: new Date(Date.now() - 86100000).toISOString(),
-    duration: 300,
-    recordingUrl: "https://example.com/recording3.mp3",
-    transcriptionText:
-      "Hello, I received your email about my property on Oak Street. I'm interested in the market analysis you mentioned. Can you tell me more about how accurate your data is and what sources you use?",
-    sentimentScore: 0.6,
-  },
-  {
-    sid: "CA567890123456789012345678901234",
-    from: "(555) 987-6543",
-    to: "(555) 567-8901",
-    direction: "outbound",
-    status: "busy",
-    startTime: new Date(Date.now() - 172800000).toISOString(),
-    duration: 0,
-  },
-];
-
-const mockVoicemailTemplates: VoicemailTemplate[] = [
-  {
-    id: "vm-1",
-    name: "Standard Voicemail",
-    description: "General voicemail for leads who don't answer",
-    audioUrl: "https://example.com/voicemail1.mp3",
-    duration: 20,
-    createdAt: new Date(Date.now() - 2592000000).toISOString(),
-    updatedAt: new Date(Date.now() - 1296000000).toISOString(),
-  },
-  {
-    id: "vm-2",
-    name: "Follow-up Voicemail",
-    description: "For leads we've contacted before",
-    audioUrl: "https://example.com/voicemail2.mp3",
-    duration: 25,
-    createdAt: new Date(Date.now() - 1728000000).toISOString(),
-    updatedAt: new Date(Date.now() - 864000000).toISOString(),
-  },
-  {
-    id: "vm-3",
-    name: "Urgent Opportunity",
-    description: "For high-value leads with time-sensitive opportunities",
-    audioUrl: "https://example.com/voicemail3.mp3",
-    duration: 30,
-    createdAt: new Date(Date.now() - 864000000).toISOString(),
-    updatedAt: new Date(Date.now() - 432000000).toISOString(),
-  },
-];
-
-// Mock conferences data
-const mockConferences: ConferenceDetails[] = [];
+// Runtime storage for conferences (not persisted)
+const activeConferences: ConferenceDetails[] = [];
 
 // Twilio service implementation
 class TwilioService {
@@ -176,25 +82,28 @@ class TwilioService {
   // Get recent calls
   async getRecentCalls(limit = 10): Promise<CallDetails[]> {
     try {
-      // In a real implementation, this would call your backend API
-      // For development, return mock data
-      return mockCalls.slice(0, limit);
+      const response = await fetch(`/api/twilio/calls?limit=${limit}`);
+      if (!response.ok) {
+        console.error("Failed to fetch recent calls");
+        return [];
+      }
+      const data = await response.json();
+      return data.calls || [];
     } catch (error) {
       console.error("Error getting recent calls:", error);
-      throw error;
+      return [];
     }
   }
 
   // Get call details
   async getCallDetails(callSid: string): Promise<CallDetails> {
     try {
-      // In a real implementation, this would call your backend API
-      // For development, find the call in mock data
-      const call = mockCalls.find((c) => c.sid === callSid);
-      if (!call) {
+      const response = await fetch(`/api/twilio/calls/${callSid}`);
+      if (!response.ok) {
         throw new Error("Call not found");
       }
-      return call;
+      const data = await response.json();
+      return data.call;
     } catch (error) {
       console.error("Error getting call details:", error);
       throw error;
@@ -204,12 +113,16 @@ class TwilioService {
   // Get voicemail templates
   async getVoicemailTemplates(): Promise<VoicemailTemplate[]> {
     try {
-      // In a real implementation, this would call your backend API
-      // For development, return mock data
-      return mockVoicemailTemplates;
+      const response = await fetch("/api/twilio/voicemail-templates");
+      if (!response.ok) {
+        console.error("Failed to fetch voicemail templates");
+        return [];
+      }
+      const data = await response.json();
+      return data.templates || [];
     } catch (error) {
       console.error("Error getting voicemail templates:", error);
-      throw error;
+      return [];
     }
   }
 
@@ -251,7 +164,7 @@ class TwilioService {
         participants: [],
       };
 
-      mockConferences.push(conference);
+      activeConferences.push(conference);
       return conference;
     } catch (error) {
       console.error("Error creating conference:", error);
@@ -266,12 +179,12 @@ class TwilioService {
       console.log(`Ending conference ${friendlyName}`);
 
       // For development, update the mock conference
-      const conferenceIndex = mockConferences.findIndex(
+      const conferenceIndex = activeConferences.findIndex(
         (c) => c.friendlyName === friendlyName,
       );
       if (conferenceIndex >= 0) {
-        mockConferences[conferenceIndex].status = "completed";
-        mockConferences[conferenceIndex].dateUpdated = new Date().toISOString();
+        activeConferences[conferenceIndex].status = "completed";
+        activeConferences[conferenceIndex].dateUpdated = new Date().toISOString();
       }
     } catch (error) {
       console.error("Error ending conference:", error);
@@ -286,7 +199,7 @@ class TwilioService {
       console.log(`Getting conference ${friendlyName}`);
 
       // For development, find the mock conference
-      const conference = mockConferences.find(
+      const conference = activeConferences.find(
         (c) => c.friendlyName === friendlyName,
       );
       return conference || null;
@@ -308,7 +221,7 @@ class TwilioService {
       );
 
       // For development, update the mock conference
-      const conferenceIndex = mockConferences.findIndex(
+      const conferenceIndex = activeConferences.findIndex(
         (c) => c.friendlyName === friendlyName,
       );
       if (conferenceIndex < 0) {
@@ -323,10 +236,10 @@ class TwilioService {
         status: "connected",
         startTime: new Date().toISOString(),
         accountSid: "AC123456789",
-        conferenceSid: mockConferences[conferenceIndex].sid,
+        conferenceSid: activeConferences[conferenceIndex].sid,
       };
 
-      mockConferences[conferenceIndex].participants.push(participant);
+      activeConferences[conferenceIndex].participants.push(participant);
       return participant;
     } catch (error) {
       console.error("Error adding participant to conference:", error);
@@ -346,14 +259,14 @@ class TwilioService {
       );
 
       // For development, update the mock conference
-      const conferenceIndex = mockConferences.findIndex(
+      const conferenceIndex = activeConferences.findIndex(
         (c) => c.friendlyName === friendlyName,
       );
       if (conferenceIndex < 0) {
         throw new Error("Conference not found");
       }
 
-      const participantIndex = mockConferences[
+      const participantIndex = activeConferences[
         conferenceIndex
       ].participants.findIndex(
         (p) =>
@@ -362,9 +275,9 @@ class TwilioService {
       );
 
       if (participantIndex >= 0) {
-        mockConferences[conferenceIndex].participants[participantIndex].status =
+        activeConferences[conferenceIndex].participants[participantIndex].status =
           "disconnected";
-        mockConferences[conferenceIndex].participants[
+        activeConferences[conferenceIndex].participants[
           participantIndex
         ].endTime = new Date().toISOString();
       }
@@ -387,14 +300,14 @@ class TwilioService {
       );
 
       // For development, update the mock conference
-      const conferenceIndex = mockConferences.findIndex(
+      const conferenceIndex = activeConferences.findIndex(
         (c) => c.friendlyName === friendlyName,
       );
       if (conferenceIndex < 0) {
         throw new Error("Conference not found");
       }
 
-      const participantIndex = mockConferences[
+      const participantIndex = activeConferences[
         conferenceIndex
       ].participants.findIndex(
         (p) =>
@@ -403,7 +316,7 @@ class TwilioService {
       );
 
       if (participantIndex >= 0) {
-        mockConferences[conferenceIndex].participants[participantIndex].muted =
+        activeConferences[conferenceIndex].participants[participantIndex].muted =
           mute;
       }
     } catch (error) {
@@ -428,14 +341,14 @@ class TwilioService {
       );
 
       // For development, update the mock conference
-      const conferenceIndex = mockConferences.findIndex(
+      const conferenceIndex = activeConferences.findIndex(
         (c) => c.friendlyName === friendlyName,
       );
       if (conferenceIndex < 0) {
         throw new Error("Conference not found");
       }
 
-      const participantIndex = mockConferences[
+      const participantIndex = activeConferences[
         conferenceIndex
       ].participants.findIndex(
         (p) =>
@@ -444,7 +357,7 @@ class TwilioService {
       );
 
       if (participantIndex >= 0) {
-        mockConferences[conferenceIndex].participants[participantIndex].hold =
+        activeConferences[conferenceIndex].participants[participantIndex].hold =
           hold;
       }
     } catch (error) {
@@ -463,14 +376,14 @@ class TwilioService {
       console.log(`Starting recording for conference ${friendlyName}`);
 
       // For development, update the mock conference
-      const conferenceIndex = mockConferences.findIndex(
+      const conferenceIndex = activeConferences.findIndex(
         (c) => c.friendlyName === friendlyName,
       );
       if (conferenceIndex < 0) {
         throw new Error("Conference not found");
       }
 
-      mockConferences[conferenceIndex].recordingEnabled = true;
+      activeConferences[conferenceIndex].recordingEnabled = true;
     } catch (error) {
       console.error("Error starting conference recording:", error);
       throw error;
@@ -484,14 +397,14 @@ class TwilioService {
       console.log(`Stopping recording for conference ${friendlyName}`);
 
       // For development, update the mock conference
-      const conferenceIndex = mockConferences.findIndex(
+      const conferenceIndex = activeConferences.findIndex(
         (c) => c.friendlyName === friendlyName,
       );
       if (conferenceIndex < 0) {
         throw new Error("Conference not found");
       }
 
-      mockConferences[conferenceIndex].recordingEnabled = false;
+      activeConferences[conferenceIndex].recordingEnabled = false;
     } catch (error) {
       console.error("Error stopping conference recording:", error);
       throw error;
@@ -652,7 +565,7 @@ export function createTwilioClient(accountSid: string, authToken: string) {
         duration: 0,
         startTime: new Date().toISOString(),
       }),
-      fetch: async () => mockCalls.find((c) => c.sid === sid) || mockCalls[0],
+      fetch: async () => { throw new Error("Use twilioService.getCallDetails instead"); },
       update: async (options: any) => ({ success: true }),
     }),
     recordings: {

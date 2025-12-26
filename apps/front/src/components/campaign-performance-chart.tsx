@@ -12,77 +12,64 @@ import {
   YAxis,
 } from "recharts";
 
-// Mock performance data
-const mockPerformanceData = [
-  {
-    name: "May 1",
-    sent: 25,
-    opened: 18,
-    engaged: 10,
-    converted: 4,
-  },
-  {
-    name: "May 2",
-    sent: 30,
-    opened: 22,
-    engaged: 12,
-    converted: 5,
-  },
-  {
-    name: "May 3",
-    sent: 35,
-    opened: 25,
-    engaged: 15,
-    converted: 6,
-  },
-  {
-    name: "May 4",
-    sent: 40,
-    opened: 30,
-    engaged: 18,
-    converted: 8,
-  },
-  {
-    name: "May 5",
-    sent: 45,
-    opened: 32,
-    engaged: 20,
-    converted: 9,
-  },
-  {
-    name: "May 6",
-    sent: 50,
-    opened: 38,
-    engaged: 22,
-    converted: 10,
-  },
-  {
-    name: "May 7",
-    sent: 55,
-    opened: 40,
-    engaged: 25,
-    converted: 12,
-  },
-  {
-    name: "May 8",
-    sent: 60,
-    opened: 45,
-    engaged: 28,
-    converted: 14,
-  },
-];
+interface PerformanceDataPoint {
+  name: string;
+  sent: number;
+  opened: number;
+  engaged: number;
+  converted: number;
+}
 
-export function CampaignPerformanceChart() {
+interface CampaignPerformanceChartProps {
+  data?: PerformanceDataPoint[];
+  campaignId?: string;
+}
+
+export function CampaignPerformanceChart({ data, campaignId }: CampaignPerformanceChartProps) {
   const [isMounted, setIsMounted] = useState(false);
+  const [performanceData, setPerformanceData] = useState<PerformanceDataPoint[]>(data || []);
+  const [loading, setLoading] = useState(!data);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  if (!isMounted) {
+  useEffect(() => {
+    if (data) {
+      setPerformanceData(data);
+      setLoading(false);
+      return;
+    }
+
+    if (campaignId) {
+      // Fetch from API when campaignId is provided
+      fetch(`/api/campaigns/${campaignId}/performance`)
+        .then(res => res.json())
+        .then(result => {
+          if (result.data) setPerformanceData(result.data);
+        })
+        .catch(console.error)
+        .finally(() => setLoading(false));
+    } else {
+      setLoading(false);
+    }
+  }, [data, campaignId]);
+
+  if (!isMounted || loading) {
     return (
       <div className="h-[300px] flex items-center justify-center">
-        Loading chart...
+        <div className="text-muted-foreground">Loading chart...</div>
+      </div>
+    );
+  }
+
+  if (performanceData.length === 0) {
+    return (
+      <div className="h-[300px] flex items-center justify-center">
+        <div className="text-center text-muted-foreground">
+          <p>No performance data available</p>
+          <p className="text-sm">Data will appear once campaigns are running</p>
+        </div>
       </div>
     );
   }
@@ -90,7 +77,7 @@ export function CampaignPerformanceChart() {
   return (
     <ResponsiveContainer width="100%" height="100%">
       <BarChart
-        data={mockPerformanceData}
+        data={performanceData}
         margin={{
           top: 20,
           right: 30,

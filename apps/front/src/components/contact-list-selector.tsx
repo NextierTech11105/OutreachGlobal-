@@ -60,89 +60,41 @@ export function ContactListSelector({
   const [previewContacts, setPreviewContacts] = useState<any[]>([]);
   const [previewLoading, setPreviewLoading] = useState(false);
 
-  // Mock data - in a real app, this would come from an API
+  // Fetch contact lists from API
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      const mockLists: ContactList[] = [
-        {
-          id: "list-001",
-          name: "High Equity Homeowners",
-          description: "Homeowners with 70%+ equity in their properties",
-          count: 1875,
-          source: "Property Database",
-          tags: ["high-equity", "homeowner"],
-          lastUpdated: "2025-05-01",
-        },
-        {
-          id: "list-002",
-          name: "Pre-Foreclosure Properties",
-          description: "Properties in pre-foreclosure status",
-          count: 943,
-          source: "County Records",
-          tags: ["pre-foreclosure", "distressed"],
-          lastUpdated: "2025-05-03",
-        },
-        {
-          id: "list-003",
-          name: "Commercial Property Owners",
-          description: "Owners of commercial properties in target areas",
-          count: 612,
-          source: "Commercial Database",
-          tags: ["commercial", "business-owner"],
-          lastUpdated: "2025-05-05",
-        },
-        {
-          id: "list-004",
-          name: "Vacant Properties",
-          description: "Properties identified as vacant for 6+ months",
-          count: 528,
-          source: "Utility Data",
-          tags: ["vacant", "opportunity"],
-          lastUpdated: "2025-05-07",
-        },
-        {
-          id: "list-005",
-          name: "Senior Homeowners",
-          description: "Homeowners aged 65+ in target neighborhoods",
-          count: 2134,
-          source: "Demographic Data",
-          tags: ["senior", "homeowner"],
-          lastUpdated: "2025-05-09",
-        },
-        {
-          id: "list-006",
-          name: "Recent Website Inquiries",
-          description: "Leads who submitted inquiries on our website",
-          count: 347,
-          source: "Website",
-          tags: ["warm-lead", "inquiry"],
-          lastUpdated: "2025-05-10",
-        },
-        {
-          id: "list-007",
-          name: "Expired Listings",
-          description: "Properties with recently expired listings",
-          count: 789,
-          source: "MLS Data",
-          tags: ["expired", "opportunity"],
-          lastUpdated: "2025-05-12",
-        },
-      ];
-
-      setContactLists(mockLists);
-      setFilteredLists(mockLists);
-      setLoading(false);
-
-      // If there's a selectedListId, set it as selected
-      if (selectedListId) {
-        const selected = mockLists.find((list) => list.id === selectedListId);
-        if (selected) {
-          setSelectedList(selected);
-          loadPreviewContacts(selected.id);
+    const fetchLists = async () => {
+      try {
+        const response = await fetch("/api/contact-lists");
+        if (!response.ok) {
+          setContactLists([]);
+          setFilteredLists([]);
+          setLoading(false);
+          return;
         }
+        const data = await response.json();
+        const lists = data.lists || [];
+
+        setContactLists(lists);
+        setFilteredLists(lists);
+        setLoading(false);
+
+        // If there's a selectedListId, set it as selected
+        if (selectedListId) {
+          const selected = lists.find((list: ContactList) => list.id === selectedListId);
+          if (selected) {
+            setSelectedList(selected);
+            loadPreviewContacts(selected.id);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching contact lists:", error);
+        setContactLists([]);
+        setFilteredLists([]);
+        setLoading(false);
       }
-    }, 1000);
+    };
+
+    fetchLists();
   }, [selectedListId]);
 
   // Filter lists based on search query and filters
@@ -179,45 +131,22 @@ export function ContactListSelector({
     loadPreviewContacts(list.id);
   };
 
-  const loadPreviewContacts = (listId: string) => {
+  const loadPreviewContacts = async (listId: string) => {
     setPreviewLoading(true);
-    // Simulate API call to get preview contacts
-    setTimeout(() => {
-      const mockPreviewContacts = [
-        {
-          name: "John Smith",
-          phone: "(555) 123-4567",
-          address: "123 Main St, New York, NY",
-          tags: ["high-equity", "homeowner"],
-        },
-        {
-          name: "Sarah Johnson",
-          phone: "(555) 234-5678",
-          address: "456 Oak Ave, Los Angeles, CA",
-          tags: ["pre-foreclosure", "distressed"],
-        },
-        {
-          name: "Michael Chen",
-          phone: "(555) 345-6789",
-          address: "789 Pine Rd, Chicago, IL",
-          tags: ["high-equity", "senior"],
-        },
-        {
-          name: "Emily Davis",
-          phone: "(555) 456-7890",
-          address: "101 Maple Dr, Miami, FL",
-          tags: ["vacant", "opportunity"],
-        },
-        {
-          name: "Robert Wilson",
-          phone: "(555) 567-8901",
-          address: "202 Cedar Ln, Dallas, TX",
-          tags: ["commercial", "business-owner"],
-        },
-      ];
-      setPreviewContacts(mockPreviewContacts);
+    try {
+      const response = await fetch(`/api/contact-lists/${listId}/preview`);
+      if (!response.ok) {
+        setPreviewContacts([]);
+        return;
+      }
+      const data = await response.json();
+      setPreviewContacts(data.contacts || []);
+    } catch (error) {
+      console.error("Error loading preview contacts:", error);
+      setPreviewContacts([]);
+    } finally {
       setPreviewLoading(false);
-    }, 800);
+    }
   };
 
   if (loading) {
