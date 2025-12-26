@@ -1866,6 +1866,34 @@ export type CallHistory = typeof callHistories.$inferSelect;
 export type NewCallHistory = typeof callHistories.$inferInsert;
 
 // ============================================================
+// CALL RECORDINGS - Voice recording metadata
+// See: apps/api/src/database/schema/power-dialers.schema.ts
+// ============================================================
+
+export const callRecordings = pgTable(
+  "call_recordings",
+  {
+    id: text("id").primaryKey(),
+    callHistoryId: text("call_history_id").notNull(),
+    recordingSid: text("recording_sid"),
+    recordingUrl: text("recording_url"),
+    status: text("status").notNull().default("UNKNOWN"),
+    duration: integer("duration"),
+    transcription: text("transcription"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    callHistoryIdIdx: index("call_recordings_call_history_id_idx").on(
+      table.callHistoryId,
+    ),
+  }),
+);
+
+export type CallRecording = typeof callRecordings.$inferSelect;
+export type NewCallRecording = typeof callRecordings.$inferInsert;
+
+// ============================================================
 // MESSAGE TEMPLATES - Reusable message templates
 // See: apps/api/src/database/schema/message-templates.schema.ts
 // ============================================================
