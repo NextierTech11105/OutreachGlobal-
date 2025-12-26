@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { timingSafeEqual } from "crypto";
 import { smsQueueService } from "@/lib/services/sms-queue-service";
 import { db } from "@/lib/db";
 import {
@@ -23,6 +24,57 @@ import {
   getWorkerForLeadStage,
   type AIWorker,
 } from "@/lib/ai-workers/worker-router";
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// WEBHOOK SECURITY (Query Parameter Token)
+// ═══════════════════════════════════════════════════════════════════════════════
+// SignalHouse doesn't sign webhooks, so we use a shared secret token in the URL.
+// Configure your webhook URL in SignalHouse as:
+//   https://yourapp.com/api/webhook/signalhouse?token=YOUR_SECRET_TOKEN
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const WEBHOOK_TOKEN = process.env.SIGNALHOUSE_WEBHOOK_TOKEN || "";
+
+/**
+ * Verify webhook token from query parameter
+ * Returns true if token is valid or not configured (dev mode)
+ */
+function verifyWebhookToken(
+  requestUrl: string,
+): { valid: boolean; error?: string } {
+  // If no token configured, allow all requests (backwards compatible)
+  if (!WEBHOOK_TOKEN) {
+    console.warn(
+      "[SignalHouse] ⚠️ SIGNALHOUSE_WEBHOOK_TOKEN not set - webhook is unprotected",
+    );
+    return { valid: true };
+  }
+
+  // Extract token from query string
+  const url = new URL(requestUrl);
+  const providedToken = url.searchParams.get("token");
+
+  if (!providedToken) {
+    return { valid: false, error: "Missing token parameter" };
+  }
+
+  // Use timing-safe comparison
+  try {
+    const tokenBuffer = Buffer.from(providedToken);
+    const expectedBuffer = Buffer.from(WEBHOOK_TOKEN);
+
+    if (tokenBuffer.length !== expectedBuffer.length) {
+      return { valid: false, error: "Invalid token" };
+    }
+
+    if (timingSafeEqual(tokenBuffer, expectedBuffer)) {
+      return { valid: true };
+    }
+    return { valid: false, error: "Invalid token" };
+  } catch {
+    return { valid: false, error: "Token verification failed" };
+  }
+}
 
 // SignalHouse Webhook Handler
 // Based on https://devapi.signalhouse.io/apiDocs
@@ -339,6 +391,25 @@ export async function GET(request: NextRequest) {
 // POST - Handle incoming webhooks from SignalHouse
 export async function POST(request: NextRequest) {
   try {
+    // ─────────────────────────────────────────────────────────────────────
+    // STEP 0: VALIDATE WEBHOOK TOKEN (Security - prevents spoofing)
+    // ─────────────────────────────────────────────────────────────────────
+    const tokenCheck = verifyWebhookToken(request.url);
+    if (!tokenCheck.valid) {
+      console.error(
+        `[SignalHouse] 🚫 WEBHOOK REJECTED: ${tokenCheck.error}`,
+        {
+          ip: request.headers.get("x-forwarded-for") || "unknown",
+          userAgent: request.headers.get("user-agent"),
+        },
+      );
+      return NextResponse.json(
+        { error: "Unauthorized", reason: tokenCheck.error },
+        { status: 401 },
+      );
+    }
+
+    // Parse the payload
     const payload: SignalHouseWebhookPayload = await request.json();
 
     // SignalHouse uses dot notation: message.received, message.sent, etc.

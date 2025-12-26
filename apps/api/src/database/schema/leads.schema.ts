@@ -51,6 +51,10 @@ export const leads = pgTable(
     index().on(t.teamId),
     uniqueIndex().on(t.teamId, t.integrationId, t.externalId),
     index().on(t.score),
+    // Phone lookup indexes for DNC/opt-out checks
+    index("leads_phone_idx").on(t.phone),
+    index("leads_team_phone_idx").on(t.teamId, t.phone),
+    index("leads_team_status_idx").on(t.teamId, t.status),
   ],
 );
 
@@ -68,7 +72,11 @@ export const leadPhoneNumbers = pgTable(
     createdAt,
     updatedAt,
   },
-  (t) => [index().on(t.leadId)],
+  (t) => [
+    index().on(t.leadId),
+    index("lead_phone_numbers_phone_idx").on(t.phone),
+    index("lead_phone_numbers_lead_phone_idx").on(t.leadId, t.phone),
+  ],
 );
 
 export const importLeadPresets = pgTable("import_lead_presets", {
