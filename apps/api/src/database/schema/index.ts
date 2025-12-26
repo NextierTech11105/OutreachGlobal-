@@ -36,3 +36,17 @@ export * from "./skiptrace-result.schema";
 export * from "./property-owner.schema";
 export * from "./business-owner.schema";
 export * from "./unified-lead-card.schema";
+
+// ===== COMMAND CENTER =====
+export * from "./command-center.schema";
+// Note: knowledge-base.schema.ts has duplicate exports with command-center.schema.ts
+// Use command-center.schema.ts for knowledgeDocuments, scheduledEvents
+
+// ===== OPERATIONS (Postgres/Redis durability) =====
+export * from "./operations.schema";
+
+// ===== SHARED LINKS =====
+export * from "./shared-links.schema";
+
+// ===== WORKER PHONES =====
+export * from "./worker-phones.schema";
