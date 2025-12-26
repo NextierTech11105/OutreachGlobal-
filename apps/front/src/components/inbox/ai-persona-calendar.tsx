@@ -200,34 +200,37 @@ export function AIPersonaCalendar({
     }
   }, [selectedDate, scheduledCalls]);
 
-  // Load scheduled calls
+  // Load scheduled calls from API
   useEffect(() => {
-    // Simulated scheduled calls
-    const mockCalls: ScheduledCall[] = [
-      {
-        id: "call_1",
-        leadId: "lead_001",
-        leadName: "John Smith",
-        companyName: "ABC Plumbing",
-        phone: "(555) 123-4567",
-        scheduledFor: new Date(Date.now() + 2 * 60 * 60 * 1000), // 2 hours from now
-        persona: "sabrina",
-        status: "confirmed",
-        campaignContext: "book_appointment",
-      },
-      {
-        id: "call_2",
-        leadId: "lead_002",
-        leadName: "Jane Doe",
-        companyName: "XYZ Construction",
-        phone: "(555) 987-6543",
-        scheduledFor: new Date(Date.now() + 4 * 60 * 60 * 1000), // 4 hours from now
-        persona: "gianna",
-        status: "pending",
-        campaignContext: "initial",
-      },
-    ];
-    setScheduledCalls(mockCalls);
+    const fetchScheduledCalls = async () => {
+      try {
+        const response = await fetch("/api/scheduled-calls");
+        if (response.ok) {
+          const data = await response.json();
+          // Map API data to ScheduledCall format
+          const calls: ScheduledCall[] = (data.calls || []).map((call: any) => ({
+            id: call.id,
+            leadId: call.leadId,
+            leadName: call.leadName || "Unknown",
+            companyName: call.companyName || "Unknown",
+            phone: call.phone || "",
+            scheduledFor: new Date(call.scheduledFor),
+            persona: call.persona || "gianna",
+            status: call.status || "pending",
+            notes: call.notes,
+            campaignContext: call.campaignContext || "initial",
+          }));
+          setScheduledCalls(calls);
+        } else {
+          setScheduledCalls([]);
+        }
+      } catch (error) {
+        console.error("Failed to fetch scheduled calls:", error);
+        setScheduledCalls([]);
+      }
+    };
+
+    fetchScheduledCalls();
   }, []);
 
   const handleScheduleCall = async () => {

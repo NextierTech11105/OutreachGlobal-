@@ -78,8 +78,8 @@ const getHeatColor = (value: number, max: number): string => {
   return "bg-red-500 dark:bg-red-600/70";
 };
 
-// Generate mock heatmap data
-const generateHeatmapData = (metric: string): HeatmapCell[] => {
+// Generate placeholder heatmap visualization (will be replaced with real activity logs)
+const generatePlaceholderHeatmap = (metric: string): HeatmapCell[] => {
   const data: HeatmapCell[] = [];
   const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -342,10 +342,10 @@ export function SignalHeatmapDashboard() {
       console.error("Failed to fetch campaign stats:", err);
     }
 
-    // Generate placeholder heatmap (will be replaced with real activity logs)
-    setApiCallsHeatmap(generateHeatmapData("API calls"));
-    setSmsHeatmap(generateHeatmapData("messages"));
-    setSkipTraceHeatmap(generateHeatmapData("traces"));
+    // Generate placeholder heatmap visualization (will be replaced with real activity logs API)
+    setApiCallsHeatmap(generatePlaceholderHeatmap("API calls"));
+    setSmsHeatmap(generatePlaceholderHeatmap("messages"));
+    setSkipTraceHeatmap(generatePlaceholderHeatmap("traces"));
 
     setIsRefreshing(false);
   };

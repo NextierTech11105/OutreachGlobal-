@@ -65,121 +65,6 @@ interface Prompt {
   category: string;
 }
 
-// Mock prompts - in a real app, these would come from an API
-const mockPrompts: Prompt[] = [
-  {
-    id: "email-prompt-1",
-    name: "Professional Introduction",
-    description: "Creates a professional introduction email for new prospects",
-    type: MessageTemplateType.EMAIL,
-    prompt:
-      "Write a professional introduction email to a new prospect. The email should introduce our company and services, highlight our value proposition, and request a meeting. Use a friendly but professional tone.",
-    category: "outreach",
-  },
-  {
-    id: "email-prompt-2",
-    name: "Follow-up After Meeting",
-    description: "Creates a follow-up email after an initial meeting",
-    type: MessageTemplateType.EMAIL,
-    prompt:
-      "Write a follow-up email after an initial meeting with a prospect. Thank them for their time, summarize key points discussed, and suggest next steps. Keep it concise and action-oriented.",
-    category: "followup",
-  },
-  {
-    id: "sms-prompt-1",
-    name: "Brief Introduction",
-    description: "Creates a short SMS introduction",
-    type: MessageTemplateType.SMS,
-    prompt:
-      "Write a brief SMS introduction (under 160 characters) that introduces our company to a new lead and invites them to learn more.",
-    category: "outreach",
-  },
-  {
-    id: "sms-prompt-2",
-    name: "Event Reminder",
-    description: "Creates an SMS reminder for an upcoming event",
-    type: MessageTemplateType.SMS,
-    prompt:
-      "Write a short SMS (under 160 characters) reminding a contact about an upcoming webinar or event they've registered for. Include a note about what they'll learn.",
-    category: "reminder",
-  },
-  {
-    id: "voice-prompt-1",
-    name: "Cold Call Script",
-    description: "Creates a script for cold calling new prospects",
-    type: MessageTemplateType.VOICE,
-    prompt:
-      "Write a cold call script for sales representatives to use when contacting new prospects. The script should include an introduction, a brief value proposition, qualifying questions, and a call to action. Keep it conversational and allow for natural dialogue.",
-    category: "outreach",
-  },
-  {
-    id: "voice-prompt-2",
-    name: "Follow-up Call Script",
-    description: "Creates a script for following up with prospects",
-    type: MessageTemplateType.VOICE,
-    prompt:
-      "Write a follow-up call script for sales representatives to use when contacting prospects after an initial conversation or email exchange. The script should reference the previous interaction, address any questions or concerns, and move the prospect toward the next step in the sales process.",
-    category: "followup",
-  },
-];
-
-// Mock templates - in a real app, these would come from an API
-const mockTemplates: Template[] = [
-  {
-    id: "email-template-1",
-    name: "Introduction Email",
-    type: MessageTemplateType.EMAIL,
-    subject: "Introducing Our Services",
-    body: "Dear {{first_name}},\n\nI hope this email finds you well. I wanted to reach out to introduce our services that might benefit {{company_name}}.\n\nOur platform helps businesses like yours to streamline operations and increase revenue through targeted outreach.\n\nWould you be available for a quick 15-minute call this week to discuss how we might be able to help?\n\nBest regards,\n{{user_name}}\n{{user_title}}",
-    createdAt: "2025-04-10T12:00:00Z",
-    updatedAt: "2025-04-10T12:00:00Z",
-  },
-  {
-    id: "email-template-2",
-    name: "Follow-up Email",
-    type: MessageTemplateType.EMAIL,
-    subject: "Following Up on Our Conversation",
-    body: "Hi {{first_name}},\n\nI wanted to follow up on our previous conversation about how our services could help {{company_name}}.\n\nHave you had a chance to review the information I sent over? I'd be happy to answer any questions you might have.\n\nLooking forward to hearing from you.\n\nBest,\n{{user_name}}",
-    createdAt: "2025-04-11T14:30:00Z",
-    updatedAt: "2025-04-12T09:15:00Z",
-  },
-  {
-    id: "sms-template-1",
-    name: "Quick Introduction",
-    type: MessageTemplateType.SMS,
-    smsText:
-      "Hi {{first_name}}, this is {{user_name}} from NextierData. We help businesses like {{company_name}} improve lead generation. Would you be interested in learning more?",
-    createdAt: "2025-04-13T10:20:00Z",
-    updatedAt: "2025-04-13T10:20:00Z",
-  },
-  {
-    id: "sms-template-2",
-    name: "Event Reminder",
-    type: MessageTemplateType.SMS,
-    smsText:
-      "{{first_name}}, just a reminder about our webinar tomorrow at 2pm EST. Looking forward to seeing you there! Reply STOP to unsubscribe.",
-    createdAt: "2025-04-14T16:45:00Z",
-    updatedAt: "2025-04-14T16:45:00Z",
-  },
-  {
-    id: "voice-template-1",
-    name: "Introduction Call Script",
-    type: MessageTemplateType.VOICE,
-    voiceScript:
-      "Hello {{first_name}}, this is {{user_name}} from NextierData. I'm calling to introduce our lead generation platform that has helped companies like yours increase qualified leads by 40%. Do you have a few minutes to discuss how this might benefit {{company_name}}?",
-    createdAt: "2025-04-15T11:30:00Z",
-    updatedAt: "2025-04-15T11:30:00Z",
-  },
-  {
-    id: "voice-template-2",
-    name: "Follow-up Call Script",
-    type: MessageTemplateType.VOICE,
-    voiceScript:
-      "Hi {{first_name}}, this is {{user_name}} following up on our previous conversation about NextierData's services. I wanted to see if you had any questions about the information I sent over and if you'd like to schedule a demo.",
-    createdAt: "2025-04-16T13:10:00Z",
-    updatedAt: "2025-04-16T13:10:00Z",
-  },
-];
 
 export function MessageTemplateManager() {
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -200,13 +85,32 @@ export function MessageTemplateManager() {
   const [selectedPromptId, setSelectedPromptId] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // In a real app, fetch templates and prompts from an API
+  // Fetch templates and prompts from API
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      setTemplates(mockTemplates);
-      setPrompts(mockPrompts);
-    }, 500);
+    const fetchData = async () => {
+      try {
+        const [templatesRes, promptsRes] = await Promise.all([
+          fetch("/api/message-templates"),
+          fetch("/api/message-prompts"),
+        ]);
+
+        if (templatesRes.ok) {
+          const templatesData = await templatesRes.json();
+          setTemplates(templatesData.templates || []);
+        }
+
+        if (promptsRes.ok) {
+          const promptsData = await promptsRes.json();
+          setPrompts(promptsData.prompts || []);
+        }
+      } catch (error) {
+        console.error("Failed to fetch templates/prompts:", error);
+        setTemplates([]);
+        setPrompts([]);
+      }
+    };
+
+    fetchData();
   }, []);
 
   const handleEdit = (template: Template) => {

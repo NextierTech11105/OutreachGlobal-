@@ -169,6 +169,17 @@ export function CampaignSelector({
             </CardHeader>
             <CardContent className="p-0">
               <ScrollArea className="h-[400px]">
+                {filteredCampaigns.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-[400px] text-center p-4">
+                    <Info className="h-12 w-12 text-muted-foreground/50 mb-4" />
+                    <p className="text-muted-foreground">No campaigns available</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {searchQuery || typeFilter
+                        ? "Try adjusting your search or filters"
+                        : "Create a new campaign to get started"}
+                    </p>
+                  </div>
+                ) : (
                 <div className="space-y-1 p-1">
                   {filteredCampaigns.map((campaign) => (
                     <div
@@ -219,6 +230,7 @@ export function CampaignSelector({
                     </div>
                   ))}
                 </div>
+                )}
               </ScrollArea>
             </CardContent>
             <CardFooter className="flex justify-between border-t p-4">

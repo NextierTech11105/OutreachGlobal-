@@ -152,7 +152,7 @@ function calculatePriorityScore(
 }
 
 // ============================================================================
-// MOCK DATA GENERATOR
+// SECTOR CONFIGURATION
 // ============================================================================
 
 const SECTOR_CONFIG: Record<string, { label: string; color: string }> = {
@@ -167,30 +167,6 @@ const SECTOR_CONFIG: Record<string, { label: string; color: string }> = {
   medical: { label: "Medical", color: "bg-pink-500" },
   dental: { label: "Dental", color: "bg-indigo-500" },
 };
-
-function generateMockQueues(): SectorQueue[] {
-  return Object.entries(SECTOR_CONFIG).map(([sector, config]) => {
-    const total = Math.floor(Math.random() * 5000) + 500;
-    const no_contact = Math.floor(total * 0.7);
-    const attempted = Math.floor(total * 0.15);
-    const contacted = Math.floor(total * 0.1);
-    const responded = Math.floor(total * 0.04);
-    const converted = Math.floor(total * 0.01);
-
-    return {
-      sector,
-      label: config.label,
-      total,
-      no_contact,
-      attempted,
-      contacted,
-      responded,
-      converted,
-      avg_priority: Math.floor(Math.random() * 30) + 60,
-      active: Math.random() > 0.3,
-    };
-  });
-}
 
 // ============================================================================
 // COMPONENT
@@ -288,46 +264,29 @@ export function GiannaMatrixAgent() {
           );
         }
 
-        // Use real data if available, otherwise fallback to mock
-        if (realQueues.length > 0) {
-          setQueues(realQueues);
-          const totalLeads = realQueues.reduce((sum, q) => sum + q.total, 0);
-          const noContact = realQueues.reduce(
-            (sum, q) => sum + q.no_contact,
-            0,
-          );
-          const contacted = realQueues.reduce((sum, q) => sum + q.contacted, 0);
-          const responded = realQueues.reduce((sum, q) => sum + q.responded, 0);
+        // Use real data
+        setQueues(realQueues);
+        const totalLeads = realQueues.reduce((sum, q) => sum + q.total, 0);
+        const noContact = realQueues.reduce(
+          (sum, q) => sum + q.no_contact,
+          0,
+        );
+        const contacted = realQueues.reduce((sum, q) => sum + q.contacted, 0);
+        const responded = realQueues.reduce((sum, q) => sum + q.responded, 0);
 
-          setStats({
-            total_leads: totalLeads,
-            no_contact: noContact,
-            contacted,
-            responded,
-            conversion_rate:
-              totalLeads > 0 ? (responded / totalLeads) * 100 : 0,
-            leads_per_hour: 0,
-            active_campaigns: 0,
-          });
-        } else {
-          // Fallback to mock if no data
-          const mockQueues = generateMockQueues();
-          setQueues(mockQueues);
-          const totalLeads = mockQueues.reduce((sum, q) => sum + q.total, 0);
-          setStats({
-            total_leads: totalLeads,
-            no_contact: mockQueues.reduce((sum, q) => sum + q.no_contact, 0),
-            contacted: mockQueues.reduce((sum, q) => sum + q.contacted, 0),
-            responded: mockQueues.reduce((sum, q) => sum + q.responded, 0),
-            conversion_rate: 0,
-            leads_per_hour: 0,
-            active_campaigns: 0,
-          });
-        }
+        setStats({
+          total_leads: totalLeads,
+          no_contact: noContact,
+          contacted,
+          responded,
+          conversion_rate:
+            totalLeads > 0 ? (responded / totalLeads) * 100 : 0,
+          leads_per_hour: 0,
+          active_campaigns: 0,
+        });
       } catch (error) {
         console.error("Failed to fetch real data:", error);
-        const mockQueues = generateMockQueues();
-        setQueues(mockQueues);
+        setQueues([]);
       }
     }
 

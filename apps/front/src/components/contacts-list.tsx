@@ -66,16 +66,30 @@ export function ContactsList({
   const [selectedContacts, setSelectedContacts] = useState<Contact[]>([]);
   const [selectionMode, setSelectionMode] = useState(false);
 
-  // Mock data - in a real app, this would come from an API
+  // Fetch contacts from API
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      const mockContacts: Contact[] = [];
+    const fetchContacts = async () => {
+      try {
+        const response = await fetch("/api/contacts");
+        if (response.ok) {
+          const data = await response.json();
+          const contactsList = data.contacts || [];
+          setContacts(contactsList);
+          setFilteredContacts(contactsList);
+        } else {
+          setContacts([]);
+          setFilteredContacts([]);
+        }
+      } catch (error) {
+        console.error("Failed to fetch contacts:", error);
+        setContacts([]);
+        setFilteredContacts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-      setContacts(mockContacts);
-      setFilteredContacts(mockContacts);
-      setLoading(false);
-    }, 1000);
+    fetchContacts();
   }, []);
 
   // Filter contacts based on search query and filters
