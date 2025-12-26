@@ -43,89 +43,20 @@ interface WorkflowHeatmapProps {
   className?: string;
 }
 
-// Mock data for development/preview
-const MOCK_HEATMAP_DATA: WorkflowHeatmapData = {
-  workflows: [
-    {
-      workflowId: "wf-initial-homeowner",
-      name: "Homeowner Initial Outreach",
-      campaignContext: "initial",
-      metrics: {
-        totalSent: 2500,
-        delivered: 2350,
-        responses: 187,
-        emailCaptures: 42,
-        optOuts: 23,
-        interested: 67,
-        questions: 31,
-      },
-      conversionRate: 0.0179,
-      responseRate: 0.0796,
-      heatScore: 85,
-    },
-    {
-      workflowId: "wf-retarget-distressed",
-      name: "Distressed Property Retarget",
-      campaignContext: "retarget",
-      metrics: {
-        totalSent: 1200,
-        delivered: 1150,
-        responses: 89,
-        emailCaptures: 18,
-        optOuts: 12,
-        interested: 34,
-        questions: 15,
-      },
-      conversionRate: 0.0157,
-      responseRate: 0.0774,
-      heatScore: 72,
-    },
-    {
-      workflowId: "wf-followup-interested",
-      name: "Interested Lead Follow-up",
-      campaignContext: "follow_up",
-      metrics: {
-        totalSent: 450,
-        delivered: 435,
-        responses: 156,
-        emailCaptures: 78,
-        optOuts: 3,
-        interested: 89,
-        questions: 24,
-      },
-      conversionRate: 0.1793,
-      responseRate: 0.3586,
-      heatScore: 95,
-    },
-    {
-      workflowId: "wf-nurture-long",
-      name: "Long-term Nurture",
-      campaignContext: "nurture",
-      metrics: {
-        totalSent: 800,
-        delivered: 760,
-        responses: 28,
-        emailCaptures: 5,
-        optOuts: 8,
-        interested: 12,
-        questions: 6,
-      },
-      conversionRate: 0.0066,
-      responseRate: 0.0368,
-      heatScore: 35,
-    },
-  ],
+// Empty default data
+const EMPTY_HEATMAP_DATA: WorkflowHeatmapData = {
+  workflows: [],
   dateRange: {
     start: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
     end: new Date().toISOString(),
   },
   aggregatedMetrics: {
-    totalSent: 4950,
-    totalDelivered: 4695,
-    totalResponses: 460,
-    totalEmailCaptures: 143,
-    avgConversionRate: 0.0305,
-    avgResponseRate: 0.098,
+    totalSent: 0,
+    totalDelivered: 0,
+    totalResponses: 0,
+    totalEmailCaptures: 0,
+    avgConversionRate: 0,
+    avgResponseRate: 0,
   },
 };
 
@@ -312,7 +243,7 @@ function AggregatedMetricsBar({
 }
 
 export function WorkflowHeatmap({
-  data = MOCK_HEATMAP_DATA,
+  data = EMPTY_HEATMAP_DATA,
   onWorkflowClick,
   className,
 }: WorkflowHeatmapProps) {
@@ -391,19 +322,29 @@ export function WorkflowHeatmap({
         </div>
 
         {/* Workflow Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {sortedWorkflows.map((workflow) => (
-            <HeatCell
-              key={workflow.workflowId}
-              workflow={workflow}
-              onClick={
-                onWorkflowClick
-                  ? () => onWorkflowClick(workflow.workflowId)
-                  : undefined
-              }
-            />
-          ))}
-        </div>
+        {sortedWorkflows.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <FlameIcon className="h-12 w-12 text-muted-foreground/50 mb-4" />
+            <p className="text-muted-foreground">No workflow data available</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Workflow metrics will appear here once data is loaded
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {sortedWorkflows.map((workflow) => (
+              <HeatCell
+                key={workflow.workflowId}
+                workflow={workflow}
+                onClick={
+                  onWorkflowClick
+                    ? () => onWorkflowClick(workflow.workflowId)
+                    : undefined
+                }
+              />
+            ))}
+          </div>
+        )}
 
         {/* Top Performers */}
         {sortedWorkflows.length > 0 && (
@@ -454,4 +395,4 @@ export function WorkflowHeatmap({
   );
 }
 
-export { MOCK_HEATMAP_DATA };
+export { EMPTY_HEATMAP_DATA };
