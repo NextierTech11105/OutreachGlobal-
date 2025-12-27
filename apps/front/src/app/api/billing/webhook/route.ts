@@ -6,6 +6,13 @@ import { eq } from "drizzle-orm";
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
 
+// SECURITY: Warn at startup if webhook is not properly configured
+if (!STRIPE_WEBHOOK_SECRET) {
+  console.warn(
+    "[Billing Webhook] STRIPE_WEBHOOK_SECRET not configured - webhook verification disabled",
+  );
+}
+
 // POST /api/billing/webhook - Handle Stripe webhooks
 export async function POST(request: NextRequest) {
   if (!STRIPE_SECRET_KEY) {
@@ -13,36 +20,43 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ received: true, skipped: true });
   }
 
+  // SECURITY: Require webhook secret in production
+  if (!STRIPE_WEBHOOK_SECRET) {
+    console.error("[Billing Webhook] CRITICAL: Webhook secret not configured");
+    return NextResponse.json(
+      { error: "Webhook not configured" },
+      { status: 503 },
+    );
+  }
+
   try {
     const body = await request.text();
     const signature = request.headers.get("stripe-signature");
 
+    if (!signature) {
+      return NextResponse.json(
+        { error: "Missing signature header" },
+        { status: 400 },
+      );
+    }
+
     let event: any;
 
-    // Verify webhook signature if secret is configured
-    if (STRIPE_WEBHOOK_SECRET && signature) {
-      try {
-        const Stripe = (await import("stripe")).default;
-        const stripe = new Stripe(STRIPE_SECRET_KEY);
-        event = stripe.webhooks.constructEvent(
-          body,
-          signature,
-          STRIPE_WEBHOOK_SECRET,
-        );
-      } catch (err: any) {
-        console.error(
-          "[Billing Webhook] Signature verification failed:",
-          err.message,
-        );
-        return NextResponse.json(
-          { error: "Invalid signature" },
-          { status: 400 },
-        );
-      }
-    } else {
-      // Parse without verification (development only)
-      event = JSON.parse(body);
-      console.warn("[Billing Webhook] Running without signature verification");
+    // Verify webhook signature (REQUIRED)
+    try {
+      const Stripe = (await import("stripe")).default;
+      const stripe = new Stripe(STRIPE_SECRET_KEY);
+      event = stripe.webhooks.constructEvent(
+        body,
+        signature,
+        STRIPE_WEBHOOK_SECRET,
+      );
+    } catch (err: any) {
+      console.error(
+        "[Billing Webhook] Signature verification failed:",
+        err.message,
+      );
+      return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
     }
 
     console.log(`[Billing Webhook] Received event: ${event.type}`);

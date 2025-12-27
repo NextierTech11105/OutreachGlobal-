@@ -1,7 +1,17 @@
 import { NextResponse } from "next/server";
 import postgres from "postgres";
+import { requireSuperAdmin } from "@/lib/api-auth";
 
 export async function POST() {
+  // SECURITY: Only super admins can run setup
+  const admin = await requireSuperAdmin();
+  if (!admin) {
+    return NextResponse.json(
+      { error: "Forbidden: Super admin access required" },
+      { status: 403 },
+    );
+  }
+
   const databaseUrl = process.env.DATABASE_URL;
   const email = process.env.DEFAULT_ADMIN_EMAIL || "admin@outreachglobal.io";
 
