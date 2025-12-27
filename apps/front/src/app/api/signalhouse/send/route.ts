@@ -42,7 +42,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error: "Missing required fields",
-          required: { to: "recipient phone (E.164)", from: "sender phone (E.164)", message: "text content" },
+          required: {
+            to: "recipient phone (E.164)",
+            from: "sender phone (E.164)",
+            message: "text content",
+          },
         },
         { status: 400 },
       );
@@ -70,7 +74,8 @@ export async function POST(request: NextRequest) {
               error: "Cannot send SMS to landline numbers",
               phoneType: "landline",
               carrier: validation.data.carrier,
-              suggestion: "Use voice calls for landline numbers or set skipLandlineValidation: true",
+              suggestion:
+                "Use voice calls for landline numbers or set skipLandlineValidation: true",
             },
             { status: 400 },
           );
@@ -115,7 +120,8 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: unknown) {
     console.error("[SignalHouse Send] Error:", error);
-    const message = error instanceof Error ? error.message : "Failed to send message";
+    const message =
+      error instanceof Error ? error.message : "Failed to send message";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -52,7 +52,10 @@ function verifyWebhookToken(requestUrl: string): {
 } {
   // SECURITY: Reject ALL requests if token not configured
   if (!WEBHOOK_TOKEN) {
-    return { valid: false, error: "Webhook not configured - endpoint disabled" };
+    return {
+      valid: false,
+      error: "Webhook not configured - endpoint disabled",
+    };
   }
 
   // Extract token from query string
@@ -511,7 +514,10 @@ export async function POST(request: NextRequest) {
             updatedAt: new Date(),
           });
         } catch (dbError) {
-          console.error("[SignalHouse] Failed to save inbound message:", dbError);
+          console.error(
+            "[SignalHouse] Failed to save inbound message:",
+            dbError,
+          );
           // Continue processing - don't fail the webhook
         }
 
