@@ -4,6 +4,8 @@
  * Powers SMS drip automation, batch sending, and message tracking
  */
 
+import { getAuthHeaders, isConfigured } from "@/lib/signalhouse/client";
+
 const SIGNALHOUSE_CONFIG = {
   baseUrl: process.env.SIGNALHOUSE_API_URL || "https://api.signalhouse.io",
   apiKey: process.env.SIGNALHOUSE_API_KEY || "",
@@ -131,11 +133,10 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export class SignalHouseService {
   private static instance: SignalHouseService;
-  private apiKey: string;
   private baseUrl: string;
 
   private constructor() {
-    this.apiKey = SIGNALHOUSE_CONFIG.apiKey;
+    // Auth handled by shared getAuthHeaders() from client
     this.baseUrl = SIGNALHOUSE_CONFIG.baseUrl;
   }
 
@@ -170,10 +171,7 @@ export class SignalHouseService {
         const response = await fetch(url, {
           ...options,
           headers: {
-            "Content-Type": "application/json",
-            "x-api-key": this.apiKey,
-            "x-correlation-id": corrId, // Cross-platform tracing
-            "x-client": "nextier-platform", // Identify our platform
+            ...getAuthHeaders(corrId), // Standardized auth headers from client
             ...options.headers,
           },
         });
@@ -875,9 +873,10 @@ export class SignalHouseService {
 
   /**
    * Check if API is properly configured
+   * Uses shared isConfigured from client for consistency
    */
-  public isConfigured(): boolean {
-    return !!this.apiKey && this.apiKey.length > 0;
+  public checkIsConfigured(): boolean {
+    return isConfigured();
   }
 
   /**
@@ -889,7 +888,7 @@ export class SignalHouseService {
     baseUrl: string;
   } {
     return {
-      hasApiKey: !!this.apiKey,
+      hasApiKey: isConfigured(),
       hasFromNumber: !!SIGNALHOUSE_CONFIG.defaultFromNumber,
       baseUrl: this.baseUrl,
     };

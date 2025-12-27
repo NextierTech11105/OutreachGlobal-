@@ -36,7 +36,8 @@ export async function POST(request: NextRequest) {
       console.log("[Twilio Webhook] Inbound call from:", from, "to:", to);
 
       // Try to find the lead by phone number
-      let leadInfo: { id: string; name?: string; company?: string } | null = null;
+      let leadInfo: { id: string; name?: string; company?: string } | null =
+        null;
       try {
         const leadResults = await db
           .select({
@@ -47,19 +48,23 @@ export async function POST(request: NextRequest) {
             tags: leads.tags,
           })
           .from(leads)
-          .where(or(
-            eq(leads.mobilePhone, from),
-            eq(leads.phone, from),
-            eq(leads.mobilePhone, from.replace("+1", "")),
-            eq(leads.phone, from.replace("+1", ""))
-          ))
+          .where(
+            or(
+              eq(leads.mobilePhone, from),
+              eq(leads.phone, from),
+              eq(leads.mobilePhone, from.replace("+1", "")),
+              eq(leads.phone, from.replace("+1", "")),
+            ),
+          )
           .limit(1);
 
         if (leadResults.length > 0) {
           const lead = leadResults[0];
           leadInfo = {
             id: lead.id,
-            name: [lead.firstName, lead.lastName].filter(Boolean).join(" ") || undefined,
+            name:
+              [lead.firstName, lead.lastName].filter(Boolean).join(" ") ||
+              undefined,
             company: lead.company || undefined,
           };
           console.log("[Twilio Webhook] Found lead:", leadInfo);
@@ -79,7 +84,10 @@ export async function POST(request: NextRequest) {
                 updatedAt: new Date(),
               })
               .where(eq(leads.id, lead.id));
-            console.log("[Twilio Webhook] Added 'responded' tag to lead:", lead.id);
+            console.log(
+              "[Twilio Webhook] Added 'responded' tag to lead:",
+              lead.id,
+            );
           }
         }
       } catch (lookupError) {

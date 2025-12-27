@@ -65,7 +65,6 @@ interface Prompt {
   category: string;
 }
 
-
 export function MessageTemplateManager() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [prompts, setPrompts] = useState<Prompt[]>([]);

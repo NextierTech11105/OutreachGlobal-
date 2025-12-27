@@ -11,6 +11,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { requireSuperAdmin } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import {
   teamPhoneNumbers,
@@ -30,6 +31,14 @@ import {
 
 export async function GET(request: NextRequest) {
   try {
+    const admin = await requireSuperAdmin();
+    if (!admin) {
+      return NextResponse.json(
+        { error: "Forbidden: Super admin access required" },
+        { status: 403 },
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const action = searchParams.get("action") || "list";
     const teamId = searchParams.get("teamId");
@@ -230,6 +239,14 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const admin = await requireSuperAdmin();
+    if (!admin) {
+      return NextResponse.json(
+        { error: "Forbidden: Super admin access required" },
+        { status: 403 },
+      );
+    }
+
     const body = await request.json();
     const { action } = body;
 
@@ -438,6 +455,14 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    const admin = await requireSuperAdmin();
+    if (!admin) {
+      return NextResponse.json(
+        { error: "Forbidden: Super admin access required" },
+        { status: 403 },
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const phoneNumberId = searchParams.get("id");
     const releaseFromSignalhouse = searchParams.get("release") !== "false";

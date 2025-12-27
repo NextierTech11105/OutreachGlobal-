@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     if (!callSid || !from) {
       return NextResponse.json(
         { error: "callSid and from are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
     console.error("[Call Log] Error:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to log call" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

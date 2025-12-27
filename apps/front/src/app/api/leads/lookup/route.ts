@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     if (!phone) {
       return NextResponse.json(
         { error: "phone parameter required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
       })
       .from(leads)
       .where(
-        sql`${leads.phone} LIKE ${"%" + phoneLast10} OR ${leads.phone} = ${phoneWithPrefix} OR ${leads.phone} = ${normalizedPhone}`
+        sql`${leads.phone} LIKE ${"%" + phoneLast10} OR ${leads.phone} = ${phoneWithPrefix} OR ${leads.phone} = ${normalizedPhone}`,
       )
       .limit(1);
 
@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
         lead: null,
         error: error instanceof Error ? error.message : "Lookup failed",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

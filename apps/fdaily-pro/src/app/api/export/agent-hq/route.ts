@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { batches } from "../../import/route";
+import { batches } from "@/lib/batches-store";
 
 /**
  * Export CSV for Agent HQ skip tracing
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
 
   const csv = [
     headers.join(","),
-    ...rows.map(r => r.map(v => `"${String(v || "").replace(/"/g, '""')}"`).join(","))
+    ...rows.map((r: string[]) => r.map((v: string) => `"${String(v || "").replace(/"/g, '""')}"`).join(","))
   ].join("\n");
 
   return new NextResponse(csv, {

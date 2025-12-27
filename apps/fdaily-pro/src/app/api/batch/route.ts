@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { batches } from "../import/route";
+import { batches } from "@/lib/batches-store";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);

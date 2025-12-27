@@ -172,7 +172,9 @@ export function CampaignSelector({
                 {filteredCampaigns.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-[400px] text-center p-4">
                     <Info className="h-12 w-12 text-muted-foreground/50 mb-4" />
-                    <p className="text-muted-foreground">No campaigns available</p>
+                    <p className="text-muted-foreground">
+                      No campaigns available
+                    </p>
                     <p className="text-sm text-muted-foreground mt-1">
                       {searchQuery || typeFilter
                         ? "Try adjusting your search or filters"
@@ -180,56 +182,56 @@ export function CampaignSelector({
                     </p>
                   </div>
                 ) : (
-                <div className="space-y-1 p-1">
-                  {filteredCampaigns.map((campaign) => (
-                    <div
-                      key={campaign.id}
-                      className={`flex items-start justify-between p-3 rounded-md hover:bg-muted/50 transition-colors cursor-pointer ${
-                        selectedCampaign?.id === campaign.id ? "bg-muted" : ""
-                      }`}
-                      onClick={() => handleSelectCampaign(campaign)}
-                    >
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <div className="font-medium">{campaign.name}</div>
-                          <Badge
-                            variant="outline"
-                            className={
-                              campaign.type === "ai"
-                                ? "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
-                                : "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300"
-                            }
-                          >
-                            {campaign.type === "ai" ? (
-                              <Bot className="h-3 w-3 mr-1" />
-                            ) : (
-                              <User className="h-3 w-3 mr-1" />
-                            )}
-                            {campaign.type === "ai" ? "AI SDR" : "Human SDR"}
-                          </Badge>
-                        </div>
-                        <div className="text-sm text-muted-foreground mt-1">
-                          {campaign.description}
-                        </div>
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {campaign.tags.map((tag) => (
+                  <div className="space-y-1 p-1">
+                    {filteredCampaigns.map((campaign) => (
+                      <div
+                        key={campaign.id}
+                        className={`flex items-start justify-between p-3 rounded-md hover:bg-muted/50 transition-colors cursor-pointer ${
+                          selectedCampaign?.id === campaign.id ? "bg-muted" : ""
+                        }`}
+                        onClick={() => handleSelectCampaign(campaign)}
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between">
+                            <div className="font-medium">{campaign.name}</div>
                             <Badge
-                              key={tag}
-                              variant="secondary"
-                              className="text-xs"
+                              variant="outline"
+                              className={
+                                campaign.type === "ai"
+                                  ? "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
+                                  : "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300"
+                              }
                             >
-                              {tag}
+                              {campaign.type === "ai" ? (
+                                <Bot className="h-3 w-3 mr-1" />
+                              ) : (
+                                <User className="h-3 w-3 mr-1" />
+                              )}
+                              {campaign.type === "ai" ? "AI SDR" : "Human SDR"}
                             </Badge>
-                          ))}
+                          </div>
+                          <div className="text-sm text-muted-foreground mt-1">
+                            {campaign.description}
+                          </div>
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {campaign.tags.map((tag) => (
+                              <Badge
+                                key={tag}
+                                variant="secondary"
+                                className="text-xs"
+                              >
+                                {tag}
+                              </Badge>
+                            ))}
+                          </div>
                         </div>
+                        <Checkbox
+                          checked={selectedCampaign?.id === campaign.id}
+                          className="ml-2 mt-1"
+                        />
                       </div>
-                      <Checkbox
-                        checked={selectedCampaign?.id === campaign.id}
-                        className="ml-2 mt-1"
-                      />
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
                 )}
               </ScrollArea>
             </CardContent>

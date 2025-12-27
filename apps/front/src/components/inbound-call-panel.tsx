@@ -57,7 +57,9 @@ export function InboundCallPanel() {
   const [callStatus, setCallStatus] = useState<CallStatus>("idle");
   const [isMuted, setIsMuted] = useState(false);
   const [isOnHold, setIsOnHold] = useState(false);
-  const [callerContext, setCallerContext] = useState<CallerContext | null>(null);
+  const [callerContext, setCallerContext] = useState<CallerContext | null>(
+    null,
+  );
   const [callDuration, setCallDuration] = useState(0);
   const [isInitializing, setIsInitializing] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -186,7 +188,7 @@ export function InboundCallPanel() {
   const lookupCaller = async (phoneNumber: string) => {
     try {
       const response = await fetch(
-        `/api/leads/lookup?phone=${encodeURIComponent(phoneNumber)}`
+        `/api/leads/lookup?phone=${encodeURIComponent(phoneNumber)}`,
       );
       const data = await response.json();
 
@@ -208,7 +210,9 @@ export function InboundCallPanel() {
   const startDurationTimer = () => {
     durationInterval.current = setInterval(() => {
       if (callStartTime.current) {
-        setCallDuration(Math.floor((Date.now() - callStartTime.current) / 1000));
+        setCallDuration(
+          Math.floor((Date.now() - callStartTime.current) / 1000),
+        );
       }
     }, 1000);
   };
@@ -324,7 +328,9 @@ export function InboundCallPanel() {
                 <Phone className="h-5 w-5 text-zinc-400" />
               </div>
               <div>
-                <p className="text-sm font-medium text-zinc-300">Inbound Calls</p>
+                <p className="text-sm font-medium text-zinc-300">
+                  Inbound Calls
+                </p>
                 <p className="text-xs text-zinc-500">
                   {isInitializing
                     ? "Connecting..."

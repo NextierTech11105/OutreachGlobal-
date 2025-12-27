@@ -267,10 +267,7 @@ export function GiannaMatrixAgent() {
         // Use real data
         setQueues(realQueues);
         const totalLeads = realQueues.reduce((sum, q) => sum + q.total, 0);
-        const noContact = realQueues.reduce(
-          (sum, q) => sum + q.no_contact,
-          0,
-        );
+        const noContact = realQueues.reduce((sum, q) => sum + q.no_contact, 0);
         const contacted = realQueues.reduce((sum, q) => sum + q.contacted, 0);
         const responded = realQueues.reduce((sum, q) => sum + q.responded, 0);
 
@@ -279,8 +276,7 @@ export function GiannaMatrixAgent() {
           no_contact: noContact,
           contacted,
           responded,
-          conversion_rate:
-            totalLeads > 0 ? (responded / totalLeads) * 100 : 0,
+          conversion_rate: totalLeads > 0 ? (responded / totalLeads) * 100 : 0,
           leads_per_hour: 0,
           active_campaigns: 0,
         });

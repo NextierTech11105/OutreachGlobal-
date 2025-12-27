@@ -102,7 +102,7 @@ export async function logAdminAction(params: AuditLogParams): Promise<void> {
     });
 
     console.log(
-      `[AuditLog] ${adminEmail} performed ${action} on ${targetType || "system"} ${targetId || ""}`
+      `[AuditLog] ${adminEmail} performed ${action} on ${targetType || "system"} ${targetId || ""}`,
     );
   } catch (error) {
     // Don't throw - audit logging should never break the main operation

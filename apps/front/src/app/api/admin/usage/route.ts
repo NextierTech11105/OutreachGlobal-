@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { apiAuth } from "@/lib/api-auth";
+import { requireSuperAdmin } from "@/lib/api-auth";
 import { getUsageSummary } from "@/lib/signalhouse/admin-service";
 import {
   getWalletSummary,
@@ -15,9 +15,12 @@ import {
 // GET - Usage and billing information
 export async function GET(request: NextRequest) {
   try {
-    const auth = await apiAuth();
-    if (!auth.userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const admin = await requireSuperAdmin();
+    if (!admin) {
+      return NextResponse.json(
+        { error: "Forbidden: Super admin access required" },
+        { status: 403 },
+      );
     }
 
     if (!isConfigured()) {

@@ -184,7 +184,8 @@ class TwilioService {
       );
       if (conferenceIndex >= 0) {
         activeConferences[conferenceIndex].status = "completed";
-        activeConferences[conferenceIndex].dateUpdated = new Date().toISOString();
+        activeConferences[conferenceIndex].dateUpdated =
+          new Date().toISOString();
       }
     } catch (error) {
       console.error("Error ending conference:", error);
@@ -275,8 +276,9 @@ class TwilioService {
       );
 
       if (participantIndex >= 0) {
-        activeConferences[conferenceIndex].participants[participantIndex].status =
-          "disconnected";
+        activeConferences[conferenceIndex].participants[
+          participantIndex
+        ].status = "disconnected";
         activeConferences[conferenceIndex].participants[
           participantIndex
         ].endTime = new Date().toISOString();
@@ -316,8 +318,9 @@ class TwilioService {
       );
 
       if (participantIndex >= 0) {
-        activeConferences[conferenceIndex].participants[participantIndex].muted =
-          mute;
+        activeConferences[conferenceIndex].participants[
+          participantIndex
+        ].muted = mute;
       }
     } catch (error) {
       console.error(
@@ -565,7 +568,9 @@ export function createTwilioClient(accountSid: string, authToken: string) {
         duration: 0,
         startTime: new Date().toISOString(),
       }),
-      fetch: async () => { throw new Error("Use twilioService.getCallDetails instead"); },
+      fetch: async () => {
+        throw new Error("Use twilioService.getCallDetails instead");
+      },
       update: async (options: any) => ({ success: true }),
     }),
     recordings: {

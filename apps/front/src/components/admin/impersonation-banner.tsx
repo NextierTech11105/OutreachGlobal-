@@ -18,7 +18,8 @@ interface ImpersonationContext {
 
 export function ImpersonationBanner() {
   const router = useRouter();
-  const [impersonation, setImpersonation] = useState<ImpersonationContext | null>(null);
+  const [impersonation, setImpersonation] =
+    useState<ImpersonationContext | null>(null);
   const [isExiting, setIsExiting] = useState(false);
 
   useEffect(() => {
@@ -93,7 +94,9 @@ export function ImpersonationBanner() {
           <div className="flex items-center gap-1">
             <User className="h-3 w-3" />
             <span>{impersonation.targetUserName}</span>
-            <span className="text-yellow-700 text-sm">({impersonation.targetUserEmail})</span>
+            <span className="text-yellow-700 text-sm">
+              ({impersonation.targetUserEmail})
+            </span>
           </div>
         </div>
       </div>
@@ -115,7 +118,8 @@ export function ImpersonationBanner() {
  * Hook to check if currently impersonating
  */
 export function useImpersonation() {
-  const [impersonation, setImpersonation] = useState<ImpersonationContext | null>(null);
+  const [impersonation, setImpersonation] =
+    useState<ImpersonationContext | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {

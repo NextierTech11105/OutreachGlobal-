@@ -1,21 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
-import { apiAuth } from "@/lib/api-auth";
+import { requireSuperAdmin } from "@/lib/api-auth";
 import {
   getAllTenantMappings,
   fullTenantSync,
   addSubBrand,
   mapTeamToSubBrand,
-  NEXTIER_BRANDS,
-  NEXTIER_SUB_BRANDS,
 } from "@/lib/signalhouse/tenant-mapping";
 import { isConfigured } from "@/lib/signalhouse/client";
 
 // GET - List all tenant/brand mappings
 export async function GET() {
   try {
-    const auth = await apiAuth();
-    if (!auth.userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const admin = await requireSuperAdmin();
+    if (!admin) {
+      return NextResponse.json(
+        { error: "Forbidden: Super admin access required" },
+        { status: 403 },
+      );
     }
 
     const mappings = getAllTenantMappings();
@@ -39,9 +40,12 @@ export async function GET() {
 // POST - Sync tenants to SignalHouse or create new sub-brand
 export async function POST(request: NextRequest) {
   try {
-    const auth = await apiAuth();
-    if (!auth.userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const admin = await requireSuperAdmin();
+    if (!admin) {
+      return NextResponse.json(
+        { error: "Forbidden: Super admin access required" },
+        { status: 403 },
+      );
     }
 
     if (!isConfigured()) {

@@ -9,9 +9,9 @@ export async function GET() {
       {
         status: "error",
         message: "DATABASE_URL not configured",
-        connected: false
+        connected: false,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 
@@ -22,7 +22,8 @@ export async function GET() {
     });
 
     // Simple query to test connection
-    const result = await sql`SELECT NOW() as time, current_database() as database, version() as version`;
+    const result =
+      await sql`SELECT NOW() as time, current_database() as database, version() as version`;
 
     await sql.end();
 
@@ -41,7 +42,7 @@ export async function GET() {
         message: error.message,
         code: error.code,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

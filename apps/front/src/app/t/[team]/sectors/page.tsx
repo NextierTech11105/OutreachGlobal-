@@ -380,7 +380,10 @@ export default function SectorsPage() {
     const unenrichedCount = lake.totalLeads - lake.enrichedLeads;
     // Contactable = enriched records (have mobile phone from skip trace)
     const contactableCount = lake.contactableLeads ?? lake.enrichedLeads;
-    const contactableProgress = Math.min((contactableCount / CONTACTABLE_TARGET) * 100, 100);
+    const contactableProgress = Math.min(
+      (contactableCount / CONTACTABLE_TARGET) * 100,
+      100,
+    );
     const isReadyForSMS = contactableCount >= CONTACTABLE_TARGET;
 
     return (
@@ -411,11 +414,14 @@ export default function SectorsPage() {
           {/* Contactable Progress Bar */}
           <div className="mt-3 space-y-1">
             <div className="flex justify-between text-xs">
-              <span className={cn(
-                "font-medium",
-                isReadyForSMS ? "text-green-600" : "text-muted-foreground"
-              )}>
-                {formatNumber(contactableCount)} / {formatNumber(CONTACTABLE_TARGET)} contactable
+              <span
+                className={cn(
+                  "font-medium",
+                  isReadyForSMS ? "text-green-600" : "text-muted-foreground",
+                )}
+              >
+                {formatNumber(contactableCount)} /{" "}
+                {formatNumber(CONTACTABLE_TARGET)} contactable
               </span>
               {isReadyForSMS && (
                 <Badge className="bg-green-600 text-xs">Ready for SMS</Badge>
@@ -425,7 +431,7 @@ export default function SectorsPage() {
               <div
                 className={cn(
                   "h-full transition-all",
-                  isReadyForSMS ? "bg-green-500" : "bg-blue-500"
+                  isReadyForSMS ? "bg-green-500" : "bg-blue-500",
                 )}
                 style={{ width: `${contactableProgress}%` }}
               />

@@ -11,12 +11,15 @@ import { logAdminAction } from "@/lib/audit-log";
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const admin = await requireSuperAdmin();
     if (!admin) {
-      return NextResponse.json({ error: "Forbidden: Super admin access required" }, { status: 403 });
+      return NextResponse.json(
+        { error: "Forbidden: Super admin access required" },
+        { status: 403 },
+      );
     }
 
     const { id } = await params;
@@ -24,7 +27,7 @@ export async function GET(
     if (!db) {
       return NextResponse.json(
         { error: "Database not configured" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -36,10 +39,7 @@ export async function GET(
       .limit(1);
 
     if (teamsResult.length === 0) {
-      return NextResponse.json(
-        { error: "Company not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Company not found" }, { status: 404 });
     }
 
     const team = teamsResult[0];
@@ -136,7 +136,7 @@ export async function GET(
         error:
           error instanceof Error ? error.message : "Failed to fetch company",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -147,18 +147,24 @@ export async function GET(
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const admin = await requireSuperAdmin();
     if (!admin) {
-      return NextResponse.json({ error: "Forbidden: Super admin access required" }, { status: 403 });
+      return NextResponse.json(
+        { error: "Forbidden: Super admin access required" },
+        { status: 403 },
+      );
     }
 
     const { id } = await params;
 
     if (!db) {
-      return NextResponse.json({ error: "Database not configured" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Database not configured" },
+        { status: 500 },
+      );
     }
 
     // Verify company exists
@@ -176,20 +182,31 @@ export async function PATCH(
     const { name, slug, ownerId } = body;
 
     // Build update object
-    const updates: { name?: string; slug?: string; ownerId?: string; updatedAt: Date } = {
+    const updates: {
+      name?: string;
+      slug?: string;
+      ownerId?: string;
+      updatedAt: Date;
+    } = {
       updatedAt: new Date(),
     };
 
     if (name !== undefined) {
       if (!name || typeof name !== "string") {
-        return NextResponse.json({ error: "Name must be a non-empty string" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Name must be a non-empty string" },
+          { status: 400 },
+        );
       }
       updates.name = name;
     }
 
     if (slug !== undefined) {
       if (!slug || typeof slug !== "string") {
-        return NextResponse.json({ error: "Slug must be a non-empty string" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Slug must be a non-empty string" },
+          { status: 400 },
+        );
       }
       // Check slug uniqueness (excluding current company)
       const slugExists = await db
@@ -199,7 +216,10 @@ export async function PATCH(
         .limit(1);
 
       if (slugExists.length > 0) {
-        return NextResponse.json({ error: "A company with this slug already exists" }, { status: 409 });
+        return NextResponse.json(
+          { error: "A company with this slug already exists" },
+          { status: 409 },
+        );
       }
       updates.slug = slug;
     }
@@ -213,7 +233,10 @@ export async function PATCH(
         .limit(1);
 
       if (ownerExists.length === 0) {
-        return NextResponse.json({ error: "Owner user not found" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Owner user not found" },
+          { status: 400 },
+        );
       }
 
       updates.ownerId = ownerId;
@@ -226,13 +249,17 @@ export async function PATCH(
         await db
           .update(teamMembers)
           .set({ role: "ADMIN", updatedAt: new Date() })
-          .where(sql`${teamMembers.teamId} = ${id} AND ${teamMembers.userId} = ${oldOwnerId}`);
+          .where(
+            sql`${teamMembers.teamId} = ${id} AND ${teamMembers.userId} = ${oldOwnerId}`,
+          );
 
         // Check if new owner is already a member
         const newOwnerMember = await db
           .select({ id: teamMembers.id })
           .from(teamMembers)
-          .where(sql`${teamMembers.teamId} = ${id} AND ${teamMembers.userId} = ${ownerId}`)
+          .where(
+            sql`${teamMembers.teamId} = ${id} AND ${teamMembers.userId} = ${ownerId}`,
+          )
           .limit(1);
 
         if (newOwnerMember.length > 0) {
@@ -293,8 +320,11 @@ export async function PATCH(
   } catch (error) {
     console.error("[Admin Company Update] Error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to update company" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to update company",
+      },
+      { status: 500 },
     );
   }
 }
@@ -305,18 +335,24 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const admin = await requireSuperAdmin();
     if (!admin) {
-      return NextResponse.json({ error: "Forbidden: Super admin access required" }, { status: 403 });
+      return NextResponse.json(
+        { error: "Forbidden: Super admin access required" },
+        { status: 403 },
+      );
     }
 
     const { id } = await params;
 
     if (!db) {
-      return NextResponse.json({ error: "Database not configured" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Database not configured" },
+        { status: 500 },
+      );
     }
 
     // Verify company exists
@@ -340,9 +376,10 @@ export async function DELETE(
       return NextResponse.json(
         {
           error: "Deletion requires confirmation",
-          message: "Add ?confirm=true to confirm deletion. This will permanently delete the company and all associated data."
+          message:
+            "Add ?confirm=true to confirm deletion. This will permanently delete the company and all associated data.",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -369,7 +406,9 @@ export async function DELETE(
       request,
     });
 
-    console.log(`[Admin Company Delete] Company "${companyName}" (${id}) deleted by admin ${admin.email}`);
+    console.log(
+      `[Admin Company Delete] Company "${companyName}" (${id}) deleted by admin ${admin.email}`,
+    );
 
     return NextResponse.json({
       success: true,
@@ -379,8 +418,11 @@ export async function DELETE(
   } catch (error) {
     console.error("[Admin Company Delete] Error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to delete company" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to delete company",
+      },
+      { status: 500 },
     );
   }
 }

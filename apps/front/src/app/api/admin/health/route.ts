@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import postgres from "postgres";
+import { requireSuperAdmin } from "@/lib/api-auth";
 
 // Real system health check - tests ALL integrations
 const connectionString = process.env.DATABASE_URL || "";
@@ -270,6 +271,14 @@ async function checkDOSpaces(): Promise<IntegrationStatus> {
 
 export async function GET() {
   try {
+    const admin = await requireSuperAdmin();
+    if (!admin) {
+      return NextResponse.json(
+        { error: "Forbidden: Super admin access required" },
+        { status: 403 },
+      );
+    }
+
     // Run all health checks in parallel
     const [
       database,

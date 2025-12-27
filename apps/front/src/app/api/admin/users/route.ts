@@ -12,11 +12,17 @@ export async function GET(request: NextRequest) {
   try {
     const admin = await requireSuperAdmin();
     if (!admin) {
-      return NextResponse.json({ error: "Forbidden: Super admin access required" }, { status: 403 });
+      return NextResponse.json(
+        { error: "Forbidden: Super admin access required" },
+        { status: 403 },
+      );
     }
 
     if (!db) {
-      return NextResponse.json({ error: "Database not configured" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Database not configured" },
+        { status: 500 },
+      );
     }
 
     const { searchParams } = new URL(request.url);
@@ -63,13 +69,13 @@ export async function GET(request: NextRequest) {
     }
 
     // List all users with their team memberships
-    let usersQuery = db
+    const usersQuery = db
       .select({
         id: users.id,
         name: users.name,
         email: users.email,
         role: users.role,
-        emailVerified: users.emailVerified,
+        emailVerifiedAt: users.emailVerifiedAt,
         createdAt: users.createdAt,
       })
       .from(users)
@@ -84,11 +90,13 @@ export async function GET(request: NextRequest) {
             name: users.name,
             email: users.email,
             role: users.role,
-            emailVerified: users.emailVerified,
+            emailVerifiedAt: users.emailVerifiedAt,
             createdAt: users.createdAt,
           })
           .from(users)
-          .where(sql`${users.name} ILIKE ${`%${search}%`} OR ${users.email} ILIKE ${`%${search}%`}`)
+          .where(
+            sql`${users.name} ILIKE ${`%${search}%`} OR ${users.email} ILIKE ${`%${search}%`}`,
+          )
           .orderBy(desc(users.createdAt))
           .limit(limit)
           .offset(offset)
@@ -124,7 +132,8 @@ export async function GET(request: NextRequest) {
       name: user.name,
       email: user.email,
       role: user.role,
-      emailVerified: user.emailVerified,
+      emailVerified: !!user.emailVerifiedAt, // Convert timestamp to boolean for API compatibility
+      emailVerifiedAt: user.emailVerifiedAt?.toISOString(),
       createdAt: user.createdAt?.toISOString(),
       teams: (membershipMap.get(user.id) || []).map((m) => ({
         teamId: m.teamId,
@@ -150,8 +159,10 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("[Admin Users] Error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to fetch users" },
-      { status: 500 }
+      {
+        error: error instanceof Error ? error.message : "Failed to fetch users",
+      },
+      { status: 500 },
     );
   }
 }
@@ -164,11 +175,17 @@ export async function POST(request: NextRequest) {
   try {
     const admin = await requireSuperAdmin();
     if (!admin) {
-      return NextResponse.json({ error: "Forbidden: Super admin access required" }, { status: 403 });
+      return NextResponse.json(
+        { error: "Forbidden: Super admin access required" },
+        { status: 403 },
+      );
     }
 
     if (!db) {
-      return NextResponse.json({ error: "Database not configured" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Database not configured" },
+        { status: 500 },
+      );
     }
 
     const body = await request.json();
@@ -182,7 +199,7 @@ export async function POST(request: NextRequest) {
         if (!userId || !teamId) {
           return NextResponse.json(
             { error: "userId and teamId are required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -194,7 +211,10 @@ export async function POST(request: NextRequest) {
           .limit(1);
 
         if (userExists.length === 0) {
-          return NextResponse.json({ error: "User not found" }, { status: 404 });
+          return NextResponse.json(
+            { error: "User not found" },
+            { status: 404 },
+          );
         }
 
         // Verify team exists
@@ -205,20 +225,25 @@ export async function POST(request: NextRequest) {
           .limit(1);
 
         if (teamExists.length === 0) {
-          return NextResponse.json({ error: "Team not found" }, { status: 404 });
+          return NextResponse.json(
+            { error: "Team not found" },
+            { status: 404 },
+          );
         }
 
         // Check if already a member
         const existingMembership = await db
           .select({ id: teamMembers.id })
           .from(teamMembers)
-          .where(and(eq(teamMembers.teamId, teamId), eq(teamMembers.userId, userId)))
+          .where(
+            and(eq(teamMembers.teamId, teamId), eq(teamMembers.userId, userId)),
+          )
           .limit(1);
 
         if (existingMembership.length > 0) {
           return NextResponse.json(
             { error: "User is already a member of this team" },
-            { status: 409 }
+            { status: 409 },
           );
         }
 
@@ -227,7 +252,7 @@ export async function POST(request: NextRequest) {
         if (!validRoles.includes(role)) {
           return NextResponse.json(
             { error: `Invalid role. Must be one of: ${validRoles.join(", ")}` },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -261,7 +286,10 @@ export async function POST(request: NextRequest) {
         const { userId, isSuperAdmin } = body;
 
         if (!userId) {
-          return NextResponse.json({ error: "userId is required" }, { status: 400 });
+          return NextResponse.json(
+            { error: "userId is required" },
+            { status: 400 },
+          );
         }
 
         const newRole = isSuperAdmin ? "SUPER_ADMIN" : "USER";
@@ -272,7 +300,7 @@ export async function POST(request: NextRequest) {
           .where(eq(users.id, userId));
 
         console.log(
-          `[Admin Users] User ${userId} role changed to ${newRole} by admin ${admin.email}`
+          `[Admin Users] User ${userId} role changed to ${newRole} by admin ${admin.email}`,
         );
 
         return NextResponse.json({
@@ -284,14 +312,17 @@ export async function POST(request: NextRequest) {
       default:
         return NextResponse.json(
           { error: `Unknown action: ${action}` },
-          { status: 400 }
+          { status: 400 },
         );
     }
   } catch (error) {
     console.error("[Admin Users] Error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to process request" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to process request",
+      },
+      { status: 500 },
     );
   }
 }
@@ -304,11 +335,17 @@ export async function PATCH(request: NextRequest) {
   try {
     const admin = await requireSuperAdmin();
     if (!admin) {
-      return NextResponse.json({ error: "Forbidden: Super admin access required" }, { status: 403 });
+      return NextResponse.json(
+        { error: "Forbidden: Super admin access required" },
+        { status: 403 },
+      );
     }
 
     if (!db) {
-      return NextResponse.json({ error: "Database not configured" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Database not configured" },
+        { status: 500 },
+      );
     }
 
     const body = await request.json();
@@ -317,19 +354,26 @@ export async function PATCH(request: NextRequest) {
     if (!membershipId) {
       return NextResponse.json(
         { error: "membershipId is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Verify membership exists
     const membership = await db
-      .select({ id: teamMembers.id, teamId: teamMembers.teamId, userId: teamMembers.userId })
+      .select({
+        id: teamMembers.id,
+        teamId: teamMembers.teamId,
+        userId: teamMembers.userId,
+      })
       .from(teamMembers)
       .where(eq(teamMembers.id, membershipId))
       .limit(1);
 
     if (membership.length === 0) {
-      return NextResponse.json({ error: "Membership not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Membership not found" },
+        { status: 404 },
+      );
     }
 
     const updates: { role?: string; status?: string; updatedAt: Date } = {
@@ -341,7 +385,7 @@ export async function PATCH(request: NextRequest) {
       if (!validRoles.includes(role)) {
         return NextResponse.json(
           { error: `Invalid role. Must be one of: ${validRoles.join(", ")}` },
-          { status: 400 }
+          { status: 400 },
         );
       }
       updates.role = role;
@@ -351,8 +395,10 @@ export async function PATCH(request: NextRequest) {
       const validStatuses = ["PENDING", "APPROVED", "REJECTED", "SUSPENDED"];
       if (!validStatuses.includes(status)) {
         return NextResponse.json(
-          { error: `Invalid status. Must be one of: ${validStatuses.join(", ")}` },
-          { status: 400 }
+          {
+            error: `Invalid status. Must be one of: ${validStatuses.join(", ")}`,
+          },
+          { status: 400 },
         );
       }
       updates.status = status;
@@ -364,7 +410,7 @@ export async function PATCH(request: NextRequest) {
       .where(eq(teamMembers.id, membershipId));
 
     console.log(
-      `[Admin Users] Membership ${membershipId} updated (role: ${role}, status: ${status}) by admin ${admin.email}`
+      `[Admin Users] Membership ${membershipId} updated (role: ${role}, status: ${status}) by admin ${admin.email}`,
     );
 
     return NextResponse.json({
@@ -374,8 +420,13 @@ export async function PATCH(request: NextRequest) {
   } catch (error) {
     console.error("[Admin Users] Error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to update membership" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to update membership",
+      },
+      { status: 500 },
     );
   }
 }
@@ -388,11 +439,17 @@ export async function DELETE(request: NextRequest) {
   try {
     const admin = await requireSuperAdmin();
     if (!admin) {
-      return NextResponse.json({ error: "Forbidden: Super admin access required" }, { status: 403 });
+      return NextResponse.json(
+        { error: "Forbidden: Super admin access required" },
+        { status: 403 },
+      );
     }
 
     if (!db) {
-      return NextResponse.json({ error: "Database not configured" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Database not configured" },
+        { status: 500 },
+      );
     }
 
     const { searchParams } = new URL(request.url);
@@ -409,12 +466,17 @@ export async function DELETE(request: NextRequest) {
         .limit(1);
 
       if (membership.length === 0) {
-        return NextResponse.json({ error: "Membership not found" }, { status: 404 });
+        return NextResponse.json(
+          { error: "Membership not found" },
+          { status: 404 },
+        );
       }
 
       await db.delete(teamMembers).where(eq(teamMembers.id, membershipId));
 
-      console.log(`[Admin Users] Membership ${membershipId} removed by admin ${admin.email}`);
+      console.log(
+        `[Admin Users] Membership ${membershipId} removed by admin ${admin.email}`,
+      );
 
       return NextResponse.json({
         success: true,
@@ -427,19 +489,26 @@ export async function DELETE(request: NextRequest) {
       const membership = await db
         .select({ id: teamMembers.id })
         .from(teamMembers)
-        .where(and(eq(teamMembers.userId, userId), eq(teamMembers.teamId, teamId)))
+        .where(
+          and(eq(teamMembers.userId, userId), eq(teamMembers.teamId, teamId)),
+        )
         .limit(1);
 
       if (membership.length === 0) {
-        return NextResponse.json({ error: "Membership not found" }, { status: 404 });
+        return NextResponse.json(
+          { error: "Membership not found" },
+          { status: 404 },
+        );
       }
 
       await db
         .delete(teamMembers)
-        .where(and(eq(teamMembers.userId, userId), eq(teamMembers.teamId, teamId)));
+        .where(
+          and(eq(teamMembers.userId, userId), eq(teamMembers.teamId, teamId)),
+        );
 
       console.log(
-        `[Admin Users] User ${userId} removed from team ${teamId} by admin ${admin.email}`
+        `[Admin Users] User ${userId} removed from team ${teamId} by admin ${admin.email}`,
       );
 
       return NextResponse.json({
@@ -450,13 +519,15 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json(
       { error: "membershipId or (userId + teamId) are required" },
-      { status: 400 }
+      { status: 400 },
     );
   } catch (error) {
     console.error("[Admin Users] Error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to remove user" },
-      { status: 500 }
+      {
+        error: error instanceof Error ? error.message : "Failed to remove user",
+      },
+      { status: 500 },
     );
   }
 }

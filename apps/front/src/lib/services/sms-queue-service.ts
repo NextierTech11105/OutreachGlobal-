@@ -981,10 +981,12 @@ export class SMSQueueService {
           or(
             like(leads.phone, phoneLike),
             eq(leads.phone, phoneNumber),
-            eq(leads.phone, normalizedPhone)
-          )
+            eq(leads.phone, normalizedPhone),
+          ),
         );
-      console.log(`[SMSQueue] Opt-out persisted to Postgres: ${normalizedPhone}`);
+      console.log(
+        `[SMSQueue] Opt-out persisted to Postgres: ${normalizedPhone}`,
+      );
     } catch (error) {
       console.error("[SMSQueue] Failed to persist opt-out to Postgres:", error);
       // Continue - we still want to add to in-memory list and Redis cache
@@ -999,7 +1001,9 @@ export class SMSQueueService {
     this.queue.forEach((message) => {
       if (
         this.normalizePhone(message.to) === normalizedPhone &&
-        (message.status === "pending" || message.status === "draft" || message.status === "approved")
+        (message.status === "pending" ||
+          message.status === "draft" ||
+          message.status === "approved")
       ) {
         message.status = "cancelled";
         modified = true;
@@ -1029,12 +1033,15 @@ export class SMSQueueService {
           or(
             like(leads.phone, phoneLike),
             eq(leads.phone, phoneNumber),
-            eq(leads.phone, normalizedPhone)
-          )
+            eq(leads.phone, normalizedPhone),
+          ),
         );
       console.log(`[SMSQueue] Opt-out removed in Postgres: ${normalizedPhone}`);
     } catch (error) {
-      console.error("[SMSQueue] Failed to remove opt-out from Postgres:", error);
+      console.error(
+        "[SMSQueue] Failed to remove opt-out from Postgres:",
+        error,
+      );
     }
 
     // 2. Remove from in-memory list

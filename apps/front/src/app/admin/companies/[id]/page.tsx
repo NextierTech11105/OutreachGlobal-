@@ -168,7 +168,10 @@ export default function CompanyDetailPage({
         );
       case "PENDING":
         return (
-          <Badge variant="outline" className="text-yellow-600 border-yellow-600">
+          <Badge
+            variant="outline"
+            className="text-yellow-600 border-yellow-600"
+          >
             <Clock className="mr-1 h-3 w-3" />
             Pending
           </Badge>
@@ -275,7 +278,9 @@ export default function CompanyDetailPage({
                     </div>
                     <div>
                       <p className="font-medium">{company.owner.name}</p>
-                      <p className="text-sm text-zinc-400">{company.owner.email}</p>
+                      <p className="text-sm text-zinc-400">
+                        {company.owner.email}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -295,19 +300,24 @@ export default function CompanyDetailPage({
                 <div className="flex items-center gap-2">
                   <Phone className="h-4 w-4 text-zinc-400" />
                   <span>{company.settings.twilioPhone}</span>
-                  <Badge variant="outline" className="text-xs">Twilio</Badge>
+                  <Badge variant="outline" className="text-xs">
+                    Twilio
+                  </Badge>
                 </div>
               )}
               {company.settings.signalhousePhone && (
                 <div className="flex items-center gap-2">
                   <Phone className="h-4 w-4 text-zinc-400" />
                   <span>{company.settings.signalhousePhone}</span>
-                  <Badge variant="outline" className="text-xs">SignalHouse</Badge>
+                  <Badge variant="outline" className="text-xs">
+                    SignalHouse
+                  </Badge>
                 </div>
               )}
-              {!company.settings.twilioPhone && !company.settings.signalhousePhone && (
-                <p className="text-zinc-500">No phone numbers configured</p>
-              )}
+              {!company.settings.twilioPhone &&
+                !company.settings.signalhousePhone && (
+                  <p className="text-zinc-500">No phone numbers configured</p>
+                )}
             </CardContent>
           </Card>
         </div>
@@ -318,7 +328,8 @@ export default function CompanyDetailPage({
             <div>
               <CardTitle>Team Members</CardTitle>
               <CardDescription>
-                {company.members.length} member{company.members.length !== 1 ? "s" : ""}
+                {company.members.length} member
+                {company.members.length !== 1 ? "s" : ""}
               </CardDescription>
             </div>
             <Link href={`/admin/companies/${company.id}/users`}>
@@ -351,7 +362,9 @@ export default function CompanyDetailPage({
                         {member.user ? (
                           <div>
                             <p className="font-medium">{member.user.name}</p>
-                            <p className="text-sm text-zinc-500">{member.user.email}</p>
+                            <p className="text-sm text-zinc-500">
+                              {member.user.email}
+                            </p>
                           </div>
                         ) : (
                           <span className="text-zinc-500">Unknown user</span>

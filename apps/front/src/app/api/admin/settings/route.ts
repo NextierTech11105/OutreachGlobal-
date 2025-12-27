@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { requireSuperAdmin } from "@/lib/api-auth";
 
 // API key environment variable mappings - must match actual env var names used in codebase
 const API_KEYS = {
@@ -79,6 +80,14 @@ interface ApiKeyStatus {
 
 // GET - Check status of all API keys
 export async function GET() {
+  const admin = await requireSuperAdmin();
+  if (!admin) {
+    return NextResponse.json(
+      { error: "Forbidden: Super admin access required" },
+      { status: 403 },
+    );
+  }
+
   const status: ApiKeyStatus[] = [];
   const summary = {
     total: Object.keys(API_KEYS).length,
@@ -149,6 +158,14 @@ export async function GET() {
 // POST - Test a specific API connection
 export async function POST(request: NextRequest) {
   try {
+    const admin = await requireSuperAdmin();
+    if (!admin) {
+      return NextResponse.json(
+        { error: "Forbidden: Super admin access required" },
+        { status: 403 },
+      );
+    }
+
     const { provider } = await request.json();
 
     if (!provider || !API_KEYS[provider as ApiKeyId]) {

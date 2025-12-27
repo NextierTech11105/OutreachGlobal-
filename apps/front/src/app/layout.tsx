@@ -1,5 +1,8 @@
 import "./globals.css";
 import type React from "react";
+
+// Force dynamic rendering to avoid static generation issues with auth
+export const dynamic = "force-dynamic";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { Geist, Geist_Mono } from "next/font/google";

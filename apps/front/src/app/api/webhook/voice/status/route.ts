@@ -9,7 +9,9 @@ const MISSED_CALL_RESPONSES = [
 ];
 
 function getRandomMissedCallMessage(): string {
-  return MISSED_CALL_RESPONSES[Math.floor(Math.random() * MISSED_CALL_RESPONSES.length)];
+  return MISSED_CALL_RESPONSES[
+    Math.floor(Math.random() * MISSED_CALL_RESPONSES.length)
+  ];
 }
 
 /**
@@ -34,7 +36,7 @@ export async function POST(request: NextRequest) {
     const to = payload.To || ""; // The Twilio number that was called
 
     console.log(
-      `[Voice Status] Call ${callSid} - Dial status: ${dialCallStatus}, Duration: ${dialCallDuration}s`
+      `[Voice Status] Call ${callSid} - Dial status: ${dialCallStatus}, Duration: ${dialCallDuration}s`,
     );
 
     // If call was answered and completed, just acknowledge
@@ -44,13 +46,19 @@ export async function POST(request: NextRequest) {
         {
           status: 200,
           headers: { "Content-Type": "application/xml" },
-        }
+        },
       );
     }
 
     // Call was not answered (busy, no-answer, failed, canceled)
     // Send auto-SMS via SignalHouse to let caller know we'll call back
-    if (from && to && (dialCallStatus === "no-answer" || dialCallStatus === "busy" || dialCallStatus === "canceled")) {
+    if (
+      from &&
+      to &&
+      (dialCallStatus === "no-answer" ||
+        dialCallStatus === "busy" ||
+        dialCallStatus === "canceled")
+    ) {
       try {
         const message = getRandomMissedCallMessage();
 
@@ -62,7 +70,9 @@ export async function POST(request: NextRequest) {
         });
 
         if (smsResult.success) {
-          console.log(`[Voice Status] Auto-SMS sent to ${from}: ${smsResult.data?.messageId}`);
+          console.log(
+            `[Voice Status] Auto-SMS sent to ${from}: ${smsResult.data?.messageId}`,
+          );
         } else {
           console.warn(`[Voice Status] Auto-SMS failed: ${smsResult.error}`);
         }
@@ -78,7 +88,7 @@ export async function POST(request: NextRequest) {
       {
         status: 200,
         headers: { "Content-Type": "application/xml" },
-      }
+      },
     );
   } catch (error) {
     console.error("[Voice Status] Error:", error);
@@ -87,7 +97,7 @@ export async function POST(request: NextRequest) {
       {
         status: 200,
         headers: { "Content-Type": "application/xml" },
-      }
+      },
     );
   }
 }

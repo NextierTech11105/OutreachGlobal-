@@ -24,7 +24,13 @@ import {
   Stethoscope,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -72,12 +78,54 @@ interface BucketConfig {
 }
 
 const CAMPAIGN_BUCKETS: BucketConfig[] = [
-  { id: "initial", name: "Initial", worker: "gianna", color: "bg-purple-600", icon: <Zap className="h-4 w-4" />, maxLeads: 2000 },
-  { id: "retarget", name: "Retarget", worker: "gianna", color: "bg-orange-600", icon: <RefreshCw className="h-4 w-4" />, maxLeads: 2000 },
-  { id: "follow_up", name: "Follow Up", worker: "sabrina", color: "bg-blue-600", icon: <ArrowRight className="h-4 w-4" />, maxLeads: 2000 },
-  { id: "book_appointment", name: "Book Appt", worker: "sabrina", color: "bg-green-600", icon: <Calendar className="h-4 w-4" />, maxLeads: 2000 },
-  { id: "nurture", name: "Nurture", worker: "gianna", color: "bg-cyan-600", icon: <Users className="h-4 w-4" />, maxLeads: 2000 },
-  { id: "nudger", name: "Nudger", worker: "cathy", color: "bg-pink-600", icon: <Sparkles className="h-4 w-4" />, maxLeads: 2000 },
+  {
+    id: "initial",
+    name: "Initial",
+    worker: "gianna",
+    color: "bg-purple-600",
+    icon: <Zap className="h-4 w-4" />,
+    maxLeads: 2000,
+  },
+  {
+    id: "retarget",
+    name: "Retarget",
+    worker: "gianna",
+    color: "bg-orange-600",
+    icon: <RefreshCw className="h-4 w-4" />,
+    maxLeads: 2000,
+  },
+  {
+    id: "follow_up",
+    name: "Follow Up",
+    worker: "sabrina",
+    color: "bg-blue-600",
+    icon: <ArrowRight className="h-4 w-4" />,
+    maxLeads: 2000,
+  },
+  {
+    id: "book_appointment",
+    name: "Book Appt",
+    worker: "sabrina",
+    color: "bg-green-600",
+    icon: <Calendar className="h-4 w-4" />,
+    maxLeads: 2000,
+  },
+  {
+    id: "nurture",
+    name: "Nurture",
+    worker: "gianna",
+    color: "bg-cyan-600",
+    icon: <Users className="h-4 w-4" />,
+    maxLeads: 2000,
+  },
+  {
+    id: "nudger",
+    name: "Nudger",
+    worker: "cathy",
+    color: "bg-pink-600",
+    icon: <Sparkles className="h-4 w-4" />,
+    maxLeads: 2000,
+  },
 ];
 
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
@@ -96,11 +144,15 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
 
 export default function LuciDataDashboardPage() {
   const { team } = useCurrentTeam();
-  const [activeTab, setActiveTab] = useState<"registry" | "buckets" | "jobs">("registry");
+  const [activeTab, setActiveTab] = useState<"registry" | "buckets" | "jobs">(
+    "registry",
+  );
   const [loading, setLoading] = useState(true);
   const [isScanning, setIsScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
-  const [bucketStats, setBucketStats] = useState<Record<CampaignContextBucket, number>>({
+  const [bucketStats, setBucketStats] = useState<
+    Record<CampaignContextBucket, number>
+  >({
     initial: 0,
     retarget: 0,
     follow_up: 0,
@@ -174,7 +226,9 @@ export default function LuciDataDashboardPage() {
 
       if (response.ok) {
         const data = await response.json();
-        toast.success(`Scanned ${data.totalScanned?.toLocaleString() || 0} records`);
+        toast.success(
+          `Scanned ${data.totalScanned?.toLocaleString() || 0} records`,
+        );
         fetchPipelineData();
       } else {
         toast.error("Scan failed");
@@ -186,7 +240,10 @@ export default function LuciDataDashboardPage() {
     }
   };
 
-  const totalBucketLeads = Object.values(bucketStats).reduce((a, b) => a + b, 0);
+  const totalBucketLeads = Object.values(bucketStats).reduce(
+    (a, b) => a + b,
+    0,
+  );
   const poolFillPercent = (totalBucketLeads / capacity.poolTarget) * 100;
 
   return (
@@ -216,7 +273,9 @@ export default function LuciDataDashboardPage() {
               )}
             </Button>
             <Button variant="outline" onClick={fetchPipelineData}>
-              <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
+              <RefreshCw
+                className={cn("h-4 w-4 mr-2", loading && "animate-spin")}
+              />
               Refresh
             </Button>
           </div>
@@ -235,7 +294,9 @@ export default function LuciDataDashboardPage() {
               <p className="text-xl font-bold text-zinc-100">
                 {totalRecords.toLocaleString()}
               </p>
-              <p className="text-xs text-zinc-500">{USBIZDATA_REGISTRY.length} databases</p>
+              <p className="text-xs text-zinc-500">
+                {USBIZDATA_REGISTRY.length} databases
+              </p>
             </CardContent>
           </Card>
           <Card className="bg-zinc-900 border-zinc-800">
@@ -247,7 +308,9 @@ export default function LuciDataDashboardPage() {
               <p className="text-xl font-bold text-green-400">
                 {(pipelineStats.skipTraced ?? 0).toLocaleString()}
               </p>
-              <p className="text-xs text-zinc-500">{capacity.skipTraceBatchSize}/batch</p>
+              <p className="text-xs text-zinc-500">
+                {capacity.skipTraceBatchSize}/batch
+              </p>
             </CardContent>
           </Card>
           <Card className="bg-zinc-900 border-zinc-800">
@@ -259,7 +322,9 @@ export default function LuciDataDashboardPage() {
               <p className="text-xl font-bold text-purple-400">
                 {(pipelineStats.readyForCampaign ?? 0).toLocaleString()}
               </p>
-              <p className="text-xs text-zinc-500">{capacity.leadBlockSize}/day max</p>
+              <p className="text-xs text-zinc-500">
+                {capacity.leadBlockSize}/day max
+              </p>
             </CardContent>
           </Card>
           <Card className="bg-zinc-900 border-zinc-800">
@@ -269,7 +334,8 @@ export default function LuciDataDashboardPage() {
                 Monthly Pool
               </div>
               <p className="text-xl font-bold text-blue-400">
-                {(totalBucketLeads ?? 0).toLocaleString()} / {(capacity.poolTarget ?? 20000).toLocaleString()}
+                {(totalBucketLeads ?? 0).toLocaleString()} /{" "}
+                {(capacity.poolTarget ?? 20000).toLocaleString()}
               </p>
               <Progress value={poolFillPercent} className="h-1 mt-1" />
             </CardContent>
@@ -296,7 +362,8 @@ export default function LuciDataDashboardPage() {
                   </Badge>
                 </CardTitle>
                 <CardDescription>
-                  {verifiedDbs.length} verified databases with {totalRecords.toLocaleString()} total records
+                  {verifiedDbs.length} verified databases with{" "}
+                  {totalRecords.toLocaleString()} total records
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -315,15 +382,21 @@ export default function LuciDataDashboardPage() {
                       <TableRow key={db.id} className="border-zinc-800">
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            {CATEGORY_ICONS[db.category] || <Building2 className="h-4 w-4 text-zinc-500" />}
+                            {CATEGORY_ICONS[db.category] || (
+                              <Building2 className="h-4 w-4 text-zinc-500" />
+                            )}
                             <div>
                               <p className="font-medium">{db.name}</p>
-                              <p className="text-xs text-zinc-500">SIC: {db.sicCode}</p>
+                              <p className="text-xs text-zinc-500">
+                                SIC: {db.sicCode}
+                              </p>
                             </div>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <span className="font-mono">{db.totalRecords.toLocaleString()}</span>
+                          <span className="font-mono">
+                            {db.totalRecords.toLocaleString()}
+                          </span>
                         </TableCell>
                         <TableCell>
                           {db.verified ? (
@@ -339,7 +412,10 @@ export default function LuciDataDashboardPage() {
                           )}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="secondary" className="bg-zinc-800 text-zinc-300 capitalize">
+                          <Badge
+                            variant="secondary"
+                            className="bg-zinc-800 text-zinc-300 capitalize"
+                          >
                             {db.category.replace("_", " ")}
                           </Badge>
                         </TableCell>
@@ -348,10 +424,14 @@ export default function LuciDataDashboardPage() {
                             variant="outline"
                             className={cn(
                               "capitalize",
-                              db.businessLine === "nextier" && "border-purple-500/50 text-purple-400",
-                              db.businessLine === "ecbb" && "border-blue-500/50 text-blue-400",
-                              db.businessLine === "outreach_global" && "border-green-500/50 text-green-400",
-                              db.businessLine === "all" && "border-zinc-500/50 text-zinc-400"
+                              db.businessLine === "nextier" &&
+                                "border-purple-500/50 text-purple-400",
+                              db.businessLine === "ecbb" &&
+                                "border-blue-500/50 text-blue-400",
+                              db.businessLine === "outreach_global" &&
+                                "border-green-500/50 text-green-400",
+                              db.businessLine === "all" &&
+                                "border-zinc-500/50 text-zinc-400",
                             )}
                           >
                             {db.businessLine || "all"}
@@ -390,7 +470,8 @@ export default function LuciDataDashboardPage() {
                         <div className="flex justify-between text-sm">
                           <span className="text-zinc-400">Leads</span>
                           <span className="font-mono">
-                            {count.toLocaleString()} / {bucket.maxLeads.toLocaleString()}
+                            {count.toLocaleString()} /{" "}
+                            {bucket.maxLeads.toLocaleString()}
                           </span>
                         </div>
                         <Progress value={fillPercent} className="h-2" />

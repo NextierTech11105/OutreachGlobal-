@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { batches } from "../import/route";
+import { batches } from "@/lib/batches-store";
 
 export async function GET() {
   const REALESTATE_API_KEY = process.env.REALESTATE_API_KEY || process.env.REAL_ESTATE_API_KEY || "";

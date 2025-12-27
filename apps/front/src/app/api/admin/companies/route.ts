@@ -13,7 +13,10 @@ export async function GET(request: NextRequest) {
   try {
     const admin = await requireSuperAdmin();
     if (!admin) {
-      return NextResponse.json({ error: "Forbidden: Super admin access required" }, { status: 403 });
+      return NextResponse.json(
+        { error: "Forbidden: Super admin access required" },
+        { status: 403 },
+      );
     }
 
     // Get query parameters
@@ -27,12 +30,12 @@ export async function GET(request: NextRequest) {
     if (!db) {
       return NextResponse.json(
         { error: "Database not configured" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
     // Query all teams with owner info and member count
-    let teamsQuery = db
+    const teamsQuery = db
       .select({
         id: teams.id,
         name: teams.name,
@@ -74,21 +77,22 @@ export async function GET(request: NextRequest) {
       .groupBy(teamMembers.teamId);
 
     const memberCountMap = new Map(
-      memberCounts.map((mc) => [mc.teamId, Number(mc.count)])
+      memberCounts.map((mc) => [mc.teamId, Number(mc.count)]),
     );
 
     // Get owner info for each team
     const ownerIds = [...new Set(allTeams.map((t) => t.ownerId))];
-    const owners = ownerIds.length > 0
-      ? await db
-          .select({
-            id: users.id,
-            name: users.name,
-            email: users.email,
-          })
-          .from(users)
-          .where(sql`${users.id} IN ${ownerIds}`)
-      : [];
+    const owners =
+      ownerIds.length > 0
+        ? await db
+            .select({
+              id: users.id,
+              name: users.name,
+              email: users.email,
+            })
+            .from(users)
+            .where(sql`${users.id} IN ${ownerIds}`)
+        : [];
 
     const ownerMap = new Map(owners.map((o) => [o.id, o]));
 
@@ -101,9 +105,7 @@ export async function GET(request: NextRequest) {
       .from(teamSettings)
       .where(eq(teamSettings.name, "twilio_phone_number"));
 
-    const phoneMap = new Map(
-      phoneSettings.map((ps) => [ps.teamId, ps.value])
-    );
+    const phoneMap = new Map(phoneSettings.map((ps) => [ps.teamId, ps.value]));
 
     // Build company objects
     const companies = allTeams.map((team) => ({
@@ -145,11 +147,12 @@ export async function GET(request: NextRequest) {
     console.error("[Admin Companies] Error:", error);
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : "Failed to fetch companies",
+        error:
+          error instanceof Error ? error.message : "Failed to fetch companies",
         companies: [],
         stats: { total: 0, active: 0, inactive: 0, expired: 0 },
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -162,11 +165,17 @@ export async function POST(request: NextRequest) {
   try {
     const admin = await requireSuperAdmin();
     if (!admin) {
-      return NextResponse.json({ error: "Forbidden: Super admin access required" }, { status: 403 });
+      return NextResponse.json(
+        { error: "Forbidden: Super admin access required" },
+        { status: 403 },
+      );
     }
 
     if (!db) {
-      return NextResponse.json({ error: "Database not configured" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Database not configured" },
+        { status: 500 },
+      );
     }
 
     const body = await request.json();
@@ -175,7 +184,7 @@ export async function POST(request: NextRequest) {
     if (!name || !slug) {
       return NextResponse.json(
         { error: "Name and slug are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -189,7 +198,7 @@ export async function POST(request: NextRequest) {
     if (existingTeam.length > 0) {
       return NextResponse.json(
         { error: "A company with this slug already exists" },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
@@ -205,7 +214,7 @@ export async function POST(request: NextRequest) {
       if (ownerExists.length === 0) {
         return NextResponse.json(
           { error: "Owner user not found" },
-          { status: 400 }
+          { status: 400 },
         );
       }
     } else {
@@ -264,8 +273,11 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("[Admin Companies] Create Error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to create company" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to create company",
+      },
+      { status: 500 },
     );
   }
 }

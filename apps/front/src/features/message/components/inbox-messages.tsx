@@ -292,7 +292,7 @@ export function InboxMessages({
                     // Unread message styling
                     message.status !== "read" &&
                       message.status !== "replied" &&
-                      "bg-blue-50/50 dark:bg-blue-950/20"
+                      "bg-blue-50/50 dark:bg-blue-950/20",
                   )}
                   onClick={() => onViewMessage?.(message)}
                 >
@@ -327,7 +327,7 @@ export function InboxMessages({
                             message.status !== "read" &&
                               message.status !== "replied"
                               ? "font-semibold"
-                              : "font-medium"
+                              : "font-medium",
                           )}
                         >
                           {message.fromName}
@@ -342,9 +342,10 @@ export function InboxMessages({
                     <div
                       className={cn(
                         "text-sm",
-                        message.status !== "read" && message.status !== "replied"
+                        message.status !== "read" &&
+                          message.status !== "replied"
                           ? "font-semibold"
-                          : "font-medium"
+                          : "font-medium",
                       )}
                     >
                       {message.subject || "No Subject"}
@@ -370,7 +371,9 @@ export function InboxMessages({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => onViewMessage?.(message)}>
+                        <DropdownMenuItem
+                          onClick={() => onViewMessage?.(message)}
+                        >
                           View
                         </DropdownMenuItem>
                         <DropdownMenuItem

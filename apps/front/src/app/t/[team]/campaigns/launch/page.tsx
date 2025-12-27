@@ -20,7 +20,13 @@ import {
   Calendar,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -71,7 +77,8 @@ const WORKERS = {
   sabrina: {
     name: "SABRINA",
     role: "Closer",
-    description: "Objection handling, booking appointments. Best for warm leads.",
+    description:
+      "Objection handling, booking appointments. Best for warm leads.",
     color: "bg-emerald-500",
     gradient: "from-emerald-500 to-teal-600",
     icon: CheckCircle,
@@ -100,7 +107,7 @@ export default function CampaignLaunchWizardPage() {
   const [campaignName, setCampaignName] = useState("");
   const [dailyLimit, setDailyLimit] = useState("250");
   const [messageTemplate, setMessageTemplate] = useState(
-    "Hey {firstName}! Quick question - are you still the owner at {companyName}? I help business owners like you get a free valuation. Reply YES for yours!"
+    "Hey {firstName}! Quick question - are you still the owner at {companyName}? I help business owners like you get a free valuation. Reply YES for yours!",
   );
 
   // Validation
@@ -171,9 +178,13 @@ export default function CampaignLaunchWizardPage() {
                 <div
                   className={cn(
                     "flex items-center justify-center w-10 h-10 rounded-full border-2 transition-colors",
-                    isActive && "border-purple-500 bg-purple-500/20 text-purple-400",
-                    isCompleted && "border-green-500 bg-green-500/20 text-green-400",
-                    !isActive && !isCompleted && "border-zinc-700 bg-zinc-800 text-zinc-500"
+                    isActive &&
+                      "border-purple-500 bg-purple-500/20 text-purple-400",
+                    isCompleted &&
+                      "border-green-500 bg-green-500/20 text-green-400",
+                    !isActive &&
+                      !isCompleted &&
+                      "border-zinc-700 bg-zinc-800 text-zinc-500",
                   )}
                 >
                   {isCompleted ? (
@@ -186,7 +197,7 @@ export default function CampaignLaunchWizardPage() {
                   className={cn(
                     "ml-2 text-sm font-medium",
                     isActive && "text-zinc-100",
-                    !isActive && "text-zinc-500"
+                    !isActive && "text-zinc-500",
                   )}
                 >
                   {step.name}
@@ -195,7 +206,7 @@ export default function CampaignLaunchWizardPage() {
                   <div
                     className={cn(
                       "w-16 h-0.5 mx-4",
-                      isCompleted ? "bg-green-500" : "bg-zinc-700"
+                      isCompleted ? "bg-green-500" : "bg-zinc-700",
                     )}
                   />
                 )}
@@ -211,7 +222,9 @@ export default function CampaignLaunchWizardPage() {
             <Card className="bg-zinc-900 border-zinc-800">
               <CardHeader>
                 <CardTitle>Select Lead Source</CardTitle>
-                <CardDescription>Choose where your leads come from</CardDescription>
+                <CardDescription>
+                  Choose where your leads come from
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-3 gap-3">
@@ -229,7 +242,7 @@ export default function CampaignLaunchWizardPage() {
                           "p-4 rounded-lg border text-center transition-colors",
                           leadSource === source.id
                             ? "border-purple-500 bg-purple-500/10"
-                            : "border-zinc-700 hover:border-zinc-600"
+                            : "border-zinc-700 hover:border-zinc-600",
                         )}
                       >
                         <Icon className="w-6 h-6 mx-auto mb-2 text-zinc-400" />
@@ -251,11 +264,13 @@ export default function CampaignLaunchWizardPage() {
                             "p-3 rounded-lg border text-left transition-colors",
                             selectedBucket === bucket.id
                               ? "border-purple-500 bg-purple-500/10"
-                              : "border-zinc-700 hover:border-zinc-600"
+                              : "border-zinc-700 hover:border-zinc-600",
                           )}
                         >
                           <p className="font-medium">{bucket.name}</p>
-                          <p className="text-sm text-zinc-400">{bucket.count.toLocaleString()} leads</p>
+                          <p className="text-sm text-zinc-400">
+                            {bucket.count.toLocaleString()} leads
+                          </p>
                         </button>
                       ))}
                     </div>
@@ -270,7 +285,9 @@ export default function CampaignLaunchWizardPage() {
             <Card className="bg-zinc-900 border-zinc-800">
               <CardHeader>
                 <CardTitle>Choose AI Worker</CardTitle>
-                <CardDescription>Select which AI SDR will run this campaign</CardDescription>
+                <CardDescription>
+                  Select which AI SDR will run this campaign
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {(Object.keys(WORKERS) as WorkerId[]).map((workerId) => {
@@ -284,13 +301,13 @@ export default function CampaignLaunchWizardPage() {
                         "w-full p-4 rounded-lg border text-left transition-colors flex items-center gap-4",
                         selectedWorker === workerId
                           ? "border-purple-500 bg-purple-500/10"
-                          : "border-zinc-700 hover:border-zinc-600"
+                          : "border-zinc-700 hover:border-zinc-600",
                       )}
                     >
                       <div
                         className={cn(
                           "w-12 h-12 rounded-full flex items-center justify-center text-white bg-gradient-to-br",
-                          worker.gradient
+                          worker.gradient,
                         )}
                       >
                         <Icon className="w-6 h-6" />
@@ -300,7 +317,9 @@ export default function CampaignLaunchWizardPage() {
                           <p className="font-medium">{worker.name}</p>
                           <Badge variant="outline">{worker.role}</Badge>
                         </div>
-                        <p className="text-sm text-zinc-400 mt-1">{worker.description}</p>
+                        <p className="text-sm text-zinc-400 mt-1">
+                          {worker.description}
+                        </p>
                       </div>
                       {selectedWorker === workerId && (
                         <CheckCircle className="w-5 h-5 text-purple-400" />
@@ -342,13 +361,19 @@ export default function CampaignLaunchWizardPage() {
                         <SelectItem value="250">250 messages</SelectItem>
                         <SelectItem value="500">500 messages</SelectItem>
                         <SelectItem value="1000">1,000 messages</SelectItem>
-                        <SelectItem value="2000">2,000 messages (max)</SelectItem>
+                        <SelectItem value="2000">
+                          2,000 messages (max)
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
                     <Label>Send Window</Label>
-                    <Input value="9 AM - 5 PM EST" disabled className="bg-zinc-800 border-zinc-700" />
+                    <Input
+                      value="9 AM - 5 PM EST"
+                      disabled
+                      className="bg-zinc-800 border-zinc-700"
+                    />
                   </div>
                 </div>
 
@@ -361,7 +386,8 @@ export default function CampaignLaunchWizardPage() {
                     className="bg-zinc-800 border-zinc-700"
                   />
                   <p className="text-xs text-zinc-500">
-                    Variables: {"{firstName}"}, {"{lastName}"}, {"{companyName}"}, {"{city}"}
+                    Variables: {"{firstName}"}, {"{lastName}"},{" "}
+                    {"{companyName}"}, {"{city}"}
                   </p>
                 </div>
               </CardContent>
@@ -373,25 +399,35 @@ export default function CampaignLaunchWizardPage() {
             <Card className="bg-zinc-900 border-zinc-800">
               <CardHeader>
                 <CardTitle>Review & Launch</CardTitle>
-                <CardDescription>Confirm your campaign settings</CardDescription>
+                <CardDescription>
+                  Confirm your campaign settings
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">
                   <div className="flex justify-between py-2 border-b border-zinc-800">
                     <span className="text-zinc-400">Campaign Name</span>
-                    <span className="font-medium">{campaignName || "Unnamed"}</span>
+                    <span className="font-medium">
+                      {campaignName || "Unnamed"}
+                    </span>
                   </div>
                   <div className="flex justify-between py-2 border-b border-zinc-800">
                     <span className="text-zinc-400">Lead Source</span>
-                    <span className="font-medium">{selectedBucketData?.name || "LUCI Bucket"}</span>
+                    <span className="font-medium">
+                      {selectedBucketData?.name || "LUCI Bucket"}
+                    </span>
                   </div>
                   <div className="flex justify-between py-2 border-b border-zinc-800">
                     <span className="text-zinc-400">Leads</span>
-                    <span className="font-medium">{selectedBucketData?.count.toLocaleString() || 0}</span>
+                    <span className="font-medium">
+                      {selectedBucketData?.count.toLocaleString() || 0}
+                    </span>
                   </div>
                   <div className="flex justify-between py-2 border-b border-zinc-800">
                     <span className="text-zinc-400">AI Worker</span>
-                    <span className="font-medium">{selectedWorkerData?.name} ({selectedWorkerData?.role})</span>
+                    <span className="font-medium">
+                      {selectedWorkerData?.name} ({selectedWorkerData?.role})
+                    </span>
                   </div>
                   <div className="flex justify-between py-2 border-b border-zinc-800">
                     <span className="text-zinc-400">Daily Limit</span>
@@ -400,7 +436,9 @@ export default function CampaignLaunchWizardPage() {
                 </div>
 
                 <div className="p-4 bg-zinc-800 rounded-lg">
-                  <p className="text-xs text-zinc-500 mb-2">Sample Message Preview:</p>
+                  <p className="text-xs text-zinc-500 mb-2">
+                    Sample Message Preview:
+                  </p>
                   <p className="text-sm">
                     {messageTemplate
                       .replace("{firstName}", "John")

@@ -20,7 +20,13 @@ import {
   Target,
   Zap,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -58,7 +64,9 @@ export default function TeamHomePage() {
         const queueData = await queueRes.json();
 
         // Fetch conversation stats
-        const convRes = await fetch(`/api/sms/conversations?teamId=${team.id}&limit=1`);
+        const convRes = await fetch(
+          `/api/sms/conversations?teamId=${team.id}&limit=1`,
+        );
         const convData = await convRes.json();
 
         setStats({
@@ -84,7 +92,10 @@ export default function TeamHomePage() {
       href: `/t/${team.slug}/sms/command-center`,
       icon: <MessageSquare className="h-6 w-6" />,
       color: "from-purple-500 to-indigo-600",
-      badge: stats.pendingMessages > 0 ? `${stats.pendingMessages} pending` : undefined,
+      badge:
+        stats.pendingMessages > 0
+          ? `${stats.pendingMessages} pending`
+          : undefined,
     },
     {
       title: "LUCI Data Engine",
@@ -210,7 +221,9 @@ export default function TeamHomePage() {
 
         {/* Quick Actions */}
         <div>
-          <h2 className="text-lg font-semibold text-zinc-100 mb-3">Quick Actions</h2>
+          <h2 className="text-lg font-semibold text-zinc-100 mb-3">
+            Quick Actions
+          </h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {quickActions.map((action) => (
               <Link key={action.href} href={action.href}>
@@ -220,7 +233,7 @@ export default function TeamHomePage() {
                       <div
                         className={cn(
                           "w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br text-white",
-                          action.color
+                          action.color,
                         )}
                       >
                         {action.icon}
@@ -231,8 +244,12 @@ export default function TeamHomePage() {
                         </Badge>
                       )}
                     </div>
-                    <h3 className="font-medium text-zinc-100 mt-3">{action.title}</h3>
-                    <p className="text-sm text-zinc-400 mt-1">{action.description}</p>
+                    <h3 className="font-medium text-zinc-100 mt-3">
+                      {action.title}
+                    </h3>
+                    <p className="text-sm text-zinc-400 mt-1">
+                      {action.description}
+                    </p>
                   </CardContent>
                 </Card>
               </Link>
@@ -242,7 +259,9 @@ export default function TeamHomePage() {
 
         {/* AI Workers */}
         <div>
-          <h2 className="text-lg font-semibold text-zinc-100 mb-3">AI Workers</h2>
+          <h2 className="text-lg font-semibold text-zinc-100 mb-3">
+            AI Workers
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {aiWorkers.map((worker) => (
               <Link key={worker.href} href={worker.href}>
@@ -252,19 +271,23 @@ export default function TeamHomePage() {
                       <div
                         className={cn(
                           "w-10 h-10 rounded-full flex items-center justify-center text-white",
-                          worker.color
+                          worker.color,
                         )}
                       >
                         {worker.icon}
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <h3 className="font-medium text-zinc-100">{worker.name}</h3>
+                          <h3 className="font-medium text-zinc-100">
+                            {worker.name}
+                          </h3>
                           <Badge variant="outline" className="text-xs">
                             {worker.role}
                           </Badge>
                         </div>
-                        <p className="text-sm text-zinc-400">{worker.description}</p>
+                        <p className="text-sm text-zinc-400">
+                          {worker.description}
+                        </p>
                       </div>
                       <ArrowRight className="w-4 h-4 text-zinc-600 ml-auto" />
                     </div>
@@ -286,12 +309,18 @@ export default function TeamHomePage() {
               <div>
                 <div className="flex justify-between text-sm mb-1">
                   <span className="text-zinc-400">SMS Sent Today</span>
-                  <span className="text-zinc-100">{stats.sentToday} / 2,000</span>
+                  <span className="text-zinc-100">
+                    {stats.sentToday} / 2,000
+                  </span>
                 </div>
-                <Progress value={(stats.sentToday / 2000) * 100} className="h-2" />
+                <Progress
+                  value={(stats.sentToday / 2000) * 100}
+                  className="h-2"
+                />
               </div>
               <p className="text-xs text-zinc-500">
-                T-Mobile default: 2,000 segments/day per campaign. Messages reset at midnight.
+                T-Mobile default: 2,000 segments/day per campaign. Messages
+                reset at midnight.
               </p>
             </div>
           </CardContent>

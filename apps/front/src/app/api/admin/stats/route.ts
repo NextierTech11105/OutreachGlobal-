@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { requireSuperAdmin } from "@/lib/api-auth";
 import {
   leads,
   businesses,
@@ -12,7 +13,7 @@ import {
   campaignAttempts,
   deals,
 } from "@/lib/db/schema";
-import { count, desc, sql, and, gte } from "drizzle-orm";
+import { count, desc, gte } from "drizzle-orm";
 
 /**
  * Real Admin Stats Endpoint
@@ -22,6 +23,14 @@ import { count, desc, sql, and, gte } from "drizzle-orm";
 
 export async function GET() {
   try {
+    const admin = await requireSuperAdmin();
+    if (!admin) {
+      return NextResponse.json(
+        { error: "Forbidden: Super admin access required" },
+        { status: 403 },
+      );
+    }
+
     if (!db) {
       return NextResponse.json(
         { error: "Database not configured", database: "not_connected" },

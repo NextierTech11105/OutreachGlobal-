@@ -3,7 +3,12 @@ import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
-const SETUP_KEY = "initial-setup-2025";
+// Setup key must be set in environment - no hardcoded fallback for security
+const SETUP_KEY = process.env.ADMIN_SETUP_KEY;
+
+if (!SETUP_KEY) {
+  console.warn("[Setup] ADMIN_SETUP_KEY not configured - endpoint disabled");
+}
 
 /**
  * POST /api/admin/setup
@@ -23,7 +28,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (!db) {
-      return NextResponse.json({ error: "Database not configured" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Database not configured" },
+        { status: 500 },
+      );
     }
 
     // Find user by email
@@ -34,7 +42,10 @@ export async function POST(request: NextRequest) {
       .limit(1);
 
     if (userResult.length === 0) {
-      return NextResponse.json({ error: `User not found: ${email}` }, { status: 404 });
+      return NextResponse.json(
+        { error: `User not found: ${email}` },
+        { status: 404 },
+      );
     }
 
     const user = userResult[0];
@@ -43,7 +54,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         message: "User is already a SUPER_ADMIN",
-        user: { id: user.id, email: user.email, role: user.role }
+        user: { id: user.id, email: user.email, role: user.role },
       });
     }
 
@@ -56,13 +67,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: `${email} is now a SUPER_ADMIN`,
-      user: { id: user.id, email: user.email, role: "SUPER_ADMIN" }
+      user: { id: user.id, email: user.email, role: "SUPER_ADMIN" },
     });
   } catch (error) {
     console.error("[Setup] Error:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Setup failed" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

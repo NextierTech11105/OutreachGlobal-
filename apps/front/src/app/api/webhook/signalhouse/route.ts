@@ -33,21 +33,26 @@ import {
 //   https://yourapp.com/api/webhook/signalhouse?token=YOUR_SECRET_TOKEN
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const WEBHOOK_TOKEN = process.env.SIGNALHOUSE_WEBHOOK_TOKEN || "";
+const WEBHOOK_TOKEN = process.env.SIGNALHOUSE_WEBHOOK_TOKEN;
+
+// Security: Warn at startup if webhook is not configured
+if (!WEBHOOK_TOKEN) {
+  console.error(
+    "[SignalHouse] CRITICAL: SIGNALHOUSE_WEBHOOK_TOKEN not configured - webhook endpoint disabled",
+  );
+}
 
 /**
  * Verify webhook token from query parameter
- * Returns true if token is valid or not configured (dev mode)
+ * SECURITY: Token is REQUIRED - endpoint disabled without it
  */
-function verifyWebhookToken(
-  requestUrl: string,
-): { valid: boolean; error?: string } {
-  // If no token configured, allow all requests (backwards compatible)
+function verifyWebhookToken(requestUrl: string): {
+  valid: boolean;
+  error?: string;
+} {
+  // SECURITY: Reject ALL requests if token not configured
   if (!WEBHOOK_TOKEN) {
-    console.warn(
-      "[SignalHouse] ⚠️ SIGNALHOUSE_WEBHOOK_TOKEN not set - webhook is unprotected",
-    );
-    return { valid: true };
+    return { valid: false, error: "Webhook not configured - endpoint disabled" };
   }
 
   // Extract token from query string
@@ -396,13 +401,10 @@ export async function POST(request: NextRequest) {
     // ─────────────────────────────────────────────────────────────────────
     const tokenCheck = verifyWebhookToken(request.url);
     if (!tokenCheck.valid) {
-      console.error(
-        `[SignalHouse] 🚫 WEBHOOK REJECTED: ${tokenCheck.error}`,
-        {
-          ip: request.headers.get("x-forwarded-for") || "unknown",
-          userAgent: request.headers.get("user-agent"),
-        },
-      );
+      console.error(`[SignalHouse] 🚫 WEBHOOK REJECTED: ${tokenCheck.error}`, {
+        ip: request.headers.get("x-forwarded-for") || "unknown",
+        userAgent: request.headers.get("user-agent"),
+      });
       return NextResponse.json(
         { error: "Unauthorized", reason: tokenCheck.error },
         { status: 401 },
@@ -487,39 +489,49 @@ export async function POST(request: NextRequest) {
         else if (isPositiveLead) messageStatus = "interested";
 
         // Save inbound message to DB with worker info
-        await db.insert(smsMessages).values({
-          id: crypto.randomUUID(),
-          leadId: lead?.id,
-          direction: "inbound",
-          fromNumber,
-          toNumber,
-          body: messageBody,
-          status: messageStatus,
-          providerMessageId: messageId,
-          campaignId: payload.campaign_id as string,
-          // Store worker info in metadata or dedicated field
-          metadata: {
-            workerId: worker.id,
-            workerName: worker.name,
-            routedBy: workerRoute.matchedBy,
-          },
-          receivedAt: new Date(),
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        });
+        try {
+          await db.insert(smsMessages).values({
+            id: crypto.randomUUID(),
+            leadId: lead?.id,
+            direction: "inbound",
+            fromNumber,
+            toNumber,
+            body: messageBody,
+            status: messageStatus,
+            providerMessageId: messageId,
+            campaignId: payload.campaign_id as string,
+            // Store worker info in metadata or dedicated field
+            metadata: {
+              workerId: worker.id,
+              workerName: worker.name,
+              routedBy: workerRoute.matchedBy,
+            },
+            receivedAt: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          });
+        } catch (dbError) {
+          console.error("[SignalHouse] Failed to save inbound message:", dbError);
+          // Continue processing - don't fail the webhook
+        }
 
         // ─────────────────────────────────────────────────────────────────────
         // HANDLE OPT-OUT
         // ─────────────────────────────────────────────────────────────────────
         if (isOptOut) {
           console.log(`[SignalHouse] 🛑 OPT-OUT from ${fromNumber}`);
-          await smsQueueService.handleStopMessage(fromNumber);
+          try {
+            await smsQueueService.handleStopMessage(fromNumber);
 
-          if (lead) {
-            await db
-              .update(leads)
-              .set({ status: "opted_out", updatedAt: new Date() })
-              .where(eq(leads.id, lead.id));
+            if (lead) {
+              await db
+                .update(leads)
+                .set({ status: "opted_out", updatedAt: new Date() })
+                .where(eq(leads.id, lead.id));
+            }
+          } catch (dbError) {
+            console.error("[SignalHouse] Failed to process opt-out:", dbError);
+            // Still return success - opt-out intent was recorded in logs
           }
           return NextResponse.json({ success: true, event: "opt_out" });
         }
@@ -535,16 +547,20 @@ export async function POST(request: NextRequest) {
         if (lead) {
           const currentTags = (lead.tags as string[]) || [];
           if (!currentTags.includes("responded")) {
-            await db
-              .update(leads)
-              .set({
-                tags: sql`array_append(COALESCE(tags, ARRAY[]::text[]), 'responded')`,
-                updatedAt: new Date(),
-              })
-              .where(eq(leads.id, lead.id));
-            console.log(
-              `[SignalHouse] 🟢 GREEN TAG: Added 'responded' to lead ${lead.id} → 3x priority boost`,
-            );
+            try {
+              await db
+                .update(leads)
+                .set({
+                  tags: sql`array_append(COALESCE(tags, ARRAY[]::text[]), 'responded')`,
+                  updatedAt: new Date(),
+                })
+                .where(eq(leads.id, lead.id));
+              console.log(
+                `[SignalHouse] 🟢 GREEN TAG: Added 'responded' to lead ${lead.id} → 3x priority boost`,
+              );
+            } catch (dbError) {
+              console.error("[SignalHouse] Failed to add GREEN tag:", dbError);
+            }
           }
         }
 

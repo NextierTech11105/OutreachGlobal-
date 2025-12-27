@@ -29,7 +29,11 @@ export default function CallCenterPage() {
     const name = searchParams.get("name");
 
     if (phone && !isCallActive) {
-      setIncomingLead({ phone, leadId: leadId || undefined, name: name || undefined });
+      setIncomingLead({
+        phone,
+        leadId: leadId || undefined,
+        name: name || undefined,
+      });
     }
   }, [searchParams, isCallActive]);
 

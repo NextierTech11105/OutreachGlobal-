@@ -165,7 +165,10 @@ export default function CompanyUsersPage({
         );
       case "PENDING":
         return (
-          <Badge variant="outline" className="text-yellow-600 border-yellow-600">
+          <Badge
+            variant="outline"
+            className="text-yellow-600 border-yellow-600"
+          >
             <Clock className="mr-1 h-3 w-3" />
             Pending
           </Badge>
@@ -305,7 +308,9 @@ export default function CompanyUsersPage({
                     <TableHead className="text-zinc-400">Role</TableHead>
                     <TableHead className="text-zinc-400">Status</TableHead>
                     <TableHead className="text-zinc-400">Joined</TableHead>
-                    <TableHead className="text-zinc-400 text-right">Actions</TableHead>
+                    <TableHead className="text-zinc-400 text-right">
+                      Actions
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -345,7 +350,9 @@ export default function CompanyUsersPage({
                           <Button
                             size="sm"
                             onClick={() => handleImpersonateUser(member)}
-                            disabled={isImpersonating === member.id || !member.user}
+                            disabled={
+                              isImpersonating === member.id || !member.user
+                            }
                             className="bg-blue-600 hover:bg-blue-700"
                           >
                             {isImpersonating === member.id ? (

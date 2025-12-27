@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireSuperAdmin } from "@/lib/api-auth";
 
 // Default prompt templates for the AI SDR system
 const DEFAULT_PROMPTS = [
@@ -52,6 +53,14 @@ const DEFAULT_PROMPTS = [
 // GET /api/admin/prompt-library - List all prompts
 export async function GET(request: NextRequest) {
   try {
+    const admin = await requireSuperAdmin();
+    if (!admin) {
+      return NextResponse.json(
+        { error: "Forbidden: Super admin access required" },
+        { status: 403 },
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const category = searchParams.get("category");
 
@@ -78,6 +87,14 @@ export async function GET(request: NextRequest) {
 // POST /api/admin/prompt-library - Create/update a prompt
 export async function POST(request: NextRequest) {
   try {
+    const admin = await requireSuperAdmin();
+    if (!admin) {
+      return NextResponse.json(
+        { error: "Forbidden: Super admin access required" },
+        { status: 403 },
+      );
+    }
+
     const body = await request.json();
     const { id, name, category, template, variables } = body;
 
@@ -115,6 +132,14 @@ export async function POST(request: NextRequest) {
 // DELETE /api/admin/prompt-library - Delete a prompt
 export async function DELETE(request: NextRequest) {
   try {
+    const admin = await requireSuperAdmin();
+    if (!admin) {
+      return NextResponse.json(
+        { error: "Forbidden: Super admin access required" },
+        { status: 403 },
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const promptId = searchParams.get("id");
 

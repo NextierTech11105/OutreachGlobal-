@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { batches } from "@/lib/batches-store";
 
 /**
  * FDAILY Import - FULL RealEstateAPI Enrichment
@@ -24,9 +25,6 @@ import { NextRequest, NextResponse } from "next/server";
 
 const REALESTATE_API_KEY = process.env.REALESTATE_API_KEY || process.env.REAL_ESTATE_API_KEY || "";
 const REALESTATE_API_URL = "https://api.realestateapi.com/v2";
-
-// In-memory storage for demo (replace with DO Spaces in production)
-const batches: Map<string, any> = new Map();
 
 export async function POST(request: NextRequest) {
   try {
@@ -447,6 +445,3 @@ function parseCSVLine(line: string): string[] {
   result.push(current);
   return result;
 }
-
-// Export batches for other routes
-export { batches };

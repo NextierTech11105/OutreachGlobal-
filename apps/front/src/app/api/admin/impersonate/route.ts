@@ -3,7 +3,11 @@ import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { users, teams } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { getApiAuthContext, requireSuperAdmin, SUPER_ADMIN_ROLE } from "@/lib/api-auth";
+import {
+  getApiAuthContext,
+  requireSuperAdmin,
+  SUPER_ADMIN_ROLE,
+} from "@/lib/api-auth";
 import { logAdminAction } from "@/lib/audit-log";
 
 const IMPERSONATION_COOKIE = "nextier_impersonation";
@@ -31,13 +35,19 @@ export async function POST(request: NextRequest) {
   try {
     const admin = await requireSuperAdmin();
     if (!admin) {
-      return NextResponse.json({ error: "Forbidden: Super admin access required" }, { status: 403 });
+      return NextResponse.json(
+        { error: "Forbidden: Super admin access required" },
+        { status: 403 },
+      );
     }
 
     // Get full auth context for token storage
     const auth = await getApiAuthContext();
     if (!auth.token) {
-      return NextResponse.json({ error: "Session token not found" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Session token not found" },
+        { status: 401 },
+      );
     }
 
     const body = await request.json();
@@ -46,14 +56,14 @@ export async function POST(request: NextRequest) {
     if (!targetUserId || !targetTeamId) {
       return NextResponse.json(
         { error: "targetUserId and targetTeamId are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!db) {
       return NextResponse.json(
         { error: "Database not configured" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -72,7 +82,7 @@ export async function POST(request: NextRequest) {
     if (targetUsers.length === 0) {
       return NextResponse.json(
         { error: "Target user not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -82,7 +92,7 @@ export async function POST(request: NextRequest) {
     if (targetUser.role === SUPER_ADMIN_ROLE) {
       return NextResponse.json(
         { error: "Cannot impersonate other super admins" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -100,7 +110,7 @@ export async function POST(request: NextRequest) {
     if (targetTeams.length === 0) {
       return NextResponse.json(
         { error: "Target team not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -108,7 +118,9 @@ export async function POST(request: NextRequest) {
 
     // Create impersonation context with expiration
     const now = new Date();
-    const expiresAt = new Date(now.getTime() + MAX_IMPERSONATION_HOURS * 60 * 60 * 1000);
+    const expiresAt = new Date(
+      now.getTime() + MAX_IMPERSONATION_HOURS * 60 * 60 * 1000,
+    );
 
     const impersonationContext: ImpersonationContext = {
       targetUserId: targetUser.id,
@@ -136,13 +148,17 @@ export async function POST(request: NextRequest) {
     });
 
     // Store impersonation context (readable by client)
-    cookieStore.set(IMPERSONATION_COOKIE, JSON.stringify(impersonationContext), {
-      httpOnly: false, // Readable by client for banner
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: MAX_IMPERSONATION_HOURS * 60 * 60, // Match expiration time
-    });
+    cookieStore.set(
+      IMPERSONATION_COOKIE,
+      JSON.stringify(impersonationContext),
+      {
+        httpOnly: false, // Readable by client for banner
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: MAX_IMPERSONATION_HOURS * 60 * 60, // Match expiration time
+      },
+    );
 
     // Audit log impersonation start
     await logAdminAction({
@@ -170,8 +186,13 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("[Impersonate] Error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to start impersonation" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to start impersonation",
+      },
+      { status: 500 },
     );
   }
 }
@@ -190,7 +211,7 @@ export async function DELETE(request: NextRequest) {
     if (!originalToken) {
       return NextResponse.json(
         { error: "No impersonation session found" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -237,8 +258,13 @@ export async function DELETE(request: NextRequest) {
   } catch (error) {
     console.error("[Impersonate Exit] Error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to exit impersonation" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to exit impersonation",
+      },
+      { status: 500 },
     );
   }
 }
@@ -259,10 +285,15 @@ export async function GET() {
       });
     }
 
-    const impersonation = JSON.parse(impersonationCookie) as ImpersonationContext;
+    const impersonation = JSON.parse(
+      impersonationCookie,
+    ) as ImpersonationContext;
 
     // Check if impersonation has expired
-    if (impersonation.expiresAt && new Date(impersonation.expiresAt) < new Date()) {
+    if (
+      impersonation.expiresAt &&
+      new Date(impersonation.expiresAt) < new Date()
+    ) {
       // Auto-expire: clear cookies
       cookieStore.delete(IMPERSONATION_COOKIE);
       cookieStore.delete(ORIGINAL_TOKEN_COOKIE);
@@ -284,7 +315,9 @@ export async function GET() {
       isImpersonating: true,
       impersonation,
       timeRemaining,
-      timeRemainingMinutes: timeRemaining ? Math.floor(timeRemaining / 60000) : null,
+      timeRemainingMinutes: timeRemaining
+        ? Math.floor(timeRemaining / 60000)
+        : null,
     });
   } catch (error) {
     console.error("[Impersonate Status] Error:", error);

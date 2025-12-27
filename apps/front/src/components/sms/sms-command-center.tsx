@@ -125,7 +125,8 @@ export function SMSCommandCenter({ teamId }: SMSCommandCenterProps) {
   // State
   const [activeWorker, setActiveWorker] = useState<WorkerId>("all");
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
-  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  const [selectedConversation, setSelectedConversation] =
+    useState<Conversation | null>(null);
   const [queueStats, setQueueStats] = useState<QueueStats>({
     pending: 0,
     sent: 0,
@@ -143,7 +144,9 @@ export function SMSCommandCenter({ teamId }: SMSCommandCenterProps) {
   const [sending, setSending] = useState(false);
   const [replyText, setReplyText] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "new" | "replied">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "new" | "replied">(
+    "all",
+  );
 
   // Fetch queue stats
   const fetchQueueStats = useCallback(async () => {
@@ -190,7 +193,7 @@ export function SMSCommandCenter({ teamId }: SMSCommandCenterProps) {
     setLoadingThread(true);
     try {
       const response = await fetch(
-        `/api/sms/conversations?teamId=${teamId}&leadId=${leadId}`
+        `/api/sms/conversations?teamId=${teamId}&leadId=${leadId}`,
       );
       const data = await response.json();
 
@@ -207,8 +210,8 @@ export function SMSCommandCenter({ teamId }: SMSCommandCenterProps) {
         // Update local state
         setConversations((prev) =>
           prev.map((c) =>
-            c.leadId === leadId ? { ...c, isRead: true, unreadCount: 0 } : c
-          )
+            c.leadId === leadId ? { ...c, isRead: true, unreadCount: 0 } : c,
+          ),
         );
       }
     } catch (error) {
@@ -262,7 +265,7 @@ export function SMSCommandCenter({ teamId }: SMSCommandCenterProps) {
                   },
                 ],
               }
-            : null
+            : null,
         );
 
         // Mark as processed
@@ -393,7 +396,9 @@ export function SMSCommandCenter({ teamId }: SMSCommandCenterProps) {
                   Conversations
                 </CardTitle>
                 <Button variant="ghost" size="icon" onClick={handleRefresh}>
-                  <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
+                  <RefreshCw
+                    className={cn("w-4 h-4", loading && "animate-spin")}
+                  />
                 </Button>
               </div>
 
@@ -471,7 +476,7 @@ export function SMSCommandCenter({ teamId }: SMSCommandCenterProps) {
                           "hover:bg-zinc-800/80 border border-transparent",
                           selectedConversation?.leadId === conv.leadId &&
                             "bg-zinc-800 border-zinc-700",
-                          !conv.isRead && "bg-zinc-800/40"
+                          !conv.isRead && "bg-zinc-800/40",
                         )}
                       >
                         <div className="flex items-start justify-between gap-2">
@@ -492,17 +497,21 @@ export function SMSCommandCenter({ teamId }: SMSCommandCenterProps) {
                             </p>
                             <div className="flex items-center gap-2 mt-1">
                               <span className="text-xs text-zinc-500">
-                                {formatDistanceToNow(new Date(conv.lastMessageAt), {
-                                  addSuffix: true,
-                                })}
+                                {formatDistanceToNow(
+                                  new Date(conv.lastMessageAt),
+                                  {
+                                    addSuffix: true,
+                                  },
+                                )}
                               </span>
                               {conv.classification && (
                                 <Badge
                                   variant="outline"
                                   className={cn(
                                     "text-xs py-0",
-                                    CLASSIFICATION_COLORS[conv.classification] ||
-                                      "border-zinc-600"
+                                    CLASSIFICATION_COLORS[
+                                      conv.classification
+                                    ] || "border-zinc-600",
                                   )}
                                 >
                                   {conv.classification.replace("-", " ")}
@@ -570,7 +579,7 @@ export function SMSCommandCenter({ teamId }: SMSCommandCenterProps) {
                             "flex",
                             msg.direction === "OUTBOUND"
                               ? "justify-end"
-                              : "justify-start"
+                              : "justify-start",
                           )}
                         >
                           <div
@@ -578,7 +587,7 @@ export function SMSCommandCenter({ teamId }: SMSCommandCenterProps) {
                               "max-w-[75%] p-3 rounded-lg",
                               msg.direction === "OUTBOUND"
                                 ? "bg-purple-600 text-white"
-                                : "bg-zinc-800 text-zinc-100"
+                                : "bg-zinc-800 text-zinc-100",
                             )}
                           >
                             <p className="text-sm">{msg.body}</p>
@@ -587,7 +596,7 @@ export function SMSCommandCenter({ teamId }: SMSCommandCenterProps) {
                                 "flex items-center gap-2 mt-1 text-xs",
                                 msg.direction === "OUTBOUND"
                                   ? "text-purple-200"
-                                  : "text-zinc-500"
+                                  : "text-zinc-500",
                               )}
                             >
                               <span>
@@ -596,7 +605,9 @@ export function SMSCommandCenter({ teamId }: SMSCommandCenterProps) {
                                 })}
                               </span>
                               {msg.worker && (
-                                <span className="capitalize">via {msg.worker}</span>
+                                <span className="capitalize">
+                                  via {msg.worker}
+                                </span>
                               )}
                               {msg.status === "DELIVERED" && (
                                 <CheckCircle className="w-3 h-3" />
@@ -621,8 +632,9 @@ export function SMSCommandCenter({ teamId }: SMSCommandCenterProps) {
                     />
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-zinc-500">
-                        {replyText.length}/160 ({Math.ceil(replyText.length / 160) || 1}{" "}
-                        segment{Math.ceil(replyText.length / 160) !== 1 ? "s" : ""})
+                        {replyText.length}/160 (
+                        {Math.ceil(replyText.length / 160) || 1} segment
+                        {Math.ceil(replyText.length / 160) !== 1 ? "s" : ""})
                       </span>
                       <div className="flex gap-2">
                         <Button

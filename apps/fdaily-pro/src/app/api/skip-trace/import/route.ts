@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { batches } from "../../import/route";
+import { batches } from "@/lib/batches-store";
 
 /**
  * Import skip traced data from Agent HQ

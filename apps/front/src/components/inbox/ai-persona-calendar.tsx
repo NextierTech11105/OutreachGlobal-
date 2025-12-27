@@ -208,18 +208,20 @@ export function AIPersonaCalendar({
         if (response.ok) {
           const data = await response.json();
           // Map API data to ScheduledCall format
-          const calls: ScheduledCall[] = (data.calls || []).map((call: any) => ({
-            id: call.id,
-            leadId: call.leadId,
-            leadName: call.leadName || "Unknown",
-            companyName: call.companyName || "Unknown",
-            phone: call.phone || "",
-            scheduledFor: new Date(call.scheduledFor),
-            persona: call.persona || "gianna",
-            status: call.status || "pending",
-            notes: call.notes,
-            campaignContext: call.campaignContext || "initial",
-          }));
+          const calls: ScheduledCall[] = (data.calls || []).map(
+            (call: any) => ({
+              id: call.id,
+              leadId: call.leadId,
+              leadName: call.leadName || "Unknown",
+              companyName: call.companyName || "Unknown",
+              phone: call.phone || "",
+              scheduledFor: new Date(call.scheduledFor),
+              persona: call.persona || "gianna",
+              status: call.status || "pending",
+              notes: call.notes,
+              campaignContext: call.campaignContext || "initial",
+            }),
+          );
           setScheduledCalls(calls);
         } else {
           setScheduledCalls([]);

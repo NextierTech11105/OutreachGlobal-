@@ -1,21 +1,25 @@
-import Link from "next/link";
+export const dynamic = "force-dynamic";
 
 export default function NotFound() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-950 text-zinc-100">
-      <div className="text-center">
-        <h1 className="text-6xl font-bold text-zinc-400">404</h1>
-        <h2 className="mt-4 text-2xl font-semibold">Page Not Found</h2>
-        <p className="mt-2 text-zinc-500">
-          The page you're looking for doesn't exist or has been moved.
-        </p>
-        <Link
-          href="/"
-          className="mt-8 inline-block rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
-        >
-          Go Home
-        </Link>
-      </div>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        minHeight: "100vh",
+        background: "#09090b",
+        color: "#fafafa",
+      }}
+    >
+      <h1 style={{ fontSize: "6rem", fontWeight: "bold", color: "#3f3f46" }}>
+        404
+      </h1>
+      <p style={{ color: "#71717a", marginBottom: "2rem" }}>Page not found</p>
+      <a href="/" style={{ color: "#3b82f6", textDecoration: "none" }}>
+        Go home
+      </a>
     </div>
   );
 }

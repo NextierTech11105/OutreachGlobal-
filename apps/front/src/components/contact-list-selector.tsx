@@ -80,7 +80,9 @@ export function ContactListSelector({
 
         // If there's a selectedListId, set it as selected
         if (selectedListId) {
-          const selected = lists.find((list: ContactList) => list.id === selectedListId);
+          const selected = lists.find(
+            (list: ContactList) => list.id === selectedListId,
+          );
           if (selected) {
             setSelectedList(selected);
             loadPreviewContacts(selected.id);

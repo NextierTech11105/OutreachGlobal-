@@ -25,9 +25,14 @@ interface CampaignPerformanceChartProps {
   campaignId?: string;
 }
 
-export function CampaignPerformanceChart({ data, campaignId }: CampaignPerformanceChartProps) {
+export function CampaignPerformanceChart({
+  data,
+  campaignId,
+}: CampaignPerformanceChartProps) {
   const [isMounted, setIsMounted] = useState(false);
-  const [performanceData, setPerformanceData] = useState<PerformanceDataPoint[]>(data || []);
+  const [performanceData, setPerformanceData] = useState<
+    PerformanceDataPoint[]
+  >(data || []);
   const [loading, setLoading] = useState(!data);
 
   useEffect(() => {
@@ -44,8 +49,8 @@ export function CampaignPerformanceChart({ data, campaignId }: CampaignPerforman
     if (campaignId) {
       // Fetch from API when campaignId is provided
       fetch(`/api/campaigns/${campaignId}/performance`)
-        .then(res => res.json())
-        .then(result => {
+        .then((res) => res.json())
+        .then((result) => {
           if (result.data) setPerformanceData(result.data);
         })
         .catch(console.error)

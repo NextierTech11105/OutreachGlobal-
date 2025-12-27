@@ -65,8 +65,8 @@ async function getConversationContext(
           eq(leads.mobilePhone, phone),
           eq(leads.phone, phone),
           eq(leads.mobilePhone, `+1${normalized}`),
-          eq(leads.phone, `+1${normalized}`)
-        )
+          eq(leads.phone, `+1${normalized}`),
+        ),
       )
       .limit(1);
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { batches } from "../../import/route";
+import { batches } from "@/lib/batches-store";
 
 /**
  * Export Zoho-ready CSV
@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
 
   const csv = [
     ZOHO_FIELDS.join(","),
-    ...rows.map(r => r.map(v => `"${String(v || "").replace(/"/g, '""')}"`).join(","))
+    ...rows.map((r: string[]) => r.map((v: string) => `"${String(v || "").replace(/"/g, '""')}"`).join(","))
   ].join("\n");
 
   return new NextResponse(csv, {

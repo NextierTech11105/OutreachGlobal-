@@ -524,7 +524,10 @@ export function luciQuery(query: LuciQuery): LuciQueryResult {
 
   // Calculate capacity planning (using LUCI constants)
   const batchesNeeded = Math.ceil(estimatedRecords / LUCI_PAUSE_AT);
-  const daysToFillPool = Math.min(batchesNeeded, LUCI_POOL_TARGET / LUCI_PAUSE_AT);
+  const daysToFillPool = Math.min(
+    batchesNeeded,
+    LUCI_POOL_TARGET / LUCI_PAUSE_AT,
+  );
 
   // Generate recommendation
   let recommendation = "";

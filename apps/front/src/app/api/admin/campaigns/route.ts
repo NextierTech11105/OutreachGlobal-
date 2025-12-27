@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { apiAuth } from "@/lib/api-auth";
+import { requireSuperAdmin } from "@/lib/api-auth";
 import {
   createTeamCampaign,
   getCampaignsBySubGroup,
@@ -15,9 +15,12 @@ import {
 // GET - List campaigns or get qualifying use cases
 export async function GET(request: NextRequest) {
   try {
-    const auth = await apiAuth();
-    if (!auth.userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const admin = await requireSuperAdmin();
+    if (!admin) {
+      return NextResponse.json(
+        { error: "Forbidden: Super admin access required" },
+        { status: 403 },
+      );
     }
 
     if (!isConfigured()) {
@@ -82,9 +85,12 @@ export async function GET(request: NextRequest) {
 // POST - Create a new campaign for a team
 export async function POST(request: NextRequest) {
   try {
-    const auth = await apiAuth();
-    if (!auth.userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const admin = await requireSuperAdmin();
+    if (!admin) {
+      return NextResponse.json(
+        { error: "Forbidden: Super admin access required" },
+        { status: 403 },
+      );
     }
 
     if (!isConfigured()) {
@@ -135,9 +141,12 @@ export async function POST(request: NextRequest) {
 // PATCH - Update a campaign
 export async function PATCH(request: NextRequest) {
   try {
-    const auth = await apiAuth();
-    if (!auth.userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const admin = await requireSuperAdmin();
+    if (!admin) {
+      return NextResponse.json(
+        { error: "Forbidden: Super admin access required" },
+        { status: 403 },
+      );
     }
 
     if (!isConfigured()) {
@@ -182,9 +191,12 @@ export async function PATCH(request: NextRequest) {
 // DELETE - Delete a campaign
 export async function DELETE(request: NextRequest) {
   try {
-    const auth = await apiAuth();
-    if (!auth.userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const admin = await requireSuperAdmin();
+    if (!admin) {
+      return NextResponse.json(
+        { error: "Forbidden: Super admin access required" },
+        { status: 403 },
+      );
     }
 
     if (!isConfigured()) {

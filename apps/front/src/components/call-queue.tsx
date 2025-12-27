@@ -6,7 +6,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Phone, PhoneCall, Clock, User, MoreVertical, Loader2 } from "lucide-react";
+import {
+  Phone,
+  PhoneCall,
+  Clock,
+  User,
+  MoreVertical,
+  Loader2,
+} from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   DropdownMenu,
@@ -48,12 +55,14 @@ export function CallQueue() {
               waitTime: getWaitTime(lead.lastContactedAt),
               source: lead.source || "Direct",
               avatar: lead.avatarUrl,
-            }))
+            })),
           );
         }
 
         // Fetch outbound calls from scheduled campaigns
-        const outboundRes = await fetch("/api/call-center/queue?type=outbound&limit=10");
+        const outboundRes = await fetch(
+          "/api/call-center/queue?type=outbound&limit=10",
+        );
         if (outboundRes.ok) {
           const data = await outboundRes.json();
           setOutboundCalls(
@@ -64,7 +73,7 @@ export function CallQueue() {
               scheduledTime: formatTime(item.scheduledAt),
               campaign: item.campaignName || "Outreach",
               avatar: item.avatarUrl,
-            }))
+            })),
           );
         }
       } catch (error) {

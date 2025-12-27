@@ -42,7 +42,9 @@ export async function POST(request: NextRequest) {
             callHistoryId: callHistory[0].id,
             recordingUrl: recordingUrl,
             recordingSid: recordingSid,
-            duration: recordingDuration ? parseInt(recordingDuration, 10) : null,
+            duration: recordingDuration
+              ? parseInt(recordingDuration, 10)
+              : null,
             transcription: transcriptionText || null,
             createdAt: new Date(),
           });

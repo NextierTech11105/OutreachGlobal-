@@ -1,4 +1,4 @@
-// Shared in-memory storage for batches
-// This allows cross-route access without exporting from API routes
+// Shared in-memory storage for batches (replace with DO Spaces in production)
+const batches: Map<string, any> = new Map();
 
-export const batches: Map<string, any> = new Map();
+export { batches };

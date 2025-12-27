@@ -14,15 +14,20 @@ import { NextRequest, NextResponse } from "next/server";
  * PERSON + PROPERTY ONLY
  */
 
-const REALESTATE_API_KEY = process.env.REAL_ESTATE_API_KEY || process.env.REALESTATE_API_KEY || "";
+const REALESTATE_API_KEY =
+  process.env.REAL_ESTATE_API_KEY || process.env.REALESTATE_API_KEY || "";
 const SKIP_TRACE_URL = "https://api.realestateapi.com/v1/SkipTrace";
-const SKIP_TRACE_BATCH_URL = "https://api.realestateapi.com/v1/SkipTraceBatchAwait";
+const SKIP_TRACE_BATCH_URL =
+  "https://api.realestateapi.com/v1/SkipTraceBatchAwait";
 
 // Daily limits
 const DAILY_LIMIT = 2000;
 const dailyUsage = { date: "", count: 0 };
 
-function checkDailyLimit(requested: number): { allowed: boolean; remaining: number } {
+function checkDailyLimit(requested: number): {
+  allowed: boolean;
+  remaining: number;
+} {
   const today = new Date().toISOString().split("T")[0];
   if (dailyUsage.date !== today) {
     dailyUsage.date = today;
@@ -38,12 +43,12 @@ function incrementUsage(count: number) {
 
 // Input validation - STRICT
 interface USBizSkipInput {
-  full_name: string;      // REQUIRED - owner full name from USBizData
-  address: string;        // REQUIRED - business property address
-  city: string;           // REQUIRED
-  state: string;          // REQUIRED - 2 letter
-  zip: string;            // REQUIRED - 5 digits
-  record_id?: string;     // Optional - for tracking
+  full_name: string; // REQUIRED - owner full name from USBizData
+  address: string; // REQUIRED - business property address
+  city: string; // REQUIRED
+  state: string; // REQUIRED - 2 letter
+  zip: string; // REQUIRED - 5 digits
+  record_id?: string; // Optional - for tracking
 }
 
 interface SkipTraceResult {
@@ -58,7 +63,10 @@ interface SkipTraceResult {
 }
 
 // Validate input - reject invalid/ambiguous records
-function validateInput(input: USBizSkipInput): { valid: boolean; error?: string } {
+function validateInput(input: USBizSkipInput): {
+  valid: boolean;
+  error?: string;
+} {
   // Must have full name
   if (!input.full_name || input.full_name.trim().length < 3) {
     return { valid: false, error: "full_name required (min 3 chars)" };
@@ -79,7 +87,11 @@ function validateInput(input: USBizSkipInput): { valid: boolean; error?: string 
   ];
   for (const pattern of invalidPatterns) {
     if (pattern.test(input.full_name)) {
-      return { valid: false, error: "full_name appears to be corporate/trust - skip trace requires person" };
+      return {
+        valid: false,
+        error:
+          "full_name appears to be corporate/trust - skip trace requires person",
+      };
     }
   }
 
@@ -124,7 +136,9 @@ function parseName(fullName: string): { firstName: string; lastName: string } {
 }
 
 // Single skip trace call
-async function skipTracePerson(input: USBizSkipInput): Promise<SkipTraceResult> {
+async function skipTracePerson(
+  input: USBizSkipInput,
+): Promise<SkipTraceResult> {
   const validation = validateInput(input);
   if (!validation.valid) {
     return { input, success: false, error: validation.error };
@@ -144,7 +158,9 @@ async function skipTracePerson(input: USBizSkipInput): Promise<SkipTraceResult> 
     match_requirements: { phones: true },
   };
 
-  console.log(`[USBiz Skip Trace] ${input.full_name} @ ${input.address}, ${input.city} ${input.state}`);
+  console.log(
+    `[USBiz Skip Trace] ${input.full_name} @ ${input.address}, ${input.city} ${input.state}`,
+  );
 
   try {
     const response = await fetch(SKIP_TRACE_URL, {
@@ -171,27 +187,37 @@ async function skipTracePerson(input: USBizSkipInput): Promise<SkipTraceResult> 
     const emails = identity.emails || [];
 
     // Find mobile phone (prioritize mobile/cell types)
-    const mobilePhone = phones.find(
-      (p: { phoneType?: string; isConnected?: boolean; doNotCall?: boolean }) =>
-        (p.phoneType?.toLowerCase() === "mobile" || p.phoneType?.toLowerCase() === "cell") &&
-        p.isConnected !== false &&
-        p.doNotCall !== true
-    ) || phones.find(
-      (p: { isConnected?: boolean; doNotCall?: boolean }) =>
-        p.isConnected !== false && p.doNotCall !== true
-    );
+    const mobilePhone =
+      phones.find(
+        (p: {
+          phoneType?: string;
+          isConnected?: boolean;
+          doNotCall?: boolean;
+        }) =>
+          (p.phoneType?.toLowerCase() === "mobile" ||
+            p.phoneType?.toLowerCase() === "cell") &&
+          p.isConnected !== false &&
+          p.doNotCall !== true,
+      ) ||
+      phones.find(
+        (p: { isConnected?: boolean; doNotCall?: boolean }) =>
+          p.isConnected !== false && p.doNotCall !== true,
+      );
 
     // Get primary email
     const primaryEmail = emails.find((e: { email?: string }) => e.email);
 
     const allPhones = phones
-      .filter((p: { isConnected?: boolean; doNotCall?: boolean }) =>
-        p.isConnected !== false && p.doNotCall !== true
+      .filter(
+        (p: { isConnected?: boolean; doNotCall?: boolean }) =>
+          p.isConnected !== false && p.doNotCall !== true,
       )
-      .map((p: { phone?: string; phoneDisplay?: string; phoneType?: string }) => ({
-        number: p.phone || p.phoneDisplay?.replace(/\D/g, "") || "",
-        type: p.phoneType || "unknown",
-      }))
+      .map(
+        (p: { phone?: string; phoneDisplay?: string; phoneType?: string }) => ({
+          number: p.phone || p.phoneDisplay?.replace(/\D/g, "") || "",
+          type: p.phoneType || "unknown",
+        }),
+      )
       .filter((p: { number: string }) => p.number);
 
     const allEmails = emails
@@ -203,8 +229,10 @@ async function skipTracePerson(input: USBizSkipInput): Promise<SkipTraceResult> 
 
     return {
       input,
-      success: data.match === true && (allPhones.length > 0 || allEmails.length > 0),
-      mobile: mobilePhone?.phone || mobilePhone?.phoneDisplay?.replace(/\D/g, ""),
+      success:
+        data.match === true && (allPhones.length > 0 || allEmails.length > 0),
+      mobile:
+        mobilePhone?.phone || mobilePhone?.phoneDisplay?.replace(/\D/g, ""),
       email: primaryEmail?.email,
       all_phones: allPhones,
       all_emails: allEmails,
@@ -220,7 +248,9 @@ async function skipTracePerson(input: USBizSkipInput): Promise<SkipTraceResult> 
 }
 
 // Bulk skip trace
-async function bulkSkipTrace(inputs: USBizSkipInput[]): Promise<SkipTraceResult[]> {
+async function bulkSkipTrace(
+  inputs: USBizSkipInput[],
+): Promise<SkipTraceResult[]> {
   // Validate all inputs first
   const validInputs: USBizSkipInput[] = [];
   const invalidResults: SkipTraceResult[] = [];
@@ -270,7 +300,7 @@ async function bulkSkipTrace(inputs: USBizSkipInput[]): Promise<SkipTraceResult[
       // Return all as failed
       return [
         ...invalidResults,
-        ...validInputs.map(input => ({
+        ...validInputs.map((input) => ({
           input,
           success: false,
           error: data.message || `Batch API error: ${response.status}`,
@@ -282,34 +312,51 @@ async function bulkSkipTrace(inputs: USBizSkipInput[]): Promise<SkipTraceResult[
     const batchResults = data.results || data.data || [];
 
     for (const item of batchResults) {
-      const originalInput = validInputs.find((_, idx) =>
-        (item.key === `usbiz_${idx}`) || (item.key === validInputs[idx]?.record_id)
-      ) || validInputs[0];
+      const originalInput =
+        validInputs.find(
+          (_, idx) =>
+            item.key === `usbiz_${idx}` ||
+            item.key === validInputs[idx]?.record_id,
+        ) || validInputs[0];
 
       const identity = item.output?.identity || {};
       const phones = identity.phones || [];
       const emails = identity.emails || [];
 
-      const mobilePhone = phones.find(
-        (p: { phoneType?: string; isConnected?: boolean; doNotCall?: boolean }) =>
-          (p.phoneType?.toLowerCase() === "mobile" || p.phoneType?.toLowerCase() === "cell") &&
-          p.isConnected !== false &&
-          p.doNotCall !== true
-      ) || phones.find(
-        (p: { isConnected?: boolean; doNotCall?: boolean }) =>
-          p.isConnected !== false && p.doNotCall !== true
-      );
+      const mobilePhone =
+        phones.find(
+          (p: {
+            phoneType?: string;
+            isConnected?: boolean;
+            doNotCall?: boolean;
+          }) =>
+            (p.phoneType?.toLowerCase() === "mobile" ||
+              p.phoneType?.toLowerCase() === "cell") &&
+            p.isConnected !== false &&
+            p.doNotCall !== true,
+        ) ||
+        phones.find(
+          (p: { isConnected?: boolean; doNotCall?: boolean }) =>
+            p.isConnected !== false && p.doNotCall !== true,
+        );
 
       const primaryEmail = emails.find((e: { email?: string }) => e.email);
 
       const allPhones = phones
-        .filter((p: { isConnected?: boolean; doNotCall?: boolean }) =>
-          p.isConnected !== false && p.doNotCall !== true
+        .filter(
+          (p: { isConnected?: boolean; doNotCall?: boolean }) =>
+            p.isConnected !== false && p.doNotCall !== true,
         )
-        .map((p: { phone?: string; phoneDisplay?: string; phoneType?: string }) => ({
-          number: p.phone || p.phoneDisplay?.replace(/\D/g, "") || "",
-          type: p.phoneType || "unknown",
-        }))
+        .map(
+          (p: {
+            phone?: string;
+            phoneDisplay?: string;
+            phoneType?: string;
+          }) => ({
+            number: p.phone || p.phoneDisplay?.replace(/\D/g, "") || "",
+            type: p.phoneType || "unknown",
+          }),
+        )
         .filter((p: { number: string }) => p.number);
 
       const allEmails = emails
@@ -321,8 +368,11 @@ async function bulkSkipTrace(inputs: USBizSkipInput[]): Promise<SkipTraceResult[
 
       results.push({
         input: originalInput,
-        success: item.match !== false && (allPhones.length > 0 || allEmails.length > 0),
-        mobile: mobilePhone?.phone || mobilePhone?.phoneDisplay?.replace(/\D/g, ""),
+        success:
+          item.match !== false &&
+          (allPhones.length > 0 || allEmails.length > 0),
+        mobile:
+          mobilePhone?.phone || mobilePhone?.phoneDisplay?.replace(/\D/g, ""),
         email: primaryEmail?.email,
         all_phones: allPhones,
         all_emails: allEmails,
@@ -333,7 +383,7 @@ async function bulkSkipTrace(inputs: USBizSkipInput[]): Promise<SkipTraceResult[
   } catch (err) {
     return [
       ...invalidResults,
-      ...validInputs.map(input => ({
+      ...validInputs.map((input) => ({
         input,
         success: false,
         error: err instanceof Error ? err.message : "Bulk skip trace failed",
@@ -350,10 +400,13 @@ async function bulkSkipTrace(inputs: USBizSkipInput[]): Promise<SkipTraceResult[
  */
 export async function POST(request: NextRequest) {
   if (!REALESTATE_API_KEY) {
-    return NextResponse.json({
-      error: "RealEstateAPI not configured",
-      message: "Set REAL_ESTATE_API_KEY environment variable",
-    }, { status: 503 });
+    return NextResponse.json(
+      {
+        error: "RealEstateAPI not configured",
+        message: "Set REAL_ESTATE_API_KEY environment variable",
+      },
+      { status: 503 },
+    );
   }
 
   const body = await request.json();
@@ -363,24 +416,46 @@ export async function POST(request: NextRequest) {
   const inputs: USBizSkipInput[] = isBatch ? body.records : [body];
 
   if (inputs.length === 0) {
-    return NextResponse.json({
-      error: "No records provided",
-      example: {
-        single: { full_name: "John Smith", address: "123 Main St", city: "Miami", state: "FL", zip: "33101" },
-        batch: { records: [{ full_name: "John Smith", address: "123 Main St", city: "Miami", state: "FL", zip: "33101" }] },
+    return NextResponse.json(
+      {
+        error: "No records provided",
+        example: {
+          single: {
+            full_name: "John Smith",
+            address: "123 Main St",
+            city: "Miami",
+            state: "FL",
+            zip: "33101",
+          },
+          batch: {
+            records: [
+              {
+                full_name: "John Smith",
+                address: "123 Main St",
+                city: "Miami",
+                state: "FL",
+                zip: "33101",
+              },
+            ],
+          },
+        },
       },
-    }, { status: 400 });
+      { status: 400 },
+    );
   }
 
   // Check daily limit
   const limit = checkDailyLimit(inputs.length);
   if (!limit.allowed) {
-    return NextResponse.json({
-      error: "Daily limit reached",
-      limit: DAILY_LIMIT,
-      remaining: limit.remaining,
-      requested: inputs.length,
-    }, { status: 429 });
+    return NextResponse.json(
+      {
+        error: "Daily limit reached",
+        limit: DAILY_LIMIT,
+        remaining: limit.remaining,
+        requested: inputs.length,
+      },
+      { status: 429 },
+    );
   }
 
   // Process
@@ -392,20 +467,28 @@ export async function POST(request: NextRequest) {
   }
 
   // Increment usage
-  incrementUsage(results.filter(r => !r.error?.includes("validation")).length);
+  incrementUsage(
+    results.filter((r) => !r.error?.includes("validation")).length,
+  );
 
   // Stats
-  const successful = results.filter(r => r.success);
-  const withMobile = successful.filter(r => r.mobile);
-  const withEmail = successful.filter(r => r.email);
+  const successful = results.filter((r) => r.success);
+  const withMobile = successful.filter((r) => r.mobile);
+  const withEmail = successful.filter((r) => r.email);
 
-  console.log(`[USBiz Skip Trace] Complete: ${successful.length}/${results.length} matched, ${withMobile.length} mobile, ${withEmail.length} email`);
+  console.log(
+    `[USBiz Skip Trace] Complete: ${successful.length}/${results.length} matched, ${withMobile.length} mobile, ${withEmail.length} email`,
+  );
 
   // Single response format
   if (!isBatch) {
     return NextResponse.json({
       ...results[0],
-      usage: { today: dailyUsage.count, limit: DAILY_LIMIT, remaining: DAILY_LIMIT - dailyUsage.count },
+      usage: {
+        today: dailyUsage.count,
+        limit: DAILY_LIMIT,
+        remaining: DAILY_LIMIT - dailyUsage.count,
+      },
     });
   }
 
@@ -420,7 +503,11 @@ export async function POST(request: NextRequest) {
       with_email: withEmail.length,
       failed: results.length - successful.length,
     },
-    usage: { today: dailyUsage.count, limit: DAILY_LIMIT, remaining: DAILY_LIMIT - dailyUsage.count },
+    usage: {
+      today: dailyUsage.count,
+      limit: DAILY_LIMIT,
+      remaining: DAILY_LIMIT - dailyUsage.count,
+    },
   });
 }
 
@@ -434,7 +521,11 @@ export async function GET() {
   return NextResponse.json({
     configured: !!REALESTATE_API_KEY,
     vendor: "RealEstateAPI",
-    usage: { today: dailyUsage.count, limit: DAILY_LIMIT, remaining: limit.remaining },
+    usage: {
+      today: dailyUsage.count,
+      limit: DAILY_LIMIT,
+      remaining: limit.remaining,
+    },
     input_schema: {
       full_name: "Owner full name (required) - PERSON ONLY, no LLC/Trust",
       address: "Business property address (required)",

@@ -119,7 +119,9 @@ export async function requireSuperAdmin(): Promise<{
 
     const user = userResult[0];
     if (user.role !== SUPER_ADMIN_ROLE) {
-      console.warn(`[requireSuperAdmin] User ${user.email} attempted admin access without SUPER_ADMIN role`);
+      console.warn(
+        `[requireSuperAdmin] User ${user.email} attempted admin access without SUPER_ADMIN role`,
+      );
       return null;
     }
 

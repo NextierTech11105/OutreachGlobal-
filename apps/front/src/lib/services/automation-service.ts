@@ -502,7 +502,9 @@ class AutomationService {
     );
 
     leadStates.set(leadId, state);
-    console.log(`[Automation] Lead ${leadId} opted out (persisted to Postgres)`);
+    console.log(
+      `[Automation] Lead ${leadId} opted out (persisted to Postgres)`,
+    );
   }
 
   // ============================================

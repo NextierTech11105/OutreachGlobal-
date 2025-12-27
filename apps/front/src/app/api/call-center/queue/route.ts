@@ -378,11 +378,15 @@ async function initiateTwilioCall(
 
   try {
     // Format phone number
-    const formattedTo = toNumber.startsWith("+") ? toNumber : `+1${toNumber.replace(/\D/g, "")}`;
+    const formattedTo = toNumber.startsWith("+")
+      ? toNumber
+      : `+1${toNumber.replace(/\D/g, "")}`;
 
     // Twilio REST API to initiate outbound call
     const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Calls.json`;
-    const auth = Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString("base64");
+    const auth = Buffer.from(
+      `${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`,
+    ).toString("base64");
 
     // TwiML URL for call handling - connects to browser client
     const twimlUrl = `${BASE_URL}/api/webhook/twilio/outbound?leadId=${leadId}&persona=${persona}`;
@@ -430,7 +434,10 @@ async function initiateTwilioCall(
     return { success: true, callSid: result.sid };
   } catch (error) {
     console.error("[CallQueue] Call initiation error:", error);
-    return { success: false, error: error instanceof Error ? error.message : "Unknown error" };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
   }
 }
 
@@ -993,11 +1000,14 @@ export async function POST(request: NextRequest) {
         );
 
         if (!callResult.success) {
-          return NextResponse.json({
-            success: false,
-            error: callResult.error,
-            message: `Failed to call ${lead.leadName || "lead"}`,
-          }, { status: 500 });
+          return NextResponse.json(
+            {
+              success: false,
+              error: callResult.error,
+              message: `Failed to call ${lead.leadName || "lead"}`,
+            },
+            { status: 500 },
+          );
         }
 
         // Update queue item with Twilio SID

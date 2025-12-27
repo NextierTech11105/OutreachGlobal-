@@ -103,12 +103,19 @@ export default function CompaniesPage() {
 
       if (data.companies) {
         setCompanies(data.companies);
-        setStats(data.stats || {
-          total: data.companies.length,
-          active: data.companies.filter((c: Company) => c.status === "active").length,
-          inactive: data.companies.filter((c: Company) => c.status === "inactive").length,
-          expired: data.companies.filter((c: Company) => c.status === "expired").length,
-        });
+        setStats(
+          data.stats || {
+            total: data.companies.length,
+            active: data.companies.filter((c: Company) => c.status === "active")
+              .length,
+            inactive: data.companies.filter(
+              (c: Company) => c.status === "inactive",
+            ).length,
+            expired: data.companies.filter(
+              (c: Company) => c.status === "expired",
+            ).length,
+          },
+        );
       }
     } catch (error) {
       console.error("Failed to fetch companies:", error);
@@ -222,7 +229,9 @@ export default function CompaniesPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-zinc-400">Active</p>
-                  <p className="text-3xl font-bold text-green-400">{stats.active}</p>
+                  <p className="text-3xl font-bold text-green-400">
+                    {stats.active}
+                  </p>
                 </div>
                 <CheckCircle className="h-8 w-8 text-green-400 opacity-50" />
               </div>
@@ -234,7 +243,9 @@ export default function CompaniesPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-zinc-400">Inactive</p>
-                  <p className="text-3xl font-bold text-gray-400">{stats.inactive}</p>
+                  <p className="text-3xl font-bold text-gray-400">
+                    {stats.inactive}
+                  </p>
                 </div>
                 <XCircle className="h-8 w-8 text-gray-400 opacity-50" />
               </div>
@@ -246,7 +257,9 @@ export default function CompaniesPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-zinc-400">Expired</p>
-                  <p className="text-3xl font-bold text-red-400">{stats.expired}</p>
+                  <p className="text-3xl font-bold text-red-400">
+                    {stats.expired}
+                  </p>
                 </div>
                 <Clock className="h-8 w-8 text-red-400 opacity-50" />
               </div>
@@ -322,7 +335,9 @@ export default function CompaniesPage() {
                     <TableHead className="text-zinc-400">Phone</TableHead>
                     <TableHead className="text-zinc-400">Status</TableHead>
                     <TableHead className="text-zinc-400">Created</TableHead>
-                    <TableHead className="text-zinc-400 text-right">Actions</TableHead>
+                    <TableHead className="text-zinc-400 text-right">
+                      Actions
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -334,7 +349,9 @@ export default function CompaniesPage() {
                       <TableCell>
                         <div>
                           <p className="font-medium">{company.name}</p>
-                          <p className="text-sm text-zinc-500">/{company.slug}</p>
+                          <p className="text-sm text-zinc-500">
+                            /{company.slug}
+                          </p>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -406,13 +423,17 @@ export default function CompaniesPage() {
                                 </Link>
                               </DropdownMenuItem>
                               <DropdownMenuItem asChild>
-                                <Link href={`/admin/companies/${company.id}/users`}>
+                                <Link
+                                  href={`/admin/companies/${company.id}/users`}
+                                >
                                   <Users className="mr-2 h-4 w-4" />
                                   Manage Users
                                 </Link>
                               </DropdownMenuItem>
                               <DropdownMenuItem asChild>
-                                <Link href={`/admin/companies/${company.id}/settings`}>
+                                <Link
+                                  href={`/admin/companies/${company.id}/settings`}
+                                >
                                   <Settings className="mr-2 h-4 w-4" />
                                   Settings
                                 </Link>
