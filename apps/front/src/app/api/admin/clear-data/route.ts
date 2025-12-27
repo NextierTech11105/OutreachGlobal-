@@ -7,7 +7,9 @@ import { requireSuperAdmin } from "@/lib/api-auth";
 const MAINTENANCE_KEY = process.env.MAINTENANCE_KEY;
 
 if (!MAINTENANCE_KEY) {
-  console.warn("[Clear Data] MAINTENANCE_KEY not configured - endpoint disabled");
+  console.warn(
+    "[Clear Data] MAINTENANCE_KEY not configured - endpoint disabled",
+  );
 }
 
 export async function POST(request: NextRequest) {
