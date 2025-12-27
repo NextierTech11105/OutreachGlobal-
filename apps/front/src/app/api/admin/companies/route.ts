@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { teams, teamMembers, users, teamSettings } from "@/lib/db/schema";
 import { eq, count, like, sql, desc } from "drizzle-orm";
-import { apiAuth } from "@/lib/api-auth";
+import { requireSuperAdmin } from "@/lib/api-auth";
+import { logAdminAction } from "@/lib/audit-log";
 
 /**
  * GET /api/admin/companies
@@ -10,9 +11,9 @@ import { apiAuth } from "@/lib/api-auth";
  */
 export async function GET(request: NextRequest) {
   try {
-    const auth = await apiAuth();
-    if (!auth.userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const admin = await requireSuperAdmin();
+    if (!admin) {
+      return NextResponse.json({ error: "Forbidden: Super admin access required" }, { status: 403 });
     }
 
     // Get query parameters
@@ -159,9 +160,13 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const auth = await apiAuth();
-    if (!auth.userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const admin = await requireSuperAdmin();
+    if (!admin) {
+      return NextResponse.json({ error: "Forbidden: Super admin access required" }, { status: 403 });
+    }
+
+    if (!db) {
+      return NextResponse.json({ error: "Database not configured" }, { status: 500 });
     }
 
     const body = await request.json();
@@ -174,12 +179,87 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // TODO: Implement company creation
-    // This would require generating a ULID and inserting into teams table
+    // Check if slug already exists
+    const existingTeam = await db
+      .select({ id: teams.id })
+      .from(teams)
+      .where(eq(teams.slug, slug))
+      .limit(1);
+
+    if (existingTeam.length > 0) {
+      return NextResponse.json(
+        { error: "A company with this slug already exists" },
+        { status: 409 }
+      );
+    }
+
+    // If ownerId provided, verify user exists
+    let finalOwnerId = ownerId;
+    if (ownerId) {
+      const ownerExists = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.id, ownerId))
+        .limit(1);
+
+      if (ownerExists.length === 0) {
+        return NextResponse.json(
+          { error: "Owner user not found" },
+          { status: 400 }
+        );
+      }
+    } else {
+      // Default to admin user as owner if not specified
+      finalOwnerId = admin.userId;
+    }
+
+    // Generate ID and create company
+    const teamId = crypto.randomUUID();
+    const now = new Date();
+
+    await db.insert(teams).values({
+      id: teamId,
+      name,
+      slug,
+      ownerId: finalOwnerId,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    // Add owner as team member with OWNER role
+    const memberId = crypto.randomUUID();
+    await db.insert(teamMembers).values({
+      id: memberId,
+      teamId,
+      userId: finalOwnerId,
+      role: "OWNER",
+      status: "APPROVED",
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    // Audit log
+    await logAdminAction({
+      adminId: admin.userId,
+      adminEmail: admin.email,
+      action: "company.create",
+      category: "company",
+      targetType: "team",
+      targetId: teamId,
+      targetName: name,
+      details: { slug, ownerId: finalOwnerId },
+      request,
+    });
 
     return NextResponse.json({
       success: true,
-      message: "Company creation not yet implemented",
+      company: {
+        id: teamId,
+        name,
+        slug,
+        ownerId: finalOwnerId,
+        createdAt: now.toISOString(),
+      },
     });
   } catch (error) {
     console.error("[Admin Companies] Create Error:", error);

@@ -5,6 +5,11 @@
 
 import { cookies } from "next/headers";
 import { jwtDecode } from "jwt-decode";
+import { db } from "@/lib/db";
+import { users } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
+
+export const SUPER_ADMIN_ROLE = "SUPER_ADMIN";
 
 interface JWTPayload {
   sub: string; // User ID
@@ -78,5 +83,53 @@ export async function getApiAuthContext(): Promise<{
   } catch (error) {
     console.error("[getApiAuthContext] Error:", error);
     return { userId: null, token: null, email: null };
+  }
+}
+
+/**
+ * Require super admin role for admin API routes
+ * Returns user info if authorized, null if not
+ */
+export async function requireSuperAdmin(): Promise<{
+  userId: string;
+  email: string;
+  isSuperAdmin: true;
+} | null> {
+  try {
+    const auth = await getApiAuthContext();
+    if (!auth.userId) {
+      return null;
+    }
+
+    if (!db) {
+      console.error("[requireSuperAdmin] Database not configured");
+      return null;
+    }
+
+    // Check if user has SUPER_ADMIN role
+    const userResult = await db
+      .select({ id: users.id, email: users.email, role: users.role })
+      .from(users)
+      .where(eq(users.id, auth.userId))
+      .limit(1);
+
+    if (userResult.length === 0) {
+      return null;
+    }
+
+    const user = userResult[0];
+    if (user.role !== SUPER_ADMIN_ROLE) {
+      console.warn(`[requireSuperAdmin] User ${user.email} attempted admin access without SUPER_ADMIN role`);
+      return null;
+    }
+
+    return {
+      userId: user.id,
+      email: user.email,
+      isSuperAdmin: true,
+    };
+  } catch (error) {
+    console.error("[requireSuperAdmin] Error:", error);
+    return null;
   }
 }

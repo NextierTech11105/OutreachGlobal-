@@ -2213,3 +2213,40 @@ export const teamSettings = pgTable(
 
 export type TeamSetting = typeof teamSettings.$inferSelect;
 export type NewTeamSetting = typeof teamSettings.$inferInsert;
+
+// ============================================================
+// ADMIN AUDIT LOG - Track admin actions for security & compliance
+// ============================================================
+
+export const adminAuditLogs = pgTable(
+  "admin_audit_logs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    // Who performed the action
+    adminId: text("admin_id").notNull(),
+    adminEmail: text("admin_email").notNull(),
+    // What action was performed
+    action: text("action").notNull(), // 'company.create' | 'company.update' | 'company.delete' | 'user.add_to_team' | 'user.remove_from_team' | 'user.change_role' | 'user.promote_super_admin' | 'impersonate.start' | 'impersonate.end'
+    category: text("category").notNull(), // 'company' | 'user' | 'impersonate' | 'settings' | 'data'
+    // Target of the action
+    targetType: text("target_type"), // 'team' | 'user' | 'teamMember'
+    targetId: text("target_id"),
+    targetName: text("target_name"),
+    // Additional context
+    details: jsonb("details"), // Flexible JSON for additional data
+    ipAddress: text("ip_address"),
+    userAgent: text("user_agent"),
+    // Timestamps
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    adminIdIdx: index("admin_audit_logs_admin_id_idx").on(table.adminId),
+    actionIdx: index("admin_audit_logs_action_idx").on(table.action),
+    categoryIdx: index("admin_audit_logs_category_idx").on(table.category),
+    targetIdIdx: index("admin_audit_logs_target_id_idx").on(table.targetId),
+    createdAtIdx: index("admin_audit_logs_created_at_idx").on(table.createdAt),
+  }),
+);
+
+export type AdminAuditLog = typeof adminAuditLogs.$inferSelect;
+export type NewAdminAuditLog = typeof adminAuditLogs.$inferInsert;

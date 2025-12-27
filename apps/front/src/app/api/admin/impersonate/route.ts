@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
-import { users, teams, teamMembers } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
-import { getApiAuthContext } from "@/lib/api-auth";
+import { users, teams } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
+import { getApiAuthContext, requireSuperAdmin, SUPER_ADMIN_ROLE } from "@/lib/api-auth";
+import { logAdminAction } from "@/lib/audit-log";
 
 const IMPERSONATION_COOKIE = "nextier_impersonation";
 const ORIGINAL_TOKEN_COOKIE = "nextier_original_session";
+const MAX_IMPERSONATION_HOURS = 4; // Auto-expire after 4 hours
 
 interface ImpersonationContext {
   targetUserId: string;
@@ -16,7 +18,9 @@ interface ImpersonationContext {
   targetTeamName: string;
   targetTeamSlug: string;
   adminUserId: string;
+  adminEmail: string;
   startedAt: string;
+  expiresAt: string;
 }
 
 /**
@@ -25,13 +29,16 @@ interface ImpersonationContext {
  */
 export async function POST(request: NextRequest) {
   try {
-    const auth = await getApiAuthContext();
-    if (!auth.userId || !auth.token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const admin = await requireSuperAdmin();
+    if (!admin) {
+      return NextResponse.json({ error: "Forbidden: Super admin access required" }, { status: 403 });
     }
 
-    // TODO: Add proper super admin check
-    // For now, allow any authenticated user (we'll add role check later)
+    // Get full auth context for token storage
+    const auth = await getApiAuthContext();
+    if (!auth.token) {
+      return NextResponse.json({ error: "Session token not found" }, { status: 401 });
+    }
 
     const body = await request.json();
     const { targetUserId, targetTeamId } = body;
@@ -56,6 +63,7 @@ export async function POST(request: NextRequest) {
         id: users.id,
         name: users.name,
         email: users.email,
+        role: users.role,
       })
       .from(users)
       .where(eq(users.id, targetUserId))
@@ -69,6 +77,14 @@ export async function POST(request: NextRequest) {
     }
 
     const targetUser = targetUsers[0];
+
+    // Security: Prevent impersonating other super admins
+    if (targetUser.role === SUPER_ADMIN_ROLE) {
+      return NextResponse.json(
+        { error: "Cannot impersonate other super admins" },
+        { status: 403 }
+      );
+    }
 
     // Get target team info
     const targetTeams = await db
@@ -90,7 +106,10 @@ export async function POST(request: NextRequest) {
 
     const targetTeam = targetTeams[0];
 
-    // Create impersonation context
+    // Create impersonation context with expiration
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + MAX_IMPERSONATION_HOURS * 60 * 60 * 1000);
+
     const impersonationContext: ImpersonationContext = {
       targetUserId: targetUser.id,
       targetUserName: targetUser.name,
@@ -98,8 +117,10 @@ export async function POST(request: NextRequest) {
       targetTeamId: targetTeam.id,
       targetTeamName: targetTeam.name,
       targetTeamSlug: targetTeam.slug,
-      adminUserId: auth.userId,
-      startedAt: new Date().toISOString(),
+      adminUserId: admin.userId,
+      adminEmail: admin.email,
+      startedAt: now.toISOString(),
+      expiresAt: expiresAt.toISOString(),
     };
 
     // Set cookies
@@ -120,7 +141,24 @@ export async function POST(request: NextRequest) {
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
-      maxAge: 60 * 60 * 24, // 24 hours
+      maxAge: MAX_IMPERSONATION_HOURS * 60 * 60, // Match expiration time
+    });
+
+    // Audit log impersonation start
+    await logAdminAction({
+      adminId: admin.userId,
+      adminEmail: admin.email,
+      action: "impersonate.start",
+      category: "impersonate",
+      targetType: "user",
+      targetId: targetUser.id,
+      targetName: `${targetUser.name} (${targetUser.email})`,
+      details: {
+        targetTeamId: targetTeam.id,
+        targetTeamName: targetTeam.name,
+        expiresAt: expiresAt.toISOString(),
+      },
+      request,
     });
 
     return NextResponse.json({
@@ -142,7 +180,7 @@ export async function POST(request: NextRequest) {
  * DELETE /api/admin/impersonate
  * Exit impersonation and return to admin
  */
-export async function DELETE() {
+export async function DELETE(request: NextRequest) {
   try {
     const cookieStore = await cookies();
 
@@ -156,9 +194,40 @@ export async function DELETE() {
       );
     }
 
+    // Get impersonation context for audit log
+    const impersonationCookie = cookieStore.get(IMPERSONATION_COOKIE)?.value;
+    let impersonation: ImpersonationContext | null = null;
+    if (impersonationCookie) {
+      try {
+        impersonation = JSON.parse(impersonationCookie) as ImpersonationContext;
+      } catch {
+        // Ignore parsing errors
+      }
+    }
+
     // Clear impersonation cookies
     cookieStore.delete(IMPERSONATION_COOKIE);
     cookieStore.delete(ORIGINAL_TOKEN_COOKIE);
+
+    // Audit log impersonation end
+    if (impersonation) {
+      await logAdminAction({
+        adminId: impersonation.adminUserId,
+        adminEmail: impersonation.adminEmail,
+        action: "impersonate.end",
+        category: "impersonate",
+        targetType: "user",
+        targetId: impersonation.targetUserId,
+        targetName: `${impersonation.targetUserName} (${impersonation.targetUserEmail})`,
+        details: {
+          targetTeamId: impersonation.targetTeamId,
+          targetTeamName: impersonation.targetTeamName,
+          startedAt: impersonation.startedAt,
+          duration: Date.now() - new Date(impersonation.startedAt).getTime(),
+        },
+        request,
+      });
+    }
 
     return NextResponse.json({
       success: true,
@@ -192,9 +261,30 @@ export async function GET() {
 
     const impersonation = JSON.parse(impersonationCookie) as ImpersonationContext;
 
+    // Check if impersonation has expired
+    if (impersonation.expiresAt && new Date(impersonation.expiresAt) < new Date()) {
+      // Auto-expire: clear cookies
+      cookieStore.delete(IMPERSONATION_COOKIE);
+      cookieStore.delete(ORIGINAL_TOKEN_COOKIE);
+
+      return NextResponse.json({
+        isImpersonating: false,
+        impersonation: null,
+        expired: true,
+        message: "Impersonation session expired",
+      });
+    }
+
+    // Calculate time remaining
+    const timeRemaining = impersonation.expiresAt
+      ? Math.max(0, new Date(impersonation.expiresAt).getTime() - Date.now())
+      : null;
+
     return NextResponse.json({
       isImpersonating: true,
       impersonation,
+      timeRemaining,
+      timeRemainingMinutes: timeRemaining ? Math.floor(timeRemaining / 60000) : null,
     });
   } catch (error) {
     console.error("[Impersonate Status] Error:", error);

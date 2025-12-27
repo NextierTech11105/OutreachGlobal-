@@ -126,35 +126,30 @@ export const conversationContext = pgTable(
     }),
 
     // Context data
-    context: jsonb()
-      .notNull()
-      .$type<{
-        firstName?: string;
-        lastName?: string;
-        companyName?: string;
-        industry?: string;
-        propertyAddress?: string;
-        propertyId?: string;
-        leadType?: string;
-        clientId?: string;
-        [key: string]: unknown;
-      }>(),
+    context: jsonb().notNull().$type<{
+      firstName?: string;
+      lastName?: string;
+      companyName?: string;
+      industry?: string;
+      propertyAddress?: string;
+      propertyId?: string;
+      leadType?: string;
+      clientId?: string;
+      [key: string]: unknown;
+    }>(),
 
     // Conversation tracking
     messageCount: integer("message_count").notNull().default(0),
     lastIntent: varchar("last_intent"),
 
     // History (limited to last N messages)
-    history: jsonb()
-      .notNull()
-      .default([])
-      .$type<
-        Array<{
-          role: "user" | "assistant";
-          content: string;
-          timestamp: string;
-        }>
-      >(),
+    history: jsonb().notNull().default([]).$type<
+      Array<{
+        role: "user" | "assistant";
+        content: string;
+        timestamp: string;
+      }>
+    >(),
 
     // TTL - when this context expires
     expiresAt: timestamp("expires_at").notNull(),

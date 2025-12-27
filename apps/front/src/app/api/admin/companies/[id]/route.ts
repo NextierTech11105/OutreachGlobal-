@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { teams, teamMembers, users, teamSettings } from "@/lib/db/schema";
 import { eq, sql } from "drizzle-orm";
-import { apiAuth } from "@/lib/api-auth";
+import { requireSuperAdmin } from "@/lib/api-auth";
+import { logAdminAction } from "@/lib/audit-log";
 
 /**
  * GET /api/admin/companies/[id]
@@ -13,9 +14,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const auth = await apiAuth();
-    if (!auth.userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const admin = await requireSuperAdmin();
+    if (!admin) {
+      return NextResponse.json({ error: "Forbidden: Super admin access required" }, { status: 403 });
     }
 
     const { id } = await params;
@@ -142,25 +143,152 @@ export async function GET(
 
 /**
  * PATCH /api/admin/companies/[id]
- * Update company
+ * Update company name, slug, or owner
  */
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const auth = await apiAuth();
-    if (!auth.userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const admin = await requireSuperAdmin();
+    if (!admin) {
+      return NextResponse.json({ error: "Forbidden: Super admin access required" }, { status: 403 });
     }
 
     const { id } = await params;
-    const body = await request.json();
 
-    // TODO: Implement company update
+    if (!db) {
+      return NextResponse.json({ error: "Database not configured" }, { status: 500 });
+    }
+
+    // Verify company exists
+    const existingTeam = await db
+      .select({ id: teams.id, ownerId: teams.ownerId })
+      .from(teams)
+      .where(eq(teams.id, id))
+      .limit(1);
+
+    if (existingTeam.length === 0) {
+      return NextResponse.json({ error: "Company not found" }, { status: 404 });
+    }
+
+    const body = await request.json();
+    const { name, slug, ownerId } = body;
+
+    // Build update object
+    const updates: { name?: string; slug?: string; ownerId?: string; updatedAt: Date } = {
+      updatedAt: new Date(),
+    };
+
+    if (name !== undefined) {
+      if (!name || typeof name !== "string") {
+        return NextResponse.json({ error: "Name must be a non-empty string" }, { status: 400 });
+      }
+      updates.name = name;
+    }
+
+    if (slug !== undefined) {
+      if (!slug || typeof slug !== "string") {
+        return NextResponse.json({ error: "Slug must be a non-empty string" }, { status: 400 });
+      }
+      // Check slug uniqueness (excluding current company)
+      const slugExists = await db
+        .select({ id: teams.id })
+        .from(teams)
+        .where(sql`${teams.slug} = ${slug} AND ${teams.id} != ${id}`)
+        .limit(1);
+
+      if (slugExists.length > 0) {
+        return NextResponse.json({ error: "A company with this slug already exists" }, { status: 409 });
+      }
+      updates.slug = slug;
+    }
+
+    if (ownerId !== undefined) {
+      // Verify new owner exists
+      const ownerExists = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.id, ownerId))
+        .limit(1);
+
+      if (ownerExists.length === 0) {
+        return NextResponse.json({ error: "Owner user not found" }, { status: 400 });
+      }
+
+      updates.ownerId = ownerId;
+
+      // Update team member role - demote old owner, promote new owner
+      const oldOwnerId = existingTeam[0].ownerId;
+
+      if (oldOwnerId !== ownerId) {
+        // Demote old owner to ADMIN
+        await db
+          .update(teamMembers)
+          .set({ role: "ADMIN", updatedAt: new Date() })
+          .where(sql`${teamMembers.teamId} = ${id} AND ${teamMembers.userId} = ${oldOwnerId}`);
+
+        // Check if new owner is already a member
+        const newOwnerMember = await db
+          .select({ id: teamMembers.id })
+          .from(teamMembers)
+          .where(sql`${teamMembers.teamId} = ${id} AND ${teamMembers.userId} = ${ownerId}`)
+          .limit(1);
+
+        if (newOwnerMember.length > 0) {
+          // Promote existing member to OWNER
+          await db
+            .update(teamMembers)
+            .set({ role: "OWNER", updatedAt: new Date() })
+            .where(eq(teamMembers.id, newOwnerMember[0].id));
+        } else {
+          // Add new owner as team member
+          const memberId = crypto.randomUUID();
+          await db.insert(teamMembers).values({
+            id: memberId,
+            teamId: id,
+            userId: ownerId,
+            role: "OWNER",
+            status: "APPROVED",
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          });
+        }
+      }
+    }
+
+    // Apply updates
+    await db.update(teams).set(updates).where(eq(teams.id, id));
+
+    // Fetch updated company
+    const updatedTeam = await db
+      .select()
+      .from(teams)
+      .where(eq(teams.id, id))
+      .limit(1);
+
+    // Audit log
+    await logAdminAction({
+      adminId: admin.userId,
+      adminEmail: admin.email,
+      action: "company.update",
+      category: "company",
+      targetType: "team",
+      targetId: id,
+      targetName: updatedTeam[0].name,
+      details: { updates: { name, slug, ownerId } },
+      request,
+    });
+
     return NextResponse.json({
       success: true,
-      message: "Company update not yet implemented",
+      company: {
+        id: updatedTeam[0].id,
+        name: updatedTeam[0].name,
+        slug: updatedTeam[0].slug,
+        ownerId: updatedTeam[0].ownerId,
+        updatedAt: updatedTeam[0].updatedAt.toISOString(),
+      },
     });
   } catch (error) {
     console.error("[Admin Company Update] Error:", error);
@@ -173,24 +301,80 @@ export async function PATCH(
 
 /**
  * DELETE /api/admin/companies/[id]
- * Delete company
+ * Delete company with all related data
  */
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const auth = await apiAuth();
-    if (!auth.userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const admin = await requireSuperAdmin();
+    if (!admin) {
+      return NextResponse.json({ error: "Forbidden: Super admin access required" }, { status: 403 });
     }
 
     const { id } = await params;
 
-    // TODO: Implement company deletion (with cascading)
+    if (!db) {
+      return NextResponse.json({ error: "Database not configured" }, { status: 500 });
+    }
+
+    // Verify company exists
+    const existingTeam = await db
+      .select({ id: teams.id, name: teams.name })
+      .from(teams)
+      .where(eq(teams.id, id))
+      .limit(1);
+
+    if (existingTeam.length === 0) {
+      return NextResponse.json({ error: "Company not found" }, { status: 404 });
+    }
+
+    const companyName = existingTeam[0].name;
+
+    // Check for confirmation parameter (safety check for destructive operation)
+    const { searchParams } = new URL(request.url);
+    const confirm = searchParams.get("confirm");
+
+    if (confirm !== "true") {
+      return NextResponse.json(
+        {
+          error: "Deletion requires confirmation",
+          message: "Add ?confirm=true to confirm deletion. This will permanently delete the company and all associated data."
+        },
+        { status: 400 }
+      );
+    }
+
+    // Cascade delete related data
+    // 1. Delete team members
+    await db.delete(teamMembers).where(eq(teamMembers.teamId, id));
+
+    // 2. Delete team settings
+    await db.delete(teamSettings).where(eq(teamSettings.teamId, id));
+
+    // 3. Delete the team itself
+    await db.delete(teams).where(eq(teams.id, id));
+
+    // Audit log (before logging since company is deleted)
+    await logAdminAction({
+      adminId: admin.userId,
+      adminEmail: admin.email,
+      action: "company.delete",
+      category: "company",
+      targetType: "team",
+      targetId: id,
+      targetName: companyName,
+      details: { permanentDelete: true },
+      request,
+    });
+
+    console.log(`[Admin Company Delete] Company "${companyName}" (${id}) deleted by admin ${admin.email}`);
+
     return NextResponse.json({
       success: true,
-      message: "Company deletion not yet implemented",
+      message: `Company "${companyName}" has been permanently deleted`,
+      deletedId: id,
     });
   } catch (error) {
     console.error("[Admin Company Delete] Error:", error);
