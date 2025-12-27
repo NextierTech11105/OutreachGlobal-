@@ -157,7 +157,7 @@ export default function WorkflowsPage() {
               </TableCell>
               <TableCell>
                 {workflow.lastRunAt
-                  ? sfd(workflow.lastRunAt, undefined, {
+                  ? sfd(workflow.lastRunAt, {
                       dateStyle: "short",
                       timeStyle: "short",
                     })

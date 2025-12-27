@@ -106,13 +106,13 @@ export async function GET(
       .from(teamSettings)
       .where(eq(teamSettings.teamId, id));
 
-    const settings: Record<string, string> = {};
+    const settings: Record<string, string | undefined> = {};
     for (const setting of settingsResult) {
-      if (setting.name === "twilio_phone_number") {
-        settings.twilioPhone = setting.value || undefined;
+      if (setting.name === "twilio_phone_number" && setting.value) {
+        settings.twilioPhone = setting.value;
       }
-      if (setting.name === "signalhouse_phone_number") {
-        settings.signalhousePhone = setting.value || undefined;
+      if (setting.name === "signalhouse_phone_number" && setting.value) {
+        settings.signalhousePhone = setting.value;
       }
     }
 
