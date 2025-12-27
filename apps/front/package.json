@@ -58,6 +58,7 @@
     "@radix-ui/react-toggle-group": "^1.1.10",
     "@radix-ui/react-tooltip": "^1.2.7",
     "@react-google-maps/api": "^2.20.7",
+    "@sentry/nextjs": "^10.32.1",
     "@twilio/voice-sdk": "^2.14.0",
     "@types/google.maps": "^3.55.5",
     "@types/js-cookie": "^3.0.6",
