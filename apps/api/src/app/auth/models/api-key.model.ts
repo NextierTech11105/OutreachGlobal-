@@ -4,8 +4,17 @@ import { ApiKeyType } from "@/database/schema";
 
 // Register the enum for GraphQL
 registerEnumType(
-  { USER: "USER", ADMIN: "ADMIN", DEV: "DEV", OWNER: "OWNER", WHITE_LABEL: "WHITE_LABEL" },
-  { name: "ApiKeyType", description: "Type of API key with different access levels" },
+  {
+    USER: "USER",
+    ADMIN: "ADMIN",
+    DEV: "DEV",
+    OWNER: "OWNER",
+    WHITE_LABEL: "WHITE_LABEL",
+  },
+  {
+    name: "ApiKeyType",
+    description: "Type of API key with different access levels",
+  },
 );
 
 @ObjectType()
