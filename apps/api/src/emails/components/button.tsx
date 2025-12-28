@@ -1,7 +1,9 @@
 import * as React from "react";
 import { Button as ReactButton } from "@react-email/button";
 
-type Props = React.ComponentProps<"a">;
+type Props = Omit<React.ComponentProps<"a">, "children"> & {
+  children?: React.ReactNode;
+};
 
 export const Button = ({ children, style, ...props }: Props) => {
   const buttonStyle = {
@@ -14,7 +16,7 @@ export const Button = ({ children, style, ...props }: Props) => {
 
   return (
     <ReactButton style={buttonStyle} {...props}>
-      {children as React.ReactNode}
+      {children}
     </ReactButton>
   );
 };
