@@ -62,6 +62,7 @@ import {
 } from "./schema/property-searches.schema";
 import { teamInvitations, teamMembers, teams } from "./schema/teams.schema";
 import { personalAccessTokens, users } from "./schema/users.schema";
+import { apiKeys } from "./schema/api-keys.schema";
 import {
   workflowFields,
   workflows,
@@ -208,3 +209,6 @@ import {
 export const callQueueOperationsTable = callQueue;
 export const conversationContextTable = conversationContext;
 export const eventLogTable = eventLog;
+
+// API Keys
+export const apiKeysTable = apiKeys;

@@ -1,5 +1,6 @@
 export * from "./users.schema";
 export * from "./teams.schema";
+export * from "./api-keys.schema";
 export * from "./message-templates.schema";
 export * from "./workflows.schema";
 export * from "./integrations.schema";

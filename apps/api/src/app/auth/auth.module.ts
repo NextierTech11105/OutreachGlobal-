@@ -1,7 +1,10 @@
 import { JwtModule } from "@/lib/jwt/jwt.module";
-import { Global, Module } from "@nestjs/common";
+import { Global, Module, forwardRef } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { AuthService } from "./services/auth.service";
+import { ApiKeyService } from "./services/api-key.service";
+import { ApiKeyResolver } from "./resolvers/api-key.resolver";
+import { TeamModule } from "@/app/team/team.module";
 
 @Global()
 @Module({
@@ -16,8 +19,9 @@ import { AuthService } from "./services/auth.service";
         };
       },
     }),
+    forwardRef(() => TeamModule),
   ],
-  providers: [AuthService],
-  exports: [AuthService, JwtModule],
+  providers: [AuthService, ApiKeyService, ApiKeyResolver],
+  exports: [AuthService, ApiKeyService, JwtModule],
 })
 export class AuthModule {}
