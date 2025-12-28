@@ -70,6 +70,13 @@ interface UsageInfo {
   remaining: number;
 }
 
+interface SignalHouseCampaign {
+  campaignId: string;
+  brandId: string;
+  usecase: string;
+  status?: string;
+}
+
 export default function SkipTracePage() {
   const [usage, setUsage] = useState<UsageInfo | null>(null);
   const [isConfigured, setIsConfigured] = useState(true);
@@ -79,6 +86,8 @@ export default function SkipTracePage() {
     new Set(),
   );
   const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0 });
+  const [campaigns, setCampaigns] = useState<SignalHouseCampaign[]>([]);
+  const [selectedCampaign, setSelectedCampaign] = useState<string>("");
 
   // Single lookup form
   const [singleInput, setSingleInput] = useState({
@@ -93,10 +102,26 @@ export default function SkipTracePage() {
   const [batchRecords, setBatchRecords] = useState<SkipTraceInput[]>([]);
   const [csvFile, setCsvFile] = useState<File | null>(null);
 
-  // Fetch usage on mount
+  // Fetch usage and campaigns on mount
   useEffect(() => {
     fetchUsage();
+    fetchCampaigns();
   }, []);
+
+  const fetchCampaigns = async () => {
+    try {
+      const res = await fetch("/api/signalhouse/campaign");
+      const data = await res.json();
+      if (data.success && data.campaigns) {
+        setCampaigns(data.campaigns);
+        if (data.campaigns.length > 0) {
+          setSelectedCampaign(data.campaigns[0].campaignId);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch SignalHouse campaigns:", err);
+    }
+  };
 
   const fetchUsage = async () => {
     try {
@@ -429,7 +454,7 @@ export default function SkipTracePage() {
     }
   };
 
-  // Add selected to SMS queue
+  // Add selected to SignalHouse campaign for SMS
   const handleAddToSmsQueue = async () => {
     const selectedRecords = results.filter(
       (r, i) => selectedResults.has(`result_${i}`) && r.success && r.mobile,
@@ -440,18 +465,24 @@ export default function SkipTracePage() {
       return;
     }
 
+    if (!selectedCampaign) {
+      toast.error("Please select a SignalHouse campaign first");
+      return;
+    }
+
     try {
-      // Add contacts to SMS queue via API
-      const response = await fetch("/api/sms/queue/add", {
+      // Send to SignalHouse via bulk-send API
+      const response = await fetch("/api/signalhouse/bulk-send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          campaignId: selectedCampaign,
           contacts: selectedRecords.map((r) => ({
-            phone: r.mobile,
-            name: r.input.full_name,
+            to: r.mobile,
+            firstName: r.input.full_name.split(" ")[0],
+            lastName: r.input.full_name.split(" ").slice(1).join(" "),
             email: r.email,
-            address:
-              `${r.input.address}, ${r.input.city}, ${r.input.state} ${r.input.zip}`.trim(),
+            address: `${r.input.address}, ${r.input.city}, ${r.input.state} ${r.input.zip}`.trim(),
             source: "skip_trace",
           })),
         }),
@@ -461,16 +492,15 @@ export default function SkipTracePage() {
 
       if (data.success) {
         toast.success(
-          `Added ${data.added || selectedRecords.length} contacts to SMS queue`,
+          `Queued ${data.queued || selectedRecords.length} contacts for SignalHouse campaign ${selectedCampaign}`,
         );
         setSelectedResults(new Set());
       } else {
-        toast.error(data.error || "Failed to add to SMS queue");
+        toast.error(data.error || "Failed to queue for SignalHouse");
       }
-    } catch {
-      // Fallback - just show success and clear selection
-      toast.success(`Added ${selectedRecords.length} contacts to SMS queue`);
-      setSelectedResults(new Set());
+    } catch (err) {
+      toast.error("Failed to connect to SignalHouse");
+      console.error("SignalHouse error:", err);
     }
   };
 
@@ -747,10 +777,24 @@ export default function SkipTracePage() {
                 </CardDescription>
               </div>
               <div className="flex items-center gap-2">
+                {/* Campaign Selector for SignalHouse */}
+                {campaigns.length > 0 && (
+                  <select
+                    value={selectedCampaign}
+                    onChange={(e) => setSelectedCampaign(e.target.value)}
+                    className="h-9 px-3 py-1 text-sm border rounded-md bg-background"
+                  >
+                    {campaigns.map((c) => (
+                      <option key={c.campaignId} value={c.campaignId}>
+                        {c.campaignId} {c.status ? `(${c.status})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                )}
                 {selectedResults.size > 0 && (
                   <Button size="sm" onClick={handleAddToSmsQueue}>
                     <Send className="h-4 w-4 mr-2" />
-                    Add to SMS ({selectedResults.size})
+                    Send to SignalHouse ({selectedResults.size})
                   </Button>
                 )}
                 <Button

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,8 +12,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Upload, File, X, CheckCircle, Loader2, Tag } from "lucide-react";
+import { Upload, File, X, CheckCircle, Loader2, Tag, Megaphone } from "lucide-react";
 import { toast } from "sonner";
+
+interface SignalHouseCampaign {
+  campaignId: string;
+  brandId: string;
+  usecase: string;
+  description?: string;
+  status?: string;
+}
 
 interface UploadedFile {
   key: string;
@@ -75,6 +83,32 @@ export function FileUploader({
   const [source, setSource] = useState("propwire");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [customTag, setCustomTag] = useState("");
+  const [campaigns, setCampaigns] = useState<SignalHouseCampaign[]>([]);
+  const [selectedCampaign, setSelectedCampaign] = useState<string>("");
+  const [loadingCampaigns, setLoadingCampaigns] = useState(false);
+
+  // Fetch SignalHouse campaigns on mount
+  useEffect(() => {
+    async function fetchCampaigns() {
+      setLoadingCampaigns(true);
+      try {
+        const res = await fetch("/api/signalhouse/campaign");
+        const data = await res.json();
+        if (data.success && data.campaigns) {
+          setCampaigns(data.campaigns);
+          // Auto-select first campaign if available
+          if (data.campaigns.length > 0) {
+            setSelectedCampaign(data.campaigns[0].campaignId);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch campaigns:", err);
+      } finally {
+        setLoadingCampaigns(false);
+      }
+    }
+    fetchCampaigns();
+  }, []);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -129,6 +163,9 @@ export function FileUploader({
       formData.append("folder", folder);
       formData.append("source", source);
       formData.append("tags", selectedTags.join(","));
+      if (selectedCampaign) {
+        formData.append("campaignId", selectedCampaign);
+      }
 
       const response = await fetch("/api/upload", {
         method: "POST",
@@ -240,6 +277,45 @@ export function FileUploader({
       {/* Source & Tags */}
       {selectedFile && !uploadResult && (
         <div className="space-y-4 p-4 border rounded-lg">
+          {/* Campaign Selector */}
+          <div className="space-y-2 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+            <Label className="flex items-center gap-2">
+              <Megaphone className="h-4 w-4 text-blue-600" />
+              SignalHouse Campaign
+            </Label>
+            <Select
+              value={selectedCampaign}
+              onValueChange={setSelectedCampaign}
+              disabled={loadingCampaigns}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={loadingCampaigns ? "Loading campaigns..." : "Select campaign"} />
+              </SelectTrigger>
+              <SelectContent>
+                {campaigns.map((campaign) => (
+                  <SelectItem key={campaign.campaignId} value={campaign.campaignId}>
+                    <div className="flex items-center gap-2">
+                      <span>{campaign.campaignId}</span>
+                      {campaign.status && (
+                        <Badge variant={campaign.status === "ACTIVE" ? "default" : "secondary"} className="text-xs">
+                          {campaign.status}
+                        </Badge>
+                      )}
+                    </div>
+                  </SelectItem>
+                ))}
+                {campaigns.length === 0 && !loadingCampaigns && (
+                  <SelectItem value="none" disabled>
+                    No campaigns found
+                  </SelectItem>
+                )}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Leads will be assigned to this SignalHouse campaign for messaging
+            </p>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Data Source</Label>
