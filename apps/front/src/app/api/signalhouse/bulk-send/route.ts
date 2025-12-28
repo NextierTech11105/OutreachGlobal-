@@ -42,6 +42,19 @@ interface SignalHouseResponse {
   message?: string;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// BATCH THROTTLING CONFIGURATION
+// ═══════════════════════════════════════════════════════════════════════════════
+// LOW_VOLUME use-case: ≤2,000 SMS/day
+// Campaign Blocks: 2K leads → sent in batches of 250
+// Delay between batches: 5 seconds (configurable)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Batch configuration (from PLAN.md - The Machine architecture)
+const BATCH_SIZE = 250; // Each batch = 250 messages
+const BATCH_DELAY_MS = 5000; // 5 seconds between batches
+const CONCURRENT_SENDS = 10; // Parallel sends within a batch
+
 // Rate limiting: Track sends per minute (2K/day = ~83/hour = ~1.4/min avg, but burst up to 100/min)
 const sendLog: { timestamp: number; count: number }[] = [];
 const RATE_LIMIT_PER_MINUTE = 100;
@@ -225,7 +238,10 @@ export async function POST(request: NextRequest) {
       "Content-Type": "application/json",
     };
 
-    // Send messages individually (SignalHouse API takes one recipient per call)
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // BATCH THROTTLING: 250 per batch, 5s delay between batches
+    // This ensures LOW_VOLUME compliance and sustainable delivery
+    // ═══════════════════════════════════════════════════════════════════════════════
     const results: Array<{
       phone: string;
       success: boolean;
@@ -234,65 +250,94 @@ export async function POST(request: NextRequest) {
     }> = [];
     const endpoint = mediaUrl ? SIGNALHOUSE_MMS_URL : SIGNALHOUSE_SMS_URL;
 
-    // Batch in parallel (max 10 concurrent to avoid rate limits)
-    const batchSize = 10;
-    for (let i = 0; i < validNumbers.length; i += batchSize) {
-      const batch = validNumbers.slice(i, i + batchSize);
+    // Calculate batch counts for progress tracking
+    const totalBatches = Math.ceil(validNumbers.length / BATCH_SIZE);
+    let currentBatch = 0;
 
-      const batchPromises = batch.map(async (phone) => {
-        // Normalize to E.164
-        const normalizedPhone = phone.startsWith("+")
-          ? phone
-          : `+1${phone.replace(/\D/g, "").slice(-10)}`;
+    console.log(
+      `[SignalHouse Bulk] Starting ${totalBatches} batches of ${BATCH_SIZE} (${validNumbers.length} total)`,
+    );
 
-        const payload: Record<string, unknown> = {
-          from: fromNumber,
-          to: normalizedPhone,
-          message: complianceMessage,
-          shortLink,
-          statusCallbackUrl: callbackUrl,
-        };
+    // Process in batches of 250 (BATCH_SIZE)
+    for (let i = 0; i < validNumbers.length; i += BATCH_SIZE) {
+      currentBatch++;
+      const batchNumbers = validNumbers.slice(i, i + BATCH_SIZE);
 
-        if (mediaUrl) {
-          payload.mediaUrl = mediaUrl;
-        }
+      console.log(
+        `[SignalHouse Bulk] Processing batch ${currentBatch}/${totalBatches} (${batchNumbers.length} messages)`,
+      );
 
-        try {
-          const response = await fetch(endpoint, {
-            method: "POST",
-            headers,
-            body: JSON.stringify(payload),
-          });
+      // Within each batch, send in parallel groups of CONCURRENT_SENDS (10)
+      for (let j = 0; j < batchNumbers.length; j += CONCURRENT_SENDS) {
+        const concurrentGroup = batchNumbers.slice(j, j + CONCURRENT_SENDS);
 
-          const data: SignalHouseResponse = await response.json();
+        const groupPromises = concurrentGroup.map(async (phone) => {
+          // Normalize to E.164
+          const normalizedPhone = phone.startsWith("+")
+            ? phone
+            : `+1${phone.replace(/\D/g, "").slice(-10)}`;
 
-          if (response.ok && data.success !== false) {
-            return {
-              phone: normalizedPhone,
-              success: true,
-              messageId: data.messageId || data.message_id,
-            };
-          } else {
-            return {
-              phone: normalizedPhone,
-              success: false,
-              error: data.error || data.message || `HTTP ${response.status}`,
-            };
+          const payload: Record<string, unknown> = {
+            from: fromNumber,
+            to: normalizedPhone,
+            message: complianceMessage,
+            shortLink,
+            statusCallbackUrl: callbackUrl,
+          };
+
+          if (mediaUrl) {
+            payload.mediaUrl = mediaUrl;
           }
-        } catch (err: unknown) {
-          const errorMsg = err instanceof Error ? err.message : "Network error";
-          return { phone: normalizedPhone, success: false, error: errorMsg };
+
+          try {
+            const response = await fetch(endpoint, {
+              method: "POST",
+              headers,
+              body: JSON.stringify(payload),
+            });
+
+            const data: SignalHouseResponse = await response.json();
+
+            if (response.ok && data.success !== false) {
+              return {
+                phone: normalizedPhone,
+                success: true,
+                messageId: data.messageId || data.message_id,
+              };
+            } else {
+              return {
+                phone: normalizedPhone,
+                success: false,
+                error: data.error || data.message || `HTTP ${response.status}`,
+              };
+            }
+          } catch (err: unknown) {
+            const errorMsg =
+              err instanceof Error ? err.message : "Network error";
+            return { phone: normalizedPhone, success: false, error: errorMsg };
+          }
+        });
+
+        const groupResults = await Promise.all(groupPromises);
+        results.push(...groupResults);
+
+        // Small delay between concurrent groups within a batch
+        if (j + CONCURRENT_SENDS < batchNumbers.length) {
+          await new Promise((resolve) => setTimeout(resolve, 100));
         }
-      });
+      }
 
-      const batchResults = await Promise.all(batchPromises);
-      results.push(...batchResults);
-
-      // Small delay between batches to respect rate limits
-      if (i + batchSize < validNumbers.length) {
-        await new Promise((resolve) => setTimeout(resolve, 100));
+      // 5 second delay between 250-message batches (BATCH_DELAY_MS)
+      // This ensures sustainable throughput for LOW_VOLUME compliance
+      if (i + BATCH_SIZE < validNumbers.length) {
+        console.log(
+          `[SignalHouse Bulk] Batch ${currentBatch} complete. Waiting ${BATCH_DELAY_MS / 1000}s before next batch...`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, BATCH_DELAY_MS));
       }
     }
+
+    console.log(`[SignalHouse Bulk] All ${totalBatches} batches complete.`);
 
     const successCount = results.filter((r) => r.success).length;
     const failedCount = results.filter((r) => !r.success).length;
@@ -307,6 +352,13 @@ export async function POST(request: NextRequest) {
       failed: failedCount,
       skippedInvalid: invalidNumbers.length,
       skippedLandlines: landlineNumbers.length,
+      // Batch progress info
+      batchInfo: {
+        totalBatches,
+        batchSize: BATCH_SIZE,
+        batchDelaySeconds: BATCH_DELAY_MS / 1000,
+        concurrentSends: CONCURRENT_SENDS,
+      },
       results,
       invalidNumbers: invalidNumbers.length > 0 ? invalidNumbers : undefined,
       landlineNumbers:
@@ -344,6 +396,13 @@ export async function GET() {
   return NextResponse.json({
     configured: !!(SIGNALHOUSE_API_KEY && SIGNALHOUSE_AUTH_TOKEN),
     defaultFrom: SIGNALHOUSE_DEFAULT_FROM ? "configured" : "not set",
+    // Batch throttling configuration (The Machine architecture)
+    batchConfig: {
+      batchSize: BATCH_SIZE,
+      batchDelaySeconds: BATCH_DELAY_MS / 1000,
+      concurrentSends: CONCURRENT_SENDS,
+      description: `${BATCH_SIZE} messages per batch, ${BATCH_DELAY_MS / 1000}s delay between batches`,
+    },
     rateLimit: {
       perMinute: RATE_LIMIT_PER_MINUTE,
       usedThisMinute: currentRate,

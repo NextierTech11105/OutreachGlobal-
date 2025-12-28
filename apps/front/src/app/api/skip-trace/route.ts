@@ -13,6 +13,90 @@ const DAILY_LIMIT = 2000;
 const BATCH_SIZE = 250;
 const BULK_BATCH_SIZE = 1000; // RealEstateAPI allows up to 1,000 per bulk call
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// ENTITY TYPE FILTER - Reject non-individual owners
+// ═══════════════════════════════════════════════════════════════════════════════
+// These entity types cannot be contacted directly and waste skip trace credits.
+// We only want to skip trace individual persons.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const ENTITY_PATTERNS = [
+  // Business entities
+  /\bllc\b/i,
+  /\bl\.l\.c\b/i,
+  /\binc\b/i,
+  /\bincorporated\b/i,
+  /\bcorp\b/i,
+  /\bcorporation\b/i,
+  /\bcompany\b/i,
+  /\b& co\b/i,
+  /\blp\b/i,
+  /\bllp\b/i,
+  /\blimited partnership\b/i,
+  /\bplc\b/i,
+  /\bltd\b/i,
+  /\blimited\b/i,
+  // Trust entities
+  /\btrust\b/i,
+  /\btrustee\b/i,
+  /\brevocable\b/i,
+  /\birrevocable\b/i,
+  /\bliving trust\b/i,
+  /\bfamily trust\b/i,
+  // Estate entities
+  /\bestate\b/i,
+  /\bestate of\b/i,
+  /\bdeceased\b/i,
+  // Financial institutions
+  /\bbank\b/i,
+  /\bbanking\b/i,
+  /\bcredit union\b/i,
+  /\bmortgage\b/i,
+  // Government entities
+  /\bcity of\b/i,
+  /\bcounty of\b/i,
+  /\bstate of\b/i,
+  /\bgovernment\b/i,
+  /\bmunicipal\b/i,
+  // HOA / Condo
+  /\bhoa\b/i,
+  /\bhomeowners\b/i,
+  /\bcondo\b/i,
+  /\bcondominium\b/i,
+  /\bassociation\b/i,
+];
+
+interface EntityCheckResult {
+  isEntity: boolean;
+  entityType?: string;
+  reason?: string;
+}
+
+/**
+ * Check if owner name indicates a non-individual entity
+ * Returns true if the name matches entity patterns (should be skipped)
+ */
+function isEntityOwner(ownerName: string): EntityCheckResult {
+  if (!ownerName) {
+    return { isEntity: false };
+  }
+
+  const normalizedName = ownerName.trim();
+
+  for (const pattern of ENTITY_PATTERNS) {
+    if (pattern.test(normalizedName)) {
+      const match = normalizedName.match(pattern);
+      return {
+        isEntity: true,
+        entityType: match ? match[0].toUpperCase() : "UNKNOWN",
+        reason: `Owner name "${normalizedName}" contains entity keyword: ${match?.[0]}`,
+      };
+    }
+  }
+
+  return { isEntity: false };
+}
+
 // In-memory daily tracker (would be Redis/DB in production)
 const dailyUsage: { date: string; count: number } = {
   date: new Date().toISOString().split("T")[0],
@@ -166,6 +250,27 @@ async function skipTracePerson(
       };
 
       console.log("[Skip Trace] Will skip trace with:", personData);
+
+      // ENTITY TYPE FILTER: Check if owner is an entity (LLC, Trust, Corp, etc.)
+      const fullOwnerName = [personData.firstName, personData.lastName]
+        .filter(Boolean)
+        .join(" ");
+      const entityCheck = isEntityOwner(fullOwnerName);
+
+      if (entityCheck.isEntity) {
+        console.log(
+          `[Skip Trace] SKIPPED - Entity detected: ${entityCheck.entityType} - "${fullOwnerName}"`,
+        );
+        return {
+          input,
+          ownerName: fullOwnerName,
+          phones: [],
+          emails: [],
+          addresses: [],
+          success: false,
+          error: `Entity owner skipped: ${entityCheck.entityType}. Only individuals can be skip traced.`,
+        };
+      }
     }
 
     if (!personData.firstName && !personData.lastName && !personData.address) {
@@ -477,6 +582,18 @@ async function bulkSkipTrace(propertyIds: string[]): Promise<{
 
       // Need at least some name or address info
       if ((firstName || lastName) && addressStr) {
+        // ENTITY TYPE FILTER: Check if owner is an entity (LLC, Trust, Corp, etc.)
+        const fullOwnerName = [firstName, lastName].filter(Boolean).join(" ");
+        const entityCheck = isEntityOwner(fullOwnerName);
+
+        if (entityCheck.isEntity) {
+          console.log(
+            `[Bulk Skip Trace] SKIPPED ${propId} - Entity detected: ${entityCheck.entityType} - "${fullOwnerName}"`,
+          );
+          // Don't add to skipInputs - save the credit
+          continue;
+        }
+
         skipInputs.push({
           key: propId,
           first_name: firstName,

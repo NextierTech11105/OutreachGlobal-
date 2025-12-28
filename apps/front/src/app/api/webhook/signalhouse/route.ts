@@ -2,14 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
 import { smsQueueService } from "@/lib/services/sms-queue-service";
 import { db } from "@/lib/db";
-import {
-  smsMessages,
-  leads,
-  signalhouseBrands,
-  signalhouseCampaigns,
-  teamPhoneNumbers,
-} from "@/lib/db/schema";
-import { eq, and, desc, like, isNotNull, sql } from "drizzle-orm";
+import { smsMessages, leads } from "@/lib/db/schema";
+import { eq, desc, like, sql } from "drizzle-orm";
 import { sendSMS } from "@/lib/signalhouse/client";
 import {
   getEmailCaptureConfirmation,
@@ -330,6 +324,75 @@ async function pushToHotLeadCampaign(
     console.log(`[SignalHouse] 🎯 Lead Score: 100% (High Contactability)`);
   } catch (error) {
     console.error("[SignalHouse] Error pushing to hot lead campaign:", error);
+  }
+}
+
+/**
+ * Push GOLD LABEL lead to Call Queue for immediate follow-up
+ * GOLD LABELs get highest priority (100) - SABRINA handles booking
+ *
+ * This ensures captured emails/mobiles get called within minutes,
+ * not hours, dramatically increasing conversion rates.
+ */
+async function pushToCallQueue(
+  lead: {
+    id: string;
+    firstName?: string | null;
+    lastName?: string | null;
+    email?: string | null;
+    phone?: string | null;
+    teamId?: string | null;
+  },
+  mobileNumber: string,
+  capturedEmail: string,
+  campaignId?: string,
+): Promise<void> {
+  try {
+    const normalizedMobile = mobileNumber.startsWith("+")
+      ? mobileNumber
+      : `+1${mobileNumber.replace(/\D/g, "").slice(-10)}`;
+
+    // Generate ID with cq prefix for call queue
+    const id = `cq_${crypto.randomUUID().replace(/-/g, "")}`;
+    const phoneFrom =
+      process.env.SABRINA_PHONE_NUMBER ||
+      process.env.DEFAULT_OUTBOUND_NUMBER ||
+      "";
+    const teamId = lead.teamId || "default_team";
+
+    const metadata = JSON.stringify({
+      lane: "book_appointment",
+      persona: "SABRINA",
+      goldLabel: true,
+      email: capturedEmail,
+      source: "signalhouse_webhook",
+      notes: `GOLD LABEL - Email captured: ${capturedEmail}. Call immediately to book meeting.`,
+    });
+
+    // Insert directly using raw SQL since callQueue is in the API schema
+    await db.execute(sql`
+      INSERT INTO call_queue (
+        id, team_id, phone_from, phone_to, status, priority,
+        assigned_worker, campaign_id, lead_id, attempts, max_attempts,
+        queued_at, metadata, created_at, updated_at
+      ) VALUES (
+        ${id}, ${teamId}, ${phoneFrom}, ${normalizedMobile}, 'pending', 100,
+        'sabrina', ${campaignId || null}, ${lead.id}, 0, 3,
+        NOW(), ${metadata}::jsonb, NOW(), NOW()
+      )
+    `);
+
+    console.log(
+      `[SignalHouse] 📞 CALL QUEUE: GOLD LABEL lead ${lead.id} added to call queue`,
+    );
+    console.log(
+      `[SignalHouse] 🎯 Priority: 100 (Maximum) | Worker: SABRINA | Lane: book_appointment`,
+    );
+    console.log(
+      `[SignalHouse] 📱 Phone: ${normalizedMobile} | Email: ${capturedEmail}`,
+    );
+  } catch (error) {
+    console.error("[SignalHouse] Error pushing to call queue:", error);
   }
 }
 
@@ -656,6 +719,15 @@ export async function POST(request: NextRequest) {
           // Push to hot lead campaign with GOLD label (email + mobile = 100% score)
           if (lead) {
             await pushToHotLeadCampaign(lead.id, capturedEmail, fromNumber);
+
+            // AUTO-ROUTE TO CALL QUEUE: GOLD LABELs get immediate callback
+            // This is the critical conversion moment - call within minutes!
+            await pushToCallQueue(
+              lead,
+              fromNumber,
+              capturedEmail,
+              payload.campaign_id as string,
+            );
           }
 
           // TODO: Queue Value X email delivery
@@ -880,6 +952,7 @@ export async function POST(request: NextRequest) {
         // ─────────────────────────────────────────────────────────────────────
         // POSITIVE LEAD RESPONSE (not email, not permission)
         // Lead is interested but we need more context
+        // GREEN TAG = 3x priority boost, push to call queue
         // ─────────────────────────────────────────────────────────────────────
         if (isPositiveLead) {
           console.log(
@@ -896,6 +969,56 @@ export async function POST(request: NextRequest) {
                 updatedAt: new Date(),
               })
               .where(eq(leads.id, lead.id));
+
+            // GREEN TAG: Push positive responses to call queue with high priority
+            // Not as high as GOLD (100) but still urgent (75)
+            try {
+              const normalizedMobile = fromNumber.startsWith("+")
+                ? fromNumber
+                : `+1${fromNumber.replace(/\D/g, "").slice(-10)}`;
+
+              const id = `cq_${crypto.randomUUID().replace(/-/g, "")}`;
+              const phoneFrom =
+                process.env.SABRINA_PHONE_NUMBER ||
+                process.env.DEFAULT_OUTBOUND_NUMBER ||
+                "";
+              const teamId = lead.teamId || "default_team";
+              const campId = (payload.campaign_id as string) || null;
+
+              const metadata = JSON.stringify({
+                lane: "follow_up",
+                persona: "SABRINA",
+                greenTag: true,
+                source: "signalhouse_webhook",
+                responseText: messageBody.substring(0, 200),
+                notes: `GREEN TAG - Positive response: "${messageBody.substring(0, 100)}". Follow up to book meeting.`,
+              });
+
+              // Insert using raw SQL since callQueue is in the API schema
+              await db.execute(sql`
+                INSERT INTO call_queue (
+                  id, team_id, phone_from, phone_to, status, priority,
+                  assigned_worker, campaign_id, lead_id, attempts, max_attempts,
+                  queued_at, metadata, created_at, updated_at
+                ) VALUES (
+                  ${id}, ${teamId}, ${phoneFrom}, ${normalizedMobile}, 'pending', 75,
+                  'sabrina', ${campId}, ${lead.id}, 0, 3,
+                  NOW(), ${metadata}::jsonb, NOW(), NOW()
+                )
+              `);
+
+              console.log(
+                `[SignalHouse] 📞 CALL QUEUE: GREEN TAG lead ${lead.id} added to call queue`,
+              );
+              console.log(
+                `[SignalHouse] 🟢 Priority: 75 (High) | Worker: SABRINA | Lane: follow_up`,
+              );
+            } catch (queueError) {
+              console.error(
+                "[SignalHouse] Error pushing positive lead to call queue:",
+                queueError,
+              );
+            }
           }
 
           await logWorkerActivity(
@@ -906,8 +1029,6 @@ export async function POST(request: NextRequest) {
               message: messageBody,
             },
           );
-
-          // TODO: Queue for AI response or human review
         }
 
         return NextResponse.json({

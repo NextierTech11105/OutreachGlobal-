@@ -12,7 +12,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Upload, File, X, CheckCircle, Loader2, Tag, Megaphone } from "lucide-react";
+import {
+  Upload,
+  File,
+  X,
+  CheckCircle,
+  Loader2,
+  Tag,
+  Megaphone,
+} from "lucide-react";
 import { toast } from "sonner";
 
 interface SignalHouseCampaign {
@@ -289,15 +297,31 @@ export function FileUploader({
               disabled={loadingCampaigns}
             >
               <SelectTrigger>
-                <SelectValue placeholder={loadingCampaigns ? "Loading campaigns..." : "Select campaign"} />
+                <SelectValue
+                  placeholder={
+                    loadingCampaigns
+                      ? "Loading campaigns..."
+                      : "Select campaign"
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
                 {campaigns.map((campaign) => (
-                  <SelectItem key={campaign.campaignId} value={campaign.campaignId}>
+                  <SelectItem
+                    key={campaign.campaignId}
+                    value={campaign.campaignId}
+                  >
                     <div className="flex items-center gap-2">
                       <span>{campaign.campaignId}</span>
                       {campaign.status && (
-                        <Badge variant={campaign.status === "ACTIVE" ? "default" : "secondary"} className="text-xs">
+                        <Badge
+                          variant={
+                            campaign.status === "ACTIVE"
+                              ? "default"
+                              : "secondary"
+                          }
+                          className="text-xs"
+                        >
                           {campaign.status}
                         </Badge>
                       )}

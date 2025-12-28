@@ -482,7 +482,8 @@ export default function SkipTracePage() {
             firstName: r.input.full_name.split(" ")[0],
             lastName: r.input.full_name.split(" ").slice(1).join(" "),
             email: r.email,
-            address: `${r.input.address}, ${r.input.city}, ${r.input.state} ${r.input.zip}`.trim(),
+            address:
+              `${r.input.address}, ${r.input.city}, ${r.input.state} ${r.input.zip}`.trim(),
             source: "skip_trace",
           })),
         }),
