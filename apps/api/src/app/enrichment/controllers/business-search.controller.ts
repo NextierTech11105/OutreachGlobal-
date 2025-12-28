@@ -3,6 +3,7 @@ import { InjectDB } from "@/database/decorators";
 import { DrizzleClient } from "@/database/types";
 import { eq, and, sql, or, ilike } from "drizzle-orm";
 import { businesses } from "@/database/schema/business-owner.schema";
+import { UseAuthGuard } from "@/app/auth/decorators";
 
 interface BusinessSearchRequest {
   businessType?: string;
@@ -37,7 +38,10 @@ interface BusinessSearchResult {
   sicDescription?: string;
 }
 
+// INTERNAL API - Requires JWT authentication
+// This controller searches the internal business database
 @Controller("business")
+@UseAuthGuard()
 export class BusinessSearchController {
   constructor(@InjectDB() private db: DrizzleClient) {}
 

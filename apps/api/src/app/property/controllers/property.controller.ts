@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Post, Query } from "@nestjs/common";
 import { RealEstateService } from "../services/real-estate.service";
+import { UseAuthGuard } from "@/app/auth/decorators";
 
 // Valid RealEstateAPI PropertyType enums
 const VALID_PROPERTY_TYPES = ["SFR", "MFR", "LAND", "CONDO", "OTHER", "MOBILE"];
@@ -43,8 +44,10 @@ function sanitizeSearchBody(
   return sanitized;
 }
 
-// Separate controller for /property-search route
+// INTERNAL API - Requires JWT authentication
+// This controller proxies requests to RealEstateAPI using server-side credentials
 @Controller("property-search")
+@UseAuthGuard()
 export class PropertySearchController {
   constructor(private readonly realEstateService: RealEstateService) {}
 
@@ -153,7 +156,10 @@ export class PropertySearchController {
   }
 }
 
+// INTERNAL API - Requires JWT authentication
+// This controller handles property details and skip trace operations
 @Controller("property")
+@UseAuthGuard()
 export class PropertyController {
   constructor(private readonly realEstateService: RealEstateService) {}
 

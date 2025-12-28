@@ -1,7 +1,11 @@
 import { Controller, Post, Body } from "@nestjs/common";
 import axios from "axios";
+import { UseAuthGuard } from "@/app/auth/decorators";
 
+// INTERNAL API - Requires JWT authentication
+// This controller tests and configures Apollo.io API keys
 @Controller("apollo")
+@UseAuthGuard()
 export class ApolloTestController {
   private readonly apolloApiBase = "https://api.apollo.io/v1";
 

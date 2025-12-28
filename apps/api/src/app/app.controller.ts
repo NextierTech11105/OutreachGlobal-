@@ -1,4 +1,4 @@
-import { Controller, Get, Post } from "@nestjs/common";
+import { Controller, Get, Post, UseGuards } from "@nestjs/common";
 import { InjectDB } from "@/database/decorators";
 import { DrizzleClient } from "@/database/types";
 import {
@@ -8,6 +8,7 @@ import {
 } from "@/database/schema-alias";
 import { eq, sql } from "drizzle-orm";
 import { slugify, TeamMemberRole, TeamMemberStatus } from "@nextier/common";
+import { AdminGuard } from "./auth/guards";
 
 @Controller()
 export class AppController {
@@ -20,7 +21,9 @@ export class AppController {
     };
   }
 
+  // INTERNAL API - Admin only, requires X-Admin-Key header
   @Post("migrate")
+  @UseGuards(AdminGuard)
   async runMigrations() {
     const results: string[] = [];
 
@@ -47,7 +50,9 @@ export class AppController {
     return { success: true, results };
   }
 
+  // INTERNAL API - Admin only, requires X-Admin-Key header
   @Post("setupdb")
+  @UseGuards(AdminGuard)
   async setupAdmin() {
     const email =
       process.env.DEFAULT_ADMIN_EMAIL?.trim() || "admin@outreachglobal.io";

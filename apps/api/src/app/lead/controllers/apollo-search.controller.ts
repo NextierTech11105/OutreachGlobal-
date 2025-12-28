@@ -7,6 +7,7 @@ import {
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import axios from "axios";
+import { UseAuthGuard } from "@/app/auth/decorators";
 
 interface SearchParams {
   searchQuery?: string;
@@ -38,7 +39,10 @@ interface ApolloPerson {
   linkedin_url?: string;
 }
 
+// INTERNAL API - Requires JWT authentication
+// This controller proxies requests to Apollo.io API using server-side credentials
 @Controller("business-list")
+@UseAuthGuard()
 export class ApolloSearchController {
   private readonly apolloApiKey: string;
   private readonly apolloApiBase = "https://api.apollo.io/v1";

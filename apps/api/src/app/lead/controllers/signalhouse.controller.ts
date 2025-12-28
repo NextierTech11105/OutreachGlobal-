@@ -1,8 +1,12 @@
 import { Controller, Post, Body, Get } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import axios from "axios";
+import { UseAuthGuard } from "@/app/auth/decorators";
 
+// INTERNAL API - Requires JWT authentication
+// This controller proxies requests to SignalHouse API using server-side credentials
 @Controller("signalhouse")
+@UseAuthGuard()
 export class SignalHouseController {
   private readonly apiKey: string;
   private readonly apiBase = "https://api.signalhouse.io/api/v1";
