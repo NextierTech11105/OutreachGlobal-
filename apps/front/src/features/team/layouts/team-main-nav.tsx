@@ -8,6 +8,8 @@ import {
   CalendarIcon,
   CheckCircle2Icon,
   ChevronRightIcon,
+  CogIcon,
+  EyeIcon,
   FileTextIcon,
   FlameIcon,
   FolderOpenIcon,
@@ -18,7 +20,9 @@ import {
   MegaphoneIcon,
   MessageCircleIcon,
   PhoneIcon,
+  PlayCircleIcon,
   RefreshCwIcon,
+  RocketIcon,
   SendIcon,
   ShieldIcon,
   SmileIcon,
@@ -50,6 +54,23 @@ import {
 
 // Organized navigation groups
 const navGroups = [
+  {
+    label: "Get Started",
+    items: [
+      {
+        title: "Build Your Machine",
+        path: "/onboarding",
+        icon: RocketIcon,
+        isAbsolute: true,
+      },
+      {
+        title: "Demo Mode",
+        path: "/demo",
+        icon: PlayCircleIcon,
+        isAbsolute: true,
+      },
+    ],
+  },
   {
     label: "Home",
     items: [
