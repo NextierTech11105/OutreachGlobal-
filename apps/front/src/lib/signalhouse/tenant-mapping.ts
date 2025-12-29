@@ -109,7 +109,8 @@ export const NEXTIER_SUB_BRANDS: NextierSubBrand[] = [
     parentBrandId: "atlantic_coast_auto_transport",
     name: "ACAT - GIANNA",
     displayName: "GIANNA (Atlantic Coast)",
-    description: "Initial outreach for auto transport leads - email capture, quote requests",
+    description:
+      "Initial outreach for auto transport leads - email capture, quote requests",
     teamIds: [],
   },
   {
@@ -117,7 +118,8 @@ export const NEXTIER_SUB_BRANDS: NextierSubBrand[] = [
     parentBrandId: "atlantic_coast_auto_transport",
     name: "ACAT - CATHY",
     displayName: "CATHY (Atlantic Coast)",
-    description: "Follow-up nudger for auto transport - re-engagement, no-response handling",
+    description:
+      "Follow-up nudger for auto transport - re-engagement, no-response handling",
     teamIds: [],
   },
   {
@@ -125,7 +127,8 @@ export const NEXTIER_SUB_BRANDS: NextierSubBrand[] = [
     parentBrandId: "atlantic_coast_auto_transport",
     name: "ACAT - SABRINA",
     displayName: "SABRINA (Atlantic Coast)",
-    description: "Closer for auto transport - booking pickups, scheduling quotes",
+    description:
+      "Closer for auto transport - booking pickups, scheduling quotes",
     teamIds: [],
   },
 ];

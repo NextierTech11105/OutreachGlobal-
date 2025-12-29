@@ -92,7 +92,11 @@ export default function CompaniesPage() {
   const [isImpersonating, setIsImpersonating] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newCompany, setNewCompany] = useState({ name: "", slug: "", ownerEmail: "" });
+  const [newCompany, setNewCompany] = useState({
+    name: "",
+    slug: "",
+    ownerEmail: "",
+  });
   const [isCreating, setIsCreating] = useState(false);
 
   const fetchCompanies = async () => {
@@ -172,9 +176,12 @@ export default function CompaniesPage() {
 
     setDeletingId(company.id);
     try {
-      const response = await fetch(`/api/admin/companies/${company.id}?confirm=true`, {
-        method: "DELETE",
-      });
+      const response = await fetch(
+        `/api/admin/companies/${company.id}?confirm=true`,
+        {
+          method: "DELETE",
+        },
+      );
 
       const data = await response.json();
 
@@ -266,7 +273,10 @@ export default function CompaniesPage() {
               Manage all tenant companies and their users
             </p>
           </div>
-          <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => setShowCreateModal(true)}>
+          <Button
+            className="bg-blue-600 hover:bg-blue-700"
+            onClick={() => setShowCreateModal(true)}
+          >
             <Plus className="mr-2 h-4 w-4" />
             Add Company
           </Button>
@@ -534,7 +544,9 @@ export default function CompaniesPage() {
           <Card className="bg-zinc-900 border-zinc-800 w-full max-w-md mx-4">
             <CardHeader>
               <CardTitle>Create New Company</CardTitle>
-              <CardDescription>Add a new company/team to the platform</CardDescription>
+              <CardDescription>
+                Add a new company/team to the platform
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
@@ -544,7 +556,10 @@ export default function CompaniesPage() {
                   value={newCompany.name}
                   onChange={(e) => {
                     const name = e.target.value;
-                    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+                    const slug = name
+                      .toLowerCase()
+                      .replace(/[^a-z0-9]+/g, "-")
+                      .replace(/^-|-$/g, "");
                     setNewCompany({ ...newCompany, name, slug });
                   }}
                   className="mt-1 bg-zinc-800 border-zinc-700"
@@ -555,7 +570,9 @@ export default function CompaniesPage() {
                 <Input
                   placeholder="e.g., atlantic-coast-auto"
                   value={newCompany.slug}
-                  onChange={(e) => setNewCompany({ ...newCompany, slug: e.target.value })}
+                  onChange={(e) =>
+                    setNewCompany({ ...newCompany, slug: e.target.value })
+                  }
                   className="mt-1 bg-zinc-800 border-zinc-700"
                 />
               </div>
