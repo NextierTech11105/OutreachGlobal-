@@ -36,6 +36,7 @@ import {
   Building2,
   ChevronRight,
   Radio,
+  Rocket,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -323,6 +324,12 @@ export default function CommandCenterPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <Link href={`/t/${teamId}/onboarding`}>
+              <Button size="sm" className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
+                <Rocket className="h-4 w-4 mr-2" />
+                Build Your Machine
+              </Button>
+            </Link>
             <Link href={`/t/${teamId}/skip-trace`}>
               <Button variant="outline" size="sm">
                 <UserSearch className="h-4 w-4 mr-2" />
@@ -492,14 +499,19 @@ export default function CommandCenterPage() {
             ) : dataLakes.length === 0 ? (
               <Card className="border-dashed">
                 <CardContent className="flex flex-col items-center justify-center py-12">
-                  <Database className="h-12 w-12 text-muted-foreground mb-4" />
+                  <Rocket className="h-12 w-12 text-purple-500 mb-4" />
                   <h3 className="font-semibold text-lg mb-2">
-                    No Databases Yet
+                    Ready to Build Your Machine?
                   </h3>
-                  <p className="text-muted-foreground text-center max-w-md">
-                    Upload USBizData CSV exports in Sectors to start building
-                    your lead pipeline.
+                  <p className="text-muted-foreground text-center max-w-md mb-6">
+                    Upload your leads CSV and launch your outreach machine in under 2 minutes.
                   </p>
+                  <Link href={`/t/${teamId}/onboarding`}>
+                    <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
+                      <Rocket className="h-4 w-4 mr-2" />
+                      Build Your Machine
+                    </Button>
+                  </Link>
                 </CardContent>
               </Card>
             ) : (
