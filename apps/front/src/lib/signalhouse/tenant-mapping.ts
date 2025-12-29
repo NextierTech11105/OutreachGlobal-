@@ -65,6 +65,16 @@ export const NEXTIER_BRANDS: NextierBrand[] = [
     entityType: "PRIVATE_PROFIT",
     isParent: true,
   },
+  {
+    id: "atlantic_coast_auto_transport",
+    name: "Atlantic Coast Auto Transport",
+    displayName: "Atlantic Coast Auto Transport",
+    legalName: "Atlantic Coast Auto Transport LLC",
+    website: "https://atlanticcoastautotransport.com",
+    vertical: "TRANSPORTATION",
+    entityType: "PRIVATE_PROFIT",
+    isParent: false,
+  },
 ];
 
 // Sub-brand configuration (maps to SignalHouse sub-groups)
@@ -91,6 +101,31 @@ export const NEXTIER_SUB_BRANDS: NextierSubBrand[] = [
     name: "Nextier System Design",
     displayName: "Nextier System Design",
     description: "Systems architecture and infrastructure",
+    teamIds: [],
+  },
+  // Atlantic Coast Auto Transport - AI Workers
+  {
+    id: "acat_gianna",
+    parentBrandId: "atlantic_coast_auto_transport",
+    name: "ACAT - GIANNA",
+    displayName: "GIANNA (Atlantic Coast)",
+    description: "Initial outreach for auto transport leads - email capture, quote requests",
+    teamIds: [],
+  },
+  {
+    id: "acat_cathy",
+    parentBrandId: "atlantic_coast_auto_transport",
+    name: "ACAT - CATHY",
+    displayName: "CATHY (Atlantic Coast)",
+    description: "Follow-up nudger for auto transport - re-engagement, no-response handling",
+    teamIds: [],
+  },
+  {
+    id: "acat_sabrina",
+    parentBrandId: "atlantic_coast_auto_transport",
+    name: "ACAT - SABRINA",
+    displayName: "SABRINA (Atlantic Coast)",
+    description: "Closer for auto transport - booking pickups, scheduling quotes",
     teamIds: [],
   },
 ];
