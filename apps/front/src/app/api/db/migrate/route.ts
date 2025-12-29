@@ -151,6 +151,43 @@ export async function POST() {
       results.push(`description: ${e.message}`);
     }
 
+    // Create api_keys table for API key authentication
+    try {
+      await sql`
+        CREATE TABLE IF NOT EXISTS api_keys (
+          id VARCHAR(32) PRIMARY KEY,
+          key_hash VARCHAR(128) NOT NULL,
+          key_prefix VARCHAR(16) NOT NULL,
+          type VARCHAR(20) NOT NULL DEFAULT 'USER',
+          team_id VARCHAR(32) NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+          user_id VARCHAR(32) REFERENCES users(id) ON DELETE SET NULL,
+          name VARCHAR(100) NOT NULL,
+          description VARCHAR(500),
+          permissions JSONB,
+          rate_limit VARCHAR(20) DEFAULT '1000/hour',
+          is_active BOOLEAN NOT NULL DEFAULT true,
+          last_used_at TIMESTAMP,
+          expires_at TIMESTAMP,
+          created_at TIMESTAMP DEFAULT NOW(),
+          updated_at TIMESTAMP DEFAULT NOW()
+        )
+      `;
+      results.push("Created api_keys table");
+    } catch (e: any) {
+      results.push(`api_keys: ${e.message}`);
+    }
+
+    // Create indexes for api_keys
+    try {
+      await sql`CREATE INDEX IF NOT EXISTS idx_api_keys_team ON api_keys(team_id)`;
+      await sql`CREATE INDEX IF NOT EXISTS idx_api_keys_hash ON api_keys(key_hash)`;
+      await sql`CREATE INDEX IF NOT EXISTS idx_api_keys_prefix ON api_keys(key_prefix)`;
+      await sql`CREATE INDEX IF NOT EXISTS idx_api_keys_active ON api_keys(is_active)`;
+      results.push("Created api_keys indexes");
+    } catch (e: any) {
+      results.push(`api_keys indexes: ${e.message}`);
+    }
+
     await sql.end();
 
     return NextResponse.json({ success: true, results });
