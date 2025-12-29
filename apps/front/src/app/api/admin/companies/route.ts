@@ -179,7 +179,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, slug, ownerId } = body;
+    const { name, slug, ownerId, ownerEmail, ownerName } = body;
 
     if (!name || !slug) {
       return NextResponse.json(
@@ -202,9 +202,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // If ownerId provided, verify user exists
+    // Determine owner
     let finalOwnerId = ownerId;
-    if (ownerId) {
+
+    if (ownerEmail) {
+      // Look up user by email, or create if not exists
+      const existingUser = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.email, ownerEmail.toLowerCase()))
+        .limit(1);
+
+      if (existingUser.length > 0) {
+        finalOwnerId = existingUser[0].id;
+      } else {
+        // Create new user with this email
+        const newUserId = crypto.randomUUID();
+        const displayName = ownerName || ownerEmail.split("@")[0];
+        await db.insert(users).values({
+          id: newUserId,
+          email: ownerEmail.toLowerCase(),
+          name: displayName,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+        finalOwnerId = newUserId;
+        console.log(`[Admin Companies] Created new user: ${ownerEmail} (${newUserId})`);
+      }
+    } else if (ownerId) {
+      // Verify ownerId exists
       const ownerExists = await db
         .select({ id: users.id })
         .from(users)

@@ -212,6 +212,7 @@ export default function CompaniesPage() {
         body: JSON.stringify({
           name: newCompany.name,
           slug: newCompany.slug,
+          ownerEmail: newCompany.ownerEmail || undefined,
         }),
       });
 
@@ -575,6 +576,21 @@ export default function CompaniesPage() {
                   }
                   className="mt-1 bg-zinc-800 border-zinc-700"
                 />
+              </div>
+              <div>
+                <label className="text-sm text-zinc-400">Owner Email (optional)</label>
+                <Input
+                  placeholder="e.g., tb@outreachglobal.io"
+                  type="email"
+                  value={newCompany.ownerEmail}
+                  onChange={(e) =>
+                    setNewCompany({ ...newCompany, ownerEmail: e.target.value })
+                  }
+                  className="mt-1 bg-zinc-800 border-zinc-700"
+                />
+                <p className="text-xs text-zinc-500 mt-1">
+                  Creates user if doesn't exist. Leave blank to use your account.
+                </p>
               </div>
               <div className="flex gap-2 pt-4">
                 <Button
