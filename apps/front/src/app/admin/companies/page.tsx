@@ -90,6 +90,10 @@ export default function CompaniesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isImpersonating, setIsImpersonating] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newCompany, setNewCompany] = useState({ name: "", slug: "", ownerEmail: "" });
+  const [isCreating, setIsCreating] = useState(false);
 
   const fetchCompanies = async () => {
     setIsLoading(true);
@@ -161,6 +165,66 @@ export default function CompaniesPage() {
     }
   };
 
+  const handleDelete = async (company: Company) => {
+    if (!confirm(`Delete "${company.name}"? This cannot be undone.`)) {
+      return;
+    }
+
+    setDeletingId(company.id);
+    try {
+      const response = await fetch(`/api/admin/companies/${company.id}?confirm=true`, {
+        method: "DELETE",
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        fetchCompanies();
+      } else {
+        alert(data.error || "Failed to delete");
+      }
+    } catch (error) {
+      console.error("Delete failed:", error);
+      alert("Failed to delete company");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleCreate = async () => {
+    if (!newCompany.name || !newCompany.slug) {
+      alert("Name and slug are required");
+      return;
+    }
+
+    setIsCreating(true);
+    try {
+      const response = await fetch("/api/admin/companies", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newCompany.name,
+          slug: newCompany.slug,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setShowCreateModal(false);
+        setNewCompany({ name: "", slug: "", ownerEmail: "" });
+        fetchCompanies();
+      } else {
+        alert(data.error || "Failed to create");
+      }
+    } catch (error) {
+      console.error("Create failed:", error);
+      alert("Failed to create company");
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "active":
@@ -202,7 +266,7 @@ export default function CompaniesPage() {
               Manage all tenant companies and their users
             </p>
           </div>
-          <Button className="bg-blue-600 hover:bg-blue-700">
+          <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => setShowCreateModal(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Add Company
           </Button>
@@ -439,8 +503,16 @@ export default function CompaniesPage() {
                                 </Link>
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-red-400">
-                                <Trash2 className="mr-2 h-4 w-4" />
+                              <DropdownMenuItem
+                                className="text-red-400 cursor-pointer"
+                                onClick={() => handleDelete(company)}
+                                disabled={deletingId === company.id}
+                              >
+                                {deletingId === company.id ? (
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                )}
                                 Delete
                               </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -455,6 +527,62 @@ export default function CompaniesPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Create Company Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Card className="bg-zinc-900 border-zinc-800 w-full max-w-md mx-4">
+            <CardHeader>
+              <CardTitle>Create New Company</CardTitle>
+              <CardDescription>Add a new company/team to the platform</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <label className="text-sm text-zinc-400">Company Name</label>
+                <Input
+                  placeholder="e.g., Atlantic Coast Auto Transport"
+                  value={newCompany.name}
+                  onChange={(e) => {
+                    const name = e.target.value;
+                    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+                    setNewCompany({ ...newCompany, name, slug });
+                  }}
+                  className="mt-1 bg-zinc-800 border-zinc-700"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-zinc-400">Slug (URL path)</label>
+                <Input
+                  placeholder="e.g., atlantic-coast-auto"
+                  value={newCompany.slug}
+                  onChange={(e) => setNewCompany({ ...newCompany, slug: e.target.value })}
+                  className="mt-1 bg-zinc-800 border-zinc-700"
+                />
+              </div>
+              <div className="flex gap-2 pt-4">
+                <Button
+                  variant="outline"
+                  className="flex-1 border-zinc-700"
+                  onClick={() => setShowCreateModal(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="flex-1 bg-blue-600 hover:bg-blue-700"
+                  onClick={handleCreate}
+                  disabled={isCreating}
+                >
+                  {isCreating ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Create"
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
