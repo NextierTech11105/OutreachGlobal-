@@ -8,9 +8,9 @@ import { sql } from "drizzle-orm";
  */
 
 interface HeatmapCell {
-  day: number;    // 0-6 (Sun-Sat)
-  hour: number;   // 0-23
-  value: number;  // Count of responses
+  day: number; // 0-6 (Sun-Sat)
+  hour: number; // 0-23
+  value: number; // Count of responses
   labels: string[]; // Which labels this includes
 }
 
@@ -19,7 +19,9 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const timeRange = searchParams.get("timeRange") || "7d";
     const labelsParam = searchParams.get("labels") || "";
-    const selectedLabels = labelsParam ? labelsParam.split(",").filter(Boolean) : [];
+    const selectedLabels = labelsParam
+      ? labelsParam.split(",").filter(Boolean)
+      : [];
 
     // Calculate date range
     let daysBack = 7;
@@ -39,9 +41,11 @@ export async function GET(request: NextRequest) {
         ARRAY_AGG(DISTINCT label) as labels
       FROM inbox_responses
       WHERE created_at >= ${startDate.toISOString()}
-        ${selectedLabels.length > 0
-          ? sql`AND label = ANY(${selectedLabels})`
-          : sql``}
+        ${
+          selectedLabels.length > 0
+            ? sql`AND label = ANY(${selectedLabels})`
+            : sql``
+        }
       GROUP BY
         EXTRACT(DOW FROM created_at),
         EXTRACT(HOUR FROM created_at)

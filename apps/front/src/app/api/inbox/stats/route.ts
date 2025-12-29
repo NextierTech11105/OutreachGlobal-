@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     currentStart.setDate(currentStart.getDate() - currentDaysBack);
 
     const previousStart = new Date();
-    previousStart.setDate(previousStart.getDate() - (currentDaysBack * 2));
+    previousStart.setDate(previousStart.getDate() - currentDaysBack * 2);
 
     // Get current period counts
     const currentResult = await db.execute(sql`
@@ -94,7 +94,9 @@ export async function GET(request: NextRequest) {
           if (previous === 0) {
             changes[label] = current > 0 ? 100 : 0;
           } else {
-            changes[label] = Math.round(((current - previous) / previous) * 100);
+            changes[label] = Math.round(
+              ((current - previous) / previous) * 100,
+            );
           }
         }
       }
@@ -115,9 +117,10 @@ export async function GET(request: NextRequest) {
         goldLabels,
         positiveResponses,
         appointmentsSet,
-        conversionRate: totalResponses > 0
-          ? Math.round((appointmentsSet / totalResponses) * 100)
-          : 0,
+        conversionRate:
+          totalResponses > 0
+            ? Math.round((appointmentsSet / totalResponses) * 100)
+            : 0,
       },
       timeRange,
     });

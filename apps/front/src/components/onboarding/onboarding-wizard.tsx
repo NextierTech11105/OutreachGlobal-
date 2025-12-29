@@ -88,7 +88,9 @@ export function OnboardingWizard({
     try {
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("teamId", teamId);
+      formData.append("name", file.name.replace(".csv", ""));
+      formData.append("description", `Onboarding upload for ${teamId}`);
+      formData.append("tags", "onboarding");
 
       const response = await fetch("/api/buckets/upload-csv", {
         method: "POST",
@@ -96,22 +98,22 @@ export function OnboardingWizard({
       });
 
       if (!response.ok) {
-        throw new Error("Upload failed");
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Upload failed");
       }
 
       const result = await response.json();
+      const recordCount = result.bucket?.totalLeads || result.recordCount || 0;
 
       setData((prev) => ({
         ...prev,
         uploadedFile: {
           name: file.name,
-          recordCount: result.recordCount || 0,
+          recordCount,
         },
       }));
 
-      toast.success(
-        `Uploaded ${result.recordCount?.toLocaleString() || 0} leads`,
-      );
+      toast.success(`Uploaded ${recordCount.toLocaleString()} leads`);
       nextStep();
     } catch (error) {
       toast.error("Upload failed. Try again.");
