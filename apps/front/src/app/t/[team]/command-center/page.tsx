@@ -821,26 +821,33 @@ export default function CommandCenterPage() {
               <CardHeader className="bg-gradient-to-r from-purple-500/10 to-pink-500/10">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className={cn(
-                      "p-3 rounded-full",
-                      luciActive
-                        ? "bg-green-500 animate-pulse"
-                        : "bg-muted-foreground/30",
-                    )}>
-                      <Sparkles className={cn(
-                        "h-6 w-6",
-                        luciActive ? "text-white" : "text-muted-foreground",
-                      )} />
+                    <div
+                      className={cn(
+                        "p-3 rounded-full",
+                        luciActive
+                          ? "bg-green-500 animate-pulse"
+                          : "bg-muted-foreground/30",
+                      )}
+                    >
+                      <Sparkles
+                        className={cn(
+                          "h-6 w-6",
+                          luciActive ? "text-white" : "text-muted-foreground",
+                        )}
+                      />
                     </div>
                     <div>
                       <CardTitle className="flex items-center gap-2">
                         LUCI Dispatcher
                         {luciActive && (
-                          <Badge className="bg-green-600 animate-pulse">LIVE</Badge>
+                          <Badge className="bg-green-600 animate-pulse">
+                            LIVE
+                          </Badge>
                         )}
                       </CardTitle>
                       <CardDescription>
-                        Data-to-Leads enrichment → Push to GIANNA (human-in-loop) → Campaign ready
+                        Data-to-Leads enrichment → Push to GIANNA
+                        (human-in-loop) → Campaign ready
                       </CardDescription>
                     </div>
                   </div>
@@ -849,7 +856,8 @@ export default function CommandCenterPage() {
                     variant={luciActive ? "destructive" : "default"}
                     onClick={toggleLuci}
                     className={cn(
-                      !luciActive && "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                      !luciActive &&
+                        "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700",
                     )}
                   >
                     {luciActive ? (
@@ -878,16 +886,23 @@ export default function CommandCenterPage() {
                       {[250, 500, 1000, 2000].map((limit) => (
                         <Button
                           key={limit}
-                          variant={stats.skipTracedToday <= limit ? "default" : "outline"}
+                          variant={
+                            stats.skipTracedToday <= limit
+                              ? "default"
+                              : "outline"
+                          }
                           size="sm"
                           className={cn(
                             "flex-1",
                             limit === 250 && "bg-blue-600 hover:bg-blue-700",
                             limit === 500 && "bg-green-600 hover:bg-green-700",
                             limit === 1000 && "bg-amber-600 hover:bg-amber-700",
-                            limit === 2000 && "bg-purple-600 hover:bg-purple-700",
+                            limit === 2000 &&
+                              "bg-purple-600 hover:bg-purple-700",
                           )}
-                          onClick={() => toast.success(`Daily limit set to ${limit}`)}
+                          onClick={() =>
+                            toast.success(`Daily limit set to ${limit}`)
+                          }
                         >
                           {formatNumber(limit)}
                         </Button>
@@ -928,16 +943,24 @@ export default function CommandCenterPage() {
                   <div className="flex items-center justify-between mb-3">
                     <span className="font-medium">Today&apos;s Progress</span>
                     <span className="text-sm">
-                      {formatNumber(stats.skipTracedToday)} / {formatNumber(DAILY_SKIP_TRACE_LIMIT)}
+                      {formatNumber(stats.skipTracedToday)} /{" "}
+                      {formatNumber(DAILY_SKIP_TRACE_LIMIT)}
                     </span>
                   </div>
                   <Progress
-                    value={(stats.skipTracedToday / DAILY_SKIP_TRACE_LIMIT) * 100}
+                    value={
+                      (stats.skipTracedToday / DAILY_SKIP_TRACE_LIMIT) * 100
+                    }
                     className="h-4"
                   />
                   <div className="flex justify-between mt-2 text-xs text-muted-foreground">
                     <span>Enriched & Sent</span>
-                    <span>{Math.round((stats.skipTracedToday / DAILY_SKIP_TRACE_LIMIT) * 100)}% of daily limit</span>
+                    <span>
+                      {Math.round(
+                        (stats.skipTracedToday / DAILY_SKIP_TRACE_LIMIT) * 100,
+                      )}
+                      % of daily limit
+                    </span>
                   </div>
                 </div>
 
@@ -952,8 +975,12 @@ export default function CommandCenterPage() {
                     <div className="flex items-center gap-2 px-3 py-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg border border-purple-300 min-w-fit">
                       <Sparkles className="h-4 w-4 text-purple-600" />
                       <div>
-                        <p className="font-medium text-sm text-purple-700 dark:text-purple-300">LUCI</p>
-                        <p className="text-xs text-purple-600/70">Enrich Leads</p>
+                        <p className="font-medium text-sm text-purple-700 dark:text-purple-300">
+                          LUCI
+                        </p>
+                        <p className="text-xs text-purple-600/70">
+                          Enrich Leads
+                        </p>
                       </div>
                     </div>
                     <ArrowRight className="h-5 w-5 text-muted-foreground shrink-0" />
@@ -962,8 +989,12 @@ export default function CommandCenterPage() {
                     <div className="flex items-center gap-2 px-3 py-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg border border-blue-300 min-w-fit">
                       <Users className="h-4 w-4 text-blue-600" />
                       <div>
-                        <p className="font-medium text-sm text-blue-700 dark:text-blue-300">Review</p>
-                        <p className="text-xs text-blue-600/70">Human-in-Loop</p>
+                        <p className="font-medium text-sm text-blue-700 dark:text-blue-300">
+                          Review
+                        </p>
+                        <p className="text-xs text-blue-600/70">
+                          Human-in-Loop
+                        </p>
                       </div>
                     </div>
                     <ArrowRight className="h-5 w-5 text-muted-foreground shrink-0" />
@@ -972,7 +1003,9 @@ export default function CommandCenterPage() {
                     <div className="flex items-center gap-2 px-3 py-2 bg-pink-100 dark:bg-pink-900/30 rounded-lg border border-pink-300 min-w-fit">
                       <Bot className="h-4 w-4 text-pink-600" />
                       <div>
-                        <p className="font-medium text-sm text-pink-700 dark:text-pink-300">GIANNA</p>
+                        <p className="font-medium text-sm text-pink-700 dark:text-pink-300">
+                          GIANNA
+                        </p>
                         <p className="text-xs text-pink-600/70">SMS Campaign</p>
                       </div>
                     </div>
@@ -982,8 +1015,12 @@ export default function CommandCenterPage() {
                     <div className="flex items-center gap-2 px-3 py-2 bg-green-100 dark:bg-green-900/30 rounded-lg border border-green-300 min-w-fit">
                       <Radio className="h-4 w-4 text-green-600" />
                       <div>
-                        <p className="font-medium text-sm text-green-700 dark:text-green-300">SignalHouse</p>
-                        <p className="text-xs text-green-600/70">SMS Delivery</p>
+                        <p className="font-medium text-sm text-green-700 dark:text-green-300">
+                          SignalHouse
+                        </p>
+                        <p className="text-xs text-green-600/70">
+                          SMS Delivery
+                        </p>
                       </div>
                     </div>
                     <ArrowRight className="h-5 w-5 text-muted-foreground shrink-0" />
@@ -992,7 +1029,9 @@ export default function CommandCenterPage() {
                     <div className="flex items-center gap-2 px-3 py-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg border border-amber-300 min-w-fit">
                       <Phone className="h-4 w-4 text-amber-600" />
                       <div>
-                        <p className="font-medium text-sm text-amber-700 dark:text-amber-300">Call Center</p>
+                        <p className="font-medium text-sm text-amber-700 dark:text-amber-300">
+                          Call Center
+                        </p>
                         <p className="text-xs text-amber-600/70">Hot Leads</p>
                       </div>
                     </div>
@@ -1017,11 +1056,16 @@ export default function CommandCenterPage() {
                     <p className="text-2xl font-bold text-green-600">
                       {formatNumber(stats.readyForCampaign)}
                     </p>
-                    <p className="text-xs text-muted-foreground">Sent to SignalHouse</p>
+                    <p className="text-xs text-muted-foreground">
+                      Sent to SignalHouse
+                    </p>
                   </div>
                   <div className="p-4 rounded-lg bg-gradient-to-br from-pink-500/10 to-pink-600/10 text-center border border-pink-500/20">
                     <p className="text-2xl font-bold text-pink-600">
-                      {Math.ceil((MONTHLY_POOL_TARGET - stats.monthlyPool) / DAILY_SKIP_TRACE_LIMIT)}
+                      {Math.ceil(
+                        (MONTHLY_POOL_TARGET - stats.monthlyPool) /
+                          DAILY_SKIP_TRACE_LIMIT,
+                      )}
                     </p>
                     <p className="text-xs text-muted-foreground">Days to 20K</p>
                   </div>
@@ -1035,7 +1079,10 @@ export default function CommandCenterPage() {
                       Monthly Goal: {formatNumber(MONTHLY_POOL_TARGET)} Leads
                     </span>
                     <span className="text-sm font-mono">
-                      {Math.round((stats.monthlyPool / MONTHLY_POOL_TARGET) * 100)}%
+                      {Math.round(
+                        (stats.monthlyPool / MONTHLY_POOL_TARGET) * 100,
+                      )}
+                      %
                     </span>
                   </div>
                   <Progress
@@ -1043,7 +1090,9 @@ export default function CommandCenterPage() {
                     className="h-3"
                   />
                   <p className="text-xs text-muted-foreground mt-2">
-                    {formatNumber(stats.monthlyPool)} enriched → {formatNumber(MONTHLY_POOL_TARGET - stats.monthlyPool)} remaining
+                    {formatNumber(stats.monthlyPool)} enriched →{" "}
+                    {formatNumber(MONTHLY_POOL_TARGET - stats.monthlyPool)}{" "}
+                    remaining
                   </p>
                 </div>
               </CardContent>
@@ -1064,7 +1113,9 @@ export default function CommandCenterPage() {
                 <div className="text-center py-8 text-muted-foreground">
                   <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-20" />
                   <p>No inbound messages yet</p>
-                  <p className="text-sm">Responses will appear here when contacts reply</p>
+                  <p className="text-sm">
+                    Responses will appear here when contacts reply
+                  </p>
                 </div>
               </CardContent>
             </Card>

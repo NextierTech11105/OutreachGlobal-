@@ -13,10 +13,5 @@ export default function OnboardingPage() {
     router.push(`/t/${teamId}/command-center`);
   };
 
-  return (
-    <OnboardingWizard
-      teamId={teamId}
-      onComplete={handleComplete}
-    />
-  );
+  return <OnboardingWizard teamId={teamId} onComplete={handleComplete} />;
 }
