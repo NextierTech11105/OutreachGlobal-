@@ -109,7 +109,9 @@ export function OnboardingWizard({
         },
       }));
 
-      toast.success(`Uploaded ${result.recordCount?.toLocaleString() || 0} leads`);
+      toast.success(
+        `Uploaded ${result.recordCount?.toLocaleString() || 0} leads`,
+      );
       nextStep();
     } catch (error) {
       toast.error("Upload failed. Try again.");
@@ -179,7 +181,9 @@ export function OnboardingWizard({
         <div className="mb-8">
           <div className="flex justify-between text-sm mb-2">
             <span className="font-medium">Step {currentStep + 1} of 3</span>
-            <span className="text-muted-foreground">{Math.round(progress)}%</span>
+            <span className="text-muted-foreground">
+              {Math.round(progress)}%
+            </span>
           </div>
           <Progress value={progress} className="h-3" />
         </div>
@@ -197,7 +201,7 @@ export function OnboardingWizard({
                 "flex flex-col items-center gap-2",
                 i === currentStep && "text-primary",
                 i < currentStep && "text-green-500",
-                i > currentStep && "text-muted-foreground"
+                i > currentStep && "text-muted-foreground",
               )}
             >
               <div
@@ -205,7 +209,7 @@ export function OnboardingWizard({
                   "w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all",
                   i === currentStep && "border-primary bg-primary/10",
                   i < currentStep && "border-green-500 bg-green-500/10",
-                  i > currentStep && "border-muted"
+                  i > currentStep && "border-muted",
                 )}
               >
                 {i < currentStep ? (
@@ -239,7 +243,7 @@ export function OnboardingWizard({
                   className={cn(
                     "border-2 border-dashed rounded-xl p-12 text-center transition-all cursor-pointer",
                     isDragging && "border-primary bg-primary/5",
-                    !isDragging && "border-muted hover:border-primary/50"
+                    !isDragging && "border-muted hover:border-primary/50",
                   )}
                 >
                   {isUploading ? (
@@ -285,7 +289,9 @@ export function OnboardingWizard({
             {currentStep === 1 && (
               <div className="space-y-6">
                 <div className="text-center">
-                  <h2 className="text-2xl font-bold mb-2">Set Daily Capacity</h2>
+                  <h2 className="text-2xl font-bold mb-2">
+                    Set Daily Capacity
+                  </h2>
                   <p className="text-muted-foreground">
                     How many SMS should we send per day?
                   </p>
@@ -296,7 +302,8 @@ export function OnboardingWizard({
                     <CheckCircle className="h-5 w-5 text-green-500 mx-auto mb-2" />
                     <p className="font-medium">{data.uploadedFile.name}</p>
                     <p className="text-sm text-muted-foreground">
-                      {data.uploadedFile.recordCount.toLocaleString()} leads ready
+                      {data.uploadedFile.recordCount.toLocaleString()} leads
+                      ready
                     </p>
                   </div>
                 )}
@@ -307,13 +314,16 @@ export function OnboardingWizard({
                       type="button"
                       key={option.value}
                       onClick={() =>
-                        setData((prev) => ({ ...prev, dailyCapacity: option.value }))
+                        setData((prev) => ({
+                          ...prev,
+                          dailyCapacity: option.value,
+                        }))
                       }
                       className={cn(
                         "p-6 rounded-xl border-2 text-left transition-all",
                         data.dailyCapacity === option.value
                           ? "border-primary bg-primary/5"
-                          : "border-muted hover:border-primary/50"
+                          : "border-muted hover:border-primary/50",
                       )}
                     >
                       <div className="flex items-center justify-between">
@@ -335,7 +345,11 @@ export function OnboardingWizard({
                 </div>
 
                 <div className="flex gap-4 pt-4">
-                  <Button variant="outline" onClick={prevStep} className="flex-1">
+                  <Button
+                    variant="outline"
+                    onClick={prevStep}
+                    className="flex-1"
+                  >
                     <ArrowLeft className="h-4 w-4 mr-2" />
                     Back
                   </Button>
@@ -372,10 +386,14 @@ export function OnboardingWizard({
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Days to complete</span>
+                    <span className="text-muted-foreground">
+                      Days to complete
+                    </span>
                     <span className="font-bold">
                       {data.uploadedFile
-                        ? Math.ceil(data.uploadedFile.recordCount / data.dailyCapacity)
+                        ? Math.ceil(
+                            data.uploadedFile.recordCount / data.dailyCapacity,
+                          )
                         : "-"}
                     </span>
                   </div>
@@ -383,7 +401,8 @@ export function OnboardingWizard({
 
                 <div className="text-center py-4">
                   <p className="text-sm text-muted-foreground mb-6">
-                    GIANNA, CATHY & SABRINA will handle all responses automatically
+                    GIANNA, CATHY & SABRINA will handle all responses
+                    automatically
                   </p>
 
                   <Button
