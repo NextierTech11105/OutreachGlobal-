@@ -104,7 +104,6 @@ interface SubCampaign {
   };
 }
 
-
 interface PipelineStats {
   totalRecords: number;
   totalDatabases: number;
@@ -572,144 +571,151 @@ export default function CommandCenterPage() {
                     No Brand Campaigns Yet
                   </h3>
                   <p className="text-muted-foreground text-center max-w-md">
-                    Register a 10DLC brand with SignalHouse to start sending SMS campaigns.
+                    Register a 10DLC brand with SignalHouse to start sending SMS
+                    campaigns.
                   </p>
                 </CardContent>
               </Card>
             ) : (
               brandCampaigns.map((brand) => (
-              <Card key={brand.id}>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-                        <Building2 className="h-5 w-5 text-blue-600" />
+                <Card key={brand.id}>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                          <Building2 className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-lg">
+                            {brand.brandName}
+                          </CardTitle>
+                          <CardDescription className="flex items-center gap-2">
+                            <span className="font-mono text-xs">
+                              {brand.brandId}
+                            </span>
+                            <Badge
+                              variant={
+                                brand.status === "approved"
+                                  ? "default"
+                                  : "secondary"
+                              }
+                              className={cn(
+                                brand.status === "approved" && "bg-green-600",
+                              )}
+                            >
+                              {brand.status}
+                            </Badge>
+                          </CardDescription>
+                        </div>
                       </div>
-                      <div>
-                        <CardTitle className="text-lg">
-                          {brand.brandName}
-                        </CardTitle>
-                        <CardDescription className="flex items-center gap-2">
-                          <span className="font-mono text-xs">
-                            {brand.brandId}
-                          </span>
-                          <Badge
-                            variant={
-                              brand.status === "approved"
-                                ? "default"
-                                : "secondary"
-                            }
-                            className={cn(
-                              brand.status === "approved" && "bg-green-600",
-                            )}
-                          >
-                            {brand.status}
-                          </Badge>
-                        </CardDescription>
+                      <div className="text-right text-sm text-muted-foreground">
+                        <p>{brand.subCampaigns.length} sub-campaigns</p>
+                        <p>
+                          {brand.subCampaigns
+                            .reduce((a, c) => a + c.stats.sent, 0)
+                            .toLocaleString()}{" "}
+                          messages sent
+                        </p>
                       </div>
                     </div>
-                    <div className="text-right text-sm text-muted-foreground">
-                      <p>{brand.subCampaigns.length} sub-campaigns</p>
-                      <p>
-                        {brand.subCampaigns
-                          .reduce((a, c) => a + c.stats.sent, 0)
-                          .toLocaleString()}{" "}
-                        messages sent
-                      </p>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {brand.subCampaigns.map((sub) => {
-                      const worker = AI_WORKERS.find(
-                        (w) => w.id === sub.assignedWorker,
-                      );
-                      const deliveryRate = (
-                        (sub.stats.delivered / sub.stats.sent) *
-                        100
-                      ).toFixed(1);
-                      const responseRate = (
-                        (sub.stats.responses / sub.stats.delivered) *
-                        100
-                      ).toFixed(1);
-                      const positiveRate = (
-                        (sub.stats.positive / sub.stats.responses) *
-                        100
-                      ).toFixed(1);
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {brand.subCampaigns.map((sub) => {
+                        const worker = AI_WORKERS.find(
+                          (w) => w.id === sub.assignedWorker,
+                        );
+                        const deliveryRate = (
+                          (sub.stats.delivered / sub.stats.sent) *
+                          100
+                        ).toFixed(1);
+                        const responseRate = (
+                          (sub.stats.responses / sub.stats.delivered) *
+                          100
+                        ).toFixed(1);
+                        const positiveRate = (
+                          (sub.stats.positive / sub.stats.responses) *
+                          100
+                        ).toFixed(1);
 
-                      return (
-                        <div
-                          key={sub.id}
-                          className="flex items-center gap-4 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                        >
-                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium">{sub.name}</span>
-                              <Badge
-                                variant="outline"
-                                className={cn(
-                                  "text-[10px]",
-                                  sub.status === "active" &&
-                                    "border-green-500 text-green-600",
-                                  sub.status === "paused" &&
-                                    "border-amber-500 text-amber-600",
-                                  sub.status === "draft" &&
-                                    "border-gray-500 text-gray-600",
-                                )}
-                              >
-                                {sub.status}
-                              </Badge>
-                            </div>
-                            <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
-                              <span className="capitalize">{sub.type}</span>
-                              {worker && (
-                                <span
+                        return (
+                          <div
+                            key={sub.id}
+                            className="flex items-center gap-4 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                          >
+                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">{sub.name}</span>
+                                <Badge
+                                  variant="outline"
                                   className={cn(
-                                    "flex items-center gap-1",
-                                    worker.color,
+                                    "text-[10px]",
+                                    sub.status === "active" &&
+                                      "border-green-500 text-green-600",
+                                    sub.status === "paused" &&
+                                      "border-amber-500 text-amber-600",
+                                    sub.status === "draft" &&
+                                      "border-gray-500 text-gray-600",
                                   )}
                                 >
-                                  <Bot className="h-3 w-3" />
-                                  {worker.name}
-                                </span>
-                              )}
+                                  {sub.status}
+                                </Badge>
+                              </div>
+                              <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
+                                <span className="capitalize">{sub.type}</span>
+                                {worker && (
+                                  <span
+                                    className={cn(
+                                      "flex items-center gap-1",
+                                      worker.color,
+                                    )}
+                                  >
+                                    <Bot className="h-3 w-3" />
+                                    {worker.name}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-4 gap-4 text-center text-xs">
+                              <div>
+                                <p className="font-medium">
+                                  {sub.stats.sent.toLocaleString()}
+                                </p>
+                                <p className="text-muted-foreground">Sent</p>
+                              </div>
+                              <div>
+                                <p className="font-medium text-blue-600">
+                                  {deliveryRate}%
+                                </p>
+                                <p className="text-muted-foreground">
+                                  Delivered
+                                </p>
+                              </div>
+                              <div>
+                                <p className="font-medium text-purple-600">
+                                  {responseRate}%
+                                </p>
+                                <p className="text-muted-foreground">
+                                  Response
+                                </p>
+                              </div>
+                              <div>
+                                <p className="font-medium text-green-600">
+                                  {positiveRate}%
+                                </p>
+                                <p className="text-muted-foreground">
+                                  Positive
+                                </p>
+                              </div>
                             </div>
                           </div>
-                          <div className="grid grid-cols-4 gap-4 text-center text-xs">
-                            <div>
-                              <p className="font-medium">
-                                {sub.stats.sent.toLocaleString()}
-                              </p>
-                              <p className="text-muted-foreground">Sent</p>
-                            </div>
-                            <div>
-                              <p className="font-medium text-blue-600">
-                                {deliveryRate}%
-                              </p>
-                              <p className="text-muted-foreground">Delivered</p>
-                            </div>
-                            <div>
-                              <p className="font-medium text-purple-600">
-                                {responseRate}%
-                              </p>
-                              <p className="text-muted-foreground">Response</p>
-                            </div>
-                            <div>
-                              <p className="font-medium text-green-600">
-                                {positiveRate}%
-                              </p>
-                              <p className="text-muted-foreground">Positive</p>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-            ))
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
             )}
 
             {/* SignalHouse Integration Info */}

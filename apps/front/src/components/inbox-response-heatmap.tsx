@@ -133,7 +133,9 @@ const fetchInboxHeatmapData = async (
   timeRange: string,
 ): Promise<{ cells: HeatmapCell[]; maxValue: number }> => {
   try {
-    const response = await fetch(`/api/inbox/heatmap?timeRange=${timeRange}&labels=${selectedLabels.join(',')}`);
+    const response = await fetch(
+      `/api/inbox/heatmap?timeRange=${timeRange}&labels=${selectedLabels.join(",")}`,
+    );
     if (!response.ok) {
       return { cells: [], maxValue: 0 };
     }
@@ -143,7 +145,7 @@ const fetchInboxHeatmapData = async (
       maxValue: data.maxValue || 0,
     };
   } catch (error) {
-    console.error('Failed to fetch heatmap data:', error);
+    console.error("Failed to fetch heatmap data:", error);
     return { cells: [], maxValue: 0 };
   }
 };
@@ -318,12 +320,17 @@ export function InboxResponseHeatmap() {
 
     try {
       // Fetch real heatmap data
-      const { cells, maxValue: max } = await fetchInboxHeatmapData(selectedLabels, timeRange);
+      const { cells, maxValue: max } = await fetchInboxHeatmapData(
+        selectedLabels,
+        timeRange,
+      );
       setHeatmapData(cells);
       setMaxValue(max);
 
       // Fetch real label stats from API
-      const statsResponse = await fetch(`/api/inbox/stats?timeRange=${timeRange}`);
+      const statsResponse = await fetch(
+        `/api/inbox/stats?timeRange=${timeRange}`,
+      );
       if (statsResponse.ok) {
         const statsData = await statsResponse.json();
         const stats: LabelStats[] = INBOX_LABELS.map((label) => ({
@@ -346,7 +353,7 @@ export function InboxResponseHeatmap() {
         setLabelStats(stats);
       }
     } catch (error) {
-      console.error('Failed to fetch data:', error);
+      console.error("Failed to fetch data:", error);
     }
 
     setIsRefreshing(false);
@@ -511,7 +518,10 @@ export function InboxHeatmapCompact() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const { cells, maxValue: max } = await fetchInboxHeatmapData(defaultLabels, "7d");
+      const { cells, maxValue: max } = await fetchInboxHeatmapData(
+        defaultLabels,
+        "7d",
+      );
       setHeatmapData(cells);
       setMaxValue(max);
     };
