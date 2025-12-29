@@ -17,27 +17,6 @@ registerEnumType(
   },
 );
 
-@ObjectType()
-export class ApiKeyPermissions {
-  @Field(() => Boolean, { nullable: true })
-  canRead?: boolean;
-
-  @Field(() => Boolean, { nullable: true })
-  canWrite?: boolean;
-
-  @Field(() => Boolean, { nullable: true })
-  canDelete?: boolean;
-
-  @Field(() => Boolean, { nullable: true })
-  canManageTeam?: boolean;
-
-  @Field(() => Boolean, { nullable: true })
-  canManageUsers?: boolean;
-
-  @Field(() => Boolean, { nullable: true })
-  canAccessBilling?: boolean;
-}
-
 /**
  * API Key - shown in list views (without the actual key)
  */
