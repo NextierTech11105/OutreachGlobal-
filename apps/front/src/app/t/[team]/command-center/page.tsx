@@ -325,7 +325,10 @@ export default function CommandCenterPage() {
           </div>
           <div className="flex items-center gap-2">
             <Link href={`/t/${teamId}/onboarding`}>
-              <Button size="sm" className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
+              <Button
+                size="sm"
+                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+              >
                 <Rocket className="h-4 w-4 mr-2" />
                 Build Your Machine
               </Button>
@@ -504,7 +507,8 @@ export default function CommandCenterPage() {
                     Ready to Build Your Machine?
                   </h3>
                   <p className="text-muted-foreground text-center max-w-md mb-6">
-                    Upload your leads CSV and launch your outreach machine in under 2 minutes.
+                    Upload your leads CSV and launch your outreach machine in
+                    under 2 minutes.
                   </p>
                   <Link href={`/t/${teamId}/onboarding`}>
                     <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
@@ -810,91 +814,257 @@ export default function CommandCenterPage() {
             <InboxResponseHeatmap />
           </TabsContent>
 
-          {/* LUCI Copilot */}
+          {/* LUCI Copilot - The Dispatcher */}
           <TabsContent value="scan" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-purple-500" />
-                  LUCI Copilot
-                </CardTitle>
-                <CardDescription>
-                  AI-powered lead pulling until 20,000 skip traced leads
-                  accumulated
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-4 rounded-lg bg-muted">
+            {/* Main Control Panel */}
+            <Card className="border-2 border-purple-500/20">
+              <CardHeader className="bg-gradient-to-r from-purple-500/10 to-pink-500/10">
+                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div
-                      className={cn(
-                        "p-3 rounded-full",
-                        luciActive
-                          ? "bg-green-100 dark:bg-green-900/30"
-                          : "bg-muted-foreground/20",
-                      )}
-                    >
-                      <Bot
-                        className={cn(
-                          "h-6 w-6",
-                          luciActive
-                            ? "text-green-600"
-                            : "text-muted-foreground",
-                        )}
-                      />
+                    <div className={cn(
+                      "p-3 rounded-full",
+                      luciActive
+                        ? "bg-green-500 animate-pulse"
+                        : "bg-muted-foreground/30",
+                    )}>
+                      <Sparkles className={cn(
+                        "h-6 w-6",
+                        luciActive ? "text-white" : "text-muted-foreground",
+                      )} />
                     </div>
                     <div>
-                      <p className="font-medium">LUCI Status</p>
-                      <p className="text-sm text-muted-foreground">
-                        {luciActive
-                          ? "Actively pulling leads"
-                          : "Waiting for activation"}
-                      </p>
+                      <CardTitle className="flex items-center gap-2">
+                        LUCI Dispatcher
+                        {luciActive && (
+                          <Badge className="bg-green-600 animate-pulse">LIVE</Badge>
+                        )}
+                      </CardTitle>
+                      <CardDescription>
+                        Data-to-Leads enrichment → Push to GIANNA (human-in-loop) → Campaign ready
+                      </CardDescription>
                     </div>
                   </div>
                   <Button
+                    size="lg"
                     variant={luciActive ? "destructive" : "default"}
                     onClick={toggleLuci}
+                    className={cn(
+                      !luciActive && "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                    )}
                   >
-                    {luciActive ? "Pause" : "Activate"}
+                    {luciActive ? (
+                      <>
+                        <Pause className="h-5 w-5 mr-2" />
+                        Pause LUCI
+                      </>
+                    ) : (
+                      <>
+                        <Play className="h-5 w-5 mr-2" />
+                        Activate LUCI
+                      </>
+                    )}
                   </Button>
                 </div>
+              </CardHeader>
+              <CardContent className="space-y-6 pt-6">
+                {/* Daily Limit Control */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-3">
+                    <label className="text-sm font-medium flex items-center gap-2">
+                      <Target className="h-4 w-4 text-purple-500" />
+                      Daily Send Limit
+                    </label>
+                    <div className="flex gap-2">
+                      {[250, 500, 1000, 2000].map((limit) => (
+                        <Button
+                          key={limit}
+                          variant={stats.skipTracedToday <= limit ? "default" : "outline"}
+                          size="sm"
+                          className={cn(
+                            "flex-1",
+                            limit === 250 && "bg-blue-600 hover:bg-blue-700",
+                            limit === 500 && "bg-green-600 hover:bg-green-700",
+                            limit === 1000 && "bg-amber-600 hover:bg-amber-700",
+                            limit === 2000 && "bg-purple-600 hover:bg-purple-700",
+                          )}
+                          onClick={() => toast.success(`Daily limit set to ${limit}`)}
+                        >
+                          {formatNumber(limit)}
+                        </Button>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Controls how many leads LUCI sends to SignalHouse per day
+                    </p>
+                  </div>
 
+                  <div className="space-y-3">
+                    <label className="text-sm font-medium flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-blue-500" />
+                      Schedule
+                    </label>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" className="flex-1">
+                        <Zap className="h-4 w-4 mr-1" />
+                        Immediate
+                      </Button>
+                      <Button variant="outline" size="sm" className="flex-1">
+                        <Clock className="h-4 w-4 mr-1" />
+                        9AM Daily
+                      </Button>
+                      <Button variant="outline" size="sm" className="flex-1">
+                        <Calendar className="h-4 w-4 mr-1" />
+                        Custom
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      When LUCI should dispatch enriched leads
+                    </p>
+                  </div>
+                </div>
+
+                {/* Today's Progress */}
+                <div className="p-4 rounded-lg bg-muted/50 border">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="font-medium">Today&apos;s Progress</span>
+                    <span className="text-sm">
+                      {formatNumber(stats.skipTracedToday)} / {formatNumber(DAILY_SKIP_TRACE_LIMIT)}
+                    </span>
+                  </div>
+                  <Progress
+                    value={(stats.skipTracedToday / DAILY_SKIP_TRACE_LIMIT) * 100}
+                    className="h-4"
+                  />
+                  <div className="flex justify-between mt-2 text-xs text-muted-foreground">
+                    <span>Enriched & Sent</span>
+                    <span>{Math.round((stats.skipTracedToday / DAILY_SKIP_TRACE_LIMIT) * 100)}% of daily limit</span>
+                  </div>
+                </div>
+
+                {/* Pipeline Flow */}
+                <div className="space-y-3">
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    <ArrowRight className="h-4 w-4 text-green-500" />
+                    Pipeline Flow
+                  </label>
+                  <div className="flex items-center gap-2 p-4 bg-muted/30 rounded-lg border overflow-x-auto">
+                    {/* LUCI */}
+                    <div className="flex items-center gap-2 px-3 py-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg border border-purple-300 min-w-fit">
+                      <Sparkles className="h-4 w-4 text-purple-600" />
+                      <div>
+                        <p className="font-medium text-sm text-purple-700 dark:text-purple-300">LUCI</p>
+                        <p className="text-xs text-purple-600/70">Enrich Leads</p>
+                      </div>
+                    </div>
+                    <ArrowRight className="h-5 w-5 text-muted-foreground shrink-0" />
+
+                    {/* Human Approval */}
+                    <div className="flex items-center gap-2 px-3 py-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg border border-blue-300 min-w-fit">
+                      <Users className="h-4 w-4 text-blue-600" />
+                      <div>
+                        <p className="font-medium text-sm text-blue-700 dark:text-blue-300">Review</p>
+                        <p className="text-xs text-blue-600/70">Human-in-Loop</p>
+                      </div>
+                    </div>
+                    <ArrowRight className="h-5 w-5 text-muted-foreground shrink-0" />
+
+                    {/* GIANNA */}
+                    <div className="flex items-center gap-2 px-3 py-2 bg-pink-100 dark:bg-pink-900/30 rounded-lg border border-pink-300 min-w-fit">
+                      <Bot className="h-4 w-4 text-pink-600" />
+                      <div>
+                        <p className="font-medium text-sm text-pink-700 dark:text-pink-300">GIANNA</p>
+                        <p className="text-xs text-pink-600/70">SMS Campaign</p>
+                      </div>
+                    </div>
+                    <ArrowRight className="h-5 w-5 text-muted-foreground shrink-0" />
+
+                    {/* SignalHouse */}
+                    <div className="flex items-center gap-2 px-3 py-2 bg-green-100 dark:bg-green-900/30 rounded-lg border border-green-300 min-w-fit">
+                      <Radio className="h-4 w-4 text-green-600" />
+                      <div>
+                        <p className="font-medium text-sm text-green-700 dark:text-green-300">SignalHouse</p>
+                        <p className="text-xs text-green-600/70">SMS Delivery</p>
+                      </div>
+                    </div>
+                    <ArrowRight className="h-5 w-5 text-muted-foreground shrink-0" />
+
+                    {/* Call Center */}
+                    <div className="flex items-center gap-2 px-3 py-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg border border-amber-300 min-w-fit">
+                      <Phone className="h-4 w-4 text-amber-600" />
+                      <div>
+                        <p className="font-medium text-sm text-amber-700 dark:text-amber-300">Call Center</p>
+                        <p className="text-xs text-amber-600/70">Hot Leads</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick Stats */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="p-4 rounded-lg bg-muted text-center">
-                    <p className="text-2xl font-bold">
-                      {formatNumber(stats.monthlyPool)}
+                  <div className="p-4 rounded-lg bg-gradient-to-br from-blue-500/10 to-blue-600/10 text-center border border-blue-500/20">
+                    <p className="text-2xl font-bold text-blue-600">
+                      {formatNumber(stats.totalRecords)}
                     </p>
-                    <p className="text-xs text-muted-foreground">
-                      Leads Pulled
-                    </p>
+                    <p className="text-xs text-muted-foreground">Total Pool</p>
                   </div>
-                  <div className="p-4 rounded-lg bg-muted text-center">
-                    <p className="text-2xl font-bold">
-                      {formatNumber(MONTHLY_POOL_TARGET - stats.monthlyPool)}
+                  <div className="p-4 rounded-lg bg-gradient-to-br from-purple-500/10 to-purple-600/10 text-center border border-purple-500/20">
+                    <p className="text-2xl font-bold text-purple-600">
+                      {formatNumber(stats.skipTracedTotal)}
                     </p>
-                    <p className="text-xs text-muted-foreground">Remaining</p>
+                    <p className="text-xs text-muted-foreground">Enriched</p>
                   </div>
-                  <div className="p-4 rounded-lg bg-muted text-center">
-                    <p className="text-2xl font-bold">
-                      {Math.round(
-                        (stats.monthlyPool / MONTHLY_POOL_TARGET) * 100,
-                      )}
-                      %
+                  <div className="p-4 rounded-lg bg-gradient-to-br from-green-500/10 to-green-600/10 text-center border border-green-500/20">
+                    <p className="text-2xl font-bold text-green-600">
+                      {formatNumber(stats.readyForCampaign)}
                     </p>
-                    <p className="text-xs text-muted-foreground">Progress</p>
+                    <p className="text-xs text-muted-foreground">Sent to SignalHouse</p>
                   </div>
-                  <div className="p-4 rounded-lg bg-muted text-center">
-                    <p className="text-2xl font-bold">
-                      {Math.ceil(
-                        (MONTHLY_POOL_TARGET - stats.monthlyPool) /
-                          DAILY_SKIP_TRACE_LIMIT,
-                      )}
+                  <div className="p-4 rounded-lg bg-gradient-to-br from-pink-500/10 to-pink-600/10 text-center border border-pink-500/20">
+                    <p className="text-2xl font-bold text-pink-600">
+                      {Math.ceil((MONTHLY_POOL_TARGET - stats.monthlyPool) / DAILY_SKIP_TRACE_LIMIT)}
                     </p>
-                    <p className="text-xs text-muted-foreground">
-                      Days to Goal
-                    </p>
+                    <p className="text-xs text-muted-foreground">Days to 20K</p>
                   </div>
+                </div>
+
+                {/* Monthly Goal */}
+                <div className="p-4 rounded-lg border bg-muted/30">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4 text-pink-500" />
+                      Monthly Goal: {formatNumber(MONTHLY_POOL_TARGET)} Leads
+                    </span>
+                    <span className="text-sm font-mono">
+                      {Math.round((stats.monthlyPool / MONTHLY_POOL_TARGET) * 100)}%
+                    </span>
+                  </div>
+                  <Progress
+                    value={(stats.monthlyPool / MONTHLY_POOL_TARGET) * 100}
+                    className="h-3"
+                  />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {formatNumber(stats.monthlyPool)} enriched → {formatNumber(MONTHLY_POOL_TARGET - stats.monthlyPool)} remaining
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Inbound Activity */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5 text-green-500" />
+                  Recent Inbound Responses
+                </CardTitle>
+                <CardDescription>
+                  Live replies from SignalHouse campaigns
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8 text-muted-foreground">
+                  <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                  <p>No inbound messages yet</p>
+                  <p className="text-sm">Responses will appear here when contacts reply</p>
                 </div>
               </CardContent>
             </Card>
