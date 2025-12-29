@@ -104,58 +104,6 @@ interface SubCampaign {
   };
 }
 
-// Sample brand campaigns (will be fetched from SignalHouse API)
-const SAMPLE_BRAND_CAMPAIGNS: BrandCampaign[] = [
-  {
-    id: "brand-1",
-    brandName: "Outreach Global",
-    brandId: "SH-BR-001",
-    status: "approved",
-    registeredAt: "2024-01-15",
-    subCampaigns: [
-      {
-        id: "sub-1",
-        name: "Initial Outreach",
-        type: "initial",
-        assignedWorker: "gianna",
-        status: "active",
-        stats: { sent: 2500, delivered: 2400, responses: 180, positive: 45 },
-      },
-      {
-        id: "sub-2",
-        name: "Retarget Cold",
-        type: "retarget",
-        assignedWorker: "gianna",
-        status: "active",
-        stats: { sent: 1800, delivered: 1750, responses: 140, positive: 35 },
-      },
-      {
-        id: "sub-3",
-        name: "Follow Up Hot",
-        type: "followup",
-        assignedWorker: "sabrina",
-        status: "active",
-        stats: { sent: 800, delivered: 780, responses: 95, positive: 28 },
-      },
-      {
-        id: "sub-4",
-        name: "Nurture Sequence",
-        type: "nurture",
-        assignedWorker: "gianna",
-        status: "paused",
-        stats: { sent: 1200, delivered: 1150, responses: 65, positive: 18 },
-      },
-      {
-        id: "sub-5",
-        name: "Nudger Drip",
-        type: "nudge",
-        assignedWorker: "cathy",
-        status: "active",
-        stats: { sent: 3000, delivered: 2900, responses: 220, positive: 55 },
-      },
-    ],
-  },
-];
 
 interface PipelineStats {
   totalRecords: number;
@@ -196,6 +144,7 @@ export default function CommandCenterPage() {
     campaignBuckets: {},
   });
   const [dataLakes, setDataLakes] = useState<DataLake[]>([]);
+  const [brandCampaigns, setBrandCampaigns] = useState<BrandCampaign[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSkipTracing, setIsSkipTracing] = useState(false);
   const [luciActive, setLuciActive] = useState(false);
@@ -615,7 +564,20 @@ export default function CommandCenterPage() {
               </Button>
             </div>
 
-            {SAMPLE_BRAND_CAMPAIGNS.map((brand) => (
+            {brandCampaigns.length === 0 ? (
+              <Card className="border-dashed">
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="font-semibold text-lg mb-2">
+                    No Brand Campaigns Yet
+                  </h3>
+                  <p className="text-muted-foreground text-center max-w-md">
+                    Register a 10DLC brand with SignalHouse to start sending SMS campaigns.
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              brandCampaigns.map((brand) => (
               <Card key={brand.id}>
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -747,7 +709,8 @@ export default function CommandCenterPage() {
                   </div>
                 </CardContent>
               </Card>
-            ))}
+            ))
+            )}
 
             {/* SignalHouse Integration Info */}
             <Card className="border-dashed">

@@ -127,65 +127,25 @@ const getGreenHeatColor = (value: number, max: number): string => {
   return "bg-green-700 dark:bg-green-400";
 };
 
-// Generate heatmap data from inbox activity
-const generateInboxHeatmapData = (
+// Fetch real heatmap data from inbox activity API
+const fetchInboxHeatmapData = async (
   selectedLabels: string[],
-): { cells: HeatmapCell[]; maxValue: number } => {
-  const cells: HeatmapCell[] = [];
-  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  let maxValue = 0;
-
-  for (let day = 0; day < 7; day++) {
-    for (let hour = 0; hour < 24; hour++) {
-      // Simulate realistic response patterns:
-      // - More activity during business hours (9-5)
-      // - More activity on weekdays
-      // - Peak response times around 10am and 2pm
-      const isBusinessHour = hour >= 9 && hour <= 17;
-      const isWeekday = day >= 1 && day <= 5;
-      const isPeakHour =
-        (hour >= 10 && hour <= 11) || (hour >= 14 && hour <= 15);
-
-      let baseValue = 5;
-      if (isWeekday) baseValue += 15;
-      if (isBusinessHour) baseValue += 25;
-      if (isPeakHour) baseValue += 20;
-
-      // Add variance
-      const variance = Math.floor(Math.random() * 20);
-      const value = baseValue + variance;
-      maxValue = Math.max(maxValue, value);
-
-      // Distribute across labels
-      const labels: { [key: string]: number } = {};
-      selectedLabels.forEach((labelId) => {
-        // Weighted distribution based on label type
-        let labelMultiplier = 1;
-        if (labelId === "needs-help" || labelId === "has-questions") {
-          labelMultiplier = isPeakHour ? 1.5 : 0.8; // More urgent during peaks
-        } else if (
-          labelId === "mobile-captured" ||
-          labelId === "email-captured"
-        ) {
-          labelMultiplier = isWeekday ? 1.3 : 0.7; // More captures on weekdays
-        } else if (labelId === "wants-call" || labelId === "called-back") {
-          labelMultiplier = isBusinessHour ? 1.4 : 0.5; // Call activity during business hours
-        }
-        labels[labelId] = Math.floor(
-          (value / selectedLabels.length) * labelMultiplier,
-        );
-      });
-
-      cells.push({
-        day,
-        hour,
-        value,
-        labels,
-      });
+  timeRange: string,
+): Promise<{ cells: HeatmapCell[]; maxValue: number }> => {
+  try {
+    const response = await fetch(`/api/inbox/heatmap?timeRange=${timeRange}&labels=${selectedLabels.join(',')}`);
+    if (!response.ok) {
+      return { cells: [], maxValue: 0 };
     }
+    const data = await response.json();
+    return {
+      cells: data.cells || [],
+      maxValue: data.maxValue || 0,
+    };
+  } catch (error) {
+    console.error('Failed to fetch heatmap data:', error);
+    return { cells: [], maxValue: 0 };
   }
-
-  return { cells, maxValue };
 };
 
 // Compact Heatmap Grid
@@ -356,20 +316,38 @@ export function InboxResponseHeatmap() {
   const refreshData = async () => {
     setIsRefreshing(true);
 
-    // Generate heatmap data
-    const { cells, maxValue: max } = generateInboxHeatmapData(selectedLabels);
-    setHeatmapData(cells);
-    setMaxValue(max);
+    try {
+      // Fetch real heatmap data
+      const { cells, maxValue: max } = await fetchInboxHeatmapData(selectedLabels, timeRange);
+      setHeatmapData(cells);
+      setMaxValue(max);
 
-    // Calculate label stats
-    const stats: LabelStats[] = INBOX_LABELS.map((label) => ({
-      id: label.id,
-      name: label.name,
-      count: Math.floor(Math.random() * 500) + 50,
-      change: Math.floor(Math.random() * 40) - 15,
-      color: label.color,
-    }));
-    setLabelStats(stats);
+      // Fetch real label stats from API
+      const statsResponse = await fetch(`/api/inbox/stats?timeRange=${timeRange}`);
+      if (statsResponse.ok) {
+        const statsData = await statsResponse.json();
+        const stats: LabelStats[] = INBOX_LABELS.map((label) => ({
+          id: label.id,
+          name: label.name,
+          count: statsData.labels?.[label.id] || 0,
+          change: statsData.changes?.[label.id] || 0,
+          color: label.color,
+        }));
+        setLabelStats(stats);
+      } else {
+        // No data - show zeros
+        const stats: LabelStats[] = INBOX_LABELS.map((label) => ({
+          id: label.id,
+          name: label.name,
+          count: 0,
+          change: 0,
+          color: label.color,
+        }));
+        setLabelStats(stats);
+      }
+    } catch (error) {
+      console.error('Failed to fetch data:', error);
+    }
 
     setIsRefreshing(false);
   };
@@ -528,16 +506,16 @@ export function InboxResponseHeatmap() {
 // Compact version for sidebar or dashboard widgets
 export function InboxHeatmapCompact() {
   const [heatmapData, setHeatmapData] = useState<HeatmapCell[]>([]);
-  const [maxValue, setMaxValue] = useState(100);
+  const [maxValue, setMaxValue] = useState(0);
+  const defaultLabels = ["needs-help", "mobile-captured", "wants-call"];
 
   useEffect(() => {
-    const { cells, maxValue: max } = generateInboxHeatmapData([
-      "needs-help",
-      "mobile-captured",
-      "wants-call",
-    ]);
-    setHeatmapData(cells);
-    setMaxValue(max);
+    const fetchData = async () => {
+      const { cells, maxValue: max } = await fetchInboxHeatmapData(defaultLabels, "7d");
+      setHeatmapData(cells);
+      setMaxValue(max);
+    };
+    fetchData();
   }, []);
 
   return (
@@ -546,11 +524,17 @@ export function InboxHeatmapCompact() {
         <Tag className="h-4 w-4 text-green-500" />
         Response Activity
       </div>
-      <ResponseHeatmapGrid
-        data={heatmapData}
-        maxValue={maxValue}
-        selectedLabels={["needs-help", "mobile-captured", "wants-call"]}
-      />
+      {heatmapData.length === 0 ? (
+        <div className="text-xs text-muted-foreground py-4 text-center">
+          No response data yet
+        </div>
+      ) : (
+        <ResponseHeatmapGrid
+          data={heatmapData}
+          maxValue={maxValue}
+          selectedLabels={defaultLabels}
+        />
+      )}
     </Card>
   );
 }
