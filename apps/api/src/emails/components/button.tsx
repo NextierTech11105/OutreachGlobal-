@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Button as ReactButton } from "@react-email/button";
 
-type Props = Omit<React.ComponentProps<"a">, "children"> & {
+type Props = Omit<React.ComponentProps<typeof ReactButton>, "children"> & {
   children?: React.ReactNode;
 };
 
