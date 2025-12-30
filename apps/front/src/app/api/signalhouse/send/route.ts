@@ -13,6 +13,10 @@ import {
   isConfigured,
   validatePhoneNumber,
 } from "@/lib/signalhouse/client";
+import {
+  checkRateLimit,
+  recordSend,
+} from "@/lib/sms/rate-limiter";
 
 export async function POST(request: NextRequest) {
   try {
@@ -96,6 +100,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check rate limit before sending
+    const rateLimitCheck = checkRateLimit();
+    if (rateLimitCheck.blocked && rateLimitCheck.response) {
+      return NextResponse.json(
+        {
+          error: rateLimitCheck.response.error,
+          retryAfterMs: rateLimitCheck.response.retryAfterMs,
+          carrier: rateLimitCheck.response.carrier,
+          limit: rateLimitCheck.response.limit,
+        },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(
+              Math.ceil(rateLimitCheck.response.retryAfterMs / 1000),
+            ),
+          },
+        },
+      );
+    }
+
     // Send SMS or MMS based on mediaUrl presence
     const result = mediaUrl
       ? await sendMMS({ to, from, message, mediaUrl })
@@ -110,6 +135,9 @@ export async function POST(request: NextRequest) {
         { status: result.status || 500 },
       );
     }
+
+    // Record successful send for rate limiting
+    recordSend();
 
     return NextResponse.json({
       success: true,

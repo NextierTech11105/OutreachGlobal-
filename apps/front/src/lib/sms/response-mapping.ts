@@ -1,21 +1,45 @@
 /**
  * SMS Response Mapping
  *
- * Maps inbound responses back to:
- * - Original campaign ID
- * - Original template ID
- * - Lead record
- * - AI Worker for contextual response
+ * THE HUDSON FLOWING INTO THE ATLANTIC:
+ * Maps inbound responses back to create a continuous flow
+ * of leads recirculating through SignalHouse → PhoneFocus
  *
- * This enables the Inbound Response Generation Machine to:
- * 1. Understand context of what was said
- * 2. Classify responses (YES, NO, EMAIL, OPT-OUT)
- * 3. Route to correct AI worker
- * 4. Trigger stage progression (Initial → Follow-up)
- * 5. Flag GOLD LABEL leads (email captured)
+ * FLOW:
+ * ┌─────────────────────────────────────────────────────────────────────┐
+ * │  INBOUND SMS (SignalHouse webhook)                                 │
+ * │       ↓                                                            │
+ * │  CLASSIFY RESPONSE                                                 │
+ * │       ↓                                                            │
+ * │  ┌─────────────┬─────────────┬─────────────┬─────────────┐        │
+ * │  │ EMAIL/PHONE │  POSITIVE   │  QUESTION   │  NEGATIVE   │        │
+ * │  │  CAPTURED   │  RESPONSE   │   ASKED     │  RESPONSE   │        │
+ * │  └──────┬──────┴──────┬──────┴──────┬──────┴──────┬──────┘        │
+ * │         ↓             ↓             ↓             ↓                │
+ * │    GOLD LABEL    WARM LEAD    GIANNA REPLY   RECIRCULATE          │
+ * │    +100% SCORE   +75% SCORE   +50% SCORE    (next stage)          │
+ * │         ↓             ↓             ↓             ↓                │
+ * │  ═══════════════════════════════════════════════════════          │
+ * │                   PUSH TO PHONEFOCUS                               │
+ * │                   (call queue + Twilio)                           │
+ * │  ═══════════════════════════════════════════════════════          │
+ * │         ↓             ↓             ↓             ↓                │
+ * │                      TOMMY (15 min discovery)                      │
+ * │                           ↓                                        │
+ * │                       COMPOUND                                     │
+ * └─────────────────────────────────────────────────────────────────────┘
  */
 
-import { CampaignStage, AIWorker, SMSTemplate } from "./campaign-templates";
+import {
+  type CampaignContext as BaseCampaignContext,
+  CAPTURE_SCORE_BOOST,
+} from "@/lib/campaign/contexts";
+import {
+  CampaignStage,
+  AIWorker,
+  SMSTemplate,
+  mapStageToContext,
+} from "./campaign-templates";
 
 // ============================================================================
 // TYPES

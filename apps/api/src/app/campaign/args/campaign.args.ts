@@ -51,3 +51,12 @@ export class ToggleCampaignStatusArgs extends BaseTeamArgs {
   @IdField()
   id: string;
 }
+
+@ArgsType()
+export class ApproveCampaignArgs extends BaseTeamArgs {
+  @IdField()
+  id: string;
+
+  @StringField()
+  approvedBy: string; // User ID who approved
+}

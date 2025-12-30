@@ -59,17 +59,18 @@ import {
   getLuciDailyCapacity,
 } from "@/lib/data/usbizdata-registry";
 
-// Campaign bucket types
-type CampaignContextBucket =
-  | "initial"
-  | "retarget"
-  | "follow_up"
-  | "book_appointment"
-  | "nurture"
-  | "nudger";
+// Import from single source of truth for campaign contexts
+import {
+  type CampaignContext,
+  STAGE_CONFIG,
+  CONTEXT_LABELS,
+  CONTEXT_AGENTS,
+  CONTEXT_FLOW,
+} from "@/lib/campaign/contexts";
 
+// Campaign bucket configuration derived from single source of truth
 interface BucketConfig {
-  id: CampaignContextBucket;
+  id: CampaignContext;
   name: string;
   worker: "gianna" | "cathy" | "sabrina";
   color: string;
@@ -77,56 +78,36 @@ interface BucketConfig {
   maxLeads: number;
 }
 
-const CAMPAIGN_BUCKETS: BucketConfig[] = [
-  {
-    id: "initial",
-    name: "Initial",
-    worker: "gianna",
-    color: "bg-purple-600",
-    icon: <Zap className="h-4 w-4" />,
+// Build campaign buckets from STAGE_CONFIG (single source of truth)
+const CAMPAIGN_BUCKETS: BucketConfig[] = CONTEXT_FLOW.map((contextId) => {
+  const config = STAGE_CONFIG[contextId];
+  const colorMap: Record<CampaignContext, string> = {
+    initial: "bg-purple-600",
+    retarget: "bg-orange-600",
+    nudge: "bg-pink-600",
+    nurture: "bg-cyan-600",
+    book: "bg-green-600",
+    reminder: "bg-blue-600",
+    deal: "bg-emerald-600",
+  };
+  const iconMap: Record<CampaignContext, React.ReactNode> = {
+    initial: <Zap className="h-4 w-4" />,
+    retarget: <RefreshCw className="h-4 w-4" />,
+    nudge: <Sparkles className="h-4 w-4" />,
+    nurture: <Users className="h-4 w-4" />,
+    book: <Calendar className="h-4 w-4" />,
+    reminder: <AlertCircle className="h-4 w-4" />,
+    deal: <CheckCircle2 className="h-4 w-4" />,
+  };
+  return {
+    id: contextId,
+    name: config.name,
+    worker: config.agent.toLowerCase() as "gianna" | "cathy" | "sabrina",
+    color: colorMap[contextId],
+    icon: iconMap[contextId],
     maxLeads: 2000,
-  },
-  {
-    id: "retarget",
-    name: "Retarget",
-    worker: "gianna",
-    color: "bg-orange-600",
-    icon: <RefreshCw className="h-4 w-4" />,
-    maxLeads: 2000,
-  },
-  {
-    id: "follow_up",
-    name: "Follow Up",
-    worker: "sabrina",
-    color: "bg-blue-600",
-    icon: <ArrowRight className="h-4 w-4" />,
-    maxLeads: 2000,
-  },
-  {
-    id: "book_appointment",
-    name: "Book Appt",
-    worker: "sabrina",
-    color: "bg-green-600",
-    icon: <Calendar className="h-4 w-4" />,
-    maxLeads: 2000,
-  },
-  {
-    id: "nurture",
-    name: "Nurture",
-    worker: "gianna",
-    color: "bg-cyan-600",
-    icon: <Users className="h-4 w-4" />,
-    maxLeads: 2000,
-  },
-  {
-    id: "nudger",
-    name: "Nudger",
-    worker: "cathy",
-    color: "bg-pink-600",
-    icon: <Sparkles className="h-4 w-4" />,
-    maxLeads: 2000,
-  },
-];
+  };
+});
 
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   blue_collar: <Building2 className="h-4 w-4" />,
@@ -151,14 +132,15 @@ export default function LuciDataDashboardPage() {
   const [isScanning, setIsScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
   const [bucketStats, setBucketStats] = useState<
-    Record<CampaignContextBucket, number>
+    Record<CampaignContext, number>
   >({
     initial: 0,
     retarget: 0,
-    follow_up: 0,
-    book_appointment: 0,
+    nudge: 0,
     nurture: 0,
-    nudger: 0,
+    book: 0,
+    reminder: 0,
+    deal: 0,
   });
   const [pipelineStats, setPipelineStats] = useState({
     totalLeads: 0,

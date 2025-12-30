@@ -4,17 +4,25 @@
 // ==========================================
 
 // ==========================================
-// CAMPAIGN CONTEXT TYPES
-// Each SMS campaign has context for workflow state
+// CAMPAIGN CONTEXT - Import from single source of truth
 // ==========================================
-export type CampaignContext =
-  | "initial" // First touch outreach
-  | "retarget" // Re-engagement of non-responders
-  | "follow_up" // Following up on interest
-  | "book_appointment" // Appointment booking workflow
-  | "nurture" // Long-term nurture sequence
-  | "instant" // Instant/immediate response
-  | "nudger"; // Gentle reminder for non-responders
+import {
+  type CampaignContext,
+  STAGE_CONFIG,
+  CONTEXT_FLOW,
+  normalizeContext,
+} from "@/lib/campaign/contexts";
+
+// Re-export for backward compatibility
+export type { CampaignContext };
+
+// Legacy type alias for backward compatibility
+export type LegacyCampaignContext =
+  | CampaignContext
+  | "follow_up"
+  | "book_appointment"
+  | "instant"
+  | "nudger";
 
 export interface CampaignContextConfig {
   id: CampaignContext;
@@ -23,48 +31,37 @@ export interface CampaignContextConfig {
   nextSteps: CampaignContext[];
 }
 
+// Simplified CAMPAIGN_CONTEXTS - maps to new 5-stage system
 export const CAMPAIGN_CONTEXTS: CampaignContextConfig[] = [
   {
     id: "initial",
     name: "Initial Outreach",
-    description: "First touch SMS to new leads",
-    nextSteps: ["follow_up", "retarget"],
+    description: "First touch SMS to new leads - GIANNA",
+    nextSteps: ["retarget", "book"],
   },
   {
     id: "retarget",
     name: "Retarget",
-    description: "Re-engagement of non-responders",
-    nextSteps: ["follow_up", "nurture"],
+    description: "Re-engagement of non-responders - GIANNA",
+    nextSteps: ["nudge", "book"],
   },
   {
-    id: "follow_up",
-    name: "Follow Up",
-    description: "Following up on expressed interest",
-    nextSteps: ["book_appointment", "nurture"],
-  },
-  {
-    id: "book_appointment",
-    name: "Book Appointment",
-    description: "Appointment booking workflow",
-    nextSteps: ["nurture"],
+    id: "nudge",
+    name: "Nudger",
+    description: "Pattern break with humor, different number - CATHY",
+    nextSteps: ["nurture", "book"],
   },
   {
     id: "nurture",
-    name: "Nurture",
-    description: "Long-term nurture sequence",
-    nextSteps: ["retarget", "book_appointment"],
+    name: "Content Nurture",
+    description: '"Did You Know" intel drip - GIANNA',
+    nextSteps: ["retarget", "book"],
   },
   {
-    id: "instant",
-    name: "Instant Response",
-    description: "Immediate/real-time response",
-    nextSteps: ["follow_up", "book_appointment"],
-  },
-  {
-    id: "nudger",
-    name: "Nudger",
-    description: "Gentle reminder for non-responders - deployed through CATHY",
-    nextSteps: ["follow_up", "retarget", "book_appointment"],
+    id: "book",
+    name: "Book Appointment",
+    description: "15 min discovery with Tommy - SABRINA",
+    nextSteps: [],
   },
 ];
 

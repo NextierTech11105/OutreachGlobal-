@@ -6,6 +6,7 @@ import {
   UpdateCampaignArgs,
   DeleteCampaignArgs,
   ToggleCampaignStatusArgs,
+  ApproveCampaignArgs,
 } from "../args/campaign.args";
 import { CampaignRepository } from "../repositories/campaign.repository";
 import { InjectDB } from "@/database/decorators";
@@ -204,6 +205,13 @@ export class CampaignService {
         ? CampaignStatus.PAUSED
         : CampaignStatus.ACTIVE;
 
+    // APPROVAL GATE: Campaign cannot transition to ACTIVE without approval
+    if (status === CampaignStatus.ACTIVE && !campaign.approvedAt) {
+      throw new InternalServerErrorException(
+        "Campaign requires approval before activation. Use the approve endpoint first.",
+      );
+    }
+
     const [updatedCampaign] = await this.db
       .update(campaignsTable)
       .set({
@@ -223,5 +231,64 @@ export class CampaignService {
       throw new ModelNotFoundError("campaign not found");
     }
     return { campaign: updatedCampaign };
+  }
+
+  /**
+   * Approve a campaign for launch
+   * HARD RULE: Campaign cannot transition to RUNNING/ACTIVE without approval
+   */
+  async approve(args: ApproveCampaignArgs) {
+    const campaign = await this.findOneOrFail({ id: args.id, teamId: args.teamId });
+
+    // Prevent re-approval
+    if (campaign.approvedAt) {
+      return { campaign, alreadyApproved: true };
+    }
+
+    const [updatedCampaign] = await this.db
+      .update(campaignsTable)
+      .set({
+        approvedBy: args.approvedBy,
+        approvedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(campaignsTable.id, args.id),
+          eq(campaignsTable.teamId, args.teamId),
+        ),
+      )
+      .returning();
+
+    if (!updatedCampaign) {
+      throw new ModelNotFoundError("campaign not found");
+    }
+
+    return { campaign: updatedCampaign, alreadyApproved: false };
+  }
+
+  /**
+   * Approve and immediately activate a campaign
+   * Convenience method combining approve + toggle
+   */
+  async approveAndLaunch(args: ApproveCampaignArgs) {
+    // First approve
+    const { campaign } = await this.approve(args);
+
+    // Then activate
+    const [activatedCampaign] = await this.db
+      .update(campaignsTable)
+      .set({
+        status: CampaignStatus.ACTIVE,
+        resumedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(campaignsTable.id, args.id),
+          eq(campaignsTable.teamId, args.teamId),
+        ),
+      )
+      .returning();
+
+    return { campaign: activatedCampaign };
   }
 }

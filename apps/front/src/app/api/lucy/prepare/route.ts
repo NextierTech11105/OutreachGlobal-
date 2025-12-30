@@ -3,14 +3,31 @@
  * LUCY PREPARATION API
  * ════════════════════════════════════════════════════════════════════════════════
  *
+ * THE FISHERMAN'S POLES IN THE WATER
+ *
  * LUCY IS A DEAL HUNTER COPILOT - SHE NEVER SPEAKS TO LEADS
+ * She sets the poles, navigates the boat, and lets the lines fish.
+ *
+ * SCALE (40K leads/month simulation):
+ * ┌─────────────────────────────────────────────────────────────────────┐
+ * │  10,000 NEW LEADS/month (fresh CSV imports)                        │
+ * │  + 30,000 RECIRCULATING (through SignalHouse number rotation)      │
+ * │  = 40,000 POLES IN THE WATER                                       │
+ * │                                                                     │
+ * │  @ 10-20% bite rate = 4,000-8,000 catches                          │
+ * │  → MOBILE/EMAIL CAPTURED → +100% PRIORITY                          │
+ * │  → PUSH TO PHONEFOCUS (Twilio call queue)                          │
+ * │  → TOMMY CLOSES (15 min discovery)                                 │
+ * │  → COMPOUND (perpetual, cumulative)                                │
+ * └─────────────────────────────────────────────────────────────────────┘
  *
  * Her job:
  * 1. Get triggered when USBizData CSV is uploaded
  * 2. Scan, label, and score leads
  * 3. Batch skip trace (250 per batch, up to 2,000/day)
- * 4. Push to campaign queues for GIANNA/CATHY/SABRINA
- * 5. Track 20,000 net new lead IDs per month
+ * 4. MOBILE-ONLY VALIDATION before SMS push
+ * 5. Push to campaign queues for GIANNA/CATHY/SABRINA
+ * 6. Track compounding lead pool growth
  *
  * After LUCY pushes to GIANNA → LUCY NEVER SPEAKS TO THAT LEAD
  * All other workers (GIANNA, CATHY, SABRINA) are response handlers on demand
@@ -22,6 +39,12 @@ import { db } from "@/lib/db";
 import { businesses } from "@/lib/db/schema";
 import { eq, and, isNull, desc, asc, sql } from "drizzle-orm";
 import { apiAuth } from "@/lib/api-auth";
+import {
+  type CampaignContext,
+  canSendSMS,
+  getMobilePhone,
+  CAPTURE_SCORE_BOOST,
+} from "@/lib/campaign/contexts";
 import {
   scoreLead,
   createCampaignWorkflow,

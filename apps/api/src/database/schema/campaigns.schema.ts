@@ -32,6 +32,9 @@ export const campaigns = pgTable("campaigns", {
   endsAt: timestamp(),
   pausedAt: timestamp(),
   resumedAt: timestamp(),
+  // Approval gate - campaign cannot transition to RUNNING without approval
+  approvedBy: text("approved_by"),
+  approvedAt: timestamp("approved_at"),
   metadata: jsonb(),
   createdAt,
   updatedAt,

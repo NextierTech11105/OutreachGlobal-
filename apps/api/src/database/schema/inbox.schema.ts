@@ -79,6 +79,11 @@ export const inboxItems = pgTable(
     suggestedAction: text(),
     aiNotes: text(),
 
+    // SLA & Escalation
+    dueAt: timestamp(), // When response is due (based on priority SLA)
+    escalatedAt: timestamp(), // When item was escalated
+    escalationLevel: integer().default(0), // 0 = none, 1 = L1, 2 = L2, etc.
+
     // Tracking
     processedAt: timestamp(),
     processedBy: varchar(),
@@ -99,6 +104,8 @@ export const inboxItems = pgTable(
       t.isProcessed,
       t.priority,
     ),
+    // SLA breach detection - find overdue items fast
+    index("inbox_items_sla_due_idx").on(t.dueAt, t.isProcessed),
   ],
 );
 
@@ -113,6 +120,7 @@ export const responseBuckets = pgTable("response_buckets", {
   icon: varchar().default("inbox"),
   position: integer().notNull().default(0),
   isSystem: boolean().default(false),
+  slaMinutes: integer(), // SLA for items in this bucket (null = no SLA)
   autoMoveRules: jsonb().$type<
     {
       conditions: { field: string; operator: string; value: string }[];

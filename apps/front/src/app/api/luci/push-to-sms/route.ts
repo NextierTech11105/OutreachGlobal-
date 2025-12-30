@@ -6,13 +6,20 @@
  *
  * Flow:
  * 1. Sectors page selects leads with mobile phones
- * 2. This endpoint adds them to SMS queue (draft mode)
- * 3. User can preview/approve in Campaign Control
- * 4. Approved messages get sent via SignalHouse
+ * 2. DUPLICATE OUTREACH CHECK - Skip leads contacted in last 7 days
+ * 3. This endpoint adds them to SMS queue (draft mode)
+ * 4. User can preview/approve in Campaign Control
+ * 5. Approved messages get sent via SignalHouse
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { smsQueueService } from "@/lib/services/sms-queue-service";
+import { db } from "@/lib/db";
+import { messages } from "@/lib/db/schema";
+import { and, eq, gt, inArray } from "drizzle-orm";
+
+// Duplicate outreach prevention config (from FAILURE_PLAYBOOKS.md)
+const DEDUP_WINDOW_DAYS = 7; // Don't contact same lead within 7 days
 
 interface PhoneWithType {
   number: string;
@@ -107,6 +114,56 @@ function personalizeMessage(template: string, lead: LeadForSms): string {
     .replace(/\{industry\}/gi, industry);
 }
 
+/**
+ * DUPLICATE OUTREACH PREVENTION
+ * Check if leads have been contacted within the dedup window
+ * Returns set of lead IDs that should be skipped
+ */
+async function checkDuplicateOutreach(
+  leadIds: string[],
+): Promise<Map<string, { lastSentAt: Date; leadId: string }>> {
+  if (!leadIds.length) return new Map();
+
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - DEDUP_WINDOW_DAYS);
+
+  try {
+    // Find leads with recent outbound messages
+    const recentMessages = await db
+      .select({
+        leadId: messages.leadId,
+        createdAt: messages.createdAt,
+      })
+      .from(messages)
+      .where(
+        and(
+          inArray(messages.leadId, leadIds),
+          eq(messages.direction, "outbound"),
+          gt(messages.createdAt, cutoffDate),
+        ),
+      );
+
+    // Build map of leadId -> most recent sent date
+    const duplicates = new Map<string, { lastSentAt: Date; leadId: string }>();
+    for (const msg of recentMessages) {
+      if (!msg.leadId) continue;
+      const existing = duplicates.get(msg.leadId);
+      if (!existing || (msg.createdAt && msg.createdAt > existing.lastSentAt)) {
+        duplicates.set(msg.leadId, {
+          leadId: msg.leadId,
+          lastSentAt: msg.createdAt || new Date(),
+        });
+      }
+    }
+
+    return duplicates;
+  } catch (error) {
+    console.error("[Dedup Check] Error querying recent messages:", error);
+    // On error, don't block - return empty (allow all)
+    return new Map();
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body: PushToSmsRequest = await request.json();
@@ -153,12 +210,60 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Stats
-    const mobileCount = leadsWithPhones.filter((l) => isMobilePhone(l)).length;
-    const landlineOrUnknown = leadsWithPhones.length - mobileCount;
+    // ═══════════════════════════════════════════════════════════════════════════
+    // DUPLICATE OUTREACH PREVENTION (per FAILURE_PLAYBOOKS.md)
+    // Skip leads contacted within the dedup window (7 days)
+    // ═══════════════════════════════════════════════════════════════════════════
+    const leadIds = leadsWithPhones.map((l) => l.id);
+    const duplicates = await checkDuplicateOutreach(leadIds);
+
+    // Separate duplicates from eligible leads
+    const skippedDuplicates: Array<{
+      leadId: string;
+      reason: string;
+      lastSentAt: Date;
+    }> = [];
+    const eligibleLeads = leadsWithPhones.filter((lead) => {
+      const duplicate = duplicates.get(lead.id);
+      if (duplicate) {
+        skippedDuplicates.push({
+          leadId: lead.id,
+          reason: `recent_outreach_${DEDUP_WINDOW_DAYS}d`,
+          lastSentAt: duplicate.lastSentAt,
+        });
+        return false;
+      }
+      return true;
+    });
+
+    if (skippedDuplicates.length > 0) {
+      console.log(
+        `[LUCI Push SMS] Skipped ${skippedDuplicates.length} leads due to recent outreach (${DEDUP_WINDOW_DAYS}-day window)`,
+      );
+    }
+
+    if (eligibleLeads.length === 0) {
+      return NextResponse.json({
+        success: true,
+        mode: mode,
+        added: 0,
+        skipped: leadsWithPhones.length,
+        skippedDuplicates,
+        message: `All ${leadsWithPhones.length} leads were contacted within the last ${DEDUP_WINDOW_DAYS} days`,
+        stats: {
+          totalLeads: leads.length,
+          withPhones: leadsWithPhones.length,
+          duplicatesSkipped: skippedDuplicates.length,
+        },
+      });
+    }
+
+    // Stats (using eligible leads after dedup)
+    const mobileCount = eligibleLeads.filter((l) => isMobilePhone(l)).length;
+    const landlineOrUnknown = eligibleLeads.length - mobileCount;
 
     console.log(
-      `[LUCI Push SMS] Processing ${leadsWithPhones.length} leads (${mobileCount} mobile, ${landlineOrUnknown} unknown type)`,
+      `[LUCI Push SMS] Processing ${eligibleLeads.length} leads (${mobileCount} mobile, ${landlineOrUnknown} unknown type), skipped ${skippedDuplicates.length} duplicates`,
     );
 
     // Generate campaign ID if not provided
@@ -166,8 +271,8 @@ export async function POST(request: NextRequest) {
       campaignId ||
       `luci-sms-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-    // Prepare leads for SMS queue
-    const smsLeads = leadsWithPhones.map((lead) => ({
+    // Prepare leads for SMS queue (using eligible leads after dedup)
+    const smsLeads = eligibleLeads.map((lead) => ({
       id: lead.id,
       name: lead.contactName || lead.name || lead.companyName || "Lead",
       phone: getBestMobilePhone(lead)!,
@@ -209,9 +314,13 @@ export async function POST(request: NextRequest) {
         stats: {
           totalLeads: leads.length,
           withPhones: leadsWithPhones.length,
+          eligibleAfterDedup: eligibleLeads.length,
+          duplicatesSkipped: skippedDuplicates.length,
           mobilePhones: mobileCount,
           unknownType: landlineOrUnknown,
         },
+        skippedDuplicates:
+          skippedDuplicates.length > 0 ? skippedDuplicates : undefined,
         nextStep:
           "Review messages at /campaigns/sms-queue or POST /api/sms/queue?action=approve_all",
       });
@@ -244,9 +353,13 @@ export async function POST(request: NextRequest) {
         stats: {
           totalLeads: leads.length,
           withPhones: leadsWithPhones.length,
+          eligibleAfterDedup: eligibleLeads.length,
+          duplicatesSkipped: skippedDuplicates.length,
           mobilePhones: mobileCount,
           unknownType: landlineOrUnknown,
         },
+        skippedDuplicates:
+          skippedDuplicates.length > 0 ? skippedDuplicates : undefined,
         nextStep: scheduledAt
           ? `Messages scheduled for ${scheduledAt}`
           : "Messages will be sent on next queue processing",

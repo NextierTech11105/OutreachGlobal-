@@ -1,10 +1,12 @@
 import {
+  boolean,
   index,
   jsonb,
   pgTable,
   primaryKey,
   text,
   timestamp,
+  uniqueIndex,
   varchar,
 } from "drizzle-orm/pg-core";
 import { primaryUlid, ulidColumn } from "../columns/ulid";
@@ -13,6 +15,36 @@ import { teamsRef } from "./teams.schema";
 import { MessageDirection, MessageType } from "@nextier/common";
 import { leads } from "./leads.schema";
 import { campaigns } from "./campaigns.schema";
+
+/**
+ * Campaign Phone Assignments
+ * Tracks which phone numbers are assigned to which campaigns
+ * HARD RULE: One lead = One phone = One campaign thread
+ */
+export const campaignPhoneAssignments = pgTable(
+  "campaign_phone_assignments",
+  {
+    id: primaryUlid("cpa"),
+    teamId: teamsRef({ onDelete: "cascade" }).notNull(),
+    campaignId: ulidColumn()
+      .references(() => campaigns.id, { onDelete: "cascade" })
+      .notNull(),
+    phoneNumberId: text("phone_number_id").notNull(), // E.164 format identifier
+    phoneNumber: varchar("phone_number").notNull(), // Actual E.164 number
+    leadId: ulidColumn().references(() => leads.id, { onDelete: "set null" }),
+    isPrimary: boolean("is_primary").default(true),
+    assignedAt: timestamp("assigned_at").defaultNow(),
+    createdAt,
+    updatedAt,
+  },
+  (t) => [
+    index("cpa_team_idx").on(t.teamId),
+    index("cpa_campaign_idx").on(t.campaignId),
+    index("cpa_phone_idx").on(t.phoneNumber),
+    // Ensure a phone is only assigned once per campaign
+    uniqueIndex("cpa_campaign_phone_unique").on(t.campaignId, t.phoneNumber),
+  ],
+);
 
 export const messages = pgTable(
   "messages",
@@ -23,6 +55,11 @@ export const messages = pgTable(
     campaignId: ulidColumn().references(() => campaigns.id, {
       onDelete: "cascade",
     }),
+    // Phone number traceability - links to campaign phone assignment
+    outboundNumberId: ulidColumn("outbound_number_id").references(
+      () => campaignPhoneAssignments.id,
+      { onDelete: "set null" },
+    ),
     externalId: varchar(),
     type: varchar().notNull().$type<MessageType>(),
     direction: varchar().notNull().$type<MessageDirection>(),

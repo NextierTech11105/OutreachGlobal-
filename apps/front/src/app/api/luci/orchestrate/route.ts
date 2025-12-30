@@ -32,22 +32,51 @@ import {
   getGiannaPrompt,
 } from "@/lib/gianna/knowledge-base/personality";
 
+// Import from single source of truth
+import {
+  type CampaignContext as BaseCampaignContext,
+  normalizeContext,
+  canSendSMS,
+  getMobilePhone,
+} from "@/lib/campaign/contexts";
+
 // Constants
 const BATCH_SIZE = 250; // Process 250 at a time
 const LEAD_BLOCK_SIZE = 2000; // Max leads per block
 const RATE_LIMIT_DELAY = 500; // ms between batches
 
-// Campaign context types - tracks attempt history and contact status
-type CampaignContext =
-  | "initial" // First outreach attempt
-  | "retarget" // No contact made, trying again (auto-triggered)
-  | "follow_up" // Contact made, following up
-  | "book_appointment" // Scheduling an appointment
-  | "confirm_appointment" // Confirming scheduled appointment
-  | "nurture" // Long-term drip sequence
-  | "ghost" // Was engaged, went silent
-  | "scheduled" // Scheduled for future
-  | "instant"; // Immediate outreach
+// Extended campaign context for orchestration API
+// Maps to the base 5 contexts but provides backward compatibility for API consumers
+type OrchestrateCampaignContext =
+  | BaseCampaignContext // initial, retarget, nudge, nurture, book
+  | "follow_up" // → nurture
+  | "book_appointment" // → book
+  | "confirm_appointment" // → book
+  | "ghost" // → retarget
+  | "scheduled" // → initial
+  | "instant"; // → initial
+
+// Map API contexts to base campaign contexts
+function mapToBaseContext(
+  context: OrchestrateCampaignContext,
+): BaseCampaignContext {
+  const mapping: Record<string, BaseCampaignContext> = {
+    follow_up: "nurture",
+    book_appointment: "book",
+    confirm_appointment: "book",
+    ghost: "retarget",
+    scheduled: "initial",
+    instant: "initial",
+  };
+  return (
+    mapping[context] ||
+    normalizeContext(context) ||
+    (context as BaseCampaignContext)
+  );
+}
+
+// Legacy type alias for backward compatibility
+type CampaignContext = OrchestrateCampaignContext;
 
 interface CampaignAttemptInfo {
   attemptNumber: number; // 1, 2, 3... (retarget_1, retarget_2, etc.)
@@ -732,15 +761,29 @@ async function handlePushAction(
     smsQueued: 0,
     dialerQueued: 0,
     skipped: 0,
+    skippedNoMobile: 0, // Leads without mobile phone (SMS requires mobile)
   };
 
-  // Push to SMS
+  // Push to SMS - MOBILE ONLY VALIDATION (per user requirement)
   if (pushTo === "sms" || pushTo === "both") {
-    const leadsWithMobile = enrichedLeads.filter(
-      (l) =>
-        l.mobilePhone ||
-        l.enrichedPhones?.some((p) => p.type?.toLowerCase() === "mobile"),
+    // Use canSendSMS from contexts.ts for mobile-only validation
+    const leadsWithMobile = enrichedLeads.filter((l) =>
+      canSendSMS({
+        mobilePhone: l.mobilePhone,
+        enrichedPhones: l.enrichedPhones?.map((p) => ({
+          number: p.number,
+          type: p.type?.toLowerCase() as "mobile" | "landline" | "unknown",
+        })),
+      }),
     );
+
+    const skippedNoMobile = enrichedLeads.length - leadsWithMobile.length;
+    pushResults.skippedNoMobile = skippedNoMobile;
+    if (skippedNoMobile > 0) {
+      console.log(
+        `[LUCI Orchestrate] Skipping ${skippedNoMobile} leads without mobile phones (SMS requires mobile only)`,
+      );
+    }
 
     if (leadsWithMobile.length > 0) {
       // Use selectTemplate with Gianna library - gets appropriate template based on campaign context
@@ -847,6 +890,7 @@ async function handlePushAction(
       smsQueued: pushResults.smsQueued,
       dialerQueued: pushResults.dialerQueued,
       skipped: pushResults.skipped,
+      skippedNoMobile: pushResults.skippedNoMobile, // SMS requires mobile phone
     },
     nextSteps: [
       pushResults.smsQueued > 0

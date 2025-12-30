@@ -5,43 +5,78 @@
  *
  * LUCY fills up campaign buckets and auto-tags them. This engine manages:
  *
- * 1. BATCHED SKIP TRACING
- *    - 250 leads per batch
- *    - Up to 2,000 per campaign workflow
- *    - Rate-limited to respect API limits
+ * SCALE SIMULATION (40K leads/month):
+ * ┌─────────────────────────────────────────────────────────────────────┐
+ * │  10,000 NEW LEADS/month                                            │
+ * │  + 30,000 IN THE MIX (retarget, nudge, nurture, book)              │
+ * │  = 40,000 LEADS IN PLAY                                            │
+ * │                                                                     │
+ * │  @ 10-20% capture rate = 4,000-8,000 mobile/email captures         │
+ * │  → Score +100% → CALL QUEUE → TOMMY → COMPOUND                     │
+ * └─────────────────────────────────────────────────────────────────────┘
  *
- * 2. CAMPAIGN WORKFLOWS
- *    - 2,000 Initial SMS (GIANNA)
- *    - 2,000 Initial Call (voice dialer)
- *    - Retarget flows triggered by staleness
- *    - Follow-up flows triggered by engagement
+ * FLEXIBLE WORKFLOW BLOCKS:
+ * 1. BATCHED SKIP TRACING (250/batch, 2,000/day)
+ * 2. CAMPAIGN WORKFLOWS (flexible block sizes)
+ * 3. LIFECYCLE LOOPS (leads flow between stages)
+ * 4. AUTO-TAGGING (LUCY assigns flexible bands)
  *
- * 3. LIFECYCLE MANAGEMENT
- *    - Initial → Retarget (after X days no response)
- *    - Initial → Follow-up (after positive response)
- *    - Retarget → Nudger (after ghosting)
- *    - Follow-up → Book Appointment (after email capture)
- *
- * 4. AUTO-TAGGING (by LUCY)
- *    - acquisition-target, blue-collar, property-owner
- *    - high-equity, mature-ownership, exit-prep-timing
- *    - SMS-ready, call-ready, email-ready
+ * LIFECYCLE LOOPS (no absolutes, flexible bands):
+ *    Initial ←→ Retarget ←→ Nudge ←→ Nurture
+ *         ↓          ↓          ↓          ↓
+ *                    CAPTURE → +100% → CALL QUEUE
+ *                                          ↓
+ *                                       BOOK (15 min)
+ *                                          ↓
+ *                                      COMPOUND
  */
 
 import { DigitalWorkerId } from "./digital-workers";
+import {
+  type CampaignContext as BaseCampaignContext,
+  normalizeContext,
+  STAGE_CONFIG as BASE_STAGE_CONFIG,
+  canSendSMS,
+} from "@/lib/campaign/contexts";
+
+// Re-export base context for type compatibility
+export type { BaseCampaignContext };
 
 // ════════════════════════════════════════════════════════════════════════════════
 // TYPES
 // ════════════════════════════════════════════════════════════════════════════════
 
 export type CampaignChannel = "sms" | "call" | "email";
+
+// Extended workflow stages (flexible bands, not rigid boxes)
 export type CampaignStage =
-  | "initial"
-  | "retarget"
-  | "follow_up"
-  | "book_appointment"
-  | "nurture"
-  | "nudger";
+  | "initial" // → base: initial
+  | "retarget" // → base: retarget
+  | "follow_up" // → base: book (warm leads)
+  | "book_appointment" // → base: book (hot leads)
+  | "nurture" // → base: nurture
+  | "nudger"; // → base: nudge
+
+// Map workflow stages to base contexts (flexible routing)
+export function mapStageToContext(stage: CampaignStage): BaseCampaignContext {
+  switch (stage) {
+    case "initial":
+      return "initial";
+    case "retarget":
+      return "retarget";
+    case "follow_up":
+      return "book";
+    case "book_appointment":
+      return "book";
+    case "nurture":
+      return "nurture";
+    case "nudger":
+      return "nudge";
+    default:
+      return normalizeContext(stage);
+  }
+}
+
 export type CampaignStatus =
   | "draft"
   | "staged"

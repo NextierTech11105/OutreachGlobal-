@@ -38,6 +38,14 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
+// Import from single source of truth
+import {
+  type CampaignContext,
+  STAGE_CONFIG,
+  CONTEXT_LABELS,
+  CONTEXT_AGENTS,
+} from "@/lib/campaign/contexts";
+
 interface CampaignSmsConfiguratorProps {
   recipientCount: number;
   campaignType?: "real_estate" | "b2b" | "financial" | "default";
@@ -49,10 +57,20 @@ interface CampaignSmsConfiguratorProps {
 }
 
 // ============ CAMPAIGN STAGE TYPES ============
+// UI-specific stage type that maps to base CampaignContext
 type CampaignStage = "initial" | "nc_retarget" | "nurture" | "nudger";
+
+// Map UI stages to base CampaignContext (single source of truth)
+const STAGE_TO_CONTEXT: Record<CampaignStage, CampaignContext> = {
+  initial: "initial",
+  nc_retarget: "retarget",
+  nurture: "nurture",
+  nudger: "nudge",
+};
 
 interface CampaignStageConfig {
   id: CampaignStage;
+  baseContext: CampaignContext; // Maps to single source of truth
   label: string;
   description: string;
   icon: React.ReactNode;
@@ -63,9 +81,11 @@ interface CampaignStageConfig {
   context: string;
 }
 
+// Campaign stages with mapping to base CampaignContext (single source of truth)
 const CAMPAIGN_STAGES: CampaignStageConfig[] = [
   {
     id: "initial",
+    baseContext: "initial", // Maps to STAGE_CONFIG.initial
     label: "Initial Message",
     description: "First contact - introduce yourself",
     icon: <Sparkles className="h-4 w-4" />,
@@ -82,6 +102,7 @@ const CAMPAIGN_STAGES: CampaignStageConfig[] = [
   },
   {
     id: "nc_retarget",
+    baseContext: "retarget", // Maps to STAGE_CONFIG.retarget
     label: "NC Retarget",
     description: "No contact follow-up - try again",
     icon: <RefreshCw className="h-4 w-4" />,
@@ -98,6 +119,7 @@ const CAMPAIGN_STAGES: CampaignStageConfig[] = [
   },
   {
     id: "nurture",
+    baseContext: "nurture", // Maps to STAGE_CONFIG.nurture
     label: "Nurture & Follow-up",
     description: "Ongoing relationship building",
     icon: <Hand className="h-4 w-4" />,
@@ -115,6 +137,7 @@ const CAMPAIGN_STAGES: CampaignStageConfig[] = [
   },
   {
     id: "nudger",
+    baseContext: "nudge", // Maps to STAGE_CONFIG.nudge - CATHY's stage
     label: "Nudger",
     description: "Gentle reminder campaigns",
     icon: <MessageCircle className="h-4 w-4" />,

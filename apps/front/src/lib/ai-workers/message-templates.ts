@@ -20,24 +20,50 @@
  */
 
 import type { DigitalWorkerId } from "./digital-workers";
+import {
+  type CampaignContext as BaseCampaignContext,
+  normalizeContext,
+} from "@/lib/campaign/contexts";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export type CampaignContext =
-  | "initial"
-  | "follow_up"
-  | "retarget"
-  | "nudger"
-  | "value_delivered"
-  | "book_appointment"
-  | "post_appointment";
+// Re-export base type for convenience
+export type { BaseCampaignContext as CampaignContext };
+
+// Extended context type for template-specific states
+// These map to the base 5 contexts but have more granular states for templates
+export type TemplateContext =
+  | BaseCampaignContext // initial, retarget, nudge, nurture, book
+  | "follow_up" // → maps to nurture
+  | "nudger" // → maps to nudge (legacy naming)
+  | "value_delivered" // → maps to nurture
+  | "book_appointment" // → maps to book
+  | "post_appointment"; // → maps to nurture
+
+// Map template contexts to base campaign contexts
+export function mapTemplateToBaseContext(
+  templateContext: TemplateContext,
+): BaseCampaignContext {
+  const mapping: Record<string, BaseCampaignContext> = {
+    follow_up: "nurture",
+    nudger: "nudge",
+    value_delivered: "nurture",
+    book_appointment: "book",
+    post_appointment: "nurture",
+  };
+  return (
+    mapping[templateContext] ||
+    normalizeContext(templateContext) ||
+    (templateContext as BaseCampaignContext)
+  );
+}
 
 export interface MessageTemplate {
   id: string;
   name: string;
-  context: CampaignContext;
+  context: TemplateContext;
   worker: DigitalWorkerId;
   attemptNumber: number;
   template: string;
@@ -429,10 +455,10 @@ export const ALL_TEMPLATES: MessageTemplate[] = [
 ];
 
 /**
- * Get templates by context
+ * Get templates by context (accepts both base and template contexts)
  */
 export function getTemplatesByContext(
-  context: CampaignContext,
+  context: TemplateContext,
 ): MessageTemplate[] {
   return ALL_TEMPLATES.filter((t) => t.context === context);
 }
@@ -450,7 +476,7 @@ export function getTemplatesByWorker(
  * Get template by attempt number
  */
 export function getTemplateByAttempt(
-  context: CampaignContext,
+  context: TemplateContext,
   attemptNumber: number,
 ): MessageTemplate | undefined {
   return ALL_TEMPLATES.find(
@@ -462,7 +488,7 @@ export function getTemplateByAttempt(
  * Get next template in sequence
  */
 export function getNextTemplate(
-  context: CampaignContext,
+  context: TemplateContext,
   currentAttemptNumber: number,
 ): MessageTemplate | undefined {
   const templates = getTemplatesByContext(context);
@@ -486,7 +512,7 @@ export function getNextTemplate(
 export interface LeadAttemptHistory {
   leadId: string;
   attempts: AttemptRecord[];
-  currentContext: CampaignContext;
+  currentContext: TemplateContext;
   totalAttempts: number;
   lastAttemptAt: string;
   lastWorker: DigitalWorkerId;
@@ -498,7 +524,7 @@ export interface AttemptRecord {
   templateId: string;
   templateName: string;
   worker: DigitalWorkerId;
-  context: CampaignContext;
+  context: TemplateContext;
   sentAt: string;
   deliveredAt?: string;
   response?: {
