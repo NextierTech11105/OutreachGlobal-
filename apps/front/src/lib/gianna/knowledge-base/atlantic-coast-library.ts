@@ -308,107 +308,128 @@ export const ATLANTIC_COAST_INDUSTRY_TEMPLATES = {
 export const FRANK_PARTNERSHIP_TEMPLATES = {
   agent: "GIANNA",
   timing: "Day 0",
-  description: "Frank-branded partnership outreach emphasizing high standards and margin",
+  description:
+    "Frank-branded partnership outreach emphasizing high standards and margin",
   templates: [
     {
       id: "frank_1",
       name: "Standards + Margin",
-      content: "We move cars at the highest standards for partners, with dependable service and real margin on every load. Open to a quick 15 min partnership call? – Frank.",
+      content:
+        "We move cars at the highest standards for partners, with dependable service and real margin on every load. Open to a quick 15 min partnership call? – Frank.",
     },
     {
       id: "frank_2",
       name: "True Partner",
-      content: "We move cars at the highest standards and act as a true partner, with reliable service and room for profit. Open to a 15 min call to connect? – Frank.",
+      content:
+        "We move cars at the highest standards and act as a true partner, with reliable service and room for profit. Open to a 15 min call to connect? – Frank.",
     },
     {
       id: "frank_3",
       name: "Coverage + Margins",
-      content: "We move cars at the highest standards, giving partners dependable coverage and solid margins. Open to a 15 min partnership chat this week? – Frank.",
+      content:
+        "We move cars at the highest standards, giving partners dependable coverage and solid margins. Open to a 15 min partnership chat this week? – Frank.",
     },
     {
       id: "frank_4",
       name: "Reliability Focus",
-      content: "We move cars at the highest standards for partners who value reliability and margin. Open to a quick 15 min call to explore fit? – Frank.",
+      content:
+        "We move cars at the highest standards for partners who value reliability and margin. Open to a quick 15 min call to explore fit? – Frank.",
     },
     {
       id: "frank_5",
       name: "Profit Per Lane",
-      content: "We move cars at the highest standards so partners get dependable service and profit on each lane. Open to a brief 15 min call? – Frank.",
+      content:
+        "We move cars at the highest standards so partners get dependable service and profit on each lane. Open to a brief 15 min call? – Frank.",
     },
     {
       id: "frank_6",
       name: "Long-term Partners",
-      content: "We move cars at the highest standards and focus on long-term partners, not one-offs, with room for you to make money. 15 min call? – Frank.",
+      content:
+        "We move cars at the highest standards and focus on long-term partners, not one-offs, with room for you to make money. 15 min call? – Frank.",
     },
     {
       id: "frank_7",
       name: "Lock In Lanes",
-      content: "We move cars at the highest standards, helping partners lock in reliable lanes and strong margins. Open to a 15 min intro call? – Frank.",
+      content:
+        "We move cars at the highest standards, helping partners lock in reliable lanes and strong margins. Open to a 15 min intro call? – Frank.",
     },
     {
       id: "frank_8",
       name: "Earning Power",
-      content: "We move cars at the highest standards for partners, blending dependable service with real earning power. Open to a quick 15 min chat? – Frank.",
+      content:
+        "We move cars at the highest standards for partners, blending dependable service with real earning power. Open to a quick 15 min chat? – Frank.",
     },
     {
       id: "frank_9",
       name: "Core Partner",
-      content: "We move cars at the highest standards and aim to be a core transport partner, with reliability and profit built in. Open to 15 min? – Frank.",
+      content:
+        "We move cars at the highest standards and aim to be a core transport partner, with reliability and profit built in. Open to 15 min? – Frank.",
     },
     {
       id: "frank_10",
       name: "Grow Margin",
-      content: "We move cars at the highest standards so partners can count on service and still grow margin. Open to a short 15 min partnership call? – Frank.",
+      content:
+        "We move cars at the highest standards so partners can count on service and still grow margin. Open to a short 15 min partnership call? – Frank.",
     },
     {
       id: "frank_11",
       name: "Steady Capacity",
-      content: "We move cars at the highest standards, giving partners steady capacity and room to make money. Open to a 15 min call to compare options? – Frank.",
+      content:
+        "We move cars at the highest standards, giving partners steady capacity and room to make money. Open to a 15 min call to compare options? – Frank.",
     },
     {
       id: "frank_12",
       name: "Dependable Runs",
-      content: "We move cars at the highest standards for partners who need dependable runs and healthy profit. Open to a quick 15 min intro? – Frank.",
+      content:
+        "We move cars at the highest standards for partners who need dependable runs and healthy profit. Open to a quick 15 min intro? – Frank.",
     },
     {
       id: "frank_13",
       name: "Unit Economics",
-      content: "We move cars at the highest standards, supporting partners with reliable execution and strong unit economics. Open to a 15 min partnership chat? – Frank.",
+      content:
+        "We move cars at the highest standards, supporting partners with reliable execution and strong unit economics. Open to a 15 min partnership chat? – Frank.",
     },
     {
       id: "frank_14",
       name: "Partner Lanes",
-      content: "We move cars at the highest standards, building partner lanes with dependable service and profit on each move. 15 min to talk through it? – Frank.",
+      content:
+        "We move cars at the highest standards, building partner lanes with dependable service and profit on each move. 15 min to talk through it? – Frank.",
     },
     {
       id: "frank_15",
       name: "Predictable Service",
-      content: "We move cars at the highest standards so partners get predictable service and margin that actually works. Open to a quick 15 min call? – Frank.",
+      content:
+        "We move cars at the highest standards so partners get predictable service and margin that actually works. Open to a quick 15 min call? – Frank.",
     },
     {
       id: "frank_16",
       name: "Core Partners",
-      content: "We move cars at the highest standards and are looking for a few core partners who value reliability and margin. Open to 15 min? – Frank.",
+      content:
+        "We move cars at the highest standards and are looking for a few core partners who value reliability and margin. Open to 15 min? – Frank.",
     },
     {
       id: "frank_17",
       name: "Handle The Grind",
-      content: "We move cars at the highest standards, leaving room for partners to profit while we handle the grind. Open to a 15 min partnership call? – Frank.",
+      content:
+        "We move cars at the highest standards, leaving room for partners to profit while we handle the grind. Open to a 15 min partnership call? – Frank.",
     },
     {
       id: "frank_18",
       name: "Partner Lane Treatment",
-      content: "We move cars at the highest standards and treat every lane like a partner lane, with dependable service and profit. 15 min to see if we align? – Frank.",
+      content:
+        "We move cars at the highest standards and treat every lane like a partner lane, with dependable service and profit. 15 min to see if we align? – Frank.",
     },
     {
       id: "frank_19",
       name: "Win On Price",
-      content: "We move cars at the highest standards so partners can rely on us and still win on price. Open to a brief 15 min call? – Frank.",
+      content:
+        "We move cars at the highest standards so partners can rely on us and still win on price. Open to a brief 15 min call? – Frank.",
     },
     {
       id: "frank_20",
       name: "Dependable + Margin",
-      content: "We move cars at the highest standards, built around partners who want dependable service and margin. Open to a quick 15 min intro call? – Frank.",
+      content:
+        "We move cars at the highest standards, built around partners who want dependable service and margin. Open to a quick 15 min intro call? – Frank.",
     },
   ],
 };

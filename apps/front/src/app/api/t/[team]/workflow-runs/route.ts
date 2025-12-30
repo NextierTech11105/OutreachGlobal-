@@ -6,7 +6,7 @@ import { eq, desc, and } from "drizzle-orm";
 // GET /api/t/[team]/workflow-runs - List workflow runs for team
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ team: string }> }
+  { params }: { params: Promise<{ team: string }> },
 ) {
   try {
     const { team: teamId } = await params;
@@ -18,11 +18,11 @@ export async function GET(
     if (!teamId) {
       return NextResponse.json(
         { error: "Team ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    let query = db
+    const query = db
       .select({
         run: workflowRuns,
         workflowName: teamWorkflows.name,
@@ -38,15 +38,17 @@ export async function GET(
     // Filter in-memory if needed (Drizzle doesn't chain where easily)
     let filteredRuns = runs;
     if (workflowId) {
-      filteredRuns = filteredRuns.filter(r => r.run.workflowId === workflowId);
+      filteredRuns = filteredRuns.filter(
+        (r) => r.run.workflowId === workflowId,
+      );
     }
     if (status) {
-      filteredRuns = filteredRuns.filter(r => r.run.status === status);
+      filteredRuns = filteredRuns.filter((r) => r.run.status === status);
     }
 
     return NextResponse.json({
       success: true,
-      data: filteredRuns.map(r => ({
+      data: filteredRuns.map((r) => ({
         ...r.run,
         workflowName: r.workflowName,
       })),
@@ -56,7 +58,7 @@ export async function GET(
     console.error("Get workflow runs error:", error);
     return NextResponse.json(
       { error: "Failed to get workflow runs", details: String(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -64,7 +66,7 @@ export async function GET(
 // POST /api/t/[team]/workflow-runs - Create a workflow run (trigger execution)
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ team: string }> }
+  { params }: { params: Promise<{ team: string }> },
 ) {
   try {
     const { team: teamId } = await params;
@@ -73,7 +75,7 @@ export async function POST(
     if (!teamId) {
       return NextResponse.json(
         { error: "Team ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -82,7 +84,7 @@ export async function POST(
     if (!workflowId) {
       return NextResponse.json(
         { error: "Workflow ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -91,16 +93,13 @@ export async function POST(
       .select()
       .from(teamWorkflows)
       .where(
-        and(
-          eq(teamWorkflows.id, workflowId),
-          eq(teamWorkflows.teamId, teamId)
-        )
+        and(eq(teamWorkflows.id, workflowId), eq(teamWorkflows.teamId, teamId)),
       );
 
     if (!workflow) {
       return NextResponse.json(
         { error: "Workflow not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -129,15 +128,12 @@ export async function POST(
       })
       .where(eq(teamWorkflows.id, workflowId));
 
-    return NextResponse.json(
-      { success: true, data: newRun },
-      { status: 201 }
-    );
+    return NextResponse.json({ success: true, data: newRun }, { status: 201 });
   } catch (error) {
     console.error("Create workflow run error:", error);
     return NextResponse.json(
       { error: "Failed to create workflow run", details: String(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

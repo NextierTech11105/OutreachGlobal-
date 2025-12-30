@@ -11,7 +11,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Plus,
@@ -27,7 +33,7 @@ import {
   Calendar,
   Zap,
   ArrowRight,
-  Loader2
+  Loader2,
 } from "lucide-react";
 import { WorkflowModal } from "@/components/workflow-modal";
 import type { Workflow } from "@/types/workflow";
@@ -88,7 +94,9 @@ export default function WorkflowsPage() {
   const { teamId, isTeamReady } = useCurrentTeam();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [currentWorkflow, setCurrentWorkflow] = useState<Workflow | undefined>(undefined);
+  const [currentWorkflow, setCurrentWorkflow] = useState<Workflow | undefined>(
+    undefined,
+  );
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [selectedStage, setSelectedStage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -155,17 +163,22 @@ export default function WorkflowsPage() {
     try {
       if (currentWorkflow) {
         // Update existing workflow
-        const response = await fetch(`/api/t/${teamId}/workflows/${currentWorkflow.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(workflowData),
-        });
+        const response = await fetch(
+          `/api/t/${teamId}/workflows/${currentWorkflow.id}`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(workflowData),
+          },
+        );
         const result = await response.json();
 
         if (result.success) {
-          setWorkflows(workflows.map((w) =>
-            w.id === currentWorkflow.id ? result.data : w
-          ));
+          setWorkflows(
+            workflows.map((w) =>
+              w.id === currentWorkflow.id ? result.data : w,
+            ),
+          );
           toast({
             title: "Workflow updated",
             description: `${workflowData.name} has been updated successfully.`,
@@ -215,19 +228,25 @@ export default function WorkflowsPage() {
     const newStatus = workflow.status === "active" ? "draft" : "active";
 
     try {
-      const response = await fetch(`/api/t/${teamId}/workflows/${workflow.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
-      });
+      const response = await fetch(
+        `/api/t/${teamId}/workflows/${workflow.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: newStatus }),
+        },
+      );
       const result = await response.json();
 
       if (result.success) {
-        setWorkflows(workflows.map((w) =>
-          w.id === workflow.id ? result.data : w
-        ));
+        setWorkflows(
+          workflows.map((w) => (w.id === workflow.id ? result.data : w)),
+        );
         toast({
-          title: workflow.status === "active" ? "Workflow paused" : "Workflow activated",
+          title:
+            workflow.status === "active"
+              ? "Workflow paused"
+              : "Workflow activated",
           description: `${workflow.name} has been ${workflow.status === "active" ? "paused" : "activated"}.`,
         });
       } else {
@@ -247,17 +266,20 @@ export default function WorkflowsPage() {
     if (!teamId) return;
 
     try {
-      const response = await fetch(`/api/t/${teamId}/workflows/${workflow.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "archived" }),
-      });
+      const response = await fetch(
+        `/api/t/${teamId}/workflows/${workflow.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "archived" }),
+        },
+      );
       const result = await response.json();
 
       if (result.success) {
-        setWorkflows(workflows.map((w) =>
-          w.id === workflow.id ? result.data : w
-        ));
+        setWorkflows(
+          workflows.map((w) => (w.id === workflow.id ? result.data : w)),
+        );
         toast({
           title: "Workflow archived",
           description: `${workflow.name} has been archived.`,
@@ -324,7 +346,10 @@ export default function WorkflowsPage() {
       <TableBody>
         {workflowList.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={8} className="text-center py-6 text-muted-foreground">
+            <TableCell
+              colSpan={8}
+              className="text-center py-6 text-muted-foreground"
+            >
               No workflows found
             </TableCell>
           </TableRow>
@@ -338,7 +363,8 @@ export default function WorkflowsPage() {
                   {workflow.trigger === "lead_created" && "New lead created"}
                   {workflow.trigger === "email_received" && "Email received"}
                   {workflow.trigger === "sms_received" && "SMS received"}
-                  {workflow.trigger === "inactivity_threshold" && "Inactivity detected"}
+                  {workflow.trigger === "inactivity_threshold" &&
+                    "Inactivity detected"}
                   {workflow.trigger === "scheduled" && "Scheduled"}
                   {workflow.trigger === "email_opened" && "Email opened"}
                   {workflow.trigger === "email_clicked" && "Link clicked"}
@@ -363,7 +389,9 @@ export default function WorkflowsPage() {
                     <span className="text-muted-foreground">—</span>
                   )}
                 </TableCell>
-                <TableCell>{new Date(workflow.createdAt).toLocaleDateString()}</TableCell>
+                <TableCell>
+                  {new Date(workflow.createdAt).toLocaleDateString()}
+                </TableCell>
                 <TableCell>
                   {workflow.lastRunAt
                     ? new Date(workflow.lastRunAt).toLocaleString()
@@ -383,20 +411,36 @@ export default function WorkflowsPage() {
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right space-x-1">
-                  <Button variant="ghost" size="icon" onClick={() => handleEditWorkflow(workflow)}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleEditWorkflow(workflow)}
+                  >
                     <Edit className="h-4 w-4" />
                   </Button>
                   {workflow.status === "active" ? (
-                    <Button variant="ghost" size="icon" onClick={() => handleToggleStatus(workflow)}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleToggleStatus(workflow)}
+                    >
                       <Pause className="h-4 w-4" />
                     </Button>
                   ) : workflow.status === "draft" ? (
-                    <Button variant="ghost" size="icon" onClick={() => handleToggleStatus(workflow)}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleToggleStatus(workflow)}
+                    >
                       <Play className="h-4 w-4" />
                     </Button>
                   ) : null}
                   {workflow.status !== "archived" && (
-                    <Button variant="ghost" size="icon" onClick={() => handleArchiveWorkflow(workflow)}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleArchiveWorkflow(workflow)}
+                    >
                       <Archive className="h-4 w-4" />
                     </Button>
                   )}
@@ -448,14 +492,17 @@ export default function WorkflowsPage() {
             Outreach Pipeline
           </CardTitle>
           <CardDescription>
-            Configure workflows for each stage of your outreach sequence. Click a stage to add a workflow.
+            Configure workflows for each stage of your outreach sequence. Click
+            a stage to add a workflow.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-2 overflow-x-auto pb-4">
             {OUTREACH_STAGES.map((stage, index) => {
               const stageWorkflows = getStageWorkflows(stage.id);
-              const activeCount = stageWorkflows.filter((w) => w.status === "active").length;
+              const activeCount = stageWorkflows.filter(
+                (w) => w.status === "active",
+              ).length;
               const Icon = stage.icon;
 
               return (
@@ -476,12 +523,16 @@ export default function WorkflowsPage() {
                           </p>
                         </div>
                       </div>
-                      <p className="text-xs text-muted-foreground mb-2">{stage.description}</p>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        {stage.description}
+                      </p>
                       <div className="flex items-center gap-2">
                         <Badge variant="secondary" className="text-xs">
                           {stage.agent}
                         </Badge>
-                        <span className="text-xs text-muted-foreground">{stage.timing}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {stage.timing}
+                        </span>
                       </div>
                     </CardContent>
                   </Card>

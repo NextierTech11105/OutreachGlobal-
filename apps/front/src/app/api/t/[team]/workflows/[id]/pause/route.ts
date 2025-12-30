@@ -6,7 +6,7 @@ import { eq, and } from "drizzle-orm";
 // POST /api/t/[team]/workflows/[id]/pause - Pause a workflow (set to draft)
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ team: string; id: string }> }
+  { params }: { params: Promise<{ team: string; id: string }> },
 ) {
   try {
     const { team: teamId, id: workflowId } = await params;
@@ -14,7 +14,7 @@ export async function POST(
     if (!teamId || !workflowId) {
       return NextResponse.json(
         { error: "Team ID and Workflow ID are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -25,17 +25,14 @@ export async function POST(
         updatedAt: new Date(),
       })
       .where(
-        and(
-          eq(teamWorkflows.id, workflowId),
-          eq(teamWorkflows.teamId, teamId)
-        )
+        and(eq(teamWorkflows.id, workflowId), eq(teamWorkflows.teamId, teamId)),
       )
       .returning();
 
     if (!updatedWorkflow) {
       return NextResponse.json(
         { error: "Workflow not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -48,7 +45,7 @@ export async function POST(
     console.error("Pause workflow error:", error);
     return NextResponse.json(
       { error: "Failed to pause workflow", details: String(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

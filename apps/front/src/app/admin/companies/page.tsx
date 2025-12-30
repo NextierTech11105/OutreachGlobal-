@@ -49,6 +49,9 @@ import {
   CheckCircle,
   XCircle,
   Clock,
+  KeyRound,
+  Copy,
+  Check,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -98,6 +101,14 @@ export default function CompaniesPage() {
     ownerEmail: "",
   });
   const [isCreating, setIsCreating] = useState(false);
+  const [resettingPasswordId, setResettingPasswordId] = useState<string | null>(
+    null,
+  );
+  const [passwordResetResult, setPasswordResetResult] = useState<{
+    email: string;
+    tempPassword: string;
+  } | null>(null);
+  const [copiedPassword, setCopiedPassword] = useState(false);
 
   const fetchCompanies = async () => {
     setIsLoading(true);
@@ -231,6 +242,53 @@ export default function CompaniesPage() {
     } finally {
       setIsCreating(false);
     }
+  };
+
+  const handleResetPassword = async (company: Company) => {
+    if (!company.owner) {
+      alert("This company has no owner");
+      return;
+    }
+
+    if (
+      !confirm(
+        `Reset password for ${company.owner.email}? A new temporary password will be generated.`,
+      )
+    ) {
+      return;
+    }
+
+    setResettingPasswordId(company.owner.id);
+    try {
+      const response = await fetch(
+        `/api/admin/users/${company.owner.id}/reset-password`,
+        {
+          method: "POST",
+        },
+      );
+
+      const data = await response.json();
+
+      if (data.success && data.tempPassword) {
+        setPasswordResetResult({
+          email: data.email,
+          tempPassword: data.tempPassword,
+        });
+      } else {
+        alert(data.error || "Failed to reset password");
+      }
+    } catch (error) {
+      console.error("Password reset failed:", error);
+      alert("Failed to reset password");
+    } finally {
+      setResettingPasswordId(null);
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedPassword(true);
+    setTimeout(() => setCopiedPassword(false), 2000);
   };
 
   const getStatusBadge = (status: string) => {
@@ -515,6 +573,22 @@ export default function CompaniesPage() {
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
+                                className="cursor-pointer"
+                                onClick={() => handleResetPassword(company)}
+                                disabled={
+                                  !company.owner ||
+                                  resettingPasswordId === company.owner?.id
+                                }
+                              >
+                                {resettingPasswordId === company.owner?.id ? (
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                ) : (
+                                  <KeyRound className="mr-2 h-4 w-4" />
+                                )}
+                                Reset Password
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
                                 className="text-red-400 cursor-pointer"
                                 onClick={() => handleDelete(company)}
                                 disabled={deletingId === company.id}
@@ -615,6 +689,64 @@ export default function CompaniesPage() {
                   )}
                 </Button>
               </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Password Reset Result Modal */}
+      {passwordResetResult && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Card className="bg-zinc-900 border-zinc-800 w-full max-w-md mx-4">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <KeyRound className="h-5 w-5 text-green-400" />
+                Password Reset Successful
+              </CardTitle>
+              <CardDescription>
+                Share this temporary password with the user
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <label className="text-sm text-zinc-400">User Email</label>
+                <p className="text-sm font-medium">
+                  {passwordResetResult.email}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm text-zinc-400">
+                  Temporary Password
+                </label>
+                <div className="flex items-center gap-2 mt-1">
+                  <code className="flex-1 bg-zinc-800 px-3 py-2 rounded text-green-400 font-mono">
+                    {passwordResetResult.tempPassword}
+                  </code>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-zinc-700"
+                    onClick={() =>
+                      copyToClipboard(passwordResetResult.tempPassword)
+                    }
+                  >
+                    {copiedPassword ? (
+                      <Check className="h-4 w-4 text-green-400" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+                <p className="text-xs text-zinc-500 mt-2">
+                  The user should change this password after logging in.
+                </p>
+              </div>
+              <Button
+                className="w-full bg-blue-600 hover:bg-blue-700"
+                onClick={() => setPasswordResetResult(null)}
+              >
+                Done
+              </Button>
             </CardContent>
           </Card>
         </div>

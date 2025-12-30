@@ -6,7 +6,7 @@ import { eq, desc, and } from "drizzle-orm";
 // GET /api/t/[team]/workflows - List workflows for team
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ team: string }> }
+  { params }: { params: Promise<{ team: string }> },
 ) {
   try {
     const { team: teamId } = await params;
@@ -14,7 +14,7 @@ export async function GET(
     if (!teamId) {
       return NextResponse.json(
         { error: "Team ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -33,7 +33,7 @@ export async function GET(
     console.error("Get workflows error:", error);
     return NextResponse.json(
       { error: "Failed to get workflows", details: String(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -41,7 +41,7 @@ export async function GET(
 // POST /api/t/[team]/workflows - Create workflow
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ team: string }> }
+  { params }: { params: Promise<{ team: string }> },
 ) {
   try {
     const { team: teamId } = await params;
@@ -50,16 +50,17 @@ export async function POST(
     if (!teamId) {
       return NextResponse.json(
         { error: "Team ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    const { name, description, stage, trigger, status, priority, config } = body;
+    const { name, description, stage, trigger, status, priority, config } =
+      body;
 
     if (!name) {
       return NextResponse.json(
         { error: "Workflow name is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -85,13 +86,13 @@ export async function POST(
 
     return NextResponse.json(
       { success: true, data: newWorkflow },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     console.error("Create workflow error:", error);
     return NextResponse.json(
       { error: "Failed to create workflow", details: String(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

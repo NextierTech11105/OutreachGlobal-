@@ -6,7 +6,7 @@ import { eq, and } from "drizzle-orm";
 // GET /api/t/[team]/template-library/[id] - Get single template
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ team: string; id: string }> }
+  { params }: { params: Promise<{ team: string; id: string }> },
 ) {
   try {
     const { team: teamId, id: templateId } = await params;
@@ -14,7 +14,7 @@ export async function GET(
     if (!teamId || !templateId) {
       return NextResponse.json(
         { error: "Team ID and Template ID are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -24,14 +24,14 @@ export async function GET(
       .where(
         and(
           eq(templateLibrary.id, templateId),
-          eq(templateLibrary.teamId, teamId)
-        )
+          eq(templateLibrary.teamId, teamId),
+        ),
       );
 
     if (!template) {
       return NextResponse.json(
         { error: "Template not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -40,7 +40,7 @@ export async function GET(
     console.error("Get template error:", error);
     return NextResponse.json(
       { error: "Failed to get template", details: String(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -48,7 +48,7 @@ export async function GET(
 // PATCH /api/t/[team]/template-library/[id] - Update template
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ team: string; id: string }> }
+  { params }: { params: Promise<{ team: string; id: string }> },
 ) {
   try {
     const { team: teamId, id: templateId } = await params;
@@ -57,7 +57,7 @@ export async function PATCH(
     if (!teamId || !templateId) {
       return NextResponse.json(
         { error: "Team ID and Template ID are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -71,11 +71,14 @@ export async function PATCH(
     if (body.category !== undefined) updateData.category = body.category;
     if (body.stage !== undefined) updateData.stage = body.stage;
     if (body.agent !== undefined) updateData.agent = body.agent;
-    if (body.mergeFields !== undefined) updateData.mergeFields = body.mergeFields;
+    if (body.mergeFields !== undefined)
+      updateData.mergeFields = body.mergeFields;
     if (body.status !== undefined) updateData.status = body.status;
     if (body.sendCount !== undefined) updateData.sendCount = body.sendCount;
-    if (body.responseCount !== undefined) updateData.responseCount = body.responseCount;
-    if (body.conversionCount !== undefined) updateData.conversionCount = body.conversionCount;
+    if (body.responseCount !== undefined)
+      updateData.responseCount = body.responseCount;
+    if (body.conversionCount !== undefined)
+      updateData.conversionCount = body.conversionCount;
 
     const [updatedTemplate] = await db
       .update(templateLibrary)
@@ -83,15 +86,15 @@ export async function PATCH(
       .where(
         and(
           eq(templateLibrary.id, templateId),
-          eq(templateLibrary.teamId, teamId)
-        )
+          eq(templateLibrary.teamId, teamId),
+        ),
       )
       .returning();
 
     if (!updatedTemplate) {
       return NextResponse.json(
         { error: "Template not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -100,7 +103,7 @@ export async function PATCH(
     console.error("Update template error:", error);
     return NextResponse.json(
       { error: "Failed to update template", details: String(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -108,7 +111,7 @@ export async function PATCH(
 // DELETE /api/t/[team]/template-library/[id] - Delete template
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ team: string; id: string }> }
+  { params }: { params: Promise<{ team: string; id: string }> },
 ) {
   try {
     const { team: teamId, id: templateId } = await params;
@@ -116,7 +119,7 @@ export async function DELETE(
     if (!teamId || !templateId) {
       return NextResponse.json(
         { error: "Team ID and Template ID are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -125,15 +128,15 @@ export async function DELETE(
       .where(
         and(
           eq(templateLibrary.id, templateId),
-          eq(templateLibrary.teamId, teamId)
-        )
+          eq(templateLibrary.teamId, teamId),
+        ),
       )
       .returning();
 
     if (!deletedTemplate) {
       return NextResponse.json(
         { error: "Template not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -145,7 +148,7 @@ export async function DELETE(
     console.error("Delete template error:", error);
     return NextResponse.json(
       { error: "Failed to delete template", details: String(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

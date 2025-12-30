@@ -14,7 +14,7 @@ interface TemplateImport {
 // POST /api/t/[team]/template-library/import - Bulk import templates
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ team: string }> }
+  { params }: { params: Promise<{ team: string }> },
 ) {
   try {
     const { team: teamId } = await params;
@@ -23,7 +23,7 @@ export async function POST(
     if (!teamId) {
       return NextResponse.json(
         { error: "Team ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -35,7 +35,7 @@ export async function POST(
     if (!templates || !Array.isArray(templates) || templates.length === 0) {
       return NextResponse.json(
         { error: "templates array is required and must not be empty" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -50,7 +50,7 @@ export async function POST(
     if (errors.length > 0) {
       return NextResponse.json(
         { error: "Validation errors", details: errors },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -86,13 +86,13 @@ export async function POST(
         data: inserted,
         count: inserted.length,
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     console.error("Import templates error:", error);
     return NextResponse.json(
       { error: "Failed to import templates", details: String(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

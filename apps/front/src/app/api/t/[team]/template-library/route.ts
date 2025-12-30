@@ -6,7 +6,7 @@ import { eq, desc, and } from "drizzle-orm";
 // GET /api/t/[team]/template-library - List templates for team
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ team: string }> }
+  { params }: { params: Promise<{ team: string }> },
 ) {
   try {
     const { team: teamId } = await params;
@@ -18,7 +18,7 @@ export async function GET(
     if (!teamId) {
       return NextResponse.json(
         { error: "Team ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -42,14 +42,17 @@ export async function GET(
       .orderBy(desc(templateLibrary.createdAt));
 
     // Group by category for easier UI consumption
-    const grouped = templates.reduce((acc, template) => {
-      const cat = template.category || "uncategorized";
-      if (!acc[cat]) {
-        acc[cat] = [];
-      }
-      acc[cat].push(template);
-      return acc;
-    }, {} as Record<string, typeof templates>);
+    const grouped = templates.reduce(
+      (acc, template) => {
+        const cat = template.category || "uncategorized";
+        if (!acc[cat]) {
+          acc[cat] = [];
+        }
+        acc[cat].push(template);
+        return acc;
+      },
+      {} as Record<string, typeof templates>,
+    );
 
     return NextResponse.json({
       success: true,
@@ -61,7 +64,7 @@ export async function GET(
     console.error("Get templates error:", error);
     return NextResponse.json(
       { error: "Failed to get templates", details: String(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -69,7 +72,7 @@ export async function GET(
 // POST /api/t/[team]/template-library - Create template
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ team: string }> }
+  { params }: { params: Promise<{ team: string }> },
 ) {
   try {
     const { team: teamId } = await params;
@@ -78,7 +81,7 @@ export async function POST(
     if (!teamId) {
       return NextResponse.json(
         { error: "Team ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -87,7 +90,7 @@ export async function POST(
     if (!name || !content || !category) {
       return NextResponse.json(
         { error: "name, content, and category are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -115,13 +118,13 @@ export async function POST(
 
     return NextResponse.json(
       { success: true, data: newTemplate },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     console.error("Create template error:", error);
     return NextResponse.json(
       { error: "Failed to create template", details: String(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

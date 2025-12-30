@@ -63,7 +63,7 @@ const DEFAULT_STAGES = [
 // GET /api/t/[team]/workflow-stages - List stage configurations for team
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ team: string }> }
+  { params }: { params: Promise<{ team: string }> },
 ) {
   try {
     const { team: teamId } = await params;
@@ -71,7 +71,7 @@ export async function GET(
     if (!teamId) {
       return NextResponse.json(
         { error: "Team ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -106,7 +106,7 @@ export async function GET(
     console.error("Get workflow stages error:", error);
     return NextResponse.json(
       { error: "Failed to get workflow stages", details: String(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -114,7 +114,7 @@ export async function GET(
 // POST /api/t/[team]/workflow-stages - Create or seed stage configurations
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ team: string }> }
+  { params }: { params: Promise<{ team: string }> },
 ) {
   try {
     const { team: teamId } = await params;
@@ -123,7 +123,7 @@ export async function POST(
     if (!teamId) {
       return NextResponse.json(
         { error: "Team ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -158,17 +158,28 @@ export async function POST(
           message: `Seeded ${inserted.length} default stages`,
           data: inserted,
         },
-        { status: 201 }
+        { status: 201 },
       );
     }
 
     // Option 2: Create a custom stage
-    const { name, description, order, defaultAgent, triggerMode, delayDays, campaignType, usesDifferentNumber, icon, color } = body;
+    const {
+      name,
+      description,
+      order,
+      defaultAgent,
+      triggerMode,
+      delayDays,
+      campaignType,
+      usesDifferentNumber,
+      icon,
+      color,
+    } = body;
 
     if (!name) {
       return NextResponse.json(
         { error: "Stage name is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -197,13 +208,13 @@ export async function POST(
 
     return NextResponse.json(
       { success: true, data: newStage },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     console.error("Create workflow stage error:", error);
     return NextResponse.json(
       { error: "Failed to create workflow stage", details: String(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

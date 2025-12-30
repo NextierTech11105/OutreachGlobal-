@@ -102,11 +102,11 @@ export class WorkflowStageExecutor {
     options?: {
       templateId?: string;
       dryRun?: boolean;
-    }
+    },
   ): Promise<ExecutionResult> {
     const results: ExecutionDetail[] = [];
-    let successCount = 0;
-    let failedCount = 0;
+    const successCount = 0;
+    const failedCount = 0;
 
     // Check if this is a dry run
     if (options?.dryRun) {
@@ -143,7 +143,7 @@ export class WorkflowStageExecutor {
     workflow: TeamWorkflow,
     stage: StageConfig,
     leads: Lead[],
-    templateId?: string
+    templateId?: string,
   ): Promise<ExecutionResult> {
     const results: ExecutionDetail[] = [];
 
@@ -202,7 +202,7 @@ export class WorkflowStageExecutor {
     workflow: TeamWorkflow,
     stage: StageConfig,
     leads: Lead[],
-    templateId?: string
+    templateId?: string,
   ): Promise<ExecutionResult> {
     const results: ExecutionDetail[] = [];
 
@@ -256,7 +256,7 @@ export class WorkflowStageExecutor {
   private async executeSabrina(
     workflow: TeamWorkflow,
     stage: StageConfig,
-    leads: Lead[]
+    leads: Lead[],
   ): Promise<ExecutionResult> {
     const results: ExecutionDetail[] = [];
 
@@ -266,7 +266,7 @@ export class WorkflowStageExecutor {
         // Get available slots first
         const slotsResponse = await fetch(
           `${this.baseUrl}/api/sabrina/book?leadId=${lead.id}&days=5`,
-          { method: "GET" }
+          { method: "GET" },
         );
 
         const slotsResult = await slotsResponse.json();
@@ -310,7 +310,7 @@ export class WorkflowStageExecutor {
   private async executeManual(
     workflow: TeamWorkflow,
     stage: StageConfig,
-    leads: Lead[]
+    leads: Lead[],
   ): Promise<ExecutionResult> {
     // Manual stages just log for human review
     return {
@@ -338,9 +338,11 @@ export class WorkflowStageExecutor {
    */
   getNextStage(
     currentStageId: string,
-    response: "no_response" | "positive" | "negative" | "opt_out"
+    response: "no_response" | "positive" | "negative" | "opt_out",
   ): StageConfig | null {
-    const currentIndex = DEFAULT_STAGES.findIndex((s) => s.id === currentStageId);
+    const currentIndex = DEFAULT_STAGES.findIndex(
+      (s) => s.id === currentStageId,
+    );
     if (currentIndex === -1) return null;
 
     switch (response) {

@@ -64,6 +64,7 @@
     "@types/mapbox-gl": "^3.4.1",
     "@upstash/redis": "^1.35.7",
     "ai": "^4.3.16",
+    "argon2": "^0.43.0",
     "axios": "^1.10.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

@@ -6,7 +6,7 @@ import { eq, and } from "drizzle-orm";
 // GET /api/t/[team]/workflows/[id] - Get single workflow
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ team: string; id: string }> }
+  { params }: { params: Promise<{ team: string; id: string }> },
 ) {
   try {
     const { team: teamId, id: workflowId } = await params;
@@ -14,7 +14,7 @@ export async function GET(
     if (!teamId || !workflowId) {
       return NextResponse.json(
         { error: "Team ID and Workflow ID are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -22,16 +22,13 @@ export async function GET(
       .select()
       .from(teamWorkflows)
       .where(
-        and(
-          eq(teamWorkflows.id, workflowId),
-          eq(teamWorkflows.teamId, teamId)
-        )
+        and(eq(teamWorkflows.id, workflowId), eq(teamWorkflows.teamId, teamId)),
       );
 
     if (!workflow) {
       return NextResponse.json(
         { error: "Workflow not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -40,7 +37,7 @@ export async function GET(
     console.error("Get workflow error:", error);
     return NextResponse.json(
       { error: "Failed to get workflow", details: String(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -48,7 +45,7 @@ export async function GET(
 // PATCH /api/t/[team]/workflows/[id] - Update workflow
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ team: string; id: string }> }
+  { params }: { params: Promise<{ team: string; id: string }> },
 ) {
   try {
     const { team: teamId, id: workflowId } = await params;
@@ -57,7 +54,7 @@ export async function PATCH(
     if (!teamId || !workflowId) {
       return NextResponse.json(
         { error: "Team ID and Workflow ID are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -67,7 +64,8 @@ export async function PATCH(
     };
 
     if (body.name !== undefined) updateData.name = body.name;
-    if (body.description !== undefined) updateData.description = body.description;
+    if (body.description !== undefined)
+      updateData.description = body.description;
     if (body.stage !== undefined) updateData.stage = body.stage;
     if (body.trigger !== undefined) updateData.trigger = body.trigger;
     if (body.status !== undefined) updateData.status = body.status;
@@ -80,17 +78,14 @@ export async function PATCH(
       .update(teamWorkflows)
       .set(updateData)
       .where(
-        and(
-          eq(teamWorkflows.id, workflowId),
-          eq(teamWorkflows.teamId, teamId)
-        )
+        and(eq(teamWorkflows.id, workflowId), eq(teamWorkflows.teamId, teamId)),
       )
       .returning();
 
     if (!updatedWorkflow) {
       return NextResponse.json(
         { error: "Workflow not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -99,7 +94,7 @@ export async function PATCH(
     console.error("Update workflow error:", error);
     return NextResponse.json(
       { error: "Failed to update workflow", details: String(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -107,7 +102,7 @@ export async function PATCH(
 // DELETE /api/t/[team]/workflows/[id] - Delete workflow
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ team: string; id: string }> }
+  { params }: { params: Promise<{ team: string; id: string }> },
 ) {
   try {
     const { team: teamId, id: workflowId } = await params;
@@ -115,24 +110,21 @@ export async function DELETE(
     if (!teamId || !workflowId) {
       return NextResponse.json(
         { error: "Team ID and Workflow ID are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const [deletedWorkflow] = await db
       .delete(teamWorkflows)
       .where(
-        and(
-          eq(teamWorkflows.id, workflowId),
-          eq(teamWorkflows.teamId, teamId)
-        )
+        and(eq(teamWorkflows.id, workflowId), eq(teamWorkflows.teamId, teamId)),
       )
       .returning();
 
     if (!deletedWorkflow) {
       return NextResponse.json(
         { error: "Workflow not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -144,7 +136,7 @@ export async function DELETE(
     console.error("Delete workflow error:", error);
     return NextResponse.json(
       { error: "Failed to delete workflow", details: String(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -4,6 +4,7 @@ import { teams, teamMembers, users, teamSettings } from "@/lib/db/schema";
 import { eq, count, like, sql, desc } from "drizzle-orm";
 import { requireSuperAdmin } from "@/lib/api-auth";
 import { logAdminAction } from "@/lib/audit-log";
+import { hashPassword, generateTempPassword } from "@/lib/auth/password";
 
 /**
  * GET /api/admin/companies
@@ -216,20 +217,28 @@ export async function POST(request: NextRequest) {
       if (existingUser.length > 0) {
         finalOwnerId = existingUser[0].id;
       } else {
-        // Create new user with this email
+        // Create new user with this email and temp password
         const newUserId = crypto.randomUUID();
         const displayName = ownerName || ownerEmail.split("@")[0];
+        const tempPassword = generateTempPassword();
+        const hashedPassword = await hashPassword(tempPassword);
+
         await db.insert(users).values({
           id: newUserId,
           email: ownerEmail.toLowerCase(),
           name: displayName,
+          password: hashedPassword,
           createdAt: new Date(),
           updatedAt: new Date(),
         });
         finalOwnerId = newUserId;
         console.log(
-          `[Admin Companies] Created new user: ${ownerEmail} (${newUserId})`,
+          `[Admin Companies] Created new user: ${ownerEmail} (${newUserId}) with temp password`,
         );
+
+        // Store temp password to return to admin
+        // @ts-expect-error - Adding to scope for response
+        body._tempPassword = tempPassword;
       }
     } else if (ownerId) {
       // Verify ownerId exists
@@ -297,6 +306,8 @@ export async function POST(request: NextRequest) {
         ownerId: finalOwnerId,
         createdAt: now.toISOString(),
       },
+      // Include temp password if a new user was created
+      ...(body._tempPassword && { tempPassword: body._tempPassword }),
     });
   } catch (error) {
     console.error("[Admin Companies] Create Error:", error);
