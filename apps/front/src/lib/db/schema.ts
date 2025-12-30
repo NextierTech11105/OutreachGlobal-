@@ -2250,3 +2250,150 @@ export const adminAuditLogs = pgTable(
 
 export type AdminAuditLog = typeof adminAuditLogs.$inferSelect;
 export type NewAdminAuditLog = typeof adminAuditLogs.$inferInsert;
+
+// ============================================================
+// WORKFLOWS - Team workflow definitions
+// See: apps/api/src/database/schema/workflows.schema.ts for full schema
+// ============================================================
+
+export const teamWorkflows = pgTable(
+  "team_workflows",
+  {
+    id: text("id").primaryKey(),
+    teamId: text("team_id").notNull(),
+    name: text("name").notNull(),
+    description: text("description"),
+    stage: text("stage"), // initial_message, retarget, nudger, content_nurture, book_appt
+    trigger: text("trigger"), // lead_created, sms_received, inactivity_threshold, scheduled, etc.
+    status: text("status").notNull().default("draft"), // draft, active, archived
+    priority: integer("priority").default(1),
+    // Configuration
+    config: jsonb("config").$type<{
+      agent?: string; // GIANNA, CATHY, SABRINA
+      templateIds?: string[];
+      delayDays?: number;
+      usesDifferentNumber?: boolean;
+      campaignType?: string;
+    }>(),
+    // Stats
+    runsCount: integer("runs_count").default(0),
+    lastRunAt: timestamp("last_run_at"),
+    // Timestamps
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    teamIdIdx: index("team_workflows_team_id_idx").on(table.teamId),
+    stageIdx: index("team_workflows_stage_idx").on(table.stage),
+    statusIdx: index("team_workflows_status_idx").on(table.status),
+  }),
+);
+
+export type TeamWorkflow = typeof teamWorkflows.$inferSelect;
+export type NewTeamWorkflow = typeof teamWorkflows.$inferInsert;
+
+// ============================================================
+// WORKFLOW STAGE CONFIGS - Customizable stage configurations per team
+// ============================================================
+
+export const workflowStageConfigs = pgTable(
+  "workflow_stage_configs",
+  {
+    id: text("id").primaryKey(),
+    teamId: text("team_id").notNull(),
+    name: text("name").notNull(),
+    description: text("description"),
+    order: integer("order").notNull().default(0),
+    // Agent configuration
+    defaultAgent: text("default_agent"), // GIANNA, CATHY, SABRINA, null
+    triggerMode: text("trigger_mode").notNull().default("manual"), // automatic, manual, scheduled
+    delayDays: integer("delay_days"),
+    campaignType: text("campaign_type"),
+    usesDifferentNumber: boolean("uses_different_number").default(false),
+    // Visual
+    icon: text("icon"),
+    color: text("color"),
+    // Timestamps
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    teamIdIdx: index("workflow_stage_configs_team_id_idx").on(table.teamId),
+    orderIdx: index("workflow_stage_configs_order_idx").on(table.order),
+  }),
+);
+
+export type WorkflowStageConfig = typeof workflowStageConfigs.$inferSelect;
+export type NewWorkflowStageConfig = typeof workflowStageConfigs.$inferInsert;
+
+// ============================================================
+// WORKFLOW RUNS - Execution history
+// ============================================================
+
+export const workflowRuns = pgTable(
+  "workflow_runs",
+  {
+    id: text("id").primaryKey(),
+    workflowId: text("workflow_id").notNull(),
+    teamId: text("team_id").notNull(),
+    status: text("status").notNull().default("pending"), // pending, running, completed, failed
+    // Execution details
+    leadsProcessed: integer("leads_processed").default(0),
+    leadsSuccessful: integer("leads_successful").default(0),
+    leadsFailed: integer("leads_failed").default(0),
+    // Input/Output
+    inputData: jsonb("input_data"),
+    outputData: jsonb("output_data"),
+    errorMessage: text("error_message"),
+    // Timestamps
+    startedAt: timestamp("started_at"),
+    completedAt: timestamp("completed_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    workflowIdIdx: index("workflow_runs_workflow_id_idx").on(table.workflowId),
+    teamIdIdx: index("workflow_runs_team_id_idx").on(table.teamId),
+    statusIdx: index("workflow_runs_status_idx").on(table.status),
+  }),
+);
+
+export type WorkflowRun = typeof workflowRuns.$inferSelect;
+export type NewWorkflowRun = typeof workflowRuns.$inferInsert;
+
+// ============================================================
+// TEMPLATE LIBRARY - Extended templates for outreach campaigns
+// ============================================================
+
+export const templateLibrary = pgTable(
+  "template_library",
+  {
+    id: text("id").primaryKey(),
+    teamId: text("team_id").notNull(),
+    // Template details
+    name: text("name").notNull(),
+    content: text("content").notNull(),
+    category: text("category").notNull(), // carrier_initial, carrier_nudge, dealership_initial, etc.
+    stage: text("stage"), // initial, nudge, appointment, retarget
+    agent: text("agent"), // GIANNA, CATHY, SABRINA
+    // Merge fields
+    mergeFields: jsonb("merge_fields").$type<string[]>().default([]),
+    // Performance tracking
+    sendCount: integer("send_count").default(0),
+    responseCount: integer("response_count").default(0),
+    conversionCount: integer("conversion_count").default(0),
+    // Status
+    status: text("status").notNull().default("active"), // active, draft, archived
+    // Timestamps
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    teamIdIdx: index("template_library_team_id_idx").on(table.teamId),
+    categoryIdx: index("template_library_category_idx").on(table.category),
+    stageIdx: index("template_library_stage_idx").on(table.stage),
+    statusIdx: index("template_library_status_idx").on(table.status),
+  }),
+);
+
+export type TemplateLibraryItem = typeof templateLibrary.$inferSelect;
+export type NewTemplateLibraryItem = typeof templateLibrary.$inferInsert;

@@ -227,7 +227,9 @@ export async function POST(request: NextRequest) {
           updatedAt: new Date(),
         });
         finalOwnerId = newUserId;
-        console.log(`[Admin Companies] Created new user: ${ownerEmail} (${newUserId})`);
+        console.log(
+          `[Admin Companies] Created new user: ${ownerEmail} (${newUserId})`,
+        );
       }
     } else if (ownerId) {
       // Verify ownerId exists

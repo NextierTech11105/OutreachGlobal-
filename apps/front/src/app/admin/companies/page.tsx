@@ -578,9 +578,11 @@ export default function CompaniesPage() {
                 />
               </div>
               <div>
-                <label className="text-sm text-zinc-400">Owner Email (optional)</label>
+                <label className="text-sm text-zinc-400">
+                  Owner Email (optional)
+                </label>
                 <Input
-                  placeholder="e.g., tb@outreachglobal.io"
+                  placeholder="e.g., owner@company.com"
                   type="email"
                   value={newCompany.ownerEmail}
                   onChange={(e) =>
@@ -589,7 +591,8 @@ export default function CompaniesPage() {
                   className="mt-1 bg-zinc-800 border-zinc-700"
                 />
                 <p className="text-xs text-zinc-500 mt-1">
-                  Creates user if doesn't exist. Leave blank to use your account.
+                  Creates user if doesn't exist. Leave blank to use your
+                  account.
                 </p>
               </div>
               <div className="flex gap-2 pt-4">
