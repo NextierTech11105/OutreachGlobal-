@@ -87,6 +87,15 @@ export class InboxItem extends TimestampModel implements InboxItemSelect {
   @StringField({ nullable: true })
   processedBy: MaybeString;
 
+  @Field(() => Date, { nullable: true })
+  dueAt: Maybe<Date>;
+
+  @Field(() => Date, { nullable: true })
+  escalatedAt: Maybe<Date>;
+
+  @IntField({ nullable: true })
+  escalationLevel: Maybe<number>;
+
   metadata: Maybe<AnyObject>;
 }
 

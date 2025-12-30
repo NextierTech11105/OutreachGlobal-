@@ -45,6 +45,9 @@ export class Message extends TimestampModel implements MessageSelect {
 
   metadata: AnyObject | null;
 
+  @StringField({ nullable: true })
+  outboundNumberId: MaybeString;
+
   @DateField({ nullable: true })
   deletedAt: Date | null;
 }

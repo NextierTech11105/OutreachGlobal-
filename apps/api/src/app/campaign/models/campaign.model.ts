@@ -51,6 +51,12 @@ export class Campaign extends TimestampModel implements CampaignSelect {
   @DateField({ nullable: true })
   resumedAt: Date;
 
+  @StringField({ nullable: true })
+  approvedBy: MaybeString;
+
+  @DateField({ nullable: true })
+  approvedAt: Date | null;
+
   metadata: Record<string, any> | null;
 }
 
