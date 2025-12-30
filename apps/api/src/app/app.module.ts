@@ -1,6 +1,8 @@
 import { CacheModule } from "../lib/cache/cache.module";
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
+import { APP_INTERCEPTOR } from "@nestjs/core";
+import { TenantContextInterceptor } from "./auth/interceptors/tenant-context.interceptor";
 import { UserModule } from "./user/user.module";
 import { TeamModule } from "./team/team.module";
 import { AuthModule } from "./auth/auth.module";
@@ -82,7 +84,14 @@ import { EnrichmentModule } from "./enrichment/enrichment.module";
     ContentLibraryModule,
     EnrichmentModule,
   ],
-  providers: [AppRunner],
+  providers: [
+    AppRunner,
+    // Global interceptor to set tenant context for RLS
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: TenantContextInterceptor,
+    },
+  ],
   controllers: [AppController],
 })
 export class AppModule {}

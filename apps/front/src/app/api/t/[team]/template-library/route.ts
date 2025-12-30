@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { withTenant } from "@/lib/db-tenant";
 import { templateLibrary } from "@/lib/db/schema";
 import { eq, desc, and } from "drizzle-orm";
 
@@ -22,24 +22,28 @@ export async function GET(
       );
     }
 
-    // Build query conditions
-    const conditions = [eq(templateLibrary.teamId, teamId)];
+    // Use withTenant to set RLS context - queries are automatically scoped
+    const templates = await withTenant(teamId, async (db) => {
+      // Build query conditions - team_id filter is now handled by RLS
+      // but we keep explicit filter as defense-in-depth
+      const conditions = [eq(templateLibrary.teamId, teamId)];
 
-    if (category) {
-      conditions.push(eq(templateLibrary.category, category));
-    }
-    if (stage) {
-      conditions.push(eq(templateLibrary.stage, stage));
-    }
-    if (agent) {
-      conditions.push(eq(templateLibrary.agent, agent));
-    }
+      if (category) {
+        conditions.push(eq(templateLibrary.category, category));
+      }
+      if (stage) {
+        conditions.push(eq(templateLibrary.stage, stage));
+      }
+      if (agent) {
+        conditions.push(eq(templateLibrary.agent, agent));
+      }
 
-    const templates = await db
-      .select()
-      .from(templateLibrary)
-      .where(and(...conditions))
-      .orderBy(desc(templateLibrary.createdAt));
+      return await db
+        .select()
+        .from(templateLibrary)
+        .where(and(...conditions))
+        .orderBy(desc(templateLibrary.createdAt));
+    });
 
     // Group by category for easier UI consumption
     const grouped = templates.reduce(
@@ -94,27 +98,32 @@ export async function POST(
       );
     }
 
-    const id = `tpl_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+    // Use withTenant to set RLS context for the insert
+    const newTemplate = await withTenant(teamId, async (db) => {
+      const id = `tpl_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 
-    const [newTemplate] = await db
-      .insert(templateLibrary)
-      .values({
-        id,
-        teamId,
-        name,
-        content,
-        category,
-        stage: stage || null,
-        agent: agent || null,
-        mergeFields: mergeFields || [],
-        status: status || "active",
-        sendCount: 0,
-        responseCount: 0,
-        conversionCount: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .returning();
+      const [result] = await db
+        .insert(templateLibrary)
+        .values({
+          id,
+          teamId,
+          name,
+          content,
+          category,
+          stage: stage || null,
+          agent: agent || null,
+          mergeFields: mergeFields || [],
+          status: status || "active",
+          sendCount: 0,
+          responseCount: 0,
+          conversionCount: 0,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+
+      return result;
+    });
 
     return NextResponse.json(
       { success: true, data: newTemplate },
