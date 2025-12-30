@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useState, useMemo, useEffect, useCallback } from "react";
+import { useRouter, useParams } from "next/navigation";
 import {
   Calendar as CalendarIcon,
   ChevronLeft,
@@ -84,6 +85,16 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { LeadActionButtons } from "@/components/lead-action-buttons";
 
+// Import from single source of truth
+import {
+  type CampaignContext,
+  STAGE_CONFIG,
+  CONTEXT_LABELS,
+  CONTEXT_AGENTS,
+  CONTEXT_FLOW,
+} from "@/lib/campaign/contexts";
+import { CalendarDays, Bell, Handshake } from "lucide-react";
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -114,44 +125,36 @@ interface CalendarDay {
   leadCount: number;
 }
 
-type CampaignStage = "initial" | "nc_retarget" | "nurture" | "nudger";
+// All 7 workflow contexts from single source of truth
+const CONTEXT_ICONS: Record<CampaignContext, React.ReactNode> = {
+  initial: <Sparkles className="h-4 w-4" />,
+  retarget: <RefreshCw className="h-4 w-4" />,
+  nudge: <Send className="h-4 w-4" />,
+  nurture: <Target className="h-4 w-4" />,
+  book: <CalendarDays className="h-4 w-4" />,
+  reminder: <Bell className="h-4 w-4" />,
+  deal: <Handshake className="h-4 w-4" />,
+};
 
-const CAMPAIGN_STAGES: {
-  id: CampaignStage;
-  label: string;
-  description: string;
-  icon: React.ReactNode;
-  color: string;
-}[] = [
-  {
-    id: "initial",
-    label: "Initial SMS",
-    description: "First contact",
-    icon: <Sparkles className="h-4 w-4" />,
-    color: "bg-blue-500",
-  },
-  {
-    id: "nc_retarget",
-    label: "NC Retarget",
-    description: "No contact follow-up",
-    icon: <RefreshCw className="h-4 w-4" />,
-    color: "bg-orange-500",
-  },
-  {
-    id: "nurture",
-    label: "Nurture",
-    description: "Relationship building",
-    icon: <Target className="h-4 w-4" />,
-    color: "bg-green-500",
-  },
-  {
-    id: "nudger",
-    label: "Nudger",
-    description: "Final push",
-    icon: <Send className="h-4 w-4" />,
-    color: "bg-purple-500",
-  },
-];
+const CONTEXT_COLORS: Record<CampaignContext, string> = {
+  initial: "bg-blue-500",
+  retarget: "bg-orange-500",
+  nudge: "bg-purple-500",
+  nurture: "bg-cyan-500",
+  book: "bg-green-500",
+  reminder: "bg-amber-500",
+  deal: "bg-emerald-500",
+};
+
+// Build campaign stages from single source of truth (all 7 contexts)
+const CAMPAIGN_STAGES = CONTEXT_FLOW.map((contextId) => ({
+  id: contextId,
+  label: CONTEXT_LABELS[contextId],
+  description: STAGE_CONFIG[contextId].goal,
+  icon: CONTEXT_ICONS[contextId],
+  color: CONTEXT_COLORS[contextId],
+  agent: CONTEXT_AGENTS[contextId],
+}));
 
 const STATUS_COLORS: Record<Lead["status"], string> = {
   new: "bg-blue-500",
@@ -187,6 +190,9 @@ async function fetchLeadsForDateRange(
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export default function LeadCalendarWorkspace() {
+  const router = useRouter();
+  const params = useParams();
+  const teamId = params?.team as string;
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [viewMode, setViewMode] = useState<"month" | "week">("month");
@@ -197,7 +203,7 @@ export default function LeadCalendarWorkspace() {
   const [isLoading, setIsLoading] = useState(true);
   const [isCampaignDialogOpen, setIsCampaignDialogOpen] = useState(false);
   const [selectedCampaignStage, setSelectedCampaignStage] =
-    useState<CampaignStage>("initial");
+    useState<CampaignContext>("initial");
   const [isPushing, setIsPushing] = useState(false);
   const [allLeads, setAllLeads] = useState<Lead[]>([]);
 
@@ -417,6 +423,7 @@ export default function LeadCalendarWorkspace() {
   };
 
   // Gianna Copilot - Start Auto-Dial Session
+  // Now redirects to Call Center Power Dialer with GIANNA mode
   const startGiannaAutoDial = useCallback(async () => {
     const leads = getSelectedLeadsList();
     if (leads.length === 0) {
@@ -430,34 +437,42 @@ export default function LeadCalendarWorkspace() {
       return;
     }
 
-    setIsGiannaActive(true);
-    setGiannaDialing(true);
-    setGiannaProgress({ completed: 0, total: leadsWithPhone.length });
-    setGiannaSessionId(`gianna-${Date.now()}`);
+    // Push leads to call queue for GIANNA mode
+    try {
+      const response = await fetch("/api/call-center/queue", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "add_batch",
+          leads: leadsWithPhone.map((l) => ({
+            id: l.id,
+            name: l.name,
+            phone: l.phone,
+            email: l.email,
+            company: l.address,
+            tags: [l.status, "from_calendar"],
+          })),
+          persona: "gianna",
+          campaignLane: "initial",
+          queueType: "power_dial",
+        }),
+      });
 
-    toast.success(`Gianna starting auto-dial: ${leadsWithPhone.length} calls`, {
-      description: "Human-in-the-loop monitoring active",
-    });
-
-    // Start dialing first lead
-    if (leadsWithPhone.length > 0) {
-      setGiannaCurrentLead(leadsWithPhone[0]);
-      try {
-        await fetch("/api/copilot/dial", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            sessionId: `gianna-${Date.now()}`,
-            leadId: leadsWithPhone[0].id,
-            phone: leadsWithPhone[0].phone,
-            workspaceId: "calendar",
-          }),
-        });
-      } catch {
-        console.log("Gianna dial simulating...");
+      const data = await response.json();
+      if (data.success) {
+        toast.success(
+          `${data.added} leads added to GIANNA queue. Opening Power Dialer...`,
+        );
+        // Navigate to Call Center Power Dialer
+        router.push(`/t/${teamId}/call-center/power-dialer`);
+      } else {
+        toast.error("Failed to add leads to queue");
       }
+    } catch (error) {
+      toast.error("Failed to start GIANNA mode");
+      console.error(error);
     }
-  }, [selectedLeads, selectedDateLeads]);
+  }, [selectedLeads, selectedDateLeads, router, teamId]);
 
   const pauseGianna = useCallback(() => {
     setGiannaDialing(false);
@@ -478,7 +493,7 @@ export default function LeadCalendarWorkspace() {
     toast.info("Gianna stopped");
   }, []);
 
-  // Load Dialer - Push to dialer workspace
+  // Load Dialer - Push to Call Center Power Dialer
   const handleLoadDialer = useCallback(async () => {
     const leads = getSelectedLeadsList();
     if (leads.length === 0) {
@@ -490,29 +505,46 @@ export default function LeadCalendarWorkspace() {
     setIsLoadingDialer(true);
 
     try {
-      const response = await fetch("/api/dialer/load", {
+      // Push leads to call queue
+      const response = await fetch("/api/call-center/queue", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          leadIds: leads.slice(0, toLoad).map((l) => l.id),
-          workspaceId: "calendar",
-          priority: "high",
+          action: "add_batch",
+          leads: leads.slice(0, toLoad).map((l) => ({
+            id: l.id,
+            name: l.name,
+            phone: l.phone,
+            email: l.email,
+            company: l.address,
+            tags: [l.status, "from_calendar"],
+          })),
+          persona: "gianna",
+          campaignLane: "initial",
+          queueType: "power_dial",
+          priority: 6,
         }),
       });
 
-      if (response.ok) {
-        toast.success(`Loaded ${toLoad} leads into dialer`);
+      const data = await response.json();
+      if (data.success) {
+        toast.success(
+          `${data.added} leads loaded into dialer. Opening Power Dialer...`,
+        );
+        // Navigate to Call Center Power Dialer
+        router.push(`/t/${teamId}/call-center/power-dialer`);
       } else {
-        throw new Error("Failed to load dialer");
+        toast.error("Failed to load leads");
       }
-    } catch {
-      toast.success(`Simulated: ${toLoad} leads loaded into dialer`);
+    } catch (error) {
+      toast.error("Failed to load dialer");
+      console.error(error);
     } finally {
       setIsLoadingDialer(false);
       setShowDialerDialog(false);
       setSelectedLeads(new Set());
     }
-  }, [selectedLeads, selectedDateLeads]);
+  }, [selectedLeads, selectedDateLeads, router, teamId]);
 
   // Pull Leads from B2B Search
   const handlePullLeads = useCallback(async () => {

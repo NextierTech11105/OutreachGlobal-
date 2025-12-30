@@ -536,6 +536,8 @@ export async function GET(request: NextRequest) {
       case "list": {
         const status = searchParams.get("status");
         const limit = parseInt(searchParams.get("limit") || "50");
+        const source = searchParams.get("source"); // "ai_capture" for inbound captures
+        const tags = searchParams.get("tags")?.split(",") || []; // comma-separated tags
 
         let filtered = items;
         if (status) {
@@ -548,8 +550,33 @@ export async function GET(request: NextRequest) {
           filtered = filtered.filter((i) => i.campaignLane === lane);
         }
 
+        // Filter by source - "ai_capture" shows leads with gold/responded/captured tags
+        if (source === "ai_capture") {
+          const captureTags = [
+            "gold",
+            "responded",
+            "green",
+            "mobile_captured",
+            "email_captured",
+            "called_back",
+          ];
+          filtered = filtered.filter((i) =>
+            i.tags?.some((t) => captureTags.includes(t.toLowerCase())),
+          );
+        }
+
+        // Filter by specific tags (any match)
+        if (tags.length > 0) {
+          filtered = filtered.filter((i) =>
+            i.tags?.some((t) => tags.includes(t.toLowerCase())),
+          );
+        }
+
         filtered.sort((a, b) => {
-          if (b.priority !== a.priority) return b.priority - a.priority;
+          // Use effective priority which boosts gold/responded leads
+          const priorityA = getEffectivePriority(a);
+          const priorityB = getEffectivePriority(b);
+          if (priorityB !== priorityA) return priorityB - priorityA;
           return (
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
           );
