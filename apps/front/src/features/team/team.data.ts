@@ -1,29 +1,40 @@
 import "server-only";
-import { getApolloClient } from "@/graphql/apollo-client";
 import { notFound } from "next/navigation";
 import { cache } from "react";
-import { apolloAuthContext } from "@/graphql/apollo-context";
-import { TEAM_QUERY } from "./queries/team.queries";
+import { db } from "@/lib/db";
+import { teams } from "@/lib/db/schema";
+import { eq, or } from "drizzle-orm";
 
-export const getTeam = cache(async (id: string) => {
+/**
+ * Get team by ID or slug - direct database query
+ * Bypasses GraphQL for reliability
+ */
+export const getTeam = cache(async (idOrSlug: string) => {
   try {
-    const { data } = await getApolloClient().query({
-      query: TEAM_QUERY,
-      variables: { id },
-      context: await apolloAuthContext(),
-    });
-
-    if (!data?.team) {
-      console.warn(`[getTeam] Team not found for ID: ${id}`);
+    if (!db) {
+      console.error("[getTeam] Database not configured");
       notFound();
     }
 
-    return data.team;
+    // Query by ID or slug
+    const result = await db
+      .select({
+        id: teams.id,
+        name: teams.name,
+        slug: teams.slug,
+      })
+      .from(teams)
+      .where(or(eq(teams.id, idOrSlug), eq(teams.slug, idOrSlug)))
+      .limit(1);
+
+    if (result.length === 0) {
+      console.warn(`[getTeam] Team not found for: ${idOrSlug}`);
+      notFound();
+    }
+
+    return result[0];
   } catch (error) {
-    console.error(`[getTeam] Error fetching team ${id}:`, error);
-    // If it's a 404 from the API, then notFound() is appropriate
-    // But if it's a network error or 500, we might want to show an error page instead
-    // For now, we'll keep notFound() but add logging so we can see WHY it's failing
+    console.error(`[getTeam] Error fetching team ${idOrSlug}:`, error);
     notFound();
   }
 });
