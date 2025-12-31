@@ -2,16 +2,35 @@
 
 import {
   BarChartIcon,
+  BellIcon,
+  BookOpenIcon,
+  BotIcon,
+  BrainIcon,
+  BuildingIcon,
+  CalendarIcon,
+  CheckCircle2Icon,
   ChevronRightIcon,
+  CogIcon,
+  EyeIcon,
+  FileTextIcon,
+  FlameIcon,
+  FolderOpenIcon,
   HomeIcon,
-  InboxIcon,
+  LayersIcon,
+  LibraryIcon,
+  MailIcon,
   MegaphoneIcon,
+  MessageCircleIcon,
   PhoneIcon,
-  SettingsIcon,
-  UsersIcon,
-  CableIcon,
-  Users2Icon,
+  RefreshCwIcon,
+  RocketIcon,
+  SendIcon,
   ShieldIcon,
+  SmileIcon,
+  SparkleIcon,
+  UsersIcon,
+  UserSearchIcon,
+  ZapIcon,
 } from "lucide-react";
 import {
   SidebarGroup,
@@ -34,8 +53,19 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 
-// STREAMLINED NAVIGATION - 4 sections only
+// Organized navigation groups
 const navGroups = [
+  {
+    label: "Get Started",
+    items: [
+      {
+        title: "Build Your Machine",
+        path: "/onboarding",
+        icon: RocketIcon,
+        isAbsolute: true,
+      },
+    ],
+  },
   {
     label: "Home",
     items: [
@@ -46,6 +76,11 @@ const navGroups = [
         exact: true,
       },
       {
+        title: "Command Center",
+        path: "/command-center",
+        icon: ZapIcon,
+      },
+      {
         title: "Analytics",
         path: "/analytics",
         icon: BarChartIcon,
@@ -53,12 +88,32 @@ const navGroups = [
     ],
   },
   {
-    label: "Leads",
+    label: "Data",
     items: [
       {
-        title: "All Leads",
+        title: "Leads",
         path: "/leads",
         icon: UsersIcon,
+      },
+      {
+        title: "Skip Trace",
+        path: "/skip-trace",
+        icon: UserSearchIcon,
+      },
+      {
+        title: "Data Hub",
+        path: "/data-hub",
+        icon: ZapIcon,
+      },
+      {
+        title: "Properties",
+        path: "/properties",
+        icon: BuildingIcon,
+      },
+      {
+        title: "Sectors",
+        path: "/sectors",
+        icon: LayersIcon,
       },
     ],
   },
@@ -69,16 +124,132 @@ const navGroups = [
         title: "Campaigns",
         path: "/campaigns",
         icon: MegaphoneIcon,
+        items: [
+          {
+            title: "All Campaigns",
+            path: "/campaigns",
+            exact: true,
+          },
+          {
+            title: "Content Library",
+            path: "/library",
+            icon: LibraryIcon,
+          },
+          {
+            title: "Automation Rules",
+            path: "/automation-rules",
+          },
+          {
+            title: "Message Templates",
+            path: "/message-templates",
+          },
+        ],
       },
       {
-        title: "Inbox",
-        path: "/inbox",
-        icon: InboxIcon,
-      },
-      {
-        title: "Call Queue",
+        title: "Call Center",
         path: "/call-center",
         icon: PhoneIcon,
+      },
+      {
+        title: "SMS Queue",
+        path: "/sms/queue",
+        icon: SendIcon,
+      },
+      {
+        title: "AI Inbound Response Center",
+        path: "/inbox",
+        icon: SparkleIcon,
+      },
+      {
+        title: "Calendar",
+        path: "/calendar",
+        icon: CalendarIcon,
+      },
+    ],
+  },
+  {
+    label: "AI",
+    items: [
+      {
+        title: "Gianna AI",
+        path: "/inbox",
+        icon: BrainIcon,
+        items: [
+          {
+            title: "Inbound Responses",
+            path: "/inbox",
+            exact: true,
+          },
+          {
+            title: "Train AI",
+            path: "/ai-training",
+          },
+          {
+            title: "AI Personas",
+            path: "/settings/ai-sdr",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    label: "Workspaces",
+    items: [
+      {
+        title: "Initial Message",
+        path: "/workspaces/initial-message",
+        icon: MessageCircleIcon,
+      },
+      {
+        title: "Retarget",
+        path: "/workspaces/retarget",
+        icon: RefreshCwIcon,
+      },
+      {
+        title: "Nudger",
+        path: "/workspaces/nudger",
+        icon: BellIcon,
+      },
+      {
+        title: "Content Nurture",
+        path: "/workspaces/content-nurture",
+        icon: BookOpenIcon,
+      },
+      {
+        title: "Book Appointment",
+        path: "/workspaces/sabrina",
+        icon: CalendarIcon,
+      },
+      {
+        title: "Lead Calendar",
+        path: "/workspaces/calendar",
+        icon: CalendarIcon,
+      },
+    ],
+  },
+  {
+    label: "Real Estate",
+    items: [
+      {
+        title: "Valuation",
+        path: "/valuation",
+        icon: FileTextIcon,
+        items: [
+          {
+            title: "New Valuation",
+            path: "/valuation",
+            exact: true,
+          },
+          {
+            title: "Valuation Queue",
+            path: "/valuation-queue",
+          },
+        ],
+      },
+      {
+        title: "Research Library",
+        path: "/research-library",
+        icon: FolderOpenIcon,
       },
     ],
   },
@@ -86,21 +257,33 @@ const navGroups = [
     label: "Settings",
     items: [
       {
-        title: "Integrations",
-        path: "/admin/integrations",
-        icon: CableIcon,
-        isAbsolute: true,
-      },
-      {
-        title: "Team",
-        path: "/settings/team",
-        icon: Users2Icon,
-      },
-      {
         title: "Admin",
         path: "/admin",
         icon: ShieldIcon,
         isAbsolute: true,
+        items: [
+          {
+            title: "Dashboard",
+            path: "/admin",
+            exact: true,
+            isAbsolute: true,
+          },
+          {
+            title: "MCP Configuration",
+            path: "/admin/mcp",
+            isAbsolute: true,
+          },
+          {
+            title: "Apollo Settings",
+            path: "/admin/integrations/apollo",
+            isAbsolute: true,
+          },
+          {
+            title: "Users",
+            path: "/admin/users",
+            isAbsolute: true,
+          },
+        ],
       },
     ],
   },
@@ -138,7 +321,7 @@ export function TeamMainNav() {
     const ItemLink = (item as { isAbsolute?: boolean }).isAbsolute
       ? Link
       : TeamLink;
-    const hasSubItems = "items" in item && (item as { items?: unknown[] }).items && ((item as { items: unknown[] }).items).length > 0;
+    const hasSubItems = "items" in item && item.items && item.items.length > 0;
 
     if (!hasSubItems) {
       return (
@@ -213,7 +396,7 @@ export function TeamMainNav() {
       {navGroups.map((group, groupIndex) => (
         <Collapsible
           key={groupIndex}
-          defaultOpen={true}
+          defaultOpen={false}
           className="group/nav-section"
         >
           <SidebarGroup className="py-0">

@@ -42,9 +42,6 @@ import {
   MessageSquare,
   Loader2,
   CalendarPlus,
-  Sparkles,
-  UserSearch,
-  Building2,
 } from "lucide-react";
 import { TeamLink } from "@/features/team/components/team-link";
 import {
@@ -93,10 +90,6 @@ export const LeadTable = () => {
   const [calendarDialog, setCalendarDialog] = useState(false);
   const [calendarDate, setCalendarDate] = useState("");
   const [calendarLoading, setCalendarLoading] = useState(false);
-
-  // Enrichment state
-  const [enrichmentLoading, setEnrichmentLoading] = useState(false);
-  const [enrichmentType, setEnrichmentType] = useState<"skip-trace" | "apollo" | null>(null);
 
   const [leads, pageInfo, { loading, refetch }] = useConnectionQuery(
     LEADS_QUERY,
@@ -221,97 +214,6 @@ export const LeadTable = () => {
       );
     } finally {
       setCalendarLoading(false);
-    }
-  };
-
-  // Enrich leads (Skip Trace or Apollo)
-  const enrichLeads = async (type: "skip-trace" | "apollo") => {
-    if (selectedLeads.length === 0) return;
-
-    setEnrichmentLoading(true);
-    setEnrichmentType(type);
-
-    try {
-      const selectedLeadDetails =
-        leads?.filter((lead: { id: string }) =>
-          selectedLeads.some((s) => s.id === lead.id),
-        ) || [];
-
-      if (type === "skip-trace") {
-        // Skip Trace via RealEstateAPI
-        const response = await fetch("/api/skip-trace", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ids: selectedLeadDetails.map((l: { id: string }) => l.id),
-            bulk: true,
-          }),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.error || "Skip trace failed");
-        }
-
-        toast.success(
-          `Skip traced ${data.stats?.matched || 0} leads (${data.stats?.withPhones || 0} with phones)`,
-          {
-            description: data.stats?.withMobiles
-              ? `${data.stats.withMobiles} mobile numbers found`
-              : undefined,
-          }
-        );
-      } else if (type === "apollo") {
-        // Apollo B2B enrichment
-        const leadsToEnrich = selectedLeadDetails.map(
-          (lead: {
-            id: string;
-            email?: string;
-            company?: string;
-            name?: string;
-            firstName?: string;
-            lastName?: string;
-          }) => ({
-            id: lead.id,
-            email: lead.email,
-            company: lead.company,
-            firstName: lead.firstName || lead.name?.split(" ")[0],
-            lastName: lead.lastName || lead.name?.split(" ").slice(1).join(" "),
-          })
-        );
-
-        const response = await fetch("/api/apollo/bulk-enrich", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ leads: leadsToEnrich }),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.error || "Apollo enrichment failed");
-        }
-
-        toast.success(
-          `Enriched ${data.enriched || 0} leads via Apollo`,
-          {
-            description: `${data.withEmails || 0} with emails, ${data.withPhones || 0} with phones`,
-          }
-        );
-      }
-
-      // Refresh the leads list
-      await refetch({ ...cursor });
-      setSelected([]);
-    } catch (error) {
-      console.error("Enrichment error:", error);
-      toast.error(
-        error instanceof Error ? error.message : `${type} enrichment failed`
-      );
-    } finally {
-      setEnrichmentLoading(false);
-      setEnrichmentType(null);
     }
   };
 
@@ -602,47 +504,6 @@ export const LeadTable = () => {
               <CalendarPlus className="h-3.5 w-3.5" />
               Calendar
             </Button>
-
-            {/* Enrich Actions */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  size="xs"
-                  variant="default"
-                  className="gap-1 bg-amber-600 hover:bg-amber-700"
-                  disabled={enrichmentLoading}
-                >
-                  {enrichmentLoading ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <Sparkles className="h-3.5 w-3.5" />
-                  )}
-                  Enrich
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  onClick={() => enrichLeads("skip-trace")}
-                  disabled={enrichmentLoading}
-                >
-                  <UserSearch className="h-4 w-4 mr-2" />
-                  Skip Trace (Phone/Email)
-                  {enrichmentType === "skip-trace" && (
-                    <Loader2 className="h-3 w-3 ml-2 animate-spin" />
-                  )}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => enrichLeads("apollo")}
-                  disabled={enrichmentLoading}
-                >
-                  <Building2 className="h-4 w-4 mr-2" />
-                  Apollo (B2B Intel)
-                  {enrichmentType === "apollo" && (
-                    <Loader2 className="h-3 w-3 ml-2 animate-spin" />
-                  )}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
 
             <DropdownMenuSeparator className="h-6 w-px bg-border mx-1" />
 
