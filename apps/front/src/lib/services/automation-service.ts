@@ -1,5 +1,5 @@
 /**
- * BASELINE AUTOMATION SERVICE
+ * BASELINE AUTOMATION SERVICE - DATABASE-BACKED
  *
  * Implements the 6 core automation rules:
  * 1. Retarget No-Response (7, 14, 30 day drip)
@@ -8,9 +8,23 @@
  * 4. Email Captured - Auto-Send Report
  * 5. Opt-Out Handling
  * 6. Wrong Number Handling
+ *
+ * DURABLE STATE: All state persisted to PostgreSQL, survives server restarts.
  */
 
 import { smsQueueService } from "./sms-queue-service";
+import { db } from "../db";
+import {
+  automationStates,
+  scheduledTasks as scheduledTasksTable,
+  suppressionQueue as suppressionQueueTable,
+  type AutomationState,
+  type NewAutomationState,
+  type ScheduledTask,
+  type NewScheduledTask,
+  type SuppressionQueueItem,
+} from "../db/schema";
+import { eq, and, lte, sql } from "drizzle-orm";
 
 // Lead priority levels
 export type LeadPriority = "hot" | "warm" | "cold" | "dead";
@@ -28,7 +42,7 @@ export type ResponseType =
   | "no_response"
   | "valuation_request";
 
-// Lead status in the automation pipeline
+// Lead status in the automation pipeline (for backward compatibility)
 export interface LeadAutomationState {
   leadId: string;
   phone: string;
@@ -51,10 +65,6 @@ export interface LeadAutomationState {
   };
   score: number;
 }
-
-// In-memory state storage (would be database in production)
-const leadStates = new Map<string, LeadAutomationState>();
-const scheduledTasks = new Map<string, NodeJS.Timeout>();
 
 // Email regex pattern
 const EMAIL_REGEX = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
@@ -104,14 +114,8 @@ const PROFANITY_KEYWORDS = [
   "report you",
 ];
 
-// Suppression queue - WN, STOP, profanity all go here for review
-const suppressionQueue: Array<{
-  leadId: string;
-  phone: string;
-  reason: "wrong_number" | "opt_out" | "profanity";
-  message: string;
-  timestamp: Date;
-}> = [];
+// Suppression queue is now stored in database (suppressionQueueTable)
+// No in-memory array needed
 
 // Interest keywords
 const INTEREST_KEYWORDS = [
@@ -134,13 +138,13 @@ class AutomationService {
    * Schedule retarget drip for leads with no response
    * Day 7 → Day 14 → Day 30 → Cold bucket
    */
-  scheduleRetargetDrip(
+  async scheduleRetargetDrip(
     leadId: string,
     phone: string,
     firstName?: string,
     propertyAddress?: string,
-  ): void {
-    const state = this.getOrCreateState(leadId, phone);
+  ): Promise<void> {
+    const state = await this.getOrCreateState(leadId, phone);
 
     if (state.optedOut || state.wrongNumber) {
       console.log(
@@ -149,53 +153,20 @@ class AutomationService {
       return;
     }
 
-    state.drip.sequence = "retarget";
-    state.drip.stage = 0;
-    state.lastContactAt = new Date();
-
-    // Schedule Day 7 nudge
-    this.scheduleTask(leadId, "retarget_day7", 7 * 24 * 60 * 60 * 1000, () => {
-      if (!this.checkStillEligible(leadId)) return;
-
-      const message = `Hey ${firstName || "there"}, just circling back on my last msg about ${propertyAddress || "your property"}. Still thinking about it?`;
-      this.queueSMS(leadId, phone, message, "retarget_nudge_1");
-      state.drip.stage = 1;
-
-      // Schedule Day 14
-      this.scheduleTask(
-        leadId,
-        "retarget_day14",
-        7 * 24 * 60 * 60 * 1000,
-        () => {
-          if (!this.checkStillEligible(leadId)) return;
-
-          const message2 = `Still interested in chatting about ${propertyAddress || "the property"}? LMK! No pressure at all.`;
-          this.queueSMS(leadId, phone, message2, "retarget_nudge_2");
-          state.drip.stage = 2;
-
-          // Schedule Day 30 (final)
-          this.scheduleTask(
-            leadId,
-            "retarget_day30",
-            16 * 24 * 60 * 60 * 1000,
-            () => {
-              if (!this.checkStillEligible(leadId)) return;
-
-              const message3 = `Last try! If you ever want to discuss ${propertyAddress || "your property"}, I'm here. Have a great day!`;
-              this.queueSMS(leadId, phone, message3, "retarget_final");
-              state.drip.stage = 3;
-              state.priority = "cold";
-
-              console.log(
-                `[Automation] Lead ${leadId} moved to COLD bucket after no response`,
-              );
-            },
-          );
-        },
-      );
+    // Update state in database
+    await this.updateState(leadId, {
+      dripSequence: "retarget",
+      dripStage: 0,
+      lastContactAt: new Date(),
     });
 
-    leadStates.set(leadId, state);
+    // Schedule Day 7 nudge (persisted to database)
+    await this.scheduleTask(leadId, "retarget_day7", "retarget", 7 * 24 * 60 * 60 * 1000, {
+      firstName,
+      propertyAddress,
+      phone,
+    });
+
     console.log(`[Automation] Retarget drip scheduled for ${leadId}`);
   }
 
@@ -207,51 +178,42 @@ class AutomationService {
    * Activate nurture drip when contact is confirmed
    * Response received OR phone verified
    */
-  activateNurtureDrip(leadId: string, phone: string, email?: string): void {
-    const state = this.getOrCreateState(leadId, phone);
+  async activateNurtureDrip(leadId: string, phone: string, email?: string): Promise<void> {
+    const state = await this.getOrCreateState(leadId, phone);
 
     // Cancel any retarget drip
-    this.cancelTasks(leadId);
+    await this.cancelTasks(leadId);
 
-    state.phoneVerified = true;
-    state.priority = "warm";
-    state.score += 20;
-    state.drip.sequence = "nurture";
-    state.drip.stage = 0;
+    // Update state in database
+    await this.updateState(leadId, {
+      phoneVerified: true,
+      priority: "warm",
+      score: state.score + 20,
+      dripSequence: "nurture",
+      dripStage: 0,
+      ...(email && { email }),
+    });
 
-    if (email) {
-      state.email = email;
-    }
-
-    // Schedule nurture sequence
+    // Schedule nurture sequence (persisted to database)
     // Day 3: Value content email
-    this.scheduleTask(leadId, "nurture_day3", 3 * 24 * 60 * 60 * 1000, () => {
-      if (!this.checkStillEligible(leadId)) return;
-      if (state.email) {
-        this.queueEmail(leadId, state.email, "value_content");
-      }
-      state.drip.stage = 1;
+    await this.scheduleTask(leadId, "nurture_day3", "nurture", 3 * 24 * 60 * 60 * 1000, {
+      phone,
+      email,
     });
 
     // Day 7: Market update SMS
-    this.scheduleTask(leadId, "nurture_day7", 7 * 24 * 60 * 60 * 1000, () => {
-      if (!this.checkStillEligible(leadId)) return;
-      const message =
-        "Quick market update - prices in your area are moving! Want me to send you the latest data?";
-      this.queueSMS(leadId, phone, message, "nurture_market_update");
-      state.drip.stage = 2;
+    await this.scheduleTask(leadId, "nurture_day7", "nurture", 7 * 24 * 60 * 60 * 1000, {
+      phone,
     });
 
     // Day 14: Queue for power dialer
-    this.scheduleTask(leadId, "nurture_day14", 14 * 24 * 60 * 60 * 1000, () => {
-      if (!this.checkStillEligible(leadId)) return;
-      this.queueCall(leadId, phone, "nurture_check_in");
-      state.drip.stage = 3;
+    await this.scheduleTask(leadId, "nurture_day14", "nurture", 14 * 24 * 60 * 60 * 1000, {
+      phone,
     });
 
-    leadStates.set(leadId, state);
+    const newScore = state.score + 20;
     console.log(
-      `[Automation] Nurture drip activated for ${leadId} (score: ${state.score})`,
+      `[Automation] Nurture drip activated for ${leadId} (score: ${newScore})`,
     );
   }
 
@@ -263,7 +225,7 @@ class AutomationService {
    * Maximum priority for valuation/blueprint recipients
    * These are situational targets with HIGH probability
    */
-  flagAsHotLead(
+  async flagAsHotLead(
     leadId: string,
     phone: string,
     email?: string,
@@ -272,22 +234,23 @@ class AutomationService {
       | "blueprint"
       | "interested"
       | "call_request" = "valuation",
-  ): void {
-    const state = this.getOrCreateState(leadId, phone);
+  ): Promise<void> {
+    const state = await this.getOrCreateState(leadId, phone);
 
     // Cancel all other drips - this is priority 1
-    this.cancelTasks(leadId);
+    await this.cancelTasks(leadId);
 
-    state.priority = "hot";
-    state.score += 50;
-    state.phoneVerified = true;
-
-    if (reason === "valuation") state.valuationSent = true;
-    if (reason === "blueprint") state.blueprintSent = true;
-    if (email) state.email = email;
-
-    state.drip.sequence = "hot_lead";
-    state.drip.stage = 0;
+    // Update state in database
+    await this.updateState(leadId, {
+      priority: "hot",
+      score: state.score + 50,
+      phoneVerified: true,
+      dripSequence: "hot_lead",
+      dripStage: 0,
+      ...(reason === "valuation" && { valuationSent: true }),
+      ...(reason === "blueprint" && { blueprintSent: true }),
+      ...(email && { email }),
+    });
 
     // Immediate: Log for sales alert
     console.log(
@@ -297,56 +260,27 @@ class AutomationService {
     // Send notification (would integrate with Slack/webhook in production)
     this.sendSalesAlert(leadId, reason);
 
+    // Schedule hot lead follow-up sequence (persisted to database)
     // Hour 24: Follow-up if no response
-    this.scheduleTask(leadId, "hot_24h", 24 * 60 * 60 * 1000, () => {
-      if (state.lastResponseAt && state.lastResponseAt > state.lastContactAt!)
-        return;
-
-      const message =
-        "Did you get a chance to review the report I sent? Happy to walk through it with you!";
-      this.queueSMS(leadId, phone, message, "hot_followup_24h");
-      state.drip.stage = 1;
+    await this.scheduleTask(leadId, "hot_24h", "hot_lead", 24 * 60 * 60 * 1000, {
+      phone,
+      reason,
     });
 
     // Hour 48: Phone call attempt
-    this.scheduleTask(leadId, "hot_48h", 48 * 60 * 60 * 1000, () => {
-      if (state.lastResponseAt && state.lastResponseAt > state.lastContactAt!)
-        return;
-
-      this.queueCall(leadId, phone, "hot_followup_call");
-      state.drip.stage = 2;
+    await this.scheduleTask(leadId, "hot_48h", "hot_lead", 48 * 60 * 60 * 1000, {
+      phone,
     });
 
     // Day 3: Check-in SMS
-    this.scheduleTask(leadId, "hot_day3", 3 * 24 * 60 * 60 * 1000, () => {
-      if (state.lastResponseAt && state.lastResponseAt > state.lastContactAt!)
-        return;
-
-      const message = "Any questions about the numbers? I'm here to help!";
-      this.queueSMS(leadId, phone, message, "hot_followup_day3");
-      state.drip.stage = 3;
+    await this.scheduleTask(leadId, "hot_day3", "hot_lead", 3 * 24 * 60 * 60 * 1000, {
+      phone,
     });
 
     // Day 7: Final hot lead touch
-    this.scheduleTask(leadId, "hot_day7", 7 * 24 * 60 * 60 * 1000, () => {
-      if (state.lastResponseAt && state.lastResponseAt > state.lastContactAt!)
-        return;
-
-      const message =
-        "Still thinking about it? Happy to hop on a quick call whenever works for you.";
-      this.queueSMS(leadId, phone, message, "hot_followup_day7");
-      state.drip.stage = 4;
-
-      // Downgrade to warm if still no response
-      if (!state.lastResponseAt) {
-        state.priority = "warm";
-        console.log(
-          `[Automation] Hot lead ${leadId} downgraded to WARM after 7 days`,
-        );
-      }
+    await this.scheduleTask(leadId, "hot_day7", "hot_lead", 7 * 24 * 60 * 60 * 1000, {
+      phone,
     });
-
-    leadStates.set(leadId, state);
   }
 
   // ============================================
@@ -366,11 +300,13 @@ class AutomationService {
     extractedEmail?: string;
     action: string;
   }> {
-    const state = this.getOrCreateState(leadId, phone);
+    const state = await this.getOrCreateState(leadId, phone);
     const lowerMessage = message.toLowerCase().trim();
 
-    // Update last response
-    state.lastResponseAt = new Date();
+    // Update last response in database
+    await this.updateState(leadId, {
+      lastResponseAt: new Date(),
+    });
 
     // ═══════════════════════════════════════════════════════════════════════
     // SUPPRESSION CAMPAIGN: OPT-OUT, WRONG NUMBER, PROFANITY
@@ -380,7 +316,7 @@ class AutomationService {
     // Check for opt-out first (highest priority) → SUPPRESSION
     if (OPT_OUT_KEYWORDS.some((kw) => lowerMessage.includes(kw))) {
       await this.handleOptOut(leadId, phone);
-      this.addToSuppressionQueue(leadId, phone, "opt_out", message);
+      await this.addToSuppressionQueue(leadId, phone, "opt_out", message);
       return {
         classification: "opt_out",
         action: "Added to suppression campaign for review",
@@ -389,8 +325,8 @@ class AutomationService {
 
     // Check for wrong number → SUPPRESSION
     if (WRONG_NUMBER_KEYWORDS.some((kw) => lowerMessage.includes(kw))) {
-      this.handleWrongNumber(leadId, phone);
-      this.addToSuppressionQueue(leadId, phone, "wrong_number", message);
+      await this.handleWrongNumber(leadId, phone);
+      await this.addToSuppressionQueue(leadId, phone, "wrong_number", message);
       return {
         classification: "wrong_number",
         action: "Added to suppression campaign for review",
@@ -399,7 +335,7 @@ class AutomationService {
 
     // Check for profanity → SUPPRESSION
     if (PROFANITY_KEYWORDS.some((kw) => lowerMessage.includes(kw))) {
-      this.addToSuppressionQueue(leadId, phone, "profanity", message);
+      await this.addToSuppressionQueue(leadId, phone, "profanity", message);
       // Don't auto-respond to profanity, just suppress
       console.log(
         `[Automation] Profanity detected from ${phone} - added to suppression`,
@@ -414,14 +350,18 @@ class AutomationService {
     const emailMatch = message.match(EMAIL_REGEX);
     if (emailMatch) {
       const email = emailMatch[0].toLowerCase();
-      state.email = email;
-      state.emailVerified = true;
+
+      // Update state with email
+      await this.updateState(leadId, {
+        email,
+        emailVerified: true,
+      });
 
       // Auto-send valuation report
       this.autoSendValuationToEmail(leadId, phone, email, propertyId);
 
       // Flag as hot lead - they're engaged!
-      this.flagAsHotLead(leadId, phone, email, "valuation");
+      await this.flagAsHotLead(leadId, phone, email, "valuation");
 
       return {
         classification: "email_provided",
@@ -434,7 +374,7 @@ class AutomationService {
     if (INTEREST_KEYWORDS.some((kw) => lowerMessage.includes(kw))) {
       // Check if they want a call
       if (lowerMessage.includes("call")) {
-        this.flagAsHotLead(leadId, phone, undefined, "call_request");
+        await this.flagAsHotLead(leadId, phone, undefined, "call_request");
         return {
           classification: "appointment_request",
           action: "Flagged as HOT lead, queued for call",
@@ -442,7 +382,7 @@ class AutomationService {
       }
 
       // General interest
-      this.activateNurtureDrip(leadId, phone);
+      await this.activateNurtureDrip(leadId, phone);
       return {
         classification: "interested",
         action: "Activated nurture drip, priority upgraded to WARM",
@@ -456,7 +396,7 @@ class AutomationService {
       lowerMessage.startsWith("how") ||
       lowerMessage.startsWith("when")
     ) {
-      this.activateNurtureDrip(leadId, phone);
+      await this.activateNurtureDrip(leadId, phone);
       return {
         classification: "question",
         action:
@@ -465,9 +405,10 @@ class AutomationService {
     }
 
     // Unclear response - still confirms the number works
-    state.phoneVerified = true;
-    state.score += 10;
-    leadStates.set(leadId, state);
+    await this.updateState(leadId, {
+      phoneVerified: true,
+      score: state.score + 10,
+    });
 
     return {
       classification: "unclear",
@@ -481,14 +422,15 @@ class AutomationService {
   // ============================================
 
   async handleOptOut(leadId: string, phone: string): Promise<void> {
-    const state = this.getOrCreateState(leadId, phone);
-
     // Cancel all pending tasks
-    this.cancelTasks(leadId);
+    await this.cancelTasks(leadId);
 
-    state.optedOut = true;
-    state.priority = "dead";
-    state.drip.sequence = null;
+    // Update state in database
+    await this.updateState(leadId, {
+      optedOut: true,
+      priority: "dead",
+      dripSequence: null,
+    });
 
     // Add to SMS queue opt-out list (writes to Postgres then Redis)
     await smsQueueService.addOptOut(phone);
@@ -501,7 +443,6 @@ class AutomationService {
       "opt_out_confirm",
     );
 
-    leadStates.set(leadId, state);
     console.log(
       `[Automation] Lead ${leadId} opted out (persisted to Postgres)`,
     );
@@ -511,15 +452,16 @@ class AutomationService {
   // RULE 6: WRONG NUMBER HANDLING
   // ============================================
 
-  handleWrongNumber(leadId: string, phone: string): void {
-    const state = this.getOrCreateState(leadId, phone);
-
+  async handleWrongNumber(leadId: string, phone: string): Promise<void> {
     // Cancel all pending tasks
-    this.cancelTasks(leadId);
+    await this.cancelTasks(leadId);
 
-    state.wrongNumber = true;
-    state.phoneVerified = false;
-    state.drip.sequence = null;
+    // Update state in database
+    await this.updateState(leadId, {
+      wrongNumber: true,
+      phoneVerified: false,
+      dripSequence: null,
+    });
 
     // Send apology
     this.queueSMS(
@@ -533,64 +475,100 @@ class AutomationService {
     console.log(
       `[Automation] Lead ${leadId} marked as wrong number - queue for re-skip-trace`,
     );
-
-    leadStates.set(leadId, state);
   }
 
   // ============================================
-  // SUPPRESSION CAMPAIGN
+  // SUPPRESSION CAMPAIGN (DATABASE-BACKED)
   // ============================================
 
   /**
-   * Add to suppression queue for review
+   * Add to suppression queue for review (persisted to database)
    * WN (wrong number), STOP (opt-out), and profanity all go here
    * These are NOT visible as inbox labels - they go to admin review
    */
-  addToSuppressionQueue(
+  async addToSuppressionQueue(
     leadId: string,
     phone: string,
     reason: "wrong_number" | "opt_out" | "profanity",
     message: string,
-  ): void {
-    suppressionQueue.push({
-      leadId,
-      phone,
-      reason,
-      message,
-      timestamp: new Date(),
-    });
+  ): Promise<void> {
+    if (!db) {
+      console.warn("[Suppression] Database not available, skipping persistence");
+      return;
+    }
 
-    console.log(
-      `[Suppression] Added to suppression queue: ${reason} from ${phone}`,
-    );
-    console.log(`[Suppression] Queue size: ${suppressionQueue.length}`);
+    try {
+      await db.insert(suppressionQueueTable).values({
+        leadId,
+        phone,
+        reason,
+        message,
+      });
+
+      console.log(
+        `[Suppression] Added to suppression queue: ${reason} from ${phone}`,
+      );
+    } catch (error) {
+      console.error("[Suppression] Failed to add to queue:", error);
+    }
   }
 
   /**
-   * Get suppression queue for admin review
+   * Get suppression queue for admin review (from database)
    */
-  getSuppressionQueue() {
-    return [...suppressionQueue];
+  async getSuppressionQueue(): Promise<SuppressionQueueItem[]> {
+    if (!db) {
+      console.warn("[Suppression] Database not available");
+      return [];
+    }
+
+    try {
+      return await db
+        .select()
+        .from(suppressionQueueTable)
+        .where(eq(suppressionQueueTable.reviewed, false));
+    } catch (error) {
+      console.error("[Suppression] Failed to get queue:", error);
+      return [];
+    }
   }
 
   /**
-   * Clear reviewed item from suppression queue
+   * Mark suppression item as reviewed
    */
-  clearFromSuppressionQueue(leadId: string): void {
-    const index = suppressionQueue.findIndex((item) => item.leadId === leadId);
-    if (index !== -1) {
-      suppressionQueue.splice(index, 1);
+  async reviewSuppressionItem(
+    id: string,
+    reviewedBy: string,
+    action: "confirm" | "restore" | "delete",
+  ): Promise<void> {
+    if (!db) return;
+
+    try {
+      await db
+        .update(suppressionQueueTable)
+        .set({
+          reviewed: true,
+          reviewedBy,
+          reviewedAt: new Date(),
+          reviewAction: action,
+        })
+        .where(eq(suppressionQueueTable.id, id));
+    } catch (error) {
+      console.error("[Suppression] Failed to review item:", error);
     }
   }
 
   // ============================================
-  // HELPER METHODS
+  // DATABASE HELPER METHODS
   // ============================================
 
-  private getOrCreateState(leadId: string, phone: string): LeadAutomationState {
-    let state = leadStates.get(leadId);
-    if (!state) {
-      state = {
+  /**
+   * Get or create automation state from database
+   */
+  private async getOrCreateState(leadId: string, phone: string): Promise<LeadAutomationState> {
+    if (!db) {
+      // Fallback to in-memory for development
+      return {
         leadId,
         phone,
         priority: "cold",
@@ -600,49 +578,351 @@ class AutomationService {
         wrongNumber: false,
         valuationSent: false,
         blueprintSent: false,
-        drip: {
-          stage: 0,
-          sequence: null,
-        },
+        drip: { stage: 0, sequence: null },
         score: 0,
       };
-      leadStates.set(leadId, state);
     }
-    return state;
+
+    try {
+      // Try to get existing state
+      const [existing] = await db
+        .select()
+        .from(automationStates)
+        .where(eq(automationStates.leadId, leadId))
+        .limit(1);
+
+      if (existing) {
+        return this.dbStateToLeadState(existing);
+      }
+
+      // Create new state in database
+      const [newState] = await db
+        .insert(automationStates)
+        .values({
+          leadId,
+          phone,
+          priority: "cold",
+          score: 0,
+        })
+        .returning();
+
+      return this.dbStateToLeadState(newState);
+    } catch (error) {
+      console.error("[Automation] Failed to get/create state:", error);
+      // Fallback to in-memory
+      return {
+        leadId,
+        phone,
+        priority: "cold",
+        phoneVerified: false,
+        emailVerified: false,
+        optedOut: false,
+        wrongNumber: false,
+        valuationSent: false,
+        blueprintSent: false,
+        drip: { stage: 0, sequence: null },
+        score: 0,
+      };
+    }
   }
 
-  private checkStillEligible(leadId: string): boolean {
-    const state = leadStates.get(leadId);
-    if (!state) return false;
-    if (state.optedOut) return false;
-    if (state.wrongNumber) return false;
-    return true;
+  /**
+   * Convert database state to LeadAutomationState interface
+   */
+  private dbStateToLeadState(dbState: AutomationState): LeadAutomationState {
+    return {
+      leadId: dbState.leadId,
+      phone: dbState.phone,
+      email: dbState.email || undefined,
+      propertyId: dbState.propertyId || undefined,
+      priority: (dbState.priority as LeadPriority) || "cold",
+      lastContactAt: dbState.lastContactAt || undefined,
+      lastResponseAt: dbState.lastResponseAt || undefined,
+      responseType: (dbState.responseType as ResponseType) || undefined,
+      phoneVerified: dbState.phoneVerified || false,
+      emailVerified: dbState.emailVerified || false,
+      optedOut: dbState.optedOut || false,
+      wrongNumber: dbState.wrongNumber || false,
+      valuationSent: dbState.valuationSent || false,
+      blueprintSent: dbState.blueprintSent || false,
+      drip: {
+        stage: dbState.dripStage || 0,
+        nextTouchAt: dbState.nextTouchAt || undefined,
+        sequence: (dbState.dripSequence as "retarget" | "nurture" | "hot_lead" | null) || null,
+      },
+      score: dbState.score || 0,
+    };
   }
 
-  private scheduleTask(
+  /**
+   * Update automation state in database
+   */
+  private async updateState(leadId: string, updates: Partial<NewAutomationState>): Promise<void> {
+    if (!db) return;
+
+    try {
+      await db
+        .update(automationStates)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(automationStates.leadId, leadId));
+    } catch (error) {
+      console.error("[Automation] Failed to update state:", error);
+    }
+  }
+
+  /**
+   * Check if lead is still eligible for automation (from database)
+   */
+  private async checkStillEligible(leadId: string): Promise<boolean> {
+    if (!db) return false;
+
+    try {
+      const [state] = await db
+        .select()
+        .from(automationStates)
+        .where(eq(automationStates.leadId, leadId))
+        .limit(1);
+
+      if (!state) return false;
+      if (state.optedOut) return false;
+      if (state.wrongNumber) return false;
+      return true;
+    } catch (error) {
+      console.error("[Automation] Failed to check eligibility:", error);
+      return false;
+    }
+  }
+
+  /**
+   * Schedule a task (persisted to database)
+   */
+  private async scheduleTask(
     leadId: string,
     taskId: string,
+    taskType: string,
     delayMs: number,
-    callback: () => void,
-  ): void {
-    const fullId = `${leadId}_${taskId}`;
+    payload: Record<string, any>,
+  ): Promise<void> {
+    if (!db) return;
 
-    // Clear any existing task with same ID
-    const existing = scheduledTasks.get(fullId);
-    if (existing) {
-      clearTimeout(existing);
+    try {
+      const scheduledAt = new Date(Date.now() + delayMs);
+
+      // Cancel any existing task with same ID
+      await db
+        .update(scheduledTasksTable)
+        .set({ status: "cancelled" })
+        .where(
+          and(
+            eq(scheduledTasksTable.leadId, leadId),
+            eq(scheduledTasksTable.taskId, taskId),
+            eq(scheduledTasksTable.status, "pending"),
+          ),
+        );
+
+      // Create new scheduled task
+      await db.insert(scheduledTasksTable).values({
+        leadId,
+        taskId,
+        taskType,
+        scheduledAt,
+        status: "pending",
+        payload,
+      });
+
+      console.log(`[Automation] Task ${taskId} scheduled for ${scheduledAt.toISOString()}`);
+    } catch (error) {
+      console.error("[Automation] Failed to schedule task:", error);
     }
-
-    const timeout = setTimeout(callback, delayMs);
-    scheduledTasks.set(fullId, timeout);
   }
 
-  private cancelTasks(leadId: string): void {
-    for (const [key, timeout] of scheduledTasks.entries()) {
-      if (key.startsWith(leadId)) {
-        clearTimeout(timeout);
-        scheduledTasks.delete(key);
+  /**
+   * Cancel all pending tasks for a lead (in database)
+   */
+  private async cancelTasks(leadId: string): Promise<void> {
+    if (!db) return;
+
+    try {
+      await db
+        .update(scheduledTasksTable)
+        .set({ status: "cancelled" })
+        .where(
+          and(
+            eq(scheduledTasksTable.leadId, leadId),
+            eq(scheduledTasksTable.status, "pending"),
+          ),
+        );
+
+      console.log(`[Automation] Cancelled all pending tasks for ${leadId}`);
+    } catch (error) {
+      console.error("[Automation] Failed to cancel tasks:", error);
+    }
+  }
+
+  /**
+   * Process due tasks (call from cron job or scheduler)
+   */
+  async processDueTasks(): Promise<number> {
+    if (!db) return 0;
+
+    try {
+      // Get all tasks that are due
+      const dueTasks = await db
+        .select()
+        .from(scheduledTasksTable)
+        .where(
+          and(
+            eq(scheduledTasksTable.status, "pending"),
+            lte(scheduledTasksTable.scheduledAt, new Date()),
+          ),
+        )
+        .limit(100);
+
+      let processed = 0;
+
+      for (const task of dueTasks) {
+        // Check if lead is still eligible
+        const eligible = await this.checkStillEligible(task.leadId);
+        if (!eligible) {
+          await db
+            .update(scheduledTasksTable)
+            .set({ status: "cancelled" })
+            .where(eq(scheduledTasksTable.id, task.id));
+          continue;
+        }
+
+        // Execute task based on type and ID
+        await this.executeTask(task);
+
+        // Mark as executed
+        await db
+          .update(scheduledTasksTable)
+          .set({ status: "executed", executedAt: new Date() })
+          .where(eq(scheduledTasksTable.id, task.id));
+
+        processed++;
       }
+
+      if (processed > 0) {
+        console.log(`[Automation] Processed ${processed} due tasks`);
+      }
+
+      return processed;
+    } catch (error) {
+      console.error("[Automation] Failed to process due tasks:", error);
+      return 0;
+    }
+  }
+
+  /**
+   * Execute a scheduled task
+   */
+  private async executeTask(task: ScheduledTask): Promise<void> {
+    const payload = (task.payload as Record<string, any>) || {};
+    const { phone, firstName, propertyAddress, email } = payload;
+
+    switch (task.taskId) {
+      // Retarget sequence
+      case "retarget_day7":
+        this.queueSMS(
+          task.leadId,
+          phone,
+          `Hey ${firstName || "there"}, just circling back on my last msg about ${propertyAddress || "your property"}. Still thinking about it?`,
+          "retarget_nudge_1",
+        );
+        await this.updateState(task.leadId, { dripStage: 1 });
+        await this.scheduleTask(task.leadId, "retarget_day14", "retarget", 7 * 24 * 60 * 60 * 1000, payload);
+        break;
+
+      case "retarget_day14":
+        this.queueSMS(
+          task.leadId,
+          phone,
+          `Still interested in chatting about ${propertyAddress || "the property"}? LMK! No pressure at all.`,
+          "retarget_nudge_2",
+        );
+        await this.updateState(task.leadId, { dripStage: 2 });
+        await this.scheduleTask(task.leadId, "retarget_day30", "retarget", 16 * 24 * 60 * 60 * 1000, payload);
+        break;
+
+      case "retarget_day30":
+        this.queueSMS(
+          task.leadId,
+          phone,
+          `Last try! If you ever want to discuss ${propertyAddress || "your property"}, I'm here. Have a great day!`,
+          "retarget_final",
+        );
+        await this.updateState(task.leadId, { dripStage: 3, priority: "cold" });
+        console.log(`[Automation] Lead ${task.leadId} moved to COLD bucket after no response`);
+        break;
+
+      // Nurture sequence
+      case "nurture_day3":
+        if (email) {
+          this.queueEmail(task.leadId, email, "value_content");
+        }
+        await this.updateState(task.leadId, { dripStage: 1 });
+        break;
+
+      case "nurture_day7":
+        this.queueSMS(
+          task.leadId,
+          phone,
+          "Quick market update - prices in your area are moving! Want me to send you the latest data?",
+          "nurture_market_update",
+        );
+        await this.updateState(task.leadId, { dripStage: 2 });
+        break;
+
+      case "nurture_day14":
+        this.queueCall(task.leadId, phone, "nurture_check_in");
+        await this.updateState(task.leadId, { dripStage: 3 });
+        break;
+
+      // Hot lead sequence
+      case "hot_24h":
+        this.queueSMS(
+          task.leadId,
+          phone,
+          "Did you get a chance to review the report I sent? Happy to walk through it with you!",
+          "hot_followup_24h",
+        );
+        await this.updateState(task.leadId, { dripStage: 1 });
+        break;
+
+      case "hot_48h":
+        this.queueCall(task.leadId, phone, "hot_followup_call");
+        await this.updateState(task.leadId, { dripStage: 2 });
+        break;
+
+      case "hot_day3":
+        this.queueSMS(
+          task.leadId,
+          phone,
+          "Any questions about the numbers? I'm here to help!",
+          "hot_followup_day3",
+        );
+        await this.updateState(task.leadId, { dripStage: 3 });
+        break;
+
+      case "hot_day7":
+        this.queueSMS(
+          task.leadId,
+          phone,
+          "Still thinking about it? Happy to hop on a quick call whenever works for you.",
+          "hot_followup_day7",
+        );
+        await this.updateState(task.leadId, { dripStage: 4 });
+        // Downgrade to warm after 7 days
+        const state = await this.getOrCreateState(task.leadId, phone);
+        if (!state.lastResponseAt) {
+          await this.updateState(task.leadId, { priority: "warm" });
+          console.log(`[Automation] Hot lead ${task.leadId} downgraded to WARM after 7 days`);
+        }
+        break;
+
+      default:
+        console.log(`[Automation] Unknown task: ${task.taskId}`);
     }
   }
 
@@ -704,22 +984,59 @@ class AutomationService {
   }
 
   // ============================================
-  // PUBLIC API
+  // PUBLIC API (DATABASE-BACKED)
   // ============================================
 
-  getLeadState(leadId: string): LeadAutomationState | undefined {
-    return leadStates.get(leadId);
+  async getLeadState(leadId: string): Promise<LeadAutomationState | undefined> {
+    if (!db) return undefined;
+
+    try {
+      const [state] = await db
+        .select()
+        .from(automationStates)
+        .where(eq(automationStates.leadId, leadId))
+        .limit(1);
+
+      return state ? this.dbStateToLeadState(state) : undefined;
+    } catch (error) {
+      console.error("[Automation] Failed to get lead state:", error);
+      return undefined;
+    }
   }
 
-  getAllHotLeads(): LeadAutomationState[] {
-    return Array.from(leadStates.values()).filter((s) => s.priority === "hot");
+  async getAllHotLeads(): Promise<LeadAutomationState[]> {
+    if (!db) return [];
+
+    try {
+      const states = await db
+        .select()
+        .from(automationStates)
+        .where(eq(automationStates.priority, "hot"));
+
+      return states.map((s) => this.dbStateToLeadState(s));
+    } catch (error) {
+      console.error("[Automation] Failed to get hot leads:", error);
+      return [];
+    }
   }
 
-  getAllWarmLeads(): LeadAutomationState[] {
-    return Array.from(leadStates.values()).filter((s) => s.priority === "warm");
+  async getAllWarmLeads(): Promise<LeadAutomationState[]> {
+    if (!db) return [];
+
+    try {
+      const states = await db
+        .select()
+        .from(automationStates)
+        .where(eq(automationStates.priority, "warm"));
+
+      return states.map((s) => this.dbStateToLeadState(s));
+    } catch (error) {
+      console.error("[Automation] Failed to get warm leads:", error);
+      return [];
+    }
   }
 
-  getStats(): {
+  async getStats(): Promise<{
     total: number;
     hot: number;
     warm: number;
@@ -728,19 +1045,39 @@ class AutomationService {
     optedOut: number;
     wrongNumbers: number;
     valuationsSent: number;
-  } {
-    const states = Array.from(leadStates.values());
-    return {
-      total: states.length,
-      hot: states.filter((s) => s.priority === "hot").length,
-      warm: states.filter((s) => s.priority === "warm").length,
-      cold: states.filter((s) => s.priority === "cold").length,
-      dead: states.filter((s) => s.priority === "dead").length,
-      optedOut: states.filter((s) => s.optedOut).length,
-      wrongNumbers: states.filter((s) => s.wrongNumber).length,
-      valuationsSent: states.filter((s) => s.valuationSent || s.blueprintSent)
-        .length,
-    };
+  }> {
+    if (!db) {
+      return {
+        total: 0, hot: 0, warm: 0, cold: 0, dead: 0,
+        optedOut: 0, wrongNumbers: 0, valuationsSent: 0,
+      };
+    }
+
+    try {
+      const result = await db
+        .select({
+          total: sql<number>`count(*)::int`,
+          hot: sql<number>`count(*) filter (where priority = 'hot')::int`,
+          warm: sql<number>`count(*) filter (where priority = 'warm')::int`,
+          cold: sql<number>`count(*) filter (where priority = 'cold')::int`,
+          dead: sql<number>`count(*) filter (where priority = 'dead')::int`,
+          optedOut: sql<number>`count(*) filter (where opted_out = true)::int`,
+          wrongNumbers: sql<number>`count(*) filter (where wrong_number = true)::int`,
+          valuationsSent: sql<number>`count(*) filter (where valuation_sent = true or blueprint_sent = true)::int`,
+        })
+        .from(automationStates);
+
+      return result[0] || {
+        total: 0, hot: 0, warm: 0, cold: 0, dead: 0,
+        optedOut: 0, wrongNumbers: 0, valuationsSent: 0,
+      };
+    } catch (error) {
+      console.error("[Automation] Failed to get stats:", error);
+      return {
+        total: 0, hot: 0, warm: 0, cold: 0, dead: 0,
+        optedOut: 0, wrongNumbers: 0, valuationsSent: 0,
+      };
+    }
   }
 }
 

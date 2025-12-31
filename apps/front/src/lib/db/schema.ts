@@ -2397,3 +2397,151 @@ export const templateLibrary = pgTable(
 
 export type TemplateLibraryItem = typeof templateLibrary.$inferSelect;
 export type NewTemplateLibraryItem = typeof templateLibrary.$inferInsert;
+
+// ============================================================
+// AUTOMATION STATES - Durable automation state for leads
+// Replaces in-memory Map to survive server restarts
+// ============================================================
+
+export const automationStates = pgTable(
+  "automation_states",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    leadId: text("lead_id").notNull().unique(),
+    phone: text("phone").notNull(),
+    email: text("email"),
+    propertyId: text("property_id"),
+    // Priority and scoring
+    priority: text("priority").notNull().default("cold"), // hot, warm, cold, dead
+    score: integer("score").notNull().default(0),
+    // Verification flags
+    phoneVerified: boolean("phone_verified").default(false),
+    emailVerified: boolean("email_verified").default(false),
+    optedOut: boolean("opted_out").default(false),
+    wrongNumber: boolean("wrong_number").default(false),
+    // Content sent flags
+    valuationSent: boolean("valuation_sent").default(false),
+    blueprintSent: boolean("blueprint_sent").default(false),
+    // Drip campaign state
+    dripSequence: text("drip_sequence"), // retarget, nurture, hot_lead, null
+    dripStage: integer("drip_stage").default(0),
+    nextTouchAt: timestamp("next_touch_at"),
+    // Tracking
+    lastContactAt: timestamp("last_contact_at"),
+    lastResponseAt: timestamp("last_response_at"),
+    responseType: text("response_type"), // interested, not_interested, question, etc.
+    // Timestamps
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    leadIdIdx: index("automation_states_lead_id_idx").on(table.leadId),
+    phoneIdx: index("automation_states_phone_idx").on(table.phone),
+    priorityIdx: index("automation_states_priority_idx").on(table.priority),
+    nextTouchIdx: index("automation_states_next_touch_idx").on(table.nextTouchAt),
+  }),
+);
+
+export type AutomationState = typeof automationStates.$inferSelect;
+export type NewAutomationState = typeof automationStates.$inferInsert;
+
+// ============================================================
+// SCHEDULED TASKS - Durable scheduled automation tasks
+// Replaces in-memory setTimeout to survive server restarts
+// ============================================================
+
+export const scheduledTasks = pgTable(
+  "scheduled_tasks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    leadId: text("lead_id").notNull(),
+    taskId: text("task_id").notNull(), // e.g., "retarget_day7", "hot_24h"
+    taskType: text("task_type").notNull(), // retarget, nurture, hot_lead
+    // Scheduling
+    scheduledAt: timestamp("scheduled_at").notNull(),
+    executedAt: timestamp("executed_at"),
+    status: text("status").notNull().default("pending"), // pending, executed, cancelled
+    // Task payload
+    payload: jsonb("payload"), // { firstName, propertyAddress, phone, etc. }
+    // Tracking
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    leadTaskIdx: index("scheduled_tasks_lead_task_idx").on(table.leadId, table.taskId),
+    scheduledIdx: index("scheduled_tasks_scheduled_idx").on(table.scheduledAt),
+    statusIdx: index("scheduled_tasks_status_idx").on(table.status),
+    pendingIdx: index("scheduled_tasks_pending_idx").on(table.status, table.scheduledAt),
+  }),
+);
+
+export type ScheduledTask = typeof scheduledTasks.$inferSelect;
+export type NewScheduledTask = typeof scheduledTasks.$inferInsert;
+
+// ============================================================
+// SUPPRESSION QUEUE - Durable queue for opt-outs, wrong numbers, profanity
+// Replaces in-memory array to survive server restarts
+// ============================================================
+
+export const suppressionQueue = pgTable(
+  "suppression_queue",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    leadId: text("lead_id").notNull(),
+    phone: text("phone").notNull(),
+    reason: text("reason").notNull(), // wrong_number, opt_out, profanity
+    message: text("message").notNull(), // Original message that triggered suppression
+    // Review status
+    reviewed: boolean("reviewed").default(false),
+    reviewedBy: text("reviewed_by"),
+    reviewedAt: timestamp("reviewed_at"),
+    reviewAction: text("review_action"), // confirm, restore, delete
+    // Timestamps
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    phoneIdx: index("suppression_queue_phone_idx").on(table.phone),
+    reasonIdx: index("suppression_queue_reason_idx").on(table.reason),
+    reviewedIdx: index("suppression_queue_reviewed_idx").on(table.reviewed),
+  }),
+);
+
+export type SuppressionQueueItem = typeof suppressionQueue.$inferSelect;
+export type NewSuppressionQueueItem = typeof suppressionQueue.$inferInsert;
+
+// ============================================================
+// AI DECISION LOG - Audit trail for AI-generated responses
+// Enables compliance and debugging
+// ============================================================
+
+export const aiDecisionLogs = pgTable(
+  "ai_decision_logs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    leadId: text("lead_id").notNull(),
+    workerId: text("worker_id").notNull(), // gianna, cathy, sabrina, neva
+    // Input context
+    inboundMessage: text("inbound_message"),
+    promptHash: text("prompt_hash"), // Hash of full prompt for deduplication
+    // AI decision
+    intent: text("intent"), // classified intent from response
+    confidence: decimal("confidence", { precision: 5, scale: 2 }),
+    // Output
+    generatedResponse: text("generated_response"),
+    responseSent: boolean("response_sent").default(false),
+    // Human override
+    humanOverride: boolean("human_override").default(false),
+    overrideBy: text("override_by"),
+    overrideReason: text("override_reason"),
+    // Timestamps
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    leadIdIdx: index("ai_decision_logs_lead_id_idx").on(table.leadId),
+    workerIdx: index("ai_decision_logs_worker_idx").on(table.workerId),
+    createdAtIdx: index("ai_decision_logs_created_at_idx").on(table.createdAt),
+  }),
+);
+
+export type AiDecisionLog = typeof aiDecisionLogs.$inferSelect;
+export type NewAiDecisionLog = typeof aiDecisionLogs.$inferInsert;

@@ -6,6 +6,9 @@ import {
   isOptOut,
   type ClassificationResult,
 } from "@/lib/response-classifications";
+import { db } from "@/lib/db";
+import { aiDecisionLogs } from "@/lib/db/schema";
+import crypto from "crypto";
 
 /**
  * GIANNA AI SMS WEBHOOK HANDLER
@@ -191,6 +194,20 @@ export async function POST(request: NextRequest) {
     });
 
     // ═════════════════════════════════════════════════
+    // STEP 3.5: Log AI decision for compliance/audit
+    // ═════════════════════════════════════════════════
+    const leadId = storedContext.propertyId || from; // Use propertyId if available, else phone
+    await logAiDecision({
+      leadId,
+      workerId: "gianna",
+      inboundMessage: body,
+      intent: giannaResponse.intent,
+      confidence: giannaResponse.confidence,
+      generatedResponse: giannaResponse.message,
+      responseSent: false, // Will update below if sent
+    });
+
+    // ═════════════════════════════════════════════════
     // STEP 4: Handle human-in-loop requirement
     // ═════════════════════════════════════════════════
     if (giannaResponse.requiresHumanReview) {
@@ -213,8 +230,10 @@ export async function POST(request: NextRequest) {
     }
 
     // ═════════════════════════════════════════════════
-    // STEP 5: Send response if confidence is high enough
+    // STEP 5: Send response based on confidence level
     // ═════════════════════════════════════════════════
+
+    // HIGH CONFIDENCE (70%+): Auto-send
     if (giannaResponse.confidence >= 70) {
       // Update conversation history
       storedContext.history.push({
@@ -225,6 +244,17 @@ export async function POST(request: NextRequest) {
       storedContext.lastIntent = giannaResponse.intent;
       conversationContextStore.set(from, storedContext);
 
+      // Update AI log to mark as sent
+      await logAiDecision({
+        leadId,
+        workerId: "gianna",
+        inboundMessage: body,
+        intent: giannaResponse.intent,
+        confidence: giannaResponse.confidence,
+        generatedResponse: giannaResponse.message,
+        responseSent: true,
+      });
+
       // Handle next action
       if (giannaResponse.nextAction) {
         handleNextAction(giannaResponse.nextAction, from, storedContext);
@@ -233,11 +263,47 @@ export async function POST(request: NextRequest) {
       return twimlResponse(giannaResponse.message);
     }
 
-    // Low confidence - don't auto-respond
+    // MEDIUM CONFIDENCE (50-70%): Queue for human review with MEDIUM priority
+    if (giannaResponse.confidence >= 50) {
+      console.log(
+        "[Gianna SMS] Medium confidence (50-70%), queuing for MEDIUM priority review:",
+        giannaResponse.confidence,
+      );
+
+      await queueForHumanReview({
+        from,
+        to,
+        incomingMessage: body,
+        suggestedResponse: giannaResponse.message,
+        alternatives: giannaResponse.alternatives,
+        intent: giannaResponse.intent,
+        confidence: giannaResponse.confidence,
+        context: storedContext,
+        priority: "MEDIUM", // Explicit medium priority
+      });
+
+      conversationContextStore.set(from, storedContext);
+      return emptyTwimlResponse();
+    }
+
+    // LOW CONFIDENCE (<50%): Queue for HIGH priority human review
     console.log(
-      "[Gianna SMS] Low confidence, not auto-responding:",
+      "[Gianna SMS] Low confidence (<50%), queuing for HIGH priority review:",
       giannaResponse.confidence,
     );
+
+    await queueForHumanReview({
+      from,
+      to,
+      incomingMessage: body,
+      suggestedResponse: giannaResponse.message,
+      alternatives: giannaResponse.alternatives,
+      intent: giannaResponse.intent,
+      confidence: giannaResponse.confidence,
+      context: storedContext,
+      priority: "HIGH", // Needs immediate attention
+    });
+
     conversationContextStore.set(from, storedContext);
     return emptyTwimlResponse();
   } catch (error) {
@@ -334,19 +400,68 @@ async function queueForHumanReview(data: {
   intent?: string;
   confidence: number;
   context: Record<string, unknown>;
+  priority?: "HIGH" | "MEDIUM" | "LOW";
 }): Promise<void> {
   try {
+    // Use explicit priority if provided, otherwise calculate from confidence
+    const priority = data.priority || (data.confidence < 50 ? "HIGH" : "MEDIUM");
+
     await fetch(`${APP_URL}/api/inbox/pending`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         type: "sms_review",
-        priority: data.confidence < 50 ? "high" : "medium",
+        priority: priority.toLowerCase(),
         ...data,
       }),
     });
+
+    console.log(`[Gianna SMS] Queued for ${priority} priority review: confidence=${data.confidence}%`);
   } catch (error) {
     console.error("[Gianna SMS] Failed to queue for review:", error);
+  }
+}
+
+/**
+ * Log AI decision to database for compliance and debugging
+ */
+async function logAiDecision(data: {
+  leadId: string;
+  workerId: string;
+  inboundMessage: string;
+  intent?: string;
+  confidence: number;
+  generatedResponse: string;
+  responseSent: boolean;
+}): Promise<void> {
+  if (!db) {
+    console.warn("[Gianna SMS] Database not available for AI logging");
+    return;
+  }
+
+  try {
+    // Generate prompt hash for deduplication
+    const promptHash = crypto
+      .createHash("sha256")
+      .update(data.inboundMessage + data.leadId)
+      .digest("hex")
+      .slice(0, 16);
+
+    await db.insert(aiDecisionLogs).values({
+      leadId: data.leadId,
+      workerId: data.workerId,
+      inboundMessage: data.inboundMessage,
+      promptHash,
+      intent: data.intent,
+      confidence: data.confidence.toFixed(2),
+      generatedResponse: data.generatedResponse,
+      responseSent: data.responseSent,
+    });
+
+    console.log(`[Gianna SMS] AI decision logged: intent=${data.intent}, confidence=${data.confidence}%, sent=${data.responseSent}`);
+  } catch (error) {
+    console.error("[Gianna SMS] Failed to log AI decision:", error);
+    // Don't throw - logging failure shouldn't break the webhook
   }
 }
 
