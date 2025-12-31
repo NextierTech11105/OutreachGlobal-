@@ -13,6 +13,12 @@ import {
   MessageSquare,
   CalendarDays,
   CheckCircle2,
+  PhoneCall,
+  Send,
+  Users,
+  Play,
+  Square,
+  CheckSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -71,6 +77,9 @@ export default function LeadCalendarWorkspacePage() {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(
     null,
   );
+  const [selectedEvents, setSelectedEvents] = useState<Set<string>>(new Set());
+  const [isSelectMode, setIsSelectMode] = useState(false);
+  const [dialerActive, setDialerActive] = useState(false);
 
   // Fetch calendar events from leads, appointments, and campaign queue
   useEffect(() => {
@@ -220,16 +229,188 @@ export default function LeadCalendarWorkspacePage() {
     return currentDate.toLocaleDateString("en-US", options);
   };
 
-  // Initiate callback
-  const handleInitiateCallback = async (event: CalendarEvent) => {
+  // ==========================================================================
+  // POWER DIALER & SMS ACTIONS - Repeatable Execution
+  // ==========================================================================
+
+  // Toggle event selection
+  const toggleEventSelection = (eventId: string) => {
+    const newSelected = new Set(selectedEvents);
+    if (newSelected.has(eventId)) {
+      newSelected.delete(eventId);
+    } else {
+      newSelected.add(eventId);
+    }
+    setSelectedEvents(newSelected);
+  };
+
+  // Select all today's events
+  const selectAllToday = () => {
+    const todayEvents = getEventsForDay(new Date());
+    const newSelected = new Set(todayEvents.map(e => e.id));
+    setSelectedEvents(newSelected);
+    setIsSelectMode(true);
+  };
+
+  // Clear selection
+  const clearSelection = () => {
+    setSelectedEvents(new Set());
+    setIsSelectMode(false);
+  };
+
+  // Get selected events as array
+  const getSelectedEventsArray = () => {
+    return events.filter(e => selectedEvents.has(e.id));
+  };
+
+  // TWILIO CLICK-TO-CALL - Single call
+  const handleClickToCall = async (event: CalendarEvent) => {
     if (!event.phone) {
       toast.error("No phone number available");
       return;
     }
 
-    toast.success(`Initiating call to ${event.leadName}`);
-    // Integration with power dialer would go here
-    // await fetch('/api/power-dialer/initiate', {...})
+    try {
+      const response = await fetch("/api/twilio/click-to-call", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: event.phone,
+          leadId: event.leadId,
+          teamId,
+          callbackId: event.id,
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        toast.success(`Calling ${event.leadName}...`);
+      } else {
+        toast.error(data.error || "Failed to initiate call");
+      }
+    } catch (error) {
+      console.error("Click-to-call error:", error);
+      toast.error("Failed to initiate call");
+    }
+  };
+
+  // POWER DIALER - Queue multiple calls
+  const handleStartDialer = async () => {
+    const selected = getSelectedEventsArray();
+    const withPhones = selected.filter(e => e.phone);
+
+    if (withPhones.length === 0) {
+      toast.error("No events with phone numbers selected");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/power-dialer/start-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          teamId,
+          leads: withPhones.map(e => ({
+            id: e.leadId,
+            phone: e.phone,
+            name: e.leadName,
+            callbackId: e.id,
+          })),
+          source: "calendar",
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setDialerActive(true);
+        toast.success(`Power Dialer started with ${withPhones.length} leads`);
+        // Open dialer in new tab or modal
+        window.open(`/t/${teamId}/call-center?session=${data.sessionId}`, "_blank");
+      } else {
+        toast.error(data.error || "Failed to start dialer");
+      }
+    } catch (error) {
+      console.error("Dialer error:", error);
+      toast.error("Failed to start power dialer");
+    }
+  };
+
+  // QUICK SMS - Single message
+  const handleQuickSms = async (event: CalendarEvent, message?: string) => {
+    if (!event.phone) {
+      toast.error("No phone number available");
+      return;
+    }
+
+    const smsMessage = message || `Hi ${event.leadName?.split(" ")[0] || "there"}, this is a reminder about your scheduled callback. Reply YES to confirm or let us know a better time.`;
+
+    try {
+      const response = await fetch("/api/signalhouse/sms/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: event.phone,
+          message: smsMessage,
+          leadId: event.leadId,
+          teamId,
+          source: "calendar_reminder",
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        toast.success(`SMS sent to ${event.leadName}`);
+      } else {
+        toast.error(data.error || "Failed to send SMS");
+      }
+    } catch (error) {
+      console.error("SMS error:", error);
+      toast.error("Failed to send SMS");
+    }
+  };
+
+  // SMS BLAST - Bulk send to selected
+  const handleSmsBlast = async (message: string) => {
+    const selected = getSelectedEventsArray();
+    const withPhones = selected.filter(e => e.phone);
+
+    if (withPhones.length === 0) {
+      toast.error("No events with phone numbers selected");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/signalhouse/sms/blast", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          teamId,
+          recipients: withPhones.map(e => ({
+            phone: e.phone,
+            leadId: e.leadId,
+            variables: { firstName: e.leadName?.split(" ")[0] || "there" },
+          })),
+          message,
+          source: "calendar_blast",
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        toast.success(`SMS blast sent to ${withPhones.length} leads`);
+        clearSelection();
+      } else {
+        toast.error(data.error || "Failed to send SMS blast");
+      }
+    } catch (error) {
+      console.error("SMS blast error:", error);
+      toast.error("Failed to send SMS blast");
+    }
+  };
+
+  // Legacy handler - now uses click-to-call
+  const handleInitiateCallback = async (event: CalendarEvent) => {
+    await handleClickToCall(event);
   };
 
   if (loading) {
@@ -255,6 +436,51 @@ export default function LeadCalendarWorkspacePage() {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Action Toolbar */}
+          {selectedEvents.size > 0 ? (
+            <div className="flex items-center gap-2 mr-4 px-3 py-1 bg-blue-50 rounded-lg border border-blue-200">
+              <span className="text-sm font-medium text-blue-700">
+                {selectedEvents.size} selected
+              </span>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={clearSelection}
+                className="h-7 px-2"
+              >
+                <Square className="h-3 w-3 mr-1" />
+                Clear
+              </Button>
+              <div className="w-px h-4 bg-blue-200" />
+              <Button
+                size="sm"
+                onClick={handleStartDialer}
+                className="h-7 bg-green-600 hover:bg-green-700"
+              >
+                <PhoneCall className="h-3 w-3 mr-1" />
+                Power Dialer
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => handleSmsBlast("Hi {firstName}, just following up on our scheduled call. Are you available? Reply YES to confirm.")}
+                className="h-7 bg-purple-600 hover:bg-purple-700"
+              >
+                <Users className="h-3 w-3 mr-1" />
+                SMS Blast
+              </Button>
+            </div>
+          ) : (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={selectAllToday}
+              className="mr-2"
+            >
+              <CheckSquare className="h-4 w-4 mr-1" />
+              Select Today
+            </Button>
+          )}
+
           {/* View Mode Selector */}
           <div className="flex border rounded-lg">
             {(["day", "week", "month"] as ViewMode[]).map((mode) => (
