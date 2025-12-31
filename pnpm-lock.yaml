@@ -280,6 +280,8 @@ importers:
         specifier: ^8.33.1
         version: 8.34.1(eslint@9.29.0(jiti@2.4.2))(typescript@5.8.3)
 
+  apps/extension: {}
+
   apps/fdaily-pro:
     dependencies:
       '@aws-sdk/client-s3':
@@ -508,6 +510,9 @@ importers:
       next-themes:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      nodemailer:
+        specifier: ^7.0.3
+        version: 7.0.3
       openai:
         specifier: ^6.10.0
         version: 6.10.0(ws@8.18.2)(zod@3.25.67)
@@ -593,6 +598,9 @@ importers:
       '@types/node':
         specifier: ^22.15.30
         version: 22.15.32
+      '@types/nodemailer':
+        specifier: ^6.4.17
+        version: 6.4.17
       '@types/pg':
         specifier: ^8.15.4
         version: 8.15.4
