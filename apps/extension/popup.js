@@ -4,7 +4,7 @@
  * Handles lead capture, quick actions, and cadence management
  */
 
-const API_BASE = 'https://your-nextier-domain.app'; // Configure this
+const API_BASE = 'https://monkfish-app-mb7h3.ondigitalocean.app';
 
 // =============================================================================
 // STATE

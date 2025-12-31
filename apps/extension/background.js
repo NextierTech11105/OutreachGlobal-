@@ -7,7 +7,7 @@
  * - Auth token management
  */
 
-const API_BASE = 'https://your-nextier-domain.app';
+const API_BASE = 'https://monkfish-app-mb7h3.ondigitalocean.app';
 
 // =============================================================================
 // CONTEXT MENUS
