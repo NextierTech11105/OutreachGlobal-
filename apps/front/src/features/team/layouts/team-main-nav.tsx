@@ -2,6 +2,8 @@
 
 import {
   BarChartIcon,
+  BellIcon,
+  BookOpenIcon,
   BotIcon,
   BrainIcon,
   BuildingIcon,
@@ -188,31 +190,6 @@ const navGroups = [
           },
         ],
       },
-      {
-        title: "Content Library",
-        path: "/library",
-        icon: LibraryIcon,
-      },
-    ],
-  },
-  {
-    label: "AI Workers",
-    items: [
-      {
-        title: "GIANNA (Opener)",
-        path: "/campaigns/gianna",
-        icon: SparkleIcon,
-      },
-      {
-        title: "CATHY (Nudger)",
-        path: "/campaigns/cathy",
-        icon: SmileIcon,
-      },
-      {
-        title: "SABRINA (Closer)",
-        path: "/campaigns/sabrina",
-        icon: CheckCircle2Icon,
-      },
     ],
   },
   {
@@ -231,7 +208,22 @@ const navGroups = [
       {
         title: "Nudger",
         path: "/workspaces/nudger",
-        icon: SmileIcon,
+        icon: BellIcon,
+      },
+      {
+        title: "Content Nurture",
+        path: "/workspaces/content-nurture",
+        icon: BookOpenIcon,
+      },
+      {
+        title: "Book Appointment",
+        path: "/workspaces/sabrina",
+        icon: CalendarIcon,
+      },
+      {
+        title: "Lead Calendar",
+        path: "/workspaces/calendar",
+        icon: CalendarIcon,
       },
     ],
   },

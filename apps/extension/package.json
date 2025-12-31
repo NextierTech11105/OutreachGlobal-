@@ -1,0 +1,10 @@
+{
+  "name": "@nextier/extension",
+  "version": "1.0.0",
+  "description": "Nextier Lead Assistant - Chrome Extension for lead capture and campaign cadences",
+  "private": true,
+  "scripts": {
+    "build": "echo Extension ready - load unpacked from apps/extension",
+    "lint": "echo No linting configured"
+  }
+}
