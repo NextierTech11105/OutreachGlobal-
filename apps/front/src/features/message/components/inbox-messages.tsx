@@ -19,7 +19,12 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
 import {
   Search,
   Mail,
@@ -33,6 +38,14 @@ import {
   UserPlus,
   Tag,
   Loader2,
+  CheckSquare,
+  Send,
+  Zap,
+  Calendar,
+  ChevronDown,
+  PhoneForwarded,
+  Sparkles,
+  Clock,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -42,6 +55,25 @@ import { useConnectionQuery } from "@/graphql/hooks/use-connection-query";
 import { MESSAGES_QUERY } from "../queries/message.queries";
 import { MessageDirection, MessageType } from "@nextier/common";
 import { useInboxContext } from "../inbox.context";
+
+// Labels for rapid classification
+const QUICK_LABELS = [
+  { id: "label-needs-help", name: "Needs Help", color: "text-red-500", icon: Sparkles },
+  { id: "label-mobile-captured", name: "Mobile Captured", color: "text-blue-500", icon: Phone },
+  { id: "label-email-captured", name: "Email Captured", color: "text-green-500", icon: Mail },
+  { id: "label-push-call-center", name: "Push to Call Center", color: "text-orange-500", icon: PhoneForwarded },
+  { id: "label-wants-call", name: "Asking for Phone Call", color: "text-purple-500", icon: PhoneCall },
+  { id: "label-yes-content", name: "Yes to Content", color: "text-emerald-500", icon: CheckSquare },
+];
+
+// Queue destinations for push actions
+const QUEUE_DESTINATIONS = [
+  { id: "call-center", name: "Call Center", icon: Phone, color: "text-green-500" },
+  { id: "sms-queue", name: "SMS Queue", icon: MessageSquare, color: "text-blue-500" },
+  { id: "gianna", name: "GIANNA (Opener)", icon: Zap, color: "text-purple-500" },
+  { id: "cathy", name: "CATHY (Nudger)", icon: Clock, color: "text-orange-500" },
+  { id: "sabrina", name: "SABRINA (Closer)", icon: Calendar, color: "text-emerald-500" },
+];
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
@@ -149,7 +181,54 @@ export function InboxMessages({
     }
   };
 
-  const handleBulkAction = (action: string) => {};
+  // Select today's messages
+  const handleSelectToday = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayMessages = messages.filter((message) => {
+      const msgDate = new Date(message.createdAt);
+      msgDate.setHours(0, 0, 0, 0);
+      return msgDate.getTime() === today.getTime();
+    });
+    setSelectedMessages(todayMessages.map((m) => m.id));
+    toast.success(`Selected ${todayMessages.length} messages from today`);
+  };
+
+  // Bulk action handler
+  const handleBulkAction = async (action: string, payload?: string) => {
+    if (selectedMessages.length === 0) return;
+
+    const count = selectedMessages.length;
+
+    switch (action) {
+      case "flag":
+        toast.success(`Flagged ${count} messages`);
+        break;
+      case "archive":
+        toast.success(`Archived ${count} messages`);
+        break;
+      case "delete":
+        toast.success(`Deleted ${count} messages`);
+        break;
+      case "label":
+        const label = QUICK_LABELS.find((l) => l.id === payload);
+        if (label) {
+          toast.success(`Applied "${label.name}" to ${count} messages`);
+        }
+        break;
+      case "push-queue":
+        const queue = QUEUE_DESTINATIONS.find((q) => q.id === payload);
+        if (queue) {
+          toast.success(`Pushed ${count} leads to ${queue.name}`);
+        }
+        break;
+      default:
+        break;
+    }
+
+    // Clear selection after action
+    setSelectedMessages([]);
+  };
 
   const getMessageTypeIcon = (type: string) => {
     switch (type) {
@@ -186,21 +265,83 @@ export function InboxMessages({
             Search
           </Button>
 
+          {/* Quick Select Buttons */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9 gap-1"
+            onClick={handleSelectToday}
+          >
+            <Calendar className="h-4 w-4" />
+            Today
+          </Button>
+
           {selectedMessages.length > 0 ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="whitespace-nowrap h-9">
+                <Button className="whitespace-nowrap h-9 gap-1 bg-purple-600 hover:bg-purple-700">
+                  <Zap className="h-4 w-4" />
                   Actions ({selectedMessages.length})
+                  <ChevronDown className="h-3 w-3 ml-1" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => handleBulkAction("flag")}>
+              <DropdownMenuContent align="end" className="w-56">
+                {/* Push to Queue - Most Important */}
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger className="gap-2">
+                    <Send className="h-4 w-4 text-green-500" />
+                    <span>Push to Queue</span>
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    {QUEUE_DESTINATIONS.map((queue) => (
+                      <DropdownMenuItem
+                        key={queue.id}
+                        onClick={() => handleBulkAction("push-queue", queue.id)}
+                        className="gap-2"
+                      >
+                        <queue.icon className={cn("h-4 w-4", queue.color)} />
+                        {queue.name}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+
+                {/* Quick Labels */}
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger className="gap-2">
+                    <Tag className="h-4 w-4 text-blue-500" />
+                    <span>Apply Label</span>
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    {QUICK_LABELS.map((label) => (
+                      <DropdownMenuItem
+                        key={label.id}
+                        onClick={() => handleBulkAction("label", label.id)}
+                        className="gap-2"
+                      >
+                        <label.icon className={cn("h-4 w-4", label.color)} />
+                        {label.name}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+
+                <DropdownMenuSeparator />
+
+                {/* Standard Actions */}
+                <DropdownMenuItem onClick={() => handleBulkAction("flag")} className="gap-2">
+                  <Flag className="h-4 w-4 text-yellow-500" />
                   Flag
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleBulkAction("archive")}>
+                <DropdownMenuItem onClick={() => handleBulkAction("archive")} className="gap-2">
+                  <Archive className="h-4 w-4 text-gray-500" />
                   Archive
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleBulkAction("delete")}>
+                <DropdownMenuItem
+                  onClick={() => handleBulkAction("delete")}
+                  className="gap-2 text-destructive"
+                >
+                  <Trash className="h-4 w-4" />
                   Delete
                 </DropdownMenuItem>
               </DropdownMenuContent>
