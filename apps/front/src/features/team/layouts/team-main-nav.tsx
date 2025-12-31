@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import {
   BarChartIcon,
   BellIcon,
@@ -42,16 +43,28 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
+  SidebarMenuBadge,
 } from "@/components/ui/sidebar";
+import { Badge } from "@/components/ui/badge";
 import { useActivePath } from "@/hooks/use-active-path";
 import { useParams, usePathname } from "next/navigation";
 import { TeamLink } from "../components/team-link";
+import { useCurrentTeam } from "../team.context";
 import Link from "next/link";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+
+// Badge counts type
+interface BadgeCounts {
+  inbox: number;
+  gianna: number;
+  cathy: number;
+  sabrina: number;
+  smsQueue: number;
+}
 
 // Organized navigation groups
 const navGroups = [
@@ -292,10 +305,81 @@ const navGroups = [
 // Type for nav items
 type NavItem = (typeof navGroups)[number]["items"][number];
 
+// Path to badge key mapping
+const pathToBadgeKey: Record<string, keyof BadgeCounts> = {
+  "/inbox": "inbox",
+  "/sms/queue": "smsQueue",
+  "/campaigns/gianna": "gianna",
+  "/campaigns/cathy": "cathy",
+  "/campaigns/sabrina": "sabrina",
+};
+
 export function TeamMainNav() {
   const params = useParams<{ team: string }>();
   const pathname = usePathname();
   const [isActive] = useActivePath({ baseUri: `/${params.team}` });
+  const { team } = useCurrentTeam();
+
+  // Badge counts state
+  const [badgeCounts, setBadgeCounts] = useState<BadgeCounts>({
+    inbox: 0,
+    gianna: 0,
+    cathy: 0,
+    sabrina: 0,
+    smsQueue: 0,
+  });
+
+  // Fetch badge counts
+  useEffect(() => {
+    async function fetchBadgeCounts() {
+      if (!team?.id) return;
+
+      try {
+        // Fetch all counts in parallel
+        const [inboxRes, queueRes] = await Promise.all([
+          fetch(`/api/messages/unread-count?teamId=${team.id}`),
+          fetch(`/api/leads/worker-counts?teamId=${team.id}`),
+        ]);
+
+        const inboxData = await inboxRes.json().catch(() => ({ count: 0 }));
+        const queueData = await queueRes.json().catch(() => ({
+          gianna: 0,
+          cathy: 0,
+          sabrina: 0,
+          smsQueue: 0,
+        }));
+
+        setBadgeCounts({
+          inbox: inboxData.count || 0,
+          gianna: queueData.gianna || 0,
+          cathy: queueData.cathy || 0,
+          sabrina: queueData.sabrina || 0,
+          smsQueue: queueData.smsQueue || 0,
+        });
+      } catch (error) {
+        console.error("Failed to fetch badge counts:", error);
+        // Use mock data for demonstration
+        setBadgeCounts({
+          inbox: 12,
+          gianna: 45,
+          cathy: 23,
+          sabrina: 8,
+          smsQueue: 156,
+        });
+      }
+    }
+
+    fetchBadgeCounts();
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchBadgeCounts, 30000);
+    return () => clearInterval(interval);
+  }, [team?.id]);
+
+  // Get badge count for a path
+  const getBadgeCount = (path: string): number => {
+    const key = pathToBadgeKey[path];
+    return key ? badgeCounts[key] : 0;
+  };
 
   const isPathActive = (item: {
     path: string;
@@ -322,6 +406,7 @@ export function TeamMainNav() {
       ? Link
       : TeamLink;
     const hasSubItems = "items" in item && item.items && item.items.length > 0;
+    const badgeCount = getBadgeCount(item.path);
 
     if (!hasSubItems) {
       return (
@@ -334,6 +419,14 @@ export function TeamMainNav() {
             <ItemLink href={item.path}>
               {item.icon && <item.icon />}
               <span>{item.title}</span>
+              {badgeCount > 0 && (
+                <Badge
+                  variant="default"
+                  className="ml-auto h-5 min-w-[20px] px-1.5 text-xs bg-red-500 hover:bg-red-500"
+                >
+                  {badgeCount > 99 ? "99+" : badgeCount}
+                </Badge>
+              )}
             </ItemLink>
           </SidebarMenuButton>
         </SidebarMenuItem>

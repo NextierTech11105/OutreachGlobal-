@@ -42,6 +42,13 @@ import {
   MessageSquare,
   Loader2,
   CalendarPlus,
+  Sparkles,
+  Search,
+  Building2,
+  Users,
+  Zap,
+  Heart,
+  Calendar,
 } from "lucide-react";
 import { TeamLink } from "@/features/team/components/team-link";
 import {
@@ -90,6 +97,12 @@ export const LeadTable = () => {
   const [calendarDialog, setCalendarDialog] = useState(false);
   const [calendarDate, setCalendarDate] = useState("");
   const [calendarLoading, setCalendarLoading] = useState(false);
+
+  // Enrichment state
+  const [enrichLoading, setEnrichLoading] = useState<"skip-trace" | "apollo" | null>(null);
+
+  // Worker assignment state
+  const [workerLoading, setWorkerLoading] = useState<"gianna" | "cathy" | "sabrina" | null>(null);
 
   const [leads, pageInfo, { loading, refetch }] = useConnectionQuery(
     LEADS_QUERY,
@@ -214,6 +227,175 @@ export const LeadTable = () => {
       );
     } finally {
       setCalendarLoading(false);
+    }
+  };
+
+  // Enrich leads (Skip Trace or Apollo)
+  const enrichLeads = async (type: "skip-trace" | "apollo") => {
+    if (selectedLeads.length === 0) return;
+
+    setEnrichLoading(type);
+    try {
+      const selectedLeadDetails =
+        leads?.filter((lead: { id: string }) =>
+          selectedLeads.some((s) => s.id === lead.id),
+        ) || [];
+
+      if (type === "skip-trace") {
+        // Call bulk skip trace API
+        const response = await fetch("/api/enrichment/bulk-skip-trace", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            leads: selectedLeadDetails.map(
+              (lead: {
+                id: string;
+                firstName?: string;
+                lastName?: string;
+                propertyAddress?: string;
+                propertyCity?: string;
+                propertyState?: string;
+                propertyZip?: string;
+              }) => ({
+                id: lead.id,
+                firstName: lead.firstName,
+                lastName: lead.lastName,
+                address: lead.propertyAddress || "",
+                city: lead.propertyCity || "",
+                state: lead.propertyState || "",
+                zip: lead.propertyZip || "",
+              }),
+            ),
+            teamId,
+          }),
+        });
+
+        const data = await response.json();
+        if (data.success) {
+          toast.success(
+            `Skip trace started for ${selectedLeads.length} leads`,
+            { description: data.mode === "async" ? "Results will be ready shortly" : `${data.processed} leads enriched` }
+          );
+          await refetch({ ...defaultCursor });
+          setSelected([]);
+        } else {
+          throw new Error(data.error || "Skip trace failed");
+        }
+      } else {
+        // Call Apollo bulk enrich API
+        const response = await fetch("/api/apollo/bulk-enrich", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            leads: selectedLeadDetails.map(
+              (lead: {
+                id: string;
+                firstName?: string;
+                lastName?: string;
+                email?: string;
+                company?: string;
+              }) => ({
+                id: lead.id,
+                firstName: lead.firstName,
+                lastName: lead.lastName,
+                email: lead.email,
+                company: lead.company,
+              }),
+            ),
+            teamId,
+          }),
+        });
+
+        const data = await response.json();
+        if (data.success || response.ok) {
+          toast.success(
+            `Apollo enrichment started for ${selectedLeads.length} leads`,
+            { description: "Company and contact data being fetched" }
+          );
+          await refetch({ ...defaultCursor });
+          setSelected([]);
+        } else {
+          throw new Error(data.error || "Apollo enrichment failed");
+        }
+      }
+    } catch (error) {
+      console.error("Enrichment error:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to enrich leads",
+      );
+    } finally {
+      setEnrichLoading(null);
+    }
+  };
+
+  // Assign leads to AI worker
+  const assignToWorker = async (worker: "gianna" | "cathy" | "sabrina") => {
+    if (selectedLeads.length === 0) return;
+
+    setWorkerLoading(worker);
+    try {
+      const selectedLeadDetails =
+        leads?.filter((lead: { id: string }) =>
+          selectedLeads.some((s) => s.id === lead.id),
+        ) || [];
+
+      // Route based on worker
+      const endpoint = worker === "gianna"
+        ? "/api/gianna/scheduler"
+        : worker === "cathy"
+        ? "/api/cathy/schedule"
+        : "/api/sabrina/book";
+
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "assign_leads",
+          leads: selectedLeadDetails.map(
+            (lead: {
+              id: string;
+              firstName?: string;
+              lastName?: string;
+              phone?: string;
+              email?: string;
+              propertyAddress?: string;
+            }) => ({
+              id: lead.id,
+              name: [lead.firstName, lead.lastName].filter(Boolean).join(" ") || "Unknown",
+              phone: lead.phone,
+              email: lead.email,
+              address: lead.propertyAddress,
+            }),
+          ),
+          teamId,
+        }),
+      });
+
+      const data = await response.json();
+      const workerName = worker.charAt(0).toUpperCase() + worker.slice(1);
+
+      if (data.success || response.ok) {
+        toast.success(
+          `${selectedLeads.length} leads assigned to ${workerName}`,
+          {
+            description: worker === "gianna"
+              ? "Ready for initial outreach"
+              : worker === "cathy"
+              ? "Added to nudge queue"
+              : "Ready for appointment booking"
+          }
+        );
+        setSelected([]);
+      } else {
+        throw new Error(data.error || `Failed to assign to ${workerName}`);
+      }
+    } catch (error) {
+      console.error("Worker assignment error:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to assign leads",
+      );
+    } finally {
+      setWorkerLoading(null);
     }
   };
 
@@ -504,6 +686,88 @@ export const LeadTable = () => {
               <CalendarPlus className="h-3.5 w-3.5" />
               Calendar
             </Button>
+
+            <DropdownMenuSeparator className="h-6 w-px bg-border mx-1" />
+
+            {/* Enrich Actions */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="xs"
+                  variant="default"
+                  className="gap-1 bg-amber-600 hover:bg-amber-700"
+                  disabled={enrichLoading !== null}
+                >
+                  {enrichLoading ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-3.5 w-3.5" />
+                  )}
+                  Enrich
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={() => enrichLeads("skip-trace")}
+                  disabled={enrichLoading !== null}
+                >
+                  <Search className="h-4 w-4 mr-2" />
+                  Skip Trace (Phone/Email)
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => enrichLeads("apollo")}
+                  disabled={enrichLoading !== null}
+                >
+                  <Building2 className="h-4 w-4 mr-2" />
+                  Apollo (B2B Intel)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* AI Worker Assignment */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="xs"
+                  variant="default"
+                  className="gap-1 bg-violet-600 hover:bg-violet-700"
+                  disabled={workerLoading !== null}
+                >
+                  {workerLoading ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Users className="h-3.5 w-3.5" />
+                  )}
+                  AI Worker
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={() => assignToWorker("gianna")}
+                  disabled={workerLoading !== null}
+                >
+                  <Zap className="h-4 w-4 mr-2 text-blue-500" />
+                  <span>Send to <strong>GIANNA</strong></span>
+                  <span className="ml-2 text-xs text-muted-foreground">(Opener)</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => assignToWorker("cathy")}
+                  disabled={workerLoading !== null}
+                >
+                  <Heart className="h-4 w-4 mr-2 text-orange-500" />
+                  <span>Send to <strong>CATHY</strong></span>
+                  <span className="ml-2 text-xs text-muted-foreground">(Nudger)</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => assignToWorker("sabrina")}
+                  disabled={workerLoading !== null}
+                >
+                  <Calendar className="h-4 w-4 mr-2 text-emerald-500" />
+                  <span>Send to <strong>SABRINA</strong></span>
+                  <span className="ml-2 text-xs text-muted-foreground">(Closer)</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             <DropdownMenuSeparator className="h-6 w-px bg-border mx-1" />
 

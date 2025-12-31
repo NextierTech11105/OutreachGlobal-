@@ -2,6 +2,31 @@
 // USBizData Schema Definitions
 // All schemas for NY data lakes
 // ==========================================
+//
+// CAMPAIGN CONFIGURATION:
+// All B2B sectors run under NEXTIER TECHNOLOGIES campaigns
+// Sub-brands mapped to SignalHouse.io for initial SMS blasts
+//
+// NEXTIER BRAND HIERARCHY:
+// ├── Nextier Technologies (parent)
+// │   ├── CRM Consultant Partnerships (management-consulting-crm)
+// │   ├── Real Estate Agent Outreach (real-estate)
+// │   └── White Label Solutions
+// ├── Business Brokering (sub-brand)
+// │   ├── Plumbing/HVAC M&A (business-brokering-trades)
+// │   └── Exit Strategy Consulting
+// └── SignalHouse.io Integration
+//     ├── Initial SMS blast campaigns
+//     ├── GIANNA → CATHY → SABRINA workflow
+//     ├── Automated follow-up sequences
+//     ├── Campaign Block = 2,000 outbound SMS
+//     ├── Sub-blocks: 500 or 1,000 SMS batches
+//     └── Send Modes:
+//         ├── BLAST - Immediate send all
+//         ├── SCHEDULE - Cadence-based timing
+//         └── IF/THEN - Conditional logic triggers
+//
+// ==========================================
 
 export const DATA_LAKE_SCHEMAS = {
   // NY Residential Database - 15.8M records
@@ -263,6 +288,42 @@ export const DATA_LAKE_SCHEMAS = {
       "coupon partners",
     ],
   },
+  // US Business Management & Consultant Database - 866K records (NATIONAL)
+  us_management_consulting: {
+    name: "US Business Management & Consultant Database",
+    source: "USBizData",
+    totalRecords: 866527,
+    lastUpdate: "Q4 2025",
+    price: 27.00,
+    description:
+      "866,527 Business Contact Records w/ Emails • All 50 States & DC • SIC 8742, 8748. TARGET: Nextier Technologies - CRM consultants (Zoho, Salesforce, HubSpot) for white label partnerships.",
+    targetFor: "Nextier Technologies",
+    sicCodes: ["8742", "8748"],
+    fields: [
+      { name: "Company Name", normalized: "companyName", type: "string", indexed: true },
+      { name: "Contact Name", normalized: "contactName", type: "string", indexed: true },
+      { name: "Email Address", normalized: "email", type: "string", indexed: true },
+      { name: "Street Address", normalized: "address", type: "string", indexed: true },
+      { name: "City", normalized: "city", type: "string", indexed: true },
+      { name: "State", normalized: "state", type: "string", indexed: true },
+      { name: "Zip Code", normalized: "zipCode", type: "string", indexed: true },
+      { name: "County", normalized: "county", type: "string" },
+      { name: "Area Code", normalized: "areaCode", type: "string" },
+      { name: "Phone Number", normalized: "phone", type: "string", indexed: true },
+      { name: "Website URL", normalized: "website", type: "string" },
+      { name: "Number of Employees", normalized: "employeeCount", type: "number" },
+      { name: "Annual Revenue", normalized: "annualRevenue", type: "number" },
+      { name: "SIC Code", normalized: "sicCode", type: "string", indexed: true },
+      { name: "SIC Description", normalized: "sicDescription", type: "string" },
+    ],
+    storagePath: "datalake/business/us_management_consulting/",
+    useCases: [
+      "Nextier Technologies outreach",
+      "CRM consultant partnerships",
+      "White label reseller recruitment",
+      "Integration licensing sales",
+    ],
+  },
 };
 
 // Local business partnership categories (for coupons/offers)
@@ -325,10 +386,60 @@ export const SCHEMA_PATHS: Record<string, string> = {
   ny_cell_phone: "datalake/phones/ny/",
   ny_optin_email: "datalake/emails/ny/",
   ny_business: "datalake/business/ny/",
+  us_management_consulting: "datalake/business/us_management_consulting/", // Nextier Target
 };
 
 // B2B Sector definitions with SIC code mappings
 export const B2B_SECTORS = {
+  // === HIGH PRIORITY TARGET: CRM Consultants for Nextier/White Label ===
+  "management-consulting-crm": {
+    name: "US Business Management & Consultant Database",
+    description: "866,527 Management & Consulting firms. Target for Nextier Technologies - CRM integrations, white label, partnerships. Make their CRMs 10X more effective.",
+    sicPrefix: ["87"],
+    sicCodes: ["8742", "8748"], // Management Consulting Services & Business Consulting
+    totalRecords: 866527,
+    lastUpdate: "Q4 2025",
+    source: "USBizData",
+    targetingNotes: {
+      primaryOffer: "Nextier Technologies & White Label CRM Solutions",
+      idealCustomers: [
+        "Zoho CRM consultants",
+        "Salesforce consultants",
+        "HubSpot consultants",
+        "CRM implementation specialists",
+        "Business process consultants",
+      ],
+      valueProposition: [
+        "Ownership and integration licensing",
+        "Resale partnerships",
+        "Create interoperability and custom flows without changing CRMs",
+        "Make their CRMs 10X more effective",
+      ],
+      pricing: "$27.00 USD (database)",
+    },
+    subsectors: {
+      "crm-consultants": {
+        name: "CRM Consultants",
+        sicCodes: ["8742"],
+        keywords: ["zoho", "salesforce", "hubspot", "crm", "integration"]
+      },
+      "management-consulting": {
+        name: "Management Consulting",
+        sicCodes: ["8742"]
+      },
+      "business-consulting": {
+        name: "Business Consulting NEC",
+        sicCodes: ["8748"]
+      },
+    },
+    storagePath: "datalake/business/us_management_consulting/",
+    useCases: [
+      "Nextier Technologies outreach",
+      "White label partnership development",
+      "CRM integration partnerships",
+      "Reseller channel building",
+    ],
+  },
   "professional-services": {
     name: "Professional Services",
     description: "Law firms, accounting, consulting, engineering",
@@ -528,6 +639,62 @@ export const B2B_SECTORS = {
       masonry: { name: "Masonry", sicCodes: ["1741"] },
       landscaping: { name: "Landscaping", sicCodes: ["0782"] },
     },
+  },
+  // === BUSINESS BROKERING TARGETS: Deal Sourcing ===
+  "business-brokering-trades": {
+    name: "Business Brokering - Trade Services",
+    description: "Plumbing, HVAC, and trades businesses for M&A deal sourcing. Target for business expansion and exit strategy consulting.",
+    sicPrefix: ["17"],
+    sicCodes: ["1711", "1721", "1731", "1751", "1761"], // Plumbing/HVAC, Painting, Electric, Carpentry, Roofing
+    targetFor: "Business Brokering",
+    targetingNotes: {
+      primaryOffer: "Business Brokering - Expansion & Exit Strategy",
+      idealCustomers: [
+        "Plumbing companies $500K-$5M revenue",
+        "HVAC contractors $500K-$5M revenue",
+        "Electrical contractors seeking exit",
+        "Trade businesses with aging owners",
+        "Multi-location service companies",
+      ],
+      valueProposition: [
+        "Business valuation and exit planning",
+        "M&A deal sourcing and matching",
+        "Expansion strategy consulting",
+        "Succession planning for owners 55+",
+        "Roll-up acquisition opportunities",
+      ],
+      dealCriteria: {
+        minRevenue: 500000,
+        maxRevenue: 5000000,
+        ownerAge: "55+",
+        employeeCount: "5-50",
+      },
+    },
+    subsectors: {
+      "plumbing-hvac": {
+        name: "Plumbing & HVAC",
+        sicCodes: ["1711"],
+        description: "Highest demand for M&A - essential services with recurring revenue"
+      },
+      electrical: {
+        name: "Electrical Contractors",
+        sicCodes: ["1731"],
+        description: "Commercial and residential electrical - stable cash flow"
+      },
+      "general-trades": {
+        name: "General Trade Services",
+        sicCodes: ["1721", "1751", "1761"],
+        description: "Painting, carpentry, roofing - consolidation opportunities"
+      },
+    },
+    storagePath: "datalake/business/trades_brokering/",
+    useCases: [
+      "M&A deal sourcing",
+      "Exit strategy consulting",
+      "Business expansion outreach",
+      "Succession planning",
+      "Roll-up acquisition targets",
+    ],
   },
   "personal-services": {
     name: "Personal Services",

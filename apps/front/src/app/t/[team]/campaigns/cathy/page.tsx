@@ -19,10 +19,30 @@ import {
   Smile,
   Flame,
   Ghost,
+  MoreHorizontal,
+  Eye,
+  Play,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { TeamSection } from "@/features/team/layouts/team-section";
 import { TeamHeader } from "@/features/team/layouts/team-header";
 import { TeamTitle } from "@/features/team/layouts/team-title";
@@ -72,6 +92,16 @@ interface WorkerStats {
   };
 }
 
+interface QueueLead {
+  id: string;
+  name: string;
+  company?: string;
+  phone?: string;
+  status: "pending" | "nudging" | "revived" | "exhausted";
+  attempts: number;
+  humorLevel: "mild" | "medium" | "spicy";
+}
+
 export default function CathyCampaignsPage() {
   const { team } = useCurrentTeam();
   const [loading, setLoading] = useState(true);
@@ -85,6 +115,9 @@ export default function CathyCampaignsPage() {
     avgAttemptsToRevive: 0,
     humorLevelBreakdown: { mild: 0, medium: 0, spicy: 0 },
   });
+  const [queueLeads, setQueueLeads] = useState<QueueLead[]>([]);
+  const [selectedLeads, setSelectedLeads] = useState<Set<string>>(new Set());
+  const [queueLoading, setQueueLoading] = useState(false);
 
   // Fetch phone assignment
   useEffect(() => {
@@ -121,6 +154,151 @@ export default function CathyCampaignsPage() {
     }
     fetchStats();
   }, [team.id]);
+
+  // Fetch queue leads
+  useEffect(() => {
+    async function fetchQueue() {
+      setQueueLoading(true);
+      try {
+        const response = await fetch(`/api/leads?teamId=${team.id}&worker=cathy&limit=20`);
+        const data = await response.json();
+        if (data.leads) {
+          setQueueLeads(data.leads.map((lead: any) => ({
+            id: lead.id,
+            name: lead.name || lead.fullName || "Unknown",
+            company: lead.company || lead.companyName,
+            phone: lead.phone || lead.phoneNumber,
+            status: lead.workerStatus || "pending",
+            attempts: lead.contactAttempts || 0,
+            humorLevel: lead.contactAttempts <= 2 ? "mild" : lead.contactAttempts <= 4 ? "medium" : "spicy",
+          })));
+        }
+      } catch (error) {
+        console.error("Failed to fetch queue:", error);
+        // Mock data for demonstration
+        setQueueLeads([
+          { id: "1", name: "Ghosted Gary", company: "Silent Inc", phone: "+1234567890", status: "pending", attempts: 3, humorLevel: "medium" },
+          { id: "2", name: "Cold Carl", company: "Frozen LLC", phone: "+1987654321", status: "nudging", attempts: 5, humorLevel: "spicy" },
+          { id: "3", name: "Quiet Quinn", company: "Hush Co", phone: "+1555123456", status: "revived", attempts: 2, humorLevel: "mild" },
+        ]);
+      } finally {
+        setQueueLoading(false);
+      }
+    }
+    fetchQueue();
+  }, [team.id]);
+
+  // Toggle lead selection
+  const toggleLeadSelection = (leadId: string) => {
+    setSelectedLeads((prev) => {
+      const next = new Set(prev);
+      if (next.has(leadId)) {
+        next.delete(leadId);
+      } else {
+        next.add(leadId);
+      }
+      return next;
+    });
+  };
+
+  // Select all leads
+  const toggleSelectAll = () => {
+    if (selectedLeads.size === queueLeads.length) {
+      setSelectedLeads(new Set());
+    } else {
+      setSelectedLeads(new Set(queueLeads.map((l) => l.id)));
+    }
+  };
+
+  // Send nudge to all pending leads
+  const sendAllPending = async () => {
+    const pendingLeads = queueLeads.filter((l) => l.status === "pending");
+    if (pendingLeads.length === 0) {
+      toast.info("No pending leads to nudge");
+      return;
+    }
+    try {
+      const response = await fetch("/api/cathy/nudge-batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ leadIds: pendingLeads.map((l) => l.id), teamId: team.id }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        toast.success(`Sent nudges to ${pendingLeads.length} leads`);
+      }
+    } catch (error) {
+      toast.error("Failed to send batch nudges");
+    }
+  };
+
+  // Remove selected from queue
+  const removeSelectedFromQueue = async () => {
+    if (selectedLeads.size === 0) return;
+    try {
+      const response = await fetch("/api/leads/worker-assign", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ leadIds: Array.from(selectedLeads), worker: "cathy", teamId: team.id }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setQueueLeads((prev) => prev.filter((l) => !selectedLeads.has(l.id)));
+        setSelectedLeads(new Set());
+        toast.success("Removed from queue");
+      }
+    } catch (error) {
+      toast.error("Failed to remove leads");
+    }
+  };
+
+  // Move to another worker
+  const moveToWorker = async (toWorker: "gianna" | "sabrina") => {
+    if (selectedLeads.size === 0) return;
+    try {
+      const response = await fetch("/api/leads/worker-assign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ leadIds: Array.from(selectedLeads), fromWorker: "cathy", toWorker, teamId: team.id }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setQueueLeads((prev) => prev.filter((l) => !selectedLeads.has(l.id)));
+        setSelectedLeads(new Set());
+        toast.success(`Moved ${selectedLeads.size} leads to ${toWorker.toUpperCase()}`);
+      }
+    } catch (error) {
+      toast.error("Failed to move leads");
+    }
+  };
+
+  // Get status badge
+  const getStatusBadge = (status: QueueLead["status"]) => {
+    switch (status) {
+      case "pending":
+        return <Badge variant="outline" className="bg-zinc-800 text-zinc-300">Pending</Badge>;
+      case "nudging":
+        return <Badge variant="outline" className="bg-orange-500/20 text-orange-300 border-orange-500/50">Nudging</Badge>;
+      case "revived":
+        return <Badge variant="outline" className="bg-green-500/20 text-green-300 border-green-500/50">Revived!</Badge>;
+      case "exhausted":
+        return <Badge variant="outline" className="bg-red-500/20 text-red-300 border-red-500/50">Exhausted</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  // Get humor level badge
+  const getHumorBadge = (level: QueueLead["humorLevel"]) => {
+    switch (level) {
+      case "mild":
+        return <Badge className="bg-green-600/20 text-green-400 border-green-600/50">Mild</Badge>;
+      case "medium":
+        return <Badge className="bg-yellow-600/20 text-yellow-400 border-yellow-600/50">Medium</Badge>;
+      case "spicy":
+        return <Badge className="bg-red-600/20 text-red-400 border-red-600/50">Spicy</Badge>;
+    }
+  };
 
   // Handle content insertion
   const handleContentInsert = (content: { text: string; url?: string }) => {
@@ -308,6 +486,135 @@ export default function CathyCampaignsPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Lead Queue Table */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Ghost className="w-5 h-5 text-orange-400" />
+                Nudge Queue ({queueLeads.length})
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                {selectedLeads.size > 0 && (
+                  <>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button size="sm" variant="outline" className="gap-1">
+                          <ArrowRight className="w-4 h-4" />
+                          Move to
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuItem onClick={() => moveToWorker("gianna")}>
+                          <span className="text-purple-400 font-medium">GIANNA</span>
+                          <span className="ml-2 text-xs text-muted-foreground">(Opener)</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => moveToWorker("sabrina")}>
+                          <span className="text-emerald-400 font-medium">SABRINA</span>
+                          <span className="ml-2 text-xs text-muted-foreground">(Closer)</span>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                    <Button size="sm" variant="destructive" onClick={removeSelectedFromQueue} className="gap-1">
+                      <Trash2 className="w-4 h-4" />
+                      Remove
+                    </Button>
+                  </>
+                )}
+                <Button size="sm" className="gap-1 bg-orange-600 hover:bg-orange-700" onClick={sendAllPending}>
+                  <Play className="w-4 h-4" />
+                  Nudge All Pending
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[40px]">
+                    <Checkbox
+                      checked={selectedLeads.size === queueLeads.length && queueLeads.length > 0}
+                      onCheckedChange={toggleSelectAll}
+                    />
+                  </TableHead>
+                  <TableHead>Lead</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Attempts</TableHead>
+                  <TableHead>Humor Level</TableHead>
+                  <TableHead className="w-[100px]">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {queueLeads.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center text-zinc-500 py-8">
+                      No leads in nudge queue. Assign leads from the Leads page.
+                    </TableCell>
+                  </TableRow>
+                )}
+                {queueLeads.map((lead) => (
+                  <TableRow key={lead.id}>
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedLeads.has(lead.id)}
+                        onCheckedChange={() => toggleLeadSelection(lead.id)}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium text-zinc-100">{lead.name}</p>
+                        {lead.company && <p className="text-xs text-zinc-500">{lead.company}</p>}
+                      </div>
+                    </TableCell>
+                    <TableCell>{getStatusBadge(lead.status)}</TableCell>
+                    <TableCell className="text-zinc-400">{lead.attempts}</TableCell>
+                    <TableCell>{getHumorBadge(lead.humorLevel)}</TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem asChild>
+                            <TeamLink href={`/leads/${lead.id}`}>
+                              <Eye className="w-4 h-4 mr-2" />
+                              View Details
+                            </TeamLink>
+                          </DropdownMenuItem>
+                          {lead.status === "pending" && (
+                            <DropdownMenuItem>
+                              <Smile className="w-4 h-4 mr-2" />
+                              Send Nudge
+                            </DropdownMenuItem>
+                          )}
+                          {lead.status === "revived" && (
+                            <DropdownMenuItem onClick={() => handleHandoff(lead.id, "sabrina")}>
+                              <ArrowRight className="w-4 h-4 mr-2 text-emerald-400" />
+                              Hand to SABRINA
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => moveToWorker("gianna")}>
+                            <ArrowRight className="w-4 h-4 mr-2 text-purple-400" />
+                            Move to GIANNA
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => moveToWorker("sabrina")}>
+                            <ArrowRight className="w-4 h-4 mr-2 text-emerald-400" />
+                            Move to SABRINA
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
 
         {/* Main Content Area */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

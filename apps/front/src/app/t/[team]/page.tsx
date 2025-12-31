@@ -45,6 +45,17 @@ interface QuickAction {
   badge?: string;
 }
 
+// Pipeline stages with their display config
+const PIPELINE_STAGES = [
+  { key: "new", label: "New", color: "bg-slate-500", textColor: "text-slate-300" },
+  { key: "enriched", label: "Enriched", color: "bg-blue-500", textColor: "text-blue-300" },
+  { key: "gianna", label: "GIANNA", color: "bg-purple-500", textColor: "text-purple-300" },
+  { key: "contacted", label: "Contacted", color: "bg-amber-500", textColor: "text-amber-300" },
+  { key: "responded", label: "Responded", color: "bg-cyan-500", textColor: "text-cyan-300" },
+  { key: "sabrina", label: "SABRINA", color: "bg-emerald-500", textColor: "text-emerald-300" },
+  { key: "booked", label: "Booked", color: "bg-green-600", textColor: "text-green-300" },
+];
+
 export default function TeamHomePage() {
   const { team } = useCurrentTeam();
   const [stats, setStats] = useState({
@@ -52,6 +63,15 @@ export default function TeamHomePage() {
     sentToday: 0,
     leadsReady: 0,
     activeCampaigns: 0,
+  });
+  const [pipelineStats, setPipelineStats] = useState<Record<string, number>>({
+    new: 0,
+    enriched: 0,
+    gianna: 0,
+    contacted: 0,
+    responded: 0,
+    sabrina: 0,
+    booked: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -69,12 +89,32 @@ export default function TeamHomePage() {
         );
         const convData = await convRes.json();
 
+        // Fetch pipeline stats (lead counts by status)
+        const pipelineRes = await fetch(`/api/leads?teamId=${team.id}&action=pipeline_stats`);
+        const pipelineData = await pipelineRes.json();
+
         setStats({
           pendingMessages: convData.stats?.pending || 0,
           sentToday: queueData.stats?.sent || 0,
           leadsReady: queueData.stats?.dailyRemaining || 2000,
           activeCampaigns: 3, // TODO: Fetch from campaigns API
         });
+
+        // Set pipeline stats from API or use mock data for now
+        if (pipelineData.pipeline) {
+          setPipelineStats(pipelineData.pipeline);
+        } else {
+          // Mock data for demonstration - will be replaced by real API
+          setPipelineStats({
+            new: 247,
+            enriched: 189,
+            gianna: 142,
+            contacted: 98,
+            responded: 67,
+            sabrina: 45,
+            booked: 12,
+          });
+        }
       } catch (error) {
         console.error("Failed to fetch stats:", error);
       } finally {
@@ -171,6 +211,66 @@ export default function TeamHomePage() {
       </TeamHeader>
 
       <div className="flex-1 p-4 space-y-6 overflow-auto">
+        {/* Pipeline Funnel */}
+        <Card className="bg-zinc-900 border-zinc-800">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <ArrowRight className="w-5 h-5 text-zinc-400" />
+              Lead Pipeline
+            </CardTitle>
+            <CardDescription>Click any stage to view those leads</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-stretch gap-1 overflow-x-auto pb-2">
+              {PIPELINE_STAGES.map((stage, index) => {
+                const count = pipelineStats[stage.key] || 0;
+                const total = Object.values(pipelineStats).reduce((a, b) => a + b, 0) || 1;
+                const percentage = Math.round((count / total) * 100);
+
+                return (
+                  <Link
+                    key={stage.key}
+                    href={`/t/${team.slug}/leads?status=${stage.key}`}
+                    className="flex-1 min-w-[100px] group"
+                  >
+                    <div className="relative h-24 flex flex-col items-center justify-center rounded-lg border border-zinc-700 bg-zinc-800/50 hover:bg-zinc-800 hover:border-zinc-600 transition-all cursor-pointer">
+                      {/* Color bar at top */}
+                      <div className={cn("absolute top-0 left-0 right-0 h-1 rounded-t-lg", stage.color)} />
+
+                      {/* Count */}
+                      <span className={cn("text-2xl font-bold", stage.textColor)}>
+                        {count.toLocaleString()}
+                      </span>
+
+                      {/* Label */}
+                      <span className="text-xs text-zinc-400 mt-1">{stage.label}</span>
+
+                      {/* Arrow indicator between stages */}
+                      {index < PIPELINE_STAGES.length - 1 && (
+                        <ArrowRight className="absolute -right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600 z-10" />
+                      )}
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+
+            {/* Total leads summary */}
+            <div className="mt-3 pt-3 border-t border-zinc-800 flex items-center justify-between text-sm">
+              <span className="text-zinc-400">
+                Total Leads: <span className="text-zinc-100 font-medium">{Object.values(pipelineStats).reduce((a, b) => a + b, 0).toLocaleString()}</span>
+              </span>
+              <span className="text-zinc-500">
+                Conversion: <span className="text-green-400 font-medium">
+                  {Object.values(pipelineStats).reduce((a, b) => a + b, 0) > 0
+                    ? Math.round((pipelineStats.booked / Object.values(pipelineStats).reduce((a, b) => a + b, 0)) * 100)
+                    : 0}%
+                </span> to Booked
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Stats Row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card className="bg-zinc-900 border-zinc-800">
