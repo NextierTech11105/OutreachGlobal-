@@ -135,49 +135,29 @@ const navGroups = [
     label: "Outreach",
     items: [
       {
-        title: "Campaigns",
-        path: "/campaigns",
-        icon: MegaphoneIcon,
-        items: [
-          {
-            title: "All Campaigns",
-            path: "/campaigns",
-            exact: true,
-          },
-          {
-            title: "Content Library",
-            path: "/library",
-            icon: LibraryIcon,
-          },
-          {
-            title: "Automation Rules",
-            path: "/automation-rules",
-          },
-          {
-            title: "Message Templates",
-            path: "/message-templates",
-          },
-        ],
-      },
-      {
         title: "Sequence Designer",
         path: "/sequences",
         icon: GitBranchIcon,
       },
       {
+        title: "Pre-Queues",
+        path: "/pre-queue",
+        icon: RocketIcon,
+      },
+      {
+        title: "AI Inbound",
+        path: "/inbox",
+        icon: SparkleIcon,
+      },
+      {
+        title: "Campaigns",
+        path: "/campaigns",
+        icon: MegaphoneIcon,
+      },
+      {
         title: "Call Center",
         path: "/call-center",
         icon: PhoneIcon,
-      },
-      {
-        title: "SMS Queue",
-        path: "/sms/queue",
-        icon: SendIcon,
-      },
-      {
-        title: "AI Inbound Response Center",
-        path: "/inbox",
-        icon: SparkleIcon,
       },
       {
         title: "Calendar",

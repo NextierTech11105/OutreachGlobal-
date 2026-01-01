@@ -37,6 +37,8 @@ import {
   AlertTriangle,
   CheckCircle2,
   Tag,
+  Sparkles,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -230,20 +232,20 @@ const WORKER_CONFIG = {
   gianna: {
     name: "GIANNA",
     icon: Zap,
-    color: "text-purple-600",
-    bgColor: "bg-purple-100",
+    color: "text-purple-300",
+    bgColor: "bg-purple-900/50 border border-purple-500/30",
   },
   cathy: {
     name: "CATHY",
     icon: Bell,
-    color: "text-orange-600",
-    bgColor: "bg-orange-100",
+    color: "text-orange-300",
+    bgColor: "bg-orange-900/50 border border-orange-500/30",
   },
   sabrina: {
     name: "SABRINA",
     icon: Calendar,
-    color: "text-green-600",
-    bgColor: "bg-green-100",
+    color: "text-emerald-300",
+    bgColor: "bg-emerald-900/50 border border-emerald-500/30",
   },
 };
 
@@ -251,13 +253,13 @@ const CATEGORY_CONFIG: Record<
   TemplateCategory,
   { label: string; color: string }
 > = {
-  initial: { label: "Initial", color: "bg-blue-100 text-blue-700" },
-  retarget: { label: "Retarget", color: "bg-orange-100 text-orange-700" },
-  nudge: { label: "Nudge", color: "bg-yellow-100 text-yellow-700" },
-  closer: { label: "Closer", color: "bg-green-100 text-green-700" },
-  breakup: { label: "Breakup", color: "bg-red-100 text-red-700" },
-  "value-drop": { label: "Value Drop", color: "bg-purple-100 text-purple-700" },
-  callback: { label: "Callback", color: "bg-cyan-100 text-cyan-700" },
+  initial: { label: "Initial", color: "bg-blue-900/50 text-blue-300 border border-blue-500/30" },
+  retarget: { label: "Retarget", color: "bg-orange-900/50 text-orange-300 border border-orange-500/30" },
+  nudge: { label: "Nudge", color: "bg-yellow-900/50 text-yellow-300 border border-yellow-500/30" },
+  closer: { label: "Closer", color: "bg-emerald-900/50 text-emerald-300 border border-emerald-500/30" },
+  breakup: { label: "Breakup", color: "bg-red-900/50 text-red-300 border border-red-500/30" },
+  "value-drop": { label: "Value Drop", color: "bg-purple-900/50 text-purple-300 border border-purple-500/30" },
+  callback: { label: "Callback", color: "bg-cyan-900/50 text-cyan-300 border border-cyan-500/30" },
 };
 
 interface TemplateLibraryProps {
@@ -283,6 +285,50 @@ export function TemplateLibrary({
   const [previewTemplate, setPreviewTemplate] = useState<SmsTemplate | null>(
     null,
   );
+  const [remixingId, setRemixingId] = useState<string | null>(null);
+  const [remixedContent, setRemixedContent] = useState<string | null>(null);
+
+  // Remix template to 160 chars using AI
+  const remixTo160 = async (template: SmsTemplate) => {
+    setRemixingId(template.id);
+    setRemixedContent(null);
+
+    try {
+      const response = await fetch("/api/ai/remix-sms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: template.content,
+          targetLength: 160,
+          preserveVariables: true,
+          worker: template.worker,
+          category: template.category,
+        }),
+      });
+
+      if (!response.ok) {
+        // Fallback: simple truncation with ellipsis
+        const truncated = template.content.substring(0, 157) + "...";
+        setRemixedContent(truncated);
+        return;
+      }
+
+      const data = await response.json();
+      setRemixedContent(data.remixedContent || template.content.substring(0, 157) + "...");
+    } catch (error) {
+      // Fallback: intelligent truncation
+      const words = template.content.split(" ");
+      let result = "";
+      for (const word of words) {
+        if ((result + " " + word).length <= 157) {
+          result = result ? result + " " + word : word;
+        } else break;
+      }
+      setRemixedContent(result + "...");
+    } finally {
+      setRemixingId(null);
+    }
+  };
 
   // Filter templates
   const filteredTemplates = useMemo(() => {
@@ -362,7 +408,7 @@ export function TemplateLibrary({
               <span
                 className={cn(
                   "flex items-center gap-1",
-                  isCompliant ? "text-green-600" : "text-orange-600",
+                  isCompliant ? "text-emerald-400" : "text-orange-400",
                 )}
               >
                 {isCompliant ? (
@@ -373,13 +419,36 @@ export function TemplateLibrary({
                 {template.characterCount} chars
               </span>
               {template.variables.length > 0 && (
-                <span className="text-muted-foreground flex items-center gap-1">
+                <span className="text-zinc-400 flex items-center gap-1">
                   <Tag className="h-3 w-3" />
                   {template.variables.length} vars
                 </span>
               )}
             </div>
             <div className="flex items-center gap-1">
+              {/* Remix to 160 button - only show for long templates */}
+              {!isCompliant && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-xs bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    remixTo160(template);
+                    setPreviewTemplate(template);
+                  }}
+                  disabled={remixingId === template.id}
+                >
+                  {remixingId === template.id ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <>
+                      <Sparkles className="h-3 w-3 mr-1" />
+                      160
+                    </>
+                  )}
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="icon"

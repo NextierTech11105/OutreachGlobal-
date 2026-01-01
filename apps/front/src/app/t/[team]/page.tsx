@@ -45,47 +45,48 @@ interface QuickAction {
   badge?: string;
 }
 
-// Pipeline stages with their display config
+// Pipeline stages - Action-based, no fluff
+// RAW → READY → QUEUED → SENT → REPLIED → BOOKED
 const PIPELINE_STAGES = [
   {
-    key: "new",
-    label: "New",
+    key: "raw",
+    label: "RAW",
+    description: "In database, not enriched",
     color: "bg-slate-500",
     textColor: "text-slate-300",
   },
   {
-    key: "enriched",
-    label: "Enriched",
+    key: "ready",
+    label: "READY",
+    description: "Skip traced, has phone",
     color: "bg-blue-500",
     textColor: "text-blue-300",
   },
   {
-    key: "gianna",
-    label: "GIANNA",
+    key: "queued",
+    label: "QUEUED",
+    description: "In a blast block",
     color: "bg-purple-500",
     textColor: "text-purple-300",
   },
   {
-    key: "contacted",
-    label: "Contacted",
+    key: "sent",
+    label: "SENT",
+    description: "SMS delivered",
     color: "bg-amber-500",
     textColor: "text-amber-300",
   },
   {
-    key: "responded",
-    label: "Responded",
+    key: "replied",
+    label: "REPLIED",
+    description: "Got response",
     color: "bg-cyan-500",
     textColor: "text-cyan-300",
   },
   {
-    key: "sabrina",
-    label: "SABRINA",
-    color: "bg-emerald-500",
-    textColor: "text-emerald-300",
-  },
-  {
     key: "booked",
-    label: "Booked",
+    label: "BOOKED",
+    description: "Meeting scheduled",
     color: "bg-green-600",
     textColor: "text-green-300",
   },
@@ -100,12 +101,11 @@ export default function TeamHomePage() {
     activeCampaigns: 0,
   });
   const [pipelineStats, setPipelineStats] = useState<Record<string, number>>({
-    new: 0,
-    enriched: 0,
-    gianna: 0,
-    contacted: 0,
-    responded: 0,
-    sabrina: 0,
+    raw: 0,
+    ready: 0,
+    queued: 0,
+    sent: 0,
+    replied: 0,
     booked: 0,
   });
   const [loading, setLoading] = useState(true);
@@ -143,12 +143,11 @@ export default function TeamHomePage() {
         } else {
           // Mock data for demonstration - will be replaced by real API
           setPipelineStats({
-            new: 247,
-            enriched: 189,
-            gianna: 142,
-            contacted: 98,
-            responded: 67,
-            sabrina: 45,
+            raw: 866000,
+            ready: 2000,
+            queued: 847,
+            sent: 423,
+            replied: 67,
             booked: 12,
           });
         }

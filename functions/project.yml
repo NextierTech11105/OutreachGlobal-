@@ -1,6 +1,9 @@
 # DO Functions Project Configuration
 # Namespace: sea-turtle-fn-namespace (NYC1)
-# NOTE: Configure environment variables in DO Dashboard after deployment
+
+# Global environment variables for all functions
+environment:
+  PERPLEXITY_API_KEY: "${PERPLEXITY_API_KEY}"
 
 packages:
   - name: enrichment
