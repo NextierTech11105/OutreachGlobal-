@@ -435,9 +435,8 @@ export const FRANK_PARTNERSHIP_TEMPLATES = {
 };
 
 // ============ DATA SOURCES ============
-// USBizData Automobile Dealers Database
-// 409,121 records - SIC 5511, 5521 - Q4 2025
-// Fields: Company, Contact, Email, Address, City, State, Zip, Phone, Website, Employees, Revenue
+// USBizData databases for Atlantic Coast carrier partnerships
+// Frank Sr runs 15-min partnership calls - comparable to Nextier consulting model
 export const ATLANTIC_COAST_DATA_SOURCES = {
   dealerships: {
     source: "USBizData",
@@ -445,6 +444,54 @@ export const ATLANTIC_COAST_DATA_SOURCES = {
     records: 409121,
     sicCodes: ["5511", "5521"],
     lastUpdate: "Q4 2025",
+    description: "Car dealerships - dealer trades & vehicle transport needs",
+    fields: [
+      "company_name",
+      "contact_name",
+      "email",
+      "street_address",
+      "city",
+      "state",
+      "zip_code",
+      "county",
+      "area_code",
+      "phone_number",
+      "website",
+      "employees",
+      "annual_revenue",
+      "sic_code",
+      "sic_description",
+    ],
+  },
+  movingCompanies: {
+    source: "USBizData",
+    name: "SIC 4214 - Local Trucking With Storage",
+    records: 32641,
+    sicCodes: ["4214"],
+    lastUpdate: "2025",
+    description: "Moving companies - referral partnerships for auto transport add-on",
+    fields: [
+      "company_name",
+      "contact_name",
+      "email",
+      "street_address",
+      "city",
+      "state",
+      "zip_code",
+      "phone_number",
+      "website",
+      "employees",
+      "annual_revenue",
+    ],
+  },
+  truckingCompanies: {
+    source: "USBizData",
+    name: "US Trucking-Freight Company Database",
+    records: 306647,
+    sicCodes: ["4212", "4213", "4214"],
+    lastUpdate: "Q4 2025",
+    price: 27.0,
+    description: "Trucking carriers - overflow capacity & network expansion",
     fields: [
       "company_name",
       "contact_name",

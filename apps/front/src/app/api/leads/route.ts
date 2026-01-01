@@ -30,7 +30,14 @@ export async function GET(request: NextRequest) {
 
     // Handle pipeline_stats action - return counts by pipeline stage
     if (action === "pipeline_stats") {
-      const pipelineStages = ["raw", "ready", "queued", "sent", "replied", "booked"];
+      const pipelineStages = [
+        "raw",
+        "ready",
+        "queued",
+        "sent",
+        "replied",
+        "booked",
+      ];
       const pipeline: Record<string, number> = {};
 
       for (const stage of pipelineStages) {
@@ -48,7 +55,9 @@ export async function GET(request: NextRequest) {
       }
 
       // Count active campaigns
-      const activeCampaignsConditions = teamId ? [eq(leads.teamId, teamId)] : [];
+      const activeCampaignsConditions = teamId
+        ? [eq(leads.teamId, teamId)]
+        : [];
       // For now, count leads with status "queued" or "sent" as active campaigns proxy
       // TODO: Replace with actual campaigns table count
       const activeCampaigns = pipeline.queued > 0 || pipeline.sent > 0 ? 1 : 0;

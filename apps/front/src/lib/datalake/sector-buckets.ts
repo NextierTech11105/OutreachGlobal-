@@ -216,6 +216,30 @@ export const DEFAULT_FAVORITE_GROUPS: FavoriteGroup[] = [
       "us-hospitality-campgrounds-rv",
     ],
   },
+
+  // ===== ATLANTIC COAST AUTO TRANSPORT =====
+  // Carrier partnership outreach - Moving Companies & Car Dealerships
+  {
+    id: "atlantic-coast-partnerships",
+    name: "Atlantic Coast - Carrier Partnerships",
+    description:
+      "Moving companies & car dealerships for Atlantic Coast Auto Transport carrier partnerships | 15-min partnership calls",
+    color: "#0EA5E9",
+    icon: "truck",
+    bucketIds: [
+      // Moving Companies - carrier partners for auto transport
+      "us-transport-moving",
+      "ny-transport-moving",
+      // Car Dealerships - vehicle transport needs
+      "us-auto-dealers-new",
+      "us-auto-dealers-used",
+      "ny-auto-dealers-new",
+      "ny-auto-dealers-used",
+      // Trucking/carriers for network expansion
+      "us-transport-trucking",
+      "ny-transport-trucking",
+    ],
+  },
 ];
 
 // ===== CONSTRUCTION & CONTRACTORS (SIC 15xx-17xx) =====
@@ -1100,6 +1124,44 @@ export const NATIONAL_BUCKETS: SectorBucket[] = [
     description: "US Gyms & fitness centers - nationwide",
     state: "US",
   },
+  // ===== ATLANTIC COAST PARTNERSHIP TARGETS =====
+  {
+    id: "us-transport-moving",
+    name: "US Moving Companies",
+    sector: "transportation-logistics",
+    subsector: "moving",
+    sicCodes: ["4212", "4214"],
+    storagePath:
+      "datalake/business/us/sectors/transportation-logistics/moving/",
+    description:
+      "US Moving & storage companies - Atlantic Coast carrier partners",
+    state: "US",
+    tags: ["atlantic-coast", "carriers", "partnerships"],
+  },
+  {
+    id: "us-auto-dealers-new",
+    name: "US New Car Dealers",
+    sector: "automotive",
+    subsector: "dealers-new",
+    sicCodes: ["5511"],
+    storagePath: "datalake/business/us/sectors/automotive/dealers-new/",
+    description:
+      "US New car dealerships - 409,121 nationwide (SIC 5511) - Atlantic Coast vehicle transport",
+    state: "US",
+    tags: ["atlantic-coast", "dealerships", "partnerships"],
+  },
+  {
+    id: "us-auto-dealers-used",
+    name: "US Used Car Dealers",
+    sector: "automotive",
+    subsector: "dealers-used",
+    sicCodes: ["5521"],
+    storagePath: "datalake/business/us/sectors/automotive/dealers-used/",
+    description:
+      "US Used car dealerships (SIC 5521) - Atlantic Coast dealer trades",
+    state: "US",
+    tags: ["atlantic-coast", "dealerships", "partnerships"],
+  },
   {
     id: "us-realestate-agents-brokers",
     name: "US RE Agents & Brokers",
@@ -1980,6 +2042,17 @@ export const CLIENT_CONFIGS: ClientConfig[] = [
     ],
     useCase:
       "Consulting engagements → Deal origination → Investment opportunities",
+  },
+  {
+    id: "atlantic-coast-auto",
+    name: "Atlantic Coast Auto Transport",
+    role: "Frank Sr - Founder",
+    description:
+      "Carrier partnership outreach | Moving companies & dealerships | 500+ vehicles/month",
+    primaryBusinessLine: "outreachglobal",
+    targetGroups: ["atlantic-coast-partnerships"],
+    useCase:
+      "SMS Outreach → 15-min call with Frank Sr → Carrier partnership → Overflow loads",
   },
 ];
 
