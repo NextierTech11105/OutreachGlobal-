@@ -250,7 +250,8 @@ export const ATLANTIC_COAST_INDUSTRY_TEMPLATES = {
   // ============================================================
   dealership: {
     vertical: "dealership",
-    description: "New & used car dealerships - dealer trades, auction runs, customer deliveries",
+    description:
+      "New & used car dealerships - dealer trades, auction runs, customer deliveries",
     dataSource: { records: 409121, sicCodes: ["5511", "5521"] },
 
     // GIANNA - Initial Outreach (Day 0)
@@ -429,7 +430,8 @@ export const ATLANTIC_COAST_INDUSTRY_TEMPLATES = {
   // ============================================================
   moving_company: {
     vertical: "moving_company",
-    description: "Moving & storage companies - referral partnership for auto transport add-on",
+    description:
+      "Moving & storage companies - referral partnership for auto transport add-on",
     dataSource: { records: 306647, sicCodes: ["4212", "4213", "4214"] },
 
     // GIANNA - Initial Outreach (Day 0)

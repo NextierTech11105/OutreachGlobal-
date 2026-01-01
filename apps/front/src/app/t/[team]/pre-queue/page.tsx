@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { ATLANTIC_COAST_INDUSTRY_TEMPLATES } from "@/lib/gianna/knowledge-base/atlantic-coast-library";
 
 /**
  * PRE-QUEUE PAGE
@@ -40,11 +41,8 @@ import { cn } from "@/lib/utils";
  * Each pre-queue IS the template with full programming ability + leads attached.
  * This is the weapon: Template + Block + SEND NOW
  *
- * 4 Main Pre-Queues:
- * - INITIAL SMS (GIANNA) - First outreach
- * - RETARGET SMS (GIANNA) - No response follow-up
- * - NUDGE SMS (CATHY) - Friendly bump with humor
- * - CLOSER SMS (SABRINA) - Book the meeting
+ * Templates load dynamically based on team configuration.
+ * NO generic ROI claims - each tenant has their own messaging.
  */
 
 // Worker configurations with dark theme colors
@@ -89,59 +87,116 @@ interface PreQueue {
   lastSentAt?: Date;
 }
 
-// Default pre-queues - these are the 4 weapons
-const DEFAULT_PRE_QUEUES: PreQueue[] = [
-  {
-    id: "pq-initial",
-    name: "INITIAL SMS",
-    category: "initial",
-    worker: "gianna",
-    template:
-      "Hey {firstName}, saw {companyName} and wanted to connect. We help {industry} businesses grow revenue 30%+ with AI-powered outreach. Worth a quick chat?",
-    leadCount: 0,
-    targetSize: 2000,
-    status: "empty",
-  },
-  {
-    id: "pq-retarget",
-    name: "RETARGET SMS",
-    category: "retarget",
-    worker: "gianna",
-    template:
-      "Hi {firstName}, circling back on my last message. Just wanted to make sure you saw it - we've been helping similar {industry} companies hit their growth targets. Still interested?",
-    leadCount: 0,
-    targetSize: 2000,
-    status: "empty",
-  },
-  {
-    id: "pq-nudge",
-    name: "NUDGE SMS",
-    category: "nudge",
-    worker: "cathy",
-    template:
-      "{firstName}! Just bumping this up. I know you're busy running {companyName} - that's exactly why I think you'd find value in a 15-min call. What do you say?",
-    leadCount: 0,
-    targetSize: 2000,
-    status: "empty",
-  },
-  {
-    id: "pq-closer",
-    name: "CLOSER SMS",
-    category: "closer",
-    worker: "sabrina",
-    template:
-      "{firstName}, got 15 min this week? I'd love to show you how we can help {companyName} hit those growth goals. What day works best?",
-    leadCount: 0,
-    targetSize: 2000,
-    status: "empty",
-  },
-];
+// Get templates based on tenant/team
+// Tenant detection: "atlantic-coast" = Atlantic Coast, otherwise = Nextier/generic
+const getTenantTemplates = (teamId: string): PreQueue[] => {
+  const isAtlanticCoast = teamId.toLowerCase().includes("atlantic") ||
+                          teamId.toLowerCase().includes("transport") ||
+                          teamId.toLowerCase().includes("frank");
+
+  if (isAtlanticCoast) {
+    // Atlantic Coast Auto Transport - Partnership outreach for Frank Sr
+    // NO ROI claims, NO percentages - just partnership language
+    const dealer = ATLANTIC_COAST_INDUSTRY_TEMPLATES.dealership;
+    return [
+      {
+        id: "pq-initial",
+        name: "INITIAL SMS",
+        category: "initial",
+        worker: "gianna",
+        template: dealer.initial.templates[0].content.replace(/{first_name}/g, "{firstName}").replace(/{company_name}/g, "{companyName}"),
+        leadCount: 0,
+        targetSize: 2000,
+        status: "empty",
+      },
+      {
+        id: "pq-retarget",
+        name: "RETARGET SMS",
+        category: "retarget",
+        worker: "gianna",
+        template: dealer.initial.templates[1].content.replace(/{first_name}/g, "{firstName}").replace(/{company_name}/g, "{companyName}"),
+        leadCount: 0,
+        targetSize: 2000,
+        status: "empty",
+      },
+      {
+        id: "pq-nudge",
+        name: "NUDGE SMS",
+        category: "nudge",
+        worker: "cathy",
+        template: dealer.nudge.templates[0].content.replace(/{first_name}/g, "{firstName}").replace(/{company_name}/g, "{companyName}"),
+        leadCount: 0,
+        targetSize: 2000,
+        status: "empty",
+      },
+      {
+        id: "pq-closer",
+        name: "CLOSER SMS",
+        category: "closer",
+        worker: "sabrina",
+        template: dealer.closer.templates[0].content.replace(/{first_name}/g, "{firstName}").replace(/{company_name}/g, "{companyName}"),
+        leadCount: 0,
+        targetSize: 2000,
+        status: "empty",
+      },
+    ];
+  }
+
+  // Nextier/generic - Business consulting outreach (Thomas/Cole)
+  // These CAN have ROI claims since that's Nextier's value prop
+  return [
+    {
+      id: "pq-initial",
+      name: "INITIAL SMS",
+      category: "initial",
+      worker: "gianna",
+      template: "{firstName}, thinking about your exit strategy for {companyName}? Quick valuation could be eye-opening. Best email to send details?",
+      leadCount: 0,
+      targetSize: 2000,
+      status: "empty",
+    },
+    {
+      id: "pq-retarget",
+      name: "RETARGET SMS",
+      category: "retarget",
+      worker: "gianna",
+      template: "{firstName}, circling back. Know what {companyName} is worth? Most owners are surprised. Want a quick valuation?",
+      leadCount: 0,
+      targetSize: 2000,
+      status: "empty",
+    },
+    {
+      id: "pq-nudge",
+      name: "NUDGE SMS",
+      category: "nudge",
+      worker: "cathy",
+      template: "{firstName}, last check - still curious about what {companyName} could sell for? Takes 15 min with Thomas. Interested?",
+      leadCount: 0,
+      targetSize: 2000,
+      status: "empty",
+    },
+    {
+      id: "pq-closer",
+      name: "CLOSER SMS",
+      category: "closer",
+      worker: "sabrina",
+      template: "Great {firstName}! Let's get you 15 min with Thomas this week. What day works - Tues or Thurs?",
+      leadCount: 0,
+      targetSize: 2000,
+      status: "empty",
+    },
+  ];
+};
+
+// Default templates - will be replaced when component mounts with team-specific templates
+const DEFAULT_PRE_QUEUES: PreQueue[] = [];
 
 export default function PreQueuePage() {
   const params = useParams();
   const teamId = params.team as string;
 
-  const [preQueues, setPreQueues] = useState<PreQueue[]>(DEFAULT_PRE_QUEUES);
+  // Load tenant-specific templates based on team ID
+  const [preQueues, setPreQueues] = useState<PreQueue[]>(() => getTenantTemplates(teamId));
   const [editingQueue, setEditingQueue] = useState<PreQueue | null>(null);
   const [editedTemplate, setEditedTemplate] = useState("");
   const [previewQueue, setPreviewQueue] = useState<PreQueue | null>(null);
