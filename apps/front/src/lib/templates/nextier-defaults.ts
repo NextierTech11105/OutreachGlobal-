@@ -103,10 +103,11 @@ const GIANNA_EXAMPLE_TEMPLATES: SmsTemplate[] = [
     characterCount: 132,
   },
 
-  // BUSINESS BROKER VERTICAL - All under 160 chars
+  // BUSINESS BROKER VERTICAL - NO PERCENTAGES, NO ROI CLAIMS
+  // Direct, blue-collar language for trades owners
   {
     id: "gianna-broker-intro-1",
-    name: "Business Broker Opener",
+    name: "Exit Strategy Direct",
     content:
       "{firstName}, thinking about your exit strategy for {companyName}? We help trades maximize value. Is this on your radar?",
     category: "initial",
@@ -118,15 +119,39 @@ const GIANNA_EXAMPLE_TEMPLATES: SmsTemplate[] = [
   },
   {
     id: "gianna-broker-exit-1",
-    name: "Exit Strategy Intro",
+    name: "Valuation Ask",
     content:
-      "{firstName}, know what {companyName} is worth? Most {industry} owners leave 20-40% on the table. Want a quick valuation?",
+      "{firstName}, know what {companyName} is actually worth? Most owners have no idea. Want a quick valuation?",
     category: "initial",
     worker: "gianna",
     vertical: "business-broker",
-    variables: ["firstName", "companyName", "industry"],
+    variables: ["firstName", "companyName"],
     complianceApproved: true,
-    characterCount: 125,
+    characterCount: 106,
+  },
+  {
+    id: "gianna-broker-direct-1",
+    name: "Straight Talk",
+    content:
+      "{firstName}, ever thought about selling {companyName}? I can tell you what it's worth. Yes or no?",
+    category: "initial",
+    worker: "gianna",
+    vertical: "business-broker",
+    variables: ["firstName", "companyName"],
+    complianceApproved: true,
+    characterCount: 98,
+  },
+  {
+    id: "gianna-broker-blunt-1",
+    name: "Blunt Opener",
+    content:
+      "{firstName} - what would you do if someone handed you a check for {companyName} tomorrow? Know your number?",
+    category: "initial",
+    worker: "gianna",
+    vertical: "business-broker",
+    variables: ["firstName", "companyName"],
+    complianceApproved: true,
+    characterCount: 107,
   },
 
   // REAL ESTATE VERTICAL - All under 160 chars
@@ -296,13 +321,13 @@ const CATHY_EXAMPLE_TEMPLATES: SmsTemplate[] = [
     id: "cathy-nudge-authority-1",
     name: "Authority Check-in",
     content:
-      "{firstName}, following up on my message. We've helped {industry} companies grow 40%+ with our system. Worth a quick look?",
+      "{firstName}, following up on my message. We've helped {industry} companies scale with our system. Worth a quick look?",
     category: "nudge",
     worker: "cathy",
     vertical: "universal",
     variables: ["firstName", "industry"],
     complianceApproved: true,
-    characterCount: 124,
+    characterCount: 118,
   },
 
   // CURIOSITY NUDGES (Attempt 3)
@@ -374,13 +399,13 @@ const CATHY_EXAMPLE_TEMPLATES: SmsTemplate[] = [
     id: "cathy-nudge-humor-2",
     name: "Self-Aware",
     content:
-      "I know you're slammed {firstName}. Last nudge, I promise. 15 min with Thomas could be the best ROI of your week.",
+      "I know you're slammed {firstName}. Last nudge, I promise. 15 min with Thomas could be the best call of your week.",
     category: "nudge",
     worker: "cathy",
     vertical: "universal",
     variables: ["firstName"],
     complianceApproved: true,
-    characterCount: 116,
+    characterCount: 117,
   },
 
   // RETARGET TEMPLATES - Context-aware follow-up
@@ -400,13 +425,13 @@ const CATHY_EXAMPLE_TEMPLATES: SmsTemplate[] = [
     id: "cathy-retarget-casestudy-1",
     name: "Case Study Drop",
     content:
-      "{firstName} — just helped a {industry} company in {state} boost booked calls 47%. Thought of {companyName}. Want the playbook?",
+      "{firstName} — just helped a {industry} company in {state} double their booked calls. Thought of {companyName}. Want the playbook?",
     category: "retarget",
     worker: "cathy",
     vertical: "universal",
     variables: ["firstName", "industry", "state", "companyName"],
     complianceApproved: true,
-    characterCount: 130,
+    characterCount: 134,
   },
 
   // VALUE DROPS
@@ -414,13 +439,13 @@ const CATHY_EXAMPLE_TEMPLATES: SmsTemplate[] = [
     id: "cathy-value-roi-1",
     name: "ROI Value Drop",
     content:
-      "{firstName} — clients see 340% ROI in 90 days. Happy to show you the numbers if you're curious.",
+      "{firstName} — clients are seeing solid returns within 90 days. Happy to show you how if you're curious.",
     category: "value-drop",
     worker: "cathy",
     vertical: "universal",
     variables: ["firstName"],
     complianceApproved: true,
-    characterCount: 99,
+    characterCount: 104,
   },
 ];
 

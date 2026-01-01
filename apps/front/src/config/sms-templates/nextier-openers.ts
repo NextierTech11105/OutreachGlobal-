@@ -202,7 +202,7 @@ export const NEXTIER_OPENERS: Record<TargetPersona, SmsTemplate[]> = {
       persona: "real_estate_broker",
       category: "social_proof",
       message:
-        "{firstName}, brokerages using our AI are seeing 40% more deal flow. Proprietary leads, not shared. Interested?",
+        "{firstName}, brokerages using our AI are seeing way more deal flow. Proprietary leads, not shared. Interested?",
       variables: ["firstName"],
       charCount: 121,
       agent: "gianna",
@@ -651,7 +651,7 @@ export const GTM_POSITIONING: Record<
     headline: "Maximize your business value before you exit",
     valueProps: [
       "Free valuation to know what you're working with",
-      "12-month exit prep to increase sale price 20-30%",
+      "12-month exit prep to maximize your sale price",
       "Buyer matching when you're ready",
       "No pressure - information first, decisions later",
     ],
@@ -659,7 +659,7 @@ export const GTM_POSITIONING: Record<
       "Not ready to sell":
         "Most owners prep 2-3 years before exit. The earlier you know your number, the better.",
       "I know what it's worth":
-        "Most owners undervalue by 15-20%. A fresh analysis might surprise you.",
+        "Most owners undervalue significantly. A fresh analysis might surprise you.",
       "I'll figure it out later":
         "Later = less time to maximize value. Even a quick valuation helps you plan.",
     },

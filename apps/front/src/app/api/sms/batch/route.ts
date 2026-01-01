@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { leads, smsMessages } from "@/lib/db/schema";
 import { inArray, eq } from "drizzle-orm";
+import { sendSMS, isConfigured } from "@/lib/signalhouse/client";
 
 /**
  * SMS BATCH API
@@ -104,15 +105,41 @@ export async function POST(request: NextRequest) {
     let sent = 0;
     let failed = 0;
 
-    // Process each lead
+    // Check SignalHouse configuration
+    if (!isConfigured()) {
+      return NextResponse.json(
+        { error: "SignalHouse not configured - add API keys to .env" },
+        { status: 503 },
+      );
+    }
+
+    // Process each lead - SEND REAL SMS via SignalHouse
     for (const lead of validLeads) {
       try {
-        // In production, this calls SignalHouse/Twilio
-        // For now, we'll simulate and log
+        // Fill template with lead data
+        const personalizedMessage = (
+          message ||
+          `Hi ${lead.firstName}, this is your advisor reaching out...`
+        )
+          .replace(/{firstName}/g, lead.firstName || "")
+          .replace(/{lastName}/g, lead.lastName || "")
+          .replace(/{companyName}/g, lead.firstName || ""); // fallback for company
 
-        // Create SMS record
+        // SEND SMS via SignalHouse API
+        const smsResult = await sendSMS({
+          to: lead.phone,
+          from: sendingNumber || "",
+          message: personalizedMessage,
+        });
+
+        if (!smsResult.success) {
+          console.error(`[SMSBatch] SignalHouse error for ${lead.phone}:`, smsResult.error);
+          failed++;
+          continue;
+        }
+
+        // Create SMS record in database
         const smsId = crypto.randomUUID();
-
         try {
           await db.insert(smsMessages).values({
             id: smsId,
@@ -120,9 +147,7 @@ export async function POST(request: NextRequest) {
             direction: "outbound",
             fromNumber: sendingNumber || "",
             toNumber: lead.phone,
-            body:
-              message ||
-              `Hi ${lead.firstName}, this is your Homeowner Advisor reaching out...`,
+            body: personalizedMessage,
             status: "sent",
             campaignId,
             sentAt: new Date(),
@@ -130,23 +155,26 @@ export async function POST(request: NextRequest) {
             updatedAt: new Date(),
           });
         } catch {
-          console.log("[SMSBatch] SMS table may not exist yet, simulating...");
+          console.log("[SMSBatch] SMS table may not exist yet, continuing...");
         }
 
         // Update lead with campaign assignment
-        await db
-          .update(leads)
-          .set({
-            lastContactDate: new Date(),
-            assignedAdvisor: assignedAdvisor || "gianna",
-            assignedNumber: sendingNumber,
-            updatedAt: new Date(),
-          })
-          .where(eq(leads.id, lead.id));
+        try {
+          await db
+            .update(leads)
+            .set({
+              lastContactDate: new Date(),
+              assignedAdvisor: assignedAdvisor || "gianna",
+              assignedNumber: sendingNumber,
+              updatedAt: new Date(),
+            })
+            .where(eq(leads.id, lead.id));
+        } catch {
+          console.log("[SMSBatch] Lead update may have failed, continuing...");
+        }
 
         sent++;
-
-        console.log(`[SMSBatch] Sent to ${lead.phone} (${lead.firstName})`);
+        console.log(`[SMSBatch] SENT to ${lead.phone} (${lead.firstName}) - MessageID: ${smsResult.data?.messageId}`);
       } catch (error) {
         console.error(`[SMSBatch] Failed for ${lead.phone}:`, error);
         failed++;

@@ -125,10 +125,10 @@ export default function SkipTracePage() {
 
   const fetchUsage = async () => {
     try {
-      const response = await fetch("/api/enrichment/usbiz-skip-trace");
+      const response = await fetch("/api/skip-trace");
       const data = await response.json();
       setIsConfigured(data.configured);
-      setUsage(data.usage);
+      setUsage({ today: data.used, limit: data.limit, remaining: data.remaining });
     } catch {
       setUsage({ today: 0, limit: 2000, remaining: 2000 });
     }
@@ -143,10 +143,21 @@ export default function SkipTracePage() {
 
     setIsProcessing(true);
     try {
-      const response = await fetch("/api/enrichment/usbiz-skip-trace", {
+      // Call skip trace API with proper format
+      const [firstName, ...lastParts] = singleInput.full_name.split(" ");
+      const lastName = lastParts.join(" ");
+
+      const response = await fetch("/api/skip-trace", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(singleInput),
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          address: singleInput.address,
+          city: singleInput.city,
+          state: singleInput.state,
+          zip: singleInput.zip,
+        }),
       });
 
       const data = await response.json();
@@ -156,19 +167,22 @@ export default function SkipTracePage() {
         return;
       }
 
-      if (data.success) {
+      // API returns: phones: [{number, type}], emails: [{email, type}]
+      const phones = data.phones || [];
+      const emails = data.emails || [];
+      const mobilePhone = phones.find((p: {type?: string}) => p.type === "mobile" || p.type === "cell");
+
+      if (data.success || phones.length > 0) {
         const result: SkipTraceResult = {
           input: singleInput,
           success: true,
-          mobile: data.mobile,
-          email: data.email,
-          all_phones: data.all_phones,
-          all_emails: data.all_emails,
+          mobile: mobilePhone?.number || phones[0]?.number,
+          email: emails[0]?.email,
+          all_phones: phones.map((p: {number: string; type?: string}) => ({ number: p.number, type: p.type || "unknown" })),
+          all_emails: emails.map((e: {email: string; type?: string}) => ({ email: e.email, type: e.type || "personal" })),
         };
         setResults((prev) => [result, ...prev]);
-        toast.success(
-          `Found ${data.all_phones?.length || 0} phones, ${data.all_emails?.length || 0} emails`,
-        );
+        toast.success(`Found ${phones.length} phones, ${emails.length} emails`);
         setSingleInput({
           full_name: "",
           address: "",
@@ -187,7 +201,7 @@ export default function SkipTracePage() {
       }
 
       if (data.usage) {
-        setUsage(data.usage);
+        setUsage({ today: data.usage.today, limit: data.usage.limit, remaining: data.usage.remaining });
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Skip trace failed");
