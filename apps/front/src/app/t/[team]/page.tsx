@@ -133,24 +133,15 @@ export default function TeamHomePage() {
         setStats({
           pendingMessages: convData.stats?.pending || 0,
           sentToday: queueData.stats?.sent || 0,
-          leadsReady: queueData.stats?.dailyRemaining || 2000,
-          activeCampaigns: 3, // TODO: Fetch from campaigns API
+          leadsReady: queueData.stats?.dailyRemaining || 0,
+          activeCampaigns: pipelineData.activeCampaigns || 0,
         });
 
-        // Set pipeline stats from API or use mock data for now
+        // Set pipeline stats from API - zeros if not available
         if (pipelineData.pipeline) {
           setPipelineStats(pipelineData.pipeline);
-        } else {
-          // Mock data for demonstration - will be replaced by real API
-          setPipelineStats({
-            raw: 866000,
-            ready: 2000,
-            queued: 847,
-            sent: 423,
-            replied: 67,
-            booked: 12,
-          });
         }
+        // Otherwise keep initial zeros from useState
       } catch (error) {
         console.error("Failed to fetch stats:", error);
       } finally {
