@@ -35,11 +35,17 @@ export default function CampaignsPage() {
               onValueChange={(v) => setViewMode(v as ViewMode)}
             >
               <TabsList className="bg-zinc-800">
-                <TabsTrigger value="blocks" className="gap-1.5 font-mono text-xs">
+                <TabsTrigger
+                  value="blocks"
+                  className="gap-1.5 font-mono text-xs"
+                >
                   <Grid3X3 className="h-4 w-4" />
                   BLOCKS
                 </TabsTrigger>
-                <TabsTrigger value="table" className="gap-1.5 font-mono text-xs">
+                <TabsTrigger
+                  value="table"
+                  className="gap-1.5 font-mono text-xs"
+                >
                   <List className="h-4 w-4" />
                   LIST
                 </TabsTrigger>
@@ -54,11 +60,7 @@ export default function CampaignsPage() {
           </div>
         </div>
 
-        {viewMode === "blocks" ? (
-          <CampaignBlocksBoard />
-        ) : (
-          <CampaignDirector />
-        )}
+        {viewMode === "blocks" ? <CampaignBlocksBoard /> : <CampaignDirector />}
       </div>
     </TeamSection>
   );

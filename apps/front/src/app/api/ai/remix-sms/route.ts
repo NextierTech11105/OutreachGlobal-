@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     if (!content) {
       return NextResponse.json(
         { error: "content is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -67,22 +67,25 @@ Just output the shortened message, nothing else.`;
 
     // Try OpenAI first
     if (OPENAI_API_KEY) {
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${OPENAI_API_KEY}`,
-          "Content-Type": "application/json",
+      const response = await fetch(
+        "https://api.openai.com/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${OPENAI_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "gpt-4o-mini",
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userPrompt },
+            ],
+            max_tokens: 80,
+            temperature: 0.7,
+          }),
         },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt },
-          ],
-          max_tokens: 80,
-          temperature: 0.7,
-        }),
-      });
+      );
 
       if (response.ok) {
         const data = await response.json();
@@ -139,7 +142,7 @@ Just output the shortened message, nothing else.`;
     console.error("[Remix SMS] Error:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Remix failed" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -148,10 +151,10 @@ Just output the shortened message, nothing else.`;
 function intelligentTruncate(
   content: string,
   targetLength: number,
-  variables: string[]
+  variables: string[],
 ): string {
   // First, try removing common filler phrases
-  let shortened = content
+  const shortened = content
     .replace(/I just wanted to /gi, "")
     .replace(/I wanted to /gi, "")
     .replace(/Just a quick /gi, "Quick ")

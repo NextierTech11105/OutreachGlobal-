@@ -75,7 +75,9 @@ export default function SequencesPage() {
   const teamId = params.team as string;
 
   const [showDesigner, setShowDesigner] = useState(false);
-  const [selectedSequence, setSelectedSequence] = useState<Sequence | null>(null);
+  const [selectedSequence, setSelectedSequence] = useState<Sequence | null>(
+    null,
+  );
   const [sequences, setSequences] = useState<Sequence[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -86,10 +88,12 @@ export default function SequencesPage() {
         const response = await fetch(`/api/sequences?teamId=${teamId}`);
         const data = await response.json();
         if (data.sequences) {
-          setSequences(data.sequences.map((s: any) => ({
-            ...s,
-            createdAt: new Date(s.createdAt),
-          })));
+          setSequences(
+            data.sequences.map((s: any) => ({
+              ...s,
+              createdAt: new Date(s.createdAt),
+            })),
+          );
         }
       } catch (error) {
         console.error("Failed to fetch sequences:", error);
@@ -111,16 +115,14 @@ export default function SequencesPage() {
   };
 
   const handleToggleStatus = async (sequenceId: string) => {
-    const sequence = sequences.find(s => s.id === sequenceId);
+    const sequence = sequences.find((s) => s.id === sequenceId);
     if (!sequence) return;
 
     const newStatus = sequence.status === "active" ? "paused" : "active";
 
     // Optimistic update
     setSequences((prev) =>
-      prev.map((s) =>
-        s.id === sequenceId ? { ...s, status: newStatus } : s
-      ),
+      prev.map((s) => (s.id === sequenceId ? { ...s, status: newStatus } : s)),
     );
 
     // API call would go here
@@ -142,9 +144,10 @@ export default function SequencesPage() {
   // Stats - handle empty array
   const totalActive = sequences.filter((s) => s.status === "active").length;
   const totalLeads = sequences.reduce((acc, s) => acc + s.leadsEnrolled, 0);
-  const avgResponseRate = sequences.length > 0
-    ? sequences.reduce((acc, s) => acc + s.responseRate, 0) / sequences.length
-    : 0;
+  const avgResponseRate =
+    sequences.length > 0
+      ? sequences.reduce((acc, s) => acc + s.responseRate, 0) / sequences.length
+      : 0;
 
   if (showDesigner) {
     return (
@@ -326,7 +329,8 @@ export default function SequencesPage() {
           ) : (
             <div className="space-y-3">
               {sequences.map((sequence) => {
-                const workerConfig = WORKER_CONFIG[sequence.worker] || WORKER_CONFIG.gianna;
+                const workerConfig =
+                  WORKER_CONFIG[sequence.worker] || WORKER_CONFIG.gianna;
                 return (
                   <Card
                     key={sequence.id}
@@ -337,7 +341,10 @@ export default function SequencesPage() {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
                           <div
-                            className={cn("p-2 rounded-lg", workerConfig.bgColor)}
+                            className={cn(
+                              "p-2 rounded-lg",
+                              workerConfig.bgColor,
+                            )}
                           >
                             <workerConfig.icon
                               className={cn("h-5 w-5", workerConfig.color)}

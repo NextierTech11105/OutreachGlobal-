@@ -42,8 +42,8 @@ import {
   type SmsTemplate,
   type SequenceStep,
   type SequencePreset,
-  SEQUENCE_PRESETS,
-  ALL_TEMPLATES,
+  SEQUENCE_EXAMPLE_PRESETS,
+  ALL_EXAMPLE_TEMPLATES,
   WORKER_META,
 } from "@/lib/templates/nextier-defaults";
 
@@ -176,7 +176,7 @@ export function SequenceDesigner({
       type: step.type as StepType,
       templateId: step.templateId,
       template: step.templateId
-        ? ALL_TEMPLATES.find((t) => t.id === step.templateId)
+        ? ALL_EXAMPLE_TEMPLATES.find((t) => t.id === step.templateId)
         : undefined,
       waitDays: step.waitDays,
       waitHours: step.waitHours,
@@ -273,7 +273,7 @@ export function SequenceDesigner({
           <CardContent className="pt-0">
             <ScrollArea className="h-48">
               <div className="space-y-2">
-                {SEQUENCE_PRESETS.map((preset) => (
+                {SEQUENCE_EXAMPLE_PRESETS.map((preset) => (
                   <Button
                     key={preset.id}
                     variant="ghost"

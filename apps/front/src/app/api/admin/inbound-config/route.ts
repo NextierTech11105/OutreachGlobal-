@@ -217,7 +217,7 @@ export async function GET() {
     console.error("[InboundConfig API] Error fetching settings:", error);
     return NextResponse.json(
       { success: false, error: "Failed to fetch settings" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -230,7 +230,7 @@ export async function POST(request: NextRequest) {
     if (!settings || typeof settings !== "object") {
       return NextResponse.json(
         { success: false, error: "Invalid settings payload" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -250,7 +250,7 @@ export async function POST(request: NextRequest) {
         if (isNaN(numValue)) {
           return NextResponse.json(
             { success: false, error: `Invalid number value for ${key}` },
-            { status: 400 }
+            { status: 400 },
           );
         }
         if (
@@ -262,7 +262,7 @@ export async function POST(request: NextRequest) {
               success: false,
               error: `${key} must be at least ${settingDef.minValue}`,
             },
-            { status: 400 }
+            { status: 400 },
           );
         }
         if (
@@ -274,7 +274,7 @@ export async function POST(request: NextRequest) {
               success: false,
               error: `${key} must be at most ${settingDef.maxValue}`,
             },
-            { status: 400 }
+            { status: 400 },
           );
         }
       }
@@ -283,7 +283,7 @@ export async function POST(request: NextRequest) {
         if (value !== "true" && value !== "false") {
           return NextResponse.json(
             { success: false, error: `Invalid boolean value for ${key}` },
-            { status: 400 }
+            { status: 400 },
           );
         }
       }
@@ -326,7 +326,7 @@ export async function POST(request: NextRequest) {
 
     console.log(
       `[InboundConfig API] Updated ${updates.length} settings:`,
-      updates.map((u) => u.key).join(", ")
+      updates.map((u) => u.key).join(", "),
     );
 
     return NextResponse.json({
@@ -338,7 +338,7 @@ export async function POST(request: NextRequest) {
     console.error("[InboundConfig API] Error saving settings:", error);
     return NextResponse.json(
       { success: false, error: "Failed to save settings" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

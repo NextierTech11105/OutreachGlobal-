@@ -139,7 +139,7 @@ function CampaignBucketCard({ bucket, onClick }: CampaignBucketCardProps) {
       className={cn(
         "cursor-pointer transition-all hover:shadow-md",
         colors.border,
-        "border-2"
+        "border-2",
       )}
       onClick={onClick}
     >
@@ -226,13 +226,18 @@ interface DashboardMetricsProps {
   className?: string;
 }
 
-export function DashboardMetrics({ metrics, className }: DashboardMetricsProps) {
+export function DashboardMetrics({
+  metrics,
+  className,
+}: DashboardMetricsProps) {
   return (
     <div className={cn("grid gap-4 md:grid-cols-2 lg:grid-cols-4", className)}>
       {metrics.map((metric, i) => (
         <Card key={i}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{metric.label}</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {metric.label}
+            </CardTitle>
             {metric.icon}
           </CardHeader>
           <CardContent>

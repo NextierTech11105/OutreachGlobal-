@@ -33,7 +33,10 @@ import {
   ChevronLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ALL_TEMPLATES, type SmsTemplate } from "@/lib/templates/nextier-defaults";
+import {
+  ALL_TEMPLATES,
+  type SmsTemplate,
+} from "@/lib/templates/nextier-defaults";
 
 /**
  * SEQUENCE WIZARD
@@ -137,7 +140,11 @@ interface SequenceWizardProps {
   onComplete: (config: WizardConfig) => void;
 }
 
-export function SequenceWizard({ open, onClose, onComplete }: SequenceWizardProps) {
+export function SequenceWizard({
+  open,
+  onClose,
+  onComplete,
+}: SequenceWizardProps) {
   const [step, setStep] = useState(1);
   const [config, setConfig] = useState<WizardConfig>({
     name: "",
@@ -182,7 +189,7 @@ export function SequenceWizard({ open, onClose, onComplete }: SequenceWizardProp
 
   // Filter templates by category
   const getTemplatesForSlot = (category: string) => {
-    return ALL_TEMPLATES.filter(t => t.category === category);
+    return ALL_TEMPLATES.filter((t) => t.category === category);
   };
 
   return (
@@ -205,7 +212,7 @@ export function SequenceWizard({ open, onClose, onComplete }: SequenceWizardProp
               key={s}
               className={cn(
                 "h-1 flex-1 rounded-full transition-colors",
-                s <= step ? "bg-purple-500" : "bg-zinc-700"
+                s <= step ? "bg-purple-500" : "bg-zinc-700",
               )}
             />
           ))}
@@ -243,7 +250,7 @@ export function SequenceWizard({ open, onClose, onComplete }: SequenceWizardProp
                       "flex items-center gap-4 p-4 rounded-lg border cursor-pointer transition-all",
                       config.cadence === option.id
                         ? option.bgColor
-                        : "border-zinc-700 hover:border-zinc-600"
+                        : "border-zinc-700 hover:border-zinc-600",
                     )}
                   >
                     <RadioGroupItem value={option.id} />
@@ -284,7 +291,7 @@ export function SequenceWizard({ open, onClose, onComplete }: SequenceWizardProp
                     "flex items-center gap-4 p-4 rounded-lg border cursor-pointer transition-all",
                     config.temperature === option.id
                       ? option.bgColor
-                      : "border-zinc-700 hover:border-zinc-600"
+                      : "border-zinc-700 hover:border-zinc-600",
                   )}
                 >
                   <RadioGroupItem value={option.id} />
@@ -316,7 +323,9 @@ export function SequenceWizard({ open, onClose, onComplete }: SequenceWizardProp
               {CONTENT_SLOTS.map((slot) => {
                 const templates = getTemplatesForSlot(slot.category);
                 const selectedId = config.templates[slot.id];
-                const selectedTemplate = templates.find(t => t.id === selectedId);
+                const selectedTemplate = templates.find(
+                  (t) => t.id === selectedId,
+                );
 
                 return (
                   <div key={slot.id} className="space-y-2">
@@ -325,9 +334,12 @@ export function SequenceWizard({ open, onClose, onComplete }: SequenceWizardProp
                         variant="outline"
                         className={cn(
                           "text-xs",
-                          slot.worker === "gianna" && "border-purple-500/30 text-purple-300",
-                          slot.worker === "cathy" && "border-orange-500/30 text-orange-300",
-                          slot.worker === "sabrina" && "border-emerald-500/30 text-emerald-300"
+                          slot.worker === "gianna" &&
+                            "border-purple-500/30 text-purple-300",
+                          slot.worker === "cathy" &&
+                            "border-orange-500/30 text-orange-300",
+                          slot.worker === "sabrina" &&
+                            "border-emerald-500/30 text-emerald-300",
                         )}
                       >
                         {slot.worker.toUpperCase()}
@@ -391,12 +403,16 @@ export function SequenceWizard({ open, onClose, onComplete }: SequenceWizardProp
                   {ESCALATION_OPTIONS.map((option) => (
                     <Button
                       key={option.id}
-                      variant={config.escalationDays === option.value ? "default" : "outline"}
+                      variant={
+                        config.escalationDays === option.value
+                          ? "default"
+                          : "outline"
+                      }
                       size="sm"
                       className={cn(
                         config.escalationDays === option.value
                           ? "bg-purple-600 hover:bg-purple-700"
-                          : "border-zinc-700"
+                          : "border-zinc-700",
                       )}
                       onClick={() =>
                         setConfig({ ...config, escalationDays: option.value })
@@ -426,7 +442,7 @@ export function SequenceWizard({ open, onClose, onComplete }: SequenceWizardProp
                         "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all",
                         config.escalationAction === action.id
                           ? "bg-zinc-800 border-purple-500/50"
-                          : "border-zinc-700 hover:border-zinc-600"
+                          : "border-zinc-700 hover:border-zinc-600",
                       )}
                     >
                       <RadioGroupItem value={action.id} />
@@ -447,11 +463,17 @@ export function SequenceWizard({ open, onClose, onComplete }: SequenceWizardProp
                   <Badge variant="outline">{config.name || "Untitled"}</Badge>
                   <ArrowRight className="h-3 w-3 text-muted-foreground" />
                   <span className="text-muted-foreground">
-                    {CADENCE_OPTIONS.find(c => c.id === config.cadence)?.name} cadence
+                    {CADENCE_OPTIONS.find((c) => c.id === config.cadence)?.name}{" "}
+                    cadence
                   </span>
                   <ArrowRight className="h-3 w-3 text-muted-foreground" />
                   <span className="text-muted-foreground">
-                    {TEMPERATURE_OPTIONS.find(t => t.id === config.temperature)?.name} tone
+                    {
+                      TEMPERATURE_OPTIONS.find(
+                        (t) => t.id === config.temperature,
+                      )?.name
+                    }{" "}
+                    tone
                   </span>
                   <ArrowRight className="h-3 w-3 text-muted-foreground" />
                   <span className="text-muted-foreground">

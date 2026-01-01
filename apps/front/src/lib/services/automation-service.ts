@@ -152,7 +152,7 @@ class AutomationService {
     console.log(
       `[Automation] Human gate ${enabled ? "ENABLED" : "DISABLED"} - ${
         enabled ? "AI will recommend, humans approve" : "Direct execution mode"
-      }`
+      }`,
     );
   }
 
@@ -203,7 +203,7 @@ class AutomationService {
         .returning();
 
       console.log(
-        `[Automation] Recommendation created: ${params.action} for ${params.leadId} by ${params.recommendedBy}`
+        `[Automation] Recommendation created: ${params.action} for ${params.leadId} by ${params.recommendedBy}`,
       );
 
       return recommendation.id;
@@ -219,7 +219,7 @@ class AutomationService {
   async approveRecommendation(
     recommendationId: string,
     reviewedBy: string,
-    editedContent?: string
+    editedContent?: string,
   ): Promise<boolean> {
     if (!db) return false;
 
@@ -233,7 +233,7 @@ class AutomationService {
 
       if (!rec || rec.status !== "pending") {
         console.warn(
-          `[Automation] Recommendation ${recommendationId} not found or not pending`
+          `[Automation] Recommendation ${recommendationId} not found or not pending`,
         );
         return false;
       }
@@ -277,7 +277,7 @@ class AutomationService {
   async rejectRecommendation(
     recommendationId: string,
     reviewedBy: string,
-    reason: string
+    reason: string,
   ): Promise<boolean> {
     if (!db) return false;
 
@@ -294,7 +294,7 @@ class AutomationService {
         .where(eq(recommendationsTable.id, recommendationId));
 
       console.log(
-        `[Automation] Recommendation ${recommendationId} rejected: ${reason}`
+        `[Automation] Recommendation ${recommendationId} rejected: ${reason}`,
       );
       return true;
     } catch (error) {
@@ -308,14 +308,19 @@ class AutomationService {
    */
   private async executeRecommendation(
     rec: Recommendation,
-    editedContent?: string
+    editedContent?: string,
   ): Promise<boolean> {
     const content = editedContent || rec.content;
 
     switch (rec.action) {
       case "send_sms":
         if (rec.targetPhone && content) {
-          this.executeDirectSMS(rec.leadId, rec.targetPhone, content, "recommendation");
+          this.executeDirectSMS(
+            rec.leadId,
+            rec.targetPhone,
+            content,
+            "recommendation",
+          );
           return true;
         }
         break;
@@ -323,7 +328,7 @@ class AutomationService {
       case "send_email":
         if (rec.targetEmail) {
           console.log(
-            `[Automation] Executing email to ${rec.targetEmail} for ${rec.leadId}`
+            `[Automation] Executing email to ${rec.targetEmail} for ${rec.leadId}`,
           );
           return true;
         }
@@ -332,7 +337,7 @@ class AutomationService {
       case "schedule_call":
         if (rec.targetPhone) {
           console.log(
-            `[Automation] Scheduling call to ${rec.targetPhone} for ${rec.leadId}`
+            `[Automation] Scheduling call to ${rec.targetPhone} for ${rec.leadId}`,
           );
           return true;
         }
@@ -341,7 +346,7 @@ class AutomationService {
       case "move_to_bucket":
         if (rec.targetBucket) {
           console.log(
-            `[Automation] Moving ${rec.leadId} to bucket ${rec.targetBucket}`
+            `[Automation] Moving ${rec.leadId} to bucket ${rec.targetBucket}`,
           );
           return true;
         }
@@ -360,7 +365,7 @@ class AutomationService {
       case "escalate_to_worker":
         if (rec.targetWorker) {
           console.log(
-            `[Automation] Escalating ${rec.leadId} to ${rec.targetWorker}`
+            `[Automation] Escalating ${rec.leadId} to ${rec.targetWorker}`,
           );
           return true;
         }
@@ -384,7 +389,10 @@ class AutomationService {
         .orderBy(desc(recommendationsTable.priority))
         .limit(limit);
     } catch (error) {
-      console.error("[Automation] Failed to get pending recommendations:", error);
+      console.error(
+        "[Automation] Failed to get pending recommendations:",
+        error,
+      );
       return [];
     }
   }
@@ -397,7 +405,7 @@ class AutomationService {
     leadId: string,
     phone: string,
     message: string,
-    category: string
+    category: string,
   ): void {
     smsQueueService.addToQueue({
       leadId,
@@ -1312,7 +1320,9 @@ class AutomationService {
         content: message,
         targetPhone: phone,
       });
-      console.log(`[Automation] SMS recommendation created for ${leadId}: ${category}`);
+      console.log(
+        `[Automation] SMS recommendation created for ${leadId}: ${category}`,
+      );
       return;
     }
 
@@ -1340,7 +1350,9 @@ class AutomationService {
         content: template,
         targetEmail: email,
       });
-      console.log(`[Automation] Email recommendation created for ${leadId}: ${template}`);
+      console.log(
+        `[Automation] Email recommendation created for ${leadId}: ${template}`,
+      );
       return;
     }
 
@@ -1369,7 +1381,9 @@ class AutomationService {
         content: reason,
         targetPhone: phone,
       });
-      console.log(`[Automation] Call recommendation created for ${leadId}: ${reason}`);
+      console.log(
+        `[Automation] Call recommendation created for ${leadId}: ${reason}`,
+      );
       return;
     }
 

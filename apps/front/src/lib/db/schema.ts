@@ -2578,7 +2578,12 @@ export type RecommendationStatus =
   | "executed";
 
 // AI worker who made the recommendation
-export type RecommendingWorker = "gianna" | "cathy" | "sabrina" | "neva" | "system";
+export type RecommendingWorker =
+  | "gianna"
+  | "cathy"
+  | "sabrina"
+  | "neva"
+  | "system";
 
 export const recommendations = pgTable(
   "recommendations",
@@ -2589,7 +2594,10 @@ export const recommendations = pgTable(
 
     // What action is recommended
     action: text("action").notNull().$type<RecommendedAction>(),
-    status: text("status").notNull().$type<RecommendationStatus>().default("pending"),
+    status: text("status")
+      .notNull()
+      .$type<RecommendationStatus>()
+      .default("pending"),
 
     // Priority (1-100, higher = more urgent)
     priority: integer("priority").notNull().default(50),
@@ -2632,14 +2640,14 @@ export const recommendations = pgTable(
     statusIdx: index("recommendations_status_idx").on(table.status),
     priorityIdx: index("recommendations_priority_idx").on(table.priority),
     recommendedByIdx: index("recommendations_recommended_by_idx").on(
-      table.recommendedBy
+      table.recommendedBy,
     ),
     // Hot path: pending recommendations by priority
     pendingPriorityIdx: index("recommendations_pending_priority_idx").on(
       table.status,
-      table.priority
+      table.priority,
     ),
-  })
+  }),
 );
 
 export type Recommendation = typeof recommendations.$inferSelect;
@@ -2682,7 +2690,7 @@ export const systemSettings = pgTable(
   (table) => ({
     keyIdx: index("system_settings_key_idx").on(table.key),
     categoryIdx: index("system_settings_category_idx").on(table.category),
-  })
+  }),
 );
 
 export type SystemSetting = typeof systemSettings.$inferSelect;

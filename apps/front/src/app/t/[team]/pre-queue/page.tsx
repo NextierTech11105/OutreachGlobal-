@@ -96,7 +96,8 @@ const DEFAULT_PRE_QUEUES: PreQueue[] = [
     name: "INITIAL SMS",
     category: "initial",
     worker: "gianna",
-    template: "Hey {firstName}, saw {companyName} and wanted to connect. We help {industry} businesses grow revenue 30%+ with AI-powered outreach. Worth a quick chat?",
+    template:
+      "Hey {firstName}, saw {companyName} and wanted to connect. We help {industry} businesses grow revenue 30%+ with AI-powered outreach. Worth a quick chat?",
     leadCount: 0,
     targetSize: 2000,
     status: "empty",
@@ -106,7 +107,8 @@ const DEFAULT_PRE_QUEUES: PreQueue[] = [
     name: "RETARGET SMS",
     category: "retarget",
     worker: "gianna",
-    template: "Hi {firstName}, circling back on my last message. Just wanted to make sure you saw it - we've been helping similar {industry} companies hit their growth targets. Still interested?",
+    template:
+      "Hi {firstName}, circling back on my last message. Just wanted to make sure you saw it - we've been helping similar {industry} companies hit their growth targets. Still interested?",
     leadCount: 0,
     targetSize: 2000,
     status: "empty",
@@ -116,7 +118,8 @@ const DEFAULT_PRE_QUEUES: PreQueue[] = [
     name: "NUDGE SMS",
     category: "nudge",
     worker: "cathy",
-    template: "{firstName}! Just bumping this up. I know you're busy running {companyName} - that's exactly why I think you'd find value in a 15-min call. What do you say?",
+    template:
+      "{firstName}! Just bumping this up. I know you're busy running {companyName} - that's exactly why I think you'd find value in a 15-min call. What do you say?",
     leadCount: 0,
     targetSize: 2000,
     status: "empty",
@@ -126,7 +129,8 @@ const DEFAULT_PRE_QUEUES: PreQueue[] = [
     name: "CLOSER SMS",
     category: "closer",
     worker: "sabrina",
-    template: "{firstName}, got 15 min this week? I'd love to show you how we can help {companyName} hit those growth goals. What day works best?",
+    template:
+      "{firstName}, got 15 min this week? I'd love to show you how we can help {companyName} hit those growth goals. What day works best?",
     leadCount: 0,
     targetSize: 2000,
     status: "empty",
@@ -153,7 +157,7 @@ export default function PreQueuePage() {
 
   // Calculate totals
   const totalLeadsQueued = preQueues.reduce((acc, pq) => acc + pq.leadCount, 0);
-  const totalReady = preQueues.filter(pq => pq.leadCount > 0).length;
+  const totalReady = preQueues.filter((pq) => pq.leadCount > 0).length;
 
   // Remix template to 160 chars
   const remixTo160 = async (queue: PreQueue) => {
@@ -178,14 +182,14 @@ export default function PreQueuePage() {
 
       const data = await response.json();
       if (data.success && data.remixedContent) {
-        setPreQueues(prev =>
-          prev.map(pq =>
-            pq.id === queue.id
-              ? { ...pq, template: data.remixedContent }
-              : pq
-          )
+        setPreQueues((prev) =>
+          prev.map((pq) =>
+            pq.id === queue.id ? { ...pq, template: data.remixedContent } : pq,
+          ),
         );
-        toast.success(`Remixed: ${queue.template.length} → ${data.remixedContent.length} chars`);
+        toast.success(
+          `Remixed: ${queue.template.length} → ${data.remixedContent.length} chars`,
+        );
       } else {
         toast.error(data.error || "Failed to remix");
       }
@@ -198,21 +202,27 @@ export default function PreQueuePage() {
   };
 
   // Load leads into pre-queue
-  const loadLeads = async (queueId: string, source: "new" | "no-response" | "engaged") => {
+  const loadLeads = async (
+    queueId: string,
+    source: "new" | "no-response" | "engaged",
+  ) => {
     setLoadingId(queueId);
     try {
       // In real implementation, fetch leads from API based on source
-      const response = await fetch(`/api/leads?teamId=${teamId}&status=${source}&limit=2000`);
+      const response = await fetch(
+        `/api/leads?teamId=${teamId}&status=${source}&limit=2000`,
+      );
       const data = await response.json();
 
-      const leadCount = data.leads?.length || Math.floor(Math.random() * 500) + 100; // Mock for demo
+      const leadCount =
+        data.leads?.length || Math.floor(Math.random() * 500) + 100; // Mock for demo
 
-      setPreQueues(prev =>
-        prev.map(pq =>
+      setPreQueues((prev) =>
+        prev.map((pq) =>
           pq.id === queueId
             ? { ...pq, leadCount, status: leadCount > 0 ? "ready" : "empty" }
-            : pq
-        )
+            : pq,
+        ),
       );
 
       toast.success(`Loaded ${leadCount} leads`);
@@ -220,12 +230,12 @@ export default function PreQueuePage() {
       console.error("Load error:", error);
       // Mock data for demo
       const mockCount = Math.floor(Math.random() * 800) + 200;
-      setPreQueues(prev =>
-        prev.map(pq =>
+      setPreQueues((prev) =>
+        prev.map((pq) =>
           pq.id === queueId
             ? { ...pq, leadCount: mockCount, status: "ready" }
-            : pq
-        )
+            : pq,
+        ),
       );
       toast.success(`Loaded ${mockCount} leads`);
     } finally {
@@ -241,33 +251,35 @@ export default function PreQueuePage() {
     }
 
     setSendingId(queue.id);
-    setPreQueues(prev =>
-      prev.map(pq =>
-        pq.id === queue.id ? { ...pq, status: "sending" } : pq
-      )
+    setPreQueues((prev) =>
+      prev.map((pq) =>
+        pq.id === queue.id ? { ...pq, status: "sending" } : pq,
+      ),
     );
 
     try {
       // In real implementation, call SignalHouse API
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Mock delay
+      await new Promise((resolve) => setTimeout(resolve, 2000)); // Mock delay
 
-      toast.success(`Sending ${queue.leadCount} messages via ${WORKER_CONFIG[queue.worker].name}`);
+      toast.success(
+        `Sending ${queue.leadCount} messages via ${WORKER_CONFIG[queue.worker].name}`,
+      );
 
       // Update pool and clear queue
-      setPreQueues(prev =>
-        prev.map(pq =>
+      setPreQueues((prev) =>
+        prev.map((pq) =>
           pq.id === queue.id
             ? { ...pq, leadCount: 0, status: "empty", lastSentAt: new Date() }
-            : pq
-        )
+            : pq,
+        ),
       );
     } catch (error) {
       console.error("Send error:", error);
       toast.error("Failed to send");
-      setPreQueues(prev =>
-        prev.map(pq =>
-          pq.id === queue.id ? { ...pq, status: "ready" } : pq
-        )
+      setPreQueues((prev) =>
+        prev.map((pq) =>
+          pq.id === queue.id ? { ...pq, status: "ready" } : pq,
+        ),
       );
     } finally {
       setSendingId(null);
@@ -278,12 +290,10 @@ export default function PreQueuePage() {
   const saveTemplate = () => {
     if (!editingQueue) return;
 
-    setPreQueues(prev =>
-      prev.map(pq =>
-        pq.id === editingQueue.id
-          ? { ...pq, template: editedTemplate }
-          : pq
-      )
+    setPreQueues((prev) =>
+      prev.map((pq) =>
+        pq.id === editingQueue.id ? { ...pq, template: editedTemplate } : pq,
+      ),
     );
     setEditingQueue(null);
     toast.success("Template saved");
@@ -319,20 +329,27 @@ export default function PreQueuePage() {
           {/* Stats */}
           <div className="text-right">
             <div className="text-sm text-muted-foreground">Queued</div>
-            <div className="text-xl font-bold">{totalLeadsQueued.toLocaleString()}</div>
+            <div className="text-xl font-bold">
+              {totalLeadsQueued.toLocaleString()}
+            </div>
           </div>
           <div className="text-right">
             <div className="text-sm text-muted-foreground">Ready</div>
-            <div className="text-xl font-bold text-green-400">{totalReady}/4</div>
+            <div className="text-xl font-bold text-green-400">
+              {totalReady}/4
+            </div>
           </div>
 
           {/* Monthly Pool */}
           <Card className="bg-zinc-900 border-zinc-800 w-64">
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-muted-foreground">Monthly Pool</span>
+                <span className="text-sm text-muted-foreground">
+                  Monthly Pool
+                </span>
                 <span className="text-sm font-medium">
-                  {monthlyPool.used.toLocaleString()} / {monthlyPool.total.toLocaleString()}
+                  {monthlyPool.used.toLocaleString()} /{" "}
+                  {monthlyPool.total.toLocaleString()}
                 </span>
               </div>
               <Progress
@@ -363,13 +380,17 @@ export default function PreQueuePage() {
               <CardContent className="p-0">
                 <div className="flex">
                   {/* Left: Worker Badge */}
-                  <div className={cn(
-                    "w-32 p-4 flex flex-col items-center justify-center gap-2",
-                    `bg-gradient-to-br ${worker.gradient}`
-                  )}>
+                  <div
+                    className={cn(
+                      "w-32 p-4 flex flex-col items-center justify-center gap-2",
+                      `bg-gradient-to-br ${worker.gradient}`,
+                    )}
+                  >
                     <worker.icon className="h-8 w-8 text-white" />
                     <div className="text-center">
-                      <div className="font-bold text-white text-sm">{worker.name}</div>
+                      <div className="font-bold text-white text-sm">
+                        {worker.name}
+                      </div>
                       <div className="text-xs text-white/70">{worker.role}</div>
                     </div>
                   </div>
@@ -380,7 +401,14 @@ export default function PreQueuePage() {
                       <div>
                         <h3 className="font-bold text-lg">{queue.name}</h3>
                         <div className="flex items-center gap-2 mt-1">
-                          <Badge variant="outline" className={cn("text-xs", worker.bgColor, worker.color)}>
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "text-xs",
+                              worker.bgColor,
+                              worker.color,
+                            )}
+                          >
                             {queue.category.toUpperCase()}
                           </Badge>
                           {queue.lastSentAt && (
@@ -398,7 +426,7 @@ export default function PreQueuePage() {
                             "text-xs",
                             isCompliant
                               ? "bg-green-900/50 text-green-300 border-green-500/30"
-                              : "bg-red-900/50 text-red-300 border-red-500/30"
+                              : "bg-red-900/50 text-red-300 border-red-500/30",
                           )}
                         >
                           {charCount}/160
@@ -437,19 +465,24 @@ export default function PreQueuePage() {
                       <p className="text-sm leading-relaxed">
                         {queue.template.split(/(\{[^}]+\})/).map((part, i) =>
                           part.startsWith("{") ? (
-                            <span key={i} className="text-purple-400 font-medium">
+                            <span
+                              key={i}
+                              className="text-purple-400 font-medium"
+                            >
                               {part}
                             </span>
                           ) : (
                             <span key={i}>{part}</span>
-                          )
+                          ),
                         )}
                       </p>
                     </div>
 
                     {/* Variables */}
                     <div className="flex items-center gap-2 mt-3">
-                      <span className="text-xs text-muted-foreground">Variables:</span>
+                      <span className="text-xs text-muted-foreground">
+                        Variables:
+                      </span>
                       {variables.map((v, i) => (
                         <Badge
                           key={i}
@@ -467,7 +500,9 @@ export default function PreQueuePage() {
                     <div>
                       <div className="flex items-center gap-2 mb-2">
                         <Users className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">Leads</span>
+                        <span className="text-sm text-muted-foreground">
+                          Leads
+                        </span>
                       </div>
                       <div className="text-3xl font-bold mb-1">
                         {queue.leadCount.toLocaleString()}
@@ -488,11 +523,16 @@ export default function PreQueuePage() {
                           variant="outline"
                           size="sm"
                           className="flex-1 border-zinc-700 hover:bg-zinc-800"
-                          onClick={() => loadLeads(
-                            queue.id,
-                            queue.category === "initial" ? "new" :
-                            queue.category === "retarget" ? "no-response" : "engaged"
-                          )}
+                          onClick={() =>
+                            loadLeads(
+                              queue.id,
+                              queue.category === "initial"
+                                ? "new"
+                                : queue.category === "retarget"
+                                  ? "no-response"
+                                  : "engaged",
+                            )
+                          }
                           disabled={isLoading}
                         >
                           {isLoading ? (
@@ -518,7 +558,7 @@ export default function PreQueuePage() {
                           "w-full",
                           queue.leadCount > 0
                             ? `bg-gradient-to-r ${worker.gradient} hover:opacity-90`
-                            : "bg-zinc-800 text-zinc-500"
+                            : "bg-zinc-800 text-zinc-500",
                         )}
                         disabled={queue.leadCount === 0 || isSending}
                         onClick={() => sendQueue(queue)}
@@ -576,7 +616,7 @@ export default function PreQueuePage() {
                   className={cn(
                     editedTemplate.length <= 160
                       ? "bg-green-900/50 text-green-300"
-                      : "bg-red-900/50 text-red-300"
+                      : "bg-red-900/50 text-red-300",
                   )}
                 >
                   {editedTemplate.length}/160 chars
@@ -596,9 +636,7 @@ export default function PreQueuePage() {
                     variant="ghost"
                     size="sm"
                     className="h-6 px-2 text-xs"
-                    onClick={() =>
-                      setEditedTemplate((prev) => prev + " " + v)
-                    }
+                    onClick={() => setEditedTemplate((prev) => prev + " " + v)}
                   >
                     {v}
                   </Button>
@@ -667,10 +705,14 @@ export default function PreQueuePage() {
                 </div>
                 <div>
                   <span className="text-muted-foreground">Characters:</span>
-                  <span className={cn(
-                    "ml-2 font-medium",
-                    previewQueue.template.length <= 160 ? "text-green-400" : "text-red-400"
-                  )}>
+                  <span
+                    className={cn(
+                      "ml-2 font-medium",
+                      previewQueue.template.length <= 160
+                        ? "text-green-400"
+                        : "text-red-400",
+                    )}
+                  >
                     {previewQueue.template.length}/160
                   </span>
                 </div>

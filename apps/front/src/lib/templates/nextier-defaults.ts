@@ -793,7 +793,14 @@ export const COMPLIANCE_RULES = {
     "send it",
     "email",
   ],
-  negativeKeywords: ["no", "not interested", "remove", "wrong number", "stop", "leave me alone"],
+  negativeKeywords: [
+    "no",
+    "not interested",
+    "remove",
+    "wrong number",
+    "stop",
+    "leave me alone",
+  ],
 
   // Season model
   monthlyTargetDefault: 20000,

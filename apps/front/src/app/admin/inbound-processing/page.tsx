@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -9,7 +15,15 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, Save, RefreshCw, Phone, Mail, Zap, Settings2 } from "lucide-react";
+import {
+  Loader2,
+  Save,
+  RefreshCw,
+  Phone,
+  Mail,
+  Zap,
+  Settings2,
+} from "lucide-react";
 
 interface SettingItem {
   key: string;
@@ -29,7 +43,9 @@ export default function InboundProcessingPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
-  const [originalSettings, setOriginalSettings] = useState<Record<string, string>>({});
+  const [originalSettings, setOriginalSettings] = useState<
+    Record<string, string>
+  >({});
 
   const fetchSettings = async () => {
     setIsLoading(true);
@@ -61,7 +77,7 @@ export default function InboundProcessingPage() {
 
   const handleValueChange = (key: string, value: string) => {
     setSettings((prev) =>
-      prev.map((s) => (s.key === key ? { ...s, value } : s))
+      prev.map((s) => (s.key === key ? { ...s, value } : s)),
     );
     setHasChanges(true);
   };
@@ -106,18 +122,33 @@ export default function InboundProcessingPage() {
   const getSourceBadge = (source: string) => {
     switch (source) {
       case "database":
-        return <Badge variant="default" className="ml-2 bg-green-600">DB</Badge>;
+        return (
+          <Badge variant="default" className="ml-2 bg-green-600">
+            DB
+          </Badge>
+        );
       case "environment":
-        return <Badge variant="secondary" className="ml-2">ENV</Badge>;
+        return (
+          <Badge variant="secondary" className="ml-2">
+            ENV
+          </Badge>
+        );
       default:
-        return <Badge variant="outline" className="ml-2">Default</Badge>;
+        return (
+          <Badge variant="outline" className="ml-2">
+            Default
+          </Badge>
+        );
     }
   };
 
   const renderSetting = (setting: SettingItem) => {
     if (setting.valueType === "boolean") {
       return (
-        <div key={setting.key} className="flex items-center justify-between py-4 border-b last:border-0">
+        <div
+          key={setting.key}
+          className="flex items-center justify-between py-4 border-b last:border-0"
+        >
           <div className="space-y-1">
             <div className="flex items-center">
               <Label htmlFor={setting.key} className="font-medium">
@@ -125,12 +156,16 @@ export default function InboundProcessingPage() {
               </Label>
               {getSourceBadge(setting.source)}
             </div>
-            <p className="text-sm text-muted-foreground">{setting.description}</p>
+            <p className="text-sm text-muted-foreground">
+              {setting.description}
+            </p>
           </div>
           <Switch
             id={setting.key}
             checked={setting.value === "true"}
-            onCheckedChange={(checked) => handleValueChange(setting.key, String(checked))}
+            onCheckedChange={(checked) =>
+              handleValueChange(setting.key, String(checked))
+            }
           />
         </div>
       );
@@ -172,34 +207,51 @@ export default function InboundProcessingPage() {
   }
 
   // Group settings by category
-  const callQueueSettings = settings.filter((s) =>
-    s.key.includes("CALL_QUEUE") || s.key.includes("PRIORITY_THRESHOLD")
+  const callQueueSettings = settings.filter(
+    (s) => s.key.includes("CALL_QUEUE") || s.key.includes("PRIORITY_THRESHOLD"),
   );
-  const contactabilitySettings = settings.filter((s) =>
-    s.key.includes("WEIGHT_EMAIL") || s.key.includes("WEIGHT_MOBILE") || s.key.includes("WEIGHT_CONTACT")
+  const contactabilitySettings = settings.filter(
+    (s) =>
+      s.key.includes("WEIGHT_EMAIL") ||
+      s.key.includes("WEIGHT_MOBILE") ||
+      s.key.includes("WEIGHT_CONTACT"),
   );
-  const responseBoostSettings = settings.filter((s) =>
-    s.key.includes("WEIGHT_INBOUND") || s.key.includes("WEIGHT_HIGH") ||
-    s.key.includes("WEIGHT_WANTS") || s.key.includes("WEIGHT_QUESTION")
+  const responseBoostSettings = settings.filter(
+    (s) =>
+      s.key.includes("WEIGHT_INBOUND") ||
+      s.key.includes("WEIGHT_HIGH") ||
+      s.key.includes("WEIGHT_WANTS") ||
+      s.key.includes("WEIGHT_QUESTION"),
   );
   const featureFlags = settings.filter((s) => s.valueType === "boolean");
-  const batchSettings = settings.filter((s) =>
-    s.key.includes("BATCH") || s.key.includes("RETRY") || s.key.includes("COOLDOWN")
+  const batchSettings = settings.filter(
+    (s) =>
+      s.key.includes("BATCH") ||
+      s.key.includes("RETRY") ||
+      s.key.includes("COOLDOWN"),
   );
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Inbound Processing Config</h1>
+          <h1 className="text-2xl font-bold tracking-tight">
+            Inbound Processing Config
+          </h1>
           <p className="text-muted-foreground">
-            Configure scoring weights, call queue routing, and processing behavior.
-            Changes take effect immediately.
+            Configure scoring weights, call queue routing, and processing
+            behavior. Changes take effect immediately.
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={fetchSettings} disabled={isLoading}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
+          <Button
+            variant="outline"
+            onClick={fetchSettings}
+            disabled={isLoading}
+          >
+            <RefreshCw
+              className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`}
+            />
             Refresh
           </Button>
           <Button onClick={handleSave} disabled={isSaving || !hasChanges}>
@@ -219,7 +271,10 @@ export default function InboundProcessingPage() {
             <Phone className="h-4 w-4" />
             Call Queue
           </TabsTrigger>
-          <TabsTrigger value="contactability" className="flex items-center gap-2">
+          <TabsTrigger
+            value="contactability"
+            className="flex items-center gap-2"
+          >
             <Mail className="h-4 w-4" />
             Contactability
           </TabsTrigger>
@@ -239,13 +294,11 @@ export default function InboundProcessingPage() {
             <CardHeader>
               <CardTitle>Call Queue Priority</CardTitle>
               <CardDescription>
-                Configure priority scores for different lead types. GOLD = email + mobile verified.
-                GREEN = positive SMS response.
+                Configure priority scores for different lead types. GOLD = email
+                + mobile verified. GREEN = positive SMS response.
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              {callQueueSettings.map(renderSetting)}
-            </CardContent>
+            <CardContent>{callQueueSettings.map(renderSetting)}</CardContent>
           </Card>
         </TabsContent>
 
@@ -254,7 +307,8 @@ export default function InboundProcessingPage() {
             <CardHeader>
               <CardTitle>Contactability Scoring</CardTitle>
               <CardDescription>
-                Full contactability (email + mobile) = 100%. These weights are additive.
+                Full contactability (email + mobile) = 100%. These weights are
+                additive.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -262,9 +316,15 @@ export default function InboundProcessingPage() {
               <div className="mt-4 p-4 bg-muted rounded-lg">
                 <p className="text-sm font-medium">Current Formula:</p>
                 <p className="text-sm text-muted-foreground">
-                  Email ({contactabilitySettings.find(s => s.key === "WEIGHT_EMAIL_CAPTURED")?.value || 50}%) +
-                  Mobile ({contactabilitySettings.find(s => s.key === "WEIGHT_MOBILE_CAPTURED")?.value || 50}%) =
-                  100% Contactability
+                  Email (
+                  {contactabilitySettings.find(
+                    (s) => s.key === "WEIGHT_EMAIL_CAPTURED",
+                  )?.value || 50}
+                  %) + Mobile (
+                  {contactabilitySettings.find(
+                    (s) => s.key === "WEIGHT_MOBILE_CAPTURED",
+                  )?.value || 50}
+                  %) = 100% Contactability
                 </p>
               </div>
             </CardContent>
@@ -291,12 +351,11 @@ export default function InboundProcessingPage() {
             <CardHeader>
               <CardTitle>Feature Flags</CardTitle>
               <CardDescription>
-                Enable or disable processing features. Changes take effect immediately.
+                Enable or disable processing features. Changes take effect
+                immediately.
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              {featureFlags.map(renderSetting)}
-            </CardContent>
+            <CardContent>{featureFlags.map(renderSetting)}</CardContent>
           </Card>
         </TabsContent>
 
@@ -308,9 +367,7 @@ export default function InboundProcessingPage() {
                 Configure batch sizes and retry behavior for processing.
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              {batchSettings.map(renderSetting)}
-            </CardContent>
+            <CardContent>{batchSettings.map(renderSetting)}</CardContent>
           </Card>
         </TabsContent>
       </Tabs>
@@ -318,8 +375,17 @@ export default function InboundProcessingPage() {
       {hasChanges && (
         <div className="fixed bottom-4 right-4 bg-yellow-500 text-black px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
           <span className="font-medium">Unsaved changes</span>
-          <Button size="sm" variant="secondary" onClick={handleSave} disabled={isSaving}>
-            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Now"}
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={handleSave}
+            disabled={isSaving}
+          >
+            {isSaving ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              "Save Now"
+            )}
           </Button>
         </div>
       )}

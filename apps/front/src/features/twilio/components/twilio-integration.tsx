@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -68,7 +74,7 @@ export function TwilioIntegration() {
 
       if (data.success) {
         const twilioStatus = data.status?.find(
-          (s: { provider: string }) => s.provider === "twilio"
+          (s: { provider: string }) => s.provider === "twilio",
         );
         setConfig((prev) => ({
           ...prev,
@@ -171,8 +177,8 @@ export function TwilioIntegration() {
                     )}
                   </CardTitle>
                   <CardDescription>
-                    Twilio credentials are configured via environment variables in DigitalOcean.
-                    Test the connection below to verify.
+                    Twilio credentials are configured via environment variables
+                    in DigitalOcean. Test the connection below to verify.
                   </CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
@@ -192,13 +198,20 @@ export function TwilioIntegration() {
                 <div className="flex items-start gap-2">
                   <AlertCircle className="h-5 w-5 text-yellow-500 mt-0.5" />
                   <div>
-                    <p className="text-sm font-medium">Environment Variables (DigitalOcean)</p>
+                    <p className="text-sm font-medium">
+                      Environment Variables (DigitalOcean)
+                    </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      These should be configured in your DigitalOcean App Platform settings:
+                      These should be configured in your DigitalOcean App
+                      Platform settings:
                     </p>
                     <ul className="text-xs text-muted-foreground mt-2 space-y-1 font-mono">
-                      <li>TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</li>
-                      <li>TWILIO_AUTH_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</li>
+                      <li>
+                        TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+                      </li>
+                      <li>
+                        TWILIO_AUTH_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+                      </li>
                       <li>TWILIO_PHONE_NUMBER=+1xxxxxxxxxx</li>
                     </ul>
                   </div>

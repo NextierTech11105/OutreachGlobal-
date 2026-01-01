@@ -46,7 +46,7 @@ import {
   type TemplateCategory,
   type WorkerType,
   type VerticalType,
-  ALL_TEMPLATES,
+  ALL_EXAMPLE_TEMPLATES,
   TEMPLATE_VARIABLES,
   WORKER_META,
   COMPLIANCE_RULES,
@@ -226,26 +226,26 @@ const EXTENDED_CATHY_TEMPLATES: SmsTemplate[] = [
 ];
 
 // Combine all templates
-const COMBINED_TEMPLATES = [...ALL_TEMPLATES, ...EXTENDED_CATHY_TEMPLATES];
+const COMBINED_TEMPLATES = [...ALL_EXAMPLE_TEMPLATES, ...EXTENDED_CATHY_TEMPLATES];
 
 const WORKER_CONFIG = {
   gianna: {
     name: "GIANNA",
     icon: Zap,
-    color: "text-purple-300",
-    bgColor: "bg-purple-900/50 border border-purple-500/30",
+    color: "text-purple-600 dark:text-purple-300",
+    bgColor: "bg-purple-100 dark:bg-purple-900/50 border border-purple-300 dark:border-purple-500/30",
   },
   cathy: {
     name: "CATHY",
     icon: Bell,
-    color: "text-orange-300",
-    bgColor: "bg-orange-900/50 border border-orange-500/30",
+    color: "text-orange-600 dark:text-orange-300",
+    bgColor: "bg-orange-100 dark:bg-orange-900/50 border border-orange-300 dark:border-orange-500/30",
   },
   sabrina: {
     name: "SABRINA",
     icon: Calendar,
-    color: "text-emerald-300",
-    bgColor: "bg-emerald-900/50 border border-emerald-500/30",
+    color: "text-emerald-600 dark:text-emerald-300",
+    bgColor: "bg-emerald-100 dark:bg-emerald-900/50 border border-emerald-300 dark:border-emerald-500/30",
   },
 };
 
@@ -253,13 +253,38 @@ const CATEGORY_CONFIG: Record<
   TemplateCategory,
   { label: string; color: string }
 > = {
-  initial: { label: "Initial", color: "bg-blue-900/50 text-blue-300 border border-blue-500/30" },
-  retarget: { label: "Retarget", color: "bg-orange-900/50 text-orange-300 border border-orange-500/30" },
-  nudge: { label: "Nudge", color: "bg-yellow-900/50 text-yellow-300 border border-yellow-500/30" },
-  closer: { label: "Closer", color: "bg-emerald-900/50 text-emerald-300 border border-emerald-500/30" },
-  breakup: { label: "Breakup", color: "bg-red-900/50 text-red-300 border border-red-500/30" },
-  "value-drop": { label: "Value Drop", color: "bg-purple-900/50 text-purple-300 border border-purple-500/30" },
-  callback: { label: "Callback", color: "bg-cyan-900/50 text-cyan-300 border border-cyan-500/30" },
+  initial: {
+    label: "Initial",
+    color: "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-500/30",
+  },
+  retarget: {
+    label: "Retarget",
+    color: "bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300 border border-orange-300 dark:border-orange-500/30",
+  },
+  nudge: {
+    label: "Nudge",
+    color: "bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-500/30",
+  },
+  closer: {
+    label: "Closer",
+    color: "bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30",
+  },
+  breakup: {
+    label: "Breakup",
+    color: "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 border border-red-300 dark:border-red-500/30",
+  },
+  "value-drop": {
+    label: "Value Drop",
+    color: "bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-500/30",
+  },
+  callback: {
+    label: "Callback",
+    color: "bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-500/30",
+  },
+  "exit-expansion": {
+    label: "Exit & Expansion",
+    color: "bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-500/30",
+  },
 };
 
 interface TemplateLibraryProps {
@@ -314,7 +339,9 @@ export function TemplateLibrary({
       }
 
       const data = await response.json();
-      setRemixedContent(data.remixedContent || template.content.substring(0, 157) + "...");
+      setRemixedContent(
+        data.remixedContent || template.content.substring(0, 157) + "...",
+      );
     } catch (error) {
       // Fallback: intelligent truncation
       const words = template.content.split(" ");

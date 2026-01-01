@@ -99,7 +99,13 @@ interface BlockCardProps {
   onClick: () => void;
 }
 
-function BlockCard({ block, onActivate, onPause, isSelected, onClick }: BlockCardProps) {
+function BlockCard({
+  block,
+  onActivate,
+  onPause,
+  isSelected,
+  onClick,
+}: BlockCardProps) {
   const config = BLOCK_TYPES[block.type];
   const Icon = config.icon;
   const progress = Math.round((block.count / block.target) * 100);
@@ -124,7 +130,7 @@ function BlockCard({ block, onActivate, onPause, isSelected, onClick }: BlockCar
         "transition-all duration-200",
         "transform-gpu perspective-1000",
         isSelected && "ring-2 ring-white ring-offset-2 ring-offset-zinc-950",
-        block.status === "active" && "animate-pulse-subtle"
+        block.status === "active" && "animate-pulse-subtle",
       )}
       style={{
         transformStyle: "preserve-3d",
@@ -150,10 +156,12 @@ function BlockCard({ block, onActivate, onPause, isSelected, onClick }: BlockCar
               {config.label}
             </div>
           </div>
-          <div className={cn(
-            "p-2 rounded-lg bg-black/20 backdrop-blur-sm",
-            block.status === "active" && "ring-1 ring-white/30"
-          )}>
+          <div
+            className={cn(
+              "p-2 rounded-lg bg-black/20 backdrop-blur-sm",
+              block.status === "active" && "ring-1 ring-white/30",
+            )}
+          >
             <Icon className="w-5 h-5 text-white" />
           </div>
         </div>
@@ -178,9 +186,7 @@ function BlockCard({ block, onActivate, onPause, isSelected, onClick }: BlockCar
               transition={{ duration: 0.5, ease: "easeOut" }}
               className={cn(
                 "h-full rounded-full",
-                block.status === "active"
-                  ? "bg-white"
-                  : "bg-white/60"
+                block.status === "active" ? "bg-white" : "bg-white/60",
               )}
             />
           </div>
@@ -191,13 +197,15 @@ function BlockCard({ block, onActivate, onPause, isSelected, onClick }: BlockCar
               <Target className="w-3 h-3" />
               <span>{block.responseRate}% resp</span>
             </div>
-            <div className={cn(
-              "px-2 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider",
-              block.status === "active" && "bg-green-500/20 text-green-300",
-              block.status === "complete" && "bg-white/20 text-white",
-              block.status === "paused" && "bg-yellow-500/20 text-yellow-300",
-              block.status === "idle" && "bg-zinc-500/20 text-zinc-400",
-            )}>
+            <div
+              className={cn(
+                "px-2 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider",
+                block.status === "active" && "bg-green-500/20 text-green-300",
+                block.status === "complete" && "bg-white/20 text-white",
+                block.status === "paused" && "bg-yellow-500/20 text-yellow-300",
+                block.status === "idle" && "bg-zinc-500/20 text-zinc-400",
+              )}
+            >
               {block.status}
             </div>
           </div>
@@ -221,7 +229,7 @@ function BlockCard({ block, onActivate, onPause, isSelected, onClick }: BlockCar
             "p-4 rounded-full",
             "bg-white text-black",
             "shadow-2xl",
-            "transition-all"
+            "transition-all",
           )}
         >
           {block.status === "active" ? (
@@ -251,7 +259,10 @@ function MonthlyPool({ used, total }: MonthlyPoolProps) {
           <span className="text-sm font-mono text-zinc-400">MONTHLY POOL</span>
         </div>
         <span className="text-sm font-mono text-zinc-500">
-          {new Date().toLocaleDateString("en-US", { month: "short", year: "numeric" })}
+          {new Date().toLocaleDateString("en-US", {
+            month: "short",
+            year: "numeric",
+          })}
         </span>
       </div>
 
@@ -272,8 +283,10 @@ function MonthlyPool({ used, total }: MonthlyPoolProps) {
           className={cn(
             "h-full rounded-full",
             percentage < 50 && "bg-gradient-to-r from-green-500 to-green-400",
-            percentage >= 50 && percentage < 80 && "bg-gradient-to-r from-yellow-500 to-yellow-400",
-            percentage >= 80 && "bg-gradient-to-r from-red-500 to-red-400"
+            percentage >= 50 &&
+              percentage < 80 &&
+              "bg-gradient-to-r from-yellow-500 to-yellow-400",
+            percentage >= 80 && "bg-gradient-to-r from-red-500 to-red-400",
           )}
         />
       </div>
@@ -301,19 +314,19 @@ export function CampaignBlocksBoard() {
   // }, []);
 
   const handleActivate = useCallback((id: string) => {
-    setBlocks(prev => prev.map(b =>
-      b.id === id ? { ...b, status: "active" as const } : b
-    ));
+    setBlocks((prev) =>
+      prev.map((b) => (b.id === id ? { ...b, status: "active" as const } : b)),
+    );
   }, []);
 
   const handlePause = useCallback((id: string) => {
-    setBlocks(prev => prev.map(b =>
-      b.id === id ? { ...b, status: "paused" as const } : b
-    ));
+    setBlocks((prev) =>
+      prev.map((b) => (b.id === id ? { ...b, status: "paused" as const } : b)),
+    );
   }, []);
 
-  const activeBlocks = blocks.filter(b => b.type !== "anchor");
-  const anchorBlocks = blocks.filter(b => b.type === "anchor");
+  const activeBlocks = blocks.filter((b) => b.type !== "anchor");
+  const anchorBlocks = blocks.filter((b) => b.type === "anchor");
 
   return (
     <div className="space-y-6">
@@ -345,7 +358,9 @@ export function CampaignBlocksBoard() {
                 onActivate={handleActivate}
                 onPause={handlePause}
                 isSelected={selectedBlock === block.id}
-                onClick={() => setSelectedBlock(block.id === selectedBlock ? null : block.id)}
+                onClick={() =>
+                  setSelectedBlock(block.id === selectedBlock ? null : block.id)
+                }
               />
             ))}
           </AnimatePresence>
@@ -372,7 +387,9 @@ export function CampaignBlocksBoard() {
               onActivate={handleActivate}
               onPause={handlePause}
               isSelected={selectedBlock === block.id}
-              onClick={() => setSelectedBlock(block.id === selectedBlock ? null : block.id)}
+              onClick={() =>
+                setSelectedBlock(block.id === selectedBlock ? null : block.id)
+              }
             />
           ))}
         </div>
@@ -384,19 +401,29 @@ export function CampaignBlocksBoard() {
           <div className="text-3xl font-bold font-mono text-white">
             {blocks.reduce((acc, b) => acc + b.count, 0).toLocaleString()}
           </div>
-          <div className="text-xs font-mono text-zinc-500 uppercase">Total Contacts</div>
+          <div className="text-xs font-mono text-zinc-500 uppercase">
+            Total Contacts
+          </div>
         </div>
         <div className="text-center">
           <div className="text-3xl font-bold font-mono text-green-400">
-            {Math.round(blocks.reduce((acc, b) => acc + b.responseRate, 0) / blocks.filter(b => b.responseRate > 0).length || 0)}%
+            {Math.round(
+              blocks.reduce((acc, b) => acc + b.responseRate, 0) /
+                blocks.filter((b) => b.responseRate > 0).length || 0,
+            )}
+            %
           </div>
-          <div className="text-xs font-mono text-zinc-500 uppercase">Avg Response</div>
+          <div className="text-xs font-mono text-zinc-500 uppercase">
+            Avg Response
+          </div>
         </div>
         <div className="text-center">
           <div className="text-3xl font-bold font-mono text-yellow-400">
             {blocks.reduce((acc, b) => acc + b.signals, 0)}
           </div>
-          <div className="text-xs font-mono text-zinc-500 uppercase">Confluence</div>
+          <div className="text-xs font-mono text-zinc-500 uppercase">
+            Confluence
+          </div>
         </div>
       </div>
     </div>

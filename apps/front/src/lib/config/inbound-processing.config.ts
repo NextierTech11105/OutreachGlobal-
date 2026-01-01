@@ -33,13 +33,14 @@ async function loadDbSettings(): Promise<Map<string, string>> {
       .from(systemSettings)
       .where(eq(systemSettings.category, "inbound_processing"));
 
-    dbSettingsCache = new Map(
-      settings.map((s) => [s.key, s.value || ""])
-    );
+    dbSettingsCache = new Map(settings.map((s) => [s.key, s.value || ""]));
     cacheTimestamp = now;
     return dbSettingsCache;
   } catch (error) {
-    console.warn("[InboundConfig] Failed to load DB settings, using env vars:", error);
+    console.warn(
+      "[InboundConfig] Failed to load DB settings, using env vars:",
+      error,
+    );
     return new Map();
   }
 }
@@ -50,7 +51,7 @@ async function loadDbSettings(): Promise<Map<string, string>> {
 function getConfigValue(
   dbSettings: Map<string, string>,
   key: string,
-  defaultValue?: string
+  defaultValue?: string,
 ): string | null {
   // Priority 1: Database
   const dbValue = dbSettings.get(key);
@@ -172,66 +173,78 @@ export async function getInboundConfigAsync(): Promise<InboundProcessingConfig> 
   return {
     // Call Queue Routing
     CALL_QUEUE_PRIORITY_THRESHOLD: parseNumber(
-      getConfigValue(dbSettings, CONFIG_KEYS.CALL_QUEUE_PRIORITY_THRESHOLD, "50")
+      getConfigValue(
+        dbSettings,
+        CONFIG_KEYS.CALL_QUEUE_PRIORITY_THRESHOLD,
+        "50",
+      ),
     ),
     CALL_QUEUE_GOLD_LABEL_PRIORITY: parseNumber(
-      getConfigValue(dbSettings, CONFIG_KEYS.CALL_QUEUE_GOLD_LABEL_PRIORITY, "100")
+      getConfigValue(
+        dbSettings,
+        CONFIG_KEYS.CALL_QUEUE_GOLD_LABEL_PRIORITY,
+        "100",
+      ),
     ),
     CALL_QUEUE_GREEN_TAG_PRIORITY: parseNumber(
-      getConfigValue(dbSettings, CONFIG_KEYS.CALL_QUEUE_GREEN_TAG_PRIORITY, "75")
+      getConfigValue(
+        dbSettings,
+        CONFIG_KEYS.CALL_QUEUE_GREEN_TAG_PRIORITY,
+        "75",
+      ),
     ),
 
     // Priority Weights
     WEIGHT_EMAIL_CAPTURED: parseNumber(
-      getConfigValue(dbSettings, CONFIG_KEYS.WEIGHT_EMAIL_CAPTURED, "50")
+      getConfigValue(dbSettings, CONFIG_KEYS.WEIGHT_EMAIL_CAPTURED, "50"),
     ),
     WEIGHT_MOBILE_CAPTURED: parseNumber(
-      getConfigValue(dbSettings, CONFIG_KEYS.WEIGHT_MOBILE_CAPTURED, "50")
+      getConfigValue(dbSettings, CONFIG_KEYS.WEIGHT_MOBILE_CAPTURED, "50"),
     ),
     WEIGHT_CONTACT_VERIFIED: parseNumber(
-      getConfigValue(dbSettings, CONFIG_KEYS.WEIGHT_CONTACT_VERIFIED, "0")
+      getConfigValue(dbSettings, CONFIG_KEYS.WEIGHT_CONTACT_VERIFIED, "0"),
     ),
     WEIGHT_WANTS_CALL: parseNumber(
-      getConfigValue(dbSettings, CONFIG_KEYS.WEIGHT_WANTS_CALL, "35")
+      getConfigValue(dbSettings, CONFIG_KEYS.WEIGHT_WANTS_CALL, "35"),
     ),
     WEIGHT_QUESTION_ASKED: parseNumber(
-      getConfigValue(dbSettings, CONFIG_KEYS.WEIGHT_QUESTION_ASKED, "15")
+      getConfigValue(dbSettings, CONFIG_KEYS.WEIGHT_QUESTION_ASKED, "15"),
     ),
     WEIGHT_HIGH_INTENT: parseNumber(
-      getConfigValue(dbSettings, CONFIG_KEYS.WEIGHT_HIGH_INTENT, "30")
+      getConfigValue(dbSettings, CONFIG_KEYS.WEIGHT_HIGH_INTENT, "30"),
     ),
     WEIGHT_INBOUND_RESPONSE: parseNumber(
-      getConfigValue(dbSettings, CONFIG_KEYS.WEIGHT_INBOUND_RESPONSE, "25")
+      getConfigValue(dbSettings, CONFIG_KEYS.WEIGHT_INBOUND_RESPONSE, "25"),
     ),
 
     // Retry/Cooldown
     MAX_RETRY_ATTEMPTS: parseNumber(
-      getConfigValue(dbSettings, CONFIG_KEYS.MAX_RETRY_ATTEMPTS, "3")
+      getConfigValue(dbSettings, CONFIG_KEYS.MAX_RETRY_ATTEMPTS, "3"),
     ),
     RETRY_COOLDOWN_HOURS: parseNumber(
-      getConfigValue(dbSettings, CONFIG_KEYS.RETRY_COOLDOWN_HOURS, "24")
+      getConfigValue(dbSettings, CONFIG_KEYS.RETRY_COOLDOWN_HOURS, "24"),
     ),
 
     // Batch Limits
     DAILY_BATCH_SIZE: parseNumber(
-      getConfigValue(dbSettings, CONFIG_KEYS.DAILY_BATCH_SIZE, "2000")
+      getConfigValue(dbSettings, CONFIG_KEYS.DAILY_BATCH_SIZE, "2000"),
     ),
     SMS_BATCH_SIZE: parseNumber(
-      getConfigValue(dbSettings, CONFIG_KEYS.SMS_BATCH_SIZE, "250")
+      getConfigValue(dbSettings, CONFIG_KEYS.SMS_BATCH_SIZE, "250"),
     ),
 
     // Feature Flags (default to true for auto-processing)
     AUTO_ROUTE_TO_CALL_CENTER: parseBool(
       getConfigValue(dbSettings, CONFIG_KEYS.AUTO_ROUTE_TO_CALL_CENTER, "true"),
-      true
+      true,
     ),
     AUTO_RESOLVE_THREADS: parseBool(
       getConfigValue(dbSettings, CONFIG_KEYS.AUTO_RESOLVE_THREADS, "true"),
-      true
+      true,
     ),
     LOG_LEAD_EVENTS: parseBool(
       getConfigValue(dbSettings, CONFIG_KEYS.LOG_LEAD_EVENTS, "false"),
-      false
+      false,
     ),
   };
 }
@@ -247,23 +260,54 @@ export function getInboundConfig(): InboundProcessingConfig {
   };
 
   return {
-    CALL_QUEUE_PRIORITY_THRESHOLD: parseNumber(envVal(CONFIG_KEYS.CALL_QUEUE_PRIORITY_THRESHOLD, "50")),
-    CALL_QUEUE_GOLD_LABEL_PRIORITY: parseNumber(envVal(CONFIG_KEYS.CALL_QUEUE_GOLD_LABEL_PRIORITY, "100")),
-    CALL_QUEUE_GREEN_TAG_PRIORITY: parseNumber(envVal(CONFIG_KEYS.CALL_QUEUE_GREEN_TAG_PRIORITY, "75")),
-    WEIGHT_EMAIL_CAPTURED: parseNumber(envVal(CONFIG_KEYS.WEIGHT_EMAIL_CAPTURED, "50")),
-    WEIGHT_MOBILE_CAPTURED: parseNumber(envVal(CONFIG_KEYS.WEIGHT_MOBILE_CAPTURED, "50")),
-    WEIGHT_CONTACT_VERIFIED: parseNumber(envVal(CONFIG_KEYS.WEIGHT_CONTACT_VERIFIED, "0")),
+    CALL_QUEUE_PRIORITY_THRESHOLD: parseNumber(
+      envVal(CONFIG_KEYS.CALL_QUEUE_PRIORITY_THRESHOLD, "50"),
+    ),
+    CALL_QUEUE_GOLD_LABEL_PRIORITY: parseNumber(
+      envVal(CONFIG_KEYS.CALL_QUEUE_GOLD_LABEL_PRIORITY, "100"),
+    ),
+    CALL_QUEUE_GREEN_TAG_PRIORITY: parseNumber(
+      envVal(CONFIG_KEYS.CALL_QUEUE_GREEN_TAG_PRIORITY, "75"),
+    ),
+    WEIGHT_EMAIL_CAPTURED: parseNumber(
+      envVal(CONFIG_KEYS.WEIGHT_EMAIL_CAPTURED, "50"),
+    ),
+    WEIGHT_MOBILE_CAPTURED: parseNumber(
+      envVal(CONFIG_KEYS.WEIGHT_MOBILE_CAPTURED, "50"),
+    ),
+    WEIGHT_CONTACT_VERIFIED: parseNumber(
+      envVal(CONFIG_KEYS.WEIGHT_CONTACT_VERIFIED, "0"),
+    ),
     WEIGHT_WANTS_CALL: parseNumber(envVal(CONFIG_KEYS.WEIGHT_WANTS_CALL, "35")),
-    WEIGHT_QUESTION_ASKED: parseNumber(envVal(CONFIG_KEYS.WEIGHT_QUESTION_ASKED, "15")),
-    WEIGHT_HIGH_INTENT: parseNumber(envVal(CONFIG_KEYS.WEIGHT_HIGH_INTENT, "30")),
-    WEIGHT_INBOUND_RESPONSE: parseNumber(envVal(CONFIG_KEYS.WEIGHT_INBOUND_RESPONSE, "25")),
-    MAX_RETRY_ATTEMPTS: parseNumber(envVal(CONFIG_KEYS.MAX_RETRY_ATTEMPTS, "3")),
-    RETRY_COOLDOWN_HOURS: parseNumber(envVal(CONFIG_KEYS.RETRY_COOLDOWN_HOURS, "24")),
+    WEIGHT_QUESTION_ASKED: parseNumber(
+      envVal(CONFIG_KEYS.WEIGHT_QUESTION_ASKED, "15"),
+    ),
+    WEIGHT_HIGH_INTENT: parseNumber(
+      envVal(CONFIG_KEYS.WEIGHT_HIGH_INTENT, "30"),
+    ),
+    WEIGHT_INBOUND_RESPONSE: parseNumber(
+      envVal(CONFIG_KEYS.WEIGHT_INBOUND_RESPONSE, "25"),
+    ),
+    MAX_RETRY_ATTEMPTS: parseNumber(
+      envVal(CONFIG_KEYS.MAX_RETRY_ATTEMPTS, "3"),
+    ),
+    RETRY_COOLDOWN_HOURS: parseNumber(
+      envVal(CONFIG_KEYS.RETRY_COOLDOWN_HOURS, "24"),
+    ),
     DAILY_BATCH_SIZE: parseNumber(envVal(CONFIG_KEYS.DAILY_BATCH_SIZE, "2000")),
     SMS_BATCH_SIZE: parseNumber(envVal(CONFIG_KEYS.SMS_BATCH_SIZE, "250")),
-    AUTO_ROUTE_TO_CALL_CENTER: parseBool(envVal(CONFIG_KEYS.AUTO_ROUTE_TO_CALL_CENTER, "true"), true),
-    AUTO_RESOLVE_THREADS: parseBool(envVal(CONFIG_KEYS.AUTO_RESOLVE_THREADS, "true"), true),
-    LOG_LEAD_EVENTS: parseBool(envVal(CONFIG_KEYS.LOG_LEAD_EVENTS, "false"), false),
+    AUTO_ROUTE_TO_CALL_CENTER: parseBool(
+      envVal(CONFIG_KEYS.AUTO_ROUTE_TO_CALL_CENTER, "true"),
+      true,
+    ),
+    AUTO_RESOLVE_THREADS: parseBool(
+      envVal(CONFIG_KEYS.AUTO_RESOLVE_THREADS, "true"),
+      true,
+    ),
+    LOG_LEAD_EVENTS: parseBool(
+      envVal(CONFIG_KEYS.LOG_LEAD_EVENTS, "false"),
+      false,
+    ),
   };
 }
 

@@ -41,7 +41,10 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { InboxResponseHeatmap } from "@/components/inbox-response-heatmap";
-import { CampaignBuckets, DashboardMetrics } from "@/components/campaign-buckets";
+import {
+  CampaignBuckets,
+  DashboardMetrics,
+} from "@/components/campaign-buckets";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 
@@ -713,7 +716,9 @@ export default function CommandCenterPage() {
           <TabsContent value="buckets" className="space-y-4">
             <CampaignBuckets
               onBucketClick={(bucket) => {
-                toast.info(`Opening ${bucket.name} bucket assigned to ${bucket.worker.toUpperCase()}`);
+                toast.info(
+                  `Opening ${bucket.name} bucket assigned to ${bucket.worker.toUpperCase()}`,
+                );
               }}
             />
 
@@ -757,11 +762,14 @@ export default function CommandCenterPage() {
                     <Sparkles className="h-6 w-6 text-white" />
                   </div>
                   <div>
-                    <h4 className="font-semibold">Doctrine-Aligned Campaign Flow</h4>
+                    <h4 className="font-semibold">
+                      Doctrine-Aligned Campaign Flow
+                    </h4>
                     <p className="text-sm text-muted-foreground">
-                      Leads flow through buckets based on signals: Initial Message → Retarget (72h no response) →
-                      Nudger (CATHY humor) → Content Nurture → Book Appointment (SABRINA closer).
-                      Each bucket holds up to 2,000 leads.
+                      Leads flow through buckets based on signals: Initial
+                      Message → Retarget (72h no response) → Nudger (CATHY
+                      humor) → Content Nurture → Book Appointment (SABRINA
+                      closer). Each bucket holds up to 2,000 leads.
                     </p>
                   </div>
                 </div>

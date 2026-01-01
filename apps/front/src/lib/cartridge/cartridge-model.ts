@@ -76,7 +76,7 @@ export type ExistingLeadStatus =
 
 export function getOutreachStageForLeadStatus(
   status: ExistingLeadStatus,
-  context?: { silenceDays?: number; hasOptedOut?: boolean }
+  context?: { silenceDays?: number; hasOptedOut?: boolean },
 ): LeadStage | null {
   // STOP compliance always wins
   if (context?.hasOptedOut) return "opted_out";
@@ -120,7 +120,7 @@ export function getOutreachStageForLeadStatus(
  */
 export function getLeadStatusForStageTransition(
   fromStage: LeadStage,
-  toStage: LeadStage
+  toStage: LeadStage,
 ): ExistingLeadStatus | null {
   // Only suggest status changes for significant transitions
   switch (toStage) {
@@ -257,7 +257,7 @@ export function createCartridge(
   leadId: string,
   stage: LeadStage,
   cartridgeType: string,
-  templateSequence: string[]
+  templateSequence: string[],
 ): Cartridge {
   return {
     id: `cart_${Date.now()}_${Math.random().toString(36).slice(2)}`,
@@ -406,13 +406,13 @@ export function canCreateNewVersion(currentVersion: CartridgeVersion): boolean {
 export function upgradeCartridgeVersion(
   cartridge: Cartridge,
   newVersion: number,
-  newTemplates: string[]
+  newTemplates: string[],
 ): Cartridge {
   // Learning happens between runs, never mid-flight
   // Only upgrade if cartridge is pending (not started)
   if (cartridge.status !== "pending") {
     console.warn(
-      `Cannot upgrade cartridge ${cartridge.id} - already in progress`
+      `Cannot upgrade cartridge ${cartridge.id} - already in progress`,
     );
     return cartridge;
   }
@@ -447,7 +447,7 @@ export function createAuditEntry(
   cartridge: Cartridge,
   action: CartridgeAuditEntry["action"],
   reason: string,
-  triggeredBy: CartridgeAuditEntry["triggeredBy"] = "system"
+  triggeredBy: CartridgeAuditEntry["triggeredBy"] = "system",
 ): CartridgeAuditEntry {
   return {
     cartridgeId: cartridge.id,
