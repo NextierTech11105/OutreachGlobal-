@@ -34,6 +34,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { ATLANTIC_COAST_INDUSTRY_TEMPLATES } from "@/lib/gianna/knowledge-base/atlantic-coast-library";
+import { ALL_EXAMPLE_TEMPLATES } from "@/lib/templates/nextier-defaults";
 
 /**
  * PRE-QUEUE PAGE
@@ -142,15 +143,19 @@ const getTenantTemplates = (teamId: string): PreQueue[] => {
     ];
   }
 
-  // Nextier/generic - Business consulting outreach (Thomas/Cole)
-  // These CAN have ROI claims since that's Nextier's value prop
+  // Nextier - Business brokering / Exit strategy outreach (Thomas/Cole)
+  // Uses templates from nextier-defaults.ts library
+  const initialTemplates = ALL_EXAMPLE_TEMPLATES.filter(t => t.category === "initial" && t.vertical === "business-broker");
+  const nudgeTemplates = ALL_EXAMPLE_TEMPLATES.filter(t => t.category === "nudge");
+  const closerTemplates = ALL_EXAMPLE_TEMPLATES.filter(t => t.category === "closer");
+
   return [
     {
       id: "pq-initial",
       name: "INITIAL SMS",
       category: "initial",
       worker: "gianna",
-      template: "{firstName}, thinking about your exit strategy for {companyName}? Quick valuation could be eye-opening. Best email to send details?",
+      template: initialTemplates[0]?.content || "{firstName}, thinking about your exit strategy for {companyName}? Quick valuation could be eye-opening. Best email?",
       leadCount: 0,
       targetSize: 2000,
       status: "empty",
@@ -160,7 +165,7 @@ const getTenantTemplates = (teamId: string): PreQueue[] => {
       name: "RETARGET SMS",
       category: "retarget",
       worker: "gianna",
-      template: "{firstName}, circling back. Know what {companyName} is worth? Most owners are surprised. Want a quick valuation?",
+      template: initialTemplates[1]?.content || "{firstName}, circling back. Know what {companyName} is worth? Most owners are surprised. Want a quick valuation?",
       leadCount: 0,
       targetSize: 2000,
       status: "empty",
@@ -170,7 +175,7 @@ const getTenantTemplates = (teamId: string): PreQueue[] => {
       name: "NUDGE SMS",
       category: "nudge",
       worker: "cathy",
-      template: "{firstName}, last check - still curious about what {companyName} could sell for? Takes 15 min with Thomas. Interested?",
+      template: nudgeTemplates[0]?.content || "{firstName}, last check - still curious about what {companyName} could sell for? Takes 15 min with Thomas. Interested?",
       leadCount: 0,
       targetSize: 2000,
       status: "empty",
@@ -180,7 +185,7 @@ const getTenantTemplates = (teamId: string): PreQueue[] => {
       name: "CLOSER SMS",
       category: "closer",
       worker: "sabrina",
-      template: "Great {firstName}! Let's get you 15 min with Thomas this week. What day works - Tues or Thurs?",
+      template: closerTemplates[0]?.content || "Great {firstName}! Let's get you 15 min with Thomas this week. What day works - Tues or Thurs?",
       leadCount: 0,
       targetSize: 2000,
       status: "empty",
