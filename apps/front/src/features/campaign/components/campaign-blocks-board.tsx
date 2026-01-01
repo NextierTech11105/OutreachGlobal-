@@ -18,61 +18,67 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// Block types and their visual config
+// Block types and their visual config - simplified shaded colors like inbox labels
 const BLOCK_TYPES = {
   initial: {
     label: "INITIAL",
     sublabel: "gianna",
     icon: MessageSquare,
-    color: "from-purple-600 to-purple-800",
-    borderColor: "border-purple-500",
-    glowColor: "shadow-purple-500/20",
-    hoverGlow: "hover:shadow-purple-500/40",
+    color: "bg-purple-50 dark:bg-purple-950/50",
+    borderColor: "border-purple-200 dark:border-purple-800",
+    textColor: "text-purple-700 dark:text-purple-300",
+    badgeColor: "bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300",
+    hoverBg: "hover:bg-purple-100 dark:hover:bg-purple-900/70",
   },
   retarget: {
     label: "RETARGET",
     sublabel: "gianna",
     icon: RotateCcw,
-    color: "from-blue-600 to-blue-800",
-    borderColor: "border-blue-500",
-    glowColor: "shadow-blue-500/20",
-    hoverGlow: "hover:shadow-blue-500/40",
+    color: "bg-blue-50 dark:bg-blue-950/50",
+    borderColor: "border-blue-200 dark:border-blue-800",
+    textColor: "text-blue-700 dark:text-blue-300",
+    badgeColor: "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300",
+    hoverBg: "hover:bg-blue-100 dark:hover:bg-blue-900/70",
   },
   nudger: {
     label: "NUDGER",
     sublabel: "cathy",
     icon: Laugh,
-    color: "from-orange-600 to-orange-800",
-    borderColor: "border-orange-500",
-    glowColor: "shadow-orange-500/20",
-    hoverGlow: "hover:shadow-orange-500/40",
+    color: "bg-orange-50 dark:bg-orange-950/50",
+    borderColor: "border-orange-200 dark:border-orange-800",
+    textColor: "text-orange-700 dark:text-orange-300",
+    badgeColor: "bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300",
+    hoverBg: "hover:bg-orange-100 dark:hover:bg-orange-900/70",
   },
   nurture: {
     label: "NURTURE",
     sublabel: "gianna",
     icon: FileText,
-    color: "from-cyan-600 to-cyan-800",
-    borderColor: "border-cyan-500",
-    glowColor: "shadow-cyan-500/20",
-    hoverGlow: "hover:shadow-cyan-500/40",
+    color: "bg-cyan-50 dark:bg-cyan-950/50",
+    borderColor: "border-cyan-200 dark:border-cyan-800",
+    textColor: "text-cyan-700 dark:text-cyan-300",
+    badgeColor: "bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-300",
+    hoverBg: "hover:bg-cyan-100 dark:hover:bg-cyan-900/70",
   },
   book: {
     label: "BOOK",
     sublabel: "sabrina",
     icon: Calendar,
-    color: "from-emerald-600 to-emerald-800",
-    borderColor: "border-emerald-500",
-    glowColor: "shadow-emerald-500/20",
-    hoverGlow: "hover:shadow-emerald-500/40",
+    color: "bg-emerald-50 dark:bg-emerald-950/50",
+    borderColor: "border-emerald-200 dark:border-emerald-800",
+    textColor: "text-emerald-700 dark:text-emerald-300",
+    badgeColor: "bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300",
+    hoverBg: "hover:bg-emerald-100 dark:hover:bg-emerald-900/70",
   },
   anchor: {
     label: "ANCHOR",
     sublabel: "archive",
     icon: Anchor,
-    color: "from-slate-600 to-slate-800",
-    borderColor: "border-slate-500",
-    glowColor: "shadow-slate-500/20",
-    hoverGlow: "hover:shadow-slate-500/40",
+    color: "bg-slate-50 dark:bg-slate-950/50",
+    borderColor: "border-slate-200 dark:border-slate-800",
+    textColor: "text-slate-700 dark:text-slate-300",
+    badgeColor: "bg-slate-100 dark:bg-slate-900/50 text-slate-700 dark:text-slate-300",
+    hoverBg: "hover:bg-slate-100 dark:hover:bg-slate-900/70",
   },
 } as const;
 
@@ -114,33 +120,30 @@ function BlockCard({
   return (
     <motion.div
       layout
-      whileHover={{ scale: 1.02, rotateY: 2, z: 20 }}
+      whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
       className={cn(
         "relative cursor-pointer select-none",
         "w-full aspect-square min-h-[180px]",
-        "rounded-xl border-2",
-        "bg-gradient-to-br",
+        "rounded-xl border",
         config.color,
         config.borderColor,
-        "shadow-lg",
-        config.glowColor,
-        config.hoverGlow,
+        config.hoverBg,
+        "shadow-sm",
         "transition-all duration-200",
-        "transform-gpu perspective-1000",
-        isSelected && "ring-2 ring-white ring-offset-2 ring-offset-zinc-950",
-        block.status === "active" && "animate-pulse-subtle",
+        isSelected && "ring-2 ring-primary ring-offset-2",
+        block.status === "active" && "ring-2 ring-green-500",
       )}
-      style={{
-        transformStyle: "preserve-3d",
-      }}
     >
       {/* Signal stacking indicator - confluence weight */}
       {block.signals > 0 && (
-        <div className="absolute -top-2 -right-2 flex items-center gap-1 bg-zinc-900 border border-zinc-700 rounded-full px-2 py-0.5 text-xs font-mono">
-          <Zap className="w-3 h-3 text-yellow-400" />
-          <span className="text-yellow-400">{block.signals}x</span>
+        <div className={cn(
+          "absolute -top-2 -right-2 flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-mono",
+          config.badgeColor
+        )}>
+          <Zap className="w-3 h-3" />
+          <span>{block.signals}x</span>
         </div>
       )}
 
@@ -149,20 +152,21 @@ function BlockCard({
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
-            <div className="text-xs font-mono text-white/60 uppercase tracking-wider">
-              {config.sublabel}
-            </div>
-            <div className="text-lg font-bold text-white tracking-tight">
+            <span className={cn("inline-flex px-2 py-0.5 rounded text-xs font-medium mb-1", config.badgeColor)}>
+              {config.sublabel.toUpperCase()}
+            </span>
+            <div className={cn("text-lg font-bold tracking-tight", config.textColor)}>
               {config.label}
             </div>
           </div>
           <div
             className={cn(
-              "p-2 rounded-lg bg-black/20 backdrop-blur-sm",
-              block.status === "active" && "ring-1 ring-white/30",
+              "p-2 rounded-lg",
+              config.badgeColor,
+              block.status === "active" && "ring-2 ring-green-500",
             )}
           >
-            <Icon className="w-5 h-5 text-white" />
+            <Icon className={cn("w-5 h-5", config.textColor)} />
           </div>
         </div>
 
@@ -170,40 +174,40 @@ function BlockCard({
         <div className="space-y-2">
           {/* Count display */}
           <div className="flex items-baseline justify-between">
-            <span className="text-3xl font-bold font-mono text-white tabular-nums">
+            <span className={cn("text-3xl font-bold font-mono tabular-nums", config.textColor)}>
               {block.count.toLocaleString()}
             </span>
-            <span className="text-sm font-mono text-white/50">
+            <span className="text-sm font-mono text-muted-foreground">
               / {block.target.toLocaleString()}
             </span>
           </div>
 
           {/* Progress bar */}
-          <div className="h-2 bg-black/30 rounded-full overflow-hidden">
+          <div className="h-2 bg-muted rounded-full overflow-hidden">
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${progress}%` }}
               transition={{ duration: 0.5, ease: "easeOut" }}
               className={cn(
                 "h-full rounded-full",
-                block.status === "active" ? "bg-white" : "bg-white/60",
+                block.status === "active" ? "bg-green-500" : "bg-primary/60",
               )}
             />
           </div>
 
           {/* Stats row */}
           <div className="flex items-center justify-between text-xs font-mono">
-            <div className="flex items-center gap-1 text-white/70">
+            <div className={cn("flex items-center gap-1", config.textColor)}>
               <Target className="w-3 h-3" />
               <span>{block.responseRate}% resp</span>
             </div>
             <div
               className={cn(
                 "px-2 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider",
-                block.status === "active" && "bg-green-500/20 text-green-300",
-                block.status === "complete" && "bg-white/20 text-white",
-                block.status === "paused" && "bg-yellow-500/20 text-yellow-300",
-                block.status === "idle" && "bg-zinc-500/20 text-zinc-400",
+                block.status === "active" && "bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300",
+                block.status === "complete" && "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300",
+                block.status === "paused" && "bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300",
+                block.status === "idle" && "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400",
               )}
             >
               {block.status}
@@ -213,7 +217,7 @@ function BlockCard({
       </div>
 
       {/* Action button overlay - appears on hover */}
-      <div className="absolute inset-0 bg-black/0 hover:bg-black/40 transition-colors rounded-xl flex items-center justify-center opacity-0 hover:opacity-100">
+      <div className="absolute inset-0 bg-background/0 hover:bg-background/60 transition-colors rounded-xl flex items-center justify-center opacity-0 hover:opacity-100">
         <motion.button
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
@@ -227,8 +231,8 @@ function BlockCard({
           }}
           className={cn(
             "p-4 rounded-full",
-            "bg-white text-black",
-            "shadow-2xl",
+            "bg-primary text-primary-foreground",
+            "shadow-lg",
             "transition-all",
           )}
         >
