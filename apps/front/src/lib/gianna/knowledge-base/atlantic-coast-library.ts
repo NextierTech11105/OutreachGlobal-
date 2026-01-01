@@ -239,66 +239,470 @@ export const ATLANTIC_COAST_STAGE_FLOW = {
   },
 };
 
-// ============ INDUSTRY-SPECIFIC VARIATIONS ============
+// ============ INDUSTRY-SPECIFIC CARTRIDGES ============
+// Full GIANNA → CATHY → SABRINA flow for each vertical
+// Target: 15-min call with Frank Sr to discuss partnership
+
 export const ATLANTIC_COAST_INDUSTRY_TEMPLATES = {
-  // Dealership-specific openers
+  // ============================================================
+  // CAR DEALERSHIPS (409,121 records - SIC 5511, 5521)
+  // Goal: Vehicle transport for dealer trades, auction pickups, customer deliveries
+  // ============================================================
   dealership: {
-    initial: [
-      {
-        id: "ac_dealer_1",
-        name: "Dealer Overflow",
-        content:
-          "Hi {first_name}, Atlantic Coast Auto Transport here. We partner with dealerships like {company_name} to handle vehicle transport when your regular carriers are maxed. Worth a 15 min call to discuss backup capacity?",
-        mergeFields: ["first_name", "company_name"],
-      },
-      {
-        id: "ac_dealer_2",
-        name: "Dealer Trade",
-        content:
-          "{first_name}, do you handle dealer trades at {company_name}? Atlantic Coast can move vehicles between your lots fast. Quick chat to see if we can help?",
-        mergeFields: ["first_name", "company_name"],
-      },
-    ],
+    vertical: "dealership",
+    description: "New & used car dealerships - dealer trades, auction runs, customer deliveries",
+    dataSource: { records: 409121, sicCodes: ["5511", "5521"] },
+
+    // GIANNA - Initial Outreach (Day 0)
+    initial: {
+      agent: "GIANNA",
+      timing: "Day 0",
+      templates: [
+        {
+          id: "ac_dealer_init_1",
+          name: "Dealer Trade Partner",
+          content:
+            "Hi {first_name}, Atlantic Coast Auto Transport here. We help dealerships like {company_name} move vehicles fast - dealer trades, auctions, customer deliveries. 15 min with Frank to discuss?",
+          mergeFields: ["first_name", "company_name"],
+          charCount: 193,
+        },
+        {
+          id: "ac_dealer_init_2",
+          name: "Overflow Capacity",
+          content:
+            "{first_name}, when {company_name} needs cars moved fast, do you have reliable backup? We partner with dealerships for overflow transport. Quick call with Frank?",
+          mergeFields: ["first_name", "company_name"],
+          charCount: 160,
+        },
+        {
+          id: "ac_dealer_init_3",
+          name: "Auction Runs",
+          content:
+            "Hi {first_name}, Atlantic Coast here. We move 500+ vehicles/month for dealerships - auctions, trades, customer deliveries. 15 min to see if we can help {company_name}?",
+          mergeFields: ["first_name", "company_name"],
+          charCount: 172,
+        },
+        {
+          id: "ac_dealer_init_4",
+          name: "Customer Delivery",
+          content:
+            "{first_name}, customers at {company_name} ever need cars delivered? We handle that. Also dealer trades and auction pickups. Worth a 15 min chat with Frank?",
+          mergeFields: ["first_name", "company_name"],
+          charCount: 160,
+        },
+        {
+          id: "ac_dealer_init_5",
+          name: "Fast Turnaround",
+          content:
+            "Hey {first_name}, Atlantic Coast Auto Transport. We get cars where they need to go - fast. Partnering with dealerships in {state}. 15 min with Frank this week?",
+          mergeFields: ["first_name", "state"],
+          charCount: 160,
+        },
+        {
+          id: "ac_dealer_init_6",
+          name: "Trade Network",
+          content:
+            "{first_name}, we're the transport partner for dealerships doing dealer trades in {state}. Atlantic Coast - reliable, fast, fair pricing. Quick call to connect?",
+          mergeFields: ["first_name", "state"],
+          charCount: 159,
+        },
+        {
+          id: "ac_dealer_init_7",
+          name: "Wholesale Move",
+          content:
+            "Hi {first_name}, moving wholesale inventory for {company_name}? Atlantic Coast handles dealer-to-dealer transport. 15 min with Frank to explore partnership?",
+          mergeFields: ["first_name", "company_name"],
+          charCount: 157,
+        },
+        {
+          id: "ac_dealer_init_8",
+          name: "Reliable Partner",
+          content:
+            "{first_name}, dealerships need a reliable transport partner. Atlantic Coast - we show up, we deliver, we make you look good. 15 min call?",
+          mergeFields: ["first_name"],
+          charCount: 141,
+        },
+      ],
+    },
+
+    // CATHY - Follow-up Nudge (Day 3-5)
+    nudge: {
+      agent: "CATHY",
+      timing: "Day 3-5",
+      usesDifferentNumber: true,
+      templates: [
+        {
+          id: "ac_dealer_nudge_1",
+          name: "Checking In",
+          content:
+            "Hey {first_name}, following up on Atlantic Coast. Still looking for a transport partner for {company_name}? Frank's got a few minutes this week.",
+          mergeFields: ["first_name", "company_name"],
+          charCount: 150,
+        },
+        {
+          id: "ac_dealer_nudge_2",
+          name: "Trade Season",
+          content:
+            "{first_name}, dealer trade season is picking up. Atlantic Coast can handle your overflow. 15 min with Frank to get set up before you need us?",
+          mergeFields: ["first_name"],
+          charCount: 147,
+        },
+        {
+          id: "ac_dealer_nudge_3",
+          name: "Quick Question",
+          content:
+            "Quick question {first_name} - who handles vehicle transport for {company_name} right now? If you need backup capacity, we should chat.",
+          mergeFields: ["first_name", "company_name"],
+          charCount: 144,
+        },
+        {
+          id: "ac_dealer_nudge_4",
+          name: "No Pressure",
+          content:
+            "{first_name}, no pressure - just checking if {company_name} ever needs cars moved on short notice. That's what we do. Call when you're ready.",
+          mergeFields: ["first_name", "company_name"],
+          charCount: 152,
+        },
+        {
+          id: "ac_dealer_nudge_5",
+          name: "Busy Season",
+          content:
+            "Hey {first_name}, I know dealerships are slammed. When you need a transport partner for overflow, Atlantic Coast is here. 15 min to get on the roster?",
+          mergeFields: ["first_name"],
+          charCount: 155,
+        },
+      ],
+    },
+
+    // SABRINA - Closer/Booker
+    closer: {
+      agent: "SABRINA",
+      timing: "After positive response",
+      templates: [
+        {
+          id: "ac_dealer_close_1",
+          name: "Book Frank",
+          content:
+            "Great {first_name}! Let's get you 15 min with Frank to discuss the partnership. What day works this week - Tues or Thurs?",
+          mergeFields: ["first_name"],
+          charCount: 124,
+        },
+        {
+          id: "ac_dealer_close_2",
+          name: "Confirm Details",
+          content:
+            "{first_name}, perfect. Frank will call you at this number. Is there a better time - morning or afternoon works for {company_name}?",
+          mergeFields: ["first_name", "company_name"],
+          charCount: 138,
+        },
+        {
+          id: "ac_dealer_close_3",
+          name: "Quick Setup",
+          content:
+            "Awesome {first_name}! Once you chat with Frank, we can have you set up as a partner within 24hrs. What time works best for that call?",
+          mergeFields: ["first_name"],
+          charCount: 139,
+        },
+      ],
+    },
+
+    // Breakup - Final touch
+    breakup: {
+      agent: "CATHY",
+      timing: "Day 10+",
+      templates: [
+        {
+          id: "ac_dealer_break_1",
+          name: "Door Open",
+          content:
+            "{first_name}, last note from Atlantic Coast. If {company_name} ever needs a transport partner, we're here. No hard feelings either way!",
+          mergeFields: ["first_name", "company_name"],
+          charCount: 140,
+        },
+      ],
+    },
   },
 
-  // Moving company-specific openers
+  // ============================================================
+  // MOVING COMPANIES (306,647 records - SIC 4212, 4213, 4214)
+  // Goal: Referral partnership - when customers need cars moved during relocation
+  // ============================================================
   moving_company: {
-    initial: [
-      {
-        id: "ac_moving_1",
-        name: "Auto Add-On",
-        content:
-          "Hi {first_name}, Atlantic Coast here. When {company_name} handles a family move, do they need help transporting vehicles? We could be a great add-on service for your clients. 15 min to discuss?",
-        mergeFields: ["first_name", "company_name"],
-      },
-      {
-        id: "ac_moving_2",
-        name: "Referral Partnership",
-        content:
-          "{first_name}, moving companies like {company_name} often get asked about car transport. We handle that and can set up a referral arrangement. Quick call to explore?",
-        mergeFields: ["first_name", "company_name"],
-      },
-    ],
+    vertical: "moving_company",
+    description: "Moving & storage companies - referral partnership for auto transport add-on",
+    dataSource: { records: 306647, sicCodes: ["4212", "4213", "4214"] },
+
+    // GIANNA - Initial Outreach (Day 0)
+    initial: {
+      agent: "GIANNA",
+      timing: "Day 0",
+      templates: [
+        {
+          id: "ac_moving_init_1",
+          name: "Add-On Service",
+          content:
+            "Hi {first_name}, Atlantic Coast Auto Transport here. When {company_name} moves a family, do they ask about their cars? We can be your add-on partner. 15 min?",
+          mergeFields: ["first_name", "company_name"],
+          charCount: 160,
+        },
+        {
+          id: "ac_moving_init_2",
+          name: "Referral Revenue",
+          content:
+            "{first_name}, moving companies like {company_name} get asked about car transport all the time. We handle it + referral fees. Quick call with Frank?",
+          mergeFields: ["first_name", "company_name"],
+          charCount: 156,
+        },
+        {
+          id: "ac_moving_init_3",
+          name: "Complete Relocation",
+          content:
+            "Hi {first_name}, families want complete relocation - household AND vehicles. Atlantic Coast partners with moving companies for the auto piece. 15 min to explore?",
+          mergeFields: ["first_name"],
+          charCount: 160,
+        },
+        {
+          id: "ac_moving_init_4",
+          name: "Easy Handoff",
+          content:
+            "{first_name}, when customers at {company_name} need cars moved, we take it off your plate. Reliable, insured, you look good. Worth a chat with Frank?",
+          mergeFields: ["first_name", "company_name"],
+          charCount: 155,
+        },
+        {
+          id: "ac_moving_init_5",
+          name: "Partner Program",
+          content:
+            "Hey {first_name}, Atlantic Coast has a partner program for moving companies. Referral fees + white-glove service for your clients. 15 min to discuss?",
+          mergeFields: ["first_name"],
+          charCount: 155,
+        },
+        {
+          id: "ac_moving_init_6",
+          name: "Cross-Country",
+          content:
+            "{first_name}, does {company_name} handle long-distance moves? Clients often need cars shipped too. We partner on that - 15 min with Frank?",
+          mergeFields: ["first_name", "company_name"],
+          charCount: 145,
+        },
+        {
+          id: "ac_moving_init_7",
+          name: "Seamless Experience",
+          content:
+            "Hi {first_name}, give your clients a seamless move - household + vehicles all handled. Atlantic Coast partners with {company_name}-type operations. Quick call?",
+          mergeFields: ["first_name", "company_name"],
+          charCount: 159,
+        },
+        {
+          id: "ac_moving_init_8",
+          name: "Simple Referral",
+          content:
+            "{first_name}, simple deal - you refer car transport, we handle it perfectly, you get a fee. Atlantic Coast. 15 min to set it up?",
+          mergeFields: ["first_name"],
+          charCount: 131,
+        },
+      ],
+    },
+
+    // CATHY - Follow-up Nudge (Day 3-5)
+    nudge: {
+      agent: "CATHY",
+      timing: "Day 3-5",
+      usesDifferentNumber: true,
+      templates: [
+        {
+          id: "ac_moving_nudge_1",
+          name: "Checking In",
+          content:
+            "Hey {first_name}, following up from Atlantic Coast. Still interested in partnering on auto transport for {company_name} clients?",
+          mergeFields: ["first_name", "company_name"],
+          charCount: 131,
+        },
+        {
+          id: "ac_moving_nudge_2",
+          name: "Peak Season",
+          content:
+            "{first_name}, moving season is coming up. Good time to have a car transport partner lined up for {company_name}. 15 min with Frank?",
+          mergeFields: ["first_name", "company_name"],
+          charCount: 140,
+        },
+        {
+          id: "ac_moving_nudge_3",
+          name: "Easy Money",
+          content:
+            "Hey {first_name}, it's easy referral revenue. Customer needs car moved, you hand them to us, you get paid. Atlantic Coast makes you look good. Chat?",
+          mergeFields: ["first_name"],
+          charCount: 154,
+        },
+        {
+          id: "ac_moving_nudge_4",
+          name: "Quick Q",
+          content:
+            "{first_name}, quick question - how often do {company_name} customers ask about moving their cars? If it's ever, we should talk partnership.",
+          mergeFields: ["first_name", "company_name"],
+          charCount: 151,
+        },
+        {
+          id: "ac_moving_nudge_5",
+          name: "No Hassle",
+          content:
+            "Hey {first_name}, no hassle partnership - you refer, we deliver, everyone's happy. Atlantic Coast. Frank has 15 min this week if you're interested.",
+          mergeFields: ["first_name"],
+          charCount: 155,
+        },
+      ],
+    },
+
+    // SABRINA - Closer/Booker
+    closer: {
+      agent: "SABRINA",
+      timing: "After positive response",
+      templates: [
+        {
+          id: "ac_moving_close_1",
+          name: "Book Frank",
+          content:
+            "Perfect {first_name}! Frank can walk you through the partnership program. Does Tues or Wed work better for a 15 min call?",
+          mergeFields: ["first_name"],
+          charCount: 125,
+        },
+        {
+          id: "ac_moving_close_2",
+          name: "Next Steps",
+          content:
+            "{first_name}, great! After the call with Frank, we'll get you set up with referral codes and materials. What time works for the call?",
+          mergeFields: ["first_name"],
+          charCount: 140,
+        },
+        {
+          id: "ac_moving_close_3",
+          name: "Easy Setup",
+          content:
+            "Awesome {first_name}! Partnership setup is quick - one call with Frank, then you're ready to refer. Morning or afternoon better?",
+          mergeFields: ["first_name"],
+          charCount: 134,
+        },
+      ],
+    },
+
+    // Breakup - Final touch
+    breakup: {
+      agent: "CATHY",
+      timing: "Day 10+",
+      templates: [
+        {
+          id: "ac_moving_break_1",
+          name: "Door Open",
+          content:
+            "{first_name}, last message from Atlantic Coast. If {company_name} ever wants a car transport partner, we're here. Best of luck!",
+          mergeFields: ["first_name", "company_name"],
+          charCount: 133,
+        },
+      ],
+    },
   },
 
-  // Auto carrier-specific openers
+  // ============================================================
+  // AUTO CARRIERS (Trucking companies already moving vehicles)
+  // Goal: Overflow capacity partnership
+  // ============================================================
   carrier: {
-    initial: [
-      {
-        id: "ac_carrier_1",
-        name: "Overflow Network",
-        content:
-          "Hey {first_name}, Atlantic Coast Auto Transport here. We're building out our carrier network in {state}. Got overflow loads that need moving. Interested in partnering?",
-        mergeFields: ["first_name", "state"],
-      },
-      {
-        id: "ac_carrier_2",
-        name: "Consistent Loads",
-        content:
-          "{first_name}, looking for consistent loads in {state}? Atlantic Coast moves 500+ vehicles/month. Let's chat about getting you on our dispatch list. 15 min?",
-        mergeFields: ["first_name", "state"],
-      },
-    ],
+    vertical: "carrier",
+    description: "Trucking/carrier companies - overflow network partnership",
+    dataSource: { records: 306647, sicCodes: ["4212", "4213", "4214"] },
+
+    initial: {
+      agent: "GIANNA",
+      timing: "Day 0",
+      templates: [
+        {
+          id: "ac_carrier_init_1",
+          name: "Overflow Network",
+          content:
+            "Hey {first_name}, Atlantic Coast Auto Transport here. We're building our carrier network in {state}. Got overflow loads that need moving. Interested in partnering?",
+          mergeFields: ["first_name", "state"],
+          charCount: 160,
+        },
+        {
+          id: "ac_carrier_init_2",
+          name: "Consistent Loads",
+          content:
+            "{first_name}, looking for consistent loads in {state}? Atlantic Coast moves 500+ vehicles/month. Let's get you on our dispatch list. 15 min with Frank?",
+          mergeFields: ["first_name", "state"],
+          charCount: 157,
+        },
+        {
+          id: "ac_carrier_init_3",
+          name: "Fill Your Lanes",
+          content:
+            "Hi {first_name}, Atlantic Coast here. We can help {company_name} fill lanes and keep trucks moving. Fair rates, fast pay. Worth a 15 min call?",
+          mergeFields: ["first_name", "company_name"],
+          charCount: 147,
+        },
+        {
+          id: "ac_carrier_init_4",
+          name: "Network Expansion",
+          content:
+            "{first_name}, we're expanding our carrier network and {company_name} looks like a good fit. Reliable loads, good margins. Quick call with Frank?",
+          mergeFields: ["first_name", "company_name"],
+          charCount: 153,
+        },
+      ],
+    },
+
+    nudge: {
+      agent: "CATHY",
+      timing: "Day 3-5",
+      usesDifferentNumber: true,
+      templates: [
+        {
+          id: "ac_carrier_nudge_1",
+          name: "Lanes Available",
+          content:
+            "Hey {first_name}, following up from Atlantic Coast. We've got lanes available through {state}. {company_name} interested in consistent loads?",
+          mergeFields: ["first_name", "state", "company_name"],
+          charCount: 148,
+        },
+        {
+          id: "ac_carrier_nudge_2",
+          name: "Fast Pay",
+          content:
+            "{first_name}, Atlantic Coast pays fast and keeps trucks moving. If {company_name} has capacity, let's talk partnership. 15 min?",
+          mergeFields: ["first_name", "company_name"],
+          charCount: 136,
+        },
+      ],
+    },
+
+    closer: {
+      agent: "SABRINA",
+      timing: "After positive response",
+      templates: [
+        {
+          id: "ac_carrier_close_1",
+          name: "Book Frank",
+          content:
+            "Great {first_name}! Frank will walk you through rates and lanes. What day works for a 15 min call - Tues or Thurs?",
+          mergeFields: ["first_name"],
+          charCount: 118,
+        },
+      ],
+    },
+
+    breakup: {
+      agent: "CATHY",
+      timing: "Day 10+",
+      templates: [
+        {
+          id: "ac_carrier_break_1",
+          name: "Door Open",
+          content:
+            "{first_name}, last touch from Atlantic Coast. If {company_name} ever needs overflow loads, we're here. Keep moving!",
+          mergeFields: ["first_name", "company_name"],
+          charCount: 121,
+        },
+      ],
+    },
   },
 };
 
@@ -469,7 +873,8 @@ export const ATLANTIC_COAST_DATA_SOURCES = {
     records: 32641,
     sicCodes: ["4214"],
     lastUpdate: "2025",
-    description: "Moving companies - referral partnerships for auto transport add-on",
+    description:
+      "Moving companies - referral partnerships for auto transport add-on",
     fields: [
       "company_name",
       "contact_name",
