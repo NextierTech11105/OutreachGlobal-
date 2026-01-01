@@ -150,12 +150,12 @@ export const leadSignals = pgTable(
     index("lead_signals_team_type_created_idx").on(
       t.teamId,
       t.signalType,
-      t.createdAt
+      t.createdAt,
     ),
 
     // Source tracking
     index("lead_signals_source_idx").on(t.source),
-  ]
+  ],
 );
 
 // Relations

@@ -238,7 +238,10 @@ export class CampaignService {
    * HARD RULE: Campaign cannot transition to RUNNING/ACTIVE without approval
    */
   async approve(args: ApproveCampaignArgs) {
-    const campaign = await this.findOneOrFail({ id: args.id, teamId: args.teamId });
+    const campaign = await this.findOneOrFail({
+      id: args.id,
+      teamId: args.teamId,
+    });
 
     // Prevent re-approval
     if (campaign.approvedAt) {

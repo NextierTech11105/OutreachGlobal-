@@ -25,7 +25,7 @@ export class TenantContextInterceptor implements NestInterceptor {
 
   async intercept(
     context: ExecutionContext,
-    next: CallHandler
+    next: CallHandler,
   ): Promise<Observable<any>> {
     const type = context.getType<GqlContextType>();
     let teamId: string | null = null;
@@ -49,7 +49,10 @@ export class TenantContextInterceptor implements NestInterceptor {
         // Set the session variable for RLS
         await this.db.execute(sql`SET app.team_id = ${teamId}`);
       } catch (error) {
-        console.error("[TenantContextInterceptor] Failed to set tenant context:", error);
+        console.error(
+          "[TenantContextInterceptor] Failed to set tenant context:",
+          error,
+        );
         // Continue anyway - RLS will just return no rows which is safe
       }
     } else {

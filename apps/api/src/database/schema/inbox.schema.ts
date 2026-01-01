@@ -177,7 +177,7 @@ export const responseBuckets = pgTable(
     index("response_buckets_team_category_idx").on(t.teamId, t.bucketCategory),
     index("response_buckets_worker_idx").on(t.worker),
     index("response_buckets_flow_position_idx").on(t.teamId, t.flowPosition),
-  ]
+  ],
 );
 
 // Bucket movement history (audit trail)

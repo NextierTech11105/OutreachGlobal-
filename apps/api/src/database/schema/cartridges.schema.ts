@@ -69,7 +69,7 @@ export const cartridgeDefinitions = pgTable(
     index("cartridge_def_team_idx").on(t.teamId),
     index("cartridge_def_stage_idx").on(t.teamId, t.stage),
     index("cartridge_def_name_idx").on(t.teamId, t.name),
-  ]
+  ],
 );
 
 // ============================================
@@ -90,8 +90,9 @@ export const cartridgeInstances = pgTable(
     leadId: ulidColumn()
       .references(() => leads.id, { onDelete: "cascade" })
       .notNull(),
-    definitionId: ulidColumn()
-      .references(() => cartridgeDefinitions.id, { onDelete: "set null" }),
+    definitionId: ulidColumn().references(() => cartridgeDefinitions.id, {
+      onDelete: "set null",
+    }),
 
     // Execution state
     stage: varchar().notNull(), // Current outreach stage
@@ -132,7 +133,7 @@ export const cartridgeInstances = pgTable(
     index("cartridge_inst_lead_status_idx").on(t.leadId, t.status),
     // Hot path: find cartridges ready for next attempt
     index("cartridge_inst_next_attempt_idx").on(t.status, t.nextAttemptAt),
-  ]
+  ],
 );
 
 // ============================================
@@ -190,7 +191,7 @@ export const cartridgeAttempts = pgTable(
     index("cartridge_att_lead_idx").on(t.leadId),
     // Hot path: find attempts for learning
     index("cartridge_att_status_idx").on(t.status, t.repliedAt),
-  ]
+  ],
 );
 
 // ============================================

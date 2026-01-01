@@ -134,7 +134,7 @@ export const recommendations = pgTable(
     // Link to triggering signal (for audit trail)
     triggerSignalId: ulidColumn("trigger_signal_id").references(
       () => leadSignals.id,
-      { onDelete: "set null" }
+      { onDelete: "set null" },
     ),
 
     // Human review tracking
@@ -169,7 +169,7 @@ export const recommendations = pgTable(
     index("recommendations_pending_priority_idx").on(
       t.teamId,
       t.status,
-      t.priority
+      t.priority,
     ),
 
     // Lead view: all recommendations for a lead
@@ -183,7 +183,7 @@ export const recommendations = pgTable(
 
     // Action type filtering
     index("recommendations_action_idx").on(t.action),
-  ]
+  ],
 );
 
 // Relations
@@ -202,7 +202,7 @@ export const recommendationsRelations = relations(
       fields: [recommendations.triggerSignalId],
       references: [leadSignals.id],
     }),
-  })
+  }),
 );
 
 // Type exports

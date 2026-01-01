@@ -127,7 +127,7 @@ export const nevaResearchJobs = pgTable(
     index("neva_jobs_status_idx").on(t.status),
     index("neva_jobs_lead_idx").on(t.leadId),
     index("neva_jobs_created_idx").on(t.createdAt),
-  ]
+  ],
 );
 
 // ============================================
@@ -177,7 +177,10 @@ export interface NevaRealtimeContext {
   companyStatus?: { operational: boolean; majorChanges: string[] };
   recentNews?: Array<{ title: string; date: string; summary: string }>;
   marketSignals?: { hiring?: boolean; expansion?: string[] };
-  buyingSignals?: Array<{ signal: string; confidence: "high" | "medium" | "low" }>;
+  buyingSignals?: Array<{
+    signal: string;
+    confidence: "high" | "medium" | "low";
+  }>;
   riskFactors?: string[];
   opportunities?: string[];
   recommendedAction?: string;
@@ -221,7 +224,7 @@ export const nevaEnrichments = pgTable(
     index("neva_enrichments_score_idx").on(t.enrichmentScore),
     // Ensure one active enrichment per lead per trigger type
     unique("neva_enrichments_lead_trigger_unique").on(t.leadId, t.trigger),
-  ]
+  ],
 );
 
 // ============================================
@@ -263,7 +266,7 @@ export const nevaPersonas = pgTable(
     teamId: teamsRef({ onDelete: "cascade" }).notNull(),
     researchJobId: ulidColumn("research_job_id").references(
       () => nevaResearchJobs.id,
-      { onDelete: "cascade" }
+      { onDelete: "cascade" },
     ),
 
     // Persona identity
@@ -296,7 +299,7 @@ export const nevaPersonas = pgTable(
     index("neva_personas_team_idx").on(t.teamId),
     index("neva_personas_job_idx").on(t.researchJobId),
     index("neva_personas_industry_idx").on(t.industry),
-  ]
+  ],
 );
 
 // ============================================
@@ -327,7 +330,7 @@ export const nevaMarketData = pgTable(
     teamId: teamsRef({ onDelete: "cascade" }).notNull(),
     researchJobId: ulidColumn("research_job_id").references(
       () => nevaResearchJobs.id,
-      { onDelete: "cascade" }
+      { onDelete: "cascade" },
     ),
 
     // Market definition
@@ -357,7 +360,7 @@ export const nevaMarketData = pgTable(
   (t) => [
     index("neva_market_team_idx").on(t.teamId),
     index("neva_market_industry_idx").on(t.industry),
-  ]
+  ],
 );
 
 // ============================================
@@ -379,11 +382,11 @@ export const nevaCitations = pgTable(
     id: primaryUlid(NEVA_CITATION_PK),
     researchJobId: ulidColumn("research_job_id").references(
       () => nevaResearchJobs.id,
-      { onDelete: "cascade" }
+      { onDelete: "cascade" },
     ),
     enrichmentId: ulidColumn("enrichment_id").references(
       () => nevaEnrichments.id,
-      { onDelete: "cascade" }
+      { onDelete: "cascade" },
     ),
 
     // Citation details
@@ -405,7 +408,7 @@ export const nevaCitations = pgTable(
   (t) => [
     index("neva_citations_job_idx").on(t.researchJobId),
     index("neva_citations_enrichment_idx").on(t.enrichmentId),
-  ]
+  ],
 );
 
 // ============================================
@@ -426,7 +429,7 @@ export const nevaResearchJobsRelations = relations(
     personas: many(nevaPersonas),
     marketData: many(nevaMarketData),
     citations: many(nevaCitations),
-  })
+  }),
 );
 
 export const nevaEnrichmentsRelations = relations(
@@ -441,7 +444,7 @@ export const nevaEnrichmentsRelations = relations(
       references: [leads.id],
     }),
     citations: many(nevaCitations),
-  })
+  }),
 );
 
 export const nevaPersonasRelations = relations(nevaPersonas, ({ one }) => ({
