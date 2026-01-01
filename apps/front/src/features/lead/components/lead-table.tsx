@@ -99,10 +99,14 @@ export const LeadTable = () => {
   const [calendarLoading, setCalendarLoading] = useState(false);
 
   // Enrichment state
-  const [enrichLoading, setEnrichLoading] = useState<"skip-trace" | "apollo" | null>(null);
+  const [enrichLoading, setEnrichLoading] = useState<
+    "skip-trace" | "apollo" | null
+  >(null);
 
   // Worker assignment state
-  const [workerLoading, setWorkerLoading] = useState<"gianna" | "cathy" | "sabrina" | null>(null);
+  const [workerLoading, setWorkerLoading] = useState<
+    "gianna" | "cathy" | "sabrina" | null
+  >(null);
 
   const [leads, pageInfo, { loading, refetch }] = useConnectionQuery(
     LEADS_QUERY,
@@ -274,7 +278,12 @@ export const LeadTable = () => {
         if (data.success) {
           toast.success(
             `Skip trace started for ${selectedLeads.length} leads`,
-            { description: data.mode === "async" ? "Results will be ready shortly" : `${data.processed} leads enriched` }
+            {
+              description:
+                data.mode === "async"
+                  ? "Results will be ready shortly"
+                  : `${data.processed} leads enriched`,
+            },
           );
           await refetch({ ...defaultCursor });
           setSelected([]);
@@ -310,7 +319,7 @@ export const LeadTable = () => {
         if (data.success || response.ok) {
           toast.success(
             `Apollo enrichment started for ${selectedLeads.length} leads`,
-            { description: "Company and contact data being fetched" }
+            { description: "Company and contact data being fetched" },
           );
           await refetch({ ...defaultCursor });
           setSelected([]);
@@ -340,11 +349,12 @@ export const LeadTable = () => {
         ) || [];
 
       // Route based on worker
-      const endpoint = worker === "gianna"
-        ? "/api/gianna/scheduler"
-        : worker === "cathy"
-        ? "/api/cathy/schedule"
-        : "/api/sabrina/book";
+      const endpoint =
+        worker === "gianna"
+          ? "/api/gianna/scheduler"
+          : worker === "cathy"
+            ? "/api/cathy/schedule"
+            : "/api/sabrina/book";
 
       const response = await fetch(endpoint, {
         method: "POST",
@@ -361,7 +371,9 @@ export const LeadTable = () => {
               propertyAddress?: string;
             }) => ({
               id: lead.id,
-              name: [lead.firstName, lead.lastName].filter(Boolean).join(" ") || "Unknown",
+              name:
+                [lead.firstName, lead.lastName].filter(Boolean).join(" ") ||
+                "Unknown",
               phone: lead.phone,
               email: lead.email,
               address: lead.propertyAddress,
@@ -378,12 +390,13 @@ export const LeadTable = () => {
         toast.success(
           `${selectedLeads.length} leads assigned to ${workerName}`,
           {
-            description: worker === "gianna"
-              ? "Ready for initial outreach"
-              : worker === "cathy"
-              ? "Added to nudge queue"
-              : "Ready for appointment booking"
-          }
+            description:
+              worker === "gianna"
+                ? "Ready for initial outreach"
+                : worker === "cathy"
+                  ? "Added to nudge queue"
+                  : "Ready for appointment booking",
+          },
         );
         setSelected([]);
       } else {
@@ -747,24 +760,36 @@ export const LeadTable = () => {
                   disabled={workerLoading !== null}
                 >
                   <Zap className="h-4 w-4 mr-2 text-blue-500" />
-                  <span>Send to <strong>GIANNA</strong></span>
-                  <span className="ml-2 text-xs text-muted-foreground">(Opener)</span>
+                  <span>
+                    Send to <strong>GIANNA</strong>
+                  </span>
+                  <span className="ml-2 text-xs text-muted-foreground">
+                    (Opener)
+                  </span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => assignToWorker("cathy")}
                   disabled={workerLoading !== null}
                 >
                   <Heart className="h-4 w-4 mr-2 text-orange-500" />
-                  <span>Send to <strong>CATHY</strong></span>
-                  <span className="ml-2 text-xs text-muted-foreground">(Nudger)</span>
+                  <span>
+                    Send to <strong>CATHY</strong>
+                  </span>
+                  <span className="ml-2 text-xs text-muted-foreground">
+                    (Nudger)
+                  </span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => assignToWorker("sabrina")}
                   disabled={workerLoading !== null}
                 >
                   <Calendar className="h-4 w-4 mr-2 text-emerald-500" />
-                  <span>Send to <strong>SABRINA</strong></span>
-                  <span className="ml-2 text-xs text-muted-foreground">(Closer)</span>
+                  <span>
+                    Send to <strong>SABRINA</strong>
+                  </span>
+                  <span className="ml-2 text-xs text-muted-foreground">
+                    (Closer)
+                  </span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

@@ -175,26 +175,52 @@ export default function SabrinaCampaignsPage() {
     async function fetchQueue() {
       setQueueLoading(true);
       try {
-        const response = await fetch(`/api/leads?teamId=${team.id}&worker=sabrina&limit=20`);
+        const response = await fetch(
+          `/api/leads?teamId=${team.id}&worker=sabrina&limit=20`,
+        );
         const data = await response.json();
         if (data.leads) {
-          setQueueLeads(data.leads.map((lead: any) => ({
-            id: lead.id,
-            name: lead.name || lead.fullName || "Unknown",
-            company: lead.company || lead.companyName,
-            phone: lead.phone || lead.phoneNumber,
-            status: lead.workerStatus || "pending",
-            rebuttals: lead.rebuttals || 0,
-            appointmentTime: lead.appointmentTime,
-          })));
+          setQueueLeads(
+            data.leads.map((lead: any) => ({
+              id: lead.id,
+              name: lead.name || lead.fullName || "Unknown",
+              company: lead.company || lead.companyName,
+              phone: lead.phone || lead.phoneNumber,
+              status: lead.workerStatus || "pending",
+              rebuttals: lead.rebuttals || 0,
+              appointmentTime: lead.appointmentTime,
+            })),
+          );
         }
       } catch (error) {
         console.error("Failed to fetch queue:", error);
         // Mock data for demonstration
         setQueueLeads([
-          { id: "1", name: "Hot Harry", company: "Ready LLC", phone: "+1234567890", status: "pending", rebuttals: 0 },
-          { id: "2", name: "Objecting Olivia", company: "Maybe Inc", phone: "+1987654321", status: "objecting", rebuttals: 2 },
-          { id: "3", name: "Booked Bob", company: "Done Co", phone: "+1555123456", status: "booked", rebuttals: 1, appointmentTime: "2024-01-15 10:00 AM" },
+          {
+            id: "1",
+            name: "Hot Harry",
+            company: "Ready LLC",
+            phone: "+1234567890",
+            status: "pending",
+            rebuttals: 0,
+          },
+          {
+            id: "2",
+            name: "Objecting Olivia",
+            company: "Maybe Inc",
+            phone: "+1987654321",
+            status: "objecting",
+            rebuttals: 2,
+          },
+          {
+            id: "3",
+            name: "Booked Bob",
+            company: "Done Co",
+            phone: "+1555123456",
+            status: "booked",
+            rebuttals: 1,
+            appointmentTime: "2024-01-15 10:00 AM",
+          },
         ]);
       } finally {
         setQueueLoading(false);
@@ -236,7 +262,10 @@ export default function SabrinaCampaignsPage() {
       const response = await fetch("/api/sabrina/close-batch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ leadIds: pendingLeads.map((l) => l.id), teamId: team.id }),
+        body: JSON.stringify({
+          leadIds: pendingLeads.map((l) => l.id),
+          teamId: team.id,
+        }),
       });
       const data = await response.json();
       if (data.success) {
@@ -254,7 +283,11 @@ export default function SabrinaCampaignsPage() {
       const response = await fetch("/api/leads/worker-assign", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ leadIds: Array.from(selectedLeads), worker: "sabrina", teamId: team.id }),
+        body: JSON.stringify({
+          leadIds: Array.from(selectedLeads),
+          worker: "sabrina",
+          teamId: team.id,
+        }),
       });
       const data = await response.json();
       if (data.success) {
@@ -274,13 +307,20 @@ export default function SabrinaCampaignsPage() {
       const response = await fetch("/api/leads/worker-assign", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ leadIds: Array.from(selectedLeads), fromWorker: "sabrina", toWorker, teamId: team.id }),
+        body: JSON.stringify({
+          leadIds: Array.from(selectedLeads),
+          fromWorker: "sabrina",
+          toWorker,
+          teamId: team.id,
+        }),
       });
       const data = await response.json();
       if (data.success) {
         setQueueLeads((prev) => prev.filter((l) => !selectedLeads.has(l.id)));
         setSelectedLeads(new Set());
-        toast.success(`Moved ${selectedLeads.size} leads to ${toWorker.toUpperCase()}`);
+        toast.success(
+          `Moved ${selectedLeads.size} leads to ${toWorker.toUpperCase()}`,
+        );
       }
     } catch (error) {
       toast.error("Failed to move leads");
@@ -291,15 +331,47 @@ export default function SabrinaCampaignsPage() {
   const getStatusBadge = (status: QueueLead["status"]) => {
     switch (status) {
       case "pending":
-        return <Badge variant="outline" className="bg-zinc-800 text-zinc-300">Pending</Badge>;
+        return (
+          <Badge variant="outline" className="bg-zinc-800 text-zinc-300">
+            Pending
+          </Badge>
+        );
       case "engaged":
-        return <Badge variant="outline" className="bg-blue-500/20 text-blue-300 border-blue-500/50">Engaged</Badge>;
+        return (
+          <Badge
+            variant="outline"
+            className="bg-blue-500/20 text-blue-300 border-blue-500/50"
+          >
+            Engaged
+          </Badge>
+        );
       case "objecting":
-        return <Badge variant="outline" className="bg-yellow-500/20 text-yellow-300 border-yellow-500/50">Objecting</Badge>;
+        return (
+          <Badge
+            variant="outline"
+            className="bg-yellow-500/20 text-yellow-300 border-yellow-500/50"
+          >
+            Objecting
+          </Badge>
+        );
       case "booked":
-        return <Badge variant="outline" className="bg-green-500/20 text-green-300 border-green-500/50">Booked!</Badge>;
+        return (
+          <Badge
+            variant="outline"
+            className="bg-green-500/20 text-green-300 border-green-500/50"
+          >
+            Booked!
+          </Badge>
+        );
       case "lost":
-        return <Badge variant="outline" className="bg-red-500/20 text-red-300 border-red-500/50">Lost</Badge>;
+        return (
+          <Badge
+            variant="outline"
+            className="bg-red-500/20 text-red-300 border-red-500/50"
+          >
+            Lost
+          </Badge>
+        );
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -507,23 +579,42 @@ export default function SabrinaCampaignsPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent>
-                        <DropdownMenuItem onClick={() => moveToWorker("gianna")}>
-                          <span className="text-purple-400 font-medium">GIANNA</span>
-                          <span className="ml-2 text-xs text-muted-foreground">(Opener)</span>
+                        <DropdownMenuItem
+                          onClick={() => moveToWorker("gianna")}
+                        >
+                          <span className="text-purple-400 font-medium">
+                            GIANNA
+                          </span>
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            (Opener)
+                          </span>
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => moveToWorker("cathy")}>
-                          <span className="text-orange-400 font-medium">CATHY</span>
-                          <span className="ml-2 text-xs text-muted-foreground">(Nudger)</span>
+                          <span className="text-orange-400 font-medium">
+                            CATHY
+                          </span>
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            (Nudger)
+                          </span>
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
-                    <Button size="sm" variant="destructive" onClick={removeSelectedFromQueue} className="gap-1">
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={removeSelectedFromQueue}
+                      className="gap-1"
+                    >
                       <Trash2 className="w-4 h-4" />
                       Remove
                     </Button>
                   </>
                 )}
-                <Button size="sm" className="gap-1 bg-emerald-600 hover:bg-emerald-700" onClick={startClosingAll}>
+                <Button
+                  size="sm"
+                  className="gap-1 bg-emerald-600 hover:bg-emerald-700"
+                  onClick={startClosingAll}
+                >
                   <Play className="w-4 h-4" />
                   Start Closing All
                 </Button>
@@ -536,7 +627,10 @@ export default function SabrinaCampaignsPage() {
                 <TableRow>
                   <TableHead className="w-[40px]">
                     <Checkbox
-                      checked={selectedLeads.size === queueLeads.length && queueLeads.length > 0}
+                      checked={
+                        selectedLeads.size === queueLeads.length &&
+                        queueLeads.length > 0
+                      }
                       onCheckedChange={toggleSelectAll}
                     />
                   </TableHead>
@@ -550,8 +644,12 @@ export default function SabrinaCampaignsPage() {
               <TableBody>
                 {queueLeads.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-zinc-500 py-8">
-                      No leads in closing queue. Assign leads from the Leads page.
+                    <TableCell
+                      colSpan={6}
+                      className="text-center text-zinc-500 py-8"
+                    >
+                      No leads in closing queue. Assign leads from the Leads
+                      page.
                     </TableCell>
                   </TableRow>
                 )}
@@ -566,14 +664,22 @@ export default function SabrinaCampaignsPage() {
                     <TableCell>
                       <div>
                         <p className="font-medium text-zinc-100">{lead.name}</p>
-                        {lead.company && <p className="text-xs text-zinc-500">{lead.company}</p>}
+                        {lead.company && (
+                          <p className="text-xs text-zinc-500">
+                            {lead.company}
+                          </p>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>{getStatusBadge(lead.status)}</TableCell>
-                    <TableCell className="text-zinc-400">{lead.rebuttals}</TableCell>
+                    <TableCell className="text-zinc-400">
+                      {lead.rebuttals}
+                    </TableCell>
                     <TableCell>
                       {lead.appointmentTime ? (
-                        <span className="text-emerald-400 text-sm">{lead.appointmentTime}</span>
+                        <span className="text-emerald-400 text-sm">
+                          {lead.appointmentTime}
+                        </span>
                       ) : (
                         <span className="text-zinc-600">—</span>
                       )}
@@ -611,11 +717,15 @@ export default function SabrinaCampaignsPage() {
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => handleHandoff(lead.id, "cathy")}>
+                          <DropdownMenuItem
+                            onClick={() => handleHandoff(lead.id, "cathy")}
+                          >
                             <ArrowRight className="w-4 h-4 mr-2 text-orange-400" />
                             Move to CATHY
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleHandoff(lead.id, "gianna")}>
+                          <DropdownMenuItem
+                            onClick={() => handleHandoff(lead.id, "gianna")}
+                          >
                             <ArrowRight className="w-4 h-4 mr-2 text-purple-400" />
                             Move to GIANNA
                           </DropdownMenuItem>

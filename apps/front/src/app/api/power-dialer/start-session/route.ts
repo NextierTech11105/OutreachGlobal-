@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { v4 as uuidv4 } from 'uuid';
+import { NextRequest, NextResponse } from "next/server";
+import { v4 as uuidv4 } from "uuid";
 
 /**
  * POST /api/power-dialer/start-session
@@ -20,7 +20,7 @@ interface DialerSession {
   teamId: string;
   leads: DialerLead[];
   currentIndex: number;
-  status: 'active' | 'paused' | 'completed';
+  status: "active" | "paused" | "completed";
   source: string;
   createdAt: Date;
 }
@@ -35,28 +35,28 @@ export async function POST(request: NextRequest) {
 
     if (!teamId) {
       return NextResponse.json(
-        { success: false, error: 'Team ID is required' },
-        { status: 400 }
+        { success: false, error: "Team ID is required" },
+        { status: 400 },
       );
     }
 
     if (!leads || !Array.isArray(leads) || leads.length === 0) {
       return NextResponse.json(
-        { success: false, error: 'At least one lead is required' },
-        { status: 400 }
+        { success: false, error: "At least one lead is required" },
+        { status: 400 },
       );
     }
 
     // Validate leads have phone numbers
     const validLeads = leads.filter((lead: DialerLead) => {
-      const phone = lead.phone?.replace(/\D/g, '');
+      const phone = lead.phone?.replace(/\D/g, "");
       return phone && phone.length >= 10;
     });
 
     if (validLeads.length === 0) {
       return NextResponse.json(
-        { success: false, error: 'No valid phone numbers in lead list' },
-        { status: 400 }
+        { success: false, error: "No valid phone numbers in lead list" },
+        { status: 400 },
       );
     }
 
@@ -68,12 +68,12 @@ export async function POST(request: NextRequest) {
       leads: validLeads.map((lead: DialerLead) => ({
         id: lead.id,
         phone: normalizePhone(lead.phone),
-        name: lead.name || 'Unknown',
+        name: lead.name || "Unknown",
         callbackId: lead.callbackId,
       })),
       currentIndex: 0,
-      status: 'active',
-      source: source || 'manual',
+      status: "active",
+      source: source || "manual",
       createdAt: new Date(),
     };
 
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
     // await db.insert(dialerSessions).values(session);
 
     // Log session start
-    console.log('Power Dialer session started:', {
+    console.log("Power Dialer session started:", {
       sessionId,
       teamId,
       leadCount: validLeads.length,
@@ -95,13 +95,16 @@ export async function POST(request: NextRequest) {
       success: true,
       sessionId,
       leadCount: validLeads.length,
-      status: 'active',
+      status: "active",
     });
   } catch (error: any) {
-    console.error('Power dialer start error:', error);
+    console.error("Power dialer start error:", error);
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to start dialer session' },
-      { status: 500 }
+      {
+        success: false,
+        error: error.message || "Failed to start dialer session",
+      },
+      { status: 500 },
     );
   }
 }
@@ -109,12 +112,12 @@ export async function POST(request: NextRequest) {
 // GET - Retrieve session status
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const sessionId = searchParams.get('sessionId');
+  const sessionId = searchParams.get("sessionId");
 
   if (!sessionId) {
     return NextResponse.json(
-      { success: false, error: 'Session ID is required' },
-      { status: 400 }
+      { success: false, error: "Session ID is required" },
+      { status: 400 },
     );
   }
 
@@ -122,8 +125,8 @@ export async function GET(request: NextRequest) {
 
   if (!session) {
     return NextResponse.json(
-      { success: false, error: 'Session not found' },
-      { status: 404 }
+      { success: false, error: "Session not found" },
+      { status: 404 },
     );
   }
 
@@ -142,11 +145,11 @@ export async function GET(request: NextRequest) {
 
 // Normalize phone to consistent format
 function normalizePhone(phone: string): string {
-  const digits = phone.replace(/\D/g, '');
+  const digits = phone.replace(/\D/g, "");
 
   if (digits.length === 10) {
     return `+1${digits}`;
-  } else if (digits.length === 11 && digits[0] === '1') {
+  } else if (digits.length === 11 && digits[0] === "1") {
     return `+${digits}`;
   }
 

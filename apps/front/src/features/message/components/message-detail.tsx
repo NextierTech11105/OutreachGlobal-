@@ -54,14 +54,18 @@ const WORKERS = [
   { id: "sabrina", name: "SABRINA", role: "Closer", color: "text-emerald-400" },
 ];
 
-export function MessageDetail({ message, onReply, onClose }: MessageDetailProps) {
+export function MessageDetail({
+  message,
+  onReply,
+  onClose,
+}: MessageDetailProps) {
   const { team } = useCurrentTeam();
   const [aiSuggestion, setAiSuggestion] = useState<string>("");
   const [isLoadingSuggestion, setIsLoadingSuggestion] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedSuggestion, setEditedSuggestion] = useState("");
   const [assignedWorker, setAssignedWorker] = useState<string | null>(
-    message?.assignedWorker || null
+    message?.assignedWorker || null,
   );
   const [isSending, setIsSending] = useState(false);
 
@@ -105,8 +109,12 @@ export function MessageDetail({ message, onReply, onClose }: MessageDetailProps)
     } catch (error) {
       console.error("Failed to fetch AI suggestion:", error);
       // Use mock suggestion on error
-      setAiSuggestion("Thanks for getting back to me! I'd love to chat more about how we can help. When works best for you?");
-      setEditedSuggestion("Thanks for getting back to me! I'd love to chat more about how we can help. When works best for you?");
+      setAiSuggestion(
+        "Thanks for getting back to me! I'd love to chat more about how we can help. When works best for you?",
+      );
+      setEditedSuggestion(
+        "Thanks for getting back to me! I'd love to chat more about how we can help. When works best for you?",
+      );
     } finally {
       setIsLoadingSuggestion(false);
     }
@@ -231,10 +239,16 @@ export function MessageDetail({ message, onReply, onClose }: MessageDetailProps)
                 {/* Worker Assignment */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button size="sm" variant="outline" className="h-7 gap-1 text-xs">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 gap-1 text-xs"
+                    >
                       <Users className="h-3 w-3" />
                       {currentWorker ? (
-                        <span className={currentWorker.color}>{currentWorker.name}</span>
+                        <span className={currentWorker.color}>
+                          {currentWorker.name}
+                        </span>
                       ) : (
                         "Assign Worker"
                       )}
@@ -264,7 +278,9 @@ export function MessageDetail({ message, onReply, onClose }: MessageDetailProps)
                   onClick={fetchAiSuggestion}
                   disabled={isLoadingSuggestion}
                 >
-                  <RefreshCw className={`h-3 w-3 ${isLoadingSuggestion ? "animate-spin" : ""}`} />
+                  <RefreshCw
+                    className={`h-3 w-3 ${isLoadingSuggestion ? "animate-spin" : ""}`}
+                  />
                 </Button>
               </div>
             </div>

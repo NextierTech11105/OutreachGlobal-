@@ -63,7 +63,10 @@ interface OutreachCalendarProps {
 }
 
 // ============ EVENT CONFIG ============
-const eventConfig: Record<EventType, { icon: typeof MessageSquare; color: string; bgColor: string; label: string }> = {
+const eventConfig: Record<
+  EventType,
+  { icon: typeof MessageSquare; color: string; bgColor: string; label: string }
+> = {
   sms: {
     icon: MessageSquare,
     color: "text-blue-500",
@@ -105,7 +108,9 @@ export function OutreachCalendar({
   className,
 }: OutreachCalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [selectedEvent, setSelectedEvent] = useState<OutreachEvent | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<OutreachEvent | null>(
+    null,
+  );
 
   // Group events by date
   const eventsByDate = useMemo(() => {
@@ -217,7 +222,7 @@ export function OutreachCalendar({
                 "min-h-[100px] p-1 border-b border-r cursor-pointer transition-colors",
                 !isCurrentMonth && "bg-muted/30",
                 isCurrentDay && "bg-blue-500/5",
-                "hover:bg-muted/50"
+                "hover:bg-muted/50",
               )}
             >
               {/* Day Number */}
@@ -225,7 +230,7 @@ export function OutreachCalendar({
                 className={cn(
                   "text-sm font-medium mb-1 w-7 h-7 flex items-center justify-center rounded-full",
                   !isCurrentMonth && "text-muted-foreground",
-                  isCurrentDay && "bg-blue-500 text-white"
+                  isCurrentDay && "bg-blue-500 text-white",
                 )}
               >
                 {format(day, "d")}
@@ -244,13 +249,16 @@ export function OutreachCalendar({
                         "flex items-center gap-1 px-1.5 py-0.5 rounded text-xs truncate cursor-pointer",
                         "hover:ring-1 hover:ring-offset-1",
                         config.bgColor + "/20",
-                        config.color
+                        config.color,
                       )}
                     >
                       <Icon className="h-3 w-3 shrink-0" />
                       <span className="truncate">{event.title}</span>
                       {event.leadCount && event.leadCount > 1 && (
-                        <Badge variant="secondary" className="h-4 px-1 text-[10px] shrink-0">
+                        <Badge
+                          variant="secondary"
+                          className="h-4 px-1 text-[10px] shrink-0"
+                        >
                           {event.leadCount}
                         </Badge>
                       )}
@@ -269,7 +277,10 @@ export function OutreachCalendar({
       </div>
 
       {/* Event Detail Dialog */}
-      <Dialog open={!!selectedEvent} onOpenChange={() => setSelectedEvent(null)}>
+      <Dialog
+        open={!!selectedEvent}
+        onOpenChange={() => setSelectedEvent(null)}
+      >
         <DialogContent className="sm:max-w-[425px]">
           {selectedEvent && (
             <>
@@ -280,7 +291,12 @@ export function OutreachCalendar({
                     const Icon = config.icon;
                     return (
                       <>
-                        <div className={cn("p-2 rounded-lg", config.bgColor + "/20")}>
+                        <div
+                          className={cn(
+                            "p-2 rounded-lg",
+                            config.bgColor + "/20",
+                          )}
+                        >
                           <Icon className={cn("h-5 w-5", config.color)} />
                         </div>
                         {selectedEvent.title}
@@ -332,21 +348,30 @@ export function OutreachCalendar({
                 {/* Campaign */}
                 {selectedEvent.campaignName && (
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Campaign</span>
-                    <span className="text-sm font-medium">{selectedEvent.campaignName}</span>
+                    <span className="text-sm text-muted-foreground">
+                      Campaign
+                    </span>
+                    <span className="text-sm font-medium">
+                      {selectedEvent.campaignName}
+                    </span>
                   </div>
                 )}
 
                 {/* Description */}
                 {selectedEvent.description && (
                   <div className="pt-2 border-t">
-                    <p className="text-sm text-muted-foreground">{selectedEvent.description}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedEvent.description}
+                    </p>
                   </div>
                 )}
               </div>
 
               <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setSelectedEvent(null)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setSelectedEvent(null)}
+                >
                   Close
                 </Button>
                 {selectedEvent.status === "scheduled" && (

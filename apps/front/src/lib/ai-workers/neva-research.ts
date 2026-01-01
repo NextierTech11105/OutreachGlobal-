@@ -16,7 +16,7 @@
  */
 
 const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY;
-const PERPLEXITY_BASE_URL = 'https://api.perplexity.ai/chat/completions';
+const PERPLEXITY_BASE_URL = "https://api.perplexity.ai/chat/completions";
 
 // =============================================================================
 // TYPES
@@ -25,7 +25,7 @@ const PERPLEXITY_BASE_URL = 'https://api.perplexity.ai/chat/completions';
 export interface BusinessValidation {
   isValid: boolean;
   confidence: number; // 0-100
-  status: 'ACTIVE' | 'CLOSED' | 'UNKNOWN' | 'MOVED' | 'CHANGED_NAME';
+  status: "ACTIVE" | "CLOSED" | "UNKNOWN" | "MOVED" | "CHANGED_NAME";
   lastVerified: Date;
   signals: ValidationSignal[];
   summary: string;
@@ -34,7 +34,7 @@ export interface BusinessValidation {
 export interface ValidationSignal {
   source: string;
   signal: string;
-  sentiment: 'positive' | 'negative' | 'neutral';
+  sentiment: "positive" | "negative" | "neutral";
   timestamp?: string;
 }
 
@@ -56,7 +56,7 @@ export interface NewsItem {
   title: string;
   summary: string;
   date: string;
-  sentiment: 'positive' | 'negative' | 'neutral';
+  sentiment: "positive" | "negative" | "neutral";
   source: string;
 }
 
@@ -93,7 +93,7 @@ export interface MarketSizing {
 
 export interface MarketSegment {
   value: number; // USD
-  unit: 'millions' | 'billions';
+  unit: "millions" | "billions";
   description: string;
   methodology: string;
 }
@@ -101,7 +101,12 @@ export interface MarketSegment {
 export interface ResearchSource {
   name: string;
   url: string | null;
-  type: 'industry_report' | 'government_data' | 'financial_filing' | 'news' | 'trade_association';
+  type:
+    | "industry_report"
+    | "government_data"
+    | "financial_filing"
+    | "news"
+    | "trade_association";
   accessedAt: string;
 }
 
@@ -129,7 +134,11 @@ export interface IdealCustomerProfile {
 export interface BuyerPersona {
   title: string; // e.g., "VP of Operations"
   department: string;
-  decisionAuthority: 'final_decision' | 'influencer' | 'evaluator' | 'gatekeeper';
+  decisionAuthority:
+    | "final_decision"
+    | "influencer"
+    | "evaluator"
+    | "gatekeeper";
   goals: string[];
   challenges: string[];
   preferredChannels: string[];
@@ -140,7 +149,7 @@ export interface BuyerPersona {
 export interface PainPoint {
   category: string;
   description: string;
-  severity: 'high' | 'medium' | 'low';
+  severity: "high" | "medium" | "low";
   solutionFit: string;
 }
 
@@ -170,28 +179,28 @@ export interface FinancialHealth {
   estimatedRevenue: string | null;
   fundingStage: string | null;
   recentFunding: string | null;
-  profitability: 'profitable' | 'break_even' | 'growth_stage' | 'unknown';
+  profitability: "profitable" | "break_even" | "growth_stage" | "unknown";
   signals: string[];
 }
 
 export interface Stakeholder {
   name: string;
   title: string;
-  role: 'champion' | 'decision_maker' | 'influencer' | 'blocker' | 'unknown';
+  role: "champion" | "decision_maker" | "influencer" | "blocker" | "unknown";
   linkedIn: string | null;
   notes: string;
 }
 
 export interface CompetitorInfo {
   name: string;
-  relationship: 'current_vendor' | 'past_vendor' | 'evaluating' | 'none';
+  relationship: "current_vendor" | "past_vendor" | "evaluating" | "none";
   strengths: string[];
   weaknesses: string[];
   battleCard: string;
 }
 
 export interface RiskAssessment {
-  overallRisk: 'high' | 'medium' | 'low';
+  overallRisk: "high" | "medium" | "low";
   risks: Array<{
     category: string;
     description: string;
@@ -213,27 +222,30 @@ export interface EngagementStrategy {
 
 async function queryPerplexity(
   prompt: string,
-  model: 'llama-3.1-sonar-small-128k-online' | 'llama-3.1-sonar-large-128k-online' = 'llama-3.1-sonar-small-128k-online'
+  model:
+    | "llama-3.1-sonar-small-128k-online"
+    | "llama-3.1-sonar-large-128k-online" = "llama-3.1-sonar-small-128k-online",
 ): Promise<string> {
   if (!PERPLEXITY_API_KEY) {
-    throw new Error('PERPLEXITY_API_KEY is not configured');
+    throw new Error("PERPLEXITY_API_KEY is not configured");
   }
 
   const response = await fetch(PERPLEXITY_BASE_URL, {
-    method: 'POST',
+    method: "POST",
     headers: {
-      'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
-      'Content-Type': 'application/json',
+      Authorization: `Bearer ${PERPLEXITY_API_KEY}`,
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({
       model,
       messages: [
         {
-          role: 'system',
-          content: 'You are a business research assistant. Provide accurate, factual information based on your search results. Be concise and structured in your responses.',
+          role: "system",
+          content:
+            "You are a business research assistant. Provide accurate, factual information based on your search results. Be concise and structured in your responses.",
         },
         {
-          role: 'user',
+          role: "user",
           content: prompt,
         },
       ],
@@ -274,9 +286,9 @@ export async function quickValidationScan(
     zip?: string;
   },
   phone?: string,
-  website?: string
+  website?: string,
 ): Promise<BusinessValidation> {
-  const locationStr = `${address.city}, ${address.state}${address.zip ? ` ${address.zip}` : ''}`;
+  const locationStr = `${address.city}, ${address.state}${address.zip ? ` ${address.zip}` : ""}`;
 
   const prompt = `Quick business validation check for: "${companyName}" in ${locationStr}
 
@@ -284,8 +296,8 @@ Check these specific things:
 1. Is this business still operating? Look for Google Business listing, Yelp, or other directories.
 2. Any recent reviews or activity in the last 6 months?
 3. Any news about closure, bankruptcy, or moving?
-4. Is their website ${website || 'N/A'} still active?
-${phone ? `5. Is phone ${phone} still associated with this business?` : ''}
+4. Is their website ${website || "N/A"} still active?
+${phone ? `5. Is phone ${phone} still associated with this business?` : ""}
 
 Respond in this exact JSON format:
 {
@@ -299,7 +311,10 @@ Respond in this exact JSON format:
 }`;
 
   try {
-    const result = await queryPerplexity(prompt, 'llama-3.1-sonar-small-128k-online');
+    const result = await queryPerplexity(
+      prompt,
+      "llama-3.1-sonar-small-128k-online",
+    );
 
     // Parse JSON from response
     const jsonMatch = result.match(/\{[\s\S]*\}/);
@@ -312,13 +327,13 @@ Respond in this exact JSON format:
     return {
       isValid: parsed.isOperating === true,
       confidence: parsed.confidence || 50,
-      status: parsed.status || 'UNKNOWN',
+      status: parsed.status || "UNKNOWN",
       lastVerified: new Date(),
       signals: parsed.signals || [],
-      summary: parsed.summary || 'Unable to verify business status',
+      summary: parsed.summary || "Unable to verify business status",
     };
   } catch (error) {
-    console.error('Quick validation scan failed:', error);
+    console.error("Quick validation scan failed:", error);
     return createUnknownValidation(companyName);
   }
 }
@@ -327,7 +342,7 @@ function createUnknownValidation(companyName: string): BusinessValidation {
   return {
     isValid: true, // Default to valid to not block outreach
     confidence: 0,
-    status: 'UNKNOWN',
+    status: "UNKNOWN",
     lastVerified: new Date(),
     signals: [],
     summary: `Could not verify status for ${companyName}`,
@@ -349,11 +364,11 @@ export async function deepResearch(
     city: string;
     state: string;
   },
-  industry?: string
+  industry?: string,
 ): Promise<DeepResearchResult> {
-  const locationStr = address ? `${address.city}, ${address.state}` : '';
+  const locationStr = address ? `${address.city}, ${address.state}` : "";
 
-  const prompt = `Comprehensive business research for: "${companyName}"${locationStr ? ` in ${locationStr}` : ''}${industry ? ` (Industry: ${industry})` : ''}
+  const prompt = `Comprehensive business research for: "${companyName}"${locationStr ? ` in ${locationStr}` : ""}${industry ? ` (Industry: ${industry})` : ""}
 
 Research and provide:
 1. Company overview and what they do
@@ -364,7 +379,7 @@ Research and provide:
 6. Talking points for a sales conversation
 7. Social media and online presence
 
-${contactName ? `Also look up information about: ${contactName}` : ''}
+${contactName ? `Also look up information about: ${contactName}` : ""}
 
 Respond in this exact JSON format:
 {
@@ -389,7 +404,10 @@ Respond in this exact JSON format:
 }`;
 
   try {
-    const result = await queryPerplexity(prompt, 'llama-3.1-sonar-large-128k-online');
+    const result = await queryPerplexity(
+      prompt,
+      "llama-3.1-sonar-large-128k-online",
+    );
 
     // Parse JSON from response
     const jsonMatch = result.match(/\{[\s\S]*\}/);
@@ -401,7 +419,7 @@ Respond in this exact JSON format:
 
     return {
       companyName,
-      summary: parsed.summary || 'No summary available',
+      summary: parsed.summary || "No summary available",
       keyFacts: parsed.keyFacts || [],
       recentNews: parsed.recentNews || [],
       competitors: parsed.competitors || [],
@@ -421,7 +439,7 @@ Respond in this exact JSON format:
       researchedAt: new Date(),
     };
   } catch (error) {
-    console.error('Deep research failed:', error);
+    console.error("Deep research failed:", error);
     return createEmptyResearch(companyName);
   }
 }
@@ -429,7 +447,7 @@ Respond in this exact JSON format:
 function createEmptyResearch(companyName: string): DeepResearchResult {
   return {
     companyName,
-    summary: 'Research unavailable',
+    summary: "Research unavailable",
     keyFacts: [],
     recentNews: [],
     competitors: [],
@@ -471,7 +489,7 @@ export async function batchValidate(
   options?: {
     maxConcurrent?: number;
     delayMs?: number;
-  }
+  },
 ): Promise<Map<string, BusinessValidation>> {
   const results = new Map<string, BusinessValidation>();
   const maxConcurrent = options?.maxConcurrent || 5;
@@ -488,7 +506,7 @@ export async function batchValidate(
             biz.companyName,
             { city: biz.city, state: biz.state, zip: biz.zip },
             biz.phone,
-            biz.website
+            biz.website,
           );
           return { id: biz.id, validation };
         } catch (error) {
@@ -498,7 +516,7 @@ export async function batchValidate(
             validation: createUnknownValidation(biz.companyName),
           };
         }
-      })
+      }),
     );
 
     for (const { id, validation } of batchResults) {
@@ -531,7 +549,7 @@ export async function preAppointmentResearch(
     city: string;
     state: string;
     industry?: string;
-  }
+  },
 ): Promise<DeepResearchResult> {
   const contactName =
     leadData.contactFirstName && leadData.contactLastName
@@ -542,7 +560,7 @@ export async function preAppointmentResearch(
     leadData.companyName,
     contactName,
     { city: leadData.city, state: leadData.state },
-    leadData.industry
+    leadData.industry,
   );
 
   // TODO: Store research results in database
@@ -566,13 +584,13 @@ export async function preAppointmentResearch(
 export async function calculateMarketSizing(
   industry: string,
   geography?: string,
-  targetSegment?: string
+  targetSegment?: string,
 ): Promise<MarketSizing> {
-  const geoStr = geography || 'United States';
+  const geoStr = geography || "United States";
   const segmentStr = targetSegment || industry;
 
   const prompt = `Market sizing research for: "${industry}" industry in ${geoStr}
-${targetSegment ? `Focus segment: ${targetSegment}` : ''}
+${targetSegment ? `Focus segment: ${targetSegment}` : ""}
 
 Calculate and provide:
 1. TAM (Total Addressable Market) - entire market for this industry
@@ -610,7 +628,10 @@ Respond in this exact JSON format:
 }`;
 
   try {
-    const result = await queryPerplexity(prompt, 'llama-3.1-sonar-large-128k-online');
+    const result = await queryPerplexity(
+      prompt,
+      "llama-3.1-sonar-large-128k-online",
+    );
     const jsonMatch = result.match(/\{[\s\S]*\}/);
 
     if (!jsonMatch) {
@@ -619,9 +640,9 @@ Respond in this exact JSON format:
 
     const parsed = JSON.parse(jsonMatch[0]);
     return {
-      tam: parsed.tam || createEmptySegment('TAM'),
-      sam: parsed.sam || createEmptySegment('SAM'),
-      som: parsed.som || createEmptySegment('SOM'),
+      tam: parsed.tam || createEmptySegment("TAM"),
+      sam: parsed.sam || createEmptySegment("SAM"),
+      som: parsed.som || createEmptySegment("SOM"),
       industry,
       growthRate: parsed.growthRate || 0,
       sources: (parsed.sources || []).map((s: any) => ({
@@ -631,16 +652,16 @@ Respond in this exact JSON format:
       calculatedAt: new Date(),
     };
   } catch (error) {
-    console.error('Market sizing calculation failed:', error);
+    console.error("Market sizing calculation failed:", error);
     return createEmptyMarketSizing(industry);
   }
 }
 
 function createEmptyMarketSizing(industry: string): MarketSizing {
   return {
-    tam: createEmptySegment('TAM'),
-    sam: createEmptySegment('SAM'),
-    som: createEmptySegment('SOM'),
+    tam: createEmptySegment("TAM"),
+    sam: createEmptySegment("SAM"),
+    som: createEmptySegment("SOM"),
     industry,
     growthRate: 0,
     sources: [],
@@ -651,9 +672,9 @@ function createEmptyMarketSizing(industry: string): MarketSizing {
 function createEmptySegment(name: string): MarketSegment {
   return {
     value: 0,
-    unit: 'millions',
+    unit: "millions",
     description: `${name} unavailable`,
-    methodology: 'Unable to calculate',
+    methodology: "Unable to calculate",
   };
 }
 
@@ -668,9 +689,9 @@ function createEmptySegment(name: string): MarketSegment {
 export async function buildPersonaIntelligence(
   industry: string,
   companyType?: string,
-  productService?: string
+  productService?: string,
 ): Promise<PersonaIntelligence> {
-  const prompt = `Build buyer personas and ICP for selling ${productService || 'B2B services'} to ${companyType || 'companies'} in the ${industry} industry.
+  const prompt = `Build buyer personas and ICP for selling ${productService || "B2B services"} to ${companyType || "companies"} in the ${industry} industry.
 
 Research and provide:
 1. Ideal Customer Profile (ICP) - company characteristics
@@ -712,7 +733,10 @@ Respond in this exact JSON format:
 }`;
 
   try {
-    const result = await queryPerplexity(prompt, 'llama-3.1-sonar-large-128k-online');
+    const result = await queryPerplexity(
+      prompt,
+      "llama-3.1-sonar-large-128k-online",
+    );
     const jsonMatch = result.match(/\{[\s\S]*\}/);
 
     if (!jsonMatch) {
@@ -728,7 +752,7 @@ Respond in this exact JSON format:
       researchedAt: new Date(),
     };
   } catch (error) {
-    console.error('Persona intelligence failed:', error);
+    console.error("Persona intelligence failed:", error);
     return createEmptyPersonaIntelligence(industry);
   }
 }
@@ -746,8 +770,8 @@ function createEmptyPersonaIntelligence(industry: string): PersonaIntelligence {
 function createEmptyICP(industry: string): IdealCustomerProfile {
   return {
     industry,
-    companySize: 'Unknown',
-    revenue: 'Unknown',
+    companySize: "Unknown",
+    revenue: "Unknown",
     geography: [],
     techStack: [],
     characteristics: [],
@@ -756,8 +780,8 @@ function createEmptyICP(industry: string): IdealCustomerProfile {
 
 function createEmptyBuyingBehavior(): BuyingBehavior {
   return {
-    typicalCycle: 'Unknown',
-    budgetCycle: 'Unknown',
+    typicalCycle: "Unknown",
+    budgetCycle: "Unknown",
     evaluationCriteria: [],
     commonObjections: [],
   };
@@ -774,11 +798,11 @@ function createEmptyBuyingBehavior(): BuyingBehavior {
 export async function generateDealIntelligence(
   companyName: string,
   industry?: string,
-  address?: { city: string; state: string }
+  address?: { city: string; state: string },
 ): Promise<DealIntelligence> {
-  const locationStr = address ? `${address.city}, ${address.state}` : '';
+  const locationStr = address ? `${address.city}, ${address.state}` : "";
 
-  const prompt = `Deep deal intelligence research for: "${companyName}"${locationStr ? ` in ${locationStr}` : ''}${industry ? ` (Industry: ${industry})` : ''}
+  const prompt = `Deep deal intelligence research for: "${companyName}"${locationStr ? ` in ${locationStr}` : ""}${industry ? ` (Industry: ${industry})` : ""}
 
 Research and analyze:
 1. Financial Health - revenue, funding, profitability signals
@@ -819,7 +843,10 @@ Respond in this exact JSON format:
 }`;
 
   try {
-    const result = await queryPerplexity(prompt, 'llama-3.1-sonar-large-128k-online');
+    const result = await queryPerplexity(
+      prompt,
+      "llama-3.1-sonar-large-128k-online",
+    );
     const jsonMatch = result.match(/\{[\s\S]*\}/);
 
     if (!jsonMatch) {
@@ -834,11 +861,12 @@ Respond in this exact JSON format:
       stakeholders: parsed.stakeholders || [],
       competitiveLandscape: parsed.competitiveLandscape || [],
       riskAssessment: parsed.riskAssessment || createEmptyRiskAssessment(),
-      engagementStrategy: parsed.engagementStrategy || createEmptyEngagementStrategy(),
+      engagementStrategy:
+        parsed.engagementStrategy || createEmptyEngagementStrategy(),
       researchedAt: new Date(),
     };
   } catch (error) {
-    console.error('Deal intelligence failed:', error);
+    console.error("Deal intelligence failed:", error);
     return createEmptyDealIntelligence(companyName);
   }
 }
@@ -861,24 +889,24 @@ function createEmptyFinancialHealth(): FinancialHealth {
     estimatedRevenue: null,
     fundingStage: null,
     recentFunding: null,
-    profitability: 'unknown',
+    profitability: "unknown",
     signals: [],
   };
 }
 
 function createEmptyRiskAssessment(): RiskAssessment {
   return {
-    overallRisk: 'medium',
+    overallRisk: "medium",
     risks: [],
   };
 }
 
 function createEmptyEngagementStrategy(): EngagementStrategy {
   return {
-    entryPoint: 'Unknown',
-    valueProp: 'Unknown',
+    entryPoint: "Unknown",
+    valueProp: "Unknown",
     nextSteps: [],
-    timeline: 'Unknown',
+    timeline: "Unknown",
     talkingPoints: [],
   };
 }
@@ -905,7 +933,7 @@ export async function generateFullResearchReport(
   companyName: string,
   address: { city: string; state: string; zip?: string },
   industry: string,
-  contactName?: string
+  contactName?: string,
 ): Promise<FullResearchReport> {
   const startTime = Date.now();
 

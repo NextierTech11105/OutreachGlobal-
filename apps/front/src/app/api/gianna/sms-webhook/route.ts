@@ -404,7 +404,8 @@ async function queueForHumanReview(data: {
 }): Promise<void> {
   try {
     // Use explicit priority if provided, otherwise calculate from confidence
-    const priority = data.priority || (data.confidence < 50 ? "HIGH" : "MEDIUM");
+    const priority =
+      data.priority || (data.confidence < 50 ? "HIGH" : "MEDIUM");
 
     await fetch(`${APP_URL}/api/inbox/pending`, {
       method: "POST",
@@ -416,7 +417,9 @@ async function queueForHumanReview(data: {
       }),
     });
 
-    console.log(`[Gianna SMS] Queued for ${priority} priority review: confidence=${data.confidence}%`);
+    console.log(
+      `[Gianna SMS] Queued for ${priority} priority review: confidence=${data.confidence}%`,
+    );
   } catch (error) {
     console.error("[Gianna SMS] Failed to queue for review:", error);
   }
@@ -458,7 +461,9 @@ async function logAiDecision(data: {
       responseSent: data.responseSent,
     });
 
-    console.log(`[Gianna SMS] AI decision logged: intent=${data.intent}, confidence=${data.confidence}%, sent=${data.responseSent}`);
+    console.log(
+      `[Gianna SMS] AI decision logged: intent=${data.intent}, confidence=${data.confidence}%, sent=${data.responseSent}`,
+    );
   } catch (error) {
     console.error("[Gianna SMS] Failed to log AI decision:", error);
     // Don't throw - logging failure shouldn't break the webhook

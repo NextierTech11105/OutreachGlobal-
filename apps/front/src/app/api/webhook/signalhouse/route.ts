@@ -373,7 +373,8 @@ async function pushToCallQueue(
 ): Promise<void> {
   // Get config-driven priority (fallback to 100 only if config not set)
   const config = getInboundConfig();
-  const priority = options?.priority ?? config.CALL_QUEUE_GOLD_LABEL_PRIORITY ?? 100;
+  const priority =
+    options?.priority ?? config.CALL_QUEUE_GOLD_LABEL_PRIORITY ?? 100;
   const lane = options?.lane ?? "book_appointment";
   const isGoldLabel = options?.isGoldLabel ?? true;
 
@@ -636,7 +637,12 @@ export async function POST(request: NextRequest) {
           // Evaluate call queue eligibility based on labels and config
           if (inboundConfig.AUTO_ROUTE_TO_CALL_CENTER) {
             const eligibility = evaluateCallQueueEligibility(
-              { id: lead.id, tags: lead.tags, score: lead.score, phone: lead.phone },
+              {
+                id: lead.id,
+                tags: lead.tags,
+                score: lead.score,
+                phone: lead.phone,
+              },
               detectedLabels,
               inboundConfig,
             );
@@ -650,7 +656,10 @@ export async function POST(request: NextRequest) {
                 payload.campaign_id as string,
                 {
                   priority: eligibility.priority,
-                  lane: eligibility.reason === "gold_label" ? "book_appointment" : "follow_up",
+                  lane:
+                    eligibility.reason === "gold_label"
+                      ? "book_appointment"
+                      : "follow_up",
                   isGoldLabel: eligibility.reason === "gold_label",
                 },
               );
@@ -674,9 +683,13 @@ export async function POST(request: NextRequest) {
                 LIMIT 1
               `);
 
-              const lastOutboundRows = lastOutboundResult as unknown as { body: string }[];
+              const lastOutboundRows = lastOutboundResult as unknown as {
+                body: string;
+              }[];
               if (lastOutboundRows.length > 0 && lastOutboundRows[0]?.body) {
-                const requestedData = detectRequestedData(lastOutboundRows[0].body);
+                const requestedData = detectRequestedData(
+                  lastOutboundRows[0].body,
+                );
                 if (requestedData !== "none") {
                   // We have a pending request - check if this message satisfies it
                   // For now, just log - actual inbox item resolution needs inbox_item_id
@@ -686,7 +699,10 @@ export async function POST(request: NextRequest) {
                 }
               }
             } catch (threadError) {
-              console.error("[SignalHouse] Thread resolution check failed:", threadError);
+              console.error(
+                "[SignalHouse] Thread resolution check failed:",
+                threadError,
+              );
               // Don't fail the webhook - thread resolution is optional
             }
           }
@@ -1081,7 +1097,8 @@ export async function POST(request: NextRequest) {
             // GREEN TAG: Push positive responses to call queue with config-driven priority
             try {
               const greenTagConfig = getInboundConfig();
-              const greenPriority = greenTagConfig.CALL_QUEUE_GREEN_TAG_PRIORITY ?? 75;
+              const greenPriority =
+                greenTagConfig.CALL_QUEUE_GREEN_TAG_PRIORITY ?? 75;
 
               const normalizedMobile = fromNumber.startsWith("+")
                 ? fromNumber

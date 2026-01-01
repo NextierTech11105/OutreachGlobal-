@@ -52,10 +52,26 @@ const LIMIT = 10;
 
 // Worker colors for calendar events
 const WORKER_COLORS = {
-  gianna: { bg: "bg-purple-500", text: "text-purple-100", border: "border-purple-600" },
-  cathy: { bg: "bg-orange-500", text: "text-orange-100", border: "border-orange-600" },
-  sabrina: { bg: "bg-emerald-500", text: "text-emerald-100", border: "border-emerald-600" },
-  default: { bg: "bg-blue-500", text: "text-blue-100", border: "border-blue-600" },
+  gianna: {
+    bg: "bg-purple-500",
+    text: "text-purple-100",
+    border: "border-purple-600",
+  },
+  cathy: {
+    bg: "bg-orange-500",
+    text: "text-orange-100",
+    border: "border-orange-600",
+  },
+  sabrina: {
+    bg: "bg-emerald-500",
+    text: "text-emerald-100",
+    border: "border-emerald-600",
+  },
+  default: {
+    bg: "bg-blue-500",
+    text: "text-blue-100",
+    border: "border-blue-600",
+  },
 };
 
 // Calendar helper functions
@@ -68,8 +84,18 @@ const getFirstDayOfMonth = (year: number, month: number) => {
 };
 
 const MONTH_NAMES = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December"
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -234,7 +260,10 @@ export function CampaignDirector() {
         </div>
 
         {/* View Toggle */}
-        <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "table" | "calendar")}>
+        <Tabs
+          value={viewMode}
+          onValueChange={(v) => setViewMode(v as "table" | "calendar")}
+        >
           <TabsList className="bg-zinc-800">
             <TabsTrigger value="table" className="gap-1.5">
               <List className="h-4 w-4" />
@@ -254,14 +283,23 @@ export function CampaignDirector() {
           {/* Calendar Header */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="icon" onClick={() => navigateMonth("prev")}>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => navigateMonth("prev")}
+              >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <Button variant="outline" size="icon" onClick={() => navigateMonth("next")}>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => navigateMonth("next")}
+              >
                 <ChevronRight className="h-4 w-4" />
               </Button>
               <h2 className="text-lg font-semibold ml-2">
-                {MONTH_NAMES[currentDate.getMonth()]} {currentDate.getFullYear()}
+                {MONTH_NAMES[currentDate.getMonth()]}{" "}
+                {currentDate.getFullYear()}
               </h2>
             </div>
             <Button variant="outline" size="sm" onClick={goToToday}>
@@ -280,11 +318,15 @@ export function CampaignDirector() {
               <span className="text-zinc-400">CATHY</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <div className={cn("w-3 h-3 rounded", WORKER_COLORS.sabrina.bg)} />
+              <div
+                className={cn("w-3 h-3 rounded", WORKER_COLORS.sabrina.bg)}
+              />
               <span className="text-zinc-400">SABRINA</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <div className={cn("w-3 h-3 rounded", WORKER_COLORS.default.bg)} />
+              <div
+                className={cn("w-3 h-3 rounded", WORKER_COLORS.default.bg)}
+              />
               <span className="text-zinc-400">Other</span>
             </div>
           </div>
@@ -315,7 +357,7 @@ export function CampaignDirector() {
                     className={cn(
                       "min-h-[100px] p-1 border-b border-r border-zinc-700 last:border-r-0",
                       !day.isCurrentMonth && "bg-zinc-900/50",
-                      todayClass && "bg-blue-950/30"
+                      todayClass && "bg-blue-950/30",
                     )}
                   >
                     <div
@@ -323,7 +365,7 @@ export function CampaignDirector() {
                         "text-xs mb-1 px-1",
                         !day.isCurrentMonth && "text-zinc-600",
                         day.isCurrentMonth && "text-zinc-300",
-                        todayClass && "font-bold text-blue-400"
+                        todayClass && "font-bold text-blue-400",
                       )}
                     >
                       {day.date.getDate()}
@@ -332,7 +374,9 @@ export function CampaignDirector() {
                     {/* Campaign Events */}
                     <div className="space-y-1">
                       {dayCampaigns.slice(0, 3).map((campaign) => {
-                        const colors = getWorkerColor(campaign.aiSdrAvatar?.name);
+                        const colors = getWorkerColor(
+                          campaign.aiSdrAvatar?.name,
+                        );
                         return (
                           <TeamLink
                             key={campaign.id}
@@ -340,7 +384,7 @@ export function CampaignDirector() {
                             className={cn(
                               "block px-1.5 py-0.5 rounded text-xs truncate cursor-pointer hover:opacity-80 transition-opacity",
                               colors.bg,
-                              colors.text
+                              colors.text,
                             )}
                           >
                             {campaign.name}
@@ -363,83 +407,83 @@ export function CampaignDirector() {
 
       {/* Table View */}
       {viewMode === "table" && (
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Campaign</TableHead>
-            <TableHead>AI SDR Avatar</TableHead>
-            <TableHead>Leads</TableHead>
-            <TableHead>Engagement</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="w-[70px]"></TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {!loading && !campaigns?.length && (
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell colSpan={6} className="h-24 text-center">
-                No campaigns found
-              </TableCell>
+              <TableHead>Campaign</TableHead>
+              <TableHead>AI SDR Avatar</TableHead>
+              <TableHead>Leads</TableHead>
+              <TableHead>Engagement</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="w-[70px]"></TableHead>
             </TableRow>
-          )}
-          {campaigns?.map((campaign) => (
-            <TableRow key={campaign.id}>
-              <TableCell className="font-medium">{campaign.name}</TableCell>
-              <TableCell>
-                {!campaign.aiSdrAvatar ? (
-                  "No AI SDR Avatar"
-                ) : (
-                  <TeamLink
-                    href={`/ai-sdr/${campaign.aiSdrAvatar.id}`}
-                    className="underline underline-offset-2"
-                  >
-                    {campaign.aiSdrAvatar.name}
-                  </TeamLink>
-                )}
-              </TableCell>
-              <TableCell>{campaign.estimatedLeadsCount}</TableCell>
-              <TableCell>0%</TableCell>
-              <TableCell>
-                <Badge
-                  variant="outline"
-                  className="bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300"
-                >
-                  {campaign.status}
-                </Badge>
-              </TableCell>
-              <TableCell>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem asChild>
-                      <TeamLink href={`/campaigns/${campaign.id}`}>
-                        View Campaign
-                      </TeamLink>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <TeamLink href={`/campaigns/${campaign.id}/edit`}>
-                        Edit Campaign
-                      </TeamLink>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      variant="destructive"
-                      onSelect={() => confirmDelete(campaign.id)}
-                      className="cursor-pointer"
+          </TableHeader>
+          <TableBody>
+            {!loading && !campaigns?.length && (
+              <TableRow>
+                <TableCell colSpan={6} className="h-24 text-center">
+                  No campaigns found
+                </TableCell>
+              </TableRow>
+            )}
+            {campaigns?.map((campaign) => (
+              <TableRow key={campaign.id}>
+                <TableCell className="font-medium">{campaign.name}</TableCell>
+                <TableCell>
+                  {!campaign.aiSdrAvatar ? (
+                    "No AI SDR Avatar"
+                  ) : (
+                    <TeamLink
+                      href={`/ai-sdr/${campaign.aiSdrAvatar.id}`}
+                      className="underline underline-offset-2"
                     >
-                      Delete Campaign
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+                      {campaign.aiSdrAvatar.name}
+                    </TeamLink>
+                  )}
+                </TableCell>
+                <TableCell>{campaign.estimatedLeadsCount}</TableCell>
+                <TableCell>0%</TableCell>
+                <TableCell>
+                  <Badge
+                    variant="outline"
+                    className="bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300"
+                  >
+                    {campaign.status}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuItem asChild>
+                        <TeamLink href={`/campaigns/${campaign.id}`}>
+                          View Campaign
+                        </TeamLink>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <TeamLink href={`/campaigns/${campaign.id}/edit`}>
+                          Edit Campaign
+                        </TeamLink>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        variant="destructive"
+                        onSelect={() => confirmDelete(campaign.id)}
+                        className="cursor-pointer"
+                      >
+                        Delete Campaign
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       )}
 
       {viewMode === "table" && !!pageInfo && (

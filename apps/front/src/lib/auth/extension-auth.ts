@@ -4,7 +4,7 @@
  * Validates tokens from Chrome extension and returns team context.
  */
 
-import { cookies } from 'next/headers';
+import { cookies } from "next/headers";
 
 interface Team {
   id: string;
@@ -38,12 +38,12 @@ export async function getTeamFromToken(token: string): Promise<Team | null> {
     // TODO: Implement actual token validation
     // For now, return a default team for development
     return {
-      id: 'default',
-      name: 'Default Team',
-      slug: 'default',
+      id: "default",
+      name: "Default Team",
+      slug: "default",
     };
   } catch (error) {
-    console.error('Token validation error:', error);
+    console.error("Token validation error:", error);
     return null;
   }
 }
@@ -61,12 +61,12 @@ export async function getUserFromToken(token: string): Promise<User | null> {
     }
 
     return {
-      id: 'user-1',
-      email: 'user@example.com',
-      name: 'Extension User',
+      id: "user-1",
+      email: "user@example.com",
+      name: "Extension User",
     };
   } catch (error) {
-    console.error('User token validation error:', error);
+    console.error("User token validation error:", error);
     return null;
   }
 }
@@ -75,7 +75,10 @@ export async function getUserFromToken(token: string): Promise<User | null> {
  * Generate extension auth token for a user
  * Called when user logs in via extension
  */
-export async function generateExtensionToken(userId: string, teamId: string): Promise<string> {
+export async function generateExtensionToken(
+  userId: string,
+  teamId: string,
+): Promise<string> {
   // TODO: Generate secure token
   // In production, use JWT or similar
 

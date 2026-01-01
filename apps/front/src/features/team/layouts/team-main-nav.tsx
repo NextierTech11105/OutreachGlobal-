@@ -16,6 +16,7 @@ import {
   FileTextIcon,
   FlameIcon,
   FolderOpenIcon,
+  GitBranchIcon,
   HomeIcon,
   LayersIcon,
   LibraryIcon,
@@ -157,6 +158,11 @@ const navGroups = [
             path: "/message-templates",
           },
         ],
+      },
+      {
+        title: "Sequence Designer",
+        path: "/sequences",
+        icon: GitBranchIcon,
       },
       {
         title: "Call Center",

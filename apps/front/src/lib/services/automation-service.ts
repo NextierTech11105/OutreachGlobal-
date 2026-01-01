@@ -18,13 +18,18 @@ import {
   automationStates,
   scheduledTasks as scheduledTasksTable,
   suppressionQueue as suppressionQueueTable,
+  recommendations as recommendationsTable,
   type AutomationState,
   type NewAutomationState,
   type ScheduledTask,
   type NewScheduledTask,
   type SuppressionQueueItem,
+  type Recommendation,
+  type NewRecommendation,
+  type RecommendedAction,
+  type RecommendingWorker,
 } from "../db/schema";
-import { eq, and, lte, sql } from "drizzle-orm";
+import { eq, and, lte, sql, desc } from "drizzle-orm";
 
 // Lead priority levels
 export type LeadPriority = "hot" | "warm" | "cold" | "dead";
@@ -131,6 +136,284 @@ const INTEREST_KEYWORDS = [
 
 class AutomationService {
   // ============================================
+  // HUMAN GATE CONFIGURATION (Doctrine-Aligned)
+  // When enabled: AI recommends → Human approves → System executes
+  // ============================================
+
+  private humanGateEnabled = true; // Set to true to require human approval
+
+  /**
+   * Toggle human gate mode
+   * When enabled, actions go to recommendations queue
+   * When disabled, actions execute immediately (legacy mode)
+   */
+  setHumanGateMode(enabled: boolean): void {
+    this.humanGateEnabled = enabled;
+    console.log(
+      `[Automation] Human gate ${enabled ? "ENABLED" : "DISABLED"} - ${
+        enabled ? "AI will recommend, humans approve" : "Direct execution mode"
+      }`
+    );
+  }
+
+  /**
+   * Create a recommendation for human review (Doctrine-aligned)
+   * This is the core of the human gate pattern
+   */
+  async createRecommendation(params: {
+    leadId: string;
+    action: RecommendedAction;
+    recommendedBy: RecommendingWorker;
+    aiReason: string;
+    confidence?: number;
+    priority?: number;
+    content?: string;
+    targetPhone?: string;
+    targetEmail?: string;
+    targetBucket?: string;
+    targetWorker?: string;
+    expiresInHours?: number;
+  }): Promise<string | null> {
+    if (!db) {
+      console.warn("[Automation] Database not available for recommendations");
+      return null;
+    }
+
+    try {
+      const expiresAt = params.expiresInHours
+        ? new Date(Date.now() + params.expiresInHours * 60 * 60 * 1000)
+        : new Date(Date.now() + 24 * 60 * 60 * 1000); // Default 24h expiry
+
+      const [recommendation] = await db
+        .insert(recommendationsTable)
+        .values({
+          leadId: params.leadId,
+          action: params.action,
+          recommendedBy: params.recommendedBy,
+          aiReason: params.aiReason,
+          confidence: params.confidence || 80,
+          priority: params.priority || 50,
+          content: params.content,
+          targetPhone: params.targetPhone,
+          targetEmail: params.targetEmail,
+          targetBucket: params.targetBucket,
+          targetWorker: params.targetWorker,
+          expiresAt,
+        })
+        .returning();
+
+      console.log(
+        `[Automation] Recommendation created: ${params.action} for ${params.leadId} by ${params.recommendedBy}`
+      );
+
+      return recommendation.id;
+    } catch (error) {
+      console.error("[Automation] Failed to create recommendation:", error);
+      return null;
+    }
+  }
+
+  /**
+   * Approve a recommendation and execute it
+   */
+  async approveRecommendation(
+    recommendationId: string,
+    reviewedBy: string,
+    editedContent?: string
+  ): Promise<boolean> {
+    if (!db) return false;
+
+    try {
+      // Get the recommendation
+      const [rec] = await db
+        .select()
+        .from(recommendationsTable)
+        .where(eq(recommendationsTable.id, recommendationId))
+        .limit(1);
+
+      if (!rec || rec.status !== "pending") {
+        console.warn(
+          `[Automation] Recommendation ${recommendationId} not found or not pending`
+        );
+        return false;
+      }
+
+      // Mark as approved
+      await db
+        .update(recommendationsTable)
+        .set({
+          status: "approved",
+          reviewedAt: new Date(),
+          reviewedBy,
+          contentEdited: editedContent,
+          updatedAt: new Date(),
+        })
+        .where(eq(recommendationsTable.id, recommendationId));
+
+      // Execute the action
+      const success = await this.executeRecommendation(rec, editedContent);
+
+      // Mark as executed
+      await db
+        .update(recommendationsTable)
+        .set({
+          status: success ? "executed" : "approved",
+          executedAt: success ? new Date() : undefined,
+          executionResult: { success },
+          updatedAt: new Date(),
+        })
+        .where(eq(recommendationsTable.id, recommendationId));
+
+      return success;
+    } catch (error) {
+      console.error("[Automation] Failed to approve recommendation:", error);
+      return false;
+    }
+  }
+
+  /**
+   * Reject a recommendation
+   */
+  async rejectRecommendation(
+    recommendationId: string,
+    reviewedBy: string,
+    reason: string
+  ): Promise<boolean> {
+    if (!db) return false;
+
+    try {
+      await db
+        .update(recommendationsTable)
+        .set({
+          status: "rejected",
+          reviewedAt: new Date(),
+          reviewedBy,
+          rejectionReason: reason,
+          updatedAt: new Date(),
+        })
+        .where(eq(recommendationsTable.id, recommendationId));
+
+      console.log(
+        `[Automation] Recommendation ${recommendationId} rejected: ${reason}`
+      );
+      return true;
+    } catch (error) {
+      console.error("[Automation] Failed to reject recommendation:", error);
+      return false;
+    }
+  }
+
+  /**
+   * Execute an approved recommendation
+   */
+  private async executeRecommendation(
+    rec: Recommendation,
+    editedContent?: string
+  ): Promise<boolean> {
+    const content = editedContent || rec.content;
+
+    switch (rec.action) {
+      case "send_sms":
+        if (rec.targetPhone && content) {
+          this.executeDirectSMS(rec.leadId, rec.targetPhone, content, "recommendation");
+          return true;
+        }
+        break;
+
+      case "send_email":
+        if (rec.targetEmail) {
+          console.log(
+            `[Automation] Executing email to ${rec.targetEmail} for ${rec.leadId}`
+          );
+          return true;
+        }
+        break;
+
+      case "schedule_call":
+        if (rec.targetPhone) {
+          console.log(
+            `[Automation] Scheduling call to ${rec.targetPhone} for ${rec.leadId}`
+          );
+          return true;
+        }
+        break;
+
+      case "move_to_bucket":
+        if (rec.targetBucket) {
+          console.log(
+            `[Automation] Moving ${rec.leadId} to bucket ${rec.targetBucket}`
+          );
+          return true;
+        }
+        break;
+
+      case "flag_hot_lead":
+        await this.updateState(rec.leadId, { priority: "hot" });
+        console.log(`[Automation] Flagged ${rec.leadId} as hot lead`);
+        return true;
+
+      case "archive_lead":
+        await this.updateState(rec.leadId, { priority: "dead" });
+        console.log(`[Automation] Archived ${rec.leadId}`);
+        return true;
+
+      case "escalate_to_worker":
+        if (rec.targetWorker) {
+          console.log(
+            `[Automation] Escalating ${rec.leadId} to ${rec.targetWorker}`
+          );
+          return true;
+        }
+        break;
+    }
+
+    return false;
+  }
+
+  /**
+   * Get pending recommendations for review
+   */
+  async getPendingRecommendations(limit = 50): Promise<Recommendation[]> {
+    if (!db) return [];
+
+    try {
+      return await db
+        .select()
+        .from(recommendationsTable)
+        .where(eq(recommendationsTable.status, "pending"))
+        .orderBy(desc(recommendationsTable.priority))
+        .limit(limit);
+    } catch (error) {
+      console.error("[Automation] Failed to get pending recommendations:", error);
+      return [];
+    }
+  }
+
+  /**
+   * Direct SMS execution (bypasses recommendation queue)
+   * Used when human has already approved
+   */
+  private executeDirectSMS(
+    leadId: string,
+    phone: string,
+    message: string,
+    category: string
+  ): void {
+    smsQueueService.addToQueue({
+      leadId,
+      to: phone,
+      message,
+      templateCategory: category,
+      variables: {},
+      personality: "brooklyn_bestie",
+      priority: 5,
+      maxAttempts: 3,
+    });
+
+    console.log(`[Automation] SMS executed for ${leadId}: ${category}`);
+  }
+
+  // ============================================
   // RULE 1: RETARGET NO-RESPONSE
   // ============================================
 
@@ -161,11 +444,17 @@ class AutomationService {
     });
 
     // Schedule Day 7 nudge (persisted to database)
-    await this.scheduleTask(leadId, "retarget_day7", "retarget", 7 * 24 * 60 * 60 * 1000, {
-      firstName,
-      propertyAddress,
-      phone,
-    });
+    await this.scheduleTask(
+      leadId,
+      "retarget_day7",
+      "retarget",
+      7 * 24 * 60 * 60 * 1000,
+      {
+        firstName,
+        propertyAddress,
+        phone,
+      },
+    );
 
     console.log(`[Automation] Retarget drip scheduled for ${leadId}`);
   }
@@ -178,7 +467,11 @@ class AutomationService {
    * Activate nurture drip when contact is confirmed
    * Response received OR phone verified
    */
-  async activateNurtureDrip(leadId: string, phone: string, email?: string): Promise<void> {
+  async activateNurtureDrip(
+    leadId: string,
+    phone: string,
+    email?: string,
+  ): Promise<void> {
     const state = await this.getOrCreateState(leadId, phone);
 
     // Cancel any retarget drip
@@ -196,20 +489,38 @@ class AutomationService {
 
     // Schedule nurture sequence (persisted to database)
     // Day 3: Value content email
-    await this.scheduleTask(leadId, "nurture_day3", "nurture", 3 * 24 * 60 * 60 * 1000, {
-      phone,
-      email,
-    });
+    await this.scheduleTask(
+      leadId,
+      "nurture_day3",
+      "nurture",
+      3 * 24 * 60 * 60 * 1000,
+      {
+        phone,
+        email,
+      },
+    );
 
     // Day 7: Market update SMS
-    await this.scheduleTask(leadId, "nurture_day7", "nurture", 7 * 24 * 60 * 60 * 1000, {
-      phone,
-    });
+    await this.scheduleTask(
+      leadId,
+      "nurture_day7",
+      "nurture",
+      7 * 24 * 60 * 60 * 1000,
+      {
+        phone,
+      },
+    );
 
     // Day 14: Queue for power dialer
-    await this.scheduleTask(leadId, "nurture_day14", "nurture", 14 * 24 * 60 * 60 * 1000, {
-      phone,
-    });
+    await this.scheduleTask(
+      leadId,
+      "nurture_day14",
+      "nurture",
+      14 * 24 * 60 * 60 * 1000,
+      {
+        phone,
+      },
+    );
 
     const newScore = state.score + 20;
     console.log(
@@ -262,25 +573,49 @@ class AutomationService {
 
     // Schedule hot lead follow-up sequence (persisted to database)
     // Hour 24: Follow-up if no response
-    await this.scheduleTask(leadId, "hot_24h", "hot_lead", 24 * 60 * 60 * 1000, {
-      phone,
-      reason,
-    });
+    await this.scheduleTask(
+      leadId,
+      "hot_24h",
+      "hot_lead",
+      24 * 60 * 60 * 1000,
+      {
+        phone,
+        reason,
+      },
+    );
 
     // Hour 48: Phone call attempt
-    await this.scheduleTask(leadId, "hot_48h", "hot_lead", 48 * 60 * 60 * 1000, {
-      phone,
-    });
+    await this.scheduleTask(
+      leadId,
+      "hot_48h",
+      "hot_lead",
+      48 * 60 * 60 * 1000,
+      {
+        phone,
+      },
+    );
 
     // Day 3: Check-in SMS
-    await this.scheduleTask(leadId, "hot_day3", "hot_lead", 3 * 24 * 60 * 60 * 1000, {
-      phone,
-    });
+    await this.scheduleTask(
+      leadId,
+      "hot_day3",
+      "hot_lead",
+      3 * 24 * 60 * 60 * 1000,
+      {
+        phone,
+      },
+    );
 
     // Day 7: Final hot lead touch
-    await this.scheduleTask(leadId, "hot_day7", "hot_lead", 7 * 24 * 60 * 60 * 1000, {
-      phone,
-    });
+    await this.scheduleTask(
+      leadId,
+      "hot_day7",
+      "hot_lead",
+      7 * 24 * 60 * 60 * 1000,
+      {
+        phone,
+      },
+    );
   }
 
   // ============================================
@@ -493,7 +828,9 @@ class AutomationService {
     message: string,
   ): Promise<void> {
     if (!db) {
-      console.warn("[Suppression] Database not available, skipping persistence");
+      console.warn(
+        "[Suppression] Database not available, skipping persistence",
+      );
       return;
     }
 
@@ -565,7 +902,10 @@ class AutomationService {
   /**
    * Get or create automation state from database
    */
-  private async getOrCreateState(leadId: string, phone: string): Promise<LeadAutomationState> {
+  private async getOrCreateState(
+    leadId: string,
+    phone: string,
+  ): Promise<LeadAutomationState> {
     if (!db) {
       // Fallback to in-memory for development
       return {
@@ -648,7 +988,12 @@ class AutomationService {
       drip: {
         stage: dbState.dripStage || 0,
         nextTouchAt: dbState.nextTouchAt || undefined,
-        sequence: (dbState.dripSequence as "retarget" | "nurture" | "hot_lead" | null) || null,
+        sequence:
+          (dbState.dripSequence as
+            | "retarget"
+            | "nurture"
+            | "hot_lead"
+            | null) || null,
       },
       score: dbState.score || 0,
     };
@@ -657,7 +1002,10 @@ class AutomationService {
   /**
    * Update automation state in database
    */
-  private async updateState(leadId: string, updates: Partial<NewAutomationState>): Promise<void> {
+  private async updateState(
+    leadId: string,
+    updates: Partial<NewAutomationState>,
+  ): Promise<void> {
     if (!db) return;
 
     try {
@@ -730,7 +1078,9 @@ class AutomationService {
         payload,
       });
 
-      console.log(`[Automation] Task ${taskId} scheduled for ${scheduledAt.toISOString()}`);
+      console.log(
+        `[Automation] Task ${taskId} scheduled for ${scheduledAt.toISOString()}`,
+      );
     } catch (error) {
       console.error("[Automation] Failed to schedule task:", error);
     }
@@ -831,7 +1181,13 @@ class AutomationService {
           "retarget_nudge_1",
         );
         await this.updateState(task.leadId, { dripStage: 1 });
-        await this.scheduleTask(task.leadId, "retarget_day14", "retarget", 7 * 24 * 60 * 60 * 1000, payload);
+        await this.scheduleTask(
+          task.leadId,
+          "retarget_day14",
+          "retarget",
+          7 * 24 * 60 * 60 * 1000,
+          payload,
+        );
         break;
 
       case "retarget_day14":
@@ -842,7 +1198,13 @@ class AutomationService {
           "retarget_nudge_2",
         );
         await this.updateState(task.leadId, { dripStage: 2 });
-        await this.scheduleTask(task.leadId, "retarget_day30", "retarget", 16 * 24 * 60 * 60 * 1000, payload);
+        await this.scheduleTask(
+          task.leadId,
+          "retarget_day30",
+          "retarget",
+          16 * 24 * 60 * 60 * 1000,
+          payload,
+        );
         break;
 
       case "retarget_day30":
@@ -853,7 +1215,9 @@ class AutomationService {
           "retarget_final",
         );
         await this.updateState(task.leadId, { dripStage: 3, priority: "cold" });
-        console.log(`[Automation] Lead ${task.leadId} moved to COLD bucket after no response`);
+        console.log(
+          `[Automation] Lead ${task.leadId} moved to COLD bucket after no response`,
+        );
         break;
 
       // Nurture sequence
@@ -917,7 +1281,9 @@ class AutomationService {
         const state = await this.getOrCreateState(task.leadId, phone);
         if (!state.lastResponseAt) {
           await this.updateState(task.leadId, { priority: "warm" });
-          console.log(`[Automation] Hot lead ${task.leadId} downgraded to WARM after 7 days`);
+          console.log(
+            `[Automation] Hot lead ${task.leadId} downgraded to WARM after 7 days`,
+          );
         }
         break;
 
@@ -926,36 +1292,89 @@ class AutomationService {
     }
   }
 
-  private queueSMS(
+  private async queueSMS(
     leadId: string,
     phone: string,
     message: string,
     category: string,
-  ): void {
-    smsQueueService.addToQueue({
-      leadId,
-      to: phone,
-      message,
-      templateCategory: category,
-      variables: {},
-      personality: "brooklyn_bestie",
-      priority: 5,
-      maxAttempts: 3,
-    });
+    recommendedBy: RecommendingWorker = "gianna",
+    aiReason?: string,
+  ): Promise<void> {
+    // HUMAN GATE: If enabled, create a recommendation instead of executing
+    if (this.humanGateEnabled) {
+      await this.createRecommendation({
+        leadId,
+        action: "send_sms",
+        recommendedBy,
+        aiReason: aiReason || `Automated ${category} message`,
+        confidence: 85,
+        priority: category.includes("hot") ? 90 : 50,
+        content: message,
+        targetPhone: phone,
+      });
+      console.log(`[Automation] SMS recommendation created for ${leadId}: ${category}`);
+      return;
+    }
 
+    // LEGACY MODE: Direct execution (when human gate disabled)
+    this.executeDirectSMS(leadId, phone, message, category);
     console.log(`[Automation] SMS queued for ${leadId}: ${category}`);
   }
 
-  private queueEmail(_leadId: string, _email: string, _template: string): void {
-    // Would integrate with SendGrid service
+  private async queueEmail(
+    leadId: string,
+    email: string,
+    template: string,
+    recommendedBy: RecommendingWorker = "gianna",
+    aiReason?: string,
+  ): Promise<void> {
+    // HUMAN GATE: If enabled, create a recommendation instead of executing
+    if (this.humanGateEnabled) {
+      await this.createRecommendation({
+        leadId,
+        action: "send_email",
+        recommendedBy,
+        aiReason: aiReason || `Automated ${template} email`,
+        confidence: 85,
+        priority: 50,
+        content: template,
+        targetEmail: email,
+      });
+      console.log(`[Automation] Email recommendation created for ${leadId}: ${template}`);
+      return;
+    }
+
+    // LEGACY MODE: Direct execution
     console.log(
-      `[Automation] Email queued for ${_leadId}: ${_template} to ${_email}`,
+      `[Automation] Email queued for ${leadId}: ${template} to ${email}`,
     );
   }
 
-  private queueCall(_leadId: string, _phone: string, _reason: string): void {
-    // Would integrate with power dialer queue
-    console.log(`[Automation] Call queued for ${_leadId}: ${_reason}`);
+  private async queueCall(
+    leadId: string,
+    phone: string,
+    reason: string,
+    recommendedBy: RecommendingWorker = "sabrina",
+    aiReason?: string,
+  ): Promise<void> {
+    // HUMAN GATE: If enabled, create a recommendation instead of executing
+    if (this.humanGateEnabled) {
+      await this.createRecommendation({
+        leadId,
+        action: "schedule_call",
+        recommendedBy,
+        aiReason: aiReason || `Automated call: ${reason}`,
+        confidence: 80,
+        priority: reason.includes("hot") ? 95 : 60,
+        content: reason,
+        targetPhone: phone,
+      });
+      console.log(`[Automation] Call recommendation created for ${leadId}: ${reason}`);
+      return;
+    }
+
+    // LEGACY MODE: Direct execution
+    console.log(`[Automation] Call queued for ${leadId}: ${reason}`);
   }
 
   private sendSalesAlert(leadId: string, reason: string): void {
@@ -1048,8 +1467,14 @@ class AutomationService {
   }> {
     if (!db) {
       return {
-        total: 0, hot: 0, warm: 0, cold: 0, dead: 0,
-        optedOut: 0, wrongNumbers: 0, valuationsSent: 0,
+        total: 0,
+        hot: 0,
+        warm: 0,
+        cold: 0,
+        dead: 0,
+        optedOut: 0,
+        wrongNumbers: 0,
+        valuationsSent: 0,
       };
     }
 
@@ -1067,15 +1492,29 @@ class AutomationService {
         })
         .from(automationStates);
 
-      return result[0] || {
-        total: 0, hot: 0, warm: 0, cold: 0, dead: 0,
-        optedOut: 0, wrongNumbers: 0, valuationsSent: 0,
-      };
+      return (
+        result[0] || {
+          total: 0,
+          hot: 0,
+          warm: 0,
+          cold: 0,
+          dead: 0,
+          optedOut: 0,
+          wrongNumbers: 0,
+          valuationsSent: 0,
+        }
+      );
     } catch (error) {
       console.error("[Automation] Failed to get stats:", error);
       return {
-        total: 0, hot: 0, warm: 0, cold: 0, dead: 0,
-        optedOut: 0, wrongNumbers: 0, valuationsSent: 0,
+        total: 0,
+        hot: 0,
+        warm: 0,
+        cold: 0,
+        dead: 0,
+        optedOut: 0,
+        wrongNumbers: 0,
+        valuationsSent: 0,
       };
     }
   }

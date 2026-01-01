@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     if (!to || !subject) {
       return NextResponse.json(
         { error: "to and subject are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
             step3: "Add GMAIL_USER and GMAIL_APP_PASSWORD to your environment",
           },
         },
-        { status: 503 }
+        { status: 503 },
       );
     }
 
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
         error: error.message || "Failed to send email",
         code: error.code,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

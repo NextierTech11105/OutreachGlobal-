@@ -58,21 +58,76 @@ import { useInboxContext } from "../inbox.context";
 
 // Labels for rapid classification
 const QUICK_LABELS = [
-  { id: "label-needs-help", name: "Needs Help", color: "text-red-500", icon: Sparkles },
-  { id: "label-mobile-captured", name: "Mobile Captured", color: "text-blue-500", icon: Phone },
-  { id: "label-email-captured", name: "Email Captured", color: "text-green-500", icon: Mail },
-  { id: "label-push-call-center", name: "Push to Call Center", color: "text-orange-500", icon: PhoneForwarded },
-  { id: "label-wants-call", name: "Asking for Phone Call", color: "text-purple-500", icon: PhoneCall },
-  { id: "label-yes-content", name: "Yes to Content", color: "text-emerald-500", icon: CheckSquare },
+  {
+    id: "label-needs-help",
+    name: "Needs Help",
+    color: "text-red-500",
+    icon: Sparkles,
+  },
+  {
+    id: "label-mobile-captured",
+    name: "Mobile Captured",
+    color: "text-blue-500",
+    icon: Phone,
+  },
+  {
+    id: "label-email-captured",
+    name: "Email Captured",
+    color: "text-green-500",
+    icon: Mail,
+  },
+  {
+    id: "label-push-call-center",
+    name: "Push to Call Center",
+    color: "text-orange-500",
+    icon: PhoneForwarded,
+  },
+  {
+    id: "label-wants-call",
+    name: "Asking for Phone Call",
+    color: "text-purple-500",
+    icon: PhoneCall,
+  },
+  {
+    id: "label-yes-content",
+    name: "Yes to Content",
+    color: "text-emerald-500",
+    icon: CheckSquare,
+  },
 ];
 
 // Queue destinations for push actions
 const QUEUE_DESTINATIONS = [
-  { id: "call-center", name: "Call Center", icon: Phone, color: "text-green-500" },
-  { id: "sms-queue", name: "SMS Queue", icon: MessageSquare, color: "text-blue-500" },
-  { id: "gianna", name: "GIANNA (Opener)", icon: Zap, color: "text-purple-500" },
-  { id: "cathy", name: "CATHY (Nudger)", icon: Clock, color: "text-orange-500" },
-  { id: "sabrina", name: "SABRINA (Closer)", icon: Calendar, color: "text-emerald-500" },
+  {
+    id: "call-center",
+    name: "Call Center",
+    icon: Phone,
+    color: "text-green-500",
+  },
+  {
+    id: "sms-queue",
+    name: "SMS Queue",
+    icon: MessageSquare,
+    color: "text-blue-500",
+  },
+  {
+    id: "gianna",
+    name: "GIANNA (Opener)",
+    icon: Zap,
+    color: "text-purple-500",
+  },
+  {
+    id: "cathy",
+    name: "CATHY (Nudger)",
+    icon: Clock,
+    color: "text-orange-500",
+  },
+  {
+    id: "sabrina",
+    name: "SABRINA (Closer)",
+    icon: Calendar,
+    color: "text-emerald-500",
+  },
 ];
 
 const formatDate = (dateString: string) => {
@@ -329,11 +384,17 @@ export function InboxMessages({
                 <DropdownMenuSeparator />
 
                 {/* Standard Actions */}
-                <DropdownMenuItem onClick={() => handleBulkAction("flag")} className="gap-2">
+                <DropdownMenuItem
+                  onClick={() => handleBulkAction("flag")}
+                  className="gap-2"
+                >
                   <Flag className="h-4 w-4 text-yellow-500" />
                   Flag
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleBulkAction("archive")} className="gap-2">
+                <DropdownMenuItem
+                  onClick={() => handleBulkAction("archive")}
+                  className="gap-2"
+                >
                   <Archive className="h-4 w-4 text-gray-500" />
                   Archive
                 </DropdownMenuItem>

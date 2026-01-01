@@ -157,27 +157,52 @@ export default function GiannaCampaignsPage() {
     async function fetchQueue() {
       setQueueLoading(true);
       try {
-        const response = await fetch(`/api/leads?teamId=${team.id}&worker=gianna&limit=20`);
+        const response = await fetch(
+          `/api/leads?teamId=${team.id}&worker=gianna&limit=20`,
+        );
         const data = await response.json();
         if (data.leads) {
-          setQueueLeads(data.leads.map((lead: any) => ({
-            id: lead.id,
-            name: lead.name || lead.fullName || "Unknown",
-            company: lead.company || lead.companyName,
-            phone: lead.phone || lead.phoneNumber,
-            email: lead.email,
-            status: lead.workerStatus || "pending",
-            attempts: lead.contactAttempts || 0,
-            lastContactedAt: lead.lastContactedAt,
-          })));
+          setQueueLeads(
+            data.leads.map((lead: any) => ({
+              id: lead.id,
+              name: lead.name || lead.fullName || "Unknown",
+              company: lead.company || lead.companyName,
+              phone: lead.phone || lead.phoneNumber,
+              email: lead.email,
+              status: lead.workerStatus || "pending",
+              attempts: lead.contactAttempts || 0,
+              lastContactedAt: lead.lastContactedAt,
+            })),
+          );
         }
       } catch (error) {
         console.error("Failed to fetch queue:", error);
         // Mock data for demonstration
         setQueueLeads([
-          { id: "1", name: "John's Plumbing", company: "Plumbing Co", phone: "+1234567890", status: "pending", attempts: 0 },
-          { id: "2", name: "ABC Electric", company: "Electric Inc", phone: "+1987654321", status: "sent", attempts: 2 },
-          { id: "3", name: "Quick HVAC", company: "HVAC Solutions", phone: "+1555123456", status: "replied", attempts: 1 },
+          {
+            id: "1",
+            name: "John's Plumbing",
+            company: "Plumbing Co",
+            phone: "+1234567890",
+            status: "pending",
+            attempts: 0,
+          },
+          {
+            id: "2",
+            name: "ABC Electric",
+            company: "Electric Inc",
+            phone: "+1987654321",
+            status: "sent",
+            attempts: 2,
+          },
+          {
+            id: "3",
+            name: "Quick HVAC",
+            company: "HVAC Solutions",
+            phone: "+1555123456",
+            status: "replied",
+            attempts: 1,
+          },
         ]);
       } finally {
         setQueueLoading(false);
@@ -278,7 +303,9 @@ export default function GiannaCampaignsPage() {
       if (data.success) {
         setQueueLeads((prev) => prev.filter((l) => !selectedLeads.has(l.id)));
         setSelectedLeads(new Set());
-        toast.success(`Moved ${selectedLeads.size} leads to ${toWorker.toUpperCase()}`);
+        toast.success(
+          `Moved ${selectedLeads.size} leads to ${toWorker.toUpperCase()}`,
+        );
       }
     } catch (error) {
       toast.error("Failed to move leads");
@@ -289,13 +316,38 @@ export default function GiannaCampaignsPage() {
   const getStatusBadge = (status: QueueLead["status"]) => {
     switch (status) {
       case "pending":
-        return <Badge variant="outline" className="bg-zinc-800 text-zinc-300">Pending</Badge>;
+        return (
+          <Badge variant="outline" className="bg-zinc-800 text-zinc-300">
+            Pending
+          </Badge>
+        );
       case "sent":
-        return <Badge variant="outline" className="bg-blue-500/20 text-blue-300 border-blue-500/50">Sent</Badge>;
+        return (
+          <Badge
+            variant="outline"
+            className="bg-blue-500/20 text-blue-300 border-blue-500/50"
+          >
+            Sent
+          </Badge>
+        );
       case "replied":
-        return <Badge variant="outline" className="bg-green-500/20 text-green-300 border-green-500/50">Replied</Badge>;
+        return (
+          <Badge
+            variant="outline"
+            className="bg-green-500/20 text-green-300 border-green-500/50"
+          >
+            Replied
+          </Badge>
+        );
       case "failed":
-        return <Badge variant="outline" className="bg-red-500/20 text-red-300 border-red-500/50">Failed</Badge>;
+        return (
+          <Badge
+            variant="outline"
+            className="bg-red-500/20 text-red-300 border-red-500/50"
+          >
+            Failed
+          </Badge>
+        );
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -503,22 +555,41 @@ export default function GiannaCampaignsPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent>
                         <DropdownMenuItem onClick={() => moveToWorker("cathy")}>
-                          <span className="text-orange-400 font-medium">CATHY</span>
-                          <span className="ml-2 text-xs text-muted-foreground">(Nudger)</span>
+                          <span className="text-orange-400 font-medium">
+                            CATHY
+                          </span>
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            (Nudger)
+                          </span>
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => moveToWorker("sabrina")}>
-                          <span className="text-emerald-400 font-medium">SABRINA</span>
-                          <span className="ml-2 text-xs text-muted-foreground">(Closer)</span>
+                        <DropdownMenuItem
+                          onClick={() => moveToWorker("sabrina")}
+                        >
+                          <span className="text-emerald-400 font-medium">
+                            SABRINA
+                          </span>
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            (Closer)
+                          </span>
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
-                    <Button size="sm" variant="destructive" onClick={removeSelectedFromQueue} className="gap-1">
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={removeSelectedFromQueue}
+                      className="gap-1"
+                    >
                       <Trash2 className="w-4 h-4" />
                       Remove
                     </Button>
                   </>
                 )}
-                <Button size="sm" className="gap-1 bg-purple-600 hover:bg-purple-700" onClick={sendAllPending}>
+                <Button
+                  size="sm"
+                  className="gap-1 bg-purple-600 hover:bg-purple-700"
+                  onClick={sendAllPending}
+                >
                   <Play className="w-4 h-4" />
                   Send All Pending
                 </Button>
@@ -531,7 +602,10 @@ export default function GiannaCampaignsPage() {
                 <TableRow>
                   <TableHead className="w-[40px]">
                     <Checkbox
-                      checked={selectedLeads.size === queueLeads.length && queueLeads.length > 0}
+                      checked={
+                        selectedLeads.size === queueLeads.length &&
+                        queueLeads.length > 0
+                      }
                       onCheckedChange={toggleSelectAll}
                     />
                   </TableHead>
@@ -545,7 +619,10 @@ export default function GiannaCampaignsPage() {
               <TableBody>
                 {queueLeads.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-zinc-500 py-8">
+                    <TableCell
+                      colSpan={6}
+                      className="text-center text-zinc-500 py-8"
+                    >
                       No leads in queue. Assign leads from the Leads page.
                     </TableCell>
                   </TableRow>
@@ -561,12 +638,18 @@ export default function GiannaCampaignsPage() {
                     <TableCell>
                       <div>
                         <p className="font-medium text-zinc-100">{lead.name}</p>
-                        {lead.phone && <p className="text-xs text-zinc-500">{lead.phone}</p>}
+                        {lead.phone && (
+                          <p className="text-xs text-zinc-500">{lead.phone}</p>
+                        )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-zinc-400">{lead.company || "—"}</TableCell>
+                    <TableCell className="text-zinc-400">
+                      {lead.company || "—"}
+                    </TableCell>
                     <TableCell>{getStatusBadge(lead.status)}</TableCell>
-                    <TableCell className="text-zinc-400">{lead.attempts}</TableCell>
+                    <TableCell className="text-zinc-400">
+                      {lead.attempts}
+                    </TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -594,11 +677,15 @@ export default function GiannaCampaignsPage() {
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => moveToWorker("cathy")}>
+                          <DropdownMenuItem
+                            onClick={() => moveToWorker("cathy")}
+                          >
                             <ArrowRight className="w-4 h-4 mr-2 text-orange-400" />
                             Move to CATHY
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => moveToWorker("sabrina")}>
+                          <DropdownMenuItem
+                            onClick={() => moveToWorker("sabrina")}
+                          >
                             <ArrowRight className="w-4 h-4 mr-2 text-emerald-400" />
                             Move to SABRINA
                           </DropdownMenuItem>

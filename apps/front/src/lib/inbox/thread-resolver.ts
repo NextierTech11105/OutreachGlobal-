@@ -17,7 +17,10 @@ import {
   getInboundConfig,
   type InboundProcessingConfig,
 } from "../config/inbound-processing.config";
-import { CANONICAL_LABELS, type CanonicalLabel } from "../labels/canonical-labels";
+import {
+  CANONICAL_LABELS,
+  type CanonicalLabel,
+} from "../labels/canonical-labels";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES
@@ -122,7 +125,9 @@ export async function evaluateThreadResolution(
 
   // Check if auto-resolution is enabled
   if (!cfg.AUTO_RESOLVE_THREADS) {
-    console.log(`[ThreadResolver] Auto-resolve disabled, skipping for ${inboxItemId}`);
+    console.log(
+      `[ThreadResolver] Auto-resolve disabled, skipping for ${inboxItemId}`,
+    );
     return {
       resolved: false,
       reason: "auto_resolve_disabled",
@@ -131,7 +136,9 @@ export async function evaluateThreadResolution(
 
   // No data requested = can't auto-resolve
   if (requestedData === "none") {
-    console.log(`[ThreadResolver] No data requested, cannot auto-resolve ${inboxItemId}`);
+    console.log(
+      `[ThreadResolver] No data requested, cannot auto-resolve ${inboxItemId}`,
+    );
     return {
       resolved: false,
       reason: "no_data_requested",
@@ -254,7 +261,12 @@ export async function evaluateThreadResolutionFromLabels(
       : null,
   };
 
-  return evaluateThreadResolution(inboxItemId, requestedData, capturedData, cfg);
+  return evaluateThreadResolution(
+    inboxItemId,
+    requestedData,
+    capturedData,
+    cfg,
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -291,7 +303,9 @@ export async function markThreadAwaiting(
     WHERE id = ${inboxItemId}
   `);
 
-  console.log(`[ThreadResolver] Marked ${inboxItemId} as awaiting: ${awaiting}`);
+  console.log(
+    `[ThreadResolver] Marked ${inboxItemId} as awaiting: ${awaiting}`,
+  );
 }
 
 /**

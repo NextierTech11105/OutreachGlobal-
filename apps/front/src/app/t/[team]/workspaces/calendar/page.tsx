@@ -108,7 +108,8 @@ export default function LeadCalendarWorkspacePage() {
                 ),
                 type: "callback" as const,
                 leadId: lead.id,
-                leadName: `${lead.firstName || ""} ${lead.lastName || ""}`.trim(),
+                leadName:
+                  `${lead.firstName || ""} ${lead.lastName || ""}`.trim(),
                 phone: lead.phone,
                 notes: lead.callbackNotes,
               }));
@@ -207,7 +208,7 @@ export default function LeadCalendarWorkspacePage() {
     const start = getViewStart(currentDate, viewMode);
     const end = getViewEnd(currentDate, viewMode);
 
-    let current = new Date(start);
+    const current = new Date(start);
     while (current <= end) {
       days.push(new Date(current));
       current.setDate(current.getDate() + 1);
@@ -225,7 +226,12 @@ export default function LeadCalendarWorkspacePage() {
         ? { month: "long", year: "numeric" }
         : viewMode === "week"
           ? { month: "short", day: "numeric", year: "numeric" }
-          : { weekday: "long", month: "short", day: "numeric", year: "numeric" };
+          : {
+              weekday: "long",
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            };
     return currentDate.toLocaleDateString("en-US", options);
   };
 
@@ -247,7 +253,7 @@ export default function LeadCalendarWorkspacePage() {
   // Select all today's events
   const selectAllToday = () => {
     const todayEvents = getEventsForDay(new Date());
-    const newSelected = new Set(todayEvents.map(e => e.id));
+    const newSelected = new Set(todayEvents.map((e) => e.id));
     setSelectedEvents(newSelected);
     setIsSelectMode(true);
   };
@@ -260,7 +266,7 @@ export default function LeadCalendarWorkspacePage() {
 
   // Get selected events as array
   const getSelectedEventsArray = () => {
-    return events.filter(e => selectedEvents.has(e.id));
+    return events.filter((e) => selectedEvents.has(e.id));
   };
 
   // TWILIO CLICK-TO-CALL - Single call
@@ -297,7 +303,7 @@ export default function LeadCalendarWorkspacePage() {
   // POWER DIALER - Queue multiple calls
   const handleStartDialer = async () => {
     const selected = getSelectedEventsArray();
-    const withPhones = selected.filter(e => e.phone);
+    const withPhones = selected.filter((e) => e.phone);
 
     if (withPhones.length === 0) {
       toast.error("No events with phone numbers selected");
@@ -310,7 +316,7 @@ export default function LeadCalendarWorkspacePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           teamId,
-          leads: withPhones.map(e => ({
+          leads: withPhones.map((e) => ({
             id: e.leadId,
             phone: e.phone,
             name: e.leadName,
@@ -325,7 +331,10 @@ export default function LeadCalendarWorkspacePage() {
         setDialerActive(true);
         toast.success(`Power Dialer started with ${withPhones.length} leads`);
         // Open dialer in new tab or modal
-        window.open(`/t/${teamId}/call-center?session=${data.sessionId}`, "_blank");
+        window.open(
+          `/t/${teamId}/call-center?session=${data.sessionId}`,
+          "_blank",
+        );
       } else {
         toast.error(data.error || "Failed to start dialer");
       }
@@ -342,7 +351,9 @@ export default function LeadCalendarWorkspacePage() {
       return;
     }
 
-    const smsMessage = message || `Hi ${event.leadName?.split(" ")[0] || "there"}, this is a reminder about your scheduled callback. Reply YES to confirm or let us know a better time.`;
+    const smsMessage =
+      message ||
+      `Hi ${event.leadName?.split(" ")[0] || "there"}, this is a reminder about your scheduled callback. Reply YES to confirm or let us know a better time.`;
 
     try {
       const response = await fetch("/api/signalhouse/sms/send", {
@@ -372,7 +383,7 @@ export default function LeadCalendarWorkspacePage() {
   // SMS BLAST - Bulk send to selected
   const handleSmsBlast = async (message: string) => {
     const selected = getSelectedEventsArray();
-    const withPhones = selected.filter(e => e.phone);
+    const withPhones = selected.filter((e) => e.phone);
 
     if (withPhones.length === 0) {
       toast.error("No events with phone numbers selected");
@@ -385,7 +396,7 @@ export default function LeadCalendarWorkspacePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           teamId,
-          recipients: withPhones.map(e => ({
+          recipients: withPhones.map((e) => ({
             phone: e.phone,
             leadId: e.leadId,
             variables: { firstName: e.leadName?.split(" ")[0] || "there" },
@@ -462,7 +473,11 @@ export default function LeadCalendarWorkspacePage() {
               </Button>
               <Button
                 size="sm"
-                onClick={() => handleSmsBlast("Hi {firstName}, just following up on our scheduled call. Are you available? Reply YES to confirm.")}
+                onClick={() =>
+                  handleSmsBlast(
+                    "Hi {firstName}, just following up on our scheduled call. Are you available? Reply YES to confirm.",
+                  )
+                }
                 className="h-7 bg-purple-600 hover:bg-purple-700"
               >
                 <Users className="h-3 w-3 mr-1" />
@@ -624,7 +639,8 @@ export default function LeadCalendarWorkspacePage() {
                         key={`time-${hour}`}
                         className="p-2 text-xs text-right text-muted-foreground border-r"
                       >
-                        {hour > 12 ? hour - 12 : hour} {hour >= 12 ? "PM" : "AM"}
+                        {hour > 12 ? hour - 12 : hour}{" "}
+                        {hour >= 12 ? "PM" : "AM"}
                       </div>
                       {viewDays.map((day) => {
                         const dayEvents = getEventsForDay(day).filter(
@@ -665,10 +681,7 @@ export default function LeadCalendarWorkspacePage() {
                         (e) => new Date(e.start).getHours() === hour,
                       );
                       return (
-                        <div
-                          key={hour}
-                          className="flex border-b min-h-[80px]"
-                        >
+                        <div key={hour} className="flex border-b min-h-[80px]">
                           <div className="w-20 p-2 text-sm text-right text-muted-foreground border-r">
                             {hour > 12 ? hour - 12 : hour}{" "}
                             {hour >= 12 ? "PM" : "AM"}
@@ -741,10 +754,7 @@ export default function LeadCalendarWorkspacePage() {
                     onClick={() => setSelectedEvent(event)}
                   >
                     <div className="flex items-center justify-between">
-                      <Badge
-                        variant="outline"
-                        className="text-xs capitalize"
-                      >
+                      <Badge variant="outline" className="text-xs capitalize">
                         {event.type}
                       </Badge>
                       <span className="text-xs">

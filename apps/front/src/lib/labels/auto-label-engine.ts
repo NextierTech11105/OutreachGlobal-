@@ -86,9 +86,7 @@ const NOISE_PATTERNS = [
 ];
 
 // Profanity list - common explicit words (can be expanded)
-const PROFANITY_PATTERNS = [
-  /\b(fuck|shit|ass|damn|bitch|crap)\b/i,
-];
+const PROFANITY_PATTERNS = [/\b(fuck|shit|ass|damn|bitch|crap)\b/i];
 
 // Email regex
 const EMAIL_REGEX = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
@@ -146,7 +144,9 @@ export function detectLabels(
   for (const pattern of OPT_OUT_PATTERNS) {
     if (pattern.test(normalizedBody)) {
       labels.push(CANONICAL_LABELS.OPTED_OUT);
-      console.log(`[AutoLabel] 🛑 OPTED_OUT detected: "${normalizedBody.substring(0, 50)}"`);
+      console.log(
+        `[AutoLabel] 🛑 OPTED_OUT detected: "${normalizedBody.substring(0, 50)}"`,
+      );
       return labels; // Short-circuit - no further processing needed
     }
   }
@@ -154,7 +154,9 @@ export function detectLabels(
   for (const pattern of DO_NOT_CONTACT_PATTERNS) {
     if (pattern.test(normalizedBody)) {
       labels.push(CANONICAL_LABELS.DO_NOT_CONTACT);
-      console.log(`[AutoLabel] 🚫 DO_NOT_CONTACT detected: "${normalizedBody.substring(0, 50)}"`);
+      console.log(
+        `[AutoLabel] 🚫 DO_NOT_CONTACT detected: "${normalizedBody.substring(0, 50)}"`,
+      );
       return labels; // Short-circuit - no further processing needed
     }
   }
@@ -210,7 +212,9 @@ export function detectLabels(
     labels.push(CANONICAL_LABELS.CONTACT_VERIFIED);
     labels.push(CANONICAL_LABELS.GOLD_LABEL);
     labels.push(CANONICAL_LABELS.HIGH_CONTACTABILITY);
-    console.log(`[AutoLabel] 🏆 CONTACT_VERIFIED + GOLD_LABEL: Both email and mobile captured`);
+    console.log(
+      `[AutoLabel] 🏆 CONTACT_VERIFIED + GOLD_LABEL: Both email and mobile captured`,
+    );
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -275,7 +279,9 @@ export async function applyLabelsToLead(
   labels: CanonicalLabel[],
 ): Promise<void> {
   if (!leadId || labels.length === 0) {
-    console.log(`[AutoLabel] Skip applyLabelsToLead: no leadId or empty labels`);
+    console.log(
+      `[AutoLabel] Skip applyLabelsToLead: no leadId or empty labels`,
+    );
     return;
   }
 
@@ -306,7 +312,10 @@ export async function applyLabelsToLead(
       `[AutoLabel] ✅ Applied ${labels.length} labels to lead ${leadId}: ${labels.join(", ")}`,
     );
   } catch (error) {
-    console.error(`[AutoLabel] Error applying labels to lead ${leadId}:`, error);
+    console.error(
+      `[AutoLabel] Error applying labels to lead ${leadId}:`,
+      error,
+    );
     // Don't throw - graceful degradation
   }
 }
@@ -324,7 +333,9 @@ export async function applyLabelsWithScore(
   config?: InboundProcessingConfig,
 ): Promise<void> {
   if (!leadId || labels.length === 0) {
-    console.log(`[AutoLabel] Skip applyLabelsWithScore: no leadId or empty labels`);
+    console.log(
+      `[AutoLabel] Skip applyLabelsWithScore: no leadId or empty labels`,
+    );
     return;
   }
 
@@ -332,25 +343,46 @@ export async function applyLabelsWithScore(
   let scoreBoost = 0;
 
   // Calculate score boost from config weights
-  if (labels.includes(CANONICAL_LABELS.EMAIL_CAPTURED) && cfg.WEIGHT_EMAIL_CAPTURED !== null) {
+  if (
+    labels.includes(CANONICAL_LABELS.EMAIL_CAPTURED) &&
+    cfg.WEIGHT_EMAIL_CAPTURED !== null
+  ) {
     scoreBoost += cfg.WEIGHT_EMAIL_CAPTURED;
   }
-  if (labels.includes(CANONICAL_LABELS.MOBILE_CAPTURED) && cfg.WEIGHT_MOBILE_CAPTURED !== null) {
+  if (
+    labels.includes(CANONICAL_LABELS.MOBILE_CAPTURED) &&
+    cfg.WEIGHT_MOBILE_CAPTURED !== null
+  ) {
     scoreBoost += cfg.WEIGHT_MOBILE_CAPTURED;
   }
-  if (labels.includes(CANONICAL_LABELS.CONTACT_VERIFIED) && cfg.WEIGHT_CONTACT_VERIFIED !== null) {
+  if (
+    labels.includes(CANONICAL_LABELS.CONTACT_VERIFIED) &&
+    cfg.WEIGHT_CONTACT_VERIFIED !== null
+  ) {
     scoreBoost += cfg.WEIGHT_CONTACT_VERIFIED;
   }
-  if (labels.includes(CANONICAL_LABELS.WANTS_CALL) && cfg.WEIGHT_WANTS_CALL !== null) {
+  if (
+    labels.includes(CANONICAL_LABELS.WANTS_CALL) &&
+    cfg.WEIGHT_WANTS_CALL !== null
+  ) {
     scoreBoost += cfg.WEIGHT_WANTS_CALL;
   }
-  if (labels.includes(CANONICAL_LABELS.QUESTION_ASKED) && cfg.WEIGHT_QUESTION_ASKED !== null) {
+  if (
+    labels.includes(CANONICAL_LABELS.QUESTION_ASKED) &&
+    cfg.WEIGHT_QUESTION_ASKED !== null
+  ) {
     scoreBoost += cfg.WEIGHT_QUESTION_ASKED;
   }
-  if (labels.includes(CANONICAL_LABELS.HIGH_INTENT) && cfg.WEIGHT_HIGH_INTENT !== null) {
+  if (
+    labels.includes(CANONICAL_LABELS.HIGH_INTENT) &&
+    cfg.WEIGHT_HIGH_INTENT !== null
+  ) {
     scoreBoost += cfg.WEIGHT_HIGH_INTENT;
   }
-  if (labels.includes(CANONICAL_LABELS.RESPONDED) && cfg.WEIGHT_INBOUND_RESPONSE !== null) {
+  if (
+    labels.includes(CANONICAL_LABELS.RESPONDED) &&
+    cfg.WEIGHT_INBOUND_RESPONSE !== null
+  ) {
     scoreBoost += cfg.WEIGHT_INBOUND_RESPONSE;
   }
 
@@ -373,9 +405,10 @@ export async function applyLabelsWithScore(
           )
         `,
         // Add score boost (capped at 100)
-        score: scoreBoost > 0
-          ? sql`LEAST(COALESCE(score, 0) + ${scoreBoost}, 100)`
-          : sql`score`,
+        score:
+          scoreBoost > 0
+            ? sql`LEAST(COALESCE(score, 0) + ${scoreBoost}, 100)`
+            : sql`score`,
         updatedAt: new Date(),
       })
       .where(eq(leads.id, leadId));
@@ -384,7 +417,10 @@ export async function applyLabelsWithScore(
       `[AutoLabel] ✅ Applied ${labels.length} labels to lead ${leadId} with score boost: +${scoreBoost}`,
     );
   } catch (error) {
-    console.error(`[AutoLabel] Error applying labels with score to lead ${leadId}:`, error);
+    console.error(
+      `[AutoLabel] Error applying labels with score to lead ${leadId}:`,
+      error,
+    );
   }
 }
 
@@ -429,7 +465,9 @@ export function evaluateCallQueueEligibility(
     allLabels.includes(CANONICAL_LABELS.OPTED_OUT) ||
     allLabels.includes(CANONICAL_LABELS.DO_NOT_CONTACT)
   ) {
-    console.log(`[AutoLabel] ❌ Call queue BLOCKED: Lead ${lead.id} is opted out or DNC`);
+    console.log(
+      `[AutoLabel] ❌ Call queue BLOCKED: Lead ${lead.id} is opted out or DNC`,
+    );
     return {
       eligible: false,
       reason: "opted_out_or_dnc",
@@ -445,7 +483,9 @@ export function evaluateCallQueueEligibility(
     (lead.phone && lead.phone.length >= 10);
 
   if (!hasMobile) {
-    console.log(`[AutoLabel] ❌ Call queue BLOCKED: Lead ${lead.id} has no mobile`);
+    console.log(
+      `[AutoLabel] ❌ Call queue BLOCKED: Lead ${lead.id} has no mobile`,
+    );
     return {
       eligible: false,
       reason: "no_mobile",
@@ -462,14 +502,18 @@ export function evaluateCallQueueEligibility(
   ) {
     const priority = cfg.CALL_QUEUE_GOLD_LABEL_PRIORITY;
     if (priority === null) {
-      console.warn(`[AutoLabel] ⚠️ CALL_QUEUE_GOLD_LABEL_PRIORITY not set, skipping queue`);
+      console.warn(
+        `[AutoLabel] ⚠️ CALL_QUEUE_GOLD_LABEL_PRIORITY not set, skipping queue`,
+      );
       return {
         eligible: false,
         reason: "config_gold_priority_not_set",
         priority: null,
       };
     }
-    console.log(`[AutoLabel] ✅ Call queue ELIGIBLE: Lead ${lead.id} is GOLD LABEL`);
+    console.log(
+      `[AutoLabel] ✅ Call queue ELIGIBLE: Lead ${lead.id} is GOLD LABEL`,
+    );
     return {
       eligible: true,
       reason: "gold_label",
@@ -483,14 +527,18 @@ export function evaluateCallQueueEligibility(
   if (allLabels.includes(CANONICAL_LABELS.WANTS_CALL)) {
     const priority = cfg.CALL_QUEUE_GOLD_LABEL_PRIORITY;
     if (priority === null) {
-      console.warn(`[AutoLabel] ⚠️ CALL_QUEUE_GOLD_LABEL_PRIORITY not set, skipping queue`);
+      console.warn(
+        `[AutoLabel] ⚠️ CALL_QUEUE_GOLD_LABEL_PRIORITY not set, skipping queue`,
+      );
       return {
         eligible: false,
         reason: "config_gold_priority_not_set",
         priority: null,
       };
     }
-    console.log(`[AutoLabel] ✅ Call queue ELIGIBLE: Lead ${lead.id} WANTS_CALL`);
+    console.log(
+      `[AutoLabel] ✅ Call queue ELIGIBLE: Lead ${lead.id} WANTS_CALL`,
+    );
     return {
       eligible: true,
       reason: "wants_call",
@@ -508,14 +556,18 @@ export function evaluateCallQueueEligibility(
   ) {
     const priority = cfg.CALL_QUEUE_GREEN_TAG_PRIORITY;
     if (priority === null) {
-      console.warn(`[AutoLabel] ⚠️ CALL_QUEUE_GREEN_TAG_PRIORITY not set, skipping queue`);
+      console.warn(
+        `[AutoLabel] ⚠️ CALL_QUEUE_GREEN_TAG_PRIORITY not set, skipping queue`,
+      );
       return {
         eligible: false,
         reason: "config_green_priority_not_set",
         priority: null,
       };
     }
-    console.log(`[AutoLabel] ✅ Call queue ELIGIBLE: Lead ${lead.id} is HIGH_INTENT/GREEN`);
+    console.log(
+      `[AutoLabel] ✅ Call queue ELIGIBLE: Lead ${lead.id} is HIGH_INTENT/GREEN`,
+    );
     return {
       eligible: true,
       reason: "high_intent_or_responded",
@@ -533,7 +585,9 @@ export function evaluateCallQueueEligibility(
     // Use GREEN priority for threshold-based eligibility
     const priority = cfg.CALL_QUEUE_GREEN_TAG_PRIORITY;
     if (priority === null) {
-      console.warn(`[AutoLabel] ⚠️ CALL_QUEUE_GREEN_TAG_PRIORITY not set, skipping queue`);
+      console.warn(
+        `[AutoLabel] ⚠️ CALL_QUEUE_GREEN_TAG_PRIORITY not set, skipping queue`,
+      );
       return {
         eligible: false,
         reason: "config_green_priority_not_set",
@@ -553,7 +607,9 @@ export function evaluateCallQueueEligibility(
   // ─────────────────────────────────────────────────────────────────────────
   // Not eligible
   // ─────────────────────────────────────────────────────────────────────────
-  console.log(`[AutoLabel] ℹ️ Call queue NOT ELIGIBLE: Lead ${lead.id} - no qualifying signal`);
+  console.log(
+    `[AutoLabel] ℹ️ Call queue NOT ELIGIBLE: Lead ${lead.id} - no qualifying signal`,
+  );
   return {
     eligible: false,
     reason: "no_qualifying_signal",

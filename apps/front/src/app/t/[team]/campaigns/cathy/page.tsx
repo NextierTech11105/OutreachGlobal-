@@ -160,26 +160,59 @@ export default function CathyCampaignsPage() {
     async function fetchQueue() {
       setQueueLoading(true);
       try {
-        const response = await fetch(`/api/leads?teamId=${team.id}&worker=cathy&limit=20`);
+        const response = await fetch(
+          `/api/leads?teamId=${team.id}&worker=cathy&limit=20`,
+        );
         const data = await response.json();
         if (data.leads) {
-          setQueueLeads(data.leads.map((lead: any) => ({
-            id: lead.id,
-            name: lead.name || lead.fullName || "Unknown",
-            company: lead.company || lead.companyName,
-            phone: lead.phone || lead.phoneNumber,
-            status: lead.workerStatus || "pending",
-            attempts: lead.contactAttempts || 0,
-            humorLevel: lead.contactAttempts <= 2 ? "mild" : lead.contactAttempts <= 4 ? "medium" : "spicy",
-          })));
+          setQueueLeads(
+            data.leads.map((lead: any) => ({
+              id: lead.id,
+              name: lead.name || lead.fullName || "Unknown",
+              company: lead.company || lead.companyName,
+              phone: lead.phone || lead.phoneNumber,
+              status: lead.workerStatus || "pending",
+              attempts: lead.contactAttempts || 0,
+              humorLevel:
+                lead.contactAttempts <= 2
+                  ? "mild"
+                  : lead.contactAttempts <= 4
+                    ? "medium"
+                    : "spicy",
+            })),
+          );
         }
       } catch (error) {
         console.error("Failed to fetch queue:", error);
         // Mock data for demonstration
         setQueueLeads([
-          { id: "1", name: "Ghosted Gary", company: "Silent Inc", phone: "+1234567890", status: "pending", attempts: 3, humorLevel: "medium" },
-          { id: "2", name: "Cold Carl", company: "Frozen LLC", phone: "+1987654321", status: "nudging", attempts: 5, humorLevel: "spicy" },
-          { id: "3", name: "Quiet Quinn", company: "Hush Co", phone: "+1555123456", status: "revived", attempts: 2, humorLevel: "mild" },
+          {
+            id: "1",
+            name: "Ghosted Gary",
+            company: "Silent Inc",
+            phone: "+1234567890",
+            status: "pending",
+            attempts: 3,
+            humorLevel: "medium",
+          },
+          {
+            id: "2",
+            name: "Cold Carl",
+            company: "Frozen LLC",
+            phone: "+1987654321",
+            status: "nudging",
+            attempts: 5,
+            humorLevel: "spicy",
+          },
+          {
+            id: "3",
+            name: "Quiet Quinn",
+            company: "Hush Co",
+            phone: "+1555123456",
+            status: "revived",
+            attempts: 2,
+            humorLevel: "mild",
+          },
         ]);
       } finally {
         setQueueLoading(false);
@@ -221,7 +254,10 @@ export default function CathyCampaignsPage() {
       const response = await fetch("/api/cathy/nudge-batch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ leadIds: pendingLeads.map((l) => l.id), teamId: team.id }),
+        body: JSON.stringify({
+          leadIds: pendingLeads.map((l) => l.id),
+          teamId: team.id,
+        }),
       });
       const data = await response.json();
       if (data.success) {
@@ -239,7 +275,11 @@ export default function CathyCampaignsPage() {
       const response = await fetch("/api/leads/worker-assign", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ leadIds: Array.from(selectedLeads), worker: "cathy", teamId: team.id }),
+        body: JSON.stringify({
+          leadIds: Array.from(selectedLeads),
+          worker: "cathy",
+          teamId: team.id,
+        }),
       });
       const data = await response.json();
       if (data.success) {
@@ -259,13 +299,20 @@ export default function CathyCampaignsPage() {
       const response = await fetch("/api/leads/worker-assign", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ leadIds: Array.from(selectedLeads), fromWorker: "cathy", toWorker, teamId: team.id }),
+        body: JSON.stringify({
+          leadIds: Array.from(selectedLeads),
+          fromWorker: "cathy",
+          toWorker,
+          teamId: team.id,
+        }),
       });
       const data = await response.json();
       if (data.success) {
         setQueueLeads((prev) => prev.filter((l) => !selectedLeads.has(l.id)));
         setSelectedLeads(new Set());
-        toast.success(`Moved ${selectedLeads.size} leads to ${toWorker.toUpperCase()}`);
+        toast.success(
+          `Moved ${selectedLeads.size} leads to ${toWorker.toUpperCase()}`,
+        );
       }
     } catch (error) {
       toast.error("Failed to move leads");
@@ -276,13 +323,38 @@ export default function CathyCampaignsPage() {
   const getStatusBadge = (status: QueueLead["status"]) => {
     switch (status) {
       case "pending":
-        return <Badge variant="outline" className="bg-zinc-800 text-zinc-300">Pending</Badge>;
+        return (
+          <Badge variant="outline" className="bg-zinc-800 text-zinc-300">
+            Pending
+          </Badge>
+        );
       case "nudging":
-        return <Badge variant="outline" className="bg-orange-500/20 text-orange-300 border-orange-500/50">Nudging</Badge>;
+        return (
+          <Badge
+            variant="outline"
+            className="bg-orange-500/20 text-orange-300 border-orange-500/50"
+          >
+            Nudging
+          </Badge>
+        );
       case "revived":
-        return <Badge variant="outline" className="bg-green-500/20 text-green-300 border-green-500/50">Revived!</Badge>;
+        return (
+          <Badge
+            variant="outline"
+            className="bg-green-500/20 text-green-300 border-green-500/50"
+          >
+            Revived!
+          </Badge>
+        );
       case "exhausted":
-        return <Badge variant="outline" className="bg-red-500/20 text-red-300 border-red-500/50">Exhausted</Badge>;
+        return (
+          <Badge
+            variant="outline"
+            className="bg-red-500/20 text-red-300 border-red-500/50"
+          >
+            Exhausted
+          </Badge>
+        );
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -292,11 +364,23 @@ export default function CathyCampaignsPage() {
   const getHumorBadge = (level: QueueLead["humorLevel"]) => {
     switch (level) {
       case "mild":
-        return <Badge className="bg-green-600/20 text-green-400 border-green-600/50">Mild</Badge>;
+        return (
+          <Badge className="bg-green-600/20 text-green-400 border-green-600/50">
+            Mild
+          </Badge>
+        );
       case "medium":
-        return <Badge className="bg-yellow-600/20 text-yellow-400 border-yellow-600/50">Medium</Badge>;
+        return (
+          <Badge className="bg-yellow-600/20 text-yellow-400 border-yellow-600/50">
+            Medium
+          </Badge>
+        );
       case "spicy":
-        return <Badge className="bg-red-600/20 text-red-400 border-red-600/50">Spicy</Badge>;
+        return (
+          <Badge className="bg-red-600/20 text-red-400 border-red-600/50">
+            Spicy
+          </Badge>
+        );
     }
   };
 
@@ -506,23 +590,44 @@ export default function CathyCampaignsPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent>
-                        <DropdownMenuItem onClick={() => moveToWorker("gianna")}>
-                          <span className="text-purple-400 font-medium">GIANNA</span>
-                          <span className="ml-2 text-xs text-muted-foreground">(Opener)</span>
+                        <DropdownMenuItem
+                          onClick={() => moveToWorker("gianna")}
+                        >
+                          <span className="text-purple-400 font-medium">
+                            GIANNA
+                          </span>
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            (Opener)
+                          </span>
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => moveToWorker("sabrina")}>
-                          <span className="text-emerald-400 font-medium">SABRINA</span>
-                          <span className="ml-2 text-xs text-muted-foreground">(Closer)</span>
+                        <DropdownMenuItem
+                          onClick={() => moveToWorker("sabrina")}
+                        >
+                          <span className="text-emerald-400 font-medium">
+                            SABRINA
+                          </span>
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            (Closer)
+                          </span>
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
-                    <Button size="sm" variant="destructive" onClick={removeSelectedFromQueue} className="gap-1">
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={removeSelectedFromQueue}
+                      className="gap-1"
+                    >
                       <Trash2 className="w-4 h-4" />
                       Remove
                     </Button>
                   </>
                 )}
-                <Button size="sm" className="gap-1 bg-orange-600 hover:bg-orange-700" onClick={sendAllPending}>
+                <Button
+                  size="sm"
+                  className="gap-1 bg-orange-600 hover:bg-orange-700"
+                  onClick={sendAllPending}
+                >
                   <Play className="w-4 h-4" />
                   Nudge All Pending
                 </Button>
@@ -535,7 +640,10 @@ export default function CathyCampaignsPage() {
                 <TableRow>
                   <TableHead className="w-[40px]">
                     <Checkbox
-                      checked={selectedLeads.size === queueLeads.length && queueLeads.length > 0}
+                      checked={
+                        selectedLeads.size === queueLeads.length &&
+                        queueLeads.length > 0
+                      }
                       onCheckedChange={toggleSelectAll}
                     />
                   </TableHead>
@@ -549,7 +657,10 @@ export default function CathyCampaignsPage() {
               <TableBody>
                 {queueLeads.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-zinc-500 py-8">
+                    <TableCell
+                      colSpan={6}
+                      className="text-center text-zinc-500 py-8"
+                    >
                       No leads in nudge queue. Assign leads from the Leads page.
                     </TableCell>
                   </TableRow>
@@ -565,11 +676,17 @@ export default function CathyCampaignsPage() {
                     <TableCell>
                       <div>
                         <p className="font-medium text-zinc-100">{lead.name}</p>
-                        {lead.company && <p className="text-xs text-zinc-500">{lead.company}</p>}
+                        {lead.company && (
+                          <p className="text-xs text-zinc-500">
+                            {lead.company}
+                          </p>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>{getStatusBadge(lead.status)}</TableCell>
-                    <TableCell className="text-zinc-400">{lead.attempts}</TableCell>
+                    <TableCell className="text-zinc-400">
+                      {lead.attempts}
+                    </TableCell>
                     <TableCell>{getHumorBadge(lead.humorLevel)}</TableCell>
                     <TableCell>
                       <DropdownMenu>
@@ -592,17 +709,23 @@ export default function CathyCampaignsPage() {
                             </DropdownMenuItem>
                           )}
                           {lead.status === "revived" && (
-                            <DropdownMenuItem onClick={() => handleHandoff(lead.id, "sabrina")}>
+                            <DropdownMenuItem
+                              onClick={() => handleHandoff(lead.id, "sabrina")}
+                            >
                               <ArrowRight className="w-4 h-4 mr-2 text-emerald-400" />
                               Hand to SABRINA
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => moveToWorker("gianna")}>
+                          <DropdownMenuItem
+                            onClick={() => moveToWorker("gianna")}
+                          >
                             <ArrowRight className="w-4 h-4 mr-2 text-purple-400" />
                             Move to GIANNA
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => moveToWorker("sabrina")}>
+                          <DropdownMenuItem
+                            onClick={() => moveToWorker("sabrina")}
+                          >
                             <ArrowRight className="w-4 h-4 mr-2 text-emerald-400" />
                             Move to SABRINA
                           </DropdownMenuItem>

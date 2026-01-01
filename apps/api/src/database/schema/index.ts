@@ -51,3 +51,12 @@ export * from "./shared-links.schema";
 
 // ===== WORKER PHONES =====
 export * from "./worker-phones.schema";
+
+// ===== DOCTRINE SIGNALS (Append-Only) =====
+export * from "./signals.schema";
+
+// ===== RECOMMENDATIONS (Human Gate) =====
+export * from "./recommendations.schema";
+
+// ===== NEVA AGENT (Deep Research & Enrichment) =====
+export * from "./neva.schema";

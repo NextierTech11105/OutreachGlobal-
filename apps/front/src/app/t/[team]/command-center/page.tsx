@@ -41,6 +41,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { InboxResponseHeatmap } from "@/components/inbox-response-heatmap";
+import { CampaignBuckets, DashboardMetrics } from "@/components/campaign-buckets";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 
@@ -259,54 +260,6 @@ export default function CommandCenterPage() {
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
     if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
     return num.toLocaleString();
-  };
-
-  // Campaign bucket component
-  const CampaignBucket = ({
-    worker,
-    campaign,
-    leads,
-    target,
-  }: {
-    worker: (typeof AI_WORKERS)[0];
-    campaign: string;
-    leads: number;
-    target: number;
-  }) => {
-    const progress = (leads / target) * 100;
-    const isReady = leads >= target;
-
-    return (
-      <Card className={cn("transition-all", isReady && "border-green-500/50")}>
-        <CardContent className="pt-4">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <div className={cn("p-1.5 rounded", worker.bgColor)}>
-                <Bot className={cn("h-4 w-4", worker.color)} />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">{worker.name}</p>
-                <p className="font-medium text-sm">{campaign}</p>
-              </div>
-            </div>
-            {isReady ? (
-              <Badge className="bg-green-600">Ready</Badge>
-            ) : (
-              <Badge variant="outline">{Math.round(progress)}%</Badge>
-            )}
-          </div>
-          <div className="space-y-1">
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Leads</span>
-              <span>
-                {formatNumber(leads)} / {formatNumber(target)}
-              </span>
-            </div>
-            <Progress value={progress} className="h-2" />
-          </div>
-        </CardContent>
-      </Card>
-    );
   };
 
   return (
@@ -756,43 +709,30 @@ export default function CommandCenterPage() {
             </Card>
           </TabsContent>
 
-          {/* Campaign Buckets */}
+          {/* Campaign Buckets - Doctrine-Aligned */}
           <TabsContent value="buckets" className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">
-                AI Worker Campaign Buckets
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                Each bucket holds {formatNumber(CAMPAIGN_BUCKET_SIZE)} leads
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {AI_WORKERS.flatMap((worker) =>
-                worker.campaigns.map((campaign) => (
-                  <CampaignBucket
-                    key={`${worker.id}-${campaign}`}
-                    worker={worker}
-                    campaign={campaign}
-                    leads={
-                      stats.campaignBuckets[`${worker.id}-${campaign}`]
-                        ?.leads || 0
-                    }
-                    target={CAMPAIGN_BUCKET_SIZE}
-                  />
-                )),
-              )}
-            </div>
+            <CampaignBuckets
+              onBucketClick={(bucket) => {
+                toast.info(`Opening ${bucket.name} bucket assigned to ${bucket.worker.toUpperCase()}`);
+              }}
+            />
 
             {/* AI Worker Legend */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-sm">AI Workers</CardTitle>
+                <CardDescription>
+                  Each worker specializes in a stage of the outreach funnel
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-4">
                   {AI_WORKERS.map((worker) => (
-                    <div key={worker.id} className="flex items-center gap-2">
+                    <Link
+                      key={worker.id}
+                      href={`/t/${teamId}/campaigns/${worker.id}`}
+                      className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted transition-colors"
+                    >
                       <div className={cn("p-2 rounded", worker.bgColor)}>
                         <Bot className={cn("h-4 w-4", worker.color)} />
                       </div>
@@ -802,8 +742,28 @@ export default function CommandCenterPage() {
                           {worker.role}
                         </p>
                       </div>
-                    </div>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground ml-2" />
+                    </Link>
                   ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Doctrine Flow Explanation */}
+            <Card className="border-dashed">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500">
+                    <Sparkles className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold">Doctrine-Aligned Campaign Flow</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Leads flow through buckets based on signals: Initial Message → Retarget (72h no response) →
+                      Nudger (CATHY humor) → Content Nurture → Book Appointment (SABRINA closer).
+                      Each bucket holds up to 2,000 leads.
+                    </p>
+                  </div>
                 </div>
               </CardContent>
             </Card>

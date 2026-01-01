@@ -2438,7 +2438,9 @@ export const automationStates = pgTable(
     leadIdIdx: index("automation_states_lead_id_idx").on(table.leadId),
     phoneIdx: index("automation_states_phone_idx").on(table.phone),
     priorityIdx: index("automation_states_priority_idx").on(table.priority),
-    nextTouchIdx: index("automation_states_next_touch_idx").on(table.nextTouchAt),
+    nextTouchIdx: index("automation_states_next_touch_idx").on(
+      table.nextTouchAt,
+    ),
   }),
 );
 
@@ -2468,10 +2470,16 @@ export const scheduledTasks = pgTable(
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => ({
-    leadTaskIdx: index("scheduled_tasks_lead_task_idx").on(table.leadId, table.taskId),
+    leadTaskIdx: index("scheduled_tasks_lead_task_idx").on(
+      table.leadId,
+      table.taskId,
+    ),
     scheduledIdx: index("scheduled_tasks_scheduled_idx").on(table.scheduledAt),
     statusIdx: index("scheduled_tasks_status_idx").on(table.status),
-    pendingIdx: index("scheduled_tasks_pending_idx").on(table.status, table.scheduledAt),
+    pendingIdx: index("scheduled_tasks_pending_idx").on(
+      table.status,
+      table.scheduledAt,
+    ),
   }),
 );
 
@@ -2545,3 +2553,94 @@ export const aiDecisionLogs = pgTable(
 
 export type AiDecisionLog = typeof aiDecisionLogs.$inferSelect;
 export type NewAiDecisionLog = typeof aiDecisionLogs.$inferInsert;
+
+// ============================================================
+// RECOMMENDATIONS - Human Gate for AI Actions (Doctrine-Aligned)
+// AI recommends → Human approves → System executes
+// ============================================================
+
+// Recommended action types
+export type RecommendedAction =
+  | "send_sms"
+  | "send_email"
+  | "schedule_call"
+  | "move_to_bucket"
+  | "flag_hot_lead"
+  | "archive_lead"
+  | "escalate_to_worker";
+
+// Recommendation status
+export type RecommendationStatus =
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "expired"
+  | "executed";
+
+// AI worker who made the recommendation
+export type RecommendingWorker = "gianna" | "cathy" | "sabrina" | "neva" | "system";
+
+export const recommendations = pgTable(
+  "recommendations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    teamId: text("team_id"),
+    leadId: text("lead_id").notNull(),
+
+    // What action is recommended
+    action: text("action").notNull().$type<RecommendedAction>(),
+    status: text("status").notNull().$type<RecommendationStatus>().default("pending"),
+
+    // Priority (1-100, higher = more urgent)
+    priority: integer("priority").notNull().default(50),
+
+    // Who recommended this action
+    recommendedBy: text("recommended_by").notNull().$type<RecommendingWorker>(),
+
+    // AI reasoning (for transparency)
+    aiReason: text("ai_reason").notNull(),
+    confidence: integer("confidence").notNull().default(80),
+
+    // Content of the action (e.g., SMS message to send)
+    content: text("content"),
+    contentEdited: text("content_edited"), // Human-edited version
+
+    // Target information
+    targetPhone: text("target_phone"),
+    targetEmail: text("target_email"),
+    targetBucket: text("target_bucket"),
+    targetWorker: text("target_worker"),
+
+    // Review tracking
+    reviewedAt: timestamp("reviewed_at"),
+    reviewedBy: text("reviewed_by"),
+    rejectionReason: text("rejection_reason"),
+
+    // Execution tracking
+    executedAt: timestamp("executed_at"),
+    executionResult: jsonb("execution_result"),
+
+    // Auto-expiry (recommendations shouldn't sit forever)
+    expiresAt: timestamp("expires_at"),
+
+    // Timestamps
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    leadIdIdx: index("recommendations_lead_id_idx").on(table.leadId),
+    statusIdx: index("recommendations_status_idx").on(table.status),
+    priorityIdx: index("recommendations_priority_idx").on(table.priority),
+    recommendedByIdx: index("recommendations_recommended_by_idx").on(
+      table.recommendedBy
+    ),
+    // Hot path: pending recommendations by priority
+    pendingPriorityIdx: index("recommendations_pending_priority_idx").on(
+      table.status,
+      table.priority
+    ),
+  })
+);
+
+export type Recommendation = typeof recommendations.$inferSelect;
+export type NewRecommendation = typeof recommendations.$inferInsert;

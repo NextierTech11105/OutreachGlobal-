@@ -13,10 +13,7 @@ import {
   isConfigured,
   validatePhoneNumber,
 } from "@/lib/signalhouse/client";
-import {
-  checkRateLimit,
-  recordSend,
-} from "@/lib/sms/rate-limiter";
+import { checkRateLimit, recordSend } from "@/lib/sms/rate-limiter";
 
 export async function POST(request: NextRequest) {
   try {

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
 import {
   quickValidationScan,
   deepResearch,
@@ -6,7 +6,7 @@ import {
   buildPersonaIntelligence,
   generateDealIntelligence,
   generateFullResearchReport,
-} from '@/lib/ai-workers/neva-research';
+} from "@/lib/ai-workers/neva-research";
 
 /**
  * POST /api/neva/research
@@ -29,8 +29,8 @@ export async function POST(request: NextRequest) {
   try {
     if (!PERPLEXITY_API_KEY) {
       return NextResponse.json(
-        { success: false, error: 'PERPLEXITY_API_KEY not configured' },
-        { status: 500 }
+        { success: false, error: "PERPLEXITY_API_KEY not configured" },
+        { status: 500 },
       );
     }
 
@@ -39,82 +39,95 @@ export async function POST(request: NextRequest) {
 
     if (!type) {
       return NextResponse.json(
-        { success: false, error: 'Research type is required' },
-        { status: 400 }
+        { success: false, error: "Research type is required" },
+        { status: 400 },
       );
     }
 
     let result: any;
 
     switch (type) {
-      case 'quick_validation':
+      case "quick_validation":
         if (!companyName || !address) {
           return NextResponse.json(
-            { success: false, error: 'Company name and address required' },
-            { status: 400 }
+            { success: false, error: "Company name and address required" },
+            { status: 400 },
           );
         }
         result = await quickValidationScan(companyName, address);
         break;
 
-      case 'deep_research':
+      case "deep_research":
         if (!companyName) {
           return NextResponse.json(
-            { success: false, error: 'Company name required' },
-            { status: 400 }
+            { success: false, error: "Company name required" },
+            { status: 400 },
           );
         }
-        result = await deepResearch(companyName, contactName, address, industry);
+        result = await deepResearch(
+          companyName,
+          contactName,
+          address,
+          industry,
+        );
         break;
 
-      case 'market_sizing':
+      case "market_sizing":
         if (!industry) {
           return NextResponse.json(
-            { success: false, error: 'Industry required' },
-            { status: 400 }
+            { success: false, error: "Industry required" },
+            { status: 400 },
           );
         }
         result = await calculateMarketSizing(industry, address?.state);
         break;
 
-      case 'persona':
+      case "persona":
         if (!industry) {
           return NextResponse.json(
-            { success: false, error: 'Industry required' },
-            { status: 400 }
+            { success: false, error: "Industry required" },
+            { status: 400 },
           );
         }
         result = await buildPersonaIntelligence(industry);
         break;
 
-      case 'deal_intelligence':
+      case "deal_intelligence":
         if (!companyName) {
           return NextResponse.json(
-            { success: false, error: 'Company name required' },
-            { status: 400 }
+            { success: false, error: "Company name required" },
+            { status: 400 },
           );
         }
         result = await generateDealIntelligence(companyName, industry, address);
         break;
 
-      case 'full_report':
+      case "full_report":
         if (!companyName || !address || !industry) {
           return NextResponse.json(
-            { success: false, error: 'Company, address, and industry required' },
-            { status: 400 }
+            {
+              success: false,
+              error: "Company, address, and industry required",
+            },
+            { status: 400 },
           );
         }
-        result = await generateFullResearchReport(companyName, address, industry, contactName);
+        result = await generateFullResearchReport(
+          companyName,
+          address,
+          industry,
+          contactName,
+        );
         break;
 
       default:
         return NextResponse.json(
-          { success: false, error: 'Unknown research type: ' + type },
-          { status: 400 }
+          { success: false, error: "Unknown research type: " + type },
+          { status: 400 },
         );
     }
 
-    console.log('[NEVA Research]', { type, companyName, leadId });
+    console.log("[NEVA Research]", { type, companyName, leadId });
 
     return NextResponse.json({
       success: true,
@@ -123,10 +136,10 @@ export async function POST(request: NextRequest) {
       executedAt: new Date().toISOString(),
     });
   } catch (error: any) {
-    console.error('NEVA research error:', error);
+    console.error("NEVA research error:", error);
     return NextResponse.json(
-      { success: false, error: error.message || 'Research failed' },
-      { status: 500 }
+      { success: false, error: error.message || "Research failed" },
+      { status: 500 },
     );
   }
 }
@@ -134,15 +147,15 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   return NextResponse.json({
     success: true,
-    status: 'active',
+    status: "active",
     configured: !!PERPLEXITY_API_KEY,
     capabilities: [
-      'quick_validation',
-      'deep_research',
-      'market_sizing',
-      'persona',
-      'deal_intelligence',
-      'full_report',
+      "quick_validation",
+      "deep_research",
+      "market_sizing",
+      "persona",
+      "deal_intelligence",
+      "full_report",
     ],
   });
 }

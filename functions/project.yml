@@ -63,3 +63,36 @@ packages:
         limits:
           timeout: 60000
           memory: 256
+
+  # NEVA Agent - Perplexity-powered deep research & enrichment
+  # Triggered: Pre-SMS enrichment, monthly refresh, meeting prep
+  - name: neva
+    functions:
+      - name: enrich
+        runtime: nodejs:18
+        main: index.js
+        web: true
+        limits:
+          timeout: 60000
+          memory: 256
+      - name: research
+        runtime: nodejs:18
+        main: index.js
+        web: true
+        limits:
+          timeout: 120000
+          memory: 512
+      - name: monthly-refresh
+        runtime: nodejs:18
+        main: index.js
+        web: true
+        limits:
+          timeout: 60000
+          memory: 256
+      - name: context
+        runtime: nodejs:18
+        main: index.js
+        web: true
+        limits:
+          timeout: 30000
+          memory: 256

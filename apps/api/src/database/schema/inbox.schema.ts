@@ -109,27 +109,76 @@ export const inboxItems = pgTable(
   ],
 );
 
-// Response Buckets (Kanban columns)
-export const responseBuckets = pgTable("response_buckets", {
-  id: primaryUlid(RESPONSE_BUCKET_PK),
-  teamId: teamsRef({ onDelete: "cascade" }).notNull(),
-  type: varchar().notNull().$type<BucketType>(),
-  name: varchar().notNull(),
-  description: text(),
-  color: varchar().default("#6366f1"),
-  icon: varchar().default("inbox"),
-  position: integer().notNull().default(0),
-  isSystem: boolean().default(false),
-  slaMinutes: integer(), // SLA for items in this bucket (null = no SLA)
-  autoMoveRules: jsonb().$type<
-    {
-      conditions: { field: string; operator: string; value: string }[];
-      targetBucket: BucketType;
-    }[]
-  >(),
-  createdAt,
-  updatedAt,
-});
+// Worker types for campaign buckets
+export type CampaignWorker =
+  | "gianna" // Opener
+  | "cathy" // Nudger
+  | "sabrina" // Closer
+  | "appointment_bot"; // Reminder automation
+
+// Bucket category - campaign vs response vs deal
+export type BucketCategory = "campaign" | "response" | "deal";
+
+// Flow connection rules for visual builder
+export interface FlowConnection {
+  onNoResponse?: { targetBucket: string; afterHours: number };
+  onPositiveResponse?: { targetBucket: string };
+  onNegativeResponse?: { targetBucket: string };
+  onOptOut?: { targetBucket: string };
+  onEscalate?: { targetBucket: string; toWorker: CampaignWorker };
+}
+
+// Response Buckets (Kanban columns + Campaign buckets)
+export const responseBuckets = pgTable(
+  "response_buckets",
+  {
+    id: primaryUlid(RESPONSE_BUCKET_PK),
+    teamId: teamsRef({ onDelete: "cascade" }).notNull(),
+    type: varchar().notNull().$type<BucketType>(),
+    name: varchar().notNull(),
+    description: text(),
+    color: varchar().default("#6366f1"),
+    icon: varchar().default("inbox"),
+    position: integer().notNull().default(0),
+    isSystem: boolean().default(false),
+    slaMinutes: integer(), // SLA for items in this bucket (null = no SLA)
+    autoMoveRules: jsonb().$type<
+      {
+        conditions: { field: string; operator: string; value: string }[];
+        targetBucket: BucketType;
+      }[]
+    >(),
+
+    // ===== CAMPAIGN BUCKET FIELDS (Doctrine-aligned) =====
+
+    // Worker assignment (gianna, cathy, sabrina, appointment_bot)
+    worker: varchar().$type<CampaignWorker>(),
+
+    // Bucket category for filtering views
+    bucketCategory: varchar("bucket_category")
+      .$type<BucketCategory>()
+      .default("response"),
+
+    // Capacity tracking (BLOCKS concept - 2000 default)
+    targetCapacity: integer("target_capacity").default(2000),
+    currentCount: integer("current_count").default(0),
+
+    // Visual flow builder position (for n8n-style designer)
+    flowPosition: integer("flow_position"),
+
+    // Flow connections for auto-routing (visual builder edges)
+    flowConnections: jsonb("flow_connections").$type<FlowConnection>(),
+
+    createdAt,
+    updatedAt,
+  },
+  (t) => [
+    // Index for campaign bucket queries
+    index("response_buckets_team_category_idx").on(t.teamId, t.bucketCategory),
+    index("response_buckets_worker_idx").on(t.worker),
+    index("response_buckets_flow_position_idx").on(t.teamId, t.flowPosition),
+  ]
+);
 
 // Bucket movement history (audit trail)
 export const bucketMovements = pgTable(

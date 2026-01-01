@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getTeamFromToken } from '@/lib/auth/extension-auth';
+import { NextRequest, NextResponse } from "next/server";
+import { getTeamFromToken } from "@/lib/auth/extension-auth";
 
 /**
  * POST /api/extension/capture-lead
@@ -10,16 +10,22 @@ import { getTeamFromToken } from '@/lib/auth/extension-auth';
 export async function POST(request: NextRequest) {
   try {
     // Verify extension auth token
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const authHeader = request.headers.get("authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
     }
 
-    const token = authHeader.replace('Bearer ', '');
+    const token = authHeader.replace("Bearer ", "");
     const team = await getTeamFromToken(token);
 
     if (!team) {
-      return NextResponse.json({ success: false, error: 'Invalid token' }, { status: 401 });
+      return NextResponse.json(
+        { success: false, error: "Invalid token" },
+        { status: 401 },
+      );
     }
 
     const body = await request.json();
@@ -37,13 +43,13 @@ export async function POST(request: NextRequest) {
     // Validate required fields
     if (!phone && !email) {
       return NextResponse.json(
-        { success: false, error: 'Phone or email is required' },
-        { status: 400 }
+        { success: false, error: "Phone or email is required" },
+        { status: 400 },
       );
     }
 
     // Normalize phone number
-    const normalizedPhone = phone?.replace(/\D/g, '');
+    const normalizedPhone = phone?.replace(/\D/g, "");
 
     // Create lead via internal API or database
     // This is a placeholder - integrate with your actual lead creation logic
@@ -54,9 +60,9 @@ export async function POST(request: NextRequest) {
       company: company || null,
       phone: normalizedPhone || null,
       email: email || null,
-      source: source || 'chrome_extension',
+      source: source || "chrome_extension",
       sourceUrl: sourceUrl || null,
-      status: 'new',
+      status: "new",
       createdAt: new Date(),
     };
 
@@ -71,14 +77,14 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Lead captured successfully',
+      message: "Lead captured successfully",
       // leadId: lead.id,
     });
   } catch (error) {
-    console.error('Extension capture-lead error:', error);
+    console.error("Extension capture-lead error:", error);
     return NextResponse.json(
-      { success: false, error: 'Failed to capture lead' },
-      { status: 500 }
+      { success: false, error: "Failed to capture lead" },
+      { status: 500 },
     );
   }
 }

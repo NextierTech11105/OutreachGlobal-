@@ -49,7 +49,7 @@ const sql = connectionString
  */
 export async function withTenant<T>(
   teamId: string,
-  queryFn: (db: PostgresJsDatabase<typeof schema>) => Promise<T>
+  queryFn: (db: PostgresJsDatabase<typeof schema>) => Promise<T>,
 ): Promise<T> {
   if (!sql) {
     throw new Error("Database not configured - DATABASE_URL not set");
@@ -92,7 +92,7 @@ export async function withTenant<T>(
  */
 export async function withTenantTransaction<T>(
   teamId: string,
-  transactionFn: (tx: PostgresJsDatabase<typeof schema>) => Promise<T>
+  transactionFn: (tx: PostgresJsDatabase<typeof schema>) => Promise<T>,
 ): Promise<T> {
   if (!sql) {
     throw new Error("Database not configured - DATABASE_URL not set");
@@ -125,7 +125,7 @@ export async function withTenantTransaction<T>(
  * });
  */
 export async function withServiceAccount<T>(
-  queryFn: (db: PostgresJsDatabase<typeof schema>) => Promise<T>
+  queryFn: (db: PostgresJsDatabase<typeof schema>) => Promise<T>,
 ): Promise<T> {
   if (!sql) {
     throw new Error("Database not configured - DATABASE_URL not set");

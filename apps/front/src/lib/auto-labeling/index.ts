@@ -121,9 +121,7 @@ export const DEFAULT_AUTO_LABEL_CONFIG: AutoLabelConfig = {
       description: "Lead declined but may be contactable later",
       color: "#a3a3a3", // neutral-400
       priority: 180,
-      autoActions: [
-        { type: "schedule_nurture", delayDays: 90 },
-      ],
+      autoActions: [{ type: "schedule_nurture", delayDays: 90 }],
     },
     email_captured: {
       id: "email_captured",
@@ -134,7 +132,10 @@ export const DEFAULT_AUTO_LABEL_CONFIG: AutoLabelConfig = {
       autoActions: [
         { type: "send_value_x", deliverableType: "property-valuation-report" },
         { type: "queue_for_call", priority: "high" },
-        { type: "notify_operator", message: "New email capture - Value X queued" },
+        {
+          type: "notify_operator",
+          message: "New email capture - Value X queued",
+        },
       ],
     },
     mobile_captured: {
@@ -171,9 +172,7 @@ export const DEFAULT_AUTO_LABEL_CONFIG: AutoLabelConfig = {
       description: "Lead shows strong buying/engagement signals",
       color: "#10b981", // emerald-500
       priority: 80,
-      autoActions: [
-        { type: "queue_for_call", priority: "high" },
-      ],
+      autoActions: [{ type: "queue_for_call", priority: "high" }],
     },
     qualified: {
       id: "qualified",
@@ -258,7 +257,7 @@ export const DEFAULT_AUTO_LABEL_CONFIG: AutoLabelConfig = {
     followUpDelayHours: 24,
     maxCallAttempts: 3,
     preferredCallWindows: [
-      { start: 9, end: 12 },  // Morning
+      { start: 9, end: 12 }, // Morning
       { start: 14, end: 17 }, // Afternoon
     ],
   },

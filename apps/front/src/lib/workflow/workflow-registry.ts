@@ -16,17 +16,17 @@
 // =============================================================================
 
 export type LeadStage =
-  | 'DATA_INGESTED'      // Raw data uploaded, not processed
-  | 'ENRICHED'           // Phone/email validated, scored
-  | 'INITIAL_OUTREACH'   // First SMS sent via GIANNA
-  | 'AWAITING_RESPONSE'  // Waiting for reply
-  | 'RETARGET'           // No response after 3 days, retry
-  | 'NUDGE'              // No response after 14 days, different approach
-  | 'CONTENT_NURTURE'    // Positive but not ready, educational drip
-  | 'BOOKING'            // High intent, scheduling appointment
-  | 'CONVERTED'          // Appointment set or deal closed
-  | 'OPTED_OUT'          // Lead requested no contact
-  | 'DEAD'               // Wrong number, invalid, etc.
+  | "DATA_INGESTED" // Raw data uploaded, not processed
+  | "ENRICHED" // Phone/email validated, scored
+  | "INITIAL_OUTREACH" // First SMS sent via GIANNA
+  | "AWAITING_RESPONSE" // Waiting for reply
+  | "RETARGET" // No response after 3 days, retry
+  | "NUDGE" // No response after 14 days, different approach
+  | "CONTENT_NURTURE" // Positive but not ready, educational drip
+  | "BOOKING" // High intent, scheduling appointment
+  | "CONVERTED" // Appointment set or deal closed
+  | "OPTED_OUT" // Lead requested no contact
+  | "DEAD"; // Wrong number, invalid, etc.
 
 // =============================================================================
 // WORKFLOW STAGES - THE COMPLETE JOURNEY
@@ -42,7 +42,7 @@ export interface WorkflowStage {
   triggerWebhook: string | null;
 
   // Execution
-  worker: 'GIANNA' | 'CATHY' | 'SABRINA' | 'NEVA' | 'MANUAL' | null;
+  worker: "GIANNA" | "CATHY" | "SABRINA" | "NEVA" | "MANUAL" | null;
   smsType: string | null;
   actionHandler: string;
 
@@ -64,23 +64,23 @@ export const WORKFLOW_STAGES: Record<string, WorkflowStage> = {
   // STAGE 1: DATA INGESTION
   // -------------------------------------------------------------------------
   DATA_INGESTED: {
-    id: 'data-ingested',
-    name: 'Data Ingested',
-    description: 'Raw lead data uploaded from USDataBiz or other source',
+    id: "data-ingested",
+    name: "Data Ingested",
+    description: "Raw lead data uploaded from USDataBiz or other source",
 
-    triggerCondition: 'CSV upload OR API push',
-    triggerWebhook: '/api/datalake/upload',
+    triggerCondition: "CSV upload OR API push",
+    triggerWebhook: "/api/datalake/upload",
 
     worker: null,
     smsType: null,
-    actionHandler: '/api/lucy/prepare',
+    actionHandler: "/api/lucy/prepare",
 
-    uiPath: '/data/luci',
-    uiIcon: 'Upload',
+    uiPath: "/data/luci",
+    uiIcon: "Upload",
 
-    nextStageOnSuccess: 'ENRICHED',
+    nextStageOnSuccess: "ENRICHED",
     nextStageOnNoResponse: null,
-    nextStageOnOptOut: 'DEAD',
+    nextStageOnOptOut: "DEAD",
 
     waitDaysBeforeNextStage: 0,
   },
@@ -89,23 +89,23 @@ export const WORKFLOW_STAGES: Record<string, WorkflowStage> = {
   // STAGE 2: ENRICHMENT
   // -------------------------------------------------------------------------
   ENRICHED: {
-    id: 'enriched',
-    name: 'Enriched',
-    description: 'Lead validated, phone type confirmed, score calculated',
+    id: "enriched",
+    name: "Enriched",
+    description: "Lead validated, phone type confirmed, score calculated",
 
-    triggerCondition: 'Auto after data ingestion',
+    triggerCondition: "Auto after data ingestion",
     triggerWebhook: null,
 
-    worker: 'NEVA',
+    worker: "NEVA",
     smsType: null,
-    actionHandler: '/api/luci/orchestrate',
+    actionHandler: "/api/luci/orchestrate",
 
-    uiPath: '/leads',
-    uiIcon: 'CheckCircle',
+    uiPath: "/leads",
+    uiIcon: "CheckCircle",
 
-    nextStageOnSuccess: 'INITIAL_OUTREACH',
+    nextStageOnSuccess: "INITIAL_OUTREACH",
     nextStageOnNoResponse: null,
-    nextStageOnOptOut: 'DEAD',
+    nextStageOnOptOut: "DEAD",
 
     waitDaysBeforeNextStage: 0,
   },
@@ -114,23 +114,23 @@ export const WORKFLOW_STAGES: Record<string, WorkflowStage> = {
   // STAGE 3: INITIAL OUTREACH
   // -------------------------------------------------------------------------
   INITIAL_OUTREACH: {
-    id: 'initial-message',
-    name: 'Initial Message',
-    description: 'First SMS sent by GIANNA to introduce the offer',
+    id: "initial-message",
+    name: "Initial Message",
+    description: "First SMS sent by GIANNA to introduce the offer",
 
-    triggerCondition: 'Lead score >= 60 AND has_valid_mobile',
-    triggerWebhook: '/api/luci/push-to-sms',
+    triggerCondition: "Lead score >= 60 AND has_valid_mobile",
+    triggerWebhook: "/api/luci/push-to-sms",
 
-    worker: 'GIANNA',
-    smsType: 'SMS_INITIAL',
-    actionHandler: '/api/signalhouse/send',
+    worker: "GIANNA",
+    smsType: "SMS_INITIAL",
+    actionHandler: "/api/signalhouse/send",
 
-    uiPath: '/workspaces/initial-message',
-    uiIcon: 'MessageCircle',
+    uiPath: "/workspaces/initial-message",
+    uiIcon: "MessageCircle",
 
-    nextStageOnSuccess: 'BOOKING',
-    nextStageOnNoResponse: 'RETARGET',
-    nextStageOnOptOut: 'OPTED_OUT',
+    nextStageOnSuccess: "BOOKING",
+    nextStageOnNoResponse: "RETARGET",
+    nextStageOnOptOut: "OPTED_OUT",
 
     waitDaysBeforeNextStage: 3,
   },
@@ -139,23 +139,23 @@ export const WORKFLOW_STAGES: Record<string, WorkflowStage> = {
   // STAGE 4: RETARGET
   // -------------------------------------------------------------------------
   RETARGET: {
-    id: 'retarget',
-    name: 'Retarget',
-    description: 'Follow-up SMS after 3 days of no response',
+    id: "retarget",
+    name: "Retarget",
+    description: "Follow-up SMS after 3 days of no response",
 
-    triggerCondition: 'No response after 3 days from initial',
-    triggerWebhook: '/api/luci/push-to-sms',
+    triggerCondition: "No response after 3 days from initial",
+    triggerWebhook: "/api/luci/push-to-sms",
 
-    worker: 'GIANNA',
-    smsType: 'SMS_RETARGET_NC',
-    actionHandler: '/api/signalhouse/send',
+    worker: "GIANNA",
+    smsType: "SMS_RETARGET_NC",
+    actionHandler: "/api/signalhouse/send",
 
-    uiPath: '/workspaces/retarget',
-    uiIcon: 'RefreshCw',
+    uiPath: "/workspaces/retarget",
+    uiIcon: "RefreshCw",
 
-    nextStageOnSuccess: 'BOOKING',
-    nextStageOnNoResponse: 'NUDGE',
-    nextStageOnOptOut: 'OPTED_OUT',
+    nextStageOnSuccess: "BOOKING",
+    nextStageOnNoResponse: "NUDGE",
+    nextStageOnOptOut: "OPTED_OUT",
 
     waitDaysBeforeNextStage: 11, // 14 days total from initial
   },
@@ -164,23 +164,23 @@ export const WORKFLOW_STAGES: Record<string, WorkflowStage> = {
   // STAGE 5: NUDGE
   // -------------------------------------------------------------------------
   NUDGE: {
-    id: 'nudger',
-    name: 'Nudger',
-    description: 'Different approach SMS after 14 days, new angle',
+    id: "nudger",
+    name: "Nudger",
+    description: "Different approach SMS after 14 days, new angle",
 
-    triggerCondition: 'No response after 14 days from initial',
-    triggerWebhook: '/api/luci/push-to-sms',
+    triggerCondition: "No response after 14 days from initial",
+    triggerWebhook: "/api/luci/push-to-sms",
 
-    worker: 'CATHY',
-    smsType: 'SMS_NUDGE',
-    actionHandler: '/api/signalhouse/send',
+    worker: "CATHY",
+    smsType: "SMS_NUDGE",
+    actionHandler: "/api/signalhouse/send",
 
-    uiPath: '/workspaces/nudger',
-    uiIcon: 'Bell',
+    uiPath: "/workspaces/nudger",
+    uiIcon: "Bell",
 
-    nextStageOnSuccess: 'BOOKING',
-    nextStageOnNoResponse: 'CONTENT_NURTURE',
-    nextStageOnOptOut: 'OPTED_OUT',
+    nextStageOnSuccess: "BOOKING",
+    nextStageOnNoResponse: "CONTENT_NURTURE",
+    nextStageOnOptOut: "OPTED_OUT",
 
     waitDaysBeforeNextStage: 7,
   },
@@ -189,23 +189,23 @@ export const WORKFLOW_STAGES: Record<string, WorkflowStage> = {
   // STAGE 6: CONTENT NURTURE
   // -------------------------------------------------------------------------
   CONTENT_NURTURE: {
-    id: 'content-nurture',
-    name: 'Content Nurture',
-    description: 'Educational drip content for long-term engagement',
+    id: "content-nurture",
+    name: "Content Nurture",
+    description: "Educational drip content for long-term engagement",
 
-    triggerCondition: 'Positive response but not ready to book',
-    triggerWebhook: '/api/luci/push-to-sms',
+    triggerCondition: "Positive response but not ready to book",
+    triggerWebhook: "/api/luci/push-to-sms",
 
-    worker: 'GIANNA',
-    smsType: 'SMS_NURTURE',
-    actionHandler: '/api/signalhouse/send',
+    worker: "GIANNA",
+    smsType: "SMS_NURTURE",
+    actionHandler: "/api/signalhouse/send",
 
-    uiPath: '/workspaces/content-nurture',
-    uiIcon: 'BookOpen',
+    uiPath: "/workspaces/content-nurture",
+    uiIcon: "BookOpen",
 
-    nextStageOnSuccess: 'BOOKING',
+    nextStageOnSuccess: "BOOKING",
     nextStageOnNoResponse: null, // Stay in nurture
-    nextStageOnOptOut: 'OPTED_OUT',
+    nextStageOnOptOut: "OPTED_OUT",
 
     waitDaysBeforeNextStage: 7, // Weekly drip
   },
@@ -214,23 +214,23 @@ export const WORKFLOW_STAGES: Record<string, WorkflowStage> = {
   // STAGE 7: BOOKING
   // -------------------------------------------------------------------------
   BOOKING: {
-    id: 'book-appointment',
-    name: 'Book Appointment',
-    description: 'High intent lead, scheduling appointment with SABRINA',
+    id: "book-appointment",
+    name: "Book Appointment",
+    description: "High intent lead, scheduling appointment with SABRINA",
 
-    triggerCondition: 'email_captured OR wants_call OR high_intent',
-    triggerWebhook: '/api/luci/push-to-sms',
+    triggerCondition: "email_captured OR wants_call OR high_intent",
+    triggerWebhook: "/api/luci/push-to-sms",
 
-    worker: 'SABRINA',
-    smsType: 'BOOK_APPOINTMENT',
-    actionHandler: '/api/signalhouse/send',
+    worker: "SABRINA",
+    smsType: "BOOK_APPOINTMENT",
+    actionHandler: "/api/signalhouse/send",
 
-    uiPath: '/workspaces/sabrina',
-    uiIcon: 'Calendar',
+    uiPath: "/workspaces/sabrina",
+    uiIcon: "Calendar",
 
-    nextStageOnSuccess: 'CONVERTED',
-    nextStageOnNoResponse: 'CONTENT_NURTURE',
-    nextStageOnOptOut: 'OPTED_OUT',
+    nextStageOnSuccess: "CONVERTED",
+    nextStageOnNoResponse: "CONTENT_NURTURE",
+    nextStageOnOptOut: "OPTED_OUT",
 
     waitDaysBeforeNextStage: 1,
   },
@@ -239,67 +239,67 @@ export const WORKFLOW_STAGES: Record<string, WorkflowStage> = {
   // TERMINAL STAGES
   // -------------------------------------------------------------------------
   CONVERTED: {
-    id: 'converted',
-    name: 'Converted',
-    description: 'Appointment booked or deal closed',
+    id: "converted",
+    name: "Converted",
+    description: "Appointment booked or deal closed",
 
-    triggerCondition: 'Appointment confirmed OR deal closed',
+    triggerCondition: "Appointment confirmed OR deal closed",
     triggerWebhook: null,
 
     worker: null,
     smsType: null,
-    actionHandler: '/api/leads/[id]/convert',
+    actionHandler: "/api/leads/[id]/convert",
 
-    uiPath: '/leads?status=converted',
-    uiIcon: 'CheckCircle2',
+    uiPath: "/leads?status=converted",
+    uiIcon: "CheckCircle2",
 
     nextStageOnSuccess: null,
     nextStageOnNoResponse: null,
-    nextStageOnOptOut: 'OPTED_OUT',
+    nextStageOnOptOut: "OPTED_OUT",
 
     waitDaysBeforeNextStage: null,
   },
 
   OPTED_OUT: {
-    id: 'opted-out',
-    name: 'Opted Out',
-    description: 'Lead requested no contact - HARD STOP',
+    id: "opted-out",
+    name: "Opted Out",
+    description: "Lead requested no contact - HARD STOP",
 
-    triggerCondition: 'STOP keyword received',
-    triggerWebhook: '/api/webhook/signalhouse',
+    triggerCondition: "STOP keyword received",
+    triggerWebhook: "/api/webhook/signalhouse",
 
     worker: null,
     smsType: null,
-    actionHandler: '/api/leads/[id]/optout',
+    actionHandler: "/api/leads/[id]/optout",
 
-    uiPath: '/leads?status=opted_out',
-    uiIcon: 'Ban',
+    uiPath: "/leads?status=opted_out",
+    uiIcon: "Ban",
 
     nextStageOnSuccess: null,
     nextStageOnNoResponse: null,
-    nextStageOnOptOut: 'OPTED_OUT',
+    nextStageOnOptOut: "OPTED_OUT",
 
     waitDaysBeforeNextStage: null,
   },
 
   DEAD: {
-    id: 'dead',
-    name: 'Dead',
-    description: 'Invalid data, wrong number, or unreachable',
+    id: "dead",
+    name: "Dead",
+    description: "Invalid data, wrong number, or unreachable",
 
-    triggerCondition: 'WRONG_NUMBER classification OR invalid phone',
+    triggerCondition: "WRONG_NUMBER classification OR invalid phone",
     triggerWebhook: null,
 
     worker: null,
     smsType: null,
-    actionHandler: '/api/leads/[id]/dead',
+    actionHandler: "/api/leads/[id]/dead",
 
-    uiPath: '/leads?status=dead',
-    uiIcon: 'X',
+    uiPath: "/leads?status=dead",
+    uiIcon: "X",
 
     nextStageOnSuccess: null,
     nextStageOnNoResponse: null,
-    nextStageOnOptOut: 'OPTED_OUT',
+    nextStageOnOptOut: "OPTED_OUT",
 
     waitDaysBeforeNextStage: null,
   },
@@ -312,45 +312,48 @@ export const WORKFLOW_STAGES: Record<string, WorkflowStage> = {
 export const WEBHOOK_HANDLERS = {
   // Inbound SMS from SignalHouse
   INBOUND_SMS: {
-    path: '/api/webhook/signalhouse',
-    method: 'POST',
+    path: "/api/webhook/signalhouse",
+    method: "POST",
     triggers: [
-      { condition: 'STOP keyword', action: 'Move to OPTED_OUT' },
-      { condition: 'Email captured', action: 'Apply email_captured label, move to BOOKING' },
-      { condition: 'Phone captured', action: 'Apply mobile_captured label' },
-      { condition: 'Positive response', action: 'Evaluate for BOOKING' },
-      { condition: 'Question asked', action: 'Route to inbox for review' },
+      { condition: "STOP keyword", action: "Move to OPTED_OUT" },
+      {
+        condition: "Email captured",
+        action: "Apply email_captured label, move to BOOKING",
+      },
+      { condition: "Phone captured", action: "Apply mobile_captured label" },
+      { condition: "Positive response", action: "Evaluate for BOOKING" },
+      { condition: "Question asked", action: "Route to inbox for review" },
     ],
   },
 
   // Campaign orchestration
   CAMPAIGN_ORCHESTRATE: {
-    path: '/api/luci/orchestrate',
-    method: 'POST',
+    path: "/api/luci/orchestrate",
+    method: "POST",
     triggers: [
-      { condition: 'Campaign approved', action: 'Prepare lead blocks' },
-      { condition: 'Lead block ready', action: 'Queue for SMS send' },
+      { condition: "Campaign approved", action: "Prepare lead blocks" },
+      { condition: "Lead block ready", action: "Queue for SMS send" },
     ],
   },
 
   // SMS execution
   SMS_SEND: {
-    path: '/api/luci/push-to-sms',
-    method: 'POST',
+    path: "/api/luci/push-to-sms",
+    method: "POST",
     triggers: [
-      { condition: 'Lead in queue', action: 'Send via SignalHouse' },
-      { condition: 'Rate limit hit', action: 'Defer to next window' },
+      { condition: "Lead in queue", action: "Send via SignalHouse" },
+      { condition: "Rate limit hit", action: "Defer to next window" },
     ],
   },
 
   // Delivery status
   DELIVERY_STATUS: {
-    path: '/api/webhook/signalhouse/status',
-    method: 'POST',
+    path: "/api/webhook/signalhouse/status",
+    method: "POST",
     triggers: [
-      { condition: 'delivered', action: 'Update message status' },
-      { condition: 'failed', action: 'Mark message failed, retry logic' },
-      { condition: 'undelivered', action: 'Check carrier rejection' },
+      { condition: "delivered", action: "Update message status" },
+      { condition: "failed", action: "Mark message failed, retry logic" },
+      { condition: "undelivered", action: "Check carrier rejection" },
     ],
   },
 } as const;
@@ -360,8 +363,8 @@ export const WEBHOOK_HANDLERS = {
 // =============================================================================
 
 export const WORKSPACE_NAV_ITEMS = Object.values(WORKFLOW_STAGES)
-  .filter(stage => stage.uiPath.startsWith('/workspaces/'))
-  .map(stage => ({
+  .filter((stage) => stage.uiPath.startsWith("/workspaces/"))
+  .map((stage) => ({
     label: stage.name,
     path: stage.uiPath,
     icon: stage.uiIcon,
@@ -378,17 +381,17 @@ export const WORKSPACE_NAV_ITEMS = Object.values(WORKFLOW_STAGES)
  */
 export function getNextStage(
   currentStage: LeadStage,
-  response: 'success' | 'no_response' | 'opt_out'
+  response: "success" | "no_response" | "opt_out",
 ): LeadStage | null {
   const stage = WORKFLOW_STAGES[currentStage];
   if (!stage) return null;
 
   switch (response) {
-    case 'success':
+    case "success":
       return stage.nextStageOnSuccess;
-    case 'no_response':
+    case "no_response":
       return stage.nextStageOnNoResponse;
-    case 'opt_out':
+    case "opt_out":
       return stage.nextStageOnOptOut;
     default:
       return null;
@@ -414,7 +417,7 @@ export function getWebhookForStage(stage: LeadStage): string | null {
  */
 export function canTransition(
   currentStage: LeadStage,
-  targetStage: LeadStage
+  targetStage: LeadStage,
 ): boolean {
   const stage = WORKFLOW_STAGES[currentStage];
   if (!stage) return false;

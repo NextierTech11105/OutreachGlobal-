@@ -86,7 +86,9 @@ export function OutreachDialog({
   const [scheduledDate, setScheduledDate] = useState<Date | undefined>();
   const [scheduledTime, setScheduledTime] = useState("09:00");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [queuePriority, setQueuePriority] = useState<"high" | "medium" | "low">("medium");
+  const [queuePriority, setQueuePriority] = useState<"high" | "medium" | "low">(
+    "medium",
+  );
 
   // Filter leads that have the required contact info
   const validLeads = leads.filter((lead) => {
@@ -127,7 +129,9 @@ export function OutreachDialog({
   // Handle submission
   const handleSubmit = async () => {
     if (validLeads.length === 0) {
-      toast.error(`No leads with valid ${type === "email" ? "email" : "phone"} addresses`);
+      toast.error(
+        `No leads with valid ${type === "email" ? "email" : "phone"} addresses`,
+      );
       return;
     }
 
@@ -172,7 +176,9 @@ export function OutreachDialog({
           if (!response.ok) throw new Error("Failed to send SMS");
 
           const result = await response.json();
-          toast.success(`Sent ${result.sent || validLeads.length} SMS messages`);
+          toast.success(
+            `Sent ${result.sent || validLeads.length} SMS messages`,
+          );
         } else if (type === "call") {
           // Open power dialer
           toast.success(`Opening power dialer for ${validLeads.length} leads`);
@@ -209,7 +215,9 @@ export function OutreachDialog({
         });
 
         if (!response.ok) throw new Error("Failed to schedule outreach");
-        toast.success(`Scheduled ${validLeads.length} ${type} for ${format(scheduledAt!, "PPP 'at' p")}`);
+        toast.success(
+          `Scheduled ${validLeads.length} ${type} for ${format(scheduledAt!, "PPP 'at' p")}`,
+        );
       } else if (mode === "queue") {
         // Add to human review queue
         const response = await fetch("/api/outreach/queue", {
@@ -224,7 +232,9 @@ export function OutreachDialog({
         });
 
         if (!response.ok) throw new Error("Failed to queue outreach");
-        toast.success(`Added ${validLeads.length} leads to ${queuePriority} priority queue`);
+        toast.success(
+          `Added ${validLeads.length} leads to ${queuePriority} priority queue`,
+        );
       }
 
       onComplete?.({
@@ -258,7 +268,8 @@ export function OutreachDialog({
             Send {config.label}
           </DialogTitle>
           <DialogDescription>
-            {validLeads.length} lead{validLeads.length !== 1 ? "s" : ""} selected
+            {validLeads.length} lead{validLeads.length !== 1 ? "s" : ""}{" "}
+            selected
             {invalidLeads > 0 && (
               <span className="text-amber-500 ml-2">
                 ({invalidLeads} without {type === "email" ? "email" : "phone"})
@@ -276,37 +287,43 @@ export function OutreachDialog({
                 variant={mode === "instant" ? "default" : "outline"}
                 className={cn(
                   "flex flex-col h-auto py-3",
-                  mode === "instant" && "bg-blue-600 hover:bg-blue-700"
+                  mode === "instant" && "bg-blue-600 hover:bg-blue-700",
                 )}
                 onClick={() => setMode("instant")}
               >
                 <Zap className="h-5 w-5 mb-1" />
                 <span className="text-xs">Instant</span>
-                <span className="text-[10px] text-muted-foreground">Send now</span>
+                <span className="text-[10px] text-muted-foreground">
+                  Send now
+                </span>
               </Button>
               <Button
                 variant={mode === "scheduled" ? "default" : "outline"}
                 className={cn(
                   "flex flex-col h-auto py-3",
-                  mode === "scheduled" && "bg-amber-600 hover:bg-amber-700"
+                  mode === "scheduled" && "bg-amber-600 hover:bg-amber-700",
                 )}
                 onClick={() => setMode("scheduled")}
               >
                 <CalendarIcon className="h-5 w-5 mb-1" />
                 <span className="text-xs">Scheduled</span>
-                <span className="text-[10px] text-muted-foreground">Pick date/time</span>
+                <span className="text-[10px] text-muted-foreground">
+                  Pick date/time
+                </span>
               </Button>
               <Button
                 variant={mode === "queue" ? "default" : "outline"}
                 className={cn(
                   "flex flex-col h-auto py-3",
-                  mode === "queue" && "bg-purple-600 hover:bg-purple-700"
+                  mode === "queue" && "bg-purple-600 hover:bg-purple-700",
                 )}
                 onClick={() => setMode("queue")}
               >
                 <Users className="h-5 w-5 mb-1" />
                 <span className="text-xs">Queue</span>
-                <span className="text-[10px] text-muted-foreground">Human review</span>
+                <span className="text-[10px] text-muted-foreground">
+                  Human review
+                </span>
               </Button>
             </div>
           </div>
@@ -322,11 +339,13 @@ export function OutreachDialog({
                       variant="outline"
                       className={cn(
                         "w-full justify-start text-left font-normal",
-                        !scheduledDate && "text-muted-foreground"
+                        !scheduledDate && "text-muted-foreground",
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {scheduledDate ? format(scheduledDate, "PPP") : "Pick a date"}
+                      {scheduledDate
+                        ? format(scheduledDate, "PPP")
+                        : "Pick a date"}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
@@ -365,14 +384,22 @@ export function OutreachDialog({
           {mode === "queue" && (
             <div className="space-y-2">
               <Label>Priority</Label>
-              <Select value={queuePriority} onValueChange={(v) => setQueuePriority(v as typeof queuePriority)}>
+              <Select
+                value={queuePriority}
+                onValueChange={(v) =>
+                  setQueuePriority(v as typeof queuePriority)
+                }
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select priority" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="high">
                     <div className="flex items-center gap-2">
-                      <Badge variant="destructive" className="h-2 w-2 p-0 rounded-full" />
+                      <Badge
+                        variant="destructive"
+                        className="h-2 w-2 p-0 rounded-full"
+                      />
                       High - Review first
                     </div>
                   </SelectItem>
@@ -406,7 +433,10 @@ export function OutreachDialog({
               {type === "sms" && (
                 <div className="flex justify-between text-xs text-muted-foreground">
                   <span>{message.length} characters</span>
-                  <span>{Math.ceil(message.length / 160)} segment{Math.ceil(message.length / 160) !== 1 ? "s" : ""}</span>
+                  <span>
+                    {Math.ceil(message.length / 160)} segment
+                    {Math.ceil(message.length / 160) !== 1 ? "s" : ""}
+                  </span>
                 </div>
               )}
             </div>
@@ -430,7 +460,10 @@ export function OutreachDialog({
             <Label>Recipients Preview</Label>
             <div className="max-h-32 overflow-y-auto rounded-lg border p-2 space-y-1">
               {validLeads.slice(0, 5).map((lead) => (
-                <div key={lead.id} className="flex items-center justify-between text-sm">
+                <div
+                  key={lead.id}
+                  className="flex items-center justify-between text-sm"
+                >
                   <span>{lead.firstName || lead.name || "Unknown"}</span>
                   <span className="text-muted-foreground font-mono text-xs">
                     {type === "email" ? lead.email : lead.phone}
@@ -450,7 +483,10 @@ export function OutreachDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting || validLeads.length === 0}>
+          <Button
+            onClick={handleSubmit}
+            disabled={isSubmitting || validLeads.length === 0}
+          >
             {isSubmitting ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : mode === "instant" ? (

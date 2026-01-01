@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
 
 /**
  * POST /api/power-dialer/action
@@ -16,8 +16,8 @@ export async function POST(request: NextRequest) {
 
     if (!sessionId || !action) {
       return NextResponse.json(
-        { success: false, error: 'Session ID and action are required' },
-        { status: 400 }
+        { success: false, error: "Session ID and action are required" },
+        { status: 400 },
       );
     }
 
@@ -26,21 +26,21 @@ export async function POST(request: NextRequest) {
 
     if (!session) {
       return NextResponse.json(
-        { success: false, error: 'Session not found' },
-        { status: 404 }
+        { success: false, error: "Session not found" },
+        { status: 404 },
       );
     }
 
     switch (action) {
-      case 'pause':
-        session.status = 'paused';
+      case "pause":
+        session.status = "paused";
         break;
 
-      case 'resume':
-        session.status = 'active';
+      case "resume":
+        session.status = "active";
         break;
 
-      case 'skip':
+      case "skip":
         // Log skip result if provided
         if (callResult) {
           await logCallResult(session, callResult);
@@ -48,26 +48,26 @@ export async function POST(request: NextRequest) {
         // Move to next lead
         session.currentIndex++;
         if (session.currentIndex >= session.leads.length) {
-          session.status = 'completed';
+          session.status = "completed";
         }
         break;
 
-      case 'next':
+      case "next":
         // Log call result and move to next
         if (callResult) {
           await logCallResult(session, callResult);
         }
         session.currentIndex++;
         if (session.currentIndex >= session.leads.length) {
-          session.status = 'completed';
+          session.status = "completed";
         }
         break;
 
-      case 'end':
-        session.status = 'completed';
+      case "end":
+        session.status = "completed";
         break;
 
-      case 'disposition':
+      case "disposition":
         // Log disposition without advancing
         if (callResult) {
           await logCallResult(session, callResult);
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
       default:
         return NextResponse.json(
           { success: false, error: `Unknown action: ${action}` },
-          { status: 400 }
+          { status: 400 },
         );
     }
 
@@ -85,9 +85,10 @@ export async function POST(request: NextRequest) {
     sessions.set(sessionId, session);
 
     // Get current/next lead info
-    const currentLead = session.currentIndex < session.leads.length
-      ? session.leads[session.currentIndex]
-      : null;
+    const currentLead =
+      session.currentIndex < session.leads.length
+        ? session.leads[session.currentIndex]
+        : null;
 
     return NextResponse.json({
       success: true,
@@ -98,25 +99,30 @@ export async function POST(request: NextRequest) {
         totalLeads: session.leads.length,
         currentLead,
         remainingLeads: session.leads.length - session.currentIndex,
-        progress: Math.round((session.currentIndex / session.leads.length) * 100),
+        progress: Math.round(
+          (session.currentIndex / session.leads.length) * 100,
+        ),
       },
     });
   } catch (error: any) {
-    console.error('Power dialer action error:', error);
+    console.error("Power dialer action error:", error);
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to process action' },
-      { status: 500 }
+      { success: false, error: error.message || "Failed to process action" },
+      { status: 500 },
     );
   }
 }
 
 // Log call result for the current lead
-async function logCallResult(session: any, result: {
-  outcome: string;
-  duration?: number;
-  notes?: string;
-  scheduleCallback?: Date;
-}) {
+async function logCallResult(
+  session: any,
+  result: {
+    outcome: string;
+    duration?: number;
+    notes?: string;
+    scheduleCallback?: Date;
+  },
+) {
   const lead = session.leads[session.currentIndex];
   if (!lead) return;
 
@@ -131,7 +137,7 @@ async function logCallResult(session: any, result: {
   //   createdAt: new Date(),
   // });
 
-  console.log('Call result logged:', {
+  console.log("Call result logged:", {
     sessionId: session.id,
     leadId: lead.id,
     ...result,

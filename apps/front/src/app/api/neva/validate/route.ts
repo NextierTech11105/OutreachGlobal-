@@ -1,6 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { quickValidationScan, batchValidate } from '@/lib/ai-workers/neva-research';
-import { validateBusinessAddress, batchValidateAddresses } from '@/lib/ai-workers/neva-location';
+import { NextRequest, NextResponse } from "next/server";
+import {
+  quickValidationScan,
+  batchValidate,
+} from "@/lib/ai-workers/neva-research";
+import {
+  validateBusinessAddress,
+  batchValidateAddresses,
+} from "@/lib/ai-workers/neva-location";
 
 /**
  * POST /api/neva/validate
@@ -20,8 +26,8 @@ export async function POST(request: NextRequest) {
 
       if (!companyName || !city || !state) {
         return NextResponse.json(
-          { success: false, error: 'Company name, city, and state required' },
-          { status: 400 }
+          { success: false, error: "Company name, city, and state required" },
+          { status: 400 },
         );
       }
 
@@ -38,7 +44,7 @@ export async function POST(request: NextRequest) {
           location: mapboxResult,
           overallValid: perplexityResult.isOperating && mapboxResult.isValid,
           confidence: Math.round(
-            (perplexityResult.confidenceScore + mapboxResult.confidence) / 2
+            (perplexityResult.confidenceScore + mapboxResult.confidence) / 2,
           ),
         },
       });
@@ -48,8 +54,8 @@ export async function POST(request: NextRequest) {
     if (businesses && Array.isArray(businesses)) {
       if (businesses.length > 100) {
         return NextResponse.json(
-          { success: false, error: 'Maximum 100 businesses per batch' },
-          { status: 400 }
+          { success: false, error: "Maximum 100 businesses per batch" },
+          { status: 400 },
         );
       }
 
@@ -59,7 +65,7 @@ export async function POST(request: NextRequest) {
           id: b.id,
           name: b.companyName,
           address: { city: b.city, state: b.state, zip: b.zip },
-        }))
+        })),
       );
 
       // Run Mapbox batch validation
@@ -70,7 +76,7 @@ export async function POST(request: NextRequest) {
           city: b.city,
           state: b.state,
           zip: b.zip,
-        }))
+        })),
       );
 
       // Combine results
@@ -84,9 +90,10 @@ export async function POST(request: NextRequest) {
           business: pResult,
           location: mResult,
           overallValid: pResult?.isOperating && mResult?.isValid,
-          confidence: pResult && mResult
-            ? Math.round((pResult.confidenceScore + mResult.confidence) / 2)
-            : 0,
+          confidence:
+            pResult && mResult
+              ? Math.round((pResult.confidenceScore + mResult.confidence) / 2)
+              : 0,
         };
       });
 
@@ -102,14 +109,14 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { success: false, error: 'Provide single or businesses array' },
-      { status: 400 }
+      { success: false, error: "Provide single or businesses array" },
+      { status: 400 },
     );
   } catch (error: any) {
-    console.error('NEVA validation error:', error);
+    console.error("NEVA validation error:", error);
     return NextResponse.json(
-      { success: false, error: error.message || 'Validation failed' },
-      { status: 500 }
+      { success: false, error: error.message || "Validation failed" },
+      { status: 500 },
     );
   }
 }

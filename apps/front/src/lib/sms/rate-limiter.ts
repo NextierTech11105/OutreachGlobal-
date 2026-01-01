@@ -34,20 +34,19 @@ const WINDOW_MS = 60 * 1000;
  */
 export function getRateLimitConfig() {
   return {
-    SMS_RATE_LIMIT_ENABLED:
-      process.env.SMS_RATE_LIMIT_ENABLED !== "false", // Default enabled
+    SMS_RATE_LIMIT_ENABLED: process.env.SMS_RATE_LIMIT_ENABLED !== "false", // Default enabled
     SMS_RATE_LIMIT_ATT: parseInt(process.env.SMS_RATE_LIMIT_ATT || "75", 10),
     SMS_RATE_LIMIT_TMOBILE: parseInt(
       process.env.SMS_RATE_LIMIT_TMOBILE || "60",
-      10
+      10,
     ),
     SMS_RATE_LIMIT_VERIZON: parseInt(
       process.env.SMS_RATE_LIMIT_VERIZON || "60",
-      10
+      10,
     ),
     SMS_RATE_LIMIT_DEFAULT: parseInt(
       process.env.SMS_RATE_LIMIT_DEFAULT || "60",
-      10
+      10,
     ),
   };
 }
@@ -62,7 +61,10 @@ function getCarrierLimit(carrier: string): number {
   if (normalizedCarrier.includes("att") || normalizedCarrier.includes("at&t")) {
     return config.SMS_RATE_LIMIT_ATT;
   }
-  if (normalizedCarrier.includes("tmobile") || normalizedCarrier.includes("t-mobile")) {
+  if (
+    normalizedCarrier.includes("tmobile") ||
+    normalizedCarrier.includes("t-mobile")
+  ) {
     return config.SMS_RATE_LIMIT_TMOBILE;
   }
   if (normalizedCarrier.includes("verizon")) {

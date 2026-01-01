@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { Twilio } from 'twilio';
+import { NextRequest, NextResponse } from "next/server";
+import { Twilio } from "twilio";
 
 /**
  * POST /api/twilio/click-to-call
@@ -19,15 +19,15 @@ export async function POST(request: NextRequest) {
 
     if (!to) {
       return NextResponse.json(
-        { success: false, error: 'Phone number (to) is required' },
-        { status: 400 }
+        { success: false, error: "Phone number (to) is required" },
+        { status: 400 },
       );
     }
 
     if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) {
       return NextResponse.json(
-        { success: false, error: 'Twilio credentials not configured' },
-        { status: 500 }
+        { success: false, error: "Twilio credentials not configured" },
+        { status: 500 },
       );
     }
 
@@ -35,8 +35,8 @@ export async function POST(request: NextRequest) {
     const normalizedTo = normalizePhone(to);
     if (!normalizedTo) {
       return NextResponse.json(
-        { success: false, error: 'Invalid phone number format' },
-        { status: 400 }
+        { success: false, error: "Invalid phone number format" },
+        { status: 400 },
       );
     }
 
@@ -47,13 +47,13 @@ export async function POST(request: NextRequest) {
 
     if (!outboundNumber) {
       return NextResponse.json(
-        { success: false, error: 'No outbound number configured' },
-        { status: 400 }
+        { success: false, error: "No outbound number configured" },
+        { status: 400 },
       );
     }
 
     // Create TwiML for the call
-    const twimlUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/twilio/voice/outbound?leadId=${leadId || ''}&teamId=${teamId || ''}`;
+    const twimlUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/twilio/voice/outbound?leadId=${leadId || ""}&teamId=${teamId || ""}`;
 
     // Initiate the call
     const call = await client.calls.create({
@@ -61,9 +61,9 @@ export async function POST(request: NextRequest) {
       from: outboundNumber,
       url: twimlUrl,
       statusCallback: `${process.env.NEXT_PUBLIC_APP_URL}/api/twilio/webhooks/call-status`,
-      statusCallbackEvent: ['initiated', 'ringing', 'answered', 'completed'],
-      statusCallbackMethod: 'POST',
-      machineDetection: 'Enable',
+      statusCallbackEvent: ["initiated", "ringing", "answered", "completed"],
+      statusCallbackMethod: "POST",
+      machineDetection: "Enable",
       machineDetectionTimeout: 5,
     });
 
@@ -73,8 +73,8 @@ export async function POST(request: NextRequest) {
       teamId,
       leadId,
       callbackId,
-      direction: 'outbound',
-      status: 'initiated',
+      direction: "outbound",
+      status: "initiated",
       to: normalizedTo,
       from: outboundNumber,
     });
@@ -85,21 +85,21 @@ export async function POST(request: NextRequest) {
       status: call.status,
     });
   } catch (error: any) {
-    console.error('Click-to-call error:', error);
+    console.error("Click-to-call error:", error);
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to initiate call' },
-      { status: 500 }
+      { success: false, error: error.message || "Failed to initiate call" },
+      { status: 500 },
     );
   }
 }
 
 // Normalize phone to E.164 format
 function normalizePhone(phone: string): string | null {
-  const digits = phone.replace(/\D/g, '');
+  const digits = phone.replace(/\D/g, "");
 
   if (digits.length === 10) {
     return `+1${digits}`;
-  } else if (digits.length === 11 && digits[0] === '1') {
+  } else if (digits.length === 11 && digits[0] === "1") {
     return `+${digits}`;
   } else if (digits.length > 10) {
     return `+${digits}`;
@@ -114,7 +114,7 @@ async function logCall(data: {
   teamId?: string;
   leadId?: string;
   callbackId?: string;
-  direction: 'outbound' | 'inbound';
+  direction: "outbound" | "inbound";
   status: string;
   to: string;
   from: string;
@@ -124,5 +124,5 @@ async function logCall(data: {
   //   ...data,
   //   createdAt: new Date(),
   // });
-  console.log('Call logged:', data);
+  console.log("Call logged:", data);
 }

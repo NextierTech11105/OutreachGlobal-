@@ -163,11 +163,20 @@ const WORKER_COLORS: Record<string, string> = {
 // Status badge variants
 function getStatusBadge(status: string) {
   const variants: Record<string, { className: string; label: string }> = {
-    delivered: { className: "bg-green-500/10 text-green-500", label: "Delivered" },
+    delivered: {
+      className: "bg-green-500/10 text-green-500",
+      label: "Delivered",
+    },
     sent: { className: "bg-blue-500/10 text-blue-500", label: "Sent" },
     failed: { className: "bg-red-500/10 text-red-500", label: "Failed" },
-    received: { className: "bg-purple-500/10 text-purple-500", label: "Received" },
-    pending: { className: "bg-yellow-500/10 text-yellow-500", label: "Pending" },
+    received: {
+      className: "bg-purple-500/10 text-purple-500",
+      label: "Received",
+    },
+    pending: {
+      className: "bg-yellow-500/10 text-yellow-500",
+      label: "Pending",
+    },
   };
   const variant = variants[status.toLowerCase()] || {
     className: "bg-gray-500/10 text-gray-500",
@@ -466,12 +475,17 @@ export function SMSAnalyticsDashboard({ teamId }: SMSAnalyticsDashboardProps) {
             <Card>
               <CardHeader>
                 <CardTitle>Message Volume</CardTitle>
-                <CardDescription>Daily outbound vs inbound messages</CardDescription>
+                <CardDescription>
+                  Daily outbound vs inbound messages
+                </CardDescription>
               </CardHeader>
               <CardContent className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={data?.dailyTrends || []}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      className="stroke-muted"
+                    />
                     <XAxis
                       dataKey="date"
                       tickFormatter={(date) => format(new Date(date), "MMM d")}
@@ -509,12 +523,17 @@ export function SMSAnalyticsDashboard({ teamId }: SMSAnalyticsDashboardProps) {
             <Card>
               <CardHeader>
                 <CardTitle>Delivery Status</CardTitle>
-                <CardDescription>Delivered vs Failed vs Pending</CardDescription>
+                <CardDescription>
+                  Delivered vs Failed vs Pending
+                </CardDescription>
               </CardHeader>
               <CardContent className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={data?.dailyTrends || []}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      className="stroke-muted"
+                    />
                     <XAxis
                       dataKey="date"
                       tickFormatter={(date) => format(new Date(date), "MMM d")}
@@ -550,7 +569,9 @@ export function SMSAnalyticsDashboard({ teamId }: SMSAnalyticsDashboardProps) {
             <Card>
               <CardHeader>
                 <CardTitle>Response Classifications</CardTitle>
-                <CardDescription>Breakdown by classification type</CardDescription>
+                <CardDescription>
+                  Breakdown by classification type
+                </CardDescription>
               </CardHeader>
               <CardContent className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
@@ -593,7 +614,10 @@ export function SMSAnalyticsDashboard({ teamId }: SMSAnalyticsDashboardProps) {
               <CardContent className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={data?.workerStats || []} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      className="stroke-muted"
+                    />
                     <XAxis type="number" className="text-xs" />
                     <YAxis
                       dataKey="worker"
@@ -652,7 +676,9 @@ export function SMSAnalyticsDashboard({ teamId }: SMSAnalyticsDashboardProps) {
                     <TableRow>
                       <TableHead className="w-[140px]">From Number</TableHead>
                       <TableHead>Contact</TableHead>
-                      <TableHead className="w-[80px] text-center">Count</TableHead>
+                      <TableHead className="w-[80px] text-center">
+                        Count
+                      </TableHead>
                       <TableHead className="w-[100px]">Status</TableHead>
                       <TableHead>Message</TableHead>
                       <TableHead className="w-[140px]">Time</TableHead>
@@ -697,7 +723,9 @@ export function SMSAnalyticsDashboard({ teamId }: SMSAnalyticsDashboardProps) {
                         </TableCell>
                         <TableCell>
                           {getStatusBadge(
-                            msg.direction === "inbound" ? "received" : msg.status,
+                            msg.direction === "inbound"
+                              ? "received"
+                              : msg.status,
                           )}
                         </TableCell>
                         <TableCell className="max-w-[300px]">
@@ -750,7 +778,8 @@ export function SMSAnalyticsDashboard({ teamId }: SMSAnalyticsDashboardProps) {
                         className="w-3 h-3 rounded-full"
                         style={{
                           backgroundColor:
-                            CLASSIFICATION_COLORS[cls.classification] || "#6b7280",
+                            CLASSIFICATION_COLORS[cls.classification] ||
+                            "#6b7280",
                         }}
                       />
                       <span className="font-medium">
@@ -766,7 +795,8 @@ export function SMSAnalyticsDashboard({ teamId }: SMSAnalyticsDashboardProps) {
                         style={{
                           width: `${cls.percentage}%`,
                           backgroundColor:
-                            CLASSIFICATION_COLORS[cls.classification] || "#6b7280",
+                            CLASSIFICATION_COLORS[cls.classification] ||
+                            "#6b7280",
                         }}
                       />
                     </div>
@@ -812,11 +842,15 @@ export function SMSAnalyticsDashboard({ teamId }: SMSAnalyticsDashboardProps) {
                     </div>
                     <div>
                       <div className="text-muted-foreground">Delivered</div>
-                      <div className="text-xl font-bold">{worker.delivered}</div>
+                      <div className="text-xl font-bold">
+                        {worker.delivered}
+                      </div>
                     </div>
                     <div>
                       <div className="text-muted-foreground">Responses</div>
-                      <div className="text-xl font-bold">{worker.responses}</div>
+                      <div className="text-xl font-bold">
+                        {worker.responses}
+                      </div>
                     </div>
                     <div>
                       <div className="text-muted-foreground">Rate</div>
@@ -848,7 +882,9 @@ export function SMSAnalyticsDashboard({ teamId }: SMSAnalyticsDashboardProps) {
                       <TableHead className="text-right">Delivered</TableHead>
                       <TableHead className="text-right">Responses</TableHead>
                       <TableHead className="text-right">Opt-Outs</TableHead>
-                      <TableHead className="text-right">Response Rate</TableHead>
+                      <TableHead className="text-right">
+                        Response Rate
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -872,7 +908,9 @@ export function SMSAnalyticsDashboard({ teamId }: SMSAnalyticsDashboardProps) {
                         <TableCell className="text-right">
                           <Badge
                             variant={
-                              campaign.responseRate >= 10 ? "default" : "secondary"
+                              campaign.responseRate >= 10
+                                ? "default"
+                                : "secondary"
                             }
                           >
                             {campaign.responseRate.toFixed(1)}%

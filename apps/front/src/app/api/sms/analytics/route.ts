@@ -172,7 +172,8 @@ export async function GET(
       failed,
       failureRate: totalOutbound > 0 ? (failed / totalOutbound) * 100 : 0,
       totalInbound,
-      responseRate: totalOutbound > 0 ? (totalInbound / totalOutbound) * 100 : 0,
+      responseRate:
+        totalOutbound > 0 ? (totalInbound / totalOutbound) * 100 : 0,
       optedOut,
       blacklistCount,
     };
