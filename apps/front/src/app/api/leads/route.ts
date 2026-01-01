@@ -25,13 +25,47 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
+    const action = searchParams.get("action");
+    const teamId = searchParams.get("teamId");
+
+    // Handle pipeline_stats action - return counts by pipeline stage
+    if (action === "pipeline_stats") {
+      const pipelineStages = ["raw", "ready", "queued", "sent", "replied", "booked"];
+      const pipeline: Record<string, number> = {};
+
+      for (const stage of pipelineStages) {
+        const conditions = [eq(leads.pipelineStatus, stage)];
+        if (teamId) {
+          conditions.push(eq(leads.teamId, teamId));
+        }
+
+        const [result] = await db
+          .select({ count: sqlCount() })
+          .from(leads)
+          .where(and(...conditions));
+
+        pipeline[stage] = result?.count || 0;
+      }
+
+      // Count active campaigns
+      const activeCampaignsConditions = teamId ? [eq(leads.teamId, teamId)] : [];
+      // For now, count leads with status "queued" or "sent" as active campaigns proxy
+      // TODO: Replace with actual campaigns table count
+      const activeCampaigns = pipeline.queued > 0 || pipeline.sent > 0 ? 1 : 0;
+
+      return NextResponse.json({
+        success: true,
+        pipeline,
+        activeCampaigns,
+      });
+    }
+
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "50");
     const status = searchParams.get("status");
     const source = searchParams.get("source");
     const priority = searchParams.get("priority");
     const search = searchParams.get("search");
-    const teamId = searchParams.get("teamId");
     const sortBy = searchParams.get("sortBy") || "createdAt";
     const sortOrder = searchParams.get("sortOrder") || "desc";
 

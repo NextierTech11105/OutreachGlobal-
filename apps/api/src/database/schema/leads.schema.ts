@@ -33,6 +33,8 @@ export const leads = pgTable(
     title: varchar(),
     company: varchar(),
     status: varchar(),
+    // Pipeline status: raw → ready → queued → sent → replied → booked
+    pipelineStatus: varchar().notNull().default("raw"),
     score: integer().notNull().default(0),
     tags: text().array(),
     zipCode: varchar(),
@@ -55,6 +57,8 @@ export const leads = pgTable(
     index("leads_phone_idx").on(t.phone),
     index("leads_team_phone_idx").on(t.teamId, t.phone),
     index("leads_team_status_idx").on(t.teamId, t.status),
+    // Pipeline status index for dashboard aggregations
+    index("leads_team_pipeline_idx").on(t.teamId, t.pipelineStatus),
   ],
 );
 

@@ -61,6 +61,9 @@ export class Lead extends TimestampModel implements LeadSelect {
   @StringField({ nullable: true })
   status: MaybeString;
 
+  @StringField({ defaultValue: "raw" })
+  pipelineStatus: string;
+
   @IntField({ defaultValue: 0 })
   score: number;
 

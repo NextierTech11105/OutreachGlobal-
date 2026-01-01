@@ -77,6 +77,8 @@ export const leads = pgTable(
 
     // === Status & Scoring ===
     status: text("status").default("new"),
+    // Pipeline status: raw → ready → queued → sent → replied → booked
+    pipelineStatus: text("pipeline_status").default("raw").notNull(),
     score: integer("score").default(0),
     tags: text("tags").array(),
 
@@ -100,6 +102,7 @@ export const leads = pgTable(
   (table) => ({
     teamIdIdx: index("leads_team_id_idx").on(table.teamId),
     statusIdx: index("leads_status_idx").on(table.status),
+    pipelineIdx: index("leads_pipeline_status_idx").on(table.pipelineStatus),
     scoreIdx: index("leads_score_idx").on(table.score),
   }),
 );
