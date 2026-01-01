@@ -226,26 +226,32 @@ const EXTENDED_CATHY_TEMPLATES: SmsTemplate[] = [
 ];
 
 // Combine all templates
-const COMBINED_TEMPLATES = [...ALL_EXAMPLE_TEMPLATES, ...EXTENDED_CATHY_TEMPLATES];
+const COMBINED_TEMPLATES = [
+  ...ALL_EXAMPLE_TEMPLATES,
+  ...EXTENDED_CATHY_TEMPLATES,
+];
 
 const WORKER_CONFIG = {
   gianna: {
     name: "GIANNA",
     icon: Zap,
     color: "text-purple-600 dark:text-purple-300",
-    bgColor: "bg-purple-100 dark:bg-purple-900/50 border border-purple-300 dark:border-purple-500/30",
+    bgColor:
+      "bg-purple-100 dark:bg-purple-900/50 border border-purple-300 dark:border-purple-500/30",
   },
   cathy: {
     name: "CATHY",
     icon: Bell,
     color: "text-orange-600 dark:text-orange-300",
-    bgColor: "bg-orange-100 dark:bg-orange-900/50 border border-orange-300 dark:border-orange-500/30",
+    bgColor:
+      "bg-orange-100 dark:bg-orange-900/50 border border-orange-300 dark:border-orange-500/30",
   },
   sabrina: {
     name: "SABRINA",
     icon: Calendar,
     color: "text-emerald-600 dark:text-emerald-300",
-    bgColor: "bg-emerald-100 dark:bg-emerald-900/50 border border-emerald-300 dark:border-emerald-500/30",
+    bgColor:
+      "bg-emerald-100 dark:bg-emerald-900/50 border border-emerald-300 dark:border-emerald-500/30",
   },
 };
 
@@ -255,35 +261,43 @@ const CATEGORY_CONFIG: Record<
 > = {
   initial: {
     label: "Initial",
-    color: "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-500/30",
+    color:
+      "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-500/30",
   },
   retarget: {
     label: "Retarget",
-    color: "bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300 border border-orange-300 dark:border-orange-500/30",
+    color:
+      "bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300 border border-orange-300 dark:border-orange-500/30",
   },
   nudge: {
     label: "Nudge",
-    color: "bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-500/30",
+    color:
+      "bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-500/30",
   },
   closer: {
     label: "Closer",
-    color: "bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30",
+    color:
+      "bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30",
   },
   breakup: {
     label: "Breakup",
-    color: "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 border border-red-300 dark:border-red-500/30",
+    color:
+      "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 border border-red-300 dark:border-red-500/30",
   },
   "value-drop": {
     label: "Value Drop",
-    color: "bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-500/30",
+    color:
+      "bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-500/30",
   },
   callback: {
     label: "Callback",
-    color: "bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-500/30",
+    color:
+      "bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-500/30",
   },
   "exit-expansion": {
     label: "Exit & Expansion",
-    color: "bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-500/30",
+    color:
+      "bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-500/30",
   },
 };
 
@@ -508,12 +522,10 @@ export function TemplateLibrary({
             className="pl-9"
           />
         </div>
-        {allowEdit && (
-          <Button onClick={() => setShowAddDialog(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Template
-          </Button>
-        )}
+        <Button onClick={() => setShowAddDialog(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Template
+        </Button>
       </div>
 
       {/* Worker Tabs */}
@@ -589,6 +601,74 @@ export function TemplateLibrary({
           </div>
         )}
       </ScrollArea>
+
+      {/* Add Template Dialog */}
+      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Add New Template</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Template Name</Label>
+                <Input placeholder="e.g., Warm Intro" className="mt-1" />
+              </div>
+              <div>
+                <Label>Worker</Label>
+                <Select defaultValue="gianna">
+                  <SelectTrigger className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="gianna">GIANNA - Initial Outreach</SelectItem>
+                    <SelectItem value="cathy">CATHY - Follow-up & Nudge</SelectItem>
+                    <SelectItem value="sabrina">SABRINA - Booking</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <Label>Category</Label>
+              <Select defaultValue="initial">
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="initial">Initial</SelectItem>
+                  <SelectItem value="retarget">Retarget</SelectItem>
+                  <SelectItem value="nudge">Nudge</SelectItem>
+                  <SelectItem value="closer">Closer</SelectItem>
+                  <SelectItem value="breakup">Breakup</SelectItem>
+                  <SelectItem value="value-drop">Value Drop</SelectItem>
+                  <SelectItem value="callback">Callback</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <div className="flex items-center justify-between">
+                <Label>Message Content</Label>
+                <span className="text-xs text-muted-foreground">0 / 160 chars</span>
+              </div>
+              <Textarea
+                placeholder="Hey {firstName}, ..."
+                className="mt-1 h-24 font-mono text-sm"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Variables: {"{firstName}"}, {"{lastName}"}, {"{companyName}"}, {"{industry}"}, {"{city}"}
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => setShowAddDialog(false)}>
+              Save Template
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Preview Dialog */}
       {previewTemplate && (

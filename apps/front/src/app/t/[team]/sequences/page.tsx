@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { SequenceDesigner } from "@/components/sequence-designer";
 import {
-  SEQUENCE_PRESETS,
+  SEQUENCE_EXAMPLE_PRESETS,
   WORKER_META,
 } from "@/lib/templates/nextier-defaults";
 import {
@@ -265,7 +265,7 @@ export default function SequencesPage() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-3 gap-4">
-            {SEQUENCE_PRESETS.map((preset) => (
+            {SEQUENCE_EXAMPLE_PRESETS.map((preset) => (
               <Card
                 key={preset.id}
                 className="cursor-pointer hover:shadow-md transition-shadow"
