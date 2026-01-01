@@ -90,7 +90,8 @@ export function AdminSidebar() {
         pathname.startsWith("/admin/campaigns") ||
         pathname === "/admin/message-templates" ||
         pathname === "/admin/ai-sdr" ||
-        pathname === "/admin/digital-workers",
+        pathname === "/admin/digital-workers" ||
+        pathname === "/admin/inbound-processing",
       children: [
         {
           href: "/admin/digital-workers",
@@ -112,6 +113,11 @@ export function AdminSidebar() {
           active:
             pathname === "/admin/message-templates" ||
             pathname === "/admin/prompt-library",
+        },
+        {
+          href: "/admin/inbound-processing",
+          label: "Inbound Config",
+          active: pathname === "/admin/inbound-processing",
         },
       ],
     },

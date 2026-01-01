@@ -88,16 +88,8 @@ interface CampaignBlock {
   signals: number; // Stacking weight from responses
 }
 
-// Demo data - would come from API
-const INITIAL_BLOCKS: CampaignBlock[] = [
-  { id: "1", type: "initial", count: 847, target: 2000, responseRate: 12, status: "active", signals: 3 },
-  { id: "2", type: "initial", count: 2000, target: 2000, responseRate: 18, status: "complete", signals: 5 },
-  { id: "3", type: "retarget", count: 423, target: 2000, responseRate: 8, status: "active", signals: 2 },
-  { id: "4", type: "nudger", count: 0, target: 2000, responseRate: 0, status: "idle", signals: 0 },
-  { id: "5", type: "nurture", count: 156, target: 2000, responseRate: 22, status: "paused", signals: 4 },
-  { id: "6", type: "book", count: 67, target: 2000, responseRate: 45, status: "active", signals: 6 },
-  { id: "7", type: "anchor", count: 1842, target: 10000, responseRate: 0, status: "idle", signals: 0 },
-];
+// Blocks loaded from API - starts empty
+const INITIAL_BLOCKS: CampaignBlock[] = [];
 
 interface BlockCardProps {
   block: CampaignBlock;
@@ -297,8 +289,16 @@ function MonthlyPool({ used, total }: MonthlyPoolProps) {
 export function CampaignBlocksBoard() {
   const [blocks, setBlocks] = useState<CampaignBlock[]>(INITIAL_BLOCKS);
   const [selectedBlock, setSelectedBlock] = useState<string | null>(null);
-  const [monthlyUsed, setMonthlyUsed] = useState(4535);
+  const [monthlyUsed, setMonthlyUsed] = useState(0);
   const [monthlyTotal] = useState(20000);
+
+  // TODO: Fetch real blocks from API
+  // useEffect(() => {
+  //   fetch('/api/campaigns/blocks').then(r => r.json()).then(data => {
+  //     setBlocks(data.blocks);
+  //     setMonthlyUsed(data.monthlyUsed);
+  //   });
+  // }, []);
 
   const handleActivate = useCallback((id: string) => {
     setBlocks(prev => prev.map(b =>

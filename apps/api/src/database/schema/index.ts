@@ -60,3 +60,6 @@ export * from "./recommendations.schema";
 
 // ===== NEVA AGENT (Deep Research & Enrichment) =====
 export * from "./neva.schema";
+
+// ===== CARTRIDGE EXECUTION MODEL =====
+export * from "./cartridges.schema";

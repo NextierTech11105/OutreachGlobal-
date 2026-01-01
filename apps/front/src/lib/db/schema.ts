@@ -2644,3 +2644,46 @@ export const recommendations = pgTable(
 
 export type Recommendation = typeof recommendations.$inferSelect;
 export type NewRecommendation = typeof recommendations.$inferInsert;
+
+// ============================================================
+// SYSTEM SETTINGS - Admin-configurable settings stored in DB
+// ============================================================
+
+/**
+ * SYSTEM_SETTINGS - Key-value store for admin-configurable settings
+ * Allows live editing from admin panel without redeployment
+ * Falls back to environment variables if not set
+ */
+export const systemSettings = pgTable(
+  "system_settings",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+
+    // Setting identification
+    key: text("key").notNull().unique(), // e.g., "CALL_QUEUE_GOLD_LABEL_PRIORITY"
+    value: text("value"), // Stored as string, parsed by application
+    category: text("category").notNull(), // "inbound_processing" | "sms" | "call_queue" | "sla"
+
+    // Metadata
+    label: text("label"), // Human-readable label for UI
+    description: text("description"), // Help text
+    valueType: text("value_type").notNull().default("string"), // "string" | "number" | "boolean"
+    defaultValue: text("default_value"), // Default if not set
+
+    // Validation
+    minValue: integer("min_value"), // For numbers
+    maxValue: integer("max_value"), // For numbers
+
+    // Tracking
+    updatedBy: text("updated_by"), // User who last updated
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    keyIdx: index("system_settings_key_idx").on(table.key),
+    categoryIdx: index("system_settings_category_idx").on(table.category),
+  })
+);
+
+export type SystemSetting = typeof systemSettings.$inferSelect;
+export type NewSystemSetting = typeof systemSettings.$inferInsert;

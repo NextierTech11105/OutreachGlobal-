@@ -1,21 +1,91 @@
 /**
  * INBOUND PROCESSING CONFIGURATION
  * ═══════════════════════════════════════════════════════════════════════════════
- * ALL thresholds and weights are config-driven. Operators fill values.
+ * ALL thresholds and weights are config-driven.
+ * Priority: Database (admin panel) > Environment Variables > Defaults
  * DO NOT hardcode numeric values in processing logic.
  *
- * RULE: If config value is null (not set), SKIP the feature and log warning.
- *       Do NOT throw errors for missing config.
+ * Backend is source of truth - UI only renders state.
  * ═══════════════════════════════════════════════════════════════════════════════
  */
 
+import { db } from "@/lib/db";
+import { systemSettings } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
+
+// Cache for DB settings (refresh every 60 seconds)
+let dbSettingsCache: Map<string, string> | null = null;
+let cacheTimestamp = 0;
+const CACHE_TTL = 60000; // 1 minute
+
+/**
+ * Load settings from database (with caching)
+ */
+async function loadDbSettings(): Promise<Map<string, string>> {
+  const now = Date.now();
+  if (dbSettingsCache && now - cacheTimestamp < CACHE_TTL) {
+    return dbSettingsCache;
+  }
+
+  try {
+    const settings = await db
+      .select()
+      .from(systemSettings)
+      .where(eq(systemSettings.category, "inbound_processing"));
+
+    dbSettingsCache = new Map(
+      settings.map((s) => [s.key, s.value || ""])
+    );
+    cacheTimestamp = now;
+    return dbSettingsCache;
+  } catch (error) {
+    console.warn("[InboundConfig] Failed to load DB settings, using env vars:", error);
+    return new Map();
+  }
+}
+
+/**
+ * Get a config value with priority: DB > ENV > default
+ */
+function getConfigValue(
+  dbSettings: Map<string, string>,
+  key: string,
+  defaultValue?: string
+): string | null {
+  // Priority 1: Database
+  const dbValue = dbSettings.get(key);
+  if (dbValue !== undefined && dbValue !== "") {
+    return dbValue;
+  }
+
+  // Priority 2: Environment variable
+  const envValue = process.env[key];
+  if (envValue !== undefined && envValue.trim() !== "") {
+    return envValue;
+  }
+
+  // Priority 3: Default
+  return defaultValue || null;
+}
+
+/**
+ * Clear the settings cache (call after admin updates)
+ */
+export function clearConfigCache(): void {
+  dbSettingsCache = null;
+  cacheTimestamp = 0;
+}
+
+/**
+ * Config interface - all values nullable (null = not configured)
+ */
 export interface InboundProcessingConfig {
   // Call Queue Routing
   CALL_QUEUE_PRIORITY_THRESHOLD: number | null;
   CALL_QUEUE_GOLD_LABEL_PRIORITY: number | null;
   CALL_QUEUE_GREEN_TAG_PRIORITY: number | null;
 
-  // Priority Weights (for priority score calculation)
+  // Priority Weights (added to lead score when label applied)
   WEIGHT_EMAIL_CAPTURED: number | null;
   WEIGHT_MOBILE_CAPTURED: number | null;
   WEIGHT_CONTACT_VERIFIED: number | null;
@@ -42,12 +112,12 @@ export interface InboundProcessingConfig {
  * Config keys as constants for type-safe access
  */
 export const CONFIG_KEYS = {
-  // Call Queue
+  // Call Queue Routing
   CALL_QUEUE_PRIORITY_THRESHOLD: "CALL_QUEUE_PRIORITY_THRESHOLD",
   CALL_QUEUE_GOLD_LABEL_PRIORITY: "CALL_QUEUE_GOLD_LABEL_PRIORITY",
   CALL_QUEUE_GREEN_TAG_PRIORITY: "CALL_QUEUE_GREEN_TAG_PRIORITY",
 
-  // Weights
+  // Priority Weights
   WEIGHT_EMAIL_CAPTURED: "WEIGHT_EMAIL_CAPTURED",
   WEIGHT_MOBILE_CAPTURED: "WEIGHT_MOBILE_CAPTURED",
   WEIGHT_CONTACT_VERIFIED: "WEIGHT_CONTACT_VERIFIED",
@@ -56,11 +126,11 @@ export const CONFIG_KEYS = {
   WEIGHT_HIGH_INTENT: "WEIGHT_HIGH_INTENT",
   WEIGHT_INBOUND_RESPONSE: "WEIGHT_INBOUND_RESPONSE",
 
-  // Retry
+  // Retry/Cooldown
   MAX_RETRY_ATTEMPTS: "MAX_RETRY_ATTEMPTS",
   RETRY_COOLDOWN_HOURS: "RETRY_COOLDOWN_HOURS",
 
-  // Batch
+  // Batch Limits
   DAILY_BATCH_SIZE: "DAILY_BATCH_SIZE",
   SMS_BATCH_SIZE: "SMS_BATCH_SIZE",
 
@@ -70,126 +140,173 @@ export const CONFIG_KEYS = {
   LOG_LEAD_EVENTS: "LOG_LEAD_EVENTS",
 } as const;
 
-export type ConfigKey = (typeof CONFIG_KEYS)[keyof typeof CONFIG_KEYS];
-
 /**
- * Parse environment variable as number or null
+ * Parse value as number (returns null if not set or invalid)
  */
-function envNumber(key: string): number | null {
-  const val = process.env[key];
+function parseNumber(val: string | null): number | null {
   if (!val || val.trim() === "") return null;
   const parsed = parseInt(val, 10);
-  return isNaN(parsed) ? null : parsed;
-}
-
-/**
- * Parse environment variable as boolean (defaults to false if not set)
- */
-function envBool(key: string): boolean {
-  const val = process.env[key];
-  return val === "true" || val === "1";
-}
-
-/**
- * Load inbound processing config from environment variables
- *
- * IMPORTANT: All numeric values are null if not set.
- * Processing logic should check for null and skip/warn accordingly.
- */
-export function loadInboundConfig(): InboundProcessingConfig {
-  const config: InboundProcessingConfig = {
-    // Call Queue
-    CALL_QUEUE_PRIORITY_THRESHOLD: envNumber(
-      CONFIG_KEYS.CALL_QUEUE_PRIORITY_THRESHOLD,
-    ),
-    CALL_QUEUE_GOLD_LABEL_PRIORITY: envNumber(
-      CONFIG_KEYS.CALL_QUEUE_GOLD_LABEL_PRIORITY,
-    ),
-    CALL_QUEUE_GREEN_TAG_PRIORITY: envNumber(
-      CONFIG_KEYS.CALL_QUEUE_GREEN_TAG_PRIORITY,
-    ),
-
-    // Weights
-    WEIGHT_EMAIL_CAPTURED: envNumber(CONFIG_KEYS.WEIGHT_EMAIL_CAPTURED),
-    WEIGHT_MOBILE_CAPTURED: envNumber(CONFIG_KEYS.WEIGHT_MOBILE_CAPTURED),
-    WEIGHT_CONTACT_VERIFIED: envNumber(CONFIG_KEYS.WEIGHT_CONTACT_VERIFIED),
-    WEIGHT_WANTS_CALL: envNumber(CONFIG_KEYS.WEIGHT_WANTS_CALL),
-    WEIGHT_QUESTION_ASKED: envNumber(CONFIG_KEYS.WEIGHT_QUESTION_ASKED),
-    WEIGHT_HIGH_INTENT: envNumber(CONFIG_KEYS.WEIGHT_HIGH_INTENT),
-    WEIGHT_INBOUND_RESPONSE: envNumber(CONFIG_KEYS.WEIGHT_INBOUND_RESPONSE),
-
-    // Retry
-    MAX_RETRY_ATTEMPTS: envNumber(CONFIG_KEYS.MAX_RETRY_ATTEMPTS),
-    RETRY_COOLDOWN_HOURS: envNumber(CONFIG_KEYS.RETRY_COOLDOWN_HOURS),
-
-    // Batch
-    DAILY_BATCH_SIZE: envNumber(CONFIG_KEYS.DAILY_BATCH_SIZE),
-    SMS_BATCH_SIZE: envNumber(CONFIG_KEYS.SMS_BATCH_SIZE),
-
-    // Feature Flags (default false)
-    AUTO_ROUTE_TO_CALL_CENTER: envBool(CONFIG_KEYS.AUTO_ROUTE_TO_CALL_CENTER),
-    AUTO_RESOLVE_THREADS: envBool(CONFIG_KEYS.AUTO_RESOLVE_THREADS),
-    LOG_LEAD_EVENTS: envBool(CONFIG_KEYS.LOG_LEAD_EVENTS),
-  };
-
-  // Log warnings for missing critical config (but don't fail)
-  if (config.CALL_QUEUE_PRIORITY_THRESHOLD === null) {
-    console.warn(
-      `[InboundConfig] ${CONFIG_KEYS.CALL_QUEUE_PRIORITY_THRESHOLD} not set - call queue routing will use label-based logic only`,
-    );
+  if (isNaN(parsed)) {
+    return null;
   }
-
-  return config;
+  return parsed;
 }
 
 /**
- * Singleton config instance
+ * Parse value as boolean (defaults to provided default if not set)
  */
-let _config: InboundProcessingConfig | null = null;
+function parseBool(val: string | null, defaultValue: boolean = false): boolean {
+  if (!val || val.trim() === "") return defaultValue;
+  return val.toLowerCase() === "true" || val === "1";
+}
 
 /**
- * Get the inbound processing config (cached singleton)
+ * Load inbound processing config from DB first, then environment
+ * Returns config with null values for unset keys (fail gracefully)
+ *
+ * Priority: Database (admin panel) > Environment Variables > Defaults
+ */
+export async function getInboundConfigAsync(): Promise<InboundProcessingConfig> {
+  const dbSettings = await loadDbSettings();
+
+  return {
+    // Call Queue Routing
+    CALL_QUEUE_PRIORITY_THRESHOLD: parseNumber(
+      getConfigValue(dbSettings, CONFIG_KEYS.CALL_QUEUE_PRIORITY_THRESHOLD, "50")
+    ),
+    CALL_QUEUE_GOLD_LABEL_PRIORITY: parseNumber(
+      getConfigValue(dbSettings, CONFIG_KEYS.CALL_QUEUE_GOLD_LABEL_PRIORITY, "100")
+    ),
+    CALL_QUEUE_GREEN_TAG_PRIORITY: parseNumber(
+      getConfigValue(dbSettings, CONFIG_KEYS.CALL_QUEUE_GREEN_TAG_PRIORITY, "75")
+    ),
+
+    // Priority Weights
+    WEIGHT_EMAIL_CAPTURED: parseNumber(
+      getConfigValue(dbSettings, CONFIG_KEYS.WEIGHT_EMAIL_CAPTURED, "50")
+    ),
+    WEIGHT_MOBILE_CAPTURED: parseNumber(
+      getConfigValue(dbSettings, CONFIG_KEYS.WEIGHT_MOBILE_CAPTURED, "50")
+    ),
+    WEIGHT_CONTACT_VERIFIED: parseNumber(
+      getConfigValue(dbSettings, CONFIG_KEYS.WEIGHT_CONTACT_VERIFIED, "0")
+    ),
+    WEIGHT_WANTS_CALL: parseNumber(
+      getConfigValue(dbSettings, CONFIG_KEYS.WEIGHT_WANTS_CALL, "35")
+    ),
+    WEIGHT_QUESTION_ASKED: parseNumber(
+      getConfigValue(dbSettings, CONFIG_KEYS.WEIGHT_QUESTION_ASKED, "15")
+    ),
+    WEIGHT_HIGH_INTENT: parseNumber(
+      getConfigValue(dbSettings, CONFIG_KEYS.WEIGHT_HIGH_INTENT, "30")
+    ),
+    WEIGHT_INBOUND_RESPONSE: parseNumber(
+      getConfigValue(dbSettings, CONFIG_KEYS.WEIGHT_INBOUND_RESPONSE, "25")
+    ),
+
+    // Retry/Cooldown
+    MAX_RETRY_ATTEMPTS: parseNumber(
+      getConfigValue(dbSettings, CONFIG_KEYS.MAX_RETRY_ATTEMPTS, "3")
+    ),
+    RETRY_COOLDOWN_HOURS: parseNumber(
+      getConfigValue(dbSettings, CONFIG_KEYS.RETRY_COOLDOWN_HOURS, "24")
+    ),
+
+    // Batch Limits
+    DAILY_BATCH_SIZE: parseNumber(
+      getConfigValue(dbSettings, CONFIG_KEYS.DAILY_BATCH_SIZE, "2000")
+    ),
+    SMS_BATCH_SIZE: parseNumber(
+      getConfigValue(dbSettings, CONFIG_KEYS.SMS_BATCH_SIZE, "250")
+    ),
+
+    // Feature Flags (default to true for auto-processing)
+    AUTO_ROUTE_TO_CALL_CENTER: parseBool(
+      getConfigValue(dbSettings, CONFIG_KEYS.AUTO_ROUTE_TO_CALL_CENTER, "true"),
+      true
+    ),
+    AUTO_RESOLVE_THREADS: parseBool(
+      getConfigValue(dbSettings, CONFIG_KEYS.AUTO_RESOLVE_THREADS, "true"),
+      true
+    ),
+    LOG_LEAD_EVENTS: parseBool(
+      getConfigValue(dbSettings, CONFIG_KEYS.LOG_LEAD_EVENTS, "false"),
+      false
+    ),
+  };
+}
+
+/**
+ * Synchronous version using only env vars (for cases where async isn't possible)
+ * Falls back to env vars only - use getInboundConfigAsync when possible
  */
 export function getInboundConfig(): InboundProcessingConfig {
-  if (!_config) {
-    _config = loadInboundConfig();
-    console.log(
-      "[InboundConfig] Configuration loaded",
-      JSON.stringify(
-        {
-          CALL_QUEUE_PRIORITY_THRESHOLD: _config.CALL_QUEUE_PRIORITY_THRESHOLD,
-          AUTO_ROUTE_TO_CALL_CENTER: _config.AUTO_ROUTE_TO_CALL_CENTER,
-          AUTO_RESOLVE_THREADS: _config.AUTO_RESOLVE_THREADS,
-        },
-        null,
-        2,
-      ),
-    );
+  const envVal = (key: string, defaultVal?: string) => {
+    const val = process.env[key];
+    return val && val.trim() !== "" ? val : defaultVal || null;
+  };
+
+  return {
+    CALL_QUEUE_PRIORITY_THRESHOLD: parseNumber(envVal(CONFIG_KEYS.CALL_QUEUE_PRIORITY_THRESHOLD, "50")),
+    CALL_QUEUE_GOLD_LABEL_PRIORITY: parseNumber(envVal(CONFIG_KEYS.CALL_QUEUE_GOLD_LABEL_PRIORITY, "100")),
+    CALL_QUEUE_GREEN_TAG_PRIORITY: parseNumber(envVal(CONFIG_KEYS.CALL_QUEUE_GREEN_TAG_PRIORITY, "75")),
+    WEIGHT_EMAIL_CAPTURED: parseNumber(envVal(CONFIG_KEYS.WEIGHT_EMAIL_CAPTURED, "50")),
+    WEIGHT_MOBILE_CAPTURED: parseNumber(envVal(CONFIG_KEYS.WEIGHT_MOBILE_CAPTURED, "50")),
+    WEIGHT_CONTACT_VERIFIED: parseNumber(envVal(CONFIG_KEYS.WEIGHT_CONTACT_VERIFIED, "0")),
+    WEIGHT_WANTS_CALL: parseNumber(envVal(CONFIG_KEYS.WEIGHT_WANTS_CALL, "35")),
+    WEIGHT_QUESTION_ASKED: parseNumber(envVal(CONFIG_KEYS.WEIGHT_QUESTION_ASKED, "15")),
+    WEIGHT_HIGH_INTENT: parseNumber(envVal(CONFIG_KEYS.WEIGHT_HIGH_INTENT, "30")),
+    WEIGHT_INBOUND_RESPONSE: parseNumber(envVal(CONFIG_KEYS.WEIGHT_INBOUND_RESPONSE, "25")),
+    MAX_RETRY_ATTEMPTS: parseNumber(envVal(CONFIG_KEYS.MAX_RETRY_ATTEMPTS, "3")),
+    RETRY_COOLDOWN_HOURS: parseNumber(envVal(CONFIG_KEYS.RETRY_COOLDOWN_HOURS, "24")),
+    DAILY_BATCH_SIZE: parseNumber(envVal(CONFIG_KEYS.DAILY_BATCH_SIZE, "2000")),
+    SMS_BATCH_SIZE: parseNumber(envVal(CONFIG_KEYS.SMS_BATCH_SIZE, "250")),
+    AUTO_ROUTE_TO_CALL_CENTER: parseBool(envVal(CONFIG_KEYS.AUTO_ROUTE_TO_CALL_CENTER, "true"), true),
+    AUTO_RESOLVE_THREADS: parseBool(envVal(CONFIG_KEYS.AUTO_RESOLVE_THREADS, "true"), true),
+    LOG_LEAD_EVENTS: parseBool(envVal(CONFIG_KEYS.LOG_LEAD_EVENTS, "false"), false),
+  };
+}
+
+/**
+ * Validate that required config values are set
+ * Returns list of missing keys (empty = all good)
+ */
+export function validateInboundConfig(
+  config: InboundProcessingConfig,
+): string[] {
+  const missing: string[] = [];
+
+  // Required for call queue routing
+  if (config.CALL_QUEUE_PRIORITY_THRESHOLD === null) {
+    missing.push(CONFIG_KEYS.CALL_QUEUE_PRIORITY_THRESHOLD);
   }
-  return _config;
+
+  return missing;
 }
 
 /**
- * Reset config (for testing)
+ * Log config status on startup (for debugging)
  */
-export function resetInboundConfig(): void {
-  _config = null;
-}
-
-/**
- * Check if a specific config key is set
- */
-export function isConfigSet(key: keyof InboundProcessingConfig): boolean {
+export function logConfigStatus(): void {
   const config = getInboundConfig();
-  const value = config[key];
-  return value !== null && value !== undefined;
-}
+  const missing = validateInboundConfig(config);
 
-/**
- * Get config value with type safety, returns null if not set
- */
-export function getConfigValue<K extends keyof InboundProcessingConfig>(
-  key: K,
-): InboundProcessingConfig[K] {
-  return getInboundConfig()[key];
+  console.log("[InboundConfig] Configuration loaded:");
+  console.log(
+    `  - CALL_QUEUE_PRIORITY_THRESHOLD: ${config.CALL_QUEUE_PRIORITY_THRESHOLD ?? "(not set)"}`,
+  );
+  console.log(
+    `  - CALL_QUEUE_GOLD_LABEL_PRIORITY: ${config.CALL_QUEUE_GOLD_LABEL_PRIORITY ?? "(not set)"}`,
+  );
+  console.log(
+    `  - CALL_QUEUE_GREEN_TAG_PRIORITY: ${config.CALL_QUEUE_GREEN_TAG_PRIORITY ?? "(not set)"}`,
+  );
+  console.log(
+    `  - AUTO_ROUTE_TO_CALL_CENTER: ${config.AUTO_ROUTE_TO_CALL_CENTER}`,
+  );
+  console.log(`  - AUTO_RESOLVE_THREADS: ${config.AUTO_RESOLVE_THREADS}`);
+
+  if (missing.length > 0) {
+    console.warn(`[InboundConfig] Missing config keys: ${missing.join(", ")}`);
+  }
 }

@@ -1,15 +1,28 @@
 /**
- * NEXTIER DEFAULT SMS TEMPLATE LIBRARY
+ * NEXTIER SMS TEMPLATE REFERENCE LIBRARY
+ * ═══════════════════════════════════════════════════════════════════════════════
  *
- * Pre-loaded templates for Nextier Technologies and sub-brands.
- * Other tenants get custom template libraries (charged service).
+ * ⚠️  IMPORTANT: These are EXAMPLES for reference only, NOT auto-loaded defaults.
  *
- * VERTICALS:
+ * Each client starts with NOTHING and builds proprietary cartridges:
+ * - Templates are custom-built per client based on their business model
+ * - Cartridges are assembled with client-approved messaging
+ * - All templates must be under 160 characters (single SMS segment)
+ * - Tone escalation: Authority → Curiosity → Direct → Humor → Final
+ *
+ * This file serves as:
+ * - Reference patterns for template structure
+ * - Variable token documentation
+ * - Compliance rule definitions
+ * - Worker role specifications
+ *
+ * VERTICALS (client types we support):
  * - CRM Consultant Partnerships
  * - Business Brokering (Trades M&A)
  * - Real Estate Agents
  * - Alternative Lending
  * - White Label Solutions
+ * ═══════════════════════════════════════════════════════════════════════════════
  */
 
 export type TemplateCategory =
@@ -19,7 +32,8 @@ export type TemplateCategory =
   | "closer" // Booking push - SABRINA
   | "breakup" // Final attempt before archive
   | "value-drop" // Content/case study share
-  | "callback"; // Response to inbound
+  | "callback" // Response to inbound
+  | "exit-expansion"; // Exit strategy & expansion prep
 
 export type WorkerType = "gianna" | "cathy" | "sabrina";
 
@@ -57,184 +71,342 @@ export const TEMPLATE_VARIABLES = {
 } as const;
 
 // ============================================
-// GIANNA TEMPLATES (Opener)
+// GIANNA TEMPLATES (Opener) - EXAMPLES ONLY
 // ============================================
+// These demonstrate proper template structure.
+// Clients build their own templates based on their business.
 
-const GIANNA_TEMPLATES: SmsTemplate[] = [
-  // CRM CONSULTANT VERTICAL
+const GIANNA_EXAMPLE_TEMPLATES: SmsTemplate[] = [
+  // CRM CONSULTANT VERTICAL - All under 160 chars
   {
     id: "gianna-crm-intro-1",
     name: "CRM Consultant Opener",
     content:
-      "Hi {firstName}, I came across {companyName} and noticed you're in the consulting space. We help consultants like you automate lead gen so you can focus on closing. Quick question - are you currently using any outreach automation?",
+      "Hi {firstName}, {companyName} caught my eye. We help consultants automate lead gen. Using any outreach automation? Best email?",
     category: "initial",
     worker: "gianna",
     vertical: "crm-consultant",
     variables: ["firstName", "companyName"],
     complianceApproved: true,
-    characterCount: 289,
+    characterCount: 130,
   },
   {
     id: "gianna-crm-value-1",
     name: "CRM Value Proposition",
     content:
-      "Hey {firstName}! Just following up. We've helped consultants in {city} book 3-5 extra calls per week on autopilot. Would you be open to a quick 16-min chat to see if we can do the same for {companyName}?",
+      "{firstName} - consultants in {city} are booking 3-5 extra calls/week on autopilot. 15-min chat? Best email for {companyName}?",
     category: "initial",
     worker: "gianna",
     vertical: "crm-consultant",
     variables: ["firstName", "city", "companyName"],
     complianceApproved: true,
-    characterCount: 248,
+    characterCount: 132,
   },
 
-  // BUSINESS BROKER VERTICAL
+  // BUSINESS BROKER VERTICAL - All under 160 chars
   {
     id: "gianna-broker-intro-1",
     name: "Business Broker Opener",
     content:
-      "Hi {firstName}, I'm reaching out to {companyName} owners who might be thinking about their exit strategy. Whether it's 2 years out or 10, we help trades businesses maximize their value. Is this something on your radar?",
+      "{firstName}, thinking about your exit strategy for {companyName}? We help trades maximize value. Is this on your radar?",
     category: "initial",
     worker: "gianna",
     vertical: "business-broker",
     variables: ["firstName", "companyName"],
     complianceApproved: true,
-    characterCount: 268,
+    characterCount: 126,
   },
   {
     id: "gianna-broker-exit-1",
     name: "Exit Strategy Intro",
     content:
-      "Hey {firstName}! Quick q - have you ever thought about what {companyName} would be worth if you decided to sell? Most {industry} owners leave 20-40% on the table. Happy to share what we're seeing in the market.",
+      "{firstName}, know what {companyName} is worth? Most {industry} owners leave 20-40% on the table. Want a quick valuation?",
     category: "initial",
     worker: "gianna",
     vertical: "business-broker",
     variables: ["firstName", "companyName", "industry"],
     complianceApproved: true,
-    characterCount: 254,
+    characterCount: 125,
   },
 
-  // REAL ESTATE VERTICAL
+  // REAL ESTATE VERTICAL - All under 160 chars
   {
     id: "gianna-realestate-intro-1",
     name: "Real Estate Agent Opener",
     content:
-      "Hi {firstName}! I noticed you're a top agent in {city}. We help agents like you generate 10-15 qualified seller leads per month without cold calling. Would you be open to a quick chat?",
+      "{firstName}, top agents in {city} are getting 10-15 seller leads/month without cold calling. Quick chat? Best email?",
     category: "initial",
     worker: "gianna",
     vertical: "real-estate",
     variables: ["firstName", "city"],
     complianceApproved: true,
-    characterCount: 218,
+    characterCount: 120,
   },
   {
     id: "gianna-realestate-tech-1",
     name: "Real Estate Tech Advantage",
     content:
-      "Hey {firstName}, quick follow up. Our AI outreach system is helping agents in {state} close 2-3 more listings per quarter. The tech does the prospecting so you can focus on showings. Worth 16 min to explore?",
+      "{firstName}, agents in {state} are closing 2-3 more listings/quarter with our AI. The tech prospects while you show. Worth 15 min?",
     category: "initial",
     worker: "gianna",
     vertical: "real-estate",
     variables: ["firstName", "state"],
     complianceApproved: true,
-    characterCount: 241,
+    characterCount: 135,
   },
 
-  // ALTERNATIVE LENDING VERTICAL
+  // ALTERNATIVE LENDING VERTICAL - Under 160 chars
   {
     id: "gianna-lending-intro-1",
     name: "Alt Lending Opener",
     content:
-      "Hi {firstName}, I'm reaching out because {companyName} might qualify for alternative financing options that most business owners don't know about. Are you currently exploring any growth capital?",
+      "{firstName}, {companyName} may qualify for growth capital most owners don't know about. Exploring any financing options?",
     category: "initial",
     worker: "gianna",
     vertical: "alternative-lending",
     variables: ["firstName", "companyName"],
     complianceApproved: true,
-    characterCount: 227,
+    characterCount: 126,
   },
 
-  // UNIVERSAL TEMPLATES
+  // EXIT & EXPANSION TEMPLATES - New category
+  {
+    id: "gianna-exit-valuation-1",
+    name: "Valuation Curiosity",
+    content:
+      "Hey {firstName}, ever wonder what {companyName} could sell for? I can get you a valuation. Best email?",
+    category: "exit-expansion",
+    worker: "gianna",
+    vertical: "business-broker",
+    variables: ["firstName", "companyName"],
+    complianceApproved: true,
+    characterCount: 104,
+  },
+  {
+    id: "gianna-exit-hidden-value-1",
+    name: "Hidden Value",
+    content:
+      "{firstName}, most owners have no idea what they're sitting on. Want a quick valuation? Best email to send it?",
+    category: "exit-expansion",
+    worker: "gianna",
+    vertical: "business-broker",
+    variables: ["firstName"],
+    complianceApproved: true,
+    characterCount: 112,
+  },
+  {
+    id: "gianna-exit-expand-1",
+    name: "Expand or Exit",
+    content:
+      "Thinking about expanding or exiting {companyName}? I can get you a clean valuation. What's a good email, {firstName}?",
+    category: "exit-expansion",
+    worker: "gianna",
+    vertical: "business-broker",
+    variables: ["firstName", "companyName"],
+    complianceApproved: true,
+    characterCount: 120,
+  },
+  {
+    id: "gianna-exit-know-number-1",
+    name: "Know Your Number",
+    content:
+      "Curious {firstName} — do you know what {companyName} would sell for right now? I can show you. Best email?",
+    category: "exit-expansion",
+    worker: "gianna",
+    vertical: "business-broker",
+    variables: ["firstName", "companyName"],
+    complianceApproved: true,
+    characterCount: 108,
+  },
+  {
+    id: "gianna-exit-tomorrow-1",
+    name: "Tomorrow's Offer",
+    content:
+      "If someone made you an offer tomorrow {firstName} — do you know your number? I can get you a valuation. Email?",
+    category: "exit-expansion",
+    worker: "gianna",
+    vertical: "business-broker",
+    variables: ["firstName"],
+    complianceApproved: true,
+    characterCount: 113,
+  },
+  {
+    id: "gianna-exit-horizon-1",
+    name: "1-2 Year Horizon",
+    content:
+      "{firstName}, thinking expansion or exit in the next year or two? I can get you a valuation for {companyName}. Email?",
+    category: "exit-expansion",
+    worker: "gianna",
+    vertical: "business-broker",
+    variables: ["firstName", "companyName"],
+    complianceApproved: true,
+    characterCount: 120,
+  },
+  {
+    id: "gianna-exit-this-week-1",
+    name: "This Week",
+    content:
+      "I can run your business valuation this week {firstName}. Want it? What's the best email for you?",
+    category: "exit-expansion",
+    worker: "gianna",
+    vertical: "business-broker",
+    variables: ["firstName"],
+    complianceApproved: true,
+    characterCount: 100,
+  },
+  {
+    id: "gianna-exit-market-value-1",
+    name: "Market Value",
+    content:
+      "{firstName}, do you know {companyName}'s current market value? I can get it for you. Best email?",
+    category: "exit-expansion",
+    worker: "gianna",
+    vertical: "business-broker",
+    variables: ["firstName", "companyName"],
+    complianceApproved: true,
+    characterCount: 100,
+  },
+
+  // UNIVERSAL TEMPLATES - Under 160 chars
   {
     id: "gianna-universal-intro-1",
     name: "Generic Professional Opener",
     content:
-      "Hi {firstName}, I came across {companyName} and wanted to reach out. We help {industry} businesses grow through automated outreach. Would you be open to a quick conversation?",
+      "Hi {firstName}, came across {companyName}. We help {industry} businesses grow via automated outreach. Open to a quick chat?",
     category: "initial",
     worker: "gianna",
     vertical: "universal",
     variables: ["firstName", "companyName", "industry"],
     complianceApproved: true,
-    characterCount: 208,
+    characterCount: 128,
   },
 ];
 
 // ============================================
-// CATHY TEMPLATES (Nudger)
+// CATHY TEMPLATES (Nudger) - EXAMPLES ONLY
 // ============================================
+// Demonstrates tone escalation: Authority → Curiosity → Direct → Humor → Final
 
-const CATHY_TEMPLATES: SmsTemplate[] = [
-  // FRIENDLY NUDGES
+const CATHY_EXAMPLE_TEMPLATES: SmsTemplate[] = [
+  // TONE ESCALATION: Authority → Curiosity → Direct → Humor → Final
+  // All under 160 chars
+
+  // AUTHORITY NUDGES (Attempt 2)
   {
-    id: "cathy-nudge-friendly-1",
-    name: "Friendly Check-in",
+    id: "cathy-nudge-authority-1",
+    name: "Authority Check-in",
     content:
-      "Hey {firstName}! Just bumping this up in case it got buried. I know you're busy running {companyName}. Let me know if you'd like to chat - even a 10-min call could be valuable.",
-    category: "nudge",
-    worker: "cathy",
-    vertical: "universal",
-    variables: ["firstName", "companyName"],
-    complianceApproved: true,
-    characterCount: 214,
-  },
-  {
-    id: "cathy-nudge-humor-1",
-    name: "Light Humor Nudge",
-    content:
-      "Hey {firstName} - I promise I'm not a robot! 🤖 Just checking if you saw my last message. Would love to share how we're helping other {industry} businesses. Worth a quick call?",
+      "{firstName}, following up on my message. We've helped {industry} companies grow 40%+ with our system. Worth a quick look?",
     category: "nudge",
     worker: "cathy",
     vertical: "universal",
     variables: ["firstName", "industry"],
     complianceApproved: true,
-    characterCount: 204,
+    characterCount: 124,
   },
+
+  // CURIOSITY NUDGES (Attempt 3)
   {
     id: "cathy-nudge-curiosity-1",
     name: "Curiosity Hook",
     content:
-      "Quick thought {firstName} - what if I told you we could add 5+ warm leads to your pipeline every week without you lifting a finger? That's what we did for a {industry} company last month.",
+      "{firstName} - what if I told you we could add 5+ leads/week to your pipeline on autopilot? That's what we did last month.",
+    category: "nudge",
+    worker: "cathy",
+    vertical: "universal",
+    variables: ["firstName"],
+    complianceApproved: true,
+    characterCount: 124,
+  },
+  {
+    id: "cathy-nudge-curiosity-2",
+    name: "Hidden Insight",
+    content:
+      "Quick question {firstName} — do you know what your competitors are doing for lead gen? I can share what's working in {industry}.",
     category: "nudge",
     worker: "cathy",
     vertical: "universal",
     variables: ["firstName", "industry"],
     complianceApproved: true,
-    characterCount: 222,
+    characterCount: 135,
   },
 
-  // RETARGET TEMPLATES
+  // DIRECT NUDGES (Attempt 4)
+  {
+    id: "cathy-nudge-direct-1",
+    name: "Direct Ask",
+    content:
+      "{firstName}, straight up — is this worth 15 min to explore? If not, just say so. If yes, I'll get you on with Thomas.",
+    category: "nudge",
+    worker: "cathy",
+    vertical: "universal",
+    variables: ["firstName"],
+    complianceApproved: true,
+    characterCount: 120,
+  },
+  {
+    id: "cathy-nudge-direct-2",
+    name: "Cut to Chase",
+    content:
+      "Hey {firstName}, I'll be direct: yes or no on a 15-min discovery call? Either answer works for me.",
+    category: "nudge",
+    worker: "cathy",
+    vertical: "universal",
+    variables: ["firstName"],
+    complianceApproved: true,
+    characterCount: 99,
+  },
+
+  // HUMOR NUDGES (Attempt 5 - before final)
+  {
+    id: "cathy-nudge-humor-1",
+    name: "Light Humor",
+    content:
+      "{firstName} — promise I'm not a robot. Just checking if you saw my note. Worth a quick call to chat {industry} growth?",
+    category: "nudge",
+    worker: "cathy",
+    vertical: "universal",
+    variables: ["firstName", "industry"],
+    complianceApproved: true,
+    characterCount: 121,
+  },
+  {
+    id: "cathy-nudge-humor-2",
+    name: "Self-Aware",
+    content:
+      "I know you're slammed {firstName}. Last nudge, I promise. 15 min with Thomas could be the best ROI of your week.",
+    category: "nudge",
+    worker: "cathy",
+    vertical: "universal",
+    variables: ["firstName"],
+    complianceApproved: true,
+    characterCount: 116,
+  },
+
+  // RETARGET TEMPLATES - Context-aware follow-up
   {
     id: "cathy-retarget-1",
-    name: "Circling Back",
+    name: "New Angle",
     content:
-      "Hi {firstName}, circling back one more time. I know timing is everything - if now isn't right, just let me know and I'll reach out in a few months. But if you're curious, I'm here!",
+      "{firstName}, circling back with a different angle. If timing wasn't right before, happy to try again. Curious?",
     category: "retarget",
     worker: "cathy",
     vertical: "universal",
     variables: ["firstName"],
     complianceApproved: true,
-    characterCount: 213,
+    characterCount: 112,
   },
   {
     id: "cathy-retarget-casestudy-1",
     name: "Case Study Drop",
     content:
-      "Hey {firstName}! Quick update - we just helped a {industry} company in {state} increase their booked calls by 47%. Thought of {companyName} immediately. Want me to share how?",
+      "{firstName} — just helped a {industry} company in {state} boost booked calls 47%. Thought of {companyName}. Want the playbook?",
     category: "retarget",
     worker: "cathy",
     vertical: "universal",
     variables: ["firstName", "industry", "state", "companyName"],
     complianceApproved: true,
-    characterCount: 211,
+    characterCount: 130,
   },
 
   // VALUE DROPS
@@ -242,120 +414,203 @@ const CATHY_TEMPLATES: SmsTemplate[] = [
     id: "cathy-value-roi-1",
     name: "ROI Value Drop",
     content:
-      "{firstName} - fun fact: our clients see an average 340% ROI on their outreach investment in the first 90 days. Happy to show you the numbers if you're interested.",
+      "{firstName} — clients see 340% ROI in 90 days. Happy to show you the numbers if you're curious.",
     category: "value-drop",
     worker: "cathy",
     vertical: "universal",
     variables: ["firstName"],
     complianceApproved: true,
-    characterCount: 189,
+    characterCount: 99,
   },
 ];
 
 // ============================================
-// SABRINA TEMPLATES (Closer/Booker)
+// SABRINA TEMPLATES (Closer/Booker) - EXAMPLES ONLY
 // ============================================
+// Demonstrates booking and objection handling patterns
 
-const SABRINA_TEMPLATES: SmsTemplate[] = [
+const SABRINA_EXAMPLE_TEMPLATES: SmsTemplate[] = [
+  // CLOSER TEMPLATES - Goal: 15-min discovery call with Thomas
+  // All under 160 chars
+
   // BOOKING TEMPLATES
   {
     id: "sabrina-book-direct-1",
     name: "Direct Booking Ask",
     content:
-      "Hi {firstName}! I'd love to get you on a quick 16-min discovery call with Thomas, our founder. He personally helps {industry} businesses grow. Here's his calendar: {calendarLink}",
+      "{firstName}, let's get you 15 min with Thomas (our founder). He'll show you the system. Calendar: {calendarLink}",
     category: "closer",
     worker: "sabrina",
     vertical: "universal",
-    variables: ["firstName", "industry", "calendarLink"],
+    variables: ["firstName", "calendarLink"],
     complianceApproved: true,
-    characterCount: 208,
+    characterCount: 115,
   },
   {
     id: "sabrina-book-confirm-1",
     name: "Confirmation Request",
     content:
-      "Hey {firstName}! I have you down for a call with Thomas this week. Just confirming you're all set. Looking forward to it - he's excited to learn more about {companyName}!",
+      "{firstName}, confirming your call with Thomas this week. He's looking forward to learning more about {companyName}!",
     category: "closer",
     worker: "sabrina",
     vertical: "universal",
     variables: ["firstName", "companyName"],
     complianceApproved: true,
-    characterCount: 198,
+    characterCount: 118,
   },
   {
-    id: "sabrina-objection-time-1",
-    name: "Time Objection Handler",
+    id: "sabrina-book-urgency-1",
+    name: "This Week Slot",
     content:
-      "Totally get it {firstName}, you're slammed. That's exactly why the call is only 16 min - Thomas respects your time. What if we did next week when things calm down? {calendarLink}",
-    category: "closer",
-    worker: "sabrina",
-    vertical: "universal",
-    variables: ["firstName", "calendarLink"],
-    complianceApproved: true,
-    characterCount: 213,
-  },
-  {
-    id: "sabrina-objection-interest-1",
-    name: "Interest Objection Handler",
-    content:
-      "No worries {firstName}! Just curious - is it the timing, or are you all set with your current lead gen? If it's working great, I'd love to know your secret 😄",
+      "{firstName}, Thomas has a slot open Thursday. 15 min, no pitch — just seeing if there's a fit. Want it?",
     category: "closer",
     worker: "sabrina",
     vertical: "universal",
     variables: ["firstName"],
     complianceApproved: true,
-    characterCount: 186,
+    characterCount: 108,
   },
 
-  // CALLBACK RESPONSES
+  // OBJECTION HANDLERS
+  {
+    id: "sabrina-objection-time-1",
+    name: "Time Objection",
+    content:
+      "Get it {firstName}, you're slammed. Call is only 15 min — Thomas respects your time. Next week? {calendarLink}",
+    category: "closer",
+    worker: "sabrina",
+    vertical: "universal",
+    variables: ["firstName", "calendarLink"],
+    complianceApproved: true,
+    characterCount: 114,
+  },
+  {
+    id: "sabrina-objection-interest-1",
+    name: "Interest Check",
+    content:
+      "No worries {firstName}! Quick q — is it timing, or is your current lead gen working? Genuinely curious.",
+    category: "closer",
+    worker: "sabrina",
+    vertical: "universal",
+    variables: ["firstName"],
+    complianceApproved: true,
+    characterCount: 106,
+  },
+  {
+    id: "sabrina-objection-busy-1",
+    name: "Busy Handler",
+    content:
+      "{firstName}, totally understand busy. What if I send a 2-min video first? If it resonates, we book. Fair?",
+    category: "closer",
+    worker: "sabrina",
+    vertical: "universal",
+    variables: ["firstName"],
+    complianceApproved: true,
+    characterCount: 109,
+  },
+
+  // CALLBACK RESPONSES - Inbound reply handling
   {
     id: "sabrina-callback-positive-1",
-    name: "Positive Response Handler",
+    name: "Positive Response",
     content:
-      "That's great to hear {firstName}! Let me get you scheduled with Thomas for a 16-min discovery call. Here's his calendar - just pick a time that works: {calendarLink}",
+      "Great {firstName}! Let's get you on with Thomas — 15 min. Pick a time: {calendarLink}",
     category: "callback",
     worker: "sabrina",
     vertical: "universal",
     variables: ["firstName", "calendarLink"],
     complianceApproved: true,
-    characterCount: 195,
+    characterCount: 89,
+  },
+  {
+    id: "sabrina-callback-email-1",
+    name: "Email Captured",
+    content:
+      "Got it {firstName}! Sending the valuation info to that email now. Thomas will follow up to schedule a quick call.",
+    category: "callback",
+    worker: "sabrina",
+    vertical: "universal",
+    variables: ["firstName"],
+    complianceApproved: true,
+    characterCount: 115,
+  },
+  {
+    id: "sabrina-callback-question-1",
+    name: "Question Handler",
+    content:
+      "Great question {firstName}. Thomas can walk you through that on a 15-min call. When works? {calendarLink}",
+    category: "callback",
+    worker: "sabrina",
+    vertical: "universal",
+    variables: ["firstName", "calendarLink"],
+    complianceApproved: true,
+    characterCount: 109,
   },
 ];
 
 // ============================================
-// BREAKUP TEMPLATES
+// BREAKUP TEMPLATES - EXAMPLES ONLY
 // ============================================
+// Final messages before holstering - "Stopping is a feature, not a failure"
 
-const BREAKUP_TEMPLATES: SmsTemplate[] = [
+const BREAKUP_EXAMPLE_TEMPLATES: SmsTemplate[] = [
+  // FINAL/HOLSTER TEMPLATES (Attempt 5) - All under 160 chars
+  // Stopping is a feature, not a failure
   {
     id: "breakup-graceful-1",
     name: "Graceful Exit",
     content:
-      "Hey {firstName}, I don't want to be annoying so this will be my last message. If you ever want to explore how we help {industry} businesses grow, just reply 'YES' and I'll reach out. Take care!",
+      "Last note {firstName} — don't want to be a pest. If you ever want to chat {industry} growth, reply YES and I'll reach out. Take care!",
     category: "breakup",
     worker: "cathy",
     vertical: "universal",
     variables: ["firstName", "industry"],
     complianceApproved: true,
-    characterCount: 224,
+    characterCount: 138,
   },
   {
     id: "breakup-door-open-1",
     name: "Door Open Exit",
     content:
-      "Last note {firstName} - I'll leave the door open. If {companyName} ever needs help with automated lead gen, we'll be here. Wishing you continued success!",
+      "Signing off {firstName}. Door's always open if {companyName} ever needs lead gen help. Wishing you the best!",
     category: "breakup",
     worker: "cathy",
     vertical: "universal",
     variables: ["firstName", "companyName"],
     complianceApproved: true,
-    characterCount: 179,
+    characterCount: 112,
+  },
+  {
+    id: "breakup-respectful-1",
+    name: "Respectful Close",
+    content:
+      "{firstName}, I respect your time. This is my final message. If things change, I'm here. All the best to you and {companyName}.",
+    category: "breakup",
+    worker: "cathy",
+    vertical: "universal",
+    variables: ["firstName", "companyName"],
+    complianceApproved: true,
+    characterCount: 128,
+  },
+  {
+    id: "breakup-simple-1",
+    name: "Simple Close",
+    content:
+      "Final message {firstName}. No hard feelings — timing is everything. If you need us, we're here.",
+    category: "breakup",
+    worker: "cathy",
+    vertical: "universal",
+    variables: ["firstName"],
+    complianceApproved: true,
+    characterCount: 99,
   },
 ];
 
 // ============================================
-// SEQUENCE PRESETS
+// SEQUENCE PRESETS - EXAMPLES ONLY
 // ============================================
+// These show how cartridge sequences can be structured.
+// Each client builds their own sequences based on their messaging.
 
 export interface SequenceStep {
   id: string;
@@ -381,7 +636,7 @@ export interface SequencePreset {
   complianceScore: number; // 0-100
 }
 
-export const SEQUENCE_PRESETS: SequencePreset[] = [
+export const SEQUENCE_EXAMPLE_PRESETS: SequencePreset[] = [
   {
     id: "preset-crm-opener",
     name: "CRM Consultant Opener",
@@ -499,15 +754,34 @@ export const SEQUENCE_PRESETS: SequencePreset[] = [
 // COMPLIANCE RULES
 // ============================================
 
+/**
+ * NEXTIER COMPLIANCE & EXECUTION RULES
+ *
+ * Philosophy: Stopping is a feature, not a failure
+ * Model: 5 attempts per cartridge (Authority→Curiosity→Direct→Humor→Final)
+ * Goal: Turn repetition into learning, learning into inbound demand
+ */
 export const COMPLIANCE_RULES = {
+  // Character limits - single SMS segment
+  maxCharacterCount: 160, // Single SMS = lower cost, better delivery
+  softMaxCharCount: 140, // Leave room for variable expansion
+
+  // Attempt discipline - hard stop after 5
+  maxAttemptsPerCartridge: 5,
   minMessageSpacingHours: 24,
   maxMessagesBeforeEscalation: 3,
+
+  // Tone escalation sequence
+  toneSequence: ["authority", "curiosity", "direct", "humor", "final"],
+
+  // Business hours
   businessHoursStart: 9, // 9 AM
   businessHoursEnd: 20, // 8 PM
   allowWeekends: false,
-  maxCharacterCount: 320, // Standard SMS limit
+
+  // Compliance keywords
   requiredOptOut: true,
-  stopKeywords: ["STOP", "UNSUBSCRIBE", "CANCEL", "QUIT", "END"],
+  stopKeywords: ["STOP", "UNSUBSCRIBE", "CANCEL", "QUIT", "END", "REMOVE"],
   positiveKeywords: [
     "yes",
     "interested",
@@ -515,8 +789,23 @@ export const COMPLIANCE_RULES = {
     "sure",
     "ok",
     "sounds good",
+    "call me",
+    "send it",
+    "email",
   ],
-  negativeKeywords: ["no", "not interested", "remove", "wrong number", "stop"],
+  negativeKeywords: ["no", "not interested", "remove", "wrong number", "stop", "leave me alone"],
+
+  // Season model
+  monthlyTargetDefault: 20000,
+
+  // AI boundaries - what AI can NEVER do
+  aiHardLimits: {
+    canSendMessages: false,
+    canChangeStages: false,
+    canRewriteTemplates: false,
+    canIgnoreStop: false,
+    canActWithoutApproval: false,
+  },
 };
 
 // ============================================
@@ -542,38 +831,60 @@ admin@outreachglobal.ai`,
 };
 
 // ============================================
-// EXPORTS
+// EXPORTS - EXAMPLE TEMPLATES FOR REFERENCE
 // ============================================
+// These are NOT loaded into client accounts.
+// Use these as patterns when building client-specific templates.
 
-export const ALL_TEMPLATES: SmsTemplate[] = [
-  ...GIANNA_TEMPLATES,
-  ...CATHY_TEMPLATES,
-  ...SABRINA_TEMPLATES,
-  ...BREAKUP_TEMPLATES,
+/**
+ * ALL_EXAMPLE_TEMPLATES - Combined example templates for reference
+ * Not auto-loaded into any client account.
+ */
+export const ALL_EXAMPLE_TEMPLATES: SmsTemplate[] = [
+  ...GIANNA_EXAMPLE_TEMPLATES,
+  ...CATHY_EXAMPLE_TEMPLATES,
+  ...SABRINA_EXAMPLE_TEMPLATES,
+  ...BREAKUP_EXAMPLE_TEMPLATES,
 ];
 
-export function getTemplatesByWorker(worker: WorkerType): SmsTemplate[] {
-  return ALL_TEMPLATES.filter((t) => t.worker === worker);
+/**
+ * Helper to filter example templates by worker type
+ * Use for reference when building client templates
+ */
+export function getExampleTemplatesByWorker(worker: WorkerType): SmsTemplate[] {
+  return ALL_EXAMPLE_TEMPLATES.filter((t) => t.worker === worker);
 }
 
-export function getTemplatesByVertical(
+/**
+ * Helper to filter example templates by vertical
+ * Use for reference when building client templates
+ */
+export function getExampleTemplatesByVertical(
   vertical: VerticalType | "universal",
 ): SmsTemplate[] {
-  return ALL_TEMPLATES.filter(
+  return ALL_EXAMPLE_TEMPLATES.filter(
     (t) => t.vertical === vertical || t.vertical === "universal",
   );
 }
 
-export function getTemplatesByCategory(
+/**
+ * Helper to filter example templates by category
+ * Use for reference when building client templates
+ */
+export function getExampleTemplatesByCategory(
   category: TemplateCategory,
 ): SmsTemplate[] {
-  return ALL_TEMPLATES.filter((t) => t.category === category);
+  return ALL_EXAMPLE_TEMPLATES.filter((t) => t.category === category);
 }
 
-export function getPresetsByVertical(
+/**
+ * Helper to get example sequence presets by vertical
+ * Use as reference for building client cartridges
+ */
+export function getExamplePresetsByVertical(
   vertical: VerticalType | "universal",
 ): SequencePreset[] {
-  return SEQUENCE_PRESETS.filter(
+  return SEQUENCE_EXAMPLE_PRESETS.filter(
     (p) => p.vertical === vertical || p.vertical === "universal",
   );
 }
