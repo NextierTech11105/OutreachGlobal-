@@ -621,8 +621,12 @@ export function TemplateLibrary({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="gianna">GIANNA - Initial Outreach</SelectItem>
-                    <SelectItem value="cathy">CATHY - Follow-up & Nudge</SelectItem>
+                    <SelectItem value="gianna">
+                      GIANNA - Initial Outreach
+                    </SelectItem>
+                    <SelectItem value="cathy">
+                      CATHY - Follow-up & Nudge
+                    </SelectItem>
                     <SelectItem value="sabrina">SABRINA - Booking</SelectItem>
                   </SelectContent>
                 </Select>
@@ -648,14 +652,17 @@ export function TemplateLibrary({
             <div>
               <div className="flex items-center justify-between">
                 <Label>Message Content</Label>
-                <span className="text-xs text-muted-foreground">0 / 160 chars</span>
+                <span className="text-xs text-muted-foreground">
+                  0 / 160 chars
+                </span>
               </div>
               <Textarea
                 placeholder="Hey {firstName}, ..."
                 className="mt-1 h-24 font-mono text-sm"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Variables: {"{firstName}"}, {"{lastName}"}, {"{companyName}"}, {"{industry}"}, {"{city}"}
+                Variables: {"{firstName}"}, {"{lastName}"}, {"{companyName}"},{" "}
+                {"{industry}"}, {"{city}"}
               </p>
             </div>
           </div>
