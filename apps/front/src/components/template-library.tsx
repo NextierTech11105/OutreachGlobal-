@@ -441,7 +441,7 @@ export function TemplateLibrary({
           </div>
 
           {/* Content */}
-          <p className="text-sm text-muted-foreground">{template.content}</p>
+          <p className="text-sm text-white">{template.content}</p>
 
           {/* Footer */}
           <div className="flex items-center justify-between text-xs">
