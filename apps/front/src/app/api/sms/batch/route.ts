@@ -133,7 +133,10 @@ export async function POST(request: NextRequest) {
         });
 
         if (!smsResult.success) {
-          console.error(`[SMSBatch] SignalHouse error for ${lead.phone}:`, smsResult.error);
+          console.error(
+            `[SMSBatch] SignalHouse error for ${lead.phone}:`,
+            smsResult.error,
+          );
           failed++;
           continue;
         }
@@ -174,7 +177,9 @@ export async function POST(request: NextRequest) {
         }
 
         sent++;
-        console.log(`[SMSBatch] SENT to ${lead.phone} (${lead.firstName}) - MessageID: ${smsResult.data?.messageId}`);
+        console.log(
+          `[SMSBatch] SENT to ${lead.phone} (${lead.firstName}) - MessageID: ${smsResult.data?.messageId}`,
+        );
       } catch (error) {
         console.error(`[SMSBatch] Failed for ${lead.phone}:`, error);
         failed++;

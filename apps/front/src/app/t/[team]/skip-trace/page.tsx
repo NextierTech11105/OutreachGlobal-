@@ -128,7 +128,11 @@ export default function SkipTracePage() {
       const response = await fetch("/api/skip-trace");
       const data = await response.json();
       setIsConfigured(data.configured);
-      setUsage({ today: data.used, limit: data.limit, remaining: data.remaining });
+      setUsage({
+        today: data.used,
+        limit: data.limit,
+        remaining: data.remaining,
+      });
     } catch {
       setUsage({ today: 0, limit: 2000, remaining: 2000 });
     }
@@ -170,7 +174,9 @@ export default function SkipTracePage() {
       // API returns: phones: [{number, type}], emails: [{email, type}]
       const phones = data.phones || [];
       const emails = data.emails || [];
-      const mobilePhone = phones.find((p: {type?: string}) => p.type === "mobile" || p.type === "cell");
+      const mobilePhone = phones.find(
+        (p: { type?: string }) => p.type === "mobile" || p.type === "cell",
+      );
 
       if (data.success || phones.length > 0) {
         const result: SkipTraceResult = {
@@ -178,8 +184,14 @@ export default function SkipTracePage() {
           success: true,
           mobile: mobilePhone?.number || phones[0]?.number,
           email: emails[0]?.email,
-          all_phones: phones.map((p: {number: string; type?: string}) => ({ number: p.number, type: p.type || "unknown" })),
-          all_emails: emails.map((e: {email: string; type?: string}) => ({ email: e.email, type: e.type || "personal" })),
+          all_phones: phones.map((p: { number: string; type?: string }) => ({
+            number: p.number,
+            type: p.type || "unknown",
+          })),
+          all_emails: emails.map((e: { email: string; type?: string }) => ({
+            email: e.email,
+            type: e.type || "personal",
+          })),
         };
         setResults((prev) => [result, ...prev]);
         toast.success(`Found ${phones.length} phones, ${emails.length} emails`);
@@ -201,7 +213,11 @@ export default function SkipTracePage() {
       }
 
       if (data.usage) {
-        setUsage({ today: data.usage.today, limit: data.usage.limit, remaining: data.usage.remaining });
+        setUsage({
+          today: data.usage.today,
+          limit: data.usage.limit,
+          remaining: data.usage.remaining,
+        });
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Skip trace failed");

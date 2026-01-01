@@ -94,10 +94,14 @@ interface PreQueue {
 // NO ROI claims - Thomas valuation messaging
 // ============================================
 const NEXTIER_TEMPLATES = {
-  initial: "{firstName}, thinking about your exit strategy for {companyName}? We help trades maximize value. Is this on your radar?",
-  retarget: "{firstName}, know what {companyName} is worth? Most owners leave money on the table. Want a quick valuation?",
-  nudge: "{firstName}, straight up — is this worth 15 min to explore? If not, just say so. If yes, I'll get you on with Thomas.",
-  closer: "{firstName}, let's get you 15 min with Thomas. He'll walk you through the valuation. What day works - Tues or Thurs?",
+  initial:
+    "{firstName}, thinking about your exit strategy for {companyName}? We help trades maximize value. Is this on your radar?",
+  retarget:
+    "{firstName}, know what {companyName} is worth? Most owners leave money on the table. Want a quick valuation?",
+  nudge:
+    "{firstName}, straight up — is this worth 15 min to explore? If not, just say so. If yes, I'll get you on with Thomas.",
+  closer:
+    "{firstName}, let's get you 15 min with Thomas. He'll walk you through the valuation. What day works - Tues or Thurs?",
 };
 
 // ============================================
@@ -105,17 +109,26 @@ const NEXTIER_TEMPLATES = {
 // NO ROI claims - partnership language for Frank Sr
 // ============================================
 const ATLANTIC_COAST_TEMPLATES = {
-  initial: "Hi {firstName}, Atlantic Coast Auto Transport here. We help dealerships like {companyName} move vehicles fast - dealer trades, auctions, customer deliveries. 15 min with Frank to discuss?",
-  retarget: "{firstName}, when {companyName} needs cars moved fast, do you have reliable backup? We partner with dealerships for overflow transport. Quick call with Frank?",
-  nudge: "Hey {firstName}, following up on Atlantic Coast. Still looking for a transport partner for {companyName}? Frank's got a few minutes this week.",
-  closer: "Great {firstName}! Let's get you 15 min with Frank to discuss the partnership. What day works this week - Tues or Thurs?",
+  initial:
+    "Hi {firstName}, Atlantic Coast Auto Transport here. We help dealerships like {companyName} move vehicles fast - dealer trades, auctions, customer deliveries. 15 min with Frank to discuss?",
+  retarget:
+    "{firstName}, when {companyName} needs cars moved fast, do you have reliable backup? We partner with dealerships for overflow transport. Quick call with Frank?",
+  nudge:
+    "Hey {firstName}, following up on Atlantic Coast. Still looking for a transport partner for {companyName}? Frank's got a few minutes this week.",
+  closer:
+    "Great {firstName}! Let's get you 15 min with Frank to discuss the partnership. What day works this week - Tues or Thurs?",
 };
 
 // Get templates based on tenant/team
 const getTenantTemplates = (teamId: string): PreQueue[] => {
   const teamLower = teamId.toLowerCase();
-  const isAtlanticCoast = teamLower.includes("atlantic") || teamLower.includes("transport") || teamLower.includes("frank");
-  const templates = isAtlanticCoast ? ATLANTIC_COAST_TEMPLATES : NEXTIER_TEMPLATES;
+  const isAtlanticCoast =
+    teamLower.includes("atlantic") ||
+    teamLower.includes("transport") ||
+    teamLower.includes("frank");
+  const templates = isAtlanticCoast
+    ? ATLANTIC_COAST_TEMPLATES
+    : NEXTIER_TEMPLATES;
 
   return [
     {
@@ -180,16 +193,41 @@ export default function PreQueuePage() {
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [enrichingId, setEnrichingId] = useState<string | null>(null);
-  const [enrichProgress, setEnrichProgress] = useState<{current: number; total: number; success: number; failed: number} | null>(null);
+  const [enrichProgress, setEnrichProgress] = useState<{
+    current: number;
+    total: number;
+    success: number;
+    failed: number;
+  } | null>(null);
   const [skipTracingId, setSkipTracingId] = useState<string | null>(null);
-  const [skipTraceProgress, setSkipTraceProgress] = useState<{current: number; total: number; withPhone: number; failed: number} | null>(null);
-  const [selectingTemplateFor, setSelectingTemplateFor] = useState<string | null>(null);
+  const [skipTraceProgress, setSkipTraceProgress] = useState<{
+    current: number;
+    total: number;
+    withPhone: number;
+    failed: number;
+  } | null>(null);
+  const [selectingTemplateFor, setSelectingTemplateFor] = useState<
+    string | null
+  >(null);
 
   // Template library - NEXTIER templates (business-broker and universal only)
   // NO percentage claims, NO ROI claims - Thomas compliance
-  const templateLibrary = ALL_EXAMPLE_TEMPLATES
-    .filter((t: { vertical: string }) => t.vertical === "business-broker" || t.vertical === "universal")
-    .map((t: { id: string; name: string; content: string; category: string; worker: string; vertical: string; variables: string[]; characterCount: number; complianceApproved: boolean }) => ({ ...t, source: "nextier" as const }));
+  const templateLibrary = ALL_EXAMPLE_TEMPLATES.filter(
+    (t: { vertical: string }) =>
+      t.vertical === "business-broker" || t.vertical === "universal",
+  ).map(
+    (t: {
+      id: string;
+      name: string;
+      content: string;
+      category: string;
+      worker: string;
+      vertical: string;
+      variables: string[];
+      characterCount: number;
+      complianceApproved: boolean;
+    }) => ({ ...t, source: "nextier" as const }),
+  );
 
   // Monthly pool tracking - starts at 0 until real data
   const [monthlyPool] = useState({
@@ -257,13 +295,19 @@ export default function PreQueuePage() {
       const data = await response.json();
 
       // Get actual lead IDs and count
-      const leadIds: string[] = data.leads?.map((l: { id: string }) => l.id) || [];
+      const leadIds: string[] =
+        data.leads?.map((l: { id: string }) => l.id) || [];
       const leadCount = leadIds.length;
 
       setPreQueues((prev) =>
         prev.map((pq) =>
           pq.id === queueId
-            ? { ...pq, leadCount, leadIds, status: leadCount > 0 ? "ready" : "empty" }
+            ? {
+                ...pq,
+                leadCount,
+                leadIds,
+                status: leadCount > 0 ? "ready" : "empty",
+              }
             : pq,
         ),
       );
@@ -289,7 +333,12 @@ export default function PreQueuePage() {
     }
 
     setSkipTracingId(queue.id);
-    setSkipTraceProgress({ current: 0, total: queue.leadIds.length, withPhone: 0, failed: 0 });
+    setSkipTraceProgress({
+      current: 0,
+      total: queue.leadIds.length,
+      withPhone: 0,
+      failed: 0,
+    });
 
     try {
       // Call bulk skip trace API
@@ -316,9 +365,12 @@ export default function PreQueuePage() {
         let updated = 0;
         for (const result of data.results) {
           if (result.success && result.phones?.length > 0) {
-            const mobilePhone = result.phones.find(
-              (p: { type?: string }) => p.type?.toLowerCase() === "mobile" || p.type?.toLowerCase() === "cell"
-            ) || result.phones[0];
+            const mobilePhone =
+              result.phones.find(
+                (p: { type?: string }) =>
+                  p.type?.toLowerCase() === "mobile" ||
+                  p.type?.toLowerCase() === "cell",
+              ) || result.phones[0];
 
             if (mobilePhone?.number && result.id) {
               try {
@@ -341,12 +393,14 @@ export default function PreQueuePage() {
         }
 
         toast.success(
-          `Skip traced ${data.stats?.total || 0} leads: ${data.stats?.withPhones || 0} with phones (${data.stats?.withMobiles || 0} mobile)`
+          `Skip traced ${data.stats?.total || 0} leads: ${data.stats?.withPhones || 0} with phones (${data.stats?.withMobiles || 0} mobile)`,
         );
 
         // Show usage stats
         if (data.usage) {
-          toast.info(`Daily usage: ${data.usage.today}/${data.usage.limit} (${data.usage.remaining} remaining)`);
+          toast.info(
+            `Daily usage: ${data.usage.today}/${data.usage.limit} (${data.usage.remaining} remaining)`,
+          );
         }
       } else {
         throw new Error(data.error || "Skip trace failed");
@@ -368,14 +422,21 @@ export default function PreQueuePage() {
     }
 
     setEnrichingId(queue.id);
-    setEnrichProgress({ current: 0, total: queue.leadIds.length, success: 0, failed: 0 });
+    setEnrichProgress({
+      current: 0,
+      total: queue.leadIds.length,
+      success: 0,
+      failed: 0,
+    });
 
     let success = 0;
     let failed = 0;
 
     try {
       // Fetch lead details first
-      const leadsRes = await fetch(`/api/leads?teamId=${teamId}&ids=${queue.leadIds.slice(0, 100).join(",")}`);
+      const leadsRes = await fetch(
+        `/api/leads?teamId=${teamId}&ids=${queue.leadIds.slice(0, 100).join(",")}`,
+      );
       const leadsData = await leadsRes.json();
       const leads = leadsData.leads || [];
 
@@ -387,7 +448,9 @@ export default function PreQueuePage() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               email: lead.email,
-              domain: lead.company ? `${lead.company.toLowerCase().replace(/\s+/g, "")}.com` : undefined,
+              domain: lead.company
+                ? `${lead.company.toLowerCase().replace(/\s+/g, "")}.com`
+                : undefined,
               firstName: lead.firstName || lead.first_name,
               lastName: lead.lastName || lead.last_name,
             }),
@@ -412,7 +475,9 @@ export default function PreQueuePage() {
                   // Owner name
                   firstName: person.first_name || lead.firstName,
                   lastName: person.last_name || lead.lastName,
-                  ownerName: `${person.first_name || ""} ${person.last_name || ""}`.trim() || lead.ownerName,
+                  ownerName:
+                    `${person.first_name || ""} ${person.last_name || ""}`.trim() ||
+                    lead.ownerName,
 
                   // Business address
                   address: org.street_address || lead.address,
@@ -421,7 +486,10 @@ export default function PreQueuePage() {
                   zip: org.postal_code || lead.zip,
 
                   // Contact info
-                  phone: person.phone_numbers?.[0]?.sanitized_number || person.phone || lead.phone,
+                  phone:
+                    person.phone_numbers?.[0]?.sanitized_number ||
+                    person.phone ||
+                    lead.phone,
                   email: person.email || lead.email,
                   title: person.title || lead.title,
 
@@ -443,10 +511,15 @@ export default function PreQueuePage() {
           failed++;
         }
 
-        setEnrichProgress({ current: i + 1, total: leads.length, success, failed });
+        setEnrichProgress({
+          current: i + 1,
+          total: leads.length,
+          success,
+          failed,
+        });
 
         // Rate limit - 200ms between requests
-        await new Promise(r => setTimeout(r, 200));
+        await new Promise((r) => setTimeout(r, 200));
       }
 
       toast.success(`Enriched ${success} leads (${failed} failed)`);
@@ -498,7 +571,13 @@ export default function PreQueuePage() {
         setPreQueues((prev) =>
           prev.map((pq) =>
             pq.id === queue.id
-              ? { ...pq, leadCount: 0, leadIds: [], status: "empty", lastSentAt: new Date() }
+              ? {
+                  ...pq,
+                  leadCount: 0,
+                  leadIds: [],
+                  status: "empty",
+                  lastSentAt: new Date(),
+                }
               : pq,
           ),
         );
@@ -540,9 +619,7 @@ export default function PreQueuePage() {
   // Select template from library
   const selectTemplate = (queueId: string, content: string) => {
     setPreQueues((prev) =>
-      prev.map((pq) =>
-        pq.id === queueId ? { ...pq, template: content } : pq,
-      ),
+      prev.map((pq) => (pq.id === queueId ? { ...pq, template: content } : pq)),
     );
     setSelectingTemplateFor(null);
     toast.success("Template selected");
@@ -843,20 +920,42 @@ export default function PreQueuePage() {
                       {/* Skip Trace Progress */}
                       {isSkipTracing && skipTraceProgress && (
                         <div className="space-y-1">
-                          <Progress value={(skipTraceProgress.current / skipTraceProgress.total) * 100} className="h-1.5" />
+                          <Progress
+                            value={
+                              (skipTraceProgress.current /
+                                skipTraceProgress.total) *
+                              100
+                            }
+                            className="h-1.5"
+                          />
                           <div className="flex justify-between text-[10px] text-muted-foreground">
-                            <span>{skipTraceProgress.current}/{skipTraceProgress.total}</span>
-                            <span className="text-cyan-400">{skipTraceProgress.withPhone} with phone</span>
+                            <span>
+                              {skipTraceProgress.current}/
+                              {skipTraceProgress.total}
+                            </span>
+                            <span className="text-cyan-400">
+                              {skipTraceProgress.withPhone} with phone
+                            </span>
                           </div>
                         </div>
                       )}
                       {/* Enrichment Progress */}
                       {isEnriching && enrichProgress && (
                         <div className="space-y-1">
-                          <Progress value={(enrichProgress.current / enrichProgress.total) * 100} className="h-1.5" />
+                          <Progress
+                            value={
+                              (enrichProgress.current / enrichProgress.total) *
+                              100
+                            }
+                            className="h-1.5"
+                          />
                           <div className="flex justify-between text-[10px] text-muted-foreground">
-                            <span>{enrichProgress.current}/{enrichProgress.total}</span>
-                            <span className="text-green-400">{enrichProgress.success} enriched</span>
+                            <span>
+                              {enrichProgress.current}/{enrichProgress.total}
+                            </span>
+                            <span className="text-green-400">
+                              {enrichProgress.success} enriched
+                            </span>
                           </div>
                         </div>
                       )}
@@ -1037,7 +1136,10 @@ export default function PreQueuePage() {
       </Dialog>
 
       {/* Template Library Dialog */}
-      <Dialog open={!!selectingTemplateFor} onOpenChange={() => setSelectingTemplateFor(null)}>
+      <Dialog
+        open={!!selectingTemplateFor}
+        onOpenChange={() => setSelectingTemplateFor(null)}
+      >
         <DialogContent className="bg-zinc-900 border-zinc-800 max-w-4xl max-h-[80vh]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -1055,19 +1157,28 @@ export default function PreQueuePage() {
                   GIANNA - Opener Templates
                 </h3>
                 <div className="grid gap-2">
-                  {templateLibrary.filter(t => t.worker === "gianna").map(t => (
-                    <div
-                      key={t.id}
-                      className="p-3 bg-zinc-800 rounded-lg border border-zinc-700 hover:border-purple-500 cursor-pointer transition-colors"
-                      onClick={() => selectingTemplateFor && selectTemplate(selectingTemplateFor, t.content)}
-                    >
-                      <div className="flex justify-between items-start mb-1">
-                        <span className="text-sm font-medium">{t.name}</span>
-                        <Badge variant="outline" className="text-xs">{t.characterCount} chars</Badge>
+                  {templateLibrary
+                    .filter((t) => t.worker === "gianna")
+                    .map((t) => (
+                      <div
+                        key={t.id}
+                        className="p-3 bg-zinc-800 rounded-lg border border-zinc-700 hover:border-purple-500 cursor-pointer transition-colors"
+                        onClick={() =>
+                          selectingTemplateFor &&
+                          selectTemplate(selectingTemplateFor, t.content)
+                        }
+                      >
+                        <div className="flex justify-between items-start mb-1">
+                          <span className="text-sm font-medium">{t.name}</span>
+                          <Badge variant="outline" className="text-xs">
+                            {t.characterCount} chars
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {t.content}
+                        </p>
                       </div>
-                      <p className="text-xs text-muted-foreground">{t.content}</p>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               </div>
 
@@ -1078,19 +1189,28 @@ export default function PreQueuePage() {
                   CATHY - Nudger Templates
                 </h3>
                 <div className="grid gap-2">
-                  {templateLibrary.filter(t => t.worker === "cathy").map(t => (
-                    <div
-                      key={t.id}
-                      className="p-3 bg-zinc-800 rounded-lg border border-zinc-700 hover:border-orange-500 cursor-pointer transition-colors"
-                      onClick={() => selectingTemplateFor && selectTemplate(selectingTemplateFor, t.content)}
-                    >
-                      <div className="flex justify-between items-start mb-1">
-                        <span className="text-sm font-medium">{t.name}</span>
-                        <Badge variant="outline" className="text-xs">{t.characterCount} chars</Badge>
+                  {templateLibrary
+                    .filter((t) => t.worker === "cathy")
+                    .map((t) => (
+                      <div
+                        key={t.id}
+                        className="p-3 bg-zinc-800 rounded-lg border border-zinc-700 hover:border-orange-500 cursor-pointer transition-colors"
+                        onClick={() =>
+                          selectingTemplateFor &&
+                          selectTemplate(selectingTemplateFor, t.content)
+                        }
+                      >
+                        <div className="flex justify-between items-start mb-1">
+                          <span className="text-sm font-medium">{t.name}</span>
+                          <Badge variant="outline" className="text-xs">
+                            {t.characterCount} chars
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {t.content}
+                        </p>
                       </div>
-                      <p className="text-xs text-muted-foreground">{t.content}</p>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               </div>
 
@@ -1101,19 +1221,28 @@ export default function PreQueuePage() {
                   SABRINA - Closer Templates
                 </h3>
                 <div className="grid gap-2">
-                  {templateLibrary.filter(t => t.worker === "sabrina").map(t => (
-                    <div
-                      key={t.id}
-                      className="p-3 bg-zinc-800 rounded-lg border border-zinc-700 hover:border-emerald-500 cursor-pointer transition-colors"
-                      onClick={() => selectingTemplateFor && selectTemplate(selectingTemplateFor, t.content)}
-                    >
-                      <div className="flex justify-between items-start mb-1">
-                        <span className="text-sm font-medium">{t.name}</span>
-                        <Badge variant="outline" className="text-xs">{t.characterCount} chars</Badge>
+                  {templateLibrary
+                    .filter((t) => t.worker === "sabrina")
+                    .map((t) => (
+                      <div
+                        key={t.id}
+                        className="p-3 bg-zinc-800 rounded-lg border border-zinc-700 hover:border-emerald-500 cursor-pointer transition-colors"
+                        onClick={() =>
+                          selectingTemplateFor &&
+                          selectTemplate(selectingTemplateFor, t.content)
+                        }
+                      >
+                        <div className="flex justify-between items-start mb-1">
+                          <span className="text-sm font-medium">{t.name}</span>
+                          <Badge variant="outline" className="text-xs">
+                            {t.characterCount} chars
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {t.content}
+                        </p>
                       </div>
-                      <p className="text-xs text-muted-foreground">{t.content}</p>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               </div>
             </div>

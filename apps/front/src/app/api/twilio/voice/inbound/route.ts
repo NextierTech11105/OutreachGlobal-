@@ -17,10 +17,10 @@ export async function POST(request: NextRequest) {
     // Parse Twilio webhook data
     const formData = await request.formData();
 
-    const from = formData.get("From") as string || "";
-    const to = formData.get("To") as string || "";
-    const callSid = formData.get("CallSid") as string || "";
-    const callStatus = formData.get("CallStatus") as string || "";
+    const from = (formData.get("From") as string) || "";
+    const to = (formData.get("To") as string) || "";
+    const callSid = (formData.get("CallSid") as string) || "";
+    const callStatus = (formData.get("CallStatus") as string) || "";
 
     console.log(`[Twilio Voice] INBOUND call from ${from} to ${to}`);
     console.log(`  CallSid: ${callSid}, Status: ${callStatus}`);
@@ -88,7 +88,8 @@ export async function GET() {
       step1: "Go to Twilio Console → Phone Numbers",
       step2: "Click your phone number",
       step3: "Under Voice & Fax → A Call Comes In",
-      step4: "Set Webhook URL to: https://your-domain.com/api/twilio/voice/inbound",
+      step4:
+        "Set Webhook URL to: https://your-domain.com/api/twilio/voice/inbound",
     },
     method: "POST (called by Twilio)",
   });

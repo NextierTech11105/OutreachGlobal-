@@ -17,11 +17,13 @@ export async function POST(request: NextRequest) {
 
     // Get form data from Twilio
     const formData = await request.formData().catch(() => new FormData());
-    const to = formData.get("To") as string || "";
-    const from = formData.get("From") as string || TWILIO_PHONE_NUMBER;
-    const callSid = formData.get("CallSid") as string || "";
+    const to = (formData.get("To") as string) || "";
+    const from = (formData.get("From") as string) || TWILIO_PHONE_NUMBER;
+    const callSid = (formData.get("CallSid") as string) || "";
 
-    console.log(`[Twilio Voice] Outbound call - To: ${to}, From: ${from}, CallSid: ${callSid}`);
+    console.log(
+      `[Twilio Voice] Outbound call - To: ${to}, From: ${from}, CallSid: ${callSid}`,
+    );
 
     // Generate TwiML response to connect the call
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>

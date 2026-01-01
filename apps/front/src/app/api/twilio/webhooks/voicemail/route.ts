@@ -12,16 +12,20 @@ export async function POST(request: NextRequest) {
     // Parse Twilio webhook data
     const formData = await request.formData();
 
-    const callSid = formData.get("CallSid") as string || "";
-    const from = formData.get("From") as string || "";
-    const to = formData.get("To") as string || "";
-    const recordingUrl = formData.get("RecordingUrl") as string || "";
-    const recordingDuration = formData.get("RecordingDuration") as string || "0";
-    const recordingSid = formData.get("RecordingSid") as string || "";
-    const transcriptionText = formData.get("TranscriptionText") as string || "";
+    const callSid = (formData.get("CallSid") as string) || "";
+    const from = (formData.get("From") as string) || "";
+    const to = (formData.get("To") as string) || "";
+    const recordingUrl = (formData.get("RecordingUrl") as string) || "";
+    const recordingDuration =
+      (formData.get("RecordingDuration") as string) || "0";
+    const recordingSid = (formData.get("RecordingSid") as string) || "";
+    const transcriptionText =
+      (formData.get("TranscriptionText") as string) || "";
 
     console.log(`[Twilio Voicemail] New voicemail from ${from}`);
-    console.log(`  Duration: ${recordingDuration}s, Recording: ${recordingSid}`);
+    console.log(
+      `  Duration: ${recordingDuration}s, Recording: ${recordingSid}`,
+    );
     if (transcriptionText) {
       console.log(`  Transcription: ${transcriptionText}`);
     }
