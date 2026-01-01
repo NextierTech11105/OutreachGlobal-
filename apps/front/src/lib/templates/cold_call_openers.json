@@ -55,7 +55,7 @@
     {
       "id": "cold-7",
       "name": "CRE - Cap Rate Discussion",
-      "script": "{{first_name}}, quick question on {{property_address}} — cap rates in your area are compressing, which means your property might be worth 15-20% more than last year. Ever run the numbers recently? Tommy with Nextier.",
+      "script": "{{first_name}}, quick question on {{property_address}} — cap rates in your area are compressing, which means your property might be worth significantly more than last year. Ever run the numbers recently? Tommy with Nextier.",
       "category": "cold_call",
       "industry": "commercial_real_estate",
       "tags": ["cre", "cap-rates", "value"]
@@ -119,7 +119,7 @@
     {
       "id": "cold-15",
       "name": "CRE - Rent Comp",
-      "script": "{{first_name}}? Quick question — are you aware that similar properties to {{property_address}} are commanding 10-15% higher rents right now? That impacts your valuation significantly. Tommy with Nextier.",
+      "script": "{{first_name}}? Quick question — are you aware that similar properties to {{property_address}} are commanding much higher rents right now? That impacts your valuation significantly. Tommy with Nextier.",
       "category": "cold_call",
       "industry": "commercial_real_estate",
       "tags": ["cre", "rents", "value"]

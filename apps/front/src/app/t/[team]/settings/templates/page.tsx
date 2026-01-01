@@ -138,7 +138,7 @@ const REBUTTAL_TEMPLATES = {
   alreadyHave: {
     name: "Already Have Solution",
     templates: [
-      { name: "Stage Check", content: "Cool - what are you using? Always curious what's working. Most people are only at 30% of what's possible." },
+      { name: "Stage Check", content: "Cool - what are you using? Always curious what's working. Most people aren't getting the full potential yet." },
       { name: "Fine vs Great", content: "Works fine vs works great = thousands of dollars. Just saying. Offer's open if you want a comparison." },
     ],
   },

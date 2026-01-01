@@ -230,7 +230,7 @@ export default function DataHubPage() {
       name: "Value Prop",
       category: "opener",
       message:
-        "Hey {{name}}, I help {{industry}} businesses increase revenue 20-30%. Worth a 5-min call? Reply YES.",
+        "Hey {{name}}, I help {{industry}} businesses grow faster. Worth a 5-min call? Reply YES.",
     },
     {
       id: "tired-state",

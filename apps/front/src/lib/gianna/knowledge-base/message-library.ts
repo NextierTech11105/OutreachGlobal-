@@ -51,8 +51,8 @@ export const OPENER_LIBRARY = {
     // Social proof
     "{firstName}, just helped 3 owners on {street} understand their equity. Your turn?",
     "Owner down the block from {address} was shocked at their valuation. {firstName}, want yours?",
-    "{firstName}, most owners undervalue by 15-20%. Free report shows you the real number.",
-    "Fun fact {firstName}: 80% of owners I talk to don't know their true property value. You one of them?",
+    "{firstName}, most owners undervalue significantly. Free report shows you the real number.",
+    "Fun fact {firstName}: most owners I talk to don't know their true property value. You one of them?",
     "{firstName}, I've valued 50+ properties in {city} this month. Haven't done {address} yet. Want in?",
 
     // Urgency
@@ -176,7 +176,7 @@ export const OPENER_LIBRARY = {
     // Numbers
     "{firstName}, 15 minutes. Free. No pitch. Just strategy. What's the downside?",
     "Quick ROI check {firstName}: 15 mins now could = 15 hrs/week saved. Math works.",
-    "{firstName}, I've done this 100+ times. 92% said it was worth their time. You next?",
+    "{firstName}, I've done this 100+ times. Almost everyone said it was worth their time. You next?",
     "Hey {firstName}, 15 mins, 0 cost, potentially huge upside. Why wouldn't you?",
     "{firstName}, worst case: you waste 15 mins. Best case: everything changes. Risk it?",
 
@@ -292,7 +292,7 @@ export const REBUTTAL_LIBRARY = {
         responses: [
           "That's exactly why you need this {firstName}. 15 mins now = 15 hrs/week back. Worth it?",
           "Busy is good - means you've built something. But busy also means you need automation. Quick 15?",
-          "I get it {firstName}, you're running hard. What if I told you AI could handle 30% of what's keeping you busy?",
+          "I get it {firstName}, you're running hard. What if I told you AI could handle a big chunk of what's keeping you busy?",
         ],
         learned_best: null,
       },
@@ -322,7 +322,7 @@ export const REBUTTAL_LIBRARY = {
           "have a system",
         ],
         responses: [
-          "Cool - what are you using? Always curious what's working. Most people are only at 30% of what's possible.",
+          "Cool - what are you using? Always curious what's working. Most people aren't getting the full potential yet.",
           "Nice. Is it actually saving you time though? Or just different work? Be honest.",
           "Good. So you're probably at Stage 1. Want to see what Stage 2 and 3 look like? Free peek.",
         ],

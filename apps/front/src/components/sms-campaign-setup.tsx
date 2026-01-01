@@ -421,7 +421,7 @@ const GIANNA_TEMPLATES = [
     name: "Tech-Prep for Exit",
     persona: "b2b_tech_exit",
     category: "business",
-    message: `Hi {{firstName}}, modern systems = 20-30% higher valuations at exit. Want to see how smart owners prep {{companyName}} for max value?`,
+    message: `Hi {{firstName}}, modern systems = higher valuations at exit. Want to see how smart owners prep {{companyName}} for max value?`,
     variables: ["firstName", "companyName"],
   },
 

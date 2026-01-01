@@ -103,7 +103,7 @@
     {
       "id": "initial-13",
       "name": "Owner Insight",
-      "message": "{{first_name}}, most owners undervalue their business by 20-30%. I help you understand what you're really sitting on. Quick call? Tommy with Nextier. STOP to opt out.",
+      "message": "{{first_name}}, most owners undervalue their business significantly. I help you understand what you're really sitting on. Quick call? Tommy with Nextier. STOP to opt out.",
       "category": "initial_outreach",
       "tags": ["insight", "value"],
       "character_count": 180
