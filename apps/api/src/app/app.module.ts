@@ -42,6 +42,7 @@ import { EnrichmentModule } from "./enrichment/enrichment.module";
 import { DeadLetterQueueModule } from "../lib/dlq";
 import { LoggerModule } from "../lib/logger";
 import { CircuitBreakerModule } from "../lib/circuit-breaker";
+import { MetricsModule } from "./metrics";
 
 @Module({
   imports: [
@@ -91,6 +92,7 @@ import { CircuitBreakerModule } from "../lib/circuit-breaker";
     VoiceModule,
     ContentLibraryModule,
     EnrichmentModule,
+    MetricsModule,
   ],
   providers: [
     AppRunner,
