@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
+import { isAlreadyProcessed, generateEventId } from "@/lib/webhook/idempotency";
 import { smsQueueService } from "@/lib/services/sms-queue-service";
 import { db } from "@/lib/db";
 import { smsMessages, leads } from "@/lib/db/schema";
@@ -589,6 +590,18 @@ export async function POST(request: NextRequest) {
 
     // Parse the payload
     const payload: SignalHouseWebhookPayload = await request.json();
+
+    // ─────────────────────────────────────────────────────────────────────
+    // STEP 0.75: IDEMPOTENCY CHECK (prevent duplicate processing)
+    // ─────────────────────────────────────────────────────────────────────
+    const eventId =
+      payload.message_id ||
+      payload.messageId ||
+      generateEventId({ ...payload, ts: payload.timestamp });
+    if (await isAlreadyProcessed("signalhouse", eventId)) {
+      console.log(`[SignalHouse] Duplicate event ${eventId} - skipping`);
+      return NextResponse.json({ success: true, event: "duplicate" });
+    }
 
     // SignalHouse uses dot notation: message.received, message.sent, etc.
     const eventType = payload.event || "unknown";

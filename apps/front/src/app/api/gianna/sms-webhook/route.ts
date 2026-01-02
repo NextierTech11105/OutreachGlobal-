@@ -8,7 +8,8 @@ import {
 } from "@/lib/response-classifications";
 import { db } from "@/lib/db";
 import { aiDecisionLogs } from "@/lib/db/schema";
-import crypto from "crypto";
+import crypto, { timingSafeEqual } from "crypto";
+import { isAlreadyProcessed } from "@/lib/webhook/idempotency";
 
 /**
  * GIANNA AI SMS WEBHOOK HANDLER
@@ -23,6 +24,7 @@ import crypto from "crypto";
  * - Human-in-loop for first 3 rebuttals
  * - Opt-out compliance
  * - Client-specific response classifications (Homeowner Advisor: Email Capture)
+ * - Token-based authentication for webhook security
  */
 
 const APP_URL =
@@ -65,6 +67,27 @@ const conversationContextStore = new Map<
 
 export async function POST(request: NextRequest) {
   try {
+    // ═════════════════════════════════════════════════
+    // AUTHENTICATION: Verify webhook token
+    // ═════════════════════════════════════════════════
+    const url = new URL(request.url);
+    const token = url.searchParams.get("token");
+    const expectedToken = process.env.GIANNA_WEBHOOK_TOKEN;
+
+    if (!expectedToken) {
+      console.error("[Gianna SMS] GIANNA_WEBHOOK_TOKEN not configured");
+      return new NextResponse("Webhook not configured", { status: 503 });
+    }
+
+    if (
+      !token ||
+      token.length !== expectedToken.length ||
+      !timingSafeEqual(Buffer.from(token), Buffer.from(expectedToken))
+    ) {
+      console.warn("[Gianna SMS] Unauthorized webhook attempt");
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
     const formData = await request.formData();
 
     // Extract Twilio webhook parameters
@@ -72,6 +95,14 @@ export async function POST(request: NextRequest) {
     const to = formData.get("To") as string;
     const body = formData.get("Body") as string;
     const messageSid = formData.get("MessageSid") as string;
+
+    // ═════════════════════════════════════════════════
+    // IDEMPOTENCY CHECK: Prevent duplicate processing
+    // ═════════════════════════════════════════════════
+    if (messageSid && (await isAlreadyProcessed("gianna", messageSid))) {
+      console.log(`[Gianna SMS] Duplicate message ${messageSid} - skipping`);
+      return emptyTwimlResponse();
+    }
 
     console.log("[Gianna SMS] Inbound message:", {
       from,

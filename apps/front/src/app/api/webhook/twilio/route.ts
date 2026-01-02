@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { callHistories, leads } from "@/lib/db/schema";
 import { eq, or, sql } from "drizzle-orm";
+import { isAlreadyProcessed, generateEventId } from "@/lib/webhook/idempotency";
 
 /**
  * Twilio Voice Webhook
@@ -21,6 +22,18 @@ export async function POST(request: NextRequest) {
     });
 
     console.log("[Twilio Webhook] Received:", data);
+
+    // Idempotency check - use CallSid + CallStatus as unique event ID
+    const eventId = data.CallSid
+      ? `${data.CallSid}-${data.CallStatus || "unknown"}`
+      : generateEventId(data);
+    if (await isAlreadyProcessed("twilio", eventId)) {
+      console.log(`[Twilio] Duplicate event ${eventId} - skipping`);
+      const emptyTwiml = `<?xml version="1.0" encoding="UTF-8"?><Response></Response>`;
+      return new NextResponse(emptyTwiml, {
+        headers: { "Content-Type": "application/xml" },
+      });
+    }
 
     const callSid = data.CallSid;
     const callStatus = data.CallStatus;
