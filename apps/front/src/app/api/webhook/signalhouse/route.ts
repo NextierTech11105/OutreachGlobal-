@@ -182,6 +182,75 @@ const PHONE_REGEX =
 const HOT_LEAD_CAMPAIGN_ID =
   process.env.HOT_LEAD_CAMPAIGN_ID || "hot_leads_default";
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// CAMPAIGN LABEL MAPPING - Maps campaign_id to workspace stages
+// Workspaces: Initial Message, Retarget, Nudger, Content Nurture, Book Appointment, Lead Calendar
+// ═══════════════════════════════════════════════════════════════════════════════
+const CAMPAIGN_LABELS: Record<string, string> = {
+  // Initial Message stage (GIANNA opener)
+  initial: "initial_message",
+  initial_message: "initial_message",
+  opener: "initial_message",
+  cold_outreach: "initial_message",
+  ai_nextier: "initial_message",
+  nextier: "initial_message",
+
+  // Retarget stage
+  retarget: "retarget",
+  re_engage: "retarget",
+  ghost: "retarget",
+
+  // Nudger stage (CATHY)
+  nudger: "nudger",
+  nudge: "nudger",
+  follow_up: "nudger",
+  cathy: "nudger",
+
+  // Content Nurture stage
+  content: "content_nurture",
+  content_nurture: "content_nurture",
+  nurture: "content_nurture",
+  drip: "content_nurture",
+
+  // Book Appointment stage (SABRINA)
+  book: "book_appointment",
+  book_appointment: "book_appointment",
+  booking: "book_appointment",
+  appointment: "book_appointment",
+  sabrina: "book_appointment",
+  closer: "book_appointment",
+
+  // Lead Calendar stage
+  calendar: "lead_calendar",
+  lead_calendar: "lead_calendar",
+  scheduled: "lead_calendar",
+};
+
+/**
+ * Get campaign label from campaign_id
+ * Returns label for inbox filtering or null if no mapping
+ */
+function getCampaignLabel(campaignId: string | undefined): string | null {
+  if (!campaignId) return null;
+
+  const normalized = campaignId.toLowerCase().replace(/[-_\s]/g, "_");
+
+  // Check direct mapping
+  if (CAMPAIGN_LABELS[normalized]) {
+    return CAMPAIGN_LABELS[normalized];
+  }
+
+  // Check partial match
+  for (const [key, label] of Object.entries(CAMPAIGN_LABELS)) {
+    if (normalized.includes(key) || key.includes(normalized)) {
+      return label;
+    }
+  }
+
+  // Generate a label from the campaign ID itself
+  return `campaign_${normalized}`;
+}
+
 // AI Worker phone numbers - each worker gets isolated lane
 const AI_WORKER_PHONES: Record<string, string> = {
   GIANNA: process.env.GIANNA_PHONE_NUMBER || "", // Opener - inbound response center
@@ -304,12 +373,15 @@ async function pushToHotLeadCampaign(
       : undefined;
 
     // Build tags array using CANONICAL_LABELS (labels defined in canonical-labels.ts)
+    // GOLD = Mobile + Email captured = 100% Lead Score = Immediate callback
     const goldLabels = [
       CANONICAL_LABELS.EMAIL_CAPTURED,
       CANONICAL_LABELS.MOBILE_CAPTURED,
+      CANONICAL_LABELS.MOBILE_AND_EMAIL, // Easify-style combined label for UI display
       CANONICAL_LABELS.GOLD_LABEL,
       CANONICAL_LABELS.HIGH_CONTACTABILITY,
       CANONICAL_LABELS.CONTACT_VERIFIED,
+      CANONICAL_LABELS.HOT_LEAD,
     ];
     const updateData: Record<string, unknown> = {
       email: email,
@@ -592,7 +664,15 @@ export async function POST(request: NextRequest) {
         else if (isPermissionResponse) messageStatus = "content_permission";
         else if (isPositiveLead) messageStatus = "interested";
 
-        // Save inbound message to DB with worker info
+        // Get campaign label for inbox filtering
+        const campaignLabel = getCampaignLabel(payload.campaign_id as string);
+        const messageLabels: string[] = [];
+        if (campaignLabel) messageLabels.push(campaignLabel);
+        if (capturedEmail) messageLabels.push("email_captured");
+        if (capturedMobile) messageLabels.push("mobile_captured");
+        if (isPositiveLead) messageLabels.push("high_intent");
+
+        // Save inbound message to DB with worker info and campaign labels
         try {
           await db.insert(smsMessages).values({
             id: crypto.randomUUID(),
@@ -604,11 +684,13 @@ export async function POST(request: NextRequest) {
             status: messageStatus,
             providerMessageId: messageId,
             campaignId: payload.campaign_id as string,
-            // Store worker info in metadata or dedicated field
+            // Store worker info AND labels in metadata for inbox display
             metadata: {
               workerId: worker.id,
               workerName: worker.name,
               routedBy: workerRoute.matchedBy,
+              labels: messageLabels, // Easify-style labels for inbox filtering
+              campaignLabel: campaignLabel, // Campaign-specific label
             },
             receivedAt: new Date(),
             createdAt: new Date(),

@@ -49,51 +49,104 @@ const LABEL_COLORS = [
   { name: "Gold", value: "text-amber-500" },
 ];
 
-// Default labels for AI Inbound Response Center
-// Note: WN (Wrong Number) and profanity → Suppression campaign (not visible here)
+// ═══════════════════════════════════════════════════════════════════════════════
+// DEFAULT LABELS - Easify-style capture indicators
+// These match CANONICAL_LABELS from canonical-labels.ts for backend consistency
+// ═══════════════════════════════════════════════════════════════════════════════
 const DEFAULT_LABELS: CustomLabel[] = [
-  // === RESPONSE INDICATORS ===
-  { id: "label-needs-help", name: "Needs Help", color: "text-red-500" },
+  // === GOLD CAPTURES (Highest Priority) ===
   {
-    id: "label-mobile-captured",
-    name: "Mobile Captured",
-    color: "text-blue-500",
+    id: "mobile_and_email",
+    name: "Mobile & Email",
+    color: "text-amber-500", // GOLD - both captured
   },
   {
-    id: "label-email-captured",
+    id: "hot_lead",
+    name: "Hot Lead",
+    color: "text-red-500",
+  },
+
+  // === DATA CAPTURE ===
+  {
+    id: "email_captured",
     name: "Email Captured",
     color: "text-green-500",
   },
   {
-    id: "label-called-back",
-    name: "Called in / need to call back",
+    id: "mobile_captured",
+    name: "Mobile Captured",
+    color: "text-blue-500",
+  },
+
+  // === INTENT SIGNALS ===
+  {
+    id: "wants_call",
+    name: "Wants Call",
+    color: "text-purple-500",
+  },
+  {
+    id: "needs_help",
+    name: "Needs Help",
+    color: "text-red-500",
+  },
+  {
+    id: "question_asked",
+    name: "Has Question",
     color: "text-cyan-500",
   },
   {
-    id: "label-push-call-center",
+    id: "high_intent",
+    name: "High Intent",
+    color: "text-emerald-500",
+  },
+
+  // === EXECUTION ===
+  {
+    id: "push_to_call_center",
     name: "Push to Call Center",
     color: "text-orange-500",
   },
   {
-    id: "label-yes-content",
-    name: "Yes to Content Link",
+    id: "call_ready",
+    name: "Call Ready",
     color: "text-green-500",
   },
   {
-    id: "label-wants-call",
-    name: "Asking for a phone call",
-    color: "text-purple-500",
+    id: "responded",
+    name: "Responded",
+    color: "text-green-500",
   },
-  // === CAMPAIGNS ===
+
+  // === WORKSPACES / STAGES ===
   {
-    id: "label-ai-nextier",
-    name: "AI - NEXTIER CAMPAIGN",
+    id: "initial_message",
+    name: "Initial Message",
     color: "text-amber-500",
   },
   {
-    id: "label-biz-consultant",
-    name: "Business Consultant Campaign",
+    id: "retarget",
+    name: "Retarget",
+    color: "text-purple-500",
+  },
+  {
+    id: "nudger",
+    name: "Nudger",
+    color: "text-orange-500",
+  },
+  {
+    id: "content_nurture",
+    name: "Content Nurture",
     color: "text-blue-500",
+  },
+  {
+    id: "book_appointment",
+    name: "Book Appointment",
+    color: "text-green-500",
+  },
+  {
+    id: "lead_calendar",
+    name: "Lead Calendar",
+    color: "text-cyan-500",
   },
 ];
 
@@ -178,22 +231,31 @@ export function InboxSidebar() {
   const [newLabelName, setNewLabelName] = useState("");
   const [newLabelColor, setNewLabelColor] = useState("text-blue-500");
 
-  // Load labels from localStorage
+  // Load labels from localStorage with version check
+  // Version 2 = Easify-style canonical labels
+  const LABELS_VERSION = "v2";
+  const STORAGE_KEY = `inbox-labels-${LABELS_VERSION}`;
+
   useEffect(() => {
-    const savedLabels = localStorage.getItem("inbox-labels");
+    const savedLabels = localStorage.getItem(STORAGE_KEY);
     if (savedLabels) {
       try {
         setLabels(JSON.parse(savedLabels));
       } catch {
         setLabels(DEFAULT_LABELS);
       }
+    } else {
+      // Clear old version and set new defaults
+      localStorage.removeItem("inbox-labels");
+      localStorage.removeItem("inbox-labels-v1");
+      setLabels(DEFAULT_LABELS);
     }
   }, []);
 
   // Save labels to localStorage
   const saveLabels = (newLabels: CustomLabel[]) => {
     setLabels(newLabels);
-    localStorage.setItem("inbox-labels", JSON.stringify(newLabels));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(newLabels));
   };
 
   const setActiveItem = (item: string) => {

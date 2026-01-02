@@ -51,6 +51,12 @@ export const CANONICAL_LABELS = {
   NOISE: "noise", // Unclassifiable, spam, or gibberish
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // COMBINED / COMPOSITE LABELS (Easify-style display labels)
+  // ═══════════════════════════════════════════════════════════════════════════
+  MOBILE_AND_EMAIL: "mobile_and_email", // GOLD: Both mobile + email captured
+  HOT_LEAD: "hot_lead", // Qualified hot lead ready for call
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // LEGACY/COMPATIBILITY (for existing code)
   // ═══════════════════════════════════════════════════════════════════════════
   GOLD_LABEL: "gold_label", // High contactability (legacy)

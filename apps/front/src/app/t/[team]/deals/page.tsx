@@ -12,13 +12,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   DollarSign,
   TrendingUp,
   Clock,
@@ -26,12 +19,12 @@ import {
   Plus,
   LayoutGrid,
   List,
-  Filter,
   RefreshCw,
   Building2,
-  Home,
   ChevronRight,
   MoreVertical,
+  Terminal,
+  Map,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -87,13 +80,73 @@ const STAGE_COLORS: Record<string, string> = {
   closed_lost: "bg-red-500",
 };
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// DEAL MODULES - Nextier Business Verticals
+// ═══════════════════════════════════════════════════════════════════════════════
+const DEAL_MODULES = {
+  ai_consulting: {
+    name: "AI Consulting",
+    description: "Nextier Consulting & AI Implementation",
+    icon: "target"
+  },
+  platform_whitelabel: {
+    name: "Platform White Label",
+    description: "White label platform solutions",
+    icon: "grid"
+  },
+  business_exits: {
+    name: "Business Exits",
+    description: "Nexit Business Expansion & Exits",
+    icon: "building"
+  },
+  capital_connect: {
+    name: "Capital Connect",
+    description: "Nexter Capital Connect",
+    icon: "dollar"
+  },
+  foundational_dataverse: {
+    name: "Foundational Dataverse",
+    description: "Nextier Foundational Dataverse",
+    icon: "trending"
+  },
+  terminals: {
+    name: "Terminals",
+    description: "Nextier Terminals",
+    icon: "terminal"
+  },
+  blueprints: {
+    name: "Blueprints",
+    description: "Nextier Blueprints",
+    icon: "layout"
+  },
+  system_mapping: {
+    name: "System Mapping",
+    description: "Nextier System Mapping",
+    icon: "map"
+  },
+};
+
 const TYPE_ICONS: Record<string, React.ReactNode> = {
-  b2b_exit: <Building2 className="h-4 w-4" />,
-  commercial: <Building2 className="h-4 w-4" />,
-  assemblage: <LayoutGrid className="h-4 w-4" />,
-  blue_collar_exit: <Building2 className="h-4 w-4" />,
-  development: <Target className="h-4 w-4" />,
-  residential_haos: <Home className="h-4 w-4" />,
+  ai_consulting: <Target className="h-4 w-4" />,
+  platform_whitelabel: <LayoutGrid className="h-4 w-4" />,
+  business_exits: <Building2 className="h-4 w-4" />,
+  capital_connect: <DollarSign className="h-4 w-4" />,
+  foundational_dataverse: <TrendingUp className="h-4 w-4" />,
+  terminals: <Terminal className="h-4 w-4" />,
+  blueprints: <LayoutGrid className="h-4 w-4" />,
+  system_mapping: <Map className="h-4 w-4" />,
+};
+
+// Deal module colors for tag display
+const MODULE_COLORS: Record<string, string> = {
+  ai_consulting: "bg-purple-500/20 text-purple-400 border-purple-500/30",
+  platform_whitelabel: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+  business_exits: "bg-orange-500/20 text-orange-400 border-orange-500/30",
+  capital_connect: "bg-green-500/20 text-green-400 border-green-500/30",
+  foundational_dataverse: "bg-cyan-500/20 text-cyan-400 border-cyan-500/30",
+  terminals: "bg-amber-500/20 text-amber-400 border-amber-500/30",
+  blueprints: "bg-indigo-500/20 text-indigo-400 border-indigo-500/30",
+  system_mapping: "bg-rose-500/20 text-rose-400 border-rose-500/30",
 };
 
 function formatCurrency(value: number): string {
@@ -122,15 +175,23 @@ export default function DealsPage() {
   const [closedWon, setClosedWon] = useState<Deal[]>([]);
   const [closedLost, setClosedLost] = useState<Deal[]>([]);
   const [view, setView] = useState<"board" | "list">("board");
-  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [selectedModules, setSelectedModules] = useState<string[]>([]);
+
+  const toggleModule = (moduleId: string) => {
+    setSelectedModules(prev =>
+      prev.includes(moduleId)
+        ? prev.filter(m => m !== moduleId)
+        : [...prev, moduleId]
+    );
+  };
 
   const fetchPipeline = async () => {
     setLoading(true);
     try {
       const url = new URL("/api/deals/pipeline", window.location.origin);
       url.searchParams.set("teamId", teamId);
-      if (typeFilter !== "all") {
-        url.searchParams.set("type", typeFilter);
+      if (selectedModules.length > 0) {
+        url.searchParams.set("modules", selectedModules.join(","));
       }
 
       const response = await fetch(url.toString());
@@ -153,19 +214,19 @@ export default function DealsPage() {
     if (teamId) {
       fetchPipeline();
     }
-  }, [teamId, typeFilter]);
+  }, [teamId, selectedModules]);
 
   return (
     <TeamSection>
-      <TeamHeader title="Deal Pipeline" />
+      <TeamHeader title="Deals & Research" />
 
       <div className="container space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <TeamTitle>Deal Pipeline</TeamTitle>
+            <TeamTitle>Deals & Research</TeamTitle>
             <TeamDescription>
-              Track and close deals from discovery to closing
+              Deal pipeline, valuations, and research - all modules in one place
             </TeamDescription>
           </div>
           <div className="flex items-center gap-2">
@@ -251,29 +312,40 @@ export default function DealsPage() {
           </div>
         )}
 
-        {/* Filters */}
+        {/* Module Tags - Multi-select filter */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-muted-foreground mr-1">Modules:</span>
+          {Object.entries(DEAL_MODULES).map(([id, module]) => (
+            <button
+              type="button"
+              key={id}
+              onClick={() => toggleModule(id)}
+              className={`
+                inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium
+                border transition-all cursor-pointer
+                ${selectedModules.includes(id)
+                  ? MODULE_COLORS[id]
+                  : "bg-muted/50 text-muted-foreground border-muted hover:bg-muted"
+                }
+              `}
+            >
+              {TYPE_ICONS[id]}
+              {module.name}
+            </button>
+          ))}
+          {selectedModules.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setSelectedModules([])}
+              className="text-xs text-muted-foreground hover:text-foreground ml-2"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+
+        {/* View Toggle */}
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="All Deal Types" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Deal Types</SelectItem>
-                <SelectItem value="b2b_exit">B2B Exit</SelectItem>
-                <SelectItem value="commercial">Commercial</SelectItem>
-                <SelectItem value="assemblage">Assemblage</SelectItem>
-                <SelectItem value="blue_collar_exit">
-                  Blue Collar Exit
-                </SelectItem>
-                <SelectItem value="development">Development</SelectItem>
-                <SelectItem value="residential_haos">
-                  Residential HAOS
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
           <div className="flex items-center border rounded-lg">
             <Button
               variant={view === "board" ? "secondary" : "ghost"}

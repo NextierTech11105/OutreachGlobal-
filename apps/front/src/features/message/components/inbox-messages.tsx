@@ -48,6 +48,7 @@ import {
   Clock,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useCurrentTeam } from "@/features/team/team.context";
@@ -56,41 +57,168 @@ import { MESSAGES_QUERY } from "../queries/message.queries";
 import { MessageDirection, MessageType } from "@nextier/common";
 import { useInboxContext } from "../inbox.context";
 
-// Labels for rapid classification
+// ═══════════════════════════════════════════════════════════════════════════════
+// LABEL DISPLAY CONFIG - Easify-style colored badges
+// Maps canonical label IDs to display properties
+// ═══════════════════════════════════════════════════════════════════════════════
+const LABEL_DISPLAY: Record<
+  string,
+  { name: string; bg: string; text: string; icon: any }
+> = {
+  // GOLD captures (highest priority)
+  mobile_and_email: {
+    name: "Mobile & Email",
+    bg: "bg-amber-500/20",
+    text: "text-amber-400",
+    icon: Sparkles,
+  },
+  hot_lead: {
+    name: "Hot Lead",
+    bg: "bg-red-500/20",
+    text: "text-red-400",
+    icon: Zap,
+  },
+  gold_label: {
+    name: "GOLD",
+    bg: "bg-amber-500/20",
+    text: "text-amber-400",
+    icon: Sparkles,
+  },
+
+  // Data capture
+  email_captured: {
+    name: "Email",
+    bg: "bg-green-500/20",
+    text: "text-green-400",
+    icon: Mail,
+  },
+  mobile_captured: {
+    name: "Mobile",
+    bg: "bg-blue-500/20",
+    text: "text-blue-400",
+    icon: Phone,
+  },
+
+  // Intent signals
+  wants_call: {
+    name: "Wants Call",
+    bg: "bg-purple-500/20",
+    text: "text-purple-400",
+    icon: PhoneCall,
+  },
+  needs_help: {
+    name: "Needs Help",
+    bg: "bg-red-500/20",
+    text: "text-red-400",
+    icon: Sparkles,
+  },
+  question_asked: {
+    name: "Question",
+    bg: "bg-cyan-500/20",
+    text: "text-cyan-400",
+    icon: MessageSquare,
+  },
+  high_intent: {
+    name: "High Intent",
+    bg: "bg-emerald-500/20",
+    text: "text-emerald-400",
+    icon: Zap,
+  },
+
+  // Execution
+  push_to_call_center: {
+    name: "Call Center",
+    bg: "bg-orange-500/20",
+    text: "text-orange-400",
+    icon: PhoneForwarded,
+  },
+  call_ready: {
+    name: "Call Ready",
+    bg: "bg-green-500/20",
+    text: "text-green-400",
+    icon: Phone,
+  },
+  responded: {
+    name: "Responded",
+    bg: "bg-green-500/20",
+    text: "text-green-400",
+    icon: CheckSquare,
+  },
+
+  // Workspace / Stage labels
+  initial_message: {
+    name: "Initial",
+    bg: "bg-amber-500/20",
+    text: "text-amber-400",
+    icon: Zap,
+  },
+  retarget: {
+    name: "Retarget",
+    bg: "bg-purple-500/20",
+    text: "text-purple-400",
+    icon: Clock,
+  },
+  nudger: {
+    name: "Nudger",
+    bg: "bg-orange-500/20",
+    text: "text-orange-400",
+    icon: MessageSquare,
+  },
+  content_nurture: {
+    name: "Nurture",
+    bg: "bg-blue-500/20",
+    text: "text-blue-400",
+    icon: Sparkles,
+  },
+  book_appointment: {
+    name: "Book Appt",
+    bg: "bg-green-500/20",
+    text: "text-green-400",
+    icon: Calendar,
+  },
+  lead_calendar: {
+    name: "Calendar",
+    bg: "bg-cyan-500/20",
+    text: "text-cyan-400",
+    icon: Calendar,
+  },
+};
+
+// Labels for rapid classification (dropdown menu)
 const QUICK_LABELS = [
   {
-    id: "label-needs-help",
+    id: "needs_help",
     name: "Needs Help",
     color: "text-red-500",
     icon: Sparkles,
   },
   {
-    id: "label-mobile-captured",
+    id: "mobile_captured",
     name: "Mobile Captured",
     color: "text-blue-500",
     icon: Phone,
   },
   {
-    id: "label-email-captured",
+    id: "email_captured",
     name: "Email Captured",
     color: "text-green-500",
     icon: Mail,
   },
   {
-    id: "label-push-call-center",
+    id: "push_to_call_center",
     name: "Push to Call Center",
     color: "text-orange-500",
     icon: PhoneForwarded,
   },
   {
-    id: "label-wants-call",
+    id: "wants_call",
     name: "Asking for Phone Call",
     color: "text-purple-500",
     icon: PhoneCall,
   },
   {
-    id: "label-yes-content",
-    name: "Yes to Content",
+    id: "high_intent",
+    name: "High Intent",
     color: "text-emerald-500",
     icon: CheckSquare,
   },
@@ -129,6 +257,87 @@ const QUEUE_DESTINATIONS = [
     color: "text-emerald-500",
   },
 ];
+
+/**
+ * Render label badges for a message
+ * Extracts labels from message status, metadata, or lead tags
+ * Shows max 3 labels to avoid clutter
+ */
+function renderMessageLabels(message: any) {
+  const labels: string[] = [];
+
+  // Extract labels from message status
+  if (message.status === "email_captured") labels.push("email_captured");
+  if (message.status === "mobile_captured") labels.push("mobile_captured");
+  if (message.status === "interested") labels.push("high_intent");
+
+  // Extract from metadata if present
+  if (message.metadata?.labels) {
+    labels.push(...message.metadata.labels);
+  }
+
+  // Extract from lead tags if present
+  if (message.lead?.tags) {
+    labels.push(...message.lead.tags);
+  }
+
+  // Dedupe and prioritize GOLD labels first, then capture, then campaigns
+  const uniqueLabels = [...new Set(labels)];
+  const priorityOrder = [
+    "mobile_and_email",
+    "gold_label",
+    "hot_lead",
+    "email_captured",
+    "mobile_captured",
+    "wants_call",
+    "high_intent",
+    "responded",
+    // Workspace stages come after capture labels
+    "initial_message",
+    "retarget",
+    "nudger",
+    "content_nurture",
+    "book_appointment",
+    "lead_calendar",
+  ];
+
+  const sortedLabels = uniqueLabels.sort((a, b) => {
+    const aIndex = priorityOrder.indexOf(a);
+    const bIndex = priorityOrder.indexOf(b);
+    if (aIndex === -1 && bIndex === -1) return 0;
+    if (aIndex === -1) return 1;
+    if (bIndex === -1) return -1;
+    return aIndex - bIndex;
+  });
+
+  // Show max 3 labels
+  const displayLabels = sortedLabels.slice(0, 3);
+
+  if (displayLabels.length === 0) return null;
+
+  return (
+    <div className="flex items-center gap-1 flex-wrap">
+      {displayLabels.map((labelId) => {
+        const config = LABEL_DISPLAY[labelId];
+        if (!config) return null;
+
+        return (
+          <Badge
+            key={labelId}
+            variant="outline"
+            className={cn(
+              "text-[10px] px-1.5 py-0 h-5 font-medium border-0",
+              config.bg,
+              config.text,
+            )}
+          >
+            {config.name}
+          </Badge>
+        );
+      })}
+    </div>
+  );
+}
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
@@ -208,8 +417,30 @@ export function InboxMessages({
     // Search is handled reactively via filteredMessages
   };
 
-  // Filter messages by search query
+  // Get message labels for filtering
+  const getMessageLabels = (message: any): string[] => {
+    const labels: string[] = [];
+    if (message.status === "email_captured") labels.push("email_captured");
+    if (message.status === "mobile_captured") labels.push("mobile_captured");
+    if (message.status === "interested") labels.push("high_intent");
+    if (message.metadata?.labels) labels.push(...message.metadata.labels);
+    if (message.lead?.tags) labels.push(...message.lead.tags);
+    return labels;
+  };
+
+  // Filter messages by search query AND active label
   const filteredMessages = messages.filter((message) => {
+    // First, check if we're filtering by a label (activeItem is a label ID)
+    const standardItems = ["inbox", "sent", "archived", "flagged", "trash"];
+    if (!standardItems.includes(activeItem)) {
+      // activeItem is a label ID - filter by it
+      const messageLabels = getMessageLabels(message);
+      if (!messageLabels.includes(activeItem)) {
+        return false;
+      }
+    }
+
+    // Then apply search filter
     if (!searchQuery.trim()) return true;
     const query = searchQuery.toLowerCase();
     return (
@@ -298,8 +529,33 @@ export function InboxMessages({
     }
   };
 
+  // Check if filtering by a label
+  const standardItems = ["inbox", "sent", "archived", "flagged", "trash"];
+  const isLabelFilter = !standardItems.includes(activeItem);
+  const activeLabelConfig = isLabelFilter ? LABEL_DISPLAY[activeItem] : null;
+
   return (
     <div className="space-y-3">
+      {/* Active label filter indicator */}
+      {isLabelFilter && activeLabelConfig && (
+        <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
+          <Badge
+            variant="outline"
+            className={cn(
+              "text-xs px-2 py-0.5 font-medium border-0",
+              activeLabelConfig.bg,
+              activeLabelConfig.text,
+            )}
+          >
+            {activeLabelConfig.name}
+          </Badge>
+          <span className="text-sm text-muted-foreground">
+            Showing {filteredMessages.length} message
+            {filteredMessages.length !== 1 ? "s" : ""}
+          </span>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
         <form onSubmit={handleSearch} className="relative flex-1 w-full">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -541,19 +797,25 @@ export function InboxMessages({
                     </div>
                   </TableCell>
                   <TableCell className="hidden md:table-cell py-2">
-                    <div
-                      className={cn(
-                        "text-sm",
-                        message.status !== "read" &&
-                          message.status !== "replied"
-                          ? "font-semibold"
-                          : "font-medium",
-                      )}
-                    >
-                      {message.subject || "No Subject"}
-                    </div>
-                    <div className="text-xs text-muted-foreground truncate max-w-[300px]">
-                      {message.body}
+                    <div className="flex items-start gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div
+                          className={cn(
+                            "text-sm",
+                            message.status !== "read" &&
+                              message.status !== "replied"
+                              ? "font-semibold"
+                              : "font-medium",
+                          )}
+                        >
+                          {message.subject || "No Subject"}
+                        </div>
+                        <div className="text-xs text-muted-foreground truncate max-w-[300px]">
+                          {message.body}
+                        </div>
+                      </div>
+                      {/* Easify-style label badges */}
+                      {renderMessageLabels(message)}
                     </div>
                   </TableCell>
                   <TableCell className="py-2">
