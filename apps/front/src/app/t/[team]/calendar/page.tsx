@@ -123,7 +123,55 @@ interface CalendarDay {
   isToday: boolean;
   leads: Lead[];
   leadCount: number;
+  events: CalendarEvent[];
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CALENDAR EVENTS
+// ═══════════════════════════════════════════════════════════════════════════════
+interface CalendarEvent {
+  id: string;
+  title: string;
+  type: "callback" | "appointment" | "follow_up" | "campaign";
+  date: Date;
+  time?: string;
+  leadId?: string;
+  leadName?: string;
+  notes?: string;
+  completed?: boolean;
+  createdAt: string;
+}
+
+const EVENT_TYPE_CONFIG = {
+  callback: {
+    label: "Callback",
+    color: "bg-blue-500",
+    textColor: "text-blue-600",
+    bgLight: "bg-blue-100",
+    icon: Phone,
+  },
+  appointment: {
+    label: "Appointment",
+    color: "bg-green-500",
+    textColor: "text-green-600",
+    bgLight: "bg-green-100",
+    icon: CalendarDays,
+  },
+  follow_up: {
+    label: "Follow-up",
+    color: "bg-purple-500",
+    textColor: "text-purple-600",
+    bgLight: "bg-purple-100",
+    icon: Clock,
+  },
+  campaign: {
+    label: "Campaign",
+    color: "bg-orange-500",
+    textColor: "text-orange-600",
+    bgLight: "bg-orange-100",
+    icon: Send,
+  },
+};
 
 // All 7 workflow contexts from single source of truth
 const CONTEXT_ICONS: Record<CampaignContext, React.ReactNode> = {
@@ -239,6 +287,96 @@ export default function LeadCalendarWorkspace() {
     failed: 0,
   });
 
+  // Event Creation State
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [showCreateEventDialog, setShowCreateEventDialog] = useState(false);
+  const [newEvent, setNewEvent] = useState<{
+    title: string;
+    type: CalendarEvent["type"];
+    date: string;
+    time: string;
+    notes: string;
+    leadId?: string;
+  }>({
+    title: "",
+    type: "callback",
+    date: new Date().toISOString().split("T")[0],
+    time: "09:00",
+    notes: "",
+  });
+
+  // Load events from localStorage on mount
+  useEffect(() => {
+    const savedEvents = localStorage.getItem(`calendar-events-${teamId}`);
+    if (savedEvents) {
+      try {
+        const parsed = JSON.parse(savedEvents);
+        setEvents(
+          parsed.map((e: CalendarEvent) => ({ ...e, date: new Date(e.date) })),
+        );
+      } catch {
+        setEvents([]);
+      }
+    }
+  }, [teamId]);
+
+  // Save events to localStorage
+  const saveEvents = (newEvents: CalendarEvent[]) => {
+    setEvents(newEvents);
+    localStorage.setItem(
+      `calendar-events-${teamId}`,
+      JSON.stringify(newEvents),
+    );
+  };
+
+  // Create new event
+  const handleCreateEvent = () => {
+    if (!newEvent.title.trim()) {
+      toast.error("Event title is required");
+      return;
+    }
+
+    const event: CalendarEvent = {
+      id: `event-${Date.now()}`,
+      title: newEvent.title.trim(),
+      type: newEvent.type,
+      date: new Date(`${newEvent.date}T${newEvent.time}`),
+      time: newEvent.time,
+      notes: newEvent.notes,
+      leadId: newEvent.leadId,
+      completed: false,
+      createdAt: new Date().toISOString(),
+    };
+
+    saveEvents([...events, event]);
+    setShowCreateEventDialog(false);
+    setNewEvent({
+      title: "",
+      type: "callback",
+      date: new Date().toISOString().split("T")[0],
+      time: "09:00",
+      notes: "",
+    });
+    toast.success(
+      `${EVENT_TYPE_CONFIG[event.type].label} created for ${new Date(event.date).toLocaleDateString()}`,
+    );
+  };
+
+  // Toggle event completion
+  const toggleEventComplete = (eventId: string) => {
+    const updatedEvents = events.map((e) =>
+      e.id === eventId ? { ...e, completed: !e.completed } : e,
+    );
+    saveEvents(updatedEvents);
+  };
+
+  // Delete event
+  const deleteEvent = (eventId: string) => {
+    const updatedEvents = events.filter((e) => e.id !== eventId);
+    saveEvents(updatedEvents);
+    toast.success("Event deleted");
+  };
+
   // Calculate date range for current view
   const dateRange = useMemo(() => {
     const year = currentDate.getFullYear();
@@ -273,7 +411,7 @@ export default function LeadCalendarWorkspace() {
     };
   }, [dateRange.startDate.getTime(), dateRange.endDate.getTime()]);
 
-  // Generate calendar days with leads grouped by date
+  // Generate calendar days with leads and events grouped by date
   const calendarDays = useMemo(() => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
@@ -295,6 +433,16 @@ export default function LeadCalendarWorkspace() {
       leadsByDate.get(dateKey)!.push(lead);
     }
 
+    // Group events by date
+    const eventsByDate = new Map<string, CalendarEvent[]>();
+    for (const event of events) {
+      const dateKey = new Date(event.date).toDateString();
+      if (!eventsByDate.has(dateKey)) {
+        eventsByDate.set(dateKey, []);
+      }
+      eventsByDate.get(dateKey)!.push(event);
+    }
+
     for (let i = 0; i < 42; i++) {
       const date = new Date(startDate);
       date.setDate(startDate.getDate() + i);
@@ -302,6 +450,7 @@ export default function LeadCalendarWorkspace() {
 
       const dateKey = date.toDateString();
       const leads = leadsByDate.get(dateKey) || [];
+      const dayEvents = eventsByDate.get(dateKey) || [];
 
       days.push({
         date,
@@ -309,11 +458,12 @@ export default function LeadCalendarWorkspace() {
         isToday: date.getTime() === today.getTime(),
         leads,
         leadCount: leads.length,
+        events: dayEvents,
       });
     }
 
     return days;
-  }, [currentDate, allLeads]);
+  }, [currentDate, allLeads, events]);
 
   // Get leads for selected date
   const selectedDateLeads = useMemo(() => {
@@ -797,6 +947,23 @@ export default function LeadCalendarWorkspace() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            {/* Create Event Button */}
+            <Button
+              onClick={() => {
+                setNewEvent({
+                  ...newEvent,
+                  date:
+                    selectedDate?.toISOString().split("T")[0] ||
+                    new Date().toISOString().split("T")[0],
+                });
+                setShowCreateEventDialog(true);
+              }}
+              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Create Event
+            </Button>
+
             {/* Pull Leads Button */}
             <Button
               variant="outline"
@@ -1049,6 +1216,36 @@ export default function LeadCalendarWorkspace() {
                     )}
                   </div>
 
+                  {/* Events */}
+                  {day.events.length > 0 && (
+                    <div className="space-y-0.5 mb-1">
+                      {day.events.slice(0, 2).map((event) => {
+                        const config = EVENT_TYPE_CONFIG[event.type];
+                        const IconComponent = config.icon;
+                        return (
+                          <div
+                            key={event.id}
+                            className={cn(
+                              "flex items-center gap-1 px-1 py-0.5 rounded text-[10px] truncate",
+                              config.bgLight,
+                              config.textColor,
+                              event.completed && "opacity-50 line-through"
+                            )}
+                            title={`${event.title} - ${event.time || ""}`}
+                          >
+                            <IconComponent className="h-2.5 w-2.5 flex-shrink-0" />
+                            <span className="truncate">{event.title}</span>
+                          </div>
+                        );
+                      })}
+                      {day.events.length > 2 && (
+                        <span className="text-[10px] text-muted-foreground px-1">
+                          +{day.events.length - 2} more
+                        </span>
+                      )}
+                    </div>
+                  )}
+
                   {/* Lead Preview Dots */}
                   {day.leadCount > 0 && (
                     <div className="flex flex-wrap gap-1 mt-1">
@@ -1130,20 +1327,105 @@ export default function LeadCalendarWorkspace() {
             </div>
           </div>
 
-          {/* Lead List */}
+          {/* Events & Leads List */}
           <ScrollArea className="flex-1">
             <div className="p-4 space-y-3">
-              {selectedDateLeads.length === 0 ? (
+              {/* Events for selected date */}
+              {(() => {
+                const dayEvents = calendarDays.find(
+                  d => d.date.toDateString() === selectedDate?.toDateString()
+                )?.events || [];
+
+                if (dayEvents.length > 0) {
+                  return (
+                    <div className="space-y-2 mb-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-medium text-muted-foreground">Events</h4>
+                        <Badge variant="outline">{dayEvents.length}</Badge>
+                      </div>
+                      {dayEvents.map((event) => {
+                        const config = EVENT_TYPE_CONFIG[event.type];
+                        const IconComponent = config.icon;
+                        return (
+                          <Card key={event.id} className={cn(
+                            "border-l-4",
+                            config.color.replace("bg-", "border-l-")
+                          )}>
+                            <CardContent className="p-3">
+                              <div className="flex items-start justify-between">
+                                <div className="flex items-start gap-2">
+                                  <Checkbox
+                                    checked={event.completed}
+                                    onCheckedChange={() => toggleEventComplete(event.id)}
+                                    className="mt-0.5"
+                                  />
+                                  <div>
+                                    <p className={cn(
+                                      "font-medium text-sm",
+                                      event.completed && "line-through text-muted-foreground"
+                                    )}>
+                                      {event.title}
+                                    </p>
+                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                      <IconComponent className="h-3 w-3" />
+                                      <span>{config.label}</span>
+                                      {event.time && (
+                                        <>
+                                          <span>•</span>
+                                          <span>{event.time}</span>
+                                        </>
+                                      )}
+                                    </div>
+                                    {event.notes && (
+                                      <p className="text-xs text-muted-foreground mt-1">
+                                        {event.notes}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                                  onClick={() => deleteEvent(event.id)}
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+
+              {/* Leads section */}
+              {selectedDateLeads.length === 0 && calendarDays.find(d => d.date.toDateString() === selectedDate?.toDateString())?.events.length === 0 ? (
                 <div className="text-center py-12">
                   <Inbox className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
                   <p className="text-sm text-muted-foreground">
-                    No leads for this day
+                    No events or leads for this day
                   </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Run a property search to generate leads
-                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-3"
+                    onClick={() => {
+                      setNewEvent({
+                        ...newEvent,
+                        date: selectedDate?.toISOString().split("T")[0] || new Date().toISOString().split("T")[0],
+                      });
+                      setShowCreateEventDialog(true);
+                    }}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Event
+                  </Button>
                 </div>
-              ) : (
+              ) : selectedDateLeads.length === 0 ? null : (
                 selectedDateLeads.map((lead) => (
                   <Card
                     key={lead.id}
@@ -1607,6 +1889,110 @@ export default function LeadCalendarWorkspace() {
                   Skip Trace {selectedLeads.size} Leads
                 </>
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Event Dialog */}
+      <Dialog open={showCreateEventDialog} onOpenChange={setShowCreateEventDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="h-5 w-5 text-green-600" />
+              Create Calendar Event
+            </DialogTitle>
+            <DialogDescription>
+              Schedule a callback, appointment, follow-up, or campaign
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4 space-y-4">
+            {/* Event Type Selection */}
+            <div className="space-y-2">
+              <Label>Event Type</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {(Object.entries(EVENT_TYPE_CONFIG) as [CalendarEvent["type"], typeof EVENT_TYPE_CONFIG.callback][]).map(([type, config]) => {
+                  const IconComponent = config.icon;
+                  return (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => setNewEvent({ ...newEvent, type })}
+                      className={cn(
+                        "flex items-center gap-2 p-3 rounded-lg border transition-all",
+                        newEvent.type === type
+                          ? `${config.bgLight} ${config.textColor} border-current`
+                          : "hover:bg-muted"
+                      )}
+                    >
+                      <IconComponent className="h-4 w-4" />
+                      <span className="font-medium text-sm">{config.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Event Title */}
+            <div className="space-y-2">
+              <Label htmlFor="event-title">Title</Label>
+              <Input
+                id="event-title"
+                placeholder="e.g., Call back John Smith"
+                value={newEvent.title}
+                onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
+              />
+            </div>
+
+            {/* Date and Time */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="event-date">Date</Label>
+                <Input
+                  id="event-date"
+                  type="date"
+                  value={newEvent.date}
+                  onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="event-time">Time</Label>
+                <Input
+                  id="event-time"
+                  type="time"
+                  value={newEvent.time}
+                  onChange={(e) => setNewEvent({ ...newEvent, time: e.target.value })}
+                />
+              </div>
+            </div>
+
+            {/* Notes */}
+            <div className="space-y-2">
+              <Label htmlFor="event-notes">Notes (optional)</Label>
+              <Input
+                id="event-notes"
+                placeholder="Additional details..."
+                value={newEvent.notes}
+                onChange={(e) => setNewEvent({ ...newEvent, notes: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowCreateEventDialog(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCreateEvent}
+              disabled={!newEvent.title.trim()}
+              className="bg-gradient-to-r from-green-600 to-emerald-600"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Create Event
             </Button>
           </DialogFooter>
         </DialogContent>

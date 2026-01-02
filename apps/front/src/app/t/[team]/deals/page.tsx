@@ -87,42 +87,42 @@ const DEAL_MODULES = {
   ai_consulting: {
     name: "AI Consulting",
     description: "Nextier Consulting & AI Implementation",
-    icon: "target"
+    icon: "target",
   },
   platform_whitelabel: {
     name: "Platform White Label",
     description: "White label platform solutions",
-    icon: "grid"
+    icon: "grid",
   },
   business_exits: {
     name: "Business Exits",
     description: "Nexit Business Expansion & Exits",
-    icon: "building"
+    icon: "building",
   },
   capital_connect: {
     name: "Capital Connect",
     description: "Nexter Capital Connect",
-    icon: "dollar"
+    icon: "dollar",
   },
   foundational_dataverse: {
     name: "Foundational Dataverse",
     description: "Nextier Foundational Dataverse",
-    icon: "trending"
+    icon: "trending",
   },
   terminals: {
     name: "Terminals",
     description: "Nextier Terminals",
-    icon: "terminal"
+    icon: "terminal",
   },
   blueprints: {
     name: "Blueprints",
     description: "Nextier Blueprints",
-    icon: "layout"
+    icon: "layout",
   },
   system_mapping: {
     name: "System Mapping",
     description: "Nextier System Mapping",
-    icon: "map"
+    icon: "map",
   },
 };
 
@@ -178,10 +178,10 @@ export default function DealsPage() {
   const [selectedModules, setSelectedModules] = useState<string[]>([]);
 
   const toggleModule = (moduleId: string) => {
-    setSelectedModules(prev =>
+    setSelectedModules((prev) =>
       prev.includes(moduleId)
-        ? prev.filter(m => m !== moduleId)
-        : [...prev, moduleId]
+        ? prev.filter((m) => m !== moduleId)
+        : [...prev, moduleId],
     );
   };
 
@@ -323,9 +323,10 @@ export default function DealsPage() {
               className={`
                 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium
                 border transition-all cursor-pointer
-                ${selectedModules.includes(id)
-                  ? MODULE_COLORS[id]
-                  : "bg-muted/50 text-muted-foreground border-muted hover:bg-muted"
+                ${
+                  selectedModules.includes(id)
+                    ? MODULE_COLORS[id]
+                    : "bg-muted/50 text-muted-foreground border-muted hover:bg-muted"
                 }
               `}
             >
