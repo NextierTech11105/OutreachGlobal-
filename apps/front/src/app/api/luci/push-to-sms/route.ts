@@ -15,7 +15,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { smsQueueService } from "@/lib/services/sms-queue-service";
 import { db } from "@/lib/db";
-import { messages } from "@/lib/db/schema";
+import { smsMessages } from "@/lib/db/schema";
 import { and, eq, gt, inArray } from "drizzle-orm";
 
 // Duplicate outreach prevention config (from FAILURE_PLAYBOOKS.md)
@@ -131,15 +131,15 @@ async function checkDuplicateOutreach(
     // Find leads with recent outbound messages
     const recentMessages = await db
       .select({
-        leadId: messages.leadId,
-        createdAt: messages.createdAt,
+        leadId: smsMessages.leadId,
+        createdAt: smsMessages.createdAt,
       })
-      .from(messages)
+      .from(smsMessages)
       .where(
         and(
-          inArray(messages.leadId, leadIds),
-          eq(messages.direction, "outbound"),
-          gt(messages.createdAt, cutoffDate),
+          inArray(smsMessages.leadId, leadIds),
+          eq(smsMessages.direction, "outbound"),
+          gt(smsMessages.createdAt, cutoffDate),
         ),
       );
 
