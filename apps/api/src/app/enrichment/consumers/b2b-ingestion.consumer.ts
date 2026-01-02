@@ -13,7 +13,7 @@ import { DeadLetterQueueService } from "@/lib/dlq";
 
 const B2B_INGESTION_QUEUE = "b2b-ingestion";
 
-@Processor(B2B_INGESTION_QUEUE)
+@Processor(B2B_INGESTION_QUEUE, { concurrency: 5, lockDuration: 30000 })
 export class B2BIngestionConsumer extends WorkerHost {
   private readonly logger = new Logger(B2BIngestionConsumer.name);
 

@@ -37,7 +37,7 @@ interface SendMessageOptions {
 
 type AllSettings = TwilioSettings & SendgridSettings;
 
-@Processor(CAMPAIGN_SEQUENCE_QUEUE, { concurrency: 10 })
+@Processor(CAMPAIGN_SEQUENCE_QUEUE, { concurrency: 5, lockDuration: 30000 })
 export class CampaignSequenceConsumer extends WorkerHost {
   private readonly logger = new Logger(CampaignSequenceConsumer.name);
 

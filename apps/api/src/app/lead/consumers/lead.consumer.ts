@@ -22,7 +22,7 @@ interface ImportBusinessListData {
 
 const LEAD_QUEUE = "lead";
 
-@Processor(LEAD_QUEUE)
+@Processor(LEAD_QUEUE, { concurrency: 5, lockDuration: 30000 })
 export class LeadConsumer extends WorkerHost {
   private readonly logger = new Logger(LeadConsumer.name);
 

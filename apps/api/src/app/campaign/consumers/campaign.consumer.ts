@@ -12,7 +12,7 @@ import { CampaignLeadInsert } from "../models/campaign-lead.model";
 import { CampaignService } from "../services/campaign.service";
 import { DeadLetterQueueService } from "@/lib/dlq";
 
-@Processor(CAMPAIGN_QUEUE)
+@Processor(CAMPAIGN_QUEUE, { concurrency: 5, lockDuration: 30000 })
 export class CampaignConsumer extends WorkerHost {
   private readonly logger = new Logger(CampaignConsumer.name);
 

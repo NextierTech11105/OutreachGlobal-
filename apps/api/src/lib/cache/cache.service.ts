@@ -3,12 +3,21 @@ import { CACHE_MANAGER } from "./cache.constants";
 import Redis from "ioredis";
 import { differenceInMilliseconds } from "date-fns";
 
+export interface CacheOptions {
+  teamId?: string;
+}
+
 @Injectable()
 export class CacheService {
   constructor(@Inject(CACHE_MANAGER) private cache: Redis) {}
 
-  async get<T = any>(key: string): Promise<T | undefined> {
-    const result = await this.cache.get(key);
+  private prefixKey(key: string, teamId?: string): string {
+    return teamId ? `team:${teamId}:${key}` : key;
+  }
+
+  async get<T = any>(key: string, options?: CacheOptions): Promise<T | undefined> {
+    const prefixedKey = this.prefixKey(key, options?.teamId);
+    const result = await this.cache.get(prefixedKey);
     if (!result) {
       return undefined;
     }
@@ -22,20 +31,22 @@ export class CacheService {
     return diffInMs;
   }
 
-  set<T = any>(key: string, value: T, ttl?: number | Date) {
+  set<T = any>(key: string, value: T, ttl?: number | Date, options?: CacheOptions) {
+    const prefixedKey = this.prefixKey(key, options?.teamId);
     const serializedValue = JSON.stringify({ value });
     if (typeof ttl === "number") {
-      return this.cache.set(key, serializedValue, "PX", ttl);
+      return this.cache.set(prefixedKey, serializedValue, "PX", ttl);
     }
 
     if (typeof ttl === "object") {
-      return this.cache.set(key, serializedValue, "PX", this.getTTL(ttl));
+      return this.cache.set(prefixedKey, serializedValue, "PX", this.getTTL(ttl));
     }
 
-    return this.cache.set(key, serializedValue);
+    return this.cache.set(prefixedKey, serializedValue);
   }
 
-  async del(key: string) {
-    await this.cache.del(key);
+  async del(key: string, options?: CacheOptions) {
+    const prefixedKey = this.prefixKey(key, options?.teamId);
+    await this.cache.del(prefixedKey);
   }
 }

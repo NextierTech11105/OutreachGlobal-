@@ -166,6 +166,7 @@ export class LeadSchedule {
 
       if (!scoreValues.find((score) => score.externalId === property.id)) {
         scoreValues.push({
+          teamId: lead.teamId,
           provider: "REAL_ESTATE_API",
           externalId: property.id,
           address: property.address?.address || null,

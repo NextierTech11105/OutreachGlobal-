@@ -8,7 +8,7 @@ import { DeadLetterQueueService } from "@/lib/dlq";
 
 const MAIL_QUEUE = "mail";
 
-@Processor(MAIL_QUEUE, { concurrency: 5 })
+@Processor(MAIL_QUEUE, { concurrency: 5, lockDuration: 30000 })
 export class MailConsumer extends WorkerHost {
   private readonly logger = new Logger(MailConsumer.name);
 

@@ -13,7 +13,7 @@ import { DeadLetterQueueService } from "@/lib/dlq";
 
 const SKIPTRACE_QUEUE = "skiptrace";
 
-@Processor(SKIPTRACE_QUEUE)
+@Processor(SKIPTRACE_QUEUE, { concurrency: 5, lockDuration: 30000 })
 export class SkipTraceConsumer extends WorkerHost {
   private readonly logger = new Logger(SkipTraceConsumer.name);
 

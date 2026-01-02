@@ -1,8 +1,10 @@
 import { CacheModule } from "../lib/cache/cache.module";
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
-import { APP_INTERCEPTOR } from "@nestjs/core";
+import { APP_FILTER, APP_INTERCEPTOR } from "@nestjs/core";
 import { TenantContextInterceptor } from "./auth/interceptors/tenant-context.interceptor";
+import { CorrelationIdInterceptor } from "./common/interceptors";
+import { GlobalExceptionFilter } from "./common/filters";
 import { UserModule } from "./user/user.module";
 import { TeamModule } from "./team/team.module";
 import { AuthModule } from "./auth/auth.module";
@@ -39,6 +41,7 @@ import { ContentLibraryModule } from "./content-library/content-library.module";
 import { EnrichmentModule } from "./enrichment/enrichment.module";
 import { DeadLetterQueueModule } from "../lib/dlq";
 import { LoggerModule } from "../lib/logger";
+import { CircuitBreakerModule } from "../lib/circuit-breaker";
 
 @Module({
   imports: [
@@ -47,6 +50,7 @@ import { LoggerModule } from "../lib/logger";
     CqrsModule.forRoot(),
     DatabaseModule,
     DeadLetterQueueModule,
+    CircuitBreakerModule,
     ConfigModule.forRoot(),
     ThrottlerModule.forRoot([{ name: "default", ttl: 60000, limit: 60 }]),
     CacheModule,
@@ -90,6 +94,16 @@ import { LoggerModule } from "../lib/logger";
   ],
   providers: [
     AppRunner,
+    // Global exception filter for consistent error handling
+    {
+      provide: APP_FILTER,
+      useClass: GlobalExceptionFilter,
+    },
+    // Global interceptor to add correlation IDs for request tracing
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: CorrelationIdInterceptor,
+    },
     // Global interceptor to set tenant context for RLS
     {
       provide: APP_INTERCEPTOR,

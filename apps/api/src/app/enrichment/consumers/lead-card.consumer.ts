@@ -40,7 +40,7 @@ interface TriggerCampaignJob {
 
 const LEAD_CARD_QUEUE = "lead-card";
 
-@Processor(LEAD_CARD_QUEUE)
+@Processor(LEAD_CARD_QUEUE, { concurrency: 5, lockDuration: 30000 })
 export class LeadCardConsumer extends WorkerHost {
   private readonly logger = new Logger(LeadCardConsumer.name);
 

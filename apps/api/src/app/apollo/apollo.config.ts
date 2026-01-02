@@ -55,6 +55,7 @@ export const apolloAsyncConfig: GqlModuleAsyncOptions<
         return err;
       },
       context: async (req: FastifyRequest, res: FastifyReply) => {
+        let teamId: string | undefined;
         if (req.headers?.authorization) {
           try {
             const [type, token] = req.headers.authorization.split(" ") ?? [];
@@ -67,16 +68,18 @@ export const apolloAsyncConfig: GqlModuleAsyncOptions<
               }
               if (payload) {
                 req["tokenPayload"] = payload;
+                teamId = payload.teamId as string | undefined;
               }
             }
           } catch (error) {
             // no catch for now
           }
         }
+        teamId = teamId || (req as any).team?.id;
         return {
           req,
           res,
-          loaders: dataloaderService.getLoaders(),
+          loaders: dataloaderService.getLoaders(teamId),
         };
       },
       playground: false,

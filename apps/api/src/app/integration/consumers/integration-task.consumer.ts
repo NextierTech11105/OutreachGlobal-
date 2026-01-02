@@ -23,7 +23,7 @@ import { DeadLetterQueueService } from "@/lib/dlq";
 
 type JobData = Job<{ task: IntegrationTaskSelect }>;
 
-@Processor(INTEGRATION_TASK_QUEUE, { concurrency: 5 })
+@Processor(INTEGRATION_TASK_QUEUE, { concurrency: 5, lockDuration: 30000 })
 export class IntegrationTaskConsumer extends WorkerHost {
   private readonly logger = new Logger(IntegrationTaskConsumer.name);
 
