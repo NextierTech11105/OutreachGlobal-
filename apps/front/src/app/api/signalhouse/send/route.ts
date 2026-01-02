@@ -36,6 +36,7 @@ export async function POST(request: NextRequest) {
       phoneType,
       skipLandlineValidation,
       validateNumber,
+      teamId,
     } = await request.json();
 
     // Validate required fields
@@ -97,8 +98,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check rate limit before sending
-    const rateLimitCheck = await checkRateLimit();
+    // Check rate limit before sending (tenant-isolated)
+    const rateLimitCheck = await checkRateLimit(teamId);
     if (rateLimitCheck.blocked && rateLimitCheck.response) {
       return NextResponse.json(
         {
@@ -133,8 +134,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Record successful send for rate limiting
-    await recordSend();
+    // Record successful send for rate limiting (tenant-isolated)
+    await recordSend(teamId);
 
     return NextResponse.json({
       success: true,

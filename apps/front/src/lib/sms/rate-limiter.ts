@@ -66,17 +66,20 @@ function getCarrierLimit(carrier: string): number {
 }
 
 /**
- * Redis key for carrier rate limiting
+ * Redis key for carrier rate limiting (tenant-isolated)
  */
-function getRateLimitKey(carrier: string): string {
+function getRateLimitKey(teamId: string, carrier: string): string {
   const minute = Math.floor(Date.now() / 1000 / WINDOW_SECONDS);
-  return `rate:sms:${carrier.toLowerCase()}:${minute}`;
+  return `rate:sms:${teamId}:${carrier.toLowerCase()}:${minute}`;
 }
 
 /**
  * Check if we can send a message to this carrier (Redis version)
  */
-async function canSendRedis(carrier: string): Promise<{
+async function canSendRedis(
+  teamId: string,
+  carrier: string,
+): Promise<{
   allowed: boolean;
   remaining: number;
   resetMs: number;
@@ -84,7 +87,7 @@ async function canSendRedis(carrier: string): Promise<{
   limit: number;
 }> {
   const limit = getCarrierLimit(carrier);
-  const key = getRateLimitKey(carrier);
+  const key = getRateLimitKey(teamId, carrier);
 
   // Get current count
   const count = (await redis.get<number>(key)) || 0;
@@ -108,8 +111,8 @@ async function canSendRedis(carrier: string): Promise<{
 /**
  * Record a sent message (Redis version)
  */
-async function recordSendRedis(carrier: string): Promise<void> {
-  const key = getRateLimitKey(carrier);
+async function recordSendRedis(teamId: string, carrier: string): Promise<void> {
+  const key = getRateLimitKey(teamId, carrier);
 
   // Increment counter
   const newCount = await redis.incrby(key, 1);
@@ -123,19 +126,23 @@ async function recordSendRedis(carrier: string): Promise<void> {
 /**
  * In-memory fallback: clean old entries from the window
  */
-function cleanMemoryWindow(carrier: string): number[] {
+function cleanMemoryWindow(teamId: string, carrier: string): number[] {
   const now = Date.now();
   const cutoff = now - WINDOW_SECONDS * 1000;
-  const timestamps = memoryStore.get(carrier) || [];
+  const key = `${teamId}:${carrier}`;
+  const timestamps = memoryStore.get(key) || [];
   const filtered = timestamps.filter((ts) => ts > cutoff);
-  memoryStore.set(carrier, filtered);
+  memoryStore.set(key, filtered);
   return filtered;
 }
 
 /**
  * Check if we can send a message to this carrier (Memory fallback)
  */
-function canSendMemory(carrier: string): {
+function canSendMemory(
+  teamId: string,
+  carrier: string,
+): {
   allowed: boolean;
   remaining: number;
   resetMs: number;
@@ -143,7 +150,7 @@ function canSendMemory(carrier: string): {
   limit: number;
 } {
   const limit = getCarrierLimit(carrier);
-  const timestamps = cleanMemoryWindow(carrier);
+  const timestamps = cleanMemoryWindow(teamId, carrier);
   const count = timestamps.length;
   const allowed = count < limit;
   const remaining = Math.max(0, limit - count);
@@ -164,16 +171,22 @@ function canSendMemory(carrier: string): {
 /**
  * Record a sent message (Memory fallback)
  */
-function recordSendMemory(carrier: string): void {
-  const timestamps = cleanMemoryWindow(carrier);
+function recordSendMemory(teamId: string, carrier: string): void {
+  const timestamps = cleanMemoryWindow(teamId, carrier);
   timestamps.push(Date.now());
-  memoryStore.set(carrier, timestamps);
+  const key = `${teamId}:${carrier}`;
+  memoryStore.set(key, timestamps);
 }
 
 /**
  * Check if we can send a message to this carrier
+ * @param teamId - Team ID for tenant isolation (defaults to "global")
+ * @param carrier - Carrier name for rate limit lookup
  */
-export async function canSend(carrier: string = "default"): Promise<{
+export async function canSend(
+  teamId: string = "global",
+  carrier: string = "default",
+): Promise<{
   allowed: boolean;
   remaining: number;
   resetMs: number;
@@ -195,31 +208,41 @@ export async function canSend(carrier: string = "default"): Promise<{
 
   // Use Redis if available, otherwise fall back to memory
   if (isRedisAvailable()) {
-    return canSendRedis(carrier);
+    return canSendRedis(teamId, carrier);
   }
 
-  return canSendMemory(carrier);
+  return canSendMemory(teamId, carrier);
 }
 
 /**
  * Record a sent message for rate limiting
+ * @param teamId - Team ID for tenant isolation (defaults to "global")
+ * @param carrier - Carrier name for rate limit lookup
  */
-export async function recordSend(carrier: string = "default"): Promise<void> {
+export async function recordSend(
+  teamId: string = "global",
+  carrier: string = "default",
+): Promise<void> {
   const config = getRateLimitConfig();
   if (!config.SMS_RATE_LIMIT_ENABLED) return;
 
   // Use Redis if available, otherwise fall back to memory
   if (isRedisAvailable()) {
-    await recordSendRedis(carrier);
+    await recordSendRedis(teamId, carrier);
   } else {
-    recordSendMemory(carrier);
+    recordSendMemory(teamId, carrier);
   }
 }
 
 /**
  * Check rate limit and return appropriate response if blocked
+ * @param teamId - Team ID for tenant isolation (defaults to "global")
+ * @param carrier - Carrier name for rate limit lookup
  */
-export async function checkRateLimit(carrier: string = "default"): Promise<{
+export async function checkRateLimit(
+  teamId: string = "global",
+  carrier: string = "default",
+): Promise<{
   blocked: boolean;
   response?: {
     error: string;
@@ -228,7 +251,7 @@ export async function checkRateLimit(carrier: string = "default"): Promise<{
     limit: number;
   };
 }> {
-  const result = await canSend(carrier);
+  const result = await canSend(teamId, carrier);
 
   if (!result.allowed) {
     return {
@@ -247,8 +270,11 @@ export async function checkRateLimit(carrier: string = "default"): Promise<{
 
 /**
  * Get current rate limit status for monitoring
+ * @param teamId - Team ID for tenant isolation (defaults to "global")
  */
-export async function getRateLimitStatus(): Promise<
+export async function getRateLimitStatus(
+  teamId: string = "global",
+): Promise<
   Record<string, { count: number; limit: number; remaining: number }>
 > {
   const carriers = ["att", "tmobile", "verizon", "default"];
@@ -258,7 +284,7 @@ export async function getRateLimitStatus(): Promise<
   > = {};
 
   for (const carrier of carriers) {
-    const result = await canSend(carrier);
+    const result = await canSend(teamId, carrier);
     status[carrier] = {
       count: result.limit - result.remaining,
       limit: result.limit,
