@@ -28,7 +28,8 @@ export class CorrelationIdInterceptor implements NestInterceptor {
 
     const existingId = request.headers[CORRELATION_ID_HEADER] as string;
     const correlationId =
-      existingId || `req_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+      existingId ||
+      `req_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
 
     (request as any).correlationId = correlationId;
 

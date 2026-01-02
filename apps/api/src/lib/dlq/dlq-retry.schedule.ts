@@ -55,14 +55,10 @@ export class DLQRetryScheduler {
           continue;
         }
 
-        await queue.add(
-          entry.jobName || "retry",
-          entry.jobData || {},
-          {
-            ...DEFAULT_JOB_OPTIONS,
-            jobId: `dlq-retry-${entry.id}-${entry.retryCount + 1}`,
-          },
-        );
+        await queue.add(entry.jobName || "retry", entry.jobData || {}, {
+          ...DEFAULT_JOB_OPTIONS,
+          jobId: `dlq-retry-${entry.id}-${entry.retryCount + 1}`,
+        });
 
         await this.db
           .update(deadLetterQueue)

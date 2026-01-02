@@ -15,7 +15,10 @@ export class CacheService {
     return teamId ? `team:${teamId}:${key}` : key;
   }
 
-  async get<T = any>(key: string, options?: CacheOptions): Promise<T | undefined> {
+  async get<T = any>(
+    key: string,
+    options?: CacheOptions,
+  ): Promise<T | undefined> {
     const prefixedKey = this.prefixKey(key, options?.teamId);
     const result = await this.cache.get(prefixedKey);
     if (!result) {
@@ -31,7 +34,12 @@ export class CacheService {
     return diffInMs;
   }
 
-  set<T = any>(key: string, value: T, ttl?: number | Date, options?: CacheOptions) {
+  set<T = any>(
+    key: string,
+    value: T,
+    ttl?: number | Date,
+    options?: CacheOptions,
+  ) {
     const prefixedKey = this.prefixKey(key, options?.teamId);
     const serializedValue = JSON.stringify({ value });
     if (typeof ttl === "number") {
@@ -39,7 +47,12 @@ export class CacheService {
     }
 
     if (typeof ttl === "object") {
-      return this.cache.set(prefixedKey, serializedValue, "PX", this.getTTL(ttl));
+      return this.cache.set(
+        prefixedKey,
+        serializedValue,
+        "PX",
+        this.getTTL(ttl),
+      );
     }
 
     return this.cache.set(prefixedKey, serializedValue);

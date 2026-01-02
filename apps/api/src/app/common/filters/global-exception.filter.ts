@@ -123,7 +123,11 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   private getErrorCode(exception: unknown, status: number): string {
     if (exception instanceof HttpException) {
       const response = exception.getResponse();
-      if (typeof response === "object" && response !== null && (response as any).error) {
+      if (
+        typeof response === "object" &&
+        response !== null &&
+        (response as any).error
+      ) {
         return (response as any).error.toUpperCase().replace(/\s+/g, "_");
       }
     }

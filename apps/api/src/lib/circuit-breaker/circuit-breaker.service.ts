@@ -61,8 +61,7 @@ export class CircuitBreakerService {
     }
 
     if (circuit.state === "open" && circuit.lastFailure) {
-      const timeSinceLastFailure =
-        Date.now() - circuit.lastFailure.getTime();
+      const timeSinceLastFailure = Date.now() - circuit.lastFailure.getTime();
       if (timeSinceLastFailure >= config.resetTimeout) {
         circuit.state = "half-open";
         circuit.successCount = 0;
@@ -81,10 +80,7 @@ export class CircuitBreakerService {
     return true;
   }
 
-  async execute<T>(
-    serviceName: string,
-    fn: () => Promise<T>,
-  ): Promise<T> {
+  async execute<T>(serviceName: string, fn: () => Promise<T>): Promise<T> {
     this.canExecute(serviceName);
 
     try {
