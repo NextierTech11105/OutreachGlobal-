@@ -51,7 +51,11 @@ interface SequenceStep {
 }
 
 // Event types for sequence calendar
-type SequenceEventType = "callback" | "appointment" | "follow_up" | "escalation";
+type SequenceEventType =
+  | "callback"
+  | "appointment"
+  | "follow_up"
+  | "escalation";
 
 interface SequenceEvent {
   id: string;
@@ -63,12 +67,15 @@ interface SequenceEvent {
   assignedTo?: string;
 }
 
-const EVENT_TYPE_CONFIG: Record<SequenceEventType, {
-  label: string;
-  color: string;
-  bgColor: string;
-  icon: typeof PhoneCall;
-}> = {
+const EVENT_TYPE_CONFIG: Record<
+  SequenceEventType,
+  {
+    label: string;
+    color: string;
+    bgColor: string;
+    icon: typeof PhoneCall;
+  }
+> = {
   callback: {
     label: "Callback",
     color: "text-blue-600",
@@ -123,7 +130,9 @@ export function SequenceCalendar({
   // Event state
   const [events, setEvents] = useState<SequenceEvent[]>([]);
   const [showEventDialog, setShowEventDialog] = useState(false);
-  const [selectedDayNumber, setSelectedDayNumber] = useState<number | null>(null);
+  const [selectedDayNumber, setSelectedDayNumber] = useState<number | null>(
+    null,
+  );
   const [newEvent, setNewEvent] = useState<Partial<SequenceEvent>>({
     type: "callback",
     title: "",
@@ -146,7 +155,9 @@ export function SequenceCalendar({
     const event: SequenceEvent = {
       id: `evt_${Date.now()}`,
       type: newEvent.type as SequenceEventType,
-      title: newEvent.title || EVENT_TYPE_CONFIG[newEvent.type as SequenceEventType].label,
+      title:
+        newEvent.title ||
+        EVENT_TYPE_CONFIG[newEvent.type as SequenceEventType].label,
       dayNumber: selectedDayNumber,
       time: newEvent.time,
       notes: newEvent.notes,
@@ -301,7 +312,9 @@ export function SequenceCalendar({
                 <Icon className="h-3 w-3 shrink-0" />
                 <span className="truncate font-medium">{event.title}</span>
                 {event.time && (
-                  <span className="text-[10px] opacity-75 ml-auto">{event.time}</span>
+                  <span className="text-[10px] opacity-75 ml-auto">
+                    {event.time}
+                  </span>
                 )}
               </div>
             );
@@ -483,29 +496,44 @@ export function SequenceCalendar({
             <div className="space-y-2">
               <Label className="text-sm font-medium">Event Type</Label>
               <div className="grid grid-cols-2 gap-2">
-                {(Object.entries(EVENT_TYPE_CONFIG) as [SequenceEventType, typeof EVENT_TYPE_CONFIG[SequenceEventType]][]).map(
-                  ([type, config]) => {
-                    const Icon = config.icon;
-                    return (
-                      <button
-                        key={type}
-                        type="button"
-                        onClick={() => setNewEvent({ ...newEvent, type })}
+                {(
+                  Object.entries(EVENT_TYPE_CONFIG) as [
+                    SequenceEventType,
+                    (typeof EVENT_TYPE_CONFIG)[SequenceEventType],
+                  ][]
+                ).map(([type, config]) => {
+                  const Icon = config.icon;
+                  return (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => setNewEvent({ ...newEvent, type })}
+                      className={cn(
+                        "flex items-center gap-2 p-3 rounded-lg border-2 transition-all",
+                        newEvent.type === type
+                          ? `${config.bgColor} border-current ${config.color}`
+                          : "border-muted hover:border-muted-foreground/50",
+                      )}
+                    >
+                      <Icon
                         className={cn(
-                          "flex items-center gap-2 p-3 rounded-lg border-2 transition-all",
+                          "h-4 w-4",
                           newEvent.type === type
-                            ? `${config.bgColor} border-current ${config.color}`
-                            : "border-muted hover:border-muted-foreground/50"
+                            ? config.color
+                            : "text-muted-foreground",
+                        )}
+                      />
+                      <span
+                        className={cn(
+                          "font-medium text-sm",
+                          newEvent.type === type ? config.color : "",
                         )}
                       >
-                        <Icon className={cn("h-4 w-4", newEvent.type === type ? config.color : "text-muted-foreground")} />
-                        <span className={cn("font-medium text-sm", newEvent.type === type ? config.color : "")}>
-                          {config.label}
-                        </span>
-                      </button>
-                    );
-                  }
-                )}
+                        {config.label}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -514,9 +542,16 @@ export function SequenceCalendar({
               <Label htmlFor="event-title">Title (optional)</Label>
               <Input
                 id="event-title"
-                placeholder={newEvent.type ? EVENT_TYPE_CONFIG[newEvent.type as SequenceEventType].label : "Event title"}
+                placeholder={
+                  newEvent.type
+                    ? EVENT_TYPE_CONFIG[newEvent.type as SequenceEventType]
+                        .label
+                    : "Event title"
+                }
                 value={newEvent.title || ""}
-                onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
+                onChange={(e) =>
+                  setNewEvent({ ...newEvent, title: e.target.value })
+                }
               />
             </div>
 
@@ -527,7 +562,9 @@ export function SequenceCalendar({
                 id="event-time"
                 type="time"
                 value={newEvent.time || "09:00"}
-                onChange={(e) => setNewEvent({ ...newEvent, time: e.target.value })}
+                onChange={(e) =>
+                  setNewEvent({ ...newEvent, time: e.target.value })
+                }
               />
             </div>
 
@@ -538,7 +575,9 @@ export function SequenceCalendar({
                 id="event-notes"
                 placeholder="Add any notes..."
                 value={newEvent.notes || ""}
-                onChange={(e) => setNewEvent({ ...newEvent, notes: e.target.value })}
+                onChange={(e) =>
+                  setNewEvent({ ...newEvent, notes: e.target.value })
+                }
                 rows={3}
               />
             </div>

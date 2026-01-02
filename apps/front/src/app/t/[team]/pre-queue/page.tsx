@@ -31,6 +31,10 @@ import {
   MessageSquare,
   Target,
   Phone,
+  Briefcase,
+  Rocket,
+  Layers,
+  Send,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -90,10 +94,58 @@ interface PreQueue {
 }
 
 // ============================================
-// NEXTIER TEMPLATES - Business Broker Exit Strategy
-// NO ROI claims - Thomas valuation messaging
+// CAMPAIGN ANCHORS - Different audiences & messaging styles
 // ============================================
-const NEXTIER_TEMPLATES = {
+
+type CampaignAnchor = "broker" | "nextier";
+type SendMode = "blast" | "sequence";
+
+// Campaign anchor configurations
+const CAMPAIGN_ANCHORS = {
+  broker: {
+    id: "broker",
+    name: "Business Broker",
+    description:
+      "Baby boomer blue collar business owners - exit strategy focus",
+    icon: Briefcase,
+    color: "from-amber-600 to-orange-600",
+    bgColor: "bg-amber-900/30 border-amber-500/40",
+    textColor: "text-amber-300",
+  },
+  nextier: {
+    id: "nextier",
+    name: "Nextier Platform",
+    description: "Sales professionals & consultants - B2B AI services",
+    icon: Rocket,
+    color: "from-purple-600 to-indigo-600",
+    bgColor: "bg-purple-900/30 border-purple-500/40",
+    textColor: "text-purple-300",
+  },
+};
+
+// Send mode configurations
+const SEND_MODES = {
+  blast: {
+    id: "blast",
+    name: "SMS Blast",
+    description: "Quick fire - send immediately",
+    icon: Send,
+    color: "bg-red-600",
+  },
+  sequence: {
+    id: "sequence",
+    name: "SMS Sequence",
+    description: "Nurture campaign - scheduled drip",
+    icon: Layers,
+    color: "bg-blue-600",
+  },
+};
+
+// ============================================
+// BROKER TEMPLATES - Baby Boomer Blue Collar Business Owners
+// Exit strategy & valuation messaging for Thomas
+// ============================================
+const BROKER_TEMPLATES = {
   initial:
     "{firstName}, thinking about your exit strategy for {companyName}? We help trades maximize value. Is this on your radar?",
   retarget:
@@ -102,6 +154,21 @@ const NEXTIER_TEMPLATES = {
     "{firstName}, straight up — is this worth 15 min to explore? If not, just say so. If yes, I'll get you on with Thomas.",
   closer:
     "{firstName}, let's get you 15 min with Thomas. He'll walk you through the valuation. What day works - Tues or Thurs?",
+};
+
+// ============================================
+// NEXTIER TEMPLATES - Sales Professionals & Consultants
+// B2B AI services & platform white-label messaging
+// ============================================
+const NEXTIER_PLATFORM_TEMPLATES = {
+  initial:
+    "{firstName}, saw {companyName} is crushing it in {industry}. We help top consultants scale with AI-powered outreach. Worth a quick look?",
+  retarget:
+    "{firstName}, still doing outreach manually at {companyName}? Our AI SDR handles 10x the volume. Free pilot available.",
+  nudge:
+    "{firstName}, quick question - is automated lead gen on the radar for {companyName}? 15 min demo could save you hours.",
+  closer:
+    "{firstName}, ready to see the Nextier platform in action? Let's get 15 min on the calendar - Tues or Thurs work?",
 };
 
 // ============================================
@@ -119,16 +186,26 @@ const ATLANTIC_COAST_TEMPLATES = {
     "Great {firstName}! Let's get you 15 min with Frank to discuss the partnership. What day works this week - Tues or Thurs?",
 };
 
-// Get templates based on tenant/team
-const getTenantTemplates = (teamId: string): PreQueue[] => {
+// Get templates based on tenant/team and campaign anchor
+const getTenantTemplates = (
+  teamId: string,
+  anchor: CampaignAnchor = "broker",
+): PreQueue[] => {
   const teamLower = teamId.toLowerCase();
   const isAtlanticCoast =
     teamLower.includes("atlantic") ||
     teamLower.includes("transport") ||
     teamLower.includes("frank");
-  const templates = isAtlanticCoast
-    ? ATLANTIC_COAST_TEMPLATES
-    : NEXTIER_TEMPLATES;
+
+  // Select templates based on anchor type
+  let templates;
+  if (isAtlanticCoast) {
+    templates = ATLANTIC_COAST_TEMPLATES;
+  } else if (anchor === "nextier") {
+    templates = NEXTIER_PLATFORM_TEMPLATES;
+  } else {
+    templates = BROKER_TEMPLATES;
+  }
 
   return [
     {
@@ -182,11 +259,23 @@ export default function PreQueuePage() {
   const params = useParams();
   const teamId = (params?.team as string) || "default";
 
-  // Load tenant-specific templates based on team ID
+  // Campaign anchor & send mode state
+  const [campaignAnchor, setCampaignAnchor] =
+    useState<CampaignAnchor>("broker");
+  const [sendMode, setSendMode] = useState<SendMode>("blast");
+
+  // Load tenant-specific templates based on team ID and anchor
   const [preQueues, setPreQueues] = useState<PreQueue[]>(() =>
-    getTenantTemplates(teamId),
+    getTenantTemplates(teamId, campaignAnchor),
   );
   const [editingQueue, setEditingQueue] = useState<PreQueue | null>(null);
+
+  // Update templates when anchor changes
+  const handleAnchorChange = (newAnchor: CampaignAnchor) => {
+    setCampaignAnchor(newAnchor);
+    setPreQueues(getTenantTemplates(teamId, newAnchor));
+    toast.success(`Switched to ${CAMPAIGN_ANCHORS[newAnchor].name} templates`);
+  };
   const [editedTemplate, setEditedTemplate] = useState("");
   const [previewQueue, setPreviewQueue] = useState<PreQueue | null>(null);
   const [remixingId, setRemixingId] = useState<string | null>(null);
@@ -548,6 +637,7 @@ export default function PreQueuePage() {
 
     try {
       // Call SMS batch API to send messages via SignalHouse
+      // Include campaign anchor and send mode for tracking/routing
       const response = await fetch("/api/sms/batch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -557,6 +647,16 @@ export default function PreQueuePage() {
           batchNumber: 1,
           message: queue.template,
           assignedAdvisor: queue.worker === "sabrina" ? "sabrina" : "gianna",
+          // Campaign context for SignalHouse routing & analytics
+          campaignContext: {
+            anchor: campaignAnchor, // "broker" | "nextier"
+            anchorName: CAMPAIGN_ANCHORS[campaignAnchor].name,
+            sendMode: sendMode, // "blast" | "sequence"
+            category: queue.category, // "initial" | "retarget" | "nudge" | "closer"
+            worker: queue.worker,
+          },
+          // Label for webhook routing (maps to workspace/label in SignalHouse)
+          campaignLabel: `${campaignAnchor}-${queue.category}`,
         }),
       });
 
@@ -678,6 +778,82 @@ export default function PreQueuePage() {
               />
             </CardContent>
           </Card>
+        </div>
+      </div>
+
+      {/* Campaign Anchor & Send Mode Toggles */}
+      <div className="flex items-center gap-4 flex-wrap">
+        {/* Campaign Anchor Toggle */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-muted-foreground">Audience:</span>
+          <div className="flex rounded-lg overflow-hidden border border-zinc-700">
+            {(Object.entries(CAMPAIGN_ANCHORS) as [CampaignAnchor, typeof CAMPAIGN_ANCHORS.broker][]).map(
+              ([key, anchor]) => {
+                const Icon = anchor.icon;
+                const isActive = campaignAnchor === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => handleAnchorChange(key)}
+                    className={cn(
+                      "flex items-center gap-2 px-4 py-2 transition-all",
+                      isActive
+                        ? `bg-gradient-to-r ${anchor.color} text-white`
+                        : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200"
+                    )}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span className="text-sm font-medium">{anchor.name}</span>
+                  </button>
+                );
+              }
+            )}
+          </div>
+        </div>
+
+        <div className="h-6 w-px bg-zinc-700" />
+
+        {/* Send Mode Toggle */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-muted-foreground">Mode:</span>
+          <div className="flex rounded-lg overflow-hidden border border-zinc-700">
+            {(Object.entries(SEND_MODES) as [SendMode, typeof SEND_MODES.blast][]).map(
+              ([key, mode]) => {
+                const Icon = mode.icon;
+                const isActive = sendMode === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setSendMode(key)}
+                    className={cn(
+                      "flex items-center gap-2 px-4 py-2 transition-all",
+                      isActive
+                        ? `${mode.color} text-white`
+                        : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200"
+                    )}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span className="text-sm font-medium">{mode.name}</span>
+                  </button>
+                );
+              }
+            )}
+          </div>
+        </div>
+
+        {/* Active Context Indicator */}
+        <div className="ml-auto">
+          <Badge
+            className={cn(
+              "px-3 py-1 text-sm font-medium border",
+              CAMPAIGN_ANCHORS[campaignAnchor].bgColor,
+              CAMPAIGN_ANCHORS[campaignAnchor].textColor
+            )}
+          >
+            {CAMPAIGN_ANCHORS[campaignAnchor].description}
+          </Badge>
         </div>
       </div>
 

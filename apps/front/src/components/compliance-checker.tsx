@@ -307,7 +307,10 @@ export function ComplianceChecker({ steps }: ComplianceCheckerProps) {
                     {getSeverityIcon(issue.severity)}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1.5">
-                        <Badge variant="outline" className="text-xs px-2 py-0.5 font-semibold">
+                        <Badge
+                          variant="outline"
+                          className="text-xs px-2 py-0.5 font-semibold"
+                        >
                           {issue.rule}
                         </Badge>
                         {issue.stepIndex && (
@@ -316,7 +319,9 @@ export function ComplianceChecker({ steps }: ComplianceCheckerProps) {
                           </span>
                         )}
                       </div>
-                      <p className="text-sm font-medium text-foreground">{issue.message}</p>
+                      <p className="text-sm font-medium text-foreground">
+                        {issue.message}
+                      </p>
                       {issue.suggestion && (
                         <p className="text-sm text-slate-600 dark:text-slate-300 mt-1.5">
                           💡 {issue.suggestion}

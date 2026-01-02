@@ -68,7 +68,7 @@ function classifyValidation(validation: BusinessValidation): ValidationStatus {
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const startTime = Date.now();
   const { id: campaignId } = await params;
@@ -84,7 +84,7 @@ export async function POST(
     if (campaign.length === 0) {
       return NextResponse.json(
         { success: false, error: "Campaign not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -113,8 +113,8 @@ export async function POST(
           lte(leads.score, campaignData.maxScore),
           isNotNull(leads.company),
           isNotNull(leads.city),
-          isNotNull(leads.state)
-        )
+          isNotNull(leads.state),
+        ),
       )
       .limit(sampleSize);
 
@@ -229,7 +229,7 @@ export async function POST(
         success: false,
         error: error instanceof Error ? error.message : "Validation failed",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -237,7 +237,7 @@ export async function POST(
 // GET endpoint for validation status check
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const { id: campaignId } = await params;
 
@@ -259,7 +259,7 @@ export async function GET(
     if (campaign.length === 0) {
       return NextResponse.json(
         { success: false, error: "Campaign not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -276,8 +276,8 @@ export async function GET(
           lte(leads.score, campaignData.maxScore),
           isNotNull(leads.company),
           isNotNull(leads.city),
-          isNotNull(leads.state)
-        )
+          isNotNull(leads.state),
+        ),
       );
 
     const estimatedCost = (leadCount[0]?.count || 0) * 0.005;
@@ -298,7 +298,7 @@ export async function GET(
         success: false,
         error: error instanceof Error ? error.message : "Check failed",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
