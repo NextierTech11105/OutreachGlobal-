@@ -303,6 +303,10 @@ export class CampaignSequenceConsumer extends WorkerHost {
       `Job ${job.id} failed after ${job.attemptsMade} attempts: ${error.message}`,
       error.stack,
     );
-    await this.dlqService.recordBullMQFailure(CAMPAIGN_SEQUENCE_QUEUE, job, error);
+    await this.dlqService.recordBullMQFailure(
+      CAMPAIGN_SEQUENCE_QUEUE,
+      job,
+      error,
+    );
   }
 }

@@ -111,11 +111,7 @@ export class DeadLetterQueueService {
   /**
    * Mark a DLQ entry as resolved
    */
-  async resolve(
-    id: string,
-    resolvedBy: string,
-    notes?: string,
-  ): Promise<void> {
+  async resolve(id: string, resolvedBy: string, notes?: string): Promise<void> {
     await this.db
       .update(deadLetterQueue)
       .set({

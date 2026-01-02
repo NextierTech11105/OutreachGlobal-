@@ -173,7 +173,11 @@ export class IntegrationTaskConsumer extends WorkerHost {
       `Integration task ${job.data.task?.id} failed: ${error.message}`,
       error.stack,
     );
-    await this.dlqService.recordBullMQFailure(INTEGRATION_TASK_QUEUE, job, error);
+    await this.dlqService.recordBullMQFailure(
+      INTEGRATION_TASK_QUEUE,
+      job,
+      error,
+    );
     if (job.data.task?.id) {
       await this.service.setStatus({ id: job.data.task.id, status: "FAILED" });
     }
