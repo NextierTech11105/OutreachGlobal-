@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
       if (PREQUEUE_STATUS_MAP[status]) {
         // Pre-queue status - map to pipelineStatus
         conditions.push(
-          inArray(leads.pipelineStatus, PREQUEUE_STATUS_MAP[status])
+          inArray(leads.pipelineStatus, PREQUEUE_STATUS_MAP[status]),
         );
       } else {
         // Traditional lead status

@@ -1,9 +1,10 @@
 /**
  * Business List Companies API
  *
- * Searches Apollo.io for companies and contacts based on filters.
- * This powers the Import Companies and B2B Admin pages.
+ * Search for companies/contacts via Apollo.io
+ * Used by the import-companies page
  */
+
 import { NextRequest, NextResponse } from "next/server";
 
 const APOLLO_API_BASE = "https://api.apollo.io/v1";
@@ -13,185 +14,154 @@ const APOLLO_API_KEY =
   process.env.APOLLO_API_KEY ||
   "";
 
-// Pushbutton Business List API (fallback)
-const PUSHBUTTON_API_URL =
-  process.env.BUSINESS_LIST_API_URL || "https://api.pushbuttonbusinesslist.com";
-const PUSHBUTTON_API_KEY = process.env.BUSINESS_LIST_API_KEY || "";
-
-export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams;
-  const page = parseInt(searchParams.get("page") || "1");
-  const pageSize = parseInt(searchParams.get("per_page") || "25");
-  const state = searchParams.get("state");
-  const city = searchParams.get("city");
-  const name = searchParams.get("name");
-
-  // Build search params for Apollo
-  const apolloParams: Record<string, unknown> = {
-    page,
-    per_page: pageSize,
-  };
-
-  if (name) apolloParams.q_organization_name = name;
-  if (state) apolloParams.organization_locations = [`United States, ${state}`];
-  if (city) apolloParams.organization_locations = [`${city}, United States`];
-
+export async function POST(request: NextRequest) {
   try {
-    const result = await searchApollo(apolloParams, page, pageSize);
-    return NextResponse.json(result);
-  } catch (error) {
-    console.error("[Business List GET] Error:", error);
-    return NextResponse.json({
-      hits: [],
-      estimatedTotalHits: 0,
-      page,
-      total_pages: 0,
-      error: error instanceof Error ? error.message : "Search failed",
-    });
-  }
-}
+    if (!APOLLO_API_KEY) {
+      return NextResponse.json(
+        {
+          error: "Apollo API key not configured",
+          hits: [],
+          estimatedTotalHits: 0,
+        },
+        { status: 200 },
+      );
+    }
 
-export async function POST(request: Request) {
-  try {
     const body = await request.json();
     const {
-      name,
-      state,
-      city,
-      industry,
-      title,
+      name, // Search query (company/person name)
+      state, // Array of states ["FL", "TX"]
+      industry, // Array of industries
+      city, // Array of cities
+      revenueMin,
+      revenueMax,
       page = 1,
       per_page = 25,
     } = body;
 
     // Build Apollo search parameters
-    const apolloParams: Record<string, unknown> = {
+    const searchParams: Record<string, unknown> = {
       page,
       per_page,
     };
 
-    // Company/organization filters
-    if (name) apolloParams.q_organization_name = name;
+    // Search by name/keyword
+    if (name) {
+      searchParams.q_keywords = name;
+    }
 
-    // Location filters
+    // Filter by state (Apollo uses person_locations format)
     if (state?.length) {
-      apolloParams.organization_locations = state.map(
+      searchParams.person_locations = state.map(
         (s: string) => `United States, ${s}`,
       );
     }
-    if (city?.length) {
-      apolloParams.organization_locations = city.map(
-        (c: string) => `${c}, United States`,
-      );
-    }
 
-    // Industry filter
+    // Filter by industry
     if (industry?.length) {
-      apolloParams.organization_industry_tag_ids = industry;
+      // Apollo uses industry tags, but we can also search by keywords
+      searchParams.q_organization_keyword_tags = industry;
     }
 
-    // Title filter (for people search)
-    if (title?.length) {
-      apolloParams.person_titles = title;
+    // Filter by city
+    if (city?.length) {
+      // Add city to locations filter
+      if (state?.length) {
+        searchParams.person_locations = state.flatMap((s: string) =>
+          city.map((c: string) => `${c}, ${s}, United States`),
+        );
+      } else {
+        searchParams.person_locations = city.map(
+          (c: string) => `${c}, United States`,
+        );
+      }
     }
 
-    const result = await searchApollo(apolloParams, page, per_page);
-    return NextResponse.json(result);
-  } catch (error) {
-    console.error("[Business List POST] Error:", error);
-    return NextResponse.json({
-      hits: [],
-      estimatedTotalHits: 0,
-      page: 1,
-      total_pages: 0,
-      error: error instanceof Error ? error.message : "Search failed",
-    });
-  }
-}
+    // Revenue filters (Apollo uses revenue_range)
+    if (revenueMin !== undefined || revenueMax !== undefined) {
+      const ranges: string[] = [];
+      // Apollo revenue ranges: "0-1M", "1M-10M", "10M-50M", "50M-100M", "100M-500M", "500M-1B", "1B+"
+      if (revenueMin !== undefined && revenueMax !== undefined) {
+        if (revenueMax <= 1000000) ranges.push("0-1M");
+        else if (revenueMax <= 10000000) ranges.push("1M-10M", "0-1M");
+        else if (revenueMax <= 50000000)
+          ranges.push("10M-50M", "1M-10M", "0-1M");
+        else if (revenueMax <= 100000000)
+          ranges.push("50M-100M", "10M-50M", "1M-10M", "0-1M");
+        else ranges.push("100M-500M", "50M-100M", "10M-50M", "1M-10M", "0-1M");
+      }
+      if (ranges.length > 0) {
+        searchParams.organization_revenue_ranges = ranges;
+      }
+    }
 
-interface ApolloOrganization {
-  id: string;
-  name?: string;
-  website_url?: string;
-  primary_domain?: string;
-  estimated_num_employees?: number;
-  industry?: string;
-  industries?: string[];
-  annual_revenue?: number;
-  street_address?: string;
-  city?: string;
-  state?: string;
-  postal_code?: string;
-  country?: string;
-  phone?: string;
-  sanitized_phone?: string;
-  linkedin_url?: string;
-  founded_year?: number;
-}
-
-interface ApolloPerson {
-  id: string;
-  first_name?: string;
-  last_name?: string;
-  name?: string;
-  title?: string;
-  email?: string;
-  phone_numbers?: Array<{
-    sanitized_number?: string;
-    raw_number?: string;
-    type?: string;
-  }>;
-  city?: string;
-  state?: string;
-  country?: string;
-  organization?: ApolloOrganization;
-  linkedin_url?: string;
-}
-
-async function searchApollo(
-  params: Record<string, unknown>,
-  page: number,
-  perPage: number,
-) {
-  if (!APOLLO_API_KEY) {
-    console.warn("[Business List] No Apollo API key configured");
-    return {
-      hits: [],
-      estimatedTotalHits: 0,
-      page,
-      total_pages: 0,
-      error: "Apollo API key not configured",
-    };
-  }
-
-  try {
-    // Try mixed_people search first (gets both people and companies)
+    // Search people with organization data
     const response = await fetch(`${APOLLO_API_BASE}/mixed_people/search`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        ...params,
+        ...searchParams,
         api_key: APOLLO_API_KEY,
       }),
     });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error("[Apollo] Search error:", response.status, errorData);
-
-      // Try organization search as fallback
-      return await searchApolloOrganizations(params, page, perPage);
+      console.error("Apollo companies search error:", response.status, errorData);
+      return NextResponse.json(
+        {
+          error: errorData.message || "Search failed",
+          hits: [],
+          estimatedTotalHits: 0,
+        },
+        { status: 200 },
+      );
     }
 
     const data = await response.json();
-    const totalHits = data.pagination?.total_entries || 0;
-    const totalPages = Math.ceil(totalHits / perPage);
 
-    // Transform Apollo people results
+    // Transform Apollo results to match page expected format
+    interface ApolloPerson {
+      id: string;
+      first_name?: string;
+      last_name?: string;
+      name?: string;
+      title?: string;
+      email?: string;
+      phone_numbers?: Array<{
+        sanitized_number?: string;
+        raw_number?: string;
+        type?: string;
+      }>;
+      city?: string;
+      state?: string;
+      country?: string;
+      organization?: {
+        name?: string;
+        website_url?: string;
+        primary_domain?: string;
+        estimated_num_employees?: number;
+        industry?: string;
+        industries?: string[];
+        annual_revenue?: number;
+        street_address?: string;
+        city?: string;
+        state?: string;
+        postal_code?: string;
+        country?: string;
+        raw_address?: string;
+        phone?: string;
+        sanitized_phone?: string;
+      };
+      linkedin_url?: string;
+    }
+
     const hits = (data.people || []).map((person: ApolloPerson) => {
       const org = person.organization;
+
+      // Get phone - try org phone first, then person phones
       const phones = person.phone_numbers || [];
       const phone =
         phones.find((p) => p.type === "work_direct" || p.type === "work")
@@ -199,125 +169,62 @@ async function searchApollo(
         org?.sanitized_phone ||
         org?.phone ||
         phones[0]?.sanitized_number ||
+        phones[0]?.raw_number ||
         null;
+
+      // Get address from organization
+      const address = org?.street_address || org?.raw_address || null;
+      const personCity = org?.city || person.city || null;
+      const personState = org?.state || person.state || null;
+      const zip = org?.postal_code || null;
+
+      // Get industry
+      const personIndustry =
+        org?.industry || (org?.industries && org.industries[0]) || null;
 
       return {
         id: person.id,
         name:
           person.name ||
           `${person.first_name || ""} ${person.last_name || ""}`.trim(),
-        firstName: person.first_name || "",
-        lastName: person.last_name || "",
-        title: person.title || "",
-        company: org?.name || "",
-        domain: org?.primary_domain || "",
-        website: org?.website_url || "",
-        industry: org?.industry || (org?.industries && org.industries[0]) || "",
-        employees: org?.estimated_num_employees || null,
-        revenue: org?.annual_revenue || null,
-        address: org?.street_address || "",
-        city: org?.city || person.city || "",
-        state: org?.state || person.state || "",
-        zip: org?.postal_code || "",
-        country: org?.country || person.country || "US",
+        firstName: person.first_name || null,
+        lastName: person.last_name || null,
+        title: person.title || null,
+        email: person.email || null,
         phone,
-        email: person.email || "",
-        linkedin_url: person.linkedin_url || org?.linkedin_url || "",
+        mobile: phones.find((p) => p.type === "mobile")?.sanitized_number || null,
+        address,
+        city: personCity,
+        state: personState,
+        zip,
+        country: org?.country || person.country || "United States",
+        // Page expects 'company' field which maps to 'companyName' on frontend
+        company: org?.name || null,
+        domain:
+          org?.primary_domain ||
+          org?.website_url?.replace(/^https?:\/\//, "").replace(/\/$/, "") ||
+          null,
+        website: org?.website_url || null,
+        employees: org?.estimated_num_employees || null,
+        industry: personIndustry,
+        revenue: org?.annual_revenue || null,
+        linkedin_url: person.linkedin_url || null,
         source: "apollo" as const,
         sourceLabel: "Apollo.io",
       };
     });
 
-    return {
+    return NextResponse.json({
       hits,
-      estimatedTotalHits: totalHits,
-      page,
-      total_pages: totalPages,
-    };
-  } catch (error) {
-    console.error("[Apollo] Search exception:", error);
-    throw error;
-  }
-}
-
-async function searchApolloOrganizations(
-  params: Record<string, unknown>,
-  page: number,
-  perPage: number,
-) {
-  try {
-    const response = await fetch(`${APOLLO_API_BASE}/mixed_companies/search`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        ...params,
-        api_key: APOLLO_API_KEY,
-      }),
+      estimatedTotalHits: data.pagination?.total_entries || hits.length,
+      page: data.pagination?.page || page,
+      totalPages: data.pagination?.total_pages || 1,
     });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error(
-        "[Apollo] Organization search error:",
-        response.status,
-        errorData,
-      );
-      return {
-        hits: [],
-        estimatedTotalHits: 0,
-        page,
-        total_pages: 0,
-        error: errorData.message || "Organization search failed",
-      };
-    }
-
-    const data = await response.json();
-    const totalHits = data.pagination?.total_entries || 0;
-    const totalPages = Math.ceil(totalHits / perPage);
-
-    // Transform Apollo organization results
-    const hits = (data.organizations || data.accounts || []).map(
-      (org: ApolloOrganization) => ({
-        id: org.id,
-        name: org.name || "",
-        firstName: "",
-        lastName: "",
-        title: "",
-        company: org.name || "",
-        domain: org.primary_domain || "",
-        website: org.website_url || "",
-        industry: org.industry || (org.industries && org.industries[0]) || "",
-        employees: org.estimated_num_employees || null,
-        revenue: org.annual_revenue || null,
-        address: org.street_address || "",
-        city: org.city || "",
-        state: org.state || "",
-        zip: org.postal_code || "",
-        country: org.country || "US",
-        phone: org.sanitized_phone || org.phone || "",
-        email: org.primary_domain ? `info@${org.primary_domain}` : "",
-        linkedin_url: org.linkedin_url || "",
-        source: "apollo" as const,
-        sourceLabel: "Apollo.io",
-      }),
+  } catch (error: unknown) {
+    console.error("Business list companies error:", error);
+    return NextResponse.json(
+      { error: "Search failed", hits: [], estimatedTotalHits: 0 },
+      { status: 200 },
     );
-
-    return {
-      hits,
-      estimatedTotalHits: totalHits,
-      page,
-      total_pages: totalPages,
-    };
-  } catch (error) {
-    console.error("[Apollo] Organization search exception:", error);
-    return {
-      hits: [],
-      estimatedTotalHits: 0,
-      page,
-      total_pages: 0,
-      error: error instanceof Error ? error.message : "Search failed",
-    };
   }
 }
