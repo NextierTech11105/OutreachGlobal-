@@ -78,14 +78,30 @@ export async function GET(request: NextRequest) {
     const sortBy = searchParams.get("sortBy") || "createdAt";
     const sortOrder = searchParams.get("sortOrder") || "desc";
 
+    // Pre-queue status mapping (new/no-response/engaged → pipelineStatus)
+    const PREQUEUE_STATUS_MAP: Record<string, string[]> = {
+      new: ["raw", "ready"], // Fresh leads not yet contacted
+      "no-response": ["sent", "queued"], // Sent but no reply
+      engaged: ["replied"], // Have responded
+    };
+
     // Build where conditions - filter by teamId if provided, otherwise by userId
     const conditions: ReturnType<typeof eq>[] = [];
     if (teamId) {
       conditions.push(eq(leads.teamId, teamId));
     }
 
+    // Check if status is a pre-queue status or traditional status
     if (status) {
-      conditions.push(eq(leads.status, status));
+      if (PREQUEUE_STATUS_MAP[status]) {
+        // Pre-queue status - map to pipelineStatus
+        conditions.push(
+          inArray(leads.pipelineStatus, PREQUEUE_STATUS_MAP[status])
+        );
+      } else {
+        // Traditional lead status
+        conditions.push(eq(leads.status, status));
+      }
     }
 
     if (source) {
@@ -171,45 +187,37 @@ export async function GET(request: NextRequest) {
     // Transform leads to match frontend type
     const transformedLeads = results.map((lead: (typeof results)[number]) => ({
       id: lead.id,
+      firstName: lead.firstName || "",
+      lastName: lead.lastName || "",
       name:
         [lead.firstName, lead.lastName].filter(Boolean).join(" ") || "Unknown",
-      address: lead.propertyAddress || "",
-      city: lead.propertyCity || "",
-      state: lead.propertyState || "",
-      zipCode: lead.propertyZip || "",
-      propertyValue: lead.estimatedValue || 0,
-      propertyType: lead.propertyType || "",
-      bedrooms: lead.bedrooms || 0,
-      bathrooms: Number(lead.bathrooms) || 0,
-      squareFeet: lead.sqft || 0,
-      yearBuilt: lead.yearBuilt || 0,
+      company: lead.company || "",
+      title: lead.title || "",
+      address: lead.address || "",
+      city: lead.city || "",
+      state: lead.state || "",
+      zipCode: lead.zipCode || "",
       email: lead.email || "",
       phone: lead.phone || "",
-      phoneNumbers: [
-        lead.phone && {
-          number: lead.phone,
-          label: "Primary",
-          isPrimary: true,
-          lineType: "mobile",
-          verified: true,
-          lastVerified:
-            lead.skipTracedAt?.toISOString() || new Date().toISOString(),
-        },
-        lead.secondaryPhone && {
-          number: lead.secondaryPhone,
-          label: "Secondary",
-          isPrimary: false,
-          lineType: "mobile",
-          verified: true,
-          lastVerified:
-            lead.skipTracedAt?.toISOString() || new Date().toISOString(),
-        },
-      ].filter(Boolean),
-      status: mapDbStatusToFrontend(lead.status),
-      source: lead.source || "Website",
+      phoneNumbers: lead.phone
+        ? [
+            {
+              number: lead.phone,
+              label: "Primary",
+              isPrimary: true,
+              lineType: "mobile",
+              verified: true,
+              lastVerified: new Date().toISOString(),
+            },
+          ]
+        : [],
+      status: mapDbStatusToFrontend(lead.status || "new"),
+      pipelineStatus: lead.pipelineStatus,
+      score: lead.score || 0,
+      source: lead.source || "import",
       priority: "Medium" as const,
       assignedTo: undefined,
-      lastContactDate: lead.lastActivityAt?.toISOString(),
+      lastContactDate: undefined,
       nextFollowUp: undefined,
       notes: lead.notes || "",
       tags: leadTagsMap[lead.id] || [],
