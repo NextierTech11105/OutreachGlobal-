@@ -59,6 +59,10 @@ export const leads = pgTable(
     index("leads_team_status_idx").on(t.teamId, t.status),
     // Pipeline status index for dashboard aggregations
     index("leads_team_pipeline_idx").on(t.teamId, t.pipelineStatus),
+    // Recent leads per team (for dashboard, list views)
+    index("leads_team_created_idx").on(t.teamId, t.createdAt),
+    // Email lookup index
+    index("leads_email_idx").on(t.email),
   ],
 );
 

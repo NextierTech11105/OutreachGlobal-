@@ -9,12 +9,18 @@ import {
   B2BIngestionService,
   B2BIngestionJob,
 } from "../services/b2b-ingestion.service";
+import { DeadLetterQueueService } from "@/lib/dlq";
 
-@Processor("b2b-ingestion")
+const B2B_INGESTION_QUEUE = "b2b-ingestion";
+
+@Processor(B2B_INGESTION_QUEUE)
 export class B2BIngestionConsumer extends WorkerHost {
   private readonly logger = new Logger(B2BIngestionConsumer.name);
 
-  constructor(private b2bIngestionService: B2BIngestionService) {
+  constructor(
+    private b2bIngestionService: B2BIngestionService,
+    private dlqService: DeadLetterQueueService,
+  ) {
     super();
   }
 
@@ -128,6 +134,7 @@ export class B2BIngestionConsumer extends WorkerHost {
   @OnWorkerEvent("failed")
   async onFailed(job: Job, error: Error) {
     this.logger.error(`Job ${job.id} failed: ${error.message}`, error.stack);
+    await this.dlqService.recordBullMQFailure(B2B_INGESTION_QUEUE, job, error);
   }
 
   @OnWorkerEvent("progress")

@@ -1,5 +1,6 @@
 import { OnWorkerEvent, Processor, WorkerHost } from "@nestjs/bullmq";
 import { Job } from "bullmq";
+import { Logger } from "@nestjs/common";
 import { BusinessListService } from "../services/business-list.service";
 import { LeadInsert } from "../models/lead.model";
 import { and } from "drizzle-orm";
@@ -11,6 +12,7 @@ import { DrizzleClient } from "@/database/types";
 import { LeadFilterService } from "../services/lead-filter.service";
 import { generateUlid } from "@/database/columns/ulid";
 import { leadsTable } from "@/database/schema-alias";
+import { DeadLetterQueueService } from "@/lib/dlq";
 
 interface ImportBusinessListData {
   presetId?: string;
@@ -18,13 +20,18 @@ interface ImportBusinessListData {
   teamId: string;
 }
 
-@Processor("lead")
+const LEAD_QUEUE = "lead";
+
+@Processor(LEAD_QUEUE)
 export class LeadConsumer extends WorkerHost {
+  private readonly logger = new Logger(LeadConsumer.name);
+
   constructor(
     private businessListService: BusinessListService,
     @InjectDB() private db: DrizzleClient,
     private leadFilterService: LeadFilterService,
     private settingService: TeamSettingService,
+    private dlqService: DeadLetterQueueService,
   ) {
     super();
   }
@@ -83,7 +90,11 @@ export class LeadConsumer extends WorkerHost {
   }
 
   @OnWorkerEvent("failed")
-  async onFailed(job: Job, error: any) {
-    console.log("Job failed", job, error);
+  async onFailed(job: Job, error: Error) {
+    this.logger.error(
+      `Lead import job ${job.id} failed: ${error.message}`,
+      error.stack,
+    );
+    await this.dlqService.recordBullMQFailure(LEAD_QUEUE, job, error);
   }
 }

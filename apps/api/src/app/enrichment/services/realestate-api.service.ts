@@ -5,6 +5,12 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import axios, { AxiosInstance, AxiosError } from "axios";
+import { CacheService } from "@/lib/cache/cache.service";
+import * as crypto from "crypto";
+
+// Cache TTLs in milliseconds
+const SKIPTRACE_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days (contact data can change)
+const PROPERTY_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 // Property Detail Types
 export interface PropertyDetailRequest {
@@ -208,7 +214,10 @@ export class RealEstateApiService {
   private http: AxiosInstance;
   private apiKey: string;
 
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    private cacheService: CacheService,
+  ) {
     this.apiKey =
       this.configService.get("REAL_ESTATE_API_KEY") ||
       this.configService.get("REALESTATE_API_KEY") ||
@@ -225,11 +234,50 @@ export class RealEstateApiService {
   }
 
   /**
+   * Generate cache key for skip trace request
+   */
+  private getSkipTraceCacheKey(request: SkipTraceRequest): string {
+    const normalized = [
+      request.firstName?.toLowerCase().trim() || "",
+      request.lastName?.toLowerCase().trim() || "",
+      request.address?.toLowerCase().trim() || "",
+      request.city?.toLowerCase().trim() || "",
+      request.state?.toLowerCase().trim() || "",
+      request.zip?.replace(/\D/g, "") || "",
+    ].join("|");
+    const hash = crypto.createHash("md5").update(normalized).digest("hex");
+    return `reapi:skiptrace:${hash}`;
+  }
+
+  /**
+   * Generate cache key for property detail request
+   */
+  private getPropertyCacheKey(request: PropertyDetailRequest): string {
+    const normalized = [
+      request.address?.toLowerCase().trim() || "",
+      request.city?.toLowerCase().trim() || "",
+      request.state?.toLowerCase().trim() || "",
+      request.zip?.replace(/\D/g, "") || "",
+    ].join("|");
+    const hash = crypto.createHash("md5").update(normalized).digest("hex");
+    return `reapi:property:${hash}`;
+  }
+
+  /**
    * Get property details by address
    */
   async getPropertyDetail(
     request: PropertyDetailRequest,
   ): Promise<PropertyDetailResponse> {
+    // Check cache first
+    const cacheKey = this.getPropertyCacheKey(request);
+    const cached =
+      await this.cacheService.get<PropertyDetailResponse>(cacheKey);
+    if (cached) {
+      this.logger.debug(`PropertyDetail cache hit for ${request.address}`);
+      return cached;
+    }
+
     try {
       const { data } = await this.http.post("/PropertyDetail", {
         address: request.address,
@@ -238,10 +286,16 @@ export class RealEstateApiService {
         zip: request.zip,
       });
 
-      return {
+      const result: PropertyDetailResponse = {
         success: true,
         data: this.mapPropertyDetail(data),
       };
+
+      // Cache successful lookups
+      await this.cacheService.set(cacheKey, result, PROPERTY_CACHE_TTL_MS);
+      this.logger.debug(`PropertyDetail cached for ${request.address}`);
+
+      return result;
     } catch (error) {
       return this.handleError(error, "PropertyDetail");
     }
@@ -251,6 +305,16 @@ export class RealEstateApiService {
    * Perform single skip trace lookup
    */
   async skipTrace(request: SkipTraceRequest): Promise<SkipTraceResponse> {
+    // Check cache first
+    const cacheKey = this.getSkipTraceCacheKey(request);
+    const cached = await this.cacheService.get<SkipTraceResponse>(cacheKey);
+    if (cached) {
+      this.logger.debug(
+        `SkipTrace cache hit for ${request.firstName} ${request.lastName}`,
+      );
+      return cached;
+    }
+
     try {
       const { data } = await this.http.post("/SkipTrace", {
         first_name: request.firstName,
@@ -263,7 +327,17 @@ export class RealEstateApiService {
         phone: request.phone,
       });
 
-      return data as SkipTraceResponse;
+      const result = data as SkipTraceResponse;
+
+      // Only cache successful lookups with data
+      if (result.success && result.output) {
+        await this.cacheService.set(cacheKey, result, SKIPTRACE_CACHE_TTL_MS);
+        this.logger.debug(
+          `SkipTrace cached for ${request.firstName} ${request.lastName}`,
+        );
+      }
+
+      return result;
     } catch (error) {
       return this.handleError(error, "SkipTrace");
     }

@@ -1,8 +1,9 @@
-import { Module } from "@nestjs/common";
+import { Global, Module } from "@nestjs/common";
 import { CacheService } from "./cache.service";
 import Redis from "ioredis";
 import { CACHE_MANAGER } from "./cache.constants";
 
+@Global()
 @Module({
   providers: [
     CacheService,

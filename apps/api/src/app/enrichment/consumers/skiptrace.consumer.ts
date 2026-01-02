@@ -9,12 +9,18 @@ import {
   SkipTraceService,
   SkipTraceEnrichmentJob,
 } from "../services/skiptrace.service";
+import { DeadLetterQueueService } from "@/lib/dlq";
 
-@Processor("skiptrace")
+const SKIPTRACE_QUEUE = "skiptrace";
+
+@Processor(SKIPTRACE_QUEUE)
 export class SkipTraceConsumer extends WorkerHost {
   private readonly logger = new Logger(SkipTraceConsumer.name);
 
-  constructor(private skipTraceService: SkipTraceService) {
+  constructor(
+    private skipTraceService: SkipTraceService,
+    private dlqService: DeadLetterQueueService,
+  ) {
     super();
   }
 
@@ -54,5 +60,6 @@ export class SkipTraceConsumer extends WorkerHost {
       `SkipTrace job ${job.id} failed: ${error.message}`,
       error.stack,
     );
+    await this.dlqService.recordBullMQFailure(SKIPTRACE_QUEUE, job, error);
   }
 }

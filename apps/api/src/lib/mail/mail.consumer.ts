@@ -1,12 +1,21 @@
 import { Job } from "bullmq";
 import { WorkerHost, Processor, OnWorkerEvent } from "@nestjs/bullmq";
 import { ConfigService } from "@nestjs/config";
+import { Logger } from "@nestjs/common";
 import sgMail from "@sendgrid/mail";
 import { SendMailOptions } from "./mail.type";
+import { DeadLetterQueueService } from "@/lib/dlq";
 
-@Processor("mail", { concurrency: 5 })
+const MAIL_QUEUE = "mail";
+
+@Processor(MAIL_QUEUE, { concurrency: 5 })
 export class MailConsumer extends WorkerHost {
-  constructor(private configService: ConfigService) {
+  private readonly logger = new Logger(MailConsumer.name);
+
+  constructor(
+    private configService: ConfigService,
+    private dlqService: DeadLetterQueueService,
+  ) {
     super();
     const apiKey = this.configService.get<string>("SENDGRID_API_KEY");
     if (apiKey) {
@@ -37,10 +46,12 @@ export class MailConsumer extends WorkerHost {
   }
 
   @OnWorkerEvent("failed")
-  onFailed(job: Job, error: any) {
-    console.error(
-      "Failed to send email:",
-      error?.response?.body || error.message,
+  async onFailed(job: Job, error: Error) {
+    const errorMessage = (error as any)?.response?.body || error.message;
+    this.logger.error(
+      `Failed to send email to ${job.data?.to}: ${errorMessage}`,
+      error.stack,
     );
+    await this.dlqService.recordBullMQFailure(MAIL_QUEUE, job, error);
   }
 }

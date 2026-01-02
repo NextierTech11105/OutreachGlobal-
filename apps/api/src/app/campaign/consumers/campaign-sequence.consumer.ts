@@ -27,6 +27,7 @@ import { SendgridService } from "@/app/team/services/sendgrid.service";
 import { TeamSettingService } from "@/app/team/services/team-setting.service";
 import { SendgridSettings } from "@/app/team/objects/sendgrid-settings.object";
 import { TwilioSettings } from "@/app/team/objects/twilio-settings.object";
+import { DeadLetterQueueService } from "@/lib/dlq";
 
 interface SendMessageOptions {
   sequence: CampaignSequenceSelect;
@@ -46,6 +47,7 @@ export class CampaignSequenceConsumer extends WorkerHost {
     private twilioService: TwilioService,
     private sendgridService: SendgridService,
     private settingService: TeamSettingService,
+    private dlqService: DeadLetterQueueService,
   ) {
     super();
   }
@@ -296,7 +298,11 @@ export class CampaignSequenceConsumer extends WorkerHost {
   }
 
   @OnWorkerEvent("failed")
-  async handleFailed(job: Job, error: any) {
-    console.log("FAILED", job, error);
+  async handleFailed(job: Job, error: Error) {
+    this.logger.error(
+      `Job ${job.id} failed after ${job.attemptsMade} attempts: ${error.message}`,
+      error.stack,
+    );
+    await this.dlqService.recordBullMQFailure(CAMPAIGN_SEQUENCE_QUEUE, job, error);
   }
 }

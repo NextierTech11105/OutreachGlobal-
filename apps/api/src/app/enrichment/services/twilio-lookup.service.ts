@@ -1,6 +1,10 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import axios from "axios";
+import { CacheService } from "@/lib/cache/cache.service";
+
+// Cache TTL: 7 days in milliseconds (line type rarely changes)
+const TWILIO_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 export type TwilioLineType =
   | "mobile"
@@ -27,7 +31,14 @@ const TWILIO_LOOKUP_URL = "https://lookups.twilio.com/v2/PhoneNumbers";
 export class TwilioLookupService {
   private readonly logger = new Logger(TwilioLookupService.name);
 
-  constructor(private configService: ConfigService) {}
+  constructor(
+    private configService: ConfigService,
+    private cacheService: CacheService,
+  ) {}
+
+  private getCacheKey(normalized10: string): string {
+    return `twilio:lookup:${normalized10}`;
+  }
 
   async lookupLineType(input: string): Promise<TwilioLookupResult> {
     const digitsOnly = input.replace(/\D/g, "");
@@ -48,6 +59,14 @@ export class TwilioLookupService {
         : digitsOnly.startsWith("1") && digitsOnly.length === 11
           ? `+${digitsOnly}`
           : `+${digitsOnly}`;
+
+    // Check cache first
+    const cacheKey = this.getCacheKey(normalized10);
+    const cached = await this.cacheService.get<TwilioLookupResult>(cacheKey);
+    if (cached) {
+      this.logger.debug(`Twilio lookup cache hit for ${normalized10}`);
+      return { ...cached, input }; // Return cached result with current input
+    }
 
     const accountSid =
       this.configService.get<string>("TWILIO_ACCOUNT_SID") ||
@@ -85,7 +104,7 @@ export class TwilioLookupService {
       const rawType = lineTypeInfo.type as string | undefined;
       const carrier = lineTypeInfo.carrier_name as string | undefined;
 
-      return {
+      const result: TwilioLookupResult = {
         input,
         e164,
         normalized10,
@@ -94,6 +113,12 @@ export class TwilioLookupService {
         carrier,
         rawType,
       };
+
+      // Cache successful lookups
+      await this.cacheService.set(cacheKey, result, TWILIO_CACHE_TTL_MS);
+      this.logger.debug(`Twilio lookup cached for ${normalized10}`);
+
+      return result;
     } catch (error: unknown) {
       const message =
         error instanceof Error ? error.message : "Twilio lookup failed";

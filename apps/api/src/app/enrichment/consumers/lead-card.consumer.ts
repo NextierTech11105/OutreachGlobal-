@@ -11,6 +11,7 @@ import {
 } from "../services/lead-card.service";
 import { IdentityGraphService } from "../services/identity-graph.service";
 import { CampaignTriggerService } from "../services/campaign-trigger.service";
+import { DeadLetterQueueService } from "@/lib/dlq";
 
 interface UpdateFromSkipTraceJob {
   teamId: string;
@@ -37,7 +38,9 @@ interface TriggerCampaignJob {
   channel?: "sms" | "email";
 }
 
-@Processor("lead-card")
+const LEAD_CARD_QUEUE = "lead-card";
+
+@Processor(LEAD_CARD_QUEUE)
 export class LeadCardConsumer extends WorkerHost {
   private readonly logger = new Logger(LeadCardConsumer.name);
 
@@ -45,6 +48,7 @@ export class LeadCardConsumer extends WorkerHost {
     private leadCardService: LeadCardService,
     private identityGraphService: IdentityGraphService,
     private campaignTriggerService: CampaignTriggerService,
+    private dlqService: DeadLetterQueueService,
   ) {
     super();
   }
@@ -189,5 +193,6 @@ export class LeadCardConsumer extends WorkerHost {
       `Lead card job ${job.id} failed: ${error.message}`,
       error.stack,
     );
+    await this.dlqService.recordBullMQFailure(LEAD_CARD_QUEUE, job, error);
   }
 }

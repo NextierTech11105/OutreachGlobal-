@@ -1,4 +1,5 @@
 import { OnWorkerEvent, Processor, WorkerHost } from "@nestjs/bullmq";
+import { Logger } from "@nestjs/common";
 import { CAMPAIGN_QUEUE, CampaignJobs } from "../constants/campaign.contants";
 import { InjectDB } from "@/database/decorators";
 import { DrizzleClient } from "@/database/types";
@@ -9,10 +10,16 @@ import { CampaignSequenceStatus, CampaignStatus } from "@nextier/common";
 import { campaignLeadsTable, campaignsTable } from "@/database/schema-alias";
 import { CampaignLeadInsert } from "../models/campaign-lead.model";
 import { CampaignService } from "../services/campaign.service";
+import { DeadLetterQueueService } from "@/lib/dlq";
 
 @Processor(CAMPAIGN_QUEUE)
 export class CampaignConsumer extends WorkerHost {
-  constructor(@InjectDB() private db: DrizzleClient) {
+  private readonly logger = new Logger(CampaignConsumer.name);
+
+  constructor(
+    @InjectDB() private db: DrizzleClient,
+    private dlqService: DeadLetterQueueService,
+  ) {
     super();
   }
 
@@ -92,7 +99,11 @@ export class CampaignConsumer extends WorkerHost {
   }
 
   @OnWorkerEvent("failed")
-  handleFailed(job: Job, error: any) {
-    console.log("job failed", job, error);
+  async handleFailed(job: Job, error: Error) {
+    this.logger.error(
+      `Campaign sync job ${job.id} failed: ${error.message}`,
+      error.stack,
+    );
+    await this.dlqService.recordBullMQFailure(CAMPAIGN_QUEUE, job, error);
   }
 }

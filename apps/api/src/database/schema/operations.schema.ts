@@ -241,3 +241,64 @@ export const eventLogRelations = relations(eventLog, ({ one }) => ({
     references: [teams.id],
   }),
 }));
+
+// ============================================
+// DEAD LETTER QUEUE - Failed BullMQ jobs
+// Persists failed jobs for visibility and retry
+// ============================================
+
+export const DEAD_LETTER_PK = "dlq";
+
+export type DeadLetterStatus = "pending" | "retried" | "resolved" | "ignored";
+
+export const deadLetterQueue = pgTable(
+  "dead_letter_queue",
+  {
+    id: primaryUlid(DEAD_LETTER_PK),
+    teamId: ulidColumn().references(() => teams.id, { onDelete: "cascade" }),
+
+    // Job identification
+    originalQueue: varchar("original_queue").notNull(),
+    jobId: varchar("job_id"),
+    jobName: varchar("job_name"),
+
+    // Job data
+    jobData: jsonb("job_data").$type<Record<string, unknown>>(),
+
+    // Failure info
+    errorMessage: text("error_message").notNull(),
+    errorStack: text("error_stack"),
+    attemptsMade: integer("attempts_made").notNull().default(0),
+
+    // Status tracking
+    status: varchar().$type<DeadLetterStatus>().notNull().default("pending"),
+    resolvedAt: timestamp("resolved_at"),
+    resolvedBy: varchar("resolved_by"),
+    resolutionNotes: text("resolution_notes"),
+
+    // Retry tracking
+    retryCount: integer("retry_count").notNull().default(0),
+    lastRetryAt: timestamp("last_retry_at"),
+
+    // Timestamps
+    failedAt: timestamp("failed_at").notNull().defaultNow(),
+    createdAt,
+    updatedAt,
+  },
+  (t) => [
+    index("dlq_queue_idx").on(t.originalQueue),
+    index("dlq_status_idx").on(t.status),
+    index("dlq_failed_at_idx").on(t.failedAt),
+    index("dlq_team_idx").on(t.teamId),
+  ],
+);
+
+export const deadLetterQueueRelations = relations(
+  deadLetterQueue,
+  ({ one }) => ({
+    team: one(teams, {
+      fields: [deadLetterQueue.teamId],
+      references: [teams.id],
+    }),
+  }),
+);

@@ -1,5 +1,6 @@
 import { OnWorkerEvent, Processor, WorkerHost } from "@nestjs/bullmq";
 import { Job } from "bullmq";
+import { Logger } from "@nestjs/common";
 import {
   INTEGRATION_TASK_QUEUE,
   IntegrationTaskJob,
@@ -18,17 +19,21 @@ import { leadsTable } from "@/database/schema-alias";
 import { sql } from "drizzle-orm";
 import { leadImportSchema } from "@/app/lead/dto/lead-import.dto";
 import { getProperty } from "@nextier/common";
+import { DeadLetterQueueService } from "@/lib/dlq";
 
 type JobData = Job<{ task: IntegrationTaskSelect }>;
 
 @Processor(INTEGRATION_TASK_QUEUE, { concurrency: 5 })
 export class IntegrationTaskConsumer extends WorkerHost {
+  private readonly logger = new Logger(IntegrationTaskConsumer.name);
+
   constructor(
     @InjectDB() private db: DrizzleClient,
     private service: IntegrationTaskService,
     private zohoService: ZohoService,
     private integrationService: IntegrationService,
     private fieldService: IntegrationFieldService,
+    private dlqService: DeadLetterQueueService,
   ) {
     super();
   }
@@ -163,9 +168,13 @@ export class IntegrationTaskConsumer extends WorkerHost {
   }
 
   @OnWorkerEvent("failed")
-  async handleFailed(job: JobData, error: any) {
-    console.log("failed task queue", error);
-    if (job.data.task.id) {
+  async handleFailed(job: JobData, error: Error) {
+    this.logger.error(
+      `Integration task ${job.data.task?.id} failed: ${error.message}`,
+      error.stack,
+    );
+    await this.dlqService.recordBullMQFailure(INTEGRATION_TASK_QUEUE, job, error);
+    if (job.data.task?.id) {
       await this.service.setStatus({ id: job.data.task.id, status: "FAILED" });
     }
   }

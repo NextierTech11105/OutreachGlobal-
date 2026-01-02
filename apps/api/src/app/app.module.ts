@@ -37,12 +37,16 @@ import { InitialMessagesModule } from "./initial-messages/initial-messages.modul
 import { VoiceModule } from "./voice/voice.module";
 import { ContentLibraryModule } from "./content-library/content-library.module";
 import { EnrichmentModule } from "./enrichment/enrichment.module";
+import { DeadLetterQueueModule } from "../lib/dlq";
+import { LoggerModule } from "../lib/logger";
 
 @Module({
   imports: [
+    LoggerModule,
     ZodModule,
     CqrsModule.forRoot(),
     DatabaseModule,
+    DeadLetterQueueModule,
     ConfigModule.forRoot(),
     ThrottlerModule.forRoot([{ name: "default", ttl: 60000, limit: 60 }]),
     CacheModule,

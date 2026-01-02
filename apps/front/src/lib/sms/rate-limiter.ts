@@ -1,33 +1,24 @@
 /**
- * SMS Rate Limiter
+ * SMS Rate Limiter (Redis-backed)
  *
  * Enforces carrier TPM (transactions per minute) limits to prevent message rejections.
  * Carrier limits (SignalHouse 10DLC):
  * - AT&T: 75 SMS/min
- * - T-Mobile: Daily cap (varies)
+ * - T-Mobile: 60 SMS/min
  * - Verizon: 60 SMS/min
- * - Other: 100 SMS/min (conservative default)
+ * - Other: 60 SMS/min (conservative default)
  *
- * Uses in-memory sliding window for simplicity.
- * For distributed deployments, migrate to Redis.
+ * Uses Redis sliding window for distributed deployments.
+ * Falls back to in-memory if Redis unavailable.
  */
 
-// Carrier rate limits (messages per minute)
-const CARRIER_LIMITS: Record<string, number> = {
-  att: 75,
-  "at&t": 75,
-  tmobile: 60,
-  "t-mobile": 60,
-  verizon: 60,
-  sprint: 60,
-  default: 60, // Conservative default
-};
+import { redis, isRedisAvailable } from "../redis";
 
-// Sliding window storage: carrier -> timestamp[]
-const windowStore: Map<string, number[]> = new Map();
+// Window size in seconds (1 minute)
+const WINDOW_SECONDS = 60;
 
-// Window size in milliseconds (1 minute)
-const WINDOW_MS = 60 * 1000;
+// In-memory fallback (for when Redis is down)
+const memoryStore: Map<string, number[]> = new Map();
 
 /**
  * Get rate limit config from environment
@@ -75,27 +66,120 @@ function getCarrierLimit(carrier: string): number {
 }
 
 /**
- * Clean old entries from the window
+ * Redis key for carrier rate limiting
  */
-function cleanWindow(carrier: string): number[] {
+function getRateLimitKey(carrier: string): string {
+  const minute = Math.floor(Date.now() / 1000 / WINDOW_SECONDS);
+  return `rate:sms:${carrier.toLowerCase()}:${minute}`;
+}
+
+/**
+ * Check if we can send a message to this carrier (Redis version)
+ */
+async function canSendRedis(carrier: string): Promise<{
+  allowed: boolean;
+  remaining: number;
+  resetMs: number;
+  carrier: string;
+  limit: number;
+}> {
+  const limit = getCarrierLimit(carrier);
+  const key = getRateLimitKey(carrier);
+
+  // Get current count
+  const count = (await redis.get<number>(key)) || 0;
+  const allowed = count < limit;
+  const remaining = Math.max(0, limit - count);
+
+  // Calculate reset time (end of current window)
+  const currentMinute = Math.floor(Date.now() / 1000 / WINDOW_SECONDS);
+  const nextMinuteStart = (currentMinute + 1) * WINDOW_SECONDS * 1000;
+  const resetMs = nextMinuteStart - Date.now();
+
+  return {
+    allowed,
+    remaining,
+    resetMs: Math.max(0, resetMs),
+    carrier,
+    limit,
+  };
+}
+
+/**
+ * Record a sent message (Redis version)
+ */
+async function recordSendRedis(carrier: string): Promise<void> {
+  const key = getRateLimitKey(carrier);
+
+  // Increment counter
+  const newCount = await redis.incrby(key, 1);
+
+  // Set expiry on first increment (2 minutes to ensure window cleanup)
+  if (newCount === 1) {
+    await redis.expire(key, WINDOW_SECONDS * 2);
+  }
+}
+
+/**
+ * In-memory fallback: clean old entries from the window
+ */
+function cleanMemoryWindow(carrier: string): number[] {
   const now = Date.now();
-  const cutoff = now - WINDOW_MS;
-  const timestamps = windowStore.get(carrier) || [];
+  const cutoff = now - WINDOW_SECONDS * 1000;
+  const timestamps = memoryStore.get(carrier) || [];
   const filtered = timestamps.filter((ts) => ts > cutoff);
-  windowStore.set(carrier, filtered);
+  memoryStore.set(carrier, filtered);
   return filtered;
 }
 
 /**
- * Check if we can send a message to this carrier
+ * Check if we can send a message to this carrier (Memory fallback)
  */
-export function canSend(carrier: string = "default"): {
+function canSendMemory(carrier: string): {
   allowed: boolean;
   remaining: number;
   resetMs: number;
   carrier: string;
   limit: number;
 } {
+  const limit = getCarrierLimit(carrier);
+  const timestamps = cleanMemoryWindow(carrier);
+  const count = timestamps.length;
+  const allowed = count < limit;
+  const remaining = Math.max(0, limit - count);
+  const resetMs =
+    timestamps.length > 0
+      ? timestamps[0] + WINDOW_SECONDS * 1000 - Date.now()
+      : 0;
+
+  return {
+    allowed,
+    remaining,
+    resetMs: Math.max(0, resetMs),
+    carrier,
+    limit,
+  };
+}
+
+/**
+ * Record a sent message (Memory fallback)
+ */
+function recordSendMemory(carrier: string): void {
+  const timestamps = cleanMemoryWindow(carrier);
+  timestamps.push(Date.now());
+  memoryStore.set(carrier, timestamps);
+}
+
+/**
+ * Check if we can send a message to this carrier
+ */
+export async function canSend(carrier: string = "default"): Promise<{
+  allowed: boolean;
+  remaining: number;
+  resetMs: number;
+  carrier: string;
+  limit: number;
+}> {
   const config = getRateLimitConfig();
 
   // Rate limiting disabled
@@ -109,41 +193,33 @@ export function canSend(carrier: string = "default"): {
     };
   }
 
-  const limit = getCarrierLimit(carrier);
-  const timestamps = cleanWindow(carrier);
-  const count = timestamps.length;
-  const allowed = count < limit;
-  const remaining = Math.max(0, limit - count);
+  // Use Redis if available, otherwise fall back to memory
+  if (isRedisAvailable()) {
+    return canSendRedis(carrier);
+  }
 
-  // Calculate reset time (when oldest entry expires)
-  const resetMs =
-    timestamps.length > 0 ? timestamps[0] + WINDOW_MS - Date.now() : 0;
-
-  return {
-    allowed,
-    remaining,
-    resetMs: Math.max(0, resetMs),
-    carrier,
-    limit,
-  };
+  return canSendMemory(carrier);
 }
 
 /**
  * Record a sent message for rate limiting
  */
-export function recordSend(carrier: string = "default"): void {
+export async function recordSend(carrier: string = "default"): Promise<void> {
   const config = getRateLimitConfig();
   if (!config.SMS_RATE_LIMIT_ENABLED) return;
 
-  const timestamps = cleanWindow(carrier);
-  timestamps.push(Date.now());
-  windowStore.set(carrier, timestamps);
+  // Use Redis if available, otherwise fall back to memory
+  if (isRedisAvailable()) {
+    await recordSendRedis(carrier);
+  } else {
+    recordSendMemory(carrier);
+  }
 }
 
 /**
  * Check rate limit and return appropriate response if blocked
  */
-export function checkRateLimit(carrier: string = "default"): {
+export async function checkRateLimit(carrier: string = "default"): Promise<{
   blocked: boolean;
   response?: {
     error: string;
@@ -151,8 +227,8 @@ export function checkRateLimit(carrier: string = "default"): {
     carrier: string;
     limit: number;
   };
-} {
-  const result = canSend(carrier);
+}> {
+  const result = await canSend(carrier);
 
   if (!result.allowed) {
     return {
@@ -172,23 +248,21 @@ export function checkRateLimit(carrier: string = "default"): {
 /**
  * Get current rate limit status for monitoring
  */
-export function getRateLimitStatus(): Record<
-  string,
-  { count: number; limit: number; remaining: number }
+export async function getRateLimitStatus(): Promise<
+  Record<string, { count: number; limit: number; remaining: number }>
 > {
-  const config = getRateLimitConfig();
+  const carriers = ["att", "tmobile", "verizon", "default"];
   const status: Record<
     string,
     { count: number; limit: number; remaining: number }
   > = {};
 
-  for (const [carrier, timestamps] of windowStore.entries()) {
-    const cleaned = timestamps.filter((ts) => ts > Date.now() - WINDOW_MS);
-    const limit = getCarrierLimit(carrier);
+  for (const carrier of carriers) {
+    const result = await canSend(carrier);
     status[carrier] = {
-      count: cleaned.length,
-      limit,
-      remaining: Math.max(0, limit - cleaned.length),
+      count: result.limit - result.remaining,
+      limit: result.limit,
+      remaining: result.remaining,
     };
   }
 
@@ -199,5 +273,5 @@ export function getRateLimitStatus(): Record<
  * Clear rate limit data (for testing)
  */
 export function clearRateLimits(): void {
-  windowStore.clear();
+  memoryStore.clear();
 }

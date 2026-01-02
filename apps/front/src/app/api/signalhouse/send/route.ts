@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check rate limit before sending
-    const rateLimitCheck = checkRateLimit();
+    const rateLimitCheck = await checkRateLimit();
     if (rateLimitCheck.blocked && rateLimitCheck.response) {
       return NextResponse.json(
         {
@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Record successful send for rate limiting
-    recordSend();
+    await recordSend();
 
     return NextResponse.json({
       success: true,

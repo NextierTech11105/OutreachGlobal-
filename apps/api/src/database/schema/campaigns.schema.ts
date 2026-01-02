@@ -59,7 +59,11 @@ export const campaignSequences = pgTable(
     createdAt,
     updatedAt,
   },
-  (t) => [index().on(t.campaignId)],
+  (t) => [
+    index().on(t.campaignId),
+    // Composite index for sequence lookup by position (hot path in scheduler)
+    index("campaign_seq_position_idx").on(t.campaignId, t.position),
+  ],
 );
 
 export const campaignLeads = pgTable(
@@ -79,7 +83,13 @@ export const campaignLeads = pgTable(
     createdAt,
     updatedAt,
   },
-  (t) => [uniqueIndex().on(t.campaignId, t.leadId)],
+  (t) => [
+    uniqueIndex().on(t.campaignId, t.leadId),
+    // Scheduler query: find leads ready for next sequence
+    index("campaign_leads_next_run_idx").on(t.nextSequenceRunAt),
+    // Filter by status for active leads
+    index("campaign_leads_status_idx").on(t.status, t.currentSequenceStatus),
+  ],
 );
 
 export const campaignExecutions = pgTable(
