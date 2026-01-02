@@ -785,30 +785,35 @@ export default function PreQueuePage() {
       <div className="flex items-center gap-4 flex-wrap">
         {/* Campaign Anchor Toggle */}
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-muted-foreground">Audience:</span>
+          <span className="text-sm font-medium text-muted-foreground">
+            Audience:
+          </span>
           <div className="flex rounded-lg overflow-hidden border border-zinc-700">
-            {(Object.entries(CAMPAIGN_ANCHORS) as [CampaignAnchor, typeof CAMPAIGN_ANCHORS.broker][]).map(
-              ([key, anchor]) => {
-                const Icon = anchor.icon;
-                const isActive = campaignAnchor === key;
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => handleAnchorChange(key)}
-                    className={cn(
-                      "flex items-center gap-2 px-4 py-2 transition-all",
-                      isActive
-                        ? `bg-gradient-to-r ${anchor.color} text-white`
-                        : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200"
-                    )}
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span className="text-sm font-medium">{anchor.name}</span>
-                  </button>
-                );
-              }
-            )}
+            {(
+              Object.entries(CAMPAIGN_ANCHORS) as [
+                CampaignAnchor,
+                typeof CAMPAIGN_ANCHORS.broker,
+              ][]
+            ).map(([key, anchor]) => {
+              const Icon = anchor.icon;
+              const isActive = campaignAnchor === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => handleAnchorChange(key)}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2 transition-all",
+                    isActive
+                      ? `bg-gradient-to-r ${anchor.color} text-white`
+                      : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200",
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span className="text-sm font-medium">{anchor.name}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -816,30 +821,35 @@ export default function PreQueuePage() {
 
         {/* Send Mode Toggle */}
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-muted-foreground">Mode:</span>
+          <span className="text-sm font-medium text-muted-foreground">
+            Mode:
+          </span>
           <div className="flex rounded-lg overflow-hidden border border-zinc-700">
-            {(Object.entries(SEND_MODES) as [SendMode, typeof SEND_MODES.blast][]).map(
-              ([key, mode]) => {
-                const Icon = mode.icon;
-                const isActive = sendMode === key;
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => setSendMode(key)}
-                    className={cn(
-                      "flex items-center gap-2 px-4 py-2 transition-all",
-                      isActive
-                        ? `${mode.color} text-white`
-                        : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200"
-                    )}
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span className="text-sm font-medium">{mode.name}</span>
-                  </button>
-                );
-              }
-            )}
+            {(
+              Object.entries(SEND_MODES) as [
+                SendMode,
+                typeof SEND_MODES.blast,
+              ][]
+            ).map(([key, mode]) => {
+              const Icon = mode.icon;
+              const isActive = sendMode === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setSendMode(key)}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2 transition-all",
+                    isActive
+                      ? `${mode.color} text-white`
+                      : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200",
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span className="text-sm font-medium">{mode.name}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -849,7 +859,7 @@ export default function PreQueuePage() {
             className={cn(
               "px-3 py-1 text-sm font-medium border",
               CAMPAIGN_ANCHORS[campaignAnchor].bgColor,
-              CAMPAIGN_ANCHORS[campaignAnchor].textColor
+              CAMPAIGN_ANCHORS[campaignAnchor].textColor,
             )}
           >
             {CAMPAIGN_ANCHORS[campaignAnchor].description}
