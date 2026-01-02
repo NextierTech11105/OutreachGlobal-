@@ -109,7 +109,11 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error("Apollo companies search error:", response.status, errorData);
+      console.error(
+        "Apollo companies search error:",
+        response.status,
+        errorData,
+      );
       return NextResponse.json(
         {
           error: errorData.message || "Search failed",
@@ -192,7 +196,8 @@ export async function POST(request: NextRequest) {
         title: person.title || null,
         email: person.email || null,
         phone,
-        mobile: phones.find((p) => p.type === "mobile")?.sanitized_number || null,
+        mobile:
+          phones.find((p) => p.type === "mobile")?.sanitized_number || null,
         address,
         city: personCity,
         state: personState,
