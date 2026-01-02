@@ -1229,7 +1229,7 @@ export default function LeadCalendarWorkspace() {
                               "flex items-center gap-1 px-1 py-0.5 rounded text-[10px] truncate",
                               config.bgLight,
                               config.textColor,
-                              event.completed && "opacity-50 line-through"
+                              event.completed && "opacity-50 line-through",
                             )}
                             title={`${event.title} - ${event.time || ""}`}
                           >
@@ -1332,38 +1332,50 @@ export default function LeadCalendarWorkspace() {
             <div className="p-4 space-y-3">
               {/* Events for selected date */}
               {(() => {
-                const dayEvents = calendarDays.find(
-                  d => d.date.toDateString() === selectedDate?.toDateString()
-                )?.events || [];
+                const dayEvents =
+                  calendarDays.find(
+                    (d) =>
+                      d.date.toDateString() === selectedDate?.toDateString(),
+                  )?.events || [];
 
                 if (dayEvents.length > 0) {
                   return (
                     <div className="space-y-2 mb-4">
                       <div className="flex items-center justify-between">
-                        <h4 className="text-sm font-medium text-muted-foreground">Events</h4>
+                        <h4 className="text-sm font-medium text-muted-foreground">
+                          Events
+                        </h4>
                         <Badge variant="outline">{dayEvents.length}</Badge>
                       </div>
                       {dayEvents.map((event) => {
                         const config = EVENT_TYPE_CONFIG[event.type];
                         const IconComponent = config.icon;
                         return (
-                          <Card key={event.id} className={cn(
-                            "border-l-4",
-                            config.color.replace("bg-", "border-l-")
-                          )}>
+                          <Card
+                            key={event.id}
+                            className={cn(
+                              "border-l-4",
+                              config.color.replace("bg-", "border-l-"),
+                            )}
+                          >
                             <CardContent className="p-3">
                               <div className="flex items-start justify-between">
                                 <div className="flex items-start gap-2">
                                   <Checkbox
                                     checked={event.completed}
-                                    onCheckedChange={() => toggleEventComplete(event.id)}
+                                    onCheckedChange={() =>
+                                      toggleEventComplete(event.id)
+                                    }
                                     className="mt-0.5"
                                   />
                                   <div>
-                                    <p className={cn(
-                                      "font-medium text-sm",
-                                      event.completed && "line-through text-muted-foreground"
-                                    )}>
+                                    <p
+                                      className={cn(
+                                        "font-medium text-sm",
+                                        event.completed &&
+                                          "line-through text-muted-foreground",
+                                      )}
+                                    >
                                       {event.title}
                                     </p>
                                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -1403,7 +1415,10 @@ export default function LeadCalendarWorkspace() {
               })()}
 
               {/* Leads section */}
-              {selectedDateLeads.length === 0 && calendarDays.find(d => d.date.toDateString() === selectedDate?.toDateString())?.events.length === 0 ? (
+              {selectedDateLeads.length === 0 &&
+              calendarDays.find(
+                (d) => d.date.toDateString() === selectedDate?.toDateString(),
+              )?.events.length === 0 ? (
                 <div className="text-center py-12">
                   <Inbox className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
                   <p className="text-sm text-muted-foreground">
@@ -1416,7 +1431,9 @@ export default function LeadCalendarWorkspace() {
                     onClick={() => {
                       setNewEvent({
                         ...newEvent,
-                        date: selectedDate?.toISOString().split("T")[0] || new Date().toISOString().split("T")[0],
+                        date:
+                          selectedDate?.toISOString().split("T")[0] ||
+                          new Date().toISOString().split("T")[0],
                       });
                       setShowCreateEventDialog(true);
                     }}
@@ -1895,7 +1912,10 @@ export default function LeadCalendarWorkspace() {
       </Dialog>
 
       {/* Create Event Dialog */}
-      <Dialog open={showCreateEventDialog} onOpenChange={setShowCreateEventDialog}>
+      <Dialog
+        open={showCreateEventDialog}
+        onOpenChange={setShowCreateEventDialog}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -1912,7 +1932,12 @@ export default function LeadCalendarWorkspace() {
             <div className="space-y-2">
               <Label>Event Type</Label>
               <div className="grid grid-cols-2 gap-2">
-                {(Object.entries(EVENT_TYPE_CONFIG) as [CalendarEvent["type"], typeof EVENT_TYPE_CONFIG.callback][]).map(([type, config]) => {
+                {(
+                  Object.entries(EVENT_TYPE_CONFIG) as [
+                    CalendarEvent["type"],
+                    typeof EVENT_TYPE_CONFIG.callback,
+                  ][]
+                ).map(([type, config]) => {
                   const IconComponent = config.icon;
                   return (
                     <button
@@ -1923,11 +1948,13 @@ export default function LeadCalendarWorkspace() {
                         "flex items-center gap-2 p-3 rounded-lg border transition-all",
                         newEvent.type === type
                           ? `${config.bgLight} ${config.textColor} border-current`
-                          : "hover:bg-muted"
+                          : "hover:bg-muted",
                       )}
                     >
                       <IconComponent className="h-4 w-4" />
-                      <span className="font-medium text-sm">{config.label}</span>
+                      <span className="font-medium text-sm">
+                        {config.label}
+                      </span>
                     </button>
                   );
                 })}
@@ -1941,7 +1968,9 @@ export default function LeadCalendarWorkspace() {
                 id="event-title"
                 placeholder="e.g., Call back John Smith"
                 value={newEvent.title}
-                onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
+                onChange={(e) =>
+                  setNewEvent({ ...newEvent, title: e.target.value })
+                }
               />
             </div>
 
@@ -1953,7 +1982,9 @@ export default function LeadCalendarWorkspace() {
                   id="event-date"
                   type="date"
                   value={newEvent.date}
-                  onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
+                  onChange={(e) =>
+                    setNewEvent({ ...newEvent, date: e.target.value })
+                  }
                 />
               </div>
               <div className="space-y-2">
@@ -1962,7 +1993,9 @@ export default function LeadCalendarWorkspace() {
                   id="event-time"
                   type="time"
                   value={newEvent.time}
-                  onChange={(e) => setNewEvent({ ...newEvent, time: e.target.value })}
+                  onChange={(e) =>
+                    setNewEvent({ ...newEvent, time: e.target.value })
+                  }
                 />
               </div>
             </div>
@@ -1974,7 +2007,9 @@ export default function LeadCalendarWorkspace() {
                 id="event-notes"
                 placeholder="Additional details..."
                 value={newEvent.notes}
-                onChange={(e) => setNewEvent({ ...newEvent, notes: e.target.value })}
+                onChange={(e) =>
+                  setNewEvent({ ...newEvent, notes: e.target.value })
+                }
               />
             </div>
           </div>

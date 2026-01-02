@@ -255,33 +255,33 @@ export function ComplianceChecker({ steps }: ComplianceCheckerProps) {
       </div>
 
       {/* Summary Stats */}
-      <div className="px-4 py-3 border-b grid grid-cols-3 gap-2 text-center text-xs">
-        <div className="flex flex-col items-center">
-          <div className="flex items-center gap-1 text-red-600">
-            <XCircle className="h-3 w-3" />
-            <span className="font-bold">
+      <div className="px-4 py-3 border-b grid grid-cols-3 gap-2 text-center">
+        <div className="flex flex-col items-center gap-1">
+          <div className="flex items-center gap-1.5 text-red-500">
+            <XCircle className="h-4 w-4" />
+            <span className="font-bold text-lg">
               {issues.filter((i) => i.severity === "error").length}
             </span>
           </div>
-          <span className="text-muted-foreground">Errors</span>
+          <span className="text-sm font-medium text-red-600">Errors</span>
         </div>
-        <div className="flex flex-col items-center">
-          <div className="flex items-center gap-1 text-yellow-600">
-            <AlertTriangle className="h-3 w-3" />
-            <span className="font-bold">
+        <div className="flex flex-col items-center gap-1">
+          <div className="flex items-center gap-1.5 text-amber-500">
+            <AlertTriangle className="h-4 w-4" />
+            <span className="font-bold text-lg">
               {issues.filter((i) => i.severity === "warning").length}
             </span>
           </div>
-          <span className="text-muted-foreground">Warnings</span>
+          <span className="text-sm font-medium text-amber-600">Warnings</span>
         </div>
-        <div className="flex flex-col items-center">
-          <div className="flex items-center gap-1 text-blue-600">
-            <Info className="h-3 w-3" />
-            <span className="font-bold">
+        <div className="flex flex-col items-center gap-1">
+          <div className="flex items-center gap-1.5 text-blue-500">
+            <Info className="h-4 w-4" />
+            <span className="font-bold text-lg">
               {issues.filter((i) => i.severity === "info").length}
             </span>
           </div>
-          <span className="text-muted-foreground">Info</span>
+          <span className="text-sm font-medium text-blue-600">Info</span>
         </div>
       </div>
 
@@ -306,19 +306,19 @@ export function ComplianceChecker({ steps }: ComplianceCheckerProps) {
                   <div className="flex items-start gap-2">
                     {getSeverityIcon(issue.severity)}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Badge variant="outline" className="text-[10px] px-1">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <Badge variant="outline" className="text-xs px-2 py-0.5 font-semibold">
                           {issue.rule}
                         </Badge>
                         {issue.stepIndex && (
-                          <span className="text-[10px] text-muted-foreground">
+                          <span className="text-xs font-medium text-slate-500">
                             Step {issue.stepIndex}
                           </span>
                         )}
                       </div>
-                      <p className="text-sm">{issue.message}</p>
+                      <p className="text-sm font-medium text-foreground">{issue.message}</p>
                       {issue.suggestion && (
-                        <p className="text-xs text-muted-foreground mt-1">
+                        <p className="text-sm text-slate-600 dark:text-slate-300 mt-1.5">
                           💡 {issue.suggestion}
                         </p>
                       )}
@@ -333,32 +333,32 @@ export function ComplianceChecker({ steps }: ComplianceCheckerProps) {
 
       {/* Rules Reference */}
       <div className="p-4 border-t bg-muted/30">
-        <div className="text-xs space-y-1 text-muted-foreground">
-          <div className="font-medium text-foreground mb-2">
+        <div className="space-y-2">
+          <div className="font-semibold text-sm text-foreground mb-3">
             TCPA Compliance Rules
           </div>
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="h-3 w-3 text-green-500" />
+          <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+            <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
             <span>
               Min {COMPLIANCE_RULES.minMessageSpacingHours}h between SMS
             </span>
           </div>
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="h-3 w-3 text-green-500" />
+          <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+            <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
             <span>
               Max {COMPLIANCE_RULES.maxMessagesBeforeEscalation} SMS before
               escalation
             </span>
           </div>
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="h-3 w-3 text-green-500" />
+          <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+            <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
             <span>
               Business hours: {COMPLIANCE_RULES.businessHoursStart}AM-
               {COMPLIANCE_RULES.businessHoursEnd - 12}PM
             </span>
           </div>
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="h-3 w-3 text-green-500" />
+          <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+            <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
             <span>Auto-stop on STOP keywords</span>
           </div>
         </div>
