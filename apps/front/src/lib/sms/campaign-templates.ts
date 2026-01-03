@@ -1551,67 +1551,73 @@ export const COLD_CALL_SCRIPTS: CallScript[] = [
 ];
 
 // ============================================================================
-// CAMPAIGN 1: REAL ESTATE AGENTS - Temp-C21390
-// Phone: 15164079249 | Brand: BZOYPIH - NEXTIER
-// Pitch: "Stop renting lead gen, own the system"
+// TEMPLATE LIBRARY (INACTIVE - Kept for reference only)
+// Activate by adding to ALL_SMS_TEMPLATES when needed
 // ============================================================================
+
+// ----------------------------------------------------------------------------
+// REAL ESTATE AGENTS - INACTIVE
+// Original Campaign: Temp-C21390
+// Activate only if user requests real estate outreach
+// ----------------------------------------------------------------------------
 export const REALTOR_INITIAL_TEMPLATES: SMSTemplate[] = [
-  {
-    id: "realtor-1",
-    name: "Stop Renting",
-    message:
-      "Most agents keep renting their lead generation and never control the system. Nextier changes that. Open to 15 min talk ?",
-    stage: "initial",
-    worker: "GIANNA",
-    tags: ["realtor", "lead-gen", "meeting"],
-    variables: [],
-    charCount: 124,
-  },
-  {
-    id: "realtor-2",
-    name: "System Builds",
-    message:
-      "The best agents don't chase leads — their system does. That's what we build at Nextier. best email ?",
-    stage: "initial",
-    worker: "GIANNA",
-    tags: ["realtor", "system", "email-capture"],
-    variables: [],
-    charCount: 104,
-  },
+  // {
+  //   id: "realtor-1",
+  //   name: "Stop Renting",
+  //   message:
+  //     "Most agents keep renting their lead generation and never control the system. Nextier changes that. Open to 15 min talk ?",
+  //   stage: "initial",
+  //   worker: "GIANNA",
+  //   tags: ["realtor", "lead-gen", "meeting"],
+  //   variables: [],
+  //   charCount: 124,
+  // },
+  // {
+  //   id: "realtor-2",
+  //   name: "System Builds",
+  //   message:
+  //     "The best agents don't chase leads — their system does. That's what we build at Nextier. best email ?",
+  //   stage: "initial",
+  //   worker: "GIANNA",
+  //   tags: ["realtor", "system", "email-capture"],
+  //   variables: [],
+  //   charCount: 104,
+  // },
 ];
 
-// Campaign config for Temp-C21390
-export const CAMPAIGN_1_CONFIG = {
-  campaignId: "Temp-C21390",
-  brandName: "BZOYPIH - NEXTIER",
-  phoneNumber: "15164079249",
-  audience: "Real Estate Agents & Brokers",
-  sicCode: "6531",
-  pitch: "Stop renting lead gen, own the system",
-  templates: REALTOR_INITIAL_TEMPLATES,
-  dailyLimit: 2000,
-  targetIndustries: [
-    "real estate",
-    "realtor",
-    "broker",
-    "realty",
-    "property",
-    "commercial real estate",
-    "residential real estate",
-  ],
-};
+// INACTIVE - Real estate campaign config
+// export const CAMPAIGN_1_CONFIG = {
+//   campaignId: "Temp-C21390",
+//   brandName: "BZOYPIH - NEXTIER",
+//   phoneNumber: "15164079249",
+//   audience: "Real Estate Agents & Brokers",
+//   sicCode: "6531",
+//   pitch: "Stop renting lead gen, own the system",
+//   templates: REALTOR_INITIAL_TEMPLATES,
+//   dailyLimit: 2000,
+//   targetIndustries: [
+//     "real estate",
+//     "realtor",
+//     "broker",
+//     "realty",
+//     "property",
+//     "commercial real estate",
+//     "residential real estate",
+//   ],
+// };
 
 // ============================================================================
 // ALL TEMPLATES - Combined export for easy access
+// Focus: CRM Consultants, Blue Collar, Business Brokering, Exit/Expansion
 // ============================================================================
 export const ALL_SMS_TEMPLATES: SMSTemplate[] = [
-  ...INITIAL_TEMPLATES,
+  ...INITIAL_TEMPLATES, // Business valuation, exit/expansion focus
   ...RETARGET_TEMPLATES,
   ...NUDGE_TEMPLATES,
   ...FOLLOWUP_TEMPLATES,
   ...RETENTION_TEMPLATES,
   ...CONFIRMATION_TEMPLATES,
-  ...REALTOR_INITIAL_TEMPLATES,
+  // Note: REALTOR_INITIAL_TEMPLATES excluded - kept in library but not active
 ];
 
 // Get templates by stage
