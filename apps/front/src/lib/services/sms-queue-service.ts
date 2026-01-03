@@ -27,6 +27,11 @@ import {
   type VarianceResult,
   type ReplyProcessingResult,
 } from "@/lib/sms/variance";
+import {
+  leadScoringService,
+  featureSnapshotService,
+  type LeadSignalRecord,
+} from "./ml";
 
 // Redis keys for SMS queue persistence
 const SMS_QUEUE_KEY = "sms:queue";
@@ -48,6 +53,11 @@ export interface QueuedMessage {
   variables: Record<string, string>;
   personality?: string;
   priority: number;
+  // ML Advisory Fields (used for display, NEVER auto-executed)
+  mlScore?: number; // Lead score 0-100
+  mlRecommendation?: string; // Advisory recommendation
+  mlConfidence?: number; // Score confidence 0-100
+  touchNumber?: number; // Current touch number (1-5)
   scheduledAt?: Date;
   // Human-in-loop statuses: draft -> approved -> pending -> processing -> sent
   status:
@@ -1313,6 +1323,11 @@ export class SMSQueueService {
   /**
    * Add cold SMS to queue using variance engine
    * Generates varied message and schedules optimally
+   *
+   * ML Integration (Advisory Only):
+   * - Computes lead score for display/prioritization
+   * - Captures feature snapshot for offline training
+   * - Score influences priority but NEVER auto-executes
    */
   public addColdSMSToQueue(
     leadData: {
@@ -1324,6 +1339,10 @@ export class SMSQueueService {
       industry?: string;
       leadScore?: number;
       previousAttempts?: number;
+      // ML Support
+      teamId?: string;
+      signals?: LeadSignalRecord[];
+      touchNumber?: number;
     },
     options: {
       campaignId?: string;
@@ -1331,7 +1350,7 @@ export class SMSQueueService {
       previousGroups?: string[];
       usedTemplateIds?: string[];
     } = {},
-  ): { id: string; message: VarianceResult } | null {
+  ): { id: string; message: VarianceResult; mlScore?: number } | null {
     // Check opt-out first
     if (this.isOptedOut(leadData.phone)) {
       console.log(`[SMSQueue] Skipping opted-out number: ${leadData.phone}`);
@@ -1366,8 +1385,60 @@ export class SMSQueueService {
     // Check if we can send now
     const sendCheck = canSendNow(leadContext);
 
+    // ═══════════════════════════════════════════════════════════════════════
+    // ML ADVISORY LAYER (Scores shown in UI, NEVER auto-executed)
+    // ═══════════════════════════════════════════════════════════════════════
+    let mlScore: number | undefined;
+    let mlRecommendation: string | undefined;
+    let mlConfidence: number | undefined;
+
+    if (leadData.signals && leadData.signals.length > 0) {
+      try {
+        const score = leadScoringService.computeScore(
+          leadData.leadId,
+          leadData.signals,
+          leadData.touchNumber || leadData.previousAttempts || 0,
+        );
+        mlScore = score.score;
+        mlRecommendation = score.recommendation;
+        mlConfidence = score.confidence;
+
+        // Capture feature snapshot for offline training
+        if (leadData.teamId) {
+          featureSnapshotService
+            .capturePreSend({
+              teamId: leadData.teamId,
+              leadId: leadData.leadId,
+              signals: leadData.signals.map((s) => ({
+                signalType: s.signalType,
+                createdAt: s.createdAt,
+                confidence: s.confidence,
+              })),
+              campaignId: options.campaignId,
+              templateId: variantResult.templateId,
+              touchNumber: leadData.touchNumber,
+              leadScore: score,
+            })
+            .catch((err) => {
+              console.error("[SMSQueue] Feature snapshot error:", err);
+            });
+        }
+
+        console.log(
+          `[SMSQueue] ML Score for ${leadData.leadId}: ${mlScore} (${mlRecommendation})`,
+        );
+      } catch (error) {
+        console.error("[SMSQueue] ML scoring error:", error);
+      }
+    }
+
     // Add to queue as draft for review
     const id = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    // Priority can be influenced by ML score (but still requires human approval)
+    const adjustedPriority = mlScore
+      ? Math.min(10, Math.max(1, Math.round(mlScore / 10)))
+      : options.priority || 5;
 
     const queuedMessage: QueuedMessage = {
       id,
@@ -1383,7 +1454,7 @@ export class SMSQueueService {
         industry: leadData.industry || "",
       },
       personality: "gianna",
-      priority: options.priority || 5,
+      priority: adjustedPriority,
       status: "draft",
       attempts: 0,
       maxAttempts: this.config.maxRetries,
@@ -1391,12 +1462,17 @@ export class SMSQueueService {
       scheduledAt: sendCheck.allowed ? undefined : schedule.sendAt,
       campaignId: options.campaignId,
       agent: "gianna",
+      // ML Advisory Fields (for display only)
+      mlScore,
+      mlRecommendation,
+      mlConfidence,
+      touchNumber: leadData.touchNumber,
     };
 
     this.queue.push(queuedMessage);
     this.persistQueue();
 
-    return { id, message: variantResult };
+    return { id, message: variantResult, mlScore };
   }
 
   /**
@@ -1478,11 +1554,20 @@ export class SMSQueueService {
   /**
    * Handle reply with full processing pipeline
    * Classifies reply, updates lead status, and determines next action
+   *
+   * ML Integration:
+   * - Captures post-reply feature snapshot for training
+   * - Tracks actual outcome for prediction accuracy
    */
   public async handleReply(
     from: string,
     message: string,
     leadId?: string,
+    options: {
+      teamId?: string;
+      signals?: LeadSignalRecord[];
+      campaignId?: string;
+    } = {},
   ): Promise<{
     result: ReplyProcessingResult;
     actionsApplied: string[];
@@ -1518,6 +1603,50 @@ export class SMSQueueService {
         }
       });
       this.persistQueue();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // ML FEATURE CAPTURE (For Training & Accuracy Tracking)
+    // ═══════════════════════════════════════════════════════════════════════
+    if (leadId && options.teamId && options.signals) {
+      try {
+        // Capture post-reply feature snapshot
+        featureSnapshotService
+          .capturePostReply({
+            teamId: options.teamId,
+            leadId,
+            signals: options.signals.map((s) => ({
+              signalType: s.signalType,
+              createdAt: s.createdAt,
+              confidence: s.confidence,
+            })),
+            replyIntent: result.intent,
+            campaignId: options.campaignId,
+          })
+          .catch((err) => {
+            console.error("[SMSQueue] Post-reply snapshot error:", err);
+          });
+
+        // Label outcome for previous predictions
+        const outcomeLabel =
+          result.intent === "opt_out" || result.intent === "spam_report"
+            ? "opted_out"
+            : result.intent === "wrong_number"
+              ? "wrong_number"
+              : result.intent === "positive" || result.intent === "interested"
+                ? "responded"
+                : "no_response";
+
+        featureSnapshotService
+          .labelOutcome(leadId, outcomeLabel)
+          .catch((err) => {
+            console.error("[SMSQueue] Outcome labeling error:", err);
+          });
+
+        actionsApplied.push("ml_snapshot_captured");
+      } catch (error) {
+        console.error("[SMSQueue] ML capture error:", error);
+      }
     }
 
     // Log the reply for analytics

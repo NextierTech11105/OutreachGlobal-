@@ -66,3 +66,9 @@ export * from "./cartridges.schema";
 
 // ===== CANONICAL LEAD STATE MACHINE =====
 export * from "./canonical-lead-state.schema";
+
+// ===== ML SUPPORT LAYER (Advisory Only) =====
+// Piggyback architecture: Nextier → SignalHouse (like Perplexity → OpenAI)
+export * from "./ml-feature-snapshots.schema";
+export * from "./ml-predictions.schema";
+export * from "./template-performance.schema";

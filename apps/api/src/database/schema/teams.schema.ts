@@ -1,5 +1,6 @@
 import {
   index,
+  jsonb,
   pgTable,
   timestamp,
   uniqueIndex,
@@ -22,12 +23,24 @@ export const teams = pgTable(
       .notNull(),
     name: varchar().notNull(),
     slug: varchar().notNull().unique(),
-    // NOTE: description and branding columns removed temporarily
-    // They will be added back after database migration
+
+    // ═══════════════════════════════════════════════════════════════
+    // SIGNALHOUSE MULTI-TENANT MAPPING
+    // Nextier Team = SignalHouse SubGroup (1:1)
+    // Like Perplexity/Lovable piggyback on OpenAI, we piggyback on SignalHouse
+    // ═══════════════════════════════════════════════════════════════
+    signalhouseSubGroupId: varchar("signalhouse_subgroup_id"),
+    signalhouseBrandId: varchar("signalhouse_brand_id"),
+    signalhouseCampaignIds: jsonb("signalhouse_campaign_ids").$type<string[]>(),
+    signalhousePhonePool: jsonb("signalhouse_phone_pool").$type<string[]>(),
+
     createdAt,
     updatedAt,
   },
-  (t) => [index().on(t.ownerId)],
+  (t) => [
+    index().on(t.ownerId),
+    index("teams_signalhouse_idx").on(t.signalhouseSubGroupId),
+  ],
 );
 
 export const teamsRef = (config?: ReferenceConfig["actions"]) =>
