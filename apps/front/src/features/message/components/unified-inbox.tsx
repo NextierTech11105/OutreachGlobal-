@@ -8,6 +8,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { ChevronLeft, Mail, Phone, PhoneCall, PenSquare } from "lucide-react";
+import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useCurrentTeam } from "@/features/team/team.context";
 import { useCallState } from "@/lib/providers/call-state-provider";
@@ -114,15 +115,178 @@ export function UnifiedInbox() {
     });
   };
 
-  // Quick call - stays on inbox page, opens softphone modal
-  const handleQuickCall = (message: Message) => {
-    const phone = message.phone || message.from;
-    if (!phone) return;
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // EASIFY-STYLE ACTION HANDLERS
+  // ═══════════════════════════════════════════════════════════════════════════════
 
+  // Call Now - Immediate dial via Twilio softphone (stays on inbox page)
+  const handleCallNow = (message: Message) => {
+    const phone = message.phone || message.from;
+    if (!phone) {
+      toast.error("No phone number available");
+      return;
+    }
+
+    // Trigger softphone immediately
     activateCall(phone, message.fromName || message.from, {
       source: "inbox",
       status: message.status,
+      leadId: message.leadId,
     });
+    toast.success(`Calling ${message.fromName || phone}...`);
+  };
+
+  // Add to Automated Call Queue - Schedules for later automated dialing
+  const handleAddToCallQueue = async (message: Message) => {
+    const phone = message.phone || message.from;
+    if (!phone) {
+      toast.error("No phone number available");
+      return;
+    }
+
+    try {
+      // Call the queue API to add this lead
+      await fetch(`/api/call-queue/add`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phone,
+          name: message.fromName || message.from,
+          leadId: message.leadId,
+          source: "inbox",
+          priority: "high",
+          teamId: team?.id,
+        }),
+      });
+      toast.success(
+        `Added ${message.fromName || phone} to automated call queue`,
+      );
+    } catch (error) {
+      console.error("Failed to add to call queue:", error);
+      toast.error("Failed to add to call queue");
+    }
+  };
+
+  // Push To Leads - Creates/updates lead record
+  const handlePushToLeads = async (message: Message) => {
+    try {
+      await fetch(`/api/leads/from-message`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messageId: message.id,
+          phone: message.phone || message.from,
+          name: message.fromName,
+          email: message.email,
+          teamId: team?.id,
+        }),
+      });
+      toast.success("Pushed to Leads");
+    } catch (error) {
+      toast.error("Failed to push to leads");
+    }
+  };
+
+  // Insert Template - Opens template selector
+  const handleInsertTemplate = (message: Message) => {
+    setSelectedMessage(message);
+    setReplyMode(true);
+    toast.info("Select a template from the reply composer");
+  };
+
+  // Add Booking Event
+  const handleAddBooking = (message: Message) => {
+    const params = new URLSearchParams({
+      phone: message.phone || message.from || "",
+      name: message.fromName || "",
+      source: "inbox",
+    });
+    router.push(`/t/${team?.slug}/calendar/new?${params.toString()}`);
+  };
+
+  // Add Appointment Link - Generates and copies scheduling link
+  const handleAddAppointmentLink = async (message: Message) => {
+    try {
+      // Generate appointment link for this lead
+      const link = `${window.location.origin}/book/${team?.slug}?ref=${message.id}`;
+      await navigator.clipboard.writeText(link);
+      toast.success("Appointment link copied to clipboard");
+    } catch (error) {
+      toast.error("Failed to generate appointment link");
+    }
+  };
+
+  // Push to CRM
+  const handlePushToCRM = async (message: Message) => {
+    try {
+      await fetch(`/api/crm/sync`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messageId: message.id,
+          phone: message.phone || message.from,
+          name: message.fromName,
+          teamId: team?.id,
+        }),
+      });
+      toast.success("Pushed to CRM");
+    } catch (error) {
+      toast.error("Failed to push to CRM");
+    }
+  };
+
+  // Add Note
+  const handleAddNote = (message: Message) => {
+    setSelectedMessage(message);
+    setReplyMode(false);
+    toast.info("Open message detail to add notes");
+  };
+
+  // Add to Blacklist
+  const handleAddToBlacklist = async (message: Message) => {
+    const phone = message.phone || message.from;
+    if (!phone) return;
+
+    try {
+      await fetch(`/api/blacklist/add`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phone,
+          reason: "manual_blacklist",
+          teamId: team?.id,
+        }),
+      });
+      toast.warning(`${phone} added to blacklist`);
+    } catch (error) {
+      toast.error("Failed to add to blacklist");
+    }
+  };
+
+  // Block Contact
+  const handleBlockContact = async (message: Message) => {
+    const phone = message.phone || message.from;
+    if (!phone) return;
+
+    try {
+      await fetch(`/api/contacts/block`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phone,
+          messageId: message.id,
+          teamId: team?.id,
+        }),
+      });
+      toast.warning(`Contact blocked`);
+    } catch (error) {
+      toast.error("Failed to block contact");
+    }
+  };
+
+  // Legacy quick call handler (kept for compatibility)
+  const handleQuickCall = (message: Message) => {
+    handleCallNow(message);
   };
 
   const filteredMessages = messages.filter((message) => {
@@ -251,6 +415,17 @@ export function UnifiedInbox() {
                 onViewMessage={handleViewMessage}
                 onReplyMessage={handleReplyMessage}
                 onCallBack={handleQuickCall}
+                // Easify-style actions
+                onCallNow={handleCallNow}
+                onAddToCallQueue={handleAddToCallQueue}
+                onPushToLeads={handlePushToLeads}
+                onInsertTemplate={handleInsertTemplate}
+                onAddBooking={handleAddBooking}
+                onAddAppointmentLink={handleAddAppointmentLink}
+                onPushToCRM={handlePushToCRM}
+                onAddNote={handleAddNote}
+                onAddToBlacklist={handleAddToBlacklist}
+                onBlockContact={handleBlockContact}
               />
             ) : replyMode ? (
               <MessageReply

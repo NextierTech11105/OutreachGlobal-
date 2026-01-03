@@ -1,3 +1,11 @@
+import {
+  getSenderByPurpose,
+  getLeadGenSender,
+  DEFAULT_SENDERS,
+  EMAIL_CATEGORIES,
+  type SenderProfile,
+} from "./email-sender-config";
+
 interface SendEmailParams {
   to: string | string[];
   subject: string;
@@ -17,6 +25,10 @@ interface SendEmailParams {
   replyTo?: string;
   sendAt?: number;
   batchId?: string;
+  // New: specify sender purpose or override from address
+  senderPurpose?: SenderProfile["purpose"];
+  fromEmail?: string;
+  fromName?: string;
 }
 
 interface SendgridConfig {
@@ -51,19 +63,36 @@ class SendgridService {
     params: SendEmailParams,
   ): Promise<{ success: boolean; messageId?: string; error?: string }> {
     try {
+      // Determine sender based on purpose or explicit override
+      let fromEmail = params.fromEmail || this.config.fromEmail;
+      let fromName = params.fromName || this.config.fromName;
+      let replyTo = params.replyTo;
+
+      // If sender purpose specified, use the configured sender profile
+      if (params.senderPurpose) {
+        const sender = getSenderByPurpose(params.senderPurpose);
+        if (sender && sender.isActive) {
+          fromEmail = sender.email;
+          fromName = sender.name;
+          replyTo = sender.replyTo || sender.email;
+        }
+      }
+
       // This would be implemented with the actual SendGrid SDK
       // For now, we'll just log the parameters
       console.log("Sending email with SendGrid:", {
         from: {
-          email: this.config.fromEmail,
-          name: this.config.fromName,
+          email: fromEmail,
+          name: fromName,
         },
+        replyTo,
         to: params.to,
         subject: params.subject,
         text: params.text,
         html: params.html,
         templateId: params.templateId,
         dynamicTemplateData: params.dynamicTemplateData,
+        categories: params.categories,
       });
 
       // Simulate a successful response
@@ -78,6 +107,49 @@ class SendgridService {
         error: "Failed to send email",
       };
     }
+  }
+
+  /**
+   * Send lead generation follow-up email from tb@outreachglobal.io
+   */
+  async sendLeadFollowUp(
+    to: string,
+    subject: string,
+    body: string,
+    options: Partial<SendEmailParams> = {},
+  ): Promise<{ success: boolean; messageId?: string; error?: string }> {
+    const sender = getLeadGenSender();
+    return this.sendEmail({
+      to,
+      subject,
+      html: body,
+      senderPurpose: "lead_generation",
+      categories: EMAIL_CATEGORIES.lead_generation,
+      replyTo: sender.replyTo,
+      ...options,
+    });
+  }
+
+  /**
+   * Send inbox reply using lead generation sender
+   */
+  async sendInboxReply(
+    to: string,
+    subject: string,
+    body: string,
+    inReplyTo?: string,
+  ): Promise<{ success: boolean; messageId?: string; error?: string }> {
+    const sender = DEFAULT_SENDERS.inbox_reply;
+    console.log(`[SendGrid] Sending inbox reply from ${sender.email} to ${to}`);
+    return this.sendEmail({
+      to,
+      subject,
+      html: body,
+      fromEmail: sender.email,
+      fromName: sender.name,
+      replyTo: sender.replyTo,
+      categories: ["inbox-reply", ...EMAIL_CATEGORIES.lead_generation],
+    });
   }
 
   async sendTemplateEmail(

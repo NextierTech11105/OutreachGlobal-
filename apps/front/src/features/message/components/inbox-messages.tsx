@@ -46,6 +46,14 @@ import {
   PhoneForwarded,
   Sparkles,
   Clock,
+  FileText,
+  Link2,
+  StickyNote,
+  Ban,
+  ShieldX,
+  Users,
+  ExternalLink,
+  CalendarPlus,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -367,12 +375,32 @@ interface InboxMessagesProps {
   onViewMessage?: (message: any) => void;
   onReplyMessage?: (message: any) => void;
   onCallBack?: (message: any) => void;
+  onCallNow?: (message: any) => void; // Immediate dial via softphone
+  onAddToCallQueue?: (message: any) => void; // Add to automated call queue
+  onPushToLeads?: (message: any) => void;
+  onInsertTemplate?: (message: any) => void;
+  onAddBooking?: (message: any) => void;
+  onAddAppointmentLink?: (message: any) => void;
+  onPushToCRM?: (message: any) => void;
+  onAddNote?: (message: any) => void;
+  onAddToBlacklist?: (message: any) => void;
+  onBlockContact?: (message: any) => void;
 }
 
 export function InboxMessages({
   onViewMessage,
   onReplyMessage,
   onCallBack,
+  onCallNow,
+  onAddToCallQueue,
+  onPushToLeads,
+  onInsertTemplate,
+  onAddBooking,
+  onAddAppointmentLink,
+  onPushToCRM,
+  onAddNote,
+  onAddToBlacklist,
+  onBlockContact,
 }: InboxMessagesProps) {
   const [selectedMessages, setSelectedMessages] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -834,35 +862,203 @@ export function InboxMessages({
                           <span className="sr-only">Open menu</span>
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
+                      <DropdownMenuContent align="end" className="w-56">
+                        {/* ═══ CALL ACTIONS - Most Important ═══ */}
+                        <DropdownMenuItem
+                          onClick={() => {
+                            if (onCallNow) {
+                              onCallNow(message);
+                            } else {
+                              // Default: trigger immediate call via Twilio
+                              toast.success(
+                                `Calling ${message.fromName || message.fromAddress}...`,
+                              );
+                            }
+                          }}
+                          className="text-green-600 font-medium"
+                        >
+                          <Phone className="mr-2 h-4 w-4" />
+                          Call Now
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            if (onAddToCallQueue) {
+                              onAddToCallQueue(message);
+                            } else {
+                              toast.success(`Added to automated call queue`);
+                            }
+                          }}
+                          className="text-blue-600"
+                        >
+                          <PhoneForwarded className="mr-2 h-4 w-4" />
+                          Add to Automated Call
+                        </DropdownMenuItem>
+
+                        <DropdownMenuSeparator />
+
+                        {/* ═══ LEAD MANAGEMENT ═══ */}
+                        <DropdownMenuItem
+                          onClick={() => {
+                            if (onPushToLeads) {
+                              onPushToLeads(message);
+                            } else {
+                              toast.success(`Pushed to Leads`);
+                            }
+                          }}
+                        >
+                          <Users className="mr-2 h-4 w-4" />
+                          Push To Leads
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            if (onInsertTemplate) {
+                              onInsertTemplate(message);
+                            } else {
+                              toast.info(`Opening template selector...`);
+                            }
+                          }}
+                        >
+                          <FileText className="mr-2 h-4 w-4" />
+                          Insert Template
+                        </DropdownMenuItem>
+
+                        <DropdownMenuSeparator />
+
+                        {/* ═══ CALENDAR & CRM ═══ */}
+                        <DropdownMenuItem
+                          onClick={() => {
+                            if (onAddBooking) {
+                              onAddBooking(message);
+                            } else {
+                              toast.info(`Opening booking calendar...`);
+                            }
+                          }}
+                        >
+                          <CalendarPlus className="mr-2 h-4 w-4" />
+                          Add Event to Bookings
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            if (onAddAppointmentLink) {
+                              onAddAppointmentLink(message);
+                            } else {
+                              toast.info(`Generating appointment link...`);
+                            }
+                          }}
+                        >
+                          <Link2 className="mr-2 h-4 w-4" />
+                          Add Appointment Link
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            if (onPushToCRM) {
+                              onPushToCRM(message);
+                            } else {
+                              toast.success(`Pushed to CRM`);
+                            }
+                          }}
+                        >
+                          <ExternalLink className="mr-2 h-4 w-4" />
+                          Push To CRM
+                        </DropdownMenuItem>
+
+                        <DropdownMenuSeparator />
+
+                        {/* ═══ NOTES & LABELS ═══ */}
+                        <DropdownMenuItem
+                          onClick={() => {
+                            if (onAddNote) {
+                              onAddNote(message);
+                            } else {
+                              toast.info(`Opening notes...`);
+                            }
+                          }}
+                        >
+                          <StickyNote className="mr-2 h-4 w-4" />
+                          Notes
+                        </DropdownMenuItem>
+                        <DropdownMenuSub>
+                          <DropdownMenuSubTrigger>
+                            <Tag className="mr-2 h-4 w-4" />
+                            Label as
+                          </DropdownMenuSubTrigger>
+                          <DropdownMenuSubContent>
+                            {QUICK_LABELS.map((label) => (
+                              <DropdownMenuItem
+                                key={label.id}
+                                onClick={() => {
+                                  toast.success(
+                                    `Applied "${label.name}" label`,
+                                  );
+                                }}
+                                className="gap-2"
+                              >
+                                <label.icon
+                                  className={cn("h-4 w-4", label.color)}
+                                />
+                                {label.name}
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuSubContent>
+                        </DropdownMenuSub>
+
+                        <DropdownMenuSeparator />
+
+                        {/* ═══ STANDARD ACTIONS ═══ */}
                         <DropdownMenuItem
                           onClick={() => onViewMessage?.(message)}
                         >
-                          View
+                          <Mail className="mr-2 h-4 w-4" />
+                          View Message
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => onReplyMessage?.(message)}
                           disabled={message.status === "unsubscribed"}
                         >
+                          <MessageSquare className="mr-2 h-4 w-4" />
                           Reply
                         </DropdownMenuItem>
+                        <DropdownMenuItem>
+                          <Flag className="mr-2 h-4 w-4 text-yellow-500" />
+                          Flag
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>
+                          <Archive className="mr-2 h-4 w-4" />
+                          Archive
+                        </DropdownMenuItem>
+
+                        <DropdownMenuSeparator />
+
+                        {/* ═══ BLOCKING & DELETION ═══ */}
                         <DropdownMenuItem
-                          onClick={() => onCallBack?.(message)}
-                          className="text-green-600"
+                          onClick={() => {
+                            if (onAddToBlacklist) {
+                              onAddToBlacklist(message);
+                            } else {
+                              toast.warning(`Added to blacklist`);
+                            }
+                          }}
+                          className="text-orange-600"
                         >
-                          <PhoneCall className="mr-2 h-4 w-4" /> Call Back
+                          <Ban className="mr-2 h-4 w-4" />
+                          Add To Blacklist
                         </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Flag className="mr-2 h-4 w-4" /> Flag
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Archive className="mr-2 h-4 w-4" /> Archive
+                        <DropdownMenuItem
+                          onClick={() => {
+                            if (onBlockContact) {
+                              onBlockContact(message);
+                            } else {
+                              toast.warning(`Contact blocked`);
+                            }
+                          }}
+                          className="text-red-600"
+                        >
+                          <ShieldX className="mr-2 h-4 w-4" />
+                          Block
                         </DropdownMenuItem>
                         <DropdownMenuItem className="text-destructive">
-                          <Trash className="mr-2 h-4 w-4" /> Delete
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Tag className="mr-2 h-4 w-4" /> Add Label
+                          <Trash className="mr-2 h-4 w-4" />
+                          Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
