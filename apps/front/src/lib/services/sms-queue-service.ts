@@ -13,7 +13,10 @@ import { redis, isRedisAvailable } from "@/lib/redis";
 import { db } from "@/lib/db";
 import { leads } from "@/lib/db/schema";
 import { eq, or, like, isNotNull } from "drizzle-orm";
-import { checkComplianceBeforeSend, logComplianceFailure } from "@/lib/sms/compliance";
+import {
+  checkComplianceBeforeSend,
+  logComplianceFailure,
+} from "@/lib/sms/compliance";
 
 // Redis keys for SMS queue persistence
 const SMS_QUEUE_KEY = "sms:queue";
@@ -607,9 +610,14 @@ export class SMSQueueService {
 
         try {
           // Compliance check before sending
-          const fromNumber = process.env.SIGNALHOUSE_FROM_NUMBER || '15164079249';
-          const worker = message.agent?.toUpperCase() || 'GIANNA';
-          const compliance = checkComplianceBeforeSend(fromNumber, message.message, worker);
+          const fromNumber =
+            process.env.SIGNALHOUSE_FROM_NUMBER || "15164079249";
+          const worker = message.agent?.toUpperCase() || "GIANNA";
+          const compliance = checkComplianceBeforeSend(
+            fromNumber,
+            message.message,
+            worker,
+          );
 
           // Build tags - use compliance tags if available, otherwise build manually
           let tags: string[];

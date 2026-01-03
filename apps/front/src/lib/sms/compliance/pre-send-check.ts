@@ -17,15 +17,15 @@ import {
   PhoneCampaignConfig,
   WorkerType,
   CampaignLane,
-} from './phone-campaign-map';
-import { validateForLane, ValidationResult } from './template-validator';
+} from "./phone-campaign-map";
+import { validateForLane, ValidationResult } from "./template-validator";
 
 export interface ComplianceCheckResult {
   allowed: boolean;
   reason?: string;
   config?: PhoneCampaignConfig;
   validation?: ValidationResult;
-  tags?: string[];  // Tags to attach to SignalHouse request
+  tags?: string[]; // Tags to attach to SignalHouse request
 }
 
 /**
@@ -42,7 +42,7 @@ export interface ComplianceCheckResult {
 export function checkComplianceBeforeSend(
   fromPhone: string,
   message: string,
-  worker: string
+  worker: string,
 ): ComplianceCheckResult {
   // 1. Get campaign config for this phone
   const config = getConfigForPhone(fromPhone);
@@ -58,7 +58,7 @@ export function checkComplianceBeforeSend(
   if (!config.allowedWorkers.includes(workerType)) {
     return {
       allowed: false,
-      reason: `Worker ${worker} not allowed on lane ${config.lane}. Allowed: ${config.allowedWorkers.join(', ')}`,
+      reason: `Worker ${worker} not allowed on lane ${config.lane}. Allowed: ${config.allowedWorkers.join(", ")}`,
       config,
     };
   }
@@ -68,7 +68,7 @@ export function checkComplianceBeforeSend(
   if (!validation.valid) {
     return {
       allowed: false,
-      reason: validation.errors.join('; '),
+      reason: validation.errors.join("; "),
       config,
       validation,
     };
@@ -112,16 +112,22 @@ export interface BatchCheckResult {
   };
 }
 
-export function checkComplianceBatch(items: BatchCheckItem[]): BatchCheckResult {
+export function checkComplianceBatch(
+  items: BatchCheckItem[],
+): BatchCheckResult {
   const passed: BatchCheckItem[] = [];
   const failed: Array<{ item: BatchCheckItem; reason: string }> = [];
 
   for (const item of items) {
-    const result = checkComplianceBeforeSend(item.fromPhone, item.message, item.worker);
+    const result = checkComplianceBeforeSend(
+      item.fromPhone,
+      item.message,
+      item.worker,
+    );
     if (result.allowed) {
       passed.push(item);
     } else {
-      failed.push({ item, reason: result.reason || 'Unknown error' });
+      failed.push({ item, reason: result.reason || "Unknown error" });
     }
   }
 
@@ -145,7 +151,7 @@ export function getPhoneForWorker(worker: string): string | null {
   const workerType = worker.toUpperCase() as WorkerType;
 
   // Import inline to avoid circular deps
-  const { getPhonesForWorker } = require('./phone-campaign-map');
+  const { getPhonesForWorker } = require("./phone-campaign-map");
   const phones = getPhonesForWorker(workerType);
 
   return phones.length > 0 ? phones[0].phoneNumber : null;
@@ -156,14 +162,19 @@ export function getPhoneForWorker(worker: string): string | null {
  */
 export function logComplianceFailure(
   result: ComplianceCheckResult,
-  context: { fromPhone: string; message: string; worker: string; leadId?: string }
+  context: {
+    fromPhone: string;
+    message: string;
+    worker: string;
+    leadId?: string;
+  },
 ): void {
-  console.error('[SMS Compliance] BLOCKED', {
+  console.error("[SMS Compliance] BLOCKED", {
     reason: result.reason,
     phone: context.fromPhone,
     worker: context.worker,
     leadId: context.leadId,
-    messagePreview: context.message.substring(0, 50) + '...',
+    messagePreview: context.message.substring(0, 50) + "...",
     validation: result.validation?.errors,
     timestamp: new Date().toISOString(),
   });

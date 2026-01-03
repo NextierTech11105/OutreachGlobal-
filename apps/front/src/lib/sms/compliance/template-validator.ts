@@ -7,7 +7,7 @@
  * @see docs/SIGNALHOUSE_TECHNICAL_INTEGRATION.md
  */
 
-import { CampaignLane } from './phone-campaign-map';
+import { CampaignLane } from "./phone-campaign-map";
 
 export interface ValidationResult {
   valid: boolean;
@@ -26,27 +26,27 @@ export interface ValidationResult {
  * These will cause carrier filtering/rejection
  */
 const BLOCKED_PROMOTIONAL_WORDS = [
-  'FREE',
-  'ACT NOW',
-  'LIMITED TIME',
-  'OFFER',
-  'DISCOUNT',
-  'SALE',
-  'BUY NOW',
-  'ORDER NOW',
-  'CLICK HERE',
-  'EXCLUSIVE DEAL',
-  'SPECIAL OFFER',
-  'WIN',
-  'WINNER',
-  'CASH',
-  'PRIZE',
-  'URGENT',
-  'EXPIRES',
-  'TODAY ONLY',
-  'LAST CHANCE',
-  'DON\'T MISS',
-  'CALL NOW',
+  "FREE",
+  "ACT NOW",
+  "LIMITED TIME",
+  "OFFER",
+  "DISCOUNT",
+  "SALE",
+  "BUY NOW",
+  "ORDER NOW",
+  "CLICK HERE",
+  "EXCLUSIVE DEAL",
+  "SPECIAL OFFER",
+  "WIN",
+  "WINNER",
+  "CASH",
+  "PRIZE",
+  "URGENT",
+  "EXPIRES",
+  "TODAY ONLY",
+  "LAST CHANCE",
+  "DON'T MISS",
+  "CALL NOW",
 ];
 
 /**
@@ -85,7 +85,7 @@ function calculateSegments(message: string): number {
  * Check if message contains sender identification
  */
 function hasSenderIdentification(message: string): boolean {
-  return SENDER_ID_PATTERNS.some(pattern => pattern.test(message));
+  return SENDER_ID_PATTERNS.some((pattern) => pattern.test(message));
 }
 
 /**
@@ -113,22 +113,26 @@ function findPromotionalLanguage(message: string): string[] {
  */
 export function validateForLane(
   message: string,
-  lane: CampaignLane
+  lane: CampaignLane,
 ): ValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
 
   const charCount = message.length;
   const segmentCount = calculateSegments(message);
-  const hasQuestion = message.includes('?');
+  const hasQuestion = message.includes("?");
   const hasSenderID = hasSenderIdentification(message);
 
   // Rule 1: Character limit (single segment preferred)
   if (charCount > 160) {
-    if (lane === 'cold_outreach') {
-      errors.push(`Exceeds 160 chars (${charCount}). Cold outreach must be single segment.`);
+    if (lane === "cold_outreach") {
+      errors.push(
+        `Exceeds 160 chars (${charCount}). Cold outreach must be single segment.`,
+      );
     } else {
-      warnings.push(`Message is ${charCount} chars (${segmentCount} segments). Consider shortening.`);
+      warnings.push(
+        `Message is ${charCount} chars (${segmentCount} segments). Consider shortening.`,
+      );
     }
   }
 
@@ -139,35 +143,43 @@ export function validateForLane(
   }
 
   // Rule 3: Sender identification (cold outreach requirement)
-  if (lane === 'cold_outreach' && !hasSenderID) {
-    errors.push('Missing sender identification. Cold outreach must identify who is messaging.');
+  if (lane === "cold_outreach" && !hasSenderID) {
+    errors.push(
+      "Missing sender identification. Cold outreach must identify who is messaging.",
+    );
   }
 
   // Rule 4: Permission-based phrasing (cold outreach should ask)
-  if (lane === 'cold_outreach' && !hasQuestion) {
-    warnings.push('Cold outreach should ask a question to seek permission.');
+  if (lane === "cold_outreach" && !hasQuestion) {
+    warnings.push("Cold outreach should ask a question to seek permission.");
   }
 
   // Rule 5: Check for opt-out in first message (not needed - handled at campaign level)
   // But warn if someone tries to include it
-  if (lane === 'cold_outreach') {
+  if (lane === "cold_outreach") {
     const hasOptOut = /reply stop|text stop|opt.?out/i.test(message);
     if (hasOptOut) {
-      warnings.push('Opt-out handled at campaign level. Remove from message to save chars.');
+      warnings.push(
+        "Opt-out handled at campaign level. Remove from message to save chars.",
+      );
     }
   }
 
   // Rule 6: Check for multiple questions (can be confusing)
   const questionCount = (message.match(/\?/g) || []).length;
   if (questionCount > 1) {
-    warnings.push('Multiple questions in one message. Consider simplifying.');
+    warnings.push("Multiple questions in one message. Consider simplifying.");
   }
 
   // Rule 7: Check for ALL CAPS (looks spammy)
   const capsWords = message.match(/\b[A-Z]{3,}\b/g) || [];
-  const nonAcronymCaps = capsWords.filter(word => !['SMS', 'CEO', 'USA', 'LLC', 'INC'].includes(word));
+  const nonAcronymCaps = capsWords.filter(
+    (word) => !["SMS", "CEO", "USA", "LLC", "INC"].includes(word),
+  );
   if (nonAcronymCaps.length > 0) {
-    warnings.push(`ALL CAPS words detected: "${nonAcronymCaps.join('", "')}". May look spammy.`);
+    warnings.push(
+      `ALL CAPS words detected: "${nonAcronymCaps.join('", "')}". May look spammy.`,
+    );
   }
 
   return {
@@ -189,7 +201,7 @@ export function validateForLane(
  */
 export function validateTemplates(
   templates: string[],
-  lane: CampaignLane
+  lane: CampaignLane,
 ): { valid: string[]; invalid: Array<{ template: string; errors: string[] }> } {
   const valid: string[] = [];
   const invalid: Array<{ template: string; errors: string[] }> = [];

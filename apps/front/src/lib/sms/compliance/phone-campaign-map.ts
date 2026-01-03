@@ -11,20 +11,20 @@
  * @see docs/SIGNALHOUSE_TECHNICAL_INTEGRATION.md
  */
 
-export type CampaignLane = 'cold_outreach' | 'engaged_leads';
-export type CampaignUseCase = 'LOW_VOLUME_MIXED' | 'CONVERSATIONAL';
-export type WorkerType = 'GIANNA' | 'CATHY' | 'SABRINA' | 'NEVA';
+export type CampaignLane = "cold_outreach" | "engaged_leads";
+export type CampaignUseCase = "LOW_VOLUME_MIXED" | "CONVERSATIONAL";
+export type WorkerType = "GIANNA" | "CATHY" | "SABRINA" | "NEVA";
 
 export interface PhoneCampaignConfig {
-  phoneNumber: string;           // E.164 format (digits only)
-  campaignId: string;            // SignalHouse campaign ID
-  brandId: string;               // SignalHouse brand ID
+  phoneNumber: string; // E.164 format (digits only)
+  campaignId: string; // SignalHouse campaign ID
+  brandId: string; // SignalHouse brand ID
   lane: CampaignLane;
   useCase: CampaignUseCase;
   allowedWorkers: WorkerType[];
-  tpmLimit: number;              // Transactions per minute (carrier limit)
-  dailyLimit: number;            // Internal daily cap
-  description: string;           // Human-readable description
+  tpmLimit: number; // Transactions per minute (carrier limit)
+  dailyLimit: number; // Internal daily cap
+  description: string; // Human-readable description
 }
 
 /**
@@ -40,16 +40,16 @@ export interface PhoneCampaignConfig {
  */
 export const PHONE_CAMPAIGN_MAP: Record<string, PhoneCampaignConfig> = {
   // Lane A: Cold Outreach (Low Volume Mixed)
-  '15164079249': {
-    phoneNumber: '15164079249',
-    campaignId: 'NEW_CAMPAIGN_ID',    // Update after new campaign approved
-    brandId: 'BZOYPIH',
-    lane: 'cold_outreach',
-    useCase: 'LOW_VOLUME_MIXED',
-    allowedWorkers: ['GIANNA'],
-    tpmLimit: 75,                      // AT&T limit for Low Volume
+  "15164079249": {
+    phoneNumber: "15164079249",
+    campaignId: "NEW_CAMPAIGN_ID", // Update after new campaign approved
+    brandId: "BZOYPIH",
+    lane: "cold_outreach",
+    useCase: "LOW_VOLUME_MIXED",
+    allowedWorkers: ["GIANNA"],
+    tpmLimit: 75, // AT&T limit for Low Volume
     dailyLimit: 2000,
-    description: 'NEXTIER cold outreach - permission-seeking openers',
+    description: "NEXTIER cold outreach - permission-seeking openers",
   },
 
   // Lane B: Engaged Leads (Conversational) - Add new numbers here
@@ -71,14 +71,14 @@ export const PHONE_CAMPAIGN_MAP: Record<string, PhoneCampaignConfig> = {
  * Strips all non-digit characters and takes last 10 digits (US format)
  */
 export function normalizePhone(phone: string): string {
-  const digits = phone.replace(/\D/g, '');
+  const digits = phone.replace(/\D/g, "");
   // Handle +1 prefix
-  if (digits.length === 11 && digits.startsWith('1')) {
+  if (digits.length === 11 && digits.startsWith("1")) {
     return digits;
   }
   // Handle 10-digit
   if (digits.length === 10) {
-    return '1' + digits;
+    return "1" + digits;
   }
   return digits;
 }
@@ -96,22 +96,27 @@ export function getConfigForPhone(phone: string): PhoneCampaignConfig | null {
  * Get all phone numbers for a specific lane
  */
 export function getPhonesForLane(lane: CampaignLane): PhoneCampaignConfig[] {
-  return Object.values(PHONE_CAMPAIGN_MAP).filter(config => config.lane === lane);
+  return Object.values(PHONE_CAMPAIGN_MAP).filter(
+    (config) => config.lane === lane,
+  );
 }
 
 /**
  * Get all phone numbers a worker can use
  */
 export function getPhonesForWorker(worker: WorkerType): PhoneCampaignConfig[] {
-  return Object.values(PHONE_CAMPAIGN_MAP).filter(
-    config => config.allowedWorkers.includes(worker)
+  return Object.values(PHONE_CAMPAIGN_MAP).filter((config) =>
+    config.allowedWorkers.includes(worker),
   );
 }
 
 /**
  * Check if a worker is allowed to send from a phone number
  */
-export function isWorkerAllowedOnPhone(phone: string, worker: WorkerType): boolean {
+export function isWorkerAllowedOnPhone(
+  phone: string,
+  worker: WorkerType,
+): boolean {
   const config = getConfigForPhone(phone);
   return config !== null && config.allowedWorkers.includes(worker);
 }
