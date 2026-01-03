@@ -9,6 +9,18 @@ import { AnyObject } from "@nextier/common";
 export type LeadSelect = typeof leadsTable.$inferSelect;
 export type LeadInsert = typeof leadsTable.$inferInsert;
 
+// Lead state canonical values
+export type LeadStateCanonical =
+  | "new"
+  | "touched"
+  | "responded"
+  | "email_captured"
+  | "high_intent"
+  | "in_call_queue"
+  | "closed"
+  | "suppressed"
+  | null;
+
 @ObjectType()
 export class Lead extends TimestampModel implements LeadSelect {
   teamId: string;
@@ -63,6 +75,9 @@ export class Lead extends TimestampModel implements LeadSelect {
 
   @StringField({ defaultValue: "raw" })
   pipelineStatus: string;
+
+  @StringField({ nullable: true })
+  leadState: LeadStateCanonical;
 
   @IntField({ defaultValue: 0 })
   score: number;

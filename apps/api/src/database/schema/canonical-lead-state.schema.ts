@@ -40,14 +40,14 @@ import { leads } from "./leads.schema";
 // ============================================
 
 export const leadStateEnum = pgEnum("lead_state_enum", [
-  "new",           // Just imported, no contact yet
-  "touched",       // SMS_SENT at least once
-  "responded",     // Got any reply
+  "new", // Just imported, no contact yet
+  "touched", // SMS_SENT at least once
+  "responded", // Got any reply
   "email_captured", // Email extracted from conversation
-  "high_intent",   // Expressed buying/selling intent
+  "high_intent", // Expressed buying/selling intent
   "in_call_queue", // Escalated for human call
-  "closed",        // Deal won/lost
-  "suppressed",    // STOP/DNC - terminal state
+  "closed", // Deal won/lost
+  "suppressed", // STOP/DNC - terminal state
 ]);
 
 // Type for TypeScript
@@ -90,7 +90,7 @@ export const webhookReceipts = pgTable(
 
     // Webhook metadata
     webhookType: varchar("webhook_type").notNull(), // signalhouse, twilio, stripe
-    eventType: varchar("event_type").notNull(),     // sms_received, sms_delivered, etc.
+    eventType: varchar("event_type").notNull(), // sms_received, sms_delivered, etc.
 
     // Processing status
     processedAt: timestamp("processed_at"),
@@ -219,11 +219,11 @@ export const leadEvents = pgTable(
 export const LEAD_TIMER_PK = "ltm";
 
 export type LeadTimerType =
-  | "TIMER_7D"    // 7-day no-response check
-  | "TIMER_14D"   // 14-day escalation
-  | "TIMER_30D"   // 30-day archive
-  | "FOLLOW_UP"   // Generic follow-up
-  | "CALLBACK";   // Scheduled callback
+  | "TIMER_7D" // 7-day no-response check
+  | "TIMER_14D" // 14-day escalation
+  | "TIMER_30D" // 30-day archive
+  | "FOLLOW_UP" // Generic follow-up
+  | "CALLBACK"; // Scheduled callback
 
 export const leadTimers = pgTable(
   "lead_timers",
@@ -282,11 +282,11 @@ export const leadTimers = pgTable(
 export const OUTBOUND_MESSAGE_PK = "obm";
 
 export type OutboundMessageStatus =
-  | "pending"     // Queued for send
-  | "sent"        // Sent to provider (SignalHouse)
-  | "delivered"   // Delivery confirmed
-  | "failed"      // Send failed
-  | "skipped";    // Skipped (duplicate, rate limit, etc.)
+  | "pending" // Queued for send
+  | "sent" // Sent to provider (SignalHouse)
+  | "delivered" // Delivery confirmed
+  | "failed" // Send failed
+  | "skipped"; // Skipped (duplicate, rate limit, etc.)
 
 export const outboundMessages = pgTable(
   "outbound_messages",
@@ -321,7 +321,10 @@ export const outboundMessages = pgTable(
     providerStatus: varchar("provider_status"),
 
     // Status
-    status: varchar().$type<OutboundMessageStatus>().notNull().default("pending"),
+    status: varchar()
+      .$type<OutboundMessageStatus>()
+      .notNull()
+      .default("pending"),
 
     // Timing
     sentAt: timestamp("sent_at"),
@@ -360,12 +363,15 @@ export const outboundMessages = pgTable(
 // RELATIONS
 // ============================================
 
-export const webhookReceiptsRelations = relations(webhookReceipts, ({ one }) => ({
-  team: one(teams, {
-    fields: [webhookReceipts.teamId],
-    references: [teams.id],
+export const webhookReceiptsRelations = relations(
+  webhookReceipts,
+  ({ one }) => ({
+    team: one(teams, {
+      fields: [webhookReceipts.teamId],
+      references: [teams.id],
+    }),
   }),
-}));
+);
 
 export const leadEventsRelations = relations(leadEvents, ({ one }) => ({
   team: one(teams, {
@@ -389,16 +395,19 @@ export const leadTimersRelations = relations(leadTimers, ({ one }) => ({
   }),
 }));
 
-export const outboundMessagesRelations = relations(outboundMessages, ({ one }) => ({
-  team: one(teams, {
-    fields: [outboundMessages.teamId],
-    references: [teams.id],
+export const outboundMessagesRelations = relations(
+  outboundMessages,
+  ({ one }) => ({
+    team: one(teams, {
+      fields: [outboundMessages.teamId],
+      references: [teams.id],
+    }),
+    lead: one(leads, {
+      fields: [outboundMessages.leadId],
+      references: [leads.id],
+    }),
   }),
-  lead: one(leads, {
-    fields: [outboundMessages.leadId],
-    references: [leads.id],
-  }),
-}));
+);
 
 // ============================================
 // TYPE EXPORTS
@@ -434,7 +443,7 @@ export function isValidTransition(from: LeadState, to: LeadState): boolean {
 export function generateSendKey(
   leadId: string,
   templateName: string,
-  date: Date = new Date()
+  date: Date = new Date(),
 ): string {
   const dateStr = date.toISOString().split("T")[0];
   return `${leadId}:${templateName}:${dateStr}`;
@@ -446,7 +455,7 @@ export function generateSendKey(
 export function generateEventDedupeKey(
   leadId: string,
   eventType: LeadEventType,
-  messageId?: string
+  messageId?: string,
 ): string {
   if (messageId) {
     return `${leadId}:${eventType}:${messageId}`;

@@ -50,10 +50,15 @@ export async function markAsProcessed(
  * @returns A hash-based event ID
  */
 export function generateEventId(payload: unknown): string {
-  const crypto = require("crypto");
-  const hash = crypto
-    .createHash("sha256")
-    .update(JSON.stringify(payload))
-    .digest("hex");
-  return hash.slice(0, 32);
+  // Use Web Crypto API for browser-compatible hashing
+  const encoder = new TextEncoder();
+  const data = encoder.encode(JSON.stringify(payload));
+  // Simple hash - for deterministic event ID generation
+  let hash = 0;
+  for (let i = 0; i < data.length; i++) {
+    const char = data[i];
+    hash = (hash << 5) - hash + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return Math.abs(hash).toString(16).padStart(8, "0") + Date.now().toString(16);
 }

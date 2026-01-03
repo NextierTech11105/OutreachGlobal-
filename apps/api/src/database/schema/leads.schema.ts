@@ -16,14 +16,14 @@ import { properties } from "./properties.schema";
 
 // Canonical lead state enum - mirrors canonical-lead-state.schema.ts
 export const leadStateEnumPg = pgEnum("lead_state_canonical", [
-  "new",           // Just imported, no contact yet
-  "touched",       // SMS_SENT at least once
-  "responded",     // Got any reply
+  "new", // Just imported, no contact yet
+  "touched", // SMS_SENT at least once
+  "responded", // Got any reply
   "email_captured", // Email extracted from conversation
-  "high_intent",   // Expressed buying/selling intent
+  "high_intent", // Expressed buying/selling intent
   "in_call_queue", // Escalated for human call
-  "closed",        // Deal won/lost
-  "suppressed",    // STOP/DNC - terminal state
+  "closed", // Deal won/lost
+  "suppressed", // STOP/DNC - terminal state
 ]);
 
 export const leads = pgTable(

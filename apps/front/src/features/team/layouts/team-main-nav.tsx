@@ -215,6 +215,16 @@ const navGroups = [
         icon: BookOpenIcon,
       },
       {
+        title: "Content Library",
+        path: "/workspaces/content",
+        icon: LibraryIcon,
+      },
+      {
+        title: "Research & Meeting Prep",
+        path: "/workspaces/research",
+        icon: BrainIcon,
+      },
+      {
         title: "Book Appointment",
         path: "/workspaces/sabrina",
         icon: CalendarIcon,

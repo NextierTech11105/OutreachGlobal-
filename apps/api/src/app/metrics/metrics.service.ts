@@ -151,9 +151,7 @@ export class MetricsService implements OnModuleInit {
     }
 
     lines.push("");
-    lines.push(
-      "# HELP nextier_queue_completed Total completed jobs in queue",
-    );
+    lines.push("# HELP nextier_queue_completed Total completed jobs in queue");
     lines.push("# TYPE nextier_queue_completed counter");
     for (const q of data.queues) {
       lines.push(`nextier_queue_completed{queue="${q.name}"} ${q.completed}`);
