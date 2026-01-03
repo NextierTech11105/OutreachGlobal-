@@ -29,6 +29,71 @@ export type AIWorker =
   | "NEVA"
   | "APPOINTMENT_BOT";
 
+// ============================================================================
+// 10DLC CAMPAIGN USE CASE TYPES
+// ============================================================================
+export type CampaignUseCase =
+  | "LOW_VOLUME_MIXED" // Primary: Cold outreach, permission-seeking
+  | "CONVERSATIONAL" // Secondary: Engaged leads, two-way dialogue
+  | "MARKETING"; // DO NOT USE - caused rejection
+
+export type CampaignType = "conversational" | "marketing";
+
+// 10DLC Campaign Configuration for SignalHouse
+export interface TenDLCConfig {
+  useCase: CampaignUseCase;
+  description: string;
+  sampleMessages: string[];
+  messageFlow: string;
+  helpResponse: string;
+  optOutResponse: string;
+  optInKeywords: string[];
+  optOutKeywords: string[];
+  helpKeywords: string[];
+}
+
+// LANE A: Low Volume Mixed - Cold Outreach
+export const LANE_A_CONFIG: TenDLCConfig = {
+  useCase: "LOW_VOLUME_MIXED",
+  description: `NEXTIER initiates one-to-one conversational outreach to business owners identified through professional directories and public business records. Initial messages are permission-based questions, not promotional content. All messaging is advisory in nature. Subsequent messages are only sent after recipient response. No automated marketing broadcasts.`,
+  sampleMessages: [
+    "{firstName} - Gianna from Nextier. Honest question: does the business run clean, or because you're everywhere all the time?",
+    "{firstName}, Gianna here. One question: how much of your week goes to doing the work vs. chasing it?",
+    "{firstName} - Gianna with Nextier. Got something I think you'd find interesting. Worth 2 mins of your time?",
+    "Great to hear from you {firstName}. I can share more via email if you want - just drop your best address.",
+    "{firstName}, Gianna here. If now's not a good time, just let me know and I'll back off. No pressure.",
+  ],
+  messageFlow: `Consumers provide consent through professional directories, business listings, and opt-in forms on nextier.signalhouse.io. The initial message asks a permission-based question or requests consent to continue. Subsequent messages are only sent after the consumer responds. This is one-to-one conversational outreach, not marketing broadcasts. Reply HELP for assistance, STOP to opt out at any time.`,
+  helpResponse:
+    "NEXTIER provides advisory services for business owners. Reply STOP to opt out. Questions? Email tb@outreachglobal.io or call +1 (718) 717-5127.",
+  optOutResponse:
+    "You've been unsubscribed from NEXTIER messages. Reply START to resubscribe.",
+  optInKeywords: ["START", "SUBSCRIBE", "YES"],
+  optOutKeywords: ["STOP", "UNSUBSCRIBE", "CANCEL", "END", "QUIT"],
+  helpKeywords: ["HELP", "INFO"],
+};
+
+// LANE B: Conversational - Engaged Leads Only
+export const LANE_B_CONFIG: TenDLCConfig = {
+  useCase: "CONVERSATIONAL",
+  description: `Ongoing conversational messaging with business owners who have responded to initial outreach from NEXTIER. All messages are advisory, non-promotional, and focused on scheduling discussions or gathering contact information. This campaign handles two-way dialogue only - no unsolicited outbound messaging.`,
+  sampleMessages: [
+    "Great to hear from you {firstName}. I can share more via email if you want - just drop your best address.",
+    "{firstName}, appreciate the response. What's the best way to continue this - call, email, or keep texting?",
+    "{firstName} - glad you're open to it. What's the best email to send some info to?",
+    "No worries {firstName}. If you change your mind down the road, you've got my number. Take care.",
+    "{firstName}, understood. I'll leave you alone. If anything changes, just text back. -Gianna",
+  ],
+  messageFlow: `This campaign handles leads who have already responded to initial outreach. All messaging is two-way conversational dialogue initiated by the consumer's response. Messages focus on scheduling calls or gathering email addresses for follow-up. No unsolicited outbound marketing. Reply HELP for assistance, STOP to opt out.`,
+  helpResponse:
+    "NEXTIER provides advisory services for business owners. Reply STOP to opt out. Questions? Email tb@outreachglobal.io or call +1 (718) 717-5127.",
+  optOutResponse:
+    "You've been unsubscribed from NEXTIER messages. Reply START to resubscribe.",
+  optInKeywords: ["START", "YES", "CONTINUE"],
+  optOutKeywords: ["STOP", "UNSUBSCRIBE", "CANCEL", "END", "QUIT"],
+  helpKeywords: ["HELP", "INFO"],
+};
+
 export interface SMSTemplate {
   id: string;
   name: string;

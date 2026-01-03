@@ -60,6 +60,9 @@ export function mapTemplateToBaseContext(
   );
 }
 
+// 10DLC Campaign Type Classification
+export type CampaignType = "conversational" | "marketing";
+
 export interface MessageTemplate {
   id: string;
   name: string;
@@ -70,6 +73,9 @@ export interface MessageTemplate {
   variables: string[];
   notes?: string;
   bestFor?: string[];
+  // 10DLC Compliance fields
+  campaignType?: CampaignType; // defaults to 'conversational'
+  tenDLCCompliant?: boolean; // true if template meets 10DLC rules
 }
 
 export interface TemplateUsageLog {

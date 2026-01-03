@@ -2,6 +2,34 @@
 // Blunt NY Direct | Numbers Game | Two Captures: Valuation Report OR 15-Min Strategy
 // Human-in-loop for first 3 rebuttals | Agent learns from feedback
 
+// ============================================================================
+// CAMPAIGN TYPE CLASSIFICATION
+// ============================================================================
+// IMPORTANT: These templates must be classified correctly for 10DLC compliance
+//
+// CONVERSATIONAL templates (use for Low Volume Mixed / Conversational campaigns):
+// - Ask questions or seek permission
+// - No promotional language (FREE!, ACT NOW!, LIMITED TIME)
+// - Identify sender clearly
+// - Single question per message
+//
+// MARKETING templates (DO NOT USE - campaign was rejected):
+// - Promotional offers
+// - Value propositions
+// - Call-to-action heavy
+//
+// All OPENER_LIBRARY templates below are CONVERSATIONAL (permission-seeking)
+// ============================================================================
+
+export type CampaignType = "conversational" | "marketing";
+
+// Template with campaign type classification
+export interface ClassifiedTemplate {
+  template: string;
+  campaignType: CampaignType;
+  compliant: boolean; // true if 10DLC compliant for its type
+}
+
 export const CAPTURE_GOALS = {
   valuation_report: {
     name: "Free Property Valuation Report",
