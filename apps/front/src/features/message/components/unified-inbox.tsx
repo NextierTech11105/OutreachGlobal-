@@ -7,7 +7,7 @@ import { InboundCallPanel } from "@/components/inbound-call-panel";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useMediaQuery } from "@/hooks/use-media-query";
-import { ChevronLeft, Phone, PhoneCall } from "lucide-react";
+import { ChevronLeft, Mail, Phone, PhoneCall, PenSquare } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCurrentTeam } from "@/features/team/team.context";
 import { useCallState } from "@/lib/providers/call-state-provider";
@@ -17,6 +17,7 @@ import { InboxMessages } from "./inbox-messages";
 import { InboxSidebar } from "./inbox-sidebar";
 import { useInboxContext } from "../inbox.context";
 import { MessageDetail } from "./message-detail";
+import { GmailEmailComposer } from "@/components/gmail-email-composer";
 
 export function UnifiedInbox() {
   const router = useRouter();
@@ -39,6 +40,7 @@ export function UnifiedInbox() {
     type: "email" as MessageType,
   });
   const [showSidebar, setShowSidebar] = useState(true);
+  const [showCompose, setShowCompose] = useState(false);
   const isMobile = useMediaQuery("(max-width: 768px)");
 
   useEffect(() => {
@@ -138,18 +140,21 @@ export function UnifiedInbox() {
       <div className="border-b p-2 bg-muted/30">
         <div className="flex justify-between items-center gap-2">
           <div className="flex items-center gap-2">
-            {selectedMessage && (
+            {(selectedMessage || showCompose) && (
               <Button
                 variant="ghost"
                 size="sm"
                 className="h-8 gap-1"
-                onClick={handleCloseDetail}
+                onClick={() => {
+                  handleCloseDetail();
+                  setShowCompose(false);
+                }}
               >
                 <ChevronLeft className="h-4 w-4" />
                 Back
               </Button>
             )}
-            {!selectedMessage && (
+            {!selectedMessage && !showCompose && (
               <Tabs
                 defaultValue="all"
                 value={activeTab}
@@ -174,7 +179,18 @@ export function UnifiedInbox() {
           </div>
 
           <div className="flex items-center gap-2">
-            {!selectedMessage && (
+            {!selectedMessage && !showCompose && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 gap-1"
+                onClick={() => setShowCompose(true)}
+              >
+                <PenSquare className="h-4 w-4" />
+                Compose
+              </Button>
+            )}
+            {!selectedMessage && !showCompose && (
               <Button
                 size="sm"
                 className="h-8 gap-1 bg-green-600 hover:bg-green-700"
@@ -210,7 +226,7 @@ export function UnifiedInbox() {
       {/* Main content area */}
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
-        {showSidebar && !selectedMessage && (
+        {showSidebar && !selectedMessage && !showCompose && (
           <div className="w-56 md:w-64 border-r bg-muted/10 overflow-y-auto">
             <div className="p-2 space-y-4">
               {/* Inbound Call Panel - Always visible at top */}
@@ -223,7 +239,14 @@ export function UnifiedInbox() {
         {/* Content area */}
         <div className="flex-1 overflow-auto">
           <div className="p-4">
-            {!selectedMessage ? (
+            {showCompose ? (
+              <div className="max-w-2xl mx-auto">
+                <GmailEmailComposer
+                  onSent={() => setShowCompose(false)}
+                  onCancel={() => setShowCompose(false)}
+                />
+              </div>
+            ) : !selectedMessage ? (
               <InboxMessages
                 onViewMessage={handleViewMessage}
                 onReplyMessage={handleReplyMessage}

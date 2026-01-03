@@ -1,7 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Mail, MessageSquare, MapPin, Tag, Navigation } from "lucide-react";
+import {
+  Mail,
+  MessageSquare,
+  MapPin,
+  Tag,
+  Navigation,
+  Send,
+} from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Button } from "@/components/ui/button";
 import {
@@ -48,6 +55,7 @@ import { useModalAlert } from "@/components/ui/modal";
 import { LEADS_EVICT } from "../queries/lead.queries";
 import { LeadPhoneNumbers } from "./lead-phone-numbers";
 import { LeadActions } from "./lead-actions";
+import { GmailEmailComposer } from "@/components/gmail-email-composer";
 
 interface Props {
   lead: LeadDetailsQuery["lead"];
@@ -73,6 +81,7 @@ export function LeadDetails({ lead }: Props) {
   const [messageType, setMessageType] = useState<MessageType>(
     MessageType.EMAIL,
   );
+  const [showGmailComposer, setShowGmailComposer] = useState(false);
 
   const [updateLead] = useMutation(UPDATE_LEAD_MUTATION);
   const [deleteLead] = useMutation(BULK_DELETE_LEAD_MUTATION);
@@ -227,15 +236,24 @@ export function LeadDetails({ lead }: Props) {
         </div>
         <div className="flex items-center gap-2">
           {lead.email && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2"
-              onClick={handleEmail}
-            >
-              <Mail className="h-4 w-4" />
-              <span className="hidden sm:inline">Email</span>
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Mail className="h-4 w-4" />
+                  <span className="hidden sm:inline">Email</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setShowGmailComposer(true)}>
+                  <Send className="h-4 w-4 mr-2" />
+                  Send via Gmail
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleEmail}>
+                  <Mail className="h-4 w-4 mr-2" />
+                  Send via Campaign
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
           {lead.phone && (
             <Button
@@ -451,6 +469,23 @@ export function LeadDetails({ lead }: Props) {
           />
         )}
       </AnimatePresence>
+
+      {/* Gmail Email Composer */}
+      {showGmailComposer && lead.email && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="w-full max-w-2xl mx-4">
+            <GmailEmailComposer
+              to={lead.email}
+              toName={lead.name || ""}
+              onSent={() => {
+                setShowGmailComposer(false);
+                refreshLead();
+              }}
+              onCancel={() => setShowGmailComposer(false)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
