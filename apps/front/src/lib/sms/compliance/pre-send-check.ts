@@ -14,6 +14,7 @@
 
 import {
   getConfigForPhone,
+  getPhonesForWorker,
   PhoneCampaignConfig,
   WorkerType,
   CampaignLane,
@@ -149,11 +150,7 @@ export function checkComplianceBatch(
  */
 export function getPhoneForWorker(worker: string): string | null {
   const workerType = worker.toUpperCase() as WorkerType;
-
-  // Import inline to avoid circular deps
-  const { getPhonesForWorker } = require("./phone-campaign-map");
   const phones = getPhonesForWorker(workerType);
-
   return phones.length > 0 ? phones[0].phoneNumber : null;
 }
 
