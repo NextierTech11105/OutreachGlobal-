@@ -15,6 +15,9 @@
  * Executes full research cycles in under 3 hours with 3+ source validation.
  */
 
+import { db } from "@/lib/db";
+import { nevaEnrichments, nevaResearchJobs } from "@/lib/db/neva-schema";
+
 const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY;
 const PERPLEXITY_BASE_URL = "https://api.perplexity.ai/chat/completions";
 
@@ -563,12 +566,47 @@ export async function preAppointmentResearch(
     leadData.industry,
   );
 
-  // TODO: Store research results in database
-  // await db.insert(leadResearch).values({
-  //   leadId,
-  //   research: JSON.stringify(research),
-  //   createdAt: new Date(),
-  // });
+  // Store research results in database
+  try {
+    const enrichmentId = `nen_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    await db.insert(nevaEnrichments).values({
+      id: enrichmentId,
+      teamId: "default", // TODO: Pass teamId from caller
+      leadId,
+      trigger: "stage_change",
+      companyIntel: {
+        name: research.companyName,
+        description: research.summary,
+        recentNews: research.recentNews,
+        keyPeople: research.decisionMakers.map((dm) => ({
+          name: dm.name,
+          title: dm.title,
+          linkedin: dm.linkedIn,
+        })),
+        buyingSignals: research.painPoints,
+      },
+      personIntel: research.decisionMakers[0]
+        ? {
+            name: research.decisionMakers[0].name,
+            title: research.decisionMakers[0].title,
+            linkedinUrl: research.decisionMakers[0].linkedIn,
+          }
+        : null,
+      realtimeContext: {
+        lastUpdated: new Date().toISOString(),
+        recentNews: research.recentNews,
+        opportunities: research.talkingPoints,
+      },
+      confidenceScore: research.confidence,
+      enrichedAt: new Date(),
+    });
+    console.log(
+      `[NEVA] Research persisted for lead ${leadId}, enrichment ${enrichmentId}`,
+    );
+  } catch (error) {
+    console.error(`[NEVA] Failed to persist research for lead ${leadId}:`, error);
+    // Don't throw - research was still successful, just not persisted
+  }
 
   return research;
 }

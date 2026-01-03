@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-
-// Note: Database integration can be added when needed
-// import { db } from "@/lib/db";
-// import { leads } from "@/lib/db/schema";
-// import { eq } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { leads } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 
 /**
  * Bulk Skip Trace Webhook Receiver
@@ -186,21 +184,25 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         matchScore: result.match_score,
       });
 
-      // TODO: Uncomment when DB integration needed
-      // try {
-      //   await db
-      //     .update(leads)
-      //     .set({
-      //       phone: bestPhone?.phone_number || undefined,
-      //       email: bestEmail?.email_address || undefined,
-      //       enriched: true,
-      //       enrichedAt: new Date(),
-      //       customFields: enrichmentData,
-      //     })
-      //     .where(eq(leads.id, recordId));
-      // } catch (dbError) {
-      //   console.error(`[Skip Trace Webhook] DB update failed:`, dbError);
-      // }
+      // Update lead with enriched data
+      try {
+        await db
+          .update(leads)
+          .set({
+            phone: bestPhone?.phone_number || undefined,
+            email: bestEmail?.email_address || undefined,
+            customFields: enrichmentData,
+            updatedAt: new Date(),
+          })
+          .where(eq(leads.id, recordId));
+      } catch (dbError) {
+        console.error(
+          `[Skip Trace Webhook] DB update failed for ${recordId}:`,
+          dbError,
+        );
+        processed.failed++;
+        processed.enriched--; // Undo the increment we're about to do
+      }
 
       processed.enriched++;
     }
