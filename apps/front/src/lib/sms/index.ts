@@ -96,3 +96,21 @@ export {
   // Analytics
   calculateTemplatePerformance,
 } from "./response-mapping";
+
+// Template Cartridge System (Modular Template Injection)
+export {
+  // Types
+  type TemplateCartridge,
+  type WorkspaceCartridgeConfig,
+
+  // Cartridges (inject when activated)
+  BUSINESS_BROKERING_CARTRIDGE,
+  CRM_CONSULTANTS_CARTRIDGE,
+  BLUE_COLLAR_CARTRIDGE,
+  REAL_ESTATE_CARTRIDGE,
+  ALL_CARTRIDGES,
+
+  // Management
+  cartridgeManager,
+  workspaceCartridgeManager,
+} from "./template-cartridges";
