@@ -34,6 +34,19 @@ export class Team extends TimestampModel implements TeamSelect {
   @Field()
   slug: string;
 
+  // SignalHouse multi-tenant mapping
+  @StringField({ nullable: true })
+  signalhouseSubGroupId: string | null;
+
+  @StringField({ nullable: true })
+  signalhouseBrandId: string | null;
+
+  @Field(() => [String], { nullable: true })
+  signalhouseCampaignIds: string[] | null;
+
+  @Field(() => [String], { nullable: true })
+  signalhousePhonePool: string[] | null;
+
   // NOTE: description and branding removed temporarily - columns don't exist in DB yet
   // @StringField({ nullable: true })
   // description: string | null;
