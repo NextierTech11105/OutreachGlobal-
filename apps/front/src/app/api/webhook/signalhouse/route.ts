@@ -30,6 +30,7 @@ import {
   evaluateThreadResolution,
   detectRequestedData,
 } from "@/lib/inbox/thread-resolver";
+import { deepResearch } from "@/lib/ai-workers/neva-research";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // WEBHOOK SECURITY (Query Parameter Token)
@@ -434,6 +435,9 @@ async function pushToCallQueue(
     email?: string | null;
     phone?: string | null;
     teamId?: string | null;
+    company?: string | null;
+    city?: string | null;
+    state?: string | null;
   },
   mobileNumber: string,
   capturedEmail: string,
@@ -497,8 +501,175 @@ async function pushToCallQueue(
     console.log(
       `[SignalHouse] 📱 Phone: ${normalizedMobile} | Email: ${capturedEmail}`,
     );
+
+    // Update lead state to in_call_queue and trigger NEVA research
+    await transitionToCallQueue(lead);
   } catch (error) {
     console.error("[SignalHouse] Error pushing to call queue:", error);
+  }
+}
+
+/**
+ * Transition lead to in_call_queue state and trigger NEVA pre-call research.
+ * This auto-populates the Research & Meeting Prep workspace with intel.
+ */
+async function transitionToCallQueue(lead: {
+  id: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  teamId?: string | null;
+  company?: string | null;
+  city?: string | null;
+  state?: string | null;
+}): Promise<void> {
+  try {
+    // Update lead state to in_call_queue
+    await db
+      .update(leads)
+      .set({
+        leadState: "in_call_queue",
+        updatedAt: new Date(),
+      })
+      .where(eq(leads.id, lead.id));
+
+    console.log(
+      `[SignalHouse] 📊 Lead ${lead.id} transitioned to IN_CALL_QUEUE state`,
+    );
+
+    // Trigger NEVA research in background (non-blocking)
+    // This populates the Research & Meeting Prep workspace
+    triggerNevaResearch(lead).catch((err) => {
+      console.error(`[SignalHouse] NEVA research trigger failed:`, err);
+    });
+  } catch (error) {
+    console.error("[SignalHouse] Error transitioning to call queue:", error);
+  }
+}
+
+/**
+ * Trigger NEVA pre-call research for a lead moving to call queue.
+ * Runs in background and stores results in neva_enrichments table.
+ */
+async function triggerNevaResearch(lead: {
+  id: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  company?: string | null;
+  city?: string | null;
+  state?: string | null;
+  teamId?: string | null;
+}): Promise<void> {
+  // Skip if no company info available
+  if (!lead.company) {
+    console.log(
+      `[SignalHouse] ⚠️ Skipping NEVA research - no company info for lead ${lead.id}`,
+    );
+    return;
+  }
+
+  const contactName =
+    lead.firstName && lead.lastName
+      ? `${lead.firstName} ${lead.lastName}`
+      : lead.firstName || undefined;
+
+  console.log(
+    `[SignalHouse] 🔬 Triggering NEVA pre-call research for lead ${lead.id} (${lead.company})`,
+  );
+
+  const teamId = lead.teamId || "default_team";
+
+  try {
+    // Run deep research (this calls Perplexity API)
+    const research = await deepResearch(
+      lead.company,
+      contactName,
+      lead.city && lead.state
+        ? { city: lead.city, state: lead.state }
+        : undefined,
+    );
+
+    // Build company intel from research results
+    const companyIntel = {
+      name: lead.company,
+      description: research.summary,
+      industry: undefined,
+      linkedinUrl: research.socialPresence?.linkedin || undefined,
+      keyPeople: research.decisionMakers?.map((dm) => ({
+        name: dm.name,
+        title: dm.title,
+        linkedin: dm.linkedIn || undefined,
+      })),
+      recentNews: research.recentNews?.map((n) => ({
+        title: n.title,
+        date: n.date,
+        summary: n.summary,
+      })),
+      buyingSignals: research.painPoints,
+    };
+
+    // Build person intel from contact info
+    const personIntel = contactName
+      ? {
+          name: contactName,
+          contactStrategy: {
+            bestApproach: "Call",
+            topics: research.talkingPoints || [],
+          },
+        }
+      : undefined;
+
+    // Build realtime context
+    const realtimeContext = {
+      lastUpdated: new Date().toISOString(),
+      opportunities: research.talkingPoints,
+      recommendedAction:
+        research.talkingPoints?.[0] || "Review research before calling",
+    };
+
+    // Store in neva_enrichments table with trigger = 'stage_change'
+    const enrichmentId = `nen_${crypto.randomUUID().replace(/-/g, "")}`;
+    await db.execute(sql`
+      INSERT INTO neva_enrichments (
+        id, team_id, lead_id, trigger,
+        company_intel, person_intel, realtime_context,
+        enrichment_score, confidence_score,
+        enriched_at, created_at, updated_at
+      ) VALUES (
+        ${enrichmentId}, ${teamId}, ${lead.id}, 'stage_change',
+        ${JSON.stringify(companyIntel)}::jsonb,
+        ${personIntel ? JSON.stringify(personIntel) : null}::jsonb,
+        ${JSON.stringify(realtimeContext)}::jsonb,
+        ${research.confidence || 75}, ${research.confidence || 75},
+        NOW(), NOW(), NOW()
+      )
+      ON CONFLICT (lead_id, trigger)
+      DO UPDATE SET
+        company_intel = EXCLUDED.company_intel,
+        person_intel = EXCLUDED.person_intel,
+        realtime_context = EXCLUDED.realtime_context,
+        enrichment_score = EXCLUDED.enrichment_score,
+        confidence_score = EXCLUDED.confidence_score,
+        enriched_at = NOW(),
+        updated_at = NOW()
+    `);
+
+    console.log(
+      `[SignalHouse] ✅ NEVA research completed for lead ${lead.id}`,
+    );
+    console.log(
+      `[SignalHouse] 📝 Research summary: ${research.summary?.substring(0, 100)}...`,
+    );
+    console.log(
+      `[SignalHouse] 💡 Talking points: ${research.talkingPoints?.length || 0} prepared`,
+    );
+  } catch (error) {
+    console.error(
+      `[SignalHouse] NEVA research failed for lead ${lead.id}:`,
+      error,
+    );
+    // Don't fail silently - log for monitoring but don't block the call queue flow
   }
 }
 
@@ -1235,6 +1406,9 @@ export async function POST(request: NextRequest) {
               console.log(
                 `[SignalHouse] 🟢 Priority: ${greenPriority} (from config) | Worker: SABRINA | Lane: follow_up`,
               );
+
+              // Transition to call queue and trigger NEVA research
+              await transitionToCallQueue(lead);
             } catch (queueError) {
               console.error(
                 "[SignalHouse] Error pushing positive lead to call queue:",
