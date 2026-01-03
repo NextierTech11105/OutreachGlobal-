@@ -340,6 +340,9 @@ export const CARTRIDGE_LIBRARY: TemplateCartridge[] = [
   REAL_ESTATE_CARTRIDGE,
 ];
 
+// Alias for convenience
+export const ALL_CARTRIDGES = CARTRIDGE_LIBRARY;
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // CARTRIDGE MANAGER
 // ═══════════════════════════════════════════════════════════════════════════════

@@ -88,9 +88,10 @@ export const redis = {
   ): Promise<"OK" | null> => {
     const r = getRedis();
     if (!r) return null;
-    return options?.ex
-      ? r.set(key, value, { ex: options.ex })
-      : r.set(key, value);
+    const result = options?.ex
+      ? await r.set(key, value, { ex: options.ex })
+      : await r.set(key, value);
+    return result as "OK" | null;
   },
   incrby: async (key: string, amount: number): Promise<number | null> => {
     const r = getRedis();
@@ -113,7 +114,9 @@ export const redis = {
     ...args: { score: number; member: string }[]
   ): Promise<number | null> => {
     const r = getRedis();
-    return r ? r.zadd(key, ...args) : null;
+    if (!r || args.length === 0) return null;
+    // Upstash zadd expects individual score/member objects
+    return r.zadd(key, args[0], ...args.slice(1));
   },
   zrange: async (
     key: string,
@@ -123,6 +126,30 @@ export const redis = {
   ): Promise<string[]> => {
     const r = getRedis();
     return r ? (r.zrange(key, start, stop, options) as Promise<string[]>) : [];
+  },
+  // Set operations
+  sadd: async (key: string, ...members: string[]): Promise<number | null> => {
+    const r = getRedis();
+    if (!r || members.length === 0) return null;
+    return r.sadd(key, members[0], ...members.slice(1));
+  },
+  srem: async (key: string, ...members: string[]): Promise<number | null> => {
+    const r = getRedis();
+    if (!r || members.length === 0) return null;
+    return r.srem(key, members[0], ...members.slice(1));
+  },
+  smembers: async (key: string): Promise<string[]> => {
+    const r = getRedis();
+    return r ? (r.smembers(key) as Promise<string[]>) : [];
+  },
+  // Key operations
+  keys: async (pattern: string): Promise<string[]> => {
+    const r = getRedis();
+    return r ? (r.keys(pattern) as Promise<string[]>) : [];
+  },
+  del: async (key: string): Promise<number | null> => {
+    const r = getRedis();
+    return r ? r.del(key) : null;
   },
 };
 

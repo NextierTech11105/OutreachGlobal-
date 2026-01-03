@@ -202,7 +202,7 @@ export async function POST(request: NextRequest) {
       const phonesToSms = skipTraceResult.results
         .filter(
           (r: { phones?: { number: string; type?: string }[] }) =>
-            r.phones?.length > 0,
+            r.phones && r.phones.length > 0,
         )
         .flatMap((r: { phones: { number: string; type?: string }[] }) =>
           r.phones.map((p) => ({ number: p.number, type: p.type })),
