@@ -14,6 +14,7 @@
  * Reply intent classification
  */
 export type ReplyIntent =
+  | "email_captured" // Reply contains an email address - HIGH VALUE (mobile + email captured)
   | "positive_interest" // "Yes", "Sure", "Tell me more"
   | "qualified_yes" // "Yes, I own [business]", "That's me"
   | "soft_maybe" // "Depends", "What is this about?"
@@ -78,21 +79,34 @@ export const REPLY_GATES: ReplyGate[] = [
     notes: "Carrier spam report - must stop and investigate",
   },
 
-  // Priority 3: Wrong number (data quality issue)
+  // Priority 3: Email captured (HIGH VALUE - mobile + email captured!)
+  {
+    intent: "email_captured",
+    action: "handoff_cathy",
+    priority: 3,
+    statusUpdate: "email_captured",
+    tags: ["email_captured", "mobile_and_email", "hot_lead", "cathy_handoff"],
+    notes:
+      "Lead replied with their email address - we now have mobile AND email. High-value conversion.",
+    handoffContext:
+      "Lead provided their email address in response to SMS. This is a strong buying signal - they want to be contacted. Cathy should acknowledge receipt, confirm the email, and move toward booking.",
+  },
+
+  // Priority 4: Wrong number (data quality issue)
   {
     intent: "wrong_number",
     action: "update_status",
-    priority: 3,
+    priority: 4,
     statusUpdate: "wrong_number",
     tags: ["wrong_number", "data_issue"],
     notes: "Phone number doesn't match contact - mark for review",
   },
 
-  // Priority 4: Already customer (sales intelligence)
+  // Priority 5: Already customer (sales intelligence)
   {
     intent: "already_customer",
     action: "handoff_human",
-    priority: 4,
+    priority: 5,
     statusUpdate: "existing_customer",
     tags: ["existing_customer"],
     notes: "Existing relationship - route to account management",
@@ -100,11 +114,11 @@ export const REPLY_GATES: ReplyGate[] = [
       "Lead indicates they are already a customer. Verify account status and handle appropriately.",
   },
 
-  // Priority 5: Qualified yes (hot lead!)
+  // Priority 6: Qualified yes (hot lead!)
   {
     intent: "qualified_yes",
     action: "handoff_cathy",
-    priority: 5,
+    priority: 6,
     statusUpdate: "engaged",
     tags: ["qualified", "hot_lead", "cathy_handoff"],
     notes: "Confirmed business owner interested - high priority",
@@ -112,11 +126,11 @@ export const REPLY_GATES: ReplyGate[] = [
       "Lead confirmed they own the business and showed interest. Cathy should continue conversation toward booking.",
   },
 
-  // Priority 6: Positive interest (warm lead)
+  // Priority 7: Positive interest (warm lead)
   {
     intent: "positive_interest",
     action: "handoff_cathy",
-    priority: 6,
+    priority: 7,
     statusUpdate: "interested",
     tags: ["interested", "cathy_handoff"],
     notes: "Showed interest - Cathy to continue nurturing",
@@ -124,11 +138,11 @@ export const REPLY_GATES: ReplyGate[] = [
       "Lead expressed interest. Cathy should qualify further and move toward booking.",
   },
 
-  // Priority 7: Soft maybe (needs nurturing)
+  // Priority 8: Soft maybe (needs nurturing)
   {
     intent: "soft_maybe",
     action: "handoff_cathy",
-    priority: 7,
+    priority: 8,
     statusUpdate: "curious",
     tags: ["soft_maybe", "needs_nurturing", "cathy_handoff"],
     notes: "Tentative interest - Cathy to address concerns",
@@ -136,11 +150,11 @@ export const REPLY_GATES: ReplyGate[] = [
       "Lead is on the fence. Cathy should address concerns and provide more context about value.",
   },
 
-  // Priority 8: Question (information seeker)
+  // Priority 9: Question (information seeker)
   {
     intent: "question",
     action: "handoff_cathy",
-    priority: 8,
+    priority: 9,
     statusUpdate: "questioning",
     tags: ["has_questions", "cathy_handoff"],
     notes: "Asking questions - Cathy to provide info and qualify",
@@ -148,11 +162,11 @@ export const REPLY_GATES: ReplyGate[] = [
       "Lead has questions. Cathy should answer clearly and transition to qualifying.",
   },
 
-  // Priority 9: Competitor mention (competitive intelligence)
+  // Priority 10: Competitor mention (competitive intelligence)
   {
     intent: "competitor",
     action: "handoff_human",
-    priority: 9,
+    priority: 10,
     statusUpdate: "using_competitor",
     tags: ["competitor", "competitive_intel"],
     notes: "Using competitor - human SDR to handle carefully",
@@ -160,11 +174,11 @@ export const REPLY_GATES: ReplyGate[] = [
       "Lead mentions using a competitor. SDR should handle with competitive positioning.",
   },
 
-  // Priority 10: Objection (needs skilled handling)
+  // Priority 11: Objection (needs skilled handling)
   {
     intent: "objection",
     action: "handoff_cathy",
-    priority: 10,
+    priority: 11,
     statusUpdate: "objected",
     tags: ["objection", "cathy_handoff"],
     notes: "Has objection - Cathy to address professionally",
@@ -172,21 +186,21 @@ export const REPLY_GATES: ReplyGate[] = [
       "Lead raised an objection. Cathy should acknowledge, address if possible, or gracefully exit.",
   },
 
-  // Priority 11: Negative (respect their wishes)
+  // Priority 12: Negative (respect their wishes)
   {
     intent: "negative",
     action: "schedule_followup",
-    priority: 11,
+    priority: 12,
     statusUpdate: "not_interested",
     tags: ["not_interested"],
     notes: "Not interested now - schedule distant follow-up (90 days)",
   },
 
-  // Priority 12: Unclear (needs classification)
+  // Priority 13: Unclear (needs classification)
   {
     intent: "unclear",
     action: "handoff_cathy",
-    priority: 12,
+    priority: 13,
     statusUpdate: "replied",
     tags: ["unclear_intent", "needs_classification", "cathy_handoff"],
     notes: "Intent unclear - Cathy to interpret and respond",
@@ -205,6 +219,26 @@ interface IntentKeywords {
 }
 
 const INTENT_KEYWORDS: IntentKeywords[] = [
+  // EMAIL CAPTURE - Check FIRST! If they send an email, that's a high-value response
+  {
+    intent: "email_captured",
+    keywords: [], // No keywords, only pattern matching
+    patterns: [
+      // Standard email pattern - catches most email formats
+      /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/,
+      // Email with "my email is" prefix
+      /(?:my\s+)?email(?:\s+is)?[:\s]+[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/i,
+      // "reach me at" with email
+      /reach\s+(?:me\s+)?(?:at|@)[:\s]*[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/i,
+      // "contact me" with email
+      /contact\s+(?:me\s+)?(?:at|@)?[:\s]*[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/i,
+      // "send to" with email
+      /send\s+(?:it\s+)?(?:to)?[:\s]*[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/i,
+      // Just the email by itself (most common case)
+      /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/i,
+    ],
+  },
+  // OPT-OUT - Must check early for TCPA compliance
   {
     intent: "opt_out",
     keywords: ["stop", "unsubscribe", "remove", "opt out", "optout", "cancel"],
@@ -433,6 +467,16 @@ export const AUTO_RESPONSES: Record<string, string> = {
 };
 
 /**
+ * Extract email address from a reply message
+ * Returns the email if found, null otherwise
+ */
+export function extractEmailFromReply(message: string): string | null {
+  const emailPattern = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/i;
+  const match = message.match(emailPattern);
+  return match ? match[0].toLowerCase() : null;
+}
+
+/**
  * Handoff message templates for Cathy
  */
 export interface CathyHandoffContext {
@@ -461,9 +505,15 @@ export function generateCathyHandoff(
   const classification = classifyReplyIntent(replyMessage);
   const gate = getGateForIntent(classification.intent);
 
+  // Extract email if present (for email_captured intent)
+  const capturedEmail = extractEmailFromReply(replyMessage);
+
   // Generate suggested approach based on intent
   let suggestedApproach: string;
   switch (classification.intent) {
+    case "email_captured":
+      suggestedApproach = `HIGH VALUE: ${leadFirstName} provided their email (${capturedEmail}). We now have mobile + email = 100% increase in contactability. Acknowledge receipt, confirm the email is correct, and move toward booking. This is a gold-label hot lead.`;
+      break;
     case "positive_interest":
       suggestedApproach = `${leadFirstName} is interested. Qualify their needs and propose a brief call.`;
       break;
@@ -509,9 +559,12 @@ export function getReplyStats(
   byAction: Record<GateAction, number>;
   positiveRate: number;
   optOutRate: number;
+  emailCaptureRate: number;
+  emailsCaptured: string[];
 } {
   const byIntent: Record<string, number> = {};
   const byAction: Record<string, number> = {};
+  const emailsCaptured: string[] = [];
   let positive = 0;
   let optOut = 0;
 
@@ -521,10 +574,21 @@ export function getReplyStats(
     byIntent[result.intent] = (byIntent[result.intent] || 0) + 1;
     byAction[result.action] = (byAction[result.action] || 0) + 1;
 
+    // Track email captures - gold label hot leads
+    if (result.intent === "email_captured") {
+      const email = extractEmailFromReply(reply.message);
+      if (email) {
+        emailsCaptured.push(email);
+      }
+    }
+
     if (
-      ["positive_interest", "qualified_yes", "soft_maybe"].includes(
-        result.intent,
-      )
+      [
+        "email_captured",
+        "positive_interest",
+        "qualified_yes",
+        "soft_maybe",
+      ].includes(result.intent)
     ) {
       positive++;
     }
@@ -540,5 +604,8 @@ export function getReplyStats(
     byAction: byAction as Record<GateAction, number>,
     positiveRate: replies.length > 0 ? positive / replies.length : 0,
     optOutRate: replies.length > 0 ? optOut / replies.length : 0,
+    emailCaptureRate:
+      replies.length > 0 ? emailsCaptured.length / replies.length : 0,
+    emailsCaptured,
   };
 }
