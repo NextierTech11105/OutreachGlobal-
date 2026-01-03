@@ -17,6 +17,16 @@ import {
   checkComplianceBeforeSend,
   logComplianceFailure,
 } from "@/lib/sms/compliance";
+import {
+  generateVariantMessage,
+  calculateOptimalSendTime,
+  processReply,
+  canSendNow,
+  validateRenderedMessage,
+  type LeadContext,
+  type VarianceResult,
+  type ReplyProcessingResult,
+} from "@/lib/sms/variance";
 
 // Redis keys for SMS queue persistence
 const SMS_QUEUE_KEY = "sms:queue";
@@ -1261,6 +1271,265 @@ export class SMSQueueService {
     );
 
     return initialLength - this.queue.length;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // VARIANCE ENGINE INTEGRATION
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Generate a varied cold SMS using the variance engine
+   * Automatically selects message group, template, and renders with lead data
+   */
+  public generateColdSMS(
+    lead: LeadContext,
+    previousGroups: string[] = [],
+    usedTemplateIds: string[] = [],
+  ): VarianceResult | null {
+    const result = generateVariantMessage(
+      lead,
+      previousGroups,
+      usedTemplateIds,
+    );
+
+    if (!result) {
+      console.log("[SMSQueue] Failed to generate variant message");
+      return null;
+    }
+
+    // Validate the rendered message
+    const validation = validateRenderedMessage(result.renderedMessage);
+    if (!validation.valid) {
+      console.warn(
+        "[SMSQueue] Generated message failed validation:",
+        validation.errors,
+      );
+      // Still return it but log the warning
+    }
+
+    return result;
+  }
+
+  /**
+   * Add cold SMS to queue using variance engine
+   * Generates varied message and schedules optimally
+   */
+  public addColdSMSToQueue(
+    leadData: {
+      leadId: string;
+      phone: string;
+      firstName: string;
+      businessName: string;
+      city?: string;
+      industry?: string;
+      leadScore?: number;
+      previousAttempts?: number;
+    },
+    options: {
+      campaignId?: string;
+      priority?: number;
+      previousGroups?: string[];
+      usedTemplateIds?: string[];
+    } = {},
+  ): { id: string; message: VarianceResult } | null {
+    // Check opt-out first
+    if (this.isOptedOut(leadData.phone)) {
+      console.log(`[SMSQueue] Skipping opted-out number: ${leadData.phone}`);
+      return null;
+    }
+
+    // Build lead context for variance engine
+    const leadContext: LeadContext = {
+      firstName: leadData.firstName,
+      businessName: leadData.businessName,
+      city: leadData.city,
+      industry: leadData.industry,
+      leadScore: leadData.leadScore,
+      previousAttempts: leadData.previousAttempts,
+    };
+
+    // Generate varied message
+    const variantResult = this.generateColdSMS(
+      leadContext,
+      options.previousGroups || [],
+      options.usedTemplateIds || [],
+    );
+
+    if (!variantResult) {
+      console.log("[SMSQueue] Failed to generate cold SMS variant");
+      return null;
+    }
+
+    // Calculate optimal send time
+    const schedule = calculateOptimalSendTime(leadContext);
+
+    // Check if we can send now
+    const sendCheck = canSendNow(leadContext);
+
+    // Add to queue as draft for review
+    const id = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    const queuedMessage: QueuedMessage = {
+      id,
+      leadId: leadData.leadId,
+      to: leadData.phone,
+      message: variantResult.renderedMessage,
+      templateId: variantResult.templateId,
+      templateCategory: variantResult.groupName,
+      variables: {
+        firstName: leadData.firstName,
+        businessName: leadData.businessName,
+        city: leadData.city || "",
+        industry: leadData.industry || "",
+      },
+      personality: "gianna",
+      priority: options.priority || 5,
+      status: "draft",
+      attempts: 0,
+      maxAttempts: this.config.maxRetries,
+      createdAt: new Date(),
+      scheduledAt: sendCheck.allowed ? undefined : schedule.sendAt,
+      campaignId: options.campaignId,
+      agent: "gianna",
+    };
+
+    this.queue.push(queuedMessage);
+    this.persistQueue();
+
+    return { id, message: variantResult };
+  }
+
+  /**
+   * Generate batch of cold SMS messages using variance engine
+   * Automatically varies messages across leads
+   */
+  public generateColdSMSBatch(
+    leads: Array<{
+      leadId: string;
+      phone: string;
+      firstName: string;
+      businessName: string;
+      city?: string;
+      industry?: string;
+      leadScore?: number;
+      previousAttempts?: number;
+    }>,
+    options: {
+      campaignId?: string;
+      priority?: number;
+    } = {},
+  ): {
+    added: number;
+    skipped: number;
+    results: Array<{ leadId: string; id: string; variant: VarianceResult }>;
+  } {
+    const results: Array<{
+      leadId: string;
+      id: string;
+      variant: VarianceResult;
+    }> = [];
+    let skipped = 0;
+
+    // Track used templates and groups for variance
+    const usedTemplateIds: string[] = [];
+    const usedGroups: string[] = [];
+
+    for (const lead of leads) {
+      // Skip opted out
+      if (this.isOptedOut(lead.phone)) {
+        skipped++;
+        continue;
+      }
+
+      const result = this.addColdSMSToQueue(lead, {
+        ...options,
+        previousGroups: usedGroups.slice(-3), // Last 3 groups used
+        usedTemplateIds: usedTemplateIds.slice(-25), // Last 25 templates used
+      });
+
+      if (result) {
+        results.push({
+          leadId: lead.leadId,
+          id: result.id,
+          variant: result.message,
+        });
+        usedTemplateIds.push(result.message.templateId);
+        usedGroups.push(result.message.groupId);
+      } else {
+        skipped++;
+      }
+    }
+
+    return {
+      added: results.length,
+      skipped,
+      results,
+    };
+  }
+
+  /**
+   * Process an incoming reply using the variance engine reply gates
+   * Returns classification and recommended action
+   */
+  public processIncomingReply(message: string): ReplyProcessingResult {
+    return processReply(message);
+  }
+
+  /**
+   * Handle reply with full processing pipeline
+   * Classifies reply, updates lead status, and determines next action
+   */
+  public async handleReply(
+    from: string,
+    message: string,
+    leadId?: string,
+  ): Promise<{
+    result: ReplyProcessingResult;
+    actionsApplied: string[];
+  }> {
+    const result = this.processIncomingReply(message);
+    const actionsApplied: string[] = [];
+
+    // Handle opt-out immediately
+    if (result.intent === "opt_out") {
+      await this.handleStopMessage(from);
+      actionsApplied.push("opt_out_processed");
+    }
+
+    // Handle spam report
+    if (result.intent === "spam_report") {
+      await this.addOptOut(from);
+      actionsApplied.push("marked_dnc");
+    }
+
+    // Cancel pending messages based on reply type
+    if (result.intent === "wrong_number") {
+      // Cancel pending messages for wrong number
+      this.queue.forEach((m) => {
+        if (this.normalizePhone(m.to) === this.normalizePhone(from)) {
+          if (
+            m.status === "pending" ||
+            m.status === "draft" ||
+            m.status === "approved"
+          ) {
+            m.status = "cancelled";
+            actionsApplied.push(`cancelled_${m.id}`);
+          }
+        }
+      });
+      this.persistQueue();
+    }
+
+    // Log the reply for analytics
+    console.log(`[SMSQueue] Reply processed:`, {
+      from,
+      intent: result.intent,
+      confidence: result.confidence,
+      action: result.action,
+      leadId,
+    });
+
+    return { result, actionsApplied };
   }
 }
 

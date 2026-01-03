@@ -5,7 +5,14 @@
  * Matches the same table structure so data can be inserted/read.
  */
 
-import { pgTable, text, timestamp, jsonb, integer, index } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  timestamp,
+  jsonb,
+  integer,
+  index,
+} from "drizzle-orm/pg-core";
 
 // ============================================
 // NEVA RESEARCH JOBS

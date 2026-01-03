@@ -604,7 +604,10 @@ export async function preAppointmentResearch(
       `[NEVA] Research persisted for lead ${leadId}, enrichment ${enrichmentId}`,
     );
   } catch (error) {
-    console.error(`[NEVA] Failed to persist research for lead ${leadId}:`, error);
+    console.error(
+      `[NEVA] Failed to persist research for lead ${leadId}:`,
+      error,
+    );
     // Don't throw - research was still successful, just not persisted
   }
 
