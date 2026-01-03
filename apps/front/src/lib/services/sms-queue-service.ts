@@ -13,6 +13,7 @@ import { redis, isRedisAvailable } from "@/lib/redis";
 import { db } from "@/lib/db";
 import { leads } from "@/lib/db/schema";
 import { eq, or, like, isNotNull } from "drizzle-orm";
+import { checkComplianceBeforeSend, logComplianceFailure } from "@/lib/sms/compliance";
 
 // Redis keys for SMS queue persistence
 const SMS_QUEUE_KEY = "sms:queue";
@@ -605,12 +606,32 @@ export class SMSQueueService {
         message.attempts++;
 
         try {
-          // Send via SignalHouse - pass campaignId as tag for tracking
-          // SignalHouse stores all logs - query their API for reports
-          const tags: string[] = [];
-          if (message.campaignId) tags.push(`campaign:${message.campaignId}`);
-          if (message.agent) tags.push(`agent:${message.agent}`);
+          // Compliance check before sending
+          const fromNumber = process.env.SIGNALHOUSE_FROM_NUMBER || '15164079249';
+          const worker = message.agent?.toUpperCase() || 'GIANNA';
+          const compliance = checkComplianceBeforeSend(fromNumber, message.message, worker);
+
+          // Build tags - use compliance tags if available, otherwise build manually
+          let tags: string[];
+          if (compliance.allowed && compliance.tags) {
+            tags = compliance.tags;
+          } else {
+            tags = [];
+            if (message.campaignId) tags.push(`campaign:${message.campaignId}`);
+            if (message.agent) tags.push(`agent:${message.agent}`);
+          }
           if (batchId) tags.push(`batch:${batchId}`);
+
+          // Log compliance warnings but don't block (for now - can be made strict later)
+          if (!compliance.allowed) {
+            logComplianceFailure(compliance, {
+              fromPhone: fromNumber,
+              message: message.message,
+              worker,
+              leadId: message.leadId,
+            });
+            // Continue anyway - compliance is advisory until campaign is approved
+          }
 
           const response = await signalHouseService.sendSMS({
             to: message.to,

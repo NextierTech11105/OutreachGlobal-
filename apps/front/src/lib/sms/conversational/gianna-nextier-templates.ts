@@ -635,19 +635,19 @@ export const ALL_CONVERSATIONAL_TEMPLATES = [
 
 // Helper functions
 export function getTemplatesByCategory(
-  category: ConversationalCategory
+  category: ConversationalCategory,
 ): ConversationalTemplate[] {
   return ALL_CONVERSATIONAL_TEMPLATES.filter((t) => t.category === category);
 }
 
 export function getTemplatesByLane(
-  lane: "cold_outreach" | "engaged_leads"
+  lane: "cold_outreach" | "engaged_leads",
 ): ConversationalTemplate[] {
   return ALL_CONVERSATIONAL_TEMPLATES.filter((t) => t.lane === lane);
 }
 
 export function getRandomTemplate(
-  category: ConversationalCategory
+  category: ConversationalCategory,
 ): ConversationalTemplate | undefined {
   const templates = getTemplatesByCategory(category);
   return templates[Math.floor(Math.random() * templates.length)];
@@ -655,7 +655,7 @@ export function getRandomTemplate(
 
 export function renderConversationalTemplate(
   template: ConversationalTemplate,
-  variables: Record<string, string>
+  variables: Record<string, string>,
 ): string {
   let rendered = template.template;
   for (const [key, value] of Object.entries(variables)) {
@@ -679,7 +679,7 @@ export function validateTemplates(): { valid: boolean; errors: string[] } {
 }
 
 console.log(
-  `[Conversational Templates] Loaded ${ALL_CONVERSATIONAL_TEMPLATES.length} templates`
+  `[Conversational Templates] Loaded ${ALL_CONVERSATIONAL_TEMPLATES.length} templates`,
 );
 console.log(`  - Cold Outreach: ${COLD_OUTREACH_TEMPLATES.length}`);
 console.log(`  - Engaged Leads: ${ENGAGED_LEADS_TEMPLATES.length}`);

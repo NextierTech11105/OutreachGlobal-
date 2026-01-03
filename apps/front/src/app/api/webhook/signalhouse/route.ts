@@ -655,9 +655,7 @@ async function triggerNevaResearch(lead: {
         updated_at = NOW()
     `);
 
-    console.log(
-      `[SignalHouse] ✅ NEVA research completed for lead ${lead.id}`,
-    );
+    console.log(`[SignalHouse] ✅ NEVA research completed for lead ${lead.id}`);
     console.log(
       `[SignalHouse] 📝 Research summary: ${research.summary?.substring(0, 100)}...`,
     );
