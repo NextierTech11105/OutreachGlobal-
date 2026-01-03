@@ -2,6 +2,7 @@ import {
   index,
   integer,
   jsonb,
+  pgEnum,
   pgTable,
   text,
   uniqueIndex,
@@ -12,6 +13,18 @@ import { createdAt, updatedAt } from "../columns/timestamps";
 import { teamsRef } from "./teams.schema";
 import { integrations } from "./integrations.schema";
 import { properties } from "./properties.schema";
+
+// Canonical lead state enum - mirrors canonical-lead-state.schema.ts
+export const leadStateEnumPg = pgEnum("lead_state_canonical", [
+  "new",           // Just imported, no contact yet
+  "touched",       // SMS_SENT at least once
+  "responded",     // Got any reply
+  "email_captured", // Email extracted from conversation
+  "high_intent",   // Expressed buying/selling intent
+  "in_call_queue", // Escalated for human call
+  "closed",        // Deal won/lost
+  "suppressed",    // STOP/DNC - terminal state
+]);
 
 export const leads = pgTable(
   "leads",
@@ -37,6 +50,8 @@ export const leads = pgTable(
     pipelineStatus: varchar().notNull().default("raw"),
     score: integer().notNull().default(0),
     tags: text().array(),
+    // Canonical lead state (NEW→TOUCHED→RESPONDED→etc.)
+    leadState: leadStateEnumPg("lead_state").default("new"),
     zipCode: varchar(),
     country: varchar(),
     state: varchar(),
@@ -63,6 +78,8 @@ export const leads = pgTable(
     index("leads_team_created_idx").on(t.teamId, t.createdAt),
     // Email lookup index
     index("leads_email_idx").on(t.email),
+    // Canonical lead state index
+    index("leads_team_lead_state_idx").on(t.teamId, t.leadState),
   ],
 );
 

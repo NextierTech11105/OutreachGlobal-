@@ -63,3 +63,6 @@ export * from "./neva.schema";
 
 // ===== CARTRIDGE EXECUTION MODEL =====
 export * from "./cartridges.schema";
+
+// ===== CANONICAL LEAD STATE MACHINE =====
+export * from "./canonical-lead-state.schema";
