@@ -173,17 +173,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         matchScore: result.match_score,
       };
 
-      // Log enrichment data (DB update can be added when needed)
-      console.log(`[Skip Trace Webhook] Enriched ${recordId}:`, {
-        phone: bestPhone?.phone_number,
-        email: bestEmail?.email_address,
-        socials: {
-          linkedin: linkedin?.url,
-          facebook: facebook?.url,
-        },
-        matchScore: result.match_score,
-      });
-
       // Update lead with enriched data
       try {
         await db
@@ -195,16 +184,25 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             updatedAt: new Date(),
           })
           .where(eq(leads.id, recordId));
+
+        processed.enriched++;
+
+        console.log(`[Skip Trace Webhook] Enriched ${recordId}:`, {
+          phone: bestPhone?.phone_number,
+          email: bestEmail?.email_address,
+          socials: {
+            linkedin: linkedin?.url,
+            facebook: facebook?.url,
+          },
+          matchScore: result.match_score,
+        });
       } catch (dbError) {
         console.error(
           `[Skip Trace Webhook] DB update failed for ${recordId}:`,
           dbError,
         );
         processed.failed++;
-        processed.enriched--; // Undo the increment we're about to do
       }
-
-      processed.enriched++;
     }
 
     console.log(

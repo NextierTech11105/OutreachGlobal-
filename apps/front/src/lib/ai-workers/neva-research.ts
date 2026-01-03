@@ -553,6 +553,7 @@ export async function preAppointmentResearch(
     state: string;
     industry?: string;
   },
+  teamId: string = "default",
 ): Promise<DeepResearchResult> {
   const contactName =
     leadData.contactFirstName && leadData.contactLastName
@@ -571,7 +572,7 @@ export async function preAppointmentResearch(
     const enrichmentId = `nen_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     await db.insert(nevaEnrichments).values({
       id: enrichmentId,
-      teamId: "default", // TODO: Pass teamId from caller
+      teamId,
       leadId,
       trigger: "stage_change",
       companyIntel: {
