@@ -47,6 +47,22 @@ export type AIWorker =
   | "APPOINTMENT_BOT"; // Confirmation/reminders
 
 /**
+ * Template Lifecycle States - controls what operations are allowed
+ *
+ * SignalHouse Compliance:
+ * - Only APPROVED templates can be sent to real recipients
+ * - DRAFT templates are for editing/preview only
+ * - DEPRECATED templates are view-only (legacy)
+ * - DISABLED templates throw hard errors on resolution
+ */
+export enum TemplateLifecycle {
+  DRAFT = "DRAFT",           // Not sendable, editable in admin UI
+  APPROVED = "APPROVED",     // Sendable via SignalHouse, immutable
+  DEPRECATED = "DEPRECATED", // Preview only, executeSMS() rejects
+  DISABLED = "DISABLED",     // Hard fail on resolution
+}
+
+/**
  * SMS Template - the atomic unit of compliant messaging
  */
 export interface SMSTemplate {
@@ -58,6 +74,10 @@ export interface SMSTemplate {
   tags: string[];       // Categorization tags
   variables: string[];  // Variables used in message
   charCount: number;    // Character count (SignalHouse compliance)
+  lifecycle?: TemplateLifecycle;  // Default: APPROVED for CARTRIDGE_LIBRARY templates
+  approvedAt?: string;  // ISO timestamp when approved
+  approvedBy?: string;  // Who approved (for audit trail)
+  tenantId?: string;    // null = global template, else tenant-scoped
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

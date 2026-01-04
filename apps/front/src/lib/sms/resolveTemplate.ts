@@ -13,6 +13,7 @@
 
 import {
   CARTRIDGE_LIBRARY,
+  TemplateLifecycle,
   type TemplateCartridge,
   type SMSTemplate,
   type CampaignStage,
@@ -27,12 +28,55 @@ export interface ResolvedTemplate {
   template: SMSTemplate;
   cartridgeId: string;
   cartridgeName: string;
+  lifecycle: TemplateLifecycle;
+  isSendable: boolean;  // true only for APPROVED templates
 }
 
 export interface TemplateResolutionError extends Error {
-  code: "TEMPLATE_NOT_FOUND" | "TEMPLATE_ID_MISSING" | "CARTRIDGE_NOT_FOUND";
+  code:
+    | "TEMPLATE_NOT_FOUND"
+    | "TEMPLATE_ID_MISSING"
+    | "CARTRIDGE_NOT_FOUND"
+    | "TEMPLATE_DISABLED"
+    | "TEMPLATE_NOT_SENDABLE"
+    | "TEMPLATE_DEPRECATED"
+    | "TENANT_MISMATCH";
   templateId?: string;
   cartridgeId?: string;
+  lifecycle?: TemplateLifecycle;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// LIFECYCLE HELPERS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Get effective lifecycle - defaults to APPROVED for CARTRIDGE_LIBRARY templates
+ */
+function getEffectiveLifecycle(template: SMSTemplate): TemplateLifecycle {
+  return template.lifecycle ?? TemplateLifecycle.APPROVED;
+}
+
+/**
+ * Check if template can be sent via SignalHouse/Twilio
+ */
+export function isTemplateSendable(template: SMSTemplate): boolean {
+  const lifecycle = getEffectiveLifecycle(template);
+  return lifecycle === TemplateLifecycle.APPROVED;
+}
+
+/**
+ * Check if template is disabled (should throw on resolution)
+ */
+export function isTemplateDisabled(template: SMSTemplate): boolean {
+  return getEffectiveLifecycle(template) === TemplateLifecycle.DISABLED;
+}
+
+/**
+ * Check if template is deprecated (preview only)
+ */
+export function isTemplateDeprecated(template: SMSTemplate): boolean {
+  return getEffectiveLifecycle(template) === TemplateLifecycle.DEPRECATED;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -41,13 +85,23 @@ export interface TemplateResolutionError extends Error {
 
 /**
  * Resolve a template by ID from CARTRIDGE_LIBRARY
- * Throws hard error if templateId is missing or not found
+ * Throws hard error if templateId is missing, not found, or DISABLED
+ *
+ * LIFECYCLE ENFORCEMENT:
+ * - DISABLED templates throw hard error on resolution
+ * - DEPRECATED templates resolve but isSendable=false
+ * - DRAFT templates resolve but isSendable=false
+ * - APPROVED templates resolve with isSendable=true
  *
  * @param templateId - The template ID to resolve
- * @returns ResolvedTemplate with template and cartridge context
- * @throws TemplateResolutionError if template not found
+ * @param options - Optional resolution options
+ * @returns ResolvedTemplate with template, cartridge context, and lifecycle info
+ * @throws TemplateResolutionError if template not found or DISABLED
  */
-export function resolveTemplateById(templateId: string): ResolvedTemplate {
+export function resolveTemplateById(
+  templateId: string,
+  options?: { allowDisabled?: boolean; teamId?: string }
+): ResolvedTemplate {
   // HARD ERROR: templateId is required
   if (!templateId || templateId.trim() === "") {
     const error = new Error(
@@ -61,10 +115,35 @@ export function resolveTemplateById(templateId: string): ResolvedTemplate {
   for (const cartridge of CARTRIDGE_LIBRARY) {
     const template = cartridge.templates.find((t) => t.id === templateId);
     if (template) {
+      const lifecycle = getEffectiveLifecycle(template);
+
+      // HARD ERROR: DISABLED templates cannot be resolved
+      if (lifecycle === TemplateLifecycle.DISABLED && !options?.allowDisabled) {
+        const error = new Error(
+          `Template resolution failed: templateId "${templateId}" is DISABLED`
+        ) as TemplateResolutionError;
+        error.code = "TEMPLATE_DISABLED";
+        error.templateId = templateId;
+        error.lifecycle = lifecycle;
+        throw error;
+      }
+
+      // TENANT GUARD: Check tenant scope if teamId provided
+      if (template.tenantId && options?.teamId && template.tenantId !== options.teamId) {
+        const error = new Error(
+          `Template resolution failed: templateId "${templateId}" belongs to different tenant`
+        ) as TemplateResolutionError;
+        error.code = "TENANT_MISMATCH";
+        error.templateId = templateId;
+        throw error;
+      }
+
       return {
         template,
         cartridgeId: cartridge.id,
         cartridgeName: cartridge.name,
+        lifecycle,
+        isSendable: lifecycle === TemplateLifecycle.APPROVED,
       };
     }
   }
@@ -117,7 +196,8 @@ export function templateExists(templateId: string): boolean {
  */
 export function resolveTemplateFromCartridge(
   templateId: string,
-  cartridgeId: string
+  cartridgeId: string,
+  options?: { teamId?: string }
 ): ResolvedTemplate {
   if (!templateId) {
     const error = new Error(
@@ -148,10 +228,35 @@ export function resolveTemplateFromCartridge(
     throw error;
   }
 
+  const lifecycle = getEffectiveLifecycle(template);
+
+  // HARD ERROR: DISABLED templates cannot be resolved
+  if (lifecycle === TemplateLifecycle.DISABLED) {
+    const error = new Error(
+      `Template resolution failed: templateId "${templateId}" is DISABLED`
+    ) as TemplateResolutionError;
+    error.code = "TEMPLATE_DISABLED";
+    error.templateId = templateId;
+    error.lifecycle = lifecycle;
+    throw error;
+  }
+
+  // TENANT GUARD
+  if (template.tenantId && options?.teamId && template.tenantId !== options.teamId) {
+    const error = new Error(
+      `Template resolution failed: templateId "${templateId}" belongs to different tenant`
+    ) as TemplateResolutionError;
+    error.code = "TENANT_MISMATCH";
+    error.templateId = templateId;
+    throw error;
+  }
+
   return {
     template,
     cartridgeId: cartridge.id,
     cartridgeName: cartridge.name,
+    lifecycle,
+    isSendable: lifecycle === TemplateLifecycle.APPROVED,
   };
 }
 
@@ -162,12 +267,34 @@ export function resolveTemplateFromCartridge(
 /**
  * Resolve template and apply variables in one step
  * This is what ExecutionRouter should use before sending to SignalHouse/Twilio
+ *
+ * LIFECYCLE ENFORCEMENT:
+ * - Throws if template is not APPROVED (unless allowNonSendable=true)
+ * - Throws if teamId doesn't match tenant scope
  */
 export function resolveAndRenderTemplate(
   templateId: string,
-  variables: Record<string, string>
-): { message: string; template: SMSTemplate; cartridgeId: string } {
-  const resolved = resolveTemplateById(templateId);
+  variables: Record<string, string>,
+  options?: { teamId?: string; allowNonSendable?: boolean }
+): {
+  message: string;
+  template: SMSTemplate;
+  cartridgeId: string;
+  lifecycle: TemplateLifecycle;
+  isSendable: boolean;
+} {
+  const resolved = resolveTemplateById(templateId, { teamId: options?.teamId });
+
+  // LIFECYCLE ENFORCEMENT: Reject non-sendable templates by default
+  if (!resolved.isSendable && !options?.allowNonSendable) {
+    const error = new Error(
+      `Template "${templateId}" is ${resolved.lifecycle} and cannot be sent. Only APPROVED templates can be sent via SignalHouse.`
+    ) as TemplateResolutionError;
+    error.code = "TEMPLATE_NOT_SENDABLE";
+    error.templateId = templateId;
+    error.lifecycle = resolved.lifecycle;
+    throw error;
+  }
 
   let message = resolved.template.message;
 
@@ -189,7 +316,32 @@ export function resolveAndRenderTemplate(
     message: message.trim(),
     template: resolved.template,
     cartridgeId: resolved.cartridgeId,
+    lifecycle: resolved.lifecycle,
+    isSendable: resolved.isSendable,
   };
+}
+
+/**
+ * Validate template can be sent before ExecutionRouter sends
+ * Throws if template is not sendable
+ */
+export function validateSendable(
+  templateId: string,
+  teamId?: string
+): ResolvedTemplate {
+  const resolved = resolveTemplateById(templateId, { teamId });
+
+  if (!resolved.isSendable) {
+    const error = new Error(
+      `Template "${templateId}" is ${resolved.lifecycle} and cannot be sent. Only APPROVED templates can be sent via SignalHouse.`
+    ) as TemplateResolutionError;
+    error.code = "TEMPLATE_NOT_SENDABLE";
+    error.templateId = templateId;
+    error.lifecycle = resolved.lifecycle;
+    throw error;
+  }
+
+  return resolved;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -325,18 +477,32 @@ export function rejectRawMessage(input: string, context: string): void {
 // EXPORTS
 // ═══════════════════════════════════════════════════════════════════════════════
 
+// Re-export TemplateLifecycle for convenience
+export { TemplateLifecycle } from "./template-cartridges";
+
 export default {
+  // Core resolution
   resolveTemplateById,
   resolveTemplateWithGroup,
   getTemplate,
   templateExists,
   resolveTemplateFromCartridge,
   resolveAndRenderTemplate,
+
+  // Lifecycle enforcement
+  isTemplateSendable,
+  isTemplateDisabled,
+  isTemplateDeprecated,
+  validateSendable,
+
+  // Query functions
   getAllTemplates,
   getTemplatesByStage,
   getTemplatesByWorker,
   getTemplatesByTag,
   searchTemplates,
+
+  // Validation
   validateTemplateId,
   isRawMessage,
   rejectRawMessage,

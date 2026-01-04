@@ -36,6 +36,9 @@ export {
   type TemplateCartridge,
   type WorkspaceCartridgeConfig,
 
+  // Lifecycle enum
+  TemplateLifecycle,
+
   // Cartridges (inject when activated)
   BUSINESS_BROKERING_CARTRIDGE,
   CRM_CONSULTANTS_CARTRIDGE,
