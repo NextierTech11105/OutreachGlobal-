@@ -1,80 +1,74 @@
 import { NextRequest, NextResponse } from "next/server";
-import smsInitial from "@/lib/templates/sms_initial.json";
-import smsGiannaLoop from "@/lib/templates/sms_gianna_loop.json";
-import smsStrategySession from "@/lib/templates/sms_strategy_session.json";
+import {
+  resolveTemplateById,
+  resolveAndRenderTemplate,
+  templateExists,
+} from "@/lib/sms/resolveTemplate";
+
+/**
+ * SMS SEND TEMPLATE API
+ *
+ * CANONICAL template resolution - uses CARTRIDGE_LIBRARY only.
+ * This is the ONLY way to send templated SMS.
+ *
+ * Raw message text is REJECTED - must use templateId.
+ */
 
 const SIGNALHOUSE_API_BASE = "https://api.signalhouse.io/api/v1";
 const SIGNALHOUSE_API_KEY = process.env.SIGNALHOUSE_API_KEY || "";
 const SIGNALHOUSE_FROM_NUMBER = process.env.SIGNALHOUSE_FROM_NUMBER || "";
 
 interface SendTemplateRequest {
-  template_id: string;
+  template_id: string; // REQUIRED - templateId from CARTRIDGE_LIBRARY
+  templateId?: string; // Alias for template_id
   to: string;
   from?: string;
   variables: {
+    name?: string;
     first_name?: string;
+    firstName?: string;
+    lastName?: string;
     company_name?: string;
-    property_address?: string;
+    businessName?: string;
     [key: string]: string | undefined;
   };
   campaign_id?: string;
   lead_id?: string;
+  teamId?: string;
 }
 
-// Get template by ID from all libraries
-function getTemplateById(
-  templateId: string,
-): { message: string; name: string; category: string } | null {
-  // Check initial templates
-  const initial = smsInitial.templates.find((t) => t.id === templateId);
-  if (initial)
-    return {
-      message: initial.message,
-      name: initial.name,
-      category: initial.category,
-    };
-
-  // Check Gianna loop templates
-  const loop = smsGiannaLoop.templates.find((t) => t.id === templateId);
-  if (loop)
-    return { message: loop.message, name: loop.name, category: loop.category };
-
-  // Check strategy session templates
-  const strategy = smsStrategySession.templates.find(
-    (t) => t.id === templateId,
-  );
-  if (strategy)
-    return {
-      message: strategy.message,
-      name: strategy.name,
-      category: strategy.category,
-    };
-
-  return null;
-}
-
-// Replace variables in template
-function replaceVariables(
-  template: string,
-  variables: Record<string, string | undefined>,
-): string {
-  let result = template;
-  for (const [key, value] of Object.entries(variables)) {
-    result = result.replace(new RegExp(`{{${key}}}`, "g"), value || "");
-  }
-  return result;
-}
-
-// POST /api/sms/send-template - Send SMS using a template
+// POST /api/sms/send-template - Send SMS using a template from CARTRIDGE_LIBRARY
 export async function POST(request: NextRequest) {
   try {
     const body: SendTemplateRequest = await request.json();
-    const { template_id, to, from, variables, campaign_id, lead_id } = body;
+    const {
+      template_id,
+      templateId: templateIdAlias,
+      to,
+      from,
+      variables,
+      campaign_id,
+      lead_id,
+      teamId,
+    } = body;
 
-    // Validate required fields
-    if (!template_id || !to) {
+    // Accept either template_id or templateId
+    const templateId = template_id || templateIdAlias;
+
+    // ENFORCEMENT: templateId is REQUIRED
+    if (!templateId) {
       return NextResponse.json(
-        { error: "template_id and to are required" },
+        {
+          error: "templateId is required - raw message text not allowed",
+          code: "TEMPLATE_ID_REQUIRED",
+        },
+        { status: 400 },
+      );
+    }
+
+    if (!to) {
+      return NextResponse.json(
+        { error: "to (phone number) is required" },
         { status: 400 },
       );
     }
@@ -86,24 +80,44 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get template
-    const template = getTemplateById(template_id);
-    if (!template) {
+    // CANONICAL: Resolve template from CARTRIDGE_LIBRARY
+    if (!templateExists(templateId)) {
       return NextResponse.json(
-        { error: `Template not found: ${template_id}` },
+        {
+          error: `Template not found in CARTRIDGE_LIBRARY: ${templateId}`,
+          code: "TEMPLATE_NOT_FOUND",
+          hint: "Use a valid templateId from the Template Library",
+        },
         { status: 404 },
       );
     }
 
-    // Build message with variables
-    const messageText = replaceVariables(template.message, variables);
+    // Normalize variable keys (support both snake_case and camelCase)
+    const normalizedVariables: Record<string, string> = {};
+    for (const [key, value] of Object.entries(variables || {})) {
+      if (value) {
+        normalizedVariables[key] = value;
+        // Add common aliases
+        if (key === "first_name") normalizedVariables["firstName"] = value;
+        if (key === "firstName") normalizedVariables["first_name"] = value;
+        if (key === "company_name") normalizedVariables["businessName"] = value;
+        if (key === "businessName") normalizedVariables["company_name"] = value;
+      }
+    }
+
+    // Resolve and render template with variables
+    const { message: messageText, template, cartridgeId } = resolveAndRenderTemplate(
+      templateId,
+      normalizedVariables,
+    );
 
     // Validate message length for SMS
     if (messageText.length > 320) {
       return NextResponse.json(
         {
-          error: "Message exceeds 320 characters",
+          error: "Rendered message exceeds 320 characters",
           character_count: messageText.length,
+          template_id: templateId,
         },
         { status: 400 },
       );
@@ -135,12 +149,14 @@ export async function POST(request: NextRequest) {
 
     // Log the send for tracking
     console.log("[SMS Send Template]", {
-      template_id,
+      templateId,
       template_name: template.name,
-      category: template.category,
+      cartridgeId,
+      stage: template.stage,
       to,
       campaign_id,
       lead_id,
+      teamId,
       message_id: data.messageId || data.id,
       timestamp: new Date().toISOString(),
     });
@@ -149,9 +165,10 @@ export async function POST(request: NextRequest) {
       success: true,
       message_id: data.messageId || data.id,
       template: {
-        id: template_id,
+        id: templateId,
         name: template.name,
-        category: template.category,
+        stage: template.stage,
+        cartridgeId,
       },
       message_preview: messageText.substring(0, 50) + "...",
       character_count: messageText.length,

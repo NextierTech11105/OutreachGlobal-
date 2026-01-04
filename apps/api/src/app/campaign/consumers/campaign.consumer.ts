@@ -11,6 +11,7 @@ import { campaignLeadsTable, campaignsTable } from "@/database/schema-alias";
 import { CampaignLeadInsert } from "../models/campaign-lead.model";
 import { CampaignService } from "../services/campaign.service";
 import { DeadLetterQueueService } from "@/lib/dlq";
+import { validateTenantJob, logTenantContext } from "@/lib/queue/tenant-queue.util";
 
 @Processor(CAMPAIGN_QUEUE, { concurrency: 5, lockDuration: 30000 })
 export class CampaignConsumer extends WorkerHost {
@@ -23,9 +24,13 @@ export class CampaignConsumer extends WorkerHost {
     super();
   }
 
-  async process(job: Job) {
+  async process(job: Job<SyncLeadCampaign>) {
+    // P0: Validate tenant isolation - reject jobs without valid teamId
+    validateTenantJob(job, CAMPAIGN_QUEUE);
+    logTenantContext(CAMPAIGN_QUEUE, job, "Processing");
+
     if (job.name === CampaignJobs.SYNC_LEAD_CAMPAIGN) {
-      console.log("syncing lead", job.data);
+      this.logger.log(`Syncing lead ${job.data.leadId} for team ${job.data.teamId}`);
       await this.syncLead(job.data);
     }
   }

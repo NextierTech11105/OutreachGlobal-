@@ -2,103 +2,51 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { leads, smsMessages } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import {
+  resolveTemplateById,
+  resolveAndRenderTemplate,
+  templateExists,
+  getAllTemplates,
+} from "@/lib/sms/resolveTemplate";
+import { CARTRIDGE_LIBRARY } from "@/lib/sms/template-cartridges";
 
 /**
  * GIANNA RESPOND API
  *
  * Handles AI-assisted responses to leads:
- * - Pre-template content (calendar links, articles)
+ * - Templates from CARTRIDGE_LIBRARY (CANONICAL source)
  * - Response prioritization
  * - Appointment booking integration
  * - Human-in-the-loop approval workflow
+ *
+ * ENFORCEMENT: Returns templateId - never raw message content.
+ * All template resolution happens at execution time via resolveTemplate.
  */
-
-// Pre-defined response templates
-const TEMPLATES = {
-  appointment: {
-    label: "Book Appointment",
-    content:
-      "I'd love to schedule a time to discuss your property options. Here's my calendar: {calendar_link}",
-    variables: ["calendar_link"],
-  },
-  article_distressed: {
-    label: "Distressed Property Article",
-    content:
-      "I found this helpful article about options for homeowners in challenging situations: {article_link}",
-    variables: ["article_link"],
-    defaultLink:
-      "https://medium.com/@nextier/navigating-distressed-property-options",
-  },
-  article_equity: {
-    label: "Home Equity Article",
-    content:
-      "Here's some valuable information about maximizing your home equity: {article_link}",
-    variables: ["article_link"],
-    defaultLink: "https://medium.com/@nextier/understanding-home-equity",
-  },
-  article_market: {
-    label: "Market Update",
-    content:
-      "Check out our latest market analysis for your area - it has some great insights: {article_link}",
-    variables: ["article_link"],
-    defaultLink: "https://medium.com/@nextier/2025-real-estate-market-update",
-  },
-  article_inheritance: {
-    label: "Inherited Property Article",
-    content:
-      "Dealing with an inherited property can be complex. This article covers your options: {article_link}",
-    variables: ["article_link"],
-    defaultLink: "https://medium.com/@nextier/inherited-property-guide",
-  },
-  article_divorce: {
-    label: "Divorce Property Article",
-    content:
-      "Going through a property division? Here's a guide to help: {article_link}",
-    variables: ["article_link"],
-    defaultLink: "https://medium.com/@nextier/property-division-guide",
-  },
-  followup: {
-    label: "Follow Up",
-    content:
-      "Just following up on our previous conversation. Is now a good time to chat about your property?",
-    variables: [],
-  },
-  callback: {
-    label: "Callback Request",
-    content:
-      "I saw you tried to reach us. I'm available now if you'd like to talk. When works best for you?",
-    variables: [],
-  },
-  thank_you: {
-    label: "Thank You",
-    content:
-      "Thank you for your interest! I'll be in touch soon with more details.",
-    variables: [],
-  },
-};
 
 interface RespondRequest {
   leadId: string;
-  templateKey: string;
-  content?: string; // Override template content
+  templateId: string; // REQUIRED - from CARTRIDGE_LIBRARY
+  templateKey?: string; // DEPRECATED - use templateId
   workspaceId: string;
   variables?: Record<string, string>; // Template variable values
   advisor?: "gianna" | "sabrina";
   requireApproval?: boolean; // Human-in-the-loop
+  teamId?: string;
 }
 
-// POST - Send AI response
+// POST - Send AI response using templateId from CARTRIDGE_LIBRARY
 export async function POST(request: NextRequest) {
   try {
     const body: RespondRequest = await request.json();
     const {
       leadId,
-      templateKey,
-      content,
+      templateId,
+      templateKey, // DEPRECATED
       workspaceId,
       variables = {},
       advisor = "gianna",
       requireApproval,
+      teamId,
     } = body;
 
     if (!leadId) {
@@ -108,12 +56,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get template
-    const template = TEMPLATES[templateKey as keyof typeof TEMPLATES];
-    if (!template && !content) {
+    // ENFORCEMENT: Require templateId from CARTRIDGE_LIBRARY
+    const effectiveTemplateId = templateId || templateKey;
+    if (!effectiveTemplateId) {
       return NextResponse.json(
-        { error: "Valid templateKey or content is required" },
+        {
+          error: "templateId is required - raw message content not allowed",
+          code: "TEMPLATE_ID_REQUIRED",
+          hint: "Use a templateId from CARTRIDGE_LIBRARY (e.g., 'bb-1', 'crm-2')",
+        },
         { status: 400 },
+      );
+    }
+
+    // Validate templateId exists in CARTRIDGE_LIBRARY
+    if (!templateExists(effectiveTemplateId)) {
+      return NextResponse.json(
+        {
+          error: `Template not found in CARTRIDGE_LIBRARY: ${effectiveTemplateId}`,
+          code: "TEMPLATE_NOT_FOUND",
+          availableTemplates: getAllTemplates()
+            .slice(0, 10)
+            .map((t) => ({ id: t.id, name: t.name })),
+        },
+        { status: 404 },
       );
     }
 
@@ -128,54 +94,39 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Lead not found" }, { status: 404 });
     }
 
-    // Build message content
-    let messageContent = content || template?.content || "";
+    // Build variables for template rendering
+    const templateVariables: Record<string, string> = {
+      name: lead.firstName || "there",
+      firstName: lead.firstName || "there",
+      first_name: lead.firstName || "there",
+      lastName: lead.lastName || "",
+      last_name: lead.lastName || "",
+      businessName: lead.company || "",
+      company: lead.company || "",
+      ...variables,
+    };
 
-    // Replace variables
-    if (template) {
-      // Apply default links if not provided
-      if (template.defaultLink && !variables.article_link) {
-        variables.article_link = template.defaultLink;
-      }
-
-      // Generate calendar link if needed
-      if (
-        messageContent.includes("{calendar_link}") &&
-        !variables.calendar_link
-      ) {
-        variables.calendar_link = `https://calendly.com/nextier/${advisor}`;
-      }
-
-      // Replace all variables
-      for (const [key, value] of Object.entries(variables)) {
-        messageContent = messageContent.replace(
-          new RegExp(`\\{${key}\\}`, "g"),
-          value,
-        );
-      }
-    }
-
-    // Personalize with lead name
-    messageContent = messageContent.replace(
-      "{first_name}",
-      lead.firstName || "there",
+    // Resolve and render template
+    const { message: messageContent, template, cartridgeId } = resolveAndRenderTemplate(
+      effectiveTemplateId,
+      templateVariables,
     );
-    messageContent = messageContent.replace("{last_name}", lead.lastName || "");
 
-    // If requires approval, store as pending
+    // If requires approval, store as pending (don't send yet)
     if (requireApproval) {
-      // In production, this would go to an approval queue
       return NextResponse.json({
         success: true,
         status: "pending_approval",
-        message: messageContent,
+        templateId: effectiveTemplateId,
+        templateName: template.name,
+        cartridgeId,
+        messagePreview: messageContent,
         leadId,
         advisor,
-        template: templateKey,
       });
     }
 
-    // Send the message
+    // Send the message via SignalHouse
     const sendingNumber =
       lead.assignedNumber || process.env.SIGNALHOUSE_PHONE_NUMBER;
 
@@ -199,26 +150,31 @@ export async function POST(request: NextRequest) {
     }
 
     // Update lead
-    await db
-      .update(leads)
-      .set({
-        lastContactDate: new Date(),
-        updatedAt: new Date(),
-      })
-      .where(eq(leads.id, leadId));
+    try {
+      await db
+        .update(leads)
+        .set({
+          updatedAt: new Date(),
+        })
+        .where(eq(leads.id, leadId));
+    } catch {
+      console.log("[GiannaRespond] Lead update may have failed, continuing...");
+    }
 
     console.log(
-      `[GiannaRespond] ${advisor} sent ${templateKey} to ${lead.phone}`,
+      `[GiannaRespond] ${advisor} sent templateId=${effectiveTemplateId} to ${lead.phone}`,
     );
 
     return NextResponse.json({
       success: true,
       status: "sent",
       messageId: smsId,
-      message: messageContent,
+      templateId: effectiveTemplateId,
+      templateName: template.name,
+      cartridgeId,
+      messagePreview: messageContent.substring(0, 50) + "...",
       leadId,
       advisor,
-      template: templateKey,
       sentTo: lead.phone,
     });
   } catch (error: unknown) {
@@ -228,27 +184,57 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET - Get available templates
+// GET - Get available templates from CARTRIDGE_LIBRARY
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const category = searchParams.get("category"); // 'articles' | 'actions' | 'all'
+    const cartridgeId = searchParams.get("cartridge");
+    const worker = searchParams.get("worker"); // 'GIANNA' | 'CATHY' | 'SABRINA'
+    const stage = searchParams.get("stage"); // 'initial' | 'followup' | etc.
 
-    let templates = Object.entries(TEMPLATES).map(([key, value]) => ({
-      key,
-      ...value,
-    }));
+    // Get all templates from CARTRIDGE_LIBRARY
+    let templates = getAllTemplates();
 
-    if (category === "articles") {
-      templates = templates.filter((t) => t.key.startsWith("article_"));
-    } else if (category === "actions") {
-      templates = templates.filter((t) => !t.key.startsWith("article_"));
+    // Filter by cartridge if specified
+    if (cartridgeId) {
+      const cartridge = CARTRIDGE_LIBRARY.find((c) => c.id === cartridgeId);
+      if (cartridge) {
+        templates = cartridge.templates;
+      }
     }
+
+    // Filter by worker if specified
+    if (worker) {
+      templates = templates.filter(
+        (t) => t.worker.toUpperCase() === worker.toUpperCase()
+      );
+    }
+
+    // Filter by stage if specified
+    if (stage) {
+      templates = templates.filter((t) => t.stage === stage);
+    }
+
+    // Format response
+    const formattedTemplates = templates.map((t) => ({
+      id: t.id,
+      name: t.name,
+      stage: t.stage,
+      worker: t.worker,
+      tags: t.tags,
+      charCount: t.charCount,
+      variables: t.variables,
+    }));
 
     return NextResponse.json({
       success: true,
-      templates,
-      advisors: ["gianna", "sabrina"],
+      templates: formattedTemplates,
+      cartridges: CARTRIDGE_LIBRARY.map((c) => ({
+        id: c.id,
+        name: c.name,
+        templateCount: c.templates.length,
+      })),
+      advisors: ["gianna", "cathy", "sabrina"],
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Query failed";

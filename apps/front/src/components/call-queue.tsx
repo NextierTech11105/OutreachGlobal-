@@ -33,7 +33,11 @@ interface CallQueueItem {
   avatar?: string;
 }
 
-export function CallQueue() {
+interface CallQueueProps {
+  teamId?: string;
+}
+
+export function CallQueue({ teamId }: CallQueueProps) {
   const [activeTab, setActiveTab] = useState("inbound");
   const [inboundCalls, setInboundCalls] = useState<CallQueueItem[]>([]);
   const [outboundCalls, setOutboundCalls] = useState<CallQueueItem[]>([]);
@@ -44,7 +48,7 @@ export function CallQueue() {
       setLoading(true);
       try {
         // Fetch inbound calls from leads with recent inbound messages
-        const inboundRes = await fetch("/api/leads?status=inbound&limit=10");
+        const inboundRes = await fetch(`/api/leads?status=inbound&limit=10${teamId ? `&teamId=${teamId}` : ""}`);
         if (inboundRes.ok) {
           const data = await inboundRes.json();
           setInboundCalls(
@@ -59,22 +63,24 @@ export function CallQueue() {
           );
         }
 
-        // Fetch outbound calls from scheduled campaigns
-        const outboundRes = await fetch(
-          "/api/call-center/queue?type=outbound&limit=10",
-        );
-        if (outboundRes.ok) {
-          const data = await outboundRes.json();
-          setOutboundCalls(
-            (data.queue || []).map((item: any) => ({
-              id: item.id,
-              name: item.leadName || item.name || "Unknown",
-              phone: item.phone || "",
-              scheduledTime: formatTime(item.scheduledAt),
-              campaign: item.campaignName || "Outreach",
-              avatar: item.avatarUrl,
-            })),
+        // Fetch outbound calls from scheduled campaigns (requires teamId)
+        if (teamId) {
+          const outboundRes = await fetch(
+            `/api/call-center/queue?action=list&status=pending&limit=10&teamId=${teamId}`,
           );
+          if (outboundRes.ok) {
+            const data = await outboundRes.json();
+            setOutboundCalls(
+              (data.items || []).map((item: any) => ({
+                id: item.id,
+                name: item.leadName || item.name || "Unknown",
+                phone: item.phone || "",
+                scheduledTime: formatTime(item.scheduledAt),
+                campaign: item.campaignLane || "Outreach",
+                avatar: item.avatarUrl,
+              })),
+            );
+          }
         }
       } catch (error) {
         console.error("Failed to fetch call queues:", error);
@@ -83,7 +89,7 @@ export function CallQueue() {
       }
     }
     fetchCallQueues();
-  }, []);
+  }, [teamId]);
 
   function getWaitTime(timestamp: string | null): string {
     if (!timestamp) return "0:00";

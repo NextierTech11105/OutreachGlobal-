@@ -92,10 +92,11 @@ export default function CallCenterPage() {
 
   // Fetch inbound captures (AI-captured leads with gold/responded tags)
   const fetchCaptures = useCallback(async () => {
+    if (!teamId) return;
     setCapturesLoading(true);
     try {
       const response = await fetch(
-        "/api/call-center/queue?action=list&status=pending&source=ai_capture&limit=50",
+        `/api/call-center/queue?action=list&status=pending&source=ai_capture&limit=50&teamId=${teamId}`,
       );
       const data = await response.json();
       if (data.success) {
@@ -107,7 +108,7 @@ export default function CallCenterPage() {
     } finally {
       setCapturesLoading(false);
     }
-  }, []);
+  }, [teamId]);
 
   // Auto-refresh captures every 30 seconds
   useEffect(() => {
@@ -134,9 +135,10 @@ export default function CallCenterPage() {
       // Update the lead's campaign lane
       const response = await fetch("/api/call-center/queue", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-team-id": teamId },
         body: JSON.stringify({
           action: "add_single",
+          teamId,
           leadId: capture.leadId,
           leadName: capture.leadName,
           phone: capture.phone,
@@ -170,9 +172,10 @@ export default function CallCenterPage() {
     try {
       const response = await fetch("/api/call-center/queue", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-team-id": teamId },
         body: JSON.stringify({
           action: "complete_call",
+          teamId,
           callId: capture.id,
           outcome: "skipped",
         }),

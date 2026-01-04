@@ -1,5 +1,23 @@
 /**
- * SMS Campaign Template Library
+ * ⚠️ DEPRECATED — use template-cartridges.ts
+ * ═══════════════════════════════════════════════════════════════════════════════
+ *
+ * This file is DEPRECATED and should NOT be used for new templates.
+ * The CANONICAL source for all SMS templates is:
+ *
+ *   → apps/front/src/lib/sms/template-cartridges.ts
+ *
+ * Use resolveTemplate.ts to resolve templates at runtime.
+ *
+ * MIGRATION STATUS:
+ * - All templates have been migrated to template-cartridges.ts
+ * - This file is kept for backwards compatibility during transition
+ * - DO NOT add new templates here
+ * - DO NOT modify existing templates here
+ *
+ * ═══════════════════════════════════════════════════════════════════════════════
+ *
+ * LEGACY: SMS Campaign Template Library
  *
  * INBOUND RESPONSE GENERATION MACHINE
  * Each stage = Different phone number + Campaign ID

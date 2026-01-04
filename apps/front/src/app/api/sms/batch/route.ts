@@ -3,6 +3,11 @@ import { db } from "@/lib/db";
 import { leads, smsMessages } from "@/lib/db/schema";
 import { inArray, eq } from "drizzle-orm";
 import { sendSMS, isConfigured } from "@/lib/signalhouse/client";
+import {
+  resolveAndRenderTemplate,
+  templateExists,
+  isRawMessage,
+} from "@/lib/sms/resolveTemplate";
 
 /**
  * SMS BATCH API
@@ -12,6 +17,9 @@ import { sendSMS, isConfigured } from "@/lib/signalhouse/client";
  * - Max 2,000 per campaign block
  * - Auto-pause at limits
  * - Assigns Gianna/Sabrina to sender number for response handling
+ *
+ * ENFORCEMENT: Requires templateId from CARTRIDGE_LIBRARY.
+ * Raw message text is deprecated and will be rejected.
  */
 
 const BATCH_SIZE = 250;
@@ -22,8 +30,8 @@ interface BatchRequest {
   campaignId?: string;
   workspaceId: string;
   batchNumber: number;
-  templateId?: string;
-  message?: string;
+  templateId?: string; // REQUIRED - from CARTRIDGE_LIBRARY
+  message?: string; // DEPRECATED - will be rejected if looks like raw message
   assignedAdvisor?: "gianna" | "sabrina"; // AI advisor for responses
 }
 
@@ -62,6 +70,38 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "leadIds array is required" },
         { status: 400 },
+      );
+    }
+
+    // ENFORCEMENT: Require templateId or reject raw messages
+    if (!templateId && message) {
+      // Check if message looks like a raw message (not a templateId)
+      if (isRawMessage(message)) {
+        return NextResponse.json(
+          {
+            error: "Raw message text is not allowed. Use templateId from CARTRIDGE_LIBRARY.",
+            code: "RAW_MESSAGE_REJECTED",
+            hint: "Pass templateId instead of message. Templates are in /lib/sms/template-cartridges.ts",
+          },
+          { status: 400 },
+        );
+      }
+      // If message looks like a templateId, treat it as such
+      // This provides backwards compatibility for old callers
+    }
+
+    // Determine the effective templateId
+    const effectiveTemplateId = templateId || (message && !isRawMessage(message) ? message : null);
+
+    // Validate templateId exists in CARTRIDGE_LIBRARY
+    if (effectiveTemplateId && !templateExists(effectiveTemplateId)) {
+      return NextResponse.json(
+        {
+          error: `Template not found in CARTRIDGE_LIBRARY: ${effectiveTemplateId}`,
+          code: "TEMPLATE_NOT_FOUND",
+          hint: "Use a valid templateId from the Template Library",
+        },
+        { status: 404 },
       );
     }
 
@@ -116,14 +156,26 @@ export async function POST(request: NextRequest) {
     // Process each lead - SEND REAL SMS via SignalHouse
     for (const lead of validLeads) {
       try {
-        // Fill template with lead data
-        const personalizedMessage = (
-          message ||
-          `Hi ${lead.firstName}, this is your advisor reaching out...`
-        )
-          .replace(/{firstName}/g, lead.firstName || "")
-          .replace(/{lastName}/g, lead.lastName || "")
-          .replace(/{companyName}/g, lead.firstName || ""); // fallback for company
+        let personalizedMessage: string;
+
+        // If we have a templateId, use resolveAndRenderTemplate
+        if (effectiveTemplateId) {
+          const variables: Record<string, string> = {
+            name: lead.firstName || "there",
+            firstName: lead.firstName || "",
+            first_name: lead.firstName || "",
+            lastName: lead.lastName || "",
+            last_name: lead.lastName || "",
+            businessName: lead.firstName || "", // fallback for company
+            company: lead.firstName || "",
+          };
+
+          const resolved = resolveAndRenderTemplate(effectiveTemplateId, variables);
+          personalizedMessage = resolved.message;
+        } else {
+          // Fallback for when no template is provided (shouldn't happen with enforcement)
+          personalizedMessage = `Hi ${lead.firstName || "there"}, this is your advisor reaching out...`;
+        }
 
         // SEND SMS via SignalHouse API
         const smsResult = await sendSMS({

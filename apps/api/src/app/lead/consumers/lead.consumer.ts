@@ -13,6 +13,7 @@ import { LeadFilterService } from "../services/lead-filter.service";
 import { generateUlid } from "@/database/columns/ulid";
 import { leadsTable } from "@/database/schema-alias";
 import { DeadLetterQueueService } from "@/lib/dlq";
+import { validateTenantJob, logTenantContext } from "@/lib/queue/tenant-queue.util";
 
 interface ImportBusinessListData {
   presetId?: string;
@@ -36,7 +37,11 @@ export class LeadConsumer extends WorkerHost {
     super();
   }
 
-  async process(job: Job): Promise<any> {
+  async process(job: Job<ImportBusinessListData>): Promise<any> {
+    // P0: Validate tenant isolation - reject jobs without valid teamId
+    validateTenantJob(job, LEAD_QUEUE);
+    logTenantContext(LEAD_QUEUE, job, "Processing");
+
     if (job.name === "IMPORT_BUSINESS_LIST") {
       await this.importBusinessList(job.data);
     }

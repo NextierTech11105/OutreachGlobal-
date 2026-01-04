@@ -9,49 +9,24 @@ import {
   Loader2,
   CheckCircle2,
   AlertCircle,
-  Wand2,
+  Library,
+  Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { toast } from "sonner";
+import { TemplateLibraryDialog } from "@/components/sms/template-library";
+import type { SMSTemplate } from "@/lib/sms/campaign-templates";
+import { replaceVariables } from "@/lib/sms/campaign-templates";
 
 /**
  * INITIAL MESSAGE WORKSPACE - GIANNA AI
  *
  * Send first outreach messages to new leads.
- * Fetches REAL leads from the database - no mock data.
+ * ENFORCES templateId-only - no raw message editing allowed.
+ * Templates are selected from the canonical Template Library.
  */
-
-// Message templates
-const TEMPLATES = [
-  {
-    id: "valuation",
-    name: "Property Valuation",
-    template:
-      "Hi {firstName}, I put together a quick valuation report for your property. What's the best email to send it to?",
-  },
-  {
-    id: "blueprint",
-    name: "AI Blueprint",
-    template:
-      "Hey {firstName}! I've been helping companies with AI automation. Got a blueprint that saves 10+ hrs/week. Best email to send it?",
-  },
-  {
-    id: "check_in",
-    name: "Simple Check-In",
-    template:
-      "Hi {firstName}, this is Gianna - wanted to quickly reach out about your property. Got a minute to chat?",
-  },
-];
 
 interface InitialLead {
   id: string;
@@ -71,9 +46,9 @@ export default function InitialMessageWorkspacePage() {
   const [leads, setLeads] = useState<InitialLead[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedLead, setSelectedLead] = useState<InitialLead | null>(null);
-  const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState(TEMPLATES[0].id);
+  // ENFORCED: Template from library only - no raw message editing
+  const [selectedTemplate, setSelectedTemplate] = useState<SMSTemplate | null>(null);
 
   // Fetch new leads that need initial outreach
   useEffect(() => {
@@ -111,19 +86,37 @@ export default function InitialMessageWorkspacePage() {
     fetchLeads();
   }, [teamId]);
 
-  // Generate message from template
-  const generateMessage = (lead: InitialLead, templateId: string) => {
-    const template = TEMPLATES.find((t) => t.id === templateId);
+  // Generate preview message from template (read-only display)
+  const getMessagePreview = (lead: InitialLead, template: SMSTemplate | null): string => {
     if (!template) return "";
 
-    const firstName = lead.firstName || "there";
-    return template.template.replace(/{firstName}/g, firstName);
+    // Build variables map from lead data
+    const variables: Record<string, string> = {
+      name: lead.firstName || "there",
+      first_name: lead.firstName || "there",
+      firstName: lead.firstName || "there",
+      last_name: lead.lastName || "",
+      lastName: lead.lastName || "",
+      business_name: lead.company || "",
+      businessName: lead.company || "",
+      company: lead.company || "",
+      sender_name: "Gianna",
+      senderName: "Gianna",
+    };
+
+    return replaceVariables(template.message, variables);
   };
 
-  // Send initial message
+  // Send initial message - ENFORCES templateId
   const handleSendMessage = async () => {
-    if (!selectedLead || !message.trim()) {
-      toast.error("Select a lead and enter a message");
+    if (!selectedLead) {
+      toast.error("Select a lead first");
+      return;
+    }
+
+    // ENFORCEMENT: Must have templateId - no raw message allowed
+    if (!selectedTemplate) {
+      toast.error("Select a template from the library");
       return;
     }
 
@@ -134,7 +127,16 @@ export default function InitialMessageWorkspacePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           to: selectedLead.phone,
-          message: message.trim(),
+          // CRITICAL: Send templateId, not raw message
+          templateId: selectedTemplate.id,
+          // Variables for server-side template rendering
+          variables: {
+            name: selectedLead.firstName || "there",
+            firstName: selectedLead.firstName || "there",
+            lastName: selectedLead.lastName || "",
+            company: selectedLead.company || "",
+            businessName: selectedLead.company || "",
+          },
           leadId: selectedLead.id,
           worker: "gianna",
           teamId,
@@ -160,7 +162,7 @@ export default function InitialMessageWorkspacePage() {
 
         setLeads((prev) => prev.filter((l) => l.id !== selectedLead.id));
         setSelectedLead(null);
-        setMessage("");
+        setSelectedTemplate(null);
       } else {
         toast.error(data.error || "Failed to send SMS");
       }
@@ -174,21 +176,17 @@ export default function InitialMessageWorkspacePage() {
 
   const handleSelectLead = (lead: InitialLead) => {
     setSelectedLead(lead);
-    setMessage(generateMessage(lead, selectedTemplate));
   };
 
-  const handleTemplateChange = (templateId: string) => {
-    setSelectedTemplate(templateId);
-    if (selectedLead) {
-      setMessage(generateMessage(selectedLead, templateId));
-    }
+  const handleTemplateSelect = (template: SMSTemplate) => {
+    setSelectedTemplate(template);
   };
 
   const handleSkip = () => {
     if (selectedLead) {
       setLeads((prev) => prev.filter((l) => l.id !== selectedLead.id));
       setSelectedLead(null);
-      setMessage("");
+      setSelectedTemplate(null);
       toast.info("Lead skipped");
     }
   };
@@ -291,40 +289,61 @@ export default function InitialMessageWorkspacePage() {
                     )}
                   </div>
 
-                  {/* Template Selection */}
+                  {/* Template Selection - FROM LIBRARY ONLY */}
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Template</label>
-                    <Select
-                      value={selectedTemplate}
-                      onValueChange={handleTemplateChange}
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm font-medium">Template</label>
+                      <Badge variant="outline" className="text-xs gap-1">
+                        <Lock className="h-3 w-3" />
+                        Library Only
+                      </Badge>
+                    </div>
+                    <TemplateLibraryDialog
+                      onSelectTemplate={handleTemplateSelect}
+                      selectedTemplateId={selectedTemplate?.id}
                     >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {TEMPLATES.map((t) => (
-                          <SelectItem key={t.id} value={t.id}>
-                            {t.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start h-auto py-3"
+                      >
+                        <Library className="h-4 w-4 mr-2 shrink-0" />
+                        {selectedTemplate ? (
+                          <div className="text-left">
+                            <div className="font-medium">{selectedTemplate.name}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {selectedTemplate.charCount} chars
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">
+                            Choose from Template Library...
+                          </span>
+                        )}
+                      </Button>
+                    </TemplateLibraryDialog>
                   </div>
 
-                  {/* Message Input */}
-                  <Textarea
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    placeholder="Enter your message..."
-                    rows={4}
-                  />
+                  {/* Message Preview - READ ONLY */}
+                  {selectedTemplate && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <label className="text-sm font-medium">Preview</label>
+                        <Badge variant="secondary" className="text-xs">
+                          Read Only
+                        </Badge>
+                      </div>
+                      <div className="p-3 bg-muted rounded-lg border text-sm leading-relaxed">
+                        {getMessagePreview(selectedLead, selectedTemplate)}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Actions */}
                   <div className="flex gap-2">
                     <Button
                       className="flex-1 bg-blue-600 hover:bg-blue-700"
                       onClick={handleSendMessage}
-                      disabled={sending || !message.trim()}
+                      disabled={sending || !selectedTemplate}
                     >
                       {sending ? (
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />

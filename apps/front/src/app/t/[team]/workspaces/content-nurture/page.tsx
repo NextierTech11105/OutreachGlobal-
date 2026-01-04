@@ -9,53 +9,26 @@ import {
   CheckCircle2,
   AlertCircle,
   Lightbulb,
+  Library,
+  Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { toast } from "sonner";
+import { TemplateLibraryDialog } from "@/components/sms/template-library";
+import type { SMSTemplate } from "@/lib/sms/campaign-templates";
+import { replaceVariables } from "@/lib/sms/campaign-templates";
 
 /**
  * CONTENT NURTURE WORKSPACE - GIANNA AI
  *
  * Drip "Did You Know" content to leads in nurture mode.
  * Industry insights, articles, valuable content.
+ *
+ * ENFORCES templateId-only - no raw message editing allowed.
+ * Templates are selected from the canonical Template Library.
  */
-
-const CONTENT_TEMPLATES = [
-  {
-    id: "did_you_know",
-    name: "Did You Know?",
-    template:
-      "Hey {firstName}! Did you know that {factTopic}? Thought you might find this interesting. Want me to send you more info?",
-  },
-  {
-    id: "industry_news",
-    name: "Industry News",
-    template:
-      "Hi {firstName}, just saw some news about {industry} that made me think of you. Quick question - are you still interested in {topic}?",
-  },
-  {
-    id: "value_article",
-    name: "Valuable Article",
-    template:
-      "Hey {firstName}! Found this great article about {topic}. Best email to send it to?",
-  },
-  {
-    id: "check_in",
-    name: "Soft Check-In",
-    template:
-      "Hi {firstName}, hope you're doing well! Just checking in - anything I can help with?",
-  },
-];
 
 interface NurtureLead {
   id: string;
@@ -70,16 +43,14 @@ interface NurtureLead {
 
 export default function ContentNurtureWorkspacePage() {
   const params = useParams();
-  const teamId = params.team as string;
+  const teamId = (params?.team as string) || "";
 
   const [leads, setLeads] = useState<NurtureLead[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedLead, setSelectedLead] = useState<NurtureLead | null>(null);
-  const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState(
-    CONTENT_TEMPLATES[0].id,
-  );
+  // ENFORCED: Template from library only - no raw message editing
+  const [selectedTemplate, setSelectedTemplate] = useState<SMSTemplate | null>(null);
 
   // Fetch leads in nurture status
   useEffect(() => {
@@ -117,21 +88,37 @@ export default function ContentNurtureWorkspacePage() {
     fetchLeads();
   }, [teamId]);
 
-  const generateMessage = (lead: NurtureLead, templateId: string) => {
-    const template = CONTENT_TEMPLATES.find((t) => t.id === templateId);
+  // Generate preview message from template (read-only display)
+  const getMessagePreview = (lead: NurtureLead, template: SMSTemplate | null): string => {
     if (!template) return "";
 
-    const firstName = lead.firstName || "there";
-    return template.template
-      .replace(/{firstName}/g, firstName)
-      .replace(/{factTopic}/g, "[industry insight]")
-      .replace(/{industry}/g, "[their industry]")
-      .replace(/{topic}/g, "[relevant topic]");
+    // Build variables map from lead data
+    const variables: Record<string, string> = {
+      name: lead.firstName || "there",
+      first_name: lead.firstName || "there",
+      firstName: lead.firstName || "there",
+      last_name: lead.lastName || "",
+      lastName: lead.lastName || "",
+      business_name: lead.company || "",
+      businessName: lead.company || "",
+      company: lead.company || "",
+      sender_name: "Gianna",
+      senderName: "Gianna",
+    };
+
+    return replaceVariables(template.message, variables);
   };
 
+  // Send nurture message - ENFORCES templateId
   const handleSendMessage = async () => {
-    if (!selectedLead || !message.trim()) {
-      toast.error("Select a lead and enter a message");
+    if (!selectedLead) {
+      toast.error("Select a lead first");
+      return;
+    }
+
+    // ENFORCEMENT: Must have templateId - no raw message allowed
+    if (!selectedTemplate) {
+      toast.error("Select a template from the library");
       return;
     }
 
@@ -142,7 +129,16 @@ export default function ContentNurtureWorkspacePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           to: selectedLead.phone,
-          message: message.trim(),
+          // CRITICAL: Send templateId, not raw message
+          templateId: selectedTemplate.id,
+          // Variables for server-side template rendering
+          variables: {
+            name: selectedLead.firstName || "there",
+            firstName: selectedLead.firstName || "there",
+            lastName: selectedLead.lastName || "",
+            company: selectedLead.company || "",
+            businessName: selectedLead.company || "",
+          },
           leadId: selectedLead.id,
           worker: "gianna",
           context: "nurture",
@@ -158,7 +154,7 @@ export default function ContentNurtureWorkspacePage() {
         );
         setLeads((prev) => prev.filter((l) => l.id !== selectedLead.id));
         setSelectedLead(null);
-        setMessage("");
+        setSelectedTemplate(null);
       } else {
         toast.error(data.error || "Failed to send");
       }
@@ -172,14 +168,10 @@ export default function ContentNurtureWorkspacePage() {
 
   const handleSelectLead = (lead: NurtureLead) => {
     setSelectedLead(lead);
-    setMessage(generateMessage(lead, selectedTemplate));
   };
 
-  const handleTemplateChange = (templateId: string) => {
-    setSelectedTemplate(templateId);
-    if (selectedLead) {
-      setMessage(generateMessage(selectedLead, templateId));
-    }
+  const handleTemplateSelect = (template: SMSTemplate) => {
+    setSelectedTemplate(template);
   };
 
   if (loading) {
@@ -266,39 +258,60 @@ export default function ContentNurtureWorkspacePage() {
             <CardContent>
               {selectedLead ? (
                 <div className="space-y-4">
+                  {/* Template Selection - FROM LIBRARY ONLY */}
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">
-                      Content Template
-                    </label>
-                    <Select
-                      value={selectedTemplate}
-                      onValueChange={handleTemplateChange}
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm font-medium">Template</label>
+                      <Badge variant="outline" className="text-xs gap-1">
+                        <Lock className="h-3 w-3" />
+                        Library Only
+                      </Badge>
+                    </div>
+                    <TemplateLibraryDialog
+                      onSelectTemplate={handleTemplateSelect}
+                      selectedTemplateId={selectedTemplate?.id}
                     >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {CONTENT_TEMPLATES.map((t) => (
-                          <SelectItem key={t.id} value={t.id}>
-                            {t.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start h-auto py-3"
+                      >
+                        <Library className="h-4 w-4 mr-2 shrink-0" />
+                        {selectedTemplate ? (
+                          <div className="text-left">
+                            <div className="font-medium">{selectedTemplate.name}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {selectedTemplate.charCount} chars
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">
+                            Choose from Template Library...
+                          </span>
+                        )}
+                      </Button>
+                    </TemplateLibraryDialog>
                   </div>
 
-                  <Textarea
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    placeholder="Customize your content message..."
-                    rows={4}
-                  />
+                  {/* Message Preview - READ ONLY */}
+                  {selectedTemplate && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <label className="text-sm font-medium">Preview</label>
+                        <Badge variant="secondary" className="text-xs">
+                          Read Only
+                        </Badge>
+                      </div>
+                      <div className="p-3 bg-muted rounded-lg border text-sm leading-relaxed">
+                        {getMessagePreview(selectedLead, selectedTemplate)}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="flex gap-2">
                     <Button
                       className="flex-1 bg-cyan-600 hover:bg-cyan-700"
                       onClick={handleSendMessage}
-                      disabled={sending || !message.trim()}
+                      disabled={sending || !selectedTemplate}
                     >
                       {sending ? (
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
