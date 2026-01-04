@@ -18,6 +18,9 @@ import { SyncLeadCampaignHandler } from "./commands/handlers/sync-lead-campaign.
 import { CampaignConsumer } from "./consumers/campaign.consumer";
 import { CampaignLeadResolver } from "./resolvers/campaign-lead.resolver";
 import { CampaignExecutionResolver } from "./resolvers/campaign-execution.resolver";
+import { CampaignBlockResolver } from "./resolvers/campaign-block.resolver";
+import { TemplatePerformanceResolver } from "./resolvers/template-performance.resolver";
+import { AutoTriggerResolver } from "./resolvers/auto-trigger.resolver";
 
 @CustomModule({
   imports: [
@@ -45,6 +48,9 @@ import { CampaignExecutionResolver } from "./resolvers/campaign-execution.resolv
     CampaignResolver,
     CampaignLeadResolver,
     CampaignExecutionResolver,
+    CampaignBlockResolver,
+    TemplatePerformanceResolver,
+    AutoTriggerResolver,
   ],
   providers: [CampaignService],
   consumers: [CampaignSequenceConsumer, CampaignConsumer],

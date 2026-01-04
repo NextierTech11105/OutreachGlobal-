@@ -18,6 +18,10 @@ import {
   Upload,
   Search,
   Calendar,
+  Zap,
+  Clock,
+  Timer,
+  Target,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,6 +43,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { TeamSection } from "@/features/team/layouts/team-section";
 import { TeamHeader } from "@/features/team/layouts/team-header";
 import { TeamTitle } from "@/features/team/layouts/team-title";
@@ -46,16 +51,43 @@ import { useCurrentTeam } from "@/features/team/team.context";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-type Step = 1 | 2 | 3 | 4;
+type Step = 1 | 2 | 3 | 4 | 5;
 type LeadSource = "luci_bucket" | "csv_import" | "saved_search";
 type WorkerId = "gianna" | "cathy" | "sabrina";
+type ExecutionMode = "blast" | "scheduled" | "auto";
+type ScheduleType = "specific" | "optimal" | "spread";
 
 const STEPS = [
   { id: 1, name: "Select Leads", icon: Users },
   { id: 2, name: "Choose Worker", icon: Sparkles },
-  { id: 3, name: "Configure", icon: Settings },
-  { id: 4, name: "Launch", icon: Rocket },
+  { id: 3, name: "Execution Mode", icon: Zap },
+  { id: 4, name: "Configure", icon: Settings },
+  { id: 5, name: "Launch", icon: Rocket },
 ];
+
+const EXECUTION_MODES = {
+  blast: {
+    name: "Blast",
+    description: "Send messages immediately in batches. Best for time-sensitive campaigns.",
+    icon: Zap,
+    color: "from-amber-500 to-orange-600",
+    badge: "Immediate",
+  },
+  scheduled: {
+    name: "Scheduled",
+    description: "Schedule messages for specific times or optimal sending windows.",
+    icon: Calendar,
+    color: "from-blue-500 to-cyan-600",
+    badge: "Timed",
+  },
+  auto: {
+    name: "Auto-Trigger",
+    description: "Automatically send based on lead behavior and events.",
+    icon: Target,
+    color: "from-purple-500 to-pink-600",
+    badge: "Event-driven",
+  },
+};
 
 const WORKERS = {
   gianna: {
@@ -104,6 +136,11 @@ export default function CampaignLaunchWizardPage() {
   const [leadSource, setLeadSource] = useState<LeadSource>("luci_bucket");
   const [selectedBucket, setSelectedBucket] = useState("");
   const [selectedWorker, setSelectedWorker] = useState<WorkerId | "">("");
+  const [executionMode, setExecutionMode] = useState<ExecutionMode | "">("");
+  const [scheduleType, setScheduleType] = useState<ScheduleType>("optimal");
+  const [scheduledTime, setScheduledTime] = useState("");
+  const [spreadStartTime, setSpreadStartTime] = useState("09:00");
+  const [spreadEndTime, setSpreadEndTime] = useState("17:00");
   const [campaignName, setCampaignName] = useState("");
   const [dailyLimit, setDailyLimit] = useState("250");
   const [messageTemplate, setMessageTemplate] = useState(
@@ -118,8 +155,12 @@ export default function CampaignLaunchWizardPage() {
       case 2:
         return !!selectedWorker;
       case 3:
-        return !!campaignName && !!dailyLimit && !!messageTemplate;
+        if (!executionMode) return false;
+        if (executionMode === "scheduled" && scheduleType === "specific" && !scheduledTime) return false;
+        return true;
       case 4:
+        return !!campaignName && !!dailyLimit && !!messageTemplate;
+      case 5:
         return true;
       default:
         return false;
@@ -127,7 +168,14 @@ export default function CampaignLaunchWizardPage() {
   };
 
   const handleNext = () => {
-    if (currentStep < 4 && canProceed()) {
+    // Auto mode redirects to triggers page
+    if (currentStep === 3 && executionMode === "auto") {
+      toast.info("Redirecting to Auto-Trigger configuration...");
+      router.push(`/t/${team.slug}/campaigns/triggers`);
+      return;
+    }
+
+    if (currentStep < 5 && canProceed()) {
       setCurrentStep((currentStep + 1) as Step);
     }
   };
@@ -141,7 +189,7 @@ export default function CampaignLaunchWizardPage() {
   const handleLaunch = async () => {
     setLaunching(true);
     try {
-      // TODO: Call campaign creation API
+      // TODO: Call campaign creation API with execution mode
       await new Promise((r) => setTimeout(r, 1500));
 
       toast.success("Campaign launched successfully!");
@@ -155,6 +203,7 @@ export default function CampaignLaunchWizardPage() {
 
   const selectedBucketData = LUCI_BUCKETS.find((b) => b.id === selectedBucket);
   const selectedWorkerData = selectedWorker ? WORKERS[selectedWorker] : null;
+  const selectedModeData = executionMode ? EXECUTION_MODES[executionMode] : null;
 
   return (
     <TeamSection className="h-full flex flex-col">
@@ -205,7 +254,7 @@ export default function CampaignLaunchWizardPage() {
                 {index < STEPS.length - 1 && (
                   <div
                     className={cn(
-                      "w-16 h-0.5 mx-4",
+                      "w-12 h-0.5 mx-3",
                       isCompleted ? "bg-green-500" : "bg-zinc-700",
                     )}
                   />
@@ -331,8 +380,161 @@ export default function CampaignLaunchWizardPage() {
             </Card>
           )}
 
-          {/* Step 3: Configure */}
+          {/* Step 3: Execution Mode */}
           {currentStep === 3 && (
+            <Card className="bg-zinc-900 border-zinc-800">
+              <CardHeader>
+                <CardTitle>Choose Execution Mode</CardTitle>
+                <CardDescription>
+                  How should messages be sent?
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {(Object.keys(EXECUTION_MODES) as ExecutionMode[]).map((modeId) => {
+                  const mode = EXECUTION_MODES[modeId];
+                  const Icon = mode.icon;
+                  return (
+                    <button
+                      key={modeId}
+                      onClick={() => setExecutionMode(modeId)}
+                      className={cn(
+                        "w-full p-4 rounded-lg border text-left transition-colors flex items-center gap-4",
+                        executionMode === modeId
+                          ? "border-purple-500 bg-purple-500/10"
+                          : "border-zinc-700 hover:border-zinc-600",
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          "w-12 h-12 rounded-full flex items-center justify-center text-white bg-gradient-to-br",
+                          mode.color,
+                        )}
+                      >
+                        <Icon className="w-6 h-6" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium">{mode.name}</p>
+                          <Badge variant="secondary" className="text-xs">
+                            {mode.badge}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-zinc-400 mt-1">
+                          {mode.description}
+                        </p>
+                      </div>
+                      {executionMode === modeId && (
+                        <CheckCircle className="w-5 h-5 text-purple-400" />
+                      )}
+                    </button>
+                  );
+                })}
+
+                {/* Scheduled Mode Options */}
+                {executionMode === "scheduled" && (
+                  <div className="mt-6 p-4 bg-zinc-800 rounded-lg space-y-4">
+                    <Label className="text-sm font-medium">Schedule Type</Label>
+                    <div className="grid grid-cols-3 gap-2">
+                      <button
+                        onClick={() => setScheduleType("specific")}
+                        className={cn(
+                          "p-3 rounded-lg border text-center transition-colors",
+                          scheduleType === "specific"
+                            ? "border-blue-500 bg-blue-500/10"
+                            : "border-zinc-700 hover:border-zinc-600",
+                        )}
+                      >
+                        <Clock className="w-5 h-5 mx-auto mb-1 text-zinc-400" />
+                        <p className="text-xs font-medium">Specific Time</p>
+                      </button>
+                      <button
+                        onClick={() => setScheduleType("optimal")}
+                        className={cn(
+                          "p-3 rounded-lg border text-center transition-colors",
+                          scheduleType === "optimal"
+                            ? "border-blue-500 bg-blue-500/10"
+                            : "border-zinc-700 hover:border-zinc-600",
+                        )}
+                      >
+                        <Sparkles className="w-5 h-5 mx-auto mb-1 text-zinc-400" />
+                        <p className="text-xs font-medium">Optimal (AI)</p>
+                      </button>
+                      <button
+                        onClick={() => setScheduleType("spread")}
+                        className={cn(
+                          "p-3 rounded-lg border text-center transition-colors",
+                          scheduleType === "spread"
+                            ? "border-blue-500 bg-blue-500/10"
+                            : "border-zinc-700 hover:border-zinc-600",
+                        )}
+                      >
+                        <Timer className="w-5 h-5 mx-auto mb-1 text-zinc-400" />
+                        <p className="text-xs font-medium">Spread Across</p>
+                      </button>
+                    </div>
+
+                    {scheduleType === "specific" && (
+                      <div className="space-y-2">
+                        <Label>Send At</Label>
+                        <Input
+                          type="datetime-local"
+                          value={scheduledTime}
+                          onChange={(e) => setScheduledTime(e.target.value)}
+                          className="bg-zinc-900 border-zinc-700"
+                        />
+                      </div>
+                    )}
+
+                    {scheduleType === "optimal" && (
+                      <div className="p-3 bg-zinc-900 rounded-lg">
+                        <p className="text-sm text-zinc-400">
+                          AI will analyze recipient time zones and engagement patterns to send at optimal times for each lead.
+                        </p>
+                      </div>
+                    )}
+
+                    {scheduleType === "spread" && (
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                          <Label>Start Time</Label>
+                          <Input
+                            type="time"
+                            value={spreadStartTime}
+                            onChange={(e) => setSpreadStartTime(e.target.value)}
+                            className="bg-zinc-900 border-zinc-700"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>End Time</Label>
+                          <Input
+                            type="time"
+                            value={spreadEndTime}
+                            onChange={(e) => setSpreadEndTime(e.target.value)}
+                            className="bg-zinc-900 border-zinc-700"
+                          />
+                        </div>
+                        <p className="col-span-2 text-xs text-zinc-500">
+                          Messages will be evenly distributed between these hours
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Auto Mode Notice */}
+                {executionMode === "auto" && (
+                  <div className="mt-6 p-4 bg-purple-500/10 border border-purple-500/20 rounded-lg">
+                    <p className="text-sm text-purple-300">
+                      Auto-trigger mode requires event configuration. Click "Next" to set up your triggers.
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Step 4: Configure */}
+          {currentStep === 4 && (
             <Card className="bg-zinc-900 border-zinc-800">
               <CardHeader>
                 <CardTitle>Configure Campaign</CardTitle>
@@ -394,8 +596,8 @@ export default function CampaignLaunchWizardPage() {
             </Card>
           )}
 
-          {/* Step 4: Preview & Launch */}
-          {currentStep === 4 && (
+          {/* Step 5: Preview & Launch */}
+          {currentStep === 5 && (
             <Card className="bg-zinc-900 border-zinc-800">
               <CardHeader>
                 <CardTitle>Review & Launch</CardTitle>
@@ -430,6 +632,25 @@ export default function CampaignLaunchWizardPage() {
                     </span>
                   </div>
                   <div className="flex justify-between py-2 border-b border-zinc-800">
+                    <span className="text-zinc-400">Execution Mode</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{selectedModeData?.name}</span>
+                      <Badge variant="secondary" className="text-xs">
+                        {selectedModeData?.badge}
+                      </Badge>
+                    </div>
+                  </div>
+                  {executionMode === "scheduled" && (
+                    <div className="flex justify-between py-2 border-b border-zinc-800">
+                      <span className="text-zinc-400">Schedule</span>
+                      <span className="font-medium">
+                        {scheduleType === "specific" && scheduledTime}
+                        {scheduleType === "optimal" && "AI Optimal Timing"}
+                        {scheduleType === "spread" && `${spreadStartTime} - ${spreadEndTime}`}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex justify-between py-2 border-b border-zinc-800">
                     <span className="text-zinc-400">Daily Limit</span>
                     <span className="font-medium">{dailyLimit} messages</span>
                   </div>
@@ -462,14 +683,23 @@ export default function CampaignLaunchWizardPage() {
               Back
             </Button>
 
-            {currentStep < 4 ? (
+            {currentStep < 5 ? (
               <Button
                 onClick={handleNext}
                 disabled={!canProceed()}
                 className="bg-purple-600 hover:bg-purple-700"
               >
-                Next
-                <ArrowRight className="w-4 h-4 ml-2" />
+                {currentStep === 3 && executionMode === "auto" ? (
+                  <>
+                    Configure Triggers
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </>
+                ) : (
+                  <>
+                    Next
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </>
+                )}
               </Button>
             ) : (
               <Button

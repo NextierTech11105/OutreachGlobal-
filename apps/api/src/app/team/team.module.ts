@@ -16,6 +16,7 @@ import { SendgridService } from "./services/sendgrid.service";
 import { TwilioModule } from "@/lib/twilio/twilio.module";
 import { TwilioPhoneResolver } from "./resolvers/twilio-phone.resolver";
 import { BusinessListSettingsResolver } from "./resolvers/business-list-settings.resolver";
+import { SignalHouseSettingsResolver } from "./resolvers/signalhouse-settings.resolver";
 
 @CustomModule({
   imports: [CacheModule, ConfigModule, MailModule, UserModule, TwilioModule],
@@ -34,6 +35,7 @@ import { BusinessListSettingsResolver } from "./resolvers/business-list-settings
     TwilioSettingsResolver,
     TwilioPhoneResolver,
     BusinessListSettingsResolver,
+    SignalHouseSettingsResolver,
   ],
   exports: [TeamService, TeamPolicy, SendgridService, TeamSettingService],
 })

@@ -72,3 +72,7 @@ export * from "./canonical-lead-state.schema";
 export * from "./ml-feature-snapshots.schema";
 export * from "./ml-predictions.schema";
 export * from "./template-performance.schema";
+
+// ===== CAMPAIGN EXECUTION =====
+export * from "./campaign-blocks.schema";
+export * from "./auto-triggers.schema";
