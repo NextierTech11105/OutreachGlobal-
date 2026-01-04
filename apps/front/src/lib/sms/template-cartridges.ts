@@ -29,21 +29,21 @@
  * Campaign stages in the response manufacturing flow
  */
 export type CampaignStage =
-  | "initial"    // GIANNA - Get ANY response, capture mobile + email
-  | "retarget"   // CATHY - Re-engage ghosts after 7+ days
-  | "nudge"      // CATHY - Keep conversation alive, stale 2+ days
-  | "followup"   // SABRINA - Push responded leads to meeting
-  | "retention"  // NEVA - Existing clients, referrals, upsells
+  | "initial" // GIANNA - Get ANY response, capture mobile + email
+  | "retarget" // CATHY - Re-engage ghosts after 7+ days
+  | "nudge" // CATHY - Keep conversation alive, stale 2+ days
+  | "followup" // SABRINA - Push responded leads to meeting
+  | "retention" // NEVA - Existing clients, referrals, upsells
   | "confirmation"; // Appointment reminders, reduce no-shows
 
 /**
  * AI Workers - each handles different stages of the response flow
  */
 export type AIWorker =
-  | "GIANNA"          // The Opener - initial cold outreach
-  | "CATHY"           // The Nurturer - retarget + nudge with humor
-  | "SABRINA"         // The Closer - push to meeting
-  | "NEVA"            // Retention specialist
+  | "GIANNA" // The Opener - initial cold outreach
+  | "CATHY" // The Nurturer - retarget + nudge with humor
+  | "SABRINA" // The Closer - push to meeting
+  | "NEVA" // Retention specialist
   | "APPOINTMENT_BOT"; // Confirmation/reminders
 
 /**
@@ -56,28 +56,28 @@ export type AIWorker =
  * - DISABLED templates throw hard errors on resolution
  */
 export enum TemplateLifecycle {
-  DRAFT = "DRAFT",           // Not sendable, editable in admin UI
-  APPROVED = "APPROVED",     // Sendable via SignalHouse, immutable
+  DRAFT = "DRAFT", // Not sendable, editable in admin UI
+  APPROVED = "APPROVED", // Sendable via SignalHouse, immutable
   DEPRECATED = "DEPRECATED", // Preview only, executeSMS() rejects
-  DISABLED = "DISABLED",     // Hard fail on resolution
+  DISABLED = "DISABLED", // Hard fail on resolution
 }
 
 /**
  * SMS Template - the atomic unit of compliant messaging
  */
 export interface SMSTemplate {
-  id: string;           // Unique identifier (e.g., "bb-1", "cathy-nudge-mild-1")
-  name: string;         // Human-readable name
-  message: string;      // Template content with {{variables}}
+  id: string; // Unique identifier (e.g., "bb-1", "cathy-nudge-mild-1")
+  name: string; // Human-readable name
+  message: string; // Template content with {{variables}}
   stage: CampaignStage; // Which stage this template is for
-  worker: AIWorker;     // Which AI worker owns this template
-  tags: string[];       // Categorization tags
-  variables: string[];  // Variables used in message
-  charCount: number;    // Character count (SignalHouse compliance)
-  lifecycle?: TemplateLifecycle;  // Default: APPROVED for CARTRIDGE_LIBRARY templates
-  approvedAt?: string;  // ISO timestamp when approved
-  approvedBy?: string;  // Who approved (for audit trail)
-  tenantId?: string;    // null = global template, else tenant-scoped
+  worker: AIWorker; // Which AI worker owns this template
+  tags: string[]; // Categorization tags
+  variables: string[]; // Variables used in message
+  charCount: number; // Character count (SignalHouse compliance)
+  lifecycle?: TemplateLifecycle; // Default: APPROVED for CARTRIDGE_LIBRARY templates
+  approvedAt?: string; // ISO timestamp when approved
+  approvedBy?: string; // Who approved (for audit trail)
+  tenantId?: string; // null = global template, else tenant-scoped
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -725,8 +725,7 @@ export const CATHY_NUDGE_CARTRIDGE: TemplateCartridge = {
 export const SABRINA_OBJECTION_CARTRIDGE: TemplateCartridge = {
   id: "sabrina-objection",
   name: "SABRINA Objection Handling",
-  description:
-    "Agree-Overcome-Close responses for common sales objections",
+  description: "Agree-Overcome-Close responses for common sales objections",
   audience: "Leads with objections - too busy, not interested, need to think",
   industries: ["all"],
   active: true,
@@ -883,8 +882,7 @@ export const SABRINA_OBJECTION_CARTRIDGE: TemplateCartridge = {
 export const SABRINA_BOOKING_CARTRIDGE: TemplateCartridge = {
   id: "sabrina-booking",
   name: "SABRINA Booking Templates",
-  description:
-    "Appointment confirmation, reminder, and follow-up templates",
+  description: "Appointment confirmation, reminder, and follow-up templates",
   audience: "Leads being booked for calls or appointments",
   industries: ["all"],
   active: true,

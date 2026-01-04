@@ -143,8 +143,14 @@ const PERSONA_LANES: Record<PersonaId, CampaignLane[]> = {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // In-memory fallback (used when Redis unavailable) - now tenant-scoped
-const callQueueMemoryByTeam: Map<string, Map<string, CallQueueItem>> = new Map();
-const assistantStatesMemoryByTeam: Map<string, Map<string, AssistantModeState>> = new Map();
+const callQueueMemoryByTeam: Map<
+  string,
+  Map<string, CallQueueItem>
+> = new Map();
+const assistantStatesMemoryByTeam: Map<
+  string,
+  Map<string, AssistantModeState>
+> = new Map();
 const initializedTeams: Set<string> = new Set();
 let redisAvailable = false;
 let redisChecked = false;
@@ -172,7 +178,9 @@ async function initializeFromRedis(teamId: string): Promise<void> {
 
   try {
     if (!checkRedisAvailable()) {
-      console.log(`[CallQueue] Redis not available for team ${teamId}, using in-memory`);
+      console.log(
+        `[CallQueue] Redis not available for team ${teamId}, using in-memory`,
+      );
       initializedTeams.add(teamId);
       return;
     }
@@ -237,7 +245,10 @@ async function persistQueue(teamId: string): Promise<void> {
     const data = Array.from(teamQueue.entries()).map(([, v]) => v);
     await redis.set(getCallQueueKey(teamId), JSON.stringify(data));
   } catch (error) {
-    console.error(`[CallQueue] Failed to persist queue for team ${teamId}:`, error);
+    console.error(
+      `[CallQueue] Failed to persist queue for team ${teamId}:`,
+      error,
+    );
   }
 }
 
@@ -250,18 +261,25 @@ async function persistStates(teamId: string): Promise<void> {
     const data = Array.from(teamStates.entries());
     await redis.set(getAssistantStatesKey(teamId), JSON.stringify(data));
   } catch (error) {
-    console.error(`[CallQueue] Failed to persist states for team ${teamId}:`, error);
+    console.error(
+      `[CallQueue] Failed to persist states for team ${teamId}:`,
+      error,
+    );
   }
 }
 
 // Getter for call queue (tenant-scoped, ensures initialization)
-async function getCallQueue(teamId: string): Promise<Map<string, CallQueueItem>> {
+async function getCallQueue(
+  teamId: string,
+): Promise<Map<string, CallQueueItem>> {
   await initializeFromRedis(teamId);
   return callQueueMemoryByTeam.get(teamId)!;
 }
 
 // Getter for assistant states (tenant-scoped, ensures initialization)
-async function getAssistantStates(teamId: string): Promise<Map<string, AssistantModeState>> {
+async function getAssistantStates(
+  teamId: string,
+): Promise<Map<string, AssistantModeState>> {
   await initializeFromRedis(teamId);
   return assistantStatesMemoryByTeam.get(teamId)!;
 }
@@ -479,7 +497,10 @@ export async function GET(request: NextRequest) {
   const teamId = request.headers.get("x-team-id") || searchParams.get("teamId");
   if (!teamId) {
     return NextResponse.json(
-      { success: false, error: "teamId required (x-team-id header or teamId param)" },
+      {
+        success: false,
+        error: "teamId required (x-team-id header or teamId param)",
+      },
       { status: 401 },
     );
   }
@@ -678,7 +699,10 @@ export async function POST(request: NextRequest) {
     const teamId = request.headers.get("x-team-id") || body.teamId;
     if (!teamId) {
       return NextResponse.json(
-        { success: false, error: "teamId required (x-team-id header or teamId in body)" },
+        {
+          success: false,
+          error: "teamId required (x-team-id header or teamId in body)",
+        },
         { status: 401 },
       );
     }
@@ -1332,7 +1356,10 @@ export async function DELETE(request: NextRequest) {
     const teamId = request.headers.get("x-team-id") || body.teamId;
     if (!teamId) {
       return NextResponse.json(
-        { success: false, error: "teamId required (x-team-id header or teamId in body)" },
+        {
+          success: false,
+          error: "teamId required (x-team-id header or teamId in body)",
+        },
         { status: 401 },
       );
     }

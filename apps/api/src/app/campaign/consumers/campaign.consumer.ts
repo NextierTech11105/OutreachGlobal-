@@ -11,7 +11,10 @@ import { campaignLeadsTable, campaignsTable } from "@/database/schema-alias";
 import { CampaignLeadInsert } from "../models/campaign-lead.model";
 import { CampaignService } from "../services/campaign.service";
 import { DeadLetterQueueService } from "@/lib/dlq";
-import { validateTenantJob, logTenantContext } from "@/lib/queue/tenant-queue.util";
+import {
+  validateTenantJob,
+  logTenantContext,
+} from "@/lib/queue/tenant-queue.util";
 
 @Processor(CAMPAIGN_QUEUE, { concurrency: 5, lockDuration: 30000 })
 export class CampaignConsumer extends WorkerHost {
@@ -30,7 +33,9 @@ export class CampaignConsumer extends WorkerHost {
     logTenantContext(CAMPAIGN_QUEUE, job, "Processing");
 
     if (job.name === CampaignJobs.SYNC_LEAD_CAMPAIGN) {
-      this.logger.log(`Syncing lead ${job.data.leadId} for team ${job.data.teamId}`);
+      this.logger.log(
+        `Syncing lead ${job.data.leadId} for team ${job.data.teamId}`,
+      );
       await this.syncLead(job.data);
     }
   }

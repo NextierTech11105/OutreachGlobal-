@@ -11,9 +11,23 @@
  * All modes require templateId from CARTRIDGE_LIBRARY.
  */
 
-import { executeSMS, executeBatchSMS, type SMSExecutionRequest, type BatchExecutionRequest } from "./ExecutionRouter";
-import { calculateOptimalSendTime, generateBatchSchedule, type ScheduledSend } from "./variance/scheduling";
-import { eventBus, EventFactory, type EventType, type OrchestrationEvent } from "../orchestration/events";
+import {
+  executeSMS,
+  executeBatchSMS,
+  type SMSExecutionRequest,
+  type BatchExecutionRequest,
+} from "./ExecutionRouter";
+import {
+  calculateOptimalSendTime,
+  generateBatchSchedule,
+  type ScheduledSend,
+} from "./variance/scheduling";
+import {
+  eventBus,
+  EventFactory,
+  type EventType,
+  type OrchestrationEvent,
+} from "../orchestration/events";
 import { resolveTemplateById } from "./resolveTemplate";
 import type { LeadContext as VarianceLeadContext } from "./variance/variance-rules";
 
@@ -27,7 +41,7 @@ export type ExecutionMode = "blast" | "scheduled" | "auto";
  * Base configuration for all execution modes
  */
 interface BaseExecutionConfig {
-  templateId: string;       // REQUIRED - from CARTRIDGE_LIBRARY
+  templateId: string; // REQUIRED - from CARTRIDGE_LIBRARY
   teamId: string;
   campaignId?: string;
   worker?: "GIANNA" | "CATHY" | "SABRINA" | "NEVA" | "SYSTEM";
@@ -41,8 +55,8 @@ interface BaseExecutionConfig {
 export interface BlastModeConfig extends BaseExecutionConfig {
   mode: "blast";
   leads: BlastRecipient[];
-  batchSize?: number;       // Default: 50
-  delayMs?: number;         // Rate limit delay (default: 100ms)
+  batchSize?: number; // Default: 50
+  delayMs?: number; // Rate limit delay (default: 100ms)
 }
 
 export interface BlastRecipient {
@@ -71,7 +85,7 @@ export interface ScheduledModeConfig extends BaseExecutionConfig {
 }
 
 export interface ScheduledRecipient extends BlastRecipient {
-  industry?: string;    // For optimal timing calculation
+  industry?: string; // For optimal timing calculation
 }
 
 /**
@@ -81,20 +95,23 @@ export interface ScheduledRecipient extends BlastRecipient {
 export interface AutoModeConfig extends BaseExecutionConfig {
   mode: "auto";
   trigger: SMSTrigger;
-  recipients?: AutoRecipient[];  // Optional - some triggers auto-select recipients
+  recipients?: AutoRecipient[]; // Optional - some triggers auto-select recipients
 }
 
 export type SMSTrigger =
-  | { type: "lead_responded"; sentimentFilter?: "positive" | "negative" | "neutral" }
+  | {
+      type: "lead_responded";
+      sentimentFilter?: "positive" | "negative" | "neutral";
+    }
   | { type: "lead_no_response"; afterDays: number }
   | { type: "lead_stage_changed"; fromStage?: string; toStage: string }
-  | { type: "meeting_booked"; offsetHours?: number }  // Confirmation/reminder
+  | { type: "meeting_booked"; offsetHours?: number } // Confirmation/reminder
   | { type: "meeting_reminder"; beforeHours: number }
   | { type: "email_captured"; sendValuation?: boolean }
   | { type: "custom_event"; eventType: EventType };
 
 export interface AutoRecipient extends BlastRecipient {
-  context?: Record<string, unknown>;  // Event context for variable interpolation
+  context?: Record<string, unknown>; // Event context for variable interpolation
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -108,12 +125,12 @@ export interface ExecutionResult {
   totalSent: number;
   totalFailed: number;
   trainingMode: boolean;
-  scheduleId?: string;       // For scheduled mode
-  triggerId?: string;        // For auto mode
+  scheduleId?: string; // For scheduled mode
+  triggerId?: string; // For auto mode
   results?: Array<{
     leadId: string;
     success: boolean;
-    scheduledAt?: Date;      // For scheduled mode
+    scheduledAt?: Date; // For scheduled mode
     error?: string;
   }>;
 }
@@ -125,13 +142,15 @@ export interface ExecutionResult {
 /**
  * Execute immediate blast to all recipients
  */
-export async function executeBlast(config: BlastModeConfig): Promise<ExecutionResult> {
+export async function executeBlast(
+  config: BlastModeConfig,
+): Promise<ExecutionResult> {
   // Validate template exists
   resolveTemplateById(config.templateId, { teamId: config.teamId });
 
   const batchRequest: BatchExecutionRequest = {
     templateId: config.templateId,
-    recipients: config.leads.map(l => ({
+    recipients: config.leads.map((l) => ({
       to: l.to,
       variables: l.variables,
       leadId: l.leadId,
@@ -147,16 +166,24 @@ export async function executeBlast(config: BlastModeConfig): Promise<ExecutionRe
   const result = await executeBatchSMS(batchRequest);
 
   // Emit campaign event
-  eventBus.emit(EventFactory.createEvent(
-    "campaign.batch_sent",
-    { entityType: "campaign", entityId: config.campaignId || "adhoc" },
-    {
-      campaignId: config.campaignId || "adhoc",
-      batchSize: config.leads.length,
-      status: result.totalFailed === 0 ? "success" : "partial",
-    },
-    { agent: config.worker?.toLowerCase() as "gianna" | "cathy" | "sabrina" | undefined }
-  ));
+  eventBus.emit(
+    EventFactory.createEvent(
+      "campaign.batch_sent",
+      { entityType: "campaign", entityId: config.campaignId || "adhoc" },
+      {
+        campaignId: config.campaignId || "adhoc",
+        batchSize: config.leads.length,
+        status: result.totalFailed === 0 ? "success" : "partial",
+      },
+      {
+        agent: config.worker?.toLowerCase() as
+          | "gianna"
+          | "cathy"
+          | "sabrina"
+          | undefined,
+      },
+    ),
+  );
 
   return {
     mode: "blast",
@@ -165,8 +192,8 @@ export async function executeBlast(config: BlastModeConfig): Promise<ExecutionRe
     totalSent: result.totalSent,
     totalFailed: result.totalFailed,
     trainingMode: result.trainingMode,
-    results: result.results.map(r => ({
-      leadId: config.leads.find(l => l.to === r.sentTo)?.leadId || "unknown",
+    results: result.results.map((r) => ({
+      leadId: config.leads.find((l) => l.to === r.sentTo)?.leadId || "unknown",
       success: r.success,
       error: r.error,
     })),
@@ -197,7 +224,9 @@ interface ScheduledJob {
 /**
  * Schedule messages for future delivery
  */
-export async function executeScheduled(config: ScheduledModeConfig): Promise<ExecutionResult> {
+export async function executeScheduled(
+  config: ScheduledModeConfig,
+): Promise<ExecutionResult> {
   // Validate template exists
   resolveTemplateById(config.templateId, { teamId: config.teamId });
 
@@ -209,12 +238,27 @@ export async function executeScheduled(config: ScheduledModeConfig): Promise<Exe
       // All messages at exact time
       const sendAt = config.scheduling.sendAt || new Date();
       schedule = {
-        leads: config.leads.map(lead => ({
+        leads: config.leads.map((lead) => ({
           lead,
           scheduledSend: {
             sendAt,
             timeBand: "mid_morning",
-            dayOfWeek: ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"][sendAt.getDay()] as "monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday" | "sunday",
+            dayOfWeek: [
+              "sunday",
+              "monday",
+              "tuesday",
+              "wednesday",
+              "thursday",
+              "friday",
+              "saturday",
+            ][sendAt.getDay()] as
+              | "monday"
+              | "tuesday"
+              | "wednesday"
+              | "thursday"
+              | "friday"
+              | "saturday"
+              | "sunday",
             reason: "Specific time scheduled",
           },
         })),
@@ -224,7 +268,7 @@ export async function executeScheduled(config: ScheduledModeConfig): Promise<Exe
 
     case "optimal": {
       // Industry-aware optimal timing per lead
-      const leadContexts: VarianceLeadContext[] = config.leads.map(l => ({
+      const leadContexts: VarianceLeadContext[] = config.leads.map((l) => ({
         firstName: l.variables.firstName || l.variables.name || "",
         lastName: l.variables.lastName,
         businessName: l.variables.company || l.variables.businessName || "",
@@ -250,8 +294,11 @@ export async function executeScheduled(config: ScheduledModeConfig): Promise<Exe
     case "spread": {
       // Distribute evenly across time range
       const startAt = config.scheduling.startAt || new Date();
-      const endAt = config.scheduling.endAt || new Date(startAt.getTime() + 24 * 60 * 60 * 1000);
-      const interval = (endAt.getTime() - startAt.getTime()) / config.leads.length;
+      const endAt =
+        config.scheduling.endAt ||
+        new Date(startAt.getTime() + 24 * 60 * 60 * 1000);
+      const interval =
+        (endAt.getTime() - startAt.getTime()) / config.leads.length;
 
       schedule = {
         leads: config.leads.map((lead, i) => {
@@ -261,7 +308,22 @@ export async function executeScheduled(config: ScheduledModeConfig): Promise<Exe
             scheduledSend: {
               sendAt,
               timeBand: "mid_morning",
-              dayOfWeek: ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"][sendAt.getDay()] as "monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday" | "sunday",
+              dayOfWeek: [
+                "sunday",
+                "monday",
+                "tuesday",
+                "wednesday",
+                "thursday",
+                "friday",
+                "saturday",
+              ][sendAt.getDay()] as
+                | "monday"
+                | "tuesday"
+                | "wednesday"
+                | "thursday"
+                | "friday"
+                | "saturday"
+                | "sunday",
               reason: "Spread evenly across time range",
             },
           };
@@ -288,11 +350,11 @@ export async function executeScheduled(config: ScheduledModeConfig): Promise<Exe
     mode: "scheduled",
     success: true,
     totalQueued: config.leads.length,
-    totalSent: 0,  // Nothing sent yet
+    totalSent: 0, // Nothing sent yet
     totalFailed: 0,
     trainingMode: config.trainingMode || false,
     scheduleId,
-    results: schedule.leads.map(item => ({
+    results: schedule.leads.map((item) => ({
       leadId: item.lead.leadId,
       success: true,
       scheduledAt: item.scheduledSend.sendAt,
@@ -313,8 +375,8 @@ function startSchedulerTick() {
       if (job.status !== "pending") continue;
 
       // Find messages due now
-      const dueMessages = job.schedule.leads.filter(item =>
-        item.scheduledSend.sendAt <= now
+      const dueMessages = job.schedule.leads.filter(
+        (item) => item.scheduledSend.sendAt <= now,
       );
 
       if (dueMessages.length === 0) continue;
@@ -333,13 +395,16 @@ function startSchedulerTick() {
             trainingMode: job.config.trainingMode,
           });
         } catch (error) {
-          console.error(`[Scheduler] Failed to send to ${item.lead.to}:`, error);
+          console.error(
+            `[Scheduler] Failed to send to ${item.lead.to}:`,
+            error,
+          );
         }
       }
 
       // Remove sent messages from pending
-      job.schedule.leads = job.schedule.leads.filter(item =>
-        item.scheduledSend.sendAt > now
+      job.schedule.leads = job.schedule.leads.filter(
+        (item) => item.scheduledSend.sendAt > now,
       );
 
       // Mark complete if all sent
@@ -351,12 +416,14 @@ function startSchedulerTick() {
 
     // Clean up completed jobs older than 1 hour
     for (const [id, job] of pendingSchedules.entries()) {
-      if (job.status === "completed" &&
-          Date.now() - job.createdAt.getTime() > 60 * 60 * 1000) {
+      if (
+        job.status === "completed" &&
+        Date.now() - job.createdAt.getTime() > 60 * 60 * 1000
+      ) {
         pendingSchedules.delete(id);
       }
     }
-  }, 60 * 1000);  // Check every minute
+  }, 60 * 1000); // Check every minute
 }
 
 /**
@@ -372,7 +439,9 @@ export function cancelSchedule(scheduleId: string): boolean {
 /**
  * Get schedule status
  */
-export function getScheduleStatus(scheduleId: string): ScheduledJob | undefined {
+export function getScheduleStatus(
+  scheduleId: string,
+): ScheduledJob | undefined {
   return pendingSchedules.get(scheduleId);
 }
 
@@ -381,7 +450,10 @@ export function getScheduleStatus(scheduleId: string): ScheduledJob | undefined 
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // Active trigger subscriptions
-const activeTriggers = new Map<string, { unsubscribe: () => void; config: AutoModeConfig }>();
+const activeTriggers = new Map<
+  string,
+  { unsubscribe: () => void; config: AutoModeConfig }
+>();
 
 /**
  * Register an automatic trigger
@@ -401,7 +473,10 @@ export function registerAutoTrigger(config: AutoModeConfig): string {
       eventType = "conversation.message_received";
       handler = async (event) => {
         // Filter by sentiment if specified
-        if (config.trigger.type === "lead_responded" && config.trigger.sentimentFilter) {
+        if (
+          config.trigger.type === "lead_responded" &&
+          config.trigger.sentimentFilter
+        ) {
           const sentiment = event.payload.sentiment as string | undefined;
           if (sentiment !== config.trigger.sentimentFilter) return;
         }
@@ -444,7 +519,9 @@ export function registerAutoTrigger(config: AutoModeConfig): string {
       break;
 
     default:
-      throw new Error(`Unknown trigger type: ${(config.trigger as { type: string }).type}`);
+      throw new Error(
+        `Unknown trigger type: ${(config.trigger as { type: string }).type}`,
+      );
   }
 
   // Subscribe to event bus
@@ -455,7 +532,9 @@ export function registerAutoTrigger(config: AutoModeConfig): string {
     config,
   });
 
-  console.log(`[AutoTrigger] Registered ${config.trigger.type} trigger: ${triggerId}`);
+  console.log(
+    `[AutoTrigger] Registered ${config.trigger.type} trigger: ${triggerId}`,
+  );
 
   return triggerId;
 }
@@ -463,10 +542,14 @@ export function registerAutoTrigger(config: AutoModeConfig): string {
 /**
  * Send message when auto trigger fires
  */
-async function sendAutoMessage(config: AutoModeConfig, event: OrchestrationEvent): Promise<void> {
+async function sendAutoMessage(
+  config: AutoModeConfig,
+  event: OrchestrationEvent,
+): Promise<void> {
   // Build recipient from event
   const leadId = event.entity.entityId;
-  const phone = event.payload.phone as string || event.payload.recipientPhone as string;
+  const phone =
+    (event.payload.phone as string) || (event.payload.recipientPhone as string);
 
   if (!phone) {
     console.warn(`[AutoTrigger] No phone in event for lead ${leadId}`);
@@ -476,11 +559,14 @@ async function sendAutoMessage(config: AutoModeConfig, event: OrchestrationEvent
   // Build variables from event context
   const variables: Record<string, string> = {
     firstName: (event.payload.firstName as string) || "",
-    name: (event.payload.name as string) || (event.payload.firstName as string) || "",
+    name:
+      (event.payload.name as string) ||
+      (event.payload.firstName as string) ||
+      "",
     ...Object.fromEntries(
       Object.entries(event.payload)
         .filter(([, v]) => typeof v === "string")
-        .map(([k, v]) => [k, v as string])
+        .map(([k, v]) => [k, v as string]),
     ),
   };
 
@@ -515,20 +601,31 @@ export function unregisterAutoTrigger(triggerId: string): boolean {
 /**
  * Get active triggers
  */
-export function getActiveTriggers(): Array<{ id: string; config: AutoModeConfig }> {
-  return Array.from(activeTriggers.entries()).map(([id, { config }]) => ({ id, config }));
+export function getActiveTriggers(): Array<{
+  id: string;
+  config: AutoModeConfig;
+}> {
+  return Array.from(activeTriggers.entries()).map(([id, { config }]) => ({
+    id,
+    config,
+  }));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // UNIFIED EXECUTOR
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export type ExecutionConfig = BlastModeConfig | ScheduledModeConfig | AutoModeConfig;
+export type ExecutionConfig =
+  | BlastModeConfig
+  | ScheduledModeConfig
+  | AutoModeConfig;
 
 /**
  * Unified SMS executor - routes to appropriate mode handler
  */
-export async function executeSMSCampaign(config: ExecutionConfig): Promise<ExecutionResult | string> {
+export async function executeSMSCampaign(
+  config: ExecutionConfig,
+): Promise<ExecutionResult | string> {
   switch (config.mode) {
     case "blast":
       return executeBlast(config);

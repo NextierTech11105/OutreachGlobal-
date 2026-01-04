@@ -69,7 +69,7 @@ export interface SMSAuditLog {
   templateId: string;
   cartridgeId: string;
   templateName: string;
-  renderedMessageHash: string;  // SHA256 of message (for audit without storing content)
+  renderedMessageHash: string; // SHA256 of message (for audit without storing content)
   actor: "GIANNA" | "CATHY" | "SABRINA" | "NEVA" | "SYSTEM";
   mode: "training" | "live";
   provider: "signalhouse" | "twilio" | "training";
@@ -98,8 +98,10 @@ export interface ExecutionRouterConfig {
 
 const DEFAULT_CONFIG: ExecutionRouterConfig = {
   signalhouseApiKey: process.env.SIGNALHOUSE_API_KEY,
-  signalhouseApiBase: process.env.SIGNALHOUSE_API_BASE || "https://api.signalhouse.io/api/v1",
-  defaultFromNumber: process.env.SIGNALHOUSE_FROM_NUMBER || process.env.TWILIO_PHONE_NUMBER,
+  signalhouseApiBase:
+    process.env.SIGNALHOUSE_API_BASE || "https://api.signalhouse.io/api/v1",
+  defaultFromNumber:
+    process.env.SIGNALHOUSE_FROM_NUMBER || process.env.TWILIO_PHONE_NUMBER,
   twilioAccountSid: process.env.TWILIO_ACCOUNT_SID,
   twilioAuthToken: process.env.TWILIO_AUTH_TOKEN,
   twilioFromNumber: process.env.TWILIO_PHONE_NUMBER,
@@ -115,7 +117,11 @@ const DEFAULT_CONFIG: ExecutionRouterConfig = {
  * Hash message content for audit trail (doesn't store actual content)
  */
 function hashMessage(message: string): string {
-  return crypto.createHash("sha256").update(message).digest("hex").substring(0, 16);
+  return crypto
+    .createHash("sha256")
+    .update(message)
+    .digest("hex")
+    .substring(0, 16);
 }
 
 /**
@@ -123,12 +129,14 @@ function hashMessage(message: string): string {
  */
 function logAudit(entry: SMSAuditLog): void {
   // Structured JSON log for compliance systems
-  console.log(JSON.stringify({
-    type: "SMS_AUDIT",
-    ...entry,
-    // Redact PII from logs
-    renderedMessageHash: entry.renderedMessageHash || "UNKNOWN",
-  }));
+  console.log(
+    JSON.stringify({
+      type: "SMS_AUDIT",
+      ...entry,
+      // Redact PII from logs
+      renderedMessageHash: entry.renderedMessageHash || "UNKNOWN",
+    }),
+  );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -151,7 +159,7 @@ function logAudit(entry: SMSAuditLog): void {
  */
 export async function executeSMS(
   request: SMSExecutionRequest,
-  config: ExecutionRouterConfig = DEFAULT_CONFIG
+  config: ExecutionRouterConfig = DEFAULT_CONFIG,
 ): Promise<SMSExecutionResult> {
   const timestamp = new Date().toISOString();
   const isTrainingMode = request.trainingMode ?? config.trainingMode ?? false;
@@ -235,11 +243,14 @@ export async function executeSMS(
   }
 
   // Resolve and render template (with tenant guard via teamId)
-  const { message: renderedMessage, template, cartridgeId, lifecycle } = resolveAndRenderTemplate(
-    request.templateId,
-    request.variables,
-    { teamId: request.teamId }
-  );
+  const {
+    message: renderedMessage,
+    template,
+    cartridgeId,
+    lifecycle,
+  } = resolveAndRenderTemplate(request.templateId, request.variables, {
+    teamId: request.teamId,
+  });
 
   // Validate message length
   if (renderedMessage.length > 320) {
@@ -335,7 +346,7 @@ export async function executeSMS(
         request.to,
         fromNumber,
         renderedMessage,
-        config
+        config,
       );
 
       if (result.success) {
@@ -380,7 +391,7 @@ export async function executeSMS(
         request.to,
         config.twilioFromNumber || fromNumber,
         renderedMessage,
-        config
+        config,
       );
 
       if (result.success) {
@@ -498,17 +509,20 @@ async function sendViaSignalHouse(
   to: string,
   from: string,
   message: string,
-  config: ExecutionRouterConfig
+  config: ExecutionRouterConfig,
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
   try {
-    const response = await fetch(`${config.signalhouseApiBase}/message/sendSMS`, {
-      method: "POST",
-      headers: {
-        "x-api-key": config.signalhouseApiKey || "",
-        "Content-Type": "application/json",
+    const response = await fetch(
+      `${config.signalhouseApiBase}/message/sendSMS`,
+      {
+        method: "POST",
+        headers: {
+          "x-api-key": config.signalhouseApiKey || "",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ to, from, message }),
       },
-      body: JSON.stringify({ to, from, message }),
-    });
+    );
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -535,11 +549,11 @@ async function sendViaTwilio(
   to: string,
   from: string,
   message: string,
-  config: ExecutionRouterConfig
+  config: ExecutionRouterConfig,
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
   try {
     const credentials = Buffer.from(
-      `${config.twilioAccountSid}:${config.twilioAuthToken}`
+      `${config.twilioAccountSid}:${config.twilioAuthToken}`,
     ).toString("base64");
 
     const response = await fetch(
@@ -550,8 +564,12 @@ async function sendViaTwilio(
           Authorization: `Basic ${credentials}`,
           "Content-Type": "application/x-www-form-urlencoded",
         },
-        body: new URLSearchParams({ To: to, From: from, Body: message }).toString(),
-      }
+        body: new URLSearchParams({
+          To: to,
+          From: from,
+          Body: message,
+        }).toString(),
+      },
     );
 
     if (!response.ok) {
@@ -609,7 +627,7 @@ export interface BatchExecutionResult {
  */
 export async function executeBatchSMS(
   request: BatchExecutionRequest,
-  config: ExecutionRouterConfig = DEFAULT_CONFIG
+  config: ExecutionRouterConfig = DEFAULT_CONFIG,
 ): Promise<BatchExecutionResult> {
   const batchSize = request.batchSize || 50;
   const delayMs = request.delayMs || 100;
@@ -633,7 +651,7 @@ export async function executeBatchSMS(
           worker: request.worker,
           trainingMode: request.trainingMode,
         },
-        config
+        config,
       );
 
       results.push(result);
@@ -670,14 +688,22 @@ export async function executeBatchSMS(
  */
 export function previewSMS(
   templateId: string,
-  variables: Record<string, string>
-): { success: boolean; message?: string; error?: string; templateName?: string } {
+  variables: Record<string, string>,
+): {
+  success: boolean;
+  message?: string;
+  error?: string;
+  templateName?: string;
+} {
   try {
     if (!templateExists(templateId)) {
       return { success: false, error: `Template not found: ${templateId}` };
     }
 
-    const { message, template } = resolveAndRenderTemplate(templateId, variables);
+    const { message, template } = resolveAndRenderTemplate(
+      templateId,
+      variables,
+    );
     return {
       success: true,
       message,
@@ -695,7 +721,7 @@ export function previewSMS(
  * Check if the router is properly configured.
  */
 export function isRouterConfigured(
-  config: ExecutionRouterConfig = DEFAULT_CONFIG
+  config: ExecutionRouterConfig = DEFAULT_CONFIG,
 ): { configured: boolean; providers: string[] } {
   const providers: string[] = [];
 

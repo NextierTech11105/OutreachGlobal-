@@ -18,7 +18,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { leads, smsMessages, campaignAttempts } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { executeSMS, isRouterConfigured, previewSMS } from "@/lib/sms/ExecutionRouter";
+import {
+  executeSMS,
+  isRouterConfigured,
+  previewSMS,
+} from "@/lib/sms/ExecutionRouter";
 import { CATHY } from "@/lib/ai-workers/digital-workers";
 import { CATHY_NUDGE_CARTRIDGE } from "@/lib/sms/template-cartridges";
 
@@ -111,8 +115,9 @@ export async function POST(request: NextRequest) {
       // If context provided, try to find matching template
       if (context) {
         const contextMatch = CATHY_NUDGE_CARTRIDGE.templates.find(
-          (t) => t.id.startsWith(HUMOR_TEMPLATE_PREFIX[humorLevel]) &&
-                 t.tags?.includes(context)
+          (t) =>
+            t.id.startsWith(HUMOR_TEMPLATE_PREFIX[humorLevel]) &&
+            t.tags?.includes(context),
         );
         if (contextMatch) {
           effectiveTemplateId = contextMatch.id;
@@ -121,9 +126,10 @@ export async function POST(request: NextRequest) {
 
       // Random selection from humor level if no specific match
       if (!effectiveTemplateId && availableTemplates.length > 0) {
-        effectiveTemplateId = availableTemplates[
-          Math.floor(Math.random() * availableTemplates.length)
-        ];
+        effectiveTemplateId =
+          availableTemplates[
+            Math.floor(Math.random() * availableTemplates.length)
+          ];
       }
     }
 

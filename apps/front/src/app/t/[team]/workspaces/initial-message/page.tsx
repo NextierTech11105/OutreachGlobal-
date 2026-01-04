@@ -48,7 +48,9 @@ export default function InitialMessageWorkspacePage() {
   const [selectedLead, setSelectedLead] = useState<InitialLead | null>(null);
   const [sending, setSending] = useState(false);
   // ENFORCED: Template from library only - no raw message editing
-  const [selectedTemplate, setSelectedTemplate] = useState<SMSTemplate | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<SMSTemplate | null>(
+    null,
+  );
 
   // Fetch new leads that need initial outreach
   useEffect(() => {
@@ -87,7 +89,10 @@ export default function InitialMessageWorkspacePage() {
   }, [teamId]);
 
   // Generate preview message from template (read-only display)
-  const getMessagePreview = (lead: InitialLead, template: SMSTemplate | null): string => {
+  const getMessagePreview = (
+    lead: InitialLead,
+    template: SMSTemplate | null,
+  ): string => {
     if (!template) return "";
 
     // Build variables map from lead data
@@ -309,7 +314,9 @@ export default function InitialMessageWorkspacePage() {
                         <Library className="h-4 w-4 mr-2 shrink-0" />
                         {selectedTemplate ? (
                           <div className="text-left">
-                            <div className="font-medium">{selectedTemplate.name}</div>
+                            <div className="font-medium">
+                              {selectedTemplate.name}
+                            </div>
                             <div className="text-xs text-muted-foreground">
                               {selectedTemplate.charCount} chars
                             </div>

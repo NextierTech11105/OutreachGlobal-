@@ -29,7 +29,7 @@ export interface ResolvedTemplate {
   cartridgeId: string;
   cartridgeName: string;
   lifecycle: TemplateLifecycle;
-  isSendable: boolean;  // true only for APPROVED templates
+  isSendable: boolean; // true only for APPROVED templates
 }
 
 export interface TemplateResolutionError extends Error {
@@ -100,12 +100,12 @@ export function isTemplateDeprecated(template: SMSTemplate): boolean {
  */
 export function resolveTemplateById(
   templateId: string,
-  options?: { allowDisabled?: boolean; teamId?: string }
+  options?: { allowDisabled?: boolean; teamId?: string },
 ): ResolvedTemplate {
   // HARD ERROR: templateId is required
   if (!templateId || templateId.trim() === "") {
     const error = new Error(
-      "Template resolution failed: templateId is required"
+      "Template resolution failed: templateId is required",
     ) as TemplateResolutionError;
     error.code = "TEMPLATE_ID_MISSING";
     throw error;
@@ -120,7 +120,7 @@ export function resolveTemplateById(
       // HARD ERROR: DISABLED templates cannot be resolved
       if (lifecycle === TemplateLifecycle.DISABLED && !options?.allowDisabled) {
         const error = new Error(
-          `Template resolution failed: templateId "${templateId}" is DISABLED`
+          `Template resolution failed: templateId "${templateId}" is DISABLED`,
         ) as TemplateResolutionError;
         error.code = "TEMPLATE_DISABLED";
         error.templateId = templateId;
@@ -129,9 +129,13 @@ export function resolveTemplateById(
       }
 
       // TENANT GUARD: Check tenant scope if teamId provided
-      if (template.tenantId && options?.teamId && template.tenantId !== options.teamId) {
+      if (
+        template.tenantId &&
+        options?.teamId &&
+        template.tenantId !== options.teamId
+      ) {
         const error = new Error(
-          `Template resolution failed: templateId "${templateId}" belongs to different tenant`
+          `Template resolution failed: templateId "${templateId}" belongs to different tenant`,
         ) as TemplateResolutionError;
         error.code = "TENANT_MISMATCH";
         error.templateId = templateId;
@@ -150,7 +154,7 @@ export function resolveTemplateById(
 
   // HARD ERROR: Template not found
   const error = new Error(
-    `Template resolution failed: templateId "${templateId}" not found in CARTRIDGE_LIBRARY`
+    `Template resolution failed: templateId "${templateId}" not found in CARTRIDGE_LIBRARY`,
   ) as TemplateResolutionError;
   error.code = "TEMPLATE_NOT_FOUND";
   error.templateId = templateId;
@@ -197,11 +201,11 @@ export function templateExists(templateId: string): boolean {
 export function resolveTemplateFromCartridge(
   templateId: string,
   cartridgeId: string,
-  options?: { teamId?: string }
+  options?: { teamId?: string },
 ): ResolvedTemplate {
   if (!templateId) {
     const error = new Error(
-      "Template resolution failed: templateId is required"
+      "Template resolution failed: templateId is required",
     ) as TemplateResolutionError;
     error.code = "TEMPLATE_ID_MISSING";
     throw error;
@@ -210,7 +214,7 @@ export function resolveTemplateFromCartridge(
   const cartridge = CARTRIDGE_LIBRARY.find((c) => c.id === cartridgeId);
   if (!cartridge) {
     const error = new Error(
-      `Template resolution failed: cartridge "${cartridgeId}" not found`
+      `Template resolution failed: cartridge "${cartridgeId}" not found`,
     ) as TemplateResolutionError;
     error.code = "CARTRIDGE_NOT_FOUND";
     error.cartridgeId = cartridgeId;
@@ -220,7 +224,7 @@ export function resolveTemplateFromCartridge(
   const template = cartridge.templates.find((t) => t.id === templateId);
   if (!template) {
     const error = new Error(
-      `Template resolution failed: templateId "${templateId}" not found in cartridge "${cartridgeId}"`
+      `Template resolution failed: templateId "${templateId}" not found in cartridge "${cartridgeId}"`,
     ) as TemplateResolutionError;
     error.code = "TEMPLATE_NOT_FOUND";
     error.templateId = templateId;
@@ -233,7 +237,7 @@ export function resolveTemplateFromCartridge(
   // HARD ERROR: DISABLED templates cannot be resolved
   if (lifecycle === TemplateLifecycle.DISABLED) {
     const error = new Error(
-      `Template resolution failed: templateId "${templateId}" is DISABLED`
+      `Template resolution failed: templateId "${templateId}" is DISABLED`,
     ) as TemplateResolutionError;
     error.code = "TEMPLATE_DISABLED";
     error.templateId = templateId;
@@ -242,9 +246,13 @@ export function resolveTemplateFromCartridge(
   }
 
   // TENANT GUARD
-  if (template.tenantId && options?.teamId && template.tenantId !== options.teamId) {
+  if (
+    template.tenantId &&
+    options?.teamId &&
+    template.tenantId !== options.teamId
+  ) {
     const error = new Error(
-      `Template resolution failed: templateId "${templateId}" belongs to different tenant`
+      `Template resolution failed: templateId "${templateId}" belongs to different tenant`,
     ) as TemplateResolutionError;
     error.code = "TENANT_MISMATCH";
     error.templateId = templateId;
@@ -275,7 +283,7 @@ export function resolveTemplateFromCartridge(
 export function resolveAndRenderTemplate(
   templateId: string,
   variables: Record<string, string>,
-  options?: { teamId?: string; allowNonSendable?: boolean }
+  options?: { teamId?: string; allowNonSendable?: boolean },
 ): {
   message: string;
   template: SMSTemplate;
@@ -288,7 +296,7 @@ export function resolveAndRenderTemplate(
   // LIFECYCLE ENFORCEMENT: Reject non-sendable templates by default
   if (!resolved.isSendable && !options?.allowNonSendable) {
     const error = new Error(
-      `Template "${templateId}" is ${resolved.lifecycle} and cannot be sent. Only APPROVED templates can be sent via SignalHouse.`
+      `Template "${templateId}" is ${resolved.lifecycle} and cannot be sent. Only APPROVED templates can be sent via SignalHouse.`,
     ) as TemplateResolutionError;
     error.code = "TEMPLATE_NOT_SENDABLE";
     error.templateId = templateId;
@@ -327,13 +335,13 @@ export function resolveAndRenderTemplate(
  */
 export function validateSendable(
   templateId: string,
-  teamId?: string
+  teamId?: string,
 ): ResolvedTemplate {
   const resolved = resolveTemplateById(templateId, { teamId });
 
   if (!resolved.isSendable) {
     const error = new Error(
-      `Template "${templateId}" is ${resolved.lifecycle} and cannot be sent. Only APPROVED templates can be sent via SignalHouse.`
+      `Template "${templateId}" is ${resolved.lifecycle} and cannot be sent. Only APPROVED templates can be sent via SignalHouse.`,
     ) as TemplateResolutionError;
     error.code = "TEMPLATE_NOT_SENDABLE";
     error.templateId = templateId;
@@ -360,7 +368,7 @@ export function getAllTemplates(): SMSTemplate[] {
  */
 export function getTemplatesByStage(stage: CampaignStage): SMSTemplate[] {
   return CARTRIDGE_LIBRARY.flatMap((c) =>
-    c.templates.filter((t) => t.stage === stage)
+    c.templates.filter((t) => t.stage === stage),
   );
 }
 
@@ -369,7 +377,7 @@ export function getTemplatesByStage(stage: CampaignStage): SMSTemplate[] {
  */
 export function getTemplatesByWorker(worker: AIWorker): SMSTemplate[] {
   return CARTRIDGE_LIBRARY.flatMap((c) =>
-    c.templates.filter((t) => t.worker === worker)
+    c.templates.filter((t) => t.worker === worker),
   );
 }
 
@@ -379,7 +387,9 @@ export function getTemplatesByWorker(worker: AIWorker): SMSTemplate[] {
 export function getTemplatesByTag(tag: string): SMSTemplate[] {
   const lowerTag = tag.toLowerCase();
   return CARTRIDGE_LIBRARY.flatMap((c) =>
-    c.templates.filter((t) => t.tags.some((tt) => tt.toLowerCase() === lowerTag))
+    c.templates.filter((t) =>
+      t.tags.some((tt) => tt.toLowerCase() === lowerTag),
+    ),
   );
 }
 
@@ -417,10 +427,12 @@ export function searchTemplates(query: string): ResolvedTemplate[] {
  * Validate that a templateId is valid before saving to database
  * Call this in campaign prep handlers to enforce templateId-only saves
  */
-export function validateTemplateId(templateId: unknown): asserts templateId is string {
+export function validateTemplateId(
+  templateId: unknown,
+): asserts templateId is string {
   if (typeof templateId !== "string" || !templateId.trim()) {
     const error = new Error(
-      "Invalid templateId: must be a non-empty string"
+      "Invalid templateId: must be a non-empty string",
     ) as TemplateResolutionError;
     error.code = "TEMPLATE_ID_MISSING";
     throw error;
@@ -428,7 +440,7 @@ export function validateTemplateId(templateId: unknown): asserts templateId is s
 
   if (!templateExists(templateId)) {
     const error = new Error(
-      `Invalid templateId: "${templateId}" does not exist in CARTRIDGE_LIBRARY`
+      `Invalid templateId: "${templateId}" does not exist in CARTRIDGE_LIBRARY`,
     ) as TemplateResolutionError;
     error.code = "TEMPLATE_NOT_FOUND";
     error.templateId = templateId;
@@ -468,7 +480,7 @@ export function isRawMessage(input: string): boolean {
 export function rejectRawMessage(input: string, context: string): void {
   if (isRawMessage(input)) {
     throw new Error(
-      `[${context}] Raw message text rejected. Must use templateId from CARTRIDGE_LIBRARY.`
+      `[${context}] Raw message text rejected. Must use templateId from CARTRIDGE_LIBRARY.`,
     );
   }
 }

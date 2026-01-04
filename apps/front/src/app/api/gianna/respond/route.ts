@@ -107,10 +107,11 @@ export async function POST(request: NextRequest) {
     };
 
     // Resolve and render template
-    const { message: messageContent, template, cartridgeId } = resolveAndRenderTemplate(
-      effectiveTemplateId,
-      templateVariables,
-    );
+    const {
+      message: messageContent,
+      template,
+      cartridgeId,
+    } = resolveAndRenderTemplate(effectiveTemplateId, templateVariables);
 
     // If requires approval, store as pending (don't send yet)
     if (requireApproval) {
@@ -206,7 +207,7 @@ export async function GET(request: NextRequest) {
     // Filter by worker if specified
     if (worker) {
       templates = templates.filter(
-        (t) => t.worker.toUpperCase() === worker.toUpperCase()
+        (t) => t.worker.toUpperCase() === worker.toUpperCase(),
       );
     }
 

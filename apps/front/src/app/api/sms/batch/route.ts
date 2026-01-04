@@ -94,7 +94,8 @@ export async function POST(request: NextRequest) {
       if (isRawMessage(message)) {
         return NextResponse.json(
           {
-            error: "Raw message text is not allowed. Use templateId from CARTRIDGE_LIBRARY.",
+            error:
+              "Raw message text is not allowed. Use templateId from CARTRIDGE_LIBRARY.",
             code: "RAW_MESSAGE_REJECTED",
             hint: "Pass templateId instead of message",
           },
@@ -104,7 +105,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Determine the effective templateId
-    const effectiveTemplateId = templateId || (message && !isRawMessage(message) ? message : null);
+    const effectiveTemplateId =
+      templateId || (message && !isRawMessage(message) ? message : null);
 
     // ENFORCEMENT: templateId is REQUIRED
     if (!effectiveTemplateId) {
@@ -168,19 +170,21 @@ export async function POST(request: NextRequest) {
       process.env.SIGNALHOUSE_PHONE_NUMBER || process.env.TWILIO_PHONE_NUMBER;
 
     // Build recipients for ExecutionRouter batch
-    const recipients: BatchExecutionRequest["recipients"] = validLeads.map((lead) => ({
-      to: lead.phone || "",
-      variables: {
-        name: lead.firstName || "there",
-        firstName: lead.firstName || "",
-        first_name: lead.firstName || "",
-        lastName: lead.lastName || "",
-        last_name: lead.lastName || "",
-        businessName: lead.company || "",
-        company: lead.company || "",
-      },
-      leadId: lead.id,
-    }));
+    const recipients: BatchExecutionRequest["recipients"] = validLeads.map(
+      (lead) => ({
+        to: lead.phone || "",
+        variables: {
+          name: lead.firstName || "there",
+          firstName: lead.firstName || "",
+          first_name: lead.firstName || "",
+          lastName: lead.lastName || "",
+          last_name: lead.lastName || "",
+          businessName: lead.company || "",
+          company: lead.company || "",
+        },
+        leadId: lead.id,
+      }),
+    );
 
     // ═══════════════════════════════════════════════════════════════════════
     // CANONICAL: Route through ExecutionRouter
@@ -191,7 +195,8 @@ export async function POST(request: NextRequest) {
       recipients,
       teamId,
       campaignId,
-      worker: (assignedAdvisor?.toUpperCase() as "GIANNA" | "SABRINA") || "GIANNA",
+      worker:
+        (assignedAdvisor?.toUpperCase() as "GIANNA" | "SABRINA") || "GIANNA",
       trainingMode,
       batchSize: 50, // Internal batch size for rate limiting
       delayMs: 100, // Rate limiting delay
@@ -218,7 +223,9 @@ export async function POST(request: NextRequest) {
               updatedAt: new Date(),
             });
           } catch {
-            console.log("[SMSBatch] SMS table may not exist yet, continuing...");
+            console.log(
+              "[SMSBatch] SMS table may not exist yet, continuing...",
+            );
           }
 
           // Update lead with campaign assignment
@@ -233,7 +240,9 @@ export async function POST(request: NextRequest) {
               })
               .where(eq(leads.id, lead.id));
           } catch {
-            console.log("[SMSBatch] Lead update may have failed, continuing...");
+            console.log(
+              "[SMSBatch] Lead update may have failed, continuing...",
+            );
           }
         }
       }

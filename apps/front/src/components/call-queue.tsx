@@ -48,7 +48,9 @@ export function CallQueue({ teamId }: CallQueueProps) {
       setLoading(true);
       try {
         // Fetch inbound calls from leads with recent inbound messages
-        const inboundRes = await fetch(`/api/leads?status=inbound&limit=10${teamId ? `&teamId=${teamId}` : ""}`);
+        const inboundRes = await fetch(
+          `/api/leads?status=inbound&limit=10${teamId ? `&teamId=${teamId}` : ""}`,
+        );
         if (inboundRes.ok) {
           const data = await inboundRes.json();
           setInboundCalls(

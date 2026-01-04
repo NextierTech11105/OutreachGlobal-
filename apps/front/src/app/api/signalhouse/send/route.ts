@@ -47,7 +47,8 @@ export async function POST(request: NextRequest) {
       if (isRawMessage(message)) {
         return NextResponse.json(
           {
-            error: "Raw message text is not allowed. Use templateId from CARTRIDGE_LIBRARY.",
+            error:
+              "Raw message text is not allowed. Use templateId from CARTRIDGE_LIBRARY.",
             code: "RAW_MESSAGE_REJECTED",
             hint: "Pass templateId + variables instead of raw message text",
           },
@@ -57,7 +58,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Determine effective templateId
-    const effectiveTemplateId = templateId || (message && !isRawMessage(message) ? message : null);
+    const effectiveTemplateId =
+      templateId || (message && !isRawMessage(message) ? message : null);
 
     // Validate templateId exists
     if (!effectiveTemplateId) {
@@ -68,7 +70,8 @@ export async function POST(request: NextRequest) {
           required: {
             to: "recipient phone (E.164)",
             from: "sender phone (E.164, optional)",
-            templateId: "templateId from CARTRIDGE_LIBRARY (e.g., 'bb-1', 'crm-2')",
+            templateId:
+              "templateId from CARTRIDGE_LIBRARY (e.g., 'bb-1', 'crm-2')",
             variables: "optional variables for template",
           },
         },

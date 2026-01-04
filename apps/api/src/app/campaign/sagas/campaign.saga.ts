@@ -15,11 +15,12 @@ export class CampaignSaga {
     return events$.pipe(
       ofType(LeadCreated, LeadUpdated),
       map(
-        (event) => new SyncLeadCampaign(
-          event.lead.teamId,
-          event.lead.id,
-          event.lead.score || 0,
-        ),
+        (event) =>
+          new SyncLeadCampaign(
+            event.lead.teamId,
+            event.lead.id,
+            event.lead.score || 0,
+          ),
       ), // or RunWorkflow, etc.
     );
   };

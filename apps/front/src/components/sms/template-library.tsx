@@ -75,7 +75,8 @@ export function TemplateLibrary({
 
   // Filter templates based on search and active group
   const filteredTemplates = useMemo(() => {
-    let templates: (SMSTemplate & { groupId: string; groupName: string })[] = [];
+    let templates: (SMSTemplate & { groupId: string; groupName: string })[] =
+      [];
 
     const cartridges =
       activeGroup === "all"
@@ -98,7 +99,7 @@ export function TemplateLibrary({
         (t) =>
           t.name.toLowerCase().includes(q) ||
           t.message.toLowerCase().includes(q) ||
-          t.tags.some((tag) => tag.toLowerCase().includes(q))
+          t.tags.some((tag) => tag.toLowerCase().includes(q)),
       );
     }
 
@@ -178,7 +179,7 @@ export function TemplateLibrary({
                     Target: {group.audience}
                   </p>
                 </div>
-              )
+              ),
             )}
           </div>
         )}
@@ -376,7 +377,9 @@ export function TemplatePicker({
       <Button variant="outline" className={className}>
         <MessageSquare className="h-4 w-4 mr-2" />
         {selectedTemplate ? (
-          <span className="truncate max-w-[200px]">{selectedTemplate.name}</span>
+          <span className="truncate max-w-[200px]">
+            {selectedTemplate.name}
+          </span>
         ) : (
           "Choose from Library"
         )}

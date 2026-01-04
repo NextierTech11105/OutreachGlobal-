@@ -40,11 +40,14 @@ export function validateTenantJob<T extends TenantJobData>(
   }
 
   if (typeof job.data.teamId !== "string" || job.data.teamId.trim() === "") {
-    logger.error(
-      `[${queueName}] Job ${job.id} rejected: invalid teamId`,
-      { jobName: job.name, jobId: job.id, teamId: job.data.teamId },
+    logger.error(`[${queueName}] Job ${job.id} rejected: invalid teamId`, {
+      jobName: job.name,
+      jobId: job.id,
+      teamId: job.data.teamId,
+    });
+    throw new Error(
+      `Tenant isolation violation: job ${job.id} has invalid teamId`,
     );
-    throw new Error(`Tenant isolation violation: job ${job.id} has invalid teamId`);
   }
 }
 
@@ -63,9 +66,7 @@ export async function addTenantJob<T extends TenantJobData>(
   }
 
   // Log for audit trail
-  logger.debug(
-    `[${queue.name}] Adding job ${jobName} for team ${data.teamId}`,
-  );
+  logger.debug(`[${queue.name}] Adding job ${jobName} for team ${data.teamId}`);
 
   return queue.add(jobName, data, options);
 }

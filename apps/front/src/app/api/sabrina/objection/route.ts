@@ -16,7 +16,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { leads, smsMessages, campaignAttempts } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { executeSMS, isRouterConfigured, previewSMS } from "@/lib/sms/ExecutionRouter";
+import {
+  executeSMS,
+  isRouterConfigured,
+  previewSMS,
+} from "@/lib/sms/ExecutionRouter";
 import { SABRINA } from "@/lib/ai-workers/digital-workers";
 import { SABRINA_OBJECTION_CARTRIDGE } from "@/lib/sms/template-cartridges";
 
@@ -199,7 +203,10 @@ export async function POST(request: NextRequest) {
 
     if (!effectiveTemplateId) {
       return NextResponse.json(
-        { success: false, error: "No template available for this objection type" },
+        {
+          success: false,
+          error: "No template available for this objection type",
+        },
         { status: 400 },
       );
     }
@@ -351,7 +358,7 @@ export async function GET() {
   const objectionInfo = Object.entries(OBJECTION_TEMPLATE_MAP).map(
     ([type, prefix]) => {
       const templates = SABRINA_OBJECTION_CARTRIDGE.templates.filter((t) =>
-        t.id.startsWith(prefix)
+        t.id.startsWith(prefix),
       );
       return {
         type,
@@ -360,7 +367,7 @@ export async function GET() {
         templateCount: templates.length,
         templateIds: templates.map((t) => t.id),
       };
-    }
+    },
   );
 
   return NextResponse.json({
