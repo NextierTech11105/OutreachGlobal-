@@ -25,7 +25,6 @@ import {
   BooleanField,
 } from "@/app/apollo/decorators";
 import { TimestampModel } from "@/app/apollo/base-model";
-import { GraphQLJSON } from "graphql-scalars";
 
 // ============================================
 // MODELS
@@ -48,8 +47,8 @@ export class AutoTrigger extends TimestampModel {
   @StringField()
   templateName: string;
 
-  @Field(() => GraphQLJSON)
-  config: Record<string, unknown>;
+  @StringField()
+  config: string; // JSON string
 
   @IntField()
   firedCount: number;
@@ -59,7 +58,10 @@ export class AutoTrigger extends TimestampModel {
 }
 
 @ObjectType()
-export class TriggerExecution extends TimestampModel {
+export class TriggerExecution {
+  @IdField()
+  id: string;
+
   @StringField()
   triggerId: string;
 
@@ -81,8 +83,11 @@ export class TriggerExecution extends TimestampModel {
   @StringField({ nullable: true })
   eventType?: string;
 
-  @Field(() => GraphQLJSON, { nullable: true })
-  eventData?: Record<string, unknown>;
+  @StringField({ nullable: true })
+  eventData?: string; // JSON string
+
+  @Field()
+  createdAt: Date;
 }
 
 @ObjectType()
@@ -145,8 +150,8 @@ class CreateAutoTriggerInput {
   @StringField()
   templateName: string;
 
-  @Field(() => GraphQLJSON, { nullable: true })
-  config?: Record<string, unknown>;
+  @StringField({ nullable: true })
+  config?: string; // JSON string
 }
 
 @ArgsType()
@@ -199,6 +204,41 @@ class DeleteTriggerPayload {
 }
 
 // ============================================
+// HELPER: Map DB row to GraphQL type
+// ============================================
+
+function mapTriggerToGraphQL(trigger: typeof autoTriggers.$inferSelect): AutoTrigger {
+  return {
+    id: trigger.id,
+    name: trigger.name,
+    type: trigger.type,
+    enabled: trigger.enabled,
+    templateId: trigger.templateId,
+    templateName: trigger.templateName,
+    config: JSON.stringify(trigger.config ?? {}),
+    firedCount: trigger.firedCount,
+    lastFiredAt: trigger.lastFiredAt ?? undefined,
+    createdAt: trigger.createdAt,
+    updatedAt: trigger.updatedAt,
+  };
+}
+
+function mapExecutionToGraphQL(exec: typeof triggerExecutions.$inferSelect): TriggerExecution {
+  return {
+    id: exec.id,
+    triggerId: exec.triggerId,
+    leadId: exec.leadId,
+    status: exec.status,
+    sentAt: exec.sentAt ?? undefined,
+    failedAt: exec.failedAt ?? undefined,
+    failedReason: exec.failedReason ?? undefined,
+    eventType: exec.eventType ?? undefined,
+    eventData: exec.eventData ? JSON.stringify(exec.eventData) : undefined,
+    createdAt: exec.createdAt,
+  };
+}
+
+// ============================================
 // RESOLVER
 // ============================================
 
@@ -238,7 +278,7 @@ export class AutoTriggerResolver extends BaseResolver(AutoTrigger) {
       .orderBy(desc(autoTriggers.createdAt));
 
     return {
-      nodes: triggers as AutoTrigger[],
+      nodes: triggers.map(mapTriggerToGraphQL),
       totalCount: triggers.length,
     };
   }
@@ -265,7 +305,7 @@ export class AutoTriggerResolver extends BaseResolver(AutoTrigger) {
       .limit(args.limit ?? 50);
 
     return {
-      nodes: executions as TriggerExecution[],
+      nodes: executions.map(mapExecutionToGraphQL),
       totalCount: executions.length,
     };
   }
@@ -279,6 +319,7 @@ export class AutoTriggerResolver extends BaseResolver(AutoTrigger) {
     await this.teamPolicy.can().manage(user, team);
 
     const { input } = args;
+    const config = input.config ? JSON.parse(input.config) : {};
 
     const [trigger] = await this.db
       .insert(autoTriggers)
@@ -288,12 +329,12 @@ export class AutoTriggerResolver extends BaseResolver(AutoTrigger) {
         type: input.type as any,
         templateId: input.templateId,
         templateName: input.templateName,
-        config: input.config ?? {},
+        config,
         enabled: true,
       })
       .returning();
 
-    return { trigger: trigger as AutoTrigger };
+    return { trigger: mapTriggerToGraphQL(trigger) };
   }
 
   @Mutation(() => AutoTriggerPayload)
@@ -316,7 +357,7 @@ export class AutoTriggerResolver extends BaseResolver(AutoTrigger) {
       throw new Error("Trigger not found");
     }
 
-    return { trigger: trigger as AutoTrigger };
+    return { trigger: mapTriggerToGraphQL(trigger) };
   }
 
   @Mutation(() => DeleteTriggerPayload)

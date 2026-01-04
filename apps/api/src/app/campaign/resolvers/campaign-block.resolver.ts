@@ -16,7 +16,7 @@ import { TeamPolicy } from "@/app/team/policies/team.policy";
 import { User } from "@/app/user/models/user.model";
 import { InjectDB } from "@/database/decorators";
 import { DrizzleClient } from "@/database/types";
-import { campaignBlocks, leadTouches } from "@/database/schema";
+import { campaignBlocks } from "@/database/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { IdField, StringField, IntField } from "@/app/apollo/decorators";
 import { TimestampModel } from "@/app/apollo/base-model";
@@ -142,6 +142,30 @@ class CampaignBlockPayload {
 }
 
 // ============================================
+// HELPER: Map DB row to GraphQL type
+// ============================================
+
+function mapBlockToGraphQL(block: typeof campaignBlocks.$inferSelect): CampaignBlock {
+  return {
+    id: block.id,
+    campaignId: block.campaignId,
+    blockNumber: block.blockNumber,
+    status: block.status,
+    leadsLoaded: block.leadsLoaded,
+    maxLeads: block.maxLeads,
+    currentTouch: block.currentTouch,
+    maxTouches: block.maxTouchesPerLead,
+    touchesSent: block.totalTouches,
+    targetTouches: block.targetSends,
+    startedAt: block.startedAt ?? undefined,
+    pausedAt: block.pausedAt ?? undefined,
+    completedAt: block.completedAt ?? undefined,
+    createdAt: block.createdAt,
+    updatedAt: block.updatedAt,
+  };
+}
+
+// ============================================
 // RESOLVER
 // ============================================
 
@@ -181,7 +205,7 @@ export class CampaignBlockResolver extends BaseResolver(CampaignBlock) {
       .orderBy(desc(campaignBlocks.createdAt));
 
     return {
-      nodes: blocks as CampaignBlock[],
+      nodes: blocks.map(mapBlockToGraphQL),
       totalCount: blocks.length,
     };
   }
@@ -205,7 +229,7 @@ export class CampaignBlockResolver extends BaseResolver(CampaignBlock) {
       throw new Error("Campaign block not found");
     }
 
-    return block as CampaignBlock;
+    return mapBlockToGraphQL(block);
   }
 
   @Mutation(() => CampaignBlockPayload)
@@ -225,6 +249,8 @@ export class CampaignBlockResolver extends BaseResolver(CampaignBlock) {
       .where(eq(campaignBlocks.campaignId, input.campaignId));
 
     const nextBlockNumber = existingBlocks.length + 1;
+    const maxLeads = input.maxLeads ?? 2000;
+    const maxTouchesPerLead = input.maxTouches ?? 5;
 
     const [block] = await this.db
       .insert(campaignBlocks)
@@ -232,14 +258,14 @@ export class CampaignBlockResolver extends BaseResolver(CampaignBlock) {
         teamId: team.id,
         campaignId: input.campaignId,
         blockNumber: nextBlockNumber,
-        maxLeads: input.maxLeads ?? 2000,
-        maxTouches: input.maxTouches ?? 6,
-        targetTouches: (input.maxLeads ?? 2000) * (input.maxTouches ?? 6),
+        maxLeads,
+        maxTouchesPerLead,
+        targetSends: maxLeads * maxTouchesPerLead,
         status: "preparing",
       })
       .returning();
 
-    return { block: block as CampaignBlock };
+    return { block: mapBlockToGraphQL(block) };
   }
 
   @Mutation(() => CampaignBlockPayload)
@@ -277,6 +303,6 @@ export class CampaignBlockResolver extends BaseResolver(CampaignBlock) {
       throw new Error("Campaign block not found");
     }
 
-    return { block: block as CampaignBlock };
+    return { block: mapBlockToGraphQL(block) };
   }
 }

@@ -258,7 +258,7 @@ export default function AutoTriggersPage() {
           type: newTriggerType,
           templateId: newTriggerTemplate,
           templateName: template?.name || "",
-          config: newTriggerConfig,
+          config: JSON.stringify(newTriggerConfig),
         },
       },
     });

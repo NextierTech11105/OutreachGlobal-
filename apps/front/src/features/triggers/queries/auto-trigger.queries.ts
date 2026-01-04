@@ -7,7 +7,7 @@ export interface AutoTrigger {
   enabled: boolean;
   templateId: string;
   templateName: string;
-  config: Record<string, unknown>;
+  config: string; // JSON string - parse with JSON.parse()
   firedCount: number;
   lastFiredAt: string | null;
   createdAt: string;
@@ -23,7 +23,7 @@ export interface TriggerExecution {
   failedAt: string | null;
   failedReason: string | null;
   eventType: string | null;
-  eventData: Record<string, unknown> | null;
+  eventData: string | null; // JSON string
   createdAt: string;
 }
 

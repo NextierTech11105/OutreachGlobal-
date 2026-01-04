@@ -6,7 +6,7 @@ export interface CreateAutoTriggerInput {
   type: string;
   templateId: string;
   templateName: string;
-  config?: Record<string, unknown>;
+  config?: string; // JSON string
 }
 
 export interface CreateAutoTriggerMutation {

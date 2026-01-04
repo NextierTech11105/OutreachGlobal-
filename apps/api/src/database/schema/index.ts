@@ -74,5 +74,4 @@ export * from "./ml-predictions.schema";
 export * from "./template-performance.schema";
 
 // ===== CAMPAIGN EXECUTION =====
-export * from "./campaign-blocks.schema";
 export * from "./auto-triggers.schema";
