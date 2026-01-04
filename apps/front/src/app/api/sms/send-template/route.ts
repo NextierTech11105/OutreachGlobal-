@@ -1,22 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  resolveTemplateById,
-  resolveAndRenderTemplate,
-  templateExists,
-} from "@/lib/sms/resolveTemplate";
+import { executeSMS, isRouterConfigured } from "@/lib/sms/ExecutionRouter";
+import { templateExists } from "@/lib/sms/resolveTemplate";
 
 /**
  * SMS SEND TEMPLATE API
  *
  * CANONICAL template resolution - uses CARTRIDGE_LIBRARY only.
- * This is the ONLY way to send templated SMS.
+ * Routes ALL sends through ExecutionRouter.
  *
  * Raw message text is REJECTED - must use templateId.
  */
-
-const SIGNALHOUSE_API_BASE = "https://api.signalhouse.io/api/v1";
-const SIGNALHOUSE_API_KEY = process.env.SIGNALHOUSE_API_KEY || "";
-const SIGNALHOUSE_FROM_NUMBER = process.env.SIGNALHOUSE_FROM_NUMBER || "";
 
 interface SendTemplateRequest {
   template_id: string; // REQUIRED - templateId from CARTRIDGE_LIBRARY
@@ -35,6 +28,7 @@ interface SendTemplateRequest {
   campaign_id?: string;
   lead_id?: string;
   teamId?: string;
+  trainingMode?: boolean;
 }
 
 // POST /api/sms/send-template - Send SMS using a template from CARTRIDGE_LIBRARY
@@ -50,6 +44,7 @@ export async function POST(request: NextRequest) {
       campaign_id,
       lead_id,
       teamId,
+      trainingMode,
     } = body;
 
     // Accept either template_id or templateId
@@ -73,14 +68,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!SIGNALHOUSE_API_KEY) {
+    // Check ExecutionRouter configuration
+    const routerStatus = isRouterConfigured();
+    if (!routerStatus.configured) {
       return NextResponse.json(
-        { error: "SignalHouse API key not configured" },
+        { error: "SMS provider not configured" },
         { status: 503 },
       );
     }
 
-    // CANONICAL: Resolve template from CARTRIDGE_LIBRARY
+    // CANONICAL: Validate template exists in CARTRIDGE_LIBRARY
     if (!templateExists(templateId)) {
       return NextResponse.json(
         {
@@ -105,73 +102,41 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Resolve and render template with variables
-    const { message: messageText, template, cartridgeId } = resolveAndRenderTemplate(
+    // ═══════════════════════════════════════════════════════════════════════
+    // CANONICAL: Route through ExecutionRouter
+    // This is the ONLY approved way to send SMS
+    // ═══════════════════════════════════════════════════════════════════════
+    const result = await executeSMS({
       templateId,
-      normalizedVariables,
-    );
-
-    // Validate message length for SMS
-    if (messageText.length > 320) {
-      return NextResponse.json(
-        {
-          error: "Rendered message exceeds 320 characters",
-          character_count: messageText.length,
-          template_id: templateId,
-        },
-        { status: 400 },
-      );
-    }
-
-    // Send via SignalHouse
-    const response = await fetch(`${SIGNALHOUSE_API_BASE}/message/sendSMS`, {
-      method: "POST",
-      headers: {
-        "x-api-key": SIGNALHOUSE_API_KEY,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        to,
-        from: from || SIGNALHOUSE_FROM_NUMBER,
-        message: messageText,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      return NextResponse.json(
-        { error: errorData.message || `SignalHouse error: ${response.status}` },
-        { status: response.status },
-      );
-    }
-
-    const data = await response.json();
-
-    // Log the send for tracking
-    console.log("[SMS Send Template]", {
-      templateId,
-      template_name: template.name,
-      cartridgeId,
-      stage: template.stage,
       to,
-      campaign_id,
-      lead_id,
+      from,
+      variables: normalizedVariables,
+      leadId: lead_id,
       teamId,
-      message_id: data.messageId || data.id,
-      timestamp: new Date().toISOString(),
+      campaignId: campaign_id,
+      worker: "SYSTEM",
+      trainingMode,
     });
+
+    if (!result.success) {
+      return NextResponse.json(
+        { error: result.error || "Failed to send message" },
+        { status: 500 },
+      );
+    }
 
     return NextResponse.json({
       success: true,
-      message_id: data.messageId || data.id,
+      message_id: result.messageId,
       template: {
-        id: templateId,
-        name: template.name,
-        stage: template.stage,
-        cartridgeId,
+        id: result.templateId,
+        name: result.templateName,
+        cartridgeId: result.cartridgeId,
       },
-      message_preview: messageText.substring(0, 50) + "...",
-      character_count: messageText.length,
+      message_preview: result.renderedMessage.substring(0, 50) + "...",
+      character_count: result.renderedMessage.length,
+      provider: result.provider,
+      trainingMode: result.trainingMode,
     });
   } catch (error) {
     console.error("[SMS Send Template] Error:", error);

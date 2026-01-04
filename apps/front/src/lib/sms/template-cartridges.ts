@@ -521,6 +521,357 @@ export const REAL_ESTATE_CARTRIDGE: TemplateCartridge = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// CARTRIDGE: CATHY NUDGE TEMPLATES
+// Follow-up nudges with humor (Leslie Nielsen / Henny Youngman style)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export const CATHY_NUDGE_CARTRIDGE: TemplateCartridge = {
+  id: "cathy-nudge",
+  name: "CATHY Nudge Templates",
+  description:
+    "Follow-up nudge templates with escalating humor for re-engagement",
+  audience: "Leads who haven't responded - ghosted or dormant",
+  industries: ["all"],
+  active: true, // Always active for internal use
+  keywords: ["nudge", "follow-up", "humor", "re-engage"],
+  templates: [
+    // MILD (Attempts 1-2)
+    {
+      id: "cathy-nudge-mild-1",
+      name: "Mild - First Followup",
+      message:
+        "Hey {{firstName}}, just checking in! Did my last message get lost in the void? 😅",
+      stage: "followup" as CampaignStage,
+      worker: "CATHY" as AIWorker,
+      tags: ["nudge", "mild", "first-followup"],
+      variables: ["firstName"],
+      charCount: 82,
+    },
+    {
+      id: "cathy-nudge-mild-2",
+      name: "Mild - General",
+      message:
+        "{{firstName}} — hope you're having a good week! Still interested in chatting about your property?",
+      stage: "followup" as CampaignStage,
+      worker: "CATHY" as AIWorker,
+      tags: ["nudge", "mild", "general"],
+      variables: ["firstName"],
+      charCount: 98,
+    },
+    {
+      id: "cathy-nudge-mild-3",
+      name: "Mild - Quick Check",
+      message:
+        "Quick follow-up {{firstName}} — I know inboxes get crazy. Worth a chat?",
+      stage: "followup" as CampaignStage,
+      worker: "CATHY" as AIWorker,
+      tags: ["nudge", "mild", "general"],
+      variables: ["firstName"],
+      charCount: 72,
+    },
+    // MEDIUM (Attempts 3-4)
+    {
+      id: "cathy-nudge-med-1",
+      name: "Medium - Ghosted",
+      message:
+        "{{firstName}}... still there? I promise I'm more interesting than my messages make me seem 😂",
+      stage: "followup" as CampaignStage,
+      worker: "CATHY" as AIWorker,
+      tags: ["nudge", "medium", "ghosted"],
+      variables: ["firstName"],
+      charCount: 96,
+    },
+    {
+      id: "cathy-nudge-med-2",
+      name: "Medium - Pizza",
+      message:
+        "{{firstName}} — at this point I should probably send flowers. Or pizza. Pizza usually works.",
+      stage: "followup" as CampaignStage,
+      worker: "CATHY" as AIWorker,
+      tags: ["nudge", "medium", "ghosted"],
+      variables: ["firstName"],
+      charCount: 98,
+    },
+    {
+      id: "cathy-nudge-med-3",
+      name: "Medium - Mother-in-law",
+      message:
+        "I've had better luck reaching my mother-in-law, {{firstName}}. And she ignores me on purpose!",
+      stage: "followup" as CampaignStage,
+      worker: "CATHY" as AIWorker,
+      tags: ["nudge", "medium", "ghosted"],
+      variables: ["firstName"],
+      charCount: 96,
+    },
+    {
+      id: "cathy-nudge-med-4",
+      name: "Medium - Third Time",
+      message:
+        "Third time's the charm, right? That's what I told my third husband. {{firstName}}, got 5 mins?",
+      stage: "followup" as CampaignStage,
+      worker: "CATHY" as AIWorker,
+      tags: ["nudge", "medium", "third-attempt"],
+      variables: ["firstName"],
+      charCount: 98,
+    },
+    // SPICY (Attempts 5+)
+    {
+      id: "cathy-nudge-spicy-1",
+      name: "Spicy - Last Shot",
+      message:
+        "{{firstName}}, either you're really busy or I'm really boring. Hoping it's the first one! 😅 Last shot — worth a quick call?",
+      stage: "followup" as CampaignStage,
+      worker: "CATHY" as AIWorker,
+      tags: ["nudge", "spicy", "final-attempt"],
+      variables: ["firstName"],
+      charCount: 122,
+    },
+    {
+      id: "cathy-nudge-spicy-2",
+      name: "Spicy - Aliens",
+      message:
+        "{{firstName}} — if you don't respond, I'll assume you've been abducted by aliens. Blink twice if you need help... or just text back?",
+      stage: "followup" as CampaignStage,
+      worker: "CATHY" as AIWorker,
+      tags: ["nudge", "spicy", "ghosted"],
+      variables: ["firstName"],
+      charCount: 138,
+    },
+    {
+      id: "cathy-nudge-spicy-3",
+      name: "Spicy - No Warranty",
+      message:
+        "Not gonna lie {{firstName}}, I'm running out of clever things to say. At least I'm not selling extended warranties. 10 mins?",
+      stage: "followup" as CampaignStage,
+      worker: "CATHY" as AIWorker,
+      tags: ["nudge", "spicy", "final-attempt"],
+      variables: ["firstName"],
+      charCount: 122,
+    },
+    {
+      id: "cathy-nudge-spicy-4",
+      name: "Spicy - Kids Jealous",
+      message:
+        "{{firstName}}, I've now texted you more than I text my kids. They're jealous. Can we at least have a quick chat so I feel productive?",
+      stage: "followup" as CampaignStage,
+      worker: "CATHY" as AIWorker,
+      tags: ["nudge", "spicy", "persistent"],
+      variables: ["firstName"],
+      charCount: 140,
+    },
+  ],
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CARTRIDGE: SABRINA OBJECTION HANDLING
+// Agree-Overcome-Close responses to common objections
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export const SABRINA_OBJECTION_CARTRIDGE: TemplateCartridge = {
+  id: "sabrina-objection",
+  name: "SABRINA Objection Handling",
+  description:
+    "Agree-Overcome-Close responses for common sales objections",
+  audience: "Leads with objections - too busy, not interested, need to think",
+  industries: ["all"],
+  active: true,
+  keywords: ["objection", "rebuttal", "closing", "agree-overcome-close"],
+  templates: [
+    // TOO BUSY
+    {
+      id: "sabrina-obj-busy-1",
+      name: "Busy - 10 Minutes",
+      message:
+        "Totally get it, your time is valuable. What if we did just 10 mins? I'll make it worth it. Would 7am before your day gets crazy work, or is 8pm easier?",
+      stage: "objection" as CampaignStage,
+      worker: "SABRINA" as AIWorker,
+      tags: ["objection", "too-busy", "rebuttal"],
+      variables: [],
+      charCount: 158,
+    },
+    {
+      id: "sabrina-obj-busy-2",
+      name: "Busy - Short Calls",
+      message:
+        "I hear you — everyone's calendar is packed these days. That's exactly why I keep these calls short and focused. How about a quick call Thursday or Friday? I'll work around your schedule.",
+      stage: "objection" as CampaignStage,
+      worker: "SABRINA" as AIWorker,
+      tags: ["objection", "too-busy", "rebuttal"],
+      variables: [],
+      charCount: 192,
+    },
+    // NOT INTERESTED
+    {
+      id: "sabrina-obj-interest-1",
+      name: "Not Interested - Curious",
+      message:
+        "No pressure at all, I respect that. Curious though — what would need to change for it to make sense? Even just 5 mins to share what I'm seeing in your area?",
+      stage: "objection" as CampaignStage,
+      worker: "SABRINA" as AIWorker,
+      tags: ["objection", "not-interested", "rebuttal"],
+      variables: [],
+      charCount: 164,
+    },
+    {
+      id: "sabrina-obj-interest-2",
+      name: "Not Interested - Numbers",
+      message:
+        "Totally fair. Most folks I talk to felt the same way... until they saw the numbers. 10 mins, no commitment. If it's not relevant, you've lost nothing. Worth a shot?",
+      stage: "objection" as CampaignStage,
+      worker: "SABRINA" as AIWorker,
+      tags: ["objection", "not-interested", "rebuttal"],
+      variables: [],
+      charCount: 172,
+    },
+    // NEED TO THINK
+    {
+      id: "sabrina-obj-think-1",
+      name: "Think - Questions",
+      message:
+        "Makes sense — big decisions deserve thought. What questions can I answer now to help you decide? Or we could chat through it together? Sometimes talking helps clarify.",
+      stage: "objection" as CampaignStage,
+      worker: "SABRINA" as AIWorker,
+      tags: ["objection", "need-to-think", "rebuttal"],
+      variables: [],
+      charCount: 182,
+    },
+    {
+      id: "sabrina-obj-think-2",
+      name: "Think - One Thing",
+      message:
+        "Absolutely, take your time. While you're thinking, let me share one thing that might help... Quick call this week to walk through the details?",
+      stage: "objection" as CampaignStage,
+      worker: "SABRINA" as AIWorker,
+      tags: ["objection", "need-to-think", "rebuttal"],
+      variables: [],
+      charCount: 148,
+    },
+    // BAD TIMING
+    {
+      id: "sabrina-obj-timing-1",
+      name: "Bad Timing - When Better",
+      message:
+        "I get it — timing is everything. When would be better timing? I'll set a reminder to reach out. Should I check back in a month, or after the holidays?",
+      stage: "objection" as CampaignStage,
+      worker: "SABRINA" as AIWorker,
+      tags: ["objection", "bad-timing", "rebuttal"],
+      variables: [],
+      charCount: 158,
+    },
+    {
+      id: "sabrina-obj-timing-2",
+      name: "Bad Timing - Market",
+      message:
+        "Totally understand, there's always a lot going on. The thing is, market conditions keep changing. Better to know your options now. Even a quick 15-min call to get the lay of the land?",
+      stage: "objection" as CampaignStage,
+      worker: "SABRINA" as AIWorker,
+      tags: ["objection", "bad-timing", "rebuttal"],
+      variables: [],
+      charCount: 190,
+    },
+    // ALREADY HAVE SOMEONE
+    {
+      id: "sabrina-obj-have-1",
+      name: "Already Have - Second Opinion",
+      message:
+        "Great that you're already working with someone! Just curious — are they showing you all your options? No harm in a second opinion. 10 mins, and I'll show you what else is out there.",
+      stage: "objection" as CampaignStage,
+      worker: "SABRINA" as AIWorker,
+      tags: ["objection", "already-have", "rebuttal"],
+      variables: [],
+      charCount: 190,
+    },
+    // TOO EXPENSIVE
+    {
+      id: "sabrina-obj-cost-1",
+      name: "Too Expensive - Free Call",
+      message:
+        "I hear you, cost matters. Here's the thing — this call is free, and it might save you money. Let's at least look at the numbers together. What's a good time?",
+      stage: "objection" as CampaignStage,
+      worker: "SABRINA" as AIWorker,
+      tags: ["objection", "too-expensive", "rebuttal"],
+      variables: [],
+      charCount: 166,
+    },
+    // SPOUSE DECISION
+    {
+      id: "sabrina-obj-spouse-1",
+      name: "Spouse - Together",
+      message:
+        "Totally understand — important to be on the same page. Would it help if we all hopped on together? I can do evenings or weekends too. When works for both of you?",
+      stage: "objection" as CampaignStage,
+      worker: "SABRINA" as AIWorker,
+      tags: ["objection", "spouse-decision", "rebuttal"],
+      variables: [],
+      charCount: 168,
+    },
+    // UNKNOWN / GENERAL
+    {
+      id: "sabrina-obj-unknown-1",
+      name: "Unknown - Hesitation",
+      message:
+        "I appreciate you being upfront. Mind if I ask — what's the hesitation? Maybe a quick chat would clear things up. No pressure, just perspective.",
+      stage: "objection" as CampaignStage,
+      worker: "SABRINA" as AIWorker,
+      tags: ["objection", "unknown", "rebuttal"],
+      variables: [],
+      charCount: 152,
+    },
+  ],
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CARTRIDGE: SABRINA BOOKING
+// Appointment confirmation and reminder templates
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export const SABRINA_BOOKING_CARTRIDGE: TemplateCartridge = {
+  id: "sabrina-booking",
+  name: "SABRINA Booking Templates",
+  description:
+    "Appointment confirmation, reminder, and follow-up templates",
+  audience: "Leads being booked for calls or appointments",
+  industries: ["all"],
+  active: true,
+  keywords: ["booking", "appointment", "confirmation", "reminder"],
+  templates: [
+    {
+      id: "sabrina-book-confirm",
+      name: "Booking Confirmation",
+      message:
+        "{{firstName}} — you're all set for {{date}} at {{time}}! 📅\n\nI'll call you then. Here's what we'll cover:\n- Quick look at your property/business situation\n- 3 options you might not know about\n- No pressure, just ideas\n\nSee you soon!\n— Sabrina",
+      stage: "booking" as CampaignStage,
+      worker: "SABRINA" as AIWorker,
+      tags: ["booking", "confirmation"],
+      variables: ["firstName", "date", "time"],
+      charCount: 248,
+    },
+    {
+      id: "sabrina-book-reminder",
+      name: "Booking Reminder",
+      message:
+        "Hey {{firstName}}! Just a friendly reminder about our call tomorrow at {{time}}. Looking forward to chatting! — Sabrina",
+      stage: "booking" as CampaignStage,
+      worker: "SABRINA" as AIWorker,
+      tags: ["booking", "reminder"],
+      variables: ["firstName", "time"],
+      charCount: 118,
+    },
+    {
+      id: "sabrina-book-followup",
+      name: "Post-Call Followup",
+      message:
+        "{{firstName}} — thanks for the great conversation! As promised, here's the next step: {{nextStep}}. Let me know if you have any questions!",
+      stage: "booking" as CampaignStage,
+      worker: "SABRINA" as AIWorker,
+      tags: ["booking", "followup"],
+      variables: ["firstName", "nextStep"],
+      charCount: 142,
+    },
+  ],
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // CARTRIDGE LIBRARY (All available cartridges)
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -529,6 +880,9 @@ export const CARTRIDGE_LIBRARY: TemplateCartridge[] = [
   CRM_CONSULTANTS_CARTRIDGE,
   BLUE_COLLAR_CARTRIDGE,
   REAL_ESTATE_CARTRIDGE,
+  CATHY_NUDGE_CARTRIDGE,
+  SABRINA_OBJECTION_CARTRIDGE,
+  SABRINA_BOOKING_CARTRIDGE,
 ];
 
 // Alias for convenience

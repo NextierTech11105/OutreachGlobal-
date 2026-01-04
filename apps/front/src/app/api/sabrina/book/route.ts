@@ -2,19 +2,22 @@
  * SABRINA BOOK API - The Closer
  *
  * Handles appointment booking for qualified leads:
- * - POST: Book appointment, send calendar invite
+ * - POST: Book appointment, send calendar invite via ExecutionRouter
  * - GET: Get available slots
  *
  * SABRINA positions calls as "strategy sessions" not sales calls.
  * Uses specific times rather than "whenever works".
+ *
+ * ENFORCEMENT: All sends go through ExecutionRouter with templateId.
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { leads, smsMessages } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { signalHouseService } from "@/lib/services/signalhouse-service";
+import { executeSMS, isRouterConfigured } from "@/lib/sms/ExecutionRouter";
 import { SABRINA } from "@/lib/ai-workers/digital-workers";
+import { SABRINA_BOOKING_CARTRIDGE } from "@/lib/sms/template-cartridges";
 
 // Business hours for scheduling (9 AM - 5 PM EST)
 const BUSINESS_HOURS = {
@@ -69,29 +72,6 @@ function generateAvailableSlots(
   return slots;
 }
 
-// Booking confirmation templates
-const BOOKING_TEMPLATES = {
-  confirmation: {
-    sms: `{{first_name}} — you're all set for {{date}} at {{time}}! 📅
-
-I'll call you then. Here's what we'll cover:
-- Quick look at your property/business situation
-- 3 options you might not know about
-- No pressure, just ideas
-
-See you soon!
-— Sabrina`,
-    subject: "Strategy Session Confirmed",
-  },
-  reminder: {
-    sms: `Hey {{first_name}}! Just a friendly reminder about our call tomorrow at {{time}}. Looking forward to chatting! — Sabrina`,
-    subject: "Reminder: Strategy Session Tomorrow",
-  },
-  followup: {
-    sms: `{{first_name}} — thanks for the great conversation! As promised, here's the next step: {{next_step}}. Let me know if you have any questions!`,
-  },
-};
-
 interface BookRequest {
   leadId: string;
   slot: string; // ISO date string
@@ -99,9 +79,12 @@ interface BookRequest {
   notes?: string;
   sendConfirmation?: boolean;
   calendarLink?: string; // Custom calendar link
+  templateId?: string; // CANONICAL: Use templateId from CARTRIDGE_LIBRARY
+  teamId?: string;
+  trainingMode?: boolean;
 }
 
-// POST - Book an appointment
+// POST - Book an appointment via ExecutionRouter
 export async function POST(request: NextRequest) {
   try {
     const body: BookRequest = await request.json();
@@ -111,7 +94,9 @@ export async function POST(request: NextRequest) {
       duration = SLOT_DURATION,
       notes,
       sendConfirmation = true,
-      calendarLink,
+      templateId,
+      teamId,
+      trainingMode,
     } = body;
 
     if (!leadId || !slot) {
@@ -158,16 +143,6 @@ export async function POST(request: NextRequest) {
 
     // Create appointment record
     const appointmentId = crypto.randomUUID();
-    const appointment = {
-      id: appointmentId,
-      leadId,
-      scheduledAt: slot,
-      duration,
-      status: "scheduled",
-      notes,
-      worker: "sabrina",
-      createdAt: new Date().toISOString(),
-    };
 
     // Update lead with appointment info
     await db
@@ -181,49 +156,72 @@ export async function POST(request: NextRequest) {
 
     // Send confirmation if requested
     let confirmationSent = false;
-    if (sendConfirmation && lead.phone) {
-      let message = BOOKING_TEMPLATES.confirmation.sms;
-      message = message.replace(
-        /\{\{first_name\}\}/g,
-        lead.firstName || "there",
-      );
-      message = message.replace(/\{\{date\}\}/g, dateStr);
-      message = message.replace(/\{\{time\}\}/g, timeStr);
+    let smsResult = null;
 
-      // Add calendar link if provided
-      if (calendarLink) {
-        message += `\n\nAdd to calendar: ${calendarLink}`;
+    if (sendConfirmation && lead.phone) {
+      // Check router configuration
+      const routerStatus = isRouterConfigured();
+      if (!routerStatus.configured) {
+        return NextResponse.json(
+          { success: false, error: "SMS provider not configured" },
+          { status: 503 },
+        );
       }
 
-      try {
-        await signalHouseService.sendSMS({
-          to: lead.phone,
-          message,
-          tags: ["sabrina", "booking", "confirmation"],
-        });
+      // Use provided templateId or default to confirmation template
+      const effectiveTemplateId = templateId || "sabrina-book-confirm";
+
+      // Build variables for template
+      const variables: Record<string, string> = {
+        firstName: lead.firstName || "there",
+        first_name: lead.firstName || "there",
+        date: dateStr,
+        time: timeStr,
+      };
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // CANONICAL: Route through ExecutionRouter
+      // ═══════════════════════════════════════════════════════════════════════
+      const result = await executeSMS({
+        templateId: effectiveTemplateId,
+        to: lead.phone,
+        variables,
+        leadId,
+        teamId,
+        worker: "SABRINA",
+        trainingMode,
+      });
+
+      if (result.success) {
+        smsResult = result;
+        confirmationSent = true;
 
         // Log SMS
-        await db.insert(smsMessages).values({
-          id: crypto.randomUUID(),
-          leadId,
-          direction: "outbound",
-          fromNumber: process.env.SIGNALHOUSE_PHONE_NUMBER || "",
-          toNumber: lead.phone,
-          body: message,
-          status: "sent",
-          sentAt: new Date(),
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        });
-
-        confirmationSent = true;
-      } catch (smsError) {
-        console.error("[Sabrina Book] SMS error:", smsError);
+        try {
+          await db.insert(smsMessages).values({
+            id: result.messageId || crypto.randomUUID(),
+            leadId,
+            direction: "outbound",
+            fromNumber: result.sentFrom,
+            toNumber: lead.phone,
+            body: result.renderedMessage,
+            status: result.trainingMode ? "training" : "sent",
+            sentAt: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          });
+        } catch (dbError) {
+          console.log("[Sabrina Book] DB logging error (non-fatal):", dbError);
+        }
+      } else {
+        console.error("[Sabrina Book] SMS error:", result.error);
       }
     }
 
     console.log(
-      `[Sabrina Book] Booked appointment for ${lead.firstName} on ${dateStr} at ${timeStr}`,
+      `[Sabrina Book] Booked appointment for ${lead.firstName} on ${dateStr} at ${timeStr}${
+        smsResult ? ` via ${smsResult.provider}` : ""
+      }`,
     );
 
     return NextResponse.json({
@@ -244,6 +242,8 @@ export async function POST(request: NextRequest) {
         email: lead.email,
       },
       confirmationSent,
+      provider: smsResult?.provider,
+      trainingMode: smsResult?.trainingMode,
       worker: "sabrina",
     });
   } catch (error) {
@@ -258,7 +258,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET - Get available slots
+// GET - Get available slots and templates from CARTRIDGE_LIBRARY
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const days = parseInt(searchParams.get("days") || "5");
@@ -306,6 +306,15 @@ export async function GET(request: NextRequest) {
     availableSlots: slotsByDate,
     totalSlots: slots.length,
     businessHours: BUSINESS_HOURS,
+    cartridge: {
+      id: SABRINA_BOOKING_CARTRIDGE.id,
+      name: SABRINA_BOOKING_CARTRIDGE.name,
+      templates: SABRINA_BOOKING_CARTRIDGE.templates.map((t) => ({
+        id: t.id,
+        name: t.name,
+        variables: t.variables,
+      })),
+    },
     suggestedPhrases: SABRINA.linguistic.closings,
   });
 }

@@ -8,14 +8,17 @@
  *
  * Handles first 3 rebuttals before backing off.
  * Most people say yes by rebuttal 2.
+ *
+ * ENFORCEMENT: All sends go through ExecutionRouter with templateId.
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { leads, smsMessages, campaignAttempts } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { signalHouseService } from "@/lib/services/signalhouse-service";
+import { executeSMS, isRouterConfigured, previewSMS } from "@/lib/sms/ExecutionRouter";
 import { SABRINA } from "@/lib/ai-workers/digital-workers";
+import { SABRINA_OBJECTION_CARTRIDGE } from "@/lib/sms/template-cartridges";
 
 // Common objection types
 type ObjectionType =
@@ -27,117 +30,6 @@ type ObjectionType =
   | "too_expensive"
   | "spouse_decision"
   | "unknown";
-
-// Objection response templates using Agree-Overcome-Close
-const OBJECTION_RESPONSES: Record<
-  ObjectionType,
-  {
-    agree: string;
-    overcome: string;
-    close: string;
-    maxRebuttals: number;
-  }[]
-> = {
-  too_busy: [
-    {
-      agree: "Totally get it, your time is valuable.",
-      overcome: "What if we did just 10 mins? I'll make it worth it.",
-      close: "Would 7am before your day gets crazy work, or is 8pm easier?",
-      maxRebuttals: 3,
-    },
-    {
-      agree: "I hear you — everyone's calendar is packed these days.",
-      overcome: "That's exactly why I keep these calls short and focused.",
-      close:
-        "How about a quick call Thursday or Friday? I'll work around your schedule.",
-      maxRebuttals: 3,
-    },
-  ],
-  not_interested: [
-    {
-      agree: "No pressure at all, I respect that.",
-      overcome:
-        "Curious though — what would need to change for it to make sense?",
-      close: "Even just 5 mins to share what I'm seeing in your area?",
-      maxRebuttals: 2,
-    },
-    {
-      agree: "Totally fair.",
-      overcome:
-        "Most folks I talk to felt the same way... until they saw the numbers.",
-      close:
-        "10 mins, no commitment. If it's not relevant, you've lost nothing. Worth a shot?",
-      maxRebuttals: 2,
-    },
-  ],
-  need_to_think: [
-    {
-      agree: "Makes sense — big decisions deserve thought.",
-      overcome: "What questions can I answer now to help you decide?",
-      close:
-        "Or we could chat through it together? Sometimes talking helps clarify.",
-      maxRebuttals: 3,
-    },
-    {
-      agree: "Absolutely, take your time.",
-      overcome:
-        "While you're thinking, let me share one thing that might help...",
-      close: "Quick call this week to walk through the details?",
-      maxRebuttals: 3,
-    },
-  ],
-  bad_timing: [
-    {
-      agree: "I get it — timing is everything.",
-      overcome:
-        "When would be better timing? I'll set a reminder to reach out.",
-      close: "Should I check back in a month, or after the holidays?",
-      maxRebuttals: 2,
-    },
-    {
-      agree: "Totally understand, there's always a lot going on.",
-      overcome:
-        "The thing is, market conditions keep changing. Better to know your options now.",
-      close: "Even a quick 15-min call to get the lay of the land?",
-      maxRebuttals: 2,
-    },
-  ],
-  already_have: [
-    {
-      agree: "Great that you're already working with someone!",
-      overcome: "Just curious — are they showing you all your options?",
-      close:
-        "No harm in a second opinion. 10 mins, and I'll show you what else is out there.",
-      maxRebuttals: 2,
-    },
-  ],
-  too_expensive: [
-    {
-      agree: "I hear you, cost matters.",
-      overcome:
-        "Here's the thing — this call is free, and it might save you money.",
-      close: "Let's at least look at the numbers together. What's a good time?",
-      maxRebuttals: 3,
-    },
-  ],
-  spouse_decision: [
-    {
-      agree: "Totally understand — important to be on the same page.",
-      overcome: "Would it help if we all hopped on together?",
-      close: "I can do evenings or weekends too. When works for both of you?",
-      maxRebuttals: 2,
-    },
-  ],
-  unknown: [
-    {
-      agree: "I appreciate you being upfront.",
-      overcome: "Mind if I ask — what's the hesitation?",
-      close:
-        "Maybe a quick chat would clear things up. No pressure, just perspective.",
-      maxRebuttals: 2,
-    },
-  ],
-};
 
 // Keywords to detect objection type
 const OBJECTION_KEYWORDS: Record<ObjectionType, string[]> = {
@@ -184,6 +76,30 @@ const OBJECTION_KEYWORDS: Record<ObjectionType, string[]> = {
   unknown: [],
 };
 
+// Map objection type to template ID prefix
+const OBJECTION_TEMPLATE_MAP: Record<ObjectionType, string> = {
+  too_busy: "sabrina-obj-busy",
+  not_interested: "sabrina-obj-interest",
+  need_to_think: "sabrina-obj-think",
+  bad_timing: "sabrina-obj-timing",
+  already_have: "sabrina-obj-have",
+  too_expensive: "sabrina-obj-cost",
+  spouse_decision: "sabrina-obj-spouse",
+  unknown: "sabrina-obj-unknown",
+};
+
+// Max rebuttals per objection type
+const MAX_REBUTTALS: Record<ObjectionType, number> = {
+  too_busy: 3,
+  not_interested: 2,
+  need_to_think: 3,
+  bad_timing: 2,
+  already_have: 2,
+  too_expensive: 3,
+  spouse_decision: 2,
+  unknown: 2,
+};
+
 function detectObjectionType(message: string): ObjectionType {
   const lowerMessage = message.toLowerCase();
 
@@ -199,15 +115,26 @@ function detectObjectionType(message: string): ObjectionType {
   return "unknown";
 }
 
-interface ObjectionRequest {
-  leadId: string;
-  objectionMessage: string; // The objection they gave
-  objectionType?: ObjectionType; // Override auto-detection
-  rebuttalNumber?: number; // Which rebuttal attempt (1-3)
-  send?: boolean; // Actually send the response
+// Get template IDs for an objection type
+function getTemplatesForObjection(objectionType: ObjectionType): string[] {
+  const prefix = OBJECTION_TEMPLATE_MAP[objectionType];
+  return SABRINA_OBJECTION_CARTRIDGE.templates
+    .filter((t) => t.id.startsWith(prefix))
+    .map((t) => t.id);
 }
 
-// POST - Handle objection and generate response
+interface ObjectionRequest {
+  leadId: string;
+  objectionMessage: string;
+  objectionType?: ObjectionType;
+  rebuttalNumber?: number;
+  templateId?: string; // CANONICAL: Use templateId from CARTRIDGE_LIBRARY
+  send?: boolean;
+  teamId?: string;
+  trainingMode?: boolean;
+}
+
+// POST - Handle objection and generate response via ExecutionRouter
 export async function POST(request: NextRequest) {
   try {
     const body: ObjectionRequest = await request.json();
@@ -216,7 +143,10 @@ export async function POST(request: NextRequest) {
       objectionMessage,
       objectionType: forcedType,
       rebuttalNumber = 1,
+      templateId,
       send = false,
+      teamId,
+      trainingMode,
     } = body;
 
     if (!leadId || !objectionMessage) {
@@ -242,43 +172,57 @@ export async function POST(request: NextRequest) {
 
     // Detect objection type
     const objectionType = forcedType || detectObjectionType(objectionMessage);
-    const responses = OBJECTION_RESPONSES[objectionType];
-
-    // Get response template (rotate through available ones)
-    const templateIndex = (rebuttalNumber - 1) % responses.length;
-    const template = responses[templateIndex];
+    const maxRebuttals = MAX_REBUTTALS[objectionType];
 
     // Check if we should back off
-    if (rebuttalNumber > template.maxRebuttals) {
+    if (rebuttalNumber > maxRebuttals) {
       return NextResponse.json({
         success: true,
         backOff: true,
         message: "Maximum rebuttals reached. Recommend backing off.",
         objectionType,
         rebuttalNumber,
-        maxRebuttals: template.maxRebuttals,
+        maxRebuttals,
         suggestion: "Schedule a follow-up with CATHY in 7 days",
       });
     }
 
-    // Build response message
-    let message = `${template.agree} ${template.overcome} ${template.close}`;
-    message = message.replace(/\{\{first_name\}\}/g, lead.firstName || "there");
+    // Determine which template to use
+    const availableTemplates = getTemplatesForObjection(objectionType);
+    let effectiveTemplateId = templateId;
+
+    if (!effectiveTemplateId && availableTemplates.length > 0) {
+      // Rotate through available templates based on rebuttal number
+      const templateIndex = (rebuttalNumber - 1) % availableTemplates.length;
+      effectiveTemplateId = availableTemplates[templateIndex];
+    }
+
+    if (!effectiveTemplateId) {
+      return NextResponse.json(
+        { success: false, error: "No template available for this objection type" },
+        { status: 400 },
+      );
+    }
+
+    // Build variables
+    const variables: Record<string, string> = {
+      firstName: lead.firstName || "there",
+      first_name: lead.firstName || "there",
+    };
 
     // If not sending, return preview
     if (!send) {
+      const preview = previewSMS(effectiveTemplateId, variables);
+
       return NextResponse.json({
         success: true,
         preview: true,
         objectionType,
         rebuttalNumber,
-        maxRebuttals: template.maxRebuttals,
-        response: {
-          agree: template.agree,
-          overcome: template.overcome,
-          close: template.close,
-          full: message,
-        },
+        maxRebuttals,
+        templateId: effectiveTemplateId,
+        templateName: preview.templateName,
+        message: preview.message,
         lead: {
           id: lead.id,
           firstName: lead.firstName,
@@ -288,7 +232,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Send the response
+    // SEND the response
     if (!lead.phone) {
       return NextResponse.json(
         { success: false, error: "Lead has no phone number" },
@@ -296,37 +240,46 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let smsResult;
-    try {
-      smsResult = await signalHouseService.sendSMS({
-        to: lead.phone,
-        message,
-        tags: [
-          "sabrina",
-          "objection",
-          objectionType,
-          `rebuttal_${rebuttalNumber}`,
-        ],
-      });
-    } catch (smsError) {
-      console.error("[Sabrina Objection] SMS error:", smsError);
+    // Check router configuration
+    const routerStatus = isRouterConfigured();
+    if (!routerStatus.configured) {
       return NextResponse.json(
-        { success: false, error: "Failed to send SMS" },
+        { success: false, error: "SMS provider not configured" },
+        { status: 503 },
+      );
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // CANONICAL: Route through ExecutionRouter
+    // ═══════════════════════════════════════════════════════════════════════
+    const result = await executeSMS({
+      templateId: effectiveTemplateId,
+      to: lead.phone,
+      variables,
+      leadId,
+      teamId,
+      worker: "SABRINA",
+      trainingMode,
+    });
+
+    if (!result.success) {
+      return NextResponse.json(
+        { success: false, error: result.error || "Failed to send SMS" },
         { status: 500 },
       );
     }
 
     // Log to database
-    const messageId = crypto.randomUUID();
+    const messageId = result.messageId || crypto.randomUUID();
     try {
       await db.insert(smsMessages).values({
         id: messageId,
         leadId,
         direction: "outbound",
-        fromNumber: process.env.SIGNALHOUSE_PHONE_NUMBER || "",
+        fromNumber: result.sentFrom,
         toNumber: lead.phone,
-        body: message,
-        status: "sent",
+        body: result.renderedMessage,
+        status: result.trainingMode ? "training" : "sent",
         sentAt: new Date(),
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -341,7 +294,7 @@ export async function POST(request: NextRequest) {
         channel: "sms",
         agent: "sabrina",
         status: "sent",
-        messageContent: message,
+        messageContent: result.renderedMessage,
         responseReceived: false,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -359,23 +312,20 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(
-      `[Sabrina Objection] Handled "${objectionType}" (rebuttal ${rebuttalNumber}) for ${lead.firstName}`,
+      `[Sabrina Objection] Handled "${objectionType}" (rebuttal ${rebuttalNumber}) for ${lead.firstName} via ${result.provider}`,
     );
 
     return NextResponse.json({
       success: true,
       sent: true,
       messageId,
-      signalHouseId: smsResult?.messageId,
       objectionType,
       rebuttalNumber,
-      maxRebuttals: template.maxRebuttals,
-      response: {
-        agree: template.agree,
-        overcome: template.overcome,
-        close: template.close,
-        full: message,
-      },
+      maxRebuttals,
+      templateId: effectiveTemplateId,
+      templateName: result.templateName,
+      provider: result.provider,
+      trainingMode: result.trainingMode,
       lead: {
         id: lead.id,
         firstName: lead.firstName,
@@ -396,15 +346,21 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET - Get objection types and templates
+// GET - Get objection types and templates from CARTRIDGE_LIBRARY
 export async function GET() {
-  const objectionInfo = Object.entries(OBJECTION_RESPONSES).map(
-    ([type, templates]) => ({
-      type,
-      keywords: OBJECTION_KEYWORDS[type as ObjectionType],
-      maxRebuttals: templates[0].maxRebuttals,
-      templateCount: templates.length,
-    }),
+  const objectionInfo = Object.entries(OBJECTION_TEMPLATE_MAP).map(
+    ([type, prefix]) => {
+      const templates = SABRINA_OBJECTION_CARTRIDGE.templates.filter((t) =>
+        t.id.startsWith(prefix)
+      );
+      return {
+        type,
+        keywords: OBJECTION_KEYWORDS[type as ObjectionType],
+        maxRebuttals: MAX_REBUTTALS[type as ObjectionType],
+        templateCount: templates.length,
+        templateIds: templates.map((t) => t.id),
+      };
+    }
   );
 
   return NextResponse.json({
@@ -425,6 +381,11 @@ export async function GET() {
       maxRebuttals: "Handle first 3 rebuttals before backing off",
     },
     objectionTypes: objectionInfo,
+    cartridge: {
+      id: SABRINA_OBJECTION_CARTRIDGE.id,
+      name: SABRINA_OBJECTION_CARTRIDGE.name,
+      templateCount: SABRINA_OBJECTION_CARTRIDGE.templates.length,
+    },
     signaturePhrases: SABRINA.linguistic.signaturePhrases,
   });
 }

@@ -2,22 +2,25 @@
  * CATHY NUDGE API - The Nudger
  *
  * Generates and sends follow-up nudge messages with humor:
- * - POST: Generate nudge message and optionally send
- * - GET: Get nudge templates and humor levels
+ * - POST: Generate nudge message and optionally send via ExecutionRouter
+ * - GET: Get nudge templates from CARTRIDGE_LIBRARY
  *
  * CATHY uses Leslie Nielsen / Henny Youngman style humor to re-engage leads.
  * Humor temperature increases with attempt number:
  * - Attempt 1-2: Mild (light, safe jokes)
  * - Attempt 3-4: Medium (more playful, wittier)
  * - Attempt 5+: Spicy (absurdist, go for broke)
+ *
+ * ENFORCEMENT: All sends go through ExecutionRouter with templateId.
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { leads, smsMessages, campaignAttempts } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { signalHouseService } from "@/lib/services/signalhouse-service";
+import { executeSMS, isRouterConfigured, previewSMS } from "@/lib/sms/ExecutionRouter";
 import { CATHY } from "@/lib/ai-workers/digital-workers";
+import { CATHY_NUDGE_CARTRIDGE } from "@/lib/sms/template-cartridges";
 
 // Humor temperature levels
 type HumorLevel = "mild" | "medium" | "spicy";
@@ -28,92 +31,32 @@ function getHumorLevel(attemptNumber: number): HumorLevel {
   return "spicy";
 }
 
-// Pre-defined nudge templates by humor level
-const NUDGE_TEMPLATES = {
-  mild: [
-    {
-      id: "mild_1",
-      content:
-        "Hey {{first_name}}, just checking in! Did my last message get lost in the void? 😅",
-      context: "first_followup",
-    },
-    {
-      id: "mild_2",
-      content:
-        "{{first_name}} — hope you're having a good week! Still interested in chatting about your property?",
-      context: "general",
-    },
-    {
-      id: "mild_3",
-      content:
-        "Quick follow-up {{first_name}} — I know inboxes get crazy. Worth a chat?",
-      context: "general",
-    },
-  ],
-  medium: [
-    {
-      id: "med_1",
-      content:
-        "{{first_name}}... still there? I promise I'm more interesting than my messages make me seem 😂",
-      context: "ghosted",
-    },
-    {
-      id: "med_2",
-      content:
-        "{{first_name}} — at this point I should probably send flowers. Or pizza. Pizza usually works.",
-      context: "ghosted",
-    },
-    {
-      id: "med_3",
-      content:
-        "I've had better luck reaching my mother-in-law, {{first_name}}. And she ignores me on purpose!",
-      context: "ghosted",
-    },
-    {
-      id: "med_4",
-      content:
-        "Third time's the charm, right? That's what I told my third husband. {{first_name}}, got 5 mins?",
-      context: "third_attempt",
-    },
-  ],
-  spicy: [
-    {
-      id: "spicy_1",
-      content:
-        "{{first_name}}, either you're really busy or I'm really boring. Hoping it's the first one! 😅 Last shot — worth a quick call?",
-      context: "final_attempt",
-    },
-    {
-      id: "spicy_2",
-      content:
-        "{{first_name}} — if you don't respond, I'll assume you've been abducted by aliens. Blink twice if you need help... or just text back?",
-      context: "ghosted",
-    },
-    {
-      id: "spicy_3",
-      content:
-        "Not gonna lie {{first_name}}, I'm running out of clever things to say. At least I'm not selling extended warranties. 10 mins?",
-      context: "final_attempt",
-    },
-    {
-      id: "spicy_4",
-      content:
-        "{{first_name}}, I've now texted you more than I text my kids. They're jealous. Can we at least have a quick chat so I feel productive?",
-      context: "persistent",
-    },
-  ],
+// Map humor level to template prefix for lookup
+const HUMOR_TEMPLATE_PREFIX: Record<HumorLevel, string> = {
+  mild: "cathy-nudge-mild",
+  medium: "cathy-nudge-med",
+  spicy: "cathy-nudge-spicy",
 };
+
+// Get template IDs by humor level from the cartridge
+function getTemplatesByLevel(level: HumorLevel): string[] {
+  const prefix = HUMOR_TEMPLATE_PREFIX[level];
+  return CATHY_NUDGE_CARTRIDGE.templates
+    .filter((t) => t.id.startsWith(prefix))
+    .map((t) => t.id);
+}
 
 interface NudgeRequest {
   leadId: string;
-  attemptNumber?: number; // Auto-calculates if not provided
-  templateId?: string; // Use specific template
-  customMessage?: string; // Override with custom message
-  send?: boolean; // Actually send the message (default: false = preview only)
-  context?: string; // Additional context for template selection
+  attemptNumber?: number;
+  templateId?: string; // CANONICAL: Use templateId from CARTRIDGE_LIBRARY
+  send?: boolean;
+  context?: string;
+  teamId?: string;
+  trainingMode?: boolean;
 }
 
-// POST - Generate and optionally send nudge
+// POST - Generate and optionally send nudge via ExecutionRouter
 export async function POST(request: NextRequest) {
   try {
     const body: NudgeRequest = await request.json();
@@ -121,9 +64,10 @@ export async function POST(request: NextRequest) {
       leadId,
       attemptNumber,
       templateId,
-      customMessage,
       send = false,
       context,
+      teamId,
+      trainingMode,
     } = body;
 
     if (!leadId) {
@@ -157,51 +101,56 @@ export async function POST(request: NextRequest) {
       currentAttempt = existingAttempts.length + 1;
     }
 
-    // Get humor level
+    // Get humor level and available templates
     const humorLevel = getHumorLevel(currentAttempt);
-    const templates = NUDGE_TEMPLATES[humorLevel];
+    const availableTemplates = getTemplatesByLevel(humorLevel);
 
-    // Select template
-    let message = customMessage;
-    let usedTemplateId = templateId || null;
-
-    if (!message) {
-      // Find matching template
-      let template;
-      if (templateId) {
-        template = templates.find((t) => t.id === templateId);
-      }
-      if (!template && context) {
-        template = templates.find((t) => t.context === context);
-      }
-      if (!template) {
-        // Random template from the level
-        template = templates[Math.floor(Math.random() * templates.length)];
+    // Determine which template to use
+    let effectiveTemplateId = templateId;
+    if (!effectiveTemplateId) {
+      // If context provided, try to find matching template
+      if (context) {
+        const contextMatch = CATHY_NUDGE_CARTRIDGE.templates.find(
+          (t) => t.id.startsWith(HUMOR_TEMPLATE_PREFIX[humorLevel]) &&
+                 t.tags?.includes(context)
+        );
+        if (contextMatch) {
+          effectiveTemplateId = contextMatch.id;
+        }
       }
 
-      if (template) {
-        message = template.content;
-        usedTemplateId = template.id;
+      // Random selection from humor level if no specific match
+      if (!effectiveTemplateId && availableTemplates.length > 0) {
+        effectiveTemplateId = availableTemplates[
+          Math.floor(Math.random() * availableTemplates.length)
+        ];
       }
     }
 
-    if (!message) {
+    if (!effectiveTemplateId) {
       return NextResponse.json(
         { success: false, error: "No template available for this context" },
         { status: 400 },
       );
     }
 
-    // Personalize message
-    message = message.replace(/\{\{first_name\}\}/g, lead.firstName || "there");
-    message = message.replace(/\{\{last_name\}\}/g, lead.lastName || "");
+    // Build variables for template
+    const variables: Record<string, string> = {
+      firstName: lead.firstName || "there",
+      first_name: lead.firstName || "there",
+      lastName: lead.lastName || "",
+    };
 
     // If not sending, return preview
     if (!send) {
+      const preview = previewSMS(effectiveTemplateId, variables);
+
       return NextResponse.json({
         success: true,
         preview: true,
-        message,
+        message: preview.message,
+        templateId: effectiveTemplateId,
+        templateName: preview.templateName,
         lead: {
           id: lead.id,
           firstName: lead.firstName,
@@ -210,11 +159,10 @@ export async function POST(request: NextRequest) {
         worker: "cathy",
         humorLevel,
         attemptNumber: currentAttempt,
-        templateId: usedTemplateId,
       });
     }
 
-    // Send the message
+    // SEND via ExecutionRouter
     if (!lead.phone) {
       return NextResponse.json(
         { success: false, error: "Lead has no phone number" },
@@ -222,33 +170,46 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Send via SignalHouse
-    let smsResult;
-    try {
-      smsResult = await signalHouseService.sendSMS({
-        to: lead.phone,
-        message,
-        tags: ["cathy", "nudge", `attempt_${currentAttempt}`, humorLevel],
-      });
-    } catch (smsError) {
-      console.error("[Cathy Nudge] SMS send error:", smsError);
+    // Check router configuration
+    const routerStatus = isRouterConfigured();
+    if (!routerStatus.configured) {
       return NextResponse.json(
-        { success: false, error: "Failed to send SMS" },
+        { success: false, error: "SMS provider not configured" },
+        { status: 503 },
+      );
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // CANONICAL: Route through ExecutionRouter
+    // ═══════════════════════════════════════════════════════════════════════
+    const result = await executeSMS({
+      templateId: effectiveTemplateId,
+      to: lead.phone,
+      variables,
+      leadId,
+      teamId,
+      worker: "CATHY",
+      trainingMode,
+    });
+
+    if (!result.success) {
+      return NextResponse.json(
+        { success: false, error: result.error || "Failed to send SMS" },
         { status: 500 },
       );
     }
 
     // Record in database
-    const messageId = crypto.randomUUID();
+    const messageId = result.messageId || crypto.randomUUID();
     try {
       await db.insert(smsMessages).values({
         id: messageId,
         leadId,
         direction: "outbound",
-        fromNumber: process.env.SIGNALHOUSE_PHONE_NUMBER || "",
+        fromNumber: result.sentFrom,
         toNumber: lead.phone,
-        body: message,
-        status: "sent",
+        body: result.renderedMessage,
+        status: result.trainingMode ? "training" : "sent",
         sentAt: new Date(),
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -263,7 +224,7 @@ export async function POST(request: NextRequest) {
         channel: "sms",
         agent: "cathy",
         status: "sent",
-        messageContent: message,
+        messageContent: result.renderedMessage,
         responseReceived: false,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -282,15 +243,17 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(
-      `[Cathy Nudge] Sent ${humorLevel} nudge (attempt ${currentAttempt}) to ${lead.phone}`,
+      `[Cathy Nudge] Sent ${humorLevel} nudge (attempt ${currentAttempt}) to ${lead.phone} via ${result.provider}`,
     );
 
     return NextResponse.json({
       success: true,
       sent: true,
       messageId,
-      signalHouseId: smsResult?.messageId,
-      message,
+      templateId: effectiveTemplateId,
+      templateName: result.templateName,
+      provider: result.provider,
+      trainingMode: result.trainingMode,
       lead: {
         id: lead.id,
         firstName: lead.firstName,
@@ -299,7 +262,6 @@ export async function POST(request: NextRequest) {
       worker: "cathy",
       humorLevel,
       attemptNumber: currentAttempt,
-      templateId: usedTemplateId,
     });
   } catch (error) {
     console.error("[Cathy Nudge] Error:", error);
@@ -313,14 +275,23 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET - Get templates and humor levels
+// GET - Get templates from CARTRIDGE_LIBRARY
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const level = searchParams.get("level") as HumorLevel | null;
 
+  // Get templates from the cartridge
+  const allTemplates = CATHY_NUDGE_CARTRIDGE.templates;
+
+  const templatesByLevel: Record<HumorLevel, typeof allTemplates> = {
+    mild: allTemplates.filter((t) => t.tags?.includes("mild")),
+    medium: allTemplates.filter((t) => t.tags?.includes("medium")),
+    spicy: allTemplates.filter((t) => t.tags?.includes("spicy")),
+  };
+
   const templates = level
-    ? { [level]: NUDGE_TEMPLATES[level] }
-    : NUDGE_TEMPLATES;
+    ? { [level]: templatesByLevel[level] }
+    : templatesByLevel;
 
   return NextResponse.json({
     success: true,
@@ -336,6 +307,11 @@ export async function GET(request: NextRequest) {
       spicy: "Attempts 5+: Absurdist, go for broke",
     },
     templates,
+    cartridge: {
+      id: CATHY_NUDGE_CARTRIDGE.id,
+      name: CATHY_NUDGE_CARTRIDGE.name,
+      templateCount: CATHY_NUDGE_CARTRIDGE.templates.length,
+    },
     signaturePhrases: CATHY.linguistic.signaturePhrases,
   });
 }

@@ -2,35 +2,28 @@
  * SignalHouse Send API
  * POST /api/signalhouse/send
  *
- * Unified SMS/MMS sending endpoint using the SignalHouse SMS Core.
- * Handles landline validation, rate limiting, and error recovery.
+ * Thin wrapper that delegates to ExecutionRouter.
+ * NO direct provider calls - ExecutionRouter is the ONLY gateway.
  *
  * ENFORCEMENT: Requires templateId from CARTRIDGE_LIBRARY.
- * Raw message text is deprecated - use templateId + variables.
+ * Raw message text is REJECTED.
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import {
-  sendSMS,
-  sendMMS,
-  isConfigured,
-  validatePhoneNumber,
-} from "@/lib/signalhouse/client";
+import { validatePhoneNumber } from "@/lib/signalhouse/client";
+import { executeSMS, isRouterConfigured } from "@/lib/sms/ExecutionRouter";
 import { checkRateLimit, recordSend } from "@/lib/sms/rate-limiter";
-import {
-  resolveAndRenderTemplate,
-  templateExists,
-  isRawMessage,
-} from "@/lib/sms/resolveTemplate";
+import { templateExists, isRawMessage } from "@/lib/sms/resolveTemplate";
 
 export async function POST(request: NextRequest) {
   try {
-    // Validate SignalHouse configuration
-    if (!isConfigured()) {
+    // Check ExecutionRouter configuration
+    const routerStatus = isRouterConfigured();
+    if (!routerStatus.configured) {
       return NextResponse.json(
         {
-          error: "SignalHouse credentials not configured",
-          help: "Set SIGNALHOUSE_API_KEY or SIGNALHOUSE_AUTH_TOKEN environment variable",
+          error: "SMS provider not configured",
+          help: "Set SIGNALHOUSE_API_KEY or TWILIO credentials",
         },
         { status: 503 },
       );
@@ -42,11 +35,11 @@ export async function POST(request: NextRequest) {
       templateId,
       variables = {},
       message, // DEPRECATED - will be rejected if raw text
-      mediaUrl,
       phoneType,
       skipLandlineValidation,
       validateNumber,
       teamId,
+      trainingMode,
     } = await request.json();
 
     // ENFORCEMENT: Require templateId, reject raw messages
@@ -74,7 +67,7 @@ export async function POST(request: NextRequest) {
           code: "TEMPLATE_ID_REQUIRED",
           required: {
             to: "recipient phone (E.164)",
-            from: "sender phone (E.164)",
+            from: "sender phone (E.164, optional)",
             templateId: "templateId from CARTRIDGE_LIBRARY (e.g., 'bb-1', 'crm-2')",
             variables: "optional variables for template",
           },
@@ -94,24 +87,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate required fields
-    if (!to || !from) {
+    if (!to) {
       return NextResponse.json(
         {
-          error: "Missing required fields",
-          required: {
-            to: "recipient phone (E.164)",
-            from: "sender phone (E.164)",
-          },
+          error: "Missing required field: to",
+          required: { to: "recipient phone (E.164)" },
         },
         { status: 400 },
       );
     }
-
-    // Resolve and render template
-    const { message: renderedMessage, template, cartridgeId } = resolveAndRenderTemplate(
-      effectiveTemplateId,
-      variables,
-    );
 
     // Optional: Validate phone number with carrier lookup
     if (validateNumber) {
@@ -178,43 +162,41 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Send SMS or MMS based on mediaUrl presence
-    const result = mediaUrl
-      ? await sendMMS({ to, from, message: renderedMessage, mediaUrl })
-      : await sendSMS({ to, from, message: renderedMessage });
+    // ═══════════════════════════════════════════════════════════════════════
+    // CANONICAL: Route through ExecutionRouter
+    // This is the ONLY approved way to send SMS
+    // ═══════════════════════════════════════════════════════════════════════
+    const result = await executeSMS({
+      templateId: effectiveTemplateId,
+      to,
+      from,
+      variables,
+      teamId,
+      worker: "SYSTEM",
+      trainingMode,
+    });
 
     if (!result.success) {
       return NextResponse.json(
         {
           error: result.error || "Failed to send message",
-          correlationId: result.correlationId,
         },
-        { status: result.status || 500 },
+        { status: 500 },
       );
     }
 
     // Record successful send for rate limiting (tenant-isolated)
     await recordSend(teamId);
 
-    // Log with template info
-    console.log("[SignalHouse Send] Sent via template:", {
-      templateId: effectiveTemplateId,
-      templateName: template.name,
-      cartridgeId,
-      to,
-      teamId,
-    });
-
     return NextResponse.json({
       success: true,
-      messageId: result.data?.messageId,
-      status: result.data?.status,
-      segments: result.data?.segments,
-      correlationId: result.correlationId,
+      messageId: result.messageId,
+      provider: result.provider,
+      trainingMode: result.trainingMode,
       template: {
-        id: effectiveTemplateId,
-        name: template.name,
-        cartridgeId,
+        id: result.templateId,
+        name: result.templateName,
+        cartridgeId: result.cartridgeId,
       },
     });
   } catch (error: unknown) {
