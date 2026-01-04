@@ -44,98 +44,94 @@ import { toast } from "sonner";
 const SOCIAL_BLUEPRINTS = [
   {
     id: "sm-1",
-    title: "Market Update Announcement",
+    title: "Business Growth Insight",
     platform: "LinkedIn",
-    category: "Market Insights",
-    content: `🏠 [CITY] Market Update - [MONTH] 2026
+    category: "Business Tips",
+    content: `📈 Business Growth Insight - [MONTH] 2026
 
-Key insights from this month:
+Key strategies driving results this month:
 
-📈 Median home prices: [UP/DOWN] [X]% YoY
-🏘️ Active listings: [X] (vs [X] last month)
-⏱️ Days on market: [X] days average
-💰 Price per sq ft: $[X]
+🎯 Lead conversion: [X]% improvement
+📊 Pipeline value: [UP/DOWN] [X]% vs last quarter
+⏱️ Average deal cycle: [X] days
+💰 Revenue per client: $[X]
 
-What this means for [buyers/sellers]:
-• [Insight 1]
-• [Insight 2]
-• [Insight 3]
+What's working for top performers:
+• [Strategy 1]
+• [Strategy 2]
+• [Strategy 3]
 
-Want a personalized analysis for your property? DM me or comment below! 👇
+Want to discuss growth strategies for your business? Let's connect! 👇
 
-#RealEstate #[City]RealEstate #MarketUpdate #PropertyInvesting`,
-    tags: ["market update", "linkedin", "real estate"],
+#BusinessGrowth #B2B #Sales #LeadGeneration`,
+    tags: ["business", "linkedin", "growth"],
     createdAt: "2026-01-01",
   },
   {
     id: "sm-2",
-    title: "Just Sold Celebration",
-    platform: "Instagram",
+    title: "Client Success Story",
+    platform: "LinkedIn",
     category: "Success Story",
-    content: `🎉 JUST SOLD! 🏡
+    content: `🎉 CLIENT WIN!
 
-[Address]
-[City, State ZIP]
+[Client Company Name]
+[Industry]
 
-📍 [Neighborhood]
-🛏️ [X] Beds | 🛁 [X] Baths
-📐 [X] Sq Ft
+📊 Results achieved:
+• [X]% increase in qualified leads
+• [X] new deals closed
+• $[X] revenue generated
 
-Congratulations to [Buyer Name] on finding their perfect home!
+"[Short testimonial quote from client]"
 
-It was an honor to help you through this journey. Wishing you many happy memories in your new place! 🔑✨
+It was an honor to partner with them on this journey. Here's to continued growth! 🚀
 
-Thinking about making a move? Let's chat! Link in bio 👆
+Looking to achieve similar results? Let's talk! Link in bio 👆
 
-#JustSold #NewHomeowners #RealEstateAgent #[City]Homes #DreamHome`,
-    tags: ["just sold", "instagram", "celebration"],
+#ClientSuccess #B2BSales #BusinessDevelopment #ResultsDriven`,
+    tags: ["success story", "linkedin", "testimonial"],
     createdAt: "2026-01-02",
   },
   {
     id: "sm-3",
-    title: "Property Showcase Carousel",
-    platform: "Instagram",
-    category: "Listing",
-    content: `✨ NEW LISTING ✨
+    title: "Service Spotlight Post",
+    platform: "LinkedIn",
+    category: "Services",
+    content: `✨ SPOTLIGHT: [Service Name]
 
-📍 [Full Address]
-💰 $[Price]
+🎯 What we deliver:
+• [Benefit 1]
+• [Benefit 2]
+• [Benefit 3]
 
-Slide 1: Hero exterior shot
-Slide 2: Living room
-Slide 3: Kitchen
-Slide 4: Master bedroom
-Slide 5: Backyard/outdoor space
-Slide 6: Floor plan + key details
+📊 By the numbers:
+• [X]+ clients served
+• [X]% average improvement
+• [X]-day implementation
 
-Caption:
-Welcome to your new home! 🏡
+Perfect for businesses that:
+✓ [Ideal client trait 1]
+✓ [Ideal client trait 2]
+✓ [Ideal client trait 3]
 
-This stunning [X]-bedroom gem in [Neighborhood] features:
-✓ [Feature 1]
-✓ [Feature 2]
-✓ [Feature 3]
+Ready to learn more? DM or comment below! 📲
 
-Open house: [Day], [Date] from [Time]
-
-DM for details or private showing! 📲
-
-#NewListing #ForSale #[City]RealEstate #OpenHouse`,
-    tags: ["new listing", "instagram", "carousel"],
+#B2BServices #BusinessSolutions #Growth #Strategy`,
+    tags: ["services", "linkedin", "spotlight"],
     createdAt: "2025-12-28",
   },
   {
     id: "sm-4",
-    title: "Quick Market Tip",
+    title: "Quick Business Tip",
     platform: "Twitter/X",
     category: "Tips",
-    content: `🏠 Quick tip for [buyers/sellers] in today's market:
+    content: `💡 Quick tip for business owners:
 
 [One clear, actionable insight]
 
-Reply with your questions! 👇
+Reply with your thoughts! 👇
 
-#RealEstateTips #[City]Homes`,
+#BusinessTips #Entrepreneurship #Growth`,
     tags: ["tips", "twitter", "quick"],
     createdAt: "2025-12-25",
   },
@@ -144,97 +140,97 @@ Reply with your questions! 👇
 const NEWSLETTER_TEMPLATES = [
   {
     id: "nl-1",
-    title: "Monthly Market Digest",
-    category: "Market Update",
-    subject: "[MONTH] Market Update: What [CITY] Homeowners Need to Know",
+    title: "Monthly Business Insights",
+    category: "Insights",
+    subject: "[MONTH] Business Growth Update: Key Trends to Watch",
     content: `Hi [First Name],
 
-Hope you're doing well! Here's your monthly update on what's happening in the [CITY] real estate market.
+Hope you're doing well! Here's your monthly update on business growth trends and opportunities.
 
 📊 BY THE NUMBERS
-• Median home price: $[X] ([UP/DOWN] [X]% from last month)
-• Homes sold: [X] ([UP/DOWN] [X]% from last year)
-• Average days on market: [X]
-• Inventory levels: [X] months
+• Pipeline conversion: [X]% ([UP/DOWN] from last month)
+• Average deal size: $[X]
+• New leads generated: [X]
+• Response rate: [X]%
 
-🔥 HOT NEIGHBORHOODS THIS MONTH
-1. [Neighborhood 1] - [Why]
-2. [Neighborhood 2] - [Why]
-3. [Neighborhood 3] - [Why]
+🔥 TOP STRATEGIES THIS MONTH
+1. [Strategy 1] - [Why it works]
+2. [Strategy 2] - [Why it works]
+3. [Strategy 3] - [Why it works]
 
-💡 WHAT THIS MEANS FOR YOU
+💡 WHAT THIS MEANS FOR YOUR BUSINESS
 [2-3 sentences of analysis tailored to your audience]
 
-📅 UPCOMING EVENTS
-• [Event 1]: [Date/Time]
-• [Event 2]: [Date/Time]
+📅 UPCOMING OPPORTUNITIES
+• [Opportunity 1]: [Details]
+• [Opportunity 2]: [Details]
 
-Have questions about your home's value or the best time to make a move? Hit reply - I'm always happy to chat!
+Have questions about scaling your outreach? Hit reply - I'm always happy to chat!
 
 Best,
 [Your Name]
 
-P.S. Know someone thinking about buying or selling? I'd love an introduction!`,
-    tags: ["monthly", "market update", "newsletter"],
+P.S. Know someone looking to grow their business? I'd love an introduction!`,
+    tags: ["monthly", "insights", "newsletter"],
     createdAt: "2026-01-01",
   },
   {
     id: "nl-2",
-    title: "New Listings Alert",
-    category: "Listings",
-    subject: "🏠 Hot New Listings in [AREA] This Week",
+    title: "New Opportunity Alert",
+    category: "Opportunities",
+    subject: "🎯 Hot New Opportunities This Week",
     content: `Hi [First Name],
 
-I wanted to share some exciting new listings that just hit the market:
+I wanted to share some exciting opportunities we've identified:
 
-🏡 FEATURED PROPERTY
-[Address]
-$[Price] | [X] Bed | [X] Bath | [X] Sq Ft
+🎯 FEATURED OPPORTUNITY
+[Company/Industry]
+Potential value: $[X] | Timeline: [X] weeks
 [2-3 sentence description]
-[Link to listing]
+[Next steps]
 
-MORE NEW LISTINGS:
-• [Address 2] - $[X] - [Quick highlight]
-• [Address 3] - $[X] - [Quick highlight]
-• [Address 4] - $[X] - [Quick highlight]
+MORE OPPORTUNITIES:
+• [Opportunity 2] - $[X] potential - [Quick highlight]
+• [Opportunity 3] - $[X] potential - [Quick highlight]
+• [Opportunity 4] - $[X] potential - [Quick highlight]
 
-These won't last long in today's market! Let me know if any catch your eye.
+These won't last long! Let me know if any align with your goals.
 
 Talk soon,
 [Your Name]`,
-    tags: ["listings", "weekly", "alert"],
+    tags: ["opportunities", "weekly", "alert"],
     createdAt: "2025-12-30",
   },
   {
     id: "nl-3",
-    title: "Seasonal Homeowner Tips",
+    title: "Quarterly Business Review",
     category: "Value Add",
-    subject: "[SEASON] Home Maintenance Checklist 🏠",
+    subject: "Q[X] Business Performance Review 📊",
     content: `Hi [First Name],
 
-With [SEASON] right around the corner, here are some maintenance tasks to keep your home in top shape:
+As we close out the quarter, here's a look at what's working and where to focus next:
 
-✅ EXTERIOR
-• [Task 1]
-• [Task 2]
-• [Task 3]
+✅ WINS THIS QUARTER
+• [Win 1]
+• [Win 2]
+• [Win 3]
 
-✅ INTERIOR
-• [Task 1]
-• [Task 2]
-• [Task 3]
+📈 KEY METRICS
+• [Metric 1]: [Result]
+• [Metric 2]: [Result]
+• [Metric 3]: [Result]
 
-✅ SYSTEMS
-• [Task 1]
-• [Task 2]
+🎯 FOCUS AREAS FOR NEXT QUARTER
+• [Priority 1]
+• [Priority 2]
 
 💡 PRO TIP: [Specific actionable advice]
 
-Need recommendations for contractors or service providers? I've got a great network - just ask!
+Want to discuss strategy for the upcoming quarter? Let's schedule a call!
 
-Stay cozy,
+Best,
 [Your Name]`,
-    tags: ["seasonal", "tips", "maintenance"],
+    tags: ["quarterly", "review", "performance"],
     createdAt: "2025-12-20",
   },
 ];
@@ -242,129 +238,129 @@ Stay cozy,
 const MEDIUM_ARTICLES = [
   {
     id: "ma-1",
-    title: "The Complete Guide to Selling Your Home in 2026",
-    category: "Seller Guide",
+    title: "The Complete Guide to B2B Lead Generation in 2026",
+    category: "Lead Generation",
     readTime: "8 min read",
-    outline: `# The Complete Guide to Selling Your Home in 2026
+    outline: `# The Complete Guide to B2B Lead Generation in 2026
 
 ## Introduction
-Hook: The real estate market has evolved dramatically...
+Hook: The B2B landscape has evolved dramatically...
 Thesis: This guide walks you through everything you need to know...
 
-## Section 1: Preparing Your Home
-- Decluttering and staging tips
-- Repairs that matter (and those that don't)
-- Professional photography importance
+## Section 1: Building Your Target List
+- Identifying ideal customer profiles (ICP)
+- Data sources and validation
+- List hygiene best practices
 
-## Section 2: Pricing Strategy
-- How to research comparable sales
-- The dangers of overpricing
-- Strategic pricing in different market conditions
+## Section 2: Multi-Channel Outreach
+- SMS strategies that work
+- Email sequences that convert
+- Cold calling frameworks
 
-## Section 3: Marketing Your Home
-- MLS and syndication
-- Social media marketing
-- Open houses vs. private showings
+## Section 3: Message Personalization
+- Variable personalization at scale
+- Industry-specific messaging
+- Timing and frequency optimization
 
-## Section 4: Navigating Offers
-- Understanding contingencies
-- Negotiation tactics
-- Multiple offer situations
+## Section 4: Response Handling
+- Qualification frameworks
+- Objection handling scripts
+- Handoff to sales protocols
 
-## Section 5: Closing the Deal
-- Timeline expectations
-- Common hurdles and solutions
-- What to expect on closing day
+## Section 5: Measuring Success
+- Key metrics to track
+- Pipeline attribution
+- ROI calculation
 
 ## Conclusion
-Recap + CTA to contact for personalized advice`,
-    tags: ["selling", "guide", "comprehensive"],
+Recap + CTA for strategy consultation`,
+    tags: ["lead generation", "guide", "comprehensive"],
     createdAt: "2026-01-01",
   },
   {
     id: "ma-2",
-    title: "5 Mistakes First-Time Homebuyers Make (And How to Avoid Them)",
-    category: "Buyer Tips",
+    title: "5 Mistakes Businesses Make With Outreach (And How to Avoid Them)",
+    category: "Outreach Tips",
     readTime: "5 min read",
-    outline: `# 5 Mistakes First-Time Homebuyers Make (And How to Avoid Them)
+    outline: `# 5 Mistakes Businesses Make With Outreach (And How to Avoid Them)
 
 ## Introduction
-Opening statistic: X% of first-time buyers report regrets...
+Opening statistic: X% of outreach campaigns fail to generate ROI...
 Promise: Avoid these common pitfalls...
 
-## Mistake #1: Not Getting Pre-Approved First
-- Why this matters
-- How pre-approval strengthens your offer
-- Steps to get pre-approved
+## Mistake #1: Not Validating Your Data First
+- Why data quality matters
+- Costs of bad data
+- Validation best practices
 
-## Mistake #2: Skipping the Home Inspection
-- What inspectors look for
-- Cost of inspection vs. cost of surprise repairs
-- Red flags to watch for
+## Mistake #2: Generic Messaging
+- The personalization imperative
+- Segmentation strategies
+- Template optimization
 
-## Mistake #3: Maxing Out Your Budget
-- The hidden costs of homeownership
-- How to calculate what you can really afford
-- Building in a buffer
+## Mistake #3: Wrong Channel Selection
+- Understanding channel preferences
+- Multi-touch approaches
+- Channel-specific best practices
 
-## Mistake #4: Falling in Love Too Fast
-- Emotional vs. logical decisions
-- The importance of multiple viewings
-- Having a must-have vs. nice-to-have list
+## Mistake #4: Ignoring Response Timing
+- Optimal response windows
+- Follow-up cadence
+- Automation vs. human touch
 
-## Mistake #5: Going It Alone
-- Value of a buyer's agent
-- How agents are compensated
-- Questions to ask when choosing an agent
+## Mistake #5: No Clear CTA
+- Single vs. multiple CTAs
+- Friction reduction
+- Testing and iteration
 
 ## Conclusion
 Encouragement + offer to help`,
-    tags: ["first-time buyer", "mistakes", "tips"],
+    tags: ["outreach", "mistakes", "tips"],
     createdAt: "2025-12-28",
   },
   {
     id: "ma-3",
-    title: "Understanding the 2026 Real Estate Market: Trends and Predictions",
-    category: "Market Analysis",
+    title: "B2B Sales Trends for 2026: What's Working Now",
+    category: "Industry Analysis",
     readTime: "6 min read",
-    outline: `# Understanding the 2026 Real Estate Market: Trends and Predictions
+    outline: `# B2B Sales Trends for 2026: What's Working Now
 
 ## Introduction
 Where we've been and where we're going...
 
-## Trend 1: Interest Rate Environment
-- Current rate landscape
-- Fed policy expectations
-- Impact on affordability
+## Trend 1: AI-Powered Personalization
+- Current AI capabilities
+- Implementation strategies
+- ROI expectations
 
-## Trend 2: Inventory Dynamics
-- New construction trends
-- Resale inventory expectations
-- Regional variations
+## Trend 2: SMS as Primary Channel
+- SMS open rates vs. email
+- Compliance considerations
+- Best practices
 
-## Trend 3: Buyer Demographics
-- Millennial and Gen Z buyers
-- Remote work impact
-- Migration patterns
+## Trend 3: Buyer Journey Changes
+- Self-service research
+- Multi-stakeholder decisions
+- Timing considerations
 
-## Trend 4: Technology in Real Estate
-- AI and automation
-- Virtual tours and digital transactions
-- Proptech innovations
+## Trend 4: Technology Stack Evolution
+- CRM integrations
+- Automation platforms
+- Analytics tools
 
-## Trend 5: Investment Opportunities
-- Emerging markets
-- Property types to watch
-- Risk considerations
+## Trend 5: Team Structure Changes
+- SDR/BDR models
+- AI assistants
+- Performance metrics
 
-## What This Means for You
-- For buyers
-- For sellers
-- For investors
+## What This Means for Your Business
+- Quick wins
+- Long-term investments
+- Getting started
 
 ## Conclusion
 Key takeaways and action items`,
-    tags: ["market trends", "2026", "predictions"],
+    tags: ["sales trends", "2026", "B2B"],
     createdAt: "2025-12-15",
   },
 ];
