@@ -9,13 +9,24 @@
  * - Routes to SignalHouse (primary) or Twilio (fallback)
  * - Supports TRAINING mode (zero sends, logs only)
  * - Validates message content before send
+ * - Enforces template lifecycle states
+ * - Validates tenant access
+ * - Structured audit logging
  *
  * Usage:
  *   import { executeSMS } from "@/lib/sms/ExecutionRouter";
  *   await executeSMS({ templateId: "bb-1", to: "+15551234567", variables: {...} });
  */
 
-import { resolveAndRenderTemplate, templateExists, validateTemplateId } from "./resolveTemplate";
+import {
+  resolveAndRenderTemplate,
+  templateExists,
+  validateTemplateId,
+  validateSendable,
+  type TemplateResolutionError,
+} from "./resolveTemplate";
+import { TemplateLifecycle } from "./template-cartridges";
+import crypto from "crypto";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -29,7 +40,7 @@ export interface SMSExecutionRequest {
   leadId?: string;
   teamId?: string;
   campaignId?: string;
-  worker?: "GIANNA" | "CATHY" | "SABRINA" | "SYSTEM";
+  worker?: "GIANNA" | "CATHY" | "SABRINA" | "NEVA" | "SYSTEM";
   trainingMode?: boolean;
 }
 
@@ -45,7 +56,29 @@ export interface SMSExecutionResult {
   trainingMode: boolean;
   provider: "signalhouse" | "twilio" | "training";
   timestamp: string;
+  lifecycle?: TemplateLifecycle;
   error?: string;
+  errorCode?: string;
+}
+
+/**
+ * Structured audit log entry for compliance tracking
+ */
+export interface SMSAuditLog {
+  timestamp: string;
+  templateId: string;
+  cartridgeId: string;
+  templateName: string;
+  renderedMessageHash: string;  // SHA256 of message (for audit without storing content)
+  actor: "GIANNA" | "CATHY" | "SABRINA" | "NEVA" | "SYSTEM";
+  mode: "training" | "live";
+  provider: "signalhouse" | "twilio" | "training";
+  teamId?: string;
+  campaignId?: string;
+  leadId?: string;
+  success: boolean;
+  errorCode?: string;
+  lifecycle: TemplateLifecycle;
 }
 
 export interface ExecutionRouterConfig {
@@ -75,12 +108,42 @@ const DEFAULT_CONFIG: ExecutionRouterConfig = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// AUDIT LOGGING
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Hash message content for audit trail (doesn't store actual content)
+ */
+function hashMessage(message: string): string {
+  return crypto.createHash("sha256").update(message).digest("hex").substring(0, 16);
+}
+
+/**
+ * Log structured audit entry for compliance
+ */
+function logAudit(entry: SMSAuditLog): void {
+  // Structured JSON log for compliance systems
+  console.log(JSON.stringify({
+    type: "SMS_AUDIT",
+    ...entry,
+    // Redact PII from logs
+    renderedMessageHash: entry.renderedMessageHash || "UNKNOWN",
+  }));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // CORE EXECUTION FUNCTION
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
  * Execute an SMS send through the canonical router.
  * This is the ONLY approved way to send SMS messages.
+ *
+ * LIFECYCLE ENFORCEMENT:
+ * - Only APPROVED templates can be sent
+ * - DISABLED templates fail on resolution
+ * - DEPRECATED templates rejected before send
+ * - Tenant access validated via teamId
  *
  * @param request - The SMS execution request
  * @param config - Optional configuration override
@@ -93,10 +156,28 @@ export async function executeSMS(
   const timestamp = new Date().toISOString();
   const isTrainingMode = request.trainingMode ?? config.trainingMode ?? false;
 
-  // ENFORCEMENT: Validate templateId
+  // ENFORCEMENT: Validate templateId exists
   try {
     validateTemplateId(request.templateId);
   } catch (error) {
+    const resolutionError = error as TemplateResolutionError;
+    logAudit({
+      timestamp,
+      templateId: request.templateId,
+      cartridgeId: "",
+      templateName: "",
+      renderedMessageHash: "",
+      actor: request.worker || "SYSTEM",
+      mode: isTrainingMode ? "training" : "live",
+      provider: "training",
+      teamId: request.teamId,
+      campaignId: request.campaignId,
+      leadId: request.leadId,
+      success: false,
+      errorCode: resolutionError.code || "TEMPLATE_ID_MISSING",
+      lifecycle: TemplateLifecycle.DISABLED,
+    });
+
     return {
       success: false,
       templateId: request.templateId,
@@ -109,13 +190,55 @@ export async function executeSMS(
       provider: "training",
       timestamp,
       error: error instanceof Error ? error.message : "Invalid templateId",
+      errorCode: resolutionError.code,
     };
   }
 
-  // Resolve and render template
-  const { message: renderedMessage, template, cartridgeId } = resolveAndRenderTemplate(
+  // LIFECYCLE ENFORCEMENT: Validate template is sendable (APPROVED only)
+  // This also checks tenant access via teamId
+  try {
+    validateSendable(request.templateId, request.teamId);
+  } catch (error) {
+    const resolutionError = error as TemplateResolutionError;
+    logAudit({
+      timestamp,
+      templateId: request.templateId,
+      cartridgeId: "",
+      templateName: "",
+      renderedMessageHash: "",
+      actor: request.worker || "SYSTEM",
+      mode: isTrainingMode ? "training" : "live",
+      provider: "training",
+      teamId: request.teamId,
+      campaignId: request.campaignId,
+      leadId: request.leadId,
+      success: false,
+      errorCode: resolutionError.code || "TEMPLATE_NOT_SENDABLE",
+      lifecycle: resolutionError.lifecycle || TemplateLifecycle.DISABLED,
+    });
+
+    return {
+      success: false,
+      templateId: request.templateId,
+      templateName: "",
+      cartridgeId: "",
+      renderedMessage: "",
+      sentTo: request.to,
+      sentFrom: config.defaultFromNumber || "",
+      trainingMode: isTrainingMode,
+      provider: "training",
+      timestamp,
+      lifecycle: resolutionError.lifecycle,
+      error: error instanceof Error ? error.message : "Template not sendable",
+      errorCode: resolutionError.code,
+    };
+  }
+
+  // Resolve and render template (with tenant guard via teamId)
+  const { message: renderedMessage, template, cartridgeId, lifecycle } = resolveAndRenderTemplate(
     request.templateId,
-    request.variables
+    request.variables,
+    { teamId: request.teamId }
   );
 
   // Validate message length
@@ -172,6 +295,22 @@ export async function executeSMS(
       message: renderedMessage.substring(0, 100) + "...",
     });
 
+    logAudit({
+      timestamp,
+      templateId: request.templateId,
+      cartridgeId,
+      templateName: template.name,
+      renderedMessageHash: hashMessage(renderedMessage),
+      actor: request.worker || "SYSTEM",
+      mode: "training",
+      provider: "training",
+      teamId: request.teamId,
+      campaignId: request.campaignId,
+      leadId: request.leadId,
+      success: true,
+      lifecycle,
+    });
+
     return {
       success: true,
       messageId: `training-${Date.now()}`,
@@ -184,6 +323,7 @@ export async function executeSMS(
       trainingMode: true,
       provider: "training",
       timestamp,
+      lifecycle,
     };
   }
 
@@ -199,6 +339,22 @@ export async function executeSMS(
       );
 
       if (result.success) {
+        logAudit({
+          timestamp,
+          templateId: request.templateId,
+          cartridgeId,
+          templateName: template.name,
+          renderedMessageHash: hashMessage(renderedMessage),
+          actor: request.worker || "SYSTEM",
+          mode: "live",
+          provider: "signalhouse",
+          teamId: request.teamId,
+          campaignId: request.campaignId,
+          leadId: request.leadId,
+          success: true,
+          lifecycle,
+        });
+
         return {
           success: true,
           messageId: result.messageId,
@@ -211,6 +367,7 @@ export async function executeSMS(
           trainingMode: false,
           provider: "signalhouse",
           timestamp,
+          lifecycle,
         };
       }
 
@@ -227,6 +384,22 @@ export async function executeSMS(
       );
 
       if (result.success) {
+        logAudit({
+          timestamp,
+          templateId: request.templateId,
+          cartridgeId,
+          templateName: template.name,
+          renderedMessageHash: hashMessage(renderedMessage),
+          actor: request.worker || "SYSTEM",
+          mode: "live",
+          provider: "twilio",
+          teamId: request.teamId,
+          campaignId: request.campaignId,
+          leadId: request.leadId,
+          success: true,
+          lifecycle,
+        });
+
         return {
           success: true,
           messageId: result.messageId,
@@ -239,6 +412,7 @@ export async function executeSMS(
           trainingMode: false,
           provider: "twilio",
           timestamp,
+          lifecycle,
         };
       }
 
@@ -246,6 +420,23 @@ export async function executeSMS(
     }
 
     // No provider available
+    logAudit({
+      timestamp,
+      templateId: request.templateId,
+      cartridgeId,
+      templateName: template.name,
+      renderedMessageHash: hashMessage(renderedMessage),
+      actor: request.worker || "SYSTEM",
+      mode: "live",
+      provider: "signalhouse",
+      teamId: request.teamId,
+      campaignId: request.campaignId,
+      leadId: request.leadId,
+      success: false,
+      errorCode: "NO_PROVIDER",
+      lifecycle,
+    });
+
     return {
       success: false,
       templateId: request.templateId,
@@ -257,10 +448,30 @@ export async function executeSMS(
       trainingMode: false,
       provider: "signalhouse",
       timestamp,
+      lifecycle,
       error: "No SMS provider configured or all providers failed",
+      errorCode: "NO_PROVIDER",
     };
   } catch (error) {
     console.error(`[ExecutionRouter] Send error:`, error);
+
+    logAudit({
+      timestamp,
+      templateId: request.templateId,
+      cartridgeId,
+      templateName: template.name,
+      renderedMessageHash: hashMessage(renderedMessage),
+      actor: request.worker || "SYSTEM",
+      mode: "live",
+      provider: "signalhouse",
+      teamId: request.teamId,
+      campaignId: request.campaignId,
+      leadId: request.leadId,
+      success: false,
+      errorCode: "SEND_ERROR",
+      lifecycle,
+    });
+
     return {
       success: false,
       templateId: request.templateId,
@@ -272,7 +483,9 @@ export async function executeSMS(
       trainingMode: false,
       provider: "signalhouse",
       timestamp,
+      lifecycle,
       error: error instanceof Error ? error.message : "Unknown send error",
+      errorCode: "SEND_ERROR",
     };
   }
 }
