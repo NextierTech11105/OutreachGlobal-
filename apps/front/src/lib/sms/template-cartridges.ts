@@ -1,6 +1,8 @@
 /**
  * TEMPLATE CARTRIDGE SYSTEM
  * =========================
+ * CANONICAL source of truth for all SMS templates.
+ *
  * Modular template packs that only get injected when activated.
  *
  * Cartridges are self-contained template packages for specific:
@@ -19,11 +21,44 @@
  *   const templates = cartridgeManager.getActiveTemplates();
  */
 
-import type {
-  SMSTemplate,
-  AIWorker,
-  CampaignStage,
-} from "./campaign-templates";
+// ═══════════════════════════════════════════════════════════════════════════════
+// CORE TYPES (CANONICAL - moved from campaign-templates.ts)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Campaign stages in the response manufacturing flow
+ */
+export type CampaignStage =
+  | "initial"    // GIANNA - Get ANY response, capture mobile + email
+  | "retarget"   // CATHY - Re-engage ghosts after 7+ days
+  | "nudge"      // CATHY - Keep conversation alive, stale 2+ days
+  | "followup"   // SABRINA - Push responded leads to meeting
+  | "retention"  // NEVA - Existing clients, referrals, upsells
+  | "confirmation"; // Appointment reminders, reduce no-shows
+
+/**
+ * AI Workers - each handles different stages of the response flow
+ */
+export type AIWorker =
+  | "GIANNA"          // The Opener - initial cold outreach
+  | "CATHY"           // The Nurturer - retarget + nudge with humor
+  | "SABRINA"         // The Closer - push to meeting
+  | "NEVA"            // Retention specialist
+  | "APPOINTMENT_BOT"; // Confirmation/reminders
+
+/**
+ * SMS Template - the atomic unit of compliant messaging
+ */
+export interface SMSTemplate {
+  id: string;           // Unique identifier (e.g., "bb-1", "cathy-nudge-mild-1")
+  name: string;         // Human-readable name
+  message: string;      // Template content with {{variables}}
+  stage: CampaignStage; // Which stage this template is for
+  worker: AIWorker;     // Which AI worker owns this template
+  tags: string[];       // Categorization tags
+  variables: string[];  // Variables used in message
+  charCount: number;    // Character count (SignalHouse compliance)
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CARTRIDGE TYPES

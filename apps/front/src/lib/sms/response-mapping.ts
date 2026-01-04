@@ -35,11 +35,10 @@ import {
   CAPTURE_SCORE_BOOST,
 } from "@/lib/campaign/contexts";
 import {
-  CampaignStage,
-  AIWorker,
-  SMSTemplate,
-  mapStageToContext,
-} from "./campaign-templates";
+  type CampaignStage,
+  type AIWorker,
+  type SMSTemplate,
+} from "./template-cartridges";
 
 // ============================================================================
 // TYPES

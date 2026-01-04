@@ -24,12 +24,40 @@
  * 4. End Goal: 15-minute discovery meeting
  */
 
-// Campaign Templates
+// ═══════════════════════════════════════════════════════════════════════════════
+// CANONICAL EXPORTS (from template-cartridges.ts)
+// ═══════════════════════════════════════════════════════════════════════════════
+
 export {
-  // Types
+  // Core Types
   type CampaignStage,
   type AIWorker,
   type SMSTemplate,
+  type TemplateCartridge,
+  type WorkspaceCartridgeConfig,
+
+  // Cartridges (inject when activated)
+  BUSINESS_BROKERING_CARTRIDGE,
+  CRM_CONSULTANTS_CARTRIDGE,
+  BLUE_COLLAR_CARTRIDGE,
+  REAL_ESTATE_CARTRIDGE,
+  CATHY_NUDGE_CARTRIDGE,
+  SABRINA_OBJECTION_CARTRIDGE,
+  SABRINA_BOOKING_CARTRIDGE,
+  CARTRIDGE_LIBRARY,
+  ALL_CARTRIDGES,
+
+  // Management
+  cartridgeManager,
+  workspaceCartridgeManager,
+} from "./template-cartridges";
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// LEGACY EXPORTS (from campaign-templates.ts - DEPRECATED)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export {
+  // Types (deprecated - use template-cartridges.ts types)
   type CampaignStageConfig,
   type CallScript,
 
@@ -39,7 +67,7 @@ export {
   // Template variables
   TEMPLATE_VARIABLES,
 
-  // Template collections by stage
+  // Template collections by stage (deprecated - use CARTRIDGE_LIBRARY)
   INITIAL_TEMPLATES,
   RETARGET_TEMPLATES,
   NUDGE_TEMPLATES,
@@ -50,7 +78,7 @@ export {
   // Cold call scripts
   COLD_CALL_SCRIPTS,
 
-  // All templates combined
+  // All templates combined (deprecated - use CARTRIDGE_LIBRARY)
   ALL_SMS_TEMPLATES,
 
   // Utility functions
@@ -97,20 +125,4 @@ export {
   calculateTemplatePerformance,
 } from "./response-mapping";
 
-// Template Cartridge System (Modular Template Injection)
-export {
-  // Types
-  type TemplateCartridge,
-  type WorkspaceCartridgeConfig,
-
-  // Cartridges (inject when activated)
-  BUSINESS_BROKERING_CARTRIDGE,
-  CRM_CONSULTANTS_CARTRIDGE,
-  BLUE_COLLAR_CARTRIDGE,
-  REAL_ESTATE_CARTRIDGE,
-  ALL_CARTRIDGES,
-
-  // Management
-  cartridgeManager,
-  workspaceCartridgeManager,
-} from "./template-cartridges";
+// NOTE: Template Cartridge exports are now at the top of this file (CANONICAL EXPORTS section)

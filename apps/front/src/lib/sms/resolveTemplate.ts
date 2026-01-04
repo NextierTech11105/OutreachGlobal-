@@ -14,8 +14,10 @@
 import {
   CARTRIDGE_LIBRARY,
   type TemplateCartridge,
+  type SMSTemplate,
+  type CampaignStage,
+  type AIWorker,
 } from "./template-cartridges";
-import type { SMSTemplate, CampaignStage, AIWorker } from "./campaign-templates";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // RESOLUTION TYPES

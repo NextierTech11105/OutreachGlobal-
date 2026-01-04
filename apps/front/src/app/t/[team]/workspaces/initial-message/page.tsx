@@ -17,8 +17,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { TemplateLibraryDialog } from "@/components/sms/template-library";
-import type { SMSTemplate } from "@/lib/sms/campaign-templates";
-import { replaceVariables } from "@/lib/sms/campaign-templates";
+import type { SMSTemplate } from "@/lib/sms/template-cartridges";
+import { replaceVariables } from "@/lib/sms";
 
 /**
  * INITIAL MESSAGE WORKSPACE - GIANNA AI

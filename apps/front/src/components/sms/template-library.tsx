@@ -36,8 +36,8 @@ import {
 import {
   CARTRIDGE_LIBRARY,
   type TemplateCartridge,
+  type SMSTemplate,
 } from "@/lib/sms/template-cartridges";
-import type { SMSTemplate } from "@/lib/sms/campaign-templates";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TEMPLATE LIBRARY COMPONENT
