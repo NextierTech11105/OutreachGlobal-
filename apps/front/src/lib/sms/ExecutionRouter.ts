@@ -588,7 +588,7 @@ export interface BatchExecutionRequest {
   }>;
   teamId?: string;
   campaignId?: string;
-  worker?: "GIANNA" | "CATHY" | "SABRINA" | "SYSTEM";
+  worker?: "GIANNA" | "CATHY" | "SABRINA" | "NEVA" | "SYSTEM";
   trainingMode?: boolean;
   batchSize?: number;
   delayMs?: number;

@@ -128,4 +128,68 @@ export {
   calculateTemplatePerformance,
 } from "./response-mapping";
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// EXECUTION ROUTER (Canonical SMS Gateway)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export {
+  executeSMS,
+  executeBatchSMS,
+  previewSMS,
+  isRouterConfigured,
+  type SMSExecutionRequest,
+  type SMSExecutionResult,
+  type BatchExecutionRequest,
+  type BatchExecutionResult,
+  type SMSAuditLog,
+} from "./ExecutionRouter";
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// EXECUTION MODES (Blast / Scheduled / Auto)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export {
+  // Types
+  type ExecutionMode,
+  type BlastModeConfig,
+  type ScheduledModeConfig,
+  type AutoModeConfig,
+  type SMSTrigger,
+  type ExecutionResult,
+
+  // Mode executors
+  executeBlast,
+  executeScheduled,
+  registerAutoTrigger,
+
+  // Unified executor
+  executeSMSCampaign,
+
+  // Schedule management
+  cancelSchedule,
+  getScheduleStatus,
+
+  // Trigger management
+  unregisterAutoTrigger,
+  getActiveTriggers,
+} from "./execution-modes";
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TEMPLATE RESOLUTION (Canonical lookup)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export {
+  resolveTemplateById,
+  resolveAndRenderTemplate,
+  templateExists,
+  validateTemplateId,
+  validateSendable,
+  isTemplateSendable,
+  isTemplateDisabled,
+  isRawMessage,
+  rejectRawMessage,
+  type ResolvedTemplate,
+  type TemplateResolutionError,
+} from "./resolveTemplate";
+
 // NOTE: Template Cartridge exports are now at the top of this file (CANONICAL EXPORTS section)
