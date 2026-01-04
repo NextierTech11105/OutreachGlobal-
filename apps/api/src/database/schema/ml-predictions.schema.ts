@@ -189,7 +189,10 @@ export const campaignBlocks = pgTable(
     currentTouch: integer("current_touch").notNull().default(1), // 1-5
 
     // Status
-    status: varchar().notNull().$type<CampaignBlockStatus>().default("preparing"),
+    status: varchar()
+      .notNull()
+      .$type<CampaignBlockStatus>()
+      .default("preparing"),
 
     // Timing
     startedAt: timestamp("started_at"),

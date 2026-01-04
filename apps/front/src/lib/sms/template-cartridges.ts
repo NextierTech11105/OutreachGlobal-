@@ -19,7 +19,11 @@
  *   const templates = cartridgeManager.getActiveTemplates();
  */
 
-import type { SMSTemplate, AIWorker, CampaignStage } from "./campaign-templates";
+import type {
+  SMSTemplate,
+  AIWorker,
+  CampaignStage,
+} from "./campaign-templates";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CARTRIDGE TYPES
@@ -38,293 +42,480 @@ export interface TemplateCartridge {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// CARTRIDGE: BUSINESS BROKERING / EXIT / EXPANSION
-// Primary focus for Nextier - CRM Consultants, Business Owners
+// CARTRIDGE: M&A ADVISORY
+// For business owners considering acquisition, sale, or strategic growth
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export const BUSINESS_BROKERING_CARTRIDGE: TemplateCartridge = {
   id: "business-brokering",
-  name: "Business Brokering & Exit",
-  description: "Templates for business valuation, exit planning, and expansion",
-  audience: "Business Owners considering exit or expansion",
-  industries: ["consulting", "professional services", "small business"],
+  name: "M&A Advisory",
+  description:
+    "High-converting templates for acquisition, exit planning, and strategic growth advisory",
+  audience: "Business Owners, CEOs, Founders exploring strategic options",
+  industries: [
+    "professional services",
+    "manufacturing",
+    "technology",
+    "healthcare",
+  ],
   active: false,
-  sicCodes: ["8742", "8748", "6282"], // Management consulting, business consulting
-  keywords: ["valuation", "exit", "expansion", "sell business", "m&a"],
+  sicCodes: ["8742", "8748", "6282"],
+  keywords: ["acquisition", "exit", "valuation", "strategic", "m&a", "growth"],
   templates: [
     {
       id: "bb-1",
-      name: "Valuation Curiosity",
+      name: "Strategic Options",
       message:
-        "Hey {{name}}, {{sender_name}} with {{company}}. Ever wonder what your business could sell for? I can get you a valuation. Best email?",
+        "{{name}} — quick question: are you building to scale or building to sell? Different playbooks for each. Which one fits you?",
       stage: "initial" as CampaignStage,
       worker: "GIANNA" as AIWorker,
-      tags: ["valuation", "soft-open", "business-brokering"],
-      variables: ["name", "sender_name", "company"],
-      charCount: 136,
+      tags: ["qualification", "strategic", "m&a"],
+      variables: ["name"],
+      charCount: 124,
     },
     {
       id: "bb-2",
-      name: "Hidden Value",
+      name: "Acquisition Interest",
       message:
-        "Hey {{name}}, most owners have no idea what they're sitting on. Want a quick valuation? Best email to send it?",
+        "{{name}}, I advise owners on strategic moves — acquisitions, partnerships, exits. What's on your radar right now?",
       stage: "initial" as CampaignStage,
       worker: "GIANNA" as AIWorker,
-      tags: ["valuation", "curiosity", "business-brokering"],
+      tags: ["advisory", "strategic", "m&a"],
+      variables: ["name"],
+      charCount: 118,
+    },
+    {
+      id: "bb-3",
+      name: "Market Timing",
+      message:
+        "{{name}}, market conditions favor sellers right now. Have you thought about what that means for {{businessName}}?",
+      stage: "initial" as CampaignStage,
+      worker: "GIANNA" as AIWorker,
+      tags: ["market", "timing", "exit"],
+      variables: ["name", "businessName"],
+      charCount: 115,
+    },
+    {
+      id: "bb-4",
+      name: "Confidential Assessment",
+      message:
+        "{{name}} — I run confidential business assessments for owners exploring their options. Interested in yours?",
+      stage: "initial" as CampaignStage,
+      worker: "GIANNA" as AIWorker,
+      tags: ["valuation", "confidential", "m&a"],
+      variables: ["name"],
+      charCount: 112,
+    },
+    {
+      id: "bb-5",
+      name: "Growth Capital",
+      message:
+        "{{name}}, looking to accelerate growth or take chips off the table? Both require knowing your real number. Want it?",
+      stage: "initial" as CampaignStage,
+      worker: "GIANNA" as AIWorker,
+      tags: ["growth", "capital", "valuation"],
       variables: ["name"],
       charCount: 120,
     },
     {
-      id: "bb-3",
-      name: "Expand or Exit",
-      message:
-        "{{sender_name}} here — thinking about expanding or exiting? I can get you a clean valuation. What's a good email?",
-      stage: "initial" as CampaignStage,
-      worker: "GIANNA" as AIWorker,
-      tags: ["exit", "expansion", "business-brokering"],
-      variables: ["sender_name"],
-      charCount: 118,
-    },
-    {
-      id: "bb-4",
-      name: "Know Your Number",
-      message:
-        "Curious — do you know what your business would sell for right now? I can show you. Best email?",
-      stage: "initial" as CampaignStage,
-      worker: "GIANNA" as AIWorker,
-      tags: ["valuation", "direct", "business-brokering"],
-      variables: [],
-      charCount: 99,
-    },
-    {
-      id: "bb-5",
-      name: "Exit Number",
-      message:
-        "Hey {{name}}, most owners don't know their exit number. Want yours? Best email?",
-      stage: "initial" as CampaignStage,
-      worker: "GIANNA" as AIWorker,
-      tags: ["exit", "curiosity", "business-brokering"],
-      variables: ["name"],
-      charCount: 85,
-    },
-    {
       id: "bb-6",
-      name: "Tomorrow's Offer",
+      name: "Buyer Landscape",
       message:
-        "If someone made you an offer tomorrow — do you know your number? I can get you a valuation. Email?",
+        "{{name}}, I track who's buying in your space. Want to know what acquirers are paying for companies like yours?",
       stage: "initial" as CampaignStage,
       worker: "GIANNA" as AIWorker,
-      tags: ["urgency", "valuation", "business-brokering"],
-      variables: [],
-      charCount: 102,
+      tags: ["buyers", "market-intel", "m&a"],
+      variables: ["name"],
+      charCount: 116,
     },
     {
       id: "bb-7",
-      name: "Growth or Exit Check",
+      name: "Exit Readiness",
       message:
-        "Hey {{name}}, growth mode or stepping back? I can get you a valuation either way. Best email?",
+        "{{name}}, most owners aren't exit-ready when opportunity knocks. Quick check: would {{businessName}} pass buyer due diligence today?",
       stage: "initial" as CampaignStage,
       worker: "GIANNA" as AIWorker,
-      tags: ["qualification", "valuation", "business-brokering"],
-      variables: ["name"],
-      charCount: 98,
+      tags: ["exit-planning", "readiness", "m&a"],
+      variables: ["name", "businessName"],
+      charCount: 132,
     },
     {
       id: "bb-8",
-      name: "1-2 Year Horizon",
+      name: "Strategic Advisor",
       message:
-        "Hey {{name}}, thinking expansion or exit in the next year or two? I can get you a valuation. Email?",
+        "{{name}}, I'm a strategic advisor — not a broker. I help owners maximize value whether they sell or scale. Coffee?",
       stage: "initial" as CampaignStage,
       worker: "GIANNA" as AIWorker,
-      tags: ["timeline", "valuation", "business-brokering"],
+      tags: ["advisory", "positioning", "m&a"],
       variables: ["name"],
-      charCount: 104,
+      charCount: 118,
     },
   ],
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// CARTRIDGE: CRM CONSULTANTS
-// Nextier Technology audience
+// CARTRIDGE: TECHNOLOGY VALUE-ADD
+// Revenue operations, automation, and tech-enabled growth
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export const CRM_CONSULTANTS_CARTRIDGE: TemplateCartridge = {
   id: "crm-consultants",
-  name: "CRM Consultants & Tech Advisors",
-  description: "Templates for CRM consultants and technology advisory services",
-  audience: "CRM Consultants, Tech Advisors, Implementation Specialists",
-  industries: ["consulting", "technology", "saas", "crm"],
+  name: "Technology Value-Add",
+  description:
+    "Templates for revenue operations, automation, and technology-enabled business growth",
+  audience: "Business Owners, Operations Leaders, Growth-Focused Executives",
+  industries: ["professional services", "technology", "b2b services"],
   active: false,
-  sicCodes: ["7371", "7372", "8742"], // Computer services, consulting
-  keywords: ["crm", "salesforce", "hubspot", "implementation", "consulting"],
+  sicCodes: ["7371", "7372", "8742"],
+  keywords: [
+    "automation",
+    "revenue operations",
+    "technology",
+    "efficiency",
+    "growth",
+  ],
   templates: [
     {
       id: "crm-1",
-      name: "System Audit",
+      name: "Revenue Leakage",
       message:
-        "Hey {{name}}, {{sender_name}} from Nextier. Quick question — when's the last time you audited your CRM setup? Might be leaving money on the table.",
+        "{{name}}, most businesses lose 15-20% of revenue to broken processes. Quick question: do you know where yours are leaking?",
       stage: "initial" as CampaignStage,
       worker: "GIANNA" as AIWorker,
-      tags: ["crm", "audit", "consulting"],
-      variables: ["name", "sender_name"],
-      charCount: 142,
+      tags: ["revenue", "operations", "value-add"],
+      variables: ["name"],
+      charCount: 128,
     },
     {
       id: "crm-2",
-      name: "Pipeline Leaks",
+      name: "Operational Efficiency",
       message:
-        "{{name}}, most consultants I talk to have pipeline leaks they don't even know about. Worth a quick look? Best email?",
+        "{{name}}, I help businesses cut operational waste and increase margins. What's your biggest bottleneck right now?",
       stage: "initial" as CampaignStage,
       worker: "GIANNA" as AIWorker,
-      tags: ["pipeline", "consulting", "crm"],
+      tags: ["operations", "efficiency", "value-add"],
       variables: ["name"],
       charCount: 118,
     },
     {
       id: "crm-3",
-      name: "Tech Stack Check",
+      name: "Growth Infrastructure",
       message:
-        "Hey {{name}}, {{sender_name}} here. Curious — is your tech stack actually working for you or against you? Quick chat?",
+        "{{name}}, scaling without breaking requires the right infrastructure. Is {{businessName}} set up to double in 12 months?",
       stage: "initial" as CampaignStage,
       worker: "GIANNA" as AIWorker,
-      tags: ["tech-stack", "consulting"],
-      variables: ["name", "sender_name"],
-      charCount: 115,
+      tags: ["growth", "scaling", "infrastructure"],
+      variables: ["name", "businessName"],
+      charCount: 120,
     },
     {
       id: "crm-4",
-      name: "Automation Gap",
+      name: "Automation ROI",
       message:
-        "{{name}}, quick Q — how much of your follow-up is still manual? Most consultants automate wrong. Worth fixing?",
+        "{{name}}, how much of your team's time goes to tasks a machine could handle? I help owners reclaim that time. Interested?",
       stage: "initial" as CampaignStage,
       worker: "GIANNA" as AIWorker,
-      tags: ["automation", "consulting"],
+      tags: ["automation", "roi", "efficiency"],
       variables: ["name"],
-      charCount: 110,
+      charCount: 124,
     },
     {
       id: "crm-5",
-      name: "Client Retention",
+      name: "Tech Stack Audit",
       message:
-        "Hey {{name}}, {{sender_name}} from Nextier. What's your current client retention strategy? Might have some ideas. Email?",
+        "{{name}}, paying for tools you don't use? Most businesses are. Want a quick audit of what's working and what's waste?",
       stage: "initial" as CampaignStage,
       worker: "GIANNA" as AIWorker,
-      tags: ["retention", "strategy", "consulting"],
-      variables: ["name", "sender_name"],
-      charCount: 120,
+      tags: ["technology", "audit", "cost-savings"],
+      variables: ["name"],
+      charCount: 122,
+    },
+    {
+      id: "crm-6",
+      name: "Process Optimization",
+      message:
+        "{{name}}, I optimize business processes for owners who want to work less and earn more. That sound like you?",
+      stage: "initial" as CampaignStage,
+      worker: "GIANNA" as AIWorker,
+      tags: ["process", "optimization", "value-add"],
+      variables: ["name"],
+      charCount: 112,
+    },
+    {
+      id: "crm-7",
+      name: "Data Intelligence",
+      message:
+        "{{name}}, are you making decisions on gut or data? I help businesses unlock insights they're already sitting on. Worth a chat?",
+      stage: "initial" as CampaignStage,
+      worker: "GIANNA" as AIWorker,
+      tags: ["data", "intelligence", "value-add"],
+      variables: ["name"],
+      charCount: 130,
+    },
+    {
+      id: "crm-8",
+      name: "Systems Integration",
+      message:
+        "{{name}}, how many disconnected systems is your team juggling? I connect the dots so nothing falls through. Interested?",
+      stage: "initial" as CampaignStage,
+      worker: "GIANNA" as AIWorker,
+      tags: ["systems", "integration", "efficiency"],
+      variables: ["name"],
+      charCount: 124,
     },
   ],
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// CARTRIDGE: BLUE COLLAR
-// Trades, contractors, service businesses
+// CARTRIDGE: BLUE COLLAR BUSINESSES
+// Service-based business owners - sell Nextier to them
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export const BLUE_COLLAR_CARTRIDGE: TemplateCartridge = {
   id: "blue-collar",
-  name: "Blue Collar & Trades",
-  description: "Templates for contractors, trades, and service businesses",
-  audience: "Contractors, Plumbers, Electricians, HVAC, Landscaping",
-  industries: ["construction", "trades", "home services", "contracting"],
+  name: "Blue Collar Businesses",
+  description:
+    "Outreach templates to sell Nextier to service-based business owners",
+  audience:
+    "HVAC, Plumbing, Electrical, Landscaping, Contracting Business Owners",
+  industries: [
+    "construction",
+    "home services",
+    "field services",
+    "contracting",
+  ],
   active: false,
-  sicCodes: ["1711", "1721", "1731", "1761", "0781"], // Plumbing, HVAC, electrical, roofing, landscaping
-  keywords: ["contractor", "plumber", "electrician", "hvac", "landscaping", "trades"],
+  sicCodes: ["1711", "1721", "1731", "1761", "0781"],
+  keywords: [
+    "contractor",
+    "plumber",
+    "electrician",
+    "hvac",
+    "landscaping",
+    "service business",
+  ],
   templates: [
     {
       id: "bc-1",
-      name: "Busy Season",
+      name: "Lead Flow",
       message:
-        "Hey {{name}}, {{sender_name}} here. I know {{industry}} stays busy — ever think about what the business is worth if you wanted to step back?",
+        "{{name}}, tired of waiting on referrals? I help service business owners build consistent lead flow. Want to see how?",
       stage: "initial" as CampaignStage,
       worker: "GIANNA" as AIWorker,
-      tags: ["blue-collar", "valuation", "exit"],
-      variables: ["name", "sender_name", "industry"],
-      charCount: 138,
+      tags: ["leads", "growth", "blue-collar"],
+      variables: ["name"],
+      charCount: 118,
     },
     {
       id: "bc-2",
-      name: "Crew Dependent",
+      name: "Booking System",
       message:
-        "{{name}}, quick thought — does {{businessName}} run without you, or are you still the one holding it together? Affects value big time.",
+        "{{name}}, most contractors lose jobs because they're too slow to follow up. I fix that problem. Interested?",
       stage: "initial" as CampaignStage,
       worker: "GIANNA" as AIWorker,
-      tags: ["blue-collar", "operations", "value"],
-      variables: ["name", "businessName"],
-      charCount: 132,
+      tags: ["automation", "follow-up", "blue-collar"],
+      variables: ["name"],
+      charCount: 110,
     },
     {
       id: "bc-3",
-      name: "Trade Exit",
+      name: "Missed Calls",
       message:
-        "Hey {{name}}, a lot of {{industry}} owners I talk to built something valuable but don't know the exit number. Want yours?",
+        "{{name}}, how many calls does {{businessName}} miss while you're on a job? I help owners capture every lead. Worth a look?",
       stage: "initial" as CampaignStage,
       worker: "GIANNA" as AIWorker,
-      tags: ["blue-collar", "exit", "valuation"],
-      variables: ["name", "industry"],
-      charCount: 124,
+      tags: ["leads", "capture", "blue-collar"],
+      variables: ["name", "businessName"],
+      charCount: 122,
     },
     {
       id: "bc-4",
-      name: "Scaling Question",
+      name: "Reputation Builder",
       message:
-        "{{name}}, {{sender_name}} from Nextier. Are you trying to scale {{businessName}} or thinking about cashing out? Different strategies for each.",
+        "{{name}}, reviews drive the business but asking is awkward. I automate the ask and watch the 5-stars pile up. Interested?",
       stage: "initial" as CampaignStage,
       worker: "GIANNA" as AIWorker,
-      tags: ["blue-collar", "scaling", "exit"],
-      variables: ["name", "sender_name", "businessName"],
-      charCount: 140,
+      tags: ["reviews", "reputation", "blue-collar"],
+      variables: ["name"],
+      charCount: 124,
     },
     {
       id: "bc-5",
-      name: "Body Breaking",
+      name: "Stop Chasing",
       message:
-        "Hey {{name}}, honest question — how many more years can you keep doing the physical work? Worth knowing your options. Email?",
+        "{{name}}, you're too good at what you do to waste time chasing quotes. Let me show you how to flip that script.",
       stage: "initial" as CampaignStage,
       worker: "GIANNA" as AIWorker,
-      tags: ["blue-collar", "exit", "empathy"],
+      tags: ["efficiency", "sales", "blue-collar"],
       variables: ["name"],
-      charCount: 126,
+      charCount: 114,
+    },
+    {
+      id: "bc-6",
+      name: "Weekend Freedom",
+      message:
+        "{{name}}, what if your phone stopped ringing on weekends but the jobs kept coming? That's what I build. Want to see?",
+      stage: "initial" as CampaignStage,
+      worker: "GIANNA" as AIWorker,
+      tags: ["automation", "lifestyle", "blue-collar"],
+      variables: ["name"],
+      charCount: 118,
+    },
+    {
+      id: "bc-7",
+      name: "Competitor Edge",
+      message:
+        "{{name}}, your competitors are using tech to book faster. I can put you ahead of them in 30 days. Worth 15 minutes?",
+      stage: "initial" as CampaignStage,
+      worker: "GIANNA" as AIWorker,
+      tags: ["competition", "technology", "blue-collar"],
+      variables: ["name"],
+      charCount: 120,
+    },
+    {
+      id: "bc-8",
+      name: "Grow or Stabilize",
+      message:
+        "{{name}}, looking to grow the crew or just want steadier work for the one you've got? Either way, I can help. Chat?",
+      stage: "initial" as CampaignStage,
+      worker: "GIANNA" as AIWorker,
+      tags: ["growth", "stability", "blue-collar"],
+      variables: ["name"],
+      charCount: 118,
     },
   ],
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// CARTRIDGE: REAL ESTATE (INACTIVE BY DEFAULT)
-// Only inject when user explicitly requests
+// CARTRIDGE: REAL ESTATE AGENT CLIENT LIBRARY
+// Templates for Nextier Real Estate Agent clients to use with their prospects
+// INACTIVE until a real estate agent signs up as a client
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export const REAL_ESTATE_CARTRIDGE: TemplateCartridge = {
   id: "real-estate",
-  name: "Real Estate Agents",
-  description: "Templates for real estate agents and brokers - INACTIVE until requested",
-  audience: "Real Estate Agents, Brokers, Realtors",
-  industries: ["real estate", "realty", "property"],
-  active: false, // INACTIVE - Only activate when explicitly requested
+  name: "Real Estate Agent Library",
+  description:
+    "Template library for Real Estate Agent clients - unlocked when they sign up",
+  audience: "Homebuyers, Sellers, Sphere of Influence",
+  industries: ["real estate", "residential", "property"],
+  active: false, // INACTIVE - Only activate for real estate agent clients
   sicCodes: ["6531"],
-  keywords: ["realtor", "broker", "property", "real estate", "listings"],
+  keywords: ["homeowner", "buyer", "seller", "listing", "property", "sphere"],
   templates: [
+    // --- SELLER PROSPECTING ---
     {
-      id: "re-1",
-      name: "Stop Renting",
+      id: "re-seller-1",
+      name: "Seller - Market Update",
       message:
-        "Most agents keep renting their lead generation and never control the system. Nextier changes that. Open to 15 min talk?",
+        "{{name}}, homes in {{neighborhood}} are selling fast. Your neighbor just got ${{price}} over asking. Curious what yours could get?",
       stage: "initial" as CampaignStage,
       worker: "GIANNA" as AIWorker,
-      tags: ["real-estate", "lead-gen", "meeting"],
-      variables: [],
+      tags: ["seller", "market-update"],
+      variables: ["name", "neighborhood", "price"],
       charCount: 124,
     },
     {
-      id: "re-2",
-      name: "System Builds",
+      id: "re-seller-2",
+      name: "Seller - Free Valuation",
       message:
-        "The best agents don't chase leads — their system does. That's what we build at Nextier. Best email?",
+        "{{name}}, thinking about selling? I can get you a free market analysis of {{address}} — no strings. Want it?",
       stage: "initial" as CampaignStage,
       worker: "GIANNA" as AIWorker,
-      tags: ["real-estate", "system", "email-capture"],
-      variables: [],
-      charCount: 104,
+      tags: ["seller", "valuation"],
+      variables: ["name", "address"],
+      charCount: 112,
+    },
+    {
+      id: "re-seller-3",
+      name: "Seller - Buyer Demand",
+      message:
+        "{{name}}, I have buyers looking in your area right now. Ever thought about what your home could sell for?",
+      stage: "initial" as CampaignStage,
+      worker: "GIANNA" as AIWorker,
+      tags: ["seller", "buyer-demand"],
+      variables: ["name"],
+      charCount: 108,
+    },
+    // --- BUYER PROSPECTING ---
+    {
+      id: "re-buyer-1",
+      name: "Buyer - Off-Market",
+      message:
+        "{{name}}, I have access to off-market listings in {{area}} before they hit Zillow. Want first look?",
+      stage: "initial" as CampaignStage,
+      worker: "GIANNA" as AIWorker,
+      tags: ["buyer", "off-market"],
+      variables: ["name", "area"],
+      charCount: 102,
+    },
+    {
+      id: "re-buyer-2",
+      name: "Buyer - Rate Drop",
+      message:
+        "{{name}}, rates just dropped. If you've been waiting to buy, now might be the time. Want to chat strategy?",
+      stage: "initial" as CampaignStage,
+      worker: "GIANNA" as AIWorker,
+      tags: ["buyer", "rates"],
+      variables: ["name"],
+      charCount: 110,
+    },
+    // --- SPHERE OF INFLUENCE ---
+    {
+      id: "re-sphere-1",
+      name: "Sphere - Check In",
+      message:
+        "{{name}}, just checking in! How's everything going? If you or anyone you know is thinking about moving, I'm here to help.",
+      stage: "initial" as CampaignStage,
+      worker: "GIANNA" as AIWorker,
+      tags: ["sphere", "referral"],
+      variables: ["name"],
+      charCount: 124,
+    },
+    {
+      id: "re-sphere-2",
+      name: "Sphere - Referral Ask",
+      message:
+        "{{name}}, hope all is well! Quick question — know anyone thinking about buying or selling? I'd love to help them out.",
+      stage: "initial" as CampaignStage,
+      worker: "GIANNA" as AIWorker,
+      tags: ["sphere", "referral-ask"],
+      variables: ["name"],
+      charCount: 120,
+    },
+    {
+      id: "re-sphere-3",
+      name: "Sphere - Home Anniversary",
+      message:
+        "{{name}}, happy home anniversary! It's been {{years}} years since you moved in. Ever wonder what it's worth now?",
+      stage: "initial" as CampaignStage,
+      worker: "GIANNA" as AIWorker,
+      tags: ["sphere", "anniversary"],
+      variables: ["name", "years"],
+      charCount: 116,
+    },
+    // --- JUST LISTED / JUST SOLD ---
+    {
+      id: "re-listed-1",
+      name: "Just Listed - Neighbor Alert",
+      message:
+        "{{name}}, I just listed a home on your street at {{address}}. If you're curious what this means for your home value, let me know!",
+      stage: "initial" as CampaignStage,
+      worker: "GIANNA" as AIWorker,
+      tags: ["listed", "neighbor"],
+      variables: ["name", "address"],
+      charCount: 134,
+    },
+    {
+      id: "re-sold-1",
+      name: "Just Sold - Neighbor Alert",
+      message:
+        "{{name}}, the home at {{address}} just sold for ${{price}}! Want to know what this means for your property value?",
+      stage: "initial" as CampaignStage,
+      worker: "GIANNA" as AIWorker,
+      tags: ["sold", "neighbor"],
+      variables: ["name", "address", "price"],
+      charCount: 118,
     },
   ],
 };
@@ -409,7 +600,12 @@ class CartridgeManager {
   /**
    * List all available cartridges
    */
-  listCartridges(): Array<{ id: string; name: string; active: boolean; templateCount: number }> {
+  listCartridges(): Array<{
+    id: string;
+    name: string;
+    active: boolean;
+    templateCount: number;
+  }> {
     return Array.from(this.cartridges.values()).map((c) => ({
       id: c.id,
       name: c.name,
@@ -446,7 +642,9 @@ class CartridgeManager {
 
     for (const cartridge of this.cartridges.values()) {
       if (
-        cartridge.industries.some((i) => i.toLowerCase().includes(lowerIndustry)) ||
+        cartridge.industries.some((i) =>
+          i.toLowerCase().includes(lowerIndustry),
+        ) ||
         cartridge.keywords?.some((k) => k.toLowerCase().includes(lowerIndustry))
       ) {
         matching.push(...cartridge.templates);
@@ -465,7 +663,9 @@ class CartridgeManager {
 
     for (const cartridge of this.cartridges.values()) {
       if (
-        cartridge.industries.some((i) => i.toLowerCase().includes(lowerIndustry)) ||
+        cartridge.industries.some((i) =>
+          i.toLowerCase().includes(lowerIndustry),
+        ) ||
         cartridge.keywords?.some((k) => k.toLowerCase().includes(lowerIndustry))
       ) {
         cartridge.active = true;
@@ -473,7 +673,10 @@ class CartridgeManager {
       }
     }
 
-    console.log(`[CartridgeManager] Auto-activated for "${industry}":`, activated);
+    console.log(
+      `[CartridgeManager] Auto-activated for "${industry}":`,
+      activated,
+    );
     return activated;
   }
 
@@ -520,7 +723,11 @@ class WorkspaceCartridgeManager {
       // Create default config for new workspace
       config = {
         teamId,
-        activeCartridgeIds: ["business-brokering", "crm-consultants", "blue-collar"],
+        activeCartridgeIds: [
+          "business-brokering",
+          "crm-consultants",
+          "blue-collar",
+        ],
         createdAt: new Date(),
         updatedAt: new Date(),
       };

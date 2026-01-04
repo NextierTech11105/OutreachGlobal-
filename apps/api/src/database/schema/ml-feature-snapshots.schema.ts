@@ -14,13 +14,7 @@
  * flexible schema evolution without migrations.
  */
 
-import {
-  index,
-  jsonb,
-  pgTable,
-  timestamp,
-  varchar,
-} from "drizzle-orm/pg-core";
+import { index, jsonb, pgTable, timestamp, varchar } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { primaryUlid, ulidColumn } from "../columns/ulid";
 import { createdAt } from "../columns/timestamps";
