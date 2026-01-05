@@ -12,6 +12,10 @@ import {
 import { IdentityGraphService } from "../services/identity-graph.service";
 import { CampaignTriggerService } from "../services/campaign-trigger.service";
 import { DeadLetterQueueService } from "@/lib/dlq";
+import {
+  validateTenantJob,
+  logTenantContext,
+} from "@/lib/queue/tenant-queue.util";
 
 interface UpdateFromSkipTraceJob {
   teamId: string;
@@ -54,6 +58,10 @@ export class LeadCardConsumer extends WorkerHost {
   }
 
   async process(job: Job): Promise<any> {
+    // P0: Validate tenant isolation - reject jobs without valid teamId
+    validateTenantJob(job, LEAD_CARD_QUEUE);
+    logTenantContext(LEAD_CARD_QUEUE, job, "Processing");
+
     this.logger.log(`Processing lead-card job ${job.id}: ${job.name}`);
 
     switch (job.name) {

@@ -5,6 +5,8 @@ import { Logger } from "@nestjs/common";
 import sgMail from "@sendgrid/mail";
 import { SendMailOptions } from "./mail.type";
 import { DeadLetterQueueService } from "@/lib/dlq";
+// NOTE: Mail consumer is a system-level utility for sending emails.
+// It doesn't require tenant validation as emails can be sent for system purposes.
 
 const MAIL_QUEUE = "mail";
 
@@ -24,6 +26,8 @@ export class MailConsumer extends WorkerHost {
   }
 
   async process(job: Job<SendMailOptions>) {
+    this.logger.log(`[${MAIL_QUEUE}] Processing mail job ${job.id}`);
+
     const options = job.data;
     const fromEmail =
       this.configService.get<string>("SENDGRID_FROM_EMAIL") ||

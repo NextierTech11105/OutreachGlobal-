@@ -10,6 +10,10 @@ import {
   B2BIngestionJob,
 } from "../services/b2b-ingestion.service";
 import { DeadLetterQueueService } from "@/lib/dlq";
+import {
+  validateTenantJob,
+  logTenantContext,
+} from "@/lib/queue/tenant-queue.util";
 
 const B2B_INGESTION_QUEUE = "b2b-ingestion";
 
@@ -25,6 +29,10 @@ export class B2BIngestionConsumer extends WorkerHost {
   }
 
   async process(job: Job<B2BIngestionJob>): Promise<any> {
+    // P0: Validate tenant isolation - reject jobs without valid teamId
+    validateTenantJob(job, B2B_INGESTION_QUEUE);
+    logTenantContext(B2B_INGESTION_QUEUE, job, "Processing");
+
     this.logger.log(`Processing B2B ingestion job ${job.id}: ${job.name}`);
 
     switch (job.name) {

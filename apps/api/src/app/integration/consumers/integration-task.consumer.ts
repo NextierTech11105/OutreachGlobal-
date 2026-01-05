@@ -20,6 +20,9 @@ import { sql } from "drizzle-orm";
 import { leadImportSchema } from "@/app/lead/dto/lead-import.dto";
 import { getProperty } from "@nextier/common";
 import { DeadLetterQueueService } from "@/lib/dlq";
+// NOTE: This consumer doesn't use validateTenantJob because teamId is accessed
+// via integration.teamId (the task belongs to an integration which belongs to a team).
+// Tenant isolation is enforced through DB relations.
 
 type JobData = Job<{ task: IntegrationTaskSelect }>;
 
@@ -39,6 +42,11 @@ export class IntegrationTaskConsumer extends WorkerHost {
   }
 
   async process(job: JobData) {
+    // P0: Tenant isolation enforced via integration.teamId in syncLead()
+    this.logger.log(
+      `[${INTEGRATION_TASK_QUEUE}] Processing job ${job.id}: ${job.name}`,
+    );
+
     if (job.name === IntegrationTaskJob.SYNC_LEAD) {
       await this.syncLead(job.data);
     }

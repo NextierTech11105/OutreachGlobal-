@@ -9,6 +9,10 @@ import { InjectDB } from "@/database/decorators";
 import { DrizzleClient } from "@/database/types";
 import { and, eq } from "drizzle-orm";
 import { Logger } from "@nestjs/common";
+import {
+  validateTenantJob,
+  logTenantContext,
+} from "@/lib/queue/tenant-queue.util";
 import { CampaignSequenceSelect } from "../models/campaign-sequence.model";
 import { LeadSelect } from "@/app/lead/models/lead.model";
 import { addDays, addHours } from "date-fns";
@@ -55,6 +59,10 @@ export class CampaignSequenceConsumer extends WorkerHost {
   }
 
   async process(job: Job): Promise<any> {
+    // P0: Validate tenant isolation - reject jobs without valid teamId
+    validateTenantJob(job, CAMPAIGN_SEQUENCE_QUEUE);
+    logTenantContext(CAMPAIGN_SEQUENCE_QUEUE, job, "Processing");
+
     if (job.name === CampaignSequenceJobs.PROCESS_NEXT) {
       const sequence = await this.getSequenceByPosition(job.data);
       if (!sequence) {

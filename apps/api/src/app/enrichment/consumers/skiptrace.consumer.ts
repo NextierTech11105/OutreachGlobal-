@@ -10,6 +10,10 @@ import {
   SkipTraceEnrichmentJob,
 } from "../services/skiptrace.service";
 import { DeadLetterQueueService } from "@/lib/dlq";
+import {
+  validateTenantJob,
+  logTenantContext,
+} from "@/lib/queue/tenant-queue.util";
 
 const SKIPTRACE_QUEUE = "skiptrace";
 
@@ -25,6 +29,10 @@ export class SkipTraceConsumer extends WorkerHost {
   }
 
   async process(job: Job<SkipTraceEnrichmentJob>): Promise<any> {
+    // P0: Validate tenant isolation - reject jobs without valid teamId
+    validateTenantJob(job, SKIPTRACE_QUEUE);
+    logTenantContext(SKIPTRACE_QUEUE, job, "Processing");
+
     this.logger.log(`Processing SkipTrace job ${job.id}: ${job.name}`);
 
     switch (job.name) {
