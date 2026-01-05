@@ -48,6 +48,40 @@ registerEnumType(
 );
 
 // ═══════════════════════════════════════════════════════════════════════════
+// NEW API KEY RESPONSE (must be defined first - used by other classes)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * New API Key Response - includes the raw key (only shown once!)
+ */
+@ObjectType()
+export class NewApiKeyResponse {
+  @Field()
+  id: string;
+
+  @Field({ description: "The raw API key - ONLY SHOWN ONCE! Copy it now." })
+  key: string;
+
+  @Field()
+  keyPrefix: string;
+
+  @Field()
+  name: string;
+
+  @Field()
+  type: string;
+
+  @Field(() => [String])
+  scopes: string[];
+
+  @Field(() => Date, { nullable: true })
+  expiresAt: Date | null;
+
+  @Field()
+  createdAt: Date;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // TENANT MODELS
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -188,36 +222,6 @@ export class ApiKey extends TimestampModel {
 
   @Field(() => GraphQLJSON, { nullable: true })
   usageCounters: Record<string, any> | null;
-}
-
-/**
- * New API Key Response - includes the raw key (only shown once!)
- */
-@ObjectType()
-export class NewApiKeyResponse {
-  @Field()
-  id: string;
-
-  @Field({ description: "The raw API key - ONLY SHOWN ONCE! Copy it now." })
-  key: string;
-
-  @Field()
-  keyPrefix: string;
-
-  @Field()
-  name: string;
-
-  @Field()
-  type: string;
-
-  @Field(() => [String])
-  scopes: string[];
-
-  @Field(() => Date, { nullable: true })
-  expiresAt: Date | null;
-
-  @Field()
-  createdAt: Date;
 }
 
 /**
