@@ -235,3 +235,18 @@ export class PaidKeysResponse {
   @Field(() => NewApiKeyResponse)
   devKey: NewApiKeyResponse;
 }
+
+/**
+ * Bootstrap Owner Response - for initial platform setup
+ */
+@ObjectType()
+export class BootstrapOwnerResponse {
+  @Field(() => Tenant)
+  tenant: Tenant;
+
+  @Field(() => NewApiKeyResponse)
+  apiKey: NewApiKeyResponse;
+
+  @Field({ description: "Whether this was a newly created tenant/key" })
+  isNew: boolean;
+}

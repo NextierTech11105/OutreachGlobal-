@@ -7,6 +7,7 @@ import {
   DemoKeyResponse,
   Tenant,
   PaidKeysResponse,
+  BootstrapOwnerResponse,
 } from "../models/api-key.model";
 import { ApiKeyService } from "../services/api-key.service";
 import {
@@ -154,6 +155,40 @@ export class ApiKeyResolver {
     return {
       tenant: result.tenant as any,
       apiKey: result.apiKey as any,
+    };
+  }
+
+  /**
+   * Bootstrap platform owner tenant and OWNER_KEY
+   *
+   * This is a ONE-TIME setup endpoint protected by a bootstrap secret.
+   * Creates the owner tenant and OWNER_KEY for platform administration.
+   */
+  @Mutation(() => BootstrapOwnerResponse, {
+    description:
+      "Bootstrap platform owner. Requires bootstrap secret. One-time setup.",
+  })
+  async bootstrapOwner(
+    @Args("email") email: string,
+    @Args("secret") secret: string,
+  ): Promise<BootstrapOwnerResponse> {
+    // Validate bootstrap secret
+    const expectedSecret = process.env.BOOTSTRAP_SECRET || "og-bootstrap-2024";
+    if (secret !== expectedSecret) {
+      throw new Error("Invalid bootstrap secret");
+    }
+
+    // Only allow specific email
+    if (email !== "tb@outreachglobal.io") {
+      throw new Error("Unauthorized email for owner bootstrap");
+    }
+
+    const result = await this.apiKeyService.bootstrapOwner(email);
+
+    return {
+      tenant: result.tenant as any,
+      apiKey: result.apiKey as any,
+      isNew: result.isNew,
     };
   }
 
