@@ -13,5 +13,6 @@
       "dependsOn": ["^build"]
     }
   },
-  "neverConnectToCloud": true
+  "neverConnectToCloud": true,
+  "useDaemonProcess": false
 }

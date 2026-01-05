@@ -1,0 +1,15 @@
+# Exclude NX cache (causes "write too long" errors)
+.nx
+.nx/**
+
+# Test files
+*.test.ts
+*.spec.ts
+
+# Development
+.git
+.github
+.vscode
+
+# Docs
+*.md
