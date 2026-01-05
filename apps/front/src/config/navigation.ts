@@ -264,23 +264,6 @@ export const navigationGroups: NavGroup[] = [
   },
 
   // ─────────────────────────────────────────────────────────────────────────
-  // REAL ESTATE - Industry-specific features
-  // ─────────────────────────────────────────────────────────────────────────
-  {
-    id: "real-estate",
-    label: "REAL ESTATE",
-    icon: Home,
-    items: [
-      {
-        label: "Property Leads",
-        href: "/admin/real-estate",
-        icon: Home,
-        description: "Property-based prospecting",
-      },
-    ],
-  },
-
-  // ─────────────────────────────────────────────────────────────────────────
   // ADMIN - Platform administration (admin/owner only)
   // ─────────────────────────────────────────────────────────────────────────
   {
