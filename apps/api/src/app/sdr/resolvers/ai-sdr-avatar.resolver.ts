@@ -72,7 +72,7 @@ export class AiSdrAvatarResolver extends BaseResolver(AiSdrAvatar) {
   ) {
     const input = this.validate(aiSdrAvatarSchema, args.input);
     const team = await this.teamService.findById(args.teamId);
-    await this.teamPolicy.can().read(user, team);
+    await this.teamPolicy.can().manage(user, team);
 
     return this.service.create({
       ...args,
@@ -88,7 +88,7 @@ export class AiSdrAvatarResolver extends BaseResolver(AiSdrAvatar) {
   ) {
     const input = this.validate(aiSdrAvatarSchema, args.input);
     const team = await this.teamService.findById(args.teamId);
-    await this.teamPolicy.can().read(user, team);
+    await this.teamPolicy.can().manage(user, team);
 
     return this.service.update({
       ...args,
@@ -103,7 +103,7 @@ export class AiSdrAvatarResolver extends BaseResolver(AiSdrAvatar) {
     @Args() args: DeleteAiSdrAvatarArgs,
   ) {
     const team = await this.teamService.findById(args.teamId);
-    await this.teamPolicy.can().read(user, team);
+    await this.teamPolicy.can().manage(user, team);
 
     return this.service.remove({
       id: args.id,

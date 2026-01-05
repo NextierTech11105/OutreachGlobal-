@@ -70,11 +70,27 @@ export class TeamMemberService {
       teamInvitation.teamId,
       "sendgrid",
     );
+
+    // Use team settings if available, otherwise fall back to global config
+    const apiKey =
+      settings.sendgridApiKey ||
+      this.configService.get<string>("SENDGRID_API_KEY");
+    const fromEmail =
+      settings.sendgridFromEmail ||
+      this.configService.get<string>("SENDGRID_FROM_EMAIL") ||
+      "noreply@outreachglobal.io";
+
+    if (!apiKey) {
+      throw new Error(
+        "SendGrid not configured. Please configure SendGrid in team settings or set SENDGRID_API_KEY environment variable.",
+      );
+    }
+
     await this.sendgridService.send({
-      apiKey: settings.sendgridApiKey,
+      apiKey,
       data: {
         to: teamInvitation.email,
-        from: settings.sendgridFromEmail || "",
+        from: fromEmail,
         subject: "You have been invited to join a team",
         html: await render(
           TeamInvitationEmail({

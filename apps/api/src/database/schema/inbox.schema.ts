@@ -27,6 +27,10 @@ export const INBOX_ITEM_PK = "inb";
 export const RESPONSE_BUCKET_PK = "rbkt";
 export const BUCKET_MOVEMENT_PK = "bmov";
 export const SUPPRESSION_PK = "supp";
+export const AI_APPROVAL_PK = "aiap";
+
+// Approval status for AI-generated responses
+export type AiApprovalStatus = "pending" | "approved" | "rejected";
 
 // Universal Inbox - all incoming responses land here first
 export const inboxItems = pgTable(
@@ -218,4 +222,49 @@ export const suppressionList = pgTable(
     updatedAt,
   },
   (t) => [index().on(t.teamId), index().on(t.phoneNumber), index().on(t.type)],
+);
+
+// AI Response Approvals - Human-in-the-loop for AI-suggested responses
+// AI suggests responses but CANNOT send without human approval
+export const aiResponseApprovals = pgTable(
+  "ai_response_approvals",
+  {
+    id: primaryUlid(AI_APPROVAL_PK),
+    teamId: teamsRef({ onDelete: "cascade" }).notNull(),
+    inboxItemId: ulidColumn()
+      .references(() => inboxItems.id, { onDelete: "cascade" })
+      .notNull(),
+
+    // AI-generated response content
+    suggestedResponse: text().notNull(),
+    sdrId: ulidColumn().references(() => aiSdrAvatars.id, {
+      onDelete: "set null",
+    }),
+
+    // Approval workflow
+    status: varchar().$type<AiApprovalStatus>().notNull().default("pending"),
+    reviewedBy: ulidColumn(), // User who approved/rejected
+    reviewedAt: timestamp(),
+    rejectionReason: text(),
+
+    // Edited response (if human modified the suggestion)
+    finalResponse: text(), // What was actually sent (may differ from suggestion)
+
+    // Execution tracking
+    sentAt: timestamp(), // When the response was actually sent
+    sendKey: varchar(), // Idempotency key: {inboxItemId}:{timestamp}
+
+    // Context for the AI decision
+    classificationContext: jsonb(), // What AI saw when making the suggestion
+
+    createdAt,
+    updatedAt,
+  },
+  (t) => [
+    index("ai_approvals_team_idx").on(t.teamId),
+    index("ai_approvals_inbox_idx").on(t.inboxItemId),
+    index("ai_approvals_status_idx").on(t.status),
+    // Hot path: pending approvals queue
+    index("ai_approvals_pending_idx").on(t.teamId, t.status),
+  ],
 );

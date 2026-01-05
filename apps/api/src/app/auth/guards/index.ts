@@ -4,3 +4,4 @@ export * from "./combined-auth.guard";
 export * from "./throttler.guard";
 export * from "./jwt.guard";
 export * from "./roles.guard";
+export * from "./scope.guard";

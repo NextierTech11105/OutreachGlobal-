@@ -43,6 +43,7 @@ import { DeadLetterQueueModule } from "../lib/dlq";
 import { LoggerModule } from "../lib/logger";
 import { CircuitBreakerModule } from "../lib/circuit-breaker";
 import { MetricsModule } from "./metrics";
+import { OutboundModule } from "../lib/outbound";
 
 @Module({
   imports: [
@@ -93,6 +94,7 @@ import { MetricsModule } from "./metrics";
     ContentLibraryModule,
     EnrichmentModule,
     MetricsModule,
+    OutboundModule,
   ],
   providers: [
     AppRunner,

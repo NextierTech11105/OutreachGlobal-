@@ -56,6 +56,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
+import { toast } from "sonner";
 
 interface Company {
   id: string;
@@ -149,7 +150,7 @@ export default function CompaniesPage() {
 
   const handleImpersonate = async (company: Company) => {
     if (!company.owner) {
-      alert("This company has no owner to impersonate");
+      toast.error("This company has no owner to impersonate");
       return;
     }
 
@@ -170,11 +171,11 @@ export default function CompaniesPage() {
         // Redirect to team dashboard
         window.location.href = `/t/${company.slug}`;
       } else {
-        alert(data.error || "Failed to impersonate");
+        toast.error(data.error || "Failed to impersonate");
       }
     } catch (error) {
       console.error("Impersonation failed:", error);
-      alert("Failed to impersonate user");
+      toast.error("Failed to impersonate user");
     } finally {
       setIsImpersonating(false);
     }
@@ -199,11 +200,11 @@ export default function CompaniesPage() {
       if (data.success) {
         fetchCompanies();
       } else {
-        alert(data.error || "Failed to delete");
+        toast.error(data.error || "Failed to delete");
       }
     } catch (error) {
       console.error("Delete failed:", error);
-      alert("Failed to delete company");
+      toast.error("Failed to delete company");
     } finally {
       setDeletingId(null);
     }
@@ -211,7 +212,7 @@ export default function CompaniesPage() {
 
   const handleCreate = async () => {
     if (!newCompany.name || !newCompany.slug) {
-      alert("Name and slug are required");
+      toast.error("Name and slug are required");
       return;
     }
 
@@ -234,11 +235,11 @@ export default function CompaniesPage() {
         setNewCompany({ name: "", slug: "", ownerEmail: "" });
         fetchCompanies();
       } else {
-        alert(data.error || "Failed to create");
+        toast.error(data.error || "Failed to create");
       }
     } catch (error) {
       console.error("Create failed:", error);
-      alert("Failed to create company");
+      toast.error("Failed to create company");
     } finally {
       setIsCreating(false);
     }
@@ -246,7 +247,7 @@ export default function CompaniesPage() {
 
   const handleResetPassword = async (company: Company) => {
     if (!company.owner) {
-      alert("This company has no owner");
+      toast.error("This company has no owner");
       return;
     }
 
@@ -275,11 +276,11 @@ export default function CompaniesPage() {
           tempPassword: data.tempPassword,
         });
       } else {
-        alert(data.error || "Failed to reset password");
+        toast.error(data.error || "Failed to reset password");
       }
     } catch (error) {
       console.error("Password reset failed:", error);
-      alert("Failed to reset password");
+      toast.error("Failed to reset password");
     } finally {
       setResettingPasswordId(null);
     }

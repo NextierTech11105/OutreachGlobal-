@@ -74,18 +74,6 @@ export class LeadResolver extends BaseResolver(Lead) {
       ...args,
       teamId: team.id,
     });
-    console.log(
-      "LeadConnection result:",
-      JSON.stringify(
-        {
-          edgesCount: result.edges?.length,
-          pageInfo: result.pageInfo,
-          hasTotalCount: "totalCount" in result,
-        },
-        null,
-        2,
-      ),
-    );
     return result;
   }
 
@@ -133,7 +121,7 @@ export class LeadResolver extends BaseResolver(Lead) {
   ): Promise<CreateLeadPayload> {
     const input = this.validate(createLeadSchema, args.input);
     const team = await this.teamService.findById(args.teamId);
-    await this.teamPolicy.can().read(user, team);
+    await this.teamPolicy.can().manage(user, team);
     return this.service.create({
       ...args,
       input,
@@ -147,7 +135,7 @@ export class LeadResolver extends BaseResolver(Lead) {
     @Args() args: UpdateLeadPositionArgs,
   ): Promise<UpdateLeadPositionPayload> {
     const team = await this.teamService.findById(args.teamId);
-    await this.teamPolicy.can().read(user, team);
+    await this.teamPolicy.can().manage(user, team);
 
     const orderValue = args.newPosition > args.oldPosition ? -1 : 1;
 
@@ -189,7 +177,7 @@ export class LeadResolver extends BaseResolver(Lead) {
   ): Promise<UpdateLeadPayload> {
     const input = this.validate(createLeadSchema, args.input);
     const team = await this.teamService.findById(args.teamId);
-    await this.teamPolicy.can().read(user, team);
+    await this.teamPolicy.can().manage(user, team);
     return this.service.update({
       ...args,
       input,
@@ -203,7 +191,7 @@ export class LeadResolver extends BaseResolver(Lead) {
     @Args() args: DeleteLeadArgs,
   ): Promise<DeleteLeadPayload> {
     const team = await this.teamService.findById(args.teamId);
-    await this.teamPolicy.can().read(user, team);
+    await this.teamPolicy.can().manage(user, team);
     return this.service.remove({
       ...args,
       teamId: team.id,
@@ -216,7 +204,7 @@ export class LeadResolver extends BaseResolver(Lead) {
     @Args() args: BulkDeleteLeadArgs,
   ): Promise<BulkDeleteLeadPayload> {
     const team = await this.teamService.findById(args.teamId);
-    await this.teamPolicy.can().read(user, team);
+    await this.teamPolicy.can().manage(user, team);
     return this.service.bulkRemove({
       ...args,
       teamId: team.id,

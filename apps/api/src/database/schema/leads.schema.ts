@@ -18,9 +18,13 @@ import { properties } from "./properties.schema";
 export const leadStateEnumPg = pgEnum("lead_state_canonical", [
   "new", // Just imported, no contact yet
   "touched", // SMS_SENT at least once
+  "retargeting", // No response after 7D - being retargeted
   "responded", // Got any reply
+  "soft_interest", // Showed mild interest (questions, curiosity)
   "email_captured", // Email extracted from conversation
+  "content_nurture", // In nurture sequence (SMS, MMS, email, links)
   "high_intent", // Expressed buying/selling intent
+  "appointment_booked", // Meeting scheduled
   "in_call_queue", // Escalated for human call
   "closed", // Deal won/lost
   "suppressed", // STOP/DNC - terminal state

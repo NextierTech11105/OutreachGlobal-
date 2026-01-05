@@ -66,7 +66,7 @@ export class MessageTemplateResolver extends BaseResolver(MessageTemplate) {
     const schema = this.service.getSchema(args.type);
     const input = this.validate(schema, args.input);
     const team = await this.teamService.findById(args.teamId);
-    await this.teamPolicy.can().read(user, team);
+    await this.teamPolicy.can().manage(user, team);
     return this.service.create({
       ...args,
       input,
@@ -82,7 +82,7 @@ export class MessageTemplateResolver extends BaseResolver(MessageTemplate) {
     const schema = this.service.getSchema(args.type);
     const input = this.validate(schema, args.input);
     const team = await this.teamService.findById(args.teamId);
-    await this.teamPolicy.can().read(user, team);
+    await this.teamPolicy.can().manage(user, team);
     return this.service.update({
       ...args,
       input,
@@ -96,7 +96,7 @@ export class MessageTemplateResolver extends BaseResolver(MessageTemplate) {
     @Args() args: DeleteMessageTemplateArgs,
   ): Promise<DeleteMessageTemplatePayload> {
     const team = await this.teamService.findById(args.teamId);
-    await this.teamPolicy.can().read(user, team);
+    await this.teamPolicy.can().manage(user, team);
     return this.service.remove({
       ...args,
       teamId: team.id,
@@ -109,7 +109,7 @@ export class MessageTemplateResolver extends BaseResolver(MessageTemplate) {
     @Args() args: GenerateMessageTemplateArgs,
   ): Promise<GenerateMessageTemplatePayload> {
     const team = await this.teamService.findById(args.teamId);
-    await this.teamPolicy.can().read(user, team);
+    await this.teamPolicy.can().manage(user, team);
     return this.service.generate({
       ...args,
       teamId: team.id,

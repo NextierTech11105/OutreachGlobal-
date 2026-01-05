@@ -16,6 +16,7 @@ export enum CampaignExecutionStatus {
   PENDING = "PENDING",
   FAILED = "FAILED",
   COMPLETED = "COMPLETED",
+  BLOCKED = "BLOCKED", // Blocked by OutboundGate (suppressed, DNC, opt-out)
 }
 
 export enum CampaignEventName {

@@ -67,7 +67,7 @@ export class PromptResolver extends BaseResolver(Prompt) {
   ): Promise<CreatePromptPayload> {
     const input = this.validate(createPromptSchema, args.input);
     const team = await this.teamService.findById(args.teamId);
-    await this.teamPolicy.can().read(user, team);
+    await this.teamPolicy.can().manage(user, team);
     return this.service.create({
       ...args,
       input,
@@ -82,7 +82,7 @@ export class PromptResolver extends BaseResolver(Prompt) {
   ): Promise<UpdatePromptPayload> {
     const input = this.validate(createPromptSchema, args.input);
     const team = await this.teamService.findById(args.teamId);
-    await this.teamPolicy.can().read(user, team);
+    await this.teamPolicy.can().manage(user, team);
     return this.service.update({
       ...args,
       input,
@@ -96,7 +96,7 @@ export class PromptResolver extends BaseResolver(Prompt) {
     @Args() args: DeletePromptArgs,
   ): Promise<DeletePromptPayload> {
     const team = await this.teamService.findById(args.teamId);
-    await this.teamPolicy.can().read(user, team);
+    await this.teamPolicy.can().manage(user, team);
     return this.service.remove({
       ...args,
       teamId: team.id,
@@ -109,7 +109,7 @@ export class PromptResolver extends BaseResolver(Prompt) {
     @Args() args: BulkDeletePromptArgs,
   ): Promise<BulkDeletePromptPayload> {
     const team = await this.teamService.findById(args.teamId);
-    await this.teamPolicy.can().read(user, team);
+    await this.teamPolicy.can().manage(user, team);
     return this.service.bulkRemove({
       ...args,
       teamId: team.id,

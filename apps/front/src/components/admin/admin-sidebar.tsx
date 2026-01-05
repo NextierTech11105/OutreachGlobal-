@@ -5,269 +5,134 @@ import type React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { ChevronRight, LayoutGrid } from "lucide-react";
+import { useState, useMemo } from "react";
 import {
-  BarChart3,
-  Settings,
-  Database,
-  Bot,
-  Zap,
-  LayoutGrid,
-  Megaphone,
-  ChevronRight,
-  Building2,
-} from "lucide-react";
-import { useState } from "react";
+  navigationGroups,
+  getFilteredNavigation,
+  mapTeamRoleToNavRole,
+  type NavGroup,
+  type NavItem,
+} from "@/config/navigation";
+import { Badge } from "@/components/ui/badge";
 
-type NavItem = {
-  href?: string;
-  label: string;
-  icon: React.ReactNode;
-  active: boolean;
-  children?: {
-    href: string;
-    label: string;
-    active: boolean;
-  }[];
-};
+interface AdminSidebarProps {
+  /** User's role in the team (admin, member, viewer) */
+  userRole?: string;
+  /** Whether the user has completed onboarding */
+  isOnboardingComplete?: boolean;
+}
 
-export function AdminSidebar() {
+export function AdminSidebar({
+  userRole,
+  isOnboardingComplete = false,
+}: AdminSidebarProps) {
   const pathname = usePathname();
-  // Start all sections collapsed for cleaner look
   const [expandedSections, setExpandedSections] = useState<
     Record<string, boolean>
   >({});
 
-  const toggleSection = (label: string) => {
+  // Get filtered navigation based on user role and onboarding status
+  const navRole = mapTeamRoleToNavRole(userRole);
+  const filteredNavGroups = useMemo(
+    () => getFilteredNavigation(navRole, isOnboardingComplete),
+    [navRole, isOnboardingComplete]
+  );
+
+  const toggleSection = (groupId: string) => {
     setExpandedSections((prev) => ({
       ...prev,
-      [label]: !prev[label],
+      [groupId]: !prev[groupId],
     }));
   };
 
-  // Consolidated admin navigation - 6 groups total
-  const routes: NavItem[] = [
-    {
-      href: "/admin",
-      label: "Home Dashboards",
-      icon: <BarChart3 className="h-4 w-4" />,
-      active: pathname === "/admin",
-    },
-    {
-      href: "/admin/companies",
-      label: "Companies",
-      icon: <Building2 className="h-4 w-4" />,
-      active: pathname.startsWith("/admin/companies"),
-    },
-    {
-      label: "Lead Generation",
-      icon: <Database className="h-4 w-4" />,
-      active:
-        pathname.startsWith("/admin/data") ||
-        pathname === "/admin/b2b" ||
-        pathname === "/admin/mcp",
-      children: [
-        {
-          href: "/admin/b2b",
-          label: "B2B Search",
-          active: pathname === "/admin/b2b",
-        },
-        {
-          href: "/admin/mcp",
-          label: "AI Agent Pipeline",
-          active: pathname === "/admin/mcp",
-        },
-        {
-          href: "/admin/data/import",
-          label: "Data Import",
-          active: pathname === "/admin/data/import",
-        },
-      ],
-    },
-    {
-      label: "Outreach",
-      icon: <Megaphone className="h-4 w-4" />,
-      active:
-        pathname.startsWith("/admin/campaigns") ||
-        pathname === "/admin/message-templates" ||
-        pathname === "/admin/ai-sdr" ||
-        pathname === "/admin/digital-workers" ||
-        pathname === "/admin/inbound-processing",
-      children: [
-        {
-          href: "/admin/digital-workers",
-          label: "AI Agent (Gianna)",
-          active:
-            pathname === "/admin/digital-workers" ||
-            pathname === "/admin/ai-sdr",
-        },
-        {
-          href: "/admin/campaigns/automation",
-          label: "Campaign Rules",
-          active:
-            pathname === "/admin/campaigns/automation" ||
-            pathname === "/admin/campaigns/scoring",
-        },
-        {
-          href: "/admin/message-templates",
-          label: "Templates",
-          active:
-            pathname === "/admin/message-templates" ||
-            pathname === "/admin/prompt-library",
-        },
-        {
-          href: "/admin/inbound-processing",
-          label: "Inbound Config",
-          active: pathname === "/admin/inbound-processing",
-        },
-      ],
-    },
-    {
-      label: "Integrations",
-      icon: <Zap className="h-4 w-4" />,
-      active: pathname.startsWith("/admin/integrations"),
-      children: [
-        {
-          href: "/admin/integrations/api",
-          label: "API Keys & Status",
-          active: pathname === "/admin/integrations/api",
-        },
-        {
-          href: "/admin/integrations/apollo",
-          label: "Apollo Enrichment",
-          active: pathname === "/admin/integrations/apollo",
-        },
-        {
-          href: "/admin/integrations/realestate",
-          label: "Property Lookup",
-          active: pathname === "/admin/integrations/realestate",
-        },
-        {
-          href: "/admin/integrations/signalhouse",
-          label: "SMS & 10DLC",
-          active: pathname === "/admin/integrations/signalhouse",
-        },
-        {
-          href: "/admin/integrations/twilio",
-          label: "Voice (Twilio)",
-          active: pathname === "/admin/integrations/twilio",
-        },
-        {
-          href: "/admin/integrations/sendgrid",
-          label: "Email (SendGrid)",
-          active: pathname === "/admin/integrations/sendgrid",
-        },
-        {
-          href: "/admin/integrations/stripe",
-          label: "Payments (Stripe)",
-          active: pathname === "/admin/integrations/stripe",
-        },
-      ],
-    },
-    {
-      label: "Settings",
-      icon: <Settings className="h-4 w-4" />,
-      active:
-        pathname === "/admin/users" ||
-        pathname === "/admin/billing" ||
-        pathname === "/admin/system" ||
-        pathname === "/admin/integrations/llm-settings" ||
-        pathname === "/admin/batch-jobs",
-      children: [
-        {
-          href: "/admin/users",
-          label: "Users & Teams",
-          active: pathname === "/admin/users",
-        },
-        {
-          href: "/admin/billing",
-          label: "Billing",
-          active: pathname === "/admin/billing",
-        },
-        {
-          href: "/admin/integrations/llm-settings",
-          label: "AI Models",
-          active: pathname === "/admin/integrations/llm-settings",
-        },
-        {
-          href: "/admin/batch-jobs",
-          label: "Background Jobs",
-          active: pathname === "/admin/batch-jobs",
-        },
-      ],
-    },
-  ];
+  // Check if a nav item is active
+  const isItemActive = (item: NavItem): boolean => {
+    if (item.href === "/admin") {
+      return pathname === "/admin";
+    }
+    return pathname.startsWith(item.href);
+  };
+
+  // Check if any item in a group is active
+  const isGroupActive = (group: NavGroup): boolean => {
+    return group.items.some((item) => isItemActive(item));
+  };
 
   return (
     <div className="flex h-screen w-64 flex-col bg-zinc-900 text-zinc-100">
+      {/* Header */}
       <div className="flex h-14 items-center px-4 border-b border-zinc-800">
         <Link href="/admin" className="flex items-center font-semibold">
           <LayoutGrid className="mr-2 h-5 w-5 text-zinc-400" />
           <span className="text-zinc-100">Admin Portal</span>
         </Link>
       </div>
+
+      {/* Navigation */}
       <div className="flex-1 overflow-auto py-2">
-        <nav className="space-y-0.5 px-2">
-          {routes.map((route, index) => (
-            <div key={index}>
-              {route.children ? (
-                <div>
-                  <button
-                    onClick={() => toggleSection(route.label)}
-                    className={cn(
-                      "flex w-full items-center justify-between rounded-md px-3 py-2 text-sm transition-colors",
-                      route.active
-                        ? "bg-zinc-800 text-zinc-100"
-                        : "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-100",
-                    )}
-                  >
-                    <div className="flex items-center">
-                      <span className="mr-2">{route.icon}</span>
-                      <span>{route.label}</span>
-                    </div>
-                    <ChevronRight
-                      className={cn(
-                        "h-4 w-4 transition-transform",
-                        expandedSections[route.label] && "rotate-90",
-                      )}
-                    />
-                  </button>
-                  {expandedSections[route.label] && (
-                    <div className="mt-1 space-y-1 pl-6">
-                      {route.children.map((child, childIndex) => (
-                        <Link
-                          key={childIndex}
-                          href={child.href}
-                          className={cn(
-                            "flex items-center rounded-md px-3 py-1.5 text-sm transition-colors",
-                            child.active
-                              ? "bg-zinc-800 text-zinc-100"
-                              : "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-100",
-                          )}
-                        >
-                          {child.label}
-                        </Link>
-                      ))}
-                    </div>
-                  )}
+        <nav className="space-y-1 px-2">
+          {filteredNavGroups.map((group) => (
+            <div key={group.id}>
+              {/* Group Header */}
+              <button
+                type="button"
+                onClick={() => toggleSection(group.id)}
+                className={cn(
+                  "flex w-full items-center justify-between rounded-md px-3 py-2 text-sm transition-colors",
+                  isGroupActive(group)
+                    ? "bg-zinc-800 text-zinc-100"
+                    : "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-100"
+                )}
+              >
+                <div className="flex items-center gap-2">
+                  {group.icon && <group.icon className="h-4 w-4" />}
+                  <span className="font-medium">{group.label}</span>
                 </div>
-              ) : (
-                <Link
-                  href={route.href!}
+                <ChevronRight
                   className={cn(
-                    "flex items-center rounded-md px-3 py-2 text-sm transition-colors",
-                    route.active
-                      ? "bg-zinc-800 text-zinc-100"
-                      : "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-100",
+                    "h-4 w-4 transition-transform",
+                    expandedSections[group.id] && "rotate-90"
                   )}
-                >
-                  <span className="mr-2">{route.icon}</span>
-                  <span>{route.label}</span>
-                </Link>
+                />
+              </button>
+
+              {/* Group Items */}
+              {expandedSections[group.id] && (
+                <div className="mt-1 space-y-0.5 pl-4">
+                  {group.items.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn(
+                        "flex items-center justify-between rounded-md px-3 py-1.5 text-sm transition-colors",
+                        isItemActive(item)
+                          ? "bg-zinc-800 text-zinc-100"
+                          : "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-100"
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.label}</span>
+                      </div>
+                      {item.badge && (
+                        <Badge
+                          variant={item.badgeVariant || "default"}
+                          className="ml-2 h-5 px-1.5 text-xs"
+                        >
+                          {item.badge}
+                        </Badge>
+                      )}
+                    </Link>
+                  ))}
+                </div>
               )}
             </div>
           ))}
         </nav>
       </div>
+
+      {/* Footer */}
       <div className="mt-auto p-4 border-t border-zinc-800">
         <Link
           href="/"

@@ -1,39 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import {
-  BarChartIcon,
-  BellIcon,
-  BookOpenIcon,
-  BotIcon,
-  BrainIcon,
-  BuildingIcon,
-  CalendarIcon,
-  CheckCircle2Icon,
-  ChevronRightIcon,
-  CogIcon,
-  EyeIcon,
-  FileTextIcon,
-  FlameIcon,
-  FolderOpenIcon,
-  GitBranchIcon,
-  HomeIcon,
-  LayersIcon,
-  LibraryIcon,
-  MailIcon,
-  MegaphoneIcon,
-  MessageCircleIcon,
-  PhoneIcon,
-  RefreshCwIcon,
-  RocketIcon,
-  SendIcon,
-  ShieldIcon,
-  SmileIcon,
-  SparkleIcon,
-  UsersIcon,
-  UserSearchIcon,
-  ZapIcon,
-} from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { ChevronRightIcon } from "lucide-react";
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -41,10 +9,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
-  SidebarMenuBadge,
 } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
 import { useActivePath } from "@/hooks/use-active-path";
@@ -57,6 +21,13 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import {
+  navigationGroups,
+  getFilteredNavigation,
+  mapTeamRoleToNavRole,
+  type NavGroup,
+  type NavItem,
+} from "@/config/navigation";
 
 // Badge counts type
 interface BadgeCounts {
@@ -67,254 +38,42 @@ interface BadgeCounts {
   smsQueue: number;
 }
 
-// Organized navigation groups
-const navGroups = [
-  {
-    label: "Get Started",
-    items: [
-      {
-        title: "Build Your Machine",
-        path: "/onboarding",
-        icon: RocketIcon,
-        isAbsolute: true,
-      },
-    ],
-  },
-  {
-    label: "Home",
-    items: [
-      {
-        title: "Dashboard",
-        path: "/",
-        icon: HomeIcon,
-        exact: true,
-      },
-      {
-        title: "Command Center",
-        path: "/command-center",
-        icon: ZapIcon,
-      },
-      {
-        title: "Analytics",
-        path: "/analytics",
-        icon: BarChartIcon,
-      },
-    ],
-  },
-  {
-    label: "Data",
-    items: [
-      {
-        title: "Leads",
-        path: "/leads",
-        icon: UsersIcon,
-      },
-      {
-        title: "Skip Trace",
-        path: "/skip-trace",
-        icon: UserSearchIcon,
-      },
-      {
-        title: "Data Hub",
-        path: "/data-hub",
-        icon: ZapIcon,
-      },
-      {
-        title: "Properties",
-        path: "/properties",
-        icon: BuildingIcon,
-      },
-      {
-        title: "Sectors",
-        path: "/sectors",
-        icon: LayersIcon,
-      },
-    ],
-  },
-  {
-    label: "Outreach",
-    items: [
-      {
-        title: "Sequence Designer",
-        path: "/sequences",
-        icon: GitBranchIcon,
-      },
-      {
-        title: "Pre-Queues",
-        path: "/pre-queue",
-        icon: RocketIcon,
-      },
-      {
-        title: "AI Inbound",
-        path: "/inbox",
-        icon: SparkleIcon,
-      },
-      {
-        title: "Campaigns",
-        path: "/campaigns",
-        icon: MegaphoneIcon,
-      },
-      {
-        title: "Call Center",
-        path: "/call-center",
-        icon: PhoneIcon,
-      },
-      {
-        title: "Calendar",
-        path: "/calendar",
-        icon: CalendarIcon,
-      },
-    ],
-  },
-  {
-    label: "AI",
-    items: [
-      {
-        title: "Gianna AI",
-        path: "/inbox",
-        icon: BrainIcon,
-        items: [
-          {
-            title: "Inbound Responses",
-            path: "/inbox",
-            exact: true,
-          },
-          {
-            title: "Train AI",
-            path: "/ai-training",
-          },
-          {
-            title: "AI Personas",
-            path: "/settings/ai-sdr",
-          },
-        ],
-      },
-    ],
-  },
-  {
-    label: "Workspaces",
-    items: [
-      {
-        title: "Initial Message",
-        path: "/workspaces/initial-message",
-        icon: MessageCircleIcon,
-      },
-      {
-        title: "Retarget",
-        path: "/workspaces/retarget",
-        icon: RefreshCwIcon,
-      },
-      {
-        title: "Nudger",
-        path: "/workspaces/nudger",
-        icon: BellIcon,
-      },
-      {
-        title: "Content Nurture",
-        path: "/workspaces/content-nurture",
-        icon: BookOpenIcon,
-      },
-      {
-        title: "Content Library",
-        path: "/workspaces/content",
-        icon: LibraryIcon,
-      },
-      {
-        title: "Research & Meeting Prep",
-        path: "/workspaces/research",
-        icon: BrainIcon,
-      },
-      {
-        title: "Book Appointment",
-        path: "/workspaces/sabrina",
-        icon: CalendarIcon,
-      },
-      {
-        title: "Lead Calendar",
-        path: "/workspaces/calendar",
-        icon: CalendarIcon,
-      },
-    ],
-  },
-  {
-    label: "Real Estate",
-    items: [
-      {
-        title: "Valuation",
-        path: "/valuation",
-        icon: FileTextIcon,
-        items: [
-          {
-            title: "New Valuation",
-            path: "/valuation",
-            exact: true,
-          },
-          {
-            title: "Valuation Queue",
-            path: "/valuation-queue",
-          },
-        ],
-      },
-      {
-        title: "Research Library",
-        path: "/research-library",
-        icon: FolderOpenIcon,
-      },
-    ],
-  },
-  {
-    label: "Settings",
-    items: [
-      {
-        title: "Admin",
-        path: "/admin",
-        icon: ShieldIcon,
-        isAbsolute: true,
-        items: [
-          {
-            title: "Dashboard",
-            path: "/admin",
-            exact: true,
-            isAbsolute: true,
-          },
-          {
-            title: "MCP Configuration",
-            path: "/admin/mcp",
-            isAbsolute: true,
-          },
-          {
-            title: "Apollo Settings",
-            path: "/admin/integrations/apollo",
-            isAbsolute: true,
-          },
-          {
-            title: "Users",
-            path: "/admin/users",
-            isAbsolute: true,
-          },
-        ],
-      },
-    ],
-  },
-];
-
-// Type for nav items
-type NavItem = (typeof navGroups)[number]["items"][number];
-
 // Path to badge key mapping
 const pathToBadgeKey: Record<string, keyof BadgeCounts> = {
-  "/inbox": "inbox",
+  "/admin/inbox": "inbox",
   "/sms/queue": "smsQueue",
   "/campaigns/gianna": "gianna",
   "/campaigns/cathy": "cathy",
   "/campaigns/sabrina": "sabrina",
 };
 
+// Map admin paths to team paths for the team context
+function mapAdminPathToTeamPath(adminHref: string): string {
+  // Convert /admin/* paths to team-relative paths
+  if (adminHref.startsWith("/admin/")) {
+    return adminHref.replace("/admin/", "/");
+  }
+  if (adminHref === "/admin") {
+    return "/";
+  }
+  return adminHref;
+}
+
 export function TeamMainNav() {
   const params = useParams<{ team: string }>();
   const pathname = usePathname();
-  const [isActive] = useActivePath({ baseUri: `/${params.team}` });
-  const { team } = useCurrentTeam();
+  const [isActive] = useActivePath({ baseUri: `/t/${params.team}` });
+  const { team, teamMember } = useCurrentTeam();
+
+  // Get user role for filtering
+  const userRole = mapTeamRoleToNavRole(teamMember?.role);
+
+  // Get filtered navigation based on role
+  const filteredNavGroups = useMemo(() => {
+    // TODO: Replace false with actual onboarding completion status
+    const isOnboardingComplete = false;
+    return getFilteredNavigation(userRole, isOnboardingComplete);
+  }, [userRole]);
 
   // Badge counts state
   const [badgeCounts, setBadgeCounts] = useState<BadgeCounts>({
@@ -331,7 +90,6 @@ export function TeamMainNav() {
       if (!team?.id) return;
 
       try {
-        // Fetch all counts in parallel
         const [inboxRes, queueRes] = await Promise.all([
           fetch(`/api/messages/unread-count?teamId=${team.id}`),
           fetch(`/api/leads/worker-counts?teamId=${team.id}`),
@@ -353,145 +111,83 @@ export function TeamMainNav() {
           smsQueue: queueData.smsQueue || 0,
         });
       } catch (error) {
-        console.error("Failed to fetch badge counts:", error);
-        // Use mock data for demonstration
-        setBadgeCounts({
-          inbox: 12,
-          gianna: 45,
-          cathy: 23,
-          sabrina: 8,
-          smsQueue: 156,
-        });
+        // Silent fail - badge counts are not critical
       }
     }
 
     fetchBadgeCounts();
-    // Refresh every 30 seconds
     const interval = setInterval(fetchBadgeCounts, 30000);
     return () => clearInterval(interval);
   }, [team?.id]);
 
   // Get badge count for a path
-  const getBadgeCount = (path: string): number => {
-    const key = pathToBadgeKey[path];
+  const getBadgeCount = (href: string): number => {
+    const key = pathToBadgeKey[href];
     return key ? badgeCounts[key] : 0;
   };
 
-  const isPathActive = (item: {
-    path: string;
-    exact?: boolean;
-    isAbsolute?: boolean;
-  }) => {
-    if (item.isAbsolute) {
-      if (item.exact) {
-        return pathname === item.path;
-      }
-      return pathname.startsWith(item.path);
-    }
-    return isActive({
-      href:
-        item.path === "/"
-          ? `/t/${params.team}`
-          : `/t/${params.team}${item.path}`,
-      exact: item.exact,
-    });
+  // Check if a path is active
+  const isPathActive = (href: string) => {
+    const teamPath = mapAdminPathToTeamPath(href);
+    const fullPath = teamPath === "/"
+      ? `/t/${params.team}`
+      : `/t/${params.team}${teamPath}`;
+
+    return isActive({ href: fullPath, exact: teamPath === "/" });
   };
 
+  // Render a single navigation item
   const renderNavItem = (item: NavItem, index: number) => {
-    const ItemLink = (item as { isAbsolute?: boolean }).isAbsolute
-      ? Link
-      : TeamLink;
-    const hasSubItems = "items" in item && item.items && item.items.length > 0;
-    const badgeCount = getBadgeCount(item.path);
-
-    if (!hasSubItems) {
-      return (
-        <SidebarMenuItem key={index}>
-          <SidebarMenuButton
-            tooltip={item.title}
-            asChild
-            isActive={isPathActive(item)}
-          >
-            <ItemLink href={item.path}>
-              {item.icon && <item.icon />}
-              <span>{item.title}</span>
-              {badgeCount > 0 && (
-                <Badge
-                  variant="default"
-                  className="ml-auto h-5 min-w-[20px] px-1.5 text-xs bg-red-500 hover:bg-red-500"
-                >
-                  {badgeCount > 99 ? "99+" : badgeCount}
-                </Badge>
-              )}
-            </ItemLink>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-      );
-    }
-
-    const subItems = (
-      item as {
-        items: Array<{
-          title: string;
-          path: string;
-          exact?: boolean;
-          isAbsolute?: boolean;
-        }>;
-      }
-    ).items;
+    const teamPath = mapAdminPathToTeamPath(item.href);
+    const badgeCount = getBadgeCount(item.href);
 
     return (
-      <Collapsible
-        key={index}
-        asChild
-        className="group/collapsible"
-        defaultOpen={subItems.some((subItem) => isPathActive(subItem))}
-      >
-        <SidebarMenuItem>
-          <CollapsibleTrigger asChild>
-            <SidebarMenuButton tooltip={item.title}>
-              {item.icon && <item.icon />}
-              <span>{item.title}</span>
-              <ChevronRightIcon className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-            </SidebarMenuButton>
-          </CollapsibleTrigger>
-
-          <CollapsibleContent>
-            <SidebarMenuSub>
-              {subItems.map((subItem) => {
-                const SubItemLink = subItem.isAbsolute ? Link : TeamLink;
-                return (
-                  <SidebarMenuSubItem key={subItem.title}>
-                    <SidebarMenuSubButton
-                      asChild
-                      isActive={isPathActive(subItem)}
-                    >
-                      <SubItemLink href={subItem.path}>
-                        <span>{subItem.title}</span>
-                      </SubItemLink>
-                    </SidebarMenuSubButton>
-                  </SidebarMenuSubItem>
-                );
-              })}
-            </SidebarMenuSub>
-          </CollapsibleContent>
-        </SidebarMenuItem>
-      </Collapsible>
+      <SidebarMenuItem key={index}>
+        <SidebarMenuButton
+          tooltip={item.description || item.label}
+          asChild
+          isActive={isPathActive(item.href)}
+        >
+          <TeamLink href={teamPath}>
+            {item.icon && <item.icon className="h-4 w-4" />}
+            <span>{item.label}</span>
+            {badgeCount > 0 && (
+              <Badge
+                variant="default"
+                className="ml-auto h-5 min-w-[20px] px-1.5 text-xs bg-red-500 hover:bg-red-500"
+              >
+                {badgeCount > 99 ? "99+" : badgeCount}
+              </Badge>
+            )}
+            {item.badge && (
+              <Badge
+                variant={item.badgeVariant || "secondary"}
+                className="ml-auto h-5 px-1.5 text-xs"
+              >
+                {item.badge}
+              </Badge>
+            )}
+          </TeamLink>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
     );
   };
 
   return (
     <div className="flex flex-col gap-1">
-      {navGroups.map((group, groupIndex) => (
+      {filteredNavGroups.map((group, groupIndex) => (
         <Collapsible
-          key={groupIndex}
-          defaultOpen={false}
+          key={group.id}
+          defaultOpen={group.id === "command"} // Default open the COMMAND group
           className="group/nav-section"
         >
           <SidebarGroup className="py-0">
             <CollapsibleTrigger asChild>
               <SidebarGroupLabel className="text-sm font-semibold text-foreground px-3 py-2.5 cursor-pointer hover:bg-muted/50 rounded-md transition-colors flex items-center justify-between w-full">
-                <span>{group.label}</span>
+                <div className="flex items-center gap-2">
+                  {group.icon && <group.icon className="h-4 w-4" />}
+                  <span>{group.label}</span>
+                </div>
                 <ChevronRightIcon className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]/nav-section:rotate-90" />
               </SidebarGroupLabel>
             </CollapsibleTrigger>

@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
 // SECURITY: Warn at startup if webhook is not properly configured
 if (!STRIPE_WEBHOOK_SECRET) {
@@ -61,8 +62,19 @@ export async function POST(request: NextRequest) {
 
     console.log(`[Billing Webhook] Received event: ${event.type}`);
 
+    // Get Stripe instance for customer lookup
+    const Stripe = (await import("stripe")).default;
+    const stripe = new Stripe(STRIPE_SECRET_KEY);
+
     switch (event.type) {
-      case "customer.subscription.created":
+      case "customer.subscription.created": {
+        const subscription = event.data.object;
+        await handleSubscriptionUpdate(subscription);
+        // Provision tenant in backend (sends onboarding email)
+        await provisionTenantForNewSubscription(stripe, subscription);
+        break;
+      }
+
       case "customer.subscription.updated": {
         const subscription = event.data.object;
         await handleSubscriptionUpdate(subscription);
@@ -289,4 +301,152 @@ function mapStripeStatus(stripeStatus: string): string {
     default:
       return "active";
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TENANT PROVISIONING (API-KEY GOVERNANCE)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Provision a tenant in the backend when a new subscription is created.
+ *
+ * This triggers:
+ * 1. Tenant upgrade: DEMO → PENDING_ONBOARDING
+ * 2. API key creation (ADMIN_KEY + DEV_KEY)
+ * 3. Onboarding email with strategy session invite
+ */
+async function provisionTenantForNewSubscription(
+  stripe: any,
+  stripeSubscription: any,
+): Promise<void> {
+  try {
+    const customerId = stripeSubscription.customer;
+    const subscriptionId = stripeSubscription.id;
+
+    // Get customer details from Stripe
+    const customer = await stripe.customers.retrieve(customerId);
+    const customerEmail = customer.email;
+    const customerName = customer.name || customer.metadata?.name;
+
+    if (!customerEmail) {
+      console.error(
+        `[Billing Webhook] No email found for customer ${customerId}`,
+      );
+      return;
+    }
+
+    // Determine product pack from subscription items
+    const productPack = getProductPackFromSubscription(stripeSubscription);
+
+    // Get tenant ID from customer metadata (if demo user upgraded)
+    const tenantId = customer.metadata?.tenantId;
+    const tenantSlug = customer.metadata?.tenantSlug;
+
+    console.log(
+      `[Billing Webhook] Provisioning tenant for ${customerEmail} (pack: ${productPack})`,
+    );
+
+    // Call backend to provision the tenant
+    // This creates API keys and sends the onboarding email
+    const response = await fetch(`${API_URL}/graphql`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: `
+          mutation ProvisionPaidTenant($input: ProvisionPaidTenantInput!, $webhookSecret: String!) {
+            provisionPaidTenant(input: $input, webhookSecret: $webhookSecret) {
+              success
+              tenantId
+              adminKeyPrefix
+              devKeyPrefix
+              error
+            }
+          }
+        `,
+        variables: {
+          input: {
+            tenantId,
+            tenantSlug,
+            stripeCustomerId: customerId,
+            stripeSubscriptionId: subscriptionId,
+            productPack,
+            customerEmail,
+            customerName,
+          },
+          webhookSecret: STRIPE_WEBHOOK_SECRET,
+        },
+      }),
+    });
+
+    const result = await response.json();
+
+    if (result.errors) {
+      console.error(
+        `[Billing Webhook] GraphQL errors:`,
+        JSON.stringify(result.errors),
+      );
+      return;
+    }
+
+    const provision = result.data?.provisionPaidTenant;
+
+    if (provision?.success) {
+      console.log(
+        `[Billing Webhook] Tenant provisioned successfully: ${provision.tenantId}`,
+      );
+      console.log(
+        `[Billing Webhook] API keys created: ${provision.adminKeyPrefix}, ${provision.devKeyPrefix}`,
+      );
+    } else {
+      console.error(
+        `[Billing Webhook] Tenant provisioning failed: ${provision?.error}`,
+      );
+    }
+  } catch (error: any) {
+    console.error(
+      `[Billing Webhook] Error provisioning tenant:`,
+      error.message,
+    );
+  }
+}
+
+/**
+ * Determine product pack from Stripe subscription
+ */
+function getProductPackFromSubscription(stripeSubscription: any): string {
+  // Check subscription metadata first
+  if (stripeSubscription.metadata?.productPack) {
+    return stripeSubscription.metadata.productPack;
+  }
+
+  // Check price/product metadata
+  const items = stripeSubscription.items?.data || [];
+  for (const item of items) {
+    const priceMetadata = item.price?.metadata;
+    if (priceMetadata?.productPack) {
+      return priceMetadata.productPack;
+    }
+
+    const productMetadata = item.price?.product?.metadata;
+    if (productMetadata?.productPack) {
+      return productMetadata.productPack;
+    }
+
+    // Try to infer from product name
+    const productName = item.price?.product?.name?.toLowerCase() || "";
+    if (productName.includes("full") || productName.includes("enterprise")) {
+      return "FULL_PLATFORM";
+    }
+    if (productName.includes("campaign")) {
+      return "CAMPAIGN_ENGINE";
+    }
+    if (productName.includes("data")) {
+      return "DATA_ENGINE";
+    }
+  }
+
+  // Default to full platform
+  return "FULL_PLATFORM";
 }

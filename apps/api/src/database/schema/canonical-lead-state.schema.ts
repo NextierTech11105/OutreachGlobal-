@@ -42,9 +42,13 @@ import { leads } from "./leads.schema";
 export const leadStateEnum = pgEnum("lead_state_enum", [
   "new", // Just imported, no contact yet
   "touched", // SMS_SENT at least once
+  "retargeting", // No response after 7D - being retargeted
   "responded", // Got any reply
+  "soft_interest", // Showed mild interest (questions, curiosity)
   "email_captured", // Email extracted from conversation
+  "content_nurture", // In nurture sequence (SMS, MMS, email, links)
   "high_intent", // Expressed buying/selling intent
+  "appointment_booked", // Meeting scheduled
   "in_call_queue", // Escalated for human call
   "closed", // Deal won/lost
   "suppressed", // STOP/DNC - terminal state
@@ -54,23 +58,75 @@ export const leadStateEnum = pgEnum("lead_state_enum", [
 export type LeadState =
   | "new"
   | "touched"
+  | "retargeting"
   | "responded"
+  | "soft_interest"
   | "email_captured"
+  | "content_nurture"
   | "high_intent"
+  | "appointment_booked"
   | "in_call_queue"
   | "closed"
   | "suppressed";
 
 // Valid state transitions
+// Designed for B2B outreach funnel with proper escalation paths
 export const VALID_STATE_TRANSITIONS: Record<LeadState, LeadState[]> = {
+  // Entry point
   new: ["touched", "suppressed"],
-  touched: ["responded", "suppressed"],
-  responded: ["email_captured", "high_intent", "in_call_queue", "suppressed"],
-  email_captured: ["high_intent", "in_call_queue", "suppressed"],
-  high_intent: ["in_call_queue", "closed", "suppressed"],
+
+  // Initial outreach sent - can move to retargeting if no response, or responded if they reply
+  touched: ["retargeting", "responded", "suppressed"],
+
+  // 7D/14D no-response - still can respond, or stay in retargeting cycle
+  retargeting: ["responded", "suppressed"],
+
+  // Got a reply - classify into soft interest, high intent, or capture email
+  responded: [
+    "soft_interest",
+    "email_captured",
+    "high_intent",
+    "in_call_queue",
+    "suppressed",
+  ],
+
+  // Mild interest - nurture until they show high intent
+  soft_interest: [
+    "email_captured",
+    "content_nurture",
+    "high_intent",
+    "in_call_queue",
+    "suppressed",
+  ],
+
+  // Email captured - move to content nurture or escalate
+  email_captured: [
+    "content_nurture",
+    "high_intent",
+    "in_call_queue",
+    "suppressed",
+  ],
+
+  // In nurture sequence (SMS/MMS/email drip with links) - can escalate when ready
+  content_nurture: [
+    "high_intent",
+    "appointment_booked",
+    "in_call_queue",
+    "suppressed",
+  ],
+
+  // Expressed buying intent - book meeting or escalate
+  high_intent: ["appointment_booked", "in_call_queue", "closed", "suppressed"],
+
+  // Meeting scheduled - waiting for call
+  appointment_booked: ["in_call_queue", "closed", "suppressed"],
+
+  // Human calling - can only close or suppress
   in_call_queue: ["closed", "suppressed"],
-  closed: [], // Terminal - no transitions out
-  suppressed: [], // Terminal - no transitions out
+
+  // Terminal states - no transitions out
+  closed: [],
+  suppressed: [],
 };
 
 // ============================================

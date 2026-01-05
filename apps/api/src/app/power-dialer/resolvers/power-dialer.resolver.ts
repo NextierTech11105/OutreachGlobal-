@@ -70,7 +70,7 @@ export class PowerDialerResolver extends BaseResolver(PowerDialer) {
     @Args() args: CreatePowerDialerArgs,
   ) {
     const team = await this.teamService.findById(args.teamId);
-    await this.teamPolicy.can().read(user, team);
+    await this.teamPolicy.can().manage(user, team);
     return this.service.create({
       ...args,
       teamId: team.id,

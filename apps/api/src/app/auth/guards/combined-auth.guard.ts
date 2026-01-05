@@ -10,7 +10,7 @@ import { JwtGuard } from "./jwt.guard";
 import { GqlContextType, GqlExecutionContext } from "@nestjs/graphql";
 import { InjectDB } from "@/database/decorators";
 import { DrizzleClient } from "@/database/types";
-import { apiKeys, teams, users } from "@/database/schema";
+import { apiKeys, teams, users, tenants } from "@/database/schema";
 import { eq, and } from "drizzle-orm";
 import * as crypto from "crypto";
 
@@ -19,6 +19,8 @@ import * as crypto from "crypto";
  *
  * Tries JWT authentication first, then falls back to API key authentication.
  * This allows both login-based and API key-based access to work seamlessly.
+ *
+ * When using API key auth, also fetches the tenant for scope-based authorization.
  */
 @Injectable()
 export class CombinedAuthGuard extends JwtGuard implements CanActivate {
@@ -81,32 +83,43 @@ export class CombinedAuthGuard extends JwtGuard implements CanActivate {
       return false;
     }
 
-    // Get the team
-    const team = await this.db.query.teams.findFirst({
-      where: eq(teams.id, keyRecord.teamId),
-    });
+    // Get the tenant (if the key has a tenantId)
+    let tenant: any = null;
+    if (keyRecord.tenantId) {
+      tenant = await this.db.query.tenants.findFirst({
+        where: eq(tenants.id, keyRecord.tenantId),
+      });
+    }
 
-    if (!team) {
-      return false;
+    // Get the team (optional - key may be tenant-level only)
+    let team: any = null;
+    if (keyRecord.teamId) {
+      team = await this.db.query.teams.findFirst({
+        where: eq(teams.id, keyRecord.teamId),
+      });
     }
 
     // Get the user if associated
     let user: any = null;
-    if (keyRecord.userId) {
+    if (keyRecord.createdByUserId) {
       user = await this.db.query.users.findFirst({
-        where: eq(users.id, keyRecord.userId),
+        where: eq(users.id, keyRecord.createdByUserId),
       });
-    } else {
+    } else if (team) {
       // Get the team owner as the user
       user = await this.db.query.users.findFirst({
         where: eq(users.id, team.ownerId),
       });
     }
 
-    // Update last used timestamp (fire and forget)
+    // Update last used timestamp and IP (fire and forget)
+    const clientIp = request.ip || request.headers["x-forwarded-for"] || "unknown";
     this.db
       .update(apiKeys)
-      .set({ lastUsedAt: new Date() })
+      .set({
+        lastUsedAt: new Date(),
+        lastUsedFromIp: typeof clientIp === "string" ? clientIp.slice(0, 45) : null,
+      })
       .where(eq(apiKeys.id, keyRecord.id))
       .execute()
       .catch(() => {});
@@ -114,6 +127,7 @@ export class CombinedAuthGuard extends JwtGuard implements CanActivate {
     // Set context on request
     request["user"] = user;
     request["team"] = team;
+    request["tenant"] = tenant;
     request["apiKey"] = keyRecord;
     request["apiKeyType"] = keyRecord.type;
 
@@ -121,7 +135,8 @@ export class CombinedAuthGuard extends JwtGuard implements CanActivate {
     request["tokenPayload"] = {
       sub: user?.id,
       email: user?.email,
-      teamId: team.id,
+      teamId: team?.id,
+      tenantId: tenant?.id,
       apiKeyId: keyRecord.id,
       apiKeyType: keyRecord.type,
     };

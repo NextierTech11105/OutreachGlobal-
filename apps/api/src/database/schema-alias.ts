@@ -62,7 +62,6 @@ import {
 } from "./schema/property-searches.schema";
 import { teamInvitations, teamMembers, teams } from "./schema/teams.schema";
 import { personalAccessTokens, users } from "./schema/users.schema";
-import { apiKeys } from "./schema/api-keys.schema";
 import {
   workflowFields,
   workflows,
@@ -134,11 +133,13 @@ import {
   responseBuckets,
   bucketMovements,
   suppressionList,
+  aiResponseApprovals,
 } from "./schema/inbox.schema";
 export const inboxItemsTable = inboxItems;
 export const responseBucketsTable = responseBuckets;
 export const bucketMovementsTable = bucketMovements;
 export const suppressionListTable = suppressionList;
+export const aiResponseApprovalsTable = aiResponseApprovals;
 
 // Achievements & Gamification
 import {
@@ -210,5 +211,8 @@ export const callQueueOperationsTable = callQueue;
 export const conversationContextTable = conversationContext;
 export const eventLogTable = eventLog;
 
-// API Keys
+// API Keys & Tenants
+import { apiKeys, tenants, apiKeyUsageLogs } from "./schema/api-keys.schema";
 export const apiKeysTable = apiKeys;
+export const tenantsTable = tenants;
+export const apiKeyUsageLogsTable = apiKeyUsageLogs;

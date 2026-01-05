@@ -1,4 +1,4 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger, BadRequestException } from "@nestjs/common";
 import { InjectDB } from "@/database/decorators";
 import { DrizzleClient } from "@/database/types";
 import { eq, and } from "drizzle-orm";
@@ -12,6 +12,7 @@ import {
   sdrCampaignConfigsTable,
   bucketMovementsTable,
   suppressionListTable,
+  aiResponseApprovalsTable,
 } from "@/database/schema-alias";
 import {
   ResponseClassification,
@@ -19,6 +20,7 @@ import {
   BucketType,
   SuppressionType,
 } from "@nextier/common";
+import { AiApprovalStatus } from "@/database/schema/inbox.schema";
 
 // Types
 interface SabrinaAssignment {
@@ -36,7 +38,7 @@ interface InboxTriggerResult {
   classification: ResponseClassification;
   priority: InboxPriority;
   assignment?: SabrinaAssignment;
-  autoRespond: boolean;
+  pendingApprovalId?: string; // AI-suggested response queued for human review
   suggestedResponse?: string;
 }
 
@@ -88,9 +90,9 @@ export class SabrinaSdrService {
     };
     score += intentBoosts[input.intent] || 0;
 
-    // Confidence penalty
+    // Low confidence = lower priority, requires human review
     if (input.classificationConfidence < 70) {
-      score += 10;
+      score -= 15; // Penalize uncertainty - don't reward it
     }
 
     // Time urgency
@@ -171,28 +173,49 @@ export class SabrinaSdrService {
 
     // 5. Get Sabrina assignment if positive response
     let assignment: SabrinaAssignment | undefined;
-    let autoRespond = false;
+    let pendingApprovalId: string | undefined;
     let suggestedResponse: string | undefined;
 
     if (classification.type === ResponseClassification.POSITIVE && campaignId) {
       assignment = await this.assignSabrina(teamId, campaignId, inboxItem.id);
 
       if (assignment) {
-        const sdrConfig = await this.getSdrConfig(assignment.sdrId, campaignId);
-        autoRespond = sdrConfig?.autoRespondToPositive ?? false;
+        // Generate suggested response
+        suggestedResponse = await this.generateResponse(
+          assignment,
+          responseText,
+          lead?.firstName,
+        );
 
-        if (autoRespond) {
-          suggestedResponse = await this.generateResponse(
-            assignment,
-            responseText,
-            lead?.firstName,
-          );
-        }
+        // ALWAYS queue for human approval - AI cannot send automatically
+        const [approval] = await this.db
+          .insert(aiResponseApprovalsTable)
+          .values({
+            teamId,
+            inboxItemId: inboxItem.id,
+            suggestedResponse,
+            sdrId: assignment.sdrId,
+            status: "pending",
+            classificationContext: {
+              classification: classification.type,
+              confidence: classification.confidence,
+              sentiment: classification.sentiment,
+              intent: classification.intent,
+              originalMessage: responseText,
+            },
+          })
+          .returning();
+
+        pendingApprovalId = approval.id;
 
         await this.db
           .update(inboxItemsTable)
           .set({ assignedSdrId: assignment.sdrId })
           .where(eq(inboxItemsTable.id, inboxItem.id));
+
+        this.logger.log(
+          `Queued response for approval: ${approval.id} (AI cannot send without human review)`,
+        );
       }
     }
 
@@ -205,7 +228,7 @@ export class SabrinaSdrService {
       classification: classification.type,
       priority,
       assignment,
-      autoRespond,
+      pendingApprovalId,
       suggestedResponse,
     };
   }
@@ -475,5 +498,158 @@ export class SabrinaSdrService {
     });
 
     this.logger.log(`Added ${phoneNumber} to ${type} suppression list`);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // HUMAN APPROVAL QUEUE - AI cannot send without explicit human approval
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Get pending approvals for a team
+   */
+  async getPendingApprovals(teamId: string) {
+    return this.db.query.aiResponseApprovals.findMany({
+      where: and(
+        eq(aiResponseApprovalsTable.teamId, teamId),
+        eq(aiResponseApprovalsTable.status, "pending"),
+      ),
+      orderBy: (t, { desc }) => [desc(t.createdAt)],
+    });
+  }
+
+  /**
+   * Approve an AI-suggested response - human authorizes sending
+   */
+  async approveResponse(
+    approvalId: string,
+    userId: string,
+    editedResponse?: string, // Optional: human can modify before sending
+  ): Promise<{ success: boolean; approvalId: string; finalResponse: string }> {
+    const approval = await this.db.query.aiResponseApprovals.findFirst({
+      where: eq(aiResponseApprovalsTable.id, approvalId),
+    });
+
+    if (!approval) {
+      throw new BadRequestException("Approval not found");
+    }
+
+    if (approval.status !== "pending") {
+      throw new BadRequestException(
+        `Cannot approve: status is ${approval.status}`,
+      );
+    }
+
+    const finalResponse = editedResponse || approval.suggestedResponse;
+    const now = new Date();
+
+    // Update approval record
+    await this.db
+      .update(aiResponseApprovalsTable)
+      .set({
+        status: "approved" as AiApprovalStatus,
+        reviewedBy: userId,
+        reviewedAt: now,
+        finalResponse,
+        sendKey: `${approval.inboxItemId}:${now.getTime()}`,
+      })
+      .where(eq(aiResponseApprovalsTable.id, approvalId));
+
+    // Mark inbox item as processed
+    await this.db
+      .update(inboxItemsTable)
+      .set({
+        isProcessed: true,
+        processedAt: now,
+        processedBy: userId,
+      })
+      .where(eq(inboxItemsTable.id, approval.inboxItemId));
+
+    this.logger.log(
+      `Response approved by ${userId}: ${approvalId} - ready to send`,
+    );
+
+    // NOTE: Actual sending happens in a separate service after approval
+    // This keeps the approval flow clean and testable
+
+    return {
+      success: true,
+      approvalId,
+      finalResponse,
+    };
+  }
+
+  /**
+   * Reject an AI-suggested response - human declines to send
+   */
+  async rejectResponse(
+    approvalId: string,
+    userId: string,
+    reason: string,
+  ): Promise<{ success: boolean; approvalId: string }> {
+    const approval = await this.db.query.aiResponseApprovals.findFirst({
+      where: eq(aiResponseApprovalsTable.id, approvalId),
+    });
+
+    if (!approval) {
+      throw new BadRequestException("Approval not found");
+    }
+
+    if (approval.status !== "pending") {
+      throw new BadRequestException(
+        `Cannot reject: status is ${approval.status}`,
+      );
+    }
+
+    const now = new Date();
+
+    await this.db
+      .update(aiResponseApprovalsTable)
+      .set({
+        status: "rejected" as AiApprovalStatus,
+        reviewedBy: userId,
+        reviewedAt: now,
+        rejectionReason: reason,
+      })
+      .where(eq(aiResponseApprovalsTable.id, approvalId));
+
+    this.logger.log(
+      `Response rejected by ${userId}: ${approvalId} - reason: ${reason}`,
+    );
+
+    return {
+      success: true,
+      approvalId,
+    };
+  }
+
+  /**
+   * Get approval statistics for a team
+   */
+  async getApprovalStats(teamId: string) {
+    const pending = await this.db.$count(
+      aiResponseApprovalsTable,
+      and(
+        eq(aiResponseApprovalsTable.teamId, teamId),
+        eq(aiResponseApprovalsTable.status, "pending"),
+      ),
+    );
+
+    const approved = await this.db.$count(
+      aiResponseApprovalsTable,
+      and(
+        eq(aiResponseApprovalsTable.teamId, teamId),
+        eq(aiResponseApprovalsTable.status, "approved"),
+      ),
+    );
+
+    const rejected = await this.db.$count(
+      aiResponseApprovalsTable,
+      and(
+        eq(aiResponseApprovalsTable.teamId, teamId),
+        eq(aiResponseApprovalsTable.status, "rejected"),
+      ),
+    );
+
+    return { pending, approved, rejected, total: pending + approved + rejected };
   }
 }

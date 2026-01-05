@@ -28,6 +28,7 @@ import { TeamSettingService } from "@/app/team/services/team-setting.service";
 import { SendgridSettings } from "@/app/team/objects/sendgrid-settings.object";
 import { TwilioSettings } from "@/app/team/objects/twilio-settings.object";
 import { DeadLetterQueueService } from "@/lib/dlq";
+import { OutboundGateService } from "@/lib/outbound";
 
 interface SendMessageOptions {
   sequence: CampaignSequenceSelect;
@@ -48,6 +49,7 @@ export class CampaignSequenceConsumer extends WorkerHost {
     private sendgridService: SendgridService,
     private settingService: TeamSettingService,
     private dlqService: DeadLetterQueueService,
+    private outboundGate: OutboundGateService,
   ) {
     super();
   }
@@ -73,6 +75,24 @@ export class CampaignSequenceConsumer extends WorkerHost {
     sequence: CampaignSequenceSelect,
     leadId: string,
   ) {
+    // OUTBOUND GATE: Check suppression BEFORE fetching lead details
+    const channel = this.sequenceTypeToChannel(sequence.type);
+    const gateCheck = await this.outboundGate.canContact(leadId, channel);
+
+    if (!gateCheck.allowed) {
+      this.logger.warn(
+        `Sequence blocked by OutboundGate: ${gateCheck.reason} - lead ${leadId}`,
+      );
+      await this.db.insert(campaignExecutionsTable).values({
+        campaignId: sequence.campaignId,
+        sequenceId: sequence.id,
+        leadId,
+        status: CampaignExecutionStatus.BLOCKED,
+        failedReason: `OutboundGate: ${gateCheck.reason}`,
+      });
+      return;
+    }
+
     const lead = await this.db.query.leads.findFirst({
       where: (t) => eq(t.id, leadId),
     });
@@ -89,6 +109,20 @@ export class CampaignSequenceConsumer extends WorkerHost {
       status,
       failedReason: failedReason || null,
     });
+  }
+
+  private sequenceTypeToChannel(
+    type: string,
+  ): "sms" | "email" | "voice" {
+    switch (type) {
+      case "EMAIL":
+        return "email";
+      case "VOICE":
+        return "voice";
+      case "SMS":
+      default:
+        return "sms";
+    }
   }
 
   private async sendMessage(

@@ -8,10 +8,12 @@ import {
   propertiesTable,
   propertyDistressScoresTable,
 } from "@/database/schema-alias";
-import { and, eq, ilike, or, sql, SQLWrapper } from "drizzle-orm";
+import { and, eq, ilike, isNull, lte, or, sql, SQLWrapper } from "drizzle-orm";
 import { LeadInsert, LeadSelect } from "../models/lead.model";
 import { PropertyDistressScoreInsert } from "@/app/property/models/property-distress-score.model";
 import { PropertyInsert } from "@/app/property/models/property.model";
+import { leadTimers, LeadTimerType } from "@/database/schema/canonical-lead-state.schema";
+import { LeadService } from "../services/lead.service";
 
 interface PropertyAddress {
   address: string;
@@ -52,6 +54,7 @@ export class LeadSchedule {
 
   constructor(
     private reiService: RealEstateService,
+    private leadService: LeadService,
     @InjectDB() private db: DrizzleClient,
   ) {}
 
@@ -315,5 +318,139 @@ export class LeadSchedule {
       .from(leadsTable)
       .where(or(...conditions))
       .execute();
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // TIMER EXECUTION - Execute due lead timers (7D retarget, 14D escalation)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Execute due lead timers every minute
+   * Handles 7-day retargeting and 14-day template rotation
+   */
+  @Cron(CronExpression.EVERY_MINUTE)
+  async executeLeadTimers() {
+    const now = new Date();
+
+    try {
+      // Find all due timers (not yet executed, not cancelled)
+      const dueTimers = await this.db
+        .select()
+        .from(leadTimers)
+        .where(
+          and(
+            lte(leadTimers.triggerAt, now),
+            isNull(leadTimers.executedAt),
+            isNull(leadTimers.cancelledAt),
+          ),
+        )
+        .limit(100); // Process in batches to avoid overwhelming the system
+
+      if (dueTimers.length === 0) {
+        return;
+      }
+
+      this.logger.log(`Executing ${dueTimers.length} due lead timers`);
+
+      for (const timer of dueTimers) {
+        try {
+          await this.executeTimer(timer);
+
+          // Mark timer as executed
+          await this.db
+            .update(leadTimers)
+            .set({
+              executedAt: now,
+              attempts: (timer.attempts || 0) + 1,
+            })
+            .where(eq(leadTimers.id, timer.id));
+
+          this.logger.log(
+            `Timer ${timer.id} (${timer.timerType}) executed for lead ${timer.leadId}`,
+          );
+        } catch (error) {
+          // Increment attempts and log error
+          await this.db
+            .update(leadTimers)
+            .set({
+              attempts: (timer.attempts || 0) + 1,
+              lastError: error instanceof Error ? error.message : String(error),
+            })
+            .where(eq(leadTimers.id, timer.id));
+
+          this.logger.error(
+            `Timer ${timer.id} failed: ${error instanceof Error ? error.message : error}`,
+          );
+
+          // Cancel timer if max attempts reached
+          if ((timer.attempts || 0) >= (timer.maxAttempts || 3)) {
+            await this.db
+              .update(leadTimers)
+              .set({
+                cancelledAt: now,
+                cancelReason: "Max attempts reached",
+              })
+              .where(eq(leadTimers.id, timer.id));
+
+            this.logger.warn(
+              `Timer ${timer.id} cancelled after ${timer.maxAttempts} failed attempts`,
+            );
+          }
+        }
+      }
+    } catch (error) {
+      this.logger.error(`Timer execution batch failed: ${error}`);
+    }
+  }
+
+  /**
+   * Execute a single timer based on its type
+   */
+  private async executeTimer(timer: typeof leadTimers.$inferSelect) {
+    switch (timer.timerType) {
+      case "TIMER_7D":
+        await this.leadService.moveToRetargeting(timer.leadId);
+        break;
+
+      case "TIMER_14D":
+        await this.leadService.rotateTemplate(timer.leadId);
+        break;
+
+      case "FOLLOW_UP":
+        // Generic follow-up handling
+        this.logger.log(`Follow-up timer triggered for lead ${timer.leadId}`);
+        break;
+
+      case "CALLBACK":
+        // Scheduled callback handling
+        this.logger.log(`Callback timer triggered for lead ${timer.leadId}`);
+        break;
+
+      default:
+        this.logger.warn(`Unknown timer type: ${timer.timerType}`);
+    }
+  }
+
+  /**
+   * Get timer statistics (for monitoring dashboard)
+   */
+  async getTimerStats() {
+    const now = new Date();
+
+    const pending = await this.db.$count(
+      leadTimers,
+      and(isNull(leadTimers.executedAt), isNull(leadTimers.cancelledAt)),
+    );
+
+    const overdue = await this.db.$count(
+      leadTimers,
+      and(
+        lte(leadTimers.triggerAt, now),
+        isNull(leadTimers.executedAt),
+        isNull(leadTimers.cancelledAt),
+      ),
+    );
+
+    return { pending, overdue };
   }
 }
