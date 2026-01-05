@@ -28,9 +28,16 @@ export function AdminSidebar({
   isOnboardingComplete = false,
 }: AdminSidebarProps) {
   const pathname = usePathname();
+  // All sections expanded by default
   const [expandedSections, setExpandedSections] = useState<
     Record<string, boolean>
-  >({});
+  >(() => {
+    const initial: Record<string, boolean> = {};
+    navigationGroups.forEach((group) => {
+      initial[group.id] = true;
+    });
+    return initial;
+  });
 
   // Get filtered navigation based on user role and onboarding status
   const navRole = mapTeamRoleToNavRole(userRole);

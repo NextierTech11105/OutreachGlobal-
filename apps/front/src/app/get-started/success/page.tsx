@@ -64,7 +64,9 @@ function SuccessContent() {
                 <ArrowRight className="w-5 h-5 text-violet-400" />
               </div>
               <div>
-                <div className="text-white font-medium">Book strategy session</div>
+                <div className="text-white font-medium">
+                  Book strategy session
+                </div>
                 <div className="text-white/60 text-sm">
                   The email includes a link to book your onboarding call. This
                   activates full execution access.

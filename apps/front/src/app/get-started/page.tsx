@@ -120,14 +120,22 @@ export default function GetStartedPage() {
                 "Data enrichment",
                 "API access included",
               ].map((feature) => (
-                <li key={feature} className="flex items-center gap-3 text-white/80">
+                <li
+                  key={feature}
+                  className="flex items-center gap-3 text-white/80"
+                >
                   <Check className="w-5 h-5 text-green-400 flex-shrink-0" />
                   {feature}
                 </li>
               ))}
             </ul>
             <Button
-              onClick={() => handleCheckout(process.env.NEXT_PUBLIC_STRIPE_MONTHLY_PRICE_ID || "price_monthly")}
+              onClick={() =>
+                handleCheckout(
+                  process.env.NEXT_PUBLIC_STRIPE_MONTHLY_PRICE_ID ||
+                    "price_monthly",
+                )
+              }
               disabled={loading}
               className="w-full h-12 bg-white text-slate-900 hover:bg-white/90 font-semibold"
             >
@@ -156,14 +164,22 @@ export default function GetStartedPage() {
                 "Custom integrations",
                 "Dedicated success manager",
               ].map((feature) => (
-                <li key={feature} className="flex items-center gap-3 text-white/80">
+                <li
+                  key={feature}
+                  className="flex items-center gap-3 text-white/80"
+                >
                   <Check className="w-5 h-5 text-violet-400 flex-shrink-0" />
                   {feature}
                 </li>
               ))}
             </ul>
             <Button
-              onClick={() => handleCheckout(process.env.NEXT_PUBLIC_STRIPE_ANNUAL_PRICE_ID || "price_annual")}
+              onClick={() =>
+                handleCheckout(
+                  process.env.NEXT_PUBLIC_STRIPE_ANNUAL_PRICE_ID ||
+                    "price_annual",
+                )
+              }
               disabled={loading}
               className="w-full h-12 bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 font-semibold"
             >
@@ -178,7 +194,11 @@ export default function GetStartedPage() {
             { icon: Shield, title: "Secure", desc: "API key based access" },
             { icon: Zap, title: "Instant", desc: "Key delivered via email" },
             { icon: Users, title: "AI Workers", desc: "GIANNA, CATHY & more" },
-            { icon: BarChart3, title: "Analytics", desc: "Full pipeline visibility" },
+            {
+              icon: BarChart3,
+              title: "Analytics",
+              desc: "Full pipeline visibility",
+            },
           ].map((f) => (
             <div key={f.title} className="text-center">
               <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center mx-auto mb-3">
@@ -215,7 +235,10 @@ export default function GetStartedPage() {
       <div className="border-t border-white/10 mt-20">
         <div className="max-w-6xl mx-auto px-6 py-8 text-center text-white/40 text-sm">
           Questions? Email{" "}
-          <a href="mailto:tb@outreachglobal.io" className="text-white/60 hover:text-white">
+          <a
+            href="mailto:tb@outreachglobal.io"
+            className="text-white/60 hover:text-white"
+          >
             tb@outreachglobal.io
           </a>
         </div>
