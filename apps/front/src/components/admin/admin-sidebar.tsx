@@ -36,7 +36,7 @@ export function AdminSidebar({
   const navRole = mapTeamRoleToNavRole(userRole);
   const filteredNavGroups = useMemo(
     () => getFilteredNavigation(navRole, isOnboardingComplete),
-    [navRole, isOnboardingComplete]
+    [navRole, isOnboardingComplete],
   );
 
   const toggleSection = (groupId: string) => {
@@ -82,7 +82,7 @@ export function AdminSidebar({
                   "flex w-full items-center justify-between rounded-md px-3 py-2 text-sm transition-colors",
                   isGroupActive(group)
                     ? "bg-zinc-800 text-zinc-100"
-                    : "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-100"
+                    : "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-100",
                 )}
               >
                 <div className="flex items-center gap-2">
@@ -92,7 +92,7 @@ export function AdminSidebar({
                 <ChevronRight
                   className={cn(
                     "h-4 w-4 transition-transform",
-                    expandedSections[group.id] && "rotate-90"
+                    expandedSections[group.id] && "rotate-90",
                   )}
                 />
               </button>
@@ -108,7 +108,7 @@ export function AdminSidebar({
                         "flex items-center justify-between rounded-md px-3 py-1.5 text-sm transition-colors",
                         isItemActive(item)
                           ? "bg-zinc-800 text-zinc-100"
-                          : "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-100"
+                          : "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-100",
                       )}
                     >
                       <div className="flex items-center gap-2">

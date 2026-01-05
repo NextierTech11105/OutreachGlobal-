@@ -75,3 +75,6 @@ export * from "./template-performance.schema";
 
 // ===== CAMPAIGN EXECUTION =====
 export * from "./auto-triggers.schema";
+
+// ===== TARGETING CATEGORIES & SIC CODES =====
+export * from "./sic-categories.schema";

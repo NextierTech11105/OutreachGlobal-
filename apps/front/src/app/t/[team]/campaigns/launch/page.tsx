@@ -68,14 +68,16 @@ const STEPS = [
 const EXECUTION_MODES = {
   blast: {
     name: "Blast",
-    description: "Send messages immediately in batches. Best for time-sensitive campaigns.",
+    description:
+      "Send messages immediately in batches. Best for time-sensitive campaigns.",
     icon: Zap,
     color: "from-amber-500 to-orange-600",
     badge: "Immediate",
   },
   scheduled: {
     name: "Scheduled",
-    description: "Schedule messages for specific times or optimal sending windows.",
+    description:
+      "Schedule messages for specific times or optimal sending windows.",
     icon: Calendar,
     color: "from-blue-500 to-cyan-600",
     badge: "Timed",
@@ -156,7 +158,12 @@ export default function CampaignLaunchWizardPage() {
         return !!selectedWorker;
       case 3:
         if (!executionMode) return false;
-        if (executionMode === "scheduled" && scheduleType === "specific" && !scheduledTime) return false;
+        if (
+          executionMode === "scheduled" &&
+          scheduleType === "specific" &&
+          !scheduledTime
+        )
+          return false;
         return true;
       case 4:
         return !!campaignName && !!dailyLimit && !!messageTemplate;
@@ -203,7 +210,9 @@ export default function CampaignLaunchWizardPage() {
 
   const selectedBucketData = LUCI_BUCKETS.find((b) => b.id === selectedBucket);
   const selectedWorkerData = selectedWorker ? WORKERS[selectedWorker] : null;
-  const selectedModeData = executionMode ? EXECUTION_MODES[executionMode] : null;
+  const selectedModeData = executionMode
+    ? EXECUTION_MODES[executionMode]
+    : null;
 
   return (
     <TeamSection className="h-full flex flex-col">
@@ -385,50 +394,50 @@ export default function CampaignLaunchWizardPage() {
             <Card className="bg-zinc-900 border-zinc-800">
               <CardHeader>
                 <CardTitle>Choose Execution Mode</CardTitle>
-                <CardDescription>
-                  How should messages be sent?
-                </CardDescription>
+                <CardDescription>How should messages be sent?</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {(Object.keys(EXECUTION_MODES) as ExecutionMode[]).map((modeId) => {
-                  const mode = EXECUTION_MODES[modeId];
-                  const Icon = mode.icon;
-                  return (
-                    <button
-                      key={modeId}
-                      onClick={() => setExecutionMode(modeId)}
-                      className={cn(
-                        "w-full p-4 rounded-lg border text-left transition-colors flex items-center gap-4",
-                        executionMode === modeId
-                          ? "border-purple-500 bg-purple-500/10"
-                          : "border-zinc-700 hover:border-zinc-600",
-                      )}
-                    >
-                      <div
+                {(Object.keys(EXECUTION_MODES) as ExecutionMode[]).map(
+                  (modeId) => {
+                    const mode = EXECUTION_MODES[modeId];
+                    const Icon = mode.icon;
+                    return (
+                      <button
+                        key={modeId}
+                        onClick={() => setExecutionMode(modeId)}
                         className={cn(
-                          "w-12 h-12 rounded-full flex items-center justify-center text-white bg-gradient-to-br",
-                          mode.color,
+                          "w-full p-4 rounded-lg border text-left transition-colors flex items-center gap-4",
+                          executionMode === modeId
+                            ? "border-purple-500 bg-purple-500/10"
+                            : "border-zinc-700 hover:border-zinc-600",
                         )}
                       >
-                        <Icon className="w-6 h-6" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium">{mode.name}</p>
-                          <Badge variant="secondary" className="text-xs">
-                            {mode.badge}
-                          </Badge>
+                        <div
+                          className={cn(
+                            "w-12 h-12 rounded-full flex items-center justify-center text-white bg-gradient-to-br",
+                            mode.color,
+                          )}
+                        >
+                          <Icon className="w-6 h-6" />
                         </div>
-                        <p className="text-sm text-zinc-400 mt-1">
-                          {mode.description}
-                        </p>
-                      </div>
-                      {executionMode === modeId && (
-                        <CheckCircle className="w-5 h-5 text-purple-400" />
-                      )}
-                    </button>
-                  );
-                })}
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">{mode.name}</p>
+                            <Badge variant="secondary" className="text-xs">
+                              {mode.badge}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-zinc-400 mt-1">
+                            {mode.description}
+                          </p>
+                        </div>
+                        {executionMode === modeId && (
+                          <CheckCircle className="w-5 h-5 text-purple-400" />
+                        )}
+                      </button>
+                    );
+                  },
+                )}
 
                 {/* Scheduled Mode Options */}
                 {executionMode === "scheduled" && (
@@ -488,7 +497,8 @@ export default function CampaignLaunchWizardPage() {
                     {scheduleType === "optimal" && (
                       <div className="p-3 bg-zinc-900 rounded-lg">
                         <p className="text-sm text-zinc-400">
-                          AI will analyze recipient time zones and engagement patterns to send at optimal times for each lead.
+                          AI will analyze recipient time zones and engagement
+                          patterns to send at optimal times for each lead.
                         </p>
                       </div>
                     )}
@@ -514,7 +524,8 @@ export default function CampaignLaunchWizardPage() {
                           />
                         </div>
                         <p className="col-span-2 text-xs text-zinc-500">
-                          Messages will be evenly distributed between these hours
+                          Messages will be evenly distributed between these
+                          hours
                         </p>
                       </div>
                     )}
@@ -525,7 +536,8 @@ export default function CampaignLaunchWizardPage() {
                 {executionMode === "auto" && (
                   <div className="mt-6 p-4 bg-purple-500/10 border border-purple-500/20 rounded-lg">
                     <p className="text-sm text-purple-300">
-                      Auto-trigger mode requires event configuration. Click "Next" to set up your triggers.
+                      Auto-trigger mode requires event configuration. Click
+                      "Next" to set up your triggers.
                     </p>
                   </div>
                 )}
@@ -634,7 +646,9 @@ export default function CampaignLaunchWizardPage() {
                   <div className="flex justify-between py-2 border-b border-zinc-800">
                     <span className="text-zinc-400">Execution Mode</span>
                     <div className="flex items-center gap-2">
-                      <span className="font-medium">{selectedModeData?.name}</span>
+                      <span className="font-medium">
+                        {selectedModeData?.name}
+                      </span>
                       <Badge variant="secondary" className="text-xs">
                         {selectedModeData?.badge}
                       </Badge>
@@ -646,7 +660,8 @@ export default function CampaignLaunchWizardPage() {
                       <span className="font-medium">
                         {scheduleType === "specific" && scheduledTime}
                         {scheduleType === "optimal" && "AI Optimal Timing"}
-                        {scheduleType === "spread" && `${spreadStartTime} - ${spreadEndTime}`}
+                        {scheduleType === "spread" &&
+                          `${spreadStartTime} - ${spreadEndTime}`}
                       </span>
                     </div>
                   )}

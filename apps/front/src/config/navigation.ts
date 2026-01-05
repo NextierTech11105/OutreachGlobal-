@@ -332,7 +332,7 @@ const roleHierarchy: Record<NavItemRole, number> = {
  */
 export function hasRoleAccess(
   userRole: NavItemRole | undefined,
-  minRole: NavItemRole | undefined
+  minRole: NavItemRole | undefined,
 ): boolean {
   if (!minRole) return true;
   if (!userRole) return false;
@@ -344,7 +344,7 @@ export function hasRoleAccess(
  */
 export function getFilteredNavigation(
   userRole: NavItemRole | undefined,
-  isOnboardingComplete: boolean = false
+  isOnboardingComplete: boolean = false,
 ): NavGroup[] {
   return navigationGroups
     .filter((group) => {
@@ -389,7 +389,7 @@ export function getNavGroupById(id: string): NavGroup | undefined {
  * Map team role string to NavItemRole
  */
 export function mapTeamRoleToNavRole(
-  teamRole: string | undefined
+  teamRole: string | undefined,
 ): NavItemRole {
   switch (teamRole?.toLowerCase()) {
     case "owner":

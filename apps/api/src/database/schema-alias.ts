@@ -216,3 +216,17 @@ import { apiKeys, tenants, apiKeyUsageLogs } from "./schema/api-keys.schema";
 export const apiKeysTable = apiKeys;
 export const tenantsTable = tenants;
 export const apiKeyUsageLogsTable = apiKeyUsageLogs;
+
+// Targeting Categories & SIC Codes
+import {
+  targetingCategories,
+  industryCodes,
+  dataSources,
+  consentLog,
+  priorityQueue,
+} from "./schema/sic-categories.schema";
+export const targetingCategoriesTable = targetingCategories;
+export const industryCodesTable = industryCodes;
+export const dataSourcesTable = dataSources;
+export const consentLogTable = consentLog;
+export const priorityQueueTable = priorityQueue;

@@ -90,7 +90,8 @@ export default function TemplatePerformancePage() {
   const [timePeriod, setTimePeriod] = useState("30d");
   const [sortKey, setSortKey] = useState<SortKey>("compositeScore");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
-  const [selectedTemplate, setSelectedTemplate] = useState<TemplatePerformanceMetrics | null>(null);
+  const [selectedTemplate, setSelectedTemplate] =
+    useState<TemplatePerformanceMetrics | null>(null);
 
   // Fetch template performance data
   const { data, loading } = useQuery(TEMPLATE_PERFORMANCE_QUERY, {
@@ -122,7 +123,13 @@ export default function TemplatePerformancePage() {
     }
   };
 
-  const SortHeader = ({ column, label }: { column: SortKey; label: string }) => (
+  const SortHeader = ({
+    column,
+    label,
+  }: {
+    column: SortKey;
+    label: string;
+  }) => (
     <TableHead
       className="cursor-pointer hover:bg-muted/50 select-none"
       onClick={() => handleSort(column)}
@@ -142,7 +149,8 @@ export default function TemplatePerformancePage() {
     </TableHead>
   );
 
-  const formatPercent = (val: number | null) => val != null ? `${(val * 100).toFixed(1)}%` : "N/A";
+  const formatPercent = (val: number | null) =>
+    val != null ? `${(val * 100).toFixed(1)}%` : "N/A";
   const formatNumber = (val: number) => val.toLocaleString();
 
   // Summary stats
@@ -155,7 +163,7 @@ export default function TemplatePerformancePage() {
         meetings: acc.meetings + t.meetingsBooked,
         optOuts: acc.optOuts + t.optOuts,
       }),
-      { sent: 0, delivered: 0, replied: 0, meetings: 0, optOuts: 0 }
+      { sent: 0, delivered: 0, replied: 0, meetings: 0, optOuts: 0 },
     );
   }, [templates]);
 
@@ -202,17 +210,23 @@ export default function TemplatePerformancePage() {
               <MessageSquare className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatNumber(totals.sent)}</div>
+              <div className="text-2xl font-bold">
+                {formatNumber(totals.sent)}
+              </div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Delivery Rate</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Delivery Rate
+              </CardTitle>
               <CheckCircle className="h-4 w-4 text-green-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {totals.sent > 0 ? formatPercent(totals.delivered / totals.sent) : "N/A"}
+                {totals.sent > 0
+                  ? formatPercent(totals.delivered / totals.sent)
+                  : "N/A"}
               </div>
             </CardContent>
           </Card>
@@ -223,27 +237,37 @@ export default function TemplatePerformancePage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {totals.delivered > 0 ? formatPercent(totals.replied / totals.delivered) : "N/A"}
+                {totals.delivered > 0
+                  ? formatPercent(totals.replied / totals.delivered)
+                  : "N/A"}
               </div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Meetings Booked</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Meetings Booked
+              </CardTitle>
               <BarChart3 className="h-4 w-4 text-purple-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatNumber(totals.meetings)}</div>
+              <div className="text-2xl font-bold">
+                {formatNumber(totals.meetings)}
+              </div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Opt-Out Rate</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Opt-Out Rate
+              </CardTitle>
               <XCircle className="h-4 w-4 text-red-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {totals.sent > 0 ? formatPercent(totals.optOuts / totals.sent) : "N/A"}
+                {totals.sent > 0
+                  ? formatPercent(totals.optOuts / totals.sent)
+                  : "N/A"}
               </div>
             </CardContent>
           </Card>
@@ -262,8 +286,8 @@ export default function TemplatePerformancePage() {
           <CardContent>
             {templates.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                No template performance data available for this period.
-                Data will appear once templates start sending.
+                No template performance data available for this period. Data
+                will appear once templates start sending.
               </div>
             ) : (
               <Table>
@@ -297,29 +321,58 @@ export default function TemplatePerformancePage() {
                       </TableCell>
                       <TableCell>
                         {template.campaignLane && (
-                          <Badge className={cn("font-medium", LANE_COLORS[template.campaignLane] || "")}>
+                          <Badge
+                            className={cn(
+                              "font-medium",
+                              LANE_COLORS[template.campaignLane] || "",
+                            )}
+                          >
                             {template.campaignLane}
                           </Badge>
                         )}
                       </TableCell>
                       <TableCell>{formatNumber(template.totalSent)}</TableCell>
                       <TableCell>
-                        <span className={(template.deliveryRate ?? 0) >= 0.95 ? "text-green-500" : ""}>
+                        <span
+                          className={
+                            (template.deliveryRate ?? 0) >= 0.95
+                              ? "text-green-500"
+                              : ""
+                          }
+                        >
                           {formatPercent(template.deliveryRate)}
                         </span>
                       </TableCell>
                       <TableCell>
-                        <span className={(template.replyRate ?? 0) >= 0.1 ? "text-green-500" : ""}>
+                        <span
+                          className={
+                            (template.replyRate ?? 0) >= 0.1
+                              ? "text-green-500"
+                              : ""
+                          }
+                        >
                           {formatPercent(template.replyRate)}
                         </span>
                       </TableCell>
                       <TableCell>
-                        <span className={(template.positiveRate ?? 0) >= 0.5 ? "text-green-500" : ""}>
+                        <span
+                          className={
+                            (template.positiveRate ?? 0) >= 0.5
+                              ? "text-green-500"
+                              : ""
+                          }
+                        >
                           {formatPercent(template.positiveRate)}
                         </span>
                       </TableCell>
                       <TableCell>
-                        <span className={(template.optOutRate ?? 0) > 0.02 ? "text-red-500" : ""}>
+                        <span
+                          className={
+                            (template.optOutRate ?? 0) > 0.02
+                              ? "text-red-500"
+                              : ""
+                          }
+                        >
                           {formatPercent(template.optOutRate)}
                         </span>
                       </TableCell>
@@ -331,8 +384,8 @@ export default function TemplatePerformancePage() {
                               (template.compositeScore ?? 0) >= 80
                                 ? "text-green-500"
                                 : (template.compositeScore ?? 0) >= 60
-                                ? "text-yellow-500"
-                                : "text-red-500"
+                                  ? "text-yellow-500"
+                                  : "text-red-500",
                             )}
                           >
                             {template.compositeScore?.toFixed(1) ?? "N/A"}
@@ -358,7 +411,10 @@ export default function TemplatePerformancePage() {
         </Card>
 
         {/* Template Detail Dialog */}
-        <Dialog open={!!selectedTemplate} onOpenChange={() => setSelectedTemplate(null)}>
+        <Dialog
+          open={!!selectedTemplate}
+          onOpenChange={() => setSelectedTemplate(null)}
+        >
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>{selectedTemplate?.templateName}</DialogTitle>
@@ -370,11 +426,15 @@ export default function TemplatePerformancePage() {
               <div className="space-y-6">
                 {/* Touch Breakdown */}
                 <div>
-                  <h4 className="font-semibold mb-3">Touch-by-Touch Performance</h4>
+                  <h4 className="font-semibold mb-3">
+                    Touch-by-Touch Performance
+                  </h4>
                   <div className="grid grid-cols-5 gap-2">
                     {[1, 2, 3, 4, 5].map((touch) => {
-                      const sent = (selectedTemplate as any)[`touch${touch}Sent`] ?? 0;
-                      const replied = (selectedTemplate as any)[`touch${touch}Replied`] ?? 0;
+                      const sent =
+                        (selectedTemplate as any)[`touch${touch}Sent`] ?? 0;
+                      const replied =
+                        (selectedTemplate as any)[`touch${touch}Replied`] ?? 0;
                       const rate = sent > 0 ? replied / sent : 0;
                       return (
                         <Card key={touch}>
@@ -382,7 +442,9 @@ export default function TemplatePerformancePage() {
                             <div className="text-xs text-muted-foreground mb-1">
                               Touch {touch}
                             </div>
-                            <div className="text-lg font-bold">{formatPercent(rate)}</div>
+                            <div className="text-lg font-bold">
+                              {formatPercent(rate)}
+                            </div>
                             <div className="text-xs text-muted-foreground">
                               {replied}/{formatNumber(sent)}
                             </div>
@@ -400,11 +462,15 @@ export default function TemplatePerformancePage() {
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Positive</span>
-                        <span className="text-green-500">{selectedTemplate.positiveReplies}</span>
+                        <span className="text-green-500">
+                          {selectedTemplate.positiveReplies}
+                        </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Questions</span>
-                        <span className="text-blue-500">{selectedTemplate.questionReplies}</span>
+                        <span className="text-blue-500">
+                          {selectedTemplate.questionReplies}
+                        </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Neutral</span>
@@ -412,7 +478,9 @@ export default function TemplatePerformancePage() {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Negative</span>
-                        <span className="text-red-500">{selectedTemplate.negativeReplies}</span>
+                        <span className="text-red-500">
+                          {selectedTemplate.negativeReplies}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -420,16 +488,24 @@ export default function TemplatePerformancePage() {
                     <h4 className="font-semibold mb-3">Conversions</h4>
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Emails Captured</span>
+                        <span className="text-muted-foreground">
+                          Emails Captured
+                        </span>
                         <span>{selectedTemplate.emailsCaptured}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Calls Scheduled</span>
+                        <span className="text-muted-foreground">
+                          Calls Scheduled
+                        </span>
                         <span>{selectedTemplate.callsScheduled}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Meetings Booked</span>
-                        <span className="text-green-500 font-bold">{selectedTemplate.meetingsBooked}</span>
+                        <span className="text-muted-foreground">
+                          Meetings Booked
+                        </span>
+                        <span className="text-green-500 font-bold">
+                          {selectedTemplate.meetingsBooked}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -441,15 +517,26 @@ export default function TemplatePerformancePage() {
                   <div className="grid grid-cols-3 gap-4 text-sm">
                     <div className="p-3 bg-muted rounded-lg text-center">
                       <div className="text-muted-foreground">Opt-Outs</div>
-                      <div className="text-lg font-bold text-red-500">{selectedTemplate.optOuts}</div>
+                      <div className="text-lg font-bold text-red-500">
+                        {selectedTemplate.optOuts}
+                      </div>
                     </div>
                     <div className="p-3 bg-muted rounded-lg text-center">
                       <div className="text-muted-foreground">Wrong Numbers</div>
-                      <div className="text-lg font-bold">{selectedTemplate.wrongNumbers}</div>
+                      <div className="text-lg font-bold">
+                        {selectedTemplate.wrongNumbers}
+                      </div>
                     </div>
                     <div className="p-3 bg-muted rounded-lg text-center">
                       <div className="text-muted-foreground">Complaints</div>
-                      <div className={cn("text-lg font-bold", selectedTemplate.complaints > 0 ? "text-red-500" : "text-green-500")}>
+                      <div
+                        className={cn(
+                          "text-lg font-bold",
+                          selectedTemplate.complaints > 0
+                            ? "text-red-500"
+                            : "text-green-500",
+                        )}
+                      >
                         {selectedTemplate.complaints}
                       </div>
                     </div>

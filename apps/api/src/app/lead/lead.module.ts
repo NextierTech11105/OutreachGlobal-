@@ -21,6 +21,7 @@ import { LeadConsumer } from "./consumers/lead.consumer";
 import { ContentNurtureConsumer, CONTENT_NURTURE_QUEUE } from "./consumers/content-nurture.consumer";
 import { AutoTriggerConsumer, AutoTriggerService, AUTO_TRIGGER_QUEUE } from "./consumers/auto-trigger.consumer";
 import { WorkspaceMappingService } from "./services/workspace-mapping.service";
+import { SicMapperService } from "./services/sic-mapper.service";
 
 @CustomModule({
   imports: [
@@ -39,11 +40,11 @@ import { WorkspaceMappingService } from "./services/workspace-mapping.service";
     }),
   ],
   resolvers: [LeadResolver, FacetResolver, ImportLeadPresetResolver],
-  providers: [LeadService, LeadEventService, BusinessListService, LeadFilterService, AutoTriggerService, WorkspaceMappingService],
+  providers: [LeadService, LeadEventService, BusinessListService, LeadFilterService, AutoTriggerService, WorkspaceMappingService, SicMapperService],
   consumers: [LeadConsumer, ContentNurtureConsumer, AutoTriggerConsumer],
   repositories: [LeadRepository],
   schedules: [LeadSchedule],
-  exports: [LeadService, LeadEventService, AutoTriggerService, WorkspaceMappingService],
+  exports: [LeadService, LeadEventService, AutoTriggerService, WorkspaceMappingService, SicMapperService],
   controllers: [
     BusinessListController,
     ApolloSearchController,

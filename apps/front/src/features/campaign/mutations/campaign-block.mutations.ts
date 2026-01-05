@@ -64,11 +64,7 @@ export const UPDATE_CAMPAIGN_BLOCK_STATUS_MUTATION: TypedDocumentNode<
   UpdateCampaignBlockStatusMutation,
   UpdateCampaignBlockStatusMutationVariables
 > = gql`
-  mutation UpdateCampaignBlockStatus(
-    $teamId: ID!
-    $id: ID!
-    $status: String!
-  ) {
+  mutation UpdateCampaignBlockStatus($teamId: ID!, $id: ID!, $status: String!) {
     updateCampaignBlockStatus(teamId: $teamId, id: $id, status: $status) {
       block {
         id

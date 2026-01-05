@@ -191,7 +191,10 @@ export default function SignalHouseSettingsPage() {
                 Configured
               </Badge>
             ) : (
-              <Badge variant="destructive" className="bg-red-500/10 text-red-500 border-red-500/20">
+              <Badge
+                variant="destructive"
+                className="bg-red-500/10 text-red-500 border-red-500/20"
+              >
                 <AlertCircle className="h-3 w-3 mr-1" />
                 Not Configured
               </Badge>
@@ -247,7 +250,10 @@ export default function SignalHouseSettingsPage() {
                   placeholder="e.g., sg_abc123xyz"
                   value={editedConfig.subGroupId || ""}
                   onChange={(e) =>
-                    setEditedConfig({ ...editedConfig, subGroupId: e.target.value || null })
+                    setEditedConfig({
+                      ...editedConfig,
+                      subGroupId: e.target.value || null,
+                    })
                   }
                 />
               ) : (
@@ -274,7 +280,10 @@ export default function SignalHouseSettingsPage() {
                   placeholder="e.g., BRAND_12345"
                   value={editedConfig.brandId || ""}
                   onChange={(e) =>
-                    setEditedConfig({ ...editedConfig, brandId: e.target.value || null })
+                    setEditedConfig({
+                      ...editedConfig,
+                      brandId: e.target.value || null,
+                    })
                   }
                 />
               ) : (
@@ -315,7 +324,8 @@ export default function SignalHouseSettingsPage() {
                 </div>
               )}
               <div className="flex flex-wrap gap-2">
-                {(isEditing ? editedConfig : config).campaignIds.length === 0 ? (
+                {(isEditing ? editedConfig : config).campaignIds.length ===
+                0 ? (
                   <p className="text-sm text-muted-foreground">
                     No campaigns registered
                   </p>
@@ -351,7 +361,8 @@ export default function SignalHouseSettingsPage() {
               <CardTitle>Phone Pool</CardTitle>
             </div>
             <CardDescription>
-              Available phone numbers for sending SMS ({(isEditing ? editedConfig : config).phonePool.length} numbers)
+              Available phone numbers for sending SMS (
+              {(isEditing ? editedConfig : config).phonePool.length} numbers)
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -404,21 +415,23 @@ export default function SignalHouseSettingsPage() {
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground space-y-2">
             <p>
-              <strong>SubGroup ID:</strong> Contact SignalHouse support to get your
-              team's SubGroup ID. This is automatically created when your organization
-              onboards.
+              <strong>SubGroup ID:</strong> Contact SignalHouse support to get
+              your team's SubGroup ID. This is automatically created when your
+              organization onboards.
             </p>
             <p>
-              <strong>Brand ID:</strong> This is your TCR (The Campaign Registry)
-              brand registration. Required for 10DLC SMS sending in the US.
+              <strong>Brand ID:</strong> This is your TCR (The Campaign
+              Registry) brand registration. Required for 10DLC SMS sending in
+              the US.
             </p>
             <p>
-              <strong>Campaign IDs:</strong> Each use case (marketing, alerts, etc.)
-              requires a separate TCR campaign registration.
+              <strong>Campaign IDs:</strong> Each use case (marketing, alerts,
+              etc.) requires a separate TCR campaign registration.
             </p>
             <p>
-              <strong>Phone Pool:</strong> Phone numbers provisioned through SignalHouse
-              for sending. Numbers rotate automatically during campaigns.
+              <strong>Phone Pool:</strong> Phone numbers provisioned through
+              SignalHouse for sending. Numbers rotate automatically during
+              campaigns.
             </p>
           </CardContent>
         </Card>

@@ -98,7 +98,9 @@ export default function CampaignBlocksPage() {
   const params = useParams();
   const teamId = params.team as string;
 
-  const [selectedBlock, setSelectedBlock] = useState<CampaignBlock | null>(null);
+  const [selectedBlock, setSelectedBlock] = useState<CampaignBlock | null>(
+    null,
+  );
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newCampaignId, setNewCampaignId] = useState("");
@@ -122,7 +124,7 @@ export default function CampaignBlocksPage() {
       onError: (err) => {
         toast.error(err.message || "Failed to create block");
       },
-    }
+    },
   );
 
   const [updateBlockStatus] = useMutation(
@@ -135,7 +137,7 @@ export default function CampaignBlocksPage() {
       onError: (err) => {
         toast.error(err.message || "Failed to update block");
       },
-    }
+    },
   );
 
   const blocks = data?.campaignBlocks?.nodes || [];
@@ -196,8 +198,10 @@ export default function CampaignBlocksPage() {
   const BlockCard = ({ block }: { block: CampaignBlock }) => {
     const statusConfig = STATUS_CONFIG[block.status];
     const StatusIcon = statusConfig.icon;
-    const progress = Math.round((block.touchesSent / block.targetTouches) * 100) || 0;
-    const leadProgress = Math.round((block.leadsLoaded / block.maxLeads) * 100) || 0;
+    const progress =
+      Math.round((block.touchesSent / block.targetTouches) * 100) || 0;
+    const leadProgress =
+      Math.round((block.leadsLoaded / block.maxLeads) * 100) || 0;
     const isLoading = actionLoading === block.id;
 
     return (
@@ -210,7 +214,10 @@ export default function CampaignBlocksPage() {
                 <span className="font-mono text-sm text-zinc-400">
                   Block #{block.blockNumber}
                 </span>
-                <Badge variant="outline" className={cn("text-xs", statusConfig.color)}>
+                <Badge
+                  variant="outline"
+                  className={cn("text-xs", statusConfig.color)}
+                >
                   <StatusIcon className="w-3 h-3 mr-1" />
                   {statusConfig.label}
                 </Badge>
@@ -262,7 +269,8 @@ export default function CampaignBlocksPage() {
             <div className="flex items-center gap-1 text-zinc-400">
               <Users className="w-3 h-3" />
               <span>
-                {block.leadsLoaded.toLocaleString()}/{block.maxLeads.toLocaleString()}
+                {block.leadsLoaded.toLocaleString()}/
+                {block.maxLeads.toLocaleString()}
               </span>
             </div>
             <div className="flex items-center gap-1 text-zinc-400">
@@ -412,16 +420,22 @@ export default function CampaignBlocksPage() {
                 </div>
                 <div className="p-3 bg-zinc-800 rounded-lg">
                   <p className="text-sm text-zinc-400">
-                    Block will automatically load up to {newMaxLeads || 2000} leads from the selected source.
+                    Block will automatically load up to {newMaxLeads || 2000}{" "}
+                    leads from the selected source.
                   </p>
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsCreateOpen(false)}
+                >
                   Cancel
                 </Button>
                 <Button onClick={handleCreateBlock} disabled={creating}>
-                  {creating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  {creating && (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  )}
                   Create Block
                 </Button>
               </DialogFooter>
@@ -495,14 +509,23 @@ export default function CampaignBlocksPage() {
 
         {/* Kanban Board */}
         <div className="flex gap-6 overflow-x-auto pb-4">
-          <KanbanColumn status="preparing" blocks={getBlocksByStatus("preparing")} />
+          <KanbanColumn
+            status="preparing"
+            blocks={getBlocksByStatus("preparing")}
+          />
           <KanbanColumn status="active" blocks={getBlocksByStatus("active")} />
           <KanbanColumn status="paused" blocks={getBlocksByStatus("paused")} />
-          <KanbanColumn status="completed" blocks={getBlocksByStatus("completed")} />
+          <KanbanColumn
+            status="completed"
+            blocks={getBlocksByStatus("completed")}
+          />
         </div>
 
         {/* Block Detail Dialog */}
-        <Dialog open={!!selectedBlock} onOpenChange={() => setSelectedBlock(null)}>
+        <Dialog
+          open={!!selectedBlock}
+          onOpenChange={() => setSelectedBlock(null)}
+        >
           <DialogContent className="max-w-lg">
             {selectedBlock && (
               <>
@@ -520,7 +543,10 @@ export default function CampaignBlocksPage() {
                       <p className="text-xs text-zinc-500">Status</p>
                       <Badge
                         variant="outline"
-                        className={cn("mt-1", STATUS_CONFIG[selectedBlock.status].color)}
+                        className={cn(
+                          "mt-1",
+                          STATUS_CONFIG[selectedBlock.status].color,
+                        )}
                       >
                         {STATUS_CONFIG[selectedBlock.status].label}
                       </Badge>
@@ -528,7 +554,8 @@ export default function CampaignBlocksPage() {
                     <div className="p-3 bg-zinc-800 rounded-lg">
                       <p className="text-xs text-zinc-500">Current Touch</p>
                       <p className="text-lg font-bold">
-                        {selectedBlock.currentTouch} / {selectedBlock.maxTouches}
+                        {selectedBlock.currentTouch} /{" "}
+                        {selectedBlock.maxTouches}
                       </p>
                     </div>
                     <div className="p-3 bg-zinc-800 rounded-lg">
@@ -547,21 +574,32 @@ export default function CampaignBlocksPage() {
                   <div className="space-y-2">
                     <p className="text-sm text-zinc-400">Overall Progress</p>
                     <Progress
-                      value={(selectedBlock.touchesSent / selectedBlock.targetTouches) * 100 || 0}
+                      value={
+                        (selectedBlock.touchesSent /
+                          selectedBlock.targetTouches) *
+                          100 || 0
+                      }
                       className="h-2"
                     />
                     <p className="text-xs text-zinc-500 text-right">
-                      {Math.round((selectedBlock.touchesSent / selectedBlock.targetTouches) * 100) || 0}% complete
+                      {Math.round(
+                        (selectedBlock.touchesSent /
+                          selectedBlock.targetTouches) *
+                          100,
+                      ) || 0}
+                      % complete
                     </p>
                   </div>
                   {selectedBlock.startedAt && (
                     <div className="text-xs text-zinc-500">
-                      Started: {new Date(selectedBlock.startedAt).toLocaleString()}
+                      Started:{" "}
+                      {new Date(selectedBlock.startedAt).toLocaleString()}
                     </div>
                   )}
                   {selectedBlock.completedAt && (
                     <div className="text-xs text-zinc-500">
-                      Completed: {new Date(selectedBlock.completedAt).toLocaleString()}
+                      Completed:{" "}
+                      {new Date(selectedBlock.completedAt).toLocaleString()}
                     </div>
                   )}
                 </div>

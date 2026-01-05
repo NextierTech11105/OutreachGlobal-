@@ -129,9 +129,8 @@ export function TeamMainNav() {
   // Check if a path is active
   const isPathActive = (href: string) => {
     const teamPath = mapAdminPathToTeamPath(href);
-    const fullPath = teamPath === "/"
-      ? `/t/${params.team}`
-      : `/t/${params.team}${teamPath}`;
+    const fullPath =
+      teamPath === "/" ? `/t/${params.team}` : `/t/${params.team}${teamPath}`;
 
     return isActive({ href: fullPath, exact: teamPath === "/" });
   };

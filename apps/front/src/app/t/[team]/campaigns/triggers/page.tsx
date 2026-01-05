@@ -88,19 +88,22 @@ type TriggerType =
   | "positive_sentiment"
   | "negative_sentiment";
 
-const TRIGGER_TYPES: Record<TriggerType, {
-  name: string;
-  description: string;
-  icon: typeof MessageSquare;
-  color: string;
-  configFields: Array<{
-    key: string;
-    label: string;
-    type: "number" | "select";
-    default?: number;
-    options?: string[];
-  }>;
-}> = {
+const TRIGGER_TYPES: Record<
+  TriggerType,
+  {
+    name: string;
+    description: string;
+    icon: typeof MessageSquare;
+    color: string;
+    configFields: Array<{
+      key: string;
+      label: string;
+      type: "number" | "select";
+      default?: number;
+      options?: string[];
+    }>;
+  }
+> = {
   lead_responded: {
     name: "Lead Responded",
     description: "Triggers when a lead replies to any message",
@@ -114,7 +117,12 @@ const TRIGGER_TYPES: Record<TriggerType, {
     icon: Ghost,
     color: "text-orange-500",
     configFields: [
-      { key: "daysWithoutResponse", label: "Days without response", type: "number", default: 3 },
+      {
+        key: "daysWithoutResponse",
+        label: "Days without response",
+        type: "number",
+        default: 3,
+      },
     ],
   },
   stage_changed: {
@@ -123,7 +131,12 @@ const TRIGGER_TYPES: Record<TriggerType, {
     icon: UserCheck,
     color: "text-purple-500",
     configFields: [
-      { key: "targetStage", label: "Target stage", type: "select", options: ["interested", "qualified", "demo_scheduled", "negotiating"] },
+      {
+        key: "targetStage",
+        label: "Target stage",
+        type: "select",
+        options: ["interested", "qualified", "demo_scheduled", "negotiating"],
+      },
     ],
   },
   meeting_booked: {
@@ -139,7 +152,12 @@ const TRIGGER_TYPES: Record<TriggerType, {
     icon: ThumbsUp,
     color: "text-emerald-500",
     configFields: [
-      { key: "minConfidence", label: "Min confidence %", type: "number", default: 80 },
+      {
+        key: "minConfidence",
+        label: "Min confidence %",
+        type: "number",
+        default: 80,
+      },
     ],
   },
   negative_sentiment: {
@@ -148,7 +166,12 @@ const TRIGGER_TYPES: Record<TriggerType, {
     icon: ThumbsDown,
     color: "text-red-500",
     configFields: [
-      { key: "minConfidence", label: "Min confidence %", type: "number", default: 80 },
+      {
+        key: "minConfidence",
+        label: "Min confidence %",
+        type: "number",
+        default: 80,
+      },
     ],
   },
 };
@@ -171,39 +194,49 @@ export default function AutoTriggersPage() {
   const [newTriggerName, setNewTriggerName] = useState("");
   const [newTriggerType, setNewTriggerType] = useState<TriggerType | "">("");
   const [newTriggerTemplate, setNewTriggerTemplate] = useState("");
-  const [newTriggerConfig, setNewTriggerConfig] = useState<Record<string, unknown>>({});
+  const [newTriggerConfig, setNewTriggerConfig] = useState<
+    Record<string, unknown>
+  >({});
 
-  const { data: triggersData, loading: triggersLoading, error: triggersError, refetch: refetchTriggers } = useQuery(
-    AUTO_TRIGGERS_QUERY,
-    {
-      variables: { teamId },
-      skip: !teamId,
-    }
-  );
-
-  const { data: executionsData, loading: executionsLoading, refetch: refetchExecutions } = useQuery(
-    TRIGGER_EXECUTIONS_QUERY,
-    {
-      variables: { teamId, limit: 50 },
-      skip: !teamId,
-    }
-  );
-
-  const [createTrigger, { loading: creating }] = useMutation(CREATE_AUTO_TRIGGER_MUTATION, {
-    onCompleted: () => {
-      toast.success("Trigger created successfully");
-      setIsCreating(false);
-      resetForm();
-      refetchTriggers();
-    },
-    onError: (err) => {
-      toast.error(err.message || "Failed to create trigger");
-    },
+  const {
+    data: triggersData,
+    loading: triggersLoading,
+    error: triggersError,
+    refetch: refetchTriggers,
+  } = useQuery(AUTO_TRIGGERS_QUERY, {
+    variables: { teamId },
+    skip: !teamId,
   });
+
+  const {
+    data: executionsData,
+    loading: executionsLoading,
+    refetch: refetchExecutions,
+  } = useQuery(TRIGGER_EXECUTIONS_QUERY, {
+    variables: { teamId, limit: 50 },
+    skip: !teamId,
+  });
+
+  const [createTrigger, { loading: creating }] = useMutation(
+    CREATE_AUTO_TRIGGER_MUTATION,
+    {
+      onCompleted: () => {
+        toast.success("Trigger created successfully");
+        setIsCreating(false);
+        resetForm();
+        refetchTriggers();
+      },
+      onError: (err) => {
+        toast.error(err.message || "Failed to create trigger");
+      },
+    },
+  );
 
   const [toggleTrigger] = useMutation(TOGGLE_AUTO_TRIGGER_MUTATION, {
     onCompleted: (data) => {
-      toast.success(`Trigger ${data.toggleAutoTrigger.trigger.enabled ? "enabled" : "disabled"}`);
+      toast.success(
+        `Trigger ${data.toggleAutoTrigger.trigger.enabled ? "enabled" : "disabled"}`,
+      );
       refetchTriggers();
     },
     onError: (err) => {
@@ -231,7 +264,10 @@ export default function AutoTriggersPage() {
     setNewTriggerConfig({});
   };
 
-  const handleToggleTrigger = async (triggerId: string, currentEnabled: boolean) => {
+  const handleToggleTrigger = async (
+    triggerId: string,
+    currentEnabled: boolean,
+  ) => {
     await toggleTrigger({
       variables: { teamId, id: triggerId, enabled: !currentEnabled },
     });
@@ -264,7 +300,9 @@ export default function AutoTriggersPage() {
     });
   };
 
-  const selectedTypeConfig = newTriggerType ? TRIGGER_TYPES[newTriggerType] : null;
+  const selectedTypeConfig = newTriggerType
+    ? TRIGGER_TYPES[newTriggerType]
+    : null;
 
   if (triggersLoading) {
     return (
@@ -336,18 +374,20 @@ export default function AutoTriggersPage() {
                       <SelectValue placeholder="Select trigger type..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {(Object.keys(TRIGGER_TYPES) as TriggerType[]).map((type) => {
-                        const config = TRIGGER_TYPES[type];
-                        const Icon = config.icon;
-                        return (
-                          <SelectItem key={type} value={type}>
-                            <div className="flex items-center gap-2">
-                              <Icon className={cn("w-4 h-4", config.color)} />
-                              {config.name}
-                            </div>
-                          </SelectItem>
-                        );
-                      })}
+                      {(Object.keys(TRIGGER_TYPES) as TriggerType[]).map(
+                        (type) => {
+                          const config = TRIGGER_TYPES[type];
+                          const Icon = config.icon;
+                          return (
+                            <SelectItem key={type} value={type}>
+                              <div className="flex items-center gap-2">
+                                <Icon className={cn("w-4 h-4", config.color)} />
+                                {config.name}
+                              </div>
+                            </SelectItem>
+                          );
+                        },
+                      )}
                     </SelectContent>
                   </Select>
                   {selectedTypeConfig && (
@@ -364,7 +404,11 @@ export default function AutoTriggersPage() {
                     {field.type === "number" && (
                       <Input
                         type="number"
-                        value={(newTriggerConfig[field.key] as number) || field.default || ""}
+                        value={
+                          (newTriggerConfig[field.key] as number) ||
+                          field.default ||
+                          ""
+                        }
                         onChange={(e) =>
                           setNewTriggerConfig((prev) => ({
                             ...prev,
@@ -385,12 +429,16 @@ export default function AutoTriggersPage() {
                         }
                       >
                         <SelectTrigger className="bg-zinc-800">
-                          <SelectValue placeholder={`Select ${field.label}...`} />
+                          <SelectValue
+                            placeholder={`Select ${field.label}...`}
+                          />
                         </SelectTrigger>
                         <SelectContent>
                           {field.options?.map((opt) => (
                             <SelectItem key={opt} value={opt}>
-                              {opt.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+                              {opt
+                                .replace(/_/g, " ")
+                                .replace(/\b\w/g, (l) => l.toUpperCase())}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -401,7 +449,10 @@ export default function AutoTriggersPage() {
 
                 <div className="space-y-2">
                   <Label>Template to Send</Label>
-                  <Select value={newTriggerTemplate} onValueChange={setNewTriggerTemplate}>
+                  <Select
+                    value={newTriggerTemplate}
+                    onValueChange={setNewTriggerTemplate}
+                  >
                     <SelectTrigger className="bg-zinc-800">
                       <SelectValue placeholder="Select template..." />
                     </SelectTrigger>
@@ -420,7 +471,9 @@ export default function AutoTriggersPage() {
                   Cancel
                 </Button>
                 <Button onClick={handleCreateTrigger} disabled={creating}>
-                  {creating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  {creating && (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  )}
                   Create Trigger
                 </Button>
               </DialogFooter>
@@ -466,7 +519,9 @@ export default function AutoTriggersPage() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">
-                    {triggers.reduce((sum, t) => sum + t.firedCount, 0).toLocaleString()}
+                    {triggers
+                      .reduce((sum, t) => sum + t.firedCount, 0)
+                      .toLocaleString()}
                   </p>
                   <p className="text-xs text-zinc-500">Total Fired</p>
                 </div>
@@ -513,20 +568,33 @@ export default function AutoTriggersPage() {
                   <TableBody>
                     {triggers.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8 text-zinc-500">
+                        <TableCell
+                          colSpan={7}
+                          className="text-center py-8 text-zinc-500"
+                        >
                           No triggers configured. Create one to get started.
                         </TableCell>
                       </TableRow>
                     ) : (
                       triggers.map((trigger) => {
-                        const typeConfig = TRIGGER_TYPES[trigger.type as TriggerType] || TRIGGER_TYPES.lead_responded;
+                        const typeConfig =
+                          TRIGGER_TYPES[trigger.type as TriggerType] ||
+                          TRIGGER_TYPES.lead_responded;
                         const TypeIcon = typeConfig.icon;
                         return (
-                          <TableRow key={trigger.id} className="border-zinc-800">
+                          <TableRow
+                            key={trigger.id}
+                            className="border-zinc-800"
+                          >
                             <TableCell>
                               <Switch
                                 checked={trigger.enabled}
-                                onCheckedChange={() => handleToggleTrigger(trigger.id, trigger.enabled)}
+                                onCheckedChange={() =>
+                                  handleToggleTrigger(
+                                    trigger.id,
+                                    trigger.enabled,
+                                  )
+                                }
                               />
                             </TableCell>
                             <TableCell>
@@ -534,12 +602,19 @@ export default function AutoTriggersPage() {
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">
-                                <TypeIcon className={cn("w-4 h-4", typeConfig.color)} />
-                                <span className="text-sm">{typeConfig.name}</span>
+                                <TypeIcon
+                                  className={cn("w-4 h-4", typeConfig.color)}
+                                />
+                                <span className="text-sm">
+                                  {typeConfig.name}
+                                </span>
                               </div>
                             </TableCell>
                             <TableCell>
-                              <Badge variant="outline" className="font-mono text-xs">
+                              <Badge
+                                variant="outline"
+                                className="font-mono text-xs"
+                              >
                                 {trigger.templateName}
                               </Badge>
                             </TableCell>
@@ -548,7 +623,9 @@ export default function AutoTriggersPage() {
                             </TableCell>
                             <TableCell className="text-sm text-zinc-400">
                               {trigger.lastFiredAt
-                                ? new Date(trigger.lastFiredAt).toLocaleDateString()
+                                ? new Date(
+                                    trigger.lastFiredAt,
+                                  ).toLocaleDateString()
                                 : "Never"}
                             </TableCell>
                             <TableCell>
@@ -578,9 +655,7 @@ export default function AutoTriggersPage() {
                   <History className="h-5 w-5" />
                   Recent Executions
                 </CardTitle>
-                <CardDescription>
-                  Last 50 trigger executions
-                </CardDescription>
+                <CardDescription>Last 50 trigger executions</CardDescription>
               </CardHeader>
               <CardContent className="p-0">
                 {executionsLoading ? (
@@ -601,7 +676,10 @@ export default function AutoTriggersPage() {
                     <TableBody>
                       {executions.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={5} className="text-center py-8 text-zinc-500">
+                          <TableCell
+                            colSpan={5}
+                            className="text-center py-8 text-zinc-500"
+                          >
                             No executions yet.
                           </TableCell>
                         </TableRow>
@@ -658,20 +736,22 @@ export default function AutoTriggersPage() {
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground space-y-2">
             <p>
-              <strong>Event Detection:</strong> The system monitors lead activity and
-              detects events like responses, stage changes, and sentiment.
+              <strong>Event Detection:</strong> The system monitors lead
+              activity and detects events like responses, stage changes, and
+              sentiment.
             </p>
             <p>
-              <strong>Trigger Matching:</strong> When an event occurs, active triggers
-              are evaluated to find matches based on their configuration.
+              <strong>Trigger Matching:</strong> When an event occurs, active
+              triggers are evaluated to find matches based on their
+              configuration.
             </p>
             <p>
               <strong>Template Selection:</strong> Matched triggers send their
               configured template to the lead automatically.
             </p>
             <p>
-              <strong>Compliance:</strong> All auto-triggered messages follow your
-              team's sending limits and compliance rules.
+              <strong>Compliance:</strong> All auto-triggered messages follow
+              your team's sending limits and compliance rules.
             </p>
           </CardContent>
         </Card>
