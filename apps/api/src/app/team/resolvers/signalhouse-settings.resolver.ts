@@ -25,7 +25,9 @@ class UpdateSignalHouseSettingsArgs extends BaseTeamArgs {
 
 @Resolver(() => SignalHouseSettings)
 @UseAuthGuard()
-export class SignalHouseSettingsResolver extends BaseResolver(SignalHouseSettings) {
+export class SignalHouseSettingsResolver extends BaseResolver(
+  SignalHouseSettings,
+) {
   constructor(
     private teamService: TeamService,
     private teamPolicy: TeamPolicy,
@@ -62,7 +64,8 @@ export class SignalHouseSettingsResolver extends BaseResolver(SignalHouseSetting
       .set({
         signalhouseSubGroupId: input.subGroupId ?? team.signalhouseSubGroupId,
         signalhouseBrandId: input.brandId ?? team.signalhouseBrandId,
-        signalhouseCampaignIds: input.campaignIds ?? team.signalhouseCampaignIds,
+        signalhouseCampaignIds:
+          input.campaignIds ?? team.signalhouseCampaignIds,
         signalhousePhonePool: input.phonePool ?? team.signalhousePhonePool,
       })
       .where(eq(teams.id, team.id));

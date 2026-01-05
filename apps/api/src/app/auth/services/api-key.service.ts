@@ -1,4 +1,9 @@
-import { Injectable, BadRequestException, ForbiddenException, Logger } from "@nestjs/common";
+import {
+  Injectable,
+  BadRequestException,
+  ForbiddenException,
+  Logger,
+} from "@nestjs/common";
 import { InjectDB } from "@/database/decorators";
 import { DrizzleClient } from "@/database/types";
 import {
@@ -124,7 +129,9 @@ export class ApiKeyService {
     });
 
     if (existing) {
-      throw new BadRequestException(`Tenant slug "${options.slug}" is already taken`);
+      throw new BadRequestException(
+        `Tenant slug "${options.slug}" is already taken`,
+      );
     }
 
     const [tenant] = await this.db
@@ -195,10 +202,7 @@ export class ApiKeyService {
       updates.onboardingCompletedBy = completedBy;
     }
 
-    await this.db
-      .update(tenants)
-      .set(updates)
-      .where(eq(tenants.id, tenantId));
+    await this.db.update(tenants).set(updates).where(eq(tenants.id, tenantId));
   }
 
   /**
@@ -292,7 +296,7 @@ export class ApiKeyService {
       keyPrefix,
       name: keyRecord.name,
       type: keyRecord.type as ApiKeyType,
-      scopes: keyRecord.scopes as Scope[] || [],
+      scopes: (keyRecord.scopes as Scope[]) || [],
       expiresAt: keyRecord.expiresAt,
       createdAt: keyRecord.createdAt,
     };
@@ -373,7 +377,8 @@ export class ApiKeyService {
     const devKey = await this.createKey({
       tenantId,
       name: "Development API Key",
-      description: "Safe sandbox key for development (no message/call execution)",
+      description:
+        "Safe sandbox key for development (no message/call execution)",
       type: ApiKeyType.DEV_KEY,
     });
 
@@ -488,7 +493,10 @@ export class ApiKeyService {
   /**
    * Rotate an API key (create new one, deactivate old one)
    */
-  async rotateKey(keyId: string, tenantId: string): Promise<ApiKeyResponse | null> {
+  async rotateKey(
+    keyId: string,
+    tenantId: string,
+  ): Promise<ApiKeyResponse | null> {
     // Get the existing key
     const existingKey = await this.db.query.apiKeys.findFirst({
       where: and(eq(apiKeys.id, keyId), eq(apiKeys.tenantId, tenantId)),
@@ -584,7 +592,9 @@ export class ApiKeyService {
 
     return {
       caps: (key.usageCaps || {}) as NonNullable<typeof key.usageCaps>,
-      counters: (key.usageCounters || {}) as NonNullable<typeof key.usageCounters>,
+      counters: (key.usageCounters || {}) as NonNullable<
+        typeof key.usageCounters
+      >,
     };
   }
 }

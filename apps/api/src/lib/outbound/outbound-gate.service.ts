@@ -87,9 +87,7 @@ export class OutboundGateService {
 
     // 2. Check lead state (optional)
     if (!skipSuppressionCheck && lead.leadState === "suppressed") {
-      this.logger.warn(
-        `OutboundGate BLOCKED: Lead suppressed - ${leadId}`,
-      );
+      this.logger.warn(`OutboundGate BLOCKED: Lead suppressed - ${leadId}`);
       return {
         allowed: false,
         reason: "lead_suppressed",

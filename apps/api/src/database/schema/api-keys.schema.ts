@@ -303,8 +303,9 @@ export const tenants = pgTable(
 export type Tenant = typeof tenants.$inferSelect;
 export type NewTenant = typeof tenants.$inferInsert;
 
-export const tenantsRef = (config?: { onDelete?: "cascade" | "set null" | "restrict" }) =>
-  ulidColumn().references(() => tenants.id, config);
+export const tenantsRef = (config?: {
+  onDelete?: "cascade" | "set null" | "restrict";
+}) => ulidColumn().references(() => tenants.id, config);
 
 // ═══════════════════════════════════════════════════════════════════════════
 // API KEYS TABLE - Enhanced for scope-based auth
@@ -333,13 +334,17 @@ export const apiKeys = pgTable(
     type: varchar({ length: 20 }).notNull().default(ApiKeyType.ADMIN_KEY),
 
     // Tenant this key belongs to (multi-tenant isolation)
-    tenantId: ulidColumn().references(() => tenants.id, { onDelete: "cascade" }),
+    tenantId: ulidColumn().references(() => tenants.id, {
+      onDelete: "cascade",
+    }),
 
     // Team this key is scoped to (optional, for team-level keys)
     teamId: teamsRef({ onDelete: "cascade" }),
 
     // Optional: which user created this key (for audit trail)
-    createdByUserId: ulidColumn().references(() => users.id, { onDelete: "set null" }),
+    createdByUserId: ulidColumn().references(() => users.id, {
+      onDelete: "set null",
+    }),
 
     // Parent key (for SUB_KEY hierarchy)
     parentKeyId: ulidColumn(),
@@ -362,7 +367,7 @@ export const apiKeys = pgTable(
     // Usage caps (for rate limiting and demo restrictions)
     usageCaps: jsonb().$type<{
       maxMessagesPerDay?: number;
-      maxMessagesTotal?: number;  // For DEMO_KEY: 25
+      maxMessagesTotal?: number; // For DEMO_KEY: 25
       maxCallsPerDay?: number;
       maxCallsTotal?: number;
       maxEnrichmentsPerDay?: number;
@@ -370,14 +375,16 @@ export const apiKeys = pgTable(
     }>(),
 
     // Current usage counters (reset daily or tracked cumulatively)
-    usageCounters: jsonb().$type<{
-      messagesUsedToday?: number;
-      messagesUsedTotal?: number;
-      callsUsedToday?: number;
-      callsUsedTotal?: number;
-      enrichmentsUsedToday?: number;
-      lastResetAt?: string; // ISO date
-    }>().default({}),
+    usageCounters: jsonb()
+      .$type<{
+        messagesUsedToday?: number;
+        messagesUsedTotal?: number;
+        callsUsedToday?: number;
+        callsUsedTotal?: number;
+        enrichmentsUsedToday?: number;
+        lastResetAt?: string; // ISO date
+      }>()
+      .default({}),
 
     // Rate limiting
     rateLimit: varchar({ length: 20 }).default("1000/hour"),
@@ -437,10 +444,14 @@ export const apiKeyUsageLogs = pgTable(
     id: primaryUlid(API_KEY_USAGE_LOG_PK),
 
     // Which key was used
-    apiKeyId: ulidColumn().references(() => apiKeys.id, { onDelete: "cascade" }).notNull(),
+    apiKeyId: ulidColumn()
+      .references(() => apiKeys.id, { onDelete: "cascade" })
+      .notNull(),
 
     // Tenant for easy querying
-    tenantId: ulidColumn().references(() => tenants.id, { onDelete: "cascade" }),
+    tenantId: ulidColumn().references(() => tenants.id, {
+      onDelete: "cascade",
+    }),
 
     // What action was performed
     action: varchar({ length: 100 }).notNull(), // e.g., "messages:send", "data:read"
@@ -497,7 +508,9 @@ export function getKeyPrefix(type: ApiKeyType): string {
 /**
  * Get default usage caps for key type
  */
-export function getDefaultUsageCaps(type: ApiKeyType): NonNullable<ApiKey["usageCaps"]> {
+export function getDefaultUsageCaps(
+  type: ApiKeyType,
+): NonNullable<ApiKey["usageCaps"]> {
   const capsMap: Record<ApiKeyType, NonNullable<ApiKey["usageCaps"]>> = {
     [ApiKeyType.OWNER_KEY]: {}, // Unlimited
     [ApiKeyType.ADMIN_KEY]: {

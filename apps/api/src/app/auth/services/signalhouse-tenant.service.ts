@@ -116,7 +116,7 @@ export class SignalHouseTenantService {
         method,
         headers: {
           "Content-Type": "application/json",
-          "apiKey": this.apiKey,
+          apiKey: this.apiKey,
         },
         ...(requestBody && { body: JSON.stringify(requestBody) }),
       });
@@ -126,7 +126,10 @@ export class SignalHouseTenantService {
       if (!response.ok) {
         return {
           success: false,
-          error: result.message || result.error || `Request failed: ${response.status}`,
+          error:
+            result.message ||
+            result.error ||
+            `Request failed: ${response.status}`,
         };
       }
 
@@ -200,7 +203,7 @@ class TenantScopedSignalHouse {
         method,
         headers: {
           "Content-Type": "application/json",
-          "apiKey": this.apiKey,
+          apiKey: this.apiKey,
         },
         ...(requestBody && { body: JSON.stringify(requestBody) }),
       });
@@ -210,7 +213,10 @@ class TenantScopedSignalHouse {
       if (!response.ok) {
         return {
           success: false,
-          error: result.message || result.error || `Request failed: ${response.status}`,
+          error:
+            result.message ||
+            result.error ||
+            `Request failed: ${response.status}`,
         };
       }
 
@@ -241,7 +247,11 @@ class TenantScopedSignalHouse {
     });
   }
 
-  async getMessageLogs(params?: { from?: string; to?: string; limit?: number }) {
+  async getMessageLogs(params?: {
+    from?: string;
+    to?: string;
+    limit?: number;
+  }) {
     const subGroupId = await this.getSubGroupId();
     const queryParams = new URLSearchParams({
       ...(params?.from && { from: params.from }),
@@ -278,11 +288,16 @@ class TenantScopedSignalHouse {
     });
   }
 
-  async releasePhoneNumber(phoneNumber: string): Promise<ApiResponse<{ success: boolean }>> {
-    return this.request<{ success: boolean }>("/phoneNumber/releasePhoneNumber", {
-      method: "POST",
-      body: { phoneNumber },
-    });
+  async releasePhoneNumber(
+    phoneNumber: string,
+  ): Promise<ApiResponse<{ success: boolean }>> {
+    return this.request<{ success: boolean }>(
+      "/phoneNumber/releasePhoneNumber",
+      {
+        method: "POST",
+        body: { phoneNumber },
+      },
+    );
   }
 
   async configurePhoneNumber(
@@ -315,9 +330,12 @@ class TenantScopedSignalHouse {
   async getWalletSummary(): Promise<
     ApiResponse<{ balance: number; currency: string }>
   > {
-    return this.request<{ balance: number; currency: string }>("/wallet/summary", {
-      includeSubGroup: false,
-    });
+    return this.request<{ balance: number; currency: string }>(
+      "/wallet/summary",
+      {
+        includeSubGroup: false,
+      },
+    );
   }
 
   // ═══════════════════════════════════════════════════════════════════════════

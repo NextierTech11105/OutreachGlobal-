@@ -91,9 +91,7 @@ export class LeadEventService {
           `Event recorded: ${event.eventType} for lead ${event.leadId}`,
         );
       } else {
-        this.logger.debug(
-          `Duplicate event skipped: ${dedupeKey}`,
-        );
+        this.logger.debug(`Duplicate event skipped: ${dedupeKey}`);
       }
 
       return recorded || null;
@@ -182,10 +180,7 @@ export class LeadEventService {
     const currentState = (lead?.leadState as LeadState) || "new";
     // Email captured can transition from responded or soft_interest
     let newState: LeadState | undefined;
-    if (
-      currentState === "responded" ||
-      currentState === "soft_interest"
-    ) {
+    if (currentState === "responded" || currentState === "soft_interest") {
       newState = "email_captured";
     }
 
@@ -480,9 +475,7 @@ export class LeadEventService {
   /**
    * Get full audit trail for compliance
    */
-  async getAuditTrail(
-    leadId: string,
-  ): Promise<
+  async getAuditTrail(leadId: string): Promise<
     Array<{
       timestamp: Date;
       eventType: string;

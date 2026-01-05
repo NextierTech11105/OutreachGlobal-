@@ -51,7 +51,11 @@ export const ScopePresets = {
   CAMPAIGN_MANAGER: [Scope.CAMPAIGNS_READ, Scope.CAMPAIGNS_CREATE],
 
   // Full campaign access including execution
-  CAMPAIGN_EXECUTOR: [Scope.CAMPAIGNS_READ, Scope.CAMPAIGNS_CREATE, Scope.CAMPAIGNS_EXECUTE],
+  CAMPAIGN_EXECUTOR: [
+    Scope.CAMPAIGNS_READ,
+    Scope.CAMPAIGNS_CREATE,
+    Scope.CAMPAIGNS_EXECUTE,
+  ],
 
   // Messaging (requires LIVE state)
   MESSAGING: [Scope.MESSAGES_READ, Scope.MESSAGES_SEND],

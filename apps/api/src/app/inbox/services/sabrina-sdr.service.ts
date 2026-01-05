@@ -650,6 +650,11 @@ export class SabrinaSdrService {
       ),
     );
 
-    return { pending, approved, rejected, total: pending + approved + rejected };
+    return {
+      pending,
+      approved,
+      rejected,
+      total: pending + approved + rejected,
+    };
   }
 }

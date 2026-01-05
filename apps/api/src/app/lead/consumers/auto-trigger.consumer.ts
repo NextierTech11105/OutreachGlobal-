@@ -18,7 +18,10 @@ import {
   validateTenantJob,
   logTenantContext,
 } from "@/lib/queue/tenant-queue.util";
-import { LeadEventType, LeadState } from "@/database/schema/canonical-lead-state.schema";
+import {
+  LeadEventType,
+  LeadState,
+} from "@/database/schema/canonical-lead-state.schema";
 
 // Job data types
 export interface ProcessEventJobData {
@@ -71,7 +74,9 @@ export class AutoTriggerConsumer extends WorkerHost {
   }
 
   async process(
-    job: Job<ProcessEventJobData | ExecuteTriggerJobData | CheckNoResponseJobData>,
+    job: Job<
+      ProcessEventJobData | ExecuteTriggerJobData | CheckNoResponseJobData
+    >,
   ): Promise<unknown> {
     // P0: Validate tenant isolation
     validateTenantJob(job, AUTO_TRIGGER_QUEUE);
@@ -181,9 +186,7 @@ export class AutoTriggerConsumer extends WorkerHost {
       return;
     }
 
-    this.logger.log(
-      `Executing trigger "${trigger.name}" for lead ${leadId}`,
-    );
+    this.logger.log(`Executing trigger "${trigger.name}" for lead ${leadId}`);
 
     // Create execution record
     const [execution] = await this.db
@@ -418,9 +421,7 @@ export class AutoTriggerConsumer extends WorkerHost {
  * Can be injected into other services to trigger auto-triggers
  */
 export class AutoTriggerService {
-  constructor(
-    @InjectQueue(AUTO_TRIGGER_QUEUE) private triggerQueue: Queue,
-  ) {}
+  constructor(@InjectQueue(AUTO_TRIGGER_QUEUE) private triggerQueue: Queue) {}
 
   /**
    * Queue a lead event for trigger processing

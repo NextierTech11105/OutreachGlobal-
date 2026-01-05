@@ -34,7 +34,28 @@ export const SIC_CATEGORY_MAPPINGS: SicCategoryMapping[] = [
     slug: "manufacturing",
     name: "Manufacturing & Industrial",
     sicRanges: [{ start: "2000", end: "3999" }],
-    sicPrefixes: ["20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33", "34", "35", "36", "37", "38", "39"],
+    sicPrefixes: [
+      "20",
+      "21",
+      "22",
+      "23",
+      "24",
+      "25",
+      "26",
+      "27",
+      "28",
+      "29",
+      "30",
+      "31",
+      "32",
+      "33",
+      "34",
+      "35",
+      "36",
+      "37",
+      "38",
+      "39",
+    ],
     propertyOwnershipLikelihood: 0.75,
   },
   {
@@ -42,23 +63,21 @@ export const SIC_CATEGORY_MAPPINGS: SicCategoryMapping[] = [
     name: "Technology & Software",
     sicRanges: [{ start: "7370", end: "7379" }],
     sicPrefixes: ["737"],
-    propertyOwnershipLikelihood: 0.20,
+    propertyOwnershipLikelihood: 0.2,
   },
   {
     slug: "building-trades",
     name: "Building Trades & Construction",
     sicRanges: [{ start: "1500", end: "1799" }],
     sicPrefixes: ["15", "16", "17"],
-    propertyOwnershipLikelihood: 0.40,
+    propertyOwnershipLikelihood: 0.4,
   },
   {
     slug: "distribution-wholesale",
     name: "Distribution & Wholesale",
-    sicRanges: [
-      { start: "5000", end: "5199" },
-    ],
+    sicRanges: [{ start: "5000", end: "5199" }],
     sicPrefixes: ["50", "51"],
-    propertyOwnershipLikelihood: 0.50,
+    propertyOwnershipLikelihood: 0.5,
   },
   {
     slug: "automotive-services",
@@ -78,7 +97,7 @@ export const SIC_CATEGORY_MAPPINGS: SicCategoryMapping[] = [
       { start: "7000", end: "7099" },
     ],
     sicPrefixes: ["58", "70"],
-    propertyOwnershipLikelihood: 0.30,
+    propertyOwnershipLikelihood: 0.3,
   },
   {
     slug: "retail-trade",
@@ -104,7 +123,7 @@ export const SIC_CATEGORY_MAPPINGS: SicCategoryMapping[] = [
       { start: "9000", end: "9999" },
     ],
     sicPrefixes: [],
-    propertyOwnershipLikelihood: 0.40,
+    propertyOwnershipLikelihood: 0.4,
   },
 ];
 
@@ -137,16 +156,28 @@ export function mapSicToCategory(sicCode: string): SicCategoryMapping | null {
     }
   }
 
-  return SIC_CATEGORY_MAPPINGS.find(c => c.slug === "other-services") || null;
+  return SIC_CATEGORY_MAPPINGS.find((c) => c.slug === "other-services") || null;
 }
 
 /**
  * Group SIC codes by category
  */
 export function mapSicCodesToCategories(
-  sicCodes: Array<{ code: string; count: number; description?: string }>
-): Map<string, { category: SicCategoryMapping; codes: Array<{ code: string; count: number; description?: string }> }> {
-  const grouped = new Map<string, { category: SicCategoryMapping; codes: Array<{ code: string; count: number; description?: string }> }>();
+  sicCodes: Array<{ code: string; count: number; description?: string }>,
+): Map<
+  string,
+  {
+    category: SicCategoryMapping;
+    codes: Array<{ code: string; count: number; description?: string }>;
+  }
+> {
+  const grouped = new Map<
+    string,
+    {
+      category: SicCategoryMapping;
+      codes: Array<{ code: string; count: number; description?: string }>;
+    }
+  >();
 
   for (const item of sicCodes) {
     const category = mapSicToCategory(item.code);
@@ -165,7 +196,13 @@ export function mapSicCodesToCategories(
  * Get summary for grouped SIC codes
  */
 export function getSicCategorySummary(
-  grouped: Map<string, { category: SicCategoryMapping; codes: Array<{ code: string; count: number }> }>
+  grouped: Map<
+    string,
+    {
+      category: SicCategoryMapping;
+      codes: Array<{ code: string; count: number }>;
+    }
+  >,
 ): Array<{
   slug: string;
   name: string;

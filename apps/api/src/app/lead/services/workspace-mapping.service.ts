@@ -179,7 +179,9 @@ export class WorkspaceMappingService {
   /**
    * Get lead counts per workspace for a team
    */
-  async getWorkspaceCounts(teamId: string): Promise<Record<WorkspaceId, number>> {
+  async getWorkspaceCounts(
+    teamId: string,
+  ): Promise<Record<WorkspaceId, number>> {
     // Get state counts
     const stateCounts = await this.db
       .select({
@@ -450,7 +452,10 @@ export class WorkspaceMappingService {
   /**
    * Validate that a lead can be in a workspace based on state
    */
-  validateLeadWorkspace(leadState: LeadState, workspaceId: WorkspaceId): boolean {
+  validateLeadWorkspace(
+    leadState: LeadState,
+    workspaceId: WorkspaceId,
+  ): boolean {
     const workspace = this.getWorkspace(workspaceId);
     if (!workspace) return false;
     return workspace.states.includes(leadState);

@@ -83,7 +83,9 @@ export class CreateSubKeyInput {
   @Field(() => String, { nullable: true })
   description?: string;
 
-  @Field(() => [String], { description: "Scopes to grant (must be subset of parent)" })
+  @Field(() => [String], {
+    description: "Scopes to grant (must be subset of parent)",
+  })
   scopes: string[];
 }
 
@@ -226,9 +228,7 @@ export class ApiKeyResolver {
    */
   @Query(() => Tenant, { nullable: true })
   @UseAuthGuard()
-  async tenant(
-    @Args("tenantId") tenantId: string,
-  ): Promise<Tenant | null> {
+  async tenant(@Args("tenantId") tenantId: string): Promise<Tenant | null> {
     const tenant = await this.apiKeyService.getTenant(tenantId);
     return tenant as any;
   }
@@ -297,7 +297,10 @@ export class ApiKeyResolver {
     @Auth() user: User,
     @Args() args: TenantKeyArgs,
   ): Promise<NewApiKeyResponse | null> {
-    const result = await this.apiKeyService.rotateKey(args.keyId, args.tenantId);
+    const result = await this.apiKeyService.rotateKey(
+      args.keyId,
+      args.tenantId,
+    );
     return result as any;
   }
 

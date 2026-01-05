@@ -405,7 +405,9 @@ export class LeadService {
 
       this.logger.log(`Scheduled retargeting timers for lead ${leadId}`);
     } catch (error) {
-      this.logger.warn(`Failed to schedule timers for lead ${leadId}: ${error}`);
+      this.logger.warn(
+        `Failed to schedule timers for lead ${leadId}: ${error}`,
+      );
     }
   }
 
@@ -419,9 +421,7 @@ export class LeadService {
         cancelledAt: new Date(),
         cancelReason: reason,
       })
-      .where(
-        and(eq(leadTimers.leadId, leadId), isNull(leadTimers.executedAt)),
-      );
+      .where(and(eq(leadTimers.leadId, leadId), isNull(leadTimers.executedAt)));
 
     this.logger.log(`Cancelled all timers for lead ${leadId}: ${reason}`);
   }
@@ -447,7 +447,9 @@ export class LeadService {
         "timer",
         { reason: "7-day no response" },
       );
-      this.logger.log(`Lead ${leadId} moved to retargeting after 7-day no response`);
+      this.logger.log(
+        `Lead ${leadId} moved to retargeting after 7-day no response`,
+      );
     }
   }
 
@@ -490,7 +492,9 @@ export class LeadService {
         processedAt: new Date(),
       });
 
-      this.logger.log(`Template rotation triggered for lead ${leadId} after 14-day no response`);
+      this.logger.log(
+        `Template rotation triggered for lead ${leadId} after 14-day no response`,
+      );
     }
   }
 

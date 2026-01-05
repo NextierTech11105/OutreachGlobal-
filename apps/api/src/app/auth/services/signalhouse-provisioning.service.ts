@@ -66,7 +66,9 @@ export class SignalHouseProvisioningService {
     tenantSlug: string,
   ): Promise<{ success: boolean; subGroupId?: string; error?: string }> {
     if (!this.isConfigured()) {
-      this.logger.warn("SignalHouse not configured, skipping SubGroup creation");
+      this.logger.warn(
+        "SignalHouse not configured, skipping SubGroup creation",
+      );
       return { success: false, error: "SignalHouse not configured" };
     }
 
@@ -76,7 +78,7 @@ export class SignalHouseProvisioningService {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "apiKey": this.apiKey,
+          apiKey: this.apiKey,
         },
         body: JSON.stringify({
           name: `Nextier: ${tenantName}`,
@@ -92,15 +94,18 @@ export class SignalHouseProvisioningService {
         );
         return {
           success: false,
-          error: result.message || result.error || "Failed to create SubGroup"
+          error: result.message || result.error || "Failed to create SubGroup",
         };
       }
 
       // Extract subGroupId from response
-      const subGroupId = result.subGroupId || result.data?.subGroupId || result.id;
+      const subGroupId =
+        result.subGroupId || result.data?.subGroupId || result.id;
 
       if (!subGroupId) {
-        this.logger.error(`SignalHouse SubGroup created but no ID returned for tenant ${tenantId}`);
+        this.logger.error(
+          `SignalHouse SubGroup created but no ID returned for tenant ${tenantId}`,
+        );
         return { success: false, error: "No SubGroup ID returned" };
       }
 
@@ -121,7 +126,7 @@ export class SignalHouseProvisioningService {
       );
       return {
         success: false,
-        error: error instanceof Error ? error.message : "Unknown error"
+        error: error instanceof Error ? error.message : "Unknown error",
       };
     }
   }
@@ -139,7 +144,7 @@ export class SignalHouseProvisioningService {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          "apiKey": this.apiKey,
+          apiKey: this.apiKey,
         },
       });
 
@@ -148,7 +153,7 @@ export class SignalHouseProvisioningService {
       if (!response.ok) {
         return {
           success: false,
-          error: result.message || result.error || "Failed to list SubGroups"
+          error: result.message || result.error || "Failed to list SubGroups",
         };
       }
 
@@ -156,7 +161,7 @@ export class SignalHouseProvisioningService {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : "Unknown error"
+        error: error instanceof Error ? error.message : "Unknown error",
       };
     }
   }
@@ -164,7 +169,9 @@ export class SignalHouseProvisioningService {
   /**
    * Get SubGroup details
    */
-  async getSubGroup(subGroupId: string): Promise<SignalHouseResponse<SignalHouseSubGroup>> {
+  async getSubGroup(
+    subGroupId: string,
+  ): Promise<SignalHouseResponse<SignalHouseSubGroup>> {
     if (!this.isConfigured()) {
       return { success: false, error: "SignalHouse not configured" };
     }
@@ -176,7 +183,7 @@ export class SignalHouseProvisioningService {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            "apiKey": this.apiKey,
+            apiKey: this.apiKey,
           },
         },
       );
@@ -186,7 +193,7 @@ export class SignalHouseProvisioningService {
       if (!response.ok) {
         return {
           success: false,
-          error: result.message || result.error || "Failed to get SubGroup"
+          error: result.message || result.error || "Failed to get SubGroup",
         };
       }
 
@@ -194,7 +201,7 @@ export class SignalHouseProvisioningService {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : "Unknown error"
+        error: error instanceof Error ? error.message : "Unknown error",
       };
     }
   }
@@ -202,7 +209,9 @@ export class SignalHouseProvisioningService {
   /**
    * Delete a SubGroup (use with caution - for tenant deletion)
    */
-  async deleteSubGroup(subGroupId: string): Promise<{ success: boolean; error?: string }> {
+  async deleteSubGroup(
+    subGroupId: string,
+  ): Promise<{ success: boolean; error?: string }> {
     if (!this.isConfigured()) {
       return { success: false, error: "SignalHouse not configured" };
     }
@@ -212,7 +221,7 @@ export class SignalHouseProvisioningService {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
-          "apiKey": this.apiKey,
+          apiKey: this.apiKey,
         },
         body: JSON.stringify({ subGroupId }),
       });
@@ -222,7 +231,7 @@ export class SignalHouseProvisioningService {
       if (!response.ok) {
         return {
           success: false,
-          error: result.message || result.error || "Failed to delete SubGroup"
+          error: result.message || result.error || "Failed to delete SubGroup",
         };
       }
 
@@ -231,7 +240,7 @@ export class SignalHouseProvisioningService {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : "Unknown error"
+        error: error instanceof Error ? error.message : "Unknown error",
       };
     }
   }
@@ -253,7 +262,7 @@ export class SignalHouseProvisioningService {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          "apiKey": this.apiKey,
+          apiKey: this.apiKey,
         },
       });
 
@@ -262,7 +271,7 @@ export class SignalHouseProvisioningService {
       if (!response.ok) {
         return {
           success: false,
-          error: result.message || result.error || "Connection failed"
+          error: result.message || result.error || "Connection failed",
         };
       }
 
@@ -272,12 +281,12 @@ export class SignalHouseProvisioningService {
           userId: result.userId || result.data?.userId,
           email: result.email || result.data?.email || result.emailId,
           companyName: result.companyName || result.data?.companyName,
-        }
+        },
       };
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : "Connection failed"
+        error: error instanceof Error ? error.message : "Connection failed",
       };
     }
   }

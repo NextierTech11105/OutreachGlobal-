@@ -146,7 +146,8 @@ export class TenantOnboardingResolver {
    * Requires webhook secret for authentication (not user auth).
    */
   @Mutation(() => ProvisionResult, {
-    description: "Provision a paid tenant after Stripe payment. Called by webhook.",
+    description:
+      "Provision a paid tenant after Stripe payment. Called by webhook.",
   })
   async provisionPaidTenant(
     @Args("input") input: ProvisionPaidTenantInput,
@@ -223,7 +224,9 @@ export class TenantOnboardingResolver {
     const isAdmin = user?.email?.endsWith("@outreachglobal.io");
 
     if (!isOwnerKey && !isAdmin) {
-      throw new ForbiddenException("Only platform admins can view pending tenants");
+      throw new ForbiddenException(
+        "Only platform admins can view pending tenants",
+      );
     }
 
     // Get tenants in PENDING_ONBOARDING state

@@ -18,8 +18,15 @@ import { LeadFilterService } from "./services/lead-filter.service";
 import { CacheModule } from "../../lib/cache/cache.module";
 import { BullModule } from "@nestjs/bullmq";
 import { LeadConsumer } from "./consumers/lead.consumer";
-import { ContentNurtureConsumer, CONTENT_NURTURE_QUEUE } from "./consumers/content-nurture.consumer";
-import { AutoTriggerConsumer, AutoTriggerService, AUTO_TRIGGER_QUEUE } from "./consumers/auto-trigger.consumer";
+import {
+  ContentNurtureConsumer,
+  CONTENT_NURTURE_QUEUE,
+} from "./consumers/content-nurture.consumer";
+import {
+  AutoTriggerConsumer,
+  AutoTriggerService,
+  AUTO_TRIGGER_QUEUE,
+} from "./consumers/auto-trigger.consumer";
 import { WorkspaceMappingService } from "./services/workspace-mapping.service";
 import { SicMapperService } from "./services/sic-mapper.service";
 
@@ -40,11 +47,25 @@ import { SicMapperService } from "./services/sic-mapper.service";
     }),
   ],
   resolvers: [LeadResolver, FacetResolver, ImportLeadPresetResolver],
-  providers: [LeadService, LeadEventService, BusinessListService, LeadFilterService, AutoTriggerService, WorkspaceMappingService, SicMapperService],
+  providers: [
+    LeadService,
+    LeadEventService,
+    BusinessListService,
+    LeadFilterService,
+    AutoTriggerService,
+    WorkspaceMappingService,
+    SicMapperService,
+  ],
   consumers: [LeadConsumer, ContentNurtureConsumer, AutoTriggerConsumer],
   repositories: [LeadRepository],
   schedules: [LeadSchedule],
-  exports: [LeadService, LeadEventService, AutoTriggerService, WorkspaceMappingService, SicMapperService],
+  exports: [
+    LeadService,
+    LeadEventService,
+    AutoTriggerService,
+    WorkspaceMappingService,
+    SicMapperService,
+  ],
   controllers: [
     BusinessListController,
     ApolloSearchController,

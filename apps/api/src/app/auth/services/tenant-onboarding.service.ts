@@ -2,7 +2,11 @@ import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { InjectDB } from "@/database/decorators";
 import { DrizzleClient } from "@/database/types";
-import { tenants, TenantState, ProductPack } from "@/database/schema/api-keys.schema";
+import {
+  tenants,
+  TenantState,
+  ProductPack,
+} from "@/database/schema/api-keys.schema";
 import { eq } from "drizzle-orm";
 import { ApiKeyService } from "./api-key.service";
 import { MailService } from "@/lib/mail/mail.service";
@@ -60,8 +64,7 @@ export class TenantOnboardingService {
       "https://calendly.com/outreachglobal/strategy-session";
 
     this.platformUrl =
-      this.configService.get("PLATFORM_URL") ||
-      "https://app.outreachglobal.io";
+      this.configService.get("PLATFORM_URL") || "https://app.outreachglobal.io";
   }
 
   /**
@@ -93,7 +96,9 @@ export class TenantOnboardingService {
         );
 
         const newTenant = await this.apiKeyService.createTenant({
-          name: input.customerName || `Customer ${input.stripeCustomerId.slice(-8)}`,
+          name:
+            input.customerName ||
+            `Customer ${input.stripeCustomerId.slice(-8)}`,
           slug: `tenant-${input.stripeCustomerId.slice(-12).toLowerCase()}`,
           contactEmail: input.customerEmail,
           contactName: input.customerName,
@@ -125,9 +130,7 @@ export class TenantOnboardingService {
         })
         .where(eq(tenants.id, tenant.id));
 
-      this.logger.log(
-        `Upgraded tenant ${tenant.slug} to PENDING_ONBOARDING`,
-      );
+      this.logger.log(`Upgraded tenant ${tenant.slug} to PENDING_ONBOARDING`);
 
       // Create production API keys
       const { adminKey, devKey } = await this.apiKeyService.createPaidKeys(

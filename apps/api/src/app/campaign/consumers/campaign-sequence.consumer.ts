@@ -111,9 +111,7 @@ export class CampaignSequenceConsumer extends WorkerHost {
     });
   }
 
-  private sequenceTypeToChannel(
-    type: string,
-  ): "sms" | "email" | "voice" {
+  private sequenceTypeToChannel(type: string): "sms" | "email" | "voice" {
     switch (type) {
       case "EMAIL":
         return "email";

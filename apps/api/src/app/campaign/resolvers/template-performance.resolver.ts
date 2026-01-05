@@ -198,8 +198,7 @@ export class TemplatePerformanceResolver extends BaseResolver(
 
     // Filter by period
     if (args.period && args.period !== "all") {
-      const days =
-        args.period === "7d" ? 7 : args.period === "30d" ? 30 : 90;
+      const days = args.period === "7d" ? 7 : args.period === "30d" ? 30 : 90;
       const cutoff = new Date();
       cutoff.setDate(cutoff.getDate() - days);
       conditions.push(gte(templatePerformance.periodStart, cutoff));

@@ -12,7 +12,10 @@ import { and, eq, ilike, isNull, lte, or, sql, SQLWrapper } from "drizzle-orm";
 import { LeadInsert, LeadSelect } from "../models/lead.model";
 import { PropertyDistressScoreInsert } from "@/app/property/models/property-distress-score.model";
 import { PropertyInsert } from "@/app/property/models/property.model";
-import { leadTimers, LeadTimerType } from "@/database/schema/canonical-lead-state.schema";
+import {
+  leadTimers,
+  LeadTimerType,
+} from "@/database/schema/canonical-lead-state.schema";
 import { LeadService } from "../services/lead.service";
 
 interface PropertyAddress {

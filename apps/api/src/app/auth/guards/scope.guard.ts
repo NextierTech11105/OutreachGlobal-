@@ -63,7 +63,10 @@ export class ScopeGuard implements CanActivate {
   /**
    * Check if the tenant state allows execution
    */
-  private canExecute(tenant: Tenant | undefined, apiKey: ApiKey): { allowed: boolean; reason?: string } {
+  private canExecute(
+    tenant: Tenant | undefined,
+    apiKey: ApiKey,
+  ): { allowed: boolean; reason?: string } {
     // OWNER_KEY can always execute (internal platform access)
     if (apiKey.type === ApiKeyType.OWNER_KEY) {
       return { allowed: true };
@@ -73,7 +76,8 @@ export class ScopeGuard implements CanActivate {
     if (apiKey.type === ApiKeyType.DEV_KEY) {
       return {
         allowed: false,
-        reason: "DEV_KEY cannot send messages or initiate calls. " +
+        reason:
+          "DEV_KEY cannot send messages or initiate calls. " +
           "Dev keys are for integration testing only. " +
           "Use an ADMIN_KEY or SUB_KEY for execution.",
       };
@@ -98,7 +102,8 @@ export class ScopeGuard implements CanActivate {
       case TenantState.PENDING_ONBOARDING:
         return {
           allowed: false,
-          reason: "Execution is disabled until onboarding is complete. " +
+          reason:
+            "Execution is disabled until onboarding is complete. " +
             "Book your founder strategy session to enable messaging and calling. " +
             "Contact support@nextier.io for assistance.",
         };
@@ -110,7 +115,8 @@ export class ScopeGuard implements CanActivate {
         }
         return {
           allowed: false,
-          reason: "Demo accounts have limited execution. " +
+          reason:
+            "Demo accounts have limited execution. " +
             "Upgrade to enable full messaging and calling capabilities.",
         };
 
@@ -164,7 +170,10 @@ export class ScopeGuard implements CanActivate {
     const effectiveScopes = getEffectiveScopes(apiKey);
 
     // OWNER_KEY has all scopes
-    if (apiKey.type === ApiKeyType.OWNER_KEY || effectiveScopes.includes(Scope.ALL)) {
+    if (
+      apiKey.type === ApiKeyType.OWNER_KEY ||
+      effectiveScopes.includes(Scope.ALL)
+    ) {
       return true;
     }
 
@@ -179,7 +188,7 @@ export class ScopeGuard implements CanActivate {
     if (missingScopes.length > 0) {
       throw new ForbiddenException(
         `API key missing required scope(s): ${missingScopes.join(", ")}. ` +
-        `Your key type (${apiKey.type}) has scopes: ${effectiveScopes.join(", ") || "none"}`,
+          `Your key type (${apiKey.type}) has scopes: ${effectiveScopes.join(", ") || "none"}`,
       );
     }
 
@@ -215,7 +224,8 @@ export function checkUsageCap(
         if (used >= caps.maxMessagesTotal) {
           return {
             allowed: false,
-            message: `Message limit reached (${used}/${caps.maxMessagesTotal}). ` +
+            message:
+              `Message limit reached (${used}/${caps.maxMessagesTotal}). ` +
               (apiKey.type === ApiKeyType.DEMO_KEY
                 ? "Upgrade to continue sending messages."
                 : "Contact support to increase your limit."),
@@ -240,7 +250,8 @@ export function checkUsageCap(
         if (used >= caps.maxCallsTotal) {
           return {
             allowed: false,
-            message: `Call limit reached (${used}/${caps.maxCallsTotal}). ` +
+            message:
+              `Call limit reached (${used}/${caps.maxCallsTotal}). ` +
               (apiKey.type === ApiKeyType.DEMO_KEY
                 ? "Upgrade to continue making calls."
                 : "Contact support to increase your limit."),

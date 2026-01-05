@@ -207,7 +207,9 @@ class DeleteTriggerPayload {
 // HELPER: Map DB row to GraphQL type
 // ============================================
 
-function mapTriggerToGraphQL(trigger: typeof autoTriggers.$inferSelect): AutoTrigger {
+function mapTriggerToGraphQL(
+  trigger: typeof autoTriggers.$inferSelect,
+): AutoTrigger {
   return {
     id: trigger.id,
     name: trigger.name,
@@ -223,7 +225,9 @@ function mapTriggerToGraphQL(trigger: typeof autoTriggers.$inferSelect): AutoTri
   };
 }
 
-function mapExecutionToGraphQL(exec: typeof triggerExecutions.$inferSelect): TriggerExecution {
+function mapExecutionToGraphQL(
+  exec: typeof triggerExecutions.$inferSelect,
+): TriggerExecution {
   return {
     id: exec.id,
     triggerId: exec.triggerId,

@@ -74,7 +74,9 @@ export class ContentNurtureConsumer extends WorkerHost {
 
   async process(
     job: Job<
-      EnrollNurtureJobData | ExecuteNurtureStepJobData | CheckNurtureEscalationJobData
+      | EnrollNurtureJobData
+      | ExecuteNurtureStepJobData
+      | CheckNurtureEscalationJobData
     >,
   ): Promise<unknown> {
     // P0: Validate tenant isolation
@@ -89,7 +91,9 @@ export class ContentNurtureConsumer extends WorkerHost {
         return this.executeNurtureStep(job.data as ExecuteNurtureStepJobData);
 
       case "CHECK_ESCALATION":
-        return this.checkForEscalation(job.data as CheckNurtureEscalationJobData);
+        return this.checkForEscalation(
+          job.data as CheckNurtureEscalationJobData,
+        );
 
       default:
         this.logger.warn(`Unknown job type: ${job.name}`);
@@ -332,7 +336,8 @@ export class ContentNurtureConsumer extends WorkerHost {
           stepNumber: 1,
           channel: "sms",
           templateId: "nurture-1",
-          templateContent: "Hi {{firstName}}, wanted to share some resources that might help...",
+          templateContent:
+            "Hi {{firstName}}, wanted to share some resources that might help...",
           delayMs: 0,
           linkUrl: "https://example.com/resource-1",
         },
@@ -347,7 +352,8 @@ export class ContentNurtureConsumer extends WorkerHost {
           stepNumber: 3,
           channel: "sms",
           templateId: "nurture-3",
-          templateContent: "Quick check-in - any questions about what I shared?",
+          templateContent:
+            "Quick check-in - any questions about what I shared?",
           delayMs: 4 * 24 * 60 * 60 * 1000, // 4 days after previous
         },
       ],
@@ -440,6 +446,10 @@ export class ContentNurtureConsumer extends WorkerHost {
       `Content nurture job ${job.id} failed: ${error.message}`,
       error.stack,
     );
-    await this.dlqService.recordBullMQFailure(CONTENT_NURTURE_QUEUE, job, error);
+    await this.dlqService.recordBullMQFailure(
+      CONTENT_NURTURE_QUEUE,
+      job,
+      error,
+    );
   }
 }

@@ -64,43 +64,43 @@ export const PRIORITY_QUEUE_PK = "pq";
  * Manufacturing inbound responses systematically
  */
 export type PriorityTier =
-  | "critical"      // Inbound response - process within 30 seconds
-  | "high_intent"   // Buying signals detected - process within 5 minutes
-  | "warm"          // Previous engagement - process within 1 hour
-  | "scheduled"     // Timed sequences - process at scheduled time
-  | "cold"          // New outreach - batch process
-  | "suppressed";   // Do not contact
+  | "critical" // Inbound response - process within 30 seconds
+  | "high_intent" // Buying signals detected - process within 5 minutes
+  | "warm" // Previous engagement - process within 1 hour
+  | "scheduled" // Timed sequences - process at scheduled time
+  | "cold" // New outreach - batch process
+  | "suppressed"; // Do not contact
 
 /**
  * Value Tiers (Profitability Segmentation)
  */
 export type ValueTier =
-  | "premium"       // High $ per minute potential (>$10/min)
-  | "standard"      // Normal $ per minute ($2-10/min)
-  | "volume"        // Low margin, high volume (<$2/min)
-  | "nurture";      // Long-term value, low immediate $
+  | "premium" // High $ per minute potential (>$10/min)
+  | "standard" // Normal $ per minute ($2-10/min)
+  | "volume" // Low margin, high volume (<$2/min)
+  | "nurture"; // Long-term value, low immediate $
 
 /**
  * Industry Classification Standard
  * Agnostic to any classification system (SIC, NAICS, custom)
  */
 export type ClassificationSystem =
-  | "sic"           // Standard Industrial Classification
-  | "naics"         // North American Industry Classification
-  | "custom"        // User-defined categories
-  | "mixed";        // Multiple systems
+  | "sic" // Standard Industrial Classification
+  | "naics" // North American Industry Classification
+  | "custom" // User-defined categories
+  | "mixed"; // Multiple systems
 
 /**
  * Source Provider Types
  */
 export type DataProvider =
-  | "usbizdata"     // USBizData.com
-  | "apollo"        // Apollo.io
-  | "zoominfo"      // ZoomInfo
+  | "usbizdata" // USBizData.com
+  | "apollo" // Apollo.io
+  | "zoominfo" // ZoomInfo
   | "realestateapi" // RealEstateAPI (skip trace)
-  | "manual"        // Manual import
-  | "webhook"       // Inbound webhook
-  | "scrape";       // Web scraping
+  | "manual" // Manual import
+  | "webhook" // Inbound webhook
+  | "scrape"; // Web scraping
 
 // =============================================================================
 // TARGETING CATEGORIES TABLE
@@ -141,10 +141,10 @@ export const targetingCategories = pgTable(
       .default("standard"),
 
     // === PROFITABILITY METRICS ===
-    avgDealValue: integer("avg_deal_value"),          // Average deal $ value
-    avgConversionRate: real("avg_conversion_rate"),   // 0.0-1.0
-    avgTimeToClose: integer("avg_time_to_close"),     // Days
-    dollarPerMinute: real("dollar_per_minute"),       // Calculated: value × rate / time
+    avgDealValue: integer("avg_deal_value"), // Average deal $ value
+    avgConversionRate: real("avg_conversion_rate"), // 0.0-1.0
+    avgTimeToClose: integer("avg_time_to_close"), // Days
+    dollarPerMinute: real("dollar_per_minute"), // Calculated: value × rate / time
 
     // === PROBABILITY WEIGHTS (for scoring) ===
     intentWeight: real("intent_weight").notNull().default(1.0),
@@ -154,7 +154,9 @@ export const targetingCategories = pgTable(
 
     // === OWNERSHIP CORRELATION ===
     propertyOwnershipLikelihood: real("property_ownership_likelihood"), // 0.0-1.0: likelihood owner also owns property
-    businessPropertyCorrelation: boolean("business_property_correlation").default(false), // Cross-sell opportunity
+    businessPropertyCorrelation: boolean(
+      "business_property_correlation",
+    ).default(false), // Cross-sell opportunity
 
     // === RESEARCH PROMPTS (for Neva/AI) ===
     researchPromptTemplate: text("research_prompt_template"),
@@ -197,12 +199,14 @@ export const industryCodes = pgTable(
   "industry_codes",
   {
     id: primaryUlid(INDUSTRY_CODE_PK),
-    categoryId: ulidColumn("category_id")
-      .references(() => targetingCategories.id, { onDelete: "set null" }),
+    categoryId: ulidColumn("category_id").references(
+      () => targetingCategories.id,
+      { onDelete: "set null" },
+    ),
 
     // === CLASSIFICATION ===
     system: varchar().$type<ClassificationSystem>().notNull().default("sic"),
-    code: varchar().notNull(),              // e.g., "8721" for SIC
+    code: varchar().notNull(), // e.g., "8721" for SIC
     description: varchar().notNull(),
 
     // === COUNTS (Build on Demand) ===
@@ -211,19 +215,19 @@ export const industryCodes = pgTable(
     countLastUpdated: timestamp("count_last_updated"),
 
     // === TARGETING METRICS ===
-    avgMultiple: real("avg_multiple"),             // Exit multiple for brokers
-    exitFrequency: varchar("exit_frequency"),      // 'high' | 'medium' | 'low'
-    seasonality: varchar(),                        // 'q1' | 'q4' | 'none'
+    avgMultiple: real("avg_multiple"), // Exit multiple for brokers
+    exitFrequency: varchar("exit_frequency"), // 'high' | 'medium' | 'low'
+    seasonality: varchar(), // 'q1' | 'q4' | 'none'
 
     // === RESEARCH PROMPTS ===
     companyIntelPrompt: text("company_intel_prompt"),
     ownerBackgroundPrompt: text("owner_background_prompt"),
 
     // === METADATA ===
-    aliases: text().array(),                       // Alternative names
-    relatedCodes: text("related_codes").array(),   // Cross-reference codes
+    aliases: text().array(), // Alternative names
+    relatedCodes: text("related_codes").array(), // Cross-reference codes
     isActive: boolean("is_active").notNull().default(true),
-    priority: integer().notNull().default(0),      // Higher = target first
+    priority: integer().notNull().default(0), // Higher = target first
 
     createdAt,
     updatedAt,
@@ -264,7 +268,8 @@ export const dataSources = pgTable(
     revenueMax: integer("revenue_max"),
     employeeMin: integer("employee_min"),
     employeeMax: integer("employee_max"),
-    additionalFilters: jsonb("additional_filters").$type<Record<string, unknown>>(),
+    additionalFilters:
+      jsonb("additional_filters").$type<Record<string, unknown>>(),
 
     // === DELIVERY ===
     bucketPath: varchar("bucket_path"),
@@ -326,7 +331,7 @@ export const consentLog = pgTable(
     phone: varchar(),
 
     // === CONSENT DETAILS ===
-    consentType: varchar("consent_type").notNull(),   // 'sms' | 'email' | 'call' | 'marketing'
+    consentType: varchar("consent_type").notNull(), // 'sms' | 'email' | 'call' | 'marketing'
     consentStatus: varchar("consent_status").notNull(), // 'requested' | 'granted' | 'denied' | 'revoked'
     consentMethod: varchar("consent_method").notNull(), // 'sms_reply' | 'web_form' | 'verbal' | 'implied_b2b'
 
@@ -378,22 +383,22 @@ export const priorityQueue = pgTable(
 
     // === PRIORITY ===
     tier: varchar().$type<PriorityTier>().notNull().default("cold"),
-    score: real().notNull().default(0),               // Composite priority score
-    dollarPerMinute: real("dollar_per_minute"),       // Estimated $/min value
+    score: real().notNull().default(0), // Composite priority score
+    dollarPerMinute: real("dollar_per_minute"), // Estimated $/min value
 
     // === TIMING ===
     queuedAt: timestamp("queued_at").notNull(),
-    processBy: timestamp("process_by"),               // SLA deadline
+    processBy: timestamp("process_by"), // SLA deadline
     processedAt: timestamp("processed_at"),
 
     // === CONTEXT ===
-    triggerEvent: varchar("trigger_event"),           // What caused this queue entry
-    triggerSource: varchar("trigger_source"),         // 'inbound' | 'timer' | 'campaign' | 'manual'
+    triggerEvent: varchar("trigger_event"), // What caused this queue entry
+    triggerSource: varchar("trigger_source"), // 'inbound' | 'timer' | 'campaign' | 'manual'
     categoryId: ulidColumn("category_id"),
 
     // === STATUS ===
-    status: varchar().notNull().default("pending"),   // 'pending' | 'processing' | 'completed' | 'expired'
-    assignedTo: varchar("assigned_to"),               // User or AI agent
+    status: varchar().notNull().default("pending"), // 'pending' | 'processing' | 'completed' | 'expired'
+    assignedTo: varchar("assigned_to"), // User or AI agent
 
     // === OUTCOME ===
     outcomeAction: varchar("outcome_action"),
@@ -414,17 +419,20 @@ export const priorityQueue = pgTable(
 // RELATIONS
 // =============================================================================
 
-export const targetingCategoriesRelations = relations(targetingCategories, ({ one, many }) => ({
-  team: one(teams, {
-    fields: [targetingCategories.teamId],
-    references: [teams.id],
+export const targetingCategoriesRelations = relations(
+  targetingCategories,
+  ({ one, many }) => ({
+    team: one(teams, {
+      fields: [targetingCategories.teamId],
+      references: [teams.id],
+    }),
+    parent: one(targetingCategories, {
+      fields: [targetingCategories.parentCategoryId],
+      references: [targetingCategories.id],
+    }),
+    industryCodes: many(industryCodes),
   }),
-  parent: one(targetingCategories, {
-    fields: [targetingCategories.parentCategoryId],
-    references: [targetingCategories.id],
-  }),
-  industryCodes: many(industryCodes),
-}));
+);
 
 export const industryCodesRelations = relations(industryCodes, ({ one }) => ({
   category: one(targetingCategories, {
@@ -470,16 +478,17 @@ export function calculatePriorityScore(params: {
   intentSignals: number;
   engagementScore: number;
 }): number {
-  const { tier, valueTier, recencyMinutes, intentSignals, engagementScore } = params;
+  const { tier, valueTier, recencyMinutes, intentSignals, engagementScore } =
+    params;
 
   // Base scores by tier
   const tierScores: Record<PriorityTier, number> = {
-    critical: 10000,      // Inbound - always first
-    high_intent: 5000,    // Buying signals
-    warm: 1000,           // Previous engagement
-    scheduled: 500,       // Timed sequences
-    cold: 100,            // New outreach
-    suppressed: 0,        // Never process
+    critical: 10000, // Inbound - always first
+    high_intent: 5000, // Buying signals
+    warm: 1000, // Previous engagement
+    scheduled: 500, // Timed sequences
+    cold: 100, // New outreach
+    suppressed: 0, // Never process
   };
 
   // Value multipliers
@@ -498,7 +507,9 @@ export function calculatePriorityScore(params: {
   const intentBonus = intentSignals * 100;
   const engagementBonus = engagementScore * 50;
 
-  return (baseScore + intentBonus + engagementBonus) * valueMultiplier * recencyDecay;
+  return (
+    (baseScore + intentBonus + engagementBonus) * valueMultiplier * recencyDecay
+  );
 }
 
 /**
@@ -520,11 +531,15 @@ export function calculateDollarPerMinute(params: {
 // SEED DATA: Business Broker Categories
 // =============================================================================
 
-export const SEED_TARGETING_CATEGORIES: Omit<NewTargetingCategory, "id" | "createdAt" | "updatedAt">[] = [
+export const SEED_TARGETING_CATEGORIES: Omit<
+  NewTargetingCategory,
+  "id" | "createdAt" | "updatedAt"
+>[] = [
   {
     name: "Professional Services",
     slug: "professional-services",
-    description: "Accounting, legal, engineering, consulting with recurring revenue",
+    description:
+      "Accounting, legal, engineering, consulting with recurring revenue",
     classificationSystem: "sic",
     priorityTier: "warm",
     valueTier: "premium",
@@ -584,7 +599,7 @@ export const SEED_TARGETING_CATEGORIES: Omit<NewTargetingCategory, "id" | "creat
     engagementWeight: 1.2,
     recencyWeight: 2.0,
     fitWeight: 1.5,
-    propertyOwnershipLikelihood: 0.20, // Usually lease
+    propertyOwnershipLikelihood: 0.2, // Usually lease
     businessPropertyCorrelation: false,
     minRevenue: 500000,
     maxRevenue: 50000000,
@@ -596,12 +611,13 @@ export const SEED_TARGETING_CATEGORIES: Omit<NewTargetingCategory, "id" | "creat
   {
     name: "Manufacturing",
     slug: "manufacturing",
-    description: "Industrial, specialty manufacturing with equipment and real estate",
+    description:
+      "Industrial, specialty manufacturing with equipment and real estate",
     classificationSystem: "sic",
     priorityTier: "warm",
     valueTier: "premium",
     avgDealValue: 4000000,
-    avgConversionRate: 0.10,
+    avgConversionRate: 0.1,
     avgTimeToClose: 200,
     dollarPerMinute: 1.39,
     intentWeight: 1.4,
@@ -632,7 +648,7 @@ export const SEED_TARGETING_CATEGORIES: Omit<NewTargetingCategory, "id" | "creat
     engagementWeight: 1.2,
     recencyWeight: 1.3,
     fitWeight: 1.1,
-    propertyOwnershipLikelihood: 0.40, // Often own yard/warehouse
+    propertyOwnershipLikelihood: 0.4, // Often own yard/warehouse
     businessPropertyCorrelation: true,
     minRevenue: 1000000,
     maxRevenue: 25000000,
@@ -656,7 +672,7 @@ export const SEED_TARGETING_CATEGORIES: Omit<NewTargetingCategory, "id" | "creat
     engagementWeight: 1.2,
     recencyWeight: 1.4,
     fitWeight: 1.3,
-    propertyOwnershipLikelihood: 0.50, // Often own warehouse
+    propertyOwnershipLikelihood: 0.5, // Often own warehouse
     businessPropertyCorrelation: true,
     minRevenue: 2000000,
     maxRevenue: 30000000,
@@ -680,7 +696,7 @@ export const SEED_TARGETING_CATEGORIES: Omit<NewTargetingCategory, "id" | "creat
     engagementWeight: 1.0,
     recencyWeight: 1.2,
     fitWeight: 0.9,
-    propertyOwnershipLikelihood: 0.30, // Usually lease
+    propertyOwnershipLikelihood: 0.3, // Usually lease
     businessPropertyCorrelation: false,
     minRevenue: 500000,
     maxRevenue: 10000000,
@@ -691,29 +707,168 @@ export const SEED_TARGETING_CATEGORIES: Omit<NewTargetingCategory, "id" | "creat
   },
 ];
 
-export const SEED_INDUSTRY_CODES: Omit<NewIndustryCode, "id" | "createdAt" | "updatedAt">[] = [
+export const SEED_INDUSTRY_CODES: Omit<
+  NewIndustryCode,
+  "id" | "createdAt" | "updatedAt"
+>[] = [
   // Professional Services
-  { system: "sic", code: "8721", description: "Accounting, Auditing, and Bookkeeping Services", totalCount: 498775, avgMultiple: 2.0, priority: 100, isActive: true },
-  { system: "sic", code: "8111", description: "Legal Services", totalCount: 1485798, avgMultiple: 1.6, priority: 90, isActive: true },
-  { system: "sic", code: "8711", description: "Engineering Services", totalCount: 610317, avgMultiple: 2.4, priority: 95, isActive: true },
-  { system: "sic", code: "8742", description: "Management Consulting Services", totalCount: 987465, avgMultiple: 3.0, priority: 98, isActive: true },
+  {
+    system: "sic",
+    code: "8721",
+    description: "Accounting, Auditing, and Bookkeeping Services",
+    totalCount: 498775,
+    avgMultiple: 2.0,
+    priority: 100,
+    isActive: true,
+  },
+  {
+    system: "sic",
+    code: "8111",
+    description: "Legal Services",
+    totalCount: 1485798,
+    avgMultiple: 1.6,
+    priority: 90,
+    isActive: true,
+  },
+  {
+    system: "sic",
+    code: "8711",
+    description: "Engineering Services",
+    totalCount: 610317,
+    avgMultiple: 2.4,
+    priority: 95,
+    isActive: true,
+  },
+  {
+    system: "sic",
+    code: "8742",
+    description: "Management Consulting Services",
+    totalCount: 987465,
+    avgMultiple: 3.0,
+    priority: 98,
+    isActive: true,
+  },
   // Healthcare
-  { system: "sic", code: "8011", description: "Offices of Doctors of Medicine", totalCount: 1701012, avgMultiple: 2.5, priority: 95, isActive: true },
-  { system: "sic", code: "8021", description: "Offices of Dentists", totalCount: 146432, avgMultiple: 2.0, priority: 90, isActive: true },
-  { system: "sic", code: "8082", description: "Home Health Care Services", totalCount: 134887, avgMultiple: 3.0, priority: 92, isActive: true },
+  {
+    system: "sic",
+    code: "8011",
+    description: "Offices of Doctors of Medicine",
+    totalCount: 1701012,
+    avgMultiple: 2.5,
+    priority: 95,
+    isActive: true,
+  },
+  {
+    system: "sic",
+    code: "8021",
+    description: "Offices of Dentists",
+    totalCount: 146432,
+    avgMultiple: 2.0,
+    priority: 90,
+    isActive: true,
+  },
+  {
+    system: "sic",
+    code: "8082",
+    description: "Home Health Care Services",
+    totalCount: 134887,
+    avgMultiple: 3.0,
+    priority: 92,
+    isActive: true,
+  },
   // Technology
-  { system: "sic", code: "7371", description: "Computer Programming Services", totalCount: 611879, avgMultiple: 4.0, priority: 99, isActive: true },
-  { system: "sic", code: "7372", description: "Prepackaged Software", totalCount: 322320, avgMultiple: 5.5, priority: 100, isActive: true },
-  { system: "sic", code: "7373", description: "Computer Integrated Systems Design", totalCount: 232883, avgMultiple: 3.5, priority: 95, isActive: true },
+  {
+    system: "sic",
+    code: "7371",
+    description: "Computer Programming Services",
+    totalCount: 611879,
+    avgMultiple: 4.0,
+    priority: 99,
+    isActive: true,
+  },
+  {
+    system: "sic",
+    code: "7372",
+    description: "Prepackaged Software",
+    totalCount: 322320,
+    avgMultiple: 5.5,
+    priority: 100,
+    isActive: true,
+  },
+  {
+    system: "sic",
+    code: "7373",
+    description: "Computer Integrated Systems Design",
+    totalCount: 232883,
+    avgMultiple: 3.5,
+    priority: 95,
+    isActive: true,
+  },
   // Insurance/Financial
-  { system: "sic", code: "6411", description: "Insurance Agents, Brokers, and Service", totalCount: 1306302, avgMultiple: 2.0, priority: 85, isActive: true },
-  { system: "sic", code: "6282", description: "Investment Advice", totalCount: 516863, avgMultiple: 3.0, priority: 88, isActive: true },
+  {
+    system: "sic",
+    code: "6411",
+    description: "Insurance Agents, Brokers, and Service",
+    totalCount: 1306302,
+    avgMultiple: 2.0,
+    priority: 85,
+    isActive: true,
+  },
+  {
+    system: "sic",
+    code: "6282",
+    description: "Investment Advice",
+    totalCount: 516863,
+    avgMultiple: 3.0,
+    priority: 88,
+    isActive: true,
+  },
   // Building Trades
-  { system: "sic", code: "1711", description: "Plumbing, Heating and Air Conditioning", totalCount: 271874, avgMultiple: 1.4, priority: 80, isActive: true },
-  { system: "sic", code: "1731", description: "Electrical Work", totalCount: 246726, avgMultiple: 1.4, priority: 78, isActive: true },
+  {
+    system: "sic",
+    code: "1711",
+    description: "Plumbing, Heating and Air Conditioning",
+    totalCount: 271874,
+    avgMultiple: 1.4,
+    priority: 80,
+    isActive: true,
+  },
+  {
+    system: "sic",
+    code: "1731",
+    description: "Electrical Work",
+    totalCount: 246726,
+    avgMultiple: 1.4,
+    priority: 78,
+    isActive: true,
+  },
   // Manufacturing
-  { system: "sic", code: "3841", description: "Surgical and Medical Instruments", totalCount: 225260, avgMultiple: 5.0, priority: 92, isActive: true },
+  {
+    system: "sic",
+    code: "3841",
+    description: "Surgical and Medical Instruments",
+    totalCount: 225260,
+    avgMultiple: 5.0,
+    priority: 92,
+    isActive: true,
+  },
   // Distribution
-  { system: "sic", code: "5084", description: "Industrial Machinery and Equipment", totalCount: 193838, avgMultiple: 2.0, priority: 82, isActive: true },
-  { system: "sic", code: "5047", description: "Medical, Dental, Hospital Equipment", totalCount: 157294, avgMultiple: 3.0, priority: 85, isActive: true },
+  {
+    system: "sic",
+    code: "5084",
+    description: "Industrial Machinery and Equipment",
+    totalCount: 193838,
+    avgMultiple: 2.0,
+    priority: 82,
+    isActive: true,
+  },
+  {
+    system: "sic",
+    code: "5047",
+    description: "Medical, Dental, Hospital Equipment",
+    totalCount: 157294,
+    avgMultiple: 3.0,
+    priority: 85,
+    isActive: true,
+  },
 ];

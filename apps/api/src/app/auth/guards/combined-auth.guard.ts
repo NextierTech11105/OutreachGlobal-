@@ -113,12 +113,14 @@ export class CombinedAuthGuard extends JwtGuard implements CanActivate {
     }
 
     // Update last used timestamp and IP (fire and forget)
-    const clientIp = request.ip || request.headers["x-forwarded-for"] || "unknown";
+    const clientIp =
+      request.ip || request.headers["x-forwarded-for"] || "unknown";
     this.db
       .update(apiKeys)
       .set({
         lastUsedAt: new Date(),
-        lastUsedFromIp: typeof clientIp === "string" ? clientIp.slice(0, 45) : null,
+        lastUsedFromIp:
+          typeof clientIp === "string" ? clientIp.slice(0, 45) : null,
       })
       .where(eq(apiKeys.id, keyRecord.id))
       .execute()

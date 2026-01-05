@@ -145,7 +145,9 @@ class CampaignBlockPayload {
 // HELPER: Map DB row to GraphQL type
 // ============================================
 
-function mapBlockToGraphQL(block: typeof campaignBlocks.$inferSelect): CampaignBlock {
+function mapBlockToGraphQL(
+  block: typeof campaignBlocks.$inferSelect,
+): CampaignBlock {
   return {
     id: block.id,
     campaignId: block.campaignId,
@@ -292,10 +294,7 @@ export class CampaignBlockResolver extends BaseResolver(CampaignBlock) {
       .update(campaignBlocks)
       .set(updateData)
       .where(
-        and(
-          eq(campaignBlocks.id, args.id),
-          eq(campaignBlocks.teamId, team.id),
-        ),
+        and(eq(campaignBlocks.id, args.id), eq(campaignBlocks.teamId, team.id)),
       )
       .returning();
 
