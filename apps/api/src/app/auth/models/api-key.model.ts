@@ -1,6 +1,6 @@
 import { TimestampModel } from "@/app/apollo/base-model";
 import { Field, ObjectType, registerEnumType, Int } from "@nestjs/graphql";
-import GraphQLJSON from "graphql-type-json";
+import { JSONScalar } from "@/app/apollo/scalars/json.scalar";
 
 // Register the API Key Type enum for GraphQL
 registerEnumType(
@@ -217,10 +217,10 @@ export class ApiKey extends TimestampModel {
   @Field(() => Date, { nullable: true })
   expiresAt: Date | null;
 
-  @Field(() => GraphQLJSON, { nullable: true })
+  @Field(() => JSONScalar, { nullable: true })
   usageCaps: Record<string, any> | null;
 
-  @Field(() => GraphQLJSON, { nullable: true })
+  @Field(() => JSONScalar, { nullable: true })
   usageCounters: Record<string, any> | null;
 }
 
