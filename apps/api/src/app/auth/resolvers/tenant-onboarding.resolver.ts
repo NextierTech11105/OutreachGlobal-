@@ -7,6 +7,9 @@ import { ApiKeyService } from "../services/api-key.service";
 import { ProductPack, TenantState } from "@/database/schema/api-keys.schema";
 import { ForbiddenException, UnauthorizedException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { InjectDB } from "@/database/decorators";
+import { DrizzleClient } from "@/database/types";
+import { sql } from "drizzle-orm";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // INPUT TYPES
@@ -167,6 +170,18 @@ export class BootstrapOwnerResult {
 // RESOLVER
 // ═══════════════════════════════════════════════════════════════════════════
 
+@ObjectType()
+export class MigrationResult {
+  @Field()
+  success: boolean;
+
+  @Field(() => [String])
+  results: string[];
+
+  @Field({ nullable: true })
+  error?: string;
+}
+
 @Resolver()
 export class TenantOnboardingResolver {
   private readonly webhookSecret: string;
@@ -175,6 +190,7 @@ export class TenantOnboardingResolver {
     private onboardingService: TenantOnboardingService,
     private apiKeyService: ApiKeyService,
     private configService: ConfigService,
+    @InjectDB() private db: DrizzleClient,
   ) {
     // Secret for webhook authentication (should match Stripe webhook secret or custom)
     this.webhookSecret =
@@ -389,6 +405,162 @@ export class TenantOnboardingResolver {
         success: false,
         isNew: false,
         error: error instanceof Error ? error.message : "Bootstrap failed",
+      };
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MIGRATION ENDPOINT (one-time setup for database schema)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Run API key governance migration
+   *
+   * Creates tenants table and updates api_keys table for multi-tenant support.
+   * This is a one-time setup operation. Requires bootstrap secret.
+   */
+  @Mutation(() => MigrationResult, {
+    description: "Run API key governance migration. One-time setup.",
+  })
+  async runApiKeyMigration(
+    @Args("secret") secret: string,
+  ): Promise<MigrationResult> {
+    // Get bootstrap secret from config
+    const bootstrapSecret =
+      this.configService.get("BOOTSTRAP_SECRET") || "og-bootstrap-2024";
+
+    // Verify secret
+    if (secret !== bootstrapSecret) {
+      throw new UnauthorizedException("Invalid bootstrap secret");
+    }
+
+    const results: string[] = [];
+
+    try {
+      // Create tenants table
+      await this.db.execute(sql`
+        CREATE TABLE IF NOT EXISTS "tenants" (
+          "id" varchar(30) PRIMARY KEY NOT NULL,
+          "name" varchar(200) NOT NULL,
+          "slug" varchar(100) NOT NULL UNIQUE,
+          "contact_email" varchar(255),
+          "contact_name" varchar(200),
+          "signalhouse_subgroup_id" varchar(255),
+          "signalhouse_brand_id" varchar(255),
+          "stripe_customer_id" varchar(255),
+          "stripe_subscription_id" varchar(255),
+          "product_pack" varchar(30) DEFAULT 'DATA_ENGINE',
+          "state" varchar(25) NOT NULL DEFAULT 'DEMO',
+          "billing_status" varchar(20) DEFAULT 'trial',
+          "trial_ends_at" timestamp,
+          "onboarding_completed_at" timestamp,
+          "onboarding_completed_by" varchar(100),
+          "created_at" timestamp DEFAULT now() NOT NULL,
+          "updated_at" timestamp DEFAULT now() NOT NULL
+        )
+      `);
+      results.push("Created tenants table");
+
+      // Create indexes for tenants
+      await this.db.execute(
+        sql`CREATE INDEX IF NOT EXISTS "tenants_slug_idx" ON "tenants" ("slug")`,
+      );
+      await this.db.execute(
+        sql`CREATE INDEX IF NOT EXISTS "tenants_stripe_customer_idx" ON "tenants" ("stripe_customer_id")`,
+      );
+      await this.db.execute(
+        sql`CREATE INDEX IF NOT EXISTS "tenants_state_idx" ON "tenants" ("state")`,
+      );
+      results.push("Created tenants indexes");
+
+      // Add tenant_id column to api_keys
+      try {
+        await this.db.execute(
+          sql`ALTER TABLE "api_keys" ADD COLUMN IF NOT EXISTS "tenant_id" varchar(30) REFERENCES "tenants"("id") ON DELETE CASCADE`,
+        );
+        results.push("Added tenant_id column to api_keys");
+      } catch (e: any) {
+        results.push(`tenant_id column: ${e.message}`);
+      }
+
+      // Add other new columns to api_keys
+      try {
+        await this.db.execute(
+          sql`ALTER TABLE "api_keys" ADD COLUMN IF NOT EXISTS "created_by_user_id" varchar(30)`,
+        );
+        await this.db.execute(
+          sql`ALTER TABLE "api_keys" ADD COLUMN IF NOT EXISTS "parent_key_id" varchar(30)`,
+        );
+        await this.db.execute(
+          sql`ALTER TABLE "api_keys" ADD COLUMN IF NOT EXISTS "product_pack" varchar(30)`,
+        );
+        await this.db.execute(
+          sql`ALTER TABLE "api_keys" ADD COLUMN IF NOT EXISTS "scopes" jsonb DEFAULT '[]'::jsonb`,
+        );
+        await this.db.execute(
+          sql`ALTER TABLE "api_keys" ADD COLUMN IF NOT EXISTS "usage_caps" jsonb`,
+        );
+        await this.db.execute(
+          sql`ALTER TABLE "api_keys" ADD COLUMN IF NOT EXISTS "usage_counters" jsonb DEFAULT '{}'::jsonb`,
+        );
+        await this.db.execute(
+          sql`ALTER TABLE "api_keys" ADD COLUMN IF NOT EXISTS "last_used_from_ip" varchar(45)`,
+        );
+        results.push("Added new columns to api_keys");
+      } catch (e: any) {
+        results.push(`api_keys columns: ${e.message}`);
+      }
+
+      // Extend key_prefix length
+      try {
+        await this.db.execute(
+          sql`ALTER TABLE "api_keys" ALTER COLUMN "key_prefix" TYPE varchar(24)`,
+        );
+        results.push("Extended key_prefix length");
+      } catch (e: any) {
+        results.push(`key_prefix: ${e.message}`);
+      }
+
+      // Create api_keys indexes
+      await this.db.execute(
+        sql`CREATE INDEX IF NOT EXISTS "api_keys_tenant_idx" ON "api_keys" ("tenant_id")`,
+      );
+      results.push("Created api_keys tenant index");
+
+      // Create api_key_usage_logs table
+      await this.db.execute(sql`
+        CREATE TABLE IF NOT EXISTS "api_key_usage_logs" (
+          "id" varchar(30) PRIMARY KEY NOT NULL,
+          "api_key_id" varchar(30) NOT NULL REFERENCES "api_keys"("id") ON DELETE CASCADE,
+          "tenant_id" varchar(30) REFERENCES "tenants"("id") ON DELETE CASCADE,
+          "action" varchar(100) NOT NULL,
+          "endpoint" varchar(200),
+          "ip_address" varchar(45),
+          "user_agent" varchar(500),
+          "status_code" integer,
+          "response_time_ms" integer,
+          "units_consumed" integer DEFAULT 1,
+          "metadata" jsonb,
+          "created_at" timestamp DEFAULT now() NOT NULL
+        )
+      `);
+      results.push("Created api_key_usage_logs table");
+
+      // Create usage logs indexes
+      await this.db.execute(
+        sql`CREATE INDEX IF NOT EXISTS "api_key_usage_key_idx" ON "api_key_usage_logs" ("api_key_id")`,
+      );
+      await this.db.execute(
+        sql`CREATE INDEX IF NOT EXISTS "api_key_usage_tenant_idx" ON "api_key_usage_logs" ("tenant_id")`,
+      );
+      results.push("Created usage logs indexes");
+
+      return { success: true, results };
+    } catch (error) {
+      return {
+        success: false,
+        results,
+        error: error instanceof Error ? error.message : "Migration failed",
       };
     }
   }
