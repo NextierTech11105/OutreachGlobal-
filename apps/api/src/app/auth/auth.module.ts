@@ -14,6 +14,7 @@ import { TeamModule } from "@/app/team/team.module";
 @Global()
 @Module({
   imports: [
+    ConfigModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
