@@ -6,7 +6,11 @@
  */
 
 import { NextRequest } from "next/server";
-import { GET as queueGet, POST as queuePost, DELETE as queueDelete } from "../call-center/queue/route";
+import {
+  GET as queueGet,
+  POST as queuePost,
+  DELETE as queueDelete,
+} from "../call-center/queue/route";
 
 export async function GET(request: NextRequest) {
   return queueGet(request);

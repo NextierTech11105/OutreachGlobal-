@@ -8,7 +8,8 @@ import { APP_NAME } from "@/config/title";
 export default async function Page() {
   const { team, user } = await getAuthUser();
   if (!user) {
-    redirect("/auth/login");
+    // No login required - send to simple landing page
+    redirect("/get-started");
   }
   if (team) {
     redirect(`/t/${team.slug}`);

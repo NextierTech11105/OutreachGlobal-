@@ -115,6 +115,54 @@ export class TenantListItem {
   onboardingCompletedAt?: Date;
 }
 
+@ObjectType()
+export class BootstrapTenantInfo {
+  @Field()
+  id: string;
+
+  @Field()
+  name: string;
+
+  @Field()
+  slug: string;
+
+  @Field()
+  state: string;
+}
+
+@ObjectType()
+export class BootstrapApiKeyInfo {
+  @Field()
+  key: string;
+
+  @Field()
+  keyPrefix: string;
+
+  @Field()
+  name: string;
+
+  @Field()
+  type: string;
+}
+
+@ObjectType()
+export class BootstrapOwnerResult {
+  @Field()
+  success: boolean;
+
+  @Field(() => BootstrapTenantInfo, { nullable: true })
+  tenant?: BootstrapTenantInfo;
+
+  @Field(() => BootstrapApiKeyInfo, { nullable: true })
+  apiKey?: BootstrapApiKeyInfo;
+
+  @Field()
+  isNew: boolean;
+
+  @Field({ nullable: true })
+  error?: string;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // RESOLVER
 // ═══════════════════════════════════════════════════════════════════════════
@@ -282,5 +330,66 @@ export class TenantOnboardingResolver {
       createdAt: t.createdAt,
       onboardingCompletedAt: t.onboardingCompletedAt || undefined,
     }));
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BOOTSTRAP ENDPOINT (one-time setup for platform owner)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Bootstrap the platform owner account
+   *
+   * Creates OWNER_KEY for tb@outreachglobal.io
+   * This is a one-time setup operation. Requires a secret.
+   */
+  @Mutation(() => BootstrapOwnerResult, {
+    description: "Bootstrap platform owner. One-time setup.",
+  })
+  async bootstrapOwner(
+    @Args("email") email: string,
+    @Args("secret") secret: string,
+  ): Promise<BootstrapOwnerResult> {
+    // Get bootstrap secret from config
+    const bootstrapSecret =
+      this.configService.get("BOOTSTRAP_SECRET") || "og-bootstrap-2024";
+
+    // Verify secret
+    if (secret !== bootstrapSecret) {
+      throw new UnauthorizedException("Invalid bootstrap secret");
+    }
+
+    // Only allow @outreachglobal.io emails
+    if (!email || !email.endsWith("@outreachglobal.io")) {
+      throw new ForbiddenException(
+        "Only @outreachglobal.io emails can bootstrap owner access",
+      );
+    }
+
+    try {
+      const result = await this.apiKeyService.bootstrapOwner(email);
+
+      return {
+        success: true,
+        tenant: {
+          id: result.tenant.id,
+          name: result.tenant.name,
+          slug: result.tenant.slug,
+          state: result.tenant.state,
+        },
+        apiKey: {
+          key: result.apiKey.key,
+          keyPrefix: result.apiKey.keyPrefix,
+          name: result.apiKey.name,
+          type: result.apiKey.type,
+        },
+        isNew: result.isNew,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        isNew: false,
+        error: error instanceof Error ? error.message : "Bootstrap failed",
+      };
+    }
   }
 }

@@ -24,6 +24,12 @@ import {
   Settings,
   Shield,
   Zap,
+  Upload,
+  MessageCircle,
+  Briefcase,
+  GitBranch,
+  Activity,
+  ServerCog,
   type LucideIcon,
 } from "lucide-react";
 
@@ -31,7 +37,7 @@ import {
 // NAVIGATION CONFIGURATION
 // ═══════════════════════════════════════════════════════════════════════════
 // Single source of truth for all navigation items
-// Matches the new IA structure with 8 groups
+// Organized by USER WORKFLOW, not feature type
 
 export type NavItemRole = "admin" | "member" | "viewer";
 
@@ -63,7 +69,7 @@ export interface NavGroup {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// MAIN NAVIGATION GROUPS
+// MAIN NAVIGATION GROUPS - Organized by Workflow
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const navigationGroups: NavGroup[] = [
@@ -89,11 +95,11 @@ export const navigationGroups: NavGroup[] = [
   },
 
   // ─────────────────────────────────────────────────────────────────────────
-  // COMMAND - Mission control & campaign management
+  // DAILY WORK - What users open every day
   // ─────────────────────────────────────────────────────────────────────────
   {
-    id: "command",
-    label: "COMMAND",
+    id: "daily",
+    label: "DAILY",
     icon: LayoutDashboard,
     items: [
       {
@@ -103,45 +109,68 @@ export const navigationGroups: NavGroup[] = [
         description: "Overview of all activity",
       },
       {
-        label: "Campaigns",
-        href: "/admin/campaigns",
-        icon: Target,
-        description: "Manage outreach campaigns",
-      },
-      {
-        label: "Initial Outreach",
-        href: "/admin/initial-outreach",
-        icon: Send,
-        description: "First-touch message sequences",
-      },
-      {
-        label: "Nudge Engine",
-        href: "/admin/nudger",
-        icon: Bell,
-        description: "Follow-up automation",
-      },
-      {
-        label: "Power Dialer",
-        href: "/admin/power-dialer",
-        icon: Phone,
-        description: "Outbound calling system",
-      },
-      {
         label: "Inbox",
         href: "/admin/inbox",
         icon: Inbox,
         description: "Unified message center",
       },
+      {
+        label: "Appointments",
+        href: "/admin/appointments",
+        icon: Calendar,
+        description: "Meeting tracking",
+      },
     ],
   },
 
   // ─────────────────────────────────────────────────────────────────────────
-  // DATA - Lead management & data sources
+  // PROSPECTING - Finding new leads and data
   // ─────────────────────────────────────────────────────────────────────────
   {
-    id: "data",
-    label: "DATA",
-    icon: Database,
+    id: "prospecting",
+    label: "PROSPECTING",
+    icon: Search,
+    items: [
+      {
+        label: "Search",
+        href: "/admin/search",
+        icon: Search,
+        description: "Find contacts and companies",
+      },
+      {
+        label: "B2B Search",
+        href: "/admin/b2b-search",
+        icon: Building2,
+        description: "Find business prospects",
+      },
+      {
+        label: "Data Lakes",
+        href: "/admin/sectors",
+        icon: Database,
+        description: "Industry-specific data pools",
+      },
+      {
+        label: "Import",
+        href: "/admin/import",
+        icon: Upload,
+        description: "Import leads from files",
+      },
+      {
+        label: "Territories",
+        href: "/admin/territories",
+        icon: MapPin,
+        description: "Geographic assignments",
+      },
+    ],
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // LEADS & PIPELINE - Managing contacts and deals
+  // ─────────────────────────────────────────────────────────────────────────
+  {
+    id: "pipeline",
+    label: "PIPELINE",
+    icon: GitBranch,
     items: [
       {
         label: "Leads",
@@ -156,45 +185,81 @@ export const navigationGroups: NavGroup[] = [
         description: "Organization records",
       },
       {
-        label: "Data Lakes",
-        href: "/admin/sectors",
-        icon: Database,
-        description: "Industry-specific data pools",
+        label: "Deals",
+        href: "/admin/deals",
+        icon: Briefcase,
+        description: "Active opportunities",
       },
-      {
-        label: "Territories",
-        href: "/admin/territories",
-        icon: MapPin,
-        description: "Geographic assignments",
-      },
-      {
-        label: "B2B Search",
-        href: "/admin/b2b-search",
-        icon: Search,
-        description: "Find new prospects",
-      },
-    ],
-  },
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // WORKSPACES - Team collaboration & pipelines
-  // ─────────────────────────────────────────────────────────────────────────
-  {
-    id: "workspaces",
-    label: "WORKSPACES",
-    icon: Target,
-    items: [
       {
         label: "Pipelines",
         href: "/admin/pipelines",
-        icon: Target,
+        icon: GitBranch,
         description: "Sales stage management",
+      },
+      {
+        label: "Properties",
+        href: "/admin/properties",
+        icon: Home,
+        description: "Real estate leads",
+      },
+      {
+        label: "Valuation Queue",
+        href: "/admin/valuation-queue",
+        icon: TrendingUp,
+        description: "Property valuations",
       },
     ],
   },
 
   // ─────────────────────────────────────────────────────────────────────────
-  // AI - AI SDR & content generation
+  // OUTREACH - All communication channels
+  // ─────────────────────────────────────────────────────────────────────────
+  {
+    id: "outreach",
+    label: "OUTREACH",
+    icon: Send,
+    items: [
+      {
+        label: "Campaigns",
+        href: "/admin/campaigns",
+        icon: Target,
+        description: "Manage outreach campaigns",
+      },
+      {
+        label: "Initial Outreach",
+        href: "/admin/initial-outreach",
+        icon: Send,
+        description: "First-touch messages",
+      },
+      {
+        label: "Instant Outreach",
+        href: "/admin/instant-outreach",
+        icon: Zap,
+        description: "Quick one-off messages",
+      },
+      {
+        label: "Nudge Engine",
+        href: "/admin/nudger",
+        icon: Bell,
+        description: "Follow-up automation",
+      },
+      {
+        label: "Power Dialer",
+        href: "/admin/power-dialer",
+        icon: Phone,
+        description: "Outbound calling",
+      },
+      {
+        label: "SMS Center",
+        href: "/admin/sms/command-center",
+        icon: MessageCircle,
+        description: "SMS messaging hub",
+      },
+    ],
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // AI & AUTOMATION - Intelligent features
   // ─────────────────────────────────────────────────────────────────────────
   {
     id: "ai",
@@ -208,22 +273,10 @@ export const navigationGroups: NavGroup[] = [
         description: "Autonomous sales rep",
       },
       {
-        label: "Prompts",
-        href: "/admin/prompts",
-        icon: MessageSquare,
-        description: "AI prompt templates",
-      },
-      {
-        label: "Message Templates",
-        href: "/admin/message-templates",
-        icon: FileText,
-        description: "Reusable message content",
-      },
-      {
-        label: "SDR Avatars",
-        href: "/admin/ai-sdr-avatars",
-        icon: Palette,
-        description: "AI personality profiles",
+        label: "Digital Workers",
+        href: "/admin/digital-workers",
+        icon: Users,
+        description: "AI worker management",
       },
       {
         label: "Workflows",
@@ -231,19 +284,43 @@ export const navigationGroups: NavGroup[] = [
         icon: Workflow,
         description: "Automation sequences",
       },
+      {
+        label: "Automation Rules",
+        href: "/admin/automation-rules",
+        icon: GitBranch,
+        description: "Trigger-based actions",
+      },
+      {
+        label: "Message Templates",
+        href: "/admin/message-templates",
+        icon: FileText,
+        description: "Reusable content",
+      },
+      {
+        label: "Prompts",
+        href: "/admin/prompts",
+        icon: MessageSquare,
+        description: "AI prompt templates",
+      },
+      {
+        label: "SDR Avatars",
+        href: "/admin/ai-sdr-avatars",
+        icon: Palette,
+        description: "AI personality profiles",
+      },
     ],
   },
 
   // ─────────────────────────────────────────────────────────────────────────
-  // OUTCOMES - Analytics & reporting
+  // ANALYTICS - Results and reporting
   // ─────────────────────────────────────────────────────────────────────────
   {
-    id: "outcomes",
-    label: "OUTCOMES",
+    id: "analytics",
+    label: "ANALYTICS",
     icon: BarChart3,
     items: [
       {
-        label: "Analytics",
+        label: "Overview",
         href: "/admin/analytics",
         icon: BarChart3,
         description: "Performance metrics",
@@ -255,33 +332,22 @@ export const navigationGroups: NavGroup[] = [
         description: "Custom report builder",
       },
       {
-        label: "Appointments",
-        href: "/admin/appointments",
-        icon: Calendar,
-        description: "Meeting tracking",
+        label: "SMS Analytics",
+        href: "/admin/analytics/sms",
+        icon: MessageCircle,
+        description: "SMS performance",
       },
-    ],
-  },
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // REAL ESTATE - Industry-specific features
-  // ─────────────────────────────────────────────────────────────────────────
-  {
-    id: "real-estate",
-    label: "REAL ESTATE",
-    icon: Home,
-    items: [
       {
-        label: "Property Leads",
-        href: "/admin/real-estate",
-        icon: Home,
-        description: "Property-based prospecting",
+        label: "Pipeline Heatmap",
+        href: "/admin/analytics/pipeline-heatmap",
+        icon: Activity,
+        description: "Pipeline visualization",
       },
     ],
   },
 
   // ─────────────────────────────────────────────────────────────────────────
-  // ADMIN - Platform administration (admin/owner only)
+  // ADMIN - Platform configuration (admin/owner only)
   // ─────────────────────────────────────────────────────────────────────────
   {
     id: "admin",
@@ -304,11 +370,32 @@ export const navigationGroups: NavGroup[] = [
         description: "Connect external services",
       },
       {
+        label: "Users",
+        href: "/admin/users",
+        icon: Users,
+        minRole: "admin",
+        description: "Team members",
+      },
+      {
         label: "Access Control",
         href: "/admin/access",
         icon: Shield,
         minRole: "admin",
         description: "Permissions & roles",
+      },
+      {
+        label: "Batch Jobs",
+        href: "/admin/batch-jobs",
+        icon: ServerCog,
+        minRole: "admin",
+        description: "Background tasks",
+      },
+      {
+        label: "API Monitor",
+        href: "/admin/api-monitor",
+        icon: Activity,
+        minRole: "admin",
+        description: "API health & usage",
       },
     ],
   },

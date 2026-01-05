@@ -19,7 +19,7 @@ interface AssignBody {
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
@@ -29,14 +29,14 @@ export async function PUT(
     if (!teamId) {
       return NextResponse.json(
         { success: false, error: "teamId required (x-team-id header or body)" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     if (!id) {
       return NextResponse.json(
         { success: false, error: "Call queue item ID required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -47,7 +47,8 @@ export async function PUT(
     if (isRedisAvailable()) {
       const queueData = await redis.get<string>(queueKey);
       if (queueData) {
-        const items = typeof queueData === "string" ? JSON.parse(queueData) : queueData;
+        const items =
+          typeof queueData === "string" ? JSON.parse(queueData) : queueData;
         const itemIndex = items.findIndex((item: any) => item.id === id);
 
         if (itemIndex >= 0) {
@@ -67,7 +68,7 @@ export async function PUT(
     if (!queueItem) {
       return NextResponse.json(
         { success: false, error: "Call queue item not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -97,7 +98,7 @@ export async function PUT(
     console.error("[CallQueue] Assign error:", error);
     return NextResponse.json(
       { success: false, error: "Failed to assign call" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

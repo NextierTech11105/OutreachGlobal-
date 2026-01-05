@@ -303,6 +303,115 @@ export class ApiKeyService {
   }
 
   /**
+   * Create an OWNER_KEY for platform owner
+   *
+   * This is the highest level of access. Should only be created once
+   * for platform administrators (e.g., tb@outreachglobal.io)
+   */
+  async createOwnerKey(
+    tenantId: string,
+    email: string,
+  ): Promise<ApiKeyResponse> {
+    // Create OWNER_KEY with all scopes
+    const apiKey = await this.createKey({
+      tenantId,
+      name: `Owner Key (${email})`,
+      description: "Platform owner key with full access",
+      type: ApiKeyType.OWNER_KEY,
+      scopes: [Scope.ALL],
+    });
+
+    this.logger.log(`Created OWNER_KEY for ${email}`);
+    return apiKey;
+  }
+
+  /**
+   * Bootstrap owner tenant and key
+   *
+   * Creates the owner tenant and OWNER_KEY if they don't exist.
+   * Should be called once during initial setup.
+   */
+  async bootstrapOwner(email: string): Promise<{
+    tenant: TenantResponse;
+    apiKey: ApiKeyResponse;
+    isNew: boolean;
+  }> {
+    const ownerSlug = "outreachglobal-owner";
+
+    // Check if owner tenant already exists
+    let tenant = await this.getTenantBySlug(ownerSlug);
+    let isNew = false;
+
+    if (!tenant) {
+      // Create owner tenant
+      const newTenant = await this.createTenant({
+        name: "OutreachGlobal (Owner)",
+        slug: ownerSlug,
+        contactEmail: email,
+        contactName: "Tyler Baughman",
+        productPack: ProductPack.FULL_PLATFORM,
+      });
+
+      // Update to LIVE state immediately
+      await this.updateTenantState(newTenant.id, TenantState.LIVE, "Bootstrap");
+
+      tenant = await this.getTenant(newTenant.id);
+      isNew = true;
+    }
+
+    if (!tenant) {
+      throw new Error("Failed to create/find owner tenant");
+    }
+
+    // Check if owner key exists
+    const existingKeys = await this.listKeys(tenant.id);
+    const ownerKey = existingKeys.find((k) => k.type === ApiKeyType.OWNER_KEY);
+
+    if (ownerKey) {
+      // Return existing (without raw key - they'll need to rotate if lost)
+      return {
+        tenant: {
+          id: tenant.id,
+          name: tenant.name,
+          slug: tenant.slug,
+          state: tenant.state as TenantState,
+          productPack: tenant.productPack || ProductPack.FULL_PLATFORM,
+          trialEndsAt: tenant.trialEndsAt,
+          createdAt: tenant.createdAt,
+        },
+        apiKey: {
+          id: ownerKey.id,
+          key: "(existing key - raw key not available, rotate if needed)",
+          keyPrefix: ownerKey.keyPrefix,
+          name: ownerKey.name,
+          type: ownerKey.type as ApiKeyType,
+          scopes: (ownerKey.scopes as Scope[]) || [Scope.ALL],
+          expiresAt: ownerKey.expiresAt,
+          createdAt: ownerKey.createdAt,
+        },
+        isNew: false,
+      };
+    }
+
+    // Create new owner key
+    const apiKey = await this.createOwnerKey(tenant.id, email);
+
+    return {
+      tenant: {
+        id: tenant.id,
+        name: tenant.name,
+        slug: tenant.slug,
+        state: tenant.state as TenantState,
+        productPack: tenant.productPack || ProductPack.FULL_PLATFORM,
+        trialEndsAt: tenant.trialEndsAt,
+        createdAt: tenant.createdAt,
+      },
+      apiKey,
+      isNew: true,
+    };
+  }
+
+  /**
    * Create a DEMO_KEY for trial users (NO STRIPE REQUIRED)
    *
    * This is the primary entry point for new users wanting to try the platform.
