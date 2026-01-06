@@ -14,16 +14,36 @@ const httpLink = createHttpLink({
   uri: graphqlUrl,
 });
 
-// Auth link using setContext helper - reads from cookie (nextier_session)
+// Auth link using setContext helper - reads from cookie (nextier_session) or API key
 const authLink = setContext((_, { headers }) => {
-  const token =
-    typeof window !== "undefined" ? Cookies.get("nextier_session") : null;
-  return {
-    headers: {
-      ...headers,
-      authorization: token ? `Bearer ${token}` : "",
-    },
-  };
+  if (typeof window === "undefined") {
+    return { headers };
+  }
+
+  // Check for JWT token first
+  const token = Cookies.get("nextier_session");
+  if (token) {
+    return {
+      headers: {
+        ...headers,
+        authorization: `Bearer ${token}`,
+      },
+    };
+  }
+
+  // Fall back to API key (stored in localStorage or cookie)
+  const apiKey =
+    localStorage.getItem("og_api_key") || Cookies.get("og_api_key");
+  if (apiKey) {
+    return {
+      headers: {
+        ...headers,
+        "x-api-key": apiKey,
+      },
+    };
+  }
+
+  return { headers };
 });
 
 // Error link using onError helper
