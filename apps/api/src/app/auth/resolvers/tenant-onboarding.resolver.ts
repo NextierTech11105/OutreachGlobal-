@@ -564,4 +564,109 @@ export class TenantOnboardingResolver {
       };
     }
   }
+
+  /**
+   * Fix tenants table schema
+   * Drops and recreates if columns are misconfigured
+   */
+  @Mutation(() => MigrationResult, {
+    description: "Fix tenants table schema issues. One-time fix.",
+  })
+  async fixTenantsSchema(
+    @Args("secret") secret: string,
+  ): Promise<MigrationResult> {
+    const bootstrapSecret =
+      this.configService.get("BOOTSTRAP_SECRET") || "og-bootstrap-2024";
+
+    if (secret !== bootstrapSecret) {
+      throw new UnauthorizedException("Invalid bootstrap secret");
+    }
+
+    const results: string[] = [];
+
+    try {
+      // Drop dependent tables first
+      await this.db.execute(
+        sql`DROP TABLE IF EXISTS "api_key_usage_logs" CASCADE`,
+      );
+      results.push("Dropped api_key_usage_logs");
+
+      // Drop tenants table
+      await this.db.execute(sql`DROP TABLE IF EXISTS "tenants" CASCADE`);
+      results.push("Dropped tenants table");
+
+      // Recreate tenants table with proper schema matching Drizzle
+      await this.db.execute(sql`
+        CREATE TABLE "tenants" (
+          "id" varchar(30) PRIMARY KEY NOT NULL,
+          "name" varchar(200) NOT NULL,
+          "slug" varchar(100) NOT NULL UNIQUE,
+          "contact_email" varchar(255),
+          "contact_name" varchar(200),
+          "signalhouse_subgroup_id" varchar(255),
+          "signalhouse_brand_id" varchar(255),
+          "stripe_customer_id" varchar(255),
+          "stripe_subscription_id" varchar(255),
+          "product_pack" varchar(30) DEFAULT 'DATA_ENGINE',
+          "state" varchar(25) NOT NULL DEFAULT 'DEMO',
+          "billing_status" varchar(20) DEFAULT 'trial',
+          "trial_ends_at" timestamp,
+          "onboarding_completed_at" timestamp,
+          "onboarding_completed_by" varchar(100),
+          "created_at" timestamp DEFAULT now() NOT NULL,
+          "updated_at" timestamp DEFAULT now() NOT NULL
+        )
+      `);
+      results.push("Recreated tenants table");
+
+      // Create indexes
+      await this.db.execute(
+        sql`CREATE INDEX "tenants_slug_idx" ON "tenants" ("slug")`,
+      );
+      await this.db.execute(
+        sql`CREATE INDEX "tenants_stripe_customer_idx" ON "tenants" ("stripe_customer_id")`,
+      );
+      await this.db.execute(
+        sql`CREATE INDEX "tenants_state_idx" ON "tenants" ("state")`,
+      );
+      results.push("Created tenants indexes");
+
+      // Re-add tenant_id column to api_keys
+      try {
+        await this.db.execute(
+          sql`ALTER TABLE "api_keys" ADD COLUMN IF NOT EXISTS "tenant_id" varchar(30) REFERENCES "tenants"("id") ON DELETE CASCADE`,
+        );
+        results.push("Re-added tenant_id to api_keys");
+      } catch (e: any) {
+        results.push(`tenant_id: ${e.message}`);
+      }
+
+      // Recreate api_key_usage_logs
+      await this.db.execute(sql`
+        CREATE TABLE IF NOT EXISTS "api_key_usage_logs" (
+          "id" varchar(30) PRIMARY KEY NOT NULL,
+          "api_key_id" varchar(30) NOT NULL REFERENCES "api_keys"("id") ON DELETE CASCADE,
+          "tenant_id" varchar(30) REFERENCES "tenants"("id") ON DELETE CASCADE,
+          "action" varchar(100) NOT NULL,
+          "endpoint" varchar(200),
+          "ip_address" varchar(45),
+          "user_agent" varchar(500),
+          "status_code" integer,
+          "response_time_ms" integer,
+          "units_consumed" integer DEFAULT 1,
+          "metadata" jsonb,
+          "created_at" timestamp DEFAULT now() NOT NULL
+        )
+      `);
+      results.push("Recreated api_key_usage_logs table");
+
+      return { success: true, results };
+    } catch (error) {
+      return {
+        success: false,
+        results,
+        error: error instanceof Error ? error.message : "Fix failed",
+      };
+    }
+  }
 }
