@@ -1215,8 +1215,8 @@ export class TenantOnboardingResolver {
 
       // Insert new key
       await this.db.execute(sql`
-        INSERT INTO api_keys (id, key_prefix, key_hash, type, tenant_id, created_by_user_id, is_active, created_at, updated_at)
-        VALUES (${keyId}, ${keyPrefix}, ${keyHash}, 'OWNER_KEY', ${tenantId}, ${userId}, true, NOW(), NOW())
+        INSERT INTO api_keys (id, key_prefix, key_hash, type, tenant_id, created_by_user_id, name, is_active, created_at, updated_at)
+        VALUES (${keyId}, ${keyPrefix}, ${keyHash}, 'OWNER_KEY', ${tenantId}, ${userId}, 'Platform Owner Key', true, NOW(), NOW())
       `);
       results.push(`Created new API key`);
       results.push(`YOUR NEW API KEY: ${fullKey}`);
