@@ -704,10 +704,7 @@ export class TenantOnboardingResolver {
       const keyHash = crypto.createHash("sha256").update(rawKey).digest("hex");
       const keyPrefix = rawKey.slice(0, 16);
 
-      const now = new Date();
-      const trialEnds = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-
-      // Insert tenant using raw SQL
+      // Insert tenant using raw SQL with NOW()
       await this.db.execute(sql`
         INSERT INTO "tenants" (
           "id", "name", "slug", "contact_email", "contact_name",
@@ -719,13 +716,13 @@ export class TenantOnboardingResolver {
         ) VALUES (
           ${tenantId}, 'OutreachGlobal (Owner)', 'outreachglobal-owner', ${email}, 'Tyler Baughman',
           NULL, NULL, NULL, NULL,
-          'FULL_PLATFORM', 'DEMO', 'trial', ${trialEnds},
+          'FULL_PLATFORM', 'DEMO', 'trial', NOW() + INTERVAL '30 days',
           NULL, NULL,
-          ${now}, ${now}
+          NOW(), NOW()
         )
       `);
 
-      // Insert API key using raw SQL - minimal columns only
+      // Insert API key using raw SQL - minimal columns only with NOW()
       await this.db.execute(sql`
         INSERT INTO "api_keys" (
           "id", "key_prefix", "key_hash", "name", "type",
@@ -734,7 +731,7 @@ export class TenantOnboardingResolver {
         ) VALUES (
           ${apiKeyId}, ${keyPrefix}, ${keyHash}, 'Owner Key', 'OWNER_KEY',
           ${tenantId}, true, '["*"]'::jsonb,
-          ${now}, ${now}
+          NOW(), NOW()
         )
       `);
 
