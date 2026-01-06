@@ -671,6 +671,41 @@ export class TenantOnboardingResolver {
   }
 
   /**
+   * Fix api_keys schema to allow null team_id
+   */
+  @Mutation(() => MigrationResult, {
+    description: "Fix api_keys table to allow null team_id. One-time fix.",
+  })
+  async fixApiKeysSchema(
+    @Args("secret") secret: string,
+  ): Promise<MigrationResult> {
+    const bootstrapSecret =
+      this.configService.get("BOOTSTRAP_SECRET") || "og-bootstrap-2024";
+
+    if (secret !== bootstrapSecret) {
+      throw new UnauthorizedException("Invalid bootstrap secret");
+    }
+
+    const results: string[] = [];
+
+    try {
+      // Make team_id nullable
+      await this.db.execute(
+        sql`ALTER TABLE "api_keys" ALTER COLUMN "team_id" DROP NOT NULL`,
+      );
+      results.push("Made team_id nullable");
+
+      return { success: true, results };
+    } catch (error) {
+      return {
+        success: false,
+        results,
+        error: error instanceof Error ? error.message : "Fix failed",
+      };
+    }
+  }
+
+  /**
    * Bootstrap owner using direct SQL (bypasses Drizzle ORM)
    */
   @Mutation(() => BootstrapOwnerResult, {
@@ -722,15 +757,15 @@ export class TenantOnboardingResolver {
         )
       `);
 
-      // Insert API key using raw SQL - minimal columns only with NOW()
+      // Insert API key using raw SQL - with team_id = NULL
       await this.db.execute(sql`
         INSERT INTO "api_keys" (
           "id", "key_prefix", "key_hash", "name", "type",
-          "tenant_id", "is_active", "scopes",
+          "tenant_id", "team_id", "is_active", "scopes",
           "created_at", "updated_at"
         ) VALUES (
           ${apiKeyId}, ${keyPrefix}, ${keyHash}, 'Owner Key', 'OWNER_KEY',
-          ${tenantId}, true, '["*"]'::jsonb,
+          ${tenantId}, NULL, true, '["*"]'::jsonb,
           NOW(), NOW()
         )
       `);
