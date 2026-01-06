@@ -830,6 +830,51 @@ export class TenantOnboardingResolver {
   }
 
   /**
+   * Fix api_keys table to add all missing columns
+   */
+  @Mutation(() => MigrationResult, {
+    description: "Add all missing columns to api_keys table",
+  })
+  async fixApiKeysFullSchema(@Args("secret") secret: string): Promise<MigrationResult> {
+    const bootstrapSecret =
+      this.configService.get("BOOTSTRAP_SECRET") || "og-bootstrap-2024";
+
+    if (secret !== bootstrapSecret) {
+      throw new UnauthorizedException("Invalid bootstrap secret");
+    }
+
+    const results: string[] = [];
+
+    try {
+      // Add all potentially missing columns
+      await this.db.execute(sql`
+        ALTER TABLE "api_keys"
+        ADD COLUMN IF NOT EXISTS "created_by_user_id" varchar,
+        ADD COLUMN IF NOT EXISTS "parent_key_id" varchar,
+        ADD COLUMN IF NOT EXISTS "description" varchar(500),
+        ADD COLUMN IF NOT EXISTS "product_pack" varchar(30),
+        ADD COLUMN IF NOT EXISTS "usage_caps" jsonb,
+        ADD COLUMN IF NOT EXISTS "usage_counters" jsonb DEFAULT '{}',
+        ADD COLUMN IF NOT EXISTS "rate_limit" varchar(20) DEFAULT '1000/hour',
+        ADD COLUMN IF NOT EXISTS "last_used_at" timestamp,
+        ADD COLUMN IF NOT EXISTS "last_used_from_ip" varchar(45),
+        ADD COLUMN IF NOT EXISTS "expires_at" timestamp,
+        ADD COLUMN IF NOT EXISTS "stripe_subscription_id" varchar,
+        ADD COLUMN IF NOT EXISTS "signalhouse_subgroup_id" varchar
+      `);
+      results.push("Added all missing columns to api_keys table");
+
+      return { success: true, results };
+    } catch (error) {
+      return {
+        success: false,
+        results,
+        error: error instanceof Error ? error.message : "Fix failed",
+      };
+    }
+  }
+
+  /**
    * Debug: Check API keys in database
    */
   @Mutation(() => MigrationResult, {
