@@ -966,10 +966,12 @@ export class TenantOnboardingResolver {
         results.push(`Found existing user: ${userId}`);
       } else {
         // Create new user for platform owner
+        // For API key-only access, password is set to a random hash (not usable for login)
         userId = `user_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+        const placeholderPassword = `APIKEY_ONLY_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 16)}`;
         await this.db.execute(sql`
-          INSERT INTO users (id, email, name, created_at, updated_at)
-          VALUES (${userId}, ${email}, ${"Platform Owner"}, NOW(), NOW())
+          INSERT INTO users (id, email, name, password, role, created_at, updated_at)
+          VALUES (${userId}, ${email}, ${"Platform Owner"}, ${placeholderPassword}, ${"OWNER"}, NOW(), NOW())
         `);
         results.push(`Created new user: ${userId}`);
       }
