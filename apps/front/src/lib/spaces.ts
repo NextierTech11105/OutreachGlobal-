@@ -79,14 +79,16 @@ export async function uploadFile(
   }
 }
 
-// Upload CSV export
+// Upload CSV export (PRIVATE - use signed URLs to download)
 export async function uploadCSV(
   filename: string,
   csvContent: string,
   folder: string = "exports",
-): Promise<{ url: string; cdnUrl: string } | null> {
+): Promise<{ url: string; cdnUrl: string; key: string } | null> {
   const key = `${folder}/${Date.now()}-${filename}`;
-  return uploadFile(key, csvContent, "text/csv", true);
+  const result = await uploadFile(key, csvContent, "text/csv", false); // PRIVATE for lead data protection
+  if (!result) return null;
+  return { ...result, key }; // Return key for signed URL generation
 }
 
 // Get a signed URL for private files

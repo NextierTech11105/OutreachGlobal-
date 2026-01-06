@@ -24,6 +24,7 @@ import {
 import { formatTemplate, getVariables } from "@/common/utils/format-template";
 import { MailService } from "@/lib/mail/mail.service";
 import { TwilioService } from "@/lib/twilio/twilio.service";
+import { SignalHouseService } from "@/lib/signalhouse/signalhouse.service";
 import { CampaignEventName, CampaignExecutionStatus } from "@nextier/common";
 import { render } from "@react-email/render";
 import { CampaignEmail } from "@/emails/pages/campaign-email";
@@ -50,6 +51,7 @@ export class CampaignSequenceConsumer extends WorkerHost {
     @InjectDB() private db: DrizzleClient,
     private mailService: MailService,
     private twilioService: TwilioService,
+    private signalHouseService: SignalHouseService,
     private sendgridService: SendgridService,
     private settingService: TeamSettingService,
     private dlqService: DeadLetterQueueService,
@@ -211,7 +213,7 @@ export class CampaignSequenceConsumer extends WorkerHost {
   }
 
   async sendSMS(
-    { content }: SendMessageOptions,
+    { content, sequence }: SendMessageOptions,
     lead: LeadSelect,
     settings: AllSettings,
   ) {
@@ -223,13 +225,36 @@ export class CampaignSequenceConsumer extends WorkerHost {
     }
 
     try {
-      await this.twilioService.sendSms({
-        accountSid: settings.twilioAccountSid,
-        authToken: settings.twilioAuthToken,
-        from: settings.twilioDefaultPhoneNumber || "",
-        to: lead.phone,
-        body: content,
+      // Check if campaign has 10DLC campaign ID for compliance tracking
+      const campaign = await this.db.query.campaigns.findFirst({
+        where: (t) => eq(t.id, sequence.campaignId),
       });
+
+      // Use 10DLC provider if campaign has external tracking ID
+      if (campaign?.signalhouseCampaignId) {
+        const result = await this.signalHouseService.sendSms({
+          to: lead.phone,
+          from: settings.twilioDefaultPhoneNumber || "",
+          message: content,
+          campaignId: campaign.signalhouseCampaignId,
+        });
+
+        if (!result.success) {
+          return {
+            status: CampaignExecutionStatus.FAILED,
+            failedReason: result.error || "10DLC send failed",
+          };
+        }
+      } else {
+        // Fallback to Twilio for campaigns without 10DLC tracking
+        await this.twilioService.sendSms({
+          accountSid: settings.twilioAccountSid,
+          authToken: settings.twilioAuthToken,
+          from: settings.twilioDefaultPhoneNumber || "",
+          to: lead.phone,
+          body: content,
+        });
+      }
 
       return {
         status: CampaignExecutionStatus.COMPLETED,

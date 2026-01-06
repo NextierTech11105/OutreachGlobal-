@@ -14,31 +14,40 @@ import { teamsRef } from "./teams.schema";
 import { aiSdrAvatars } from "./ai-sdr-avatars.schema";
 import { leads } from "./leads.schema";
 
-export const campaigns = pgTable("campaigns", {
-  id: primaryUlid("camp"),
-  teamId: teamsRef({ onDelete: "cascade" }).notNull(),
-  sdrId: ulidColumn().references(() => aiSdrAvatars.id, {
-    onDelete: "set null",
-  }),
-  name: varchar().notNull(),
-  description: text(),
-  targetMethod: varchar().notNull().default("SCORE_BASED"),
-  minScore: integer().notNull(),
-  maxScore: integer().notNull(),
-  location: jsonb(),
-  status: varchar().notNull().default("DRAFT"),
-  estimatedLeadsCount: integer().notNull().default(0),
-  startsAt: timestamp().notNull(),
-  endsAt: timestamp(),
-  pausedAt: timestamp(),
-  resumedAt: timestamp(),
-  // Approval gate - campaign cannot transition to RUNNING without approval
-  approvedBy: text("approved_by"),
-  approvedAt: timestamp("approved_at"),
-  metadata: jsonb(),
-  createdAt,
-  updatedAt,
-});
+export const campaigns = pgTable(
+  "campaigns",
+  {
+    id: primaryUlid("camp"),
+    teamId: teamsRef({ onDelete: "cascade" }).notNull(),
+    sdrId: ulidColumn().references(() => aiSdrAvatars.id, {
+      onDelete: "set null",
+    }),
+    name: varchar().notNull(),
+    description: text(),
+    targetMethod: varchar().notNull().default("SCORE_BASED"),
+    minScore: integer().notNull(),
+    maxScore: integer().notNull(),
+    location: jsonb(),
+    status: varchar().notNull().default("DRAFT"),
+    estimatedLeadsCount: integer().notNull().default(0),
+    startsAt: timestamp().notNull(),
+    endsAt: timestamp(),
+    pausedAt: timestamp(),
+    resumedAt: timestamp(),
+    // Approval gate - campaign cannot transition to RUNNING without approval
+    approvedBy: text("approved_by"),
+    approvedAt: timestamp("approved_at"),
+    // SignalHouse campaign tracking - maps to external 10DLC campaign
+    signalhouseCampaignId: varchar("signalhouse_campaign_id"),
+    metadata: jsonb(),
+    createdAt,
+    updatedAt,
+  },
+  (t) => [
+    // Index for SignalHouse campaign lookup (inbound SMS attribution)
+    index("campaigns_sh_campaign_idx").on(t.signalhouseCampaignId),
+  ],
+);
 
 export const campaignSequences = pgTable(
   "campaign_sequences",

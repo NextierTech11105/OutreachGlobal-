@@ -57,6 +57,10 @@ export class Campaign extends TimestampModel implements CampaignSelect {
   @DateField({ nullable: true })
   approvedAt: Date | null;
 
+  // SignalHouse 10DLC campaign ID for external tracking
+  @StringField({ nullable: true })
+  signalhouseCampaignId: MaybeString;
+
   metadata: Record<string, any> | null;
 }
 

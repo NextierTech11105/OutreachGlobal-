@@ -28,6 +28,7 @@ import { SdrModule } from "./sdr/sdr.module";
 import { ResourceModule } from "./resource/resource.module";
 import { MailModule } from "../lib/mail/mail.module";
 import { TwilioModule } from "../lib/twilio/twilio.module";
+import { SignalHouseModule } from "../lib/signalhouse/signalhouse.module";
 import { CampaignModule } from "./campaign/campaign.module";
 import { PromptModule } from "./prompt/prompt.module";
 import { AppController } from "./app.controller";
@@ -61,6 +62,7 @@ import { OutboundModule } from "../lib/outbound";
     GraphQLModule.forRootAsync(apolloAsyncConfig),
     MailModule,
     TwilioModule,
+    SignalHouseModule,
     BullModule.forRootAsync({
       useFactory: (configService: ConfigService) => {
         return {

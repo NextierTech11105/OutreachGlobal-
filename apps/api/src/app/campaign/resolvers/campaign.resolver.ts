@@ -85,7 +85,7 @@ export class CampaignResolver extends BaseResolver(Campaign) {
   ): Promise<CreateCampaignPayload> {
     const input = this.validate(campaignSchema, args.input);
     const team = await this.teamService.findById(args.teamId);
-    await this.teamPolicy.can().read(user, team);
+    await this.teamPolicy.can().manage(user, team); // ADMIN/OWNER only - prevents budget drain
     return this.service.create({
       ...args,
       input,
@@ -100,7 +100,7 @@ export class CampaignResolver extends BaseResolver(Campaign) {
   ): Promise<UpdateCampaignPayload> {
     const input = this.validate(campaignSchema, args.input);
     const team = await this.teamService.findById(args.teamId);
-    await this.teamPolicy.can().read(user, team);
+    await this.teamPolicy.can().manage(user, team); // ADMIN/OWNER only
     return this.service.update({
       ...args,
       input,
@@ -114,7 +114,7 @@ export class CampaignResolver extends BaseResolver(Campaign) {
     @Args() args: DeleteCampaignArgs,
   ): Promise<DeleteCampaignPayload> {
     const team = await this.teamService.findById(args.teamId);
-    await this.teamPolicy.can().read(user, team);
+    await this.teamPolicy.can().manage(user, team); // ADMIN/OWNER only
     return this.service.remove({
       ...args,
       teamId: team.id,
@@ -127,7 +127,7 @@ export class CampaignResolver extends BaseResolver(Campaign) {
     @Args() args: ToggleCampaignStatusArgs,
   ): Promise<ToggleCampaignStatusPayload> {
     const team = await this.teamService.findById(args.teamId);
-    await this.teamPolicy.can().read(user, team);
+    await this.teamPolicy.can().manage(user, team); // ADMIN/OWNER only - controls campaign activation
     return this.service.toggle(args);
   }
 

@@ -530,7 +530,12 @@ export function LeadDetailView({ lead }: LeadDetailViewProps) {
                       <Button
                         variant="link"
                         className="p-0 h-auto text-sm"
-                        onClick={() => {}}
+                        onClick={() => {
+                          toast({
+                            title: "Schedule Follow-up",
+                            description: "Opening scheduler for " + lead.name,
+                          });
+                        }}
                       >
                         <Clock className="h-3.5 w-3.5 mr-1" />
                         Schedule now

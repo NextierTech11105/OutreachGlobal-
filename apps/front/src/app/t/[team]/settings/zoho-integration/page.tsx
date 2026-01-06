@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { ZohoIntegration } from "@/components/zoho-integration";
+import { ZohoSyncButton } from "./zoho-sync-button";
 
 export const metadata: Metadata = {
   title: "Zoho CRM Integration",
@@ -30,9 +31,7 @@ export default function ZohoIntegrationPage() {
             data synchronization
           </p>
         </div>
-        <button className="bg-primary text-primary-foreground px-4 py-2 rounded-md flex items-center gap-2">
-          <span>Sync Now</span>
-        </button>
+        <ZohoSyncButton />
       </div>
 
       <ZohoIntegration initialConfig={initialConfig} />

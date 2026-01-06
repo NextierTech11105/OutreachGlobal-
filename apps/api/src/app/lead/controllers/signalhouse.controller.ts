@@ -113,13 +113,14 @@ export class SignalHouseController {
       from: string;
       message: string;
       mediaUrl?: string;
+      campaignId?: string; // SignalHouse campaign ID for 10DLC tracking
     },
   ) {
     if (!this.apiKey) {
       return { error: "SignalHouse API key not configured" };
     }
 
-    const { to, from, message, mediaUrl } = body;
+    const { to, from, message, mediaUrl, campaignId } = body;
 
     if (!to || !from || !message) {
       return { error: "to, from, and message are required" };
@@ -130,7 +131,12 @@ export class SignalHouseController {
         ? `${this.apiBase}/message/sendMMS`
         : `${this.apiBase}/message/sendSMS`;
 
-      const response = await axios.post(endpoint, body, {
+      // Build payload with optional campaign_id for 10DLC compliance
+      const payload: Record<string, string> = { to, from, message };
+      if (mediaUrl) payload.mediaUrl = mediaUrl;
+      if (campaignId) payload.campaign_id = campaignId;
+
+      const response = await axios.post(endpoint, payload, {
         headers: {
           "x-api-key": this.apiKey,
           "Content-Type": "application/json",
