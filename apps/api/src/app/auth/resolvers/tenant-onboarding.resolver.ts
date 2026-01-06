@@ -706,6 +706,40 @@ export class TenantOnboardingResolver {
   }
 
   /**
+   * Fix messages table - add sent_at column
+   */
+  @Mutation(() => MigrationResult, {
+    description: "Add sent_at column to messages table. One-time fix.",
+  })
+  async fixMessagesSchema(
+    @Args("secret") secret: string,
+  ): Promise<MigrationResult> {
+    const bootstrapSecret =
+      this.configService.get("BOOTSTRAP_SECRET") || "og-bootstrap-2024";
+
+    if (secret !== bootstrapSecret) {
+      throw new UnauthorizedException("Invalid bootstrap secret");
+    }
+
+    const results: string[] = [];
+
+    try {
+      await this.db.execute(
+        sql`ALTER TABLE "messages" ADD COLUMN IF NOT EXISTS "sent_at" timestamp`,
+      );
+      results.push("Added sent_at column to messages");
+
+      return { success: true, results };
+    } catch (error) {
+      return {
+        success: false,
+        results,
+        error: error instanceof Error ? error.message : "Fix failed",
+      };
+    }
+  }
+
+  /**
    * Bootstrap owner using direct SQL (bypasses Drizzle ORM)
    */
   @Mutation(() => BootstrapOwnerResult, {
