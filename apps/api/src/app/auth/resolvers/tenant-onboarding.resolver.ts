@@ -669,4 +669,99 @@ export class TenantOnboardingResolver {
       };
     }
   }
+
+  /**
+   * Bootstrap owner using direct SQL (bypasses Drizzle ORM)
+   */
+  @Mutation(() => BootstrapOwnerResult, {
+    description: "Bootstrap platform owner using direct SQL. One-time setup.",
+  })
+  async bootstrapOwnerDirect(
+    @Args("email") email: string,
+    @Args("secret") secret: string,
+  ): Promise<BootstrapOwnerResult> {
+    const bootstrapSecret =
+      this.configService.get("BOOTSTRAP_SECRET") || "og-bootstrap-2024";
+
+    if (secret !== bootstrapSecret) {
+      throw new UnauthorizedException("Invalid bootstrap secret");
+    }
+
+    if (!email || !email.endsWith("@outreachglobal.io")) {
+      throw new ForbiddenException(
+        "Only @outreachglobal.io emails can bootstrap owner access",
+      );
+    }
+
+    try {
+      // Generate IDs
+      const tenantId = `tenant_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+      const apiKeyId = `apikey_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+
+      // Generate API key
+      const crypto = await import("crypto");
+      const rawKey = `og_owner_${crypto.randomBytes(32).toString("base64url")}`;
+      const keyHash = crypto.createHash("sha256").update(rawKey).digest("hex");
+      const keyPrefix = rawKey.slice(0, 16);
+
+      const now = new Date();
+      const trialEnds = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+      // Insert tenant using raw SQL
+      await this.db.execute(sql`
+        INSERT INTO "tenants" (
+          "id", "name", "slug", "contact_email", "contact_name",
+          "signalhouse_subgroup_id", "signalhouse_brand_id",
+          "stripe_customer_id", "stripe_subscription_id",
+          "product_pack", "state", "billing_status", "trial_ends_at",
+          "onboarding_completed_at", "onboarding_completed_by",
+          "created_at", "updated_at"
+        ) VALUES (
+          ${tenantId}, 'OutreachGlobal (Owner)', 'outreachglobal-owner', ${email}, 'Tyler Baughman',
+          NULL, NULL, NULL, NULL,
+          'FULL_PLATFORM', 'DEMO', 'trial', ${trialEnds},
+          NULL, NULL,
+          ${now}, ${now}
+        )
+      `);
+
+      // Insert API key using raw SQL
+      await this.db.execute(sql`
+        INSERT INTO "api_keys" (
+          "id", "key_prefix", "key_hash", "name", "description", "type",
+          "tenant_id", "team_id", "product_pack", "scopes",
+          "is_active", "expires_at", "last_used_at",
+          "created_at", "updated_at"
+        ) VALUES (
+          ${apiKeyId}, ${keyPrefix}, ${keyHash}, 'Owner Key', 'Platform owner key for tb@outreachglobal.io', 'OWNER_KEY',
+          ${tenantId}, NULL, 'FULL_PLATFORM', '["*"]'::jsonb,
+          true, NULL, NULL,
+          ${now}, ${now}
+        )
+      `);
+
+      return {
+        success: true,
+        tenant: {
+          id: tenantId,
+          name: "OutreachGlobal (Owner)",
+          slug: "outreachglobal-owner",
+          state: "DEMO",
+        },
+        apiKey: {
+          key: rawKey,
+          keyPrefix,
+          name: "Owner Key",
+          type: "OWNER_KEY",
+        },
+        isNew: true,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        isNew: false,
+        error: error instanceof Error ? error.message : "Bootstrap failed",
+      };
+    }
+  }
 }
