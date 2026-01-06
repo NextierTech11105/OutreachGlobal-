@@ -1138,4 +1138,97 @@ export class TenantOnboardingResolver {
       };
     }
   }
+
+  /**
+   * Generate a new API key for the platform owner
+   */
+  @Mutation(() => MigrationResult, {
+    description: "Generate new API key for owner",
+  })
+  async regenerateOwnerKey(
+    @Args("secret") secret: string,
+    @Args("email") email: string,
+  ): Promise<MigrationResult> {
+    const bootstrapSecret =
+      this.configService.get("BOOTSTRAP_SECRET") || "og-bootstrap-2024";
+
+    if (secret !== bootstrapSecret) {
+      throw new UnauthorizedException("Invalid bootstrap secret");
+    }
+
+    const results: string[] = [];
+
+    try {
+      // Find the user
+      const userResult = await this.db.execute(
+        sql`SELECT id FROM users WHERE email = ${email} LIMIT 1`,
+      );
+
+      if (!userResult.rows || userResult.rows.length === 0) {
+        return {
+          success: false,
+          results,
+          error: `User not found for email: ${email}`,
+        };
+      }
+
+      const userId = (userResult.rows[0] as { id: string }).id;
+      results.push(`Found user: ${userId}`);
+
+      // Find their tenant
+      const tenantResult = await this.db.execute(
+        sql`SELECT tenant_id FROM api_keys WHERE created_by_user_id = ${userId} LIMIT 1`,
+      );
+
+      let tenantId: string;
+      if (tenantResult.rows && tenantResult.rows.length > 0) {
+        tenantId = (tenantResult.rows[0] as { tenant_id: string }).tenant_id;
+      } else {
+        return {
+          success: false,
+          results,
+          error: "No tenant found for user",
+        };
+      }
+      results.push(`Found tenant: ${tenantId}`);
+
+      // Generate new API key
+      const keyId = `apikey_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+      const randomPart = Array.from({ length: 32 }, () =>
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789".charAt(
+          Math.floor(Math.random() * 62),
+        ),
+      ).join("");
+      const fullKey = `og_owner_${randomPart}`;
+      const keyPrefix = fullKey.slice(0, 15);
+
+      // Simple hash for storage
+      const crypto = await import("crypto");
+      const keyHash = crypto.createHash("sha256").update(fullKey).digest("hex");
+
+      // Deactivate old keys
+      await this.db.execute(sql`
+        UPDATE api_keys SET is_active = false
+        WHERE created_by_user_id = ${userId} AND type = 'OWNER_KEY'
+      `);
+      results.push("Deactivated old keys");
+
+      // Insert new key
+      await this.db.execute(sql`
+        INSERT INTO api_keys (id, key_prefix, key_hash, type, tenant_id, created_by_user_id, is_active, created_at, updated_at)
+        VALUES (${keyId}, ${keyPrefix}, ${keyHash}, 'OWNER_KEY', ${tenantId}, ${userId}, true, NOW(), NOW())
+      `);
+      results.push(`Created new API key`);
+      results.push(`YOUR NEW API KEY: ${fullKey}`);
+      results.push(`Save this key - it will not be shown again!`);
+
+      return { success: true, results };
+    } catch (error) {
+      return {
+        success: false,
+        results,
+        error: error instanceof Error ? error.message : "Key generation failed",
+      };
+    }
+  }
 }
