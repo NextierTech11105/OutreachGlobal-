@@ -835,9 +835,7 @@ export class TenantOnboardingResolver {
   @Mutation(() => MigrationResult, {
     description: "Debug: List API keys in database",
   })
-  async debugApiKeys(
-    @Args("secret") secret: string,
-  ): Promise<MigrationResult> {
+  async debugApiKeys(@Args("secret") secret: string): Promise<MigrationResult> {
     const bootstrapSecret =
       this.configService.get("BOOTSTRAP_SECRET") || "og-bootstrap-2024";
 
