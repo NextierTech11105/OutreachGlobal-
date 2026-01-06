@@ -914,4 +914,119 @@ export class TenantOnboardingResolver {
       };
     }
   }
+
+  /**
+   * Associate OWNER key with platform owner user
+   * Creates user if needed and links to existing API key
+   */
+  @Mutation(() => MigrationResult, {
+    description: "Associate OWNER key with platform owner user",
+  })
+  async linkOwnerKey(
+    @Args("secret") secret: string,
+    @Args("email") email: string,
+  ): Promise<MigrationResult> {
+    const bootstrapSecret =
+      this.configService.get("BOOTSTRAP_SECRET") || "og-bootstrap-2024";
+
+    if (secret !== bootstrapSecret) {
+      throw new UnauthorizedException("Invalid bootstrap secret");
+    }
+
+    const results: string[] = [];
+
+    try {
+      // Find the OWNER_KEY
+      const ownerKeyResult = await this.db.execute(
+        sql`SELECT id, tenant_id FROM api_keys WHERE type = 'OWNER_KEY' LIMIT 1`,
+      );
+
+      if (!ownerKeyResult.rows || ownerKeyResult.rows.length === 0) {
+        return {
+          success: false,
+          results,
+          error: "No OWNER_KEY found. Run bootstrapOwner first.",
+        };
+      }
+
+      const ownerKey = ownerKeyResult.rows[0] as {
+        id: string;
+        tenant_id: string;
+      };
+      results.push(`Found OWNER_KEY: ${ownerKey.id}`);
+
+      // Find or create user
+      const existingUser = await this.db.execute(
+        sql`SELECT id, email, name FROM users WHERE email = ${email} LIMIT 1`,
+      );
+
+      let userId: string;
+      if (existingUser.rows && existingUser.rows.length > 0) {
+        userId = (existingUser.rows[0] as { id: string }).id;
+        results.push(`Found existing user: ${userId}`);
+      } else {
+        // Create new user for platform owner
+        userId = `user_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+        await this.db.execute(sql`
+          INSERT INTO users (id, email, name, created_at, updated_at)
+          VALUES (${userId}, ${email}, ${"Platform Owner"}, NOW(), NOW())
+        `);
+        results.push(`Created new user: ${userId}`);
+      }
+
+      // Update the API key to link to this user
+      await this.db.execute(sql`
+        UPDATE api_keys
+        SET created_by_user_id = ${userId}
+        WHERE id = ${ownerKey.id}
+      `);
+      results.push(`Linked API key to user`);
+
+      // Find or create team for this user
+      const existingTeam = await this.db.execute(
+        sql`SELECT id FROM teams WHERE owner_id = ${userId} LIMIT 1`,
+      );
+
+      let teamId: string;
+      if (existingTeam.rows && existingTeam.rows.length > 0) {
+        teamId = (existingTeam.rows[0] as { id: string }).id;
+        results.push(`Found existing team: ${teamId}`);
+      } else {
+        // Create team
+        teamId = `team_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+        const slug =
+          "platform-owner-" +
+          Math.random().toString(16).slice(2, 8).toLowerCase();
+        await this.db.execute(sql`
+          INSERT INTO teams (id, owner_id, name, slug, created_at, updated_at)
+          VALUES (${teamId}, ${userId}, ${"Platform Team"}, ${slug}, NOW(), NOW())
+        `);
+        results.push(`Created team: ${teamId}`);
+
+        // Add owner as team member
+        const memberId = `tm_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+        await this.db.execute(sql`
+          INSERT INTO team_members (id, team_id, user_id, role, status, created_at, updated_at)
+          VALUES (${memberId}, ${teamId}, ${userId}, ${"OWNER"}, ${"APPROVED"}, NOW(), NOW())
+        `);
+        results.push(`Added owner as team member`);
+      }
+
+      // Update API key with team_id too
+      await this.db.execute(sql`
+        UPDATE api_keys
+        SET team_id = ${teamId}
+        WHERE id = ${ownerKey.id}
+      `);
+      results.push(`Linked API key to team`);
+
+      return { success: true, results };
+    } catch (error) {
+      return {
+        success: false,
+        results,
+        error: error instanceof Error ? error.message : "Link failed",
+      };
+    }
+  }
 }
