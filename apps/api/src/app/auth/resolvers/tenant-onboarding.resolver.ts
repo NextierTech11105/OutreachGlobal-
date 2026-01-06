@@ -1031,4 +1031,111 @@ export class TenantOnboardingResolver {
       };
     }
   }
+
+  /**
+   * Update team slug - allows changing team URL
+   */
+  @Mutation(() => MigrationResult, {
+    description: "Update team slug for URL access",
+  })
+  async updateTeamSlug(
+    @Args("secret") secret: string,
+    @Args("email") email: string,
+    @Args("newSlug") newSlug: string,
+  ): Promise<MigrationResult> {
+    const bootstrapSecret =
+      this.configService.get("BOOTSTRAP_SECRET") || "og-bootstrap-2024";
+
+    if (secret !== bootstrapSecret) {
+      throw new UnauthorizedException("Invalid bootstrap secret");
+    }
+
+    const results: string[] = [];
+
+    try {
+      const userResult = await this.db.execute(
+        sql`SELECT id FROM users WHERE email = ${email} LIMIT 1`,
+      );
+
+      if (!userResult.rows || userResult.rows.length === 0) {
+        return {
+          success: false,
+          results,
+          error: `User not found for email: ${email}`,
+        };
+      }
+
+      const userId = (userResult.rows[0] as { id: string }).id;
+      results.push(`Found user: ${userId}`);
+
+      const teamResult = await this.db.execute(
+        sql`SELECT id, slug FROM teams WHERE owner_id = ${userId} LIMIT 1`,
+      );
+
+      if (!teamResult.rows || teamResult.rows.length === 0) {
+        return {
+          success: false,
+          results,
+          error: `No team found for user: ${userId}`,
+        };
+      }
+
+      const team = teamResult.rows[0] as { id: string; slug: string };
+      results.push(`Found team: ${team.id} with current slug: ${team.slug}`);
+
+      await this.db.execute(sql`
+        UPDATE teams
+        SET slug = ${newSlug}, updated_at = NOW()
+        WHERE id = ${team.id}
+      `);
+      results.push(`Updated team slug to: ${newSlug}`);
+
+      return { success: true, results };
+    } catch (error) {
+      return {
+        success: false,
+        results,
+        error: error instanceof Error ? error.message : "Update failed",
+      };
+    }
+  }
+
+  /**
+   * Debug: List teams in database
+   */
+  @Mutation(() => MigrationResult, {
+    description: "Debug: List teams in database",
+  })
+  async debugTeams(@Args("secret") secret: string): Promise<MigrationResult> {
+    const bootstrapSecret =
+      this.configService.get("BOOTSTRAP_SECRET") || "og-bootstrap-2024";
+
+    if (secret !== bootstrapSecret) {
+      throw new UnauthorizedException("Invalid bootstrap secret");
+    }
+
+    const results: string[] = [];
+
+    try {
+      const teams = await this.db.execute(
+        sql`SELECT id, owner_id, name, slug FROM teams LIMIT 20`,
+      );
+
+      for (const row of teams.rows || []) {
+        results.push(JSON.stringify(row));
+      }
+
+      if (results.length === 0) {
+        results.push("No teams found in database");
+      }
+
+      return { success: true, results };
+    } catch (error) {
+      return {
+        success: false,
+        results,
+        error: error instanceof Error ? error.message : "Debug failed",
+      };
+    }
+  }
 }
