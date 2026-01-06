@@ -3,9 +3,19 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Mail, Check, Building2, User } from "lucide-react";
-import Image from "next/image";
-import { APP_NAME, LOGO_URL } from "@/config/branding";
+import {
+  Mail,
+  Check,
+  Building2,
+  User,
+  Zap,
+  Target,
+  TrendingUp,
+  Users,
+  ArrowRight,
+  Play,
+} from "lucide-react";
+import { APP_NAME } from "@/config/branding";
 
 function validateEmail(email: string): boolean {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -22,6 +32,36 @@ interface LeadCardData {
   domain: string;
   createdAt: string;
 }
+
+const STATS = [
+  { value: "10K+", label: "Leads Processed Daily" },
+  { value: "15%", label: "Response Rate" },
+  { value: "40%", label: "Close Rate" },
+  { value: "$2M+", label: "Revenue Generated" },
+];
+
+const FEATURES = [
+  {
+    icon: Target,
+    title: "AI-Powered Outreach",
+    desc: "Intelligent SDR agents that never sleep",
+  },
+  {
+    icon: TrendingUp,
+    title: "Compound Growth",
+    desc: "Every touch makes the next one smarter",
+  },
+  {
+    icon: Users,
+    title: "Multi-Channel",
+    desc: "SMS, Email, Voice - all synchronized",
+  },
+  {
+    icon: Zap,
+    title: "Instant Deployment",
+    desc: "Launch campaigns in minutes, not weeks",
+  },
+];
 
 export default function GetStartedPage() {
   const [email, setEmail] = useState("");
@@ -46,10 +86,7 @@ export default function GetStartedPage() {
     setLoading(true);
 
     try {
-      // Store email for session
       localStorage.setItem("og_user_email", email.trim());
-
-      // Create lead card data
       setLeadCard({
         email: email.trim(),
         domain: extractDomain(email),
@@ -71,126 +108,221 @@ export default function GetStartedPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#09090b] flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          {LOGO_URL ? (
-            <Image
-              src={LOGO_URL}
-              alt={APP_NAME}
-              width={180}
-              height={48}
-              className="mx-auto mb-4"
-            />
-          ) : (
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl mx-auto mb-4 flex items-center justify-center">
-              <span className="text-2xl font-bold text-white">
-                {APP_NAME.charAt(0)}
+    <div className="min-h-screen bg-[#09090b] overflow-hidden">
+      {/* Gradient Background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-purple-600/10 to-transparent pointer-events-none" />
+      <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
+
+      {/* Nav */}
+      <nav className="relative z-10 flex items-center justify-between px-6 py-4 lg:px-12">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+            <Zap className="w-5 h-5 text-white" />
+          </div>
+          <span className="text-xl font-bold text-white">{APP_NAME}</span>
+        </div>
+        <a
+          href="/auth"
+          className="text-sm text-zinc-400 hover:text-white transition"
+        >
+          Sign In
+        </a>
+      </nav>
+
+      <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-12 pt-12 lg:pt-20">
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+          {/* Left - Hero Content */}
+          <div className="space-y-8">
+            {/* Badge */}
+            <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-full px-4 py-2">
+              <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+              <span className="text-sm text-blue-300">
+                AI SDR Platform - Now Live
               </span>
             </div>
-          )}
-          <h1 className="text-3xl font-bold text-white mb-2">{APP_NAME}</h1>
-          <p className="text-zinc-400">
-            {leadCard ? "Your lead card is ready" : "Enter your email to get started"}
-          </p>
-        </div>
 
-        {/* Lead Card (shown after email submission) */}
-        {leadCard ? (
-          <div className="space-y-4">
-            <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 rounded-xl p-6 shadow-xl">
-              <div className="flex items-start justify-between mb-4">
-                <div className="w-12 h-12 bg-emerald-500/20 rounded-lg flex items-center justify-center">
-                  <Check className="w-6 h-6 text-emerald-400" />
+            {/* Headline */}
+            <h1 className="text-4xl lg:text-6xl font-bold text-white leading-tight">
+              Your Sales Team
+              <br />
+              <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+                Never Sleeps
+              </span>
+            </h1>
+
+            {/* Subheadline */}
+            <p className="text-lg lg:text-xl text-zinc-400 max-w-lg">
+              AI-powered outreach that compounds. 20,000 touches. 15% response
+              rate. Wake up to qualified leads in your inbox.
+            </p>
+
+            {/* Stats */}
+            <div className="grid grid-cols-4 gap-4">
+              {STATS.map((stat) => (
+                <div key={stat.label} className="text-center">
+                  <p className="text-2xl lg:text-3xl font-bold text-white">
+                    {stat.value}
+                  </p>
+                  <p className="text-xs text-zinc-500 mt-1">{stat.label}</p>
                 </div>
-                <span className="text-xs text-zinc-500 uppercase tracking-wider">
-                  Lead Card
-                </span>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <Mail className="w-4 h-4 text-zinc-500" />
-                  <span className="text-white font-medium">{leadCard.email}</span>
-                </div>
-
-                {leadCard.domain && (
-                  <div className="flex items-center gap-3">
-                    <Building2 className="w-4 h-4 text-zinc-500" />
-                    <span className="text-zinc-400 capitalize">{leadCard.domain}</span>
-                  </div>
-                )}
-
-                <div className="flex items-center gap-3">
-                  <User className="w-4 h-4 text-zinc-500" />
-                  <span className="text-zinc-500 text-sm">Added {leadCard.createdAt}</span>
-                </div>
-              </div>
-
-              <div className="mt-4 pt-4 border-t border-zinc-700">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-zinc-500">Status</span>
-                  <span className="text-xs font-medium text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded">
-                    VERIFIED
-                  </span>
-                </div>
-              </div>
+              ))}
             </div>
 
-            <Button
-              onClick={handleContinue}
-              className="w-full h-12 bg-white text-black hover:bg-zinc-200 font-medium"
-            >
-              Continue to Dashboard
-            </Button>
-          </div>
-        ) : (
-          /* Email Entry Form */
-          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <label
-                  htmlFor="email"
-                  className="block text-sm font-medium text-zinc-300"
-                >
-                  Work Email
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@company.com"
-                    className="pl-10 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 h-12"
-                    autoComplete="email"
-                  />
-                </div>
-                {error && <p className="text-red-500 text-sm">{error}</p>}
-              </div>
-
+            {/* CTA Buttons */}
+            <div className="flex flex-wrap gap-4">
               <Button
-                type="submit"
-                disabled={loading}
-                className="w-full h-12 bg-white text-black hover:bg-zinc-200 font-medium"
+                size="lg"
+                className="bg-white text-black hover:bg-zinc-200 h-14 px-8 text-base font-semibold"
+                onClick={() =>
+                  document.getElementById("email-form")?.scrollIntoView()
+                }
               >
-                {loading ? "Validating..." : "Get Started"}
+                Start Free Trial
+                <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
-            </form>
+              <Button
+                size="lg"
+                variant="outline"
+                className="border-zinc-700 text-white hover:bg-zinc-800 h-14 px-8 text-base"
+              >
+                <Play className="w-5 h-5 mr-2" />
+                Watch Demo
+              </Button>
+            </div>
           </div>
-        )}
 
-        <p className="text-center text-zinc-500 text-sm mt-6">
-          Already have an account?{" "}
-          <a
-            href="/auth"
-            className="text-zinc-400 hover:text-white underline"
-          >
-            Sign in
-          </a>
-        </p>
+          {/* Right - Email Form or Lead Card */}
+          <div id="email-form" className="lg:pl-8">
+            {leadCard ? (
+              <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 rounded-2xl p-8 shadow-2xl">
+                  <div className="flex items-start justify-between mb-6">
+                    <div className="w-14 h-14 bg-emerald-500/20 rounded-xl flex items-center justify-center">
+                      <Check className="w-7 h-7 text-emerald-400" />
+                    </div>
+                    <span className="text-xs text-zinc-500 uppercase tracking-wider">
+                      Lead Card
+                    </span>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <Mail className="w-5 h-5 text-zinc-500" />
+                      <span className="text-lg text-white font-medium">
+                        {leadCard.email}
+                      </span>
+                    </div>
+
+                    {leadCard.domain && (
+                      <div className="flex items-center gap-3">
+                        <Building2 className="w-5 h-5 text-zinc-500" />
+                        <span className="text-zinc-400 capitalize">
+                          {leadCard.domain}
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-3">
+                      <User className="w-5 h-5 text-zinc-500" />
+                      <span className="text-zinc-500 text-sm">
+                        Added {leadCard.createdAt}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 pt-6 border-t border-zinc-700">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-zinc-500">Status</span>
+                      <span className="text-sm font-medium text-emerald-400 bg-emerald-400/10 px-3 py-1.5 rounded-full">
+                        VERIFIED
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <Button
+                  onClick={handleContinue}
+                  className="w-full h-14 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold text-lg"
+                >
+                  Continue to Dashboard
+                  <ArrowRight className="w-5 h-5 ml-2" />
+                </Button>
+              </div>
+            ) : (
+              <div className="bg-zinc-900/80 backdrop-blur-xl border border-zinc-800 rounded-2xl p-8 shadow-2xl">
+                <div className="text-center mb-8">
+                  <h2 className="text-2xl font-bold text-white mb-2">
+                    Start Your 30-Day Trial
+                  </h2>
+                  <p className="text-zinc-400">
+                    No credit card required. Cancel anytime.
+                  </p>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="space-y-2">
+                    <label
+                      htmlFor="email"
+                      className="block text-sm font-medium text-zinc-300"
+                    >
+                      Work Email
+                    </label>
+                    <div className="relative">
+                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
+                      <Input
+                        id="email"
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="you@company.com"
+                        className="pl-12 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 h-14 text-base rounded-xl"
+                        autoComplete="email"
+                      />
+                    </div>
+                    {error && <p className="text-red-500 text-sm">{error}</p>}
+                  </div>
+
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full h-14 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold text-lg rounded-xl"
+                  >
+                    {loading ? "Validating..." : "Get Started Free"}
+                  </Button>
+
+                  <p className="text-center text-zinc-500 text-xs">
+                    By signing up, you agree to our Terms of Service and Privacy
+                    Policy
+                  </p>
+                </form>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Features Grid */}
+        <div className="mt-24 lg:mt-32 pb-20">
+          <h3 className="text-center text-2xl font-bold text-white mb-12">
+            Everything You Need to Scale Outreach
+          </h3>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {FEATURES.map((feature) => (
+              <div
+                key={feature.title}
+                className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6 hover:border-zinc-700 transition group"
+              >
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-lg flex items-center justify-center mb-4 group-hover:from-blue-500/30 group-hover:to-purple-500/30 transition">
+                  <feature.icon className="w-6 h-6 text-blue-400" />
+                </div>
+                <h4 className="text-lg font-semibold text-white mb-2">
+                  {feature.title}
+                </h4>
+                <p className="text-zinc-500 text-sm">{feature.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
