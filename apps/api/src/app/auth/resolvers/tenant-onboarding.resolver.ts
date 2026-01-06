@@ -725,17 +725,15 @@ export class TenantOnboardingResolver {
         )
       `);
 
-      // Insert API key using raw SQL
+      // Insert API key using raw SQL - minimal columns only
       await this.db.execute(sql`
         INSERT INTO "api_keys" (
-          "id", "key_prefix", "key_hash", "name", "description", "type",
-          "tenant_id", "team_id", "product_pack", "scopes",
-          "is_active", "expires_at", "last_used_at",
+          "id", "key_prefix", "key_hash", "name", "type",
+          "tenant_id", "is_active", "scopes",
           "created_at", "updated_at"
         ) VALUES (
-          ${apiKeyId}, ${keyPrefix}, ${keyHash}, 'Owner Key', 'Platform owner key for tb@outreachglobal.io', 'OWNER_KEY',
-          ${tenantId}, NULL, 'FULL_PLATFORM', '["*"]'::jsonb,
-          true, NULL, NULL,
+          ${apiKeyId}, ${keyPrefix}, ${keyHash}, 'Owner Key', 'OWNER_KEY',
+          ${tenantId}, true, '["*"]'::jsonb,
           ${now}, ${now}
         )
       `);
