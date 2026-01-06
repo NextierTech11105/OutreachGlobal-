@@ -3,7 +3,65 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Rocket, Check, Shield, Zap, Users, BarChart3 } from "lucide-react";
+import { Rocket, Check, Shield, Zap, Users, BarChart3, Key } from "lucide-react";
+
+function ApiKeyEntry() {
+  const [apiKey, setApiKey] = useState("");
+  const [keyError, setKeyError] = useState("");
+  const [keyLoading, setKeyLoading] = useState(false);
+
+  const handleKeySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setKeyError("");
+
+    if (!apiKey.trim()) {
+      setKeyError("Please enter your API key");
+      return;
+    }
+
+    if (!apiKey.startsWith("og_")) {
+      setKeyError("Invalid key format. Keys start with 'og_'");
+      return;
+    }
+
+    setKeyLoading(true);
+
+    try {
+      // Store the API key
+      localStorage.setItem("og_api_key", apiKey.trim());
+      document.cookie = `og_api_key=${apiKey.trim()}; path=/; max-age=31536000; SameSite=Lax`;
+
+      // Redirect to home
+      window.location.href = "/";
+    } catch {
+      setKeyError("Failed to save key. Please try again.");
+      setKeyLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleKeySubmit} className="space-y-4">
+      <div className="relative">
+        <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
+        <Input
+          type="password"
+          placeholder="og_owner_..."
+          value={apiKey}
+          onChange={(e) => setApiKey(e.target.value)}
+          className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/40 h-12"
+        />
+      </div>
+      {keyError && <p className="text-red-400 text-sm">{keyError}</p>}
+      <Button
+        type="submit"
+        disabled={keyLoading}
+        className="w-full h-12 bg-white text-slate-900 hover:bg-white/90 font-semibold"
+      >
+        {keyLoading ? "Connecting..." : "Connect with API Key"}
+      </Button>
+    </form>
+  );
+}
 
 export default function GetStartedPage() {
   const [email, setEmail] = useState("");
@@ -56,10 +114,10 @@ export default function GetStartedPage() {
         <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
           <div className="text-xl font-bold text-white">OutreachGlobal</div>
           <a
-            href="/auth/login"
+            href="#api-key-entry"
             className="text-sm text-white/70 hover:text-white"
           >
-            Already have a key? Sign in
+            Already have a key? Enter it below
           </a>
         </div>
       </div>
@@ -228,6 +286,14 @@ export default function GetStartedPage() {
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Already have a key? */}
+        <div id="api-key-entry" className="max-w-md mx-auto mt-20 bg-white/5 border border-white/10 rounded-2xl p-8 scroll-mt-24">
+          <h2 className="text-xl font-bold text-white mb-4 text-center">
+            Already have an API key?
+          </h2>
+          <ApiKeyEntry />
         </div>
       </div>
 
