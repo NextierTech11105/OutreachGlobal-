@@ -828,4 +828,45 @@ export class TenantOnboardingResolver {
       };
     }
   }
+
+  /**
+   * Debug: Check API keys in database
+   */
+  @Mutation(() => MigrationResult, {
+    description: "Debug: List API keys in database",
+  })
+  async debugApiKeys(
+    @Args("secret") secret: string,
+  ): Promise<MigrationResult> {
+    const bootstrapSecret =
+      this.configService.get("BOOTSTRAP_SECRET") || "og-bootstrap-2024";
+
+    if (secret !== bootstrapSecret) {
+      throw new UnauthorizedException("Invalid bootstrap secret");
+    }
+
+    const results: string[] = [];
+
+    try {
+      const keys = await this.db.execute(
+        sql`SELECT id, key_prefix, key_hash, type, tenant_id, is_active FROM api_keys LIMIT 10`,
+      );
+
+      for (const row of keys.rows || []) {
+        results.push(JSON.stringify(row));
+      }
+
+      if (results.length === 0) {
+        results.push("No API keys found in database");
+      }
+
+      return { success: true, results };
+    } catch (error) {
+      return {
+        success: false,
+        results,
+        error: error instanceof Error ? error.message : "Debug failed",
+      };
+    }
+  }
 }
