@@ -835,7 +835,9 @@ export class TenantOnboardingResolver {
   @Mutation(() => MigrationResult, {
     description: "Add all missing columns to api_keys table",
   })
-  async fixApiKeysFullSchema(@Args("secret") secret: string): Promise<MigrationResult> {
+  async fixApiKeysFullSchema(
+    @Args("secret") secret: string,
+  ): Promise<MigrationResult> {
     const bootstrapSecret =
       this.configService.get("BOOTSTRAP_SECRET") || "og-bootstrap-2024";
 
