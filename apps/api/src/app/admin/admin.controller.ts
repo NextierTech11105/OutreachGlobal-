@@ -146,17 +146,30 @@ export class AdminController {
         `);
 
         if (logsQuery.rows.length > 0) {
-          const tableName = logsQuery.rows[0].table_name;
-          const logs = await this.db.execute(sql.raw(`
-            SELECT * FROM ${tableName}
-            ORDER BY created_at DESC
-            LIMIT 10
-          `));
-          results.services.logs = {
-            status: "✅ Available",
-            count: logs.rows.length,
-            recent: logs.rows,
-          };
+          const tableName = logsQuery.rows[0].table_name as string;
+          
+          // Validate table name against whitelist to prevent SQL injection
+          const allowedTables = ['error_logs', 'system_logs', 'logs'];
+          if (!allowedTables.includes(tableName)) {
+            results.services.logs = {
+              status: "⚠️ Invalid table name",
+              error: "Table name not in allowed list",
+            };
+          } else {
+            // Safe to use since we validated against whitelist
+            const logs = await this.db.execute(
+              sql.raw(`
+                SELECT * FROM "${tableName}"
+                ORDER BY created_at DESC
+                LIMIT 10
+              `)
+            );
+            results.services.logs = {
+              status: "✅ Available",
+              count: logs.rows.length,
+              recent: logs.rows,
+            };
+          }
         } else {
           results.services.logs = {
             status: "⚠️ No log table found",

@@ -1,6 +1,6 @@
 # Environment Variables Documentation
 
-**Last Updated:** January 2024
+**Last Updated:** January 2026
 
 This document lists all environment variables required for the OutreachGlobal platform, their purpose, how to obtain them, and what breaks if they're missing.
 
@@ -412,6 +412,6 @@ If you're locked out and missing critical variables:
 
 ---
 
-**Last Updated:** January 2024  
+**Last Updated:** January 2026  
 **Maintained By:** Platform Team  
 **Review Frequency:** Monthly or after major changes

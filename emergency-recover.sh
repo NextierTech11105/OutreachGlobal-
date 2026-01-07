@@ -43,6 +43,20 @@ safe_curl() {
     fi
 }
 
+# Function to pretty print JSON
+pretty_json() {
+    local input="$1"
+    
+    # Try jq first, then python3, then just output raw
+    if command_exists jq; then
+        echo "$input" | jq 2>/dev/null || echo "$input"
+    elif command_exists python3; then
+        echo "$input" | python3 -m json.tool 2>/dev/null || echo "$input"
+    else
+        echo "$input"
+    fi
+}
+
 # 1. Check if DigitalOcean CLI is installed
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "1️⃣  Checking Prerequisites"
@@ -84,7 +98,7 @@ if echo "$HEALTH_RESPONSE" | grep -q "timestamp"; then
     echo -e "${GREEN}✅ Admin dashboard is accessible${NC}"
     echo ""
     echo "Health Check Results:"
-    echo "$HEALTH_RESPONSE" | python3 -m json.tool 2>/dev/null || echo "$HEALTH_RESPONSE"
+    pretty_json "$HEALTH_RESPONSE"
 else
     echo -e "${RED}❌ Cannot access admin dashboard${NC}"
     echo "Response: $HEALTH_RESPONSE"
@@ -136,7 +150,7 @@ if echo "$STATUS_RESPONSE" | grep -q "app"; then
     echo -e "${GREEN}✅ System status retrieved${NC}"
     echo ""
     echo "System Status:"
-    echo "$STATUS_RESPONSE" | python3 -m json.tool 2>/dev/null || echo "$STATUS_RESPONSE"
+    pretty_json "$STATUS_RESPONSE"
 else
     echo -e "${RED}❌ Cannot get system status${NC}"
     echo "Response: $STATUS_RESPONSE"
@@ -156,7 +170,7 @@ if echo "$SPACES_RESPONSE" | grep -q "currentConfig"; then
     echo -e "${GREEN}✅ Spaces diagnostic complete${NC}"
     echo ""
     echo "Spaces Status:"
-    echo "$SPACES_RESPONSE" | python3 -m json.tool 2>/dev/null || echo "$SPACES_RESPONSE"
+    pretty_json "$SPACES_RESPONSE"
 else
     echo -e "${RED}❌ Cannot run Spaces diagnostic${NC}"
     echo "Response: $SPACES_RESPONSE"

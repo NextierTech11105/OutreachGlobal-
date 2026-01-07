@@ -1,6 +1,6 @@
 # 🚨 Emergency Recovery Guide
 
-**Last Updated:** January 2024  
+**Last Updated:** January 2026  
 **Status:** Production Emergency Tools Active
 
 ---
@@ -33,7 +33,7 @@ curl -X POST https://nextier-bxrzn.ondigitalocean.app/admin/fix-spaces
 From your project root:
 
 ```bash
-./scripts/emergency-recover.sh
+./emergency-recover.sh
 ```
 
 This script will:
