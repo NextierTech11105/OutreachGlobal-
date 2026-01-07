@@ -13,6 +13,7 @@ import {
   Users,
   ArrowRight,
   Play,
+  Zap,
 } from "lucide-react";
 import Image from "next/image";
 import { APP_NAME } from "@/config/branding";
@@ -24,7 +25,12 @@ function validateEmail(email: string): boolean {
 
 function extractDomain(email: string): string {
   const domain = email.split("@")[1] || "";
-  return domain.replace(/\.(com|io|net|org|co)$/, "").split(".").pop() || "";
+  return (
+    domain
+      .replace(/\.(com|io|net|org|co)$/, "")
+      .split(".")
+      .pop() || ""
+  );
 }
 
 interface LeadCardData {
@@ -32,7 +38,6 @@ interface LeadCardData {
   domain: string;
   createdAt: string;
 }
-
 
 const FEATURES = [
   {
@@ -148,8 +153,9 @@ export default function GetStartedPage() {
 
             {/* Subheadline */}
             <p className="text-lg lg:text-xl text-zinc-400 max-w-lg">
-              Nextier Deal Terminals. A modern-day terminal built to close deals.
-              Audience agnostic. Persona agnostic. Adapts to your industry and use case.
+              Nextier Deal Terminals. A modern-day terminal built to close
+              deals. Audience agnostic. Persona agnostic. Adapts to your
+              industry and use case.
             </p>
 
             {/* CTA Buttons */}
