@@ -8,13 +8,13 @@ import {
   Check,
   Building2,
   User,
-  Zap,
   Target,
   TrendingUp,
   Users,
   ArrowRight,
   Play,
 } from "lucide-react";
+import Image from "next/image";
 import { APP_NAME } from "@/config/branding";
 
 function validateEmail(email: string): boolean {
@@ -33,12 +33,6 @@ interface LeadCardData {
   createdAt: string;
 }
 
-const STATS = [
-  { value: "10K+", label: "Leads Processed Daily" },
-  { value: "15%", label: "Response Rate" },
-  { value: "40%", label: "Close Rate" },
-  { value: "$2M+", label: "Revenue Generated" },
-];
 
 const FEATURES = [
   {
@@ -116,12 +110,13 @@ export default function GetStartedPage() {
 
       {/* Nav */}
       <nav className="relative z-10 flex items-center justify-between px-6 py-4 lg:px-12">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-            <Zap className="w-5 h-5 text-white" />
-          </div>
-          <span className="text-xl font-bold text-white">{APP_NAME}</span>
-        </div>
+        <Image
+          src="/nextier-logo.jpg"
+          alt={APP_NAME}
+          width={140}
+          height={50}
+          className="h-12 w-auto"
+        />
         <a
           href="/auth"
           className="text-sm text-zinc-400 hover:text-white transition"
@@ -153,21 +148,8 @@ export default function GetStartedPage() {
 
             {/* Subheadline */}
             <p className="text-lg lg:text-xl text-zinc-400 max-w-lg">
-              AI-powered outreach that compounds. 20,000 touches. 15% response
-              rate. Wake up to qualified leads in your inbox.
+              AI-powered outreach that compounds. Wake up to qualified leads in your inbox.
             </p>
-
-            {/* Stats */}
-            <div className="grid grid-cols-4 gap-4">
-              {STATS.map((stat) => (
-                <div key={stat.label} className="text-center">
-                  <p className="text-2xl lg:text-3xl font-bold text-white">
-                    {stat.value}
-                  </p>
-                  <p className="text-xs text-zinc-500 mt-1">{stat.label}</p>
-                </div>
-              ))}
-            </div>
 
             {/* CTA Buttons */}
             <div className="flex flex-wrap gap-4">
