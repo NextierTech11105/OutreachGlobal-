@@ -205,7 +205,7 @@ export function GlobalActionsProvider({
         description: `${lead.name || lead.phone} queued for initial message`,
         action: {
           label: "View Queue",
-          onClick: () => router.push(`/t/${teamId}/campaigns/sms-queue`),
+          onClick: () => router.push(`/t/${teamId}/sms/queue`),
         },
       });
     },

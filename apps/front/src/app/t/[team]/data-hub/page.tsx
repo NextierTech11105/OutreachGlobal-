@@ -1399,7 +1399,7 @@ export default function DataHubPage() {
 
             {/* ROW 1 - Primary Actions */}
             <div className="grid grid-cols-2 gap-6 mb-6">
-              <Link href={`/t/${params.team}/sms-queue`} className="block">
+              <Link href={`/t/${params.team}/sms/queue`} className="block">
                 <Button className="w-full h-32 text-2xl bg-gradient-to-br from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 text-white flex flex-col gap-3 shadow-xl shadow-green-500/20 border-2 border-green-400">
                   <MessageSquare className="h-12 w-12" />
                   SEND SMS
@@ -1897,7 +1897,7 @@ export default function DataHubPage() {
             Quick Actions
           </div>
 
-          <Link href={`/t/${params.team}/sms-queue`}>
+          <Link href={`/t/${params.team}/sms/queue`}>
             <Button
               size="sm"
               variant="ghost"

@@ -308,7 +308,7 @@ export function DashboardQuickActions() {
             <ArrowRight className="h-3 w-3" />
           </Button>
         </TeamLink>
-        <TeamLink href="/sms-queue">
+        <TeamLink href="/sms/queue">
           <Button variant="outline" size="sm" className="gap-2">
             <MessageSquare className="h-4 w-4" />
             SMS Queue

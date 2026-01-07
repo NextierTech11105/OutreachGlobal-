@@ -73,9 +73,9 @@ const LIGHTHOUSE_TARGETS = {
   },
   conversion: {
     touchToResponse: 0.15, // 15% response rate
-    responseToQualified: 0.40, // 40% qualification rate
+    responseToQualified: 0.4, // 40% qualification rate
     qualifiedToMeeting: 0.25, // 25% meeting rate
-    meetingToClose: 0.40, // 40% close rate
+    meetingToClose: 0.4, // 40% close rate
     dealValue: 1875, // Blended average deal
   },
 };
@@ -151,7 +151,9 @@ export default function LighthousePage() {
           </p>
         </div>
         <div className="text-right">
-          <p className="text-sm text-zinc-500">Day {progress.daysElapsed} of 22</p>
+          <p className="text-sm text-zinc-500">
+            Day {progress.daysElapsed} of 22
+          </p>
           <p className="text-2xl font-bold text-emerald-400">
             ${progress.revenue.toLocaleString()}
           </p>
@@ -251,7 +253,8 @@ export default function LighthousePage() {
         <CardHeader>
           <CardTitle className="text-white">Month-to-Date Progress</CardTitle>
           <p className="text-sm text-zinc-500">
-            Expected: {expectedProgress.toFixed(0)}% complete (Day {progress.daysElapsed}/22)
+            Expected: {expectedProgress.toFixed(0)}% complete (Day{" "}
+            {progress.daysElapsed}/22)
           </p>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -318,11 +321,15 @@ export default function LighthousePage() {
                 <div className="space-y-1 text-xs">
                   <div className="flex justify-between">
                     <span className="text-zinc-500">Target</span>
-                    <span className="text-emerald-400">${v.monthlyTarget.toLocaleString()}</span>
+                    <span className="text-emerald-400">
+                      ${v.monthlyTarget.toLocaleString()}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-zinc-500">Deal</span>
-                    <span className="text-white">${v.dealValue.toLocaleString()}</span>
+                    <span className="text-white">
+                      ${v.dealValue.toLocaleString()}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-zinc-500">Touches/day</span>
@@ -335,7 +342,11 @@ export default function LighthousePage() {
           <div className="mt-4 pt-4 border-t border-zinc-800 flex justify-between items-center">
             <span className="text-zinc-400">Combined Monthly Target</span>
             <span className="text-2xl font-bold text-emerald-400">
-              ${VERTICALS.reduce((sum, v) => sum + v.monthlyTarget, 0).toLocaleString()}
+              $
+              {VERTICALS.reduce(
+                (sum, v) => sum + v.monthlyTarget,
+                0,
+              ).toLocaleString()}
             </span>
           </div>
         </CardContent>
@@ -353,15 +364,31 @@ export default function LighthousePage() {
           <div className="flex items-center justify-between gap-2">
             <FunnelStep label="Touch" rate="100%" />
             <Arrow />
-            <FunnelStep label="Response" rate={`${targets.conversion.touchToResponse * 100}%`} />
+            <FunnelStep
+              label="Response"
+              rate={`${targets.conversion.touchToResponse * 100}%`}
+            />
             <Arrow />
-            <FunnelStep label="Qualified" rate={`${targets.conversion.responseToQualified * 100}%`} />
+            <FunnelStep
+              label="Qualified"
+              rate={`${targets.conversion.responseToQualified * 100}%`}
+            />
             <Arrow />
-            <FunnelStep label="Meeting" rate={`${targets.conversion.qualifiedToMeeting * 100}%`} />
+            <FunnelStep
+              label="Meeting"
+              rate={`${targets.conversion.qualifiedToMeeting * 100}%`}
+            />
             <Arrow />
-            <FunnelStep label="Close" rate={`${targets.conversion.meetingToClose * 100}%`} />
+            <FunnelStep
+              label="Close"
+              rate={`${targets.conversion.meetingToClose * 100}%`}
+            />
             <Arrow />
-            <FunnelStep label="Deal" rate={`$${targets.conversion.dealValue.toLocaleString()}`} highlight />
+            <FunnelStep
+              label="Deal"
+              rate={`$${targets.conversion.dealValue.toLocaleString()}`}
+              highlight
+            />
           </div>
         </CardContent>
       </Card>
@@ -422,7 +449,9 @@ function ProgressRow({
         <span className="text-zinc-300">{label}</span>
         <span className="text-zinc-400">
           {format(current)} / {format(target)}
-          <span className={`ml-2 ${isAhead ? "text-emerald-400" : "text-red-400"}`}>
+          <span
+            className={`ml-2 ${isAhead ? "text-emerald-400" : "text-red-400"}`}
+          >
             ({percentage.toFixed(0)}%)
           </span>
         </span>
@@ -455,7 +484,9 @@ function FunnelStep({
       }`}
     >
       <p className="text-xs text-zinc-500">{label}</p>
-      <p className={`font-bold ${highlight ? "text-emerald-400" : "text-white"}`}>
+      <p
+        className={`font-bold ${highlight ? "text-emerald-400" : "text-white"}`}
+      >
         {rate}
       </p>
     </div>
