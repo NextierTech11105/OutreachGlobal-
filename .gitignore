@@ -220,6 +220,7 @@ nul
 !apps/*/jest.config.js
 postman/
 scripts/
+!scripts/emergency-recover.sh
 functions/.deployed/
 functions/packages/**/__deployer__.zip
 functions/packages/**/package-lock.json

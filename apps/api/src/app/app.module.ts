@@ -45,6 +45,7 @@ import { LoggerModule } from "../lib/logger";
 import { CircuitBreakerModule } from "../lib/circuit-breaker";
 import { MetricsModule } from "./metrics";
 import { OutboundModule } from "../lib/outbound";
+import { AdminModule } from "./admin/admin.module";
 
 @Module({
   imports: [
@@ -97,6 +98,7 @@ import { OutboundModule } from "../lib/outbound";
     EnrichmentModule,
     MetricsModule,
     OutboundModule,
+    AdminModule,
   ],
   providers: [
     AppRunner,

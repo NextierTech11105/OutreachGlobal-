@@ -2,6 +2,46 @@
 
 A comprehensive sales automation and lead management platform designed to streamline multi-channel outreach campaigns with AI-powered optimization.
 
+---
+
+## 🚨 Emergency Recovery Tools
+
+**If you're locked out of your production deployment or experiencing issues**, use these emergency diagnostic tools:
+
+### Quick Diagnostic Commands
+
+```bash
+# Check system health (all services)
+curl https://your-app-url.ondigitalocean.app/admin/health
+
+# Check system status and configuration
+curl https://your-app-url.ondigitalocean.app/admin/status
+
+# Test and fix DigitalOcean Spaces credentials
+curl -X POST https://your-app-url.ondigitalocean.app/admin/fix-spaces
+```
+
+### Emergency Recovery Script
+
+Run the comprehensive recovery script from your project root:
+
+```bash
+./emergency-recover.sh
+```
+
+This script will:
+- ✅ Test all critical services (Database, Redis, Spaces)
+- ✅ Show recent application logs
+- ✅ Provide specific fix instructions for any errors
+- ✅ Display DigitalOcean app status
+
+### Documentation
+
+- **📖 [Emergency Recovery Guide](./EMERGENCY_RECOVERY.md)** - Step-by-step recovery procedures
+- **📋 [Environment Variables Reference](./docs/ENVIRONMENT_VARIABLES.md)** - Complete list of all required env vars
+
+---
+
 ## 🚀 Features
 
 - **Lead Management System** - Complete lead capture, scoring, and qualification
