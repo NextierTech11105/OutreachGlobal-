@@ -194,7 +194,7 @@ const sections: PageSection[] = [
       },
       {
         name: "AI SDR Call Center",
-        href: "/t/default/call-center/ai-sdr",
+        href: "/t/default/ai-sdr",
         icon: Bot,
         description: "AI-powered calling",
       },

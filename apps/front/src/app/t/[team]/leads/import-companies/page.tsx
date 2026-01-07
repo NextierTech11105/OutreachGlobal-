@@ -1533,7 +1533,7 @@ export default function ImportCompaniesPage() {
     // Add to SMS queue
     if (smsLeads.length > 0) {
       try {
-        const smsResponse = await fetch("/api/sms-queue", {
+        const smsResponse = await fetch("/api/sms/queue", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

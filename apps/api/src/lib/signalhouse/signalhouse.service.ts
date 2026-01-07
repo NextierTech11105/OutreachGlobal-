@@ -27,7 +27,9 @@ export class SignalHouseService {
     return this.configService.get("SIGNALHOUSE_API_KEY") || "";
   }
 
-  async sendSms(options: SignalHouseSendSmsOptions): Promise<SignalHouseSendResult> {
+  async sendSms(
+    options: SignalHouseSendSmsOptions,
+  ): Promise<SignalHouseSendResult> {
     const apiKey = this.getApiKey();
 
     if (!apiKey) {
@@ -64,7 +66,8 @@ export class SignalHouseService {
       };
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        const errMsg = error.response?.data?.message || "Failed to send message";
+        const errMsg =
+          error.response?.data?.message || "Failed to send message";
         this.logger.error(`SignalHouse send failed: ${errMsg}`);
         return { success: false, error: errMsg };
       }

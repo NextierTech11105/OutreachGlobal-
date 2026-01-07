@@ -359,7 +359,7 @@ async function routeToQueues(
   if (smsLeads.length > 0 && smsTemplate) {
     try {
       const smsResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/api/sms-queue`,
+        `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/api/sms/queue`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

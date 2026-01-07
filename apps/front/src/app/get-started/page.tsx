@@ -14,6 +14,16 @@ import {
   ArrowRight,
   Play,
   Zap,
+  Database,
+  Bot,
+  MessageSquare,
+  Calendar,
+  Award,
+  Layers,
+  Repeat,
+  Rocket,
+  BarChart3,
+  Shield,
 } from "lucide-react";
 import Image from "next/image";
 import { APP_NAME } from "@/config/branding";
@@ -41,24 +51,54 @@ interface LeadCardData {
 
 const FEATURES = [
   {
+    icon: Database,
+    title: "Build-to-Suit Datalakes",
+    desc: "Custom data infrastructure tailored to your vertical",
+  },
+  {
+    icon: Bot,
+    title: "Co-Pilot Managed Campaigns",
+    desc: "AI handles execution while you focus on closing",
+  },
+  {
+    icon: MessageSquare,
+    title: "SMS & Email Vacuums",
+    desc: "Compound every contact into deeper engagement",
+  },
+  {
+    icon: Calendar,
+    title: "15-Min Discovery Meetings",
+    desc: "Powerful conversations that establish authority",
+  },
+  {
+    icon: Award,
+    title: "Authority & Respect",
+    desc: "Position yourself as the expert in your field",
+  },
+  {
+    icon: Layers,
+    title: "Multi-Channel Sync",
+    desc: "SMS, Email, Voice - orchestrated perfectly",
+  },
+  {
+    icon: Repeat,
+    title: "Compound Engagement",
+    desc: "Every touch multiplies the next one's impact",
+  },
+  {
     icon: Target,
-    title: "AI-Powered Outreach",
-    desc: "Intelligent SDR agents that never sleep",
+    title: "Precision Targeting",
+    desc: "USBizData-powered lead intelligence",
   },
   {
-    icon: TrendingUp,
-    title: "Compound Growth",
-    desc: "Every touch makes the next one smarter",
-  },
-  {
-    icon: Users,
-    title: "Multi-Channel",
-    desc: "SMS, Email, Voice - all synchronized",
-  },
-  {
-    icon: Zap,
+    icon: Rocket,
     title: "Instant Deployment",
     desc: "Launch campaigns in minutes, not weeks",
+  },
+  {
+    icon: Shield,
+    title: "White-Label Ready",
+    desc: "Your brand, your platform, your clients",
   },
 ];
 
@@ -118,9 +158,9 @@ export default function GetStartedPage() {
         <Image
           src="/nextier-logo.jpg"
           alt={APP_NAME}
-          width={140}
-          height={50}
-          className="h-12 w-auto"
+          width={200}
+          height={70}
+          className="h-16 lg:h-20 w-auto"
         />
         <a
           href="/auth"
@@ -296,7 +336,8 @@ export default function GetStartedPage() {
             Perfect Fit For
           </h3>
           <p className="text-center text-zinc-500 mb-10 max-w-2xl mx-auto">
-            Built for professionals who need to scale outreach without scaling headcount
+            Built for professionals who need to scale outreach without scaling
+            headcount
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             {[
@@ -323,7 +364,7 @@ export default function GetStartedPage() {
           <h3 className="text-center text-2xl font-bold text-white mb-12">
             Everything You Need to Scale Outreach
           </h3>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4">
             {FEATURES.map((feature) => (
               <div
                 key={feature.title}

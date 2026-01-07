@@ -1,7 +1,11 @@
 import { InjectDB } from "@/database/decorators";
 import { DatabaseService } from "@/database/services/database.service";
 import { DrizzleClient } from "@/database/types";
-import { Injectable, InternalServerErrorException, ForbiddenException } from "@nestjs/common";
+import {
+  Injectable,
+  InternalServerErrorException,
+  ForbiddenException,
+} from "@nestjs/common";
 import { OutboundGateService } from "@/lib/outbound/outbound-gate.service";
 import { CreateMessageArgs, MessageConnectionArgs } from "../args/message.args";
 import { TeamSettingService } from "@/app/team/services/team-setting.service";
@@ -62,10 +66,13 @@ export class MessageService {
 
     // OUTBOUND GATE: Check suppression before sending (TCPA compliance)
     if (options.leadId) {
-      const gateCheck = await this.outboundGate.canContact(options.leadId, channel);
+      const gateCheck = await this.outboundGate.canContact(
+        options.leadId,
+        channel,
+      );
       if (!gateCheck.allowed) {
         throw new ForbiddenException(
-          `Cannot send ${channel.toUpperCase()}: ${gateCheck.reason}`
+          `Cannot send ${channel.toUpperCase()}: ${gateCheck.reason}`,
         );
       }
     }

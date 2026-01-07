@@ -342,7 +342,7 @@ export const AGENT_ENVIRONMENTS: Record<string, AgentEnvironment> = {
     uiLocations: [
       "/t/[team]/campaigns",
       "/t/[team]/inbox",
-      "/t/[team]/sms-queue",
+      "/t/[team]/sms/queue",
       "/t/[team]/instant-outreach",
     ],
     responsibilities: [
