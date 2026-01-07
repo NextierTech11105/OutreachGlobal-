@@ -87,7 +87,7 @@ export class DatabaseService {
       node: item as any,
     }));
 
-    const connection: ObjectConnection<ObjectEdge<InferRow<Awaited<T>>>> = {
+    const connection: ObjectConnection<ObjectEdge<InferRow<Awaited<T>>>> & { totalCount: number } = {
       edges,
       pageInfo: {
         startCursor,
@@ -97,6 +97,7 @@ export class DatabaseService {
         total,
         totalPerPage: results.length,
       },
+      totalCount: total,
     };
 
     return connection;
