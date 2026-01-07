@@ -130,25 +130,26 @@ export default function GetStartedPage() {
           {/* Left - Hero Content */}
           <div className="space-y-8">
             {/* Badge */}
-            <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-full px-4 py-2">
+            <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-4 py-2">
               <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-              <span className="text-sm text-blue-300">
-                AI SDR Platform - Now Live
+              <span className="text-sm text-emerald-300 font-semibold">
+                30-DAY FREE TRIAL
               </span>
             </div>
 
             {/* Headline */}
             <h1 className="text-4xl lg:text-6xl font-bold text-white leading-tight">
-              Your Sales Team
+              Amplify Capabilities.
               <br />
               <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                Never Sleeps
+                Multiply Capacity.
               </span>
             </h1>
 
             {/* Subheadline */}
             <p className="text-lg lg:text-xl text-zinc-400 max-w-lg">
-              AI-powered outreach that compounds. Wake up to qualified leads in your inbox.
+              Nextier Deal Terminals. A modern-day terminal built to close deals.
+              Audience agnostic. Persona agnostic. Adapts to your industry and use case.
             </p>
 
             {/* CTA Buttons */}
