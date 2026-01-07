@@ -290,8 +290,36 @@ export default function GetStartedPage() {
           </div>
         </div>
 
+        {/* Perfect Fit Section */}
+        <div className="mt-24 lg:mt-32">
+          <h3 className="text-center text-2xl font-bold text-white mb-4">
+            Perfect Fit For
+          </h3>
+          <p className="text-center text-zinc-500 mb-10 max-w-2xl mx-auto">
+            Built for professionals who need to scale outreach without scaling headcount
+          </p>
+          <div className="flex flex-wrap justify-center gap-3">
+            {[
+              "Solopreneurs",
+              "Service-Based Businesses",
+              "RE Agents & Brokers",
+              "White-Label Agencies",
+              "Tech Consultants",
+              "CRM Consultants",
+              "Founders",
+            ].map((item) => (
+              <span
+                key={item}
+                className="px-4 py-2 bg-zinc-800/80 border border-zinc-700 rounded-full text-sm text-white hover:border-blue-500/50 hover:bg-zinc-800 transition-colors cursor-default"
+              >
+                {item}
+              </span>
+            ))}
+          </div>
+        </div>
+
         {/* Features Grid */}
-        <div className="mt-24 lg:mt-32 pb-20">
+        <div className="mt-20 pb-20">
           <h3 className="text-center text-2xl font-bold text-white mb-12">
             Everything You Need to Scale Outreach
           </h3>
