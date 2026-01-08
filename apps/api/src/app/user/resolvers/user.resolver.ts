@@ -1,11 +1,18 @@
 import { Args, Mutation, Query, Resolver } from "@nestjs/graphql";
 import { User } from "../models/user.model";
 import { Auth, UseAuthGuard } from "@/app/auth/decorators";
-import { LoginPayload, UpdateProfilePayload } from "../objects/user.object";
-import { LoginArgs, UpdateProfileArgs } from "../args/user.args";
+import { LoginPayload, RegisterPayload, UpdateProfilePayload } from "../objects/user.object";
+import { LoginArgs, RegisterArgs, UpdateProfileArgs } from "../args/user.args";
 import { UserService } from "../services/user.service";
 import { BaseResolver } from "@/app/apollo/base.resolver";
 import { loginSchema, z } from "@nextier/dto";
+
+const registerSchema = z.object({
+  name: z.string().min(2).max(100),
+  email: z.string().email(),
+  companyName: z.string().min(2).max(100),
+  password: z.string().min(8).max(100),
+});
 
 @Resolver(() => User)
 export class UserResolver extends BaseResolver(User) {
@@ -23,6 +30,12 @@ export class UserResolver extends BaseResolver(User) {
   async login(@Args() args: LoginArgs) {
     const input = this.validate(loginSchema, args.input);
     return this.userService.login(input);
+  }
+
+  @Mutation(() => RegisterPayload)
+  async register(@Args() args: RegisterArgs) {
+    const input = this.validate(registerSchema, args.input);
+    return this.userService.register(input);
   }
 
   @UseAuthGuard()

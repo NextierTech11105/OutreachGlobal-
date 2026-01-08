@@ -78,3 +78,6 @@ export * from "./auto-triggers.schema";
 
 // ===== TARGETING CATEGORIES & SIC CODES =====
 export * from "./sic-categories.schema";
+
+// ===== BILLING & SUBSCRIPTIONS =====
+export * from "./billing.schema";

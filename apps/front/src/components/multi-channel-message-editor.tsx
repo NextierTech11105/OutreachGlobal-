@@ -35,48 +35,7 @@ interface Template {
   voiceUrl?: string;
 }
 
-// Mock templates - in a real app, these would come from an API
-const mockTemplates: Template[] = [
-  {
-    id: "email-template-1",
-    name: "Introduction Email",
-    type: "email",
-    subject: "Introducing Our Services",
-    body: "Dear {{first_name}},\n\nI hope this email finds you well. I wanted to reach out to introduce our services that might benefit {{company_name}}.\n\nOur platform helps businesses like yours to streamline operations and increase revenue through targeted outreach.\n\nWould you be available for a quick 15-minute call this week to discuss how we might be able to help?\n\nBest regards,\n{{user_name}}\n{{user_title}}",
-  },
-  {
-    id: "email-template-2",
-    name: "Follow-up Email",
-    type: "email",
-    subject: "Following Up on Our Conversation",
-    body: "Hi {{first_name}},\n\nI wanted to follow up on our previous conversation about how our services could help {{company_name}}.\n\nHave you had a chance to review the information I sent over? I'd be happy to answer any questions you might have.\n\nLooking forward to hearing from you.\n\nBest,\n{{user_name}}",
-  },
-  {
-    id: "sms-template-1",
-    name: "Quick Introduction",
-    type: "sms",
-    smsText: `Hi {{first_name}}, this is {{user_name}} from ${COMPANY_NAME}. We help businesses like {{company_name}} improve lead generation. Would you be interested in learning more?`,
-  },
-  {
-    id: "sms-template-2",
-    name: "Event Reminder",
-    type: "sms",
-    smsText:
-      "{{first_name}}, just a reminder about our webinar tomorrow at 2pm EST. Looking forward to seeing you there! Reply STOP to unsubscribe.",
-  },
-  {
-    id: "voice-template-1",
-    name: "Introduction Call Script",
-    type: "voice",
-    voiceScript: `Hello {{first_name}}, this is {{user_name}} from ${COMPANY_NAME}. I'm calling to introduce our lead generation platform that has helped companies like yours increase qualified leads by 40%. Do you have a few minutes to discuss how this might benefit {{company_name}}?`,
-  },
-  {
-    id: "voice-template-2",
-    name: "Follow-up Call Script",
-    type: "voice",
-    voiceScript: `Hi {{first_name}}, this is {{user_name}} following up on our previous conversation about ${COMPANY_NAME}'s services. I wanted to see if you had any questions about the information I sent over and if you'd like to schedule a demo.`,
-  },
-];
+// Templates are now fetched from real API - no mock data
 
 interface MultiChannelMessageEditorProps {
   messageId?: string;

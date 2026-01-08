@@ -7,7 +7,7 @@ import { InboundCallPanel } from "@/components/inbound-call-panel";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useMediaQuery } from "@/hooks/use-media-query";
-import { ChevronLeft, Mail, Phone, PhoneCall, PenSquare } from "lucide-react";
+import { ChevronLeft, Mail, Phone, PhoneCall, PenSquare, Calendar, Users, Search, Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useCurrentTeam } from "@/features/team/team.context";
@@ -19,6 +19,7 @@ import { InboxSidebar } from "./inbox-sidebar";
 import { useInboxContext } from "../inbox.context";
 import { MessageDetail } from "./message-detail";
 import { GmailEmailComposer } from "@/components/gmail-email-composer";
+import { LeadResearchPanel, type LeadResearchResult } from "@/components/lead-research-panel";
 
 export function UnifiedInbox() {
   const router = useRouter();
@@ -29,6 +30,12 @@ export function UnifiedInbox() {
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const [replyMode, setReplyMode] = useState(false);
   const [{ activeTab }, dispatch] = useInboxContext();
+  
+  // NEVA Research state
+  const [researchResult, setResearchResult] = useState<LeadResearchResult | null>(null);
+  const [isResearching, setIsResearching] = useState(false);
+  const [showResearchPanel, setShowResearchPanel] = useState(false);
+  
   const [filters, setFilters] = useState({
     search: "",
     status: [] as MessageStatus[],
@@ -284,6 +291,63 @@ export function UnifiedInbox() {
     }
   };
 
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // NEVA PERPLEXITY RESEARCH - Deep lead intelligence before calls/appointments
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  // Research Lead - Triggers NEVA deep research for call prep
+  const handleResearchLead = async (message: Message) => {
+    const companyName = message.companyName || message.fromName || "Unknown Company";
+    const contactName = message.fromName || "";
+    
+    setIsResearching(true);
+    setShowResearchPanel(true);
+    setSelectedMessage(message);
+    
+    toast.info(`🔍 Researching ${companyName}...`, { duration: 3000 });
+    
+    try {
+      // Call NEVA research API
+      const response = await fetch(`/api/neva/research`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          companyName,
+          contactName,
+          phone: message.phone || message.from,
+          email: message.email,
+          address: message.address ? {
+            city: message.city || "",
+            state: message.state || "",
+          } : undefined,
+          industry: message.industry,
+          teamId: team?.id,
+          leadId: message.leadId,
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error("Research request failed");
+      }
+      
+      const data = await response.json();
+      setResearchResult(data);
+      toast.success(`✨ Research complete for ${companyName}`);
+    } catch (error) {
+      console.error("Research failed:", error);
+      toast.error("Research failed. Please try again.");
+      setShowResearchPanel(false);
+    } finally {
+      setIsResearching(false);
+    }
+  };
+
+  // Close research panel
+  const handleCloseResearch = () => {
+    setShowResearchPanel(false);
+    setResearchResult(null);
+  };
+
   // Legacy quick call handler (kept for compatibility)
   const handleQuickCall = (message: Message) => {
     handleCallNow(message);
@@ -344,15 +408,35 @@ export function UnifiedInbox() {
 
           <div className="flex items-center gap-2">
             {!selectedMessage && !showCompose && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-8 gap-1"
-                onClick={() => setShowCompose(true)}
-              >
-                <PenSquare className="h-4 w-4" />
-                Compose
-              </Button>
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 gap-1"
+                  onClick={() => setShowCompose(true)}
+                >
+                  <PenSquare className="h-4 w-4" />
+                  Compose
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 gap-1"
+                  onClick={() => router.push(`/t/${team?.slug || ""}/appointments`)}
+                >
+                  <Calendar className="h-4 w-4" />
+                  Calendar
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 gap-1"
+                  onClick={() => router.push(`/t/${team?.slug || ""}/leads`)}
+                >
+                  <Users className="h-4 w-4" />
+                  Leads
+                </Button>
+              </>
             )}
             {!selectedMessage && !showCompose && (
               <Button
@@ -410,6 +494,15 @@ export function UnifiedInbox() {
                   onCancel={() => setShowCompose(false)}
                 />
               </div>
+            ) : showResearchPanel && selectedMessage ? (
+              <LeadResearchPanel
+                message={selectedMessage}
+                result={researchResult}
+                isLoading={isResearching}
+                onClose={handleCloseResearch}
+                onCallNow={() => handleCallNow(selectedMessage)}
+                onAddBooking={() => handleAddBooking(selectedMessage)}
+              />
             ) : !selectedMessage ? (
               <InboxMessages
                 onViewMessage={handleViewMessage}
@@ -426,6 +519,7 @@ export function UnifiedInbox() {
                 onAddNote={handleAddNote}
                 onAddToBlacklist={handleAddToBlacklist}
                 onBlockContact={handleBlockContact}
+                onResearchLead={handleResearchLead}
               />
             ) : replyMode ? (
               <MessageReply
@@ -438,6 +532,7 @@ export function UnifiedInbox() {
                 message={selectedMessage}
                 onReply={() => setReplyMode(true)}
                 onClose={handleCloseDetail}
+                onResearchLead={() => handleResearchLead(selectedMessage)}
               />
             )}
           </div>

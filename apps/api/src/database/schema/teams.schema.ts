@@ -5,6 +5,7 @@ import {
   timestamp,
   uniqueIndex,
   varchar,
+  boolean,
 } from "drizzle-orm/pg-core";
 import { primaryUlid, ulidColumn } from "../columns/ulid";
 import { createdAt, updatedAt } from "../columns/timestamps";
@@ -34,12 +35,41 @@ export const teams = pgTable(
     signalhouseCampaignIds: jsonb("signalhouse_campaign_ids").$type<string[]>(),
     signalhousePhonePool: jsonb("signalhouse_phone_pool").$type<string[]>(),
 
+    // ═══════════════════════════════════════════════════════════════
+    // TRIAL & DEMO MANAGEMENT
+    // 30-day demo for new users, trial period before conversion
+    // ═══════════════════════════════════════════════════════════════
+    trialEndsAt: timestamp("trial_ends_at"),
+    demoExpiresAt: timestamp("demo_expires_at"),
+    isDemo: boolean("is_demo").default(true),
+    onboardingCompleted: boolean("onboarding_completed").default(false),
+    onboardingCompletedAt: timestamp("onboarding_completed_at"),
+
+    // ═══════════════════════════════════════════════════════════════
+    // WHITE-LABEL BRANDING
+    // Custom branding for agency/enterprise plans
+    // ═══════════════════════════════════════════════════════════════
+    branding: jsonb().$type<{
+      logo?: string;
+      logoLight?: string;
+      logoDark?: string;
+      favicon?: string;
+      primaryColor?: string;
+      accentColor?: string;
+      companyName?: string;
+      supportEmail?: string;
+      supportPhone?: string;
+      customDomain?: string;
+      hideNextierBranding?: boolean;
+    }>(),
+
     createdAt,
     updatedAt,
   },
   (t) => [
     index().on(t.ownerId),
     index("teams_signalhouse_idx").on(t.signalhouseSubGroupId),
+    index("teams_trial_idx").on(t.trialEndsAt),
   ],
 );
 

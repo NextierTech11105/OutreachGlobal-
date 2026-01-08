@@ -190,135 +190,6 @@ function formatRevenue(amount: number): string {
   return `$${amount}`;
 }
 
-// Generate mock leads for demo
-function generateMockLeads(): Lead[] {
-  const industries = [
-    "Manufacturing",
-    "Tech",
-    "Healthcare",
-    "Retail",
-    "Construction",
-    "Services",
-  ];
-  const states = ["CA", "TX", "FL", "NY", "IL", "PA", "OH", "GA", "NC", "MI"];
-  const firstNames = [
-    "John",
-    "Michael",
-    "David",
-    "James",
-    "Robert",
-    "William",
-    "Richard",
-    "Joseph",
-    "Thomas",
-    "Charles",
-  ];
-  const lastNames = [
-    "Smith",
-    "Johnson",
-    "Williams",
-    "Brown",
-    "Jones",
-    "Garcia",
-    "Miller",
-    "Davis",
-    "Rodriguez",
-    "Martinez",
-  ];
-  const companyPrefixes = [
-    "Premier",
-    "Advanced",
-    "Elite",
-    "Pro",
-    "First",
-    "National",
-    "American",
-    "United",
-    "Global",
-    "Pacific",
-  ];
-  const companySuffixes = [
-    "Solutions",
-    "Industries",
-    "Services",
-    "Group",
-    "Corp",
-    "Inc",
-    "LLC",
-    "Enterprises",
-    "Partners",
-    "Holdings",
-  ];
-
-  return Array.from({ length: 50 }, (_, i) => {
-    const revenue = Math.floor(Math.random() * 10000000) + 500000;
-    const industry = industries[Math.floor(Math.random() * industries.length)];
-    const state = states[Math.floor(Math.random() * states.length)];
-    const yearsInBusiness = Math.floor(Math.random() * 30) + 5;
-
-    const tags: string[] = [];
-    if (revenue > 5000000) tags.push("High Revenue");
-    else if (revenue > 2000000) tags.push("Mid Revenue");
-    else tags.push("Growth Stage");
-
-    tags.push(industry);
-
-    if (yearsInBusiness > 15) tags.push("Established");
-    if (Math.random() > 0.7) tags.push("Decision Maker");
-    if (Math.random() > 0.8) tags.push("Exit Ready");
-    if (Math.random() > 0.85) tags.push("Hot Lead");
-    if (i < 5) tags.push("New Lead");
-
-    const statuses: Lead["status"][] = [
-      "new",
-      "contacted",
-      "interested",
-      "hot",
-      "cold",
-    ];
-    const status = statuses[Math.floor(Math.random() * statuses.length)];
-
-    let audience = "all";
-    if (revenue > 5000000) audience = "high-value";
-    if (tags.includes("Hot Lead")) audience = "hot-leads";
-    if (tags.includes("Decision Maker")) audience = "decision-makers";
-    if (tags.includes("Exit Ready")) audience = "exit-ready";
-    if (i < 5) audience = "new-today";
-
-    return {
-      id: `lead-${i + 1}`,
-      companyName: `${companyPrefixes[Math.floor(Math.random() * companyPrefixes.length)]} ${companySuffixes[Math.floor(Math.random() * companySuffixes.length)]}`,
-      ownerFirstName: firstNames[Math.floor(Math.random() * firstNames.length)],
-      ownerLastName: lastNames[Math.floor(Math.random() * lastNames.length)],
-      annualRevenue: revenue,
-      companyAddress: `${Math.floor(Math.random() * 9999) + 1} ${["Main", "Oak", "Maple", "Cedar", "Pine", "Elm"][Math.floor(Math.random() * 6)]} St`,
-      city: [
-        "Los Angeles",
-        "Houston",
-        "Miami",
-        "New York",
-        "Chicago",
-        "Philadelphia",
-      ][Math.floor(Math.random() * 6)],
-      state,
-      zip: String(Math.floor(Math.random() * 90000) + 10000),
-      phone: `(${Math.floor(Math.random() * 900) + 100}) ${Math.floor(Math.random() * 900) + 100}-${Math.floor(Math.random() * 9000) + 1000}`,
-      email: `owner@${companyPrefixes[Math.floor(Math.random() * companyPrefixes.length)].toLowerCase()}.com`,
-      industry,
-      employeeCount: Math.floor(Math.random() * 100) + 5,
-      yearsInBusiness,
-      score: Math.floor(Math.random() * 40) + 60,
-      tags,
-      audience,
-      status,
-      lastContact:
-        Math.random() > 0.5
-          ? new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000)
-          : undefined,
-    };
-  });
-}
-
 export default function OutreachPage() {
   const params = useParams();
   const teamId = params.team as string;
@@ -343,14 +214,45 @@ export default function OutreachPage() {
     enrichment: { used: 0, total: 2000, remaining: 2000 },
   });
 
-  // Load leads
+  // Load leads from real API
   useEffect(() => {
-    // In production, fetch from API
-    setTimeout(() => {
-      setLeads(generateMockLeads());
-      setLoading(false);
-    }, 500);
-  }, []);
+    async function fetchLeads() {
+      try {
+        const res = await fetch(`/api/leads?teamId=${teamId}&limit=100`);
+        if (res.ok) {
+          const data = await res.json();
+          // Map API response to Lead interface
+          const mappedLeads: Lead[] = (data.leads || []).map((l: any) => ({
+            id: l.id,
+            companyName: l.companyName || l.company || 'Unknown',
+            ownerFirstName: l.firstName || l.ownerFirstName || '',
+            ownerLastName: l.lastName || l.ownerLastName || '',
+            annualRevenue: l.revenue || l.annualRevenue || 0,
+            companyAddress: l.address || l.companyAddress || '',
+            city: l.city || '',
+            state: l.state || '',
+            zip: l.zip || '',
+            phone: l.phone || '',
+            email: l.email || '',
+            industry: l.industry || '',
+            employeeCount: l.employees || l.employeeCount || 0,
+            yearsInBusiness: l.yearsInBusiness || 0,
+            score: l.score || 50,
+            tags: l.tags || [],
+            audience: l.audience || 'all',
+            status: l.status || 'new',
+            lastContact: l.lastContactedAt ? new Date(l.lastContactedAt) : undefined,
+          }));
+          setLeads(mappedLeads);
+        }
+      } catch (error) {
+        console.error('Failed to fetch leads:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    if (teamId) fetchLeads();
+  }, [teamId]);
 
   // Filter leads by audience and search
   const filteredLeads = leads.filter((lead) => {

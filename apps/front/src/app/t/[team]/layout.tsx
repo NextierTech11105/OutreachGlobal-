@@ -11,6 +11,7 @@ import { getTeam } from "@/features/team/team.data";
 import { LayoutProps } from "@/types/route.type";
 import { Metadata } from "next";
 import { GlobalActionsProvider } from "@/lib/providers/global-actions-provider";
+import { FloatingActionBar } from "@/components/floating-action-bar";
 
 export const generateMetadata = async ({
   params,
@@ -48,6 +49,7 @@ export default async function Layout({
               </div>
             </header>
             {children}
+            <FloatingActionBar />
           </SidebarInset>
         </GlobalActionsProvider>
       </TeamProvider>

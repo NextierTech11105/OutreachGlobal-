@@ -385,6 +385,7 @@ interface InboxMessagesProps {
   onAddNote?: (message: any) => void;
   onAddToBlacklist?: (message: any) => void;
   onBlockContact?: (message: any) => void;
+  onResearchLead?: (message: any) => void; // NEVA Perplexity research
 }
 
 export function InboxMessages({
@@ -401,6 +402,7 @@ export function InboxMessages({
   onAddNote,
   onAddToBlacklist,
   onBlockContact,
+  onResearchLead,
 }: InboxMessagesProps) {
   const [selectedMessages, setSelectedMessages] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -908,6 +910,19 @@ export function InboxMessages({
                         >
                           <Users className="mr-2 h-4 w-4" />
                           Push To Leads
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            if (onResearchLead) {
+                              onResearchLead(message);
+                            } else {
+                              toast.info(`Researching lead...`);
+                            }
+                          }}
+                          className="text-purple-600"
+                        >
+                          <Sparkles className="mr-2 h-4 w-4" />
+                          🔍 Research Lead (AI)
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => {

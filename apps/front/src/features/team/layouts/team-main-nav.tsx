@@ -172,36 +172,54 @@ export function TeamMainNav() {
     );
   };
 
+  // Group color mapping for visual hierarchy
+  const getGroupColors = (groupId: string) => {
+    const colors: Record<string, { bg: string; text: string; icon: string; border: string }> = {
+      "command": { bg: "bg-gradient-to-r from-slate-800 to-slate-700", text: "text-white", icon: "text-blue-400", border: "border-l-blue-500" },
+      "prospecting": { bg: "bg-gradient-to-r from-emerald-900/50 to-emerald-800/30", text: "text-emerald-300", icon: "text-emerald-400", border: "border-l-emerald-500" },
+      "pipeline": { bg: "bg-gradient-to-r from-purple-900/50 to-purple-800/30", text: "text-purple-300", icon: "text-purple-400", border: "border-l-purple-500" },
+      "outreach": { bg: "bg-gradient-to-r from-orange-900/50 to-orange-800/30", text: "text-orange-300", icon: "text-orange-400", border: "border-l-orange-500" },
+      "inbound": { bg: "bg-gradient-to-r from-cyan-900/50 to-cyan-800/30", text: "text-cyan-300", icon: "text-cyan-400", border: "border-l-cyan-500" },
+      "ai": { bg: "bg-gradient-to-r from-pink-900/50 to-pink-800/30", text: "text-pink-300", icon: "text-pink-400", border: "border-l-pink-500" },
+      "analytics": { bg: "bg-gradient-to-r from-blue-900/50 to-blue-800/30", text: "text-blue-300", icon: "text-blue-400", border: "border-l-blue-500" },
+      "admin": { bg: "bg-gradient-to-r from-zinc-800/50 to-zinc-700/30", text: "text-zinc-300", icon: "text-zinc-400", border: "border-l-zinc-500" },
+    };
+    return colors[groupId] || { bg: "bg-muted/30", text: "text-foreground", icon: "text-muted-foreground", border: "border-l-muted" };
+  };
+
   return (
-    <div className="flex flex-col gap-1">
-      {filteredNavGroups.map((group, groupIndex) => (
-        <Collapsible
-          key={group.id}
-          defaultOpen={group.id === "command"} // Default open the COMMAND group
-          className="group/nav-section"
-        >
-          <SidebarGroup className="py-0">
-            <CollapsibleTrigger asChild>
-              <SidebarGroupLabel className="text-sm font-semibold text-foreground px-3 py-2.5 cursor-pointer hover:bg-muted/50 rounded-md transition-colors flex items-center justify-between w-full">
-                <div className="flex items-center gap-2">
-                  {group.icon && <group.icon className="h-4 w-4" />}
-                  <span>{group.label}</span>
-                </div>
-                <ChevronRightIcon className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]/nav-section:rotate-90" />
-              </SidebarGroupLabel>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <SidebarGroupContent className="pl-2">
-                <SidebarMenu>
-                  {group.items.map((item, itemIndex) =>
-                    renderNavItem(item, itemIndex),
-                  )}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </CollapsibleContent>
-          </SidebarGroup>
-        </Collapsible>
-      ))}
+    <div className="flex flex-col gap-2 px-2">
+      {filteredNavGroups.map((group, groupIndex) => {
+        const colors = getGroupColors(group.id);
+        return (
+          <Collapsible
+            key={group.id}
+            defaultOpen={["command", "prospecting", "pipeline", "outreach"].includes(group.id)}
+            className="group/nav-section"
+          >
+            <SidebarGroup className="py-0">
+              <CollapsibleTrigger asChild>
+                <SidebarGroupLabel className={`text-xs font-bold tracking-wider uppercase px-3 py-3 cursor-pointer hover:opacity-90 rounded-lg transition-all flex items-center justify-between w-full border-l-4 ${colors.bg} ${colors.text} ${colors.border}`}>
+                  <div className="flex items-center gap-2">
+                    {group.icon && <group.icon className={`h-4 w-4 ${colors.icon}`} />}
+                    <span className="text-[11px]">{group.label}</span>
+                  </div>
+                  <ChevronRightIcon className="h-3.5 w-3.5 opacity-60 transition-transform duration-200 group-data-[state=open]/nav-section:rotate-90" />
+                </SidebarGroupLabel>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <SidebarGroupContent className="pl-3 mt-1">
+                  <SidebarMenu>
+                    {group.items.map((item, itemIndex) =>
+                      renderNavItem(item, itemIndex),
+                    )}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </CollapsibleContent>
+            </SidebarGroup>
+          </Collapsible>
+        );
+      })}
     </div>
   );
 }

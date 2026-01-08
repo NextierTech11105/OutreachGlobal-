@@ -19,10 +19,19 @@ export default function Page() {
           <LoginForm />
         </div>
 
-        <div className="mt-8 text-center">
+        <div className="mt-6 text-center space-y-2">
+          <p className="text-sm text-muted-foreground">
+            Don&apos;t have an account?{" "}
+            <Link
+              href="/auth/register"
+              className="text-primary hover:underline font-medium"
+            >
+              Sign up free
+            </Link>
+          </p>
           <Link
             href="/"
-            className="text-sm text-muted-foreground hover:text-primary"
+            className="text-sm text-muted-foreground hover:text-primary block"
           >
             ← Back to homepage
           </Link>

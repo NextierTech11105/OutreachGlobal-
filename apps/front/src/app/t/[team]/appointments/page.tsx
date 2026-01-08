@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import {
   Calendar,
@@ -10,6 +10,7 @@ import {
   MapPin,
   Plus,
   Filter,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,33 +34,28 @@ interface Appointment {
   notes?: string;
 }
 
-// Placeholder data - replace with real API call
-const mockAppointments: Appointment[] = [
-  {
-    id: "1",
-    leadName: "John Smith",
-    leadPhone: "+1 555-123-4567",
-    scheduledAt: new Date(Date.now() + 3600000).toISOString(),
-    duration: 30,
-    type: "call",
-    status: "scheduled",
-    notes: "Interested in business valuation",
-  },
-  {
-    id: "2",
-    leadName: "Jane Doe",
-    leadPhone: "+1 555-987-6543",
-    scheduledAt: new Date(Date.now() + 7200000).toISOString(),
-    duration: 45,
-    type: "demo",
-    status: "scheduled",
-    notes: "Follow up from SMS outreach",
-  },
-];
-
 export default function AppointmentsPage() {
   const params = useParams<{ team: string }>();
-  const [appointments] = useState<Appointment[]>(mockAppointments);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch appointments from real API
+  useEffect(() => {
+    async function fetchAppointments() {
+      try {
+        const res = await fetch(`/api/appointments?teamId=${params.team}`);
+        if (res.ok) {
+          const data = await res.json();
+          setAppointments(data.appointments || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch appointments:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    if (params.team) fetchAppointments();
+  }, [params.team]);
   const [activeTab, setActiveTab] = useState("upcoming");
 
   const getStatusColor = (status: Appointment["status"]) => {

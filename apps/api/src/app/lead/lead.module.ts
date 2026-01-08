@@ -11,6 +11,7 @@ import { BusinessListController } from "./controllers/business-list.controller";
 import { ApolloSearchController } from "./controllers/apollo-search.controller";
 import { ApolloTestController } from "./controllers/apollo-test.controller";
 import { SignalHouseController } from "./controllers/signalhouse.controller";
+import { SignalHouseWebhookController } from "./controllers/signalhouse-webhook.controller";
 import { ConfigModule } from "@nestjs/config";
 import { ImportLeadPresetResolver } from "./resolvers/import-lead-preset.resolver";
 import { LeadRepository } from "./repositories/lead.repository";
@@ -71,6 +72,7 @@ import { SicMapperService } from "./services/sic-mapper.service";
     ApolloSearchController,
     ApolloTestController,
     SignalHouseController,
+    SignalHouseWebhookController,
   ],
 })
 export class LeadModule {}
