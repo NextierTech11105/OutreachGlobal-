@@ -47,10 +47,35 @@ export class Team extends TimestampModel implements TeamSelect {
   @Field(() => [String], { nullable: true })
   signalhousePhonePool: string[] | null;
 
-  // NOTE: description and branding removed temporarily - columns don't exist in DB yet
-  // @StringField({ nullable: true })
-  // description: string | null;
+  // Trial & Demo Management
+  @Field(() => Date, { nullable: true })
+  trialEndsAt: Date | null;
 
-  // @Field(() => TeamBranding, { nullable: true })
-  // branding: {...} | null;
+  @Field(() => Date, { nullable: true })
+  demoExpiresAt: Date | null;
+
+  @Field({ nullable: true })
+  isDemo: boolean | null;
+
+  @Field({ nullable: true })
+  onboardingCompleted: boolean | null;
+
+  @Field(() => Date, { nullable: true })
+  onboardingCompletedAt: Date | null;
+
+  // White-label Branding
+  @Field(() => TeamBranding, { nullable: true })
+  branding: {
+    logo?: string;
+    logoLight?: string;
+    logoDark?: string;
+    favicon?: string;
+    primaryColor?: string;
+    accentColor?: string;
+    companyName?: string;
+    supportEmail?: string;
+    supportPhone?: string;
+    customDomain?: string;
+    hideNextierBranding?: boolean;
+  } | null;
 }
