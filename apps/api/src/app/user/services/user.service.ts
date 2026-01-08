@@ -59,15 +59,13 @@ export class UserService {
       })
       .returning();
 
-    // Create team with 30-day trial
-    const trialEndsAt = addDays(now, 30);
+    // Create team
     const [team] = await this.db
       .insert(teamsTable)
       .values({
         ownerId: user.id,
         name: teamName,
         slug,
-        trialEndsAt,
         createdAt: now,
         updatedAt: now,
       })

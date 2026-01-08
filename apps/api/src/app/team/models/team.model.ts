@@ -1,5 +1,5 @@
 import { TimestampModel } from "@/app/apollo/base-model";
-import { JSONField, StringField } from "@/app/apollo/decorators";
+import { StringField } from "@/app/apollo/decorators";
 import { teamsTable } from "@/database/schema-alias";
 import { Field, ObjectType } from "@nestjs/graphql";
 
@@ -46,36 +46,4 @@ export class Team extends TimestampModel implements TeamSelect {
 
   @Field(() => [String], { nullable: true })
   signalhousePhonePool: string[] | null;
-
-  // Trial & Demo Management
-  @Field(() => Date, { nullable: true })
-  trialEndsAt: Date | null;
-
-  @Field(() => Date, { nullable: true })
-  demoExpiresAt: Date | null;
-
-  @Field(() => Boolean, { nullable: true })
-  isDemo: boolean | null;
-
-  @Field(() => Boolean, { nullable: true })
-  onboardingCompleted: boolean | null;
-
-  @Field(() => Date, { nullable: true })
-  onboardingCompletedAt: Date | null;
-
-  // White-label Branding
-  @JSONField({ nullable: true })
-  branding: {
-    logo?: string;
-    logoLight?: string;
-    logoDark?: string;
-    favicon?: string;
-    primaryColor?: string;
-    accentColor?: string;
-    companyName?: string;
-    supportEmail?: string;
-    supportPhone?: string;
-    customDomain?: string;
-    hideNextierBranding?: boolean;
-  } | null;
 }
