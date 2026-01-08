@@ -234,21 +234,23 @@ export default function CampaignBuilderPage() {
           const result = await response.json();
           if (result.data && Array.isArray(result.data)) {
             // Map database campaigns to CampaignBlock format
-            const mappedCampaigns: CampaignBlock[] = result.data.map((c: any) => ({
-              id: c.id,
-              name: c.name || "Unnamed Campaign",
-              source: "upload" as const,
-              batchSize: c.estimatedLeadsCount || 0,
-              leadCount: c.estimatedLeadsCount || 0,
-              enrichedCount: 0,
-              withPhoneCount: 0,
-              template: c.description || "",
-              status: (c.status?.toLowerCase() || "draft") as any,
-              sentCount: 0,
-              respondedCount: 0,
-              bookedCount: 0,
-              createdAt: new Date(c.createdAt),
-            }));
+            const mappedCampaigns: CampaignBlock[] = result.data.map(
+              (c: any) => ({
+                id: c.id,
+                name: c.name || "Unnamed Campaign",
+                source: "upload" as const,
+                batchSize: c.estimatedLeadsCount || 0,
+                leadCount: c.estimatedLeadsCount || 0,
+                enrichedCount: 0,
+                withPhoneCount: 0,
+                template: c.description || "",
+                status: (c.status?.toLowerCase() || "draft") as any,
+                sentCount: 0,
+                respondedCount: 0,
+                bookedCount: 0,
+                createdAt: new Date(c.createdAt),
+              }),
+            );
             setCampaigns(mappedCampaigns);
           }
         }

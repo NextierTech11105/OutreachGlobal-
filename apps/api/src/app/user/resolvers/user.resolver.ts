@@ -1,7 +1,11 @@
 import { Args, Mutation, Query, Resolver } from "@nestjs/graphql";
 import { User } from "../models/user.model";
 import { Auth, UseAuthGuard } from "@/app/auth/decorators";
-import { LoginPayload, RegisterPayload, UpdateProfilePayload } from "../objects/user.object";
+import {
+  LoginPayload,
+  RegisterPayload,
+  UpdateProfilePayload,
+} from "../objects/user.object";
 import { LoginArgs, RegisterArgs, UpdateProfileArgs } from "../args/user.args";
 import { UserService } from "../services/user.service";
 import { BaseResolver } from "@/app/apollo/base.resolver";

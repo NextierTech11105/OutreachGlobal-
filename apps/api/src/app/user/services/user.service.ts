@@ -5,7 +5,11 @@ import { AuthService } from "@/app/auth/services/auth.service";
 import { UpdateProfileInput } from "../inputs/profile.input";
 import { InjectDB } from "@/database/decorators";
 import { DrizzleClient, PostgresTransaction } from "@/database/types";
-import { usersTable, teamsTable, teamMembersTable } from "@/database/schema-alias";
+import {
+  usersTable,
+  teamsTable,
+  teamMembersTable,
+} from "@/database/schema-alias";
 import { eq } from "drizzle-orm";
 import { UserInsert } from "../models/user.model";
 import { getDatabaseSession } from "@haorama/drizzle-postgres-extra";
