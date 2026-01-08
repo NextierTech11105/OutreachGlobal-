@@ -1,5 +1,5 @@
 import { TimestampModel } from "@/app/apollo/base-model";
-import { StringField } from "@/app/apollo/decorators";
+import { JSONField, StringField } from "@/app/apollo/decorators";
 import { teamsTable } from "@/database/schema-alias";
 import { Field, ObjectType } from "@nestjs/graphql";
 
@@ -64,6 +64,7 @@ export class Team extends TimestampModel implements TeamSelect {
   onboardingCompletedAt: Date | null;
 
   // White-label Branding
+  @JSONField({ nullable: true })
   branding: {
     logo?: string;
     logoLight?: string;
