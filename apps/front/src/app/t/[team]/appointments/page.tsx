@@ -49,7 +49,7 @@ export default function AppointmentsPage() {
           setAppointments(data.appointments || []);
         }
       } catch (error) {
-        console.error('Failed to fetch appointments:', error);
+        console.error("Failed to fetch appointments:", error);
       } finally {
         setLoading(false);
       }

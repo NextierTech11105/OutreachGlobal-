@@ -160,7 +160,7 @@ export default function B2BSearchPage() {
       setResults(data.leads || []);
       setTotalCount(data.total || 0);
       setSource(data.source || "unknown");
-      
+
       toast({
         title: "Search Complete",
         description: `Found ${data.total?.toLocaleString() || 0} businesses`,
@@ -188,7 +188,8 @@ export default function B2BSearchPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">B2B Search</h1>
           <p className="text-muted-foreground">
-            Search {totalCount > 0 ? `${totalCount.toLocaleString()}+` : ""} business prospects from USBizData
+            Search {totalCount > 0 ? `${totalCount.toLocaleString()}+` : ""}{" "}
+            business prospects from USBizData
           </p>
         </div>
         <div className="flex gap-2">
@@ -213,12 +214,19 @@ export default function B2BSearchPage() {
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-4">
             <div className="md:col-span-2">
-              <Label htmlFor="company" className="text-sm text-muted-foreground">Company Name</Label>
+              <Label
+                htmlFor="company"
+                className="text-sm text-muted-foreground"
+              >
+                Company Name
+              </Label>
               <Input
                 id="company"
                 placeholder="Search by company name..."
                 value={filters.company}
-                onChange={(e) => setFilters({ ...filters, company: e.target.value })}
+                onChange={(e) =>
+                  setFilters({ ...filters, company: e.target.value })
+                }
                 className="mt-1"
               />
             </div>
@@ -226,7 +234,12 @@ export default function B2BSearchPage() {
               <Label className="text-sm text-muted-foreground">State</Label>
               <Select
                 value={filters.state}
-                onValueChange={(value) => setFilters({ ...filters, state: value === "all" ? "" : value })}
+                onValueChange={(value) =>
+                  setFilters({
+                    ...filters,
+                    state: value === "all" ? "" : value,
+                  })
+                }
               >
                 <SelectTrigger className="mt-1">
                   <SelectValue placeholder="All States" />
@@ -242,34 +255,46 @@ export default function B2BSearchPage() {
               </Select>
             </div>
             <div>
-              <Label htmlFor="city" className="text-sm text-muted-foreground">City</Label>
+              <Label htmlFor="city" className="text-sm text-muted-foreground">
+                City
+              </Label>
               <Input
                 id="city"
                 placeholder="City..."
                 value={filters.city}
-                onChange={(e) => setFilters({ ...filters, city: e.target.value })}
+                onChange={(e) =>
+                  setFilters({ ...filters, city: e.target.value })
+                }
                 className="mt-1"
               />
             </div>
           </div>
           <div className="grid gap-4 md:grid-cols-4">
             <div>
-              <Label htmlFor="sic" className="text-sm text-muted-foreground">SIC Code</Label>
+              <Label htmlFor="sic" className="text-sm text-muted-foreground">
+                SIC Code
+              </Label>
               <Input
                 id="sic"
                 placeholder="e.g., 5812"
                 value={filters.sicCode}
-                onChange={(e) => setFilters({ ...filters, sicCode: e.target.value })}
+                onChange={(e) =>
+                  setFilters({ ...filters, sicCode: e.target.value })
+                }
                 className="mt-1"
               />
             </div>
             <div>
-              <Label htmlFor="title" className="text-sm text-muted-foreground">Job Title</Label>
+              <Label htmlFor="title" className="text-sm text-muted-foreground">
+                Job Title
+              </Label>
               <Input
                 id="title"
                 placeholder="e.g., Owner, CEO"
                 value={filters.title}
-                onChange={(e) => setFilters({ ...filters, title: e.target.value })}
+                onChange={(e) =>
+                  setFilters({ ...filters, title: e.target.value })
+                }
                 className="mt-1"
               />
             </div>
@@ -279,10 +304,16 @@ export default function B2BSearchPage() {
                   id="decision-makers"
                   checked={filters.decisionMakersOnly}
                   onCheckedChange={(checked) =>
-                    setFilters({ ...filters, decisionMakersOnly: checked === true })
+                    setFilters({
+                      ...filters,
+                      decisionMakersOnly: checked === true,
+                    })
                   }
                 />
-                <Label htmlFor="decision-makers" className="text-sm font-medium cursor-pointer">
+                <Label
+                  htmlFor="decision-makers"
+                  className="text-sm font-medium cursor-pointer"
+                >
                   Decision Makers Only (Owners, CEOs, Directors)
                 </Label>
               </div>
@@ -321,7 +352,9 @@ export default function B2BSearchPage() {
       <div className="grid gap-4">
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            {loading ? "Searching..." : `${results.length} of ${totalCount.toLocaleString()} businesses`}
+            {loading
+              ? "Searching..."
+              : `${results.length} of ${totalCount.toLocaleString()} businesses`}
           </p>
         </div>
 
@@ -340,7 +373,10 @@ export default function B2BSearchPage() {
           </Card>
         ) : (
           results.map((business) => (
-            <Card key={business.id} className="hover:shadow-md transition-shadow">
+            <Card
+              key={business.id}
+              className="hover:shadow-md transition-shadow"
+            >
               <CardContent className="py-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-4">
@@ -349,7 +385,9 @@ export default function B2BSearchPage() {
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-lg">{business.company || "Unknown Company"}</h3>
+                        <h3 className="font-semibold text-lg">
+                          {business.company || "Unknown Company"}
+                        </h3>
                         {business.is_decision_maker && (
                           <Badge variant="default" className="text-xs">
                             <UserCheck className="h-3 w-3 mr-1" />
@@ -359,20 +397,33 @@ export default function B2BSearchPage() {
                       </div>
                       {(business.first_name || business.last_name) && (
                         <p className="text-sm font-medium">
-                          {[business.first_name, business.last_name].filter(Boolean).join(" ")}
-                          {business.title && <span className="text-muted-foreground"> — {business.title}</span>}
+                          {[business.first_name, business.last_name]
+                            .filter(Boolean)
+                            .join(" ")}
+                          {business.title && (
+                            <span className="text-muted-foreground">
+                              {" "}
+                              — {business.title}
+                            </span>
+                          )}
                         </p>
                       )}
                       <div className="flex flex-wrap gap-2">
                         {business.sic_description && (
-                          <Badge variant="secondary">{business.sic_description}</Badge>
+                          <Badge variant="secondary">
+                            {business.sic_description}
+                          </Badge>
                         )}
                         {business.sic_code && !business.sic_description && (
-                          <Badge variant="outline">SIC: {business.sic_code}</Badge>
+                          <Badge variant="outline">
+                            SIC: {business.sic_code}
+                          </Badge>
                         )}
                         <div className="flex items-center text-sm text-muted-foreground">
                           <MapPin className="h-3 w-3 mr-1" />
-                          {[business.city, business.state].filter(Boolean).join(", ") || "Unknown Location"}
+                          {[business.city, business.state]
+                            .filter(Boolean)
+                            .join(", ") || "Unknown Location"}
                           {business.zip_code && ` ${business.zip_code}`}
                         </div>
                         {business.employees && (
@@ -390,19 +441,34 @@ export default function B2BSearchPage() {
                       </div>
                       <div className="flex flex-wrap gap-4 text-sm">
                         {business.phone && (
-                          <a href={`tel:${business.phone}`} className="flex items-center gap-1 text-blue-600 hover:underline">
+                          <a
+                            href={`tel:${business.phone}`}
+                            className="flex items-center gap-1 text-blue-600 hover:underline"
+                          >
                             <Phone className="h-3 w-3" />
                             {business.phone}
                           </a>
                         )}
                         {business.email && (
-                          <a href={`mailto:${business.email}`} className="flex items-center gap-1 text-blue-600 hover:underline">
+                          <a
+                            href={`mailto:${business.email}`}
+                            className="flex items-center gap-1 text-blue-600 hover:underline"
+                          >
                             <Mail className="h-3 w-3" />
                             {business.email}
                           </a>
                         )}
                         {business.website && (
-                          <a href={business.website.startsWith("http") ? business.website : `https://${business.website}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-blue-600 hover:underline">
+                          <a
+                            href={
+                              business.website.startsWith("http")
+                                ? business.website
+                                : `https://${business.website}`
+                            }
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-blue-600 hover:underline"
+                          >
                             <Globe className="h-3 w-3" />
                             {business.website}
                           </a>

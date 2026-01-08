@@ -158,11 +158,7 @@ export function FloatingActionBar({ hidden = false }: FloatingActionBarProps) {
           )}
           onClick={() => setIsExpanded(!isExpanded)}
         >
-          {isExpanded ? (
-            <X className="h-6 w-6" />
-          ) : (
-            <Zap className="h-6 w-6" />
-          )}
+          {isExpanded ? <X className="h-6 w-6" /> : <Zap className="h-6 w-6" />}
         </Button>
 
         {/* Quick Access Buttons (Always Visible) */}

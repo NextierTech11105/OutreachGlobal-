@@ -54,7 +54,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * CAMPAIGN BATCH BUILDER
- * 
+ *
  * The MONETIZATION ENGINE:
  * 1. ACCESS TO MILLIONS - USBizData universe (70M+) on-demand
  * 2. ECONOMICAL ENRICHMENT - Skip trace ONLY what you're about to blast
@@ -65,18 +65,58 @@ import { cn } from "@/lib/utils";
 
 // Batch size options
 const BATCH_SIZES = [
-  { value: 500, label: "500", description: "Test batch", color: "from-blue-600 to-blue-700", icon: "🧪" },
-  { value: 1000, label: "1K", description: "Standard", color: "from-green-600 to-green-700", icon: "✓" },
-  { value: 2000, label: "2K", description: "Power", color: "from-yellow-600 to-yellow-700", icon: "⚡" },
-  { value: 5000, label: "5K", description: "MEGA", color: "from-red-600 to-red-700", icon: "🚀" },
+  {
+    value: 500,
+    label: "500",
+    description: "Test batch",
+    color: "from-blue-600 to-blue-700",
+    icon: "🧪",
+  },
+  {
+    value: 1000,
+    label: "1K",
+    description: "Standard",
+    color: "from-green-600 to-green-700",
+    icon: "✓",
+  },
+  {
+    value: 2000,
+    label: "2K",
+    description: "Power",
+    color: "from-yellow-600 to-yellow-700",
+    icon: "⚡",
+  },
+  {
+    value: 5000,
+    label: "5K",
+    description: "MEGA",
+    color: "from-red-600 to-red-700",
+    icon: "🚀",
+  },
 ];
 
 // Data cleaning schedules
 const CLEANING_SCHEDULES = [
-  { value: "weekly", label: "Weekly", description: "Phone + Email validation every 7 days" },
-  { value: "biweekly", label: "Bi-Weekly", description: "Validation every 14 days" },
-  { value: "monthly", label: "Monthly", description: "Standard monthly refresh" },
-  { value: "quarterly", label: "Quarterly", description: "Budget-friendly quarterly clean" },
+  {
+    value: "weekly",
+    label: "Weekly",
+    description: "Phone + Email validation every 7 days",
+  },
+  {
+    value: "biweekly",
+    label: "Bi-Weekly",
+    description: "Validation every 14 days",
+  },
+  {
+    value: "monthly",
+    label: "Monthly",
+    description: "Standard monthly refresh",
+  },
+  {
+    value: "quarterly",
+    label: "Quarterly",
+    description: "Budget-friendly quarterly clean",
+  },
 ];
 
 // Campaign status colors
@@ -99,7 +139,14 @@ interface CampaignBlock {
   enrichedCount: number;
   withPhoneCount: number;
   template: string;
-  status: "draft" | "ready" | "enriching" | "sending" | "active" | "paused" | "completed";
+  status:
+    | "draft"
+    | "ready"
+    | "enriching"
+    | "sending"
+    | "active"
+    | "paused"
+    | "completed";
   sentCount: number;
   respondedCount: number;
   bookedCount: number;
@@ -129,7 +176,8 @@ export default function CampaignBuilderPage() {
 
   // Campaign blocks state
   const [campaigns, setCampaigns] = useState<CampaignBlock[]>([]);
-  const [selectedCampaign, setSelectedCampaign] = useState<CampaignBlock | null>(null);
+  const [selectedCampaign, setSelectedCampaign] =
+    useState<CampaignBlock | null>(null);
 
   // Upload state
   const [uploading, setUploading] = useState(false);
@@ -140,7 +188,9 @@ export default function CampaignBuilderPage() {
   const [showFieldMapping, setShowFieldMapping] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
-  const [fieldMappings, setFieldMappings] = useState<Record<string, string>>({});
+  const [fieldMappings, setFieldMappings] = useState<Record<string, string>>(
+    {},
+  );
 
   // Universe search state
   const [showUniverseSearch, setShowUniverseSearch] = useState(false);
@@ -155,8 +205,14 @@ export default function CampaignBuilderPage() {
   const [searchingUniverse, setSearchingUniverse] = useState(false);
 
   // Enrichment state
-  const [enrichingCampaign, setEnrichingCampaign] = useState<string | null>(null);
-  const [enrichProgress, setEnrichProgress] = useState({ current: 0, total: 0, withPhone: 0 });
+  const [enrichingCampaign, setEnrichingCampaign] = useState<string | null>(
+    null,
+  );
+  const [enrichProgress, setEnrichProgress] = useState({
+    current: 0,
+    total: 0,
+    withPhone: 0,
+  });
 
   // Send state
   const [sendingCampaign, setSendingCampaign] = useState<string | null>(null);
@@ -238,7 +294,8 @@ export default function CampaignBuilderPage() {
           leadCount: data.stats.inserted,
           enrichedCount: 0,
           withPhoneCount: 0,
-          template: "{firstName}, saw {companyName} is doing great work. 15 min with our team could help scale faster. Worth a quick chat?",
+          template:
+            "{firstName}, saw {companyName} is doing great work. 15 min with our team could help scale faster. Worth a quick chat?",
           status: "draft",
           sentCount: 0,
           respondedCount: 0,
@@ -246,8 +303,10 @@ export default function CampaignBuilderPage() {
           createdAt: new Date(),
         };
 
-        setCampaigns(prev => [...prev, newCampaign]);
-        toast.success(`Imported ${data.stats.inserted} leads from ${file.name}`);
+        setCampaigns((prev) => [...prev, newCampaign]);
+        toast.success(
+          `Imported ${data.stats.inserted} leads from ${file.name}`,
+        );
       } else {
         toast.error(data.error || "Upload failed");
       }
@@ -286,10 +345,14 @@ export default function CampaignBuilderPage() {
     try {
       const params = new URLSearchParams();
       if (universeFilters.state) params.append("state", universeFilters.state);
-      if (universeFilters.sicCode) params.append("sicCode", universeFilters.sicCode);
-      if (universeFilters.minEmployees) params.append("minEmployees", universeFilters.minEmployees);
-      if (universeFilters.maxEmployees) params.append("maxEmployees", universeFilters.maxEmployees);
-      if (universeFilters.industry) params.append("industry", universeFilters.industry);
+      if (universeFilters.sicCode)
+        params.append("sicCode", universeFilters.sicCode);
+      if (universeFilters.minEmployees)
+        params.append("minEmployees", universeFilters.minEmployees);
+      if (universeFilters.maxEmployees)
+        params.append("maxEmployees", universeFilters.maxEmployees);
+      if (universeFilters.industry)
+        params.append("industry", universeFilters.industry);
       params.append("countOnly", "true");
 
       const response = await fetch(`/api/b2b/search?${params.toString()}`);
@@ -309,10 +372,14 @@ export default function CampaignBuilderPage() {
     try {
       const params = new URLSearchParams();
       if (universeFilters.state) params.append("state", universeFilters.state);
-      if (universeFilters.sicCode) params.append("sicCode", universeFilters.sicCode);
-      if (universeFilters.minEmployees) params.append("minEmployees", universeFilters.minEmployees);
-      if (universeFilters.maxEmployees) params.append("maxEmployees", universeFilters.maxEmployees);
-      if (universeFilters.industry) params.append("industry", universeFilters.industry);
+      if (universeFilters.sicCode)
+        params.append("sicCode", universeFilters.sicCode);
+      if (universeFilters.minEmployees)
+        params.append("minEmployees", universeFilters.minEmployees);
+      if (universeFilters.maxEmployees)
+        params.append("maxEmployees", universeFilters.maxEmployees);
+      if (universeFilters.industry)
+        params.append("industry", universeFilters.industry);
       params.append("limit", String(batchSize));
 
       const response = await fetch(`/api/b2b/search?${params.toString()}`);
@@ -327,7 +394,8 @@ export default function CampaignBuilderPage() {
           leadCount: data.leads.length,
           enrichedCount: 0,
           withPhoneCount: 0,
-          template: "{firstName}, saw {companyName} is doing great work in {city}. 15 min with our team could help scale faster. Worth a quick chat?",
+          template:
+            "{firstName}, saw {companyName} is doing great work in {city}. 15 min with our team could help scale faster. Worth a quick chat?",
           status: "draft",
           sentCount: 0,
           respondedCount: 0,
@@ -336,15 +404,21 @@ export default function CampaignBuilderPage() {
           filters: {
             state: universeFilters.state || undefined,
             sicCode: universeFilters.sicCode || undefined,
-            minEmployees: universeFilters.minEmployees ? parseInt(universeFilters.minEmployees) : undefined,
-            maxEmployees: universeFilters.maxEmployees ? parseInt(universeFilters.maxEmployees) : undefined,
+            minEmployees: universeFilters.minEmployees
+              ? parseInt(universeFilters.minEmployees)
+              : undefined,
+            maxEmployees: universeFilters.maxEmployees
+              ? parseInt(universeFilters.maxEmployees)
+              : undefined,
             industry: universeFilters.industry || undefined,
           },
         };
 
-        setCampaigns(prev => [...prev, newCampaign]);
+        setCampaigns((prev) => [...prev, newCampaign]);
         setShowUniverseSearch(false);
-        toast.success(`Created campaign with ${data.leads.length} leads from USBizData`);
+        toast.success(
+          `Created campaign with ${data.leads.length} leads from USBizData`,
+        );
       } else {
         toast.error("No leads found matching filters");
       }
@@ -382,8 +456,8 @@ export default function CampaignBuilderPage() {
         });
 
         // Update campaign with enrichment stats
-        setCampaigns(prev =>
-          prev.map(c =>
+        setCampaigns((prev) =>
+          prev.map((c) =>
             c.id === campaign.id
               ? {
                   ...c,
@@ -391,12 +465,12 @@ export default function CampaignBuilderPage() {
                   withPhoneCount: data.stats?.withPhones || 0,
                   status: (data.stats?.withPhones || 0) > 0 ? "ready" : "draft",
                 }
-              : c
-          )
+              : c,
+          ),
         );
 
         toast.success(
-          `Skip traced ${data.stats?.total || 0} leads: ${data.stats?.withPhones || 0} with mobile phones`
+          `Skip traced ${data.stats?.total || 0} leads: ${data.stats?.withPhones || 0} with mobile phones`,
         );
 
         if (data.usage) {
@@ -424,8 +498,10 @@ export default function CampaignBuilderPage() {
 
     try {
       // Update status to sending
-      setCampaigns(prev =>
-        prev.map(c => (c.id === campaign.id ? { ...c, status: "sending" } : c))
+      setCampaigns((prev) =>
+        prev.map((c) =>
+          c.id === campaign.id ? { ...c, status: "sending" } : c,
+        ),
       );
 
       const response = await fetch("/api/sms/blast", {
@@ -441,28 +517,30 @@ export default function CampaignBuilderPage() {
       const data = await response.json();
 
       if (data.success) {
-        setCampaigns(prev =>
-          prev.map(c =>
+        setCampaigns((prev) =>
+          prev.map((c) =>
             c.id === campaign.id
               ? {
                   ...c,
                   status: "active",
                   sentCount: data.sent || 0,
                 }
-              : c
-          )
+              : c,
+          ),
         );
 
         toast.success(`Sent ${data.sent || 0} SMS messages!`);
       } else {
-        setCampaigns(prev =>
-          prev.map(c => (c.id === campaign.id ? { ...c, status: "ready" } : c))
+        setCampaigns((prev) =>
+          prev.map((c) =>
+            c.id === campaign.id ? { ...c, status: "ready" } : c,
+          ),
         );
         toast.error(data.error || "Send failed");
       }
     } catch {
-      setCampaigns(prev =>
-        prev.map(c => (c.id === campaign.id ? { ...c, status: "ready" } : c))
+      setCampaigns((prev) =>
+        prev.map((c) => (c.id === campaign.id ? { ...c, status: "ready" } : c)),
       );
       toast.error("Send failed");
     } finally {
@@ -472,16 +550,16 @@ export default function CampaignBuilderPage() {
 
   // Delete campaign
   const deleteCampaign = (id: string) => {
-    setCampaigns(prev => prev.filter(c => c.id !== id));
+    setCampaigns((prev) => prev.filter((c) => c.id !== id));
     toast.success("Campaign deleted");
   };
 
   // Save template
   const saveTemplate = (campaignId: string) => {
-    setCampaigns(prev =>
-      prev.map(c =>
-        c.id === campaignId ? { ...c, template: templateText } : c
-      )
+    setCampaigns((prev) =>
+      prev.map((c) =>
+        c.id === campaignId ? { ...c, template: templateText } : c,
+      ),
     );
     setEditingTemplate(null);
     toast.success("Template saved");
@@ -493,7 +571,8 @@ export default function CampaignBuilderPage() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">Campaign Batch Builder</h1>
         <p className="text-muted-foreground">
-          Upload lists, batch them, skip trace on-demand, and blast SMS campaigns
+          Upload lists, batch them, skip trace on-demand, and blast SMS
+          campaigns
         </p>
       </div>
 
@@ -516,7 +595,9 @@ export default function CampaignBuilderPage() {
               <Users className="h-8 w-8 text-purple-400" />
               <div>
                 <p className="text-2xl font-bold">
-                  {campaigns.reduce((acc, c) => acc + c.leadCount, 0).toLocaleString()}
+                  {campaigns
+                    .reduce((acc, c) => acc + c.leadCount, 0)
+                    .toLocaleString()}
                 </p>
                 <p className="text-sm text-purple-300">Total Leads</p>
               </div>
@@ -529,7 +610,9 @@ export default function CampaignBuilderPage() {
               <Phone className="h-8 w-8 text-green-400" />
               <div>
                 <p className="text-2xl font-bold">
-                  {campaigns.reduce((acc, c) => acc + c.withPhoneCount, 0).toLocaleString()}
+                  {campaigns
+                    .reduce((acc, c) => acc + c.withPhoneCount, 0)
+                    .toLocaleString()}
                 </p>
                 <p className="text-sm text-green-300">With Phone</p>
               </div>
@@ -542,7 +625,9 @@ export default function CampaignBuilderPage() {
               <Send className="h-8 w-8 text-orange-400" />
               <div>
                 <p className="text-2xl font-bold">
-                  {campaigns.reduce((acc, c) => acc + c.sentCount, 0).toLocaleString()}
+                  {campaigns
+                    .reduce((acc, c) => acc + c.sentCount, 0)
+                    .toLocaleString()}
                 </p>
                 <p className="text-sm text-orange-300">Messages Sent</p>
               </div>
@@ -569,7 +654,7 @@ export default function CampaignBuilderPage() {
                   "border-2 border-dashed rounded-lg p-8 text-center transition-colors",
                   dragActive
                     ? "border-primary bg-primary/10"
-                    : "border-muted-foreground/25 hover:border-primary/50"
+                    : "border-muted-foreground/25 hover:border-primary/50",
                 )}
                 onDragEnter={handleDrag}
                 onDragLeave={handleDrag}
@@ -577,7 +662,9 @@ export default function CampaignBuilderPage() {
                 onDrop={handleDrop}
               >
                 <Upload className="h-10 w-10 mx-auto mb-4 text-muted-foreground" />
-                <p className="font-medium mb-2">Drop CSV here or click to upload</p>
+                <p className="font-medium mb-2">
+                  Drop CSV here or click to upload
+                </p>
                 <p className="text-sm text-muted-foreground mb-4">
                   USBizData format: Company, Contact, Phone, Email, Address...
                 </p>
@@ -610,12 +697,16 @@ export default function CampaignBuilderPage() {
                         "relative p-4 rounded-xl border-2 transition-all duration-200",
                         selectedBatchSize === size.value
                           ? `border-primary bg-gradient-to-br ${size.color} text-white shadow-lg scale-105`
-                          : "border-muted-foreground/20 hover:border-primary/50 bg-muted/30"
+                          : "border-muted-foreground/20 hover:border-primary/50 bg-muted/30",
                       )}
                     >
                       <span className="text-2xl mb-1 block">{size.icon}</span>
-                      <span className="text-2xl font-bold block">{size.label}</span>
-                      <span className="text-xs opacity-80 block">{size.description}</span>
+                      <span className="text-2xl font-bold block">
+                        {size.label}
+                      </span>
+                      <span className="text-xs opacity-80 block">
+                        {size.description}
+                      </span>
                       {selectedBatchSize === size.value && (
                         <div className="absolute -top-2 -right-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center">
                           <CheckCircle className="h-4 w-4" />
@@ -632,7 +723,10 @@ export default function CampaignBuilderPage() {
                   <RefreshCw className="h-4 w-4" />
                   DATA CLEANING SCHEDULE
                 </p>
-                <Select value={cleaningSchedule} onValueChange={setCleaningSchedule}>
+                <Select
+                  value={cleaningSchedule}
+                  onValueChange={setCleaningSchedule}
+                >
                   <SelectTrigger className="bg-muted/30">
                     <SelectValue />
                   </SelectTrigger>
@@ -650,7 +744,8 @@ export default function CampaignBuilderPage() {
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">
-                  We take contactability SERIOUSLY - scheduled hygiene keeps your campaigns clean.
+                  We take contactability SERIOUSLY - scheduled hygiene keeps
+                  your campaigns clean.
                 </p>
               </div>
             </CardContent>
@@ -662,12 +757,15 @@ export default function CampaignBuilderPage() {
               <CardTitle className="flex items-center gap-2">
                 <Database className="h-5 w-5" />
                 USBizData Universe
-                <Badge variant="secondary" className="ml-auto">70M+</Badge>
+                <Badge variant="secondary" className="ml-auto">
+                  70M+
+                </Badge>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Access millions of businesses on-demand. Only enrich what you campaign.
+                Access millions of businesses on-demand. Only enrich what you
+                campaign.
               </p>
               <Button
                 onClick={() => setShowUniverseSearch(true)}
@@ -696,12 +794,16 @@ export default function CampaignBuilderPage() {
                   <span className="font-mono">~$0.02/message</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Expected Response</span>
+                  <span className="text-muted-foreground">
+                    Expected Response
+                  </span>
                   <span className="font-mono">2-5%</span>
                 </div>
                 <div className="flex justify-between border-t pt-2 mt-2">
                   <span className="font-medium">1K Batch ROI</span>
-                  <span className="font-mono text-emerald-400">20-50 responses</span>
+                  <span className="font-mono text-emerald-400">
+                    20-50 responses
+                  </span>
                 </div>
               </div>
             </CardContent>
@@ -722,7 +824,10 @@ export default function CampaignBuilderPage() {
                 <div className="text-center py-12 text-muted-foreground">
                   <Layers className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p className="text-lg font-medium mb-2">No campaigns yet</p>
-                  <p className="text-sm">Upload a CSV or search the universe to create your first campaign</p>
+                  <p className="text-sm">
+                    Upload a CSV or search the universe to create your first
+                    campaign
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -756,31 +861,49 @@ export default function CampaignBuilderPage() {
                       {/* Campaign Stats */}
                       <div className="grid grid-cols-5 gap-4 mb-4">
                         <div className="text-center p-2 bg-muted/50 rounded">
-                          <p className="text-lg font-bold">{campaign.leadCount.toLocaleString()}</p>
+                          <p className="text-lg font-bold">
+                            {campaign.leadCount.toLocaleString()}
+                          </p>
                           <p className="text-xs text-muted-foreground">Leads</p>
                         </div>
                         <div className="text-center p-2 bg-muted/50 rounded">
-                          <p className="text-lg font-bold">{campaign.enrichedCount.toLocaleString()}</p>
-                          <p className="text-xs text-muted-foreground">Enriched</p>
+                          <p className="text-lg font-bold">
+                            {campaign.enrichedCount.toLocaleString()}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Enriched
+                          </p>
                         </div>
                         <div className="text-center p-2 bg-muted/50 rounded">
-                          <p className="text-lg font-bold text-green-400">{campaign.withPhoneCount.toLocaleString()}</p>
-                          <p className="text-xs text-muted-foreground">With Phone</p>
+                          <p className="text-lg font-bold text-green-400">
+                            {campaign.withPhoneCount.toLocaleString()}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            With Phone
+                          </p>
                         </div>
                         <div className="text-center p-2 bg-muted/50 rounded">
-                          <p className="text-lg font-bold text-blue-400">{campaign.sentCount.toLocaleString()}</p>
+                          <p className="text-lg font-bold text-blue-400">
+                            {campaign.sentCount.toLocaleString()}
+                          </p>
                           <p className="text-xs text-muted-foreground">Sent</p>
                         </div>
                         <div className="text-center p-2 bg-muted/50 rounded">
-                          <p className="text-lg font-bold text-purple-400">{campaign.respondedCount}</p>
-                          <p className="text-xs text-muted-foreground">Responded</p>
+                          <p className="text-lg font-bold text-purple-400">
+                            {campaign.respondedCount}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Responded
+                          </p>
                         </div>
                       </div>
 
                       {/* Template Preview */}
                       <div className="bg-muted/30 rounded p-3 mb-4">
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-medium text-muted-foreground">TEMPLATE</span>
+                          <span className="text-xs font-medium text-muted-foreground">
+                            TEMPLATE
+                          </span>
                           <Button
                             variant="ghost"
                             size="sm"
@@ -812,7 +935,10 @@ export default function CampaignBuilderPage() {
                         <Button
                           variant="outline"
                           onClick={() => skipTraceCampaign(campaign)}
-                          disabled={enrichingCampaign === campaign.id || campaign.status === "active"}
+                          disabled={
+                            enrichingCampaign === campaign.id ||
+                            campaign.status === "active"
+                          }
                         >
                           {enrichingCampaign === campaign.id ? (
                             <>
@@ -839,7 +965,7 @@ export default function CampaignBuilderPage() {
                           className={cn(
                             campaign.withPhoneCount > 0
                               ? "bg-gradient-to-r from-green-600 to-emerald-600"
-                              : ""
+                              : "",
                           )}
                         >
                           {sendingCampaign === campaign.id ? (
@@ -876,11 +1002,16 @@ export default function CampaignBuilderPage() {
                       {enrichingCampaign === campaign.id && (
                         <div className="mt-4">
                           <Progress
-                            value={(enrichProgress.current / enrichProgress.total) * 100}
+                            value={
+                              (enrichProgress.current / enrichProgress.total) *
+                              100
+                            }
                             className="h-2"
                           />
                           <p className="text-xs text-muted-foreground mt-1">
-                            Enriching: {enrichProgress.current}/{enrichProgress.total} ({enrichProgress.withPhone} with phone)
+                            Enriching: {enrichProgress.current}/
+                            {enrichProgress.total} ({enrichProgress.withPhone}{" "}
+                            with phone)
                           </p>
                         </div>
                       )}
@@ -906,7 +1037,9 @@ export default function CampaignBuilderPage() {
                 <label className="text-sm font-medium">State</label>
                 <Select
                   value={universeFilters.state}
-                  onValueChange={(v) => setUniverseFilters({ ...universeFilters, state: v })}
+                  onValueChange={(v) =>
+                    setUniverseFilters({ ...universeFilters, state: v })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="All States" />
@@ -927,11 +1060,18 @@ export default function CampaignBuilderPage() {
                 </Select>
               </div>
               <div>
-                <label className="text-sm font-medium">Industry / SIC Code</label>
+                <label className="text-sm font-medium">
+                  Industry / SIC Code
+                </label>
                 <Input
                   placeholder="e.g. 1711, Plumbing"
                   value={universeFilters.industry}
-                  onChange={(e) => setUniverseFilters({ ...universeFilters, industry: e.target.value })}
+                  onChange={(e) =>
+                    setUniverseFilters({
+                      ...universeFilters,
+                      industry: e.target.value,
+                    })
+                  }
                 />
               </div>
             </div>
@@ -943,7 +1083,12 @@ export default function CampaignBuilderPage() {
                   type="number"
                   placeholder="1"
                   value={universeFilters.minEmployees}
-                  onChange={(e) => setUniverseFilters({ ...universeFilters, minEmployees: e.target.value })}
+                  onChange={(e) =>
+                    setUniverseFilters({
+                      ...universeFilters,
+                      minEmployees: e.target.value,
+                    })
+                  }
                 />
               </div>
               <div>
@@ -952,12 +1097,21 @@ export default function CampaignBuilderPage() {
                   type="number"
                   placeholder="500"
                   value={universeFilters.maxEmployees}
-                  onChange={(e) => setUniverseFilters({ ...universeFilters, maxEmployees: e.target.value })}
+                  onChange={(e) =>
+                    setUniverseFilters({
+                      ...universeFilters,
+                      maxEmployees: e.target.value,
+                    })
+                  }
                 />
               </div>
             </div>
 
-            <Button onClick={searchUniverse} disabled={searchingUniverse} className="w-full">
+            <Button
+              onClick={searchUniverse}
+              disabled={searchingUniverse}
+              className="w-full"
+            >
               {searchingUniverse ? (
                 <>
                   <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
@@ -975,8 +1129,12 @@ export default function CampaignBuilderPage() {
               <div className="border rounded-lg p-4 bg-muted/30">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <p className="text-2xl font-bold">{universeResults.toLocaleString()}</p>
-                    <p className="text-sm text-muted-foreground">matching businesses</p>
+                    <p className="text-2xl font-bold">
+                      {universeResults.toLocaleString()}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      matching businesses
+                    </p>
                   </div>
                   <Database className="h-8 w-8 text-muted-foreground" />
                 </div>
@@ -988,7 +1146,9 @@ export default function CampaignBuilderPage() {
                       key={size.value}
                       variant="outline"
                       onClick={() => createFromUniverse(size.value)}
-                      disabled={searchingUniverse || universeResults < size.value}
+                      disabled={
+                        searchingUniverse || universeResults < size.value
+                      }
                     >
                       {size.label}
                     </Button>
@@ -1001,7 +1161,10 @@ export default function CampaignBuilderPage() {
       </Dialog>
 
       {/* Template Editor Dialog */}
-      <Dialog open={editingTemplate !== null} onOpenChange={() => setEditingTemplate(null)}>
+      <Dialog
+        open={editingTemplate !== null}
+        onOpenChange={() => setEditingTemplate(null)}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Template</DialogTitle>
@@ -1016,9 +1179,14 @@ export default function CampaignBuilderPage() {
             />
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">
-                Variables: {"{firstName}"}, {"{lastName}"}, {"{companyName}"}, {"{city}"}
+                Variables: {"{firstName}"}, {"{lastName}"}, {"{companyName}"},{" "}
+                {"{city}"}
               </span>
-              <Badge variant={templateText.length > 160 ? "destructive" : "secondary"}>
+              <Badge
+                variant={
+                  templateText.length > 160 ? "destructive" : "secondary"
+                }
+              >
                 {templateText.length}/160
               </Badge>
             </div>
@@ -1028,7 +1196,9 @@ export default function CampaignBuilderPage() {
             <Button variant="outline" onClick={() => setEditingTemplate(null)}>
               Cancel
             </Button>
-            <Button onClick={() => editingTemplate && saveTemplate(editingTemplate)}>
+            <Button
+              onClick={() => editingTemplate && saveTemplate(editingTemplate)}
+            >
               Save Template
             </Button>
           </DialogFooter>
@@ -1059,7 +1229,8 @@ export default function CampaignBuilderPage() {
             </div>
 
             <div className="text-sm text-muted-foreground">
-              Map your CSV columns to our standard fields. We'll normalize your data for optimal campaign performance.
+              Map your CSV columns to our standard fields. We'll normalize your
+              data for optimal campaign performance.
             </div>
 
             <ScrollArea className="h-80 border rounded-lg p-4">
@@ -1067,7 +1238,12 @@ export default function CampaignBuilderPage() {
                 {STANDARD_FIELDS.map((field) => (
                   <div key={field.key} className="flex items-center gap-4">
                     <div className="w-40 flex items-center gap-2">
-                      <span className={cn("text-sm", field.required && "font-medium")}>
+                      <span
+                        className={cn(
+                          "text-sm",
+                          field.required && "font-medium",
+                        )}
+                      >
                         {field.label}
                       </span>
                       {field.required && (
@@ -1112,11 +1288,13 @@ export default function CampaignBuilderPage() {
                       "p-3 rounded-lg border-2 transition-all text-center",
                       selectedBatchSize === size.value
                         ? `border-primary bg-gradient-to-br ${size.color} text-white`
-                        : "border-muted-foreground/20 hover:border-primary/50"
+                        : "border-muted-foreground/20 hover:border-primary/50",
                     )}
                   >
                     <span className="text-xl font-bold">{size.label}</span>
-                    <span className="text-xs block opacity-80">{size.description}</span>
+                    <span className="text-xs block opacity-80">
+                      {size.description}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -1124,7 +1302,10 @@ export default function CampaignBuilderPage() {
           </div>
 
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setShowFieldMapping(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowFieldMapping(false)}
+            >
               Cancel
             </Button>
             <Button

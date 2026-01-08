@@ -224,29 +224,31 @@ export default function OutreachPage() {
           // Map API response to Lead interface
           const mappedLeads: Lead[] = (data.leads || []).map((l: any) => ({
             id: l.id,
-            companyName: l.companyName || l.company || 'Unknown',
-            ownerFirstName: l.firstName || l.ownerFirstName || '',
-            ownerLastName: l.lastName || l.ownerLastName || '',
+            companyName: l.companyName || l.company || "Unknown",
+            ownerFirstName: l.firstName || l.ownerFirstName || "",
+            ownerLastName: l.lastName || l.ownerLastName || "",
             annualRevenue: l.revenue || l.annualRevenue || 0,
-            companyAddress: l.address || l.companyAddress || '',
-            city: l.city || '',
-            state: l.state || '',
-            zip: l.zip || '',
-            phone: l.phone || '',
-            email: l.email || '',
-            industry: l.industry || '',
+            companyAddress: l.address || l.companyAddress || "",
+            city: l.city || "",
+            state: l.state || "",
+            zip: l.zip || "",
+            phone: l.phone || "",
+            email: l.email || "",
+            industry: l.industry || "",
             employeeCount: l.employees || l.employeeCount || 0,
             yearsInBusiness: l.yearsInBusiness || 0,
             score: l.score || 50,
             tags: l.tags || [],
-            audience: l.audience || 'all',
-            status: l.status || 'new',
-            lastContact: l.lastContactedAt ? new Date(l.lastContactedAt) : undefined,
+            audience: l.audience || "all",
+            status: l.status || "new",
+            lastContact: l.lastContactedAt
+              ? new Date(l.lastContactedAt)
+              : undefined,
           }));
           setLeads(mappedLeads);
         }
       } catch (error) {
-        console.error('Failed to fetch leads:', error);
+        console.error("Failed to fetch leads:", error);
       } finally {
         setLoading(false);
       }

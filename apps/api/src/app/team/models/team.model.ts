@@ -54,17 +54,16 @@ export class Team extends TimestampModel implements TeamSelect {
   @Field(() => Date, { nullable: true })
   demoExpiresAt: Date | null;
 
-  @Field({ nullable: true })
+  @Field(() => Boolean, { nullable: true })
   isDemo: boolean | null;
 
-  @Field({ nullable: true })
+  @Field(() => Boolean, { nullable: true })
   onboardingCompleted: boolean | null;
 
   @Field(() => Date, { nullable: true })
   onboardingCompletedAt: Date | null;
 
   // White-label Branding
-  @Field(() => TeamBranding, { nullable: true })
   branding: {
     logo?: string;
     logoLight?: string;

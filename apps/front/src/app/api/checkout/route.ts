@@ -12,46 +12,58 @@ import Stripe from "stripe";
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
 
 // Plan configuration - matches pricing page
-const PLANS: Record<string, { priceMonthly: number; priceYearly: number; name: string }> = {
+const PLANS: Record<
+  string,
+  { priceMonthly: number; priceYearly: number; name: string }
+> = {
   starter: { name: "Starter", priceMonthly: 29700, priceYearly: 297000 },
   pro: { name: "Pro", priceMonthly: 59700, priceYearly: 597000 },
   agency: { name: "Agency", priceMonthly: 149700, priceYearly: 1497000 },
-  "white-label": { name: "White-Label", priceMonthly: 299700, priceYearly: 2997000 },
+  "white-label": {
+    name: "White-Label",
+    priceMonthly: 299700,
+    priceYearly: 2997000,
+  },
 };
 
 // POST - Create checkout session
 export async function POST(request: NextRequest) {
   if (!STRIPE_SECRET_KEY) {
     return NextResponse.json(
-      { 
+      {
         error: "Stripe not configured",
-        setup: "Add STRIPE_SECRET_KEY to environment variables"
+        setup: "Add STRIPE_SECRET_KEY to environment variables",
       },
-      { status: 503 }
+      { status: 503 },
     );
   }
 
   try {
     const body = await request.json();
-    const { 
+    const {
       plan = "starter",
       billing = "monthly",
       email,
       teamId,
       successUrl,
-      cancelUrl 
+      cancelUrl,
     } = body;
 
     const planConfig = PLANS[plan];
     if (!planConfig) {
       return NextResponse.json(
-        { error: `Invalid plan: ${plan}. Valid plans: ${Object.keys(PLANS).join(", ")}` },
-        { status: 400 }
+        {
+          error: `Invalid plan: ${plan}. Valid plans: ${Object.keys(PLANS).join(", ")}`,
+        },
+        { status: 400 },
       );
     }
 
     const stripe = new Stripe(STRIPE_SECRET_KEY);
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.headers.get("origin") || "https://monkfish-app-mb7h3.ondigitalocean.app";
+    const baseUrl =
+      process.env.NEXT_PUBLIC_APP_URL ||
+      request.headers.get("origin") ||
+      "https://monkfish-app-mb7h3.ondigitalocean.app";
 
     // Create or retrieve customer
     let customerId: string | undefined;
@@ -83,7 +95,10 @@ export async function POST(request: NextRequest) {
               name: `Nextier ${planConfig.name} Plan`,
               description: `${billing === "yearly" ? "Annual" : "Monthly"} subscription`,
             },
-            unit_amount: billing === "yearly" ? planConfig.priceYearly / 12 : planConfig.priceMonthly,
+            unit_amount:
+              billing === "yearly"
+                ? planConfig.priceYearly / 12
+                : planConfig.priceMonthly,
             recurring: {
               interval: billing === "yearly" ? "year" : "month",
             },
@@ -98,7 +113,9 @@ export async function POST(request: NextRequest) {
           teamId: teamId || "",
         },
       },
-      success_url: successUrl || `${baseUrl}/get-started/success?session_id={CHECKOUT_SESSION_ID}`,
+      success_url:
+        successUrl ||
+        `${baseUrl}/get-started/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: cancelUrl || `${baseUrl}/pricing`,
       metadata: {
         plan,
@@ -116,7 +133,7 @@ export async function POST(request: NextRequest) {
     console.error("[Checkout] Error:", error);
     return NextResponse.json(
       { error: error.message || "Failed to create checkout session" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -126,7 +143,7 @@ export async function GET(request: NextRequest) {
   if (!STRIPE_SECRET_KEY) {
     return NextResponse.json(
       { error: "Stripe not configured" },
-      { status: 503 }
+      { status: 503 },
     );
   }
 
@@ -152,10 +169,7 @@ export async function GET(request: NextRequest) {
         metadata: session.metadata,
       });
     } catch (error: any) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: error.message }, { status: 400 });
     }
   }
 
@@ -164,7 +178,7 @@ export async function GET(request: NextRequest) {
   if (!planConfig) {
     return NextResponse.json(
       { error: `Invalid plan: ${plan}` },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -172,7 +186,8 @@ export async function GET(request: NextRequest) {
     plan,
     billing,
     name: planConfig.name,
-    price: billing === "yearly" ? planConfig.priceYearly : planConfig.priceMonthly,
+    price:
+      billing === "yearly" ? planConfig.priceYearly : planConfig.priceMonthly,
     priceFormatted: `$${((billing === "yearly" ? planConfig.priceYearly : planConfig.priceMonthly) / 100).toFixed(0)}`,
     interval: billing === "yearly" ? "year" : "month",
     trialDays: 30,

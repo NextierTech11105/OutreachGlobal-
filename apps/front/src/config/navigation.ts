@@ -45,7 +45,7 @@ import {
 // ═══════════════════════════════════════════════════════════════════════════
 // NAVIGATION CONFIGURATION - NEXTIER FOUNDATIONAL FLOW
 // ═══════════════════════════════════════════════════════════════════════════
-// 
+//
 // THE 10-STAGE PIPELINE (in order):
 // ┌─────────────────────────────────────────────────────────────────────────┐
 // │  1. UNIVERSE      → USBizData, CSV Import, Property Data               │
@@ -94,7 +94,7 @@ export interface NavGroup {
 // ═══════════════════════════════════════════════════════════════════════════
 // NAVIGATION CONFIGURATION - STREAMLINED SMS MONETIZATION FLOW
 // ═══════════════════════════════════════════════════════════════════════════
-// 
+//
 // THE CORE SMS MACHINE (synergistic flow):
 // ┌─────────────────────────────────────────────────────────────────────────┐
 // │  COMMAND        → Dashboard + Inbox (always visible)                   │
@@ -416,7 +416,7 @@ export function mapTeamRoleToNavRole(
 // ═══════════════════════════════════════════════════════════════════════════
 // SIMPLE MODE NAVIGATION - SmarterContact-Style
 // ═══════════════════════════════════════════════════════════════════════════
-// 
+//
 // For users who want SmarterContact simplicity:
 // Only 4 core sections: Inbox, Campaigns, Contacts, Dialer
 // Full Nextier power runs underneath, but hidden complexity

@@ -182,9 +182,12 @@ export function LeadResearchPanel({
           <div className="text-center space-y-4">
             <Loader2 className="h-12 w-12 animate-spin text-purple-500 mx-auto" />
             <div className="space-y-2">
-              <p className="font-medium">Analyzing {message.companyName || message.fromName}...</p>
+              <p className="font-medium">
+                Analyzing {message.companyName || message.fromName}...
+              </p>
               <p className="text-sm text-muted-foreground">
-                Checking business status, financials, stakeholders, and competitive landscape
+                Checking business status, financials, stakeholders, and
+                competitive landscape
               </p>
             </div>
             <div className="flex gap-2 justify-center flex-wrap text-xs">
@@ -253,7 +256,12 @@ export function LeadResearchPanel({
           <div className="flex items-center gap-2">
             {/* Opportunity Score */}
             <div className="text-right">
-              <div className={cn("text-2xl font-bold", getScoreColor(result.opportunityScore))}>
+              <div
+                className={cn(
+                  "text-2xl font-bold",
+                  getScoreColor(result.opportunityScore),
+                )}
+              >
                 {result.opportunityScore}
               </div>
               <div className="text-xs text-muted-foreground">Opp Score</div>
@@ -266,11 +274,20 @@ export function LeadResearchPanel({
 
         {/* Quick actions */}
         <div className="flex gap-2 mt-4">
-          <Button size="sm" onClick={onCallNow} className="gap-1 bg-green-600 hover:bg-green-700">
+          <Button
+            size="sm"
+            onClick={onCallNow}
+            className="gap-1 bg-green-600 hover:bg-green-700"
+          >
             <Phone className="h-4 w-4" />
             Call Now
           </Button>
-          <Button size="sm" variant="outline" onClick={onAddBooking} className="gap-1">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onAddBooking}
+            className="gap-1"
+          >
             <Calendar className="h-4 w-4" />
             Book Appointment
           </Button>
@@ -279,8 +296,12 @@ export function LeadResearchPanel({
             variant="outline"
             className="gap-1"
             onClick={() => {
-              const talkingPoints = result.engagementStrategy?.talkingPoints?.join("\n• ") || "";
-              copyToClipboard(`Talking Points:\n• ${talkingPoints}`, "Talking points");
+              const talkingPoints =
+                result.engagementStrategy?.talkingPoints?.join("\n• ") || "";
+              copyToClipboard(
+                `Talking Points:\n• ${talkingPoints}`,
+                "Talking points",
+              );
             }}
           >
             <Copy className="h-4 w-4" />
@@ -290,14 +311,28 @@ export function LeadResearchPanel({
       </CardHeader>
 
       {/* Tabbed content */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="flex-1 flex flex-col"
+      >
         <div className="px-6">
           <TabsList className="w-full justify-start">
-            <TabsTrigger value="overview" className="text-xs">Overview</TabsTrigger>
-            <TabsTrigger value="strategy" className="text-xs">Strategy</TabsTrigger>
-            <TabsTrigger value="stakeholders" className="text-xs">People</TabsTrigger>
-            <TabsTrigger value="competition" className="text-xs">Competition</TabsTrigger>
-            <TabsTrigger value="risks" className="text-xs">Risks</TabsTrigger>
+            <TabsTrigger value="overview" className="text-xs">
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="strategy" className="text-xs">
+              Strategy
+            </TabsTrigger>
+            <TabsTrigger value="stakeholders" className="text-xs">
+              People
+            </TabsTrigger>
+            <TabsTrigger value="competition" className="text-xs">
+              Competition
+            </TabsTrigger>
+            <TabsTrigger value="risks" className="text-xs">
+              Risks
+            </TabsTrigger>
           </TabsList>
         </div>
 
@@ -319,8 +354,16 @@ export function LeadResearchPanel({
                 </CardHeader>
                 <CardContent className="pt-0">
                   <div className="flex items-center gap-4">
-                    <Badge variant={result.validation.isOperating ? "default" : "destructive"}>
-                      {result.validation.isOperating ? "Operating" : "Not Found"}
+                    <Badge
+                      variant={
+                        result.validation.isOperating
+                          ? "default"
+                          : "destructive"
+                      }
+                    >
+                      {result.validation.isOperating
+                        ? "Operating"
+                        : "Not Found"}
                     </Badge>
                     <span className="text-sm text-muted-foreground">
                       {result.validation.confidence}% confidence
@@ -329,7 +372,10 @@ export function LeadResearchPanel({
                   {result.validation.warnings?.length > 0 && (
                     <div className="mt-2 space-y-1">
                       {result.validation.warnings.map((warning, i) => (
-                        <p key={i} className="text-xs text-amber-600 flex items-center gap-1">
+                        <p
+                          key={i}
+                          className="text-xs text-amber-600 flex items-center gap-1"
+                        >
                           <AlertTriangle className="h-3 w-3" />
                           {warning}
                         </p>
@@ -352,22 +398,36 @@ export function LeadResearchPanel({
                 <CardContent className="pt-0 space-y-2">
                   {result.financialHealth.estimatedRevenue && (
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Est. Revenue</span>
-                      <span className="font-medium">{result.financialHealth.estimatedRevenue}</span>
+                      <span className="text-muted-foreground">
+                        Est. Revenue
+                      </span>
+                      <span className="font-medium">
+                        {result.financialHealth.estimatedRevenue}
+                      </span>
                     </div>
                   )}
                   {result.financialHealth.fundingStage && (
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Funding Stage</span>
-                      <Badge variant="outline">{result.financialHealth.fundingStage}</Badge>
+                      <span className="text-muted-foreground">
+                        Funding Stage
+                      </span>
+                      <Badge variant="outline">
+                        {result.financialHealth.fundingStage}
+                      </Badge>
                     </div>
                   )}
                   {result.financialHealth.signals?.length > 0 && (
                     <div className="mt-2">
-                      <p className="text-xs text-muted-foreground mb-1">Signals:</p>
+                      <p className="text-xs text-muted-foreground mb-1">
+                        Signals:
+                      </p>
                       <div className="flex flex-wrap gap-1">
                         {result.financialHealth.signals.map((signal, i) => (
-                          <Badge key={i} variant="secondary" className="text-xs">
+                          <Badge
+                            key={i}
+                            variant="secondary"
+                            className="text-xs"
+                          >
                             {signal}
                           </Badge>
                         ))}
@@ -389,22 +449,32 @@ export function LeadResearchPanel({
                 </CardHeader>
                 <CardContent className="pt-0 space-y-2">
                   {result.painPoints.map((pain, i) => (
-                    <div key={i} className="border-l-2 border-purple-500 pl-3 py-1">
+                    <div
+                      key={i}
+                      className="border-l-2 border-purple-500 pl-3 py-1"
+                    >
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-sm">{pain.category}</span>
+                        <span className="font-medium text-sm">
+                          {pain.category}
+                        </span>
                         <Badge
                           variant="outline"
                           className={cn(
                             "text-xs",
-                            pain.severity === "high" && "border-red-500 text-red-600",
-                            pain.severity === "medium" && "border-amber-500 text-amber-600",
-                            pain.severity === "low" && "border-green-500 text-green-600"
+                            pain.severity === "high" &&
+                              "border-red-500 text-red-600",
+                            pain.severity === "medium" &&
+                              "border-amber-500 text-amber-600",
+                            pain.severity === "low" &&
+                              "border-green-500 text-green-600",
                           )}
                         >
                           {pain.severity}
                         </Badge>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1">{pain.description}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {pain.description}
+                      </p>
                       <p className="text-xs text-purple-600 mt-1">
                         <Sparkles className="h-3 w-3 inline mr-1" />
                         {pain.solutionFit}
@@ -428,7 +498,9 @@ export function LeadResearchPanel({
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-0">
-                    <p className="text-sm">{result.engagementStrategy.entryPoint}</p>
+                    <p className="text-sm">
+                      {result.engagementStrategy.entryPoint}
+                    </p>
                   </CardContent>
                 </Card>
 
@@ -440,7 +512,9 @@ export function LeadResearchPanel({
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-0">
-                    <p className="text-sm">{result.engagementStrategy.valueProp}</p>
+                    <p className="text-sm">
+                      {result.engagementStrategy.valueProp}
+                    </p>
                   </CardContent>
                 </Card>
 
@@ -454,7 +528,10 @@ export function LeadResearchPanel({
                         variant="ghost"
                         className="h-6 ml-auto"
                         onClick={() => {
-                          const points = result.engagementStrategy?.talkingPoints?.join("\n• ");
+                          const points =
+                            result.engagementStrategy?.talkingPoints?.join(
+                              "\n• ",
+                            );
                           copyToClipboard(`• ${points}`, "Talking points");
                         }}
                       >
@@ -465,12 +542,17 @@ export function LeadResearchPanel({
                   </CardHeader>
                   <CardContent className="pt-0">
                     <ul className="space-y-2">
-                      {result.engagementStrategy.talkingPoints?.map((point, i) => (
-                        <li key={i} className="flex items-start gap-2 text-sm">
-                          <ChevronRight className="h-4 w-4 mt-0.5 text-purple-500 flex-shrink-0" />
-                          {point}
-                        </li>
-                      ))}
+                      {result.engagementStrategy.talkingPoints?.map(
+                        (point, i) => (
+                          <li
+                            key={i}
+                            className="flex items-start gap-2 text-sm"
+                          >
+                            <ChevronRight className="h-4 w-4 mt-0.5 text-purple-500 flex-shrink-0" />
+                            {point}
+                          </li>
+                        ),
+                      )}
                     </ul>
                   </CardContent>
                 </Card>
@@ -489,7 +571,10 @@ export function LeadResearchPanel({
                     <ol className="space-y-1">
                       {result.engagementStrategy.nextSteps?.map((step, i) => (
                         <li key={i} className="flex items-center gap-2 text-sm">
-                          <Badge variant="outline" className="h-5 w-5 rounded-full p-0 justify-center">
+                          <Badge
+                            variant="outline"
+                            className="h-5 w-5 rounded-full p-0 justify-center"
+                          >
                             {i + 1}
                           </Badge>
                           {step}
@@ -514,10 +599,14 @@ export function LeadResearchPanel({
                         {stakeholder.name}
                       </CardTitle>
                       <Badge
-                        variant={stakeholder.role === "decision_maker" ? "default" : "outline"}
+                        variant={
+                          stakeholder.role === "decision_maker"
+                            ? "default"
+                            : "outline"
+                        }
                         className={cn(
                           stakeholder.role === "champion" && "bg-green-500",
-                          stakeholder.role === "blocker" && "bg-red-500"
+                          stakeholder.role === "blocker" && "bg-red-500",
                         )}
                       >
                         {stakeholder.role.replace("_", " ")}
@@ -526,13 +615,17 @@ export function LeadResearchPanel({
                     <CardDescription>{stakeholder.title}</CardDescription>
                   </CardHeader>
                   <CardContent className="pt-0">
-                    <p className="text-sm text-muted-foreground">{stakeholder.notes}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {stakeholder.notes}
+                    </p>
                     {stakeholder.linkedIn && (
                       <Button
                         size="sm"
                         variant="outline"
                         className="mt-2 text-xs h-7"
-                        onClick={() => window.open(stakeholder.linkedIn!, "_blank")}
+                        onClick={() =>
+                          window.open(stakeholder.linkedIn!, "_blank")
+                        }
                       >
                         <ExternalLink className="h-3 w-3 mr-1" />
                         LinkedIn
@@ -551,14 +644,21 @@ export function LeadResearchPanel({
 
           {/* COMPETITION TAB */}
           <TabsContent value="competition" className="mt-4 space-y-4">
-            {result.competitiveLandscape && result.competitiveLandscape.length > 0 ? (
+            {result.competitiveLandscape &&
+            result.competitiveLandscape.length > 0 ? (
               result.competitiveLandscape.map((competitor, i) => (
                 <Card key={i}>
                   <CardHeader className="py-3">
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-sm">{competitor.name}</CardTitle>
+                      <CardTitle className="text-sm">
+                        {competitor.name}
+                      </CardTitle>
                       <Badge
-                        variant={competitor.relationship === "current_vendor" ? "destructive" : "outline"}
+                        variant={
+                          competitor.relationship === "current_vendor"
+                            ? "destructive"
+                            : "outline"
+                        }
                       >
                         {competitor.relationship.replace("_", " ")}
                       </Badge>
@@ -567,10 +667,16 @@ export function LeadResearchPanel({
                   <CardContent className="pt-0 space-y-3">
                     {competitor.strengths?.length > 0 && (
                       <div>
-                        <p className="text-xs font-medium text-green-600 mb-1">Strengths</p>
+                        <p className="text-xs font-medium text-green-600 mb-1">
+                          Strengths
+                        </p>
                         <div className="flex flex-wrap gap-1">
                           {competitor.strengths.map((s, j) => (
-                            <Badge key={j} variant="secondary" className="text-xs">
+                            <Badge
+                              key={j}
+                              variant="secondary"
+                              className="text-xs"
+                            >
                               {s}
                             </Badge>
                           ))}
@@ -579,10 +685,16 @@ export function LeadResearchPanel({
                     )}
                     {competitor.weaknesses?.length > 0 && (
                       <div>
-                        <p className="text-xs font-medium text-red-600 mb-1">Weaknesses</p>
+                        <p className="text-xs font-medium text-red-600 mb-1">
+                          Weaknesses
+                        </p>
                         <div className="flex flex-wrap gap-1">
                           {competitor.weaknesses.map((w, j) => (
-                            <Badge key={j} variant="outline" className="text-xs border-red-200">
+                            <Badge
+                              key={j}
+                              variant="outline"
+                              className="text-xs border-red-200"
+                            >
                               {w}
                             </Badge>
                           ))}
@@ -590,7 +702,9 @@ export function LeadResearchPanel({
                       </div>
                     )}
                     <div className="border-l-2 border-purple-500 pl-3 bg-purple-50 dark:bg-purple-950/20 py-2 rounded-r">
-                      <p className="text-xs font-medium text-purple-600 mb-1">Battle Card</p>
+                      <p className="text-xs font-medium text-purple-600 mb-1">
+                        Battle Card
+                      </p>
                       <p className="text-sm">{competitor.battleCard}</p>
                     </div>
                   </CardContent>
@@ -612,7 +726,11 @@ export function LeadResearchPanel({
                   <CardHeader className="py-3">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-sm">Overall Risk</CardTitle>
-                      <Badge className={getRiskColor(result.riskAssessment.overallRisk)}>
+                      <Badge
+                        className={getRiskColor(
+                          result.riskAssessment.overallRisk,
+                        )}
+                      >
                         {result.riskAssessment.overallRisk.toUpperCase()}
                       </Badge>
                     </div>
@@ -628,9 +746,13 @@ export function LeadResearchPanel({
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="pt-0 space-y-2">
-                      <p className="text-sm text-muted-foreground">{risk.description}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {risk.description}
+                      </p>
                       <div className="bg-green-50 dark:bg-green-950/20 p-2 rounded border-l-2 border-green-500">
-                        <p className="text-xs font-medium text-green-600 mb-1">Mitigation</p>
+                        <p className="text-xs font-medium text-green-600 mb-1">
+                          Mitigation
+                        </p>
                         <p className="text-sm">{risk.mitigation}</p>
                       </div>
                     </CardContent>
@@ -644,11 +766,11 @@ export function LeadResearchPanel({
 
       {/* Footer with research metadata */}
       <div className="border-t px-6 py-2 text-xs text-muted-foreground flex items-center justify-between">
-        <span>
-          Researched {new Date(result.researchedAt).toLocaleString()}
-        </span>
+        <span>Researched {new Date(result.researchedAt).toLocaleString()}</span>
         {result.executionTimeMs && (
-          <span>{(result.executionTimeMs / 1000).toFixed(1)}s via NEVA + Perplexity</span>
+          <span>
+            {(result.executionTimeMs / 1000).toFixed(1)}s via NEVA + Perplexity
+          </span>
         )}
       </div>
     </Card>

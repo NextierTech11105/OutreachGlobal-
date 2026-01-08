@@ -134,7 +134,6 @@ export const RegisterForm: React.FC = () => {
       // Otherwise redirect to dashboard
       const teamSlug = data.register.team.slug;
       router.push(`/t/${teamSlug}`);
-
     } catch (error) {
       showError(error, { gql: true });
       setLoading(false);
@@ -152,7 +151,9 @@ export const RegisterForm: React.FC = () => {
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
         />
-        {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
+        {errors.name && (
+          <p className="text-sm text-destructive">{errors.name}</p>
+        )}
       </FormItem>
 
       <FormItem>
@@ -164,7 +165,9 @@ export const RegisterForm: React.FC = () => {
           value={formData.email}
           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
         />
-        {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
+        {errors.email && (
+          <p className="text-sm text-destructive">{errors.email}</p>
+        )}
       </FormItem>
 
       <FormItem>
@@ -174,7 +177,9 @@ export const RegisterForm: React.FC = () => {
           type="text"
           placeholder="Acme Inc."
           value={formData.companyName}
-          onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
+          onChange={(e) =>
+            setFormData({ ...formData, companyName: e.target.value })
+          }
         />
       </FormItem>
 
@@ -184,9 +189,13 @@ export const RegisterForm: React.FC = () => {
           id="password"
           placeholder="••••••••"
           value={formData.password}
-          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+          onChange={(e) =>
+            setFormData({ ...formData, password: e.target.value })
+          }
         />
-        {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
+        {errors.password && (
+          <p className="text-sm text-destructive">{errors.password}</p>
+        )}
       </FormItem>
 
       <FormItem>
@@ -195,9 +204,13 @@ export const RegisterForm: React.FC = () => {
           id="confirmPassword"
           placeholder="••••••••"
           value={formData.confirmPassword}
-          onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+          onChange={(e) =>
+            setFormData({ ...formData, confirmPassword: e.target.value })
+          }
         />
-        {errors.confirmPassword && <p className="text-sm text-destructive">{errors.confirmPassword}</p>}
+        {errors.confirmPassword && (
+          <p className="text-sm text-destructive">{errors.confirmPassword}</p>
+        )}
       </FormItem>
 
       <Button type="submit" className="w-full" disabled={loading}>

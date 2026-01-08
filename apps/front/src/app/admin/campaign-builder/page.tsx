@@ -10,7 +10,7 @@ import { useEffect } from "react";
  */
 export default function AdminCampaignBuilderPage() {
   const teamSlug = useTeamSlug();
-  
+
   useEffect(() => {
     if (teamSlug) {
       window.location.href = `/t/${teamSlug}/campaign-builder`;

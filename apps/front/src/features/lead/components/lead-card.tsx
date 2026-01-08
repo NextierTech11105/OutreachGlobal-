@@ -34,7 +34,7 @@ export function LeadCard({ lead }: LeadCardProps) {
               </div>
             )}
           </TeamLink>
-          
+
           {/* Click-to-Call/SMS/Email Actions */}
           <LeadContactPills
             phone={lead.phone}
@@ -42,7 +42,7 @@ export function LeadCard({ lead }: LeadCardProps) {
             leadName={lead.name}
             leadId={lead.id}
           />
-          
+
           <div className="flex items-center justify-between">
             <Badge variant="outline" className="text-xs">
               {lead.status || "New"}

@@ -1,7 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -38,7 +44,14 @@ import {
   TemplateLifecycle,
 } from "@/lib/sms/template-cartridges";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CARTRIDGE ICON MAP
@@ -59,13 +72,16 @@ const CARTRIDGE_ICONS: Record<string, React.ReactNode> = {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default function CartridgesPage() {
-  const [cartridges, setCartridges] = useState<Array<{
-    id: string;
-    name: string;
-    active: boolean;
-    templateCount: number;
-  }>>([]);
-  const [selectedCartridge, setSelectedCartridge] = useState<TemplateCartridge | null>(null);
+  const [cartridges, setCartridges] = useState<
+    Array<{
+      id: string;
+      name: string;
+      active: boolean;
+      templateCount: number;
+    }>
+  >([]);
+  const [selectedCartridge, setSelectedCartridge] =
+    useState<TemplateCartridge | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -102,7 +118,9 @@ export default function CartridgesPage() {
   const handleAutoActivate = (industry: string) => {
     const activated = cartridgeManager.autoActivateForIndustry(industry);
     if (activated.length > 0) {
-      toast.success(`Auto-activated ${activated.length} cartridge(s) for "${industry}"`);
+      toast.success(
+        `Auto-activated ${activated.length} cartridge(s) for "${industry}"`,
+      );
     } else {
       toast.info(`No cartridges match industry "${industry}"`);
     }
@@ -116,13 +134,15 @@ export default function CartridgesPage() {
     toast.success(`Copied: ${templateId}`);
   };
 
-  const getFullCartridge = (cartridgeId: string): TemplateCartridge | undefined => {
-    return CARTRIDGE_LIBRARY.find(c => c.id === cartridgeId);
+  const getFullCartridge = (
+    cartridgeId: string,
+  ): TemplateCartridge | undefined => {
+    return CARTRIDGE_LIBRARY.find((c) => c.id === cartridgeId);
   };
 
-  const activeCount = cartridges.filter(c => c.active).length;
+  const activeCount = cartridges.filter((c) => c.active).length;
   const totalTemplates = cartridges
-    .filter(c => c.active)
+    .filter((c) => c.active)
     .reduce((sum, c) => sum + c.templateCount, 0);
 
   return (
@@ -155,8 +175,12 @@ export default function CartridgesPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Active Cartridges</p>
-                <p className="text-2xl font-bold">{activeCount} / {cartridges.length}</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Active Cartridges
+                </p>
+                <p className="text-2xl font-bold">
+                  {activeCount} / {cartridges.length}
+                </p>
               </div>
               <Package className="h-8 w-8 text-primary opacity-80" />
             </div>
@@ -166,7 +190,9 @@ export default function CartridgesPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Available Templates</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Available Templates
+                </p>
                 <p className="text-2xl font-bold">{totalTemplates}</p>
               </div>
               <MessageSquare className="h-8 w-8 text-green-500 opacity-80" />
@@ -177,7 +203,9 @@ export default function CartridgesPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">SignalHouse Status</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  SignalHouse Status
+                </p>
                 <p className="text-2xl font-bold text-green-500">Connected</p>
               </div>
               <CheckCircle2 className="h-8 w-8 text-green-500 opacity-80" />
@@ -196,7 +224,13 @@ export default function CartridgesPage() {
         </CardHeader>
         <CardContent>
           <div className="flex gap-2 flex-wrap">
-            {["construction", "technology", "real estate", "professional services", "healthcare"].map(industry => (
+            {[
+              "construction",
+              "technology",
+              "real estate",
+              "professional services",
+              "healthcare",
+            ].map((industry) => (
               <Button
                 key={industry}
                 variant="outline"
@@ -217,7 +251,7 @@ export default function CartridgesPage() {
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          cartridges.map(cartridge => {
+          cartridges.map((cartridge) => {
             const fullCartridge = getFullCartridge(cartridge.id);
             return (
               <Card
@@ -227,17 +261,27 @@ export default function CartridgesPage() {
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2">
-                      <div className={`p-2 rounded-lg ${cartridge.active ? "bg-primary/20" : "bg-muted"}`}>
-                        {CARTRIDGE_ICONS[cartridge.id] || <Package className="h-5 w-5" />}
+                      <div
+                        className={`p-2 rounded-lg ${cartridge.active ? "bg-primary/20" : "bg-muted"}`}
+                      >
+                        {CARTRIDGE_ICONS[cartridge.id] || (
+                          <Package className="h-5 w-5" />
+                        )}
                       </div>
                       <div>
-                        <CardTitle className="text-base">{cartridge.name}</CardTitle>
-                        <p className="text-xs text-muted-foreground">{cartridge.id}</p>
+                        <CardTitle className="text-base">
+                          {cartridge.name}
+                        </CardTitle>
+                        <p className="text-xs text-muted-foreground">
+                          {cartridge.id}
+                        </p>
                       </div>
                     </div>
                     <Switch
                       checked={cartridge.active}
-                      onCheckedChange={(checked) => handleToggleCartridge(cartridge.id, checked)}
+                      onCheckedChange={(checked) =>
+                        handleToggleCartridge(cartridge.id, checked)
+                      }
                     />
                   </div>
                 </CardHeader>
@@ -254,7 +298,9 @@ export default function CartridgesPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => setSelectedCartridge(fullCartridge || null)}
+                          onClick={() =>
+                            setSelectedCartridge(fullCartridge || null)
+                          }
                         >
                           <Eye className="h-4 w-4 mr-1" />
                           Preview
@@ -263,7 +309,9 @@ export default function CartridgesPage() {
                       <DialogContent className="max-w-2xl max-h-[80vh]">
                         <DialogHeader>
                           <DialogTitle className="flex items-center gap-2">
-                            {CARTRIDGE_ICONS[cartridge.id] || <Package className="h-5 w-5" />}
+                            {CARTRIDGE_ICONS[cartridge.id] || (
+                              <Package className="h-5 w-5" />
+                            )}
                             {cartridge.name}
                           </DialogTitle>
                           <DialogDescription>
@@ -276,16 +324,21 @@ export default function CartridgesPage() {
                               <Card key={template.id} className="p-3">
                                 <div className="flex items-start justify-between mb-2">
                                   <div>
-                                    <p className="font-medium text-sm">{template.name}</p>
+                                    <p className="font-medium text-sm">
+                                      {template.name}
+                                    </p>
                                     <p className="text-xs text-muted-foreground">
-                                      ID: {template.id} • {template.charCount} chars • {template.worker}
+                                      ID: {template.id} • {template.charCount}{" "}
+                                      chars • {template.worker}
                                     </p>
                                   </div>
                                   <Button
                                     variant="ghost"
                                     size="icon"
                                     className="h-7 w-7"
-                                    onClick={() => handleCopyTemplateId(template.id)}
+                                    onClick={() =>
+                                      handleCopyTemplateId(template.id)
+                                    }
                                   >
                                     {copiedId === template.id ? (
                                       <Check className="h-3 w-3 text-green-500" />
@@ -298,9 +351,17 @@ export default function CartridgesPage() {
                                   {template.message}
                                 </p>
                                 <div className="flex gap-1 mt-2 flex-wrap">
-                                  <Badge variant="outline" className="text-xs">{template.stage}</Badge>
-                                  {template.tags.slice(0, 3).map(tag => (
-                                    <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
+                                  <Badge variant="outline" className="text-xs">
+                                    {template.stage}
+                                  </Badge>
+                                  {template.tags.slice(0, 3).map((tag) => (
+                                    <Badge
+                                      key={tag}
+                                      variant="secondary"
+                                      className="text-xs"
+                                    >
+                                      {tag}
+                                    </Badge>
                                   ))}
                                 </div>
                               </Card>
@@ -312,7 +373,7 @@ export default function CartridgesPage() {
                   </div>
                   {fullCartridge?.sicCodes && (
                     <div className="mt-2 flex gap-1 flex-wrap">
-                      {fullCartridge.sicCodes.slice(0, 3).map(sic => (
+                      {fullCartridge.sicCodes.slice(0, 3).map((sic) => (
                         <Badge key={sic} variant="outline" className="text-xs">
                           SIC: {sic}
                         </Badge>
@@ -335,11 +396,26 @@ export default function CartridgesPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground space-y-2">
-          <p><strong>1. Activate Cartridges</strong> - Toggle on the cartridges that match your campaign audience</p>
-          <p><strong>2. Preview Templates</strong> - Click "Preview" to see all templates in a cartridge</p>
-          <p><strong>3. Copy Template IDs</strong> - Use template IDs when creating campaigns</p>
-          <p><strong>4. Auto-Activate</strong> - Use industry buttons to activate matching cartridges automatically</p>
-          <p><strong>5. SignalHouse Sync</strong> - Active templates are synced with SignalHouse for 10DLC compliance</p>
+          <p>
+            <strong>1. Activate Cartridges</strong> - Toggle on the cartridges
+            that match your campaign audience
+          </p>
+          <p>
+            <strong>2. Preview Templates</strong> - Click "Preview" to see all
+            templates in a cartridge
+          </p>
+          <p>
+            <strong>3. Copy Template IDs</strong> - Use template IDs when
+            creating campaigns
+          </p>
+          <p>
+            <strong>4. Auto-Activate</strong> - Use industry buttons to activate
+            matching cartridges automatically
+          </p>
+          <p>
+            <strong>5. SignalHouse Sync</strong> - Active templates are synced
+            with SignalHouse for 10DLC compliance
+          </p>
         </CardContent>
       </Card>
     </div>

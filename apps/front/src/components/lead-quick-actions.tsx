@@ -34,14 +34,14 @@ import { toast } from "sonner";
  * LEAD QUICK ACTIONS
  * ═══════════════════════════════════════════════════════════════════════════
  * Inline action buttons for any lead row/card in the system.
- * 
+ *
  * Features:
  * - 📞 Click-to-Call → Opens tel: link or Twilio dialer
  * - 💬 Click-to-SMS → Opens sms: link or SignalHouse composer
  * - 📧 Click-to-Email → Opens mailto: link
  * - 📋 Copy → Copy phone/email to clipboard
  * - 📅 Schedule → Add to calendar
- * 
+ *
  * Works seamlessly with Chrome extension for cross-site functionality.
  * ═══════════════════════════════════════════════════════════════════════════
  */
@@ -110,7 +110,7 @@ export function LeadQuickActions({
 
       onAction?.("call", normalizedPhone);
     },
-    [normalizedPhone, name, onAction]
+    [normalizedPhone, name, onAction],
   );
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -134,7 +134,7 @@ export function LeadQuickActions({
 
       onAction?.("sms", normalizedPhone);
     },
-    [normalizedPhone, name, onAction]
+    [normalizedPhone, name, onAction],
   );
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -165,7 +165,7 @@ export function LeadQuickActions({
 
       onAction?.("email", email);
     },
-    [email, name, company, onAction]
+    [email, name, company, onAction],
   );
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -183,7 +183,7 @@ export function LeadQuickActions({
 
       onAction?.("copy", value);
     },
-    [onAction]
+    [onAction],
   );
 
   // Size configurations
@@ -222,7 +222,7 @@ export function LeadQuickActions({
                 size="icon"
                 className={cn(
                   buttonSize,
-                  "rounded-full hover:bg-emerald-100 hover:text-emerald-600 dark:hover:bg-emerald-900/30"
+                  "rounded-full hover:bg-emerald-100 hover:text-emerald-600 dark:hover:bg-emerald-900/30",
                 )}
                 onClick={handleCall}
               >
@@ -244,7 +244,7 @@ export function LeadQuickActions({
                 size="icon"
                 className={cn(
                   buttonSize,
-                  "rounded-full hover:bg-green-100 hover:text-green-600 dark:hover:bg-green-900/30"
+                  "rounded-full hover:bg-green-100 hover:text-green-600 dark:hover:bg-green-900/30",
                 )}
                 onClick={handleSms}
               >
@@ -266,7 +266,7 @@ export function LeadQuickActions({
                 size="icon"
                 className={cn(
                   buttonSize,
-                  "rounded-full hover:bg-blue-100 hover:text-blue-600 dark:hover:bg-blue-900/30"
+                  "rounded-full hover:bg-blue-100 hover:text-blue-600 dark:hover:bg-blue-900/30",
                 )}
                 onClick={handleEmail}
               >
@@ -304,7 +304,9 @@ export function LeadQuickActions({
                     Send SMS
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={(e) => handleCopy(e as any, normalizedPhone!, "phone")}
+                    onClick={(e) =>
+                      handleCopy(e as any, normalizedPhone!, "phone")
+                    }
                   >
                     {copied === "phone" ? (
                       <Check className="h-4 w-4 mr-2 text-green-500" />
