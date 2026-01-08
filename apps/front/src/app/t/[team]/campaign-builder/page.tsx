@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -221,6 +221,46 @@ export default function CampaignBuilderPage() {
   // Template editor
   const [editingTemplate, setEditingTemplate] = useState<string | null>(null);
   const [templateText, setTemplateText] = useState("");
+
+  // Loading state
+  const [loading, setLoading] = useState(true);
+
+  // Fetch campaigns on mount
+  useEffect(() => {
+    const fetchCampaigns = async () => {
+      try {
+        const response = await fetch(`/api/campaigns?teamId=${teamId}`);
+        if (response.ok) {
+          const result = await response.json();
+          if (result.data && Array.isArray(result.data)) {
+            // Map database campaigns to CampaignBlock format
+            const mappedCampaigns: CampaignBlock[] = result.data.map((c: any) => ({
+              id: c.id,
+              name: c.name || "Unnamed Campaign",
+              source: "upload" as const,
+              batchSize: c.estimatedLeadsCount || 0,
+              leadCount: c.estimatedLeadsCount || 0,
+              enrichedCount: 0,
+              withPhoneCount: 0,
+              template: c.description || "",
+              status: (c.status?.toLowerCase() || "draft") as any,
+              sentCount: 0,
+              respondedCount: 0,
+              bookedCount: 0,
+              createdAt: new Date(c.createdAt),
+            }));
+            setCampaigns(mappedCampaigns);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch campaigns:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCampaigns();
+  }, [teamId]);
 
   // Standard field schema for mapping
   const STANDARD_FIELDS = [
