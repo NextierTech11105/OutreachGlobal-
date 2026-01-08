@@ -48,7 +48,9 @@ export default async function Layout({
                 />
               </div>
             </header>
-            {children}
+            <div className="pb-24">
+              {children}
+            </div>
             <FloatingActionBar />
           </SidebarInset>
         </GlobalActionsProvider>
