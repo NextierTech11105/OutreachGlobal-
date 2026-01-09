@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Activity,
   RefreshCw,
@@ -8,103 +8,67 @@ import {
   XCircle,
   Clock,
   Zap,
-  Globe,
-  Database,
+  AlertTriangle,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 
-interface ApiEndpoint {
-  id: string;
+interface ServiceStatus {
   name: string;
-  url: string;
-  status: "healthy" | "degraded" | "down";
+  status: "healthy" | "degraded" | "down" | "not_configured";
   latency: number;
-  uptime: number;
-  requests24h: number;
-  errors24h: number;
-  lastChecked: string;
+  message?: string;
+}
+
+interface SystemStatus {
+  status: "operational" | "degraded" | "down";
+  timestamp: string;
+  responseTime: number;
+  services: ServiceStatus[];
+  summary: {
+    healthy: number;
+    total: number;
+    avgLatency: number;
+  };
 }
 
 export default function ApiMonitorPage() {
-  const [endpoints] = useState<ApiEndpoint[]>([
-    {
-      id: "1",
-      name: "Core API",
-      url: "api.nextier.com/v1",
-      status: "healthy",
-      latency: 45,
-      uptime: 99.99,
-      requests24h: 125000,
-      errors24h: 12,
-      lastChecked: "Just now",
-    },
-    {
-      id: "2",
-      name: "SignalHouse SMS",
-      url: "signalhouse.io/api",
-      status: "healthy",
-      latency: 120,
-      uptime: 99.95,
-      requests24h: 45000,
-      errors24h: 5,
-      lastChecked: "1 min ago",
-    },
-    {
-      id: "3",
-      name: "OpenAI",
-      url: "api.openai.com/v1",
-      status: "healthy",
-      latency: 890,
-      uptime: 99.9,
-      requests24h: 8500,
-      errors24h: 23,
-      lastChecked: "2 min ago",
-    },
-    {
-      id: "4",
-      name: "Perplexity AI",
-      url: "api.perplexity.ai",
-      status: "degraded",
-      latency: 2500,
-      uptime: 98.5,
-      requests24h: 3200,
-      errors24h: 156,
-      lastChecked: "1 min ago",
-    },
-    {
-      id: "5",
-      name: "Database",
-      url: "PostgreSQL",
-      status: "healthy",
-      latency: 12,
-      uptime: 99.99,
-      requests24h: 500000,
-      errors24h: 0,
-      lastChecked: "Just now",
-    },
-    {
-      id: "6",
-      name: "Redis Cache",
-      url: "Redis",
-      status: "healthy",
-      latency: 2,
-      uptime: 99.99,
-      requests24h: 1200000,
-      errors24h: 0,
-      lastChecked: "Just now",
-    },
-  ]);
+  const [systemStatus, setSystemStatus] = useState<SystemStatus | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
-  const getStatusIcon = (status: ApiEndpoint["status"]) => {
+  const fetchStatus = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/system/status");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      setSystemStatus(data);
+      setLastRefresh(new Date());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to fetch status");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchStatus();
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchStatus, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const getStatusIcon = (status: ServiceStatus["status"]) => {
     switch (status) {
       case "healthy":
         return <CheckCircle2 className="h-5 w-5 text-green-500" />;
@@ -112,33 +76,64 @@ export default function ApiMonitorPage() {
         return <Clock className="h-5 w-5 text-yellow-500" />;
       case "down":
         return <XCircle className="h-5 w-5 text-red-500" />;
+      case "not_configured":
+        return <AlertTriangle className="h-5 w-5 text-gray-400" />;
       default:
         return null;
     }
   };
 
-  const getStatusColor = (status: ApiEndpoint["status"]) => {
+  const getStatusBadge = (status: ServiceStatus["status"]) => {
     switch (status) {
       case "healthy":
-        return "bg-green-500";
+        return <Badge className="bg-green-500 text-white">Healthy</Badge>;
       case "degraded":
-        return "bg-yellow-500";
+        return <Badge className="bg-yellow-500 text-white">Degraded</Badge>;
       case "down":
-        return "bg-red-500";
+        return <Badge className="bg-red-500 text-white">Down</Badge>;
+      case "not_configured":
+        return <Badge variant="secondary">Not Configured</Badge>;
       default:
-        return "bg-gray-500";
+        return null;
     }
   };
 
   const getLatencyColor = (latency: number) => {
-    if (latency < 100) return "text-green-600";
-    if (latency < 500) return "text-yellow-600";
+    if (latency === 0) return "text-gray-400";
+    if (latency < 200) return "text-green-600";
+    if (latency < 1000) return "text-yellow-600";
     return "text-red-600";
   };
 
-  const healthyCount = endpoints.filter((e) => e.status === "healthy").length;
-  const totalRequests = endpoints.reduce((sum, e) => sum + e.requests24h, 0);
-  const totalErrors = endpoints.reduce((sum, e) => sum + e.errors24h, 0);
+  if (loading && !systemStatus) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-6">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (error && !systemStatus) {
+    return (
+      <div className="flex-1 p-6">
+        <Card className="border-red-200 bg-red-50 dark:bg-red-950/20">
+          <CardContent className="py-6">
+            <div className="flex items-center gap-3">
+              <XCircle className="h-6 w-6 text-red-500" />
+              <div>
+                <h3 className="font-medium">Failed to load system status</h3>
+                <p className="text-sm text-muted-foreground">{error}</p>
+              </div>
+              <Button variant="outline" onClick={fetchStatus} className="ml-auto">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Retry
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 space-y-6 p-6">
@@ -146,17 +141,24 @@ export default function ApiMonitorPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">API Monitor</h1>
           <p className="text-muted-foreground">
-            System health and API performance
+            Real-time system health and API status
           </p>
         </div>
-        <Button variant="outline">
-          <RefreshCw className="mr-2 h-4 w-4" />
-          Refresh All
-        </Button>
+        <div className="flex items-center gap-3">
+          {lastRefresh && (
+            <span className="text-sm text-muted-foreground">
+              Updated {lastRefresh.toLocaleTimeString()}
+            </span>
+          )}
+          <Button variant="outline" onClick={fetchStatus} disabled={loading}>
+            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Overall Status */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">System Status</CardTitle>
@@ -165,44 +167,20 @@ export default function ApiMonitorPage() {
           <CardContent>
             <div className="flex items-center gap-2">
               <div
-                className={`h-3 w-3 rounded-full ${healthyCount === endpoints.length ? "bg-green-500" : "bg-yellow-500"}`}
+                className={`h-3 w-3 rounded-full ${
+                  systemStatus?.status === "operational"
+                    ? "bg-green-500"
+                    : systemStatus?.status === "degraded"
+                    ? "bg-yellow-500"
+                    : "bg-red-500"
+                }`}
               />
-              <span className="text-2xl font-bold">
-                {healthyCount === endpoints.length ? "Operational" : "Degraded"}
+              <span className="text-2xl font-bold capitalize">
+                {systemStatus?.status || "Unknown"}
               </span>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              {healthyCount}/{endpoints.length} services healthy
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Requests (24h)
-            </CardTitle>
-            <Globe className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {(totalRequests / 1000).toFixed(0)}K
-            </div>
-            <p className="text-xs text-muted-foreground">
-              across all endpoints
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Error Rate</CardTitle>
-            <XCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {((totalErrors / totalRequests) * 100).toFixed(3)}%
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {totalErrors} errors
+              {systemStatus?.summary.healthy}/{systemStatus?.summary.total} services healthy
             </p>
           </CardContent>
         </Card>
@@ -212,78 +190,56 @@ export default function ApiMonitorPage() {
             <Zap className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {Math.round(
-                endpoints.reduce((sum, e) => sum + e.latency, 0) /
-                  endpoints.length,
-              )}
-              ms
+            <div className={`text-2xl font-bold ${getLatencyColor(systemStatus?.summary.avgLatency || 0)}`}>
+              {systemStatus?.summary.avgLatency || 0}ms
             </div>
             <p className="text-xs text-muted-foreground">
               average response time
             </p>
           </CardContent>
         </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Check Time</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {systemStatus?.responseTime || 0}ms
+            </div>
+            <p className="text-xs text-muted-foreground">
+              health check duration
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Endpoints */}
+      {/* Services */}
       <div className="grid gap-4">
-        {endpoints.map((endpoint) => (
-          <Card key={endpoint.id}>
+        <h2 className="text-lg font-semibold">Services</h2>
+        {systemStatus?.services.map((service) => (
+          <Card key={service.name}>
             <CardContent className="py-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  {getStatusIcon(endpoint.status)}
+                  {getStatusIcon(service.status)}
                   <div>
                     <div className="font-medium flex items-center gap-2">
-                      {endpoint.name}
-                      <Badge
-                        className={
-                          getStatusColor(endpoint.status) + " text-white"
-                        }
-                      >
-                        {endpoint.status}
-                      </Badge>
+                      {service.name}
+                      {getStatusBadge(service.status)}
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      {endpoint.url}
-                    </div>
+                    {service.message && (
+                      <div className="text-sm text-muted-foreground">
+                        {service.message}
+                      </div>
+                    )}
                   </div>
                 </div>
-                <div className="flex items-center gap-8">
-                  <div className="text-right">
-                    <div
-                      className={`text-lg font-semibold ${getLatencyColor(endpoint.latency)}`}
-                    >
-                      {endpoint.latency}ms
-                    </div>
-                    <div className="text-xs text-muted-foreground">latency</div>
+                <div className="text-right">
+                  <div className={`text-lg font-semibold ${getLatencyColor(service.latency)}`}>
+                    {service.latency > 0 ? `${service.latency}ms` : "—"}
                   </div>
-                  <div className="text-right">
-                    <div className="text-lg font-semibold">
-                      {endpoint.uptime}%
-                    </div>
-                    <div className="text-xs text-muted-foreground">uptime</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-lg font-semibold">
-                      {endpoint.requests24h.toLocaleString()}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      requests
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div
-                      className={`text-lg font-semibold ${endpoint.errors24h > 100 ? "text-red-600" : ""}`}
-                    >
-                      {endpoint.errors24h}
-                    </div>
-                    <div className="text-xs text-muted-foreground">errors</div>
-                  </div>
-                  <div className="text-sm text-muted-foreground w-24 text-right">
-                    {endpoint.lastChecked}
-                  </div>
+                  <div className="text-xs text-muted-foreground">latency</div>
                 </div>
               </div>
             </CardContent>
