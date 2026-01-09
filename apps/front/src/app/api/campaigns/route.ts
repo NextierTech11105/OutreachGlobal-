@@ -7,10 +7,32 @@ export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const teamId = searchParams.get("teamId");
 
+  // Only select columns that exist in production database
+  const selectFields = {
+    id: campaigns.id,
+    teamId: campaigns.teamId,
+    sdrId: campaigns.sdrId,
+    name: campaigns.name,
+    description: campaigns.description,
+    targetMethod: campaigns.targetMethod,
+    minScore: campaigns.minScore,
+    maxScore: campaigns.maxScore,
+    location: campaigns.location,
+    status: campaigns.status,
+    estimatedLeadsCount: campaigns.estimatedLeadsCount,
+    startsAt: campaigns.startsAt,
+    endsAt: campaigns.endsAt,
+    pausedAt: campaigns.pausedAt,
+    resumedAt: campaigns.resumedAt,
+    metadata: campaigns.metadata,
+    createdAt: campaigns.createdAt,
+    updatedAt: campaigns.updatedAt,
+  };
+
   try {
     if (teamId) {
       const data = await db
-        .select()
+        .select(selectFields)
         .from(campaigns)
         .where(eq(campaigns.teamId, teamId))
         .orderBy(desc(campaigns.createdAt));
@@ -18,7 +40,7 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await db
-      .select()
+      .select(selectFields)
       .from(campaigns)
       .orderBy(desc(campaigns.createdAt));
     return NextResponse.json({ data, count: data.length });
@@ -90,6 +112,19 @@ export async function POST(request: NextRequest) {
       template: template || "",
     };
 
+    // Only insert columns that exist in production database
+    // Store campaign type and ML data in metadata field
+    const metadata = {
+      campaignType: campaignType || "initial",
+      attemptNumber: attemptNumber || 1,
+      totalAttempts: totalAttemptsSinceInception || 1,
+      mlLabels: mlLabelData,
+      category,
+      persona,
+      template,
+      message,
+    };
+
     const [newCampaign] = await db
       .insert(campaigns)
       .values({
@@ -104,16 +139,9 @@ export async function POST(request: NextRequest) {
         status: status || "SCHEDULED",
         startsAt: startsAt ? new Date(startsAt) : now,
         endsAt: endsAt ? new Date(endsAt) : null,
-        // === Campaign Type & ML Tracking ===
-        campaignType: campaignType || "initial",
-        totalAttempts: totalAttemptsSinceInception || 1,
-        currentAttemptNumber: attemptNumber || 1,
-        lastAttemptedAt: lastAttemptedAt ? new Date(lastAttemptedAt) : null,
-        lastAttemptStatus: null,
-        mlLabels: mlLabelData,
+        metadata,
         createdAt: now,
         updatedAt: now,
-        // Store SMS config in metadata field if it exists, otherwise in description
         estimatedLeadsCount: recipientCount || 0,
       })
       .returning();
