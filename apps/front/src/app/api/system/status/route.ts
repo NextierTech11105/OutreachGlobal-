@@ -124,9 +124,11 @@ async function checkDatabase(): Promise<{
 
   const start = Date.now();
   try {
-    // Import dynamically to avoid build issues
-    const { db } = await import("@/lib/db");
-    await db.execute({ sql: "SELECT 1", args: [] });
+    // Use postgres-js directly for health check
+    const postgres = (await import("postgres")).default;
+    const sql = postgres(dbUrl, { ssl: "require", max: 1 });
+    await sql`SELECT 1`;
+    await sql.end();
     return { ok: true, latency: Date.now() - start };
   } catch (e) {
     return {
