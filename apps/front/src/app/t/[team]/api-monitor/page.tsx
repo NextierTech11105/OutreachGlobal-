@@ -12,12 +12,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 interface ServiceStatus {
@@ -124,7 +119,11 @@ export default function ApiMonitorPage() {
                 <h3 className="font-medium">Failed to load system status</h3>
                 <p className="text-sm text-muted-foreground">{error}</p>
               </div>
-              <Button variant="outline" onClick={fetchStatus} className="ml-auto">
+              <Button
+                variant="outline"
+                onClick={fetchStatus}
+                className="ml-auto"
+              >
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Retry
               </Button>
@@ -151,7 +150,9 @@ export default function ApiMonitorPage() {
             </span>
           )}
           <Button variant="outline" onClick={fetchStatus} disabled={loading}>
-            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            <RefreshCw
+              className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`}
+            />
             Refresh
           </Button>
         </div>
@@ -171,8 +172,8 @@ export default function ApiMonitorPage() {
                   systemStatus?.status === "operational"
                     ? "bg-green-500"
                     : systemStatus?.status === "degraded"
-                    ? "bg-yellow-500"
-                    : "bg-red-500"
+                      ? "bg-yellow-500"
+                      : "bg-red-500"
                 }`}
               />
               <span className="text-2xl font-bold capitalize">
@@ -180,7 +181,8 @@ export default function ApiMonitorPage() {
               </span>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              {systemStatus?.summary.healthy}/{systemStatus?.summary.total} services healthy
+              {systemStatus?.summary.healthy}/{systemStatus?.summary.total}{" "}
+              services healthy
             </p>
           </CardContent>
         </Card>
@@ -190,7 +192,9 @@ export default function ApiMonitorPage() {
             <Zap className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${getLatencyColor(systemStatus?.summary.avgLatency || 0)}`}>
+            <div
+              className={`text-2xl font-bold ${getLatencyColor(systemStatus?.summary.avgLatency || 0)}`}
+            >
               {systemStatus?.summary.avgLatency || 0}ms
             </div>
             <p className="text-xs text-muted-foreground">
@@ -236,7 +240,9 @@ export default function ApiMonitorPage() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className={`text-lg font-semibold ${getLatencyColor(service.latency)}`}>
+                  <div
+                    className={`text-lg font-semibold ${getLatencyColor(service.latency)}`}
+                  >
                     {service.latency > 0 ? `${service.latency}ms` : "—"}
                   </div>
                   <div className="text-xs text-muted-foreground">latency</div>

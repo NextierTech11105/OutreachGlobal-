@@ -56,9 +56,7 @@ export default function LeadsPage() {
             <Users className="h-8 w-8 text-blue-500" />
             All Leads
           </h1>
-          <p className="text-muted-foreground mt-1">
-            Your contact database
-          </p>
+          <p className="text-muted-foreground mt-1">Your contact database</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" asChild>

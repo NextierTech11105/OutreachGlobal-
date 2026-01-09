@@ -22,29 +22,37 @@ export async function POST(request: NextRequest) {
     }> = [];
 
     if (leads && Array.isArray(leads)) {
-      recipients = leads.map((lead: { phone: string; firstName?: string; lastName?: string; company?: string; id?: string }) => ({
-        to: lead.phone,
-        variables: {
-          firstName: lead.firstName || "",
-          lastName: lead.lastName || "",
-          company: lead.company || "",
-          name: lead.firstName || "",
-        },
-        leadId: lead.id,
-      }));
+      recipients = leads.map(
+        (lead: {
+          phone: string;
+          firstName?: string;
+          lastName?: string;
+          company?: string;
+          id?: string;
+        }) => ({
+          to: lead.phone,
+          variables: {
+            firstName: lead.firstName || "",
+            lastName: lead.lastName || "",
+            company: lead.company || "",
+            name: lead.firstName || "",
+          },
+          leadId: lead.id,
+        }),
+      );
     } else if (campaignId) {
       // Fetch leads from campaign
       // For now, return error - need leads passed directly
       return NextResponse.json(
         { success: false, error: "Pass leads array directly" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (recipients.length === 0) {
       return NextResponse.json(
         { success: false, error: "No leads to send to" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -71,8 +79,11 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("[SMS Blast] Error:", error);
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Blast failed" },
-      { status: 500 }
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Blast failed",
+      },
+      { status: 500 },
     );
   }
 }
