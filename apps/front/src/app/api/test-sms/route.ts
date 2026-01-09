@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
  */
 
 const SIGNALHOUSE_API_KEY = process.env.SIGNALHOUSE_API_KEY || "";
-const SIGNALHOUSE_FROM_NUMBER = process.env.SIGNALHOUSE_FROM_NUMBER || "";
+const SIGNALHOUSE_FROM_NUMBER = process.env.SIGNALHOUSE_FROM_NUMBER || process.env.TWILIO_PHONE_NUMBER || "";
 
 export async function POST(request: NextRequest) {
   try {
