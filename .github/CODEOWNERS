@@ -1,0 +1,24 @@
+# CODEOWNERS - OutreachGlobal/Nextier
+# These owners will be requested for review when PRs touch their areas
+
+# Default owner for everything
+* @NextierTech11105
+
+# Backend Agent scope
+/apps/api/ @NextierTech11105
+/packages/dto/ @NextierTech11105
+/functions/ @NextierTech11105
+
+# Frontend Agent scope
+/apps/front/ @NextierTech11105
+/apps/extension/ @NextierTech11105
+
+# Shared packages (require extra review)
+/packages/common/ @NextierTech11105
+
+# Infrastructure scope
+/.github/ @NextierTech11105
+/scripts/ @NextierTech11105
+/docs/ @NextierTech11105
+/*.config.* @NextierTech11105
+/Dockerfile* @NextierTech11105
