@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Building2,
   Plus,
@@ -10,7 +10,6 @@ import {
   MapPin,
   Users,
   Globe,
-  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,7 +23,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useParams } from "next/navigation";
 
 interface Company {
   id: string;
@@ -39,32 +37,40 @@ interface Company {
 }
 
 export default function CompaniesPage() {
-  const params = useParams();
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchCompanies = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch(`/api/companies?teamId=${params.team}`);
-        if (!response.ok) {
-          throw new Error("Failed to fetch companies");
-        }
-        const data = await response.json();
-        setCompanies(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load companies");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (params.team) {
-      fetchCompanies();
-    }
-  }, [params.team]);
+  const [companies] = useState<Company[]>([
+    {
+      id: "1",
+      name: "Acme Corporation",
+      industry: "Manufacturing",
+      location: "Chicago, IL",
+      employees: 250,
+      website: "acme.com",
+      contactCount: 12,
+      dealCount: 2,
+      status: "customer",
+    },
+    {
+      id: "2",
+      name: "TechStart Inc",
+      industry: "Technology",
+      location: "San Francisco, CA",
+      employees: 50,
+      website: "techstart.io",
+      contactCount: 5,
+      dealCount: 1,
+      status: "prospect",
+    },
+    {
+      id: "3",
+      name: "Global Services LLC",
+      industry: "Professional Services",
+      location: "New York, NY",
+      employees: 500,
+      contactCount: 23,
+      dealCount: 3,
+      status: "active",
+    },
+  ]);
 
   const getStatusColor = (status: Company["status"]) => {
     switch (status) {
@@ -108,88 +114,72 @@ export default function CompaniesPage() {
             </Button>
           </div>
 
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : error ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <p>{error}</p>
-            </div>
-          ) : companies.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p className="text-lg font-medium">No companies yet</p>
-              <p className="text-sm">Add your first company to get started</p>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Company</TableHead>
-                  <TableHead>Industry</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Employees</TableHead>
-                  <TableHead>Contacts</TableHead>
-                  <TableHead>Deals</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead></TableHead>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Company</TableHead>
+                <TableHead>Industry</TableHead>
+                <TableHead>Location</TableHead>
+                <TableHead>Employees</TableHead>
+                <TableHead>Contacts</TableHead>
+                <TableHead>Deals</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {companies.map((company) => (
+                <TableRow
+                  key={company.id}
+                  className="cursor-pointer hover:bg-muted/50"
+                >
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-full bg-primary/10">
+                        <Building2 className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <div className="font-medium">{company.name}</div>
+                        {company.website && (
+                          <div className="text-sm text-muted-foreground flex items-center gap-1">
+                            <Globe className="h-3 w-3" />
+                            {company.website}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>{company.industry}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      <MapPin className="h-3 w-3 text-muted-foreground" />
+                      {company.location}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      <Users className="h-3 w-3 text-muted-foreground" />
+                      {company.employees}
+                    </div>
+                  </TableCell>
+                  <TableCell>{company.contactCount}</TableCell>
+                  <TableCell>{company.dealCount}</TableCell>
+                  <TableCell>
+                    <Badge
+                      className={getStatusColor(company.status) + " text-white"}
+                    >
+                      {company.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Button variant="ghost" size="icon">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {companies.map((company) => (
-                  <TableRow
-                    key={company.id}
-                    className="cursor-pointer hover:bg-muted/50"
-                  >
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-full bg-primary/10">
-                          <Building2 className="h-4 w-4 text-primary" />
-                        </div>
-                        <div>
-                          <div className="font-medium">{company.name}</div>
-                          {company.website && (
-                            <div className="text-sm text-muted-foreground flex items-center gap-1">
-                              <Globe className="h-3 w-3" />
-                              {company.website}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{company.industry}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <MapPin className="h-3 w-3 text-muted-foreground" />
-                        {company.location}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <Users className="h-3 w-3 text-muted-foreground" />
-                        {company.employees}
-                      </div>
-                    </TableCell>
-                    <TableCell>{company.contactCount}</TableCell>
-                    <TableCell>{company.dealCount}</TableCell>
-                    <TableCell>
-                      <Badge
-                        className={getStatusColor(company.status) + " text-white"}
-                      >
-                        {company.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="icon">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>
