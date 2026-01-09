@@ -3,7 +3,6 @@ import {
   LayoutDashboard,
   Target,
   Send,
-  Bell,
   Phone,
   Inbox,
   Database,
@@ -14,7 +13,6 @@ import {
   Sparkles,
   Bot,
   MessageSquare,
-  Palette,
   Workflow,
   BarChart3,
   TrendingUp,
@@ -22,45 +20,41 @@ import {
   Home,
   FileText,
   Settings,
-  Shield,
   Zap,
   Upload,
   MessageCircle,
   Briefcase,
   GitBranch,
   Activity,
-  ServerCog,
-  Package,
   Layers,
   UserCheck,
   Radio,
   BrainCircuit,
   PhoneCall,
   Headphones,
-  Handshake,
-  Trophy,
+  User,
+  Clock,
   type LucideIcon,
 } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════════════════
-// NAVIGATION CONFIGURATION - NEXTIER FOUNDATIONAL FLOW
+// NAVIGATION CONFIGURATION - NEXTIER PLATFORM
 // ═══════════════════════════════════════════════════════════════════════════
 //
-// THE 10-STAGE PIPELINE (in order):
+// 9 GROUPS - 45 VERIFIED ROUTES (ALL PAGES EXIST)
 // ┌─────────────────────────────────────────────────────────────────────────┐
-// │  1. UNIVERSE      → USBizData, CSV Import, Property Data               │
-// │  2. AUDIENCE      → ICP Definition, Sectors, Territories               │
-// │  3. CONTACTABILITY → Skip Trace, Apollo Enrich, Verify                 │
-// │  4. OUTBOUND      → SMS Center, Campaigns, Pre-Queue                   │
-// │  5. INBOUND       → Inbox, AI Classification, Response Handling        │
-// │  6. INTELLIGENCE  → Perplexity Research, NEVA Deep Dive               │
-// │  7. CALL QUEUE    → Hot Leads Ready for Dial                          │
-// │  8. GUIDED CALL   → Power Dialer, Call Scripts, Live Coaching         │
-// │  9. STRATEGY      → Appointments, Meeting Prep, Discovery Calls       │
-// │ 10. CONVERSION    → Deals, Proposals, Close                           │
+// │  HOME        → Dashboard, Command Center, Getting Started              │
+// │  DATA        → Import, B2B Search, Properties, Skip Trace, Data Hub    │
+// │  AUDIENCE    → Leads, Companies, Sectors, Territories, Pipelines, Deals│
+// │  OUTREACH    → Campaign Builder, Campaigns, Quick Send, Pre-Queue...   │
+// │  AI WORKERS  → Digital Workers, AI SDR, Automation Rules, Prompts...   │
+// │  INBOUND     → Inbox, Workflows, Templates                             │
+// │  VOICE       → Call Center, Power Dialers, Appointments, Calendar      │
+// │  ANALYTICS   → Overview, SMS Analytics, Pipeline Heatmap, Reports...   │
+// │  SETTINGS    → Settings, Account, Users, Integrations, SignalHouse...  │
 // └─────────────────────────────────────────────────────────────────────────┘
 //
-// This is the MACHINE. The sidebar IS the conveyor belt.
+// EVERY ROUTE VERIFIED AGAINST apps/front/src/app/t/[team]/**/page.tsx
 
 export type NavItemRole = "admin" | "member" | "viewer";
 
@@ -92,93 +86,130 @@ export interface NavGroup {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// NAVIGATION CONFIGURATION - STREAMLINED SMS MONETIZATION FLOW
+// MAIN NAVIGATION CONFIGURATION
 // ═══════════════════════════════════════════════════════════════════════════
-//
-// THE CORE SMS MACHINE (synergistic flow):
-// ┌─────────────────────────────────────────────────────────────────────────┐
-// │  COMMAND        → Dashboard + Inbox (always visible)                   │
-// │  PROSPECTING    → B2B Search, Properties, Import, Territories          │
-// │  PIPELINE       → Leads, Companies, Deals, Pipelines                   │
-// │  OUTREACH       → Campaign Builder, SMS Center, Campaigns              │
-// │  INBOUND        → Inbox, Digital Workers, Workflows                    │
-// │  AI             → Research, NEVA, Power Dialer                         │
-// │  ANALYTICS      → Reports, SMS Analytics, Pipeline Heatmap             │
-// │  ADMIN          → Settings, Integrations, Users                        │
-// └─────────────────────────────────────────────────────────────────────────┘
-//
-// Week 1-2: SMS BLITZ → Get 15-min meetings booked
-// Week 3-4: AI LISTENING → Classify, prioritize, copilot inbound
-// Month 2+: COMPOUNDING → Re-engage, nurture, close
 
 export const navigationGroups: NavGroup[] = [
-  // ─────────────────────────────────────────────────────────────────────────
-  // COMMAND CENTER - Always visible, the control tower
-  // ─────────────────────────────────────────────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════════════════
+  // HOME - Dashboard & onboarding
+  // ═══════════════════════════════════════════════════════════════════════════
   {
-    id: "command",
-    label: "COMMAND",
-    icon: LayoutDashboard,
+    id: "home",
+    label: "HOME",
+    icon: Home,
     items: [
       {
         label: "Dashboard",
-        href: "/admin",
+        href: "/",
         icon: LayoutDashboard,
         description: "Pipeline overview & KPIs",
       },
       {
-        label: "Inbox",
-        href: "/admin/inbound-processing",
-        icon: Inbox,
-        badge: "HOT",
-        badgeVariant: "destructive",
-        description: "AI-classified inbound responses",
+        label: "Command Center",
+        href: "/command-center",
+        icon: Activity,
+        description: "Unified control panel",
+      },
+      {
+        label: "Getting Started",
+        href: "/getting-started",
+        icon: Rocket,
+        hideAfterOnboarding: true,
+        description: "Setup guide",
       },
     ],
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // PROSPECTING - Get fresh leads from data sources
+  // DATA - Lead acquisition & enrichment
   // ═══════════════════════════════════════════════════════════════════════════
   {
-    id: "prospecting",
-    label: "PROSPECTING",
-    icon: Search,
+    id: "data",
+    label: "DATA",
+    icon: Database,
     items: [
+      {
+        label: "Import",
+        href: "/import",
+        icon: Upload,
+        description: "Upload CSV files",
+      },
       {
         label: "B2B Search",
-        href: "/admin/b2b",
+        href: "/b2b-search",
         icon: Building2,
-        description: "Search 70M+ USBizData businesses",
+        description: "Search 70M+ businesses",
       },
       {
-        label: "Import CSV",
-        href: "/admin/data/import",
-        icon: Upload,
-        description: "Upload USBizData lists",
+        label: "Properties",
+        href: "/properties",
+        icon: MapPin,
+        description: "Real estate data",
+      },
+      {
+        label: "Skip Trace",
+        href: "/skip-trace",
+        icon: UserCheck,
+        description: "Find phone numbers",
+      },
+      {
+        label: "Data Hub",
+        href: "/data-hub",
+        icon: Database,
+        description: "Data management",
       },
     ],
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // PIPELINE - Manage your leads and companies
+  // AUDIENCE - Lead & company organization
   // ═══════════════════════════════════════════════════════════════════════════
   {
-    id: "pipeline",
-    label: "PIPELINE",
-    icon: GitBranch,
+    id: "audience",
+    label: "AUDIENCE",
+    icon: Users,
     items: [
       {
+        label: "Leads",
+        href: "/leads",
+        icon: Users,
+        description: "All contacts",
+      },
+      {
         label: "Companies",
-        href: "/admin/companies",
+        href: "/companies",
         icon: Building2,
-        description: "Organization records",
+        description: "Organizations",
+      },
+      {
+        label: "Sectors",
+        href: "/sectors",
+        icon: Layers,
+        description: "Industry segments",
+      },
+      {
+        label: "Territories",
+        href: "/territories",
+        icon: MapPin,
+        description: "Geographic regions",
+      },
+      {
+        label: "Pipelines",
+        href: "/pipelines",
+        icon: GitBranch,
+        description: "Deal stages",
+      },
+      {
+        label: "Deals",
+        href: "/deals",
+        icon: Briefcase,
+        description: "Active deals",
       },
     ],
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // OUTREACH - SMS Campaigns (THE MONEY MAKER)
+  // OUTREACH - Campaigns & messaging (THE MONEY MAKER)
   // ═══════════════════════════════════════════════════════════════════════════
   {
     id: "outreach",
@@ -186,24 +217,89 @@ export const navigationGroups: NavGroup[] = [
     icon: Send,
     items: [
       {
-        label: "⚡ Campaign Builder",
-        href: "/admin/campaign-builder",
+        label: "Campaign Builder",
+        href: "/campaign-builder",
         icon: Zap,
-        badge: "START HERE",
+        badge: "START",
         badgeVariant: "destructive",
-        description: "CSV → Skip Trace → SMS BLAST",
+        description: "Build & launch campaigns",
       },
       {
-        label: "AI SDR",
-        href: "/admin/ai-sdr",
-        icon: Bot,
-        description: "Automated outreach campaigns",
+        label: "Campaigns",
+        href: "/campaigns",
+        icon: Target,
+        description: "All campaigns",
+      },
+      {
+        label: "Quick Send",
+        href: "/quick-send",
+        icon: Send,
+        description: "One-off messages",
+      },
+      {
+        label: "Pre-Queue",
+        href: "/pre-queue",
+        icon: Clock,
+        description: "Review before send",
+      },
+      {
+        label: "Sequences",
+        href: "/sequences",
+        icon: GitBranch,
+        description: "Multi-step campaigns",
+      },
+      {
+        label: "SMS Queue",
+        href: "/sms/queue",
+        icon: MessageCircle,
+        description: "Active message queue",
       },
     ],
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // INBOUND - AI-classified responses (THE COMPOUNDING ENGINE)
+  // AI WORKERS - Digital assistants & automation
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    id: "ai",
+    label: "AI WORKERS",
+    icon: Bot,
+    items: [
+      {
+        label: "Digital Workers",
+        href: "/digital-workers",
+        icon: Bot,
+        description: "GIANNA, CATHY, SABRINA",
+      },
+      {
+        label: "AI SDR",
+        href: "/ai-sdr",
+        icon: Sparkles,
+        description: "Automated outreach",
+      },
+      {
+        label: "Automation Rules",
+        href: "/automation-rules",
+        icon: Workflow,
+        description: "Trigger rules",
+      },
+      {
+        label: "Prompts",
+        href: "/prompts",
+        icon: MessageSquare,
+        description: "AI prompt library",
+      },
+      {
+        label: "AI Training",
+        href: "/ai-training",
+        icon: BrainCircuit,
+        description: "Train the AI",
+      },
+    ],
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // INBOUND - Response handling
   // ═══════════════════════════════════════════════════════════════════════════
   {
     id: "inbound",
@@ -211,57 +307,65 @@ export const navigationGroups: NavGroup[] = [
     icon: Inbox,
     items: [
       {
-        label: "Inbound Processing",
-        href: "/admin/inbound-processing",
+        label: "Inbox",
+        href: "/inbox",
         icon: Inbox,
-        description: "Inbound SMS/email responses",
-      },
-      {
-        label: "Digital Workers",
-        href: "/admin/digital-workers",
-        icon: Bot,
-        description: "GIANNA, CATHY, SABRINA, NEVA",
+        badge: "HOT",
+        badgeVariant: "destructive",
+        description: "All responses",
       },
       {
         label: "Workflows",
-        href: "/admin/workflows",
+        href: "/workflows",
         icon: Workflow,
-        description: "Automation rules & triggers",
+        description: "Automation flows",
+      },
+      {
+        label: "Templates",
+        href: "/message-templates",
+        icon: FileText,
+        description: "Message templates",
       },
     ],
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // AI - Deep research and intelligence
+  // VOICE - Phone calls & appointments
   // ═══════════════════════════════════════════════════════════════════════════
   {
-    id: "ai",
-    label: "AI",
-    icon: BrainCircuit,
+    id: "voice",
+    label: "VOICE",
+    icon: Phone,
     items: [
       {
-        label: "Lucy AI",
-        href: "/admin/lucy",
-        icon: BrainCircuit,
-        description: "AI research assistant",
+        label: "Call Center",
+        href: "/call-center",
+        icon: Headphones,
+        description: "Phone dashboard",
       },
       {
-        label: "Prompt Library",
-        href: "/admin/prompt-library",
-        icon: MessageSquare,
-        description: "AI prompt templates",
+        label: "Power Dialers",
+        href: "/power-dialers",
+        icon: PhoneCall,
+        description: "Auto-dial sessions",
       },
       {
-        label: "Message Templates",
-        href: "/admin/message-templates",
-        icon: FileText,
-        description: "SMS & call scripts",
+        label: "Appointments",
+        href: "/appointments",
+        icon: Calendar,
+        description: "Scheduled calls",
+      },
+      {
+        label: "Calendar",
+        href: "/calendar",
+        icon: Calendar,
+        description: "Schedule view",
       },
     ],
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // ANALYTICS - Track everything
+  // ANALYTICS - Reporting & insights
   // ═══════════════════════════════════════════════════════════════════════════
   {
     id: "analytics",
@@ -269,57 +373,81 @@ export const navigationGroups: NavGroup[] = [
     icon: BarChart3,
     items: [
       {
+        label: "Overview",
+        href: "/analytics",
+        icon: BarChart3,
+        description: "Analytics dashboard",
+      },
+      {
+        label: "SMS Analytics",
+        href: "/analytics/sms",
+        icon: MessageCircle,
+        description: "Message metrics",
+      },
+      {
+        label: "Pipeline Heatmap",
+        href: "/analytics/pipeline-heatmap",
+        icon: TrendingUp,
+        description: "Deal flow visualization",
+      },
+      {
+        label: "Reports",
+        href: "/reports",
+        icon: FileText,
+        description: "Custom reports",
+      },
+      {
         label: "API Monitor",
-        href: "/admin/api-monitor",
+        href: "/api-monitor",
         icon: Activity,
-        description: "System health & usage",
+        description: "System health",
       },
     ],
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // ADMIN - Platform configuration
+  // SETTINGS - Configuration
   // ═══════════════════════════════════════════════════════════════════════════
   {
-    id: "admin",
-    label: "ADMIN",
+    id: "settings",
+    label: "SETTINGS",
     icon: Settings,
-    minRole: "admin",
     items: [
       {
-        label: "System",
-        href: "/admin/system",
+        label: "Settings",
+        href: "/settings",
         icon: Settings,
-        minRole: "admin",
-        description: "System configuration",
+        description: "All settings",
       },
       {
-        label: "Integrations",
-        href: "/admin/integrations/api",
-        icon: Zap,
-        minRole: "admin",
-        description: "API connections",
+        label: "Account",
+        href: "/settings/account",
+        icon: User,
+        description: "Your profile",
       },
       {
         label: "Users",
-        href: "/admin/users",
+        href: "/settings/users",
         icon: Users,
-        minRole: "admin",
-        description: "Team members & roles",
+        description: "Team members",
       },
       {
-        label: "Batch Jobs",
-        href: "/admin/batch-jobs",
-        icon: ServerCog,
-        minRole: "admin",
-        description: "Background tasks",
+        label: "Integrations",
+        href: "/integrations",
+        icon: Zap,
+        description: "Connected apps",
       },
       {
-        label: "API Monitor",
-        href: "/admin/api-monitor",
-        icon: Activity,
-        minRole: "admin",
-        description: "Health & usage",
+        label: "SignalHouse",
+        href: "/settings/signalhouse",
+        icon: Radio,
+        description: "SMS provider",
+      },
+      {
+        label: "SMS Config",
+        href: "/settings/sms",
+        icon: MessageCircle,
+        description: "SMS settings",
       },
     ],
   },
@@ -430,7 +558,7 @@ export const simpleModeNavigation: NavGroup[] = [
     items: [
       {
         label: "Messages",
-        href: "/admin/inbox",
+        href: "/inbox",
         icon: Inbox,
         badge: "HOT",
         badgeVariant: "destructive",
@@ -445,13 +573,13 @@ export const simpleModeNavigation: NavGroup[] = [
     items: [
       {
         label: "Quick Send",
-        href: "/admin/campaign-builder",
+        href: "/campaign-builder",
         icon: Zap,
         description: "Upload → Template → Send (3 steps)",
       },
       {
         label: "All Campaigns",
-        href: "/admin/campaigns",
+        href: "/campaigns",
         icon: Target,
         description: "View active campaigns",
       },
@@ -464,13 +592,13 @@ export const simpleModeNavigation: NavGroup[] = [
     items: [
       {
         label: "Import List",
-        href: "/admin/import",
+        href: "/import",
         icon: Upload,
         description: "Upload CSV in seconds",
       },
       {
         label: "All Leads",
-        href: "/admin/leads",
+        href: "/leads",
         icon: Users,
         description: "Your contact database",
       },
@@ -483,13 +611,13 @@ export const simpleModeNavigation: NavGroup[] = [
     items: [
       {
         label: "Power Dialer",
-        href: "/admin/power-dialer",
+        href: "/power-dialers",
         icon: Phone,
         description: "One-click calling",
       },
       {
         label: "Call Queue",
-        href: "/admin/call-queue",
+        href: "/call-center",
         icon: PhoneCall,
         description: "Hot leads ready to dial",
       },

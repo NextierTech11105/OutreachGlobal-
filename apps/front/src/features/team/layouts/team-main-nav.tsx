@@ -38,26 +38,14 @@ interface BadgeCounts {
   smsQueue: number;
 }
 
-// Path to badge key mapping
+// Path to badge key mapping (team-relative paths)
 const pathToBadgeKey: Record<string, keyof BadgeCounts> = {
-  "/admin/inbox": "inbox",
+  "/inbox": "inbox",
   "/sms/queue": "smsQueue",
   "/campaigns/gianna": "gianna",
   "/campaigns/cathy": "cathy",
   "/campaigns/sabrina": "sabrina",
 };
-
-// Map admin paths to team paths for the team context
-function mapAdminPathToTeamPath(adminHref: string): string {
-  // Convert /admin/* paths to team-relative paths
-  if (adminHref.startsWith("/admin/")) {
-    return adminHref.replace("/admin/", "/");
-  }
-  if (adminHref === "/admin") {
-    return "/";
-  }
-  return adminHref;
-}
 
 export function TeamMainNav() {
   const params = useParams<{ team: string }>();
@@ -128,16 +116,14 @@ export function TeamMainNav() {
 
   // Check if a path is active
   const isPathActive = (href: string) => {
-    const teamPath = mapAdminPathToTeamPath(href);
     const fullPath =
-      teamPath === "/" ? `/t/${params.team}` : `/t/${params.team}${teamPath}`;
+      href === "/" ? `/t/${params.team}` : `/t/${params.team}${href}`;
 
-    return isActive({ href: fullPath, exact: teamPath === "/" });
+    return isActive({ href: fullPath, exact: href === "/" });
   };
 
   // Render a single navigation item
   const renderNavItem = (item: NavItem, index: number) => {
-    const teamPath = mapAdminPathToTeamPath(item.href);
     const badgeCount = getBadgeCount(item.href);
 
     return (
@@ -147,7 +133,7 @@ export function TeamMainNav() {
           asChild
           isActive={isPathActive(item.href)}
         >
-          <TeamLink href={teamPath}>
+          <TeamLink href={item.href}>
             {item.icon && <item.icon className="h-4 w-4" />}
             <span>{item.label}</span>
             {badgeCount > 0 && (
@@ -178,49 +164,64 @@ export function TeamMainNav() {
       string,
       { bg: string; text: string; icon: string; border: string }
     > = {
-      command: {
+      // HOME - Neutral slate
+      home: {
         bg: "bg-gradient-to-r from-slate-800 to-slate-700",
         text: "text-white",
-        icon: "text-blue-400",
-        border: "border-l-blue-500",
+        icon: "text-slate-300",
+        border: "border-l-slate-400",
       },
-      prospecting: {
+      // DATA - Emerald (growth, data)
+      data: {
         bg: "bg-gradient-to-r from-emerald-900/50 to-emerald-800/30",
         text: "text-emerald-300",
         icon: "text-emerald-400",
         border: "border-l-emerald-500",
       },
-      pipeline: {
+      // AUDIENCE - Purple (people)
+      audience: {
         bg: "bg-gradient-to-r from-purple-900/50 to-purple-800/30",
         text: "text-purple-300",
         icon: "text-purple-400",
         border: "border-l-purple-500",
       },
+      // OUTREACH - Orange (energy, action)
       outreach: {
         bg: "bg-gradient-to-r from-orange-900/50 to-orange-800/30",
         text: "text-orange-300",
         icon: "text-orange-400",
         border: "border-l-orange-500",
       },
-      inbound: {
-        bg: "bg-gradient-to-r from-cyan-900/50 to-cyan-800/30",
-        text: "text-cyan-300",
-        icon: "text-cyan-400",
-        border: "border-l-cyan-500",
-      },
+      // AI WORKERS - Pink/Magenta (AI/tech)
       ai: {
         bg: "bg-gradient-to-r from-pink-900/50 to-pink-800/30",
         text: "text-pink-300",
         icon: "text-pink-400",
         border: "border-l-pink-500",
       },
+      // INBOUND - Cyan (communication)
+      inbound: {
+        bg: "bg-gradient-to-r from-cyan-900/50 to-cyan-800/30",
+        text: "text-cyan-300",
+        icon: "text-cyan-400",
+        border: "border-l-cyan-500",
+      },
+      // VOICE - Teal (phone/calls)
+      voice: {
+        bg: "bg-gradient-to-r from-teal-900/50 to-teal-800/30",
+        text: "text-teal-300",
+        icon: "text-teal-400",
+        border: "border-l-teal-500",
+      },
+      // ANALYTICS - Blue (insights)
       analytics: {
         bg: "bg-gradient-to-r from-blue-900/50 to-blue-800/30",
         text: "text-blue-300",
         icon: "text-blue-400",
         border: "border-l-blue-500",
       },
-      admin: {
+      // SETTINGS - Zinc (config)
+      settings: {
         bg: "bg-gradient-to-r from-zinc-800/50 to-zinc-700/30",
         text: "text-zinc-300",
         icon: "text-zinc-400",
@@ -245,10 +246,11 @@ export function TeamMainNav() {
           <Collapsible
             key={group.id}
             defaultOpen={[
-              "command",
-              "prospecting",
-              "pipeline",
+              "home",
+              "data",
+              "audience",
               "outreach",
+              "inbound",
             ].includes(group.id)}
             className="group/nav-section"
           >
