@@ -73,4 +73,6 @@ jobs:
           node-version: '20'
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
+      - name: Build packages (common, dto)
+        run: pnpm --filter @nextier/common --filter @nextier/dto build
       - run: pnpm test
