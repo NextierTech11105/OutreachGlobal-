@@ -205,8 +205,7 @@ export const bucketsRelations = relations(buckets, ({ many }) => ({
   bucketTags: many(bucketTags),
 }));
 
-export const leadsRelations = relations(leads, ({ one, many }) => ({
-  bucket: one(buckets, { fields: [leads.bucketId], references: [buckets.id] }),
+export const leadsRelations = relations(leads, ({ many }) => ({
   leadTags: many(leadTags),
 }));
 
