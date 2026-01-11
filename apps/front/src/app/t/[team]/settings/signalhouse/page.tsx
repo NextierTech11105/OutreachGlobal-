@@ -25,6 +25,12 @@ import {
   Save,
   RefreshCw,
   Loader2,
+  MessageSquare,
+  Megaphone,
+  Users,
+  Briefcase,
+  HelpCircle,
+  ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useCurrentTeam } from "@/features/team/team.context";
@@ -297,57 +303,127 @@ export default function SignalHouseSettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Campaign IDs Card */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-muted-foreground" />
-              <CardTitle>Registered Campaigns</CardTitle>
+        {/* Campaign IDs Card - Enhanced Multi-Campaign UI */}
+        <Card className="border-2 border-primary/20">
+          <CardHeader className="bg-primary/5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Megaphone className="h-5 w-5 text-primary" />
+                <CardTitle>10DLC Campaigns</CardTitle>
+              </div>
+              <Badge variant="outline" className="font-mono">
+                {(isEditing ? editedConfig : config).campaignIds.length} registered
+              </Badge>
             </div>
             <CardDescription>
-              TCR Campaign IDs registered for this brand (for compliance)
+              Each use case requires a separate TCR campaign registration. Add multiple campaigns for different outreach types.
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
+          <CardContent className="pt-6">
+            <div className="space-y-6">
+              {/* Campaign Use Case Examples */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4 bg-muted/50 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <Users className="h-4 w-4 text-blue-500 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium">Real Estate</p>
+                    <p className="text-xs text-muted-foreground">Property outreach campaigns</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Briefcase className="h-4 w-4 text-green-500 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium">Business Broker</p>
+                    <p className="text-xs text-muted-foreground">B2B acquisition outreach</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <MessageSquare className="h-4 w-4 text-purple-500 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium">Notifications</p>
+                    <p className="text-xs text-muted-foreground">Alerts & reminders</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Add Campaign Input */}
               {isEditing && (
                 <div className="flex gap-2">
                   <Input
-                    placeholder="Add campaign ID (e.g., CAMP_12345)"
+                    placeholder="Enter TCR Campaign ID (e.g., CJRCU60)"
                     value={newCampaignId}
-                    onChange={(e) => setNewCampaignId(e.target.value)}
+                    onChange={(e) => setNewCampaignId(e.target.value.toUpperCase())}
                     onKeyDown={(e) => e.key === "Enter" && addCampaignId()}
+                    className="font-mono"
                   />
-                  <Button onClick={addCampaignId} size="icon">
-                    <Plus className="h-4 w-4" />
+                  <Button onClick={addCampaignId}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Campaign
                   </Button>
                 </div>
               )}
-              <div className="flex flex-wrap gap-2">
-                {(isEditing ? editedConfig : config).campaignIds.length ===
-                0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    No campaigns registered
-                  </p>
+
+              {/* Campaign List */}
+              <div className="space-y-2">
+                {(isEditing ? editedConfig : config).campaignIds.length === 0 ? (
+                  <div className="text-center py-8 border-2 border-dashed rounded-lg">
+                    <Megaphone className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                    <p className="text-sm text-muted-foreground mb-1">No campaigns registered</p>
+                    <p className="text-xs text-muted-foreground">
+                      Register campaigns in SignalHouse, then add their IDs here
+                    </p>
+                  </div>
                 ) : (
-                  (isEditing ? editedConfig : config).campaignIds.map((id) => (
-                    <Badge
+                  (isEditing ? editedConfig : config).campaignIds.map((id, index) => (
+                    <div
                       key={id}
-                      variant="secondary"
-                      className="font-mono text-xs py-1 px-2"
+                      className="flex items-center justify-between p-3 bg-card border rounded-lg hover:border-primary/50 transition-colors"
                     >
-                      {id}
-                      {isEditing && (
-                        <button
-                          onClick={() => removeCampaignId(id)}
-                          className="ml-2 hover:text-destructive"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      )}
-                    </Badge>
+                      <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                          <span className="text-xs font-bold text-primary">{index + 1}</span>
+                        </div>
+                        <div>
+                          <p className="font-mono font-medium">{id}</p>
+                          <p className="text-xs text-muted-foreground">
+                            TCR Campaign {index === 0 ? "(Primary)" : `#${index + 1}`}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge className="bg-green-500/10 text-green-600 border-green-500/20">
+                          <CheckCircle2 className="h-3 w-3 mr-1" />
+                          Active
+                        </Badge>
+                        {isEditing && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeCampaignId(id)}
+                            className="text-muted-foreground hover:text-destructive"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
                   ))
                 )}
+              </div>
+
+              {/* Help Link */}
+              <div className="flex items-center gap-2 text-sm text-muted-foreground pt-2 border-t">
+                <HelpCircle className="h-4 w-4" />
+                <span>Need a new campaign?</span>
+                <a
+                  href="https://app.signalhouse.io"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline inline-flex items-center gap-1"
+                >
+                  Register in SignalHouse
+                  <ExternalLink className="h-3 w-3" />
+                </a>
               </div>
             </div>
           </CardContent>
@@ -356,13 +432,17 @@ export default function SignalHouseSettingsPage() {
         {/* Phone Pool Card */}
         <Card>
           <CardHeader>
-            <div className="flex items-center gap-2">
-              <Phone className="h-5 w-5 text-muted-foreground" />
-              <CardTitle>Phone Pool</CardTitle>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Phone className="h-5 w-5 text-muted-foreground" />
+                <CardTitle>Phone Pool</CardTitle>
+              </div>
+              <Badge variant="outline">
+                {(isEditing ? editedConfig : config).phonePool.length} numbers
+              </Badge>
             </div>
             <CardDescription>
-              Available phone numbers for sending SMS (
-              {(isEditing ? editedConfig : config).phonePool.length} numbers)
+              Phone numbers rotate automatically during campaigns to maximize deliverability
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -375,21 +455,23 @@ export default function SignalHouseSettingsPage() {
                     onChange={(e) => setNewPhone(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && addPhone()}
                   />
-                  <Button onClick={addPhone} size="icon">
-                    <Plus className="h-4 w-4" />
+                  <Button onClick={addPhone}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Number
                   </Button>
                 </div>
               )}
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
                 {(isEditing ? editedConfig : config).phonePool.length === 0 ? (
-                  <p className="text-sm text-muted-foreground col-span-full">
-                    No phone numbers in pool
-                  </p>
+                  <div className="col-span-full text-center py-6 border-2 border-dashed rounded-lg">
+                    <Phone className="h-6 w-6 mx-auto text-muted-foreground mb-2" />
+                    <p className="text-sm text-muted-foreground">No phone numbers in pool</p>
+                  </div>
                 ) : (
                   (isEditing ? editedConfig : config).phonePool.map((phone) => (
                     <div
                       key={phone}
-                      className="flex items-center justify-between p-2 bg-muted rounded-md"
+                      className="flex items-center justify-between p-2 bg-muted rounded-md border"
                     >
                       <span className="font-mono text-sm">{phone}</span>
                       {isEditing && (
@@ -408,31 +490,53 @@ export default function SignalHouseSettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Help Section */}
-        <Card className="bg-muted/50">
+        {/* How It Works Section */}
+        <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
           <CardHeader>
-            <CardTitle className="text-lg">Need Help?</CardTitle>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <HelpCircle className="h-5 w-5" />
+              How Multi-Campaign Works
+            </CardTitle>
           </CardHeader>
-          <CardContent className="text-sm text-muted-foreground space-y-2">
-            <p>
-              <strong>SubGroup ID:</strong> Contact SignalHouse support to get
-              your team's SubGroup ID. This is automatically created when your
-              organization onboards.
-            </p>
-            <p>
-              <strong>Brand ID:</strong> This is your TCR (The Campaign
-              Registry) brand registration. Required for 10DLC SMS sending in
-              the US.
-            </p>
-            <p>
-              <strong>Campaign IDs:</strong> Each use case (marketing, alerts,
-              etc.) requires a separate TCR campaign registration.
-            </p>
-            <p>
-              <strong>Phone Pool:</strong> Phone numbers provisioned through
-              SignalHouse for sending. Numbers rotate automatically during
-              campaigns.
-            </p>
+          <CardContent className="space-y-4">
+            {/* Flow Diagram */}
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 bg-background/50 rounded-lg">
+              <div className="text-center">
+                <div className="h-12 w-12 rounded-full bg-blue-500/10 flex items-center justify-center mx-auto mb-2">
+                  <span className="text-lg font-bold text-blue-500">1</span>
+                </div>
+                <p className="text-sm font-medium">Register Campaign</p>
+                <p className="text-xs text-muted-foreground">In SignalHouse/TCR</p>
+              </div>
+              <div className="hidden md:block text-muted-foreground">→</div>
+              <div className="text-center">
+                <div className="h-12 w-12 rounded-full bg-green-500/10 flex items-center justify-center mx-auto mb-2">
+                  <span className="text-lg font-bold text-green-500">2</span>
+                </div>
+                <p className="text-sm font-medium">Add Campaign ID</p>
+                <p className="text-xs text-muted-foreground">On this page</p>
+              </div>
+              <div className="hidden md:block text-muted-foreground">→</div>
+              <div className="text-center">
+                <div className="h-12 w-12 rounded-full bg-purple-500/10 flex items-center justify-center mx-auto mb-2">
+                  <span className="text-lg font-bold text-purple-500">3</span>
+                </div>
+                <p className="text-sm font-medium">Select When Sending</p>
+                <p className="text-xs text-muted-foreground">Choose campaign per blast</p>
+              </div>
+            </div>
+
+            {/* Details */}
+            <div className="grid md:grid-cols-2 gap-4 text-sm">
+              <div className="space-y-2">
+                <p><strong>SubGroup ID:</strong> Your team's unique SignalHouse identifier (1:1 mapping with Nextier team)</p>
+                <p><strong>Brand ID:</strong> TCR brand registration for 10DLC compliance in the US</p>
+              </div>
+              <div className="space-y-2">
+                <p><strong>Campaign IDs:</strong> Register separate campaigns for each use case (Real Estate, Business Broker, etc.)</p>
+                <p><strong>Phone Pool:</strong> Numbers auto-rotate during sends to maximize deliverability</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>

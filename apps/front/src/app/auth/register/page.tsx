@@ -14,10 +14,10 @@ export default function RegisterPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-2">
-            Create Your Account
+            Request Access
           </h1>
           <p className="text-muted-foreground">
-            Start your 30-day free trial. No credit card required.
+            Join the revenue execution engine.
           </p>
         </div>
 
@@ -32,14 +32,14 @@ export default function RegisterPage() {
             Already have an account?{" "}
             <Link
               href="/auth/login"
-              className="text-primary hover:underline font-medium"
+              className="text-foreground hover:underline font-semibold"
             >
               Sign in
             </Link>
           </p>
           <Link
             href="/"
-            className="text-sm text-muted-foreground hover:text-primary block"
+            className="text-sm text-muted-foreground hover:text-foreground block"
           >
             ← Back to homepage
           </Link>

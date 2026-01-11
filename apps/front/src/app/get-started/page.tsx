@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Mail,
   Check,
@@ -24,8 +25,10 @@ import {
   Rocket,
   BarChart3,
   Shield,
+  Phone,
 } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { APP_NAME } from "@/config/branding";
 
 function validateEmail(email: string): boolean {
@@ -103,32 +106,65 @@ const FEATURES = [
 ];
 
 export default function GetStartedPage() {
-  const [email, setEmail] = useState("");
-  const [error, setError] = useState("");
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+  });
+  const [smsConsent, setSmsConsent] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [leadCard, setLeadCard] = useState<LeadCardData | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    const newErrors: Record<string, string> = {};
 
-    if (!email.trim()) {
-      setError("Please enter your email");
+    if (!formData.firstName.trim()) {
+      newErrors.firstName = "First name is required";
+    }
+
+    if (!formData.lastName.trim()) {
+      newErrors.lastName = "Last name is required";
+    }
+
+    if (!formData.email.trim()) {
+      newErrors.email = "Email is required";
+    } else if (!validateEmail(formData.email)) {
+      newErrors.email = "Please enter a valid email address";
+    }
+
+    if (!formData.phone.trim()) {
+      newErrors.phone = "Phone number is required";
+    }
+
+    if (!smsConsent) {
+      newErrors.smsConsent = "SMS consent is required";
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       return;
     }
 
-    if (!validateEmail(email)) {
-      setError("Please enter a valid email address");
-      return;
-    }
-
+    setErrors({});
     setLoading(true);
 
     try {
-      localStorage.setItem("og_user_email", email.trim());
+      // Store lead data
+      const leadData = {
+        ...formData,
+        phone: formData.phone.startsWith("+1") ? formData.phone : `+1${formData.phone.replace(/\D/g, "")}`,
+        smsConsent,
+        createdAt: new Date().toISOString(),
+      };
+      localStorage.setItem("og_user_lead", JSON.stringify(leadData));
+      localStorage.setItem("og_user_email", formData.email.trim());
+
       setLeadCard({
-        email: email.trim(),
-        domain: extractDomain(email),
+        email: formData.email.trim(),
+        domain: extractDomain(formData.email),
         createdAt: new Date().toLocaleDateString("en-US", {
           month: "short",
           day: "numeric",
@@ -136,7 +172,7 @@ export default function GetStartedPage() {
         }),
       });
     } catch {
-      setError("Failed to process. Please try again.");
+      setErrors({ submit: "Failed to process. Please try again." });
     } finally {
       setLoading(false);
     }
@@ -170,10 +206,10 @@ export default function GetStartedPage() {
           {/* Left - Hero Content */}
           <div className="space-y-8">
             {/* Badge */}
-            <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-4 py-2">
-              <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-              <span className="text-sm text-emerald-300 font-semibold">
-                30-DAY FREE TRIAL
+            <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-2">
+              <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
+              <span className="text-sm text-white font-semibold tracking-wider">
+                REVENUE EXECUTION ENGINE
               </span>
             </div>
 
@@ -199,10 +235,10 @@ export default function GetStartedPage() {
                 size="lg"
                 className="bg-white text-black hover:bg-zinc-200 h-14 px-8 text-base font-semibold"
                 onClick={() =>
-                  document.getElementById("email-form")?.scrollIntoView()
+                  document.getElementById("email-form")?.scrollIntoView({ behavior: "smooth" })
                 }
               >
-                Start Free Trial
+                Learn More
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
               <Button
@@ -275,49 +311,128 @@ export default function GetStartedPage() {
               </div>
             ) : (
               <div className="bg-zinc-900/80 backdrop-blur-xl border border-zinc-800 rounded-2xl p-8 shadow-2xl">
-                <div className="text-center mb-8">
+                <div className="text-center mb-6">
                   <h2 className="text-2xl font-bold text-white mb-2">
-                    Start Your 30-Day Trial
+                    Learn About Our Products
                   </h2>
                   <p className="text-zinc-400">
-                    No credit card required. Cancel anytime.
+                    Input your information below
                   </p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="space-y-2">
-                    <label
-                      htmlFor="email"
-                      className="block text-sm font-medium text-zinc-300"
-                    >
-                      Work Email
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  {/* First Name */}
+                  <div className="space-y-1">
+                    <label htmlFor="firstName" className="block text-sm font-medium text-zinc-300">
+                      First name <span className="text-red-400">*</span>
+                    </label>
+                    <div className="relative">
+                      <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
+                      <Input
+                        id="firstName"
+                        type="text"
+                        value={formData.firstName}
+                        onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                        placeholder="Type your answer here..."
+                        className="pl-12 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 h-12 text-base rounded-xl"
+                      />
+                    </div>
+                    {errors.firstName && <p className="text-red-400 text-sm">{errors.firstName}</p>}
+                  </div>
+
+                  {/* Last Name */}
+                  <div className="space-y-1">
+                    <label htmlFor="lastName" className="block text-sm font-medium text-zinc-300">
+                      Last name <span className="text-red-400">*</span>
+                    </label>
+                    <div className="relative">
+                      <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
+                      <Input
+                        id="lastName"
+                        type="text"
+                        value={formData.lastName}
+                        onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                        placeholder="Type your answer here..."
+                        className="pl-12 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 h-12 text-base rounded-xl"
+                      />
+                    </div>
+                    {errors.lastName && <p className="text-red-400 text-sm">{errors.lastName}</p>}
+                  </div>
+
+                  {/* Email */}
+                  <div className="space-y-1">
+                    <label htmlFor="email" className="block text-sm font-medium text-zinc-300">
+                      Email <span className="text-red-400">*</span>
                     </label>
                     <div className="relative">
                       <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
                       <Input
                         id="email"
                         type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="you@company.com"
-                        className="pl-12 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 h-14 text-base rounded-xl"
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        placeholder="Type your answer here..."
+                        className="pl-12 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 h-12 text-base rounded-xl"
                         autoComplete="email"
                       />
                     </div>
-                    {error && <p className="text-red-500 text-sm">{error}</p>}
+                    {errors.email && <p className="text-red-400 text-sm">{errors.email}</p>}
                   </div>
+
+                  {/* Phone */}
+                  <div className="space-y-1">
+                    <label htmlFor="phone" className="block text-sm font-medium text-zinc-300">
+                      Phone <span className="text-red-400">*</span>
+                    </label>
+                    <div className="flex">
+                      <span className="inline-flex items-center px-3 rounded-l-xl border border-r-0 border-zinc-700 bg-zinc-800 text-zinc-400 text-sm">
+                        +1
+                      </span>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        value={formData.phone}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        placeholder="(555) 123-4567"
+                        className="rounded-l-none bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 h-12 text-base rounded-r-xl"
+                      />
+                    </div>
+                    {errors.phone && <p className="text-red-400 text-sm">{errors.phone}</p>}
+                  </div>
+
+                  {/* SMS Consent */}
+                  <div className="flex items-start space-x-3 pt-2">
+                    <Checkbox
+                      id="smsConsent"
+                      checked={smsConsent}
+                      onCheckedChange={(checked) => setSmsConsent(checked === true)}
+                      className="mt-1 border-zinc-600 data-[state=checked]:bg-white data-[state=checked]:text-black"
+                    />
+                    <label htmlFor="smsConsent" className="text-xs text-zinc-400 leading-relaxed cursor-pointer">
+                      By providing a telephone number, clicking this button, and submitting this form, you consent to receive SMS text messages from Nextier regarding new offers and marketing. Message frequency varies. Message & data rates may apply. Reply STOP to unsubscribe. Reply HELP for more information.
+                      {" "}Nextier is a consultant, advisor, and owner of Nextier Technologies. When you consent to receive messaging from Nextier, you are providing consent only to Nextier, not any third parties.
+                      {" "}<strong className="text-zinc-300">Your SMS opt-in data will never be shared or sold to third parties.</strong>
+                      {" "}See our{" "}
+                      <Link href="/privacy" className="text-zinc-300 underline hover:no-underline">
+                        Privacy Policy
+                      </Link>{" "}
+                      (containing our SMS Terms) for more information.
+                    </label>
+                  </div>
+                  {errors.smsConsent && <p className="text-red-400 text-sm ml-6">{errors.smsConsent}</p>}
 
                   <Button
                     type="submit"
-                    disabled={loading}
-                    className="w-full h-14 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold text-lg rounded-xl"
+                    disabled={loading || !smsConsent}
+                    className="w-full h-14 bg-white text-black hover:bg-zinc-200 font-semibold text-lg rounded-xl disabled:opacity-50"
                   >
-                    {loading ? "Validating..." : "Get Started Free"}
+                    {loading ? "Submitting..." : "Submit"}
                   </Button>
 
-                  <p className="text-center text-zinc-500 text-xs">
-                    By signing up, you agree to our Terms of Service and Privacy
-                    Policy
+                  <p className="text-center text-zinc-600 text-xs">
+                    <Link href="/terms" className="hover:text-zinc-400">Terms of Service</Link>
+                    {" | "}
+                    <Link href="/privacy" className="hover:text-zinc-400">Privacy Policy</Link>
                   </p>
                 </form>
               </div>
