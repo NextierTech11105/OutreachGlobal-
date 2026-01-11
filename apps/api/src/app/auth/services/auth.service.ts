@@ -1,6 +1,6 @@
 import { hashVerify } from "@/common/utils/hash";
 import { BadRequestException, Injectable } from "@nestjs/common";
-import { addYears } from "date-fns";
+import { addHours } from "date-fns";
 import { and, eq } from "drizzle-orm";
 import { AccessTokenOptions, AuthAttemptOptions } from "../types/auth.type";
 import { TokenName } from "../enums/token.enum";
@@ -39,7 +39,7 @@ export class AuthService {
 
   async accessToken(user: UserSelect, options?: AccessTokenOptions) {
     const tx = getDatabaseSession(this.db, options?.session);
-    const expiresIn = addYears(new Date(), 1);
+    const expiresIn = addHours(new Date(), 24);
     const tokenInsertValue: PersonalAccessTokenInsert = {
       name: options?.name ?? TokenName.WEBSITE,
       userId: user.id,

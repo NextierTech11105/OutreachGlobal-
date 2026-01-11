@@ -27,9 +27,13 @@ async function bootstrap() {
   app.useLogger(app.get(Logger));
 
   app.enableCors({
-    origin: "*",
+    origin: process.env.ALLOWED_ORIGINS?.split(",") || [
+      "https://monkfish-app-mb7h3.ondigitalocean.app",
+      "http://localhost:3000",
+    ],
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
   });
 
   // Set global API prefix for all routes
