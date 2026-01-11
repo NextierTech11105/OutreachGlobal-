@@ -25,8 +25,8 @@ export default function PipelinesPage() {
           <GitBranch className="h-12 w-12 text-muted-foreground mb-4" />
           <h3 className="text-lg font-medium">No pipelines yet</h3>
           <p className="text-muted-foreground text-center mt-1 max-w-md">
-            Pipelines help you track deals through your sales process.
-            Pipeline management is coming soon.
+            Pipelines help you track deals through your sales process. Pipeline
+            management is coming soon.
           </p>
         </CardContent>
       </Card>

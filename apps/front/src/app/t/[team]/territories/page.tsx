@@ -84,12 +84,16 @@ export default function TerritoriesPage() {
               <CardTitle className="text-sm font-medium">Regions</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{summary.totalTerritories}</div>
+              <div className="text-2xl font-bold">
+                {summary.totalTerritories}
+              </div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Total Companies</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Total Companies
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
@@ -109,7 +113,9 @@ export default function TerritoriesPage() {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">States Covered</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                States Covered
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{summary.totalStates}</div>
@@ -149,7 +155,8 @@ export default function TerritoriesPage() {
                   )}
                 </div>
                 <CardDescription>
-                  {territory.states.length} state{territory.states.length !== 1 ? "s" : ""}
+                  {territory.states.length} state
+                  {territory.states.length !== 1 ? "s" : ""}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -163,11 +170,15 @@ export default function TerritoriesPage() {
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div className="flex items-center gap-2">
                     <Building2 className="h-4 w-4 text-muted-foreground" />
-                    <span>{territory.companyCount.toLocaleString()} companies</span>
+                    <span>
+                      {territory.companyCount.toLocaleString()} companies
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Phone className="h-4 w-4 text-green-600" />
-                    <span>{territory.smsReadyCount.toLocaleString()} SMS ready</span>
+                    <span>
+                      {territory.smsReadyCount.toLocaleString()} SMS ready
+                    </span>
                   </div>
                 </div>
               </CardContent>

@@ -60,22 +60,27 @@ async function searchApolloForDecisionMaker(
 
   try {
     // Use Apollo People Search to find decision makers
-    const response = await fetch("https://api.apollo.io/v1/mixed_people/search", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Api-Key": APOLLO_API_KEY,
+    const response = await fetch(
+      "https://api.apollo.io/v1/mixed_people/search",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Api-Key": APOLLO_API_KEY,
+        },
+        body: JSON.stringify({
+          organization_names: [companyName],
+          person_titles: DECISION_MAKER_TITLES,
+          page: 1,
+          per_page: 1, // Just get the top match
+        }),
       },
-      body: JSON.stringify({
-        organization_names: [companyName],
-        person_titles: DECISION_MAKER_TITLES,
-        page: 1,
-        per_page: 1, // Just get the top match
-      }),
-    });
+    );
 
     if (!response.ok) {
-      console.error(`[Apollo Search] Failed for ${companyName}: ${response.status}`);
+      console.error(
+        `[Apollo Search] Failed for ${companyName}: ${response.status}`,
+      );
       return null;
     }
 
@@ -99,7 +104,9 @@ async function checkLineType(
   phoneNumber: string,
 ): Promise<{ type: string; carrier?: string } | null> {
   if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) {
-    console.log("[Twilio] Credentials not configured, skipping line type check");
+    console.log(
+      "[Twilio] Credentials not configured, skipping line type check",
+    );
     return null;
   }
 
@@ -245,7 +252,9 @@ export async function POST(request: NextRequest) {
           .update(businesses)
           .set({
             // Owner/decision maker info
-            ownerName: person.name || `${person.first_name || ""} ${person.last_name || ""}`.trim(),
+            ownerName:
+              person.name ||
+              `${person.first_name || ""} ${person.last_name || ""}`.trim(),
             ownerFirstName: person.first_name,
             ownerLastName: person.last_name,
             ownerTitle: person.title,
@@ -257,7 +266,9 @@ export async function POST(request: NextRequest) {
             // Enrichment status
             enrichmentStatus: isMobile ? "sms_ready" : "enriched",
             // Score boost if we found mobile
-            score: isMobile ? Math.min((business.score || 0) + 20, 100) : business.score,
+            score: isMobile
+              ? Math.min((business.score || 0) + 20, 100)
+              : business.score,
             updatedAt: new Date(),
           })
           .where(eq(businesses.id, business.id));
@@ -269,7 +280,8 @@ export async function POST(request: NextRequest) {
           id: business.id,
           company: business.companyName,
           status: "enriched",
-          decisionMaker: person.name || `${person.first_name} ${person.last_name}`,
+          decisionMaker:
+            person.name || `${person.first_name} ${person.last_name}`,
           phone: apolloPhone,
           lineType: lineType || undefined,
           smsReady: isMobile,

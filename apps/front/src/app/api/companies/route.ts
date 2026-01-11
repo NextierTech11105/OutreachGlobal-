@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get("offset") || "0");
 
     // Build query
-    let query = db
+    const query = db
       .select({
         id: businesses.id,
         name: businesses.companyName,
@@ -59,8 +59,11 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("[Companies API] Error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to fetch companies" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to fetch companies",
+      },
+      { status: 500 },
     );
   }
 }

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { businesses, smsMessages, callLogs, appointments } from "@/lib/db/schema";
-import { sql, eq, gte } from "drizzle-orm";
+import { businesses, smsMessages, callLogs } from "@/lib/db/schema";
+import { sql, eq } from "drizzle-orm";
 import { requireTenantContext } from "@/lib/api-auth";
 
 /**
@@ -55,43 +55,64 @@ export async function GET() {
       })
       .from(callLogs);
 
-    // Get appointment stats
-    const appointmentStats = await db
+    // Get booked leads as appointments proxy (leads with status 'booked')
+    const bookedStats = await db
       .select({
-        total: sql<number>`count(*)`,
-        totalLast30: sql<number>`count(*) filter (where ${appointments.createdAt} >= ${thirtyDaysAgo})`,
-        upcoming: sql<number>`count(*) filter (where ${appointments.scheduledAt} >= ${today})`,
+        total: sql<number>`count(*) filter (where ${businesses.status} = 'booked')`,
       })
-      .from(appointments);
+      .from(businesses)
+      .where(eq(businesses.userId, userId));
 
-    const business = businessStats[0] || { total: 0, totalLast30: 0, totalPrevious30: 0, smsReady: 0, enriched: 0, avgScore: 0 };
-    const sms = smsStats[0] || { total: 0, totalLast30: 0, delivered: 0, replies: 0 };
-    const calls = callStats[0] || { total: 0, totalLast30: 0, completed: 0, answered: 0 };
-    const appts = appointmentStats[0] || { total: 0, totalLast30: 0, upcoming: 0 };
+    const business = businessStats[0] || {
+      total: 0,
+      totalLast30: 0,
+      totalPrevious30: 0,
+      smsReady: 0,
+      enriched: 0,
+      avgScore: 0,
+    };
+    const sms = smsStats[0] || {
+      total: 0,
+      totalLast30: 0,
+      delivered: 0,
+      replies: 0,
+    };
+    const calls = callStats[0] || {
+      total: 0,
+      totalLast30: 0,
+      completed: 0,
+      answered: 0,
+    };
+    const booked = bookedStats[0] || { total: 0 };
 
     // Calculate percentages
-    const leadGrowth = business.totalPrevious30 > 0
-      ? Math.round(((business.totalLast30 - business.totalPrevious30) / business.totalPrevious30) * 100)
-      : business.totalLast30 > 0 ? 100 : 0;
+    const leadGrowth =
+      business.totalPrevious30 > 0
+        ? Math.round(
+            ((business.totalLast30 - business.totalPrevious30) /
+              business.totalPrevious30) *
+              100,
+          )
+        : business.totalLast30 > 0
+          ? 100
+          : 0;
 
-    const smsDeliveryRate = sms.total > 0
-      ? Math.round((sms.delivered / sms.total) * 100)
-      : 0;
+    const smsDeliveryRate =
+      sms.total > 0 ? Math.round((sms.delivered / sms.total) * 100) : 0;
 
-    const smsReplyRate = sms.total > 0
-      ? Math.round((sms.replies / sms.total) * 100)
-      : 0;
+    const smsReplyRate =
+      sms.total > 0 ? Math.round((sms.replies / sms.total) * 100) : 0;
 
-    const callAnswerRate = calls.total > 0
-      ? Math.round((calls.answered / calls.total) * 100)
-      : 0;
+    const callAnswerRate =
+      calls.total > 0 ? Math.round((calls.answered / calls.total) * 100) : 0;
 
-    // Calculate conversion rate (replies + appointments / total outreach)
+    // Calculate conversion rate (replies + booked / total outreach)
     const totalOutreach = Number(sms.total) + Number(calls.total);
-    const totalConversions = Number(sms.replies) + Number(appts.total);
-    const conversionRate = totalOutreach > 0
-      ? Math.round((totalConversions / totalOutreach) * 100 * 10) / 10
-      : 0;
+    const totalConversions = Number(sms.replies) + Number(booked.total);
+    const conversionRate =
+      totalOutreach > 0
+        ? Math.round((totalConversions / totalOutreach) * 100 * 10) / 10
+        : 0;
 
     return NextResponse.json({
       success: true,
@@ -120,9 +141,9 @@ export async function GET() {
           answerRate: callAnswerRate,
         },
         appointments: {
-          total: Number(appts.total) || 0,
-          last30Days: Number(appts.totalLast30) || 0,
-          upcoming: Number(appts.upcoming) || 0,
+          total: Number(booked.total) || 0,
+          last30Days: 0,
+          upcoming: 0,
         },
         conversion: {
           rate: conversionRate,
@@ -134,8 +155,10 @@ export async function GET() {
   } catch (error) {
     console.error("[Reports Stats API] Error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to fetch stats" },
-      { status: 500 }
+      {
+        error: error instanceof Error ? error.message : "Failed to fetch stats",
+      },
+      { status: 500 },
     );
   }
 }

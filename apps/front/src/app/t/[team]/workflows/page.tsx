@@ -25,8 +25,8 @@ export default function WorkflowsPage() {
           <Workflow className="h-12 w-12 text-muted-foreground mb-4" />
           <h3 className="text-lg font-medium">No workflows yet</h3>
           <p className="text-muted-foreground text-center mt-1 max-w-md">
-            Workflows automate your outreach sequences with triggers and conditions.
-            Workflow automation is coming soon.
+            Workflows automate your outreach sequences with triggers and
+            conditions. Workflow automation is coming soon.
           </p>
         </CardContent>
       </Card>

@@ -81,7 +81,7 @@ export default function DigitalWorkersPage() {
           };
         }
         return w;
-      })
+      }),
     );
   };
 
@@ -140,7 +140,9 @@ export default function DigitalWorkersPage() {
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Workers</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Active Workers
+            </CardTitle>
             <Bot className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -154,7 +156,9 @@ export default function DigitalWorkersPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Messages</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total Messages
+            </CardTitle>
             <MessageSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -180,7 +184,9 @@ export default function DigitalWorkersPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Success Rate</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Avg Success Rate
+            </CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -209,7 +215,9 @@ export default function DigitalWorkersPage() {
                       {worker.name}
                       <Badge
                         variant="outline"
-                        className={getStatusColor(worker.status) + " text-white"}
+                        className={
+                          getStatusColor(worker.status) + " text-white"
+                        }
                       >
                         {worker.status}
                       </Badge>
@@ -231,7 +239,9 @@ export default function DigitalWorkersPage() {
             <CardContent>
               <div className="grid grid-cols-4 gap-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">Total Messages</p>
+                  <p className="text-sm text-muted-foreground">
+                    Total Messages
+                  </p>
                   <p className="text-lg font-semibold">
                     {worker.stats.messagesHandled.toLocaleString()}
                   </p>

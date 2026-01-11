@@ -100,9 +100,16 @@ export default function ReportsPage() {
     if (value === 0) return <span className="text-muted-foreground">—</span>;
     const isPositive = value > 0;
     return (
-      <span className={`flex items-center gap-1 text-xs ${isPositive ? "text-green-600" : "text-red-600"}`}>
-        {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-        {isPositive ? "+" : ""}{value}%
+      <span
+        className={`flex items-center gap-1 text-xs ${isPositive ? "text-green-600" : "text-red-600"}`}
+      >
+        {isPositive ? (
+          <TrendingUp className="h-3 w-3" />
+        ) : (
+          <TrendingDown className="h-3 w-3" />
+        )}
+        {isPositive ? "+" : ""}
+        {value}%
       </span>
     );
   };
@@ -112,7 +119,9 @@ export default function ReportsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Reports</h1>
-          <p className="text-muted-foreground">Analytics and performance metrics</p>
+          <p className="text-muted-foreground">
+            Analytics and performance metrics
+          </p>
         </div>
         <div className="flex gap-2">
           <Select value={dateRange} onValueChange={setDateRange}>
@@ -176,9 +185,12 @@ export default function ReportsPage() {
             <BarChart3 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.conversion.rate || 0}%</div>
+            <div className="text-2xl font-bold">
+              {stats?.conversion.rate || 0}%
+            </div>
             <p className="text-xs text-muted-foreground">
-              {stats?.conversion.totalConversions || 0} of {stats?.conversion.totalOutreach || 0} outreach
+              {stats?.conversion.totalConversions || 0} of{" "}
+              {stats?.conversion.totalOutreach || 0} outreach
             </p>
           </CardContent>
         </Card>
@@ -189,7 +201,9 @@ export default function ReportsPage() {
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.appointments.total || 0}</div>
+            <div className="text-2xl font-bold">
+              {stats?.appointments.total || 0}
+            </div>
             <p className="text-xs text-muted-foreground">
               {stats?.appointments.upcoming || 0} upcoming
             </p>
@@ -216,15 +230,21 @@ export default function ReportsPage() {
             <div className="space-y-4">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">SMS Ready</span>
-                <span className="font-medium">{stats?.leads.smsReady.toLocaleString() || 0}</span>
+                <span className="font-medium">
+                  {stats?.leads.smsReady.toLocaleString() || 0}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Enriched</span>
-                <span className="font-medium">{stats?.leads.enriched.toLocaleString() || 0}</span>
+                <span className="font-medium">
+                  {stats?.leads.enriched.toLocaleString() || 0}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Avg Score</span>
-                <span className="font-medium">{stats?.leads.avgScore || 0}/100</span>
+                <span className="font-medium">
+                  {stats?.leads.avgScore || 0}/100
+                </span>
               </div>
             </div>
           </CardContent>
@@ -247,15 +267,21 @@ export default function ReportsPage() {
             <div className="space-y-4">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Delivered</span>
-                <span className="font-medium">{stats?.sms.delivered.toLocaleString() || 0}</span>
+                <span className="font-medium">
+                  {stats?.sms.delivered.toLocaleString() || 0}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Replies</span>
-                <span className="font-medium">{stats?.sms.replies.toLocaleString() || 0}</span>
+                <span className="font-medium">
+                  {stats?.sms.replies.toLocaleString() || 0}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Reply Rate</span>
-                <span className="font-medium">{stats?.sms.replyRate || 0}%</span>
+                <span className="font-medium">
+                  {stats?.sms.replyRate || 0}%
+                </span>
               </div>
             </div>
           </CardContent>
@@ -278,15 +304,21 @@ export default function ReportsPage() {
             <div className="space-y-4">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Total Calls</span>
-                <span className="font-medium">{stats?.calls.total.toLocaleString() || 0}</span>
+                <span className="font-medium">
+                  {stats?.calls.total.toLocaleString() || 0}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Answered</span>
-                <span className="font-medium">{stats?.calls.answered.toLocaleString() || 0}</span>
+                <span className="font-medium">
+                  {stats?.calls.answered.toLocaleString() || 0}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Answer Rate</span>
-                <span className="font-medium">{stats?.calls.answerRate || 0}%</span>
+                <span className="font-medium">
+                  {stats?.calls.answerRate || 0}%
+                </span>
               </div>
             </div>
           </CardContent>
@@ -294,17 +326,21 @@ export default function ReportsPage() {
       </div>
 
       {/* Empty state if no data */}
-      {stats && stats.leads.total === 0 && stats.sms.total === 0 && stats.calls.total === 0 && (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Activity className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium">No activity yet</h3>
-            <p className="text-muted-foreground text-center mt-1 max-w-md">
-              Start importing leads and sending outreach to see your performance metrics here.
-            </p>
-          </CardContent>
-        </Card>
-      )}
+      {stats &&
+        stats.leads.total === 0 &&
+        stats.sms.total === 0 &&
+        stats.calls.total === 0 && (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <Activity className="h-12 w-12 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium">No activity yet</h3>
+              <p className="text-muted-foreground text-center mt-1 max-w-md">
+                Start importing leads and sending outreach to see your
+                performance metrics here.
+              </p>
+            </CardContent>
+          </Card>
+        )}
     </div>
   );
 }

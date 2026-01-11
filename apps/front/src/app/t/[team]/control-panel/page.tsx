@@ -50,7 +50,12 @@ export default function ControlPanelPage() {
       href: `/${team}/integrations`,
       icon: Plug,
       status: "active",
-      features: ["SignalHouse SMS", "Twilio Voice", "Apollo Enrichment", "Real Estate API"],
+      features: [
+        "SignalHouse SMS",
+        "Twilio Voice",
+        "Apollo Enrichment",
+        "Real Estate API",
+      ],
       color: "text-blue-600",
     },
     {
@@ -59,7 +64,12 @@ export default function ControlPanelPage() {
       href: `/${team}/valuation`,
       icon: DollarSign,
       status: "active",
-      features: ["Real Estate API", "Mapbox Maps", "Skip Trace", "Equity Analysis"],
+      features: [
+        "Real Estate API",
+        "Mapbox Maps",
+        "Skip Trace",
+        "Equity Analysis",
+      ],
       color: "text-green-600",
     },
     {
@@ -68,7 +78,12 @@ export default function ControlPanelPage() {
       href: `/${team}/library`,
       icon: BookOpen,
       status: "active",
-      features: ["AI Prompts", "SMS Templates", "Email Scripts", "Code Snippets"],
+      features: [
+        "AI Prompts",
+        "SMS Templates",
+        "Email Scripts",
+        "Code Snippets",
+      ],
       color: "text-purple-600",
     },
     {
@@ -77,7 +92,12 @@ export default function ControlPanelPage() {
       href: `/${team}/research-library`,
       icon: FolderOpen,
       status: "active",
-      features: ["Folder Organization", "Saved Reports", "Share Links", "Quick Access"],
+      features: [
+        "Folder Organization",
+        "Saved Reports",
+        "Share Links",
+        "Quick Access",
+      ],
       color: "text-amber-600",
     },
   ];
@@ -85,7 +105,11 @@ export default function ControlPanelPage() {
   const quickLinks = [
     { name: "Companies", href: `/${team}/companies`, icon: Building2 },
     { name: "Territories", href: `/${team}/territories`, icon: Map },
-    { name: "Digital Workers", href: `/${team}/digital-workers`, icon: Sparkles },
+    {
+      name: "Digital Workers",
+      href: `/${team}/digital-workers`,
+      icon: Sparkles,
+    },
     { name: "Reports", href: `/${team}/reports`, icon: Database },
     { name: "Inbox", href: `/${team}/inbox`, icon: MessageSquare },
     { name: "Call Center", href: `/${team}/call-center`, icon: Phone },
@@ -120,7 +144,9 @@ export default function ControlPanelPage() {
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-lg bg-muted group-hover:bg-primary/10 transition-colors`}>
+                        <div
+                          className={`p-2 rounded-lg bg-muted group-hover:bg-primary/10 transition-colors`}
+                        >
                           <Icon className={`h-6 w-6 ${tool.color}`} />
                         </div>
                         <div>
@@ -140,7 +166,11 @@ export default function ControlPanelPage() {
                   <CardContent>
                     <div className="flex flex-wrap gap-2">
                       {tool.features.map((feature) => (
-                        <Badge key={feature} variant="secondary" className="text-xs">
+                        <Badge
+                          key={feature}
+                          variant="secondary"
+                          className="text-xs"
+                        >
                           {feature}
                         </Badge>
                       ))}

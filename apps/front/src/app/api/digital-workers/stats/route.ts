@@ -35,11 +35,18 @@ export async function GET() {
       .from(callLogs);
 
     const sms = smsStats[0] || { total: 0, today: 0, delivered: 0, replies: 0 };
-    const calls = callStats[0] || { total: 0, today: 0, completed: 0, answered: 0 };
+    const calls = callStats[0] || {
+      total: 0,
+      today: 0,
+      completed: 0,
+      answered: 0,
+    };
 
     // Calculate success rates
-    const smsSuccessRate = sms.total > 0 ? Math.round((sms.delivered / sms.total) * 100) : 0;
-    const callSuccessRate = calls.total > 0 ? Math.round((calls.answered / calls.total) * 100) : 0;
+    const smsSuccessRate =
+      sms.total > 0 ? Math.round((sms.delivered / sms.total) * 100) : 0;
+    const callSuccessRate =
+      calls.total > 0 ? Math.round((calls.answered / calls.total) * 100) : 0;
 
     // Digital workers with real stats
     const workers = [
@@ -48,7 +55,8 @@ export async function GET() {
         name: "Gianna",
         type: "sms",
         status: sms.total > 0 ? "active" : "idle",
-        description: "AI SDR specializing in initial outreach and qualification via SMS",
+        description:
+          "AI SDR specializing in initial outreach and qualification via SMS",
         stats: {
           messagesHandled: Number(sms.total) || 0,
           messagesToday: Number(sms.today) || 0,
@@ -88,12 +96,23 @@ export async function GET() {
     ];
 
     // Summary stats
-    const totalMessages = workers.reduce((sum, w) => sum + w.stats.messagesHandled, 0);
-    const totalToday = workers.reduce((sum, w) => sum + w.stats.messagesToday, 0);
-    const totalConversions = workers.reduce((sum, w) => sum + w.stats.conversionsToday, 0);
+    const totalMessages = workers.reduce(
+      (sum, w) => sum + w.stats.messagesHandled,
+      0,
+    );
+    const totalToday = workers.reduce(
+      (sum, w) => sum + w.stats.messagesToday,
+      0,
+    );
+    const totalConversions = workers.reduce(
+      (sum, w) => sum + w.stats.conversionsToday,
+      0,
+    );
     const avgSuccessRate = Math.round(
-      workers.filter(w => w.stats.successRate > 0).reduce((sum, w) => sum + w.stats.successRate, 0) /
-      Math.max(workers.filter(w => w.stats.successRate > 0).length, 1)
+      workers
+        .filter((w) => w.stats.successRate > 0)
+        .reduce((sum, w) => sum + w.stats.successRate, 0) /
+        Math.max(workers.filter((w) => w.stats.successRate > 0).length, 1),
     );
 
     return NextResponse.json({
@@ -104,14 +123,16 @@ export async function GET() {
         totalToday,
         totalConversions,
         avgSuccessRate,
-        activeWorkers: workers.filter(w => w.status === "active").length,
+        activeWorkers: workers.filter((w) => w.status === "active").length,
       },
     });
   } catch (error) {
     console.error("[Digital Workers Stats] Error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to fetch stats" },
-      { status: 500 }
+      {
+        error: error instanceof Error ? error.message : "Failed to fetch stats",
+      },
+      { status: 500 },
     );
   }
 }

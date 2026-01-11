@@ -192,7 +192,9 @@ export default function IntegrationsPage() {
                         className={`h-6 w-6 ${integration.configured ? "text-green-500" : "text-muted-foreground"}`}
                       />
                     </div>
-                    <CardTitle className="text-lg">{integration.name}</CardTitle>
+                    <CardTitle className="text-lg">
+                      {integration.name}
+                    </CardTitle>
                   </div>
                   <Badge
                     variant={integration.configured ? "default" : "secondary"}

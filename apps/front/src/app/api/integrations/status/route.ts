@@ -10,8 +10,7 @@ export async function GET() {
   const status = {
     // SignalHouse - SMS/MMS
     signalhouse: !!(
-      process.env.SIGNALHOUSE_API_KEY &&
-      process.env.SIGNALHOUSE_AUTH_TOKEN
+      process.env.SIGNALHOUSE_API_KEY && process.env.SIGNALHOUSE_AUTH_TOKEN
     ),
 
     // Apollo.io - B2B enrichment
@@ -22,33 +21,24 @@ export async function GET() {
     ),
 
     // Twilio - Voice & Phone lookup
-    twilio: !!(
-      process.env.TWILIO_ACCOUNT_SID &&
-      process.env.TWILIO_AUTH_TOKEN
-    ),
+    twilio: !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN),
 
     // Real Estate API - Property data & skip tracing
     realestate: !!(
-      process.env.REALESTATE_API_KEY ||
-      process.env.REAL_ESTATE_API_TOKEN
+      process.env.REALESTATE_API_KEY || process.env.REAL_ESTATE_API_TOKEN
     ),
 
     // USBizData - B2B business listings
-    usbizdata: !!(
-      process.env.BUSINESS_LIST_API_URL
-    ),
+    usbizdata: !!process.env.BUSINESS_LIST_API_URL,
 
     // Gmail - Email sending
-    gmail: !!(
-      process.env.GMAIL_USER &&
-      process.env.GMAIL_APP_PASSWORD
-    ),
+    gmail: !!(process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD),
 
     // OpenAI - AI features
-    openai: !!(process.env.OPENAI_API_KEY),
+    openai: !!process.env.OPENAI_API_KEY,
 
     // Anthropic - Claude AI
-    anthropic: !!(process.env.ANTHROPIC_API_KEY),
+    anthropic: !!process.env.ANTHROPIC_API_KEY,
   };
 
   // Count connected

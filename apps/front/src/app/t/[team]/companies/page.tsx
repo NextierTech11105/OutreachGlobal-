@@ -54,7 +54,9 @@ export default function CompaniesPage() {
   useEffect(() => {
     async function fetchCompanies() {
       try {
-        const res = await fetch(`/api/companies?search=${encodeURIComponent(search)}`);
+        const res = await fetch(
+          `/api/companies?search=${encodeURIComponent(search)}`,
+        );
         if (res.ok) {
           const data = await res.json();
           setCompanies(data.companies || []);
@@ -108,7 +110,9 @@ export default function CompaniesPage() {
             {total.toLocaleString()} companies in your database
           </p>
         </div>
-        <Button onClick={() => window.location.href = `/${params.team}/import`}>
+        <Button
+          onClick={() => (window.location.href = `/${params.team}/import`)}
+        >
           <Plus className="mr-2 h-4 w-4" />
           Import Companies
         </Button>
@@ -143,7 +147,12 @@ export default function CompaniesPage() {
               <p className="text-muted-foreground text-center mt-1">
                 Import your first company list to get started
               </p>
-              <Button className="mt-4" onClick={() => window.location.href = `/${params.team}/import`}>
+              <Button
+                className="mt-4"
+                onClick={() =>
+                  (window.location.href = `/${params.team}/import`)
+                }
+              >
                 <Plus className="mr-2 h-4 w-4" />
                 Import Companies
               </Button>
@@ -234,7 +243,9 @@ export default function CompaniesPage() {
                               style={{ width: `${company.score}%` }}
                             />
                           </div>
-                          <span className="text-sm font-medium">{company.score}</span>
+                          <span className="text-sm font-medium">
+                            {company.score}
+                          </span>
                         </div>
                       ) : (
                         <span className="text-muted-foreground">—</span>

@@ -93,7 +93,7 @@ export const batchJobs = pgTable(
     index("batch_jobs_status_idx").on(t.status),
     index("batch_jobs_type_idx").on(t.type),
     index("batch_jobs_scheduled_idx").on(t.scheduledFor),
-  ]
+  ],
 );
 
 export const batchJobItems = pgTable(
@@ -126,7 +126,7 @@ export const batchJobItems = pgTable(
   (t) => [
     index("batch_job_items_job_idx").on(t.batchJobId),
     index("batch_job_items_status_idx").on(t.status),
-  ]
+  ],
 );
 
 // Type exports for service usage
