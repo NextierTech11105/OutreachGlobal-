@@ -146,9 +146,18 @@ export async function GET() {
       0,
     );
 
+    // State-level data for heat map
+    const stateStats_mapped = stateStats.map(stat => ({
+      state: stat.state?.toUpperCase().trim() || "",
+      companyCount: Number(stat.companyCount) || 0,
+      smsReadyCount: Number(stat.smsReadyCount) || 0,
+      avgScore: Number(stat.avgScore) || 0,
+    })).filter(s => s.state);
+
     return NextResponse.json({
       success: true,
       territories,
+      stateData: stateStats_mapped,
       summary: {
         totalTerritories: territories.length,
         totalCompanies,

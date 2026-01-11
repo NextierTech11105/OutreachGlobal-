@@ -11,6 +11,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { TerritoryHeatMap } from "@/components/territory-heat-map";
+
+interface StateData {
+  state: string;
+  companyCount: number;
+  smsReadyCount: number;
+  avgScore: number;
+}
 
 interface Territory {
   id: string;
@@ -23,6 +31,7 @@ interface Territory {
 
 interface TerritoryData {
   territories: Territory[];
+  stateData: StateData[];
   summary: {
     totalTerritories: number;
     totalCompanies: number;
@@ -62,6 +71,7 @@ export default function TerritoriesPage() {
   }
 
   const territories = data?.territories || [];
+  const stateData = data?.stateData || [];
   const summary = data?.summary;
 
   return (
@@ -75,6 +85,19 @@ export default function TerritoriesPage() {
           </p>
         </div>
       </div>
+
+      {/* Heat Map */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle>Territory Coverage</CardTitle>
+          <CardDescription>
+            Company density by state - hover for details
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <TerritoryHeatMap stateData={stateData} className="w-full h-[400px] rounded-lg" />
+        </CardContent>
+      </Card>
 
       {/* Summary Stats */}
       {summary && summary.totalCompanies > 0 && (
