@@ -1,17 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { useParams } from "next/navigation";
+import { useState, useEffect } from "react";
 import {
   Bot,
-  Play,
-  Pause,
   Settings,
   Activity,
   Zap,
   MessageSquare,
   Phone,
   Mail,
+  Loader2,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,62 +28,48 @@ interface DigitalWorker {
   id: string;
   name: string;
   type: "sms" | "email" | "voice" | "multi-channel";
-  status: "active" | "paused" | "training";
+  status: "active" | "paused" | "idle";
   description: string;
   stats: {
     messagesHandled: number;
+    messagesToday: number;
     conversionsToday: number;
     avgResponseTime: string;
     successRate: number;
   };
 }
 
-const digitalWorkers: DigitalWorker[] = [
-  {
-    id: "gianna",
-    name: "Gianna",
-    type: "sms",
-    status: "active",
-    description:
-      "AI SDR specializing in initial outreach and qualification via SMS",
-    stats: {
-      messagesHandled: 1247,
-      conversionsToday: 23,
-      avgResponseTime: "2.3s",
-      successRate: 78,
-    },
-  },
-  {
-    id: "cathy",
-    name: "Cathy",
-    type: "voice",
-    status: "active",
-    description: "Voice AI for appointment scheduling and follow-up calls",
-    stats: {
-      messagesHandled: 342,
-      conversionsToday: 12,
-      avgResponseTime: "1.8s",
-      successRate: 82,
-    },
-  },
-  {
-    id: "sabrina",
-    name: "Sabrina",
-    type: "multi-channel",
-    status: "paused",
-    description: "Multi-channel nurture sequences for engaged leads",
-    stats: {
-      messagesHandled: 856,
-      conversionsToday: 8,
-      avgResponseTime: "3.1s",
-      successRate: 71,
-    },
-  },
-];
+interface Summary {
+  totalMessages: number;
+  totalToday: number;
+  totalConversions: number;
+  avgSuccessRate: number;
+  activeWorkers: number;
+}
 
 export default function DigitalWorkersPage() {
-  const params = useParams<{ team: string }>();
-  const [workers, setWorkers] = useState<DigitalWorker[]>(digitalWorkers);
+  const [workers, setWorkers] = useState<DigitalWorker[]>([]);
+  const [summary, setSummary] = useState<Summary | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchStats = async () => {
+    try {
+      const res = await fetch("/api/digital-workers/stats");
+      if (res.ok) {
+        const data = await res.json();
+        setWorkers(data.workers || []);
+        setSummary(data.summary || null);
+      }
+    } catch (error) {
+      console.error("Failed to fetch digital workers stats:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
 
   const toggleWorkerStatus = (workerId: string) => {
     setWorkers(
@@ -96,7 +81,7 @@ export default function DigitalWorkersPage() {
           };
         }
         return w;
-      }),
+      })
     );
   };
 
@@ -121,12 +106,20 @@ export default function DigitalWorkersPage() {
         return "bg-green-500";
       case "paused":
         return "bg-yellow-500";
-      case "training":
-        return "bg-blue-500";
+      case "idle":
+        return "bg-gray-500";
       default:
         return "bg-gray-500";
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-6">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 space-y-6 p-6">
@@ -134,12 +127,12 @@ export default function DigitalWorkersPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Digital Workers</h1>
           <p className="text-muted-foreground">
-            Manage your AI-powered sales development representatives
+            AI-powered sales development representatives
           </p>
         </div>
-        <Button>
-          <Bot className="mr-2 h-4 w-4" />
-          Add Worker
+        <Button variant="outline" onClick={fetchStats}>
+          <RefreshCw className="mr-2 h-4 w-4" />
+          Refresh Stats
         </Button>
       </div>
 
@@ -147,14 +140,12 @@ export default function DigitalWorkersPage() {
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Active Workers
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Active Workers</CardTitle>
             <Bot className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {workers.filter((w) => w.status === "active").length}
+              {summary?.activeWorkers || 0}
             </div>
             <p className="text-xs text-muted-foreground">
               of {workers.length} total
@@ -163,18 +154,16 @@ export default function DigitalWorkersPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Messages Today
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Total Messages</CardTitle>
             <MessageSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {workers
-                .reduce((sum, w) => sum + w.stats.messagesHandled, 0)
-                .toLocaleString()}
+              {(summary?.totalMessages || 0).toLocaleString()}
             </div>
-            <p className="text-xs text-muted-foreground">+12% from yesterday</p>
+            <p className="text-xs text-muted-foreground">
+              {(summary?.totalToday || 0).toLocaleString()} today
+            </p>
           </CardContent>
         </Card>
         <Card>
@@ -184,25 +173,19 @@ export default function DigitalWorkersPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {workers.reduce((sum, w) => sum + w.stats.conversionsToday, 0)}
+              {summary?.totalConversions || 0}
             </div>
-            <p className="text-xs text-muted-foreground">appointments booked</p>
+            <p className="text-xs text-muted-foreground">replies & bookings</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Avg Success Rate
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Avg Success Rate</CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {Math.round(
-                workers.reduce((sum, w) => sum + w.stats.successRate, 0) /
-                  workers.length,
-              )}
-              %
+              {summary?.avgSuccessRate || 0}%
             </div>
             <p className="text-xs text-muted-foreground">across all workers</p>
           </CardContent>
@@ -226,9 +209,7 @@ export default function DigitalWorkersPage() {
                       {worker.name}
                       <Badge
                         variant="outline"
-                        className={
-                          getStatusColor(worker.status) + " text-white"
-                        }
+                        className={getStatusColor(worker.status) + " text-white"}
                       >
                         {worker.status}
                       </Badge>
@@ -250,21 +231,21 @@ export default function DigitalWorkersPage() {
             <CardContent>
               <div className="grid grid-cols-4 gap-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">Messages</p>
+                  <p className="text-sm text-muted-foreground">Total Messages</p>
                   <p className="text-lg font-semibold">
                     {worker.stats.messagesHandled.toLocaleString()}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Today</p>
+                  <p className="text-lg font-semibold">
+                    {worker.stats.messagesToday.toLocaleString()}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Conversions</p>
                   <p className="text-lg font-semibold">
                     {worker.stats.conversionsToday}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Avg Response</p>
-                  <p className="text-lg font-semibold">
-                    {worker.stats.avgResponseTime}
                   </p>
                 </div>
                 <div>

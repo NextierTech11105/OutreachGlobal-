@@ -33,6 +33,14 @@ const giannaSettings = new Map<
 
 // GET - Fetch all Easify phone numbers
 export async function GET() {
+  // DISABLED: Easify integration temporarily disabled
+  return NextResponse.json({
+    numbers: [],
+    provider: "easify",
+    disabled: true,
+    message: "Easify integration disabled",
+  });
+
   try {
     // If no API key, return demo data
     if (!EASIFY_API_KEY) {
@@ -139,6 +147,13 @@ export async function GET() {
 
 // POST - Update Gianna settings for an Easify number
 export async function POST(request: NextRequest) {
+  // DISABLED: Easify integration temporarily disabled
+  return NextResponse.json({
+    success: false,
+    disabled: true,
+    message: "Easify integration disabled",
+  });
+
   try {
     const body = await request.json();
     const { phoneId, giannaEnabled, giannaMode, giannaAvatar } = body;
