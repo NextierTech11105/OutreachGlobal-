@@ -110,21 +110,6 @@ export default function TeamHomePage() {
   });
   const [loading, setLoading] = useState(true);
 
-  // Bail out early if team context has not loaded yet
-  if (!team) {
-    return (
-      <TeamSection className="h-full flex flex-col">
-        <TeamHeader>
-          <TeamTitle>
-            <Target className="w-6 h-6 mr-2" />
-            Command Center
-          </TeamTitle>
-        </TeamHeader>
-        <div className="p-4 text-sm text-zinc-400">Loading team…</div>
-      </TeamSection>
-    );
-  }
-
   // Fetch stats
   useEffect(() => {
     async function fetchStats() {
@@ -242,6 +227,21 @@ export default function TeamHomePage() {
       href: `/t/${team.slug}/campaigns/sabrina`,
     },
   ];
+
+  // Show loading state if team not ready
+  if (!team) {
+    return (
+      <TeamSection className="h-full flex flex-col">
+        <TeamHeader>
+          <TeamTitle>
+            <Target className="w-6 h-6 mr-2" />
+            Command Center
+          </TeamTitle>
+        </TeamHeader>
+        <div className="p-4 text-sm text-zinc-400">Loading team…</div>
+      </TeamSection>
+    );
+  }
 
   return (
     <TeamSection className="h-full flex flex-col">

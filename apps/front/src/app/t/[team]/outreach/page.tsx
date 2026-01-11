@@ -197,10 +197,6 @@ export default function OutreachPage() {
     ? (teamParam[0] ?? "")
     : ((teamParam as string) ?? "");
 
-  if (!teamId) {
-    return null;
-  }
-
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");

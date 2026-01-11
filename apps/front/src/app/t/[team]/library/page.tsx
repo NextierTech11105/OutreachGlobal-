@@ -767,10 +767,14 @@ export default function LibraryPage() {
                     <SelectItem value="SCRIPT">Script</SelectItem>
                     <SelectItem value="SQL_QUERY">SQL Query</SelectItem>
                     <SelectItem value="CODE_SNIPPET">Code Snippet</SelectItem>
-                    <SelectItem value="MEDIUM_ARTICLE">Medium Article</SelectItem>
+                    <SelectItem value="MEDIUM_ARTICLE">
+                      Medium Article
+                    </SelectItem>
                     <SelectItem value="NEWSLETTER">Newsletter</SelectItem>
                     <SelectItem value="CASE_STUDY">Case Study</SelectItem>
-                    <SelectItem value="SMS_CONTENT_LINK">SMS Content Link</SelectItem>
+                    <SelectItem value="SMS_CONTENT_LINK">
+                      SMS Content Link
+                    </SelectItem>
                     <SelectItem value="EXTERNAL_LINK">External Link</SelectItem>
                   </SelectContent>
                 </Select>
