@@ -27,6 +27,15 @@ const FIELD_MAP: Record<string, string[]> = {
   ],
   firstName: ["First Name", "FirstName", "FIRST NAME", "first_name"],
   lastName: ["Last Name", "LastName", "LAST NAME", "last_name"],
+  title: [
+    "Title",
+    "Job Title",
+    "TITLE",
+    "title",
+    "Position",
+    "Contact Title",
+    "Job Function",
+  ],
   email: ["Email Address", "Email", "EMAIL", "email", "E-mail"],
   phone: [
     "Phone Number",
@@ -65,6 +74,91 @@ const FIELD_MAP: Record<string, string[]> = {
     "Industry",
   ],
 };
+
+// Decision maker title scoring - higher = more important
+const TITLE_PRIORITY: Record<string, number> = {
+  // Priority 1: C-Suite & Owners (100)
+  owner: 100,
+  ceo: 100,
+  "chief executive": 100,
+  founder: 100,
+  president: 100,
+  principal: 100,
+  proprietor: 100,
+  // Priority 2: C-Suite Others (90)
+  cfo: 90,
+  coo: 90,
+  cmo: 90,
+  cto: 90,
+  "chief financial": 90,
+  "chief operating": 90,
+  "chief marketing": 90,
+  // Priority 3: VP Level (80)
+  "vice president": 80,
+  vp: 80,
+  "exec vp": 80,
+  "senior vp": 80,
+  evp: 80,
+  svp: 80,
+  // Priority 4: Director Level (70)
+  director: 70,
+  "managing director": 70,
+  "executive director": 70,
+  partner: 70,
+  // Priority 5: Manager Level (60)
+  manager: 60,
+  "general manager": 60,
+  gm: 60,
+  "branch manager": 60,
+  "regional manager": 60,
+  // Priority 6: Other titles (50)
+  supervisor: 50,
+  lead: 50,
+  head: 50,
+  coordinator: 50,
+};
+
+function scoreDecisionMaker(title: string | null): number {
+  if (!title) return 10; // No title = lowest priority
+  const lower = title.toLowerCase();
+
+  // Check each title keyword
+  for (const [keyword, score] of Object.entries(TITLE_PRIORITY)) {
+    if (lower.includes(keyword)) {
+      return score;
+    }
+  }
+
+  // Has a title but not a decision maker keyword
+  return 30;
+}
+
+function scoreDataQuality(record: {
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  companyName: string | null;
+}): number {
+  let score = 0;
+  if (record.phone) score += 40; // Phone is most valuable
+  if (record.email) score += 25;
+  if (record.address) score += 15;
+  if (record.companyName) score += 20;
+  return score;
+}
+
+function calculatePriority(
+  title: string | null,
+  phone: string | null,
+  email: string | null,
+  address: string | null,
+  companyName: string | null,
+): number {
+  const titleScore = scoreDecisionMaker(title);
+  const qualityScore = scoreDataQuality({ phone, email, address, companyName });
+  // Combined score: title weight (60%) + data quality (40%)
+  return Math.round(titleScore * 0.6 + qualityScore * 0.4);
+}
 
 function findColumn(headers: string[], fieldName: string): string | null {
   const variations = FIELD_MAP[fieldName] || [];
@@ -132,25 +226,37 @@ export async function POST(request: NextRequest) {
       const batch = records.slice(i, i + batchSize);
 
       if (importType === "business") {
-        // Insert into businesses table
+        // Insert into businesses table with decision maker prioritization
         const businessRecords = batch
           .map((row) => {
             const companyName = extractValue(row, headers, "companyName");
             const phone = extractValue(row, headers, "phone");
             const email = extractValue(row, headers, "email");
+            const title = extractValue(row, headers, "title");
+            const address = extractValue(row, headers, "address");
             const employeesStr = extractValue(row, headers, "employees");
             const revenueStr = extractValue(row, headers, "revenue");
 
             // Need at least company name
             if (!companyName) return null;
 
+            // Calculate priority score for decision maker targeting
+            const priority = calculatePriority(
+              title,
+              phone,
+              email,
+              address,
+              companyName,
+            );
+
             return {
               userId: userId,
-              teamId: teamId, // P0: Associate with team for multi-tenant isolation
               companyName: companyName,
               phone: phone,
               email: email,
-              address: extractValue(row, headers, "address"),
+              ownerTitle: title, // Decision maker title
+              score: priority, // Priority score (0-100, higher = better)
+              address: address,
               city: extractValue(row, headers, "city"),
               state: extractValue(row, headers, "state"),
               zip: extractValue(row, headers, "zip"),
@@ -168,7 +274,9 @@ export async function POST(request: NextRequest) {
               rawData: row,
             };
           })
-          .filter(Boolean);
+          .filter(Boolean)
+          // Sort by score descending - decision makers first
+          .sort((a, b) => (b?.score || 0) - (a?.score || 0));
 
         if (businessRecords.length > 0) {
           try {
@@ -229,6 +337,26 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Calculate priority breakdown for business imports
+    const priorityBreakdown =
+      importType === "business"
+        ? {
+            highPriority: records.filter((r) => {
+              const title = extractValue(r, headers, "title");
+              return scoreDecisionMaker(title) >= 80;
+            }).length,
+            mediumPriority: records.filter((r) => {
+              const title = extractValue(r, headers, "title");
+              const score = scoreDecisionMaker(title);
+              return score >= 50 && score < 80;
+            }).length,
+            lowPriority: records.filter((r) => {
+              const title = extractValue(r, headers, "title");
+              return scoreDecisionMaker(title) < 50;
+            }).length,
+          }
+        : undefined;
+
     return NextResponse.json({
       success: true,
       message: `Imported ${insertedCount} ${importType} records from ${file.name}`,
@@ -237,6 +365,7 @@ export async function POST(request: NextRequest) {
         inserted: insertedCount,
         errors: errorCount,
         userId: userId,
+        priorityBreakdown,
       },
       errors: errors.length > 0 ? errors.slice(0, 5) : undefined,
     });
