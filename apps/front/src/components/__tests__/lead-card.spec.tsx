@@ -1,7 +1,7 @@
 // @ts-nocheck
 // TODO: Fix test - needs jest-dom setup and Lead type alignment
 // Skipping for now - tests disabled in CI
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+
 import { render, screen, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { LeadCard } from "../lead-card";

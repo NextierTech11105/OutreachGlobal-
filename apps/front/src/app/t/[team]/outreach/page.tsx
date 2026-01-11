@@ -194,8 +194,8 @@ export default function OutreachPage() {
   const params = useParams();
   const teamParam = params?.team;
   const teamId = Array.isArray(teamParam)
-    ? teamParam[0] ?? ""
-    : (teamParam as string) ?? "";
+    ? (teamParam[0] ?? "")
+    : ((teamParam as string) ?? "");
 
   if (!teamId) {
     return null;

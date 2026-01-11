@@ -1965,7 +1965,9 @@ export default function ImportCompaniesPage() {
                           if (company.phone) {
                             return <span>{company.phone}</span>;
                           }
-                          return <span className="text-muted-foreground">-</span>;
+                          return (
+                            <span className="text-muted-foreground">-</span>
+                          );
                         })()}
                       </TableCell>
 
@@ -1981,9 +1983,13 @@ export default function ImportCompaniesPage() {
                             );
                           }
                           if (company.email) {
-                            return <span className="text-sm">{company.email}</span>;
+                            return (
+                              <span className="text-sm">{company.email}</span>
+                            );
                           }
-                          return <span className="text-muted-foreground">-</span>;
+                          return (
+                            <span className="text-muted-foreground">-</span>
+                          );
                         })()}
                       </TableCell>
 
