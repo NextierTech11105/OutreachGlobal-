@@ -966,7 +966,7 @@ export default function ValuationPage() {
     const subject = encodeURIComponent(
       `Property Valuation Report - ${fullAddress}`,
     );
-    const body = encodeURIComponentsf(
+    const body = encodeURIComponent(
       `Property Valuation Report\n\n` +
         `Address: ${fullAddress}\n` +
         `Estimated Value: $${val?.estimatedValue || 0}\n` +
@@ -992,7 +992,7 @@ export default function ValuationPage() {
     const val = report.valuation;
     const fullAddress = `${prop?.address?.address || prop?.address?.street}, ${prop?.address?.city}, ${prop?.address?.state}`;
 
-    const message = encodeURIComponentsf(
+    const message = encodeURIComponent(
       `Property Valuation: ${fullAddress}\n` +
         `Est. Value: $${val?.estimatedValue || 0}\n` +
         `${prop?.bedrooms || prop?.beds || 0}bd/${prop?.bathrooms || prop?.baths || 0}ba | ${sf(prop?.squareFeet || prop?.buildingSize || 0)} sqft`,

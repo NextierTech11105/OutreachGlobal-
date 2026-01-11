@@ -8,7 +8,7 @@ import { useCurrentTeam } from "@/features/team/team.context";
 import { SMSAnalyticsDashboard } from "@/components/sms/sms-analytics-dashboard";
 
 export default function SMSAnalyticsPage() {
-  const { team } = useCurrentTeam();
+  const { team, teamId, isTeamReady } = useCurrentTeam();
 
   return (
     <TeamSection className="h-full flex flex-col">
@@ -20,7 +20,7 @@ export default function SMSAnalyticsPage() {
       </TeamHeader>
 
       <div className="flex-1 p-4 min-h-0 overflow-auto">
-        <SMSAnalyticsDashboard teamId={team.id} />
+        <SMSAnalyticsDashboard teamId={teamId} />
       </div>
     </TeamSection>
   );

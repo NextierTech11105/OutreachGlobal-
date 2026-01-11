@@ -50,9 +50,11 @@ export class CallCenterReportResolver extends BaseResolver(CallCenterReport) {
       .where(and(eq(powerDialersTable.teamId, team.id)));
 
     return {
-      ...result,
       teamId: team.id,
-      successRate: result.successRate * 100,
+      totalCalls: result.totalCalls ?? 0,
+      successRate: (result.successRate ?? 0) * 100,
+      averageCallDuration: result.averageCallDuration ?? 0,
+      aiSdrCalls: result.aiSdrCalls ?? 0,
     };
   }
 }

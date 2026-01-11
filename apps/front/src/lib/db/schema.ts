@@ -2698,3 +2698,136 @@ export const systemSettings = pgTable(
 
 export type SystemSetting = typeof systemSettings.$inferSelect;
 export type NewSystemSetting = typeof systemSettings.$inferInsert;
+
+// ============================================================
+// BATCH JOBS - Durable batch processing storage
+// Replaces in-memory Map for skip traces, CSV imports, etc.
+// ============================================================
+
+/**
+ * BATCH_JOBS - Tracks batch processing operations
+ * Job Types: csv_import, skip_trace, campaign_send, data_enrichment, property_detail
+ */
+export const batchJobs = pgTable(
+  "batch_jobs",
+  {
+    id: integer("id").primaryKey(),
+    teamId: text("team_id").notNull(),
+
+    // Job classification
+    type: text("type").notNull(), // csv_import, skip_trace, campaign_send, etc.
+    targetEntity: text("target_entity"), // leads, properties
+
+    // Status tracking
+    status: text("status").notNull().default("pending"),
+    // pending, processing, completed, failed, paused, scheduled
+
+    // Job configuration
+    config: jsonb("config").$type<{
+      propertyIds?: string[];
+      batchSize?: number;
+      autoSkipTrace?: boolean;
+      pushToValuation?: boolean;
+      pushToSmsQueue?: boolean;
+      smsTemplate?: string;
+      smsAgent?: string;
+      campaignId?: string;
+    }>(),
+
+    // Progress tracking
+    progress: jsonb("progress")
+      .$type<{
+        total: number;
+        processed: number;
+        successful: number;
+        failed: number;
+        withPhones?: number;
+        currentBatch?: number;
+        totalBatches?: number;
+      }>()
+      .default({ total: 0, processed: 0, successful: 0, failed: 0 }),
+
+    // Daily usage tracking
+    dailyUsage: jsonb("daily_usage").$type<{
+      date: string;
+      used: number;
+      limit: number;
+      remaining: number;
+    }>(),
+
+    // SMS queue integration results
+    smsQueue: jsonb("sms_queue").$type<{
+      added: number;
+      skipped: number;
+      queueIds: string[];
+    }>(),
+
+    // Audit fields
+    createdBy: text("created_by"),
+    scheduledFor: timestamp("scheduled_for"),
+    startedAt: timestamp("started_at"),
+    completedAt: timestamp("completed_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    teamIdIdx: index("batch_jobs_team_id_idx").on(table.teamId),
+    statusIdx: index("batch_jobs_status_idx").on(table.status),
+    typeIdx: index("batch_jobs_type_idx").on(table.type),
+    scheduledIdx: index("batch_jobs_scheduled_idx").on(table.scheduledFor),
+  })
+);
+
+/**
+ * BATCH_JOB_ITEMS - Individual items within a batch job
+ */
+export const batchJobItems = pgTable(
+  "batch_job_items",
+  {
+    id: integer("id").primaryKey(),
+    batchJobId: integer("batch_job_id")
+      .references(() => batchJobs.id, { onDelete: "cascade" })
+      .notNull(),
+
+    // Item status
+    status: text("status").notNull().default("pending"),
+    // pending, processing, completed, failed
+
+    // Input data
+    data: jsonb("data").$type<Record<string, unknown>>(),
+
+    // Output/result data
+    result: jsonb("result").$type<Record<string, unknown>>(),
+
+    // Error tracking
+    error: text("error"),
+
+    // Timing
+    startedAt: timestamp("started_at"),
+    completedAt: timestamp("completed_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    jobIdIdx: index("batch_job_items_job_idx").on(table.batchJobId),
+    statusIdx: index("batch_job_items_status_idx").on(table.status),
+  })
+);
+
+// Relations
+export const batchJobsRelations = relations(batchJobs, ({ many }) => ({
+  items: many(batchJobItems),
+}));
+
+export const batchJobItemsRelations = relations(batchJobItems, ({ one }) => ({
+  job: one(batchJobs, {
+    fields: [batchJobItems.batchJobId],
+    references: [batchJobs.id],
+  }),
+}));
+
+// Type exports
+export type BatchJob = typeof batchJobs.$inferSelect;
+export type NewBatchJob = typeof batchJobs.$inferInsert;
+export type BatchJobItem = typeof batchJobItems.$inferSelect;
+export type NewBatchJobItem = typeof batchJobItems.$inferInsert;

@@ -147,20 +147,15 @@ export default function GetStartedPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#09090b] overflow-hidden">
-      {/* Gradient Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-purple-600/10 to-transparent pointer-events-none" />
-      <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
-
+    <div className="min-h-screen bg-black overflow-hidden">
       {/* Nav */}
-      <nav className="relative z-10 flex items-center justify-between px-6 py-4 lg:px-12">
+      <nav className="relative z-10 flex items-center justify-between px-6 py-6 lg:px-12">
         <Image
           src="/nextier-logo.jpg"
           alt={APP_NAME}
-          width={200}
-          height={70}
-          className="h-16 lg:h-20 w-auto"
+          width={300}
+          height={100}
+          className="h-24 lg:h-32 w-auto"
         />
         <a
           href="/auth"

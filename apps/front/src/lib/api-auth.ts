@@ -18,13 +18,19 @@ interface JWTPayload {
   iat: number;
   exp: number;
   iss: string;
+  tenantId?: string;
+  teamId?: string;
 }
 
 /**
  * Get authenticated user ID from JWT session token
  * Use this instead of Clerk's auth() in API routes
  */
-export async function apiAuth(): Promise<{ userId: string | null }> {
+export async function apiAuth(): Promise<{
+  userId: string | null;
+  teamId: string | null;
+  tenantId: string | null;
+}> {
   try {
     const cookieStore = await cookies();
     // Try both prefixed and non-prefixed cookie names
@@ -33,7 +39,7 @@ export async function apiAuth(): Promise<{ userId: string | null }> {
       cookieStore.get("session")?.value;
 
     if (!token) {
-      return { userId: null };
+      return { userId: null, teamId: null, tenantId: null };
     }
 
     // Decode JWT (verification happens on backend via GraphQL)
@@ -41,13 +47,17 @@ export async function apiAuth(): Promise<{ userId: string | null }> {
 
     // Check if token is expired
     if (decoded.exp && decoded.exp * 1000 < Date.now()) {
-      return { userId: null };
+      return { userId: null, teamId: null, tenantId: null };
     }
 
-    return { userId: decoded.sub };
+    return {
+      userId: decoded.sub,
+      teamId: decoded.teamId ?? null,
+      tenantId: decoded.tenantId ?? null,
+    };
   } catch (error) {
     console.error("[apiAuth] Error:", error);
-    return { userId: null };
+    return { userId: null, teamId: null, tenantId: null };
   }
 }
 
@@ -58,6 +68,8 @@ export async function getApiAuthContext(): Promise<{
   userId: string | null;
   token: string | null;
   email: string | null;
+  tenantId: string | null;
+  teamId: string | null;
 }> {
   try {
     const cookieStore = await cookies();
@@ -66,24 +78,74 @@ export async function getApiAuthContext(): Promise<{
       cookieStore.get("session")?.value;
 
     if (!token) {
-      return { userId: null, token: null, email: null };
+      return {
+        userId: null,
+        token: null,
+        email: null,
+        tenantId: null,
+        teamId: null,
+      };
     }
 
     const decoded = jwtDecode<JWTPayload>(token);
 
     if (decoded.exp && decoded.exp * 1000 < Date.now()) {
-      return { userId: null, token: null, email: null };
+      return {
+        userId: null,
+        token: null,
+        email: null,
+        tenantId: null,
+        teamId: null,
+      };
     }
 
     return {
       userId: decoded.sub,
       token,
       email: decoded.username,
+      tenantId: decoded.tenantId ?? null,
+      teamId: decoded.teamId ?? null,
     };
   } catch (error) {
     console.error("[getApiAuthContext] Error:", error);
-    return { userId: null, token: null, email: null };
+    return {
+      userId: null,
+      token: null,
+      email: null,
+      tenantId: null,
+      teamId: null,
+    };
   }
+}
+
+/**
+ * Require tenant/team context for multi-tenant API routes.
+ * Throws on missing/expired token or missing teamId to avoid cross-tenant access.
+ */
+export async function requireTenantContext(): Promise<{
+  userId: string;
+  teamId: string;
+  tenantId: string | null;
+  token: string;
+  email: string | null;
+}> {
+  const ctx = await getApiAuthContext();
+
+  if (!ctx.token || !ctx.userId) {
+    throw new Error("Unauthorized: missing session token");
+  }
+
+  if (!ctx.teamId) {
+    throw new Error("Unauthorized: team context required");
+  }
+
+  return {
+    userId: ctx.userId,
+    teamId: ctx.teamId,
+    tenantId: ctx.tenantId,
+    token: ctx.token,
+    email: ctx.email,
+  };
 }
 
 /**

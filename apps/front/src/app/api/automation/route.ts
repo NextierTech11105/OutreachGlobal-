@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
           reason || "valuation",
         );
 
-        const state = automationService.getLeadState(leadId);
+        const state = await automationService.getLeadState(leadId);
 
         return NextResponse.json({
           success: true,
@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
           message,
           propertyId,
         );
-        const state = automationService.getLeadState(leadId);
+        const state = await automationService.getLeadState(leadId);
 
         return NextResponse.json({
           success: true,
@@ -245,7 +245,7 @@ export async function GET(request: NextRequest) {
           );
         }
 
-        const state = automationService.getLeadState(leadId);
+        const state = await automationService.getLeadState(leadId);
 
         if (!state) {
           return NextResponse.json(
@@ -261,7 +261,7 @@ export async function GET(request: NextRequest) {
       }
 
       case "hot_leads": {
-        const hotLeads = automationService.getAllHotLeads();
+        const hotLeads = await automationService.getAllHotLeads();
         return NextResponse.json({
           success: true,
           count: hotLeads.length,
@@ -278,7 +278,7 @@ export async function GET(request: NextRequest) {
       }
 
       case "warm_leads": {
-        const warmLeads = automationService.getAllWarmLeads();
+        const warmLeads = await automationService.getAllWarmLeads();
         return NextResponse.json({
           success: true,
           count: warmLeads.length,

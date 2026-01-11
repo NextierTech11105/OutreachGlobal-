@@ -103,7 +103,7 @@ interface QueueLead {
 }
 
 export default function CathyCampaignsPage() {
-  const { team } = useCurrentTeam();
+  const { team, teamId, isTeamReady } = useCurrentTeam();
   const [loading, setLoading] = useState(true);
   const [phoneNumber, setPhoneNumber] = useState<string | null>(null);
   const [stats, setStats] = useState<WorkerStats>({
@@ -124,7 +124,7 @@ export default function CathyCampaignsPage() {
     async function fetchPhone() {
       try {
         const response = await fetch(
-          `/api/workers/phone?worker=cathy&teamId=${team.id}`,
+          `/api/workers/phone?worker=cathy&teamId=${teamId}`,
         );
         const data = await response.json();
         if (data.success && data.assignment?.phoneNumber) {
@@ -135,13 +135,13 @@ export default function CathyCampaignsPage() {
       }
     }
     fetchPhone();
-  }, [team.id]);
+  }, [teamId]);
 
   // Fetch stats
   useEffect(() => {
     async function fetchStats() {
       try {
-        const response = await fetch(`/api/cathy/stats?teamId=${team.id}`);
+        const response = await fetch(`/api/cathy/stats?teamId=${teamId}`);
         const data = await response.json();
         if (data.success) {
           setStats(data.stats);
@@ -153,7 +153,7 @@ export default function CathyCampaignsPage() {
       }
     }
     fetchStats();
-  }, [team.id]);
+  }, [teamId]);
 
   // Fetch queue leads
   useEffect(() => {
@@ -161,7 +161,7 @@ export default function CathyCampaignsPage() {
       setQueueLoading(true);
       try {
         const response = await fetch(
-          `/api/leads?teamId=${team.id}&worker=cathy&limit=20`,
+          `/api/leads?teamId=${teamId}&worker=cathy&limit=20`,
         );
         const data = await response.json();
         if (data.leads) {
@@ -219,7 +219,7 @@ export default function CathyCampaignsPage() {
       }
     }
     fetchQueue();
-  }, [team.id]);
+  }, [teamId]);
 
   // Toggle lead selection
   const toggleLeadSelection = (leadId: string) => {
@@ -256,7 +256,7 @@ export default function CathyCampaignsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           leadIds: pendingLeads.map((l) => l.id),
-          teamId: team.id,
+          teamId: teamId,
         }),
       });
       const data = await response.json();
@@ -278,7 +278,7 @@ export default function CathyCampaignsPage() {
         body: JSON.stringify({
           leadIds: Array.from(selectedLeads),
           worker: "cathy",
-          teamId: team.id,
+          teamId: teamId,
         }),
       });
       const data = await response.json();
@@ -303,7 +303,7 @@ export default function CathyCampaignsPage() {
           leadIds: Array.from(selectedLeads),
           fromWorker: "cathy",
           toWorker,
-          teamId: team.id,
+          teamId: teamId,
         }),
       });
       const data = await response.json();
@@ -404,7 +404,7 @@ export default function CathyCampaignsPage() {
         body: JSON.stringify({
           leadId,
           fromWorker: "cathy",
-          teamId: team.id,
+          teamId: teamId,
         }),
       });
 
@@ -452,7 +452,7 @@ export default function CathyCampaignsPage() {
 
           <div className="flex items-center gap-3">
             <ContentInsertionPicker
-              teamId={team.id}
+              teamId={teamId}
               onInsert={handleContentInsert}
             />
             <Button variant="outline" asChild>
@@ -880,7 +880,7 @@ export default function CathyCampaignsPage() {
           {/* Right: Inbox */}
           <WorkerInbox
             workerId="cathy"
-            teamId={team.id}
+            teamId={teamId}
             phoneNumber={phoneNumber || undefined}
             onHandoff={(leadId, toWorker) =>
               handleHandoff(leadId, toWorker as "gianna" | "sabrina")

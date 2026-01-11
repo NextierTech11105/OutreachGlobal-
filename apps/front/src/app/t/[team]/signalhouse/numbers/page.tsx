@@ -25,15 +25,16 @@ interface PhoneNumber {
 }
 
 export default function SignalhouseNumbersPage() {
-  const { team } = useCurrentTeam();
+  const { team, teamId, isTeamReady } = useCurrentTeam();
   const [loading, setLoading] = useState(true);
   const [numbers, setNumbers] = useState<PhoneNumber[]>([]);
 
   useEffect(() => {
+    if (!team) return;
     async function fetchNumbers() {
       try {
         const response = await fetch(
-          `/api/signalhouse/numbers?teamId=${team.id}`,
+          `/api/signalhouse/numbers?teamId=${teamId}`,
         );
         const data = await response.json();
         if (data.success) {
@@ -46,7 +47,21 @@ export default function SignalhouseNumbersPage() {
       }
     }
     fetchNumbers();
-  }, [team.id]);
+  }, [team]);
+
+  if (!team) {
+    return (
+      <TeamSection>
+        <TeamHeader>
+          <TeamTitle>
+            <Phone className="w-6 h-6 mr-2" />
+            10DLC Numbers
+          </TeamTitle>
+        </TeamHeader>
+        <div className="p-6 text-sm text-zinc-400">Loading team…</div>
+      </TeamSection>
+    );
+  }
 
   return (
     <TeamSection>

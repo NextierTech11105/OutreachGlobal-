@@ -1159,7 +1159,7 @@ function generateShareableHTML(data: {
             <tr>
               <td>${compAddress}</td>
               <td>${compBeds}/${compBaths}</td>
-              <td>${compSqft ? Numbersf(compSqft) : "—"}</td>
+              <td>${compSqft ? Number(compSqft) : "—"}</td>
               <td class="price-highlight">${compPrice ? formatCurrency(Number(compPrice)) : "—"}</td>
             </tr>`;
               })

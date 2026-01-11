@@ -646,7 +646,7 @@ export function GiannaCopilot({
 
           <TabsContent value="responses" className="flex-1 m-0">
             <ScrollArea className="h-[calc(100vh-320px)] p-3">
-              {prioritizedResponses.mapsf((lead) => (
+              {prioritizedResponses.map((lead) => (
                 <Card
                   key={lead.id}
                   className="mb-2 border-green-200 bg-green-50/50"

@@ -8,7 +8,7 @@ import { useCurrentTeam } from "@/features/team/team.context";
 import { SMSCommandCenter } from "@/components/sms/sms-command-center";
 
 export default function SMSCommandCenterPage() {
-  const { team } = useCurrentTeam();
+  const { team, teamId, isTeamReady } = useCurrentTeam();
 
   return (
     <TeamSection className="h-full flex flex-col">
@@ -20,7 +20,7 @@ export default function SMSCommandCenterPage() {
       </TeamHeader>
 
       <div className="flex-1 p-4 min-h-0">
-        <SMSCommandCenter teamId={team.id} />
+        <SMSCommandCenter teamId={teamId} />
       </div>
     </TeamSection>
   );

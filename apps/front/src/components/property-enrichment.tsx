@@ -661,7 +661,7 @@ export function PropertyEnrichment() {
                         </TableCell>
                         <TableCell>
                           {e?.estimatedValue
-                            ? `$${Numbersf(e.estimatedValue)}`
+                            ? `$${Number(e.estimatedValue)}`
                             : "-"}
                         </TableCell>
                         <TableCell>

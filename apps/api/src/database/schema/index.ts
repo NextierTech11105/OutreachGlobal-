@@ -81,3 +81,6 @@ export * from "./sic-categories.schema";
 
 // ===== BILLING & SUBSCRIPTIONS =====
 export * from "./billing.schema";
+
+// ===== BATCH JOBS (Durable Processing) =====
+export * from "./batch-jobs.schema";

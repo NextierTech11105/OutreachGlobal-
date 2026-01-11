@@ -118,7 +118,7 @@ interface QueueLead {
 }
 
 export default function SabrinaCampaignsPage() {
-  const { team } = useCurrentTeam();
+  const { team, teamId, isTeamReady } = useCurrentTeam();
   const [loading, setLoading] = useState(true);
   const [phoneNumber, setPhoneNumber] = useState<string | null>(null);
   const [stats, setStats] = useState<WorkerStats>({
@@ -139,7 +139,7 @@ export default function SabrinaCampaignsPage() {
     async function fetchPhone() {
       try {
         const response = await fetch(
-          `/api/workers/phone?worker=sabrina&teamId=${team.id}`,
+          `/api/workers/phone?worker=sabrina&teamId=${teamId}`,
         );
         const data = await response.json();
         if (data.success && data.assignment?.phoneNumber) {
@@ -150,13 +150,13 @@ export default function SabrinaCampaignsPage() {
       }
     }
     fetchPhone();
-  }, [team.id]);
+  }, [teamId]);
 
   // Fetch stats
   useEffect(() => {
     async function fetchStats() {
       try {
-        const response = await fetch(`/api/sabrina/stats?teamId=${team.id}`);
+        const response = await fetch(`/api/sabrina/stats?teamId=${teamId}`);
         const data = await response.json();
         if (data.success) {
           setStats(data.stats);
@@ -168,7 +168,7 @@ export default function SabrinaCampaignsPage() {
       }
     }
     fetchStats();
-  }, [team.id]);
+  }, [teamId]);
 
   // Fetch queue leads
   useEffect(() => {
@@ -176,7 +176,7 @@ export default function SabrinaCampaignsPage() {
       setQueueLoading(true);
       try {
         const response = await fetch(
-          `/api/leads?teamId=${team.id}&worker=sabrina&limit=20`,
+          `/api/leads?teamId=${teamId}&worker=sabrina&limit=20`,
         );
         const data = await response.json();
         if (data.leads) {
@@ -227,7 +227,7 @@ export default function SabrinaCampaignsPage() {
       }
     }
     fetchQueue();
-  }, [team.id]);
+  }, [teamId]);
 
   // Toggle lead selection
   const toggleLeadSelection = (leadId: string) => {
@@ -264,7 +264,7 @@ export default function SabrinaCampaignsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           leadIds: pendingLeads.map((l) => l.id),
-          teamId: team.id,
+          teamId: teamId,
         }),
       });
       const data = await response.json();
@@ -286,7 +286,7 @@ export default function SabrinaCampaignsPage() {
         body: JSON.stringify({
           leadIds: Array.from(selectedLeads),
           worker: "sabrina",
-          teamId: team.id,
+          teamId: teamId,
         }),
       });
       const data = await response.json();
@@ -311,7 +311,7 @@ export default function SabrinaCampaignsPage() {
           leadIds: Array.from(selectedLeads),
           fromWorker: "sabrina",
           toWorker,
-          teamId: team.id,
+          teamId: teamId,
         }),
       });
       const data = await response.json();
@@ -397,7 +397,7 @@ export default function SabrinaCampaignsPage() {
         body: JSON.stringify({
           leadId,
           fromWorker: "sabrina",
-          teamId: team.id,
+          teamId: teamId,
           reason:
             toWorker === "cathy" ? "backed_off_3_rebuttals" : "needs_warming",
         }),
@@ -447,7 +447,7 @@ export default function SabrinaCampaignsPage() {
 
           <div className="flex items-center gap-3">
             <ContentInsertionPicker
-              teamId={team.id}
+              teamId={teamId}
               onInsert={handleContentInsert}
             />
             <Button variant="outline" asChild>
@@ -972,7 +972,7 @@ export default function SabrinaCampaignsPage() {
           {/* Right: Inbox */}
           <WorkerInbox
             workerId="sabrina"
-            teamId={team.id}
+            teamId={teamId}
             phoneNumber={phoneNumber || undefined}
             onHandoff={(leadId, toWorker) =>
               handleHandoff(leadId, toWorker as "gianna" | "cathy")

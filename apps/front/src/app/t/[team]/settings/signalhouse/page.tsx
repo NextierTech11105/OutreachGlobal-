@@ -52,11 +52,11 @@ interface SignalHouseConfig {
 }
 
 export default function SignalHouseSettingsPage() {
-  const { team } = useCurrentTeam();
+  const { team, teamId, isTeamReady } = useCurrentTeam();
 
   // Fetch current settings
   const { data, loading, refetch } = useQuery(SIGNALHOUSE_SETTINGS_QUERY, {
-    variables: { teamId: team.id },
+    variables: { teamId: teamId },
     fetchPolicy: "cache-and-network",
   });
 
@@ -99,7 +99,7 @@ export default function SignalHouseSettingsPage() {
     try {
       await updateSettings({
         variables: {
-          teamId: team.id,
+          teamId: teamId,
           input: {
             subGroupId: editedConfig.subGroupId,
             brandId: editedConfig.brandId,

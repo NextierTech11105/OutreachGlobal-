@@ -27,7 +27,7 @@ interface QueueStats {
 }
 
 export default function SmsQueuePage() {
-  const { team } = useCurrentTeam();
+  const { team, teamId, isTeamReady } = useCurrentTeam();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<QueueStats>({
     pending: 0,
@@ -38,9 +38,10 @@ export default function SmsQueuePage() {
   });
 
   useEffect(() => {
+    if (!team) return;
     async function fetchStats() {
       try {
-        const response = await fetch(`/api/sms/queue?teamId=${team.id}`);
+        const response = await fetch(`/api/sms/queue?teamId=${teamId}`);
         const data = await response.json();
         if (data.success) {
           setStats(data.stats || stats);
@@ -52,7 +53,21 @@ export default function SmsQueuePage() {
       }
     }
     fetchStats();
-  }, [team.id]);
+  }, [team]);
+
+  if (!team) {
+    return (
+      <TeamSection>
+        <TeamHeader>
+          <TeamTitle>
+            <MessageSquare className="w-6 h-6 mr-2" />
+            SMS Queue
+          </TeamTitle>
+        </TeamHeader>
+        <div className="p-6 text-sm text-zinc-400">Loading team…</div>
+      </TeamSection>
+    );
+  }
 
   return (
     <TeamSection>

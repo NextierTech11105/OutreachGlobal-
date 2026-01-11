@@ -1,11 +1,12 @@
 import postgres from "postgres";
 import { drizzle, PostgresJsDatabase } from "drizzle-orm/postgres-js";
+import * as schema from "./db/schema";
 
 // Use a default connection string for development if none is provided
 const connectionString = process.env.DATABASE_URL || "";
 
 // Create the database client with proper error handling
-let dbClient: PostgresJsDatabase | null = null;
+let dbClient: PostgresJsDatabase<typeof schema> | null = null;
 
 try {
   if (connectionString) {
@@ -16,7 +17,7 @@ try {
       idle_timeout: 20,
       connect_timeout: 30,
     });
-    dbClient = drizzle(sql);
+    dbClient = drizzle(sql, { schema });
   } else {
     console.warn("DATABASE_URL not set - database operations will fail");
   }
@@ -24,5 +25,5 @@ try {
   console.error("Failed to initialize database client:", error);
 }
 
-// Export a typed database instance
-export const db = dbClient as PostgresJsDatabase;
+// Export a typed database instance with schema for query mode
+export const db = dbClient as PostgresJsDatabase<typeof schema>;

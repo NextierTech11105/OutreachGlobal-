@@ -173,7 +173,10 @@ export class ApiKeyResolver {
     @Args("secret") secret: string,
   ): Promise<BootstrapOwnerResponse> {
     // Validate bootstrap secret
-    const expectedSecret = process.env.BOOTSTRAP_SECRET || "og-bootstrap-2024";
+    const expectedSecret = process.env.BOOTSTRAP_KEY;
+    if (!expectedSecret) {
+      throw new Error("Missing BOOTSTRAP_KEY environment variable");
+    }
     if (secret !== expectedSecret) {
       throw new Error("Invalid bootstrap secret");
     }

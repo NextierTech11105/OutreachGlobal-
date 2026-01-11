@@ -85,7 +85,7 @@ const LANE_COLORS: Record<string, string> = {
 };
 
 export default function TemplatePerformancePage() {
-  const { team } = useCurrentTeam();
+  const { team, teamId, isTeamReady } = useCurrentTeam();
 
   const [timePeriod, setTimePeriod] = useState("30d");
   const [sortKey, setSortKey] = useState<SortKey>("compositeScore");
@@ -95,7 +95,7 @@ export default function TemplatePerformancePage() {
 
   // Fetch template performance data
   const { data, loading } = useQuery(TEMPLATE_PERFORMANCE_QUERY, {
-    variables: { teamId: team.id, period: timePeriod },
+    variables: { teamId: teamId, period: timePeriod },
     fetchPolicy: "cache-and-network",
   });
 

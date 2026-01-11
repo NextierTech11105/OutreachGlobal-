@@ -337,6 +337,7 @@ interface PhoneInfo {
   type?: string; // 'mobile' | 'landline' | 'voip' | 'unknown'
   verified?: boolean;
   carrier?: string;
+  routeTo?: string;
 }
 
 interface Company {
@@ -357,6 +358,7 @@ interface Company {
   country: string;
   phone: string;
   phoneType?: string; // 'mobile' | 'landline' | 'voip' | 'unknown'
+  phoneRouteTo?: string; // routing destination after validation
   mobile?: string; // Cell/mobile phone
   linkedin_url: string;
   founded_year: number;
@@ -1144,8 +1146,8 @@ export default function ImportCompaniesPage() {
             return {
               ...company,
               enriched: result.success,
-              enrichedPhones: result.phones as string[],
-              enrichedEmails: result.emails as string[],
+              enrichedPhones: result.phones,
+              enrichedEmails: result.emails,
               ownerName: result.ownerName,
               ownerTitle: result.ownerTitle,
               propertyAddresses: result.propertyAddresses,
@@ -1379,7 +1381,7 @@ export default function ImportCompaniesPage() {
             company.name?.split(" ")[0] ||
             "",
           lastName: company.ownerName?.split(" ").slice(1).join(" ") || "",
-          companyName: company.companyName || company.company || "",
+          companyName: company.companyName || "",
           address: company.address,
         }));
       });
@@ -1508,7 +1510,7 @@ export default function ImportCompaniesPage() {
             phone: phone.number,
             firstName,
             lastName,
-            companyName: company.companyName || company.company || "",
+            companyName: company.companyName || "",
           });
         } else if (
           type === "landline" ||
@@ -1927,54 +1929,62 @@ export default function ImportCompaniesPage() {
 
                       {/* Phone + Type */}
                       <TableCell>
-                        {company.enrichedPhones?.length > 0 ? (
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-green-600 font-medium">
-                              {company.enrichedPhones[0].number}
-                            </span>
-                            {company.enrichedPhones[0].type && (
-                              <Badge
-                                variant="outline"
-                                className={`text-[10px] px-1 py-0 ${
-                                  company.enrichedPhones[0].type === "mobile"
-                                    ? "bg-green-50 text-green-700 border-green-300"
-                                    : company.enrichedPhones[0].type === "voip"
-                                      ? "bg-yellow-50 text-yellow-700 border-yellow-300"
-                                      : company.enrichedPhones[0].type ===
-                                          "landline"
-                                        ? "bg-red-50 text-red-700 border-red-300"
-                                        : "bg-gray-50 text-gray-500 border-gray-300"
-                                }`}
-                              >
-                                {company.enrichedPhones[0].type === "mobile"
-                                  ? "M"
-                                  : company.enrichedPhones[0].type === "voip"
-                                    ? "V"
-                                    : company.enrichedPhones[0].type ===
-                                        "landline"
-                                      ? "L"
-                                      : "?"}
-                              </Badge>
-                            )}
-                          </div>
-                        ) : company.phone ? (
-                          <span>{company.phone}</span>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
+                        {(() => {
+                          const firstPhone = company.enrichedPhones?.[0];
+                          if (firstPhone) {
+                            return (
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-green-600 font-medium">
+                                  {firstPhone.number}
+                                </span>
+                                {firstPhone.type && (
+                                  <Badge
+                                    variant="outline"
+                                    className={`text-[10px] px-1 py-0 ${
+                                      firstPhone.type === "mobile"
+                                        ? "bg-green-50 text-green-700 border-green-300"
+                                        : firstPhone.type === "voip"
+                                          ? "bg-yellow-50 text-yellow-700 border-yellow-300"
+                                          : firstPhone.type === "landline"
+                                            ? "bg-red-50 text-red-700 border-red-300"
+                                            : "bg-gray-50 text-gray-500 border-gray-300"
+                                    }`}
+                                  >
+                                    {firstPhone.type === "mobile"
+                                      ? "M"
+                                      : firstPhone.type === "voip"
+                                        ? "V"
+                                        : firstPhone.type === "landline"
+                                          ? "L"
+                                          : "?"}
+                                  </Badge>
+                                )}
+                              </div>
+                            );
+                          }
+                          if (company.phone) {
+                            return <span>{company.phone}</span>;
+                          }
+                          return <span className="text-muted-foreground">-</span>;
+                        })()}
                       </TableCell>
 
                       {/* Email */}
                       <TableCell>
-                        {company.enrichedEmails?.length > 0 ? (
-                          <span className="text-green-600 text-sm">
-                            {company.enrichedEmails[0]}
-                          </span>
-                        ) : company.email ? (
-                          <span className="text-sm">{company.email}</span>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
+                        {(() => {
+                          const firstEmail = company.enrichedEmails?.[0];
+                          if (firstEmail) {
+                            return (
+                              <span className="text-green-600 text-sm">
+                                {firstEmail}
+                              </span>
+                            );
+                          }
+                          if (company.email) {
+                            return <span className="text-sm">{company.email}</span>;
+                          }
+                          return <span className="text-muted-foreground">-</span>;
+                        })()}
                       </TableCell>
 
                       {/* Address */}

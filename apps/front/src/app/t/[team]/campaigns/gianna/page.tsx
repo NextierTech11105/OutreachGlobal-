@@ -97,7 +97,7 @@ interface QueueLead {
 }
 
 export default function GiannaCampaignsPage() {
-  const { team } = useCurrentTeam();
+  const { team, teamId, isTeamReady } = useCurrentTeam();
   const [loading, setLoading] = useState(true);
   const [phoneNumber, setPhoneNumber] = useState<string | null>(null);
   const [stats, setStats] = useState<WorkerStats>({
@@ -121,7 +121,7 @@ export default function GiannaCampaignsPage() {
     async function fetchPhone() {
       try {
         const response = await fetch(
-          `/api/workers/phone?worker=gianna&teamId=${team.id}`,
+          `/api/workers/phone?worker=gianna&teamId=${teamId}`,
         );
         const data = await response.json();
         if (data.success && data.assignment?.phoneNumber) {
@@ -132,13 +132,13 @@ export default function GiannaCampaignsPage() {
       }
     }
     fetchPhone();
-  }, [team.id]);
+  }, [teamId]);
 
   // Fetch stats
   useEffect(() => {
     async function fetchStats() {
       try {
-        const response = await fetch(`/api/gianna/stats?teamId=${team.id}`);
+        const response = await fetch(`/api/gianna/stats?teamId=${teamId}`);
         const data = await response.json();
         if (data.success) {
           setStats(data.stats);
@@ -150,7 +150,7 @@ export default function GiannaCampaignsPage() {
       }
     }
     fetchStats();
-  }, [team.id]);
+  }, [teamId]);
 
   // Fetch queue leads
   useEffect(() => {
@@ -158,7 +158,7 @@ export default function GiannaCampaignsPage() {
       setQueueLoading(true);
       try {
         const response = await fetch(
-          `/api/leads?teamId=${team.id}&worker=gianna&limit=20`,
+          `/api/leads?teamId=${teamId}&worker=gianna&limit=20`,
         );
         const data = await response.json();
         if (data.leads) {
@@ -209,7 +209,7 @@ export default function GiannaCampaignsPage() {
       }
     }
     fetchQueue();
-  }, [team.id]);
+  }, [teamId]);
 
   // Toggle lead selection
   const toggleLeadSelection = (leadId: string) => {
@@ -247,7 +247,7 @@ export default function GiannaCampaignsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           leadIds: pendingLeads.map((l) => l.id),
-          teamId: team.id,
+          teamId: teamId,
         }),
       });
       const data = await response.json();
@@ -270,7 +270,7 @@ export default function GiannaCampaignsPage() {
         body: JSON.stringify({
           leadIds: Array.from(selectedLeads),
           worker: "gianna",
-          teamId: team.id,
+          teamId: teamId,
         }),
       });
       const data = await response.json();
@@ -296,7 +296,7 @@ export default function GiannaCampaignsPage() {
           leadIds: Array.from(selectedLeads),
           fromWorker: "gianna",
           toWorker,
-          teamId: team.id,
+          teamId: teamId,
         }),
       });
       const data = await response.json();
@@ -374,7 +374,7 @@ export default function GiannaCampaignsPage() {
         body: JSON.stringify({
           leadId,
           fromWorker: "gianna",
-          teamId: team.id,
+          teamId: teamId,
         }),
       });
 
@@ -422,7 +422,7 @@ export default function GiannaCampaignsPage() {
 
           <div className="flex items-center gap-3">
             <ContentInsertionPicker
-              teamId={team.id}
+              teamId={teamId}
               onInsert={handleContentInsert}
             />
             <Button variant="outline" asChild>
@@ -809,7 +809,7 @@ export default function GiannaCampaignsPage() {
           {/* Right: Inbox */}
           <WorkerInbox
             workerId="gianna"
-            teamId={team.id}
+            teamId={teamId}
             phoneNumber={phoneNumber || undefined}
             onHandoff={(leadId, toWorker) => handleHandoff(leadId, toWorker)}
             className="h-[600px]"

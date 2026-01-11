@@ -93,7 +93,7 @@ const PIPELINE_STAGES = [
 ];
 
 export default function TeamHomePage() {
-  const { team } = useCurrentTeam();
+  const { team, teamId, isTeamReady } = useCurrentTeam();
   const [stats, setStats] = useState({
     pendingMessages: 0,
     sentToday: 0,
@@ -110,23 +110,38 @@ export default function TeamHomePage() {
   });
   const [loading, setLoading] = useState(true);
 
+  // Bail out early if team context has not loaded yet
+  if (!team) {
+    return (
+      <TeamSection className="h-full flex flex-col">
+        <TeamHeader>
+          <TeamTitle>
+            <Target className="w-6 h-6 mr-2" />
+            Command Center
+          </TeamTitle>
+        </TeamHeader>
+        <div className="p-4 text-sm text-zinc-400">Loading team…</div>
+      </TeamSection>
+    );
+  }
+
   // Fetch stats
   useEffect(() => {
     async function fetchStats() {
       try {
         // Fetch SMS queue stats
-        const queueRes = await fetch(`/api/sms/queue?teamId=${team.id}`);
+        const queueRes = await fetch(`/api/sms/queue?teamId=${teamId}`);
         const queueData = await queueRes.json();
 
         // Fetch conversation stats
         const convRes = await fetch(
-          `/api/sms/conversations?teamId=${team.id}&limit=1`,
+          `/api/sms/conversations?teamId=${teamId}&limit=1`,
         );
         const convData = await convRes.json();
 
         // Fetch pipeline stats (lead counts by status)
         const pipelineRes = await fetch(
-          `/api/leads?teamId=${team.id}&action=pipeline_stats`,
+          `/api/leads?teamId=${teamId}&action=pipeline_stats`,
         );
         const pipelineData = await pipelineRes.json();
 
@@ -150,7 +165,7 @@ export default function TeamHomePage() {
     }
 
     fetchStats();
-  }, [team.id]);
+  }, [teamId]);
 
   const quickActions: QuickAction[] = [
     {

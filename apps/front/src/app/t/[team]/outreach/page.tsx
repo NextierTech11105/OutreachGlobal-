@@ -192,7 +192,14 @@ function formatRevenue(amount: number): string {
 
 export default function OutreachPage() {
   const params = useParams();
-  const teamId = params.team as string;
+  const teamParam = params?.team;
+  const teamId = Array.isArray(teamParam)
+    ? teamParam[0] ?? ""
+    : (teamParam as string) ?? "";
+
+  if (!teamId) {
+    return null;
+  }
 
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
