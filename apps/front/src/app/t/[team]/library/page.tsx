@@ -192,6 +192,16 @@ const contentTypeIcons: Record<string, React.ReactNode> = {
   SQL_QUERY: <Database className="h-4 w-4" />,
   CODE_SNIPPET: <Code className="h-4 w-4" />,
   DOCUMENTATION: <FileText className="h-4 w-4" />,
+  // Marketing content types
+  MEDIUM_ARTICLE: <ExternalLink className="h-4 w-4" />,
+  NEWSLETTER: <Mail className="h-4 w-4" />,
+  EXTERNAL_LINK: <ExternalLink className="h-4 w-4" />,
+  EBOOK: <FileText className="h-4 w-4" />,
+  ONE_PAGER: <FileText className="h-4 w-4" />,
+  CASE_STUDY: <FileText className="h-4 w-4" />,
+  VIDEO: <ExternalLink className="h-4 w-4" />,
+  // SMS content
+  SMS_CONTENT_LINK: <MessageSquare className="h-4 w-4" />,
 };
 
 interface Category {
@@ -757,6 +767,11 @@ export default function LibraryPage() {
                     <SelectItem value="SCRIPT">Script</SelectItem>
                     <SelectItem value="SQL_QUERY">SQL Query</SelectItem>
                     <SelectItem value="CODE_SNIPPET">Code Snippet</SelectItem>
+                    <SelectItem value="MEDIUM_ARTICLE">Medium Article</SelectItem>
+                    <SelectItem value="NEWSLETTER">Newsletter</SelectItem>
+                    <SelectItem value="CASE_STUDY">Case Study</SelectItem>
+                    <SelectItem value="SMS_CONTENT_LINK">SMS Content Link</SelectItem>
+                    <SelectItem value="EXTERNAL_LINK">External Link</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
