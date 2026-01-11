@@ -13,7 +13,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { apiAuth } from "@/lib/api-auth";
+import { requireTenantContext } from "@/lib/api-auth";
 import { signalHouseService } from "@/lib/services/signalhouse-service";
 
 interface ReportRequest {
@@ -44,10 +44,8 @@ interface ReportRequest {
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const { userId } = await apiAuth();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    // P0: Require tenant context for proper auth
+    await requireTenantContext();
 
     // Check if SignalHouse is configured
     if (!signalHouseService.isConfigured()) {
@@ -167,10 +165,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
-    const { userId } = await apiAuth();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    // P0: Require tenant context for proper auth
+    await requireTenantContext();
 
     if (!signalHouseService.isConfigured()) {
       return NextResponse.json(

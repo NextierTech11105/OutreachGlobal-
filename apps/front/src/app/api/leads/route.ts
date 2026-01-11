@@ -11,22 +11,17 @@ import {
   sql,
   count as sqlCount,
 } from "drizzle-orm";
-import { apiAuth } from "@/lib/api-auth";
+import { requireTenantContext } from "@/lib/api-auth";
 
 // GET - List leads with filtering and pagination
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await apiAuth();
-    if (!userId) {
-      return NextResponse.json(
-        { error: "Unauthorized", message: "Please sign in to view leads" },
-        { status: 401 },
-      );
-    }
+    // P0: Use requireTenantContext to enforce team isolation from JWT
+    const { userId, teamId } = await requireTenantContext();
 
     const { searchParams } = new URL(request.url);
     const action = searchParams.get("action");
-    const teamId = searchParams.get("teamId");
+    // SECURITY: teamId comes from JWT, not query params
 
     // Handle pipeline_stats action - return counts by pipeline stage
     if (action === "pipeline_stats") {
@@ -41,10 +36,11 @@ export async function GET(request: NextRequest) {
       const pipeline: Record<string, number> = {};
 
       for (const stage of pipelineStages) {
-        const conditions = [eq(leads.pipelineStatus, stage)];
-        if (teamId) {
-          conditions.push(eq(leads.teamId, teamId));
-        }
+        // P0: Always scope by teamId from JWT
+        const conditions = [
+          eq(leads.pipelineStatus, stage),
+          eq(leads.teamId, teamId),
+        ];
 
         const [result] = await db
           .select({ count: sqlCount() })
@@ -54,10 +50,6 @@ export async function GET(request: NextRequest) {
         pipeline[stage] = result?.count || 0;
       }
 
-      // Count active campaigns
-      const activeCampaignsConditions = teamId
-        ? [eq(leads.teamId, teamId)]
-        : [];
       // For now, count leads with status "queued" or "sent" as active campaigns proxy
       // TODO: Replace with actual campaigns table count
       const activeCampaigns = pipeline.queued > 0 || pipeline.sent > 0 ? 1 : 0;
@@ -85,11 +77,8 @@ export async function GET(request: NextRequest) {
       engaged: ["replied"], // Have responded
     };
 
-    // Build where conditions - filter by teamId if provided, otherwise by userId
-    const conditions: ReturnType<typeof eq>[] = [];
-    if (teamId) {
-      conditions.push(eq(leads.teamId, teamId));
-    }
+    // P0: Always scope by teamId from JWT - never optional
+    const conditions: ReturnType<typeof eq>[] = [eq(leads.teamId, teamId)];
 
     // Check if status is a pre-queue status or traditional status
     if (status) {
@@ -246,10 +235,8 @@ export async function GET(request: NextRequest) {
 // PATCH - Update lead status
 export async function PATCH(request: NextRequest) {
   try {
-    const { userId } = await apiAuth();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    // P0: Use requireTenantContext to enforce team isolation from JWT
+    const { teamId } = await requireTenantContext();
 
     const body = await request.json();
     const { leadId, status, notes, priority } = body;
@@ -270,10 +257,11 @@ export async function PATCH(request: NextRequest) {
       updateData.notes = notes;
     }
 
+    // P0: Scope update by teamId from JWT
     const [updated] = await db
       .update(leads)
       .set(updateData)
-      .where(and(eq(leads.id, leadId), eq(leads.teamId, userId)))
+      .where(and(eq(leads.id, leadId), eq(leads.teamId, teamId)))
       .returning();
 
     if (!updated) {

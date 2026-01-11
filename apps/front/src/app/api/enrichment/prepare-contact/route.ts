@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { apiAuth } from "@/lib/api-auth";
+import { requireTenantContext } from "@/lib/api-auth";
 
 // Just-in-Time Enrichment for Power Dialer
 // This endpoint runs the full enrichment pipeline BEFORE contacting a lead:
@@ -292,10 +292,8 @@ async function enrichB2BLead(
 // POST - Prepare a lead for contact (just-in-time enrichment)
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await apiAuth();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    // P0: Use requireTenantContext to enforce team isolation
+    await requireTenantContext();
 
     const body = await request.json();
     const { id, type = "property", personId, skipCache = false } = body;

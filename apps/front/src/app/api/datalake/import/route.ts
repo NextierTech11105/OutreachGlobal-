@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { parse } from "csv-parse/sync";
 import { db } from "@/lib/db";
 import { businesses, contacts } from "@/lib/db/schema";
-import { apiAuth } from "@/lib/api-auth";
+import { requireTenantContext } from "@/lib/api-auth";
 
 // Field mappings for USBizData format
 const FIELD_MAP: Record<string, string[]> = {
@@ -88,10 +88,8 @@ function extractValue(
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await apiAuth();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    // P0: Use requireTenantContext to enforce team isolation
+    const { userId, teamId } = await requireTenantContext();
 
     const formData = await request.formData();
     const file = formData.get("file") as File;
@@ -148,6 +146,7 @@ export async function POST(request: NextRequest) {
 
             return {
               userId: userId,
+              teamId: teamId, // P0: Associate with team for multi-tenant isolation
               companyName: companyName,
               phone: phone,
               email: email,
@@ -200,6 +199,7 @@ export async function POST(request: NextRequest) {
 
             return {
               userId: userId,
+              teamId: teamId, // P0: Associate with team for multi-tenant isolation
               firstName: fName,
               lastName: lName,
               fullName:
