@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { sendSMS, isConfigured } from "@/lib/signalhouse";
 
 /**
  * TEST SMS ENDPOINT
@@ -9,9 +10,8 @@ import { NextRequest, NextResponse } from "next/server";
  * Body: { to: "+15551234567", message: "Test message" }
  */
 
-const SIGNALHOUSE_API_KEY = process.env.SIGNALHOUSE_API_KEY || "";
 const SIGNALHOUSE_FROM_NUMBER =
-  process.env.SIGNALHOUSE_FROM_NUMBER || process.env.TWILIO_PHONE_NUMBER || "";
+  process.env.SIGNALHOUSE_FROM_NUMBER || "15164079249";
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,9 +24,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!SIGNALHOUSE_API_KEY) {
+    if (!isConfigured()) {
       return NextResponse.json(
-        { error: "SIGNALHOUSE_API_KEY not set" },
+        { error: "SignalHouse credentials not configured (SIGNALHOUSE_API_KEY or SIGNALHOUSE_AUTH_TOKEN)" },
         { status: 500 },
       );
     }
@@ -38,40 +38,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const response = await fetch(
-      "https://api.signalhouse.io/api/v1/message/sendSMS",
-      {
-        method: "POST",
-        headers: {
-          "x-api-key": SIGNALHOUSE_API_KEY,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          to,
-          from: SIGNALHOUSE_FROM_NUMBER,
-          message: message || "Test message from Nextier",
-        }),
-      },
-    );
+    const result = await sendSMS({
+      to,
+      from: SIGNALHOUSE_FROM_NUMBER,
+      message: message || "Test message from Nextier",
+    });
 
-    const data = await response.json();
-
-    if (!response.ok) {
+    if (!result.success) {
       return NextResponse.json(
         {
           success: false,
-          error: data.message || `HTTP ${response.status}`,
-          details: data,
+          error: result.error || "Failed to send SMS",
+          correlationId: result.correlationId,
         },
-        { status: response.status },
+        { status: 500 },
       );
     }
 
     return NextResponse.json({
       success: true,
-      messageId: data.messageId || data.id || data.sid,
+      messageId: result.data?.messageId,
       to,
       from: SIGNALHOUSE_FROM_NUMBER,
+      correlationId: result.correlationId,
     });
   } catch (error) {
     return NextResponse.json(
@@ -87,8 +76,8 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   return NextResponse.json({
     status: "ready",
-    signalhouseKeySet: !!SIGNALHOUSE_API_KEY,
-    fromNumberSet: !!SIGNALHOUSE_FROM_NUMBER,
+    configured: isConfigured(),
+    fromNumber: SIGNALHOUSE_FROM_NUMBER,
     usage: "POST with { to: '+15551234567', message: 'Test' }",
   });
 }

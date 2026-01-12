@@ -8,7 +8,7 @@
 // - Rate limit handling with retry-after
 // - Structured error responses
 
-const SIGNALHOUSE_API_BASE = "https://api.signalhouse.io/api/v1";
+const SIGNALHOUSE_API_BASE = "https://api.signalhouse.io";
 
 // Auth credentials from environment
 const API_KEY = process.env.SIGNALHOUSE_API_KEY || "";
