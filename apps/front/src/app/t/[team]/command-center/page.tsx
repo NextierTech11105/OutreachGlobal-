@@ -47,6 +47,11 @@ import {
 } from "@/components/campaign-buckets";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
+import {
+  USBIZDATA_REGISTRY,
+  getTotalRecordsAvailable,
+  getVerifiedDatabases,
+} from "@/lib/data/usbizdata-registry";
 
 // Pipeline targets
 const DAILY_SKIP_TRACE_LIMIT = 2000;
@@ -138,9 +143,13 @@ interface DataLake {
 export default function CommandCenterPage() {
   const params = useParams();
   const teamId = params.team as string;
+  // Get static registry totals for display even before user uploads data
+  const registryTotalRecords = getTotalRecordsAvailable();
+  const registryTotalDatabases = USBIZDATA_REGISTRY.length;
+
   const [stats, setStats] = useState<PipelineStats>({
-    totalRecords: 0,
-    totalDatabases: 0,
+    totalRecords: registryTotalRecords, // Show registry totals as "available"
+    totalDatabases: registryTotalDatabases,
     skipTracedToday: 0,
     skipTracedTotal: 0,
     readyForCampaign: 0,
@@ -168,8 +177,8 @@ export default function CommandCenterPage() {
       if (bucketsData.buckets) {
         setDataLakes(bucketsData.buckets);
 
-        // Calculate stats from buckets
-        const totalRecords = bucketsData.buckets.reduce(
+        // Calculate stats from user's uploaded buckets
+        const userRecords = bucketsData.buckets.reduce(
           (acc: number, b: DataLake) => acc + (b.totalLeads || 0),
           0,
         );
@@ -180,8 +189,9 @@ export default function CommandCenterPage() {
 
         setStats((prev) => ({
           ...prev,
-          totalRecords,
-          totalDatabases: bucketsData.buckets.length,
+          // Show registry totals + user's uploaded data
+          totalRecords: registryTotalRecords + userRecords,
+          totalDatabases: registryTotalDatabases + bucketsData.buckets.length,
           skipTracedTotal: totalEnriched,
           readyForCampaign: Math.min(totalEnriched, CAMPAIGN_BUCKET_SIZE),
           monthlyPool: totalEnriched,
