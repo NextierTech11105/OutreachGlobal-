@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 
-const SIGNALHOUSE_API_KEY = process.env.SIGNALHOUSE_API_KEY || "";
+const SIGNALHOUSE_API_KEY = process.env.SIGNALHOUSE_AUTH_TOKEN || process.env.SIGNALHOUSE_API_KEY || "";
 const GMAIL_USER = process.env.GMAIL_USER || "tb@outreachglobal.io";
 const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD || "";
 const APP_URL =
@@ -27,8 +27,15 @@ interface ShareRequest {
   recipientPhone?: string;
   recipientEmail?: string;
   recipientName?: string;
+  // Owner details (from skip trace)
+  ownerFirstName?: string;
+  ownerLastName?: string;
+  // Property details
   propertyAddress?: string;
+  propertyType?: "residential" | "commercial" | "business" | "land" | "mixed";
+  businessName?: string; // If property is business-related
   estimatedValue?: number;
+  // Agent/sender details
   agentName?: string;
   agentPhone?: string;
   companyName?: string;
@@ -47,7 +54,11 @@ export async function POST(request: NextRequest) {
       recipientPhone,
       recipientEmail,
       recipientName,
+      ownerFirstName,
+      ownerLastName,
       propertyAddress,
+      propertyType,
+      businessName,
       estimatedValue,
       agentName,
       agentPhone,
@@ -70,6 +81,17 @@ export async function POST(request: NextRequest) {
       email?: { success: boolean; messageId?: string; error?: string };
     } = {};
 
+    // Build owner display name (prefer first name from skip trace)
+    const ownerDisplayName = ownerFirstName || recipientName?.split(" ")[0] || "";
+    const ownerFullName = ownerFirstName && ownerLastName
+      ? `${ownerFirstName} ${ownerLastName}`
+      : recipientName || "";
+
+    // Build property description (business vs residential)
+    const propertyDescription = businessName
+      ? `${businessName} at ${propertyAddress}`
+      : propertyAddress || "your property";
+
     // Format currency for display
     const formattedValue = estimatedValue
       ? new Intl.NumberFormat("en-US", {
@@ -82,15 +104,15 @@ export async function POST(request: NextRequest) {
     // === SEND SMS VIA SIGNALHOUSE ===
     if (sendSms && recipientPhone && SIGNALHOUSE_API_KEY) {
       try {
-        // Gianna-style personalized message
-        const smsMessage = `Hi${recipientName ? ` ${recipientName.split(" ")[0]}` : ""}! ${
+        // Personalized SMS with owner first name and property/business details
+        const smsMessage = `Hi${ownerDisplayName ? ` ${ownerDisplayName}` : ""}! ${
           agentName || "Your advisor"
         } from ${companyName || "NexTier"} prepared a property valuation report for ${
-          propertyAddress || "your property"
-        }${formattedValue ? ` - estimated at ${formattedValue}` : ""}.\n\nView your personalized report: ${reportUrl}\n\nReply STOP to opt out.`;
+          propertyDescription
+        }.\n\nView your personalized report: ${reportUrl}\n\nReply STOP to opt out.`;
 
         const smsResponse = await fetch(
-          "https://api.signalhouse.io/v1/messages",
+          "https://api.signalhouse.io/message/sendSMS",
           {
             method: "POST",
             headers: {
@@ -99,10 +121,8 @@ export async function POST(request: NextRequest) {
             },
             body: JSON.stringify({
               to: recipientPhone,
-              text: smsMessage,
-              from:
-                process.env.SIGNALHOUSE_FROM_NUMBER ||
-                process.env.TWILIO_PHONE_NUMBER,
+              message: smsMessage,
+              from: process.env.SIGNALHOUSE_FROM_NUMBER || "+15164079249",
             }),
           },
         );
