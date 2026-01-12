@@ -1,10 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
+import nodemailer from "nodemailer";
 
 const SIGNALHOUSE_API_KEY = process.env.SIGNALHOUSE_API_KEY || "";
-const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || "";
+const GMAIL_USER = process.env.GMAIL_USER || "tb@outreachglobal.io";
+const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD || "";
 const APP_URL =
   process.env.NEXT_PUBLIC_APP_URL ||
   "https://monkfish-app-mb7h3.ondigitalocean.app";
+
+// Gmail SMTP transporter
+function createMailTransporter() {
+  if (!GMAIL_APP_PASSWORD) return null;
+  return nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: GMAIL_USER,
+      pass: GMAIL_APP_PASSWORD,
+    },
+  });
+}
 
 interface ShareRequest {
   reportId: string;
@@ -114,11 +128,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // === SEND EMAIL VIA SENDGRID ===
-    if (sendEmail && recipientEmail && SENDGRID_API_KEY) {
+    // === SEND EMAIL VIA GMAIL ===
+    const transporter = createMailTransporter();
+    if (sendEmail && recipientEmail && transporter) {
       try {
         const firstName = recipientName?.split(" ")[0] || "Homeowner";
-        const agentFirstName = agentName?.split(" ")[0] || "Your Advisor";
 
         // Beautiful HTML email template
         const htmlContent = `
@@ -139,7 +153,7 @@ export async function POST(request: NextRequest) {
           <tr>
             <td style="padding: 40px 40px 20px; text-align: center; border-bottom: 1px solid #334155;">
               <h1 style="margin: 0; color: #f8fafc; font-size: 28px; font-weight: 700;">
-                ${companyName || "NexTier"}
+                ${companyName || "Outreach Global"}
               </h1>
               <p style="margin: 8px 0 0; color: #94a3b8; font-size: 14px;">
                 Your Trusted Real Estate Partner
@@ -247,7 +261,7 @@ export async function POST(request: NextRequest) {
                       ${agentName || "Your Real Estate Advisor"}
                     </p>
                     <p style="margin: 4px 0 0; color: #94a3b8; font-size: 14px;">
-                      ${companyName || "NexTier Real Estate"}
+                      ${companyName || "Outreach Global"}
                     </p>
                     ${
                       agentPhone
@@ -270,7 +284,7 @@ export async function POST(request: NextRequest) {
           <tr>
             <td style="padding: 20px 40px; text-align: center; border-top: 1px solid #1e293b;">
               <p style="margin: 0; color: #475569; font-size: 12px;">
-                Powered by NexTier Property Intelligence
+                Powered by Outreach Global Property Intelligence
               </p>
               <p style="margin: 8px 0 0; color: #334155; font-size: 11px;">
                 This email was sent because a property report was requested. To unsubscribe, reply STOP.
@@ -300,64 +314,31 @@ Your report includes:
 - Exit strategy options
 
 ${agentName || "Your Real Estate Advisor"}
-${companyName || "NexTier Real Estate"}
+${companyName || "Outreach Global"}
 ${agentPhone ? `Phone: ${agentPhone}` : ""}
 
 ---
-Powered by NexTier Property Intelligence`;
+Powered by Outreach Global Property Intelligence`;
 
-        const emailResponse = await fetch(
-          "https://api.sendgrid.com/v3/mail/send",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${SENDGRID_API_KEY}`,
-            },
-            body: JSON.stringify({
-              personalizations: [
-                {
-                  to: [
-                    { email: recipientEmail, name: recipientName || undefined },
-                  ],
-                  subject: `Your Property Valuation Report${propertyAddress ? ` - ${propertyAddress}` : ""}`,
-                },
-              ],
-              from: {
-                email: process.env.SENDGRID_FROM_EMAIL || "reports@nextier.app",
-                name: agentName || companyName || "NexTier",
-              },
-              reply_to: {
-                email:
-                  process.env.SENDGRID_REPLY_TO ||
-                  process.env.SENDGRID_FROM_EMAIL ||
-                  "hello@nextier.app",
-                name: agentName || companyName || "NexTier",
-              },
-              content: [
-                { type: "text/plain", value: textContent },
-                { type: "text/html", value: htmlContent },
-              ],
-              tracking_settings: {
-                click_tracking: { enable: true },
-                open_tracking: { enable: true },
-              },
-            }),
-          },
-        );
+        // Send via Gmail/Nodemailer
+        const info = await transporter.sendMail({
+          from: `"${agentName || companyName || "Outreach Global"}" <${GMAIL_USER}>`,
+          to: recipientEmail,
+          replyTo: GMAIL_USER,
+          subject: `Your Property Valuation Report${propertyAddress ? ` - ${propertyAddress}` : ""}`,
+          text: textContent,
+          html: htmlContent,
+        });
 
-        if (emailResponse.ok || emailResponse.status === 202) {
-          results.email = { success: true };
-          console.log("[Report Share] Email sent successfully");
-        } else {
-          const emailError = await emailResponse.text();
-          results.email = { success: false, error: emailError };
-          console.error("[Report Share] Email failed:", emailError);
-        }
-      } catch (emailError) {
+        results.email = { success: true, messageId: info.messageId };
+        console.log("[Report Share] Email sent successfully via Gmail:", info.messageId);
+      } catch (emailError: any) {
         console.error("[Report Share] Email error:", emailError);
-        results.email = { success: false, error: "Email send failed" };
+        results.email = { success: false, error: emailError.message || "Email send failed" };
       }
+    } else if (sendEmail && recipientEmail && !transporter) {
+      console.warn("[Report Share] Gmail not configured - GMAIL_APP_PASSWORD missing");
+      results.email = { success: false, error: "Gmail not configured" };
     }
 
     // Return results
