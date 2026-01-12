@@ -973,6 +973,44 @@ export async function POST(request: NextRequest) {
         }
 
         // ─────────────────────────────────────────────────────────────────────
+        // WORKFLOW ENGINE: Trigger automation rules for message.received
+        // ─────────────────────────────────────────────────────────────────────
+        if (lead && inboundConfig.AUTO_EXECUTE_WORKFLOWS !== false) {
+          try {
+            // Fire-and-forget workflow execution (don't block webhook response)
+            const workflowPayload = {
+              trigger: "message.received",
+              teamId: lead.teamId,
+              leadId: lead.id,
+              data: {
+                fromNumber,
+                toNumber,
+                messageBody: messageBody.substring(0, 500),
+                capturedEmail,
+                capturedMobile,
+                isPositiveLead,
+                worker: worker.name,
+              },
+            };
+
+            fetch(`${process.env.NEXT_PUBLIC_API_URL || ""}/api/workflows/execute`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(workflowPayload),
+            }).catch((err) => {
+              console.error("[SignalHouse] Workflow trigger failed:", err);
+            });
+
+            console.log(
+              `[SignalHouse] ⚡ Triggered workflows for lead ${lead.id}`,
+            );
+          } catch (workflowError) {
+            console.error("[SignalHouse] Workflow trigger error:", workflowError);
+            // Don't fail webhook - workflows are non-blocking
+          }
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
         // HANDLE OPT-OUT
         // ─────────────────────────────────────────────────────────────────────
         if (isOptOut) {

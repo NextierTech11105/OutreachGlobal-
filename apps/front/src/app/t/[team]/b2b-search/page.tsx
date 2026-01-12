@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useParams, useRouter } from "next/navigation";
 import {
   Building2,
   Search,
@@ -15,6 +16,7 @@ import {
   UserCheck,
   Globe,
   RefreshCw,
+  Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -124,8 +126,13 @@ const US_STATES = [
 
 export default function B2BSearchPage() {
   const { toast } = useToast();
+  const params = useParams();
+  const router = useRouter();
+  const teamSlug = params.team as string;
+
   const [results, setResults] = useState<Business[]>([]);
   const [loading, setLoading] = useState(false);
+  const [addingToCampaign, setAddingToCampaign] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
   const [source, setSource] = useState<string>("");
   const [filters, setFilters] = useState<SearchFilters>({
@@ -136,6 +143,59 @@ export default function B2BSearchPage() {
     title: "",
     decisionMakersOnly: true,
   });
+
+  // Add business to campaign - creates lead and redirects to campaign builder
+  const addToCampaign = useCallback(
+    async (business: Business) => {
+      setAddingToCampaign(business.id);
+      try {
+        // Create lead from business
+        const response = await fetch("/api/leads", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            teamId: teamSlug,
+            firstName: business.first_name,
+            lastName: business.last_name,
+            email: business.email,
+            phone: business.phone,
+            company: business.company,
+            title: business.title,
+            address: business.address,
+            city: business.city,
+            state: business.state,
+            zip: business.zip_code,
+            source: "b2b-search",
+            tags: ["b2b", business.sic_description || "business"],
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to create lead");
+        }
+
+        const lead = await response.json();
+
+        toast({
+          title: "Lead Created",
+          description: `${business.first_name} ${business.last_name} added. Redirecting to campaign builder...`,
+        });
+
+        // Redirect to campaign builder with lead ID
+        router.push(`/t/${teamSlug}/campaign-builder?leadId=${lead.id}`);
+      } catch (error) {
+        console.error("Add to campaign error:", error);
+        toast({
+          title: "Failed to Add",
+          description: "Could not add business to campaign. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setAddingToCampaign(null);
+      }
+    },
+    [teamSlug, router, toast]
+  );
 
   // Search businesses
   const searchBusinesses = useCallback(async () => {
@@ -480,7 +540,18 @@ export default function B2BSearchPage() {
                     <Button variant="outline" size="sm">
                       View
                     </Button>
-                    <Button size="sm">Add to Campaign</Button>
+                    <Button
+                                      size="sm"
+                                      onClick={() => addToCampaign(result)}
+                                      disabled={addingToCampaign === result.id}
+                                    >
+                                      {addingToCampaign === result.id ? (
+                                        <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                                      ) : (
+                                        <Plus className="mr-1 h-3 w-3" />
+                                      )}
+                                      Add to Campaign
+                                    </Button>
                   </div>
                 </div>
               </CardContent>
