@@ -1,0 +1,92 @@
+# DigitalOcean App Platform spec — staging
+# Fill secrets per environment; do not commit secret-filled copies.
+
+name: social-xpress-engine-staging
+region: nyc
+
+databases:
+  - name: sxp-db-staging
+    engine: PG
+    version: "16"
+    size: db-s-1vcpu-1gb
+    num_nodes: 1
+    production: false
+
+services:
+  - name: sxp-api
+    dockerfile_path: deploy/social-xpress/Dockerfile.sxp-api
+    source_dir: .
+    http_port: 3001
+    instance_size_slug: basic-xs
+    instance_count: 1
+    routes:
+      - path: "/"
+        preserve_path_prefix: false
+    envs:
+      - key: NODE_ENV
+        value: production
+      - key: APP_ENV
+        value: staging
+      - key: PORT
+        value: "3001"
+      - key: DATABASE_URL
+        value: "${DATABASE_URL}"
+        type: SECRET
+      - key: APP_BASE_URL
+        value: "${APP_BASE_URL}"
+      - key: HANDOFF_DEFAULT_TRANSPORT
+        value: file
+      - key: HANDOFF_EXPORT_BUCKET
+        value: "${DO_SPACES_EXPORT_BUCKET}"
+      - key: HANDOFF_EXPORT_PREFIX
+        value: exports/lead-batches/
+      - key: HANDOFF_SCHEMA_VERSION
+        value: v1
+      - key: SPACES_ENDPOINT
+        value: https://nyc3.digitaloceanspaces.com
+      - key: SPACES_REGION
+        value: nyc3
+      - key: SPACES_ACCESS_KEY
+        value: "${DO_SPACES_KEY}"
+        type: SECRET
+      - key: SPACES_SECRET_KEY
+        value: "${DO_SPACES_SECRET}"
+        type: SECRET
+      - key: ENRICHMENT_BUDGET_MONTHLY
+        value: "5000"
+      - key: LOG_LEVEL
+        value: info
+
+workers:
+  - name: sxp-worker
+    dockerfile_path: deploy/social-xpress/Dockerfile.sxp-worker
+    source_dir: .
+    instance_size_slug: basic-xs
+    instance_count: 1
+    envs:
+      - key: NODE_ENV
+        value: production
+      - key: APP_ENV
+        value: staging
+      - key: DATABASE_URL
+        value: "${DATABASE_URL}"
+        type: SECRET
+      - key: QUEUE_BROKER_URL
+        value: "${QUEUE_BROKER_URL}"
+        type: SECRET
+      - key: HANDOFF_SCHEMA_VERSION
+        value: v1
+      - key: SPACES_ENDPOINT
+        value: https://nyc3.digitaloceanspaces.com
+      - key: SPACES_REGION
+        value: nyc3
+      - key: SPACES_ACCESS_KEY
+        value: "${DO_SPACES_KEY}"
+        type: SECRET
+      - key: SPACES_SECRET_KEY
+        value: "${DO_SPACES_SECRET}"
+        type: SECRET
+      - key: ENRICHMENT_BUDGET_MONTHLY
+        value: "5000"
+      - key: LOG_LEVEL
+        value: info

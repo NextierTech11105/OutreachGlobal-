@@ -147,12 +147,14 @@ export async function GET() {
     );
 
     // State-level data for heat map
-    const stateStats_mapped = stateStats.map(stat => ({
-      state: stat.state?.toUpperCase().trim() || "",
-      companyCount: Number(stat.companyCount) || 0,
-      smsReadyCount: Number(stat.smsReadyCount) || 0,
-      avgScore: Number(stat.avgScore) || 0,
-    })).filter(s => s.state);
+    const stateStats_mapped = stateStats
+      .map((stat) => ({
+        state: stat.state?.toUpperCase().trim() || "",
+        companyCount: Number(stat.companyCount) || 0,
+        smsReadyCount: Number(stat.smsReadyCount) || 0,
+        avgScore: Number(stat.avgScore) || 0,
+      }))
+      .filter((s) => s.state);
 
     return NextResponse.json({
       success: true,

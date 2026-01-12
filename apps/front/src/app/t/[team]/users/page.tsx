@@ -141,7 +141,9 @@ export default function UsersPage() {
         setInviteRole("member");
         refetch();
       } else {
-        toast.error(result.data?.inviteTeamMember?.message || "Failed to send invite");
+        toast.error(
+          result.data?.inviteTeamMember?.message || "Failed to send invite",
+        );
       }
     } catch (error) {
       console.error("Invite error:", error);
@@ -236,7 +238,7 @@ export default function UsersPage() {
   const activeCount = members.filter((m) => m.status === "active").length;
   const pendingCount = members.filter((m) => m.status === "pending").length;
   const adminCount = members.filter(
-    (m) => m.role === "admin" || m.role === "owner"
+    (m) => m.role === "admin" || m.role === "owner",
   ).length;
 
   return (
@@ -342,7 +344,9 @@ export default function UsersPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge className={getRoleColor(member.role) + " text-white"}>
+                      <Badge
+                        className={getRoleColor(member.role) + " text-white"}
+                      >
                         {member.role}
                       </Badge>
                     </TableCell>
@@ -424,7 +428,9 @@ export default function UsersPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="admin">Admin - Full access</SelectItem>
-                  <SelectItem value="member">Member - Standard access</SelectItem>
+                  <SelectItem value="member">
+                    Member - Standard access
+                  </SelectItem>
                   <SelectItem value="viewer">Viewer - Read only</SelectItem>
                 </SelectContent>
               </Select>

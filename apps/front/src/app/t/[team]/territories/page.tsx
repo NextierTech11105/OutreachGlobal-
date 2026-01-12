@@ -95,7 +95,10 @@ export default function TerritoriesPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <TerritoryHeatMap stateData={stateData} className="w-full h-[400px] rounded-lg" />
+          <TerritoryHeatMap
+            stateData={stateData}
+            className="w-full h-[400px] rounded-lg"
+          />
         </CardContent>
       </Card>
 
