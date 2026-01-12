@@ -13,6 +13,7 @@ export interface AIWorker {
   role: string;
   description: string;
   phoneNumber: string;
+  phoneNumbers?: string[]; // Multiple numbers (SignalHouse + Twilio)
   signalhouseSubGroupId?: string;
   signalhouseCampaignId?: string;
   personality: {
@@ -42,8 +43,14 @@ export const AI_WORKERS: Record<AIWorkerName, AIWorker> = {
     name: "GIANNA",
     displayName: "Gianna",
     role: "Opener",
-    description: "First contact specialist - email capture, valuation offers",
+    description:
+      "First contact specialist - listens, reads, classifies, prioritizes, pushes to hot call queue",
     phoneNumber: process.env.GIANNA_PHONE_NUMBER || "",
+    // GIANNA listens on both SignalHouse (SMS) and Twilio (Voice/SMS)
+    phoneNumbers: [
+      process.env.GIANNA_PHONE_NUMBER || "",
+      process.env.GIANNA_TWILIO_NUMBER || process.env.TWILIO_PHONE_NUMBER || "",
+    ].filter(Boolean),
     signalhouseSubGroupId: process.env.GIANNA_SUBGROUP_ID,
     signalhouseCampaignId: process.env.GIANNA_CAMPAIGN_ID,
     personality: {
@@ -147,9 +154,20 @@ export function routeByPhoneNumber(toNumber: string): WorkerRouteResult {
   const normalized = toNumber.replace(/\D/g, "").slice(-10);
 
   for (const [, worker] of Object.entries(AI_WORKERS)) {
+    // Check primary phone number
     const workerNormalized = worker.phoneNumber.replace(/\D/g, "").slice(-10);
     if (workerNormalized && workerNormalized === normalized) {
       return { worker, matchedBy: "phone" };
+    }
+
+    // Check additional phone numbers (SignalHouse + Twilio multi-channel)
+    if (worker.phoneNumbers) {
+      for (const phone of worker.phoneNumbers) {
+        const phoneNormalized = phone.replace(/\D/g, "").slice(-10);
+        if (phoneNormalized && phoneNormalized === normalized) {
+          return { worker, matchedBy: "phone" };
+        }
+      }
     }
   }
 

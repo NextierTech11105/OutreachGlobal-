@@ -84,6 +84,7 @@ export interface SMSAuditLog {
 export interface ExecutionRouterConfig {
   defaultFromNumber?: string;
   signalhouseApiKey?: string;
+  signalhouseAuthToken?: string;
   signalhouseApiBase?: string;
   twilioAccountSid?: string;
   twilioAuthToken?: string;
@@ -98,8 +99,9 @@ export interface ExecutionRouterConfig {
 
 const DEFAULT_CONFIG: ExecutionRouterConfig = {
   signalhouseApiKey: process.env.SIGNALHOUSE_API_KEY,
+  signalhouseAuthToken: process.env.SIGNALHOUSE_AUTH_TOKEN,
   signalhouseApiBase:
-    process.env.SIGNALHOUSE_API_BASE || "https://api.signalhouse.io/api/v1",
+    process.env.SIGNALHOUSE_API_BASE || "https://api.signalhouse.io",
   defaultFromNumber:
     process.env.SIGNALHOUSE_FROM_NUMBER || process.env.TWILIO_PHONE_NUMBER,
   twilioAccountSid: process.env.TWILIO_ACCOUNT_SID,
@@ -512,14 +514,23 @@ async function sendViaSignalHouse(
   config: ExecutionRouterConfig,
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
   try {
+    // Build headers matching client.ts pattern (apiKey + authToken)
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      accept: "application/json",
+    };
+    if (config.signalhouseApiKey) {
+      headers["apiKey"] = config.signalhouseApiKey;
+    }
+    if (config.signalhouseAuthToken) {
+      headers["authToken"] = config.signalhouseAuthToken;
+    }
+
     const response = await fetch(
       `${config.signalhouseApiBase}/message/sendSMS`,
       {
         method: "POST",
-        headers: {
-          "x-api-key": config.signalhouseApiKey || "",
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify({ to, from, message }),
       },
     );
@@ -528,14 +539,14 @@ async function sendViaSignalHouse(
       const errorData = await response.json().catch(() => ({}));
       return {
         success: false,
-        error: errorData.message || `HTTP ${response.status}`,
+        error: errorData.message || errorData.error || `HTTP ${response.status}`,
       };
     }
 
     const data = await response.json();
     return {
       success: true,
-      messageId: data.messageId || data.id || data.sid,
+      messageId: data.messageId || data.message_id || data.id,
     };
   } catch (error) {
     return {
