@@ -194,7 +194,7 @@ export default function B2BSearchPage() {
         setAddingToCampaign(null);
       }
     },
-    [teamSlug, router, toast]
+    [teamSlug, router, toast],
   );
 
   // Search businesses
@@ -541,17 +541,17 @@ export default function B2BSearchPage() {
                       View
                     </Button>
                     <Button
-                                      size="sm"
-                                      onClick={() => addToCampaign(result)}
-                                      disabled={addingToCampaign === result.id}
-                                    >
-                                      {addingToCampaign === result.id ? (
-                                        <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                                      ) : (
-                                        <Plus className="mr-1 h-3 w-3" />
-                                      )}
-                                      Add to Campaign
-                                    </Button>
+                      size="sm"
+                      onClick={() => addToCampaign(result)}
+                      disabled={addingToCampaign === result.id}
+                    >
+                      {addingToCampaign === result.id ? (
+                        <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                      ) : (
+                        <Plus className="mr-1 h-3 w-3" />
+                      )}
+                      Add to Campaign
+                    </Button>
                   </div>
                 </div>
               </CardContent>

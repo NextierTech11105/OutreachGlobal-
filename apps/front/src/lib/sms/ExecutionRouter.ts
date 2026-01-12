@@ -539,7 +539,8 @@ async function sendViaSignalHouse(
       const errorData = await response.json().catch(() => ({}));
       return {
         success: false,
-        error: errorData.message || errorData.error || `HTTP ${response.status}`,
+        error:
+          errorData.message || errorData.error || `HTTP ${response.status}`,
       };
     }
 

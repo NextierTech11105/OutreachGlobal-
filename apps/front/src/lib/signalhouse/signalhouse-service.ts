@@ -205,7 +205,7 @@ export class SignalHouseService {
    */
   async getConversation(
     from: string,
-    to: string
+    to: string,
   ): Promise<ConversationMessage[]> {
     const result = await getConversation(from, to);
     if (!result.success || !result.data) {
@@ -264,7 +264,7 @@ export class SignalHouseService {
    * Send batch SMS (queued)
    */
   async sendBatch(
-    messages: Array<{ to: string; message: string }>
+    messages: Array<{ to: string; message: string }>,
   ): Promise<BatchSMSJob> {
     const jobId = `batch_${Date.now()}`;
 

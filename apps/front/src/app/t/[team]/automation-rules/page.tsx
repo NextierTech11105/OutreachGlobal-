@@ -13,6 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { Plus, Clock, CheckCircle, Zap } from "lucide-react";
 import { TeamSection } from "@/features/team/layouts/team-section";
 import { TeamHeader } from "@/features/team/layouts/team-header";
@@ -23,12 +24,14 @@ import { AnimatePresence } from "motion/react";
 import { useConnectionQuery } from "@/graphql/hooks/use-connection-query";
 import { WORKFLOWS_QUERY } from "@/features/workflow/queries/workflow.queries";
 import { useCurrentTeam } from "@/features/team/team.context";
+import { toast } from "sonner";
 
 export default function Page() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { teamId, isTeamReady } = useCurrentTeam();
   const [tab, setTab] = useState("active");
-  const [workflows, pageInfo, { loading }] = useConnectionQuery(
+  const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
+  const [workflows, pageInfo, { loading, refetch }] = useConnectionQuery(
     WORKFLOWS_QUERY,
     {
       pick: "workflows",
@@ -42,8 +45,39 @@ export default function Page() {
 
   if (!isTeamReady) return null;
 
-  const toggleRuleStatus = (id: string) => {
-    //
+  const toggleRuleStatus = async (id: string, currentActive: boolean) => {
+    setTogglingIds((prev) => new Set(prev).add(id));
+
+    try {
+      const response = await fetch("/api/workflows/execute", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workflowId: id,
+          active: !currentActive,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to toggle rule");
+      }
+
+      const data = await response.json();
+      toast.success(
+        `Rule ${data.workflow.active ? "activated" : "paused"} successfully`,
+      );
+
+      // Refetch to update the list
+      refetch();
+    } catch (error) {
+      toast.error("Failed to toggle rule status");
+    } finally {
+      setTogglingIds((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(id);
+        return newSet;
+      });
+    }
   };
 
   return (
@@ -84,12 +118,13 @@ export default function Page() {
                       <TableHead>Trigger Event</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Last Run</TableHead>
+                      <TableHead className="w-[80px]">Toggle</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {!loading && !workflows?.length && (
                       <TableRow>
-                        <TableCell colSpan={4} className="h-24 text-center">
+                        <TableCell colSpan={5} className="h-24 text-center">
                           No workflows found.
                         </TableCell>
                       </TableRow>
@@ -99,7 +134,7 @@ export default function Page() {
                         <TableCell className="font-medium">
                           {workflow.name}
                         </TableCell>
-                        <TableCell>{workflow.trigger.label}</TableCell>
+                        <TableCell>{workflow.trigger?.label || "—"}</TableCell>
                         <TableCell>
                           <Badge
                             variant="outline"
@@ -109,6 +144,15 @@ export default function Page() {
                           </Badge>
                         </TableCell>
                         <TableCell>Never</TableCell>
+                        <TableCell>
+                          <Switch
+                            checked={true}
+                            disabled={togglingIds.has(workflow.id)}
+                            onCheckedChange={() =>
+                              toggleRuleStatus(workflow.id, true)
+                            }
+                          />
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -123,12 +167,13 @@ export default function Page() {
                       <TableHead>Trigger Event</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Last Active</TableHead>
+                      <TableHead className="w-[80px]">Toggle</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {!loading && !workflows?.length && (
                       <TableRow>
-                        <TableCell colSpan={4} className="h-24 text-center">
+                        <TableCell colSpan={5} className="h-24 text-center">
                           No workflows found.
                         </TableCell>
                       </TableRow>
@@ -138,7 +183,7 @@ export default function Page() {
                         <TableCell className="font-medium">
                           {workflow.name}
                         </TableCell>
-                        <TableCell></TableCell>
+                        <TableCell>{workflow.trigger?.label || "—"}</TableCell>
                         <TableCell>
                           <Badge
                             variant="outline"
@@ -148,6 +193,15 @@ export default function Page() {
                           </Badge>
                         </TableCell>
                         <TableCell>Never</TableCell>
+                        <TableCell>
+                          <Switch
+                            checked={false}
+                            disabled={togglingIds.has(workflow.id)}
+                            onCheckedChange={() =>
+                              toggleRuleStatus(workflow.id, false)
+                            }
+                          />
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

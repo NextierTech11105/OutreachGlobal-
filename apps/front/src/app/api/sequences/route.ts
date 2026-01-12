@@ -78,7 +78,8 @@ const EXAMPLE_SEQUENCES: Sequence[] = [
         sms: {
           enabled: true,
           templateId: "bb-1",
-          message: "Hi {firstName}! Quick question about your property at {address}. Do you have 2 mins? - Gianna",
+          message:
+            "Hi {firstName}! Quick question about your property at {address}. Do you have 2 mins? - Gianna",
         },
         email: {
           enabled: false,
@@ -100,7 +101,8 @@ const EXAMPLE_SEQUENCES: Sequence[] = [
         sms: {
           enabled: true,
           templateId: "bb-2",
-          message: "Hey {firstName}, just following up. I have some interesting market data for your area. Want me to send it over?",
+          message:
+            "Hey {firstName}, just following up. I have some interesting market data for your area. Want me to send it over?",
         },
         email: {
           enabled: false,
@@ -122,12 +124,14 @@ const EXAMPLE_SEQUENCES: Sequence[] = [
         sms: {
           enabled: true,
           templateId: "bb-3",
-          message: "{firstName}, last message from me. If you ever want a free property valuation, just reply YES. - Gianna",
+          message:
+            "{firstName}, last message from me. If you ever want a free property valuation, just reply YES. - Gianna",
         },
         email: {
           enabled: true,
           subject: "Free Property Valuation for {address}",
-          message: "Hi {firstName},\n\nI wanted to reach out one more time about your property. We're offering free valuations in your area this month.\n\nReply to this email or text me back if interested!\n\n- Gianna",
+          message:
+            "Hi {firstName},\n\nI wanted to reach out one more time about your property. We're offering free valuations in your area this month.\n\nReply to this email or text me back if interested!\n\n- Gianna",
         },
         voice: {
           enabled: false,
@@ -157,7 +161,8 @@ const EXAMPLE_SEQUENCES: Sequence[] = [
         delayHours: 0,
         sms: {
           enabled: true,
-          message: "Hi {firstName}, noticed we lost touch. Just checking if you're still interested? - Cathy",
+          message:
+            "Hi {firstName}, noticed we lost touch. Just checking if you're still interested? - Cathy",
         },
         email: {
           enabled: false,
@@ -178,12 +183,14 @@ const EXAMPLE_SEQUENCES: Sequence[] = [
         condition: { skipIf: "responded" },
         sms: {
           enabled: true,
-          message: "{firstName}, quick update: market conditions have changed. Want a brief update? Reply YES for details.",
+          message:
+            "{firstName}, quick update: market conditions have changed. Want a brief update? Reply YES for details.",
         },
         email: {
           enabled: true,
           subject: "Market Update for Your Area",
-          message: "Hi {firstName},\n\nThe market in your area has shifted recently. I thought you might find this update valuable.\n\nWould you like me to send you the details?\n\n- Cathy",
+          message:
+            "Hi {firstName},\n\nThe market in your area has shifted recently. I thought you might find this update valuable.\n\nWould you like me to send you the details?\n\n- Cathy",
         },
         voice: {
           enabled: false,
@@ -213,12 +220,14 @@ const EXAMPLE_SEQUENCES: Sequence[] = [
         delayHours: 0,
         sms: {
           enabled: true,
-          message: "Hi {firstName}! I'm Sabrina. Based on our conversation, I'd love to schedule a 15-min strategy call. What day works best?",
+          message:
+            "Hi {firstName}! I'm Sabrina. Based on our conversation, I'd love to schedule a 15-min strategy call. What day works best?",
         },
         email: {
           enabled: true,
           subject: "Let's Schedule Your Strategy Call",
-          message: "Hi {firstName},\n\nThank you for your interest! I'd love to schedule a 15-minute strategy call to discuss your goals.\n\nWhat day this week works best for you?\n\n- Sabrina",
+          message:
+            "Hi {firstName},\n\nThank you for your interest! I'd love to schedule a 15-minute strategy call to discuss your goals.\n\nWhat day this week works best for you?\n\n- Sabrina",
         },
         voice: {
           enabled: false,
@@ -234,7 +243,8 @@ const EXAMPLE_SEQUENCES: Sequence[] = [
         condition: { skipIf: "appointment_set" },
         sms: {
           enabled: true,
-          message: "{firstName}, I have a few slots open this week. Would Tuesday or Thursday work better for a quick call?",
+          message:
+            "{firstName}, I have a few slots open this week. Would Tuesday or Thursday work better for a quick call?",
         },
         email: {
           enabled: false,
@@ -243,7 +253,8 @@ const EXAMPLE_SEQUENCES: Sequence[] = [
         },
         voice: {
           enabled: true,
-          message: "Hi {firstName}, this is Sabrina calling to schedule your strategy session. I have availability Tuesday and Thursday this week. Please call me back or reply to my text to confirm a time.",
+          message:
+            "Hi {firstName}, this is Sabrina calling to schedule your strategy session. I have availability Tuesday and Thursday this week. Please call me back or reply to my text to confirm a time.",
         },
       },
     ],
@@ -273,7 +284,7 @@ export async function GET(request: NextRequest) {
     // Filter by team (or show all for "default")
     if (teamId && teamId !== "default") {
       sequences = sequences.filter(
-        (s) => s.teamId === teamId || s.teamId === "default"
+        (s) => s.teamId === teamId || s.teamId === "default",
       );
     }
 
@@ -314,8 +325,11 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("[Sequences] GET error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to fetch sequences" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to fetch sequences",
+      },
+      { status: 500 },
     );
   }
 }
@@ -327,25 +341,16 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const {
-      teamId,
-      name,
-      description,
-      worker = "gianna",
-      blocks = [],
-    } = body;
+    const { teamId, name, description, worker = "gianna", blocks = [] } = body;
 
     if (!name) {
-      return NextResponse.json(
-        { error: "name is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "name is required" }, { status: 400 });
     }
 
     // Calculate total days from blocks
     const totalDays = blocks.reduce(
       (acc: number, block: CampaignBlock) => acc + (block.delayDays || 0),
-      0
+      0,
     );
 
     const sequence: Sequence = {
@@ -378,8 +383,11 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("[Sequences] POST error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to create sequence" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to create sequence",
+      },
+      { status: 500 },
     );
   }
 }
@@ -394,17 +402,14 @@ export async function PATCH(request: NextRequest) {
     const { id, name, description, status, blocks, worker } = body;
 
     if (!id) {
-      return NextResponse.json(
-        { error: "id is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "id is required" }, { status: 400 });
     }
 
     const sequence = SEQUENCES_STORE.get(id);
     if (!sequence) {
       return NextResponse.json(
         { error: "Sequence not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -421,7 +426,7 @@ export async function PATCH(request: NextRequest) {
       }));
       sequence.totalDays = blocks.reduce(
         (acc: number, block: CampaignBlock) => acc + (block.delayDays || 0),
-        0
+        0,
       );
     }
     sequence.updatedAt = new Date().toISOString();
@@ -437,8 +442,11 @@ export async function PATCH(request: NextRequest) {
   } catch (error) {
     console.error("[Sequences] PATCH error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to update sequence" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to update sequence",
+      },
+      { status: 500 },
     );
   }
 }
@@ -453,16 +461,13 @@ export async function DELETE(request: NextRequest) {
     const id = searchParams.get("id");
 
     if (!id) {
-      return NextResponse.json(
-        { error: "id is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "id is required" }, { status: 400 });
     }
 
     if (!SEQUENCES_STORE.has(id)) {
       return NextResponse.json(
         { error: "Sequence not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -477,8 +482,11 @@ export async function DELETE(request: NextRequest) {
   } catch (error) {
     console.error("[Sequences] DELETE error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to delete sequence" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to delete sequence",
+      },
+      { status: 500 },
     );
   }
 }

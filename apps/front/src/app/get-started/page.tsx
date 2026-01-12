@@ -155,7 +155,9 @@ export default function GetStartedPage() {
       // Store lead data
       const leadData = {
         ...formData,
-        phone: formData.phone.startsWith("+1") ? formData.phone : `+1${formData.phone.replace(/\D/g, "")}`,
+        phone: formData.phone.startsWith("+1")
+          ? formData.phone
+          : `+1${formData.phone.replace(/\D/g, "")}`,
         smsConsent,
         createdAt: new Date().toISOString(),
       };
@@ -235,7 +237,9 @@ export default function GetStartedPage() {
                 size="lg"
                 className="bg-white text-black hover:bg-zinc-200 h-14 px-8 text-base font-semibold"
                 onClick={() =>
-                  document.getElementById("email-form")?.scrollIntoView({ behavior: "smooth" })
+                  document
+                    .getElementById("email-form")
+                    ?.scrollIntoView({ behavior: "smooth" })
                 }
               >
                 Learn More
@@ -315,15 +319,16 @@ export default function GetStartedPage() {
                   <h2 className="text-2xl font-bold text-white mb-2">
                     Learn About Our Products
                   </h2>
-                  <p className="text-zinc-400">
-                    Input your information below
-                  </p>
+                  <p className="text-zinc-400">Input your information below</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                   {/* First Name */}
                   <div className="space-y-1">
-                    <label htmlFor="firstName" className="block text-sm font-medium text-zinc-300">
+                    <label
+                      htmlFor="firstName"
+                      className="block text-sm font-medium text-zinc-300"
+                    >
                       First name <span className="text-red-400">*</span>
                     </label>
                     <div className="relative">
@@ -332,17 +337,27 @@ export default function GetStartedPage() {
                         id="firstName"
                         type="text"
                         value={formData.firstName}
-                        onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            firstName: e.target.value,
+                          })
+                        }
                         placeholder="Type your answer here..."
                         className="pl-12 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 h-12 text-base rounded-xl"
                       />
                     </div>
-                    {errors.firstName && <p className="text-red-400 text-sm">{errors.firstName}</p>}
+                    {errors.firstName && (
+                      <p className="text-red-400 text-sm">{errors.firstName}</p>
+                    )}
                   </div>
 
                   {/* Last Name */}
                   <div className="space-y-1">
-                    <label htmlFor="lastName" className="block text-sm font-medium text-zinc-300">
+                    <label
+                      htmlFor="lastName"
+                      className="block text-sm font-medium text-zinc-300"
+                    >
                       Last name <span className="text-red-400">*</span>
                     </label>
                     <div className="relative">
@@ -351,17 +366,24 @@ export default function GetStartedPage() {
                         id="lastName"
                         type="text"
                         value={formData.lastName}
-                        onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, lastName: e.target.value })
+                        }
                         placeholder="Type your answer here..."
                         className="pl-12 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 h-12 text-base rounded-xl"
                       />
                     </div>
-                    {errors.lastName && <p className="text-red-400 text-sm">{errors.lastName}</p>}
+                    {errors.lastName && (
+                      <p className="text-red-400 text-sm">{errors.lastName}</p>
+                    )}
                   </div>
 
                   {/* Email */}
                   <div className="space-y-1">
-                    <label htmlFor="email" className="block text-sm font-medium text-zinc-300">
+                    <label
+                      htmlFor="email"
+                      className="block text-sm font-medium text-zinc-300"
+                    >
                       Email <span className="text-red-400">*</span>
                     </label>
                     <div className="relative">
@@ -370,18 +392,25 @@ export default function GetStartedPage() {
                         id="email"
                         type="email"
                         value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, email: e.target.value })
+                        }
                         placeholder="Type your answer here..."
                         className="pl-12 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 h-12 text-base rounded-xl"
                         autoComplete="email"
                       />
                     </div>
-                    {errors.email && <p className="text-red-400 text-sm">{errors.email}</p>}
+                    {errors.email && (
+                      <p className="text-red-400 text-sm">{errors.email}</p>
+                    )}
                   </div>
 
                   {/* Phone */}
                   <div className="space-y-1">
-                    <label htmlFor="phone" className="block text-sm font-medium text-zinc-300">
+                    <label
+                      htmlFor="phone"
+                      className="block text-sm font-medium text-zinc-300"
+                    >
                       Phone <span className="text-red-400">*</span>
                     </label>
                     <div className="flex">
@@ -392,12 +421,16 @@ export default function GetStartedPage() {
                         id="phone"
                         type="tel"
                         value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, phone: e.target.value })
+                        }
                         placeholder="(555) 123-4567"
                         className="rounded-l-none bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 h-12 text-base rounded-r-xl"
                       />
                     </div>
-                    {errors.phone && <p className="text-red-400 text-sm">{errors.phone}</p>}
+                    {errors.phone && (
+                      <p className="text-red-400 text-sm">{errors.phone}</p>
+                    )}
                   </div>
 
                   {/* SMS Consent */}
@@ -405,21 +438,43 @@ export default function GetStartedPage() {
                     <Checkbox
                       id="smsConsent"
                       checked={smsConsent}
-                      onCheckedChange={(checked) => setSmsConsent(checked === true)}
+                      onCheckedChange={(checked) =>
+                        setSmsConsent(checked === true)
+                      }
                       className="mt-1 border-zinc-600 data-[state=checked]:bg-white data-[state=checked]:text-black"
                     />
-                    <label htmlFor="smsConsent" className="text-xs text-zinc-400 leading-relaxed cursor-pointer">
-                      By providing a telephone number, clicking this button, and submitting this form, you consent to receive SMS text messages from Nextier regarding new offers and marketing. Message frequency varies. Message & data rates may apply. Reply STOP to unsubscribe. Reply HELP for more information.
-                      {" "}Nextier is a consultant, advisor, and owner of Nextier Technologies. When you consent to receive messaging from Nextier, you are providing consent only to Nextier, not any third parties.
-                      {" "}<strong className="text-zinc-300">Your SMS opt-in data will never be shared or sold to third parties.</strong>
-                      {" "}See our{" "}
-                      <Link href="/privacy" className="text-zinc-300 underline hover:no-underline">
+                    <label
+                      htmlFor="smsConsent"
+                      className="text-xs text-zinc-400 leading-relaxed cursor-pointer"
+                    >
+                      By providing a telephone number, clicking this button, and
+                      submitting this form, you consent to receive SMS text
+                      messages from Nextier regarding new offers and marketing.
+                      Message frequency varies. Message & data rates may apply.
+                      Reply STOP to unsubscribe. Reply HELP for more
+                      information. Nextier is a consultant, advisor, and owner
+                      of Nextier Technologies. When you consent to receive
+                      messaging from Nextier, you are providing consent only to
+                      Nextier, not any third parties.{" "}
+                      <strong className="text-zinc-300">
+                        Your SMS opt-in data will never be shared or sold to
+                        third parties.
+                      </strong>{" "}
+                      See our{" "}
+                      <Link
+                        href="/privacy"
+                        className="text-zinc-300 underline hover:no-underline"
+                      >
                         Privacy Policy
                       </Link>{" "}
                       (containing our SMS Terms) for more information.
                     </label>
                   </div>
-                  {errors.smsConsent && <p className="text-red-400 text-sm ml-6">{errors.smsConsent}</p>}
+                  {errors.smsConsent && (
+                    <p className="text-red-400 text-sm ml-6">
+                      {errors.smsConsent}
+                    </p>
+                  )}
 
                   <Button
                     type="submit"
@@ -430,9 +485,13 @@ export default function GetStartedPage() {
                   </Button>
 
                   <p className="text-center text-zinc-600 text-xs">
-                    <Link href="/terms" className="hover:text-zinc-400">Terms of Service</Link>
+                    <Link href="/terms" className="hover:text-zinc-400">
+                      Terms of Service
+                    </Link>
                     {" | "}
-                    <Link href="/privacy" className="hover:text-zinc-400">Privacy Policy</Link>
+                    <Link href="/privacy" className="hover:text-zinc-400">
+                      Privacy Policy
+                    </Link>
                   </p>
                 </form>
               </div>

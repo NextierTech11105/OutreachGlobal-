@@ -16,8 +16,12 @@ export default function Page() {
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:64px_64px]" />
 
         <div className="relative z-10 text-center">
-          <h1 className="text-7xl font-black text-white tracking-tight">NEXTIER</h1>
-          <p className="text-neutral-500 mt-2 text-xl tracking-wide">Turning Data into Deals</p>
+          <h1 className="text-7xl font-black text-white tracking-tight">
+            NEXTIER
+          </h1>
+          <p className="text-neutral-500 mt-2 text-xl tracking-wide">
+            Turning Data into Deals
+          </p>
         </div>
 
         <div className="space-y-10 relative z-10">
@@ -38,33 +42,45 @@ export default function Page() {
 
           {/* Core Loop Visual */}
           <div className="flex flex-wrap gap-2">
-            {["DATA", "CAMPAIGN", "SMS", "AI", "CALL", "CLOSE"].map((stage, i) => (
-              <div key={stage} className="flex items-center">
-                <span className="px-4 py-2 bg-white text-black text-xs font-black tracking-wider rounded">
-                  {stage}
-                </span>
-                {i < 5 && <span className="mx-2 text-white font-black">→</span>}
-              </div>
-            ))}
+            {["DATA", "CAMPAIGN", "SMS", "AI", "CALL", "CLOSE"].map(
+              (stage, i) => (
+                <div key={stage} className="flex items-center">
+                  <span className="px-4 py-2 bg-white text-black text-xs font-black tracking-wider rounded">
+                    {stage}
+                  </span>
+                  {i < 5 && (
+                    <span className="mx-2 text-white font-black">→</span>
+                  )}
+                </div>
+              ),
+            )}
           </div>
 
           {/* Differentiators - Blunt */}
           <div className="space-y-3 pt-6 border-t border-white/10">
             <p className="text-white">
               <span className="font-black">Audience agnostic.</span>
-              <span className="text-neutral-500 ml-2">We don&apos;t care what you sell.</span>
+              <span className="text-neutral-500 ml-2">
+                We don&apos;t care what you sell.
+              </span>
             </p>
             <p className="text-white">
               <span className="font-black">Persona agnostic.</span>
-              <span className="text-neutral-500 ml-2">Adapts to whoever you&apos;re chasing.</span>
+              <span className="text-neutral-500 ml-2">
+                Adapts to whoever you&apos;re chasing.
+              </span>
             </p>
             <p className="text-white">
               <span className="font-black">Competes with nothing.</span>
-              <span className="text-neutral-500 ml-2">This isn&apos;t a CRM. It&apos;s the execution layer.</span>
+              <span className="text-neutral-500 ml-2">
+                This isn&apos;t a CRM. It&apos;s the execution layer.
+              </span>
             </p>
             <p className="text-white">
               <span className="font-black">Integrates with everything.</span>
-              <span className="text-neutral-500 ml-2">Your stack. We just make it work.</span>
+              <span className="text-neutral-500 ml-2">
+                Your stack. We just make it work.
+              </span>
             </p>
           </div>
         </div>
@@ -91,7 +107,9 @@ export default function Page() {
           </div>
 
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-foreground mb-2">Welcome back</h2>
+            <h2 className="text-2xl font-bold text-foreground mb-2">
+              Welcome back
+            </h2>
             <p className="text-muted-foreground">Sign in to your account</p>
           </div>
 

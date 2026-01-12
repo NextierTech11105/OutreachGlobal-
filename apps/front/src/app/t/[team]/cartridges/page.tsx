@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -35,6 +36,11 @@ import {
   AlertCircle,
   Sparkles,
   FileText,
+  Lock,
+  Rocket,
+  Users,
+  Target,
+  Bot,
 } from "lucide-react";
 import {
   cartridgeManager,
@@ -58,6 +64,7 @@ import {
 // ═══════════════════════════════════════════════════════════════════════════
 
 const CARTRIDGE_ICONS: Record<string, React.ReactNode> = {
+  "nextier-core": <Rocket className="h-5 w-5" />, // SignalHouse approved core
   "business-brokering": <Building2 className="h-5 w-5" />,
   "crm-consultants": <Sparkles className="h-5 w-5" />,
   "blue-collar": <Wrench className="h-5 w-5" />,
@@ -72,6 +79,8 @@ const CARTRIDGE_ICONS: Record<string, React.ReactNode> = {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default function CartridgesPage() {
+  const params = useParams<{ team: string }>();
+  const router = useRouter();
   const [cartridges, setCartridges] = useState<
     Array<{
       id: string;
@@ -85,6 +94,28 @@ export default function CartridgesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [isOnboardingComplete, setIsOnboardingComplete] = useState<boolean | null>(null);
+
+  // Check onboarding status
+  useEffect(() => {
+    async function checkOnboarding() {
+      try {
+        const response = await fetch(`/api/onboarding?teamId=${params.team}`);
+        if (response.ok) {
+          const data = await response.json();
+          setIsOnboardingComplete(data.completed === true);
+        } else {
+          // No onboarding record = not complete
+          setIsOnboardingComplete(false);
+        }
+      } catch {
+        setIsOnboardingComplete(false);
+      }
+    }
+    if (params.team) {
+      checkOnboarding();
+    }
+  }, [params.team]);
 
   // Load cartridges on mount
   useEffect(() => {
@@ -144,6 +175,68 @@ export default function CartridgesPage() {
   const totalTemplates = cartridges
     .filter((c) => c.active)
     .reduce((sum, c) => sum + c.templateCount, 0);
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ONBOARDING GATE - Show locked state if onboarding not complete
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (isOnboardingComplete === null) {
+    // Loading state
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!isOnboardingComplete) {
+    // Locked state - onboarding not complete
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] p-6">
+        <div className="max-w-md text-center space-y-6">
+          <div className="w-20 h-20 mx-auto rounded-full bg-muted flex items-center justify-center">
+            <Lock className="h-10 w-10 text-muted-foreground" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold mb-2">Template Cartridges Locked</h1>
+            <p className="text-muted-foreground">
+              Complete your onboarding to unlock the template cartridge library.
+              This ensures your ICP is programmed and your AI team (GIANNA, CATHY, SABRINA)
+              is configured for optimal performance.
+            </p>
+          </div>
+          <div className="p-4 bg-muted/50 rounded-lg text-sm text-left space-y-2">
+            <p className="font-medium">Onboarding unlocks:</p>
+            <ul className="space-y-1 text-muted-foreground">
+              <li className="flex items-center gap-2">
+                <Rocket className="h-4 w-4 text-primary" />
+                NEXTIER Core Templates (SignalHouse Approved)
+              </li>
+              <li className="flex items-center gap-2">
+                <Target className="h-4 w-4 text-primary" />
+                Industry-Specific Template Packs
+              </li>
+              <li className="flex items-center gap-2">
+                <Bot className="h-4 w-4 text-primary" />
+                AI Worker Templates (CATHY, SABRINA)
+              </li>
+              <li className="flex items-center gap-2">
+                <MessageSquare className="h-4 w-4 text-primary" />
+                160-char Compliant Messaging Library
+              </li>
+            </ul>
+          </div>
+          <Button
+            size="lg"
+            onClick={() => router.push(`/t/${params.team}/onboarding`)}
+            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+          >
+            <Rocket className="h-4 w-4 mr-2" />
+            Complete Onboarding
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6 p-6">

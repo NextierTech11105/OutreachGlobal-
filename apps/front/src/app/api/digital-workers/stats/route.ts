@@ -1,7 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { smsMessages, callLogs } from "@/lib/db/schema";
 import { sql, gte, eq } from "drizzle-orm";
+
+// In-memory status overrides for workers
+// TODO: Move to database when workers table is created
+const workerStatusOverrides: Record<string, "active" | "paused"> = {};
 
 /**
  * GET /api/digital-workers/stats
@@ -48,13 +52,18 @@ export async function GET() {
     const callSuccessRate =
       calls.total > 0 ? Math.round((calls.answered / calls.total) * 100) : 0;
 
+    // Helper to get effective status (override or computed)
+    const getStatus = (id: string, computedStatus: string) => {
+      return workerStatusOverrides[id] || computedStatus;
+    };
+
     // Digital workers with real stats
     const workers = [
       {
         id: "gianna",
         name: "Gianna",
         type: "sms",
-        status: sms.total > 0 ? "active" : "idle",
+        status: getStatus("gianna", sms.total > 0 ? "active" : "idle"),
         description:
           "AI SDR specializing in initial outreach and qualification via SMS",
         stats: {
@@ -69,7 +78,7 @@ export async function GET() {
         id: "cathy",
         name: "Cathy",
         type: "voice",
-        status: calls.total > 0 ? "active" : "idle",
+        status: getStatus("cathy", calls.total > 0 ? "active" : "idle"),
         description: "Voice AI for appointment scheduling and follow-up calls",
         stats: {
           messagesHandled: Number(calls.total) || 0,
@@ -83,7 +92,7 @@ export async function GET() {
         id: "sabrina",
         name: "Sabrina",
         type: "multi-channel",
-        status: "paused",
+        status: getStatus("sabrina", "paused"),
         description: "Multi-channel nurture sequences for engaged leads",
         stats: {
           messagesHandled: 0,
@@ -132,6 +141,56 @@ export async function GET() {
       {
         error: error instanceof Error ? error.message : "Failed to fetch stats",
       },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * PATCH /api/digital-workers/stats
+ *
+ * Toggle worker status (active/paused)
+ */
+export async function PATCH(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { workerId, status } = body;
+
+    if (!workerId) {
+      return NextResponse.json(
+        { error: "workerId is required" },
+        { status: 400 },
+      );
+    }
+
+    const validWorkerIds = ["gianna", "cathy", "sabrina"];
+    if (!validWorkerIds.includes(workerId)) {
+      return NextResponse.json({ error: "Invalid workerId" }, { status: 400 });
+    }
+
+    // Toggle or set specific status
+    if (status && (status === "active" || status === "paused")) {
+      workerStatusOverrides[workerId] = status;
+    } else {
+      // Toggle: if currently active -> paused, if paused/idle -> active
+      const currentStatus = workerStatusOverrides[workerId];
+      workerStatusOverrides[workerId] =
+        currentStatus === "active" ? "paused" : "active";
+    }
+
+    console.log(
+      `[Digital Workers] Worker ${workerId} set to ${workerStatusOverrides[workerId]}`,
+    );
+
+    return NextResponse.json({
+      success: true,
+      workerId,
+      status: workerStatusOverrides[workerId],
+    });
+  } catch (error) {
+    console.error("[Digital Workers] Toggle error:", error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Toggle failed" },
       { status: 500 },
     );
   }

@@ -26,7 +26,10 @@ export async function POST(request: NextRequest) {
 
     if (!isConfigured()) {
       return NextResponse.json(
-        { error: "SignalHouse credentials not configured (SIGNALHOUSE_API_KEY or SIGNALHOUSE_AUTH_TOKEN)" },
+        {
+          error:
+            "SignalHouse credentials not configured (SIGNALHOUSE_API_KEY or SIGNALHOUSE_AUTH_TOKEN)",
+        },
         { status: 500 },
       );
     }

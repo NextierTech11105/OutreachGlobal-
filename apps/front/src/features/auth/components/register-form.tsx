@@ -75,7 +75,9 @@ export const RegisterForm: React.FC = () => {
 
     if (!formData.phone.trim()) {
       newErrors.phone = "Phone number is required";
-    } else if (!/^\+?[\d\s\-()]{10,}$/.test(formData.phone.replace(/\s/g, ""))) {
+    } else if (
+      !/^\+?[\d\s\-()]{10,}$/.test(formData.phone.replace(/\s/g, ""))
+    ) {
       newErrors.phone = "Invalid phone number";
     }
 
@@ -113,7 +115,9 @@ export const RegisterForm: React.FC = () => {
           input: {
             name: formData.name,
             email: formData.email,
-            phone: formData.phone.startsWith("+1") ? formData.phone : `+1${formData.phone.replace(/\D/g, "")}`,
+            phone: formData.phone.startsWith("+1")
+              ? formData.phone
+              : `+1${formData.phone.replace(/\D/g, "")}`,
             password: formData.password,
             companyName: formData.companyName || `${formData.name}'s Team`,
             smsConsent: consent.sms,
@@ -271,13 +275,22 @@ export const RegisterForm: React.FC = () => {
             }
             className="mt-1"
           />
-          <label htmlFor="terms" className="text-sm text-muted-foreground leading-tight cursor-pointer">
+          <label
+            htmlFor="terms"
+            className="text-sm text-muted-foreground leading-tight cursor-pointer"
+          >
             I agree to the{" "}
-            <Link href="/terms" className="text-foreground underline hover:no-underline">
+            <Link
+              href="/terms"
+              className="text-foreground underline hover:no-underline"
+            >
               Terms of Service
             </Link>{" "}
             and{" "}
-            <Link href="/privacy" className="text-foreground underline hover:no-underline">
+            <Link
+              href="/privacy"
+              className="text-foreground underline hover:no-underline"
+            >
               Privacy Policy
             </Link>
           </label>
@@ -296,16 +309,28 @@ export const RegisterForm: React.FC = () => {
             }
             className="mt-1"
           />
-          <label htmlFor="sms" className="text-xs text-muted-foreground leading-relaxed cursor-pointer">
-            By providing a telephone number and checking this box, you consent to receive SMS text
-            messages from Nextier regarding your account, services, and marketing when applicable.
-            Nextier is a consultant, advisor, and owner of Nextier Technologies. Nextier Terminals
-            are used for a variety of use cases and provide marketing and custom services when applicable.
-            When you consent to receive messaging from Nextier, you are providing consent only to Nextier,
-            not any third parties. <strong className="text-foreground">Your SMS opt-in data will never be shared or sold to third parties.</strong>
-            {" "}Message frequency varies. Message & data rates may apply. Reply STOP to unsubscribe.
-            Reply HELP for help. See our{" "}
-            <Link href="/privacy" className="text-foreground underline hover:no-underline">
+          <label
+            htmlFor="sms"
+            className="text-xs text-muted-foreground leading-relaxed cursor-pointer"
+          >
+            By providing a telephone number and checking this box, you consent
+            to receive SMS text messages from Nextier regarding your account,
+            services, and marketing when applicable. Nextier is a consultant,
+            advisor, and owner of Nextier Technologies. Nextier Terminals are
+            used for a variety of use cases and provide marketing and custom
+            services when applicable. When you consent to receive messaging from
+            Nextier, you are providing consent only to Nextier, not any third
+            parties.{" "}
+            <strong className="text-foreground">
+              Your SMS opt-in data will never be shared or sold to third
+              parties.
+            </strong>{" "}
+            Message frequency varies. Message & data rates may apply. Reply STOP
+            to unsubscribe. Reply HELP for help. See our{" "}
+            <Link
+              href="/privacy"
+              className="text-foreground underline hover:no-underline"
+            >
               Privacy Policy
             </Link>{" "}
             for SMS terms.

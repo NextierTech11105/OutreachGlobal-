@@ -23,6 +23,22 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface DigitalWorker {
   id: string;
@@ -51,6 +67,11 @@ export default function DigitalWorkersPage() {
   const [workers, setWorkers] = useState<DigitalWorker[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [selectedWorker, setSelectedWorker] = useState<DigitalWorker | null>(
+    null,
+  );
 
   const fetchStats = async () => {
     try {
@@ -71,18 +92,60 @@ export default function DigitalWorkersPage() {
     fetchStats();
   }, []);
 
-  const toggleWorkerStatus = (workerId: string) => {
+  const toggleWorkerStatus = async (workerId: string) => {
+    setTogglingIds((prev) => new Set(prev).add(workerId));
+
+    // Optimistic update
+    const currentWorker = workers.find((w) => w.id === workerId);
+    const newStatus = currentWorker?.status === "active" ? "paused" : "active";
+
     setWorkers(
       workers.map((w) => {
         if (w.id === workerId) {
-          return {
-            ...w,
-            status: w.status === "active" ? "paused" : "active",
-          };
+          return { ...w, status: newStatus };
         }
         return w;
       }),
     );
+
+    try {
+      const res = await fetch("/api/digital-workers/stats", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ workerId, status: newStatus }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to toggle worker");
+      }
+
+      const data = await res.json();
+      toast.success(
+        `${currentWorker?.name} is now ${data.status === "active" ? "active" : "paused"}`,
+      );
+    } catch (error) {
+      // Revert on error
+      setWorkers(
+        workers.map((w) => {
+          if (w.id === workerId) {
+            return { ...w, status: currentWorker?.status || "idle" };
+          }
+          return w;
+        }),
+      );
+      toast.error("Failed to toggle worker status");
+    } finally {
+      setTogglingIds((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(workerId);
+        return newSet;
+      });
+    }
+  };
+
+  const openSettings = (worker: DigitalWorker) => {
+    setSelectedWorker(worker);
+    setSettingsOpen(true);
   };
 
   const getTypeIcon = (type: DigitalWorker["type"]) => {
@@ -228,9 +291,14 @@ export default function DigitalWorkersPage() {
                 <div className="flex items-center gap-4">
                   <Switch
                     checked={worker.status === "active"}
+                    disabled={togglingIds.has(worker.id)}
                     onCheckedChange={() => toggleWorkerStatus(worker.id)}
                   />
-                  <Button variant="outline" size="sm">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => openSettings(worker)}
+                  >
                     <Settings className="h-4 w-4" />
                   </Button>
                 </div>
@@ -275,6 +343,73 @@ export default function DigitalWorkersPage() {
           </Card>
         ))}
       </div>
+
+      {/* Settings Modal */}
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedWorker?.name} Settings
+            </DialogTitle>
+            <DialogDescription>
+              Configure {selectedWorker?.name}'s behavior and parameters
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select
+                value={selectedWorker?.status}
+                onValueChange={(value) => {
+                  if (selectedWorker) {
+                    toggleWorkerStatus(selectedWorker.id);
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="paused">Paused</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Worker Type</Label>
+              <div className="text-sm text-muted-foreground capitalize">
+                {selectedWorker?.type?.replace("-", " ")}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <div className="text-sm text-muted-foreground">
+                {selectedWorker?.description}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Performance</Label>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Messages: </span>
+                  <span className="font-medium">
+                    {selectedWorker?.stats.messagesHandled.toLocaleString()}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Success: </span>
+                  <span className="font-medium">
+                    {selectedWorker?.stats.successRate}%
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

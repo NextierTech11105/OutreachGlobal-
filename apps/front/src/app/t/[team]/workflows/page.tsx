@@ -100,18 +100,45 @@ export default function WorkflowsPage() {
 
   // Toggle workflow active state
   const toggleWorkflow = async (workflowId: string, currentActive: boolean) => {
-    // TODO: Implement toggle API
-    toast({
-      title: currentActive ? "Workflow Paused" : "Workflow Activated",
-      description: `Workflow ${currentActive ? "paused" : "activated"} successfully`,
-    });
-
-    // Optimistic update
+    // Optimistic update first for fast UI
     setWorkflows((prev) =>
       prev.map((wf) =>
-        wf.id === workflowId ? { ...wf, active: !wf.active } : wf
-      )
+        wf.id === workflowId ? { ...wf, active: !wf.active } : wf,
+      ),
     );
+
+    try {
+      const response = await fetch("/api/workflows/execute", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workflowId,
+          active: !currentActive,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to toggle workflow");
+      }
+
+      const data = await response.json();
+      toast({
+        title: data.workflow.active ? "Workflow Activated" : "Workflow Paused",
+        description: `${data.workflow.name} is now ${data.workflow.active ? "active" : "paused"}`,
+      });
+    } catch (error) {
+      // Revert optimistic update on error
+      setWorkflows((prev) =>
+        prev.map((wf) =>
+          wf.id === workflowId ? { ...wf, active: currentActive } : wf,
+        ),
+      );
+      toast({
+        title: "Error",
+        description: "Failed to toggle workflow",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -129,7 +156,9 @@ export default function WorkflowsPage() {
             onClick={() => window.location.reload()}
             disabled={loading}
           >
-            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            <RefreshCw
+              className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`}
+            />
             Refresh
           </Button>
           <Button>
@@ -143,7 +172,9 @@ export default function WorkflowsPage() {
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Workflows</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total Workflows
+            </CardTitle>
             <Workflow className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -156,7 +187,9 @@ export default function WorkflowsPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Available Triggers</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Available Triggers
+            </CardTitle>
             <Zap className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -167,7 +200,9 @@ export default function WorkflowsPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Available Actions</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Available Actions
+            </CardTitle>
             <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -228,7 +263,8 @@ export default function WorkflowsPage() {
 
                     <div className="flex items-center gap-4">
                       <Badge variant="secondary">
-                        {workflow.stepsCount} step{workflow.stepsCount !== 1 ? "s" : ""}
+                        {workflow.stepsCount} step
+                        {workflow.stepsCount !== 1 ? "s" : ""}
                       </Badge>
                       <Badge
                         variant={workflow.active ? "default" : "outline"}

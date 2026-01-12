@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
     if (!teamId) {
       return NextResponse.json(
         { error: "teamId is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -55,19 +55,19 @@ export async function GET(request: NextRequest) {
 
     if (status) {
       conditions.push(
-        sql`${leads.customFields}->>'appointmentStatus' = ${status}`
+        sql`${leads.customFields}->>'appointmentStatus' = ${status}`,
       );
     }
 
     if (fromDate) {
       conditions.push(
-        sql`(${leads.customFields}->>'scheduledCallAt')::timestamp >= ${fromDate}::timestamp`
+        sql`(${leads.customFields}->>'scheduledCallAt')::timestamp >= ${fromDate}::timestamp`,
       );
     }
 
     if (toDate) {
       conditions.push(
-        sql`(${leads.customFields}->>'scheduledCallAt')::timestamp <= ${toDate}::timestamp`
+        sql`(${leads.customFields}->>'scheduledCallAt')::timestamp <= ${toDate}::timestamp`,
       );
     }
 
@@ -75,7 +75,9 @@ export async function GET(request: NextRequest) {
       .select()
       .from(leads)
       .where(and(...conditions))
-      .orderBy(desc(sql`(${leads.customFields}->>'scheduledCallAt')::timestamp`))
+      .orderBy(
+        desc(sql`(${leads.customFields}->>'scheduledCallAt')::timestamp`),
+      )
       .limit(limit);
 
     // Transform to Appointment format
@@ -84,13 +86,17 @@ export async function GET(request: NextRequest) {
       return {
         id: `apt_${lead.id}`,
         leadId: lead.id,
-        leadName: `${lead.firstName || ""} ${lead.lastName || ""}`.trim() || "Unknown",
+        leadName:
+          `${lead.firstName || ""} ${lead.lastName || ""}`.trim() || "Unknown",
         leadPhone: lead.phone || "",
         leadEmail: lead.email || undefined,
-        scheduledAt: (customFields.scheduledCallAt as string) || new Date().toISOString(),
+        scheduledAt:
+          (customFields.scheduledCallAt as string) || new Date().toISOString(),
         duration: (customFields.appointmentDuration as number) || 15,
         type: (customFields.appointmentType as Appointment["type"]) || "call",
-        status: (customFields.appointmentStatus as Appointment["status"]) || "scheduled",
+        status:
+          (customFields.appointmentStatus as Appointment["status"]) ||
+          "scheduled",
         notes: (customFields.appointmentNotes as string) || undefined,
         assignedTo: (customFields.assignedTo as string) || undefined,
         createdAt: lead.createdAt.toISOString(),
@@ -106,7 +112,9 @@ export async function GET(request: NextRequest) {
     const categorized = {
       today: appointments.filter((apt) => {
         const aptDate = new Date(apt.scheduledAt);
-        return aptDate >= today && aptDate < tomorrow && apt.status === "scheduled";
+        return (
+          aptDate >= today && aptDate < tomorrow && apt.status === "scheduled"
+        );
       }),
       upcoming: appointments.filter((apt) => {
         const aptDate = new Date(apt.scheduledAt);
@@ -117,7 +125,7 @@ export async function GET(request: NextRequest) {
         return aptDate < today || apt.status === "completed";
       }),
       cancelled: appointments.filter(
-        (apt) => apt.status === "cancelled" || apt.status === "no-show"
+        (apt) => apt.status === "cancelled" || apt.status === "no-show",
       ),
     };
 
@@ -136,8 +144,13 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("[Appointments] GET error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to fetch appointments" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to fetch appointments",
+      },
+      { status: 500 },
     );
   }
 }
@@ -159,14 +172,14 @@ export async function POST(request: NextRequest) {
     if (!leadId) {
       return NextResponse.json(
         { error: "leadId is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!scheduledAt) {
       return NextResponse.json(
         { error: "scheduledAt is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -182,7 +195,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Update lead with appointment data
-    const currentCustomFields = (lead.customFields as Record<string, unknown>) || {};
+    const currentCustomFields =
+      (lead.customFields as Record<string, unknown>) || {};
     const updatedCustomFields = {
       ...currentCustomFields,
       scheduledCallAt: scheduledAt,
@@ -205,7 +219,8 @@ export async function POST(request: NextRequest) {
     const appointment: Appointment = {
       id: `apt_${lead.id}`,
       leadId: lead.id,
-      leadName: `${lead.firstName || ""} ${lead.lastName || ""}`.trim() || "Unknown",
+      leadName:
+        `${lead.firstName || ""} ${lead.lastName || ""}`.trim() || "Unknown",
       leadPhone: lead.phone || "",
       leadEmail: lead.email || undefined,
       scheduledAt,
@@ -218,7 +233,9 @@ export async function POST(request: NextRequest) {
       updatedAt: new Date().toISOString(),
     };
 
-    console.log(`[Appointments] Created appointment for lead ${leadId} at ${scheduledAt}`);
+    console.log(
+      `[Appointments] Created appointment for lead ${leadId} at ${scheduledAt}`,
+    );
 
     return NextResponse.json({
       success: true,
@@ -227,8 +244,13 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("[Appointments] POST error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to create appointment" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to create appointment",
+      },
+      { status: 500 },
     );
   }
 }
@@ -242,7 +264,7 @@ export async function PATCH(request: NextRequest) {
     if (!leadId) {
       return NextResponse.json(
         { error: "leadId is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -258,7 +280,8 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Update appointment fields
-    const currentCustomFields = (lead.customFields as Record<string, unknown>) || {};
+    const currentCustomFields =
+      (lead.customFields as Record<string, unknown>) || {};
     const updates: Record<string, unknown> = { ...currentCustomFields };
 
     if (status) updates.appointmentStatus = status;
@@ -276,7 +299,9 @@ export async function PATCH(request: NextRequest) {
       })
       .where(eq(leads.id, leadId));
 
-    console.log(`[Appointments] Updated appointment for lead ${leadId}: status=${status}`);
+    console.log(
+      `[Appointments] Updated appointment for lead ${leadId}: status=${status}`,
+    );
 
     return NextResponse.json({
       success: true,
@@ -286,8 +311,13 @@ export async function PATCH(request: NextRequest) {
   } catch (error) {
     console.error("[Appointments] PATCH error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to update appointment" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to update appointment",
+      },
+      { status: 500 },
     );
   }
 }

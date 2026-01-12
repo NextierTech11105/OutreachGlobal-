@@ -993,11 +993,14 @@ export async function POST(request: NextRequest) {
               },
             };
 
-            fetch(`${process.env.NEXT_PUBLIC_API_URL || ""}/api/workflows/execute`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(workflowPayload),
-            }).catch((err) => {
+            fetch(
+              `${process.env.NEXT_PUBLIC_API_URL || ""}/api/workflows/execute`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(workflowPayload),
+              },
+            ).catch((err) => {
               console.error("[SignalHouse] Workflow trigger failed:", err);
             });
 
@@ -1005,7 +1008,10 @@ export async function POST(request: NextRequest) {
               `[SignalHouse] ⚡ Triggered workflows for lead ${lead.id}`,
             );
           } catch (workflowError) {
-            console.error("[SignalHouse] Workflow trigger error:", workflowError);
+            console.error(
+              "[SignalHouse] Workflow trigger error:",
+              workflowError,
+            );
             // Don't fail webhook - workflows are non-blocking
           }
         }

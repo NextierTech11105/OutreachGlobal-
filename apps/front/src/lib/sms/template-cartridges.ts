@@ -925,10 +925,254 @@ export const SABRINA_BOOKING_CARTRIDGE: TemplateCartridge = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// CARTRIDGE: NEXTIER CORE (SignalHouse Approved)
+// Campaign ID: CJRCU60 | Brand: BZOYPIH - NEXTIER | Phone: +1-516-407-9249
+// Use-Case: LOW_VOLUME | TPM: 75 SMS/min (AT&T), ~2,000/day (T-Mobile)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export const NEXTIER_CORE_CARTRIDGE: TemplateCartridge = {
+  id: "nextier-core",
+  name: "NEXTIER Core (SignalHouse Approved)",
+  description:
+    "First-party marketing templates for NEXTIER consulting. All templates are 10DLC compliant and approved by SignalHouse.",
+  audience: "Business owners, executives, and decision-makers seeking operational efficiency and growth",
+  industries: ["professional services", "consulting", "technology", "business services"],
+  active: true, // Default active - this is the core cartridge
+  sicCodes: ["8742", "8748", "7371", "7389"],
+  keywords: ["nextier", "consulting", "efficiency", "save time", "save money", "strategy", "call"],
+  templates: [
+    // ═══════════════════════════════════════════════════════════════════════════
+    // GIANNA - Initial Openers (Value + Call)
+    // ═══════════════════════════════════════════════════════════════════════════
+    {
+      id: "nx-warm-1",
+      name: "New Release Interest",
+      message:
+        "NEXTIER: We think you'll love our new release, let's book a call and discuss soon! Respond STOP to opt out from NEXTIER",
+      stage: "initial" as CampaignStage,
+      worker: "GIANNA" as AIWorker,
+      tags: ["warm", "call", "approved"],
+      variables: [],
+      charCount: 122,
+      lifecycle: TemplateLifecycle.APPROVED,
+      approvedAt: "2026-01-06T17:35:10Z",
+      approvedBy: "SignalHouse-CJRCU60",
+    },
+    {
+      id: "nx-warm-2",
+      name: "Save Time & Money",
+      message:
+        "NEXTIER: We're here to save you time AND money. Let me know when you're free for a quick call. Respond STOP to opt out from NEXTIER",
+      stage: "initial" as CampaignStage,
+      worker: "GIANNA" as AIWorker,
+      tags: ["warm", "value", "call", "approved"],
+      variables: [],
+      charCount: 139,
+      lifecycle: TemplateLifecycle.APPROVED,
+      approvedAt: "2026-01-06T17:35:10Z",
+      approvedBy: "SignalHouse-CJRCU60",
+    },
+    {
+      id: "nx-intro-1",
+      name: "Value + Call Intro",
+      message:
+        "NEXTIER: We think you'll love what we're working on to save you time and money. When's good for a quick call this week? Reply STOP to opt out.",
+      stage: "initial" as CampaignStage,
+      worker: "GIANNA" as AIWorker,
+      tags: ["intro", "value", "call"],
+      variables: [],
+      charCount: 153,
+      lifecycle: TemplateLifecycle.APPROVED,
+    },
+    {
+      id: "nx-intro-2",
+      name: "Streamline Ops",
+      message:
+        "NEXTIER: Got a new way to streamline your ops and cut costs. Open to a quick 10-min call to see if it fits you? Reply STOP to opt out.",
+      stage: "initial" as CampaignStage,
+      worker: "GIANNA" as AIWorker,
+      tags: ["intro", "operations", "call"],
+      variables: [],
+      charCount: 140,
+      lifecycle: TemplateLifecycle.APPROVED,
+    },
+    {
+      id: "nx-intro-3",
+      name: "Expense Question",
+      message:
+        "NEXTIER: Quick question—are you exploring ways to trim expenses without hurting service? If yes, I can share 2 ideas by phone. Reply STOP to opt out.",
+      stage: "initial" as CampaignStage,
+      worker: "GIANNA" as AIWorker,
+      tags: ["intro", "expenses", "call"],
+      variables: [],
+      charCount: 159,
+      lifecycle: TemplateLifecycle.APPROVED,
+    },
+    // ═══════════════════════════════════════════════════════════════════════════
+    // GIANNA - Prior Interest Follow-ups
+    // ═══════════════════════════════════════════════════════════════════════════
+    {
+      id: "nx-prior-1",
+      name: "Thanks for Interest",
+      message:
+        "NEXTIER: Thanks again for your interest in our consulting. Ready to walk through next steps and timelines on a brief call? Reply STOP to opt out.",
+      stage: "initial" as CampaignStage,
+      worker: "GIANNA" as AIWorker,
+      tags: ["followup", "interest", "call"],
+      variables: [],
+      charCount: 156,
+      lifecycle: TemplateLifecycle.APPROVED,
+    },
+    {
+      id: "nx-prior-2",
+      name: "Efficiency Priority",
+      message:
+        "NEXTIER: You shared that efficiency is a priority. Want a short call to map out 1-2 fast wins for your team? Reply STOP to opt out.",
+      stage: "initial" as CampaignStage,
+      worker: "GIANNA" as AIWorker,
+      tags: ["followup", "efficiency", "call"],
+      variables: [],
+      charCount: 141,
+      lifecycle: TemplateLifecycle.APPROVED,
+    },
+    {
+      id: "nx-prior-3",
+      name: "Earlier Inquiry",
+      message:
+        "NEXTIER: Following up on your earlier inquiry—are you free this week to review options that could save you time and budget? Reply STOP to opt out.",
+      stage: "initial" as CampaignStage,
+      worker: "GIANNA" as AIWorker,
+      tags: ["followup", "inquiry", "call"],
+      variables: [],
+      charCount: 156,
+      lifecycle: TemplateLifecycle.APPROVED,
+    },
+    // ═══════════════════════════════════════════════════════════════════════════
+    // GIANNA - Direct Book Call
+    // ═══════════════════════════════════════════════════════════════════════════
+    {
+      id: "nx-book-1",
+      name: "Lock In Call",
+      message:
+        "NEXTIER: Let's lock in a quick call to review where you're losing time and how to fix it. What day is best for you? Reply STOP to opt out.",
+      stage: "initial" as CampaignStage,
+      worker: "GIANNA" as AIWorker,
+      tags: ["book", "direct", "call"],
+      variables: [],
+      charCount: 149,
+      lifecycle: TemplateLifecycle.APPROVED,
+    },
+    {
+      id: "nx-book-2",
+      name: "Custom Plan",
+      message:
+        "NEXTIER: I can share a brief custom plan to cut busywork for your team. Can we schedule a 10-15 min call? Reply STOP to opt out.",
+      stage: "initial" as CampaignStage,
+      worker: "GIANNA" as AIWorker,
+      tags: ["book", "custom", "call"],
+      variables: [],
+      charCount: 138,
+      lifecycle: TemplateLifecycle.APPROVED,
+    },
+    {
+      id: "nx-book-3",
+      name: "Save Hours",
+      message:
+        "NEXTIER: If I could show you a way to save hours each week, would you take a short call to see how? Reply STOP to opt out.",
+      stage: "initial" as CampaignStage,
+      worker: "GIANNA" as AIWorker,
+      tags: ["book", "value", "call"],
+      variables: [],
+      charCount: 128,
+      lifecycle: TemplateLifecycle.APPROVED,
+    },
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CATHY - Soft Check-ins (Nurture)
+    // ═══════════════════════════════════════════════════════════════════════════
+    {
+      id: "nx-soft-1",
+      name: "Still Interested",
+      message:
+        "NEXTIER: Just checking in—still interested in exploring ways to simplify your operations? If yes, I'll send over a time for a quick call. Reply STOP to opt out.",
+      stage: "nudge" as CampaignStage,
+      worker: "CATHY" as AIWorker,
+      tags: ["soft", "checkin", "nurture"],
+      variables: [],
+      charCount: 166,
+      lifecycle: TemplateLifecycle.APPROVED,
+    },
+    {
+      id: "nx-soft-2",
+      name: "No Rush",
+      message:
+        "NEXTIER: No rush, but when you're ready, we can review simple changes that free up your team's time. Want me to suggest a call time? Reply STOP to opt out.",
+      stage: "nudge" as CampaignStage,
+      worker: "CATHY" as AIWorker,
+      tags: ["soft", "lowpressure", "nurture"],
+      variables: [],
+      charCount: 164,
+      lifecycle: TemplateLifecycle.APPROVED,
+    },
+    {
+      id: "nx-soft-3",
+      name: "Next Quarter",
+      message:
+        "NEXTIER: Keeping this short—would a quick strategy call be helpful as you plan your next quarter? If not, no worries. Reply STOP to opt out.",
+      stage: "nudge" as CampaignStage,
+      worker: "CATHY" as AIWorker,
+      tags: ["soft", "strategy", "nurture"],
+      variables: [],
+      charCount: 149,
+      lifecycle: TemplateLifecycle.APPROVED,
+    },
+    // ═══════════════════════════════════════════════════════════════════════════
+    // GIANNA - Offer-Focused
+    // ═══════════════════════════════════════════════════════════════════════════
+    {
+      id: "nx-offer-1",
+      name: "New Framework",
+      message:
+        "NEXTIER: We've got a new framework clients are using to save time and cut costs. Interested in a brief walk-through by phone? Reply STOP to opt out.",
+      stage: "initial" as CampaignStage,
+      worker: "GIANNA" as AIWorker,
+      tags: ["offer", "framework", "call"],
+      variables: [],
+      charCount: 157,
+      lifecycle: TemplateLifecycle.APPROVED,
+    },
+    {
+      id: "nx-offer-2",
+      name: "Early Access",
+      message:
+        "NEXTIER: Rolling out a new way to streamline pro-services workflows. Want early access details on a quick call? Reply STOP to opt out.",
+      stage: "initial" as CampaignStage,
+      worker: "GIANNA" as AIWorker,
+      tags: ["offer", "earlyaccess", "call"],
+      variables: [],
+      charCount: 145,
+      lifecycle: TemplateLifecycle.APPROVED,
+    },
+    {
+      id: "nx-offer-3",
+      name: "Reduce Manual Tasks",
+      message:
+        "NEXTIER: We're helping teams reduce manual tasks this quarter. Want to see if it fits your setup on a quick call? Reply STOP to opt out.",
+      stage: "initial" as CampaignStage,
+      worker: "GIANNA" as AIWorker,
+      tags: ["offer", "automation", "call"],
+      variables: [],
+      charCount: 147,
+      lifecycle: TemplateLifecycle.APPROVED,
+    },
+  ],
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // CARTRIDGE LIBRARY (All available cartridges)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export const CARTRIDGE_LIBRARY: TemplateCartridge[] = [
+  NEXTIER_CORE_CARTRIDGE, // SignalHouse approved - always first
   BUSINESS_BROKERING_CARTRIDGE,
   CRM_CONSULTANTS_CARTRIDGE,
   BLUE_COLLAR_CARTRIDGE,
