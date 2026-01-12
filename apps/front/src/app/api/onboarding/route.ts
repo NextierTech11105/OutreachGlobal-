@@ -73,11 +73,13 @@ export async function GET(request: NextRequest) {
         LIMIT 1
       `);
       const settingsRow = settingsResult.rows?.[0];
-      const data = settingsRow?.value ? JSON.parse(settingsRow.value as string) : null;
+      const data = settingsRow?.value
+        ? JSON.parse(settingsRow.value as string)
+        : null;
 
       return NextResponse.json({
         success: true,
-        hasStarted: tenant.state !== 'DEMO',
+        hasStarted: tenant.state !== "DEMO",
         completed: !!tenant.onboarding_completed_at,
         completedAt: tenant.onboarding_completed_at,
         currentStep: data?.currentStep || 0,
@@ -96,8 +98,10 @@ export async function GET(request: NextRequest) {
       settings[row.name as string] = row.value as string;
     }
 
-    const data = settings.onboarding_data ? JSON.parse(settings.onboarding_data) : null;
-    const completed = settings.onboarding_completed === 'true';
+    const data = settings.onboarding_data
+      ? JSON.parse(settings.onboarding_data)
+      : null;
+    const completed = settings.onboarding_completed === "true";
 
     return NextResponse.json({
       success: true,
@@ -175,16 +179,20 @@ export async function POST(request: NextRequest) {
       `);
 
       // Also update tenants table if it exists
-      await db.execute(sql`
+      await db
+        .execute(
+          sql`
         UPDATE tenants
         SET
           onboarding_completed_at = ${now}::timestamp,
           state = 'READY_FOR_EXECUTION',
           updated_at = NOW()
         WHERE id = ${teamId} OR slug = ${teamId}
-      `).catch(() => {
-        // Tenant may not exist, that's OK
-      });
+      `,
+        )
+        .catch(() => {
+          // Tenant may not exist, that's OK
+        });
 
       // Save audience profile separately for easy access
       if (data.audienceProfile) {

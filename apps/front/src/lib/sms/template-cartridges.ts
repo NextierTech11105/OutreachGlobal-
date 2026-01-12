@@ -935,11 +935,25 @@ export const NEXTIER_CORE_CARTRIDGE: TemplateCartridge = {
   name: "NEXTIER Core (SignalHouse Approved)",
   description:
     "First-party marketing templates for NEXTIER consulting. All templates are 10DLC compliant and approved by SignalHouse.",
-  audience: "Business owners, executives, and decision-makers seeking operational efficiency and growth",
-  industries: ["professional services", "consulting", "technology", "business services"],
+  audience:
+    "Business owners, executives, and decision-makers seeking operational efficiency and growth",
+  industries: [
+    "professional services",
+    "consulting",
+    "technology",
+    "business services",
+  ],
   active: true, // Default active - this is the core cartridge
   sicCodes: ["8742", "8748", "7371", "7389"],
-  keywords: ["nextier", "consulting", "efficiency", "save time", "save money", "strategy", "call"],
+  keywords: [
+    "nextier",
+    "consulting",
+    "efficiency",
+    "save time",
+    "save money",
+    "strategy",
+    "call",
+  ],
   templates: [
     // ═══════════════════════════════════════════════════════════════════════════
     // GIANNA - Initial Openers (Value + Call)

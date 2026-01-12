@@ -119,12 +119,42 @@ const INITIAL_DATA: OnboardingData = {
 
 // Step configuration with icons
 const STEPS = [
-  { id: "welcome", label: "Industry", icon: Sparkles, description: "Select your industry" },
-  { id: "audience", label: "ICP", icon: Target, description: "Program your ideal customer" },
-  { id: "upload", label: "Leads", icon: Upload, description: "Upload your contacts" },
-  { id: "team", label: "Team", icon: Users, description: "Meet GIANNA, CATHY, SABRINA" },
-  { id: "capacity", label: "Capacity", icon: Zap, description: "Set daily volume" },
-  { id: "message", label: "Message", icon: MessageSquare, description: "Customize opener" },
+  {
+    id: "welcome",
+    label: "Industry",
+    icon: Sparkles,
+    description: "Select your industry",
+  },
+  {
+    id: "audience",
+    label: "ICP",
+    icon: Target,
+    description: "Program your ideal customer",
+  },
+  {
+    id: "upload",
+    label: "Leads",
+    icon: Upload,
+    description: "Upload your contacts",
+  },
+  {
+    id: "team",
+    label: "Team",
+    icon: Users,
+    description: "Meet GIANNA, CATHY, SABRINA",
+  },
+  {
+    id: "capacity",
+    label: "Capacity",
+    icon: Zap,
+    description: "Set daily volume",
+  },
+  {
+    id: "message",
+    label: "Message",
+    icon: MessageSquare,
+    description: "Customize opener",
+  },
   { id: "launch", label: "Launch", icon: Rocket, description: "Go live" },
 ];
 
@@ -195,11 +225,7 @@ export function OnboardingWizard({
     switch (currentStep) {
       case 0:
         return (
-          <WelcomeStep
-            data={data}
-            updateData={updateData}
-            onNext={nextStep}
-          />
+          <WelcomeStep data={data} updateData={updateData} onNext={nextStep} />
         );
       case 1:
         return (
@@ -277,9 +303,12 @@ export function OnboardingWizard({
         <div className="mb-6">
           <div className="flex justify-between text-sm mb-2">
             <span className="font-medium">
-              Step {currentStep + 1} of {STEPS.length}: {STEPS[currentStep].label}
+              Step {currentStep + 1} of {STEPS.length}:{" "}
+              {STEPS[currentStep].label}
             </span>
-            <span className="text-muted-foreground">{Math.round(progress)}%</span>
+            <span className="text-muted-foreground">
+              {Math.round(progress)}%
+            </span>
           </div>
           <Progress value={progress} className="h-2" />
         </div>
@@ -298,7 +327,7 @@ export function OnboardingWizard({
                   "flex flex-col items-center gap-1 min-w-[60px]",
                   isCurrent && "text-primary",
                   isComplete && "text-green-500",
-                  !isCurrent && !isComplete && "text-muted-foreground"
+                  !isCurrent && !isComplete && "text-muted-foreground",
                 )}
               >
                 <div
@@ -306,7 +335,7 @@ export function OnboardingWizard({
                     "w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all",
                     isCurrent && "border-primary bg-primary/10",
                     isComplete && "border-green-500 bg-green-500/10",
-                    !isCurrent && !isComplete && "border-muted"
+                    !isCurrent && !isComplete && "border-muted",
                   )}
                 >
                   {isComplete ? (
@@ -325,9 +354,7 @@ export function OnboardingWizard({
 
         {/* Step Content */}
         <Card className="shadow-xl">
-          <CardContent className="p-6 sm:p-8">
-            {renderStep()}
-          </CardContent>
+          <CardContent className="p-6 sm:p-8">{renderStep()}</CardContent>
         </Card>
 
         {/* Footer Info */}

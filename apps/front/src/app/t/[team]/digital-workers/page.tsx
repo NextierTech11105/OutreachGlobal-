@@ -348,9 +348,7 @@ export default function DigitalWorkersPage() {
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>
-              {selectedWorker?.name} Settings
-            </DialogTitle>
+            <DialogTitle>{selectedWorker?.name} Settings</DialogTitle>
             <DialogDescription>
               Configure {selectedWorker?.name}'s behavior and parameters
             </DialogDescription>

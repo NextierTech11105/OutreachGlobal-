@@ -94,7 +94,9 @@ export default function CartridgesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [isOnboardingComplete, setIsOnboardingComplete] = useState<boolean | null>(null);
+  const [isOnboardingComplete, setIsOnboardingComplete] = useState<
+    boolean | null
+  >(null);
 
   // Check onboarding status
   useEffect(() => {
@@ -197,11 +199,13 @@ export default function CartridgesPage() {
             <Lock className="h-10 w-10 text-muted-foreground" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold mb-2">Template Cartridges Locked</h1>
+            <h1 className="text-2xl font-bold mb-2">
+              Template Cartridges Locked
+            </h1>
             <p className="text-muted-foreground">
               Complete your onboarding to unlock the template cartridge library.
-              This ensures your ICP is programmed and your AI team (GIANNA, CATHY, SABRINA)
-              is configured for optimal performance.
+              This ensures your ICP is programmed and your AI team (GIANNA,
+              CATHY, SABRINA) is configured for optimal performance.
             </p>
           </div>
           <div className="p-4 bg-muted/50 rounded-lg text-sm text-left space-y-2">

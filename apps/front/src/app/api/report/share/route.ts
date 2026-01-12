@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 
-const SIGNALHOUSE_API_KEY = process.env.SIGNALHOUSE_AUTH_TOKEN || process.env.SIGNALHOUSE_API_KEY || "";
+const SIGNALHOUSE_API_KEY =
+  process.env.SIGNALHOUSE_AUTH_TOKEN || process.env.SIGNALHOUSE_API_KEY || "";
 const GMAIL_USER = process.env.GMAIL_USER || "tb@outreachglobal.io";
 const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD || "";
 const APP_URL =
@@ -82,10 +83,12 @@ export async function POST(request: NextRequest) {
     } = {};
 
     // Build owner display name (prefer first name from skip trace)
-    const ownerDisplayName = ownerFirstName || recipientName?.split(" ")[0] || "";
-    const ownerFullName = ownerFirstName && ownerLastName
-      ? `${ownerFirstName} ${ownerLastName}`
-      : recipientName || "";
+    const ownerDisplayName =
+      ownerFirstName || recipientName?.split(" ")[0] || "";
+    const ownerFullName =
+      ownerFirstName && ownerLastName
+        ? `${ownerFirstName} ${ownerLastName}`
+        : recipientName || "";
 
     // Build property description (business vs residential)
     const propertyDescription = businessName
@@ -351,13 +354,21 @@ Powered by Outreach Global Property Intelligence`;
         });
 
         results.email = { success: true, messageId: info.messageId };
-        console.log("[Report Share] Email sent successfully via Gmail:", info.messageId);
+        console.log(
+          "[Report Share] Email sent successfully via Gmail:",
+          info.messageId,
+        );
       } catch (emailError: any) {
         console.error("[Report Share] Email error:", emailError);
-        results.email = { success: false, error: emailError.message || "Email send failed" };
+        results.email = {
+          success: false,
+          error: emailError.message || "Email send failed",
+        };
       }
     } else if (sendEmail && recipientEmail && !transporter) {
-      console.warn("[Report Share] Gmail not configured - GMAIL_APP_PASSWORD missing");
+      console.warn(
+        "[Report Share] Gmail not configured - GMAIL_APP_PASSWORD missing",
+      );
       results.email = { success: false, error: "Gmail not configured" };
     }
 
