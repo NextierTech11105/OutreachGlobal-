@@ -84,3 +84,6 @@ export * from "./billing.schema";
 
 // ===== BATCH JOBS (Durable Processing) =====
 export * from "./batch-jobs.schema";
+
+// ===== TENANT CONFIG (Multi-Tenant White-Label) =====
+export * from "./tenant-config.schema";

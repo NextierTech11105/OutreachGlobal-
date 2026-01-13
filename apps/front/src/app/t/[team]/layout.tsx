@@ -12,6 +12,8 @@ import { LayoutProps } from "@/types/route.type";
 import { Metadata } from "next";
 import { GlobalActionsProvider } from "@/lib/providers/global-actions-provider";
 import { FloatingActionBar } from "@/components/floating-action-bar";
+import { TenantConfigProvider } from "@/lib/tenant";
+import { CopilotKiosk } from "@/components/copilot-kiosk";
 
 export const generateMetadata = async ({
   params,
@@ -50,6 +52,9 @@ export default async function Layout({
             </header>
             <div className="pb-24">{children}</div>
             <FloatingActionBar />
+            <TenantConfigProvider>
+              <CopilotKiosk />
+            </TenantConfigProvider>
           </SidebarInset>
         </GlobalActionsProvider>
       </TeamProvider>

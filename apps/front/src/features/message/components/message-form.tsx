@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Mail, MessageSquare, Phone, Clock, Save } from "lucide-react";
+import { Mail, MessageSquare, Phone } from "lucide-react";
 import { MessageType } from "@nextier/common";
 import { Badge } from "@/components/ui/badge";
 import { useCurrentTeam } from "@/features/team/team.context";
@@ -26,6 +26,8 @@ import { CREATE_MESSAGE_MUTATION } from "../mutations/message.mutations";
 import { useWatch } from "react-hook-form";
 import { MESSAGES_EVICT } from "../queries/message.queries";
 import { toast } from "sonner";
+import { useCRMSync } from "@/hooks/use-crm-sync";
+import { CRMSyncIndicator } from "@/components/crm-sync-indicator";
 
 export interface MessageFormProps {
   onSend?: (replyText: string) => void | Promise<void>;
@@ -39,6 +41,10 @@ export interface MessageFormProps {
     body?: string;
   };
   leadId?: string;
+  /** Optional CRM record ID for syncing activity */
+  crmRecordId?: string;
+  /** Optional AI worker name (GIANNA, CATHY, SABRINA) */
+  workerName?: string;
 }
 
 export function MessageForm({
@@ -49,9 +55,11 @@ export function MessageForm({
   address: defaultAddress,
   type,
   leadId,
+  crmRecordId,
+  workerName,
 }: MessageFormProps) {
   const { team } = useCurrentTeam();
-  const { register, registerError, handleSubmit, control } = useForm({
+  const { register, handleSubmit, control } = useForm({
     resolver: zodResolver(createMessageSchema),
     defaultValues: {
       toName: defaultName,
@@ -65,6 +73,9 @@ export function MessageForm({
   const [createMessage] = useMutation(CREATE_MESSAGE_MUTATION);
   const [replyText] = useWatch({ control, name: ["body"] });
 
+  // CRM Sync - automatically logs activity to connected CRM
+  const { logSmsSent, state: crmState } = useCRMSync();
+
   const sendMessage = async (input: CreateMessageDto) => {
     setLoading(true);
     try {
@@ -77,7 +88,24 @@ export function MessageForm({
         },
       });
       cache.evict(MESSAGES_EVICT);
-      toast.success("Message sent");
+
+      // Sync SMS to CRM if connected
+      if (type === MessageType.SMS && leadId && crmState.enabled) {
+        logSmsSent({
+          leadId,
+          crmRecordId,
+          message: input.body,
+          phone: defaultAddress,
+          workerName,
+        }).then((result) => {
+          if (result?.success) {
+            toast.success("Message sent & synced to CRM");
+          }
+        });
+      } else {
+        toast.success("Message sent");
+      }
+
       onSend?.(replyText);
     } catch (error) {
       showError(error, { gql: true });
@@ -185,6 +213,8 @@ export function MessageForm({
                   <span>{replyText.length} / 160 characters</span>
                 )}
               </div>
+              {/* CRM Sync Indicator - shows if activity will sync to connected CRM */}
+              <CRMSyncIndicator variant="compact" showSettings={false} />
             </div>
           </div>
         </CardContent>
