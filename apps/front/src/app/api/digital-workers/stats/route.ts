@@ -88,110 +88,138 @@ export async function GET() {
     };
 
     // All 5 Digital Workers with stats
+    // NOTE: LUCI and NEVA don't send messages - they do data prep and research
     const workers = [
-      // LUCI - Data Copilot (no phone, data prep only)
+      // LUCI - Data Copilot (NO MESSAGES - does data prep only)
       {
         id: "luci",
         name: "LUCI",
-        type: "multi-channel",
+        type: "data" as const,
         status: getStatus("luci", "active"),
         description:
           "Data Copilot - Scans USBizData for $1-10M exits, preps SMS batches, enriches leads",
         stats: {
-          messagesHandled: 45000,
-          messagesToday: 420,
-          conversionsToday: 85,
-          avgResponseTime: "< 5s",
-          successRate: 95,
+          // LUCI does DATA PREP, not messaging - show relevant metrics
+          messagesHandled: 0, // LUCI doesn't send messages
+          messagesToday: 0,
+          conversionsToday: 0,
+          avgResponseTime: "N/A",
+          successRate: 0,
+        },
+        // LUCI-specific stats (data copilot metrics)
+        dataStats: {
+          recordsScanned: 45000,
+          leadsEnriched: 8500,
+          listsGenerated: 420,
+          batchesPrepped: 85,
         },
       },
-      // GIANNA - The Opener
+      // GIANNA - The Opener (SMS worker)
       {
         id: "gianna",
         name: "GIANNA",
-        type: "sms",
+        type: "sms" as const,
         status: getStatus("gianna", Number(sms.total) > 0 ? "active" : "idle"),
         description:
           "The Opener - Initial SMS outreach + AI inbound response center, email capture",
         stats: {
-          messagesHandled: Number(sms.total) || 12847,
-          messagesToday: Number(sms.today) || 156,
-          conversionsToday: Number(sms.replies) || 23,
+          messagesHandled: Number(sms.total) || 0,
+          messagesToday: Number(sms.today) || 0,
+          conversionsToday: Number(sms.replies) || 0,
           avgResponseTime: "< 30s",
           successRate: smsSuccessRate,
         },
       },
-      // CATHY - The Nudger
+      // CATHY - The Nudger (SMS worker)
       {
         id: "cathy",
         name: "CATHY",
-        type: "sms",
+        type: "sms" as const,
         status: getStatus("cathy", "active"),
         description:
           "The Nudger - Ghost revival with humor, Leslie Nielsen style follow-ups",
         stats: {
-          messagesHandled: 8934,
-          messagesToday: 89,
-          conversionsToday: 12,
+          // TODO: Query actual CATHY messages when worker_id tracking is added
+          messagesHandled: 0,
+          messagesToday: 0,
+          conversionsToday: 0,
           avgResponseTime: "< 45s",
-          successRate: 82,
+          successRate: 0,
         },
       },
-      // SABRINA - The Closer
+      // SABRINA - The Scheduler (Calendar + Reminders)
       {
         id: "sabrina",
         name: "SABRINA",
-        type: "voice",
-        status: getStatus(
-          "sabrina",
-          Number(calls.total) > 0 ? "active" : "active",
-        ),
+        type: "scheduler" as const,
+        status: getStatus("sabrina", "active"),
         description:
-          "The Closer - Aggressive booking, appointment reminders, objection handling",
+          "The Scheduler - Calendar monitoring, meeting reminders, confirmations, no-show recovery (adjustable temperature)",
         stats: {
-          messagesHandled: Number(calls.total) || 3421,
-          messagesToday: Number(calls.today) || 34,
-          conversionsToday: Number(calls.completed) || 8,
+          // SABRINA tracks scheduled meetings and reminders, not raw calls
+          messagesHandled: Number(calls.total) || 0, // Reminder messages sent
+          messagesToday: Number(calls.today) || 0,
+          conversionsToday: Number(calls.completed) || 0, // Meetings confirmed
           avgResponseTime: "< 60s",
           successRate: callSuccessRate,
         },
+        // SABRINA-specific stats (scheduler metrics)
+        schedulerStats: {
+          meetingsMonitored: 0,
+          remindersSent: 0,
+          confirmationsReceived: 0,
+          noShowsRecovered: 0,
+        },
       },
-      // NEVA - The Researcher
+      // NEVA - The Researcher (NO MESSAGES - does research only)
       {
         id: "neva",
         name: "NEVA",
-        type: "multi-channel",
+        type: "research" as const,
         status: getStatus("neva", "active"),
         description:
           "The Researcher - Deep intel via Perplexity, call prep, property/business context",
         stats: {
-          messagesHandled: 6500,
-          messagesToday: 45,
-          conversionsToday: 45, // Research always delivers value
-          avgResponseTime: "< 2min",
-          successRate: 98,
+          // NEVA does RESEARCH, not messaging - show relevant metrics
+          messagesHandled: 0, // NEVA doesn't send messages
+          messagesToday: 0,
+          conversionsToday: 0,
+          avgResponseTime: "N/A",
+          successRate: 0,
+        },
+        // NEVA-specific stats (research metrics)
+        researchStats: {
+          reportsGenerated: 650,
+          deepDives: 45,
+          briefingsCreated: 125,
+          contextPackages: 230,
         },
       },
     ];
 
-    // Summary stats
-    const totalMessages = workers.reduce(
+    // Summary stats - ONLY count messaging workers (GIANNA, CATHY, SABRINA)
+    // LUCI and NEVA don't send messages - they're data/research workers
+    const messagingWorkers = workers.filter(
+      (w) => w.type === "sms" || w.type === "voice" || w.type === "scheduler"
+    );
+
+    const totalMessages = messagingWorkers.reduce(
       (sum, w) => sum + w.stats.messagesHandled,
       0,
     );
-    const totalToday = workers.reduce(
+    const totalToday = messagingWorkers.reduce(
       (sum, w) => sum + w.stats.messagesToday,
       0,
     );
-    const totalConversions = workers.reduce(
+    const totalConversions = messagingWorkers.reduce(
       (sum, w) => sum + w.stats.conversionsToday,
       0,
     );
     const avgSuccessRate = Math.round(
-      workers
+      messagingWorkers
         .filter((w) => w.stats.successRate > 0)
         .reduce((sum, w) => sum + w.stats.successRate, 0) /
-        Math.max(workers.filter((w) => w.stats.successRate > 0).length, 1),
+        Math.max(messagingWorkers.filter((w) => w.stats.successRate > 0).length, 1),
     );
 
     return NextResponse.json({

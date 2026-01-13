@@ -11,6 +11,9 @@ import {
   Mail,
   Loader2,
   RefreshCw,
+  Database,
+  Search,
+  Calendar,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -43,7 +46,7 @@ import {
 interface DigitalWorker {
   id: string;
   name: string;
-  type: "sms" | "email" | "voice" | "multi-channel";
+  type: "sms" | "email" | "voice" | "multi-channel" | "data" | "research" | "scheduler";
   status: "active" | "paused" | "idle";
   description: string;
   stats: {
@@ -52,6 +55,25 @@ interface DigitalWorker {
     conversionsToday: number;
     avgResponseTime: string;
     successRate: number;
+  };
+  // Worker-specific stats
+  dataStats?: {
+    recordsScanned: number;
+    leadsEnriched: number;
+    listsGenerated: number;
+    batchesPrepped: number;
+  };
+  researchStats?: {
+    reportsGenerated: number;
+    deepDives: number;
+    briefingsCreated: number;
+    contextPackages: number;
+  };
+  schedulerStats?: {
+    meetingsMonitored: number;
+    remindersSent: number;
+    confirmationsReceived: number;
+    noShowsRecovered: number;
   };
 }
 
@@ -158,6 +180,12 @@ export default function DigitalWorkersPage() {
         return <Mail className="h-5 w-5" />;
       case "multi-channel":
         return <Zap className="h-5 w-5" />;
+      case "data":
+        return <Database className="h-5 w-5" />;
+      case "research":
+        return <Search className="h-5 w-5" />;
+      case "scheduler":
+        return <Calendar className="h-5 w-5" />;
       default:
         return <Bot className="h-5 w-5" />;
     }

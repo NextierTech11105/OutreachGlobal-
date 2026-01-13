@@ -2125,6 +2125,65 @@ export type TeamPhoneNumber = typeof teamPhoneNumbers.$inferSelect;
 export type NewTeamPhoneNumber = typeof teamPhoneNumbers.$inferInsert;
 
 // ============================================================
+// SMS PHONE POOL (Rotation)
+// Enables automatic round-robin rotation through SMS phone numbers
+// ============================================================
+
+export const smsPhonePool = pgTable(
+  "sms_phone_pool",
+  {
+    id: text("id").primaryKey(),
+    teamId: text("team_id").notNull(),
+
+    // Phone identity
+    phoneNumber: text("phone_number").notNull(), // E.164: +1XXXXXXXXXX
+    signalhouseNumberId: text("signalhouse_number_id"), // SignalHouse internal ID
+
+    // Worker assignment (optional - null = shared pool)
+    workerId: text("worker_id"), // 'gianna' | 'cathy' | 'sabrina' | null
+
+    // Rotation state
+    rotationIndex: integer("rotation_index").notNull().default(0),
+    lastUsedAt: timestamp("last_used_at"),
+
+    // Send metrics
+    sendCount: integer("send_count").notNull().default(0),
+    successCount: integer("success_count").notNull().default(0),
+    failureCount: integer("failure_count").notNull().default(0),
+    deliveryRate: decimal("delivery_rate", { precision: 5, scale: 4 }),
+
+    // Rate limiting
+    dailySendCount: integer("daily_send_count").notNull().default(0),
+    dailyLimitResetAt: timestamp("daily_limit_reset_at"),
+
+    // Health status
+    isActive: boolean("is_active").notNull().default(true),
+    isHealthy: boolean("is_healthy").notNull().default(true),
+    consecutiveFailures: integer("consecutive_failures").notNull().default(0),
+    lastHealthCheckAt: timestamp("last_health_check_at"),
+
+    // Timestamps
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    teamIdIdx: index("sms_phone_pool_team_id_idx").on(table.teamId),
+    phoneNumberIdx: index("sms_phone_pool_phone_number_idx").on(
+      table.phoneNumber
+    ),
+    workerIdx: index("sms_phone_pool_worker_idx").on(table.teamId, table.workerId),
+    rotationIdx: index("sms_phone_pool_rotation_idx").on(
+      table.teamId,
+      table.workerId,
+      table.lastUsedAt
+    ),
+  })
+);
+
+export type SmsPhonePool = typeof smsPhonePool.$inferSelect;
+export type NewSmsPhonePool = typeof smsPhonePool.$inferInsert;
+
+// ============================================================
 // USERS - Core user accounts
 // ============================================================
 

@@ -19,6 +19,7 @@ import {
   getWorkerForLeadStage,
   type AIWorker,
 } from "@/lib/ai-workers/worker-router";
+import { resolveTenantFromPhone } from "@/lib/signalhouse/send-context";
 import { getInboundConfig } from "@/lib/config/inbound-processing.config";
 import { CANONICAL_LABELS } from "@/lib/labels/canonical-labels";
 import {
@@ -31,63 +32,126 @@ import {
   detectRequestedData,
 } from "@/lib/inbox/thread-resolver";
 import { deepResearch } from "@/lib/ai-workers/neva-research";
+import {
+  logWebhookSecurity,
+  generateRequestId,
+  type AuthMethod,
+} from "@/lib/webhook/security-logger";
+import { maskPhone, redactPayload } from "@/lib/webhook/redaction";
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// WEBHOOK SECURITY (Query Parameter Token)
+// WEBHOOK AUTHENTICATION - SECURITY HARDENING
 // ═══════════════════════════════════════════════════════════════════════════════
-// SignalHouse doesn't sign webhooks, so we use a shared secret token in the URL.
-// Configure your webhook URL in SignalHouse as:
+//
+// CURRENT: URL query parameter token (SignalHouse limitation)
 //   https://yourapp.com/api/webhook/signalhouse?token=YOUR_SECRET_TOKEN
+//
+// FUTURE: Header-based secret (when SignalHouse supports it)
+//   POST /api/webhook/signalhouse
+//   Headers: x-nextier-webhook-secret: YOUR_SECRET
+//
+// WHY URL TOKENS ARE LESS SECURE:
+//   1. Visible in server access logs
+//   2. Leaked via HTTP Referer header
+//   3. Cached by proxies and CDNs
+//
+// SignalHouse does NOT currently support custom outbound webhook headers,
+// so URL token is the only option. This code is future-proofed to support
+// header-based auth when/if SignalHouse adds that capability.
+//
 // ═══════════════════════════════════════════════════════════════════════════════
 
+// Current: URL token (required - SignalHouse limitation)
 const WEBHOOK_TOKEN = process.env.SIGNALHOUSE_WEBHOOK_TOKEN;
+// Future: Header-based secret (when SignalHouse supports it)
+const WEBHOOK_SECRET = process.env.SIGNALHOUSE_WEBHOOK_SECRET;
+// Optional: IP allowlist (when SignalHouse publishes their IPs)
+const ALLOWED_IPS = process.env.SIGNALHOUSE_WEBHOOK_ALLOWED_IPS?.split(",").map(
+  (ip) => ip.trim(),
+);
 
 // Security: Warn at startup if webhook is not configured
-if (!WEBHOOK_TOKEN) {
+if (!WEBHOOK_TOKEN && !WEBHOOK_SECRET) {
   console.error(
-    "[SignalHouse] CRITICAL: SIGNALHOUSE_WEBHOOK_TOKEN not configured - webhook endpoint disabled",
+    "[SignalHouse] CRITICAL: No webhook authentication configured - endpoint disabled",
   );
 }
 
-/**
- * Verify webhook token from query parameter
- * SECURITY: Token is REQUIRED - endpoint disabled without it
- */
-function verifyWebhookToken(requestUrl: string): {
+interface AuthResult {
   valid: boolean;
+  method: AuthMethod;
   error?: string;
-} {
-  // SECURITY: Reject ALL requests if token not configured
+}
+
+/**
+ * Verify webhook authentication
+ * Priority: Header secret (future) > URL token (current)
+ *
+ * SECURITY: Uses timing-safe comparison to prevent timing attacks
+ */
+function verifyWebhookAuth(request: NextRequest): AuthResult {
+  // Future: Check header-based secret (when SignalHouse supports it)
+  const headerSecret = request.headers.get("x-nextier-webhook-secret");
+  if (headerSecret && WEBHOOK_SECRET) {
+    try {
+      const headerBuffer = Buffer.from(headerSecret);
+      const secretBuffer = Buffer.from(WEBHOOK_SECRET);
+      if (
+        headerBuffer.length === secretBuffer.length &&
+        timingSafeEqual(headerBuffer, secretBuffer)
+      ) {
+        return { valid: true, method: "HEADER" };
+      }
+      return { valid: false, method: "HEADER", error: "Invalid header secret" };
+    } catch {
+      return {
+        valid: false,
+        method: "HEADER",
+        error: "Header verification failed",
+      };
+    }
+  }
+
+  // Current: URL token (SignalHouse's only supported method)
   if (!WEBHOOK_TOKEN) {
+    return { valid: false, method: "NONE", error: "Webhook not configured" };
+  }
+
+  const url = new URL(request.url);
+  const urlToken = url.searchParams.get("token");
+
+  if (!urlToken) {
+    return { valid: false, method: "NONE", error: "Missing token" };
+  }
+
+  try {
+    const tokenBuffer = Buffer.from(urlToken);
+    const expectedBuffer = Buffer.from(WEBHOOK_TOKEN);
+    if (tokenBuffer.length !== expectedBuffer.length) {
+      return { valid: false, method: "URL_TOKEN", error: "Invalid token" };
+    }
+    if (timingSafeEqual(tokenBuffer, expectedBuffer)) {
+      return { valid: true, method: "URL_TOKEN" };
+    }
+    return { valid: false, method: "URL_TOKEN", error: "Invalid token" };
+  } catch {
     return {
       valid: false,
-      error: "Webhook not configured - endpoint disabled",
+      method: "URL_TOKEN",
+      error: "Token verification failed",
     };
   }
+}
 
-  // Extract token from query string
-  const url = new URL(requestUrl);
-  const providedToken = url.searchParams.get("token");
-
-  if (!providedToken) {
-    return { valid: false, error: "Missing token parameter" };
-  }
-
-  // Use timing-safe comparison
-  try {
-    const tokenBuffer = Buffer.from(providedToken);
-    const expectedBuffer = Buffer.from(WEBHOOK_TOKEN);
-
-    if (tokenBuffer.length !== expectedBuffer.length) {
-      return { valid: false, error: "Invalid token" };
-    }
-
-    if (timingSafeEqual(tokenBuffer, expectedBuffer)) {
-      return { valid: true };
-    }
-    return { valid: false, error: "Invalid token" };
-  } catch {
-    return { valid: false, error: "Token verification failed" };
+/**
+ * Check if source IP is in the allowlist (non-blocking, log only)
+ */
+function checkIpAllowlist(ip: string, requestId: string): void {
+  if (!ALLOWED_IPS || ALLOWED_IPS.length === 0) return; // No restriction
+  if (!ALLOWED_IPS.includes(ip)) {
+    console.warn(
+      `[SignalHouse] [${requestId}] [IP_WARNING] Request from unlisted IP: ${ip}`,
+    );
   }
 }
 
@@ -446,6 +510,13 @@ async function pushToCallQueue(
     priority?: number | null;
     lane?: string;
     isGoldLabel?: boolean;
+    // Multi-tenant context from resolveTenantFromPhone
+    tenantInfo?: {
+      teamId: string;
+      workerId: string;
+      workerName: string;
+      shSubGroupId?: string;
+    } | null;
   },
 ): Promise<void> {
   // Get config-driven priority (fallback to 100 only if config not set)
@@ -462,11 +533,13 @@ async function pushToCallQueue(
 
     // Generate ID with cq prefix for call queue
     const id = `cq_${crypto.randomUUID().replace(/-/g, "")}`;
+    // Use tenant's phone from DB, falling back to env vars for legacy support
     const phoneFrom =
       process.env.SABRINA_PHONE_NUMBER ||
       process.env.DEFAULT_OUTBOUND_NUMBER ||
       "";
-    const teamId = lead.teamId || "default_team";
+    // Prefer tenant info teamId, then lead.teamId, then fallback
+    const teamId = options?.tenantInfo?.teamId || lead.teamId || "default_team";
 
     const metadata = JSON.stringify({
       lane,
@@ -477,6 +550,10 @@ async function pushToCallQueue(
       notes: isGoldLabel
         ? `GOLD LABEL - Email captured: ${capturedEmail}. Call immediately to book meeting.`
         : `Lead queued for follow-up. Priority: ${priority}`,
+      // Multi-tenant context for voice routing
+      tenantWorkerId: options?.tenantInfo?.workerId,
+      tenantWorkerName: options?.tenantInfo?.workerName,
+      shSubGroupId: options?.tenantInfo?.shSubGroupId,
     });
 
     // Insert directly using raw SQL since callQueue is in the API schema
@@ -736,19 +813,67 @@ export async function GET(request: NextRequest) {
 
 // POST - Handle incoming webhooks from SignalHouse
 export async function POST(request: NextRequest) {
+  // Generate unique request ID for tracing
+  const requestId = generateRequestId();
+  const sourceIp =
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    request.headers.get("x-real-ip") ||
+    "unknown";
+
   try {
     // ─────────────────────────────────────────────────────────────────────
-    // STEP 0: VALIDATE WEBHOOK TOKEN (Security - prevents spoofing)
+    // STEP 0: AUTHENTICATE WEBHOOK (Security - prevents spoofing)
     // ─────────────────────────────────────────────────────────────────────
-    const tokenCheck = verifyWebhookToken(request.url);
-    if (!tokenCheck.valid) {
-      console.error(`[SignalHouse] 🚫 WEBHOOK REJECTED: ${tokenCheck.error}`, {
-        ip: request.headers.get("x-forwarded-for") || "unknown",
-        userAgent: request.headers.get("user-agent"),
-      });
+    const auth = verifyWebhookAuth(request);
+
+    // Parse payload early for security logging (even if auth fails)
+    let eventType = "unknown";
+    let fromNumber = "";
+    let toNumber = "";
+    let payload: SignalHouseWebhookPayload | null = null;
+
+    try {
+      payload = await request.json();
+      eventType = payload?.event || "unknown";
+      fromNumber = payload?.from || "";
+      toNumber = payload?.to || "";
+    } catch {
+      // Payload parsing failed - continue with auth check
+    }
+
+    // Log security event (always, even for failed auth)
+    logWebhookSecurity({
+      timestamp: new Date().toISOString(),
+      request_id: requestId,
+      auth_method: auth.method,
+      verified: auth.valid,
+      event_type: eventType,
+      source_ip: sourceIp,
+      user_agent: request.headers.get("user-agent") || undefined,
+      from_number_masked: maskPhone(fromNumber),
+      to_number_masked: maskPhone(toNumber),
+    });
+
+    // Check IP allowlist (non-blocking, log only)
+    checkIpAllowlist(sourceIp, requestId);
+
+    // Reject if auth failed
+    if (!auth.valid) {
+      console.error(
+        `[SignalHouse] [${requestId}] AUTH REJECTED: ${auth.error}`,
+      );
       return NextResponse.json(
-        { error: "Unauthorized", reason: tokenCheck.error },
+        { error: "Unauthorized", reason: auth.error },
         { status: 401 },
+      );
+    }
+
+    // If payload failed to parse earlier, return error now
+    if (!payload) {
+      console.error(`[SignalHouse] [${requestId}] Invalid JSON payload`);
+      return NextResponse.json(
+        { error: "Invalid JSON payload" },
+        { status: 400 },
       );
     }
 
@@ -756,9 +881,6 @@ export async function POST(request: NextRequest) {
     // STEP 0.5: LOAD CONFIG (all thresholds are config-driven)
     // ─────────────────────────────────────────────────────────────────────
     const inboundConfig = getInboundConfig();
-
-    // Parse the payload
-    const payload: SignalHouseWebhookPayload = await request.json();
 
     // ─────────────────────────────────────────────────────────────────────
     // STEP 0.75: IDEMPOTENCY CHECK (prevent duplicate processing)
@@ -768,21 +890,55 @@ export async function POST(request: NextRequest) {
       payload.messageId ||
       generateEventId({ ...payload, ts: payload.timestamp });
     if (await isAlreadyProcessed("signalhouse", eventId)) {
-      console.log(`[SignalHouse] Duplicate event ${eventId} - skipping`);
+      console.log(
+        `[SignalHouse] [${requestId}] Duplicate event ${eventId} - skipping`,
+      );
       return NextResponse.json({ success: true, event: "duplicate" });
     }
 
+    // ─────────────────────────────────────────────────────────────────────
+    // STEP 0.85: REPLAY DETECTION (non-blocking, log only)
+    // ─────────────────────────────────────────────────────────────────────
+    if (payload.timestamp) {
+      const eventAge = Date.now() - new Date(payload.timestamp).getTime();
+      const ageSeconds = Math.floor(eventAge / 1000);
+      // Flag stale events (>5 minutes old)
+      if (ageSeconds > 300) {
+        console.warn(
+          `[SignalHouse] [${requestId}] [REPLAY_WARNING] Event is ${ageSeconds}s old`,
+          { event_id: eventId, payload_timestamp: payload.timestamp },
+        );
+        // Note: Don't block - just log for monitoring
+        // SignalHouse may retry failed deliveries with original timestamps
+      }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // STEP 0.9: TENANT RESOLUTION (Multi-tenant isolation)
+    // ─────────────────────────────────────────────────────────────────────
+    // Resolve which team and worker owns the receiving phone number
+    // Uses worker_phone_assignments table for database-backed resolution
+    const tenantInfo = await resolveTenantFromPhone(toNumber);
+    if (tenantInfo) {
+      console.log(
+        `[SignalHouse] [${requestId}] Tenant resolved: team=${tenantInfo.teamId}, worker=${tenantInfo.workerId} (${tenantInfo.workerName})`,
+      );
+    } else {
+      // Number not in worker_phone_assignments - may be legacy or not yet configured
+      console.warn(
+        `[SignalHouse] [${requestId}] [TENANT_WARNING] Unknown recipient number: ${maskPhone(toNumber)} - using env-based routing`,
+      );
+    }
+
     // SignalHouse uses dot notation: message.received, message.sent, etc.
-    const eventType = payload.event || "unknown";
     const messageId =
       payload.message_id || payload.messageId || `msg_${Date.now()}`;
     const messageBody = payload.text || payload.body || "";
-    const fromNumber = payload.from || "";
-    const toNumber = payload.to || "";
 
+    // Log event with redacted payload (no PII exposure)
     console.log(
-      `[SignalHouse Webhook] Event: ${eventType}`,
-      JSON.stringify(payload, null, 2),
+      `[SignalHouse] [${requestId}] Event: ${eventType}`,
+      JSON.stringify(redactPayload(payload as Record<string, unknown>)),
     );
 
     // Check if message is opt-out or positive lead response
@@ -866,13 +1022,18 @@ export async function POST(request: NextRequest) {
             status: messageStatus,
             providerMessageId: messageId,
             campaignId: payload.campaign_id as string,
-            // Store worker info AND labels in metadata for inbox display
+            // Store worker info, tenant context, AND labels in metadata for inbox display
             metadata: {
               workerId: worker.id,
               workerName: worker.name,
               routedBy: workerRoute.matchedBy,
               labels: messageLabels, // Easify-style labels for inbox filtering
               campaignLabel: campaignLabel, // Campaign-specific label
+              // Multi-tenant context (from worker_phone_assignments)
+              teamId: tenantInfo?.teamId,
+              tenantWorkerId: tenantInfo?.workerId,
+              tenantWorkerName: tenantInfo?.workerName,
+              shSubGroupId: tenantInfo?.shSubGroupId,
             },
             receivedAt: new Date(),
             createdAt: new Date(),
@@ -925,6 +1086,7 @@ export async function POST(request: NextRequest) {
                       ? "book_appointment"
                       : "follow_up",
                   isGoldLabel: eligibility.reason === "gold_label",
+                  tenantInfo, // Multi-tenant context
                 },
               );
               console.log(
@@ -1159,6 +1321,7 @@ export async function POST(request: NextRequest) {
               fromNumber,
               capturedEmail,
               payload.campaign_id as string,
+              { tenantInfo }, // Multi-tenant context
             );
           }
 
@@ -1417,7 +1580,8 @@ export async function POST(request: NextRequest) {
                 process.env.SABRINA_PHONE_NUMBER ||
                 process.env.DEFAULT_OUTBOUND_NUMBER ||
                 "";
-              const teamId = lead.teamId || "default_team";
+              // Prefer tenant info teamId, then lead.teamId, then fallback
+              const teamId = tenantInfo?.teamId || lead.teamId || "default_team";
               const campId = (payload.campaign_id as string) || null;
 
               const metadata = JSON.stringify({
@@ -1427,6 +1591,10 @@ export async function POST(request: NextRequest) {
                 source: "signalhouse_webhook",
                 responseText: messageBody.substring(0, 200),
                 notes: `GREEN TAG - Positive response: "${messageBody.substring(0, 100)}". Follow up to book meeting.`,
+                // Multi-tenant context for voice routing
+                tenantWorkerId: tenantInfo?.workerId,
+                tenantWorkerName: tenantInfo?.workerName,
+                shSubGroupId: tenantInfo?.shSubGroupId,
               });
 
               // Insert using raw SQL since callQueue is in the API schema

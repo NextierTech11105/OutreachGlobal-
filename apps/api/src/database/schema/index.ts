@@ -26,6 +26,9 @@ export * from "./content-library.schema";
 // ===== SIGNALHOUSE INTEGRATION =====
 export * from "./signalhouse.schema";
 
+// ===== TWILIO VOICE INTEGRATION =====
+export * from "./twilio.schema";
+
 // ===== ENRICHMENT PIPELINE SCHEMAS =====
 export * from "./persona.schema";
 export * from "./phone.schema";
@@ -51,6 +54,9 @@ export * from "./shared-links.schema";
 
 // ===== WORKER PHONES =====
 export * from "./worker-phones.schema";
+
+// ===== SMS PHONE POOL (Rotation) =====
+export * from "./sms-phone-pool.schema";
 
 // ===== DOCTRINE SIGNALS (Append-Only) =====
 export * from "./signals.schema";
@@ -87,3 +93,6 @@ export * from "./batch-jobs.schema";
 
 // ===== TENANT CONFIG (Multi-Tenant White-Label) =====
 export * from "./tenant-config.schema";
+
+// ===== TEAM SHARES (Cross-Team Collaboration) =====
+export * from "./team-shares.schema";

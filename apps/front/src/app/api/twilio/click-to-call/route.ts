@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Twilio } from "twilio";
+import { db } from "@/lib/db";
+import { sql } from "drizzle-orm";
+import { getCallContext } from "@/lib/voice/call-context";
 
 /**
  * POST /api/twilio/click-to-call
  *
  * Initiate an outbound call using Twilio.
  * Repeatable execution - can be triggered from calendar, inbox, or any lead view.
+ *
+ * Multi-tenant: Uses team's voice number from twilio_numbers table.
  */
 
 const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
@@ -42,12 +47,32 @@ export async function POST(request: NextRequest) {
 
     const client = new Twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
 
-    // Get team's outbound number or use default
-    const outboundNumber = from || process.env.TWILIO_DEFAULT_NUMBER;
+    // Multi-tenant: Resolve outbound number from team's voice configuration
+    let outboundNumber = from;
+
+    if (!outboundNumber && teamId) {
+      // Try to get team's voice number from database
+      const callContext = await getCallContext(teamId, { leadId });
+      if (callContext.success) {
+        outboundNumber = callContext.context.twilioNumber;
+        console.log(
+          `[Click-to-Call] Using team ${teamId} voice number: ${outboundNumber}`,
+        );
+      } else {
+        console.warn(
+          `[Click-to-Call] Team ${teamId} has no voice number: ${callContext.error.message}`,
+        );
+      }
+    }
+
+    // Fallback to env var if no team number found
+    if (!outboundNumber) {
+      outboundNumber = process.env.TWILIO_DEFAULT_NUMBER;
+    }
 
     if (!outboundNumber) {
       return NextResponse.json(
-        { success: false, error: "No outbound number configured" },
+        { success: false, error: "No outbound number configured for team" },
         { status: 400 },
       );
     }
@@ -108,7 +133,7 @@ function normalizePhone(phone: string): string | null {
   return null;
 }
 
-// Log call to database
+// Log call to twilio_call_logs table
 async function logCall(data: {
   callSid: string;
   teamId?: string;
@@ -119,10 +144,30 @@ async function logCall(data: {
   to: string;
   from: string;
 }) {
-  // TODO: Insert into call_logs table
-  // await db.insert(callLogs).values({
-  //   ...data,
-  //   createdAt: new Date(),
-  // });
-  console.log("Call logged:", data);
+  try {
+    // Generate ID with tcl prefix for twilio call logs
+    const id = `tcl_${crypto.randomUUID().replace(/-/g, "")}`;
+    const teamId = data.teamId || "default_team";
+
+    // Insert into twilio_call_logs using raw SQL (schema is in API app)
+    await db.execute(sql`
+      INSERT INTO twilio_call_logs (
+        id, team_id, lead_id, call_sid, from_number, to_number,
+        direction, status, start_time, created_at, updated_at
+      ) VALUES (
+        ${id}, ${teamId}, ${data.leadId || null}, ${data.callSid},
+        ${data.from}, ${data.to}, ${data.direction}, ${data.status},
+        NOW(), NOW(), NOW()
+      )
+    `);
+
+    console.log("[Click-to-Call] Call logged to DB:", {
+      id,
+      callSid: data.callSid,
+      direction: data.direction,
+    });
+  } catch (error) {
+    // Don't fail the call if logging fails
+    console.error("[Click-to-Call] Failed to log call:", error);
+  }
 }

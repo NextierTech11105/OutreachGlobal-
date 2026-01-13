@@ -403,6 +403,25 @@ const CONTENT_LIBRARY: ContentCategory[] = [
     ],
   },
   {
+    id: "landing_pages",
+    name: "Landing Pages",
+    description: "High-conversion landing pages for Nextier offers and opt-ins",
+    icon: "🛬",
+    prompts: [
+      {
+        id: "lp_nextier_revenue_engine",
+        name: "Nextier Revenue Execution Landing Page",
+        description:
+          "Fresh Nextier-branded landing page for demos/lead capture with SMS consent language.",
+        prompt:
+          "Write full landing-page copy for Nextier's Revenue Execution Engine targeting {targetMarket}. Keep the voice confident, operator-minded, and outcomes-first. Use sections: 1) Hero with headline that combines 'Amplify Capabilities. Multiply Capacity.' plus a subhead positioning Nextier Deal Terminals; add primary CTA '{primaryCTA}' and secondary CTA '{secondaryCTA}'. 2) Social proof/credibility line. 3) Perfect Fit list covering: Solopreneurs; Service-Based Businesses; RE Agents & Brokers; White-Label Agencies; Tech Consultants; CRM Consultants; Founders. 4) Capability grid describing: Build-to-Suit Datalakes; Co-Pilot Managed Campaigns; SMS & Email Vacuums; 15-Min Discovery Meetings; Authority & Respect positioning; Multi-Channel Sync; Compound Engagement; Precision Targeting (USBizData-powered); Instant Deployment; White-Label Ready. 5) Lead capture form microcopy for First name, Last name, Email, Phone with a concise SMS opt-in disclosure referencing STOP/HELP and 'message & data rates may apply'. 6) Assurance block about compliance, data handling, and no sharing/selling SMS opt-in data. 7) Closing CTA bar repeating {primaryCTA} and a secondary '{secondaryCTA}'. Keep copy skimmable with short paragraphs and bullet lists.",
+        variables: ["targetMarket", "primaryCTA", "secondaryCTA"],
+        channel: "all",
+        category: "landing_pages",
+      },
+    ],
+  },
+  {
     id: "buyer_journey",
     name: "Buyer Journey",
     description: "Content for each stage of the buyer journey",

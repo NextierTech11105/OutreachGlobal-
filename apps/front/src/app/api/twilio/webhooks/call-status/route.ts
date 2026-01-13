@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { sql } from "drizzle-orm";
+import { resolveTenantFromVoiceNumber } from "@/lib/voice/call-context";
 
 /**
  * POST /api/twilio/webhooks/call-status
  *
  * Webhook for Twilio call status updates.
  * Called when call status changes: initiated, ringing, answered, completed, etc.
+ *
+ * Multi-tenant: Updates twilio_call_logs with status changes.
  */
 
 export async function POST(request: NextRequest) {
@@ -77,7 +82,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Log call status to database
+// Log call status to database (upsert pattern)
 async function logCallStatus(data: {
   callSid: string;
   status: string;
@@ -89,12 +94,60 @@ async function logCallStatus(data: {
   leadId: string;
   teamId: string;
 }) {
-  // TODO: Update call_logs table with status
-  // await db.update(callLogs)
-  //   .set({ status: data.status, duration: data.duration, answeredBy: data.answeredBy })
-  //   .where(eq(callLogs.callSid, data.callSid));
+  try {
+    // Try to resolve tenant from phone number if teamId not provided
+    let resolvedTeamId = data.teamId;
+    if (!resolvedTeamId || resolvedTeamId === "") {
+      // For inbound, resolve from "to" number; for outbound, from "from" number
+      const lookupNumber =
+        data.direction === "inbound" ? data.to : data.from;
+      const tenantInfo = await resolveTenantFromVoiceNumber(lookupNumber);
+      if (tenantInfo) {
+        resolvedTeamId = tenantInfo.teamId;
+      }
+    }
 
-  console.log("[Twilio] Call status logged:", data);
+    const teamId = resolvedTeamId || "default_team";
+
+    // Upsert: Update if exists, insert if not
+    // This handles the case where we get status updates before the initial log
+    await db.execute(sql`
+      INSERT INTO twilio_call_logs (
+        id, team_id, lead_id, call_sid, from_number, to_number,
+        direction, status, duration_seconds, answered_by,
+        end_time, created_at, updated_at
+      ) VALUES (
+        ${"tcl_" + data.callSid.replace(/[^a-zA-Z0-9]/g, "").substring(0, 20)},
+        ${teamId},
+        ${data.leadId || null},
+        ${data.callSid},
+        ${data.from},
+        ${data.to},
+        ${data.direction || "outbound"},
+        ${data.status},
+        ${data.duration},
+        ${data.answeredBy || null},
+        ${data.status === "completed" ? sql`NOW()` : null},
+        NOW(),
+        NOW()
+      )
+      ON CONFLICT (call_sid) DO UPDATE SET
+        status = ${data.status},
+        duration_seconds = ${data.duration},
+        answered_by = COALESCE(${data.answeredBy || null}, twilio_call_logs.answered_by),
+        end_time = CASE WHEN ${data.status} = 'completed' THEN NOW() ELSE twilio_call_logs.end_time END,
+        updated_at = NOW()
+    `);
+
+    console.log("[Twilio] Call status persisted:", {
+      callSid: data.callSid,
+      status: data.status,
+      teamId,
+    });
+  } catch (error) {
+    // Don't fail the webhook if DB update fails
+    console.error("[Twilio] Failed to persist call status:", error);
+  }
 }
 
 // GET - Return webhook info

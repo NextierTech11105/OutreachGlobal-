@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { type SVGProps, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -9,12 +9,8 @@ import {
   Check,
   Building2,
   User,
-  Target,
-  TrendingUp,
-  Users,
   ArrowRight,
   Play,
-  Zap,
   Database,
   Bot,
   MessageSquare,
@@ -23,13 +19,9 @@ import {
   Layers,
   Repeat,
   Rocket,
-  BarChart3,
   Shield,
-  Phone,
 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
-import { APP_NAME } from "@/config/branding";
 
 function validateEmail(email: string): boolean {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -104,6 +96,105 @@ const FEATURES = [
     desc: "Your brand, your platform, your clients",
   },
 ];
+
+const DEEP_DIVE = [
+  {
+    title: "Data & Targeting",
+    icon: Database,
+    points: [
+      "Build-to-Suit Datalakes",
+      "Precision Targeting",
+      "Instant Deployment",
+    ],
+  },
+  {
+    title: "Orchestration",
+    icon: Layers,
+    points: [
+      "Co-Pilot Managed Campaigns",
+      "Multi-Channel Sync",
+      "Compound Engagement",
+    ],
+  },
+  {
+    title: "Authority & Conversion",
+    icon: Award,
+    points: [
+      "Authority & Respect",
+      "15-Min Discovery Meetings",
+      "White-Label Ready",
+    ],
+  },
+];
+
+const STEPS = [
+  {
+    title: "Map & Ingest",
+    desc: "Pin your audience, pull signals, and hydrate the terminal with clean inputs.",
+  },
+  {
+    title: "Launch with Guardrails",
+    desc: "AI-managed cadences route across SMS, email, and voice with throttles and consent logic.",
+  },
+  {
+    title: "Review & Close",
+    desc: "See outcomes in the Deal Terminal, book the 15-min discovery, and push to execution platforms.",
+  },
+];
+
+function NextierMark(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 120 120" role="img" aria-label="Nextier mark" {...props}>
+      <defs>
+        <linearGradient id="nextier-left" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#29b6ff" />
+          <stop offset="100%" stopColor="#2f6bff" />
+        </linearGradient>
+        <linearGradient id="nextier-right" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#ff8a3d" />
+          <stop offset="100%" stopColor="#ff3f6f" />
+        </linearGradient>
+        <linearGradient id="nextier-core" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#2cd3ff" />
+          <stop offset="100%" stopColor="#1a7dff" />
+        </linearGradient>
+      </defs>
+      <path
+        d="M14 18 L58 60 L14 102 L42 102 L86 60 L42 18 Z"
+        fill="url(#nextier-left)"
+      />
+      <path
+        d="M106 18 L62 60 L106 102 L78 102 L34 60 L78 18 Z"
+        fill="url(#nextier-right)"
+      />
+      <path
+        d="M60 38 L75 48 L75 66 L60 76 L45 66 L45 48 Z"
+        fill="url(#nextier-core)"
+        stroke="#0b1a3a"
+        strokeWidth="2"
+      />
+      <path
+        d="M60 46 L68 52 L68 62 L60 68 L52 62 L52 52 Z"
+        fill="#0d1f4f"
+        opacity="0.7"
+      />
+    </svg>
+  );
+}
+
+function NextierLogo() {
+  return (
+    <div className="flex items-center gap-3">
+      <NextierMark className="h-12 w-12 drop-shadow-[0_10px_40px_rgba(59,130,246,0.35)]" />
+      <div className="text-2xl font-semibold tracking-tight">
+        <span className="text-white">NEXT</span>
+        <span className="bg-gradient-to-r from-orange-300 via-pink-400 to-red-500 bg-clip-text text-transparent">
+          IER
+        </span>
+      </div>
+    </div>
+  );
+}
 
 export default function GetStartedPage() {
   const [formData, setFormData] = useState({
@@ -185,16 +276,17 @@ export default function GetStartedPage() {
   };
 
   return (
-    <div className="min-h-screen bg-black overflow-hidden">
+    <div className="relative min-h-screen overflow-hidden bg-[#05070f] text-white">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -left-40 top-0 h-96 w-96 rounded-full bg-gradient-to-br from-blue-500/30 via-indigo-500/10 to-transparent blur-3xl" />
+        <div className="absolute right-[-10%] top-32 h-[28rem] w-[28rem] rounded-full bg-gradient-to-bl from-orange-400/25 via-pink-400/15 to-transparent blur-3xl" />
+        <div className="absolute bottom-0 left-1/3 h-64 w-64 rounded-full bg-gradient-to-tr from-cyan-400/15 via-sky-500/10 to-transparent blur-3xl" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(59,130,246,0.08),transparent_35%),radial-gradient(circle_at_70%_10%,rgba(244,114,182,0.08),transparent_25%)]" />
+      </div>
+
       {/* Nav */}
       <nav className="relative z-10 flex items-center justify-between px-6 py-6 lg:px-12">
-        <Image
-          src="/nextier-logo.jpg"
-          alt={APP_NAME}
-          width={300}
-          height={100}
-          className="h-24 lg:h-32 w-auto"
-        />
+        <NextierLogo />
         <a
           href="/auth"
           className="text-sm text-zinc-400 hover:text-white transition"
@@ -546,6 +638,62 @@ export default function GetStartedPage() {
                   {feature.title}
                 </h4>
                 <p className="text-zinc-500 text-sm">{feature.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Deep Dive Sections */}
+        <div className="mt-16 grid lg:grid-cols-3 gap-6">
+          {DEEP_DIVE.map((group) => (
+            <div
+              key={group.title}
+              className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-6 shadow-lg"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500/30 to-purple-500/30 flex items-center justify-center">
+                  <group.icon className="w-5 h-5 text-blue-200" />
+                </div>
+                <h4 className="text-lg font-semibold text-white">
+                  {group.title}
+                </h4>
+              </div>
+              <ul className="space-y-3 text-zinc-400 text-sm">
+                {group.points.map((point) => (
+                  <li key={point} className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-emerald-400 mt-0.5" />
+                    <span>{point}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+
+        {/* How It Works */}
+        <div className="mt-20 mb-24">
+          <h3 className="text-center text-2xl font-bold text-white mb-4">
+            How It Works
+          </h3>
+          <p className="text-center text-zinc-500 mb-10 max-w-2xl mx-auto">
+            Three moves to get from audience mapping to revenue outcomes without
+            coupling execution.
+          </p>
+          <div className="grid md:grid-cols-3 gap-6">
+            {STEPS.map((step, idx) => (
+              <div
+                key={step.title}
+                className="relative bg-zinc-900/70 border border-zinc-800 rounded-2xl p-6"
+              >
+                <div className="absolute -top-3 -left-3 w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-semibold">
+                  {idx + 1}
+                </div>
+                <h4 className="text-lg font-semibold text-white mb-2">
+                  {step.title}
+                </h4>
+                <p className="text-sm text-zinc-400 leading-relaxed">
+                  {step.desc}
+                </p>
               </div>
             ))}
           </div>

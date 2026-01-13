@@ -205,12 +205,14 @@ export const navigationGroups: NavGroup[] = [
         icon: MapPin,
         description: "Geographic regions",
       },
-      {
-        label: "Pipelines",
-        href: "/pipelines",
-        icon: GitBranch,
-        description: "Deal stages",
-      },
+      // NOTE: Pipelines hidden - "Coming soon" placeholder
+      // Uncomment when pipeline management is implemented
+      // {
+      //   label: "Pipelines",
+      //   href: "/pipelines",
+      //   icon: GitBranch,
+      //   description: "Deal stages",
+      // },
       {
         label: "Deals",
         href: "/deals",
