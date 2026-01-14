@@ -20,6 +20,7 @@ import {
   Repeat,
   Rocket,
   Shield,
+  Target,
 } from "lucide-react";
 import Link from "next/link";
 
