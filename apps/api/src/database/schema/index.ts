@@ -99,3 +99,6 @@ export * from "./team-shares.schema";
 
 // ===== SIGNALHOUSE TRACKING (Delivery Status & Webhooks) =====
 export * from "./signalhouse-tracking.schema";
+
+// ===== SMS SEND BATCHES (Outbound Campaign Tracking) =====
+export * from "./sms-send-batches.schema";
