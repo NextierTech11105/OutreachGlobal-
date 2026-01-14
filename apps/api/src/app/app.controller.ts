@@ -21,6 +21,53 @@ export class AppController {
     };
   }
 
+  /**
+   * Health check endpoint for load balancers and monitoring.
+   * Returns 200 if the application is running.
+   */
+  @Get("health")
+  async healthCheck() {
+    return {
+      status: "ok",
+      timestamp: new Date().toISOString(),
+      version: "0.1.0",
+      uptime: process.uptime(),
+    };
+  }
+
+  /**
+   * Liveness probe - is the application process alive?
+   * Used by Kubernetes/container orchestrators.
+   */
+  @Get("health/live")
+  async livenessProbe() {
+    return { status: "alive" };
+  }
+
+  /**
+   * Readiness probe - is the application ready to serve traffic?
+   * Checks database connectivity.
+   */
+  @Get("health/ready")
+  async readinessProbe() {
+    try {
+      // Test database connection
+      await this.db.execute(sql`SELECT 1`);
+      return {
+        status: "ready",
+        database: "connected",
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error: any) {
+      return {
+        status: "not_ready",
+        database: "disconnected",
+        error: error.message,
+        timestamp: new Date().toISOString(),
+      };
+    }
+  }
+
   // INTERNAL API - Admin only, requires X-Admin-Key header
   @Post("migrate")
   @UseGuards(AdminGuard)

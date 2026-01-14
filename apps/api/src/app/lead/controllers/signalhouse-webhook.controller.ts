@@ -90,9 +90,13 @@ export class SignalHouseWebhookController {
     @InjectDB() private db: DrizzleClient,
     @InjectQueue("lead") private leadQueue: Queue,
   ) {
-    this.webhookToken =
-      this.configService.get("SIGNALHOUSE_WEBHOOK_TOKEN") ||
-      "b63df419c4c90433467694ef755f015cc1d10ddd3b76ac6a7cf56bfc3681c6d2";
+    const token = this.configService.get<string>("SIGNALHOUSE_WEBHOOK_TOKEN");
+    if (!token) {
+      this.logger.warn(
+        "SIGNALHOUSE_WEBHOOK_TOKEN not configured - webhook endpoint will reject all requests",
+      );
+    }
+    this.webhookToken = token || "";
   }
 
   /**
