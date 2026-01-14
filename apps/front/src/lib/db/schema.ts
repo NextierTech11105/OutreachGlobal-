@@ -2169,15 +2169,18 @@ export const smsPhonePool = pgTable(
   (table) => ({
     teamIdIdx: index("sms_phone_pool_team_id_idx").on(table.teamId),
     phoneNumberIdx: index("sms_phone_pool_phone_number_idx").on(
-      table.phoneNumber
+      table.phoneNumber,
     ),
-    workerIdx: index("sms_phone_pool_worker_idx").on(table.teamId, table.workerId),
+    workerIdx: index("sms_phone_pool_worker_idx").on(
+      table.teamId,
+      table.workerId,
+    ),
     rotationIdx: index("sms_phone_pool_rotation_idx").on(
       table.teamId,
       table.workerId,
-      table.lastUsedAt
+      table.lastUsedAt,
     ),
-  })
+  }),
 );
 
 export type SmsPhonePool = typeof smsPhonePool.$inferSelect;
@@ -2778,11 +2781,18 @@ export const workerPhoneAssignments = pgTable(
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => ({
-    teamWorkerIdx: index("worker_phone_team_worker_idx").on(table.teamId, table.workerId),
+    teamWorkerIdx: index("worker_phone_team_worker_idx").on(
+      table.teamId,
+      table.workerId,
+    ),
     phoneIdx: index("worker_phone_number_idx").on(table.phoneNumber),
-    activeIdx: index("worker_phone_active_idx").on(table.teamId, table.isActive),
-  })
+    activeIdx: index("worker_phone_active_idx").on(
+      table.teamId,
+      table.isActive,
+    ),
+  }),
 );
 
 export type WorkerPhoneAssignment = typeof workerPhoneAssignments.$inferSelect;
-export type NewWorkerPhoneAssignment = typeof workerPhoneAssignments.$inferInsert;
+export type NewWorkerPhoneAssignment =
+  typeof workerPhoneAssignments.$inferInsert;

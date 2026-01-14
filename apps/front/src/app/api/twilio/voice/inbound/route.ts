@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
 
 // Look up caller by phone number
 async function lookupCaller(
-  phone: string
+  phone: string,
 ): Promise<{ name: string; leadId: string } | null> {
   try {
     // Normalize phone number for lookup

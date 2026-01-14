@@ -68,7 +68,9 @@ export const twilioNumbers = pgTable(
     voiceUrl: varchar("voice_url", { length: 500 }),
     voiceMethod: varchar("voice_method", { length: 10 }).default("POST"),
     statusCallback: varchar("status_callback", { length: 500 }),
-    statusCallbackMethod: varchar("status_callback_method", { length: 10 }).default("POST"),
+    statusCallbackMethod: varchar("status_callback_method", {
+      length: 10,
+    }).default("POST"),
 
     // Status
     status: varchar({ length: 50 }).default("active"), // active, inactive, released
@@ -121,7 +123,9 @@ export const twilioCallLogs = pgTable(
   {
     id: primaryUlid("tcl"),
     teamId: teamsRef({ onDelete: "cascade" }).notNull(),
-    leadId: ulidColumn("lead_id").references(() => leads.id, { onDelete: "set null" }),
+    leadId: ulidColumn("lead_id").references(() => leads.id, {
+      onDelete: "set null",
+    }),
 
     // Twilio identifiers
     callSid: varchar("call_sid", { length: 100 }).notNull(),

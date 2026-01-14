@@ -46,11 +46,15 @@ export const teamShares = pgTable(
 
     // Source team (who is sharing)
     sourceTeamId: teamsRef({ onDelete: "cascade" }).notNull(),
-    sharedBy: ulidColumn().references(() => users.id, { onDelete: "set null" }),
+    sharedBy: ulidColumn().references(() => users.id, {
+      onDelete: "set null",
+    }),
 
     // Target team (who receives the share)
     targetTeamId: ulidColumn().notNull(), // Can't use teamsRef twice, use raw ulid
-    acceptedBy: ulidColumn().references(() => users.id, { onDelete: "set null" }),
+    acceptedBy: ulidColumn().references(() => users.id, {
+      onDelete: "set null",
+    }),
 
     // What is being shared
     resourceType: varchar("resource_type")
@@ -112,7 +116,9 @@ export const campaignTemplates = pgTable(
   {
     id: primaryUlid(CAMPAIGN_TEMPLATE_PK),
     teamId: teamsRef({ onDelete: "cascade" }).notNull(),
-    createdBy: ulidColumn().references(() => users.id, { onDelete: "set null" }),
+    createdBy: ulidColumn().references(() => users.id, {
+      onDelete: "set null",
+    }),
 
     // Template info
     name: varchar("name").notNull(),

@@ -96,7 +96,10 @@ export async function ensureSubGroup(teamId: string): Promise<{
     });
 
     if (!result.success || !result.data) {
-      return { success: false, error: result.error || "Failed to create sub-group" };
+      return {
+        success: false,
+        error: result.error || "Failed to create sub-group",
+      };
     }
 
     // Store in database
@@ -127,7 +130,7 @@ export async function ensureSubGroup(teamId: string): Promise<{
  */
 export async function ensureBrand(
   teamId: string,
-  brandDetails?: Partial<CreateBrandInput>
+  brandDetails?: Partial<CreateBrandInput>,
 ): Promise<{
   success: boolean;
   brandId?: string;
@@ -148,7 +151,8 @@ export async function ensureBrand(
 
     // Create new brand (requires business info)
     const brandInput: CreateBrandInput = {
-      legalCompanyName: brandDetails?.legalCompanyName || team.name || "Unknown Company",
+      legalCompanyName:
+        brandDetails?.legalCompanyName || team.name || "Unknown Company",
       brandName: brandDetails?.brandName || team.name || "Unknown Brand",
       entityType: brandDetails?.entityType || "PRIVATE_PROFIT",
       ...brandDetails,
@@ -157,7 +161,10 @@ export async function ensureBrand(
     const result = await createBrand(brandInput);
 
     if (!result.success || !result.data) {
-      return { success: false, error: result.error || "Failed to create brand" };
+      return {
+        success: false,
+        error: result.error || "Failed to create brand",
+      };
     }
 
     // Store in database
@@ -187,13 +194,14 @@ export async function ensureBrand(
  */
 export async function ensureCampaigns(
   teamId: string,
-  campaignTypes: CampaignType[]
+  campaignTypes: CampaignType[],
 ): Promise<{
   success: boolean;
   campaigns: Array<{ type: CampaignType; id: string; status: string }>;
   errors: string[];
 }> {
-  const campaigns: Array<{ type: CampaignType; id: string; status: string }> = [];
+  const campaigns: Array<{ type: CampaignType; id: string; status: string }> =
+    [];
   const errors: string[] = [];
 
   try {
@@ -206,7 +214,11 @@ export async function ensureCampaigns(
     }
 
     if (!team.signalhouseBrandId) {
-      return { success: false, campaigns: [], errors: ["Team has no brand registered"] };
+      return {
+        success: false,
+        campaigns: [],
+        errors: ["Team has no brand registered"],
+      };
     }
 
     for (const campaignType of campaignTypes) {
@@ -214,7 +226,7 @@ export async function ensureCampaigns(
       const existing = await db.query.signalhouseCampaigns.findFirst({
         where: and(
           eq(signalhouseCampaigns.teamId, teamId),
-          eq(signalhouseCampaigns.campaignType, campaignType)
+          eq(signalhouseCampaigns.campaignType, campaignType),
         ),
       });
 
@@ -238,7 +250,9 @@ export async function ensureCampaigns(
       const result = await createCampaign(campaignInput);
 
       if (!result.success) {
-        errors.push(`Failed to create ${campaignType} campaign: ${result.error}`);
+        errors.push(
+          `Failed to create ${campaignType} campaign: ${result.error}`,
+        );
         continue;
       }
 
@@ -309,13 +323,21 @@ function mapCampaignTypeToUseCase(type: CampaignType): string {
  */
 export async function ensureWorkerNumbers(
   teamId: string,
-  workers: Array<{ workerId: string; workerName: string }>
+  workers: Array<{ workerId: string; workerName: string }>,
 ): Promise<{
   success: boolean;
-  assignments: Array<{ workerId: string; workerName: string; phoneNumber: string }>;
+  assignments: Array<{
+    workerId: string;
+    workerName: string;
+    phoneNumber: string;
+  }>;
   errors: string[];
 }> {
-  const assignments: Array<{ workerId: string; workerName: string; phoneNumber: string }> = [];
+  const assignments: Array<{
+    workerId: string;
+    workerName: string;
+    phoneNumber: string;
+  }> = [];
   const errors: string[] = [];
 
   try {
@@ -332,7 +354,7 @@ export async function ensureWorkerNumbers(
       const existing = await db.query.workerPhoneAssignments.findFirst({
         where: and(
           eq(workerPhoneAssignments.teamId, teamId),
-          eq(workerPhoneAssignments.workerId, worker.workerId)
+          eq(workerPhoneAssignments.workerId, worker.workerId),
         ),
       });
 
@@ -348,11 +370,13 @@ export async function ensureWorkerNumbers(
       // Buy a new number from SignalHouse
       const buyResult = await buyPhoneNumber(
         "", // Empty = let SignalHouse pick
-        `${team.name} - ${worker.workerName}`
+        `${team.name} - ${worker.workerName}`,
       );
 
       if (!buyResult.success || !buyResult.data?.phoneNumber) {
-        errors.push(`Failed to buy number for ${worker.workerName}: ${buyResult.error}`);
+        errors.push(
+          `Failed to buy number for ${worker.workerName}: ${buyResult.error}`,
+        );
         continue;
       }
 
@@ -410,7 +434,7 @@ export async function onboardTenant(
     brandDetails?: Partial<CreateBrandInput>;
     campaignTypes?: CampaignType[];
     workers?: Array<{ workerId: string; workerName: string }>;
-  }
+  },
 ): Promise<OnboardingResult> {
   const status: OnboardingStatus = {
     teamId,
@@ -437,7 +461,10 @@ export async function onboardTenant(
     status.errors.push(brandResult.error || "Brand creation failed");
     return { success: false, status };
   }
-  status.brand = { id: brandResult.brandId!, name: options?.brandDetails?.brandName || "Default" };
+  status.brand = {
+    id: brandResult.brandId!,
+    name: options?.brandDetails?.brandName || "Default",
+  };
   status.currentStep = "campaign";
 
   // Step 3: Ensure campaigns
@@ -458,7 +485,8 @@ export async function onboardTenant(
     }
   }
 
-  status.currentStep = status.errors.length === 0 ? "complete" : status.currentStep;
+  status.currentStep =
+    status.errors.length === 0 ? "complete" : status.currentStep;
 
   return {
     success: status.errors.length === 0,
@@ -473,7 +501,9 @@ export async function onboardTenant(
 /**
  * Get current onboarding status for a team.
  */
-export async function getOnboardingStatus(teamId: string): Promise<OnboardingStatus> {
+export async function getOnboardingStatus(
+  teamId: string,
+): Promise<OnboardingStatus> {
   const status: OnboardingStatus = {
     teamId,
     currentStep: "subgroup",
@@ -496,13 +526,19 @@ export async function getOnboardingStatus(teamId: string): Promise<OnboardingSta
 
     // Check sub-group
     if (team.signalhouseSubGroupId) {
-      status.subGroup = { id: team.signalhouseSubGroupId, name: team.name || "Default" };
+      status.subGroup = {
+        id: team.signalhouseSubGroupId,
+        name: team.name || "Default",
+      };
       status.currentStep = "brand";
     }
 
     // Check brand
     if (team.signalhouseBrandId) {
-      status.brand = { id: team.signalhouseBrandId, name: team.name || "Default" };
+      status.brand = {
+        id: team.signalhouseBrandId,
+        name: team.name || "Default",
+      };
       status.currentStep = "campaign";
     }
 
@@ -534,7 +570,9 @@ export async function getOnboardingStatus(teamId: string): Promise<OnboardingSta
 
     return status;
   } catch (error) {
-    status.errors.push(error instanceof Error ? error.message : "Unknown error");
+    status.errors.push(
+      error instanceof Error ? error.message : "Unknown error",
+    );
     return status;
   }
 }

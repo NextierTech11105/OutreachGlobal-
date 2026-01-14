@@ -99,8 +99,7 @@ async function logCallStatus(data: {
     let resolvedTeamId = data.teamId;
     if (!resolvedTeamId || resolvedTeamId === "") {
       // For inbound, resolve from "to" number; for outbound, from "from" number
-      const lookupNumber =
-        data.direction === "inbound" ? data.to : data.from;
+      const lookupNumber = data.direction === "inbound" ? data.to : data.from;
       const tenantInfo = await resolveTenantFromVoiceNumber(lookupNumber);
       if (tenantInfo) {
         resolvedTeamId = tenantInfo.teamId;

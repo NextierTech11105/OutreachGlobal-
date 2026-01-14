@@ -46,7 +46,14 @@ import {
 interface DigitalWorker {
   id: string;
   name: string;
-  type: "sms" | "email" | "voice" | "multi-channel" | "data" | "research" | "scheduler";
+  type:
+    | "sms"
+    | "email"
+    | "voice"
+    | "multi-channel"
+    | "data"
+    | "research"
+    | "scheduler";
   status: "active" | "paused" | "idle";
   description: string;
   stats: {

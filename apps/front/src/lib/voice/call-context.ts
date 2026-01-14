@@ -58,7 +58,7 @@ export async function getCallContext(
     preferredWorkerId?: string;
     queueId?: string;
     leadId?: string;
-  }
+  },
 ): Promise<CallContextResult> {
   try {
     // 1. Get team
@@ -136,11 +136,11 @@ export async function getCallContext(
       ? and(
           eq(workerPhoneAssignments.teamId, teamId),
           eq(workerPhoneAssignments.workerId, options.preferredWorkerId),
-          eq(workerPhoneAssignments.isActive, true)
+          eq(workerPhoneAssignments.isActive, true),
         )
       : and(
           eq(workerPhoneAssignments.teamId, teamId),
-          eq(workerPhoneAssignments.isActive, true)
+          eq(workerPhoneAssignments.isActive, true),
         );
 
     const workerPhone = await db.query.workerPhoneAssignments.findFirst({
@@ -197,7 +197,7 @@ export async function getCallContext(
     };
   } catch (error) {
     throw new Error(
-      `Failed to resolve call context: ${error instanceof Error ? error.message : "Unknown error"}`
+      `Failed to resolve call context: ${error instanceof Error ? error.message : "Unknown error"}`,
     );
   }
 }
@@ -211,7 +211,7 @@ export async function getCallContext(
  */
 export async function getSabrinaCallContext(
   teamId: string,
-  options?: { queueId?: string; leadId?: string }
+  options?: { queueId?: string; leadId?: string },
 ): Promise<CallContextResult> {
   return getCallContext(teamId, {
     preferredWorkerId: "sabrina",
@@ -231,7 +231,7 @@ export async function getSabrinaCallContext(
  * @returns Tenant info if found
  */
 export async function resolveTenantFromVoiceNumber(
-  phoneNumber: string
+  phoneNumber: string,
 ): Promise<{
   teamId: string;
   teamName: string;

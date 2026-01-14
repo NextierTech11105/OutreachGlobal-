@@ -1581,7 +1581,8 @@ export async function POST(request: NextRequest) {
                 process.env.DEFAULT_OUTBOUND_NUMBER ||
                 "";
               // Prefer tenant info teamId, then lead.teamId, then fallback
-              const teamId = tenantInfo?.teamId || lead.teamId || "default_team";
+              const teamId =
+                tenantInfo?.teamId || lead.teamId || "default_team";
               const campId = (payload.campaign_id as string) || null;
 
               const metadata = JSON.stringify({

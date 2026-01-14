@@ -200,7 +200,7 @@ export async function GET() {
     // Summary stats - ONLY count messaging workers (GIANNA, CATHY, SABRINA)
     // LUCI and NEVA don't send messages - they're data/research workers
     const messagingWorkers = workers.filter(
-      (w) => w.type === "sms" || w.type === "voice" || w.type === "scheduler"
+      (w) => w.type === "sms" || w.type === "voice" || w.type === "scheduler",
     );
 
     const totalMessages = messagingWorkers.reduce(
@@ -219,7 +219,10 @@ export async function GET() {
       messagingWorkers
         .filter((w) => w.stats.successRate > 0)
         .reduce((sum, w) => sum + w.stats.successRate, 0) /
-        Math.max(messagingWorkers.filter((w) => w.stats.successRate > 0).length, 1),
+        Math.max(
+          messagingWorkers.filter((w) => w.stats.successRate > 0).length,
+          1,
+        ),
     );
 
     return NextResponse.json({

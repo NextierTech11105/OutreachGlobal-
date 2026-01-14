@@ -53,7 +53,12 @@ export interface SendContext {
 }
 
 export interface SendContextError {
-  code: "TEAM_NOT_FOUND" | "NOT_ONBOARDED" | "NO_CAMPAIGN" | "NO_NUMBER" | "CAMPAIGN_NOT_APPROVED";
+  code:
+    | "TEAM_NOT_FOUND"
+    | "NOT_ONBOARDED"
+    | "NO_CAMPAIGN"
+    | "NO_NUMBER"
+    | "CAMPAIGN_NOT_APPROVED";
   message: string;
 }
 
@@ -79,7 +84,7 @@ export async function getSendContext(
     preferredWorkerId?: WorkerId;
     requireApprovedCampaign?: boolean;
     rotationStrategy?: RotationStrategy; // NEW: round-robin | least-used | best-health
-  }
+  },
 ): Promise<SendContextResult> {
   try {
     // 1. Get team with SignalHouse identifiers
@@ -103,7 +108,8 @@ export async function getSendContext(
         success: false,
         error: {
           code: "NOT_ONBOARDED",
-          message: "Team has not been onboarded to SignalHouse. Call onboardTenant() first.",
+          message:
+            "Team has not been onboarded to SignalHouse. Call onboardTenant() first.",
         },
       };
     }
@@ -113,7 +119,7 @@ export async function getSendContext(
     if (options?.campaignType) {
       const campaignQuery = and(
         eq(signalhouseCampaigns.teamId, teamId),
-        eq(signalhouseCampaigns.campaignType, options.campaignType)
+        eq(signalhouseCampaigns.campaignType, options.campaignType),
       );
 
       campaign = await db.query.signalhouseCampaigns.findFirst({
@@ -151,7 +157,7 @@ export async function getSendContext(
       const rotatedPhone = await selectNextPhone(
         teamId,
         options?.preferredWorkerId,
-        options?.rotationStrategy || "round-robin"
+        options?.rotationStrategy || "round-robin",
       );
 
       if (rotatedPhone) {
@@ -181,11 +187,11 @@ export async function getSendContext(
       ? and(
           eq(workerPhoneAssignments.teamId, teamId),
           eq(workerPhoneAssignments.workerId, options.preferredWorkerId),
-          eq(workerPhoneAssignments.isActive, true)
+          eq(workerPhoneAssignments.isActive, true),
         )
       : and(
           eq(workerPhoneAssignments.teamId, teamId),
-          eq(workerPhoneAssignments.isActive, true)
+          eq(workerPhoneAssignments.isActive, true),
         );
 
     const workerPhone = await db.query.workerPhoneAssignments.findFirst({
@@ -241,7 +247,7 @@ export async function getSendContext(
     };
   } catch (error) {
     throw new Error(
-      `Failed to resolve send context: ${error instanceof Error ? error.message : "Unknown error"}`
+      `Failed to resolve send context: ${error instanceof Error ? error.message : "Unknown error"}`,
     );
   }
 }
@@ -253,7 +259,9 @@ export async function getSendContext(
 /**
  * Get send context for GIANNA (opener worker).
  */
-export async function getGiannaSendContext(teamId: string): Promise<SendContextResult> {
+export async function getGiannaSendContext(
+  teamId: string,
+): Promise<SendContextResult> {
   return getSendContext(teamId, {
     campaignType: "MARKETING",
     preferredWorkerId: "gianna",
@@ -263,7 +271,9 @@ export async function getGiannaSendContext(teamId: string): Promise<SendContextR
 /**
  * Get send context for CATHY (nudger worker).
  */
-export async function getCathySendContext(teamId: string): Promise<SendContextResult> {
+export async function getCathySendContext(
+  teamId: string,
+): Promise<SendContextResult> {
   return getSendContext(teamId, {
     campaignType: "NURTURE",
     preferredWorkerId: "cathy",
@@ -273,7 +283,9 @@ export async function getCathySendContext(teamId: string): Promise<SendContextRe
 /**
  * Get send context for SABRINA (closer worker).
  */
-export async function getSabrinaSendContext(teamId: string): Promise<SendContextResult> {
+export async function getSabrinaSendContext(
+  teamId: string,
+): Promise<SendContextResult> {
   return getSendContext(teamId, {
     campaignType: "BOOKING",
     preferredWorkerId: "sabrina",
@@ -291,9 +303,7 @@ export async function getSabrinaSendContext(teamId: string): Promise<SendContext
  * @param phoneNumber - E.164 formatted phone number
  * @returns Tenant info if found
  */
-export async function resolveTenantFromPhone(
-  phoneNumber: string
-): Promise<{
+export async function resolveTenantFromPhone(phoneNumber: string): Promise<{
   teamId: string;
   teamName: string;
   workerId: string;
@@ -392,7 +402,7 @@ export async function validateTeamCanSend(teamId: string): Promise<{
   const numbers = await db.query.workerPhoneAssignments.findMany({
     where: and(
       eq(workerPhoneAssignments.teamId, teamId),
-      eq(workerPhoneAssignments.isActive, true)
+      eq(workerPhoneAssignments.isActive, true),
     ),
   });
 

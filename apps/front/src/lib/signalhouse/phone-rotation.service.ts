@@ -56,7 +56,7 @@ export interface PhoneHealthStats {
 export async function selectNextPhone(
   teamId: string,
   workerId?: string,
-  strategy: RotationStrategy = "round-robin"
+  strategy: RotationStrategy = "round-robin",
 ): Promise<RotationResult | null> {
   try {
     // Build where conditions
@@ -136,7 +136,7 @@ export async function selectNextPhone(
  */
 export async function recordSendResult(
   poolEntryId: string,
-  result: "success" | "failure" | "rate-limited"
+  result: "success" | "failure" | "rate-limited",
 ): Promise<void> {
   try {
     if (result === "success") {
@@ -170,8 +170,8 @@ export async function recordSendResult(
         .where(
           and(
             eq(smsPhonePool.id, poolEntryId),
-            sql`${smsPhonePool.consecutiveFailures} >= 5`
-          )
+            sql`${smsPhonePool.consecutiveFailures} >= 5`,
+          ),
         );
     }
     // rate-limited: no increment needed, just logged
@@ -215,7 +215,7 @@ export async function resetDailyCounts(teamId?: string): Promise<number> {
       .where(condition);
 
     console.log(
-      `[PhoneRotation] Reset daily counts${teamId ? ` for team ${teamId}` : ""}`
+      `[PhoneRotation] Reset daily counts${teamId ? ` for team ${teamId}` : ""}`,
     );
     return 0; // Drizzle doesn't return affected count easily
   } catch (error) {
@@ -246,7 +246,7 @@ export async function reEnablePhone(poolEntryId: string): Promise<void> {
  * Get health stats for all phones in a team's pool.
  */
 export async function getPoolHealthStats(
-  teamId: string
+  teamId: string,
 ): Promise<PhoneHealthStats[]> {
   const phones = await db.query.smsPhonePool.findMany({
     where: eq(smsPhonePool.teamId, teamId),
@@ -281,13 +281,15 @@ export async function addPhoneToPool(
   teamId: string,
   phoneNumber: string,
   workerId?: string,
-  signalhouseNumberId?: string
+  signalhouseNumberId?: string,
 ): Promise<string> {
   // Get current max rotation index for this team/worker
   const existing = await db.query.smsPhonePool.findMany({
     where: and(
       eq(smsPhonePool.teamId, teamId),
-      workerId ? eq(smsPhonePool.workerId, workerId) : sql`${smsPhonePool.workerId} IS NULL`
+      workerId
+        ? eq(smsPhonePool.workerId, workerId)
+        : sql`${smsPhonePool.workerId} IS NULL`,
     ),
     orderBy: [sql`${smsPhonePool.rotationIndex} DESC`],
     limit: 1,
@@ -315,7 +317,7 @@ export async function addPhoneToPool(
   });
 
   console.log(
-    `[PhoneRotation] Added phone ${phoneNumber} to pool for team ${teamId} (index: ${nextIndex})`
+    `[PhoneRotation] Added phone ${phoneNumber} to pool for team ${teamId} (index: ${nextIndex})`,
   );
 
   return id;
@@ -343,7 +345,7 @@ export async function hasRotationPool(teamId: string): Promise<boolean> {
   const count = await db.query.smsPhonePool.findFirst({
     where: and(
       eq(smsPhonePool.teamId, teamId),
-      eq(smsPhonePool.isActive, true)
+      eq(smsPhonePool.isActive, true),
     ),
   });
 
