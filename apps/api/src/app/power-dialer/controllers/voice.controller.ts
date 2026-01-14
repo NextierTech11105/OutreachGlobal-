@@ -29,21 +29,31 @@ export class VoiceController extends BaseController {
   @Post()
   @Header("Content-Type", "text/xml")
   async voice(@Body() body: any) {
-    this.logger.log("Received voice webhook", { to: body?.To, caller: body?.Caller });
+    this.logger.log("Received voice webhook", {
+      to: body?.To,
+      caller: body?.Caller,
+    });
     const twiml = new Twilio.twiml.VoiceResponse();
 
     try {
       if (!body?.To) {
         twiml.say("Sorry, we could not complete your call. Please try again.");
       } else if (!body?.Caller || !body.Caller.includes(":")) {
-        this.logger.warn("Invalid Caller format in voice webhook", { caller: body?.Caller });
-        twiml.say("Sorry, invalid caller configuration. Please contact support.");
+        this.logger.warn("Invalid Caller format in voice webhook", {
+          caller: body?.Caller,
+        });
+        twiml.say(
+          "Sorry, invalid caller configuration. Please contact support.",
+        );
       } else {
         const [client, callerId] = body.Caller.split(":");
         twiml.dial({ callerId: callerId || client }, body.To);
       }
     } catch (error: any) {
-      this.logger.error("Error processing voice webhook", { error: error.message, stack: error.stack });
+      this.logger.error("Error processing voice webhook", {
+        error: error.message,
+        stack: error.stack,
+      });
       twiml.say("Sorry, an error occurred. Please try again.");
     }
 

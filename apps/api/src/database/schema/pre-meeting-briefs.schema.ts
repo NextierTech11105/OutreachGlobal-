@@ -34,7 +34,12 @@ import { teamsRef } from "./teams.schema";
 
 export const PRE_MEETING_BRIEF_PK = "pmb";
 
-export type BriefStatus = "generating" | "ready" | "reviewed" | "used" | "archived";
+export type BriefStatus =
+  | "generating"
+  | "ready"
+  | "reviewed"
+  | "used"
+  | "archived";
 
 /**
  * Pre-Meeting Brief - compiled intelligence for meeting prep
@@ -109,28 +114,34 @@ export const preMeetingBriefs = pgTable(
     }>(),
 
     // === Objection Prep ===
-    anticipatedObjections: jsonb("anticipated_objections").$type<Array<{
-      objection: string;
-      category: string;
-      likelihood: "high" | "medium" | "low";
-      rebuttal: string;
-      followUp: string;
-    }>>(),
+    anticipatedObjections: jsonb("anticipated_objections").$type<
+      Array<{
+        objection: string;
+        category: string;
+        likelihood: "high" | "medium" | "low";
+        rebuttal: string;
+        followUp: string;
+      }>
+    >(),
 
     // === Buying Signals ===
-    buyingSignals: jsonb("buying_signals").$type<Array<{
-      signal: string;
-      source: string;
-      confidence: "high" | "medium" | "low";
-      implication: string;
-    }>>(),
+    buyingSignals: jsonb("buying_signals").$type<
+      Array<{
+        signal: string;
+        source: string;
+        confidence: "high" | "medium" | "low";
+        implication: string;
+      }>
+    >(),
 
     // === Risk Factors ===
-    riskFactors: jsonb("risk_factors").$type<Array<{
-      risk: string;
-      severity: "high" | "medium" | "low";
-      mitigation: string;
-    }>>(),
+    riskFactors: jsonb("risk_factors").$type<
+      Array<{
+        risk: string;
+        severity: "high" | "medium" | "low";
+        mitigation: string;
+      }>
+    >(),
 
     // === Competitive Intel ===
     competitiveIntel: jsonb("competitive_intel").$type<{
@@ -191,13 +202,15 @@ export const briefTemplates = pgTable(
     meetingTypes: jsonb("meeting_types").$type<string[]>(), // ['discovery_15', 'strategy_45', etc.]
 
     // === Section Configuration ===
-    sections: jsonb("sections").$type<Array<{
-      id: string;
-      name: string;
-      enabled: boolean;
-      order: number;
-      promptOverride?: string; // Custom prompt for AI generation
-    }>>(),
+    sections: jsonb("sections").$type<
+      Array<{
+        id: string;
+        name: string;
+        enabled: boolean;
+        order: number;
+        promptOverride?: string; // Custom prompt for AI generation
+      }>
+    >(),
 
     // === Generation Settings ===
     aiModel: varchar("ai_model", { length: 50 }).default("gpt-4"),
@@ -219,8 +232,16 @@ export const briefTemplates = pgTable(
 
 export const RESEARCH_REQUEST_PK = "rsr";
 
-export type ResearchRequestStatus = "pending" | "in_progress" | "completed" | "failed";
-export type ResearchRequestType = "company" | "contact" | "industry" | "competitor";
+export type ResearchRequestStatus =
+  | "pending"
+  | "in_progress"
+  | "completed"
+  | "failed";
+export type ResearchRequestType =
+  | "company"
+  | "contact"
+  | "industry"
+  | "competitor";
 
 /**
  * Research Requests - on-demand research for meetings
@@ -241,7 +262,9 @@ export const researchRequests = pgTable(
     context: text(), // Additional context for research
 
     // === Status ===
-    status: varchar({ length: 20 }).default("pending").$type<ResearchRequestStatus>(),
+    status: varchar({ length: 20 })
+      .default("pending")
+      .$type<ResearchRequestStatus>(),
     progress: integer().default(0), // 0-100
 
     // === Results ===
@@ -290,14 +313,34 @@ export type NewResearchRequest = typeof researchRequests.$inferInsert;
 // =============================================================================
 
 export const DEFAULT_BRIEF_SECTIONS = [
-  { id: "executive_summary", name: "Executive Summary", enabled: true, order: 1 },
+  {
+    id: "executive_summary",
+    name: "Executive Summary",
+    enabled: true,
+    order: 1,
+  },
   { id: "company_snapshot", name: "Company Snapshot", enabled: true, order: 2 },
-  { id: "contact_snapshot", name: "Contact Intelligence", enabled: true, order: 3 },
+  {
+    id: "contact_snapshot",
+    name: "Contact Intelligence",
+    enabled: true,
+    order: 3,
+  },
   { id: "persona_insights", name: "Persona Insights", enabled: true, order: 4 },
   { id: "talking_points", name: "Talking Points", enabled: true, order: 5 },
-  { id: "anticipated_objections", name: "Objection Prep", enabled: true, order: 6 },
+  {
+    id: "anticipated_objections",
+    name: "Objection Prep",
+    enabled: true,
+    order: 6,
+  },
   { id: "buying_signals", name: "Buying Signals", enabled: true, order: 7 },
-  { id: "competitive_intel", name: "Competitive Intel", enabled: true, order: 8 },
+  {
+    id: "competitive_intel",
+    name: "Competitive Intel",
+    enabled: true,
+    order: 8,
+  },
   { id: "risk_factors", name: "Risk Factors", enabled: false, order: 9 },
   { id: "action_items", name: "Action Items", enabled: true, order: 10 },
 ];

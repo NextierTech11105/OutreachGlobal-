@@ -184,7 +184,9 @@ export const meetingAttendees = pgTable(
     role: varchar({ length: 50 }), // 'host', 'attendee', 'optional'
 
     // Response
-    responseStatus: varchar("response_status", { length: 20 }).default("pending"), // pending, accepted, declined, tentative
+    responseStatus: varchar("response_status", { length: 20 }).default(
+      "pending",
+    ), // pending, accepted, declined, tentative
     respondedAt: timestamp("responded_at"),
 
     // Attendance
@@ -215,7 +217,9 @@ export const meetingOutcomes = pgTable(
 
     // === Outcome Details ===
     outcome: varchar({ length: 20 }).notNull().$type<MeetingOutcome>(),
-    previousStage: varchar("previous_stage", { length: 20 }).$type<QualificationStage>(),
+    previousStage: varchar("previous_stage", {
+      length: 20,
+    }).$type<QualificationStage>(),
     newStage: varchar("new_stage", { length: 20 }).$type<QualificationStage>(),
 
     // === Notes & Feedback ===
@@ -232,7 +236,9 @@ export const meetingOutcomes = pgTable(
     // === Follow-up ===
     followUpRequired: boolean("follow_up_required").default(false),
     followUpDate: timestamp("follow_up_date"),
-    followUpType: varchar("follow_up_type", { length: 20 }).$type<MeetingType>(),
+    followUpType: varchar("follow_up_type", {
+      length: 20,
+    }).$type<MeetingType>(),
 
     // === User who logged ===
     loggedBy: ulidColumn("logged_by"),
@@ -333,23 +339,30 @@ export type NewQualificationRule = typeof qualificationRules.$inferInsert;
 /**
  * Valid state transitions for meetings
  */
-export const MEETING_STATE_TRANSITIONS: Record<MeetingStatus, MeetingStatus[]> = {
-  scheduled: ["confirmed", "cancelled", "rescheduled"],
-  confirmed: ["reminded", "in_progress", "no_show", "cancelled", "rescheduled"],
-  reminded: ["in_progress", "no_show", "cancelled", "rescheduled"],
-  in_progress: ["completed"],
-  completed: [], // Terminal state
-  no_show: ["rescheduled"], // Can only reschedule after no-show
-  rescheduled: ["scheduled"], // Creates new meeting
-  cancelled: [], // Terminal state
-};
+export const MEETING_STATE_TRANSITIONS: Record<MeetingStatus, MeetingStatus[]> =
+  {
+    scheduled: ["confirmed", "cancelled", "rescheduled"],
+    confirmed: [
+      "reminded",
+      "in_progress",
+      "no_show",
+      "cancelled",
+      "rescheduled",
+    ],
+    reminded: ["in_progress", "no_show", "cancelled", "rescheduled"],
+    in_progress: ["completed"],
+    completed: [], // Terminal state
+    no_show: ["rescheduled"], // Can only reschedule after no-show
+    rescheduled: ["scheduled"], // Creates new meeting
+    cancelled: [], // Terminal state
+  };
 
 /**
  * Check if a state transition is valid
  */
 export function canTransitionTo(
   currentStatus: MeetingStatus,
-  newStatus: MeetingStatus
+  newStatus: MeetingStatus,
 ): boolean {
   return MEETING_STATE_TRANSITIONS[currentStatus]?.includes(newStatus) ?? false;
 }
@@ -357,7 +370,9 @@ export function canTransitionTo(
 /**
  * Get next valid states
  */
-export function getNextValidStates(currentStatus: MeetingStatus): MeetingStatus[] {
+export function getNextValidStates(
+  currentStatus: MeetingStatus,
+): MeetingStatus[] {
   return MEETING_STATE_TRANSITIONS[currentStatus] ?? [];
 }
 
@@ -380,7 +395,7 @@ export const QUALIFICATION_STAGE_ORDER: QualificationStage[] = [
  */
 export function isStageAhead(
   stageA: QualificationStage,
-  stageB: QualificationStage
+  stageB: QualificationStage,
 ): boolean {
   const indexA = QUALIFICATION_STAGE_ORDER.indexOf(stageA);
   const indexB = QUALIFICATION_STAGE_ORDER.indexOf(stageB);

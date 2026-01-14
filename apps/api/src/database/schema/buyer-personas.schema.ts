@@ -117,9 +117,22 @@ export const idealCustomerProfiles = pgTable(
 
 export const BUYER_PERSONA_PK = "bpr";
 
-export type PersonaTone = "professional" | "friendly" | "casual" | "urgent" | "consultative";
-export type PersonaDecisionStyle = "analytical" | "driver" | "amiable" | "expressive";
-export type PersonaBuyingStage = "problem_aware" | "solution_aware" | "product_aware" | "most_aware";
+export type PersonaTone =
+  | "professional"
+  | "friendly"
+  | "casual"
+  | "urgent"
+  | "consultative";
+export type PersonaDecisionStyle =
+  | "analytical"
+  | "driver"
+  | "amiable"
+  | "expressive";
+export type PersonaBuyingStage =
+  | "problem_aware"
+  | "solution_aware"
+  | "product_aware"
+  | "most_aware";
 
 /**
  * Buyer Persona - psychological profile for targeting
@@ -141,8 +154,12 @@ export const buyerPersonas = pgTable(
     seniorityLevel: varchar("seniority_level", { length: 50 }), // c-suite, vp, director, manager
 
     // === Decision-Making Profile ===
-    decisionStyle: varchar("decision_style", { length: 50 }).$type<PersonaDecisionStyle>(),
-    buyingStage: varchar("buying_stage", { length: 50 }).$type<PersonaBuyingStage>(),
+    decisionStyle: varchar("decision_style", {
+      length: 50,
+    }).$type<PersonaDecisionStyle>(),
+    buyingStage: varchar("buying_stage", {
+      length: 50,
+    }).$type<PersonaBuyingStage>(),
     typicalBudgetAuthority: varchar("typical_budget_authority", { length: 50 }), // 'full', 'partial', 'recommend', 'none'
 
     // === Communication Preferences ===
@@ -181,7 +198,9 @@ export const buyerPersonas = pgTable(
 
     // === Template Routing ===
     // Maps to stage-cartridges.ts categories
-    preferredCartridgeCategories: jsonb("preferred_cartridge_categories").$type<string[]>(),
+    preferredCartridgeCategories: jsonb("preferred_cartridge_categories").$type<
+      string[]
+    >(),
 
     createdAt,
     updatedAt,
@@ -318,8 +337,9 @@ export type NewPersonaAssignment = typeof personaAssignments.$inferInsert;
 export const icpRef = (config?: { onDelete?: "cascade" | "set null" }) =>
   ulidColumn("icp_id").references(() => idealCustomerProfiles.id, config);
 
-export const buyerPersonaRef = (config?: { onDelete?: "cascade" | "set null" }) =>
-  ulidColumn("persona_id").references(() => buyerPersonas.id, config);
+export const buyerPersonaRef = (config?: {
+  onDelete?: "cascade" | "set null";
+}) => ulidColumn("persona_id").references(() => buyerPersonas.id, config);
 
 // =============================================================================
 // PERSONA TONE ROUTING
@@ -328,7 +348,10 @@ export const buyerPersonaRef = (config?: { onDelete?: "cascade" | "set null" }) 
 /**
  * Maps persona decision styles to preferred message tones
  */
-export const DECISION_STYLE_TONE_MAP: Record<PersonaDecisionStyle, PersonaTone> = {
+export const DECISION_STYLE_TONE_MAP: Record<
+  PersonaDecisionStyle,
+  PersonaTone
+> = {
   analytical: "professional",
   driver: "urgent",
   amiable: "friendly",
