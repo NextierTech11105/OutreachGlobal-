@@ -2759,3 +2759,30 @@ export type NewSystemSetting = typeof systemSettings.$inferInsert;
 
 // NOTE: batch_jobs tables exist in database but are not yet used by frontend
 // Schema defined in apps/api/src/database/schema/batch-jobs.schema.ts
+
+// ============================================================
+// WORKER PHONE ASSIGNMENTS - Digital worker phone numbers
+// ============================================================
+
+export const workerPhoneAssignments = pgTable(
+  "worker_phone_assignments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    teamId: text("team_id").notNull(),
+    workerId: text("worker_id").notNull(), // 'gianna' | 'cathy' | 'sabrina' | etc.
+    phoneNumber: text("phone_number").notNull(),
+    provider: text("provider").notNull().default("signalhouse"), // 'signalhouse' | 'twilio'
+    isActive: boolean("is_active").notNull().default(true),
+    isPrimary: boolean("is_primary").notNull().default(false),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    teamWorkerIdx: index("worker_phone_team_worker_idx").on(table.teamId, table.workerId),
+    phoneIdx: index("worker_phone_number_idx").on(table.phoneNumber),
+    activeIdx: index("worker_phone_active_idx").on(table.teamId, table.isActive),
+  })
+);
+
+export type WorkerPhoneAssignment = typeof workerPhoneAssignments.$inferSelect;
+export type NewWorkerPhoneAssignment = typeof workerPhoneAssignments.$inferInsert;
