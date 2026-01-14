@@ -105,3 +105,6 @@ export * from "./sms-send-batches.schema";
 
 // ===== GROWTH OS: MEETINGS ENGINE =====
 export * from "./meetings.schema";
+
+// ===== GROWTH OS: BUYER PERSONAS & ICP =====
+export * from "./buyer-personas.schema";
