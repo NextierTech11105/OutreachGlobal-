@@ -86,14 +86,15 @@ async function getConversationThread(teamId: string, leadId: string) {
         AND l.team_id = ${teamId}
     `);
 
-    if (!leadResult.rows?.length) {
+    const leadRows = leadResult as any[];
+    if (!leadRows?.length) {
       return NextResponse.json(
         { success: false, error: "Lead not found" },
         { status: 404 },
       );
     }
 
-    const lead = leadResult.rows[0] as any;
+    const lead = leadRows[0];
 
     // Get all messages for this lead (both inbound and outbound)
     const messagesResult = await db.execute(sql`
@@ -112,9 +113,11 @@ async function getConversationThread(teamId: string, leadId: string) {
       ORDER BY m.sent_at ASC
     `);
 
-    // Get latest classification from inbox_items
-    const classificationResult = await db.execute(sql`
-      SELECT classification, campaign_id
+    const messageRows = messagesResult as any[];
+
+    // Get latest inbox item info (without classification column that may not exist)
+    const inboxResult = await db.execute(sql`
+      SELECT campaign_id
       FROM inbox_items
       WHERE lead_id = ${leadId}
         AND team_id = ${teamId}
@@ -122,15 +125,15 @@ async function getConversationThread(teamId: string, leadId: string) {
       LIMIT 1
     `);
 
-    const classification = classificationResult.rows?.[0] as any;
+    const inboxItem = (inboxResult as any)?.[0];
 
     // Get campaign info if available
     let campaignName = null;
-    if (classification?.campaign_id) {
+    if (inboxItem?.campaign_id) {
       const campaignResult = await db.execute(sql`
-        SELECT name FROM campaigns WHERE id = ${classification.campaign_id}
+        SELECT name FROM campaigns WHERE id = ${inboxItem.campaign_id}
       `);
-      campaignName = campaignResult.rows?.[0]?.name;
+      campaignName = (campaignResult as any)?.[0]?.name;
     }
 
     const conversation: Conversation = {
@@ -139,15 +142,15 @@ async function getConversationThread(teamId: string, leadId: string) {
         `${lead.first_name || ""} ${lead.last_name || ""}`.trim() || lead.phone,
       leadPhone: lead.phone,
       leadEmail: lead.email,
-      campaignId: classification?.campaign_id,
+      campaignId: inboxItem?.campaign_id,
       campaignName,
-      classification: classification?.classification,
+      classification: undefined,
       lastMessageAt:
-        messagesResult.rows?.length > 0
-          ? (messagesResult.rows[messagesResult.rows.length - 1] as any).sentAt
+        messageRows.length > 0
+          ? messageRows[messageRows.length - 1].sentAt
           : new Date().toISOString(),
       unreadCount: 0,
-      messages: (messagesResult.rows || []).map((row: any) => ({
+      messages: messageRows.map((row: any) => ({
         id: row.id,
         body: row.body,
         direction: row.direction,
@@ -173,12 +176,14 @@ async function getConversationThread(teamId: string, leadId: string) {
 
 async function getConversationList(
   teamId: string,
-  worker: string | null,
+  _worker: string | null, // Reserved for future filtering by worker
   status: string | null,
   limit: number,
 ) {
   try {
-    // Get conversations with latest message and classification
+    // Get conversations with latest message
+    // Note: Using a simpler query that doesn't depend on inbox_items columns
+    // that may not exist yet (classification, etc.)
     const result = await db.execute(sql`
       WITH latest_messages AS (
         SELECT DISTINCT ON (lead_id)
@@ -194,24 +199,6 @@ async function getConversationList(
           AND type = 'SMS'
           AND lead_id IS NOT NULL
         ORDER BY lead_id, sent_at DESC
-      ),
-      inbox_status AS (
-        SELECT DISTINCT ON (lead_id)
-          lead_id,
-          classification,
-          campaign_id,
-          is_read,
-          is_processed
-        FROM inbox_items
-        WHERE team_id = ${teamId}
-        ORDER BY lead_id, created_at DESC
-      ),
-      unread_counts AS (
-        SELECT lead_id, COUNT(*) as unread_count
-        FROM inbox_items
-        WHERE team_id = ${teamId}
-          AND is_read = false
-        GROUP BY lead_id
       )
       SELECT
         l.id as "leadId",
@@ -221,25 +208,30 @@ async function getConversationList(
         lm.last_message as "lastMessage",
         lm.last_direction as "lastDirection",
         lm.last_message_at as "lastMessageAt",
-        ins.classification,
-        ins.campaign_id as "campaignId",
+        ii.campaign_id as "campaignId",
         c.name as "campaignName",
-        ins.is_read as "isRead",
-        ins.is_processed as "isProcessed",
-        COALESCE(uc.unread_count, 0) as "unreadCount"
+        COALESCE(ii.is_read, false) as "isRead",
+        COALESCE(ii.is_processed, false) as "isProcessed",
+        0 as "unreadCount"
       FROM latest_messages lm
       JOIN leads l ON lm.lead_id = l.id
-      LEFT JOIN inbox_status ins ON l.id = ins.lead_id
-      LEFT JOIN unread_counts uc ON l.id = uc.lead_id
-      LEFT JOIN campaigns c ON ins.campaign_id = c.id
+      LEFT JOIN LATERAL (
+        SELECT campaign_id, is_read, is_processed
+        FROM inbox_items
+        WHERE lead_id = l.id AND team_id = ${teamId}
+        ORDER BY created_at DESC
+        LIMIT 1
+      ) ii ON true
+      LEFT JOIN campaigns c ON ii.campaign_id = c.id
       WHERE l.team_id = ${teamId}
-        ${status === "new" ? sql`AND ins.is_read = false` : sql``}
-        ${status === "replied" ? sql`AND ins.is_processed = true` : sql``}
+        ${status === "new" ? sql`AND ii.is_read = false` : sql``}
+        ${status === "replied" ? sql`AND ii.is_processed = true` : sql``}
       ORDER BY lm.last_message_at DESC
       LIMIT ${limit}
     `);
 
-    const conversations = (result.rows || []).map((row: any) => ({
+    const rows = result as any[];
+    const conversations = (rows || []).map((row: any) => ({
       leadId: row.leadId,
       leadName: row.leadName || row.leadPhone,
       leadPhone: row.leadPhone,
@@ -247,7 +239,7 @@ async function getConversationList(
       lastMessage: row.lastMessage,
       lastDirection: row.lastDirection,
       lastMessageAt: row.lastMessageAt,
-      classification: row.classification,
+      classification: undefined,
       campaignId: row.campaignId,
       campaignName: row.campaignName,
       isRead: row.isRead,
@@ -265,7 +257,8 @@ async function getConversationList(
       WHERE ii.team_id = ${teamId}
     `);
 
-    const stats = statsResult.rows?.[0] as any;
+    const statsRows = statsResult as any[];
+    const stats = statsRows?.[0];
 
     return NextResponse.json({
       success: true,

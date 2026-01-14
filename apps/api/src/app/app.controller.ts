@@ -136,6 +136,123 @@ export class AppController {
       results.push(`api_keys indexes: ${e.message}`);
     }
 
+    // Add inbox_items columns that may be missing
+    try {
+      await this.db.execute(sql`
+        ALTER TABLE inbox_items
+        ADD COLUMN IF NOT EXISTS classification VARCHAR DEFAULT 'UNCLASSIFIED' NOT NULL
+      `);
+      results.push("Added classification column to inbox_items");
+    } catch (e: any) {
+      results.push(`inbox_items classification: ${e.message}`);
+    }
+
+    try {
+      await this.db.execute(sql`
+        ALTER TABLE inbox_items
+        ADD COLUMN IF NOT EXISTS classification_confidence INTEGER DEFAULT 0
+      `);
+      results.push("Added classification_confidence column to inbox_items");
+    } catch (e: any) {
+      results.push(`inbox_items classification_confidence: ${e.message}`);
+    }
+
+    try {
+      await this.db.execute(sql`
+        ALTER TABLE inbox_items
+        ADD COLUMN IF NOT EXISTS classified_at TIMESTAMP
+      `);
+      results.push("Added classified_at column to inbox_items");
+    } catch (e: any) {
+      results.push(`inbox_items classified_at: ${e.message}`);
+    }
+
+    try {
+      await this.db.execute(sql`
+        ALTER TABLE inbox_items
+        ADD COLUMN IF NOT EXISTS classified_by VARCHAR
+      `);
+      results.push("Added classified_by column to inbox_items");
+    } catch (e: any) {
+      results.push(`inbox_items classified_by: ${e.message}`);
+    }
+
+    try {
+      await this.db.execute(sql`
+        ALTER TABLE inbox_items
+        ADD COLUMN IF NOT EXISTS priority VARCHAR DEFAULT 'WARM'
+      `);
+      results.push("Added priority column to inbox_items");
+    } catch (e: any) {
+      results.push(`inbox_items priority: ${e.message}`);
+    }
+
+    try {
+      await this.db.execute(sql`
+        ALTER TABLE inbox_items
+        ADD COLUMN IF NOT EXISTS priority_score INTEGER DEFAULT 50 NOT NULL
+      `);
+      results.push("Added priority_score column to inbox_items");
+    } catch (e: any) {
+      results.push(`inbox_items priority_score: ${e.message}`);
+    }
+
+    try {
+      await this.db.execute(sql`
+        ALTER TABLE inbox_items
+        ADD COLUMN IF NOT EXISTS current_bucket VARCHAR DEFAULT 'UNIVERSAL_INBOX'
+      `);
+      results.push("Added current_bucket column to inbox_items");
+    } catch (e: any) {
+      results.push(`inbox_items current_bucket: ${e.message}`);
+    }
+
+    try {
+      await this.db.execute(sql`
+        ALTER TABLE inbox_items
+        ADD COLUMN IF NOT EXISTS due_at TIMESTAMP
+      `);
+      results.push("Added due_at column to inbox_items");
+    } catch (e: any) {
+      results.push(`inbox_items due_at: ${e.message}`);
+    }
+
+    try {
+      await this.db.execute(sql`
+        ALTER TABLE inbox_items
+        ADD COLUMN IF NOT EXISTS escalated_at TIMESTAMP
+      `);
+      results.push("Added escalated_at column to inbox_items");
+    } catch (e: any) {
+      results.push(`inbox_items escalated_at: ${e.message}`);
+    }
+
+    try {
+      await this.db.execute(sql`
+        ALTER TABLE inbox_items
+        ADD COLUMN IF NOT EXISTS escalation_level INTEGER DEFAULT 0
+      `);
+      results.push("Added escalation_level column to inbox_items");
+    } catch (e: any) {
+      results.push(`inbox_items escalation_level: ${e.message}`);
+    }
+
+    // Create indexes for inbox_items classification
+    try {
+      await this.db.execute(sql`
+        CREATE INDEX IF NOT EXISTS inbox_items_classification_idx ON inbox_items(classification)
+      `);
+      await this.db.execute(sql`
+        CREATE INDEX IF NOT EXISTS inbox_items_priority_idx ON inbox_items(priority)
+      `);
+      await this.db.execute(sql`
+        CREATE INDEX IF NOT EXISTS inbox_items_bucket_idx ON inbox_items(current_bucket)
+      `);
+      results.push("Created inbox_items indexes");
+    } catch (e: any) {
+      results.push(`inbox_items indexes: ${e.message}`);
+    }
+
     return { success: true, results };
   }
 
