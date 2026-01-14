@@ -7,6 +7,7 @@ import {
   Body,
   Controller,
   Headers,
+  Logger,
   Post,
   RawBodyRequest,
   Req,
@@ -26,6 +27,8 @@ const mapEvents = {
 
 @Controller("webhook/campaign")
 export class CampaignWebhookController {
+  private readonly logger = new Logger(CampaignWebhookController.name);
+
   constructor(
     private configService: ConfigService,
     @InjectDB() private db: DrizzleClient,
@@ -96,11 +99,7 @@ export class CampaignWebhookController {
     );
 
     if (!isValid) {
-      console.log("invalid signature", {
-        key: this.configService.get("MAIL_WEBHOOK_KEY"),
-        signature,
-        timestamp,
-      });
+      this.logger.warn("Invalid webhook signature received");
       return res.status(401).send({
         message: "Invalid signature",
       });

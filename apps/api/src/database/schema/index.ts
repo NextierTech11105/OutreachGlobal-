@@ -111,3 +111,9 @@ export * from "./buyer-personas.schema";
 
 // ===== GROWTH OS: PRE-MEETING BRIEFS =====
 export * from "./pre-meeting-briefs.schema";
+
+// ===== GROWTH OS: AUDIENCE BUILDER =====
+export * from "./audience-builder.schema";
+
+// ===== GROWTH OS: SMS SEQUENCES =====
+export * from "./sms-sequences.schema";

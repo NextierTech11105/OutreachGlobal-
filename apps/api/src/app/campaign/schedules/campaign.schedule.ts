@@ -1,7 +1,7 @@
 import { InjectDB } from "@/database/decorators";
 import { DrizzleClient } from "@/database/types";
 import { InjectQueue } from "@nestjs/bullmq";
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import {
   CAMPAIGN_SEQUENCE_QUEUE,
@@ -15,6 +15,8 @@ import { ProcessNextCampaignSequenceData } from "../types/campaign-sequence.type
 
 @Injectable()
 export class CampaignSchedule {
+  private readonly logger = new Logger(CampaignSchedule.name);
+
   constructor(
     @InjectDB() private db: DrizzleClient,
     @InjectQueue(CAMPAIGN_SEQUENCE_QUEUE) private queue: Queue,
@@ -54,7 +56,7 @@ export class CampaignSchedule {
         leadId: campaignLead.leadId,
         position: campaignLead.currentSequencePosition,
       };
-      console.log(`executing queue`, jobId);
+      this.logger.debug(`Executing queue job: ${jobId}`);
       await this.queue.add(CampaignSequenceJobs.PROCESS_NEXT, data, {
         deduplication: {
           id: jobId,

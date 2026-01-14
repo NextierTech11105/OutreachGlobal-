@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit } from "@nestjs/common";
+import { Injectable, OnModuleInit, Logger } from "@nestjs/common";
 import { InjectQueue } from "@nestjs/bullmq";
 import { JobsOptions, Queue } from "bullmq";
 import { ConfigService } from "@nestjs/config";
@@ -7,6 +7,8 @@ import { SendMailOptions } from "./mail.type";
 
 @Injectable()
 export class MailService implements OnModuleInit {
+  private readonly logger = new Logger(MailService.name);
+
   constructor(
     @InjectQueue("mail") private mailQueue: Queue,
     private configService: ConfigService,
@@ -17,7 +19,7 @@ export class MailService implements OnModuleInit {
     if (apiKey) {
       sgMail.setApiKey(apiKey);
     } else {
-      console.warn("SENDGRID_API_KEY not set - email sending will fail");
+      this.logger.warn("SENDGRID_API_KEY not set - email sending will fail");
     }
   }
 
@@ -46,7 +48,9 @@ export class MailService implements OnModuleInit {
         messageId: response[0]?.headers?.["x-message-id"],
       };
     } catch (error: any) {
-      console.error("SendGrid error:", error?.response?.body || error.message);
+      this.logger.error(
+        `SendGrid error: ${JSON.stringify(error?.response?.body || error.message)}`,
+      );
       throw error;
     }
   }

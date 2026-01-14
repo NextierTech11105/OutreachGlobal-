@@ -4,6 +4,7 @@ import {
   Body,
   HttpException,
   HttpStatus,
+  Logger,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import axios from "axios";
@@ -44,6 +45,7 @@ interface ApolloPerson {
 @Controller("business-list")
 @UseAuthGuard()
 export class ApolloSearchController {
+  private readonly logger = new Logger(ApolloSearchController.name);
   private readonly apolloApiKey: string;
   private readonly apolloApiBase = "https://api.apollo.io/v1";
 
@@ -160,8 +162,8 @@ export class ApolloSearchController {
         hits,
         estimatedTotalHits: data.pagination?.total_entries || hits.length,
       };
-    } catch (error) {
-      console.error("Apollo search error:", error);
+    } catch (error: any) {
+      this.logger.error(`Apollo search error: ${error.message}`);
       if (axios.isAxiosError(error)) {
         throw new HttpException(
           error.response?.data?.message || "Apollo search failed",
@@ -301,8 +303,8 @@ export class ApolloSearchController {
         hits,
         estimatedTotalHits: data.pagination?.total_entries || hits.length,
       };
-    } catch (error) {
-      console.error("Apollo company search error:", error);
+    } catch (error: any) {
+      this.logger.error(`Apollo company search error: ${error.message}`);
       if (axios.isAxiosError(error)) {
         throw new HttpException(
           error.response?.data?.message || "Company search failed",

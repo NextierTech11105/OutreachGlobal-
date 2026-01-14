@@ -48,5 +48,12 @@ async function bootstrap() {
 }
 
 bootstrap()
-  .then(() => console.log(`Server running on http://localhost:${PORT}`))
-  .catch((err) => console.error("Application startup failed", err));
+  .then((app) => {
+    const logger = app.get(Logger);
+    logger.log(`Server running on http://localhost:${PORT}`);
+  })
+  .catch((err) => {
+    // Use console.error here since Logger may not be available
+    process.stderr.write(`Application startup failed: ${err.message}\n`);
+    process.exit(1);
+  });

@@ -153,7 +153,7 @@ export class LeadSchedule {
           });
       }
     } catch (error: any) {
-      console.log(error);
+      this.logger.error(`Lead schedule error: ${error.message}`, error.stack);
     }
   }
 

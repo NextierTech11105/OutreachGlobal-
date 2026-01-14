@@ -6,6 +6,7 @@ import {
   Header,
   Get,
   Query,
+  Logger,
 } from "@nestjs/common";
 import { FastifyReply } from "fastify";
 import { VoiceService } from "../services/voice.service";
@@ -25,6 +26,8 @@ interface TwilioVoiceWebhook {
 
 @Controller("webhook/voice")
 export class VoiceWebhookController {
+  private readonly logger = new Logger(VoiceWebhookController.name);
+
   constructor(
     private voiceService: VoiceService,
     private configService: ConfigService,
@@ -49,8 +52,8 @@ export class VoiceWebhookController {
   ) {
     const { CallSid, From, To, CallStatus, Direction } = body;
 
-    console.log(
-      `[INBOUND CALL] From: ${From}, To: ${To}, Status: ${CallStatus}`,
+    this.logger.log(
+      `Inbound call from ${From} to ${To}, status: ${CallStatus}`,
     );
 
     // Only handle incoming calls
@@ -66,8 +69,8 @@ export class VoiceWebhookController {
         CallSid,
       );
 
-      console.log(
-        `[CALL PROCESSED] Lead: ${result.leadName || "Unknown"}, SDR: ${result.sdrName || "Default"}, SMS Sent: ${result.smsSent}`,
+      this.logger.log(
+        `Call processed - Lead: ${result.leadName || "Unknown"}, SDR: ${result.sdrName || "Default"}, SMS Sent: ${result.smsSent}`,
       );
 
       // Get custom greeting from config or use default
@@ -92,8 +95,8 @@ export class VoiceWebhookController {
       });
 
       return res.status(200).send(voicemailTwiml);
-    } catch (error) {
-      console.error("[CALL ERROR]", error);
+    } catch (error: any) {
+      this.logger.error(`Call error: ${error.message}`, error.stack);
       return res.status(200).send(this.getErrorTwiml());
     }
   }
@@ -104,7 +107,7 @@ export class VoiceWebhookController {
   @Post("status")
   async handleStatusCallback(@Body() body: TwilioVoiceWebhook) {
     const { CallSid, CallStatus, From, To } = body;
-    console.log(`[CALL STATUS] ${CallSid}: ${CallStatus} (${From} -> ${To})`);
+    this.logger.log(`Call status ${CallSid}: ${CallStatus} (${From} -> ${To})`);
     return { received: true };
   }
 

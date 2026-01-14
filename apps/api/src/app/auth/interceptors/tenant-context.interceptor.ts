@@ -3,6 +3,7 @@ import {
   NestInterceptor,
   ExecutionContext,
   CallHandler,
+  Logger,
 } from "@nestjs/common";
 import { Observable } from "rxjs";
 import { GqlContextType, GqlExecutionContext } from "@nestjs/graphql";
@@ -21,6 +22,8 @@ import { sql } from "drizzle-orm";
  */
 @Injectable()
 export class TenantContextInterceptor implements NestInterceptor {
+  private readonly logger = new Logger(TenantContextInterceptor.name);
+
   constructor(@InjectDB() private db: DrizzleClient) {}
 
   async intercept(
@@ -48,11 +51,8 @@ export class TenantContextInterceptor implements NestInterceptor {
       try {
         // Set the session variable for RLS
         await this.db.execute(sql`SET app.team_id = ${teamId}`);
-      } catch (error) {
-        console.error(
-          "[TenantContextInterceptor] Failed to set tenant context:",
-          error,
-        );
+      } catch (error: any) {
+        this.logger.error(`Failed to set tenant context: ${error.message}`);
         // Continue anyway - RLS will just return no rows which is safe
       }
     } else {

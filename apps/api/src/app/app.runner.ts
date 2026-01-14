@@ -1,8 +1,11 @@
 import { Command, CommandRunner, Option } from "nest-commander";
 import { WorkflowSeeder } from "./workflow/seeders/workflow.seeder";
+import { Logger } from "@nestjs/common";
 
 @Command({ name: "app" })
 export class AppRunner extends CommandRunner {
+  private readonly logger = new Logger(AppRunner.name);
+
   constructor(private workflowSeeder: WorkflowSeeder) {
     super();
   }
@@ -14,8 +17,8 @@ export class AppRunner extends CommandRunner {
       }
 
       process.exit(0);
-    } catch (error) {
-      console.log(error);
+    } catch (error: any) {
+      this.logger.error(`App runner error: ${error.message}`, error.stack);
       process.exit(1);
     }
   }

@@ -4,6 +4,7 @@ import {
   InquirerService,
   Option,
 } from "nest-commander";
+import { Logger } from "@nestjs/common";
 import { UserInsert } from "../models/user.model";
 import { InjectDB } from "@/database/decorators";
 import { DrizzleClient } from "@/database/types";
@@ -17,6 +18,8 @@ import { slugify, TeamMemberRole, TeamMemberStatus } from "@nextier/common";
 
 @Command({ name: "user" })
 export class UserRunner extends CommandRunner {
+  private readonly logger = new Logger(UserRunner.name);
+
   constructor(
     private inquirer: InquirerService,
     @InjectDB() private db: DrizzleClient,
@@ -61,8 +64,8 @@ export class UserRunner extends CommandRunner {
       }
 
       process.exit(0);
-    } catch (error) {
-      console.log(error);
+    } catch (error: any) {
+      this.logger.error(`User runner error: ${error.message}`, error.stack);
       process.exit(1);
     }
   }

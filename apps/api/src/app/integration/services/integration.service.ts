@@ -2,7 +2,7 @@ import { TeamService } from "@/app/team/services/team.service";
 import { InjectDB } from "@/database/decorators";
 import { integrationsTable } from "@/database/schema-alias";
 import { DrizzleClient } from "@/database/types";
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { AnyObject } from "@nextier/common";
 import { AxiosError } from "axios";
@@ -14,6 +14,8 @@ import { ZohoService } from "./zoho.service";
 
 @Injectable()
 export class IntegrationService {
+  private readonly logger = new Logger(IntegrationService.name);
+
   constructor(
     private configService: ConfigService,
     @InjectDB() private db: DrizzleClient,
@@ -68,7 +70,9 @@ export class IntegrationService {
       };
     } catch (error) {
       if (error instanceof AxiosError) {
-        console.log(error.response?.data);
+        this.logger.error(
+          `Zoho authorization error: ${JSON.stringify(error.response?.data)}`,
+        );
       }
       throw error;
     }

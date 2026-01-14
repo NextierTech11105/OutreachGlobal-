@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { InjectDB } from "@/database/decorators";
 import { DrizzleClient } from "@/database/types";
 import { Cron, CronExpression } from "@nestjs/schedule";
@@ -11,6 +11,8 @@ import { ZohoService } from "../services/zoho.service";
 
 @Injectable()
 export class IntegrationSchedule {
+  private readonly logger = new Logger(IntegrationSchedule.name);
+
   constructor(
     @InjectDB() private db: DrizzleClient,
     private zohoService: ZohoService,
@@ -28,7 +30,7 @@ export class IntegrationSchedule {
     });
 
     if (integrations.length) {
-      console.log("found expired integrations", integrations.length);
+      this.logger.log(`Found ${integrations.length} expired integrations`);
       const values: IntegrationInsert[] = [];
       for (const integration of integrations) {
         if (integration.authData?.refresh_token) {
@@ -49,9 +51,8 @@ export class IntegrationSchedule {
             });
           } catch (error) {
             if (error instanceof AxiosError) {
-              console.log(
-                "error when refreshing zoho token",
-                error.response?.data,
+              this.logger.error(
+                `Error refreshing token: ${JSON.stringify(error.response?.data)}`,
               );
             }
           }

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query } from "@nestjs/common";
+import { Body, Controller, Get, Logger, Post, Query } from "@nestjs/common";
 import { RealEstateService } from "../services/real-estate.service";
 import { UseAuthGuard } from "@/app/auth/decorators";
 
@@ -161,6 +161,8 @@ export class PropertySearchController {
 @Controller("property")
 @UseAuthGuard()
 export class PropertyController {
+  private readonly logger = new Logger(PropertyController.name);
+
   constructor(private readonly realEstateService: RealEstateService) {}
 
   // ============ SKIP TRACE ============
@@ -717,7 +719,7 @@ export class PropertyController {
           return { counties };
         }
       } catch (error) {
-        console.warn("[Autocomplete] API failed, using fallback");
+        this.logger.warn("Autocomplete API failed, using fallback");
       }
 
       // Fallback to static data

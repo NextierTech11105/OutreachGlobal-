@@ -58,7 +58,7 @@ export class CampaignConsumer extends WorkerHost {
         where: expression,
       });
 
-      console.log(`found campaign ${campaigns.length}`);
+      this.logger.debug(`Found ${campaigns.length} campaigns for lead`);
 
       if (campaigns.length) {
         const campaignLeadValues: CampaignLeadInsert[] = [];
