@@ -96,3 +96,6 @@ export * from "./tenant-config.schema";
 
 // ===== TEAM SHARES (Cross-Team Collaboration) =====
 export * from "./team-shares.schema";
+
+// ===== SIGNALHOUSE TRACKING (Delivery Status & Webhooks) =====
+export * from "./signalhouse-tracking.schema";
