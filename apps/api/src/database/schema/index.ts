@@ -108,3 +108,6 @@ export * from "./meetings.schema";
 
 // ===== GROWTH OS: BUYER PERSONAS & ICP =====
 export * from "./buyer-personas.schema";
+
+// ===== GROWTH OS: PRE-MEETING BRIEFS =====
+export * from "./pre-meeting-briefs.schema";
